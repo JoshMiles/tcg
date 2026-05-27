@@ -4,31 +4,31 @@
 //  CARD DATA  (Season 1 — 25 cards)
 // ═══════════════════════════════════════════════════════
 const CARDS = [
-  { number:  1, name: 'Cheesygidds',  image: '../Old/Season 1 Assets/GIF/Cheesygidds.gif',   probability:  3, stars: 5 },
-  { number:  2, name: 'Dinogidds',    image: '../Old/Season 1 Assets/GIF/Dinogidds.gif',     probability:  4, stars: 5 },
-  { number:  3, name: 'Onesiegidds',  image: '../Old/Season 1 Assets/GIF/Onesiegidds.gif',   probability:  5, stars: 5 },
-  { number:  4, name: 'Creamygidds',  image: '../Old/Season 1 Assets/GIF/Creamygidds.gif',   probability:  7, stars: 4 },
-  { number:  5, name: 'Wheezygidds',  image: '../Old/Season 1 Assets/GIF/Wheezygidds.gif',   probability:  9, stars: 4 },
-  { number:  6, name: 'Suitygidds',   image: '../Old/Season 1 Assets/GIF/Suitygidds.gif',    probability:  7, stars: 4 },
-  { number:  7, name: 'Cringygidds',  image: '../Old/Season 1 Assets/GIF/Cringygidds.gif',   probability:  7, stars: 4 },
-  { number:  8, name: 'Mysterygidds', image: '../Old/Season 1 Assets/GIF/Mysterygidds.gif',  probability:  8, stars: 4 },
-  { number:  9, name: 'Bottomygidds', image: '../Old/Season 1 Assets/GIF/Bottomgidds.gif',   probability: 15, stars: 3 },
-  { number: 10, name: 'Goatlygidds',  image: '../Old/Season 1 Assets/GIF/Goatlygidds.gif',   probability: 25, stars: 3 },
-  { number: 11, name: 'Pokegidds',    image: '../Old/Season 1 Assets/GIF/PokegiddsV2.gif',   probability: 25, stars: 3 },
-  { number: 12, name: 'UWUgidds',     image: '../Old/Season 1 Assets/GIF/UWUgidds.gif',      probability: 11, stars: 3 },
-  { number: 13, name: 'Scaredygidds', image: '../Old/Season 1 Assets/GIF/Scaredygidds.gif',  probability: 17, stars: 3 },
-  { number: 14, name: 'Angrygidds',   image: '../Old/Season 1 Assets/GIF/Angrygidds.gif',    probability: 16, stars: 3 },
-  { number: 15, name: 'Sweatygidds',  image: '../Old/Season 1 Assets/GIF/Sweatygidds.gif',   probability: 20, stars: 2 },
-  { number: 16, name: 'Comedygidds',  image: '../Old/Season 1 Assets/GIF/Comedygidds.gif',   probability: 75, stars: 2 },
-  { number: 17, name: 'Glitchygidds', image: '../Old/Season 1 Assets/GIF/Glitchygidds.gif',  probability: 60, stars: 2 },
-  { number: 18, name: 'Inkygidds',    image: '../Old/Season 1 Assets/GIF/Inkygidds.gif',     probability: 50, stars: 2 },
-  { number: 19, name: 'Drinkygidds',  image: '../Old/Season 1 Assets/GIF/Drinkygidds.gif',   probability: 53, stars: 2 },
-  { number: 20, name: 'Sillygidds',   image: '../Old/Season 1 Assets/GIF/Sillygidds.gif',    probability: 67, stars: 2 },
-  { number: 21, name: 'Victorygidds', image: '../Old/Season 1 Assets/GIF/Victorygidds.gif',  probability: 82, stars: 1 },
-  { number: 22, name: 'Gassygidds',   image: '../Old/Season 1 Assets/GIF/Gassygidds.gif',    probability: 90, stars: 1 },
-  { number: 23, name: 'Crunchygidds', image: '../Old/Season 1 Assets/GIF/Cronchygidds.gif',  probability: 87, stars: 1 },
-  { number: 24, name: 'Waxygidds',    image: '../Old/Season 1 Assets/GIF/Waxygidds.gif',     probability: 71, stars: 1 },
-  { number: 25, name: 'Gaspygidds',   image: '../Old/Season 1 Assets/GIF/GaspygiddsV2.gif',  probability: 84, stars: 1 },
+  { number:  1, name: 'Cheesygidds',  image: 'assets/GIF/Cheesygidds.gif',   probability:  3, stars: 5 },
+  { number:  2, name: 'Dinogidds',    image: 'assets/GIF/Dinogidds.gif',     probability:  4, stars: 5 },
+  { number:  3, name: 'Onesiegidds',  image: 'assets/GIF/Onesiegidds.gif',   probability:  5, stars: 5 },
+  { number:  4, name: 'Creamygidds',  image: 'assets/GIF/Creamygidds.gif',   probability:  7, stars: 4 },
+  { number:  5, name: 'Wheezygidds',  image: 'assets/GIF/Wheezygidds.gif',   probability:  9, stars: 4 },
+  { number:  6, name: 'Suitygidds',   image: 'assets/GIF/Suitygidds.gif',    probability:  7, stars: 4 },
+  { number:  7, name: 'Cringygidds',  image: 'assets/GIF/Cringygidds.gif',   probability:  7, stars: 4 },
+  { number:  8, name: 'Mysterygidds', image: 'assets/GIF/Mysterygidds.gif',  probability:  8, stars: 4 },
+  { number:  9, name: 'Bottomygidds', image: 'assets/GIF/Bottomgidds.gif',   probability: 15, stars: 3 },
+  { number: 10, name: 'Goatlygidds',  image: 'assets/GIF/Goatlygidds.gif',   probability: 25, stars: 3 },
+  { number: 11, name: 'Pokegidds',    image: 'assets/GIF/PokegiddsV2.gif',   probability: 25, stars: 3 },
+  { number: 12, name: 'UWUgidds',     image: 'assets/GIF/UWUgidds.gif',      probability: 11, stars: 3 },
+  { number: 13, name: 'Scaredygidds', image: 'assets/GIF/Scaredygidds.gif',  probability: 17, stars: 3 },
+  { number: 14, name: 'Angrygidds',   image: 'assets/GIF/Angrygidds.gif',    probability: 16, stars: 3 },
+  { number: 15, name: 'Sweatygidds',  image: 'assets/GIF/Sweatygidds.gif',   probability: 20, stars: 2 },
+  { number: 16, name: 'Comedygidds',  image: 'assets/GIF/Comedygidds.gif',   probability: 75, stars: 2 },
+  { number: 17, name: 'Glitchygidds', image: 'assets/GIF/Glitchygidds.gif',  probability: 60, stars: 2 },
+  { number: 18, name: 'Inkygidds',    image: 'assets/GIF/Inkygidds.gif',     probability: 50, stars: 2 },
+  { number: 19, name: 'Drinkygidds',  image: 'assets/GIF/Drinkygidds.gif',   probability: 53, stars: 2 },
+  { number: 20, name: 'Sillygidds',   image: 'assets/GIF/Sillygidds.gif',    probability: 67, stars: 2 },
+  { number: 21, name: 'Victorygidds', image: 'assets/GIF/Victorygidds.gif',  probability: 82, stars: 1 },
+  { number: 22, name: 'Gassygidds',   image: 'assets/GIF/Gassygidds.gif',    probability: 90, stars: 1 },
+  { number: 23, name: 'Crunchygidds', image: 'assets/GIF/Cronchygidds.gif',  probability: 87, stars: 1 },
+  { number: 24, name: 'Waxygidds',    image: 'assets/GIF/Waxygidds.gif',     probability: 71, stars: 1 },
+  { number: 25, name: 'Gaspygidds',   image: 'assets/GIF/GaspygiddsV2.gif',  probability: 84, stars: 1 },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -40,7 +40,7 @@ const CONFIG = {
   soundVolume:     1.0,   // 0–1
   holoMinStars:    5,     // cards with this many stars or more get the holo effect
   collectionName:  'CheesyStarterDeck',
-  packageImage:    '../Old/Season 1 Assets/Cheesy Starter Deck Cover.png',
+  packageImage:    'assets/pack-cover.png',
   accentColor:     'rgb(241,187,6)',
   tearBorderColor: 'rgb(218,163,18)',  // match the pack wrapper edge color
 };
@@ -51,7 +51,7 @@ const PACK_SOUNDS = [
   { src: 'https://cdn.freesound.org/previews/787/787409_12262933-lq.mp3', delay:  450 },
   { src: 'https://cdn.freesound.org/previews/787/787405_12262933-lq.mp3', delay: 1410 },
 ];
-// Card-specific sound: '../Old/Season 1 Assets/Sounds/{cardNumber}.mp3' plays at 2800ms
+// Card-specific sound: 'assets/sounds/{cardNumber}.mp3' plays at 2800ms
 
 // ═══════════════════════════════════════════════════════
 //  STAR SVG  (repeated per star rating)
@@ -221,7 +221,7 @@ function drawCard(username) {
 
   // ── Card-specific reveal sound + radial burst at 2800ms ──
   setTimeout(() => {
-    playAudio(`../Old/Season 1 Assets/Sounds/${card.number}.mp3`, vol);
+    playAudio(`assets/sounds/${card.number}.mp3`, vol);
     radialContainer.style.opacity   = '1';
     radialContainer.style.animation = 'spinRadial 4s linear infinite';
   }, 2800);

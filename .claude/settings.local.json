@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv \"/mnt/c/USers/joshm/Documents/GitHub/tcg/Old/Season 1 Assets/GIF/\"*.gif \"/mnt/c/USers/joshm/Documents/GitHub/tcg/widget/assets/GIF/\")",
+      "Bash(mv \"/mnt/c/USers/joshm/Documents/GitHub/tcg/Old/Season 1 Assets/Sounds/\"*.mp3 \"/mnt/c/USers/joshm/Documents/GitHub/tcg/widget/assets/sounds/\")"
+    ]
+  }
+}
