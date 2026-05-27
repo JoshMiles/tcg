@@ -1,47 +1,107 @@
 'use strict';
 
 // ═══════════════════════════════════════════════════════
-//  CARD DATA + CONFIG  (loaded from /api/seasons/active)
+//  SEASON DATA  (loaded from /api/seasons/active)
 // ═══════════════════════════════════════════════════════
-let CARDS = [];
-let CONFIG = {
-  cardTime:           3,
-  cooldownTime:       1,
-  soundVolume:        1.0,
-  holoMinStars:       5,
+let PACKS = [];      // [{ pack, cards: [{number,name,image,probability,stars}] }]
+let ALL_CARDS = [];  // flat list of all cards across all packs (for mini-list)
+
+let SEASON_CFG = {
   maxConcurrentPacks: 1,
   collectionName:     '',
-  packageImage:       'assets/pack-cover.png',
-  accentColor:        'rgb(241,187,6)',
-  tearBorderColor:    'rgb(218,163,18)',
 };
+
+// Fallback pack visual config used before season loads
+const PACK_DEFAULTS = {
+  cardTime:       3,
+  cooldownTime:   1,
+  soundVolume:    1.0,
+  holoMinStars:   5,
+  packageImage:   'assets/pack-cover.png',
+  accentColor:    'rgb(241,187,6)',
+  tearBorderColor:'rgb(218,163,18)',
+};
+
+function packConfig(pack) {
+  if (!pack) return PACK_DEFAULTS;
+  return {
+    cardTime:        pack.cardTime       ?? 3,
+    cooldownTime:    pack.cooldownTime   ?? 1,
+    soundVolume:     pack.soundVolume    ?? 1.0,
+    holoMinStars:    pack.holoMinStars   ?? 5,
+    packageImage:    pack.coverImageUrl  || 'assets/pack-cover.png',
+    accentColor:     pack.accentColor    || 'rgb(241,187,6)',
+    tearBorderColor: pack.tearBorderColor|| 'rgb(218,163,18)',
+  };
+}
 
 async function initSeason() {
   try {
     const res = await fetch('/api/seasons/active');
     if (!res.ok) return;
-    const { season, cards } = await res.json();
-    CARDS = cards.map(c => ({
-      number: c.number, name: c.name, image: c.imageUrl,
-      probability: c.probability, stars: c.stars,
-    }));
-    CONFIG = {
-      cardTime:           season.cardTime,
-      cooldownTime:       season.cooldownTime,
-      soundVolume:        season.soundVolume ?? 1.0,
-      holoMinStars:       season.holoMinStars,
+    const { season, packs } = await res.json();
+
+    SEASON_CFG = {
       maxConcurrentPacks: season.maxConcurrentPacks ?? 1,
-      collectionName:     season.collectionName,
-      packageImage:       season.coverImageUrl || 'assets/pack-cover.png',
-      accentColor:        season.accentColor,
-      tearBorderColor:    season.tearBorderColor,
+      collectionName:     season.collectionName ?? '',
     };
+
+    PACKS = (packs ?? []).map(({ pack, cards }) => ({
+      pack,
+      cards: (cards ?? []).map(c => ({
+        number:      c.number,
+        name:        c.name,
+        image:       c.imageUrl,
+        probability: c.probability,
+        stars:       c.stars,
+      })),
+    }));
+
+    // Deduplicate by card number for the mini collection list
+    const seen = new Set();
+    ALL_CARDS = [];
+    for (const { cards } of PACKS) {
+      for (const c of cards) {
+        if (!seen.has(c.number)) { seen.add(c.number); ALL_CARDS.push(c); }
+      }
+    }
+    ALL_CARDS.sort((a, b) => a.number - b.number);
   } catch {
     // fall back to defaults if API unreachable
   }
 }
 
-// Pack-opening sound URLs
+// ═══════════════════════════════════════════════════════
+//  CARD SELECTION  (pick pack by weight, then card by prob)
+// ═══════════════════════════════════════════════════════
+function pickPackAndCard() {
+  if (PACKS.length === 0) return null;
+
+  // Weighted pack selection
+  const totalWeight = PACKS.reduce((s, { pack }) => s + (pack.weight || 1), 0);
+  let rw = Math.random() * totalWeight;
+  let chosen = PACKS[PACKS.length - 1];
+  for (const p of PACKS) {
+    rw -= (p.pack.weight || 1);
+    if (rw <= 0) { chosen = p; break; }
+  }
+
+  // Weighted card selection within the chosen pack
+  if (chosen.cards.length === 0) return null;
+  const totalProb = chosen.cards.reduce((s, c) => s + c.probability, 0);
+  let rp = Math.random() * totalProb;
+  let card = chosen.cards[chosen.cards.length - 1];
+  for (const c of chosen.cards) {
+    rp -= c.probability;
+    if (rp <= 0) { card = c; break; }
+  }
+
+  return { card, cfg: packConfig(chosen.pack) };
+}
+
+// ═══════════════════════════════════════════════════════
+//  PACK SOUNDS
+// ═══════════════════════════════════════════════════════
 const PACK_SOUNDS = [
   { src: 'https://cdn.freesound.org/previews/186/186719_105499-lq.mp3',   delay:    0 },
   { src: 'https://cdn.freesound.org/previews/787/787409_12262933-lq.mp3', delay:  450 },
@@ -63,8 +123,9 @@ let collectionTimeout   = null;
 //  STORAGE  (Vercel KV via /api/collection)
 // ═══════════════════════════════════════════════════════
 async function loadCollection() {
+  if (!SEASON_CFG.collectionName) return;
   try {
-    const res = await fetch(`/api/collection?name=${CONFIG.collectionName}`);
+    const res = await fetch(`/api/collection?name=${SEASON_CFG.collectionName}`);
     revealedCardsByUser = res.ok ? await res.json() : {};
   } catch {
     revealedCardsByUser = {};
@@ -72,7 +133,8 @@ async function loadCollection() {
 }
 
 function saveCollection() {
-  fetch(`/api/collection?name=${CONFIG.collectionName}`, {
+  if (!SEASON_CFG.collectionName) return;
+  fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data: revealedCardsByUser }),
@@ -81,7 +143,7 @@ function saveCollection() {
 
 async function resetAllCollections() {
   revealedCardsByUser = {};
-  await fetch(`/api/collection?name=${CONFIG.collectionName}`, { method: 'DELETE' }).catch(() => {});
+  await fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, { method: 'DELETE' }).catch(() => {});
   showAlert('🔄 All collections reset');
 }
 
@@ -89,7 +151,7 @@ async function resetUserCollection(username) {
   const user = (username || '').toLowerCase().trim();
   if (!user) return;
   delete revealedCardsByUser[user];
-  await fetch(`/api/collection?name=${CONFIG.collectionName}&username=${user}`, { method: 'DELETE' }).catch(() => {});
+  await fetch(`/api/collection?name=${SEASON_CFG.collectionName}&username=${user}`, { method: 'DELETE' }).catch(() => {});
   showAlert('🔄 Reset collection for ' + user);
 }
 
@@ -109,29 +171,16 @@ function showAlert(msg) {
 // ═══════════════════════════════════════════════════════
 function playAudio(src, volume) {
   const audio = new Audio(src);
-  audio.volume = volume ?? CONFIG.soundVolume;
+  audio.volume = volume ?? 1.0;
   audio.play().catch(() => {});
-}
-
-// ═══════════════════════════════════════════════════════
-//  WEIGHTED RANDOM CARD SELECTION
-// ═══════════════════════════════════════════════════════
-function pickCard() {
-  const total = CARDS.reduce((sum, c) => sum + c.probability, 0);
-  let rand = Math.random() * total;
-  for (const card of CARDS) {
-    rand -= card.probability;
-    if (rand <= 0) return card;
-  }
-  return CARDS[CARDS.length - 1];
 }
 
 // ═══════════════════════════════════════════════════════
 //  BUILD MINI CARD LIST
 // ═══════════════════════════════════════════════════════
-function buildMiniList(miniList, userCards, highlightNumber) {
+function buildMiniList(miniList, userCards, highlightNumber, cfg) {
   miniList.innerHTML = '';
-  for (const card of CARDS) {
+  for (const card of ALL_CARDS) {
     const div = document.createElement('div');
     div.classList.add('mini-card');
     div.style.position = 'relative';
@@ -144,7 +193,7 @@ function buildMiniList(miniList, userCards, highlightNumber) {
       div.style.backgroundSize     = 'cover';
       div.style.backgroundPosition = 'center';
       div.style.backgroundRepeat   = 'no-repeat';
-      div.style.backgroundColor    = CONFIG.accentColor;
+      div.style.backgroundColor    = (cfg || PACK_DEFAULTS).accentColor;
       div.style.border             = '3px solid white';
     } else {
       const q = document.createElement('span');
@@ -159,26 +208,28 @@ function buildMiniList(miniList, userCards, highlightNumber) {
 // ═══════════════════════════════════════════════════════
 //  THEATER FACTORY  — each draw gets its own DOM clone
 // ═══════════════════════════════════════════════════════
-function createTheater() {
+function createTheater(cfg) {
   const tpl = document.getElementById('theater-tpl');
   const id  = ++drawCounter;
   const frag = tpl.content.cloneNode(true);
 
-  // Give clipPath IDs a unique suffix so multiple SVGs don't collide
+  // Unique clip-path IDs so multiple theaters don't collide
   const clips = frag.querySelectorAll('clipPath');
   if (clips[0]) clips[0].id = `tb1-clip-${id}`;
   if (clips[1]) clips[1].id = `tb2-clip-${id}`;
   frag.querySelectorAll('image').forEach((img, i) => {
-    img.setAttribute('href', CONFIG.packageImage);
+    img.setAttribute('href', cfg.packageImage);
     img.setAttribute('clip-path', `url(#${i === 0 ? 'tb1' : 'tb2'}-clip-${id})`);
   });
 
-  // Set pack image
-  frag.querySelectorAll('.package-image').forEach(img => { img.src = CONFIG.packageImage; });
+  frag.querySelectorAll('.package-image').forEach(img => { img.src = cfg.packageImage; });
 
   const stage = document.getElementById('stage');
   stage.appendChild(frag);
   const wrapper = stage.lastElementChild;
+
+  // Apply per-pack tear color as a CSS variable scoped to this theater
+  wrapper.style.setProperty('--tear-color', cfg.tearBorderColor);
 
   return {
     wrapper,
@@ -203,12 +254,21 @@ function drawCard(username) {
   const user = (username || 'someone').toLowerCase().trim();
   if (!Array.isArray(revealedCardsByUser[user])) revealedCardsByUser[user] = [];
 
-  const theater = createTheater();
+  const pick = pickPackAndCard();
+  if (!pick) {
+    showAlert('⚠️ No cards available — check your active season has packs with cards.');
+    activeDraws--;
+    setTimeout(processCardQueue, 1000);
+    return;
+  }
+
+  const { card, cfg } = pick;
+  const theater = createTheater(cfg);
   const { wrapper, packageContainer, tearBorder1, cardBox, cardLabel,
           mainCard, holoOverlay, cardInfoOverlay, radialContainer,
           cardInfo, userText, miniList } = theater;
 
-  const vol = CONFIG.soundVolume;
+  const vol = cfg.soundVolume;
 
   for (const s of PACK_SOUNDS) {
     setTimeout(() => playAudio(s.src, vol), s.delay);
@@ -239,8 +299,6 @@ function drawCard(username) {
   void cardBox.offsetWidth;
   cardBox.style.animation = 'cardBoxIn 7.5s ease forwards';
 
-  const card = pickCard();
-
   // Card reveal sound + radial burst
   setTimeout(() => {
     playAudio(`assets/sounds/${card.number}.mp3`, vol);
@@ -254,7 +312,7 @@ function drawCard(username) {
     cardLabel.style.visibility = 'visible';
   }, 3200);
 
-  // User text + collection
+  // User text
   setTimeout(() => {
     cardInfo.style.opacity   = '1';
     cardInfo.style.transform = 'scale(1)';
@@ -284,7 +342,7 @@ function drawCard(username) {
   if (starsEl) starsEl.innerHTML  = STAR_SVG.repeat(card.stars);
 
   if (holoOverlay) {
-    if (card.stars >= CONFIG.holoMinStars) {
+    if (card.stars >= cfg.holoMinStars) {
       holoOverlay.classList.remove('holographic-animate');
       void holoOverlay.offsetWidth;
       holoOverlay.classList.add('holographic-animate');
@@ -294,7 +352,7 @@ function drawCard(username) {
     }
   }
 
-  buildMiniList(miniList, revealedCardsByUser[user], card.number);
+  buildMiniList(miniList, revealedCardsByUser[user], card.number, cfg);
 
   if (!revealedCardsByUser[user].includes(card.number)) {
     revealedCardsByUser[user].push(card.number);
@@ -302,7 +360,7 @@ function drawCard(username) {
   }
 
   // Hide + cleanup
-  const showDuration = CONFIG.cardTime * 1000 + 4000;
+  const showDuration = cfg.cardTime * 1000 + 4000;
   setTimeout(() => {
     radialContainer.style.opacity   = '0';
     radialContainer.style.animation = 'none';
@@ -310,7 +368,7 @@ function drawCard(username) {
     setTimeout(() => {
       wrapper.remove();
       activeDraws--;
-      setTimeout(processCardQueue, CONFIG.cooldownTime * 1000);
+      setTimeout(processCardQueue, cfg.cooldownTime * 1000);
     }, 500);
   }, showDuration);
 }
@@ -322,11 +380,11 @@ function showCollection(username) {
   const user = (username || 'someone').toLowerCase().trim();
   if (!Array.isArray(revealedCardsByUser[user])) revealedCardsByUser[user] = [];
 
-  const theater = createTheater();
+  const cfg = packConfig(PACKS[0]?.pack);
+  const theater = createTheater(cfg);
   const { wrapper, packageContainer, cardBox, radialContainer,
           cardInfo, userText, miniList } = theater;
 
-  // Hide pack animation parts — only show the collection panel
   packageContainer.style.display = 'none';
   cardBox.style.display          = 'none';
   radialContainer.style.display  = 'none';
@@ -336,7 +394,7 @@ function showCollection(username) {
   cardInfo.style.transform = 'scale(1)';
   userText.textContent     = (username || 'Someone') + "'s collection:";
 
-  buildMiniList(miniList, revealedCardsByUser[user], null);
+  buildMiniList(miniList, revealedCardsByUser[user], null, cfg);
 
   if (collectionTimeout) clearTimeout(collectionTimeout);
   collectionTimeout = setTimeout(() => {
@@ -353,7 +411,7 @@ function showCollection(username) {
 //  QUEUE  (allows up to maxConcurrentPacks simultaneous draws)
 // ═══════════════════════════════════════════════════════
 function processCardQueue() {
-  while (cardQueue.length > 0 && activeDraws < CONFIG.maxConcurrentPacks) {
+  while (cardQueue.length > 0 && activeDraws < SEASON_CFG.maxConcurrentPacks) {
     activeDraws++;
     const fn = cardQueue.shift();
     fn();
@@ -380,8 +438,7 @@ function initDevPanel() {
   const panel = document.getElementById('dev-panel');
   if (!panel) return;
 
-  const params = new URLSearchParams(window.location.search);
-  if (!params.has('dev')) {
+  if (!new URLSearchParams(window.location.search).has('dev')) {
     panel.classList.add('hidden');
     return;
   }
@@ -389,21 +446,16 @@ function initDevPanel() {
   const usernameInput = document.getElementById('dev-username');
 
   document.getElementById('btn-draw').addEventListener('click', () => {
-    const name = usernameInput.value.trim() || 'testuser';
-    queueDraw(name);
+    queueDraw(usernameInput.value.trim() || 'testuser');
   });
-
   document.getElementById('btn-collection').addEventListener('click', () => {
-    const name = usernameInput.value.trim() || 'testuser';
-    queueCollection(name);
+    queueCollection(usernameInput.value.trim() || 'testuser');
   });
-
   document.getElementById('btn-reset-user').addEventListener('click', () => {
     const name = usernameInput.value.trim();
     if (!name) { showAlert('⚠️ Enter a username to reset'); return; }
     resetUserCollection(name);
   });
-
   document.getElementById('btn-reset-all').addEventListener('click', () => {
     if (confirm('Reset ALL player collections?')) resetAllCollections();
   });
@@ -422,6 +474,5 @@ function initDevPanel() {
 document.addEventListener('DOMContentLoaded', async () => {
   await initSeason();
   await loadCollection();
-  document.documentElement.style.setProperty('--tear-color', CONFIG.tearBorderColor);
   initDevPanel();
 });
