@@ -1,19 +1,28 @@
-import type { Season, Card } from './types';
+import type { Season, Pack, Card } from './types';
 
 export const SEED_SEASON: Season = {
   id: 'season1',
   name: 'Cheesy Starter Deck',
   collectionName: 'CheesyStarterDeck',
-  coverImageUrl: '/assets/pack-cover.png',
   active: true,
   createdAt: Date.now(),
+  maxConcurrentPacks: 1,
+};
+
+export const SEED_PACK: Pack = {
+  id: 'pack1',
+  seasonId: 'season1',
+  name: 'Cheesy Starter Pack',
+  coverImageUrl: '/assets/pack-cover.png',
+  active: true,
+  weight: 1,
   accentColor: 'rgb(241,187,6)',
   tearBorderColor: 'rgb(218,163,18)',
   holoMinStars: 5,
   cardTime: 3,
   cooldownTime: 1,
-  maxConcurrentPacks: 1,
   soundVolume: 1.0,
+  createdAt: Date.now(),
 };
 
 export const SEED_CARDS: Card[] = [

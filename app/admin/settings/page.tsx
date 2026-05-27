@@ -1,11 +1,9 @@
-import { getActiveSeasonWithCards } from '@/lib/kv';
+import { getActiveSeasonWithPacks } from '@/lib/kv';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  const result = await getActiveSeasonWithCards();
-
-  const overlayPath = '/overlay.html';
+  const result = await getActiveSeasonWithPacks();
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -21,7 +19,7 @@ export default async function SettingsPage() {
         </p>
         <div className="flex items-center gap-2">
           <code className="flex-1 bg-gray-800 rounded-lg px-3 py-2 text-sm text-yellow-300 break-all">
-            {'<your-vercel-url>'}{overlayPath}
+            {'<your-vercel-url>'}/overlay.html
           </code>
         </div>
         <p className="text-xs text-gray-600">
@@ -41,19 +39,32 @@ queueDraw('username');
 
 // Show a viewer's collection
 queueCollection('username');`}</pre>
-        <p className="text-sm text-gray-400">
-          Or trigger them from a Nightbot / StreamElements custom command by injecting script into the browser source URL.
-        </p>
       </section>
 
       {/* Active season info */}
-      <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-2">
+      <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Active Season</h2>
         {result ? (
-          <div className="text-sm space-y-1">
-            <p className="text-white font-medium">{result.season.name}</p>
-            <p className="text-gray-400">{result.cards.length} cards · Max concurrent: {result.season.maxConcurrentPacks ?? 1} pack{(result.season.maxConcurrentPacks ?? 1) !== 1 ? 's' : ''}</p>
-            <p className="text-gray-400">Sound volume: {((result.season.soundVolume ?? 1) * 100).toFixed(0)}%</p>
+          <div className="space-y-3">
+            <div className="text-sm space-y-1">
+              <p className="text-white font-medium">{result.season.name}</p>
+              <p className="text-gray-400">
+                {result.packs.length} pack{result.packs.length !== 1 ? 's' : ''} ·{' '}
+                Max concurrent: {result.season.maxConcurrentPacks}
+              </p>
+            </div>
+            {result.packs.length > 0 && (
+              <div className="space-y-1">
+                {result.packs.map(({ pack, cards }) => (
+                  <div key={pack.id} className="flex items-center gap-2 text-sm">
+                    <span className="text-gray-300">{pack.name}</span>
+                    <span className="text-gray-600">—</span>
+                    <span className="text-gray-500">{cards.length} cards</span>
+                    {!pack.active && <span className="text-xs text-gray-600">(inactive)</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-sm text-gray-500">No active season.</p>

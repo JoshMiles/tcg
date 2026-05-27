@@ -92,7 +92,7 @@ export async function savePackCards(packId: string, cards: Card[]): Promise<void
   await kv.set(`pack:${packId}:cards`, cards);
 }
 
-// ── Pulls (universal collection) ──────────────────────────
+// ── Pulls ──────────────────────────────────────────────────
 
 export async function getUserPulls(username: string): Promise<PullRecord[]> {
   return (await kv.get<PullRecord[]>(`user:${username.toLowerCase()}:pulls`)) ?? [];
@@ -128,10 +128,14 @@ export async function getActiveSeasonWithPacks(): Promise<{
   return { season, packs: packsWithCards };
 }
 
-// ── Legacy collection (kept for admin reset compatibility) ─
+// ── Legacy collection ─────────────────────────────────────
 
 export async function getCollection(collectionName: string): Promise<Record<string, number[]>> {
   return (await kv.get<Record<string, number[]>>(`tcg_${collectionName}`)) ?? {};
+}
+
+export async function saveCollection(collectionName: string, data: Record<string, number[]>): Promise<void> {
+  await kv.set(`tcg_${collectionName}`, data);
 }
 
 export async function deleteCollection(collectionName: string): Promise<void> {

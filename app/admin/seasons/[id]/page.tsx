@@ -1,32 +1,29 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getSeason, getSeasonCards } from '@/lib/kv';
-import { updateSeason, addCard, deleteCard } from '../../actions';
-import { SeasonFields } from '../new/page';
+import { getSeason, listPacks, getPackCards } from '@/lib/kv';
+import { updateSeason, deletePackAction } from '../../actions';
+import { SeasonFields } from '../../components/SeasonFields';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SeasonPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [season, cards] = await Promise.all([getSeason(id), getSeasonCards(id)]);
+  const season = await getSeason(id);
   if (!season) notFound();
 
-  const sortedCards = [...cards].sort((a, b) => a.number - b.number);
-  const totalProb = cards.reduce((s, c) => s + c.probability, 0);
+  const packs = await listPacks(id);
+  packs.sort((a, b) => a.createdAt - b.createdAt);
+
+  const cardCounts = await Promise.all(
+    packs.map(p => getPackCards(p.id).then(cards => ({ id: p.id, count: cards.length })))
+  );
+  const countMap = Object.fromEntries(cardCounts.map(({ id: pid, count }) => [pid, count]));
 
   const updateThisSeason = updateSeason.bind(null, id);
 
-  // Probability by star tier
-  const tierStats: Record<number, { count: number; probSum: number }> = {};
-  for (const c of cards) {
-    if (!tierStats[c.stars]) tierStats[c.stars] = { count: 0, probSum: 0 };
-    tierStats[c.stars].count++;
-    tierStats[c.stars].probSum += c.probability;
-  }
-
   return (
     <div className="space-y-8 max-w-3xl">
-      {/* Season metadata */}
+      {/* Season settings */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">{season.name}</h1>
@@ -40,14 +37,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
             defaults={{
               name: season.name,
               collectionName: season.collectionName,
-              coverImageUrl: season.coverImageUrl,
-              accentColor: season.accentColor,
-              tearBorderColor: season.tearBorderColor,
-              holoMinStars: season.holoMinStars,
-              cardTime: season.cardTime,
-              cooldownTime: season.cooldownTime,
-              maxConcurrentPacks: season.maxConcurrentPacks ?? 1,
-              soundVolume: season.soundVolume ?? 1.0,
+              maxConcurrentPacks: season.maxConcurrentPacks,
               active: season.active,
             }}
           />
@@ -62,139 +52,68 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
         </form>
       </div>
 
-      {/* Cards */}
+      {/* Packs */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Cards ({sortedCards.length})</h2>
-          {totalProb > 0 && (
-            <div className="flex gap-3 text-xs text-gray-500">
-              {[5, 4, 3, 2, 1].map(star => {
-                const t = tierStats[star];
-                if (!t) return null;
-                const pct = Math.round(t.probSum / totalProb * 100);
-                return (
-                  <span key={star} className="flex items-center gap-1">
-                    <span className="text-yellow-400">{'★'.repeat(star)}</span>
-                    <span>{pct}%</span>
-                  </span>
-                );
-              })}
-            </div>
-          )}
+          <h2 className="text-xl font-bold">Packs ({packs.length})</h2>
+          <Link
+            href={`/admin/seasons/${id}/packs/new`}
+            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm"
+          >
+            + New Pack
+          </Link>
         </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-4">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-gray-500 text-xs uppercase border-b border-gray-800">
-                <th className="text-left px-4 py-3">#</th>
-                <th className="text-left px-4 py-3">Name</th>
-                <th className="text-right px-4 py-3">★</th>
-                <th className="text-right px-4 py-3">Prob</th>
-                <th className="text-right px-4 py-3">%</th>
-                <th className="text-right px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedCards.map(card => {
-                const deleteThisCard = deleteCard.bind(null, id, card.id);
-                const pct = totalProb > 0 ? (card.probability / totalProb * 100).toFixed(1) : '—';
-                return (
-                  <tr key={card.id} className="border-t border-gray-800 hover:bg-gray-800">
-                    <td className="px-4 py-2 text-gray-500">{card.number}</td>
-                    <td className="px-4 py-2 text-gray-200">
-                      <div className="flex items-center gap-2">
-                        {card.imageUrl && (
-                          <img src={card.imageUrl} alt={card.name} className="w-6 h-8 object-cover rounded" />
-                        )}
-                        {card.name}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2 text-right text-yellow-400">{'★'.repeat(card.stars)}</td>
-                    <td className="px-4 py-2 text-right text-gray-400">{card.probability}</td>
-                    <td className="px-4 py-2 text-right text-gray-500 text-xs">{pct}%</td>
-                    <td className="px-4 py-2 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link
-                          href={`/admin/seasons/${id}/cards/${card.id}`}
-                          className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
-                        >
-                          Edit
-                        </Link>
-                        <form action={deleteThisCard}>
-                          <button
-                            type="submit"
-                            className="px-2 py-1 text-xs bg-red-900 hover:bg-red-800 text-red-300 rounded"
-                          >
-                            Del
-                          </button>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {sortedCards.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-gray-500">No cards yet</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Add card form */}
-        <details className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <summary className="px-4 py-3 cursor-pointer text-sm font-semibold text-gray-300 hover:text-white select-none">
-            + Add Card
-          </summary>
-          <form action={addCard.bind(null, id)} className="px-4 pb-4 pt-2 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Name *</label>
-                <input
-                  name="name"
-                  required
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Image URL</label>
-                <input
-                  name="imageUrl"
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Stars (1–5) *</label>
-                <input
-                  name="stars"
-                  type="number"
-                  min="1"
-                  max="5"
-                  required
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Probability *</label>
-                <input
-                  name="probability"
-                  type="number"
-                  min="1"
-                  required
-                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
-                />
-              </div>
-            </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm"
-            >
-              Add Card
-            </button>
-          </form>
-        </details>
+        {packs.length === 0 ? (
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-8 text-center text-gray-400">
+            No packs yet. Add a pack to start adding cards.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {packs.map(pack => {
+              const delPack = deletePackAction.bind(null, id, pack.id);
+              return (
+                <div
+                  key={pack.id}
+                  className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4"
+                >
+                  {pack.coverImageUrl && (
+                    <img src={pack.coverImageUrl} alt={pack.name} className="w-10 h-14 object-cover rounded shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-white">{pack.name}</span>
+                      {pack.active ? (
+                        <span className="text-xs px-2 py-0.5 bg-green-900 text-green-400 rounded-full">Active</span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 bg-gray-700 text-gray-400 rounded-full">Inactive</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-400 mt-0.5">
+                      {countMap[pack.id] ?? 0} cards · Weight: {pack.weight}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Link
+                      href={`/admin/seasons/${id}/packs/${pack.id}`}
+                      className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded-lg"
+                    >
+                      Manage
+                    </Link>
+                    <form action={delPack}>
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 text-sm bg-red-900 hover:bg-red-800 text-red-300 rounded-lg"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

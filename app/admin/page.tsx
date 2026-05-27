@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { getActiveSeasonWithCards, getCollection } from '@/lib/kv';
+import { getActiveSeasonWithPacks, getCollection } from '@/lib/kv';
 import { seedSeason1 } from './actions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard() {
-  const result = await getActiveSeasonWithCards();
+  const result = await getActiveSeasonWithPacks();
 
   if (!result) {
     return (
@@ -24,7 +24,8 @@ export default async function AdminDashboard() {
     );
   }
 
-  const { season, cards } = result;
+  const { season, packs } = result;
+  const allCards = packs.flatMap(p => p.cards);
   const collection = await getCollection(season.collectionName);
   const users = Object.entries(collection);
 
@@ -34,12 +35,16 @@ export default async function AdminDashboard() {
   const freq: Record<number, number> = {};
   users.forEach(([, owned]) => owned.forEach(n => { freq[n] = (freq[n] ?? 0) + 1; }));
 
-  const cardStats = cards
+  const cardStats = allCards
     .map(c => ({ ...c, ownedBy: freq[c.number] ?? 0 }))
     .sort((a, b) => b.ownedBy - a.ownedBy);
 
   const topCollectors = users
-    .map(([username, owned]) => ({ username, owned: owned.length, pct: Math.round(owned.length / cards.length * 100) }))
+    .map(([username, owned]) => ({
+      username,
+      owned: owned.length,
+      pct: allCards.length > 0 ? Math.round(owned.length / allCards.length * 100) : 0,
+    }))
     .sort((a, b) => b.owned - a.owned)
     .slice(0, 10);
 
@@ -47,7 +52,11 @@ export default async function AdminDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <span className="text-sm text-gray-400">Active: <span className="text-yellow-400">{season.name}</span></span>
+        <span className="text-sm text-gray-400">
+          Active: <span className="text-yellow-400">{season.name}</span>
+          {' · '}
+          <span className="text-gray-500">{packs.length} pack{packs.length !== 1 ? 's' : ''}</span>
+        </span>
       </div>
 
       {/* Stat cards */}
@@ -55,8 +64,8 @@ export default async function AdminDashboard() {
         {[
           { label: 'Total Players', value: totalUsers },
           { label: 'Cards Owned', value: totalOwned },
-          { label: 'Total Cards', value: cards.length },
-          { label: 'Avg Completion', value: totalUsers > 0 ? `${Math.round(totalOwned / totalUsers / cards.length * 100)}%` : '—' },
+          { label: 'Total Cards', value: allCards.length },
+          { label: 'Avg Completion', value: totalUsers > 0 && allCards.length > 0 ? `${Math.round(totalOwned / totalUsers / allCards.length * 100)}%` : '—' },
         ].map(({ label, value }) => (
           <div key={label} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-400 text-xs uppercase tracking-wide">{label}</p>
@@ -64,6 +73,34 @@ export default async function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Pack overview */}
+      {packs.length > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-800">
+            <h2 className="font-semibold text-sm">Active Packs</h2>
+          </div>
+          <div className="divide-y divide-gray-800">
+            {packs.map(({ pack, cards }) => (
+              <div key={pack.id} className="px-4 py-3 flex items-center gap-3">
+                {pack.coverImageUrl && (
+                  <img src={pack.coverImageUrl} alt={pack.name} className="w-8 h-10 object-cover rounded shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white">{pack.name}</p>
+                  <p className="text-xs text-gray-500">{cards.length} cards · Weight: {pack.weight}</p>
+                </div>
+                <Link
+                  href={`/admin/seasons/${season.id}/packs/${pack.id}`}
+                  className="text-xs text-gray-400 hover:text-white"
+                >
+                  Manage →
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Top collectors */}
@@ -83,7 +120,7 @@ export default async function AdminDashboard() {
               {topCollectors.map(({ username, owned, pct }) => (
                 <tr key={username} className="border-t border-gray-800 hover:bg-gray-800">
                   <td className="px-4 py-2 text-gray-200">{username}</td>
-                  <td className="px-4 py-2 text-right">{owned}/{cards.length}</td>
+                  <td className="px-4 py-2 text-right">{owned}/{allCards.length}</td>
                   <td className="px-4 py-2 text-right text-yellow-400">{pct}%</td>
                 </tr>
               ))}

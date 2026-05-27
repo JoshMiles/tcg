@@ -1,8 +1,10 @@
 export interface Season {
   id: string;
   name: string;
+  collectionName: string;  // KV key prefix for user collections
   active: boolean;
   createdAt: number;
+  maxConcurrentPacks: number;
 }
 
 export interface Pack {
@@ -17,7 +19,6 @@ export interface Pack {
   holoMinStars: number;
   cardTime: number;
   cooldownTime: number;
-  maxConcurrentPacks: number;
   soundVolume: number;
   createdAt: number;
 }

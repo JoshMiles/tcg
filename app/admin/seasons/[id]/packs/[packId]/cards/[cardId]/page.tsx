@@ -1,32 +1,34 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getSeason, getSeasonCards } from '@/lib/kv';
-import { updateCard } from '../../../../actions';
-import { ImageUploadField } from '../../../../components/image-upload';
+import { getSeason, getPack, getPackCards } from '@/lib/kv';
+import { updateCard } from '../../../../../../actions';
+import { ImageUploadField } from '../../../../../../components/image-upload';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EditCardPage({
   params,
 }: {
-  params: Promise<{ id: string; cardId: string }>;
+  params: Promise<{ id: string; packId: string; cardId: string }>;
 }) {
-  const { id, cardId } = await params;
-  const [season, cards] = await Promise.all([getSeason(id), getSeasonCards(id)]);
-  if (!season) notFound();
+  const { id, packId, cardId } = await params;
+  const [season, pack, cards] = await Promise.all([getSeason(id), getPack(packId), getPackCards(packId)]);
+  if (!season || !pack) notFound();
 
   const card = cards.find(c => c.id === cardId);
   if (!card) notFound();
 
-  const updateThisCard = updateCard.bind(null, id, cardId);
+  const updateThisCard = updateCard.bind(null, id, packId, cardId);
 
   return (
     <div className="max-w-lg space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Edit Card</h1>
-        <Link href={`/admin/seasons/${id}`} className="text-sm text-gray-400 hover:text-white">
-          ← {season.name}
-        </Link>
+        <div className="text-sm text-gray-400 text-right">
+          <Link href={`/admin/seasons/${id}/packs/${packId}`} className="hover:text-white">
+            ← {pack.name}
+          </Link>
+        </div>
       </div>
 
       <form action={updateThisCard} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">

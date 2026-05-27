@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { listSeasons, getSeasonCards } from '@/lib/kv';
+import { listSeasons, listPacks } from '@/lib/kv';
 import { deleteSeasonAction, activateSeason } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -8,10 +8,10 @@ export default async function SeasonsPage() {
   const seasons = await listSeasons();
   seasons.sort((a, b) => b.createdAt - a.createdAt);
 
-  const cardCounts = await Promise.all(
-    seasons.map(s => getSeasonCards(s.id).then(c => ({ id: s.id, count: c.length })))
+  const packCounts = await Promise.all(
+    seasons.map(s => listPacks(s.id).then(p => ({ id: s.id, count: p.length, active: p.filter(pk => pk.active).length })))
   );
-  const countMap = Object.fromEntries(cardCounts.map(({ id, count }) => [id, count]));
+  const packMap = Object.fromEntries(packCounts.map(({ id, count, active }) => [id, { count, active }]));
 
   return (
     <div className="space-y-4">
@@ -34,14 +34,12 @@ export default async function SeasonsPage() {
           {seasons.map(s => {
             const activate = activateSeason.bind(null, s.id);
             const del = deleteSeasonAction.bind(null, s.id);
+            const packs = packMap[s.id] ?? { count: 0, active: 0 };
             return (
               <div
                 key={s.id}
                 className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4"
               >
-                {s.coverImageUrl && (
-                  <img src={s.coverImageUrl} alt={s.name} className="w-12 h-16 object-cover rounded shrink-0" />
-                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-white">{s.name}</span>
@@ -50,7 +48,9 @@ export default async function SeasonsPage() {
                     )}
                   </div>
                   <p className="text-sm text-gray-400 mt-0.5">
-                    {countMap[s.id] ?? 0} cards · Collection: {s.collectionName}
+                    {packs.count} pack{packs.count !== 1 ? 's' : ''}
+                    {packs.count > 0 && ` (${packs.active} active)`}
+                    {' · '}Collection: <span className="text-gray-300">{s.collectionName}</span>
                   </p>
                   <p className="text-xs text-gray-600 mt-0.5">
                     Created {new Date(s.createdAt).toLocaleDateString()}
@@ -71,7 +71,7 @@ export default async function SeasonsPage() {
                     href={`/admin/seasons/${s.id}`}
                     className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded-lg"
                   >
-                    Edit
+                    Manage
                   </Link>
                   <form action={del}>
                     <button

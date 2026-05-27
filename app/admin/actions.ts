@@ -2,44 +2,41 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import {
-  saveSeason, deleteSeason, listSeasons,
-  getSeasonCards, saveSeasonCards,
+  saveSeason, getSeason, deleteSeason, listSeasons,
+  savePack, getPack, deletePack, listPacks,
+  getPackCards, savePackCards,
   getCollection, saveCollection,
+  listSeasonIds,
 } from '@/lib/kv';
-import type { Season, Card } from '@/lib/types';
+import type { Season, Pack, Card } from '@/lib/types';
+import { SEED_SEASON, SEED_PACK, SEED_CARDS } from '@/lib/seed';
 
 // ── Seasons ───────────────────────────────────────────────
 
 export async function createSeason(formData: FormData) {
   const id = crypto.randomUUID();
+  const willBeActive = formData.get('active') === 'true';
+
+  if (willBeActive) {
+    const all = await listSeasons();
+    await Promise.all(all.map(s => saveSeason({ ...s, active: false })));
+  }
+
   const season: Season = {
     id,
     name: formData.get('name') as string,
     collectionName: (formData.get('collectionName') as string).replace(/\s+/g, ''),
-    coverImageUrl: (formData.get('coverImageUrl') as string) || '',
-    active: formData.get('active') === 'true',
+    active: willBeActive,
     createdAt: Date.now(),
-    accentColor: (formData.get('accentColor') as string) || 'rgb(241,187,6)',
-    tearBorderColor: (formData.get('tearBorderColor') as string) || 'rgb(218,163,18)',
-    holoMinStars: Number(formData.get('holoMinStars')) || 5,
-    cardTime: Number(formData.get('cardTime')) || 3,
-    cooldownTime: Number(formData.get('cooldownTime')) || 1,
     maxConcurrentPacks: Number(formData.get('maxConcurrentPacks')) || 1,
-    soundVolume: Number(formData.get('soundVolume')) || 1.0,
   };
-
-  if (season.active) {
-    // deactivate all others
-    const all = await listSeasons();
-    await Promise.all(all.map(s => saveSeason({ ...s, active: false })));
-  }
 
   await saveSeason(season);
   redirect(`/admin/seasons/${id}`);
 }
 
 export async function updateSeason(id: string, formData: FormData) {
-  const existing = await import('@/lib/kv').then(m => m.getSeason(id));
+  const existing = await getSeason(id);
   if (!existing) return;
 
   const willBeActive = formData.get('active') === 'true';
@@ -52,15 +49,8 @@ export async function updateSeason(id: string, formData: FormData) {
     ...existing,
     name: formData.get('name') as string,
     collectionName: (formData.get('collectionName') as string).replace(/\s+/g, ''),
-    coverImageUrl: (formData.get('coverImageUrl') as string) || existing.coverImageUrl,
     active: willBeActive,
-    accentColor: formData.get('accentColor') as string,
-    tearBorderColor: formData.get('tearBorderColor') as string,
-    holoMinStars: Number(formData.get('holoMinStars')),
-    cardTime: Number(formData.get('cardTime')),
-    cooldownTime: Number(formData.get('cooldownTime')),
     maxConcurrentPacks: Number(formData.get('maxConcurrentPacks')) || 1,
-    soundVolume: Number(formData.get('soundVolume')) || 1.0,
   });
   revalidatePath('/admin/seasons');
   revalidatePath(`/admin/seasons/${id}`);
@@ -79,10 +69,60 @@ export async function deleteSeasonAction(id: string) {
   redirect('/admin/seasons');
 }
 
+// ── Packs ─────────────────────────────────────────────────
+
+export async function createPack(seasonId: string, formData: FormData) {
+  const id = crypto.randomUUID();
+  const pack: Pack = {
+    id,
+    seasonId,
+    name: formData.get('name') as string,
+    coverImageUrl: (formData.get('coverImageUrl') as string) || '',
+    active: formData.get('active') === 'true',
+    weight: Number(formData.get('weight')) || 1,
+    accentColor: (formData.get('accentColor') as string) || 'rgb(241,187,6)',
+    tearBorderColor: (formData.get('tearBorderColor') as string) || 'rgb(218,163,18)',
+    holoMinStars: Number(formData.get('holoMinStars')) || 5,
+    cardTime: Number(formData.get('cardTime')) || 3,
+    cooldownTime: Number(formData.get('cooldownTime')) || 1,
+    soundVolume: Number(formData.get('soundVolume')) || 1.0,
+    createdAt: Date.now(),
+  };
+  await savePack(pack);
+  redirect(`/admin/seasons/${seasonId}/packs/${id}`);
+}
+
+export async function updatePack(seasonId: string, packId: string, formData: FormData) {
+  const existing = await getPack(packId);
+  if (!existing) return;
+
+  await savePack({
+    ...existing,
+    name: formData.get('name') as string,
+    coverImageUrl: (formData.get('coverImageUrl') as string) || existing.coverImageUrl,
+    active: formData.get('active') === 'true',
+    weight: Number(formData.get('weight')) || 1,
+    accentColor: formData.get('accentColor') as string,
+    tearBorderColor: formData.get('tearBorderColor') as string,
+    holoMinStars: Number(formData.get('holoMinStars')),
+    cardTime: Number(formData.get('cardTime')),
+    cooldownTime: Number(formData.get('cooldownTime')),
+    soundVolume: Number(formData.get('soundVolume')) || 1.0,
+  });
+  revalidatePath(`/admin/seasons/${seasonId}`);
+  revalidatePath(`/admin/seasons/${seasonId}/packs/${packId}`);
+}
+
+export async function deletePackAction(seasonId: string, packId: string) {
+  await deletePack(packId);
+  revalidatePath(`/admin/seasons/${seasonId}`);
+  redirect(`/admin/seasons/${seasonId}`);
+}
+
 // ── Cards ─────────────────────────────────────────────────
 
-export async function addCard(seasonId: string, formData: FormData) {
-  const cards = await getSeasonCards(seasonId);
+export async function addCard(seasonId: string, packId: string, formData: FormData) {
+  const cards = await getPackCards(packId);
   const maxNum = cards.reduce((m, c) => Math.max(m, c.number), 0);
   const card: Card = {
     id: crypto.randomUUID(),
@@ -92,14 +132,14 @@ export async function addCard(seasonId: string, formData: FormData) {
     probability: Number(formData.get('probability')),
     stars: Number(formData.get('stars')),
   };
-  await saveSeasonCards(seasonId, [...cards, card]);
-  revalidatePath(`/admin/seasons/${seasonId}`);
+  await savePackCards(packId, [...cards, card]);
+  revalidatePath(`/admin/seasons/${seasonId}/packs/${packId}`);
 }
 
-export async function updateCard(seasonId: string, cardId: string, formData: FormData) {
-  const cards = await getSeasonCards(seasonId);
-  await saveSeasonCards(
-    seasonId,
+export async function updateCard(seasonId: string, packId: string, cardId: string, formData: FormData) {
+  const cards = await getPackCards(packId);
+  await savePackCards(
+    packId,
     cards.map(c =>
       c.id === cardId
         ? {
@@ -113,26 +153,14 @@ export async function updateCard(seasonId: string, cardId: string, formData: For
         : c,
     ),
   );
-  revalidatePath(`/admin/seasons/${seasonId}`);
-  redirect(`/admin/seasons/${seasonId}`);
+  revalidatePath(`/admin/seasons/${seasonId}/packs/${packId}`);
+  redirect(`/admin/seasons/${seasonId}/packs/${packId}`);
 }
 
-export async function deleteCard(seasonId: string, cardId: string) {
-  const cards = await getSeasonCards(seasonId);
-  await saveSeasonCards(seasonId, cards.filter(c => c.id !== cardId));
-  revalidatePath(`/admin/seasons/${seasonId}`);
-}
-
-// ── Seed ──────────────────────────────────────────────────
-
-export async function seedSeason1() {
-  const { listSeasonIds, saveSeason, saveSeasonCards } = await import('@/lib/kv');
-  const { SEED_SEASON, SEED_CARDS } = await import('@/lib/seed');
-  const ids = await listSeasonIds();
-  if (ids.includes('season1')) return;
-  await saveSeason(SEED_SEASON);
-  await saveSeasonCards('season1', SEED_CARDS);
-  revalidatePath('/admin');
+export async function deleteCard(seasonId: string, packId: string, cardId: string) {
+  const cards = await getPackCards(packId);
+  await savePackCards(packId, cards.filter(c => c.id !== cardId));
+  revalidatePath(`/admin/seasons/${seasonId}/packs/${packId}`);
 }
 
 // ── Users ─────────────────────────────────────────────────
@@ -147,4 +175,15 @@ export async function resetUser(collectionName: string, username: string) {
 export async function resetAllUsers(collectionName: string) {
   await import('@/lib/kv').then(m => m.deleteCollection(collectionName));
   revalidatePath('/admin/users');
+}
+
+// ── Seed ──────────────────────────────────────────────────
+
+export async function seedSeason1() {
+  const ids = await listSeasonIds();
+  if (ids.includes('season1')) return;
+  await saveSeason(SEED_SEASON);
+  await savePack(SEED_PACK);
+  await savePackCards('pack1', SEED_CARDS);
+  revalidatePath('/admin');
 }
