@@ -1,0 +1,43 @@
+import type { Season, Card } from './types';
+
+export const SEED_SEASON: Season = {
+  id: 'season1',
+  name: 'Cheesy Starter Deck',
+  collectionName: 'CheesyStarterDeck',
+  coverImageUrl: '/assets/pack-cover.png',
+  active: true,
+  createdAt: Date.now(),
+  accentColor: 'rgb(241,187,6)',
+  tearBorderColor: 'rgb(218,163,18)',
+  holoMinStars: 5,
+  cardTime: 3,
+  cooldownTime: 1,
+};
+
+export const SEED_CARDS: Card[] = [
+  { id: 'c1',  number: 1,  name: 'Cheesygidds',  imageUrl: '/assets/GIF/Cheesygidds.gif',   probability: 3,  stars: 5 },
+  { id: 'c2',  number: 2,  name: 'Dinogidds',    imageUrl: '/assets/GIF/Dinogidds.gif',     probability: 4,  stars: 5 },
+  { id: 'c3',  number: 3,  name: 'Onesiegidds',  imageUrl: '/assets/GIF/Onesiegidds.gif',   probability: 5,  stars: 5 },
+  { id: 'c4',  number: 4,  name: 'Creamygidds',  imageUrl: '/assets/GIF/Creamygidds.gif',   probability: 7,  stars: 4 },
+  { id: 'c5',  number: 5,  name: 'Wheezygidds',  imageUrl: '/assets/GIF/Wheezygidds.gif',   probability: 9,  stars: 4 },
+  { id: 'c6',  number: 6,  name: 'Suitygidds',   imageUrl: '/assets/GIF/Suitygidds.gif',    probability: 7,  stars: 4 },
+  { id: 'c7',  number: 7,  name: 'Cringygidds',  imageUrl: '/assets/GIF/Cringygidds.gif',   probability: 7,  stars: 4 },
+  { id: 'c8',  number: 8,  name: 'Mysterygidds', imageUrl: '/assets/GIF/Mysterygidds.gif',  probability: 8,  stars: 4 },
+  { id: 'c9',  number: 9,  name: 'Bottomygidds', imageUrl: '/assets/GIF/Bottomgidds.gif',   probability: 15, stars: 3 },
+  { id: 'c10', number: 10, name: 'Goatlygidds',  imageUrl: '/assets/GIF/Goatlygidds.gif',   probability: 25, stars: 3 },
+  { id: 'c11', number: 11, name: 'Pokegidds',    imageUrl: '/assets/GIF/PokegiddsV2.gif',   probability: 25, stars: 3 },
+  { id: 'c12', number: 12, name: 'UWUgidds',     imageUrl: '/assets/GIF/UWUgidds.gif',      probability: 11, stars: 3 },
+  { id: 'c13', number: 13, name: 'Scaredygidds', imageUrl: '/assets/GIF/Scaredygidds.gif',  probability: 17, stars: 3 },
+  { id: 'c14', number: 14, name: 'Angrygidds',   imageUrl: '/assets/GIF/Angrygidds.gif',    probability: 16, stars: 3 },
+  { id: 'c15', number: 15, name: 'Sweatygidds',  imageUrl: '/assets/GIF/Sweatygidds.gif',   probability: 20, stars: 2 },
+  { id: 'c16', number: 16, name: 'Comedygidds',  imageUrl: '/assets/GIF/Comedygidds.gif',   probability: 75, stars: 2 },
+  { id: 'c17', number: 17, name: 'Glitchygidds', imageUrl: '/assets/GIF/Glitchygidds.gif',  probability: 60, stars: 2 },
+  { id: 'c18', number: 18, name: 'Inkygidds',    imageUrl: '/assets/GIF/Inkygidds.gif',     probability: 50, stars: 2 },
+  { id: 'c19', number: 19, name: 'Drinkygidds',  imageUrl: '/assets/GIF/Drinkygidds.gif',   probability: 53, stars: 2 },
+  { id: 'c20', number: 20, name: 'Sillygidds',   imageUrl: '/assets/GIF/Sillygidds.gif',    probability: 67, stars: 2 },
+  { id: 'c21', number: 21, name: 'Victorygidds', imageUrl: '/assets/GIF/Victorygidds.gif',  probability: 82, stars: 1 },
+  { id: 'c22', number: 22, name: 'Gassygidds',   imageUrl: '/assets/GIF/Gassygidds.gif',    probability: 90, stars: 1 },
+  { id: 'c23', number: 23, name: 'Crunchygidds', imageUrl: '/assets/GIF/Cronchygidds.gif',  probability: 87, stars: 1 },
+  { id: 'c24', number: 24, name: 'Waxygidds',    imageUrl: '/assets/GIF/Waxygidds.gif',     probability: 71, stars: 1 },
+  { id: 'c25', number: 25, name: 'Gaspygidds',   imageUrl: '/assets/GIF/GaspygiddsV2.gif',  probability: 84, stars: 1 },
+];
