@@ -7,7 +7,8 @@
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(npm run *)",
       "Bash(mkdir -p \"/mnt/c/users/joshm/Documents/Github/tcg/app/admin/seasons/[id]/packs/new\")",
-      "Bash(mkdir -p \"/mnt/c/users/joshm/Documents/Github/tcg/app/admin/seasons/[id]/packs/[packId]/cards/[cardId]\")"
+      "Bash(mkdir -p \"/mnt/c/users/joshm/Documents/Github/tcg/app/admin/seasons/[id]/packs/[packId]/cards/[cardId]\")",
+      "Bash(node_modules/.bin/tsc --noEmit)"
     ]
   }
 }

@@ -44,3 +44,11 @@ export interface PullRecord {
   seasonName: string;
   pulledAt: number;
 }
+
+export interface UserProfile {
+  username: string;       // lowercase, canonical key
+  displayName: string;    // Twitch display name or custom label
+  twitchId?: string;
+  notes?: string;
+  createdAt: number;
+}

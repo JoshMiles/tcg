@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import type { Season, Pack, Card, PullRecord } from './types';
+import type { Season, Pack, Card, PullRecord, UserProfile } from './types';
 
 // ── Normalizers (handle legacy KV shapes) ─────────────────
 
@@ -162,6 +162,42 @@ export async function getActiveSeasonWithPacks(): Promise<{
     activePacks.map(async pack => ({ pack, cards: await getPackCards(pack.id) }))
   );
   return { season, packs: packsWithCards };
+}
+
+// ── User Profiles ─────────────────────────────────────────
+
+export async function getUserProfile(username: string): Promise<UserProfile | null> {
+  return kv.get<UserProfile>(`user:${username.toLowerCase()}:profile`);
+}
+
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  await kv.set(`user:${profile.username}:profile`, profile);
+}
+
+// Aggregate all users across every season's legacy collection.
+// Returns one entry per unique username with per-season card arrays.
+export async function getAllCollectionUsers(): Promise<{
+  username: string;
+  seasons: { id: string; name: string; collectionName: string; cards: number[] }[];
+}[]> {
+  const seasons = await listSeasons();
+  const userMap = new Map<string, { id: string; name: string; collectionName: string; cards: number[] }[]>();
+
+  for (const season of seasons) {
+    const collection = await getCollection(season.collectionName);
+    for (const [username, cards] of Object.entries(collection)) {
+      const lower = username.toLowerCase();
+      if (!userMap.has(lower)) userMap.set(lower, []);
+      userMap.get(lower)!.push({
+        id: season.id,
+        name: season.name,
+        collectionName: season.collectionName,
+        cards,
+      });
+    }
+  }
+
+  return Array.from(userMap.entries()).map(([username, seasons]) => ({ username, seasons }));
 }
 
 // ── Legacy collection ─────────────────────────────────────

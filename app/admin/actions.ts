@@ -6,8 +6,9 @@ import {
   savePack, getPack, deletePack, listAllPackIds,
   getPackCards, savePackCards,
   getCollection, saveCollection, deleteCollection,
+  getUserProfile, saveUserProfile,
 } from '@/lib/kv';
-import type { Season, Pack, Card } from '@/lib/types';
+import type { Season, Pack, Card, UserProfile } from '@/lib/types';
 import { SEED_SEASON, SEED_PACK, SEED_CARDS } from '@/lib/seed';
 
 // ── Seasons ───────────────────────────────────────────────
@@ -183,15 +184,39 @@ export async function deleteCard(packId: string, cardId: string) {
 
 // ── Users ─────────────────────────────────────────────────
 
-export async function resetUser(collectionName: string, username: string) {
-  const data = await getCollection(collectionName);
-  delete data[username.toLowerCase()];
-  await saveCollection(collectionName, data);
+export async function updateUserProfile(username: string, formData: FormData) {
+  const existing = await getUserProfile(username);
+  const profile: UserProfile = {
+    username: username.toLowerCase(),
+    displayName: ((formData.get('displayName') as string) ?? '').trim() || username,
+    twitchId: ((formData.get('twitchId') as string) || '').trim() || existing?.twitchId,
+    notes: ((formData.get('notes') as string) || '').trim(),
+    createdAt: existing?.createdAt ?? Date.now(),
+  };
+  await saveUserProfile(profile);
   revalidatePath('/admin/users');
 }
 
-export async function resetAllUsers(collectionName: string) {
-  await deleteCollection(collectionName);
+// Reset a user across ALL seasons
+export async function resetUser(username: string) {
+  const seasons = await listSeasons();
+  await Promise.all(
+    seasons.map(async season => {
+      const data = await getCollection(season.collectionName);
+      const lower = username.toLowerCase();
+      if (lower in data) {
+        delete data[lower];
+        await saveCollection(season.collectionName, data);
+      }
+    })
+  );
+  revalidatePath('/admin/users');
+}
+
+// Reset all users across ALL seasons
+export async function resetAllUsers() {
+  const seasons = await listSeasons();
+  await Promise.all(seasons.map(s => deleteCollection(s.collectionName)));
   revalidatePath('/admin/users');
 }
 
