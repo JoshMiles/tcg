@@ -67,32 +67,36 @@ let revealedCardsByUser = {};
 let collectionTimeout   = null;
 
 // ═══════════════════════════════════════════════════════
-//  STORAGE  (localStorage replaces SE_API.store)
+//  STORAGE  (Vercel KV via /api/collection)
 // ═══════════════════════════════════════════════════════
-function loadCollection() {
+async function loadCollection() {
   try {
-    const raw = localStorage.getItem('tcg_' + CONFIG.collectionName);
-    revealedCardsByUser = raw ? JSON.parse(raw) : {};
+    const res = await fetch(`/api/collection?name=${CONFIG.collectionName}`);
+    revealedCardsByUser = res.ok ? await res.json() : {};
   } catch {
     revealedCardsByUser = {};
   }
 }
 
 function saveCollection() {
-  localStorage.setItem('tcg_' + CONFIG.collectionName, JSON.stringify(revealedCardsByUser));
+  fetch(`/api/collection?name=${CONFIG.collectionName}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: revealedCardsByUser }),
+  }).catch(() => {});
 }
 
-function resetAllCollections() {
+async function resetAllCollections() {
   revealedCardsByUser = {};
-  localStorage.removeItem('tcg_' + CONFIG.collectionName);
+  await fetch(`/api/collection?name=${CONFIG.collectionName}`, { method: 'DELETE' }).catch(() => {});
   showAlert('🔄 All collections reset');
 }
 
-function resetUserCollection(username) {
+async function resetUserCollection(username) {
   const user = (username || '').toLowerCase().trim();
   if (!user) return;
   delete revealedCardsByUser[user];
-  saveCollection();
+  await fetch(`/api/collection?name=${CONFIG.collectionName}&username=${user}`, { method: 'DELETE' }).catch(() => {});
   showAlert('🔄 Reset collection for ' + user);
 }
 
@@ -421,8 +425,8 @@ function initDevPanel() {
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  loadCollection();
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadCollection();
 
   const packageImg = document.getElementById('package-image');
   if (packageImg) packageImg.src = CONFIG.packageImage;
