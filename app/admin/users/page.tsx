@@ -1,4 +1,6 @@
 import { getActiveSeasonWithCards, getCollection } from '@/lib/kv';
+
+export const dynamic = 'force-dynamic';
 import { resetUser, resetAllUsers } from '../actions';
 
 export default async function UsersPage() {

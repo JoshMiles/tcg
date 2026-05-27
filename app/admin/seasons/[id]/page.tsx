@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, getSeasonCards } from '@/lib/kv';
+
+export const dynamic = 'force-dynamic';
 import { updateSeason, addCard, deleteCard } from '../../actions';
 import { SeasonFields } from '../new/page';
 

@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { listSeasons } from '@/lib/kv';
+
+export const dynamic = 'force-dynamic';
 import { deleteSeasonAction } from '../actions';
 
 export default async function SeasonsPage() {

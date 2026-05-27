@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { getActiveSeasonWithCards, getCollection } from '@/lib/kv';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboard() {
   const result = await getActiveSeasonWithCards();
 
