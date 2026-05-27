@@ -181,9 +181,13 @@ export async function resetAllUsers(collectionName: string) {
 
 export async function seedSeason1() {
   const ids = await listSeasonIds();
-  if (ids.includes('season1')) return;
-  await saveSeason(SEED_SEASON);
-  await savePack(SEED_PACK);
-  await savePackCards('pack1', SEED_CARDS);
+  if (!ids.includes('season1')) {
+    await saveSeason(SEED_SEASON);
+  }
+  const existingPack = await getPack('pack1');
+  if (!existingPack) {
+    await savePack(SEED_PACK);
+    await savePackCards('pack1', SEED_CARDS);
+  }
   revalidatePath('/admin');
 }
