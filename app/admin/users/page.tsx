@@ -140,14 +140,6 @@ export default async function UsersPage() {
                     <span className={`text-right font-semibold tabular-nums text-sm ${bestColor}`}>{best}%</span>
 
                     <div className="flex items-center justify-end gap-2">
-                      <a
-                        href={`/collection/${user.username}`}
-                        target="_blank"
-                        onClick={e => e.stopPropagation()}
-                        className="px-2.5 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors"
-                      >
-                        View →
-                      </a>
                       <span className="text-xs text-gray-700 group-open:rotate-90 transition-transform inline-block">›</span>
                     </div>
                   </summary>
@@ -189,15 +181,22 @@ export default async function UsersPage() {
                           >
                             Save Profile
                           </button>
+                          <a
+                            href={`/collection/${user.username}`}
+                            target="_blank"
+                            className="px-4 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-xl transition-colors"
+                          >
+                            View Collection →
+                          </a>
+                          <form action={resetThis}>
+                            <button
+                              type="submit"
+                              className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
+                            >
+                              Reset User
+                            </button>
+                          </form>
                         </div>
-                      </form>
-                      <form action={resetThis} className="shrink-0 pt-5">
-                        <button
-                          type="submit"
-                          className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
-                        >
-                          Reset User
-                        </button>
                       </form>
                     </div>
                   </div>
