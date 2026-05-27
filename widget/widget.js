@@ -287,6 +287,8 @@ function drawCard(username) {
   // ── Hide wrapper after display time ──
   const showDuration = CONFIG.cardTime * 1000 + 4000;
   setTimeout(() => {
+    radialContainer.style.opacity   = '0';
+    radialContainer.style.animation = 'none';
     wrapper.classList.add('hid');
     setTimeout(() => { wrapper.style.visibility = 'hidden'; }, 500);
   }, showDuration);
@@ -302,13 +304,21 @@ function showCollection(username) {
   const wrapper          = document.querySelector('.card-wrapper');
   const packageContainer = wrapper.querySelector('.package-container');
   const cardBox          = wrapper.querySelector('.card-box');
+  const cardLabel        = wrapper.querySelector('.card-label');
+  const radialContainer  = wrapper.querySelector('.radial-container');
   const cardInfo         = wrapper.querySelector('.card-info');
   const userText         = wrapper.querySelector('.user-text');
   const miniList         = wrapper.querySelector('.card-mini-list');
 
-  // Hide the pack + card art; only show the collection grid
-  cardBox.style.visibility          = 'hidden';
+  // Stop any in-progress draw animations
+  packageContainer.style.animation  = 'none';
   packageContainer.style.visibility = 'hidden';
+  cardBox.style.animation           = 'none';
+  cardBox.style.visibility          = 'hidden';
+  cardLabel.style.opacity           = '0';
+  cardLabel.style.visibility        = 'hidden';
+  radialContainer.style.opacity     = '0';
+  radialContainer.style.animation   = 'none';
 
   wrapper.style.visibility = 'visible';
   wrapper.classList.remove('hid');
