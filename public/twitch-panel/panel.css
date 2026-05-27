@@ -1,0 +1,370 @@
+:root {
+  --bg:        #0e0e10;
+  --surface:   #18181b;
+  --surface2:  #1f1f23;
+  --border:    #2d2d35;
+  --text:      #efeff1;
+  --muted:     #adadb8;
+  --accent:    #fbbf24;
+  --purple:    #9147ff;
+
+  --r1: #6b7280;
+  --r2: #22c55e;
+  --r3: #3b82f6;
+  --r4: #a855f7;
+  --r5: #f59e0b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ── State containers ── */
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 8px;
+  text-align: center;
+  padding: 16px;
+}
+
+.state.hidden { display: none; }
+
+/* Collection state is a different layout */
+#state-collection {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  height: 100vh;
+  padding: 0;
+  text-align: left;
+  gap: 0;
+}
+#state-collection.hidden { display: none; }
+
+/* ── Loading ── */
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Empty states ── */
+
+.empty-icon { font-size: 32px; margin-bottom: 4px; }
+.empty-title { font-weight: 600; color: var(--text); }
+.muted { color: var(--muted); font-size: 12px; }
+
+/* ── Season header ── */
+
+.season-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px 8px;
+  flex-shrink: 0;
+}
+
+.season-name {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.season-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.progress-label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Login state ── */
+
+#state-enter-username {
+  align-items: stretch;
+  justify-content: flex-start;
+  height: 100vh;
+  padding: 0;
+  gap: 0;
+}
+#state-enter-username.hidden { display: none; }
+#login-season-header { /* shows season info at top */ }
+
+.login-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  gap: 12px;
+}
+
+.login-prompt {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  max-width: 220px;
+  line-height: 1.5;
+}
+
+#username-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 260px;
+}
+
+#username-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+#username-input:focus { border-color: var(--accent); }
+#username-input::placeholder { color: var(--muted); }
+
+#username-form button {
+  background: var(--accent);
+  color: #0e0e10;
+  font-weight: 700;
+  font-size: 13px;
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+#username-form button:hover { opacity: 0.9; }
+
+/* ── Pack tabs ── */
+
+.pack-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.pack-tabs::-webkit-scrollbar { display: none; }
+
+.pack-tab {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.pack-tab:hover { color: var(--text); border-color: var(--border); }
+.pack-tab.active {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ── Card grid ── */
+
+.grid-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.card-cell {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: default;
+}
+
+.card-cell.owned {
+  border-color: var(--rarity-color, var(--accent));
+}
+
+.card-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card-question {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--border);
+  font-size: 16px;
+  font-weight: 700;
+  user-select: none;
+}
+
+/* Season badge on owned-in-past cards */
+.season-badge {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(0,0,0,0.75);
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 3px;
+  border-radius: 3px;
+  line-height: 1.3;
+  pointer-events: none;
+}
+
+/* Rarity dot */
+.rarity-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Card hover tooltip */
+.card-cell .card-tooltip {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  padding: 10px 4px 3px;
+  font-size: 9px;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 0.15s;
+  line-height: 1.2;
+  text-align: center;
+  pointer-events: none;
+}
+.card-cell:hover .card-tooltip { opacity: 1; }
+
+/* Pack info bar */
+.pack-info {
+  padding: 0 12px 6px;
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pack-info-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Footer ── */
+
+.panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.footer-username {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.footer-username::before { content: '👤 '; }
+
+.change-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.change-btn:hover { color: var(--text); border-color: var(--muted); }

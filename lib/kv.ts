@@ -200,6 +200,16 @@ export async function getAllCollectionUsers(): Promise<{
   return Array.from(userMap.entries()).map(([username, seasons]) => ({ username, seasons }));
 }
 
+// ── Twitch opaque user ID mapping ─────────────────────────
+
+export async function getTwitchOpaqueUser(opaqueId: string): Promise<string | null> {
+  return kv.get<string>(`twitch_opaque:${opaqueId}`);
+}
+
+export async function saveTwitchOpaqueUser(opaqueId: string, username: string): Promise<void> {
+  await kv.set(`twitch_opaque:${opaqueId}`, username.toLowerCase());
+}
+
 // ── Legacy collection ─────────────────────────────────────
 
 export async function getCollection(collectionName: string): Promise<Record<string, number[]>> {
