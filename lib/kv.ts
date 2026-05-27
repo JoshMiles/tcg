@@ -1,6 +1,39 @@
 import { kv } from '@vercel/kv';
 import type { Season, Pack, Card, PullRecord } from './types';
 
+// ── Normalizers (handle legacy KV shapes) ─────────────────
+
+function normalizeSeason(raw: unknown): Season {
+  const s = raw as Record<string, unknown>;
+  return {
+    id: s.id as string,
+    name: s.name as string,
+    collectionName: (s.collectionName as string) ?? '',
+    active: (s.active as boolean) ?? false,
+    createdAt: (s.createdAt as number) ?? Date.now(),
+    maxConcurrentPacks: (s.maxConcurrentPacks as number) ?? 1,
+    packIds: (s.packIds as string[]) ?? [],
+  };
+}
+
+function normalizePack(raw: unknown): Pack {
+  const p = raw as Record<string, unknown>;
+  return {
+    id: p.id as string,
+    name: p.name as string,
+    coverImageUrl: (p.coverImageUrl as string) ?? '',
+    active: (p.active as boolean) ?? true,
+    weight: (p.weight as number) ?? 1,
+    accentColor: (p.accentColor as string) ?? 'rgb(241,187,6)',
+    tearBorderColor: (p.tearBorderColor as string) ?? 'rgb(218,163,18)',
+    holoMinStars: (p.holoMinStars as number) ?? 5,
+    cardTime: (p.cardTime as number) ?? 3,
+    cooldownTime: (p.cooldownTime as number) ?? 1,
+    soundVolume: (p.soundVolume as number) ?? 1.0,
+    createdAt: (p.createdAt as number) ?? Date.now(),
+  };
+}
+
 // ── Seasons ───────────────────────────────────────────────
 
 export async function listSeasonIds(): Promise<string[]> {
@@ -9,12 +42,13 @@ export async function listSeasonIds(): Promise<string[]> {
 
 export async function listSeasons(): Promise<Season[]> {
   const ids = await listSeasonIds();
-  const seasons = await Promise.all(ids.map(id => kv.get<Season>(`season:${id}`)));
-  return seasons.filter((s): s is Season => s !== null);
+  const raws = await Promise.all(ids.map(id => kv.get(`season:${id}`)));
+  return raws.filter(Boolean).map(normalizeSeason);
 }
 
 export async function getSeason(id: string): Promise<Season | null> {
-  return kv.get<Season>(`season:${id}`);
+  const raw = await kv.get(`season:${id}`);
+  return raw ? normalizeSeason(raw) : null;
 }
 
 export async function getActiveSeason(): Promise<Season | null> {
@@ -31,55 +65,57 @@ export async function saveSeason(season: Season): Promise<void> {
 }
 
 export async function deleteSeason(id: string): Promise<void> {
-  const packIds = await listPackIds(id);
-  await Promise.all([
-    kv.del(`season:${id}`),
-    kv.del(`season:${id}:packs`),
-    ...packIds.map(pid => deletePack(pid)),
-  ]);
+  await kv.del(`season:${id}`);
   const ids = await listSeasonIds();
   await kv.set('seasons:list', ids.filter(i => i !== id));
 }
 
-// ── Packs ─────────────────────────────────────────────────
+// ── Packs (global) ────────────────────────────────────────
 
-export async function listPackIds(seasonId: string): Promise<string[]> {
-  return (await kv.get<string[]>(`season:${seasonId}:packs`)) ?? [];
+export async function listAllPackIds(): Promise<string[]> {
+  return (await kv.get<string[]>('packs:list')) ?? [];
 }
 
-export async function listPacks(seasonId: string): Promise<Pack[]> {
-  const ids = await listPackIds(seasonId);
-  const packs = await Promise.all(ids.map(id => kv.get<Pack>(`pack:${id}`)));
-  return packs.filter((p): p is Pack => p !== null);
-}
-
-export async function getActivePacks(seasonId: string): Promise<Pack[]> {
-  const packs = await listPacks(seasonId);
-  return packs.filter(p => p.active);
+export async function listAllPacks(): Promise<Pack[]> {
+  const ids = await listAllPackIds();
+  const raws = await Promise.all(ids.map(id => kv.get(`pack:${id}`)));
+  return raws.filter(Boolean).map(normalizePack);
 }
 
 export async function getPack(id: string): Promise<Pack | null> {
-  return kv.get<Pack>(`pack:${id}`);
+  const raw = await kv.get(`pack:${id}`);
+  return raw ? normalizePack(raw) : null;
 }
 
 export async function savePack(pack: Pack): Promise<void> {
   await kv.set(`pack:${pack.id}`, pack);
-  const ids = await listPackIds(pack.seasonId);
+  const ids = await listAllPackIds();
   if (!ids.includes(pack.id)) {
-    await kv.set(`season:${pack.seasonId}:packs`, [...ids, pack.id]);
+    await kv.set('packs:list', [...ids, pack.id]);
   }
 }
 
 export async function deletePack(id: string): Promise<void> {
-  const pack = await getPack(id);
-  await Promise.all([
-    kv.del(`pack:${id}`),
-    kv.del(`pack:${id}:cards`),
-  ]);
-  if (pack) {
-    const ids = await listPackIds(pack.seasonId);
-    await kv.set(`season:${pack.seasonId}:packs`, ids.filter(i => i !== id));
-  }
+  await Promise.all([kv.del(`pack:${id}`), kv.del(`pack:${id}:cards`)]);
+  const ids = await listAllPackIds();
+  await kv.set('packs:list', ids.filter(i => i !== id));
+  // remove from any seasons that reference this pack
+  const seasons = await listSeasons();
+  await Promise.all(
+    seasons
+      .filter(s => s.packIds.includes(id))
+      .map(s => saveSeason({ ...s, packIds: s.packIds.filter(pid => pid !== id) }))
+  );
+}
+
+export async function getPacksForSeason(season: Season): Promise<Pack[]> {
+  const raws = await Promise.all(season.packIds.map(id => kv.get(`pack:${id}`)));
+  return raws.filter(Boolean).map(normalizePack);
+}
+
+export async function getActivePacksForSeason(season: Season): Promise<Pack[]> {
+  const packs = await getPacksForSeason(season);
+  return packs.filter(p => p.active);
 }
 
 // ── Cards ──────────────────────────────────────────────────
@@ -121,9 +157,9 @@ export async function getActiveSeasonWithPacks(): Promise<{
 } | null> {
   const season = await getActiveSeason();
   if (!season) return null;
-  const packs = await getActivePacks(season.id);
+  const activePacks = await getActivePacksForSeason(season);
   const packsWithCards = await Promise.all(
-    packs.map(async pack => ({ pack, cards: await getPackCards(pack.id) }))
+    activePacks.map(async pack => ({ pack, cards: await getPackCards(pack.id) }))
   );
   return { season, packs: packsWithCards };
 }

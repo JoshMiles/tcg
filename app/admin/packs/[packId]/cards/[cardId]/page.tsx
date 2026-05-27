@@ -1,34 +1,32 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getSeason, getPack, getPackCards } from '@/lib/kv';
-import { updateCard } from '../../../../../../actions';
-import { ImageUploadField } from '../../../../../../components/image-upload';
+import { getPack, getPackCards } from '@/lib/kv';
+import { updateCard } from '../../../../actions';
+import { ImageUploadField } from '../../../../components/image-upload';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EditCardPage({
   params,
 }: {
-  params: Promise<{ id: string; packId: string; cardId: string }>;
+  params: Promise<{ packId: string; cardId: string }>;
 }) {
-  const { id, packId, cardId } = await params;
-  const [season, pack, cards] = await Promise.all([getSeason(id), getPack(packId), getPackCards(packId)]);
-  if (!season || !pack) notFound();
+  const { packId, cardId } = await params;
+  const [pack, cards] = await Promise.all([getPack(packId), getPackCards(packId)]);
+  if (!pack) notFound();
 
   const card = cards.find(c => c.id === cardId);
   if (!card) notFound();
 
-  const updateThisCard = updateCard.bind(null, id, packId, cardId);
+  const updateThisCard = updateCard.bind(null, packId, cardId);
 
   return (
     <div className="max-w-lg space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Edit Card</h1>
-        <div className="text-sm text-gray-400 text-right">
-          <Link href={`/admin/seasons/${id}/packs/${packId}`} className="hover:text-white">
-            ← {pack.name}
-          </Link>
-        </div>
+        <Link href={`/admin/packs/${packId}`} className="text-sm text-gray-500 hover:text-white transition-colors">
+          ← {pack.name}
+        </Link>
       </div>
 
       <form action={updateThisCard} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
@@ -42,7 +40,7 @@ export default async function EditCardPage({
         <div className="pt-2">
           <button
             type="submit"
-            className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm"
+            className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors"
           >
             Save Card
           </button>
@@ -52,9 +50,7 @@ export default async function EditCardPage({
   );
 }
 
-function Field({
-  label, name, type = 'text', required, defaultValue,
-}: {
+function Field({ label, name, type = 'text', required, defaultValue }: {
   label: string; name: string; type?: string; required?: boolean; defaultValue?: string;
 }) {
   return (
@@ -67,7 +63,7 @@ function Field({
         name={name}
         required={required}
         defaultValue={defaultValue}
-        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
+        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
       />
     </div>
   );

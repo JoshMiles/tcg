@@ -1,19 +1,19 @@
 export interface Season {
   id: string;
   name: string;
-  collectionName: string;  // KV key prefix for user collections
+  collectionName: string;
   active: boolean;
   createdAt: number;
   maxConcurrentPacks: number;
+  packIds: string[];          // ordered list of pack IDs used by this season
 }
 
 export interface Pack {
   id: string;
-  seasonId: string;
   name: string;
   coverImageUrl: string;
   active: boolean;
-  weight: number;          // relative weight for random pack selection
+  weight: number;             // relative draw weight when multiple packs are in a season
   accentColor: string;
   tearBorderColor: string;
   holoMinStars: number;
@@ -29,7 +29,7 @@ export interface Card {
   name: string;
   imageUrl: string;
   probability: number;
-  stars: number; // 1–5
+  stars: number;              // 1–5
 }
 
 export interface PullRecord {

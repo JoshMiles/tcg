@@ -7,11 +7,11 @@ export const SEED_SEASON: Season = {
   active: true,
   createdAt: Date.now(),
   maxConcurrentPacks: 1,
+  packIds: ['pack1'],
 };
 
 export const SEED_PACK: Pack = {
   id: 'pack1',
-  seasonId: 'season1',
   name: 'Cheesy Starter Pack',
   coverImageUrl: '/assets/pack-cover.png',
   active: true,
