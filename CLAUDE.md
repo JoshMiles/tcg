@@ -9,7 +9,7 @@ A Twitch stream overlay + admin panel for a trading card game. Viewers pull card
 - **Vercel Blob** — image uploads
 - **Tailwind CSS** — styling (dark theme: gray-950 bg, gray-900 cards, yellow-500 accent)
 - **TypeScript** — strict, no `any` unless unavoidable
-- No client components unless interactivity is truly required (`usePathname` in AdminNav is the only current use)
+- Client components only when truly required. Current uses: AdminNav (`usePathname`), modal/dialog trigger buttons, dialog components themselves
 
 ## Data architecture
 
@@ -18,8 +18,9 @@ Three-tier hierarchy: **Seasons → Packs → Cards**
 - **Seasons** (`season:{id}` in KV, index at `seasons:list`): metadata + `packIds: string[]`. One season active at a time.
 - **Packs** (`pack:{id}`, index at `packs:list`): globally managed, not owned by any season. Cards stored at `pack:{id}:cards`. Packs can be assigned to multiple seasons.
 - **Cards** (`pack:{id}:cards`): array of Card objects stored per-pack.
-- **Legacy collection** (`tcg_{collectionName}`): `{ username: number[] }` — card numbers owned. This is what the OBS widget writes to via `/api/collection`. Powers the mini-list in the overlay and the admin dashboard stats.
+- **Legacy collection** (`tcg_{collectionName}`): `{ username: number[] }` — card numbers owned. This is what the OBS widget writes to via `/api/collection`. Powers the mini-list in the overlay and the admin dashboard stats. **This is the source of truth for user data** — `addUserPull`/`getUserPulls` exist but are never called by anything.
 - **User profiles** (`user:{username}:profile`): display name, Twitch username mapping, notes.
+- **Twitch opaque mapping** (`twitch_opaque:{opaqueId}`): maps Twitch Extension opaque user ID → lowercase username string.
 
 KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy data shapes on read — never need manual KV migrations.
 
@@ -33,9 +34,20 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 | `app/admin/actions.ts` | All server actions (mutations). No data fetching here |
 | `app/admin/layout.tsx` | Admin shell with sidebar (AdminNav client component) |
 | `app/admin/components/AdminNav.tsx` | Client component — uses `usePathname()` for active nav state |
+| `app/admin/components/Dialog.tsx` | Base modal with blur backdrop, ESC-to-close |
+| `app/admin/components/PackWizard.tsx` | 3-step wizard for pack creation (Details → Visual → Timing) |
+| `app/admin/components/SeasonDialog.tsx` | Dialog for season creation |
+| `app/admin/components/AddCardDialog.tsx` | Dialog for adding a card to a pack |
+| `app/admin/components/NewPackButton.tsx` | Client button that owns PackWizard open/close state |
+| `app/admin/components/NewSeasonButton.tsx` | Client button that owns SeasonDialog open/close state |
+| `app/admin/components/AddCardButton.tsx` | Client button that owns AddCardDialog open/close state |
+| `lib/twitch-jwt.ts` | Manual JWT verification via Node `crypto` (no external deps) |
 | `public/widget.js` | OBS overlay widget. Vanilla JS, no build step |
 | `public/overlay.html` | OBS browser source HTML |
 | `public/widget.css` | Overlay styles |
+| `public/twitch-panel/panel.html` | Twitch Extension Panel HTML (loads Extension Helper + panel.js) |
+| `public/twitch-panel/panel.js` | Extension panel logic: auth flow, pack tabs, collection display |
+| `public/twitch-panel/panel.css` | Extension panel styles (Twitch dark theme) |
 | `middleware.ts` | Auth gate — only covers `/admin/*`. `/collection/*` is public |
 
 ## Admin routes
@@ -67,6 +79,9 @@ The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMin
 - Server actions use `.bind(null, fixedArg)` to pre-fill arguments before passing to `<form action={}>`
 - Image uploads go through `ImageUploadField` component → Vercel Blob
 - Auth: `ADMIN_SECRET` env var checked against `admin-auth` cookie in middleware
+- **Modal pattern**: pages stay as server components; a thin client wrapper component (e.g. `NewPackButton`) owns only the open/close boolean and renders the dialog. The dialog itself uses `<form action={serverAction}>` — redirects still work correctly.
+- **NEVER add `onClick` or other event handlers to JSX in server components** — Next.js will throw at runtime even if the element is inside a client component's children prop. This applies to `<a>`, `<button>`, or any element rendered directly in a server component file.
+- Users page reads from `getAllCollectionUsers()` in `lib/kv.ts` which aggregates across all seasons' legacy collections. Do not use `listAllUsers()` — that reads from `users:all` KV set which nothing writes to.
 
 ## Twitch Extension Panel
 
