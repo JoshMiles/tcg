@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, getSeasonCards } from '@/lib/kv';
-
-export const dynamic = 'force-dynamic';
 import { updateSeason, addCard, deleteCard } from '../../actions';
 import { SeasonFields } from '../new/page';
+
+export const dynamic = 'force-dynamic';
 
 export default async function SeasonPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,8 +12,17 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
   if (!season) notFound();
 
   const sortedCards = [...cards].sort((a, b) => a.number - b.number);
+  const totalProb = cards.reduce((s, c) => s + c.probability, 0);
 
   const updateThisSeason = updateSeason.bind(null, id);
+
+  // Probability by star tier
+  const tierStats: Record<number, { count: number; probSum: number }> = {};
+  for (const c of cards) {
+    if (!tierStats[c.stars]) tierStats[c.stars] = { count: 0, probSum: 0 };
+    tierStats[c.stars].count++;
+    tierStats[c.stars].probSum += c.probability;
+  }
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -37,6 +46,8 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
               holoMinStars: season.holoMinStars,
               cardTime: season.cardTime,
               cooldownTime: season.cooldownTime,
+              maxConcurrentPacks: season.maxConcurrentPacks ?? 1,
+              soundVolume: season.soundVolume ?? 1.0,
               active: season.active,
             }}
           />
@@ -53,7 +64,24 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
 
       {/* Cards */}
       <div>
-        <h2 className="text-xl font-bold mb-4">Cards ({sortedCards.length})</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Cards ({sortedCards.length})</h2>
+          {totalProb > 0 && (
+            <div className="flex gap-3 text-xs text-gray-500">
+              {[5, 4, 3, 2, 1].map(star => {
+                const t = tierStats[star];
+                if (!t) return null;
+                const pct = Math.round(t.probSum / totalProb * 100);
+                return (
+                  <span key={star} className="flex items-center gap-1">
+                    <span className="text-yellow-400">{'★'.repeat(star)}</span>
+                    <span>{pct}%</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-4">
           <table className="w-full text-sm">
@@ -63,12 +91,14 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
                 <th className="text-left px-4 py-3">Name</th>
                 <th className="text-right px-4 py-3">★</th>
                 <th className="text-right px-4 py-3">Prob</th>
+                <th className="text-right px-4 py-3">%</th>
                 <th className="text-right px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {sortedCards.map(card => {
                 const deleteThisCard = deleteCard.bind(null, id, card.id);
+                const pct = totalProb > 0 ? (card.probability / totalProb * 100).toFixed(1) : '—';
                 return (
                   <tr key={card.id} className="border-t border-gray-800 hover:bg-gray-800">
                     <td className="px-4 py-2 text-gray-500">{card.number}</td>
@@ -82,6 +112,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
                     </td>
                     <td className="px-4 py-2 text-right text-yellow-400">{'★'.repeat(card.stars)}</td>
                     <td className="px-4 py-2 text-right text-gray-400">{card.probability}</td>
+                    <td className="px-4 py-2 text-right text-gray-500 text-xs">{pct}%</td>
                     <td className="px-4 py-2 text-right">
                       <div className="flex justify-end gap-2">
                         <Link
@@ -105,7 +136,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
               })}
               {sortedCards.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-gray-500">No cards yet</td>
+                  <td colSpan={6} className="px-4 py-6 text-center text-gray-500">No cards yet</td>
                 </tr>
               )}
             </tbody>

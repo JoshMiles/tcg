@@ -24,6 +24,8 @@ export async function createSeason(formData: FormData) {
     holoMinStars: Number(formData.get('holoMinStars')) || 5,
     cardTime: Number(formData.get('cardTime')) || 3,
     cooldownTime: Number(formData.get('cooldownTime')) || 1,
+    maxConcurrentPacks: Number(formData.get('maxConcurrentPacks')) || 1,
+    soundVolume: Number(formData.get('soundVolume')) || 1.0,
   };
 
   if (season.active) {
@@ -57,9 +59,18 @@ export async function updateSeason(id: string, formData: FormData) {
     holoMinStars: Number(formData.get('holoMinStars')),
     cardTime: Number(formData.get('cardTime')),
     cooldownTime: Number(formData.get('cooldownTime')),
+    maxConcurrentPacks: Number(formData.get('maxConcurrentPacks')) || 1,
+    soundVolume: Number(formData.get('soundVolume')) || 1.0,
   });
   revalidatePath('/admin/seasons');
   revalidatePath(`/admin/seasons/${id}`);
+}
+
+export async function activateSeason(id: string) {
+  const all = await listSeasons();
+  await Promise.all(all.map(s => saveSeason({ ...s, active: s.id === id })));
+  revalidatePath('/admin/seasons');
+  revalidatePath('/admin');
 }
 
 export async function deleteSeasonAction(id: string) {

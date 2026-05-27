@@ -46,28 +46,44 @@ export function SeasonFields({ defaults }: { defaults?: Record<string, string | 
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Field
           label="Holo Min Stars"
           name="holoMinStars"
           type="number"
           defaultValue={String(defaults?.holoMinStars ?? 5)}
-          help="Cards with ≥ this star count get holo effect"
+          help="≥ this many stars = holo"
         />
         <Field
           label="Card Time (s)"
           name="cardTime"
           type="number"
           defaultValue={String(defaults?.cardTime ?? 3)}
-          help="Seconds the card is shown"
+          help="Seconds card is shown"
         />
         <Field
-          label="Cooldown Time (s)"
+          label="Cooldown (s)"
           name="cooldownTime"
           type="number"
           defaultValue={String(defaults?.cooldownTime ?? 1)}
+          help="Between queued draws"
+        />
+        <Field
+          label="Max Concurrent"
+          name="maxConcurrentPacks"
+          type="number"
+          defaultValue={String(defaults?.maxConcurrentPacks ?? 1)}
+          help="Packs open at once"
         />
       </div>
+
+      <Field
+        label="Sound Volume (0–1)"
+        name="soundVolume"
+        type="number"
+        defaultValue={String(defaults?.soundVolume ?? 1.0)}
+        help="Widget pack-open sound volume"
+      />
 
       <div className="flex items-center gap-3">
         <input
@@ -101,6 +117,7 @@ function Field({
         name={name}
         required={required}
         defaultValue={defaultValue}
+        step={type === 'number' ? 'any' : undefined}
         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
       />
       {help && <p className="text-xs text-gray-600 mt-1">{help}</p>}

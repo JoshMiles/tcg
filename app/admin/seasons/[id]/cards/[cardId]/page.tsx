@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, getSeasonCards } from '@/lib/kv';
+import { updateCard } from '../../../../actions';
+import { ImageUploadField } from '../../../../components/image-upload';
 
 export const dynamic = 'force-dynamic';
-import { updateCard } from '../../../../actions';
 
 export default async function EditCardPage({
   params,
@@ -31,19 +32,11 @@ export default async function EditCardPage({
       <form action={updateThisCard} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
         <Field label="Card Number" name="number" type="number" defaultValue={String(card.number)} required />
         <Field label="Name" name="name" defaultValue={card.name} required />
-        <Field label="Image URL" name="imageUrl" defaultValue={card.imageUrl} />
+        <ImageUploadField name="imageUrl" defaultValue={card.imageUrl} />
         <div className="grid grid-cols-2 gap-4">
           <Field label="Stars (1–5)" name="stars" type="number" defaultValue={String(card.stars)} required />
           <Field label="Probability" name="probability" type="number" defaultValue={String(card.probability)} required />
         </div>
-
-        {card.imageUrl && (
-          <div>
-            <p className="text-xs text-gray-500 mb-2">Current image</p>
-            <img src={card.imageUrl} alt={card.name} className="h-32 object-contain rounded border border-gray-700" />
-          </div>
-        )}
-
         <div className="pt-2">
           <button
             type="submit"

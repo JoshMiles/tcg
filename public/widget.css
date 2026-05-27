@@ -78,6 +78,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 20px;
   overflow: visible;
 }
 
@@ -109,7 +110,7 @@
   animation-fill-mode: forwards;
 }
 
-#package-image {
+.package-image {
   position: relative;
   width: 287.5px;
   margin-top: -65px;

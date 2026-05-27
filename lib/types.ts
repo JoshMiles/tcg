@@ -1,15 +1,25 @@
 export interface Season {
   id: string;
   name: string;
-  collectionName: string; // KV key suffix, no spaces
-  coverImageUrl: string;
   active: boolean;
   createdAt: number;
+}
+
+export interface Pack {
+  id: string;
+  seasonId: string;
+  name: string;
+  coverImageUrl: string;
+  active: boolean;
+  weight: number;          // relative weight for random pack selection
   accentColor: string;
   tearBorderColor: string;
   holoMinStars: number;
-  cardTime: number;       // seconds card stays visible
-  cooldownTime: number;   // seconds between queued draws
+  cardTime: number;
+  cooldownTime: number;
+  maxConcurrentPacks: number;
+  soundVolume: number;
+  createdAt: number;
 }
 
 export interface Card {
@@ -21,4 +31,15 @@ export interface Card {
   stars: number; // 1–5
 }
 
-export type Collection = Record<string, number[]>;
+export interface PullRecord {
+  cardId: string;
+  cardNumber: number;
+  cardName: string;
+  stars: number;
+  imageUrl: string;
+  packId: string;
+  packName: string;
+  seasonId: string;
+  seasonName: string;
+  pulledAt: number;
+}

@@ -12,6 +12,8 @@ export const SEED_SEASON: Season = {
   holoMinStars: 5,
   cardTime: 3,
   cooldownTime: 1,
+  maxConcurrentPacks: 1,
+  soundVolume: 1.0,
 };
 
 export const SEED_CARDS: Card[] = [
