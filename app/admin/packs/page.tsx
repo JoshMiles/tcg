@@ -1,112 +1,139 @@
-import Link from 'next/link';
 import { listAllPacks, getPackCards } from '@/lib/kv';
 import { deletePackAction } from '../actions';
+import { NewPackButton } from '../components/NewPackButton';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
+
+const RARITY = [
+  { stars: 5, color: 'text-amber-400'  },
+  { stars: 4, color: 'text-purple-400' },
+  { stars: 3, color: 'text-blue-400'   },
+  { stars: 2, color: 'text-green-400'  },
+  { stars: 1, color: 'text-gray-500'   },
+];
 
 export default async function PacksPage() {
   const packs = await listAllPacks();
   packs.sort((a, b) => b.createdAt - a.createdAt);
 
-  const cardCounts = await Promise.all(
-    packs.map(p => getPackCards(p.id).then(cards => ({ id: p.id, count: cards.length, cards })))
-  );
-  const statsMap = Object.fromEntries(
-    cardCounts.map(({ id, count, cards }) => {
-      const totalProb = cards.reduce((s, c) => s + c.probability, 0);
-      const tiers = [5, 4, 3, 2, 1].map(star => {
-        const sum = cards.filter(c => c.stars === star).reduce((s, c) => s + c.probability, 0);
-        return totalProb > 0 ? Math.round(sum / totalProb * 100) : 0;
-      });
-      return [id, { count, tiers }];
+  const stats = await Promise.all(
+    packs.map(async p => {
+      const cards = await getPackCards(p.id);
+      const total = cards.reduce((s, c) => s + c.probability, 0);
+      const tiers = RARITY.map(r => ({
+        ...r,
+        pct: total > 0 ? Math.round(cards.filter(c => c.stars === r.stars).reduce((s, c) => s + c.probability, 0) / total * 100) : 0,
+      }));
+      return { id: p.id, count: cards.length, tiers };
     })
   );
+  const statsMap = Object.fromEntries(stats.map(s => [s.id, s]));
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Packs</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Global pack library — add packs to any season</p>
+          <h1 className="text-2xl font-bold text-white">Packs</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {packs.length} pack{packs.length !== 1 ? 's' : ''} · assign to any season
+          </p>
         </div>
-        <Link
-          href="/admin/packs/new"
-          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors"
-        >
-          + New Pack
-        </Link>
+        <NewPackButton />
       </div>
 
-      {packs.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center space-y-3">
-          <p className="text-gray-400">No packs yet.</p>
-          <Link href="/admin/packs/new" className="inline-block px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm">
-            Create your first pack
-          </Link>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {packs.map(pack => {
-            const stats = statsMap[pack.id] ?? { count: 0, tiers: [0, 0, 0, 0, 0] };
-            const del = deletePackAction.bind(null, pack.id);
-            return (
-              <div
-                key={pack.id}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-gray-700 transition-colors"
-              >
-                {pack.coverImageUrl ? (
-                  <img src={pack.coverImageUrl} alt={pack.name} className="w-12 h-16 object-cover rounded-lg shrink-0" />
-                ) : (
-                  <div className="w-12 h-16 bg-gray-800 rounded-lg shrink-0 flex items-center justify-center text-gray-600 text-xs">
-                    No img
-                  </div>
-                )}
-
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-white">{pack.name}</span>
-                    {pack.active ? (
-                      <span className="text-xs px-1.5 py-0.5 bg-green-900/60 text-green-400 rounded-md">Active</span>
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left pl-6 pr-2 py-4 w-14"></th>
+              <th className="text-left px-4 py-4">Pack</th>
+              <th className="text-right px-4 py-4">Cards</th>
+              <th className="text-right px-4 py-4 hidden md:table-cell">Weight</th>
+              <th className="text-left px-4 py-4 hidden lg:table-cell">Rarity Mix</th>
+              <th className="text-left px-4 py-4">Status</th>
+              <th className="text-right pr-6 pl-4 py-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-800/50">
+            {packs.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-6 py-20 text-center">
+                  <p className="text-gray-500 mb-3">No packs yet</p>
+                  <NewPackButton />
+                </td>
+              </tr>
+            )}
+            {packs.map(pack => {
+              const { count, tiers } = statsMap[pack.id] ?? { count: 0, tiers: [] };
+              const del = deletePackAction.bind(null, pack.id);
+              return (
+                <tr key={pack.id} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="pl-6 pr-2 py-3">
+                    {pack.coverImageUrl ? (
+                      <img src={pack.coverImageUrl} alt={pack.name} className="w-9 h-12 object-cover rounded-lg" />
                     ) : (
-                      <span className="text-xs px-1.5 py-0.5 bg-gray-800 text-gray-500 rounded-md">Inactive</span>
+                      <div className="w-9 h-12 bg-gray-800 rounded-lg" />
                     )}
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    {stats.count} card{stats.count !== 1 ? 's' : ''} · Weight {pack.weight}
-                  </p>
-                  {stats.count > 0 && (
-                    <div className="flex gap-2">
-                      {[5, 4, 3, 2, 1].map((star, i) => stats.tiers[i] > 0 && (
-                        <span key={star} className="text-xs text-gray-600">
-                          <span className="text-yellow-500">{'★'.repeat(star)}</span>
-                          {' '}{stats.tiers[i]}%
+                  </td>
+
+                  <td className="px-4 py-3 font-medium text-white">{pack.name}</td>
+
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-400">{count}</td>
+
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-500 hidden md:table-cell">
+                    {pack.weight}×
+                  </td>
+
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    <div className="flex items-center gap-3">
+                      {tiers.filter(t => t.pct > 0).map(t => (
+                        <span key={t.stars} className={`text-xs ${t.color}`}>
+                          {'★'.repeat(t.stars)} <span className="text-gray-600">{t.pct}%</span>
                         </span>
                       ))}
+                      {count === 0 && <span className="text-xs text-gray-700">—</span>}
                     </div>
-                  )}
-                </div>
+                  </td>
 
-                <div className="flex gap-2 shrink-0">
-                  <Link
-                    href={`/admin/packs/${pack.id}`}
-                    className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                  >
-                    Manage
-                  </Link>
-                  <form action={del}>
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 text-sm bg-red-900/60 hover:bg-red-900 text-red-400 rounded-lg transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </form>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                  <td className="px-4 py-3">
+                    {pack.active ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 shadow shadow-green-400/50" />
+                        Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-700" />
+                        Inactive
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="pl-4 pr-6 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/admin/packs/${pack.id}`}
+                        className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg transition-colors"
+                      >
+                        Manage →
+                      </Link>
+                      <form action={del}>
+                        <button
+                          type="submit"
+                          className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

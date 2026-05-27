@@ -9,15 +9,11 @@ export default async function UsersPage() {
     listSeasons(),
   ]);
 
-  // Load profiles for all users
-  const profiles = await Promise.all(
-    users.map(u => getUserProfile(u.username))
-  );
+  const profiles = await Promise.all(users.map(u => getUserProfile(u.username)));
   const profileMap = Object.fromEntries(
     profiles.filter(Boolean).map(p => [p!.username, p!])
   );
 
-  // Build a card pool per season for completion %
   const seasonCardCounts: Record<string, number> = {};
   await Promise.all(
     seasons.map(async s => {
@@ -30,7 +26,6 @@ export default async function UsersPage() {
     })
   );
 
-  // Sort by total cards desc
   const sorted = [...users].sort(
     (a, b) =>
       b.seasons.reduce((s, x) => s + x.cards.length, 0) -
@@ -38,10 +33,12 @@ export default async function UsersPage() {
   );
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Users</h1>
+          <h1 className="text-2xl font-bold text-white">Users</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {sorted.length} collector{sorted.length !== 1 ? 's' : ''} across all seasons
           </p>
@@ -50,7 +47,7 @@ export default async function UsersPage() {
           <a
             href="/collection"
             target="_blank"
-            className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
+            className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition-colors"
           >
             ↗ Collection Page
           </a>
@@ -58,7 +55,7 @@ export default async function UsersPage() {
             <form action={resetAllUsers}>
               <button
                 type="submit"
-                className="px-3 py-1.5 text-xs bg-red-900/60 hover:bg-red-900 text-red-400 rounded-lg transition-colors"
+                className="px-3 py-2 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-xl transition-colors"
               >
                 Reset All
               </button>
@@ -67,122 +64,149 @@ export default async function UsersPage() {
         </div>
       </div>
 
-      {sorted.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center space-y-2">
-          <p className="text-gray-500">No collectors yet.</p>
-          <p className="text-gray-700 text-sm">
-            When viewers pull cards through the overlay, they'll appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {sorted.map(({ username, seasons: userSeasons }) => {
-            const profile = profileMap[username];
-            const displayName = profile?.displayName || username;
-            const totalCards = userSeasons.reduce((s, x) => s + x.cards.length, 0);
-            const updateProfile = updateUserProfile.bind(null, username);
-            const resetThis = resetUser.bind(null, username);
+      {/* Table */}
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+        {sorted.length === 0 ? (
+          <div className="py-20 text-center space-y-2">
+            <p className="text-2xl mb-4">👥</p>
+            <p className="text-gray-400 font-medium">No collectors yet</p>
+            <p className="text-gray-600 text-sm">Viewers appear here when they pull cards on stream</p>
+          </div>
+        ) : (
+          <>
+            {/* Column headers */}
+            <div className="grid grid-cols-[2.5rem_1fr_5rem_14rem_5rem_9rem] gap-0 px-6 py-3 border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <span>#</span>
+              <span>User</span>
+              <span className="text-right">Cards</span>
+              <span>Seasons</span>
+              <span className="text-right">Best</span>
+              <span className="text-right">Actions</span>
+            </div>
 
-            return (
-              <div key={username} className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-                {/* Main row */}
-                <div className="px-4 py-3 flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-white">{displayName}</span>
-                      {profile?.displayName && profile.displayName !== username && (
-                        <span className="text-xs text-gray-600 font-mono">({username})</span>
-                      )}
+            {sorted.map((user, i) => {
+              const profile = profileMap[user.username];
+              const displayName = profile?.displayName || user.username;
+              const totalCards = user.seasons.reduce((s, x) => s + x.cards.length, 0);
+              const updateProfile = updateUserProfile.bind(null, user.username);
+              const resetThis = resetUser.bind(null, user.username);
+
+              let best = 0;
+              for (const us of user.seasons) {
+                const total = seasonCardCounts[us.id] ?? 0;
+                if (total > 0) best = Math.max(best, Math.round(us.cards.length / total * 100));
+              }
+
+              const rankColor = i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-700' : 'text-gray-700';
+              const bestColor = best >= 80 ? 'text-amber-400' : best >= 50 ? 'text-green-400' : 'text-gray-500';
+
+              return (
+                <details key={user.username} className="group border-t border-gray-800/60 first:border-0">
+                  <summary className="grid grid-cols-[2.5rem_1fr_5rem_14rem_5rem_9rem] gap-0 items-center px-6 py-3.5 cursor-pointer list-none hover:bg-white/[0.02] transition-colors [&::-webkit-details-marker]:hidden">
+
+                    <span className={`text-sm font-bold tabular-nums ${rankColor}`}>{i + 1}</span>
+
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0 uppercase">
+                        {displayName[0]}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-white text-sm truncate">{displayName}</p>
+                        {profile?.displayName && profile.displayName !== user.username && (
+                          <p className="text-xs text-gray-600 font-mono">{user.username}</p>
+                        )}
+                      </div>
                       {profile?.twitchId && (
-                        <span className="text-xs px-1.5 py-0.5 bg-purple-900/50 text-purple-400 rounded-md">
-                          Twitch linked
-                        </span>
+                        <span className="text-xs px-1.5 py-0.5 bg-purple-900/40 text-purple-400 rounded-md shrink-0">Twitch</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                      <span className="text-xs text-gray-500">{totalCards} card{totalCards !== 1 ? 's' : ''} total</span>
-                      {userSeasons.map(us => {
+
+                    <span className="text-right text-gray-400 tabular-nums text-sm">{totalCards}</span>
+
+                    <div className="flex flex-col gap-0.5">
+                      {user.seasons.map(us => {
                         const total = seasonCardCounts[us.id] ?? 0;
                         const pct = total > 0 ? Math.round(us.cards.length / total * 100) : 0;
                         return (
-                          <span key={us.id} className="text-xs text-gray-600">
-                            {us.name}: <span className="text-gray-400">{us.cards.length}/{total}</span>
-                            {' '}
-                            <span className="text-yellow-500">{pct}%</span>
+                          <span key={us.id} className="text-xs text-gray-600 truncate">
+                            {us.name}:&nbsp;
+                            <span className="text-yellow-500 tabular-nums">{pct}%</span>
+                            <span className="text-gray-700"> ({us.cards.length}/{total})</span>
                           </span>
                         );
                       })}
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <a
-                      href={`/collection/${username}`}
-                      target="_blank"
-                      className="px-2.5 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded transition-colors"
-                    >
-                      View →
-                    </a>
-                    <form action={resetThis}>
-                      <button
-                        type="submit"
-                        className="px-2.5 py-1 text-xs bg-red-900/50 hover:bg-red-900 text-red-400 rounded transition-colors"
+                    <span className={`text-right font-semibold tabular-nums text-sm ${bestColor}`}>{best}%</span>
+
+                    <div className="flex items-center justify-end gap-2">
+                      <a
+                        href={`/collection/${user.username}`}
+                        target="_blank"
+                        onClick={e => e.stopPropagation()}
+                        className="px-2.5 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors"
                       >
-                        Reset
-                      </button>
-                    </form>
-                  </div>
-                </div>
-
-                {/* Inline edit panel */}
-                <details className="group border-t border-gray-800/60">
-                  <summary className="px-4 py-2 text-xs text-gray-600 hover:text-gray-400 cursor-pointer select-none transition-colors list-none flex items-center gap-1">
-                    <span className="group-open:rotate-90 transition-transform inline-block">›</span>
-                    Edit profile
+                        View →
+                      </a>
+                      <span className="text-xs text-gray-700 group-open:rotate-90 transition-transform inline-block">›</span>
+                    </div>
                   </summary>
-                  <form action={updateProfile} className="px-4 pb-4 pt-2 space-y-3 bg-gray-800/30">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Display name</label>
-                        <input
-                          name="displayName"
-                          defaultValue={profile?.displayName || username}
-                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
-                          placeholder={username}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Twitch username</label>
-                        <input
-                          name="twitchId"
-                          defaultValue={profile?.twitchId || ''}
-                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors"
-                          placeholder="twitch_username"
-                        />
-                      </div>
+
+                  {/* Expanded edit + reset panel */}
+                  <div className="px-6 py-4 bg-gray-800/30 border-t border-gray-800/60">
+                    <div className="flex items-start justify-between gap-6">
+                      <form action={updateProfile} className="flex-1 grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Display name</label>
+                          <input
+                            name="displayName"
+                            defaultValue={profile?.displayName || user.username}
+                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Twitch username</label>
+                          <input
+                            name="twitchId"
+                            defaultValue={profile?.twitchId || ''}
+                            placeholder="twitch_username"
+                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Notes</label>
+                          <input
+                            name="notes"
+                            defaultValue={profile?.notes || ''}
+                            placeholder="Optional"
+                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
+                          />
+                        </div>
+                        <div className="col-span-3 flex items-center gap-3">
+                          <button
+                            type="submit"
+                            className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-xs transition-colors"
+                          >
+                            Save Profile
+                          </button>
+                        </div>
+                      </form>
+                      <form action={resetThis} className="shrink-0 pt-5">
+                        <button
+                          type="submit"
+                          className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
+                        >
+                          Reset User
+                        </button>
+                      </form>
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Notes</label>
-                      <input
-                        name="notes"
-                        defaultValue={profile?.notes || ''}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
-                        placeholder="Optional notes"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-xs transition-colors"
-                    >
-                      Save
-                    </button>
-                  </form>
+                  </div>
                 </details>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </>
+        )}
+      </div>
     </div>
   );
 }

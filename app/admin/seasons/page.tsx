@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { listSeasons, getPacksForSeason } from '@/lib/kv';
 import { deleteSeasonAction, activateSeason } from '../actions';
+import { NewSeasonButton } from '../components/NewSeasonButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,92 +15,120 @@ export default async function SeasonsPage() {
       return { id: s.id, total: packs.length, active: packs.filter(p => p.active).length };
     })
   );
-  const packMap = Object.fromEntries(packStats.map(({ id, total, active }) => [id, { total, active }]));
+  const packMap = Object.fromEntries(packStats.map(({ id, ...v }) => [id, v]));
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Seasons</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Each season references one or more packs</p>
+          <h1 className="text-2xl font-bold text-white">Seasons</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {seasons.length} season{seasons.length !== 1 ? 's' : ''} · one active at a time
+          </p>
         </div>
-        <Link
-          href="/admin/seasons/new"
-          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors"
-        >
-          + New Season
-        </Link>
+        <NewSeasonButton />
       </div>
 
-      {seasons.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center space-y-3">
-          <p className="text-gray-500">No seasons yet.</p>
-          <Link href="/admin/seasons/new" className="inline-block px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm">
-            Create your first season
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {seasons.map(s => {
-            const activate = activateSeason.bind(null, s.id);
-            const del = deleteSeasonAction.bind(null, s.id);
-            const packs = packMap[s.id] ?? { total: 0, active: 0 };
-            return (
-              <div
-                key={s.id}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-gray-700 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-white">{s.name}</span>
-                    {s.active ? (
-                      <span className="text-xs px-1.5 py-0.5 bg-green-900/60 text-green-400 rounded-md">Active</span>
-                    ) : (
-                      <span className="text-xs px-1.5 py-0.5 bg-gray-800 text-gray-500 rounded-md">Inactive</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    {packs.total} pack{packs.total !== 1 ? 's' : ''}
-                    {packs.total > 0 && ` · ${packs.active} active`}
-                    {' · '}
-                    <span className="text-gray-600">{s.collectionName}</span>
-                  </p>
-                  <p className="text-xs text-gray-700 mt-0.5">
-                    Created {new Date(s.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="text-left px-6 py-4">Season</th>
+              <th className="text-left px-4 py-4 hidden md:table-cell">Collection Key</th>
+              <th className="text-right px-4 py-4">Packs</th>
+              <th className="text-left px-4 py-4">Status</th>
+              <th className="text-right px-4 py-4 hidden md:table-cell">Created</th>
+              <th className="text-right pr-6 pl-4 py-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-800/50">
+            {seasons.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-20 text-center">
+                  <p className="text-gray-500 mb-3">No seasons yet</p>
+                  <NewSeasonButton />
+                </td>
+              </tr>
+            )}
+            {seasons.map(s => {
+              const packs = packMap[s.id] ?? { total: 0, active: 0 };
+              const activate = activateSeason.bind(null, s.id);
+              const del = deleteSeasonAction.bind(null, s.id);
+              return (
+                <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="px-6 py-4">
+                    <span className="font-medium text-white">{s.name}</span>
+                  </td>
 
-                <div className="flex gap-2 shrink-0">
-                  {!s.active && (
-                    <form action={activate}>
-                      <button
-                        type="submit"
-                        className="px-3 py-1.5 text-sm bg-green-900/60 hover:bg-green-900 text-green-400 rounded-lg transition-colors"
+                  <td className="px-4 py-4 hidden md:table-cell">
+                    <code className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                      {s.collectionName}
+                    </code>
+                  </td>
+
+                  <td className="px-4 py-4 text-right tabular-nums">
+                    {packs.total === 0 ? (
+                      <span className="text-gray-700">—</span>
+                    ) : (
+                      <span className="text-gray-400">
+                        {packs.active}/{packs.total}
+                        <span className="text-gray-700 ml-1 text-xs">active</span>
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="px-4 py-4">
+                    {s.active ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 shadow shadow-green-400/50" />
+                        Active
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-700" />
+                        Inactive
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="px-4 py-4 text-right text-xs text-gray-600 tabular-nums hidden md:table-cell">
+                    {new Date(s.createdAt).toLocaleDateString()}
+                  </td>
+
+                  <td className="pl-4 pr-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {!s.active && (
+                        <form action={activate}>
+                          <button
+                            type="submit"
+                            className="px-3 py-1.5 text-xs bg-green-950/50 hover:bg-green-900/50 text-green-500 hover:text-green-300 rounded-lg transition-colors"
+                          >
+                            Activate
+                          </button>
+                        </form>
+                      )}
+                      <Link
+                        href={`/admin/seasons/${s.id}`}
+                        className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg transition-colors"
                       >
-                        Activate
-                      </button>
-                    </form>
-                  )}
-                  <Link
-                    href={`/admin/seasons/${s.id}`}
-                    className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                  >
-                    Manage
-                  </Link>
-                  <form action={del}>
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 text-sm bg-red-900/50 hover:bg-red-900 text-red-400 rounded-lg transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </form>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                        Manage →
+                      </Link>
+                      <form action={del}>
+                        <button
+                          type="submit"
+                          className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

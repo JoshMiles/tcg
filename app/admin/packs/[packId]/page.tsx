@@ -1,176 +1,183 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPack, getPackCards } from '@/lib/kv';
-import { updatePack, addCard, deleteCard } from '../../actions';
+import { updatePack, deleteCard } from '../../actions';
 import { PackFields } from '../../components/PackFields';
+import { AddCardButton } from '../../components/AddCardButton';
 
 export const dynamic = 'force-dynamic';
+
+const RARITY = [
+  { stars: 5, label: 'Legendary', color: 'text-amber-400',  bar: 'bg-amber-500'  },
+  { stars: 4, label: 'Epic',      color: 'text-purple-400', bar: 'bg-purple-500' },
+  { stars: 3, label: 'Rare',      color: 'text-blue-400',   bar: 'bg-blue-500'   },
+  { stars: 2, label: 'Uncommon',  color: 'text-green-400',  bar: 'bg-green-500'  },
+  { stars: 1, label: 'Common',    color: 'text-gray-400',   bar: 'bg-gray-600'   },
+];
 
 export default async function PackPage({ params }: { params: Promise<{ packId: string }> }) {
   const { packId } = await params;
   const [pack, cards] = await Promise.all([getPack(packId), getPackCards(packId)]);
   if (!pack) notFound();
 
-  const sortedCards = [...cards].sort((a, b) => a.number - b.number);
+  const sorted = [...cards].sort((a, b) => a.number - b.number);
   const totalProb = cards.reduce((s, c) => s + c.probability, 0);
-
-  const tierStats: Record<number, { count: number; prob: number }> = {};
-  for (const c of cards) {
-    if (!tierStats[c.stars]) tierStats[c.stars] = { count: 0, prob: 0 };
-    tierStats[c.stars].count++;
-    tierStats[c.stars].prob += c.probability;
-  }
-
   const updateThisPack = updatePack.bind(null, packId);
 
-  return (
-    <div className="space-y-8 max-w-3xl">
-      {/* Pack settings */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{pack.name}</h1>
-            {pack.active ? (
-              <span className="text-xs px-2 py-1 bg-green-900/60 text-green-400 rounded-full">Active</span>
-            ) : (
-              <span className="text-xs px-2 py-1 bg-gray-800 text-gray-500 rounded-full">Inactive</span>
-            )}
-          </div>
-          <Link href="/admin/packs" className="text-sm text-gray-500 hover:text-white transition-colors">
-            ← Packs
-          </Link>
-        </div>
+  const rarityStats = RARITY.map(r => {
+    const rCards = cards.filter(c => c.stars === r.stars);
+    const prob = rCards.reduce((s, c) => s + c.probability, 0);
+    return { ...r, count: rCards.length, pct: totalProb > 0 ? Math.round(prob / totalProb * 100) : 0 };
+  }).filter(r => r.count > 0);
 
-        <form action={updateThisPack} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
-          <PackFields defaults={pack} />
-          <div className="pt-2">
-            <button
-              type="submit"
-              className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors"
-            >
-              Save Changes
-            </button>
+  return (
+    <div className="space-y-8">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {pack.coverImageUrl && (
+            <img src={pack.coverImageUrl} alt={pack.name} className="w-10 h-14 object-cover rounded-lg" />
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-white">{pack.name}</h1>
+              {pack.active ? (
+                <span className="text-xs px-2 py-0.5 bg-green-900/50 text-green-400 rounded-full">Active</span>
+              ) : (
+                <span className="text-xs px-2 py-0.5 bg-gray-800 text-gray-500 rounded-full">Inactive</span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">{cards.length} cards · Weight {pack.weight}×</p>
           </div>
-        </form>
+        </div>
+        <Link href="/admin/packs" className="text-sm text-gray-500 hover:text-white transition-colors">
+          ← Packs
+        </Link>
       </div>
 
-      {/* Cards */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">
-            Cards
-            <span className="ml-2 text-base font-normal text-gray-500">({sortedCards.length})</span>
-          </h2>
-          {totalProb > 0 && (
-            <div className="flex gap-3 text-xs text-gray-500">
-              {[5, 4, 3, 2, 1].map(star => {
-                const t = tierStats[star];
-                if (!t) return null;
-                const pct = Math.round(t.prob / totalProb * 100);
-                return (
-                  <span key={star} className="flex items-center gap-1">
-                    <span className="text-yellow-500">{'★'.repeat(star)}</span>
-                    <span>{pct}%</span>
-                  </span>
-                );
-              })}
-            </div>
-          )}
-        </div>
+      <div className="grid lg:grid-cols-3 gap-8">
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-4">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-gray-600 text-xs uppercase border-b border-gray-800">
-                <th className="text-left px-4 py-3 w-10">#</th>
-                <th className="text-left px-4 py-3">Name</th>
-                <th className="text-right px-4 py-3">Stars</th>
-                <th className="text-right px-4 py-3">Prob</th>
-                <th className="text-right px-4 py-3">%</th>
-                <th className="text-right px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedCards.map(card => {
-                const del = deleteCard.bind(null, packId, card.id);
-                const pct = totalProb > 0 ? (card.probability / totalProb * 100).toFixed(1) : '—';
-                return (
-                  <tr key={card.id} className="border-t border-gray-800/60 hover:bg-gray-800/40 transition-colors">
-                    <td className="px-4 py-2.5 text-gray-600 tabular-nums">{card.number}</td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-2.5">
-                        {card.imageUrl ? (
-                          <img src={card.imageUrl} alt={card.name} className="w-6 h-8 object-cover rounded" />
-                        ) : (
-                          <div className="w-6 h-8 bg-gray-800 rounded shrink-0" />
-                        )}
-                        <span className="text-gray-200">{card.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-yellow-500">{'★'.repeat(card.stars)}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-400 tabular-nums">{card.probability}</td>
-                    <td className="px-4 py-2.5 text-right text-gray-600 text-xs tabular-nums">{pct}%</td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex justify-end gap-1.5">
-                        <Link
-                          href={`/admin/packs/${packId}/cards/${card.id}`}
-                          className="px-2.5 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded transition-colors"
-                        >
-                          Edit
-                        </Link>
-                        <form action={del}>
-                          <button
-                            type="submit"
-                            className="px-2.5 py-1 text-xs bg-red-900/50 hover:bg-red-900 text-red-400 rounded transition-colors"
-                          >
-                            Del
-                          </button>
-                        </form>
-                      </div>
+        {/* ── Left: Cards table ── */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">
+              Cards <span className="text-gray-600 font-normal text-base ml-1">({sorted.length})</span>
+            </h2>
+            <AddCardButton packId={packId} />
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-5 py-3 w-10">#</th>
+                  <th className="text-left px-4 py-3">Card</th>
+                  <th className="text-right px-4 py-3">Rarity</th>
+                  <th className="text-right px-4 py-3 hidden sm:table-cell">Prob</th>
+                  <th className="text-right px-4 py-3 hidden sm:table-cell">%</th>
+                  <th className="text-right pr-5 pl-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800/50">
+                {sorted.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-16 text-center text-gray-600">
+                      No cards yet — add your first card →
                     </td>
                   </tr>
-                );
-              })}
-              {sortedCards.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-gray-600">
-                    No cards yet — add one below
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+                {sorted.map(card => {
+                  const del = deleteCard.bind(null, packId, card.id);
+                  const pct = totalProb > 0 ? (card.probability / totalProb * 100).toFixed(1) : '—';
+                  const rarity = RARITY.find(r => r.stars === card.stars);
+                  return (
+                    <tr key={card.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-5 py-2.5 text-gray-600 tabular-nums text-xs">{card.number}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-3">
+                          {card.imageUrl ? (
+                            <img src={card.imageUrl} alt={card.name} className="w-7 h-10 object-cover rounded shrink-0" />
+                          ) : (
+                            <div className="w-7 h-10 bg-gray-800 rounded shrink-0" />
+                          )}
+                          <span className="text-gray-200 font-medium">{card.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={`text-xs font-medium ${rarity?.color ?? 'text-gray-400'}`}>
+                          {'★'.repeat(card.stars)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-gray-500 tabular-nums hidden sm:table-cell">
+                        {card.probability}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-gray-700 text-xs tabular-nums hidden sm:table-cell">
+                        {pct}%
+                      </td>
+                      <td className="pr-5 pl-4 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            href={`/admin/packs/${packId}/cards/${card.id}`}
+                            className="px-2.5 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors"
+                          >
+                            Edit
+                          </Link>
+                          <form action={del}>
+                            <button
+                              type="submit"
+                              className="px-2.5 py-1 text-xs text-red-600 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
+                            >
+                              Del
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Add card */}
-        <details className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden group">
-          <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-gray-400 hover:text-white select-none transition-colors group-open:text-white group-open:border-b group-open:border-gray-800">
-            + Add Card
-          </summary>
-          <form action={addCard.bind(null, packId)} className="px-4 pb-4 pt-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Name *</label>
-                <input name="name" required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Image URL</label>
-                <input name="imageUrl" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Stars (1–5) *</label>
-                <input name="stars" type="number" min="1" max="5" required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Probability *</label>
-                <input name="probability" type="number" min="1" required className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
-              </div>
+        {/* ── Right: Pack settings ── */}
+        <div className="space-y-6">
+
+          {/* Rarity breakdown */}
+          {rarityStats.length > 0 && (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
+              <h3 className="text-sm font-semibold text-white">Rarity Mix</h3>
+              {rarityStats.map(r => (
+                <div key={r.stars} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className={r.color}>{'★'.repeat(r.stars)} {r.label}</span>
+                    <span className="text-gray-600">{r.count} cards · {r.pct}%</span>
+                  </div>
+                  <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                    <div className={`h-full ${r.bar} rounded-full`} style={{ width: `${r.pct}%` }} />
+                  </div>
+                </div>
+              ))}
             </div>
-            <button type="submit" className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors">
-              Add Card
-            </button>
-          </form>
-        </details>
+          )}
+
+          {/* Settings form */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-800">
+              <h3 className="text-sm font-semibold text-white">Pack Settings</h3>
+            </div>
+            <form action={updateThisPack} className="p-5 space-y-4">
+              <PackFields defaults={pack} />
+              <button
+                type="submit"
+                className="w-full px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors"
+              >
+                Save Changes
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );
