@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getActiveSeasonWithCards, getCollection } from '@/lib/kv';
+import { seedSeason1 } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -127,12 +128,8 @@ export default async function AdminDashboard() {
 }
 
 function SeedButton() {
-  async function seed() {
-    'use server';
-    await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/seed`, { method: 'POST' });
-  }
   return (
-    <form action={seed}>
+    <form action={seedSeason1}>
       <button className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg text-sm">
         Seed Season 1
       </button>
