@@ -118,7 +118,7 @@ export async function seedSeason1() {
   const { listSeasonIds, saveSeason, saveSeasonCards } = await import('@/lib/kv');
   const { SEED_SEASON, SEED_CARDS } = await import('@/lib/seed');
   const ids = await listSeasonIds();
-  if (ids.includes('season1')) return { error: 'Already seeded' };
+  if (ids.includes('season1')) return;
   await saveSeason(SEED_SEASON);
   await saveSeasonCards('season1', SEED_CARDS);
   revalidatePath('/admin');
