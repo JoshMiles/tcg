@@ -1,6 +1,6 @@
-import { kv } from '@vercel/kv';
+const { kv } = require('@vercel/kv');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const { name, username } = req.query;
   if (!name) return res.status(400).json({ error: 'missing name' });
   const key = `tcg_${name}`;
@@ -28,4 +28,4 @@ export default async function handler(req, res) {
   }
 
   res.status(405).end();
-}
+};
