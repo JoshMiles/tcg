@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
 
+const OVERLAY_URL = 'https://tcg-khaki.vercel.app/overlay.html';
+
 export function CopyUrlButton() {
   const [copied, setCopied] = useState(false);
 
   function copy() {
-    const url = `${window.location.origin}/overlay.html`;
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(OVERLAY_URL).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });

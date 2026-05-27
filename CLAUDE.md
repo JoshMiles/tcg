@@ -74,8 +74,8 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 
 **Extension dashboard setup (dev.twitch.tv):**
 1. Create extension → type: Panel
-2. Panel HTML file URL: `https://your-app.vercel.app/twitch-panel/panel.html`
-3. Allowlisted domains (for fetch): `https://your-app.vercel.app`
+2. Panel HTML file URL: `https://tcg-khaki.vercel.app/twitch-panel/panel.html`
+3. Allowlisted domains (for fetch): `https://tcg-khaki.vercel.app`
 4. Copy the Extension Secret (base64 encoded) → set as `TWITCH_EXTENSION_SECRET` env var in Vercel
 
 **Auth flow:**
