@@ -174,6 +174,10 @@ export async function saveUserProfile(profile: UserProfile): Promise<void> {
   await kv.set(`user:${profile.username}:profile`, profile);
 }
 
+export async function deleteUserProfile(username: string): Promise<void> {
+  await kv.del(`user:${username.toLowerCase()}:profile`);
+}
+
 // Aggregate all users across every season's legacy collection.
 // Returns one entry per unique username with per-season card arrays.
 export async function getAllCollectionUsers(): Promise<{

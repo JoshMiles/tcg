@@ -4,7 +4,7 @@ import { listSeasons, getCollection, getPackCards, getPack, getUserProfile } fro
 import type { Season, Pack, Card } from '@/lib/types';
 import {
   updateUserProfile, removeUserCard, grantUserCard,
-  resetUserSeason, resetUser,
+  resetUserSeason, resetUser, deleteUser,
 } from '../../actions';
 
 export const dynamic = 'force-dynamic';
@@ -69,6 +69,7 @@ export default async function UserDetailPage({
 
   const updateProfile = updateUserProfile.bind(null, username);
   const resetAll = resetUser.bind(null, username);
+  const deleteThisUser = deleteUser.bind(null, username);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -307,16 +308,26 @@ export default async function UserDetailPage({
       <section className="bg-gray-900 border border-red-950/40 rounded-2xl p-6">
         <h2 className="font-semibold text-red-400 mb-1">Danger Zone</h2>
         <p className="text-xs text-gray-500 mb-4">
-          Permanently removes this user from all season collections.
+          These actions cannot be undone.
         </p>
-        <form action={resetAll}>
-          <button
-            type="submit"
-            className="px-4 py-2 text-sm text-red-500 hover:text-red-300 bg-red-950/40 hover:bg-red-950/70 rounded-xl transition-colors"
-          >
-            Reset All Seasons
-          </button>
-        </form>
+        <div className="flex items-center gap-3 flex-wrap">
+          <form action={resetAll}>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm text-red-500 hover:text-red-300 bg-red-950/40 hover:bg-red-950/70 rounded-xl transition-colors"
+            >
+              Reset All Seasons
+            </button>
+          </form>
+          <form action={deleteThisUser}>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-semibold text-white bg-red-700 hover:bg-red-600 rounded-xl transition-colors"
+            >
+              Delete User
+            </button>
+          </form>
+        </div>
       </section>
 
     </div>

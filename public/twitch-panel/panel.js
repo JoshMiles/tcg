@@ -299,10 +299,14 @@ async function init(twitchAuth) {
   const autoLoggedIn = await tryAutoLogin();
   if (autoLoggedIn) return;
 
-  // 2. Identity already shared from a previous session
+  // 2. Identity already shared — resolve directly, never request again
   if (auth.userId?.startsWith('U')) {
     const resolved = await tryResolveFromTwitch();
     if (resolved) return;
+    // Resolution failed (e.g. API credentials missing) — fall through to manual form
+    renderSeasonHeader('login-season-header');
+    showState('enterUsername');
+    return;
   }
 
   // 3. Request identity sharing — onAuthorized will fire again when user responds

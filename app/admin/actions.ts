@@ -7,7 +7,7 @@ import {
   savePack, getPack, deletePack, listAllPackIds,
   getPackCards, savePackCards,
   getCollection, saveCollection, deleteCollection,
-  getUserProfile, saveUserProfile,
+  getUserProfile, saveUserProfile, deleteUserProfile,
 } from '@/lib/kv';
 import type { Season, Pack, Card, UserProfile } from '@/lib/types';
 import { SEED_SEASON, SEED_PACK, SEED_CARDS } from '@/lib/seed';
@@ -242,6 +242,24 @@ export async function resetUserSeason(username: string, collectionName: string) 
   }
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
+}
+
+// Fully delete a user — removes all cards and their profile, then redirects
+export async function deleteUser(username: string) {
+  const lower = username.toLowerCase();
+  const seasons = await listSeasons();
+  await Promise.all([
+    ...seasons.map(async season => {
+      const data = await getCollection(season.collectionName);
+      if (lower in data) {
+        delete data[lower];
+        await saveCollection(season.collectionName, data);
+      }
+    }),
+    deleteUserProfile(lower),
+  ]);
+  revalidatePath('/admin/users');
+  redirect('/admin/users');
 }
 
 // Reset a user across ALL seasons
