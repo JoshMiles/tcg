@@ -82,9 +82,13 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 - `GET /api/twitch/season` — active season + packs + cards (public, used by panel)
 - `GET /api/twitch/collection?username=foo` — user's owned card numbers across all seasons, as `{ collections: [{ seasonId, seasonName, active, ownedNumbers }] }`
 - `GET /api/twitch/user?opaqueId=xxx` — look up username by Twitch opaque ID
-- `POST /api/twitch/link` — JWT-validated, links opaque ID to username; dev-mode allows without secret
+- `POST /api/twitch/login` — **primary login endpoint**: verifies Extension JWT, extracts `user_id` from payload (set by Twitch after identity grant), resolves via Helix API, saves opaque→username mapping, creates user profile if needed, returns `{ username }`
+- `POST /api/twitch/link` — JWT-validated, links opaque ID to username; also creates user profile if not present
 - `POST /api/twitch/unlink` — JWT-validated, deletes opaque ID → username mapping (logout)
 - `GET /api/twitch/resolve-username?userId={numericId}` — resolves Twitch numeric user ID → login name via Helix API (requires `TWITCH_CLIENT_ID` + `TWITCH_CLIENT_SECRET`)
+
+### Admin (one-time / utility)
+- `GET /api/admin/import-legacy?secret={ADMIN_SECRET}` — seeds `tcg_CheesyStarterDeck` with Season 1 legacy player data. Add `&dry=1` to preview, `&overwrite=1` to replace existing user data. Also creates user profiles for imported users.
 
 ### Webhooks
 - `POST /api/webhooks/grant-card` — MixItUp integration: body `{ secret, username, cardNumber }` → appends card to user's active season collection
@@ -117,14 +121,19 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 3. Allowlisted domains (for fetch): `https://tcg-khaki.vercel.app`
 4. Copy the Extension Secret (base64 encoded) → set as `TWITCH_EXTENSION_SECRET` env var in Vercel
 
+**Critical: `auth.userId` is always an opaque ID — it never becomes a numeric ID on the client**, even after `requestIdShare()`. The real Twitch numeric user ID only appears in the JWT payload's `user_id` field (server-side). All login resolution goes through `POST /api/twitch/login` which reads it from there.
+
 **Twitch auth flow (current implementation):**
-1. Panel loads → `onAuthorized` fires with `auth` object containing `auth.userId` (opaque ID)
-2. If `isExplicitlyLoggedOut()` (localStorage flag) → show login screen
-3. Try `GET /api/twitch/user?opaqueId=...` — if mapping exists, silent auto-login
-4. If `auth.userId` starts with `'U'` (identity already shared) → call `GET /api/twitch/resolve-username?userId=...` → Helix API → auto-login
-5. Otherwise → show login screen with "Login with Twitch" button
-6. Login button pressed: if `auth.userId` starts with `'U'` → resolve directly; else call `requestIdShare()` + 20s timeout fallback to login screen
-7. Logout: set `localStorage` flag + `POST /api/twitch/unlink` to delete server mapping → show login screen
+1. Panel loads → `onAuthorized` fires → `init()` called
+2. If `identityRequestPending` flag is set (user just responded to Twitch identity popup) → call `tryLoginFromJwt()` → on success: login; on fail: show error on login screen
+3. Load season data; if none → show no-season state
+4. If `isExplicitlyLoggedOut()` (localStorage flag) → show login screen
+5. Try `tryAutoLogin()` — `GET /api/twitch/user?opaqueId=...`; if mapping exists, silent login
+6. Try `tryLoginFromJwt()` — `POST /api/twitch/login` with current JWT; if JWT already contains `user_id` from a prior identity grant, silent login without any user interaction
+7. Otherwise → show login screen with teaser grid and "Login with Twitch" button
+8. Login button pressed → call `requestIdShare()`, show status hint ("A Twitch prompt appeared above the video — click Allow"), set `identityRequestPending = true`, 20s timeout fallback
+9. Twitch re-fires `onAuthorized` after user responds → `init()` re-enters with `identityRequestPending = true` → `tryLoginFromJwt()` resolves via `/api/twitch/login`
+10. Logout: set localStorage flag + `POST /api/twitch/unlink` → show login screen
 
 **Login screen design:**
 - Shows top 10 rarest cards as a 5-column teaser grid (top 3 revealed with image + gold border, rest as `?`)
