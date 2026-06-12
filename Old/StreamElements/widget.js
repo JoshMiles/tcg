@@ -290,7 +290,7 @@ function getShowCollectionFn(_0x41ab8f) {
             username: _0x103e83
 			};
 			console.log("collection object:", JSON.stringify(customJSONObject2));
-			fetch('https://api.mixitupapp.com/api/webhook/78478e90-a7b8-4744-b0d4-5ee7fef3e337?secret=FAB887237CC3FF00728CE9C4BDA9E4CA4A46135DE2D334A083F80948EB164827', {
+			fetch('https://desktop.api.mixitupapp.com/api/webhook/78478e90-a7b8-4744-b0d4-5ee7fef3e337?secret=FAB887237CC3FF00728CE9C4BDA9E4CA4A46135DE2D334A083F80948EB164827', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -402,7 +402,7 @@ function drawCard(_0x4a439e) {
 			username: _0x4a439e  
 			};
 			console.log("card select object:", JSON.stringify(customJSONObject));
-			fetch('https://api.mixitupapp.com/api/webhook/200feeac-6d7c-4b18-2ddd-08de5a22ea46?secret=B78BE1F604FFC20675E14C97F299CEE416FE94ACC5419B487F9255667007FCE8', {
+			fetch('https://desktop.api.mixitupapp.com/api/webhook/200feeac-6d7c-4b18-2ddd-08de5a22ea46?secret=B78BE1F604FFC20675E14C97F299CEE416FE94ACC5419B487F9255667007FCE8', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
