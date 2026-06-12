@@ -247,25 +247,27 @@ async function tryAutoLogin() {
   return false;
 }
 
-// Called when identity is shared — resolves real Twitch user ID → login name
-async function tryResolveFromTwitch() {
-  if (!hasSharedTwitchId(auth?.userId)) return false;
-  const numericId = auth.userId.slice(1);
+// Sends the current JWT to the server, which extracts the numeric user_id from the
+// JWT payload (set by Twitch after requestIdShare() grant), resolves via Helix,
+// saves the opaque→username mapping, creates the user profile, and returns the username.
+// This works even when auth.userId is still showing as a non-numeric opaque ID.
+async function tryLoginFromJwt() {
+  if (!auth?.token) return false;
   try {
-    const res = await fetch(`/api/twitch/resolve-username?userId=${encodeURIComponent(numericId)}`);
+    const res = await fetch('/api/twitch/login', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + auth.token },
+    });
     if (!res.ok) {
-      console.error('[TCG] resolve-username failed:', res.status, await res.text().catch(() => ''));
+      console.warn('[TCG] tryLoginFromJwt failed:', res.status, await res.text().catch(() => ''));
       return false;
     }
     const { username } = await res.json();
-    if (!username) {
-      console.error('[TCG] resolve-username returned no username for userId:', numericId);
-      return false;
-    }
-    await linkAndLogin(username);
+    if (!username) return false;
+    await login(username);
     return true;
   } catch (err) {
-    console.error('[TCG] tryResolveFromTwitch error:', err);
+    console.error('[TCG] tryLoginFromJwt error:', err);
     return false;
   }
 }
@@ -357,19 +359,15 @@ async function init(twitchAuth) {
   auth = twitchAuth;
   console.log('[TCG] init() — userId:', auth.userId, '| identityRequestPending:', identityRequestPending);
 
-  // Re-auth fired after user responded to the identity-share popup
+  // Re-auth fired after user responded to the identity-share popup.
+  // JWT now contains user_id — send it to the server to resolve username.
   if (identityRequestPending) {
     identityRequestPending = false;
-    if (hasSharedTwitchId(auth.userId)) {
-      console.log('[TCG] identity shared — resolving username');
-      showState('loading');
-      const resolved = await tryResolveFromTwitch();
-      if (resolved) return;
-      showLoginScreen('Could not sign you in. Please try again.');
-    } else {
-      console.warn('[TCG] grant dismissed or not completed — userId still opaque:', auth.userId);
-      showLoginScreen('Identity sharing was not completed. Please try again.');
-    }
+    console.log('[TCG] identity share response — trying JWT login');
+    showState('loading');
+    const resolved = await tryLoginFromJwt();
+    if (resolved) return;
+    showLoginScreen('Could not sign you in. Please try again.');
     return;
   }
 
@@ -384,15 +382,13 @@ async function init(twitchAuth) {
     return;
   }
 
-  // Returning user with saved mapping — silent auto-login
+  // Returning user with saved opaque→username mapping — silent auto-login
   const autoLoggedIn = await tryAutoLogin();
   if (autoLoggedIn) return;
 
-  // Identity already shared from a previous grant — resolve silently
-  if (hasSharedTwitchId(auth.userId)) {
-    const resolved = await tryResolveFromTwitch();
-    if (resolved) return;
-  }
+  // JWT may already contain user_id from a previous grant — try silent login
+  const jwtLoggedIn = await tryLoginFromJwt();
+  if (jwtLoggedIn) return;
 
   // First visit or resolution failed — show login screen
   showLoginScreen();
@@ -404,16 +400,6 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   btn.disabled = true;
 
   console.log('[TCG] login-btn clicked — userId:', auth?.userId, '| requestIdShare:', typeof window.Twitch?.ext?.actions?.requestIdShare);
-
-  // Identity already shared — resolve directly without a popup
-  if (hasSharedTwitchId(auth?.userId)) {
-    showState('loading');
-    const resolved = await tryResolveFromTwitch();
-    if (resolved) return;
-    console.warn('[TCG] resolve failed on shared userId — showing login screen');
-    showLoginScreen('Could not sign you in. Please try again.');
-    return;
-  }
 
   if (window.Twitch?.ext?.actions?.requestIdShare) {
     // Keep the login screen visible — just update the button and show a hint
