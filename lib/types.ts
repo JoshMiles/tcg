@@ -28,6 +28,7 @@ export interface Card {
   number: number;
   name: string;
   imageUrl: string;
+  soundUrl?: string;          // overrides the default assets/sounds/{number}.mp3
   probability: number;
   stars: number;              // 1–5
 }

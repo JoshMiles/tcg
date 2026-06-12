@@ -52,6 +52,7 @@ async function initSeason() {
         number:      c.number,
         name:        c.name,
         image:       c.imageUrl,
+        soundUrl:    c.soundUrl || null,
         probability: c.probability,
         stars:       c.stars,
       })),
@@ -301,7 +302,7 @@ function drawCard(username) {
 
   // Card reveal sound + radial burst
   setTimeout(() => {
-    playAudio(`assets/sounds/${card.number}.mp3`, vol);
+    playAudio(card.soundUrl || `assets/sounds/${card.number}.mp3`, vol);
     radialContainer.style.opacity   = '1';
     radialContainer.style.animation = 'spinRadial 4s linear infinite';
   }, 2800);

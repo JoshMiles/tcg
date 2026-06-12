@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getPack, getPackCards } from '@/lib/kv';
 import { updateCard } from '../../../../actions';
 import { ImageUploadField } from '../../../../components/image-upload';
+import { AudioUploadField } from '../../../../components/audio-upload';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,7 @@ export default async function EditCardPage({
         <Field label="Card Number" name="number" type="number" defaultValue={String(card.number)} required />
         <Field label="Name" name="name" defaultValue={card.name} required />
         <ImageUploadField name="imageUrl" defaultValue={card.imageUrl} />
+        <AudioUploadField name="soundUrl" defaultValue={card.soundUrl} />
         <div className="grid grid-cols-2 gap-4">
           <Field label="Stars (1–5)" name="stars" type="number" defaultValue={String(card.stars)} required />
           <Field label="Probability" name="probability" type="number" defaultValue={String(card.probability)} required />

@@ -141,6 +141,7 @@ export async function deletePackAction(packId: string) {
 export async function addCard(packId: string, formData: FormData) {
   const cards = await getPackCards(packId);
   const maxNum = cards.reduce((m, c) => Math.max(m, c.number), 0);
+  const soundUrl = (formData.get('soundUrl') as string) || undefined;
   await savePackCards(packId, [
     ...cards,
     {
@@ -148,6 +149,7 @@ export async function addCard(packId: string, formData: FormData) {
       number: maxNum + 1,
       name: formData.get('name') as string,
       imageUrl: (formData.get('imageUrl') as string) || '',
+      ...(soundUrl && { soundUrl }),
       probability: Number(formData.get('probability')),
       stars: Number(formData.get('stars')),
     },
@@ -157,6 +159,7 @@ export async function addCard(packId: string, formData: FormData) {
 
 export async function updateCard(packId: string, cardId: string, formData: FormData) {
   const cards = await getPackCards(packId);
+  const soundUrl = (formData.get('soundUrl') as string) || undefined;
   await savePackCards(
     packId,
     cards.map(c =>
@@ -165,6 +168,7 @@ export async function updateCard(packId: string, cardId: string, formData: FormD
             ...c,
             name: formData.get('name') as string,
             imageUrl: (formData.get('imageUrl') as string) || c.imageUrl,
+            soundUrl,
             probability: Number(formData.get('probability')),
             stars: Number(formData.get('stars')),
             number: Number(formData.get('number')),

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 import { isAuthenticated } from '@/lib/auth';
 
-const ALLOWED = ['image/gif', 'image/png', 'image/jpeg', 'image/webp'];
+const ALLOWED = ['image/gif', 'image/png', 'image/jpeg', 'image/webp', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
 
 export async function POST(req: NextRequest) {
   if (!(await isAuthenticated())) {

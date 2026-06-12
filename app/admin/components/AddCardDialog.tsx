@@ -2,6 +2,7 @@
 import { useRef } from 'react';
 import { Dialog } from './Dialog';
 import { ImageUploadField } from './image-upload';
+import { AudioUploadField } from './audio-upload';
 import { addCard } from '../actions';
 
 const RARITIES = [
@@ -81,6 +82,7 @@ export function AddCardDialog({
           </div>
 
           <ImageUploadField name="imageUrl" />
+          <AudioUploadField name="soundUrl" />
         </div>
 
         <div className="px-6 pb-6 flex items-center justify-between border-t border-gray-800 pt-4">
