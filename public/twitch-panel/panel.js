@@ -13,11 +13,10 @@ let identityRequestPending = false;  // true while waiting for requestIdShare() 
 
 // ── DOM refs ─────────────────────────────────────────────
 const STATES = {
-  loading:       document.getElementById('state-loading'),
-  noSeason:      document.getElementById('state-no-season'),
-  login:         document.getElementById('state-login'),
-  enterUsername: document.getElementById('state-enter-username'),
-  collection:    document.getElementById('state-collection'),
+  loading:    document.getElementById('state-loading'),
+  noSeason:   document.getElementById('state-no-season'),
+  login:      document.getElementById('state-login'),
+  collection: document.getElementById('state-collection'),
 };
 
 function showState(name) {
@@ -339,17 +338,12 @@ async function init(twitchAuth) {
   // Re-auth fired after user responded to the identity-share popup
   if (identityRequestPending) {
     identityRequestPending = false;
-
     if (auth.userId?.startsWith('U')) {
       const resolved = await tryResolveFromTwitch();
       if (resolved) return;
-      // Resolution failed — fall back to manual form
-      renderSeasonHeader('login-season-header');
-      showState('enterUsername');
-    } else {
-      // User denied identity sharing — back to login screen
-      showLoginScreen();
     }
+    // Denied or resolution failed — back to login screen
+    showLoginScreen();
     return;
   }
 
@@ -358,7 +352,7 @@ async function init(twitchAuth) {
   const ok = await loadSeason();
   if (!ok) return;
 
-  // If the user explicitly logged out, respect that — show login screen immediately
+  // Explicit logout — respect it, show login screen
   if (isExplicitlyLoggedOut()) {
     showLoginScreen();
     return;
@@ -368,40 +362,30 @@ async function init(twitchAuth) {
   const autoLoggedIn = await tryAutoLogin();
   if (autoLoggedIn) return;
 
-  // Identity already shared — resolve silently (first visit with Twitch identity)
+  // Identity already shared from a previous grant — resolve silently
   if (auth.userId?.startsWith('U')) {
     const resolved = await tryResolveFromTwitch();
     if (resolved) return;
   }
 
-  // First-time visitor — show the login screen
+  // First visit or resolution failed — show login screen
   showLoginScreen();
 }
 
 // ── Event wiring ──────────────────────────────────────────
-document.getElementById('username-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const input = document.getElementById('username-input');
-  const username = input.value.trim().toLowerCase();
-  if (!username) return;
-  showState('loading');
-  await linkAndLogin(username);
-});
-
 document.getElementById('login-btn').addEventListener('click', async () => {
   document.getElementById('login-btn').disabled = true;
   showState('loading');
 
-  // Identity already shared — resolve directly, no popup needed
+  // Identity already shared — resolve directly without a popup
   if (auth?.userId?.startsWith('U')) {
     const resolved = await tryResolveFromTwitch();
     if (resolved) return;
-    renderSeasonHeader('login-season-header');
-    showState('enterUsername');
+    showLoginScreen();
     return;
   }
 
-  // Request identity sharing; fall back to login screen if no re-auth within 20s
+  // Ask Twitch for identity; if onAuthorized never fires, time out back to login screen
   if (window.Twitch?.ext?.actions?.requestIdShare) {
     identityRequestPending = true;
     window.Twitch.ext.actions.requestIdShare();
@@ -411,11 +395,11 @@ document.getElementById('login-btn').addEventListener('click', async () => {
         showLoginScreen();
       }
     }, 20000);
-  } else {
-    // Dev mode — manual form
-    renderSeasonHeader('login-season-header');
-    showState('enterUsername');
+    return;
   }
+
+  // Extension Helper unavailable (e.g. outside Twitch) — back to login screen
+  showLoginScreen();
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => {
