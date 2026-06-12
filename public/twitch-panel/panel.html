@@ -22,7 +22,18 @@
     <p class="muted">Check back when the stream is live!</p>
   </div>
 
-  <!-- Enter username -->
+  <!-- Login screen -->
+  <div id="state-login" class="hidden">
+    <div class="login-teaser" id="login-teaser"></div>
+    <div class="login-content">
+      <p class="login-eyebrow">Active Season</p>
+      <p class="login-title" id="login-season-name">Card Collection</p>
+      <p class="login-sub" id="login-card-count"></p>
+      <button id="login-btn" class="login-btn">Login with Twitch</button>
+    </div>
+  </div>
+
+  <!-- Manual username fallback (shown only when Twitch auth unavailable) -->
   <div id="state-enter-username" class="state hidden">
     <div class="season-header" id="login-season-header"></div>
     <div class="login-body">
@@ -61,7 +72,7 @@
       <span class="footer-username" id="footer-username"></span>
       <div style="display:flex;gap:6px;flex-shrink:0">
         <button class="change-btn" id="refresh-btn" title="Refresh collection">↻</button>
-        <button class="change-btn" id="change-user-btn">change</button>
+        <button class="change-btn" id="logout-btn">logout</button>
       </div>
     </div>
   </div>

@@ -15,6 +15,7 @@ let identityRequestPending = false;  // true while waiting for requestIdShare() 
 const STATES = {
   loading:       document.getElementById('state-loading'),
   noSeason:      document.getElementById('state-no-season'),
+  login:         document.getElementById('state-login'),
   enterUsername: document.getElementById('state-enter-username'),
   collection:    document.getElementById('state-collection'),
 };
@@ -271,22 +272,74 @@ async function loadSeason() {
   }
 }
 
+// ── Login screen helpers ──────────────────────────────────
+function populateLoginTeaser() {
+  const container = document.getElementById('login-teaser');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!season) return;
+
+  // Gather all cards, sort rarest first so teasers show the best cards
+  const all = season.packs.flatMap(p => p.cards)
+    .sort((a, b) => b.stars - a.stars);
+  const show = all.slice(0, 10);
+
+  show.forEach((card, i) => {
+    const div = document.createElement('div');
+    const reveal = i < 3; // top 3 rarest are revealed
+    div.className = 'teaser-card' + (reveal ? ' revealed' : '');
+
+    if (reveal && card.imageUrl) {
+      const img = document.createElement('img');
+      img.src = card.imageUrl;
+      img.alt = '';
+      img.loading = 'lazy';
+      div.appendChild(img);
+    } else {
+      const q = document.createElement('div');
+      q.className = 'teaser-q';
+      q.textContent = '?';
+      div.appendChild(q);
+    }
+    container.appendChild(div);
+  });
+}
+
+function renderLoginMeta() {
+  const nameEl = document.getElementById('login-season-name');
+  const countEl = document.getElementById('login-card-count');
+  if (nameEl) nameEl.textContent = season?.seasonName ?? 'Card Collection';
+  if (countEl && season) {
+    const total = season.packs.reduce((s, p) => s + p.cards.length, 0);
+    countEl.textContent = total > 0 ? `${total} cards to discover` : '';
+  }
+}
+
+function showLoginScreen() {
+  populateLoginTeaser();
+  renderLoginMeta();
+  document.getElementById('login-btn').disabled = false;
+  showState('login');
+}
+
 // ── Entry point ───────────────────────────────────────────
 async function init(twitchAuth) {
   auth = twitchAuth;
 
-  // Re-auth fired after requestIdShare() — don't reload season data
+  // Re-auth fired after user responded to the identity-share popup
   if (identityRequestPending) {
     identityRequestPending = false;
 
     if (auth.userId?.startsWith('U')) {
-      // Identity granted — resolve Twitch login automatically
       const resolved = await tryResolveFromTwitch();
       if (resolved) return;
+      // Resolution failed — fall back to manual form
+      renderSeasonHeader('login-season-header');
+      showState('enterUsername');
+    } else {
+      // User denied identity sharing — back to login screen
+      showLoginScreen();
     }
-    // Identity denied or resolution failed — fall back to manual form
-    renderSeasonHeader('login-season-header');
-    showState('enterUsername');
     return;
   }
 
@@ -295,30 +348,18 @@ async function init(twitchAuth) {
   const ok = await loadSeason();
   if (!ok) return;
 
-  // 1. Existing opaque-ID → username mapping (returning users)
+  // Returning user with saved mapping — silent auto-login
   const autoLoggedIn = await tryAutoLogin();
   if (autoLoggedIn) return;
 
-  // 2. Identity already shared — resolve directly, never request again
+  // Identity already shared from a previous grant — resolve silently
   if (auth.userId?.startsWith('U')) {
     const resolved = await tryResolveFromTwitch();
     if (resolved) return;
-    // Resolution failed (e.g. API credentials missing) — fall through to manual form
-    renderSeasonHeader('login-season-header');
-    showState('enterUsername');
-    return;
   }
 
-  // 3. Request identity sharing — onAuthorized will fire again when user responds
-  if (window.Twitch?.ext?.actions?.requestIdShare) {
-    identityRequestPending = true;
-    window.Twitch.ext.actions.requestIdShare();
-    return; // stay on loading screen while the popup is open
-  }
-
-  // 4. No identity sharing available (dev mode / old helper) — manual form
-  renderSeasonHeader('login-season-header');
-  showState('enterUsername');
+  // First-time visitor — show the login screen
+  showLoginScreen();
 }
 
 // ── Event wiring ──────────────────────────────────────────
@@ -331,12 +372,23 @@ document.getElementById('username-form').addEventListener('submit', async e => {
   await linkAndLogin(username);
 });
 
-document.getElementById('change-user-btn').addEventListener('click', () => {
+document.getElementById('login-btn').addEventListener('click', () => {
+  if (window.Twitch?.ext?.actions?.requestIdShare) {
+    document.getElementById('login-btn').disabled = true;
+    showState('loading');
+    identityRequestPending = true;
+    window.Twitch.ext.actions.requestIdShare();
+  } else {
+    // Dev mode — fall back to manual username form
+    renderSeasonHeader('login-season-header');
+    showState('enterUsername');
+  }
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => {
   currentUsername = null;
   collections = [];
-  document.getElementById('username-input').value = '';
-  renderSeasonHeader('login-season-header');
-  showState('enterUsername');
+  showLoginScreen();
 });
 
 document.getElementById('refresh-btn').addEventListener('click', async () => {
