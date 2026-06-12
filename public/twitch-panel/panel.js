@@ -31,7 +31,8 @@ function renderSeasonHeader(containerId) {
 
   const totalCards = season.packs.reduce((s, p) => s + p.cards.length, 0);
   const activeColl = collections.find(c => c.active);
-  const ownedCount = activeColl ? activeColl.ownedNumbers.length : 0;
+  const ownedCount = activeColl ? new Set(activeColl.ownedNumbers).size : 0;
+  const totalPulls = activeColl ? activeColl.ownedNumbers.length : 0;
   const pct = totalCards > 0 ? Math.round(ownedCount / totalCards * 100) : 0;
 
   el.innerHTML = '';
@@ -59,7 +60,9 @@ function renderSeasonHeader(containerId) {
 
     const label = document.createElement('div');
     label.className = 'progress-label';
-    label.textContent = `${ownedCount}/${totalCards} · ${pct}%`;
+    label.textContent = totalPulls > ownedCount
+      ? `${ownedCount}/${totalCards} · ${pct}% · ${totalPulls} pulls`
+      : `${ownedCount}/${totalCards} · ${pct}%`;
 
     row.appendChild(bar);
     row.appendChild(label);
@@ -104,6 +107,15 @@ function renderGrid() {
     });
   });
 
+  // Pull count for the active season only
+  const activeColl = collections.find(c => c.active);
+  const pullCountMap = new Map();
+  if (activeColl) {
+    for (const n of activeColl.ownedNumbers) {
+      pullCountMap.set(n, (pullCountMap.get(n) ?? 0) + 1);
+    }
+  }
+
   pack.cards.forEach(card => {
     const ownership = ownedMap.get(card.number) ?? [];
     const ownedActive   = ownership.some(o => o.active);
@@ -141,6 +153,15 @@ function renderGrid() {
       dot.className = 'rarity-dot';
       dot.style.background = color;
       cell.appendChild(dot);
+
+      // Pull count badge (active season only)
+      const pullCount = pullCountMap.get(card.number) ?? 0;
+      if (ownedActive && pullCount > 1) {
+        const countBadge = document.createElement('div');
+        countBadge.className = 'pull-count';
+        countBadge.textContent = '×' + pullCount;
+        cell.appendChild(countBadge);
+      }
     } else {
       const q = document.createElement('div');
       q.className = 'card-question';

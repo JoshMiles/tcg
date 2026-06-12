@@ -48,16 +48,19 @@ export default async function CollectionPage({
     .sort((a, b) => b.stars - a.stars || a.number - b.number);
 
   const collection = await getCollection(season.collectionName);
-  const ownedNumbers = new Set<number>(collection[lower] ?? []);
+  const ownedArray = collection[lower] ?? [];
+  const countMap = new Map<number, number>();
+  for (const n of ownedArray) countMap.set(n, (countMap.get(n) ?? 0) + 1);
 
-  const owned = allCards.filter(c => ownedNumbers.has(c.number));
+  const totalPulls = ownedArray.length;
+  const owned = allCards.filter(c => countMap.has(c.number));
   const total = allCards.length;
   const pct = total > 0 ? Math.round(owned.length / total * 100) : 0;
 
   // Group by rarity for the breakdown
   const rarityBreakdown = RARITY.map(r => {
     const rarityCards = allCards.filter(c => c.stars === r.stars);
-    const rarityOwned = rarityCards.filter(c => ownedNumbers.has(c.number));
+    const rarityOwned = rarityCards.filter(c => countMap.has(c.number));
     return { ...r, total: rarityCards.length, owned: rarityOwned.length };
   }).filter(r => r.total > 0);
 
@@ -80,6 +83,9 @@ export default async function CollectionPage({
             <p className="text-xs text-gray-500">
               {owned.length}/{total} cards · {season.name}
             </p>
+            {totalPulls > owned.length && (
+              <p className="text-xs text-gray-600">{totalPulls} total pulls</p>
+            )}
           </div>
         </div>
 
@@ -121,12 +127,13 @@ export default async function CollectionPage({
         ) : (
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
             {allCards.map(card => {
-              const isOwned = ownedNumbers.has(card.number);
+              const count = countMap.get(card.number) ?? 0;
+              const isOwned = count > 0;
               const rarity = RARITY.find(r => r.stars === card.stars);
               return (
                 <div
                   key={card.id}
-                  title={isOwned ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}` : `#${card.number} ???`}
+                  title={isOwned ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}` : `#${card.number} ???`}
                   className="relative aspect-[2/3] rounded-lg overflow-hidden border border-gray-800 group"
                   style={{
                     borderColor: isOwned ? rarity?.color + '40' : undefined,
@@ -148,7 +155,7 @@ export default async function CollectionPage({
                       )}
                     </div>
                   )}
-                  {/* Card number badge */}
+                  {/* Hover name */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <p className="text-xs text-white truncate leading-none">{isOwned ? card.name : `#${card.number}`}</p>
                   </div>
@@ -158,6 +165,12 @@ export default async function CollectionPage({
                       className="absolute top-1 right-1 w-2 h-2 rounded-full"
                       style={{ backgroundColor: rarity?.color }}
                     />
+                  )}
+                  {/* Pull count badge */}
+                  {count > 1 && (
+                    <div className="absolute top-1 left-1 bg-black/70 text-yellow-400 text-[9px] font-bold px-1 rounded leading-tight">
+                      ×{count}
+                    </div>
                   )}
                 </div>
               );

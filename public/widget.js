@@ -183,12 +183,16 @@ function playAudio(src, volume) {
 // ═══════════════════════════════════════════════════════
 function buildMiniList(miniList, userCards, highlightNumber, cfg) {
   miniList.innerHTML = '';
+  const countMap = new Map();
+  for (const n of userCards) countMap.set(n, (countMap.get(n) ?? 0) + 1);
+
   for (const card of ALL_CARDS) {
     const div = document.createElement('div');
     div.classList.add('mini-card');
     div.style.position = 'relative';
 
-    const owned   = userCards.includes(card.number);
+    const count   = countMap.get(card.number) ?? 0;
+    const owned   = count > 0;
     const showImg = (owned || card.number === highlightNumber) && card.image;
 
     if (showImg) {
@@ -204,6 +208,14 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg) {
       q.textContent = '?';
       div.appendChild(q);
     }
+
+    if (count > 1) {
+      const badge = document.createElement('div');
+      badge.style.cssText = 'position:absolute;bottom:1px;right:1px;background:rgba(0,0,0,0.8);color:#f59e0b;font-size:7px;font-weight:700;padding:0 2px;border-radius:2px;line-height:1.4;pointer-events:none;';
+      badge.textContent = '×' + count;
+      div.appendChild(badge);
+    }
+
     miniList.appendChild(div);
   }
 }
@@ -357,10 +369,8 @@ function drawCard(username) {
 
   buildMiniList(miniList, revealedCardsByUser[user], card.number, cfg);
 
-  if (!revealedCardsByUser[user].includes(card.number)) {
-    revealedCardsByUser[user].push(card.number);
-    saveCollection({ username: user, cardNumber: card.number, cardName: card.name, stars: card.stars, packName });
-  }
+  revealedCardsByUser[user].push(card.number);
+  saveCollection({ username: user, cardNumber: card.number, cardName: card.name, stars: card.stars, packName });
 
   // Hide + cleanup
   const showDuration = cfg.cardTime * 1000 + 4000;
