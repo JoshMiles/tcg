@@ -1,12 +1,13 @@
 # TCG Admin — CLAUDE.md
 
 ## What this project is
-A Twitch stream overlay + admin panel for a trading card game. Viewers pull cards live on stream via OBS browser source. An admin panel manages seasons, packs, and cards. A public collection viewer lets viewers see their cards.
+A Twitch stream overlay + admin panel for a trading card game. Viewers pull cards live on stream via OBS browser source. An admin panel manages seasons, packs, and cards. A public collection viewer lets viewers see their cards. A Twitch Extension Panel lets viewers see their collection inside Twitch.
 
 ## Tech stack
 - **Next.js 15** App Router — server components, server actions, dynamic routes
 - **Vercel KV** (Redis) — all data persistence
 - **Vercel Blob** — image uploads
+- **Vercel Analytics + Speed Insights** — `<Analytics />` + `<SpeedInsights />` in root layout; raw script tag in static panel HTML
 - **Tailwind CSS** — styling (dark theme: gray-950 bg, gray-900 cards, yellow-500 accent)
 - **TypeScript** — strict, no `any` unless unavoidable
 - Client components only when truly required. Current uses: AdminNav (`usePathname`), modal/dialog trigger buttons, dialog components themselves
@@ -17,10 +18,13 @@ Three-tier hierarchy: **Seasons → Packs → Cards**
 
 - **Seasons** (`season:{id}` in KV, index at `seasons:list`): metadata + `packIds: string[]`. One season active at a time.
 - **Packs** (`pack:{id}`, index at `packs:list`): globally managed, not owned by any season. Cards stored at `pack:{id}:cards`. Packs can be assigned to multiple seasons.
-- **Cards** (`pack:{id}:cards`): array of Card objects stored per-pack.
-- **Legacy collection** (`tcg_{collectionName}`): `{ username: number[] }` — card numbers owned. This is what the OBS widget writes to via `/api/collection`. Powers the mini-list in the overlay and the admin dashboard stats. **This is the source of truth for user data** — `addUserPull`/`getUserPulls` exist but are never called by anything.
+- **Cards** (`pack:{id}:cards`): array of Card objects stored per-pack. Each card has a `soundUrl` field pointing to `/assets/sounds/{n}.mp3` for the 25 Season 1 cards.
+- **Legacy collection** (`tcg_{collectionName}`): `{ username: number[] }` — card numbers owned, **with duplicates**. Duplicates represent multiple pulls of the same card (pull count). This is what the OBS widget writes to via `/api/collection`. Powers the mini-list in the overlay and the admin dashboard stats. **This is the source of truth for user data** — `addUserPull`/`getUserPulls` exist but are never called by anything.
 - **User profiles** (`user:{username}:profile`): display name, Twitch username mapping, notes.
 - **Twitch opaque mapping** (`twitch_opaque:{opaqueId}`): maps Twitch Extension opaque user ID → lowercase username string.
+
+### Pull count / duplicate cards
+The collection array stores duplicates intentionally. To get unique card count: `new Set(array).size`. To get pull count per card: build a `Map<number, count>` by iterating the array. Everywhere that shows cards (collection page, Twitch panel, widget mini-list) uses this countMap and displays a `×N` badge when count > 1.
 
 KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy data shapes on read — never need manual KV migrations.
 
@@ -30,7 +34,8 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 |------|---------|
 | `lib/types.ts` | All TypeScript types (Season, Pack, Card, PullRecord, UserProfile) |
 | `lib/kv.ts` | All KV reads/writes. Single source of truth for data access |
-| `lib/seed.ts` | Static seed data for Season 1 / Cheesy Starter Pack |
+| `lib/seed.ts` | Static seed data for Season 1 / Cheesy Starter Pack (25 cards with soundUrl set) |
+| `lib/webhooks.ts` | Webhook settings helpers (incomingSecret, etc.) |
 | `app/admin/actions.ts` | All server actions (mutations). No data fetching here |
 | `app/admin/layout.tsx` | Admin shell with sidebar (AdminNav client component) |
 | `app/admin/components/AdminNav.tsx` | Client component — uses `usePathname()` for active nav state |
@@ -46,7 +51,7 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 | `public/overlay.html` | OBS browser source HTML |
 | `public/widget.css` | Overlay styles |
 | `public/twitch-panel/panel.html` | Twitch Extension Panel HTML (loads Extension Helper + panel.js) |
-| `public/twitch-panel/panel.js` | Extension panel logic: auth flow, pack tabs, collection display |
+| `public/twitch-panel/panel.js` | Extension panel logic: Twitch auth flow, pack tabs, collection display |
 | `public/twitch-panel/panel.css` | Extension panel styles (Twitch dark theme) |
 | `middleware.ts` | Auth gate — only covers `/admin/*`. `/collection/*` is public |
 
@@ -58,20 +63,39 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 - `/admin/packs/new` — create pack
 - `/admin/packs/[packId]` — pack settings + cards table + add card
 - `/admin/packs/[packId]/cards/[cardId]` — edit individual card
-- `/admin/users` — all collectors across all seasons, Twitch profile editing
+- `/admin/users` — all collectors across all seasons, with link to each user's detail page
+- `/admin/users/[username]` — user detail: per-season card grid, grant/remove cards, danger zone (reset/delete)
 - `/admin/settings` — misc settings
 
 ## Public routes
 - `/collection` — landing page (username search)
-- `/collection/[username]` — viewer's card collection (no auth)
+- `/collection/[username]` — viewer's card collection (no auth). Shows owned cards with ×N badge for duplicates and total pull count when it exceeds unique count.
+
+## API routes
+
+### OBS / collection
+- `GET /api/seasons/active` — active season + packs + cards (used by widget)
+- `POST /api/collection` — save card pull to legacy collection (widget writes here)
+- `GET /api/collection?name={collectionName}` — read collection (widget reads here)
+
+### Twitch Extension
+- `GET /api/twitch/season` — active season + packs + cards (public, used by panel)
+- `GET /api/twitch/collection?username=foo` — user's owned card numbers across all seasons, as `{ collections: [{ seasonId, seasonName, active, ownedNumbers }] }`
+- `GET /api/twitch/user?opaqueId=xxx` — look up username by Twitch opaque ID
+- `POST /api/twitch/link` — JWT-validated, links opaque ID to username; dev-mode allows without secret
+- `POST /api/twitch/unlink` — JWT-validated, deletes opaque ID → username mapping (logout)
+- `GET /api/twitch/resolve-username?userId={numericId}` — resolves Twitch numeric user ID → login name via Helix API (requires `TWITCH_CLIENT_ID` + `TWITCH_CLIENT_SECRET`)
+
+### Webhooks
+- `POST /api/webhooks/grant-card` — MixItUp integration: body `{ secret, username, cardNumber }` → appends card to user's active season collection
 
 ## OBS widget data flow
 1. Widget calls `GET /api/seasons/active` on load → returns `{ season, packs: [{ pack, cards }] }`
 2. Widget picks pack by weight, then card by probability
-3. Widget calls `POST /api/collection` to save card number to legacy collection
-4. Widget reads `GET /api/collection?name={collectionName}` to show mini-list
+3. Widget calls `POST /api/collection` to save card number to legacy collection (duplicates allowed — pull count)
+4. Widget reads `GET /api/collection?name={collectionName}` to show mini-list with ×N badge for duplicates
 
-The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMinStars, cardTime, cooldownTime, soundVolume, coverImageUrl) directly from the pack object.
+The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMinStars, cardTime, cooldownTime, soundVolume, coverImageUrl) directly from the pack object. Card sounds come from `card.soundUrl` (e.g. `/assets/sounds/1.mp3`).
 
 ## Conventions
 - `force-dynamic` on every admin page (KV reads must be fresh)
@@ -93,21 +117,50 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 3. Allowlisted domains (for fetch): `https://tcg-khaki.vercel.app`
 4. Copy the Extension Secret (base64 encoded) → set as `TWITCH_EXTENSION_SECRET` env var in Vercel
 
-**Auth flow:**
-- Extension Helper provides `auth.userId` (opaque user ID, consistent per viewer per channel)
-- Panel GETs `/api/twitch/user?opaqueId=...` to check for a saved username mapping
-- If not found, viewer enters their Twitch chat username manually
-- Panel POSTs to `/api/twitch/link` (JWT in Authorization header) → saves `twitch_opaque:{opaqueId}` → username in KV
-- Subsequent visits auto-login via the stored mapping
+**Twitch auth flow (current implementation):**
+1. Panel loads → `onAuthorized` fires with `auth` object containing `auth.userId` (opaque ID)
+2. If `isExplicitlyLoggedOut()` (localStorage flag) → show login screen
+3. Try `GET /api/twitch/user?opaqueId=...` — if mapping exists, silent auto-login
+4. If `auth.userId` starts with `'U'` (identity already shared) → call `GET /api/twitch/resolve-username?userId=...` → Helix API → auto-login
+5. Otherwise → show login screen with "Login with Twitch" button
+6. Login button pressed: if `auth.userId` starts with `'U'` → resolve directly; else call `requestIdShare()` + 20s timeout fallback to login screen
+7. Logout: set `localStorage` flag + `POST /api/twitch/unlink` to delete server mapping → show login screen
 
-**API routes (all under `/api/twitch/`):**
-- `GET /season` — active season + packs + cards (public)
-- `GET /collection?username=foo` — user's owned card numbers across all seasons
-- `GET /user?opaqueId=xxx` — look up username by Twitch opaque ID
-- `POST /link` — JWT-validated, links opaque ID to username; dev-mode allows without secret
+**Login screen design:**
+- Shows top 10 rarest cards as a 5-column teaser grid (top 3 revealed with image + gold border, rest as `?`)
+- Season name, card count, purple "Login with Twitch" button
+- No manual username form — Twitch identity only
+
+**Logout persistence:**
+- `localStorage` key `tcg_panel_loggedout = '1'` survives panel refresh
+- Checked at the start of `init()` before any auto-login attempt
+- Cleared when `login()` succeeds
+
+**API credentials — two separate things:**
+- `TWITCH_EXTENSION_SECRET` — base64-encoded Extension Secret (dev.twitch.tv → Extension → Settings). Used by `lib/twitch-jwt.ts` to verify JWTs from the Extension Helper.
+- `TWITCH_CLIENT_ID` + `TWITCH_CLIENT_SECRET` — OAuth app credentials (dev.twitch.tv → Applications → your app). Used by `/api/twitch/resolve-username` for the `client_credentials` token flow and Helix API calls. These are NOT the same as the Extension Secret.
 
 **Key KV keys:**
 - `twitch_opaque:{opaqueId}` → username string
+
+## Admin user detail page (`/admin/users/[username]`)
+- Fetches profile + all seasons + collections in parallel
+- Shows per-season card grid: owned cards with image + rarity border, unowned as `?`
+- ×N badge on cards pulled more than once
+- Hover × button on owned cards to remove one instance (calls `removeUserCard` server action)
+- Grant card select form per season
+- Danger zone: Reset All Seasons (wipes all collection entries) + Delete User (wipes collections + profile, redirects to `/admin/users`)
+- 404 if no cards and no profile found
+
+## Environment variables
+| Variable | Purpose |
+|----------|---------|
+| `ADMIN_SECRET` | Admin panel auth cookie value |
+| `KV_URL`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN` | Vercel KV credentials |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob credentials |
+| `TWITCH_EXTENSION_SECRET` | Base64 Extension Secret for JWT verification |
+| `TWITCH_CLIENT_ID` | Twitch OAuth app Client ID (for Helix API) |
+| `TWITCH_CLIENT_SECRET` | Twitch OAuth app Client Secret (for Helix API) |
 
 ## No node_modules locally
 The project builds on Vercel. `npm run dev` / `npm run build` won't work in WSL without running `npm install` first. Verify correctness by reading code carefully rather than running tsc.

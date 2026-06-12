@@ -246,12 +246,19 @@ async function tryResolveFromTwitch() {
   const numericId = auth.userId.slice(1);
   try {
     const res = await fetch(`/api/twitch/resolve-username?userId=${encodeURIComponent(numericId)}`);
-    if (!res.ok) return false;
+    if (!res.ok) {
+      console.error('[TCG] resolve-username failed:', res.status, await res.text().catch(() => ''));
+      return false;
+    }
     const { username } = await res.json();
-    if (!username) return false;
+    if (!username) {
+      console.error('[TCG] resolve-username returned no username for userId:', numericId);
+      return false;
+    }
     await linkAndLogin(username);
     return true;
-  } catch {
+  } catch (err) {
+    console.error('[TCG] tryResolveFromTwitch error:', err);
     return false;
   }
 }
@@ -338,9 +345,12 @@ async function init(twitchAuth) {
   // Re-auth fired after user responded to the identity-share popup
   if (identityRequestPending) {
     identityRequestPending = false;
+    console.log('[TCG] onAuthorized re-fired after requestIdShare, userId:', auth.userId);
     if (auth.userId?.startsWith('U')) {
       const resolved = await tryResolveFromTwitch();
       if (resolved) return;
+    } else {
+      console.warn('[TCG] identity sharing denied or not granted — userId still opaque:', auth.userId);
     }
     // Denied or resolution failed — back to login screen
     showLoginScreen();
@@ -377,10 +387,13 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   document.getElementById('login-btn').disabled = true;
   showState('loading');
 
+  console.log('[TCG] login-btn clicked — userId:', auth?.userId, '| requestIdShare:', typeof window.Twitch?.ext?.actions?.requestIdShare);
+
   // Identity already shared — resolve directly without a popup
   if (auth?.userId?.startsWith('U')) {
     const resolved = await tryResolveFromTwitch();
     if (resolved) return;
+    console.warn('[TCG] resolve failed on U-prefixed userId — showing login screen');
     showLoginScreen();
     return;
   }
@@ -388,9 +401,11 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   // Ask Twitch for identity; if onAuthorized never fires, time out back to login screen
   if (window.Twitch?.ext?.actions?.requestIdShare) {
     identityRequestPending = true;
+    console.log('[TCG] calling requestIdShare()');
     window.Twitch.ext.actions.requestIdShare();
     setTimeout(() => {
       if (identityRequestPending) {
+        console.warn('[TCG] 20s timeout — onAuthorized never re-fired after requestIdShare');
         identityRequestPending = false;
         showLoginScreen();
       }
@@ -398,7 +413,8 @@ document.getElementById('login-btn').addEventListener('click', async () => {
     return;
   }
 
-  // Extension Helper unavailable (e.g. outside Twitch) — back to login screen
+  // Extension Helper unavailable
+  console.error('[TCG] requestIdShare not available — Twitch.ext.actions:', window.Twitch?.ext?.actions);
   showLoginScreen();
 });
 
