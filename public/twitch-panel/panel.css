@@ -225,6 +225,16 @@ html, body {
 .login-btn:active { transform: scale(0.97); }
 .login-btn:disabled { opacity: 0.45; cursor: default; }
 
+.login-status {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 6px;
+  line-height: 1.5;
+  max-width: 200px;
+}
+.login-status.hidden { display: none; }
+
 /* ── Login state (manual fallback) ── */
 
 #state-enter-username {

@@ -338,29 +338,38 @@ function renderLoginMeta() {
   }
 }
 
-function showLoginScreen() {
+function showLoginScreen(statusMsg) {
   populateLoginTeaser();
   renderLoginMeta();
-  document.getElementById('login-btn').disabled = false;
+  const btn = document.getElementById('login-btn');
+  btn.disabled = false;
+  btn.textContent = 'Login with Twitch';
+  const statusEl = document.getElementById('login-status');
+  if (statusEl) {
+    statusEl.textContent = statusMsg ?? '';
+    statusEl.classList.toggle('hidden', !statusMsg);
+  }
   showState('login');
 }
 
 // ── Entry point ───────────────────────────────────────────
 async function init(twitchAuth) {
   auth = twitchAuth;
+  console.log('[TCG] init() — userId:', auth.userId, '| identityRequestPending:', identityRequestPending);
 
   // Re-auth fired after user responded to the identity-share popup
   if (identityRequestPending) {
     identityRequestPending = false;
-    console.log('[TCG] onAuthorized re-fired after requestIdShare, userId:', auth.userId);
     if (hasSharedTwitchId(auth.userId)) {
+      console.log('[TCG] identity shared — resolving username');
+      showState('loading');
       const resolved = await tryResolveFromTwitch();
       if (resolved) return;
+      showLoginScreen('Could not sign you in. Please try again.');
     } else {
-      console.warn('[TCG] identity sharing denied or not granted — userId still opaque:', auth.userId);
+      console.warn('[TCG] grant dismissed or not completed — userId still opaque:', auth.userId);
+      showLoginScreen('Identity sharing was not completed. Please try again.');
     }
-    // Denied or resolution failed — back to login screen
-    showLoginScreen();
     return;
   }
 
@@ -391,22 +400,30 @@ async function init(twitchAuth) {
 
 // ── Event wiring ──────────────────────────────────────────
 document.getElementById('login-btn').addEventListener('click', async () => {
-  document.getElementById('login-btn').disabled = true;
-  showState('loading');
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
 
   console.log('[TCG] login-btn clicked — userId:', auth?.userId, '| requestIdShare:', typeof window.Twitch?.ext?.actions?.requestIdShare);
 
   // Identity already shared — resolve directly without a popup
   if (hasSharedTwitchId(auth?.userId)) {
+    showState('loading');
     const resolved = await tryResolveFromTwitch();
     if (resolved) return;
     console.warn('[TCG] resolve failed on shared userId — showing login screen');
-    showLoginScreen();
+    showLoginScreen('Could not sign you in. Please try again.');
     return;
   }
 
-  // Ask Twitch for identity; if onAuthorized never fires, time out back to login screen
   if (window.Twitch?.ext?.actions?.requestIdShare) {
+    // Keep the login screen visible — just update the button and show a hint
+    btn.textContent = 'Waiting for Twitch...';
+    const statusEl = document.getElementById('login-status');
+    if (statusEl) {
+      statusEl.textContent = 'A Twitch prompt appeared above the video — click Allow to continue';
+      statusEl.classList.remove('hidden');
+    }
+
     identityRequestPending = true;
     console.log('[TCG] calling requestIdShare()');
     window.Twitch.ext.actions.requestIdShare();
@@ -414,7 +431,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
       if (identityRequestPending) {
         console.warn('[TCG] 20s timeout — onAuthorized never re-fired after requestIdShare');
         identityRequestPending = false;
-        showLoginScreen();
+        showLoginScreen('Timed out. Click Allow on the Twitch prompt, then try again.');
       }
     }, 20000);
     return;
@@ -422,7 +439,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
 
   // Extension Helper unavailable
   console.error('[TCG] requestIdShare not available — Twitch.ext.actions:', window.Twitch?.ext?.actions);
-  showLoginScreen();
+  showLoginScreen('Twitch identity sharing unavailable.');
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => {
