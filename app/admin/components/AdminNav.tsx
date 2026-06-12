@@ -7,6 +7,7 @@ const nav = [
   { href: '/admin/seasons', label: 'Seasons' },
   { href: '/admin/packs', label: 'Packs' },
   { href: '/admin/users', label: 'Users' },
+  { href: '/admin/assets', label: 'Assets' },
   { href: '/admin/settings', label: 'Settings' },
 ];
 
