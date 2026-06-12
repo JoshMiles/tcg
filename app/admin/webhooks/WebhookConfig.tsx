@@ -55,6 +55,15 @@ export function WebhookConfig({ settings, base }: { settings: WebhookSettings; b
             url={`${base}/api/webhooks/collection`}
             secret={settings.incomingSecret}
           />
+
+          {/* Grant Card URL */}
+          <IncomingUrl
+            label="Grant Card"
+            description="Adds a specific card number to a viewer's collection in the active season"
+            url={`${base}/api/webhooks/grant-card`}
+            secret={settings.incomingSecret}
+            extraFields={{ cardNumber: '{{CardNumber}}' }}
+          />
         </div>
       </section>
 
@@ -142,11 +151,12 @@ function SecretRow({ secret }: { secret: string }) {
 
 // ── Incoming URL row ──────────────────────────────────────
 
-function IncomingUrl({ label, description, url, secret }: {
+function IncomingUrl({ label, description, url, secret, extraFields }: {
   label: string; description: string; url: string; secret: string;
+  extraFields?: Record<string, string>;
 }) {
   const [copied, setCopied] = useState(false);
-  const body = JSON.stringify({ username: '{{UserName}}', secret });
+  const body = JSON.stringify({ username: '{{UserName}}', ...extraFields, secret });
 
   function copy() {
     navigator.clipboard.writeText(url).then(() => {
