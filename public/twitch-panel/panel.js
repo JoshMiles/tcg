@@ -4,11 +4,12 @@
 const RARITY_COLOR = { 1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f59e0b' };
 
 // ── State ─────────────────────────────────────────────────
-let auth            = null;   // Twitch Extension auth object
-let season          = null;   // { seasonId, seasonName, collectionName, packs }
-let collections     = [];     // [{ seasonId, seasonName, active, ownedNumbers }]
-let currentUsername = null;
-let currentPackIdx  = 0;
+let auth                   = null;   // Twitch Extension auth object
+let season                 = null;   // { seasonId, seasonName, collectionName, packs }
+let collections            = [];     // [{ seasonId, seasonName, active, ownedNumbers }]
+let currentUsername        = null;
+let currentPackIdx         = 0;
+let identityRequestPending = false;  // true while waiting for requestIdShare() response
 
 // ── DOM refs ─────────────────────────────────────────────
 const STATES = {
@@ -233,9 +234,25 @@ async function tryAutoLogin() {
       return true;
     }
   } catch {
-    // fall through to manual login
+    // fall through
   }
   return false;
+}
+
+// Called when identity is shared — resolves real Twitch user ID → login name
+async function tryResolveFromTwitch() {
+  if (!auth?.userId?.startsWith('U')) return false;
+  const numericId = auth.userId.slice(1);
+  try {
+    const res = await fetch(`/api/twitch/resolve-username?userId=${encodeURIComponent(numericId)}`);
+    if (!res.ok) return false;
+    const { username } = await res.json();
+    if (!username) return false;
+    await linkAndLogin(username);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ── Season load ───────────────────────────────────────────
@@ -257,15 +274,45 @@ async function loadSeason() {
 // ── Entry point ───────────────────────────────────────────
 async function init(twitchAuth) {
   auth = twitchAuth;
+
+  // Re-auth fired after requestIdShare() — don't reload season data
+  if (identityRequestPending) {
+    identityRequestPending = false;
+
+    if (auth.userId?.startsWith('U')) {
+      // Identity granted — resolve Twitch login automatically
+      const resolved = await tryResolveFromTwitch();
+      if (resolved) return;
+    }
+    // Identity denied or resolution failed — fall back to manual form
+    renderSeasonHeader('login-season-header');
+    showState('enterUsername');
+    return;
+  }
+
   showState('loading');
 
   const ok = await loadSeason();
   if (!ok) return;
 
+  // 1. Existing opaque-ID → username mapping (returning users)
   const autoLoggedIn = await tryAutoLogin();
   if (autoLoggedIn) return;
 
-  // Show username entry with season header for context
+  // 2. Identity already shared from a previous session
+  if (auth.userId?.startsWith('U')) {
+    const resolved = await tryResolveFromTwitch();
+    if (resolved) return;
+  }
+
+  // 3. Request identity sharing — onAuthorized will fire again when user responds
+  if (window.Twitch?.ext?.actions?.requestIdShare) {
+    identityRequestPending = true;
+    window.Twitch.ext.actions.requestIdShare();
+    return; // stay on loading screen while the popup is open
+  }
+
+  // 4. No identity sharing available (dev mode / old helper) — manual form
   renderSeasonHeader('login-season-header');
   showState('enterUsername');
 }
