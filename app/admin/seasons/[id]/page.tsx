@@ -85,7 +85,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
                   className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex items-center gap-3"
                 >
                   {pack.coverImageUrl ? (
-                    <img src={pack.coverImageUrl} alt={pack.name} className="w-9 h-12 object-cover rounded shrink-0" />
+                    <img src={pack.coverImageUrl} alt={pack.name} loading="lazy" className="w-9 h-12 object-cover rounded shrink-0" />
                   ) : (
                     <div className="w-9 h-12 bg-gray-800 rounded shrink-0" />
                   )}

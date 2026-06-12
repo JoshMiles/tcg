@@ -71,7 +71,7 @@ export default async function PacksPage() {
                 <tr key={pack.id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="pl-6 pr-2 py-3">
                     {pack.coverImageUrl ? (
-                      <img src={pack.coverImageUrl} alt={pack.name} className="w-9 h-12 object-cover rounded-lg" />
+                      <img src={pack.coverImageUrl} alt={pack.name} loading="lazy" className="w-9 h-12 object-cover rounded-lg" />
                     ) : (
                       <div className="w-9 h-12 bg-gray-800 rounded-lg" />
                     )}

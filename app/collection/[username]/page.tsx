@@ -136,6 +136,7 @@ export default async function CollectionPage({
                     <img
                       src={card.imageUrl}
                       alt={card.name}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                   ) : (

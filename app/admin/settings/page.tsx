@@ -87,7 +87,7 @@ queueCollection('username');`}</pre>
                 {result.packs.map(({ pack, cards }) => (
                   <div key={pack.id} className="flex items-center gap-2 text-sm py-2 first:pt-0 last:pb-0">
                     {pack.coverImageUrl && (
-                      <img src={pack.coverImageUrl} alt={pack.name} className="w-6 h-8 object-cover rounded shrink-0" />
+                      <img src={pack.coverImageUrl} alt={pack.name} loading="lazy" className="w-6 h-8 object-cover rounded shrink-0" />
                     )}
                     <span className="text-gray-300 flex-1">{pack.name}</span>
                     <span className="text-gray-600">{cards.length} cards</span>

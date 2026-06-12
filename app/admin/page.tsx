@@ -206,7 +206,7 @@ export default async function AdminDashboard() {
                 {packs.map(({ pack, cards }) => (
                   <div key={pack.id} className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800/30 transition-colors">
                     {pack.coverImageUrl ? (
-                      <img src={pack.coverImageUrl} alt={pack.name} className="w-7 h-9 object-cover rounded shrink-0" />
+                      <img src={pack.coverImageUrl} alt={pack.name} loading="lazy" className="w-7 h-9 object-cover rounded shrink-0" />
                     ) : (
                       <div className="w-7 h-9 bg-gray-800 rounded shrink-0" />
                     )}
@@ -260,7 +260,7 @@ export default async function AdminDashboard() {
                     <td className="px-5 py-2.5">
                       <div className="flex items-center gap-2.5">
                         {c.imageUrl ? (
-                          <img src={c.imageUrl} alt={c.name} className="w-5 h-7 object-cover rounded shrink-0" />
+                          <img src={c.imageUrl} alt={c.name} loading="lazy" className="w-5 h-7 object-cover rounded shrink-0" />
                         ) : (
                           <div className="w-5 h-7 bg-gray-800 rounded shrink-0" />
                         )}
