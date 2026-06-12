@@ -267,6 +267,16 @@ document.getElementById('change-user-btn').addEventListener('click', () => {
   showState('enterUsername');
 });
 
+document.getElementById('refresh-btn').addEventListener('click', async () => {
+  if (!currentUsername) return;
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  await loadUserCollection(currentUsername);
+  renderSeasonHeader('collection-season-header');
+  renderGrid();
+  btn.classList.remove('spinning');
+});
+
 // ── Twitch Extension Helper ───────────────────────────────
 if (typeof window.Twitch !== 'undefined' && window.Twitch.ext) {
   window.Twitch.ext.onAuthorized(authObj => init(authObj));

@@ -368,3 +368,6 @@ html, body {
   transition: all 0.15s;
 }
 .change-btn:hover { color: var(--text); border-color: var(--muted); }
+
+#refresh-btn { font-size: 14px; padding: 3px 7px; }
+#refresh-btn.spinning { animation: spin 0.7s linear infinite; pointer-events: none; }
