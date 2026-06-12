@@ -181,11 +181,12 @@ export async function getAllCollectionUsers(): Promise<{
   seasons: { id: string; name: string; collectionName: string; cards: number[] }[];
 }[]> {
   const seasons = await listSeasons();
+  const collections = await Promise.all(seasons.map(s => getCollection(s.collectionName)));
+
   const userMap = new Map<string, { id: string; name: string; collectionName: string; cards: number[] }[]>();
 
-  for (const season of seasons) {
-    const collection = await getCollection(season.collectionName);
-    for (const [username, cards] of Object.entries(collection)) {
+  seasons.forEach((season, i) => {
+    for (const [username, cards] of Object.entries(collections[i])) {
       const lower = username.toLowerCase();
       if (!userMap.has(lower)) userMap.set(lower, []);
       userMap.get(lower)!.push({
@@ -195,7 +196,7 @@ export async function getAllCollectionUsers(): Promise<{
         cards,
       });
     }
-  }
+  });
 
   return Array.from(userMap.entries()).map(([username, seasons]) => ({ username, seasons }));
 }

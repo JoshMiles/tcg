@@ -17,12 +17,8 @@ export default async function UsersPage() {
   const seasonCardCounts: Record<string, number> = {};
   await Promise.all(
     seasons.map(async s => {
-      let total = 0;
-      for (const packId of s.packIds) {
-        const cards = await getPackCards(packId);
-        total += cards.length;
-      }
-      seasonCardCounts[s.id] = total;
+      const cardArrays = await Promise.all(s.packIds.map(id => getPackCards(id)));
+      seasonCardCounts[s.id] = cardArrays.reduce((sum, cards) => sum + cards.length, 0);
     })
   );
 
