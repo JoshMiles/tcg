@@ -236,6 +236,18 @@ export async function seedSeason1() {
   if (!packIds.includes('pack1')) {
     await savePack(SEED_PACK);
     await savePackCards('pack1', SEED_CARDS);
+  } else {
+    // Patch existing pack1 cards with soundUrl from seed data if missing
+    const existing = await getPackCards('pack1');
+    const seedMap = new Map(SEED_CARDS.map(c => [c.id, c]));
+    const needsPatch = existing.some(c => !c.soundUrl && seedMap.get(c.id)?.soundUrl);
+    if (needsPatch) {
+      const patched = existing.map(c => {
+        const seed = seedMap.get(c.id);
+        return !c.soundUrl && seed?.soundUrl ? { ...c, soundUrl: seed.soundUrl } : c;
+      });
+      await savePackCards('pack1', patched);
+    }
   }
 
   if (!ids.includes('season1')) {
