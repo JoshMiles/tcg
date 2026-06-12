@@ -215,6 +215,10 @@ export async function saveTwitchOpaqueUser(opaqueId: string, username: string): 
   await kv.set(`twitch_opaque:${opaqueId}`, username.toLowerCase());
 }
 
+export async function deleteTwitchOpaqueUser(opaqueId: string): Promise<void> {
+  await kv.del(`twitch_opaque:${opaqueId}`);
+}
+
 // ── Legacy collection ─────────────────────────────────────
 
 export async function getCollection(collectionName: string): Promise<Record<string, number[]>> {

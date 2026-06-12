@@ -214,6 +214,7 @@ async function linkAndLogin(username) {
 }
 
 async function login(username) {
+  setExplicitLogout(false);
   currentUsername = username;
   await loadUserCollection(username);
   showState('collection');
@@ -270,6 +271,15 @@ async function loadSeason() {
     showState('noSeason');
     return false;
   }
+}
+
+// ── Logout persistence (localStorage) ────────────────────
+// Survives refresh so explicit logouts aren't overridden by silent auto-login.
+function isExplicitlyLoggedOut() {
+  try { return localStorage.getItem('tcg_panel_loggedout') === '1'; } catch { return false; }
+}
+function setExplicitLogout(val) {
+  try { localStorage.setItem('tcg_panel_loggedout', val ? '1' : '0'); } catch {}
 }
 
 // ── Login screen helpers ──────────────────────────────────
@@ -348,11 +358,17 @@ async function init(twitchAuth) {
   const ok = await loadSeason();
   if (!ok) return;
 
+  // If the user explicitly logged out, respect that — show login screen immediately
+  if (isExplicitlyLoggedOut()) {
+    showLoginScreen();
+    return;
+  }
+
   // Returning user with saved mapping — silent auto-login
   const autoLoggedIn = await tryAutoLogin();
   if (autoLoggedIn) return;
 
-  // Identity already shared from a previous grant — resolve silently
+  // Identity already shared — resolve silently (first visit with Twitch identity)
   if (auth.userId?.startsWith('U')) {
     const resolved = await tryResolveFromTwitch();
     if (resolved) return;
@@ -372,20 +388,48 @@ document.getElementById('username-form').addEventListener('submit', async e => {
   await linkAndLogin(username);
 });
 
-document.getElementById('login-btn').addEventListener('click', () => {
+document.getElementById('login-btn').addEventListener('click', async () => {
+  document.getElementById('login-btn').disabled = true;
+  showState('loading');
+
+  // Identity already shared — resolve directly, no popup needed
+  if (auth?.userId?.startsWith('U')) {
+    const resolved = await tryResolveFromTwitch();
+    if (resolved) return;
+    renderSeasonHeader('login-season-header');
+    showState('enterUsername');
+    return;
+  }
+
+  // Request identity sharing; fall back to login screen if no re-auth within 20s
   if (window.Twitch?.ext?.actions?.requestIdShare) {
-    document.getElementById('login-btn').disabled = true;
-    showState('loading');
     identityRequestPending = true;
     window.Twitch.ext.actions.requestIdShare();
+    setTimeout(() => {
+      if (identityRequestPending) {
+        identityRequestPending = false;
+        showLoginScreen();
+      }
+    }, 20000);
   } else {
-    // Dev mode — fall back to manual username form
+    // Dev mode — manual form
     renderSeasonHeader('login-season-header');
     showState('enterUsername');
   }
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => {
+  // Mark as explicitly logged out so refresh doesn't silently re-login
+  setExplicitLogout(true);
+
+  // Delete the server-side opaque→username mapping
+  if (auth?.token) {
+    fetch('/api/twitch/unlink', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + auth.token },
+    }).catch(() => {});
+  }
+
   currentUsername = null;
   collections = [];
   showLoginScreen();
