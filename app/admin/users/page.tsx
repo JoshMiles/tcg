@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getAllCollectionUsers, getUserProfile, listSeasons, getPackCards } from '@/lib/kv';
 import { resetUser, resetAllUsers, updateUserProfile } from '../actions';
 
@@ -135,7 +136,13 @@ export default async function UsersPage() {
 
                     <span className={`text-right font-semibold tabular-nums text-sm ${bestColor}`}>{best}%</span>
 
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/admin/users/${user.username}`}
+                        className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors shrink-0"
+                      >
+                        View
+                      </Link>
                       <span className="text-xs text-gray-700 group-open:rotate-90 transition-transform inline-block">›</span>
                     </div>
                   </summary>

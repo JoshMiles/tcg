@@ -200,6 +200,47 @@ export async function updateUserProfile(username: string, formData: FormData) {
     createdAt: existing?.createdAt ?? Date.now(),
   };
   await saveUserProfile(profile);
+  revalidatePath(`/admin/users/${username.toLowerCase()}`);
+  revalidatePath('/admin/users');
+}
+
+// Remove one instance of a card from a user's collection
+export async function removeUserCard(username: string, collectionName: string, cardNumber: number) {
+  const lower = username.toLowerCase();
+  const data = await getCollection(collectionName);
+  if (data[lower]) {
+    const idx = data[lower].indexOf(cardNumber);
+    if (idx !== -1) {
+      data[lower] = [...data[lower].slice(0, idx), ...data[lower].slice(idx + 1)];
+    }
+    if (data[lower].length === 0) delete data[lower];
+    await saveCollection(collectionName, data);
+  }
+  revalidatePath(`/admin/users/${lower}`);
+  revalidatePath('/admin/users');
+}
+
+// Add a card to a user's collection in a specific season
+export async function grantUserCard(username: string, collectionName: string, formData: FormData) {
+  const cardNumber = parseInt(formData.get('cardNumber') as string, 10);
+  if (!cardNumber || cardNumber < 1) return;
+  const lower = username.toLowerCase();
+  const data = await getCollection(collectionName);
+  data[lower] = [...(data[lower] ?? []), cardNumber];
+  await saveCollection(collectionName, data);
+  revalidatePath(`/admin/users/${lower}`);
+  revalidatePath('/admin/users');
+}
+
+// Remove a user from a single season's collection
+export async function resetUserSeason(username: string, collectionName: string) {
+  const lower = username.toLowerCase();
+  const data = await getCollection(collectionName);
+  if (lower in data) {
+    delete data[lower];
+    await saveCollection(collectionName, data);
+  }
+  revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
 }
 
@@ -216,6 +257,7 @@ export async function resetUser(username: string) {
       }
     })
   );
+  revalidatePath(`/admin/users/${username.toLowerCase()}`);
   revalidatePath('/admin/users');
 }
 
