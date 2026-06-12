@@ -8,6 +8,7 @@ const nav = [
   { href: '/admin/packs', label: 'Packs' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/assets', label: 'Assets' },
+  { href: '/admin/webhooks', label: 'Webhooks' },
   { href: '/admin/settings', label: 'Settings' },
 ];
 

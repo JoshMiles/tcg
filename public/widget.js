@@ -97,7 +97,7 @@ function pickPackAndCard() {
     if (rp <= 0) { card = c; break; }
   }
 
-  return { card, cfg: packConfig(chosen.pack) };
+  return { card, cfg: packConfig(chosen.pack), packName: chosen.pack.name };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -133,12 +133,14 @@ async function loadCollection() {
   }
 }
 
-function saveCollection() {
+function saveCollection(pull) {
   if (!SEASON_CFG.collectionName) return;
+  const body = { data: revealedCardsByUser };
+  if (pull) body.pull = pull;
   fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ data: revealedCardsByUser }),
+    body: JSON.stringify(body),
   }).catch(() => {});
 }
 
@@ -263,7 +265,7 @@ function drawCard(username) {
     return;
   }
 
-  const { card, cfg } = pick;
+  const { card, cfg, packName } = pick;
   const theater = createTheater(cfg);
   const { wrapper, packageContainer, tearBorder1, cardBox, cardLabel,
           mainCard, holoOverlay, cardInfoOverlay, radialContainer,
@@ -357,7 +359,7 @@ function drawCard(username) {
 
   if (!revealedCardsByUser[user].includes(card.number)) {
     revealedCardsByUser[user].push(card.number);
-    saveCollection();
+    saveCollection({ username: user, cardNumber: card.number, cardName: card.name, stars: card.stars, packName });
   }
 
   // Hide + cleanup
@@ -394,6 +396,12 @@ function showCollection(username) {
   cardInfo.style.opacity   = '1';
   cardInfo.style.transform = 'scale(1)';
   userText.textContent     = (username || 'Someone') + "'s collection:";
+
+  fetch('/api/webhooks/notify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event: 'collectionShown', username: user }),
+  }).catch(() => {});
 
   buildMiniList(miniList, revealedCardsByUser[user], null, cfg);
 
@@ -472,8 +480,22 @@ function initDevPanel() {
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
+async function pollWebhookQueue() {
+  try {
+    const res = await fetch('/api/webhooks/queue');
+    if (!res.ok) return;
+    const event = await res.json();
+    if (!event) return;
+    if (event.type === 'pull')       queueDraw(event.username);
+    else if (event.type === 'collection') queueCollection(event.username);
+  } catch {
+    // ignore — overlay keeps working if server is unreachable
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await initSeason();
   await loadCollection();
   initDevPanel();
+  setInterval(pollWebhookQueue, 2000);
 });

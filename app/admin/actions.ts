@@ -1,6 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { randomBytes } from 'crypto';
 import {
   saveSeason, getSeason, deleteSeason, listSeasons, listSeasonIds,
   savePack, getPack, deletePack, listAllPackIds,
@@ -10,6 +11,7 @@ import {
 } from '@/lib/kv';
 import type { Season, Pack, Card, UserProfile } from '@/lib/types';
 import { SEED_SEASON, SEED_PACK, SEED_CARDS } from '@/lib/seed';
+import { getWebhookSettings, saveWebhookSettings } from '@/lib/webhooks';
 
 // ── Seasons ───────────────────────────────────────────────
 
@@ -251,3 +253,25 @@ export async function seedSeason1() {
   revalidatePath('/admin/seasons');
 }
 
+// ── Webhooks ──────────────────────────────────────────────
+
+export async function saveOutgoingWebhook(
+  event: 'cardPulled' | 'collectionShown',
+  formData: FormData,
+) {
+  const settings = await getWebhookSettings();
+  settings.outgoing[event] = {
+    url:     (formData.get('url') as string) || '',
+    enabled: formData.get('enabled') === 'true',
+    fields:  JSON.parse((formData.get('fieldsJson') as string) || '[]'),
+  };
+  await saveWebhookSettings(settings);
+  revalidatePath('/admin/webhooks');
+}
+
+export async function regenerateWebhookSecret() {
+  const settings = await getWebhookSettings();
+  settings.incomingSecret = randomBytes(16).toString('hex');
+  await saveWebhookSettings(settings);
+  revalidatePath('/admin/webhooks');
+}
