@@ -3,6 +3,13 @@
 // ── Rarity colours matching the admin panel ──────────────
 const RARITY_COLOR = { 1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f59e0b' };
 
+// Returns true only when Twitch has shared the real numeric user ID (post-requestIdShare).
+// auth.userId starts with 'U' for any logged-in viewer (opaque IDs like UJ4TfQ1fF…),
+// but the actual Twitch user ID is U + digits only, e.g. U123456789.
+function hasSharedTwitchId(userId) {
+  return !!(userId?.startsWith('U') && /^\d+$/.test(userId.slice(1)));
+}
+
 // ── State ─────────────────────────────────────────────────
 let auth                   = null;   // Twitch Extension auth object
 let season                 = null;   // { seasonId, seasonName, collectionName, packs }
@@ -242,7 +249,7 @@ async function tryAutoLogin() {
 
 // Called when identity is shared — resolves real Twitch user ID → login name
 async function tryResolveFromTwitch() {
-  if (!auth?.userId?.startsWith('U')) return false;
+  if (!hasSharedTwitchId(auth?.userId)) return false;
   const numericId = auth.userId.slice(1);
   try {
     const res = await fetch(`/api/twitch/resolve-username?userId=${encodeURIComponent(numericId)}`);
@@ -346,7 +353,7 @@ async function init(twitchAuth) {
   if (identityRequestPending) {
     identityRequestPending = false;
     console.log('[TCG] onAuthorized re-fired after requestIdShare, userId:', auth.userId);
-    if (auth.userId?.startsWith('U')) {
+    if (hasSharedTwitchId(auth.userId)) {
       const resolved = await tryResolveFromTwitch();
       if (resolved) return;
     } else {
@@ -373,7 +380,7 @@ async function init(twitchAuth) {
   if (autoLoggedIn) return;
 
   // Identity already shared from a previous grant — resolve silently
-  if (auth.userId?.startsWith('U')) {
+  if (hasSharedTwitchId(auth.userId)) {
     const resolved = await tryResolveFromTwitch();
     if (resolved) return;
   }
@@ -390,10 +397,10 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   console.log('[TCG] login-btn clicked — userId:', auth?.userId, '| requestIdShare:', typeof window.Twitch?.ext?.actions?.requestIdShare);
 
   // Identity already shared — resolve directly without a popup
-  if (auth?.userId?.startsWith('U')) {
+  if (hasSharedTwitchId(auth?.userId)) {
     const resolved = await tryResolveFromTwitch();
     if (resolved) return;
-    console.warn('[TCG] resolve failed on U-prefixed userId — showing login screen');
+    console.warn('[TCG] resolve failed on shared userId — showing login screen');
     showLoginScreen();
     return;
   }
