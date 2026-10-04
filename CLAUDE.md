@@ -178,7 +178,11 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 | `TWITCH_CLIENT_SECRET` | Twitch OAuth app Client Secret (for Helix API) |
 
 ## Card art
-Card images are animated WebP in `public/assets/cards/` (600px wide, ~1–4MB each). The original 800px GIFs were 20MB+ each and were removed. `getPackCards` rewrites legacy stored URLs (`/assets/GIF/X.gif` → `/assets/cards/X.webp`) on read, so old KV data keeps working. To convert new GIFs: put them in a folder and run `node scripts/optimize-cards.mjs <inDir> <outDir>` (uses `sharp`). Images uploaded through the admin UI go to Vercel Blob as-is, so compress GIFs before uploading.
+Card images are animated WebP in `public/assets/cards/` (600px wide, ~1–4MB each) with a static first-frame thumbnail of each in `public/assets/cards/thumb/` (~15KB). The original 800px GIFs were 20MB+ each and were removed. `getPackCards` rewrites legacy stored URLs (`/assets/GIF/X.gif` → `/assets/cards/X.webp`) on read, so old KV data keeps working.
+
+- **Grids use `CardTile`** (`app/components/CardTile.tsx`, client component): shows the thumbnail and loads the animated file only while hovered. Used on `/collection/[username]` and the admin user detail page. `cardThumbUrl()` in `lib/card-art.ts` maps an image URL to its thumbnail (returns the URL unchanged when none exists, e.g. external images).
+- **Processing** lives in `lib/card-image.ts` (sharp), shared by the CLI and uploads. To convert GIFs locally: `node scripts/optimize-cards.mjs <inDir> <outDir>` (Node ≥ 22.18). With no GIFs present it just regenerates thumbnails.
+- **Admin GIF uploads** (`ImageUploadField`): the browser uploads the raw GIF straight to Blob via `/api/upload/token` (Vercel functions cap request bodies at 4.5MB), then `/api/upload/optimize` fetches it, stores `cards/<uuid>.webp` + `cards/<uuid>.thumb.webp`, and deletes the original. The `<uuid>.thumb.webp` naming is what lets `cardThumbUrl()` derive the thumbnail from the stored URL — keep `optimizedCardPaths()` and `cardThumbUrl()` in sync. Non-GIF uploads still go through `/api/upload` unchanged. Needs `BLOB_READ_WRITE_TOKEN`; the optimize route sets `maxDuration = 60`.
 
 ## Local dev
 `npm install` then `npx tsc --noEmit` / `npm run build` work locally. `node_modules/` is gitignored.

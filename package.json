@@ -13,7 +13,8 @@
     "@vercel/speed-insights": "^1.2.0",
     "next": "^15.3.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -21,7 +22,6 @@
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
-    "sharp": "^0.35.5",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.0.0"
   }
