@@ -7,7 +7,8 @@ import {
 import { RARITIES, getRarity } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
 import { CardTile } from '@/app/components/CardTile';
-import { BrandMark } from '@/app/admin/components/BrandMark';
+import { Avatar } from '@/app/components/Avatar';
+import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ export default async function CollectionPage({
   ]);
 
   const displayName = profile?.displayName || username;
+  const avatarUrl = (await getAvatars([lower]))[lower];
 
   if (!result) {
     return (
@@ -66,7 +68,7 @@ export default async function CollectionPage({
         <div className="holo-strip" />
         <div className="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <BrandMark size={44} />
+            <Avatar src={avatarUrl && sizeTwitchAvatar(avatarUrl, 150)} name={displayName} className="w-11 h-11 text-lg ring-2 ring-yellow-500/60" />
             <div>
               <h1 className="font-bold text-white text-2xl leading-none">{displayName}</h1>
               {profile?.twitchId && (
