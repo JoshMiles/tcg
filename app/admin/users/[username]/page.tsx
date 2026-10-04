@@ -2,16 +2,14 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { listSeasons, getCollection, getPackCards, getPack, getUserProfile } from '@/lib/kv';
 import type { Season, Pack, Card } from '@/lib/types';
+import { getRarity } from '@/lib/rarity';
+import { countPulls } from '@/lib/collection';
 import {
   updateUserProfile, removeUserCard, grantUserCard,
   resetUserSeason, resetUser, deleteUser,
 } from '../../actions';
 
 export const dynamic = 'force-dynamic';
-
-const RARITY_COLOR: Record<number, string> = {
-  1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f59e0b',
-};
 
 type SeasonEntry = {
   season: Season;
@@ -40,8 +38,7 @@ export default async function UserDetailPage({
   const seasonEntries: SeasonEntry[] = await Promise.all(
     seasons.map(async (season, i) => {
       const ownedNumbers = collections[i][username] ?? [];
-      const countMap = new Map<number, number>();
-      for (const n of ownedNumbers) countMap.set(n, (countMap.get(n) ?? 0) + 1);
+      const countMap = countPulls(ownedNumbers);
 
       const packData = await Promise.all(
         season.packIds.map(async packId => {
@@ -207,7 +204,7 @@ export default async function UserDetailPage({
                       {cards.map(card => {
                         const count = countMap.get(card.number) ?? 0;
                         const owned = count > 0;
-                        const color = RARITY_COLOR[card.stars] ?? '#fbbf24';
+                        const color = getRarity(card.stars)?.hex ?? '#fbbf24';
                         const remove = removeUserCard.bind(null, username, season.collectionName, card.number);
 
                         return (

@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
 import { randomBytes } from 'crypto';
+import { NextResponse } from 'next/server';
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -80,4 +81,24 @@ export async function fireOutgoing(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   }).catch(() => {}); // fire-and-forget
+}
+
+// ── Incoming webhook auth ─────────────────────────────────
+
+export type IncomingWebhook =
+  | { ok: true; username: string; body: Record<string, unknown> }
+  | { ok: false; response: NextResponse };
+
+/** Validates the shared secret and normalizes `username` for MixItUp-style incoming webhooks. */
+export async function parseIncomingWebhook(req: Request): Promise<IncomingWebhook> {
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const settings = await getWebhookSettings();
+  if (typeof body.secret !== 'string' || body.secret !== settings.incomingSecret) {
+    return { ok: false, response: NextResponse.json({ error: 'Invalid secret' }, { status: 401 }) };
+  }
+  const username = typeof body.username === 'string' ? body.username.toLowerCase().trim() : '';
+  if (!username) {
+    return { ok: false, response: NextResponse.json({ error: 'username required' }, { status: 400 }) };
+  }
+  return { ok: true, username, body };
 }

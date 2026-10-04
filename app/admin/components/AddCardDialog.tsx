@@ -4,14 +4,7 @@ import { Dialog } from './Dialog';
 import { ImageUploadField } from './image-upload';
 import { AudioUploadField } from './audio-upload';
 import { addCard } from '../actions';
-
-const RARITIES = [
-  { stars: 5, label: 'Legendary', color: 'text-amber-400' },
-  { stars: 4, label: 'Epic',      color: 'text-purple-400' },
-  { stars: 3, label: 'Rare',      color: 'text-blue-400'  },
-  { stars: 2, label: 'Uncommon',  color: 'text-green-400' },
-  { stars: 1, label: 'Common',    color: 'text-gray-400'  },
-];
+import { RARITIES } from '@/lib/rarity';
 
 export function AddCardDialog({
   open,

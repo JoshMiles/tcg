@@ -33,19 +33,6 @@ export interface Card {
   stars: number;              // 1–5
 }
 
-export interface PullRecord {
-  cardId: string;
-  cardNumber: number;
-  cardName: string;
-  stars: number;
-  imageUrl: string;
-  packId: string;
-  packName: string;
-  seasonId: string;
-  seasonName: string;
-  pulledAt: number;
-}
-
 export interface UserProfile {
   username: string;       // lowercase, canonical key
   displayName: string;    // Twitch display name or custom label
