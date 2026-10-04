@@ -4,6 +4,7 @@ import { listSeasons, getCollection, getPackCards, getPack, getUserProfile } fro
 import type { Season, Pack, Card } from '@/lib/types';
 import { getRarity } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
+import { CardTile } from '@/app/components/CardTile';
 import {
   updateUserProfile, removeUserCard, grantUserCard,
   resetUserSeason, resetUser, deleteUser,
@@ -210,23 +211,23 @@ export default async function UserDetailPage({
 
                         return (
                           <div key={card.id} className="relative group">
-                            <div
-                              className={`aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 ${owned ? 'holo-hover border-2' : 'border border-dashed border-gray-700'}`}
-                              style={owned ? { borderColor: color, boxShadow: `0 0 12px -4px ${color}` } : undefined}
-                            >
-                              {owned && card.imageUrl ? (
-                                <img
-                                  src={card.imageUrl}
-                                  alt={card.name}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                />
-                              ) : (
+                            {owned && card.imageUrl ? (
+                              <CardTile
+                                imageUrl={card.imageUrl}
+                                alt={card.name}
+                                className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 holo-hover border-2"
+                                style={{ borderColor: color, boxShadow: `0 0 12px -4px ${color}` }}
+                              />
+                            ) : (
+                              <div
+                                className={`aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 ${owned ? 'holo-hover border-2' : 'border border-dashed border-gray-700'}`}
+                                style={owned ? { borderColor: color, boxShadow: `0 0 12px -4px ${color}` } : undefined}
+                              >
                                 <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs font-bold border border-gray-700/50 rounded-lg">
                                   {card.number}
                                 </div>
-                              )}
-                            </div>
+                              </div>
+                            )}
 
                             {/* Duplicate count badge */}
                             {count > 1 && (
