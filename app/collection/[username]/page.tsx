@@ -6,6 +6,7 @@ import {
 } from '@/lib/kv';
 import { RARITIES, getRarity } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
+import { BrandMark } from '@/app/admin/components/BrandMark';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,21 +59,22 @@ export default async function CollectionPage({
   }).filter(r => r.total > 0);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen text-gray-100">
       {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900">
+      <div className="border-b border-poke-blue-light/20 bg-gray-950/70 backdrop-blur">
+        <div className="holo-strip" />
         <div className="max-w-4xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🃏</span>
+            <BrandMark size={44} />
             <div>
-              <h1 className="font-bold text-white text-lg leading-none">{displayName}</h1>
+              <h1 className="font-bold text-white text-2xl leading-none">{displayName}</h1>
               {profile?.twitchId && (
                 <p className="text-xs text-purple-400 mt-0.5">Twitch: {profile.twitchId}</p>
               )}
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-white tabular-nums">{pct}%</p>
+            <p className="font-display text-4xl font-bold text-yellow-400 tabular-nums leading-none">{pct}%</p>
             <p className="text-xs text-gray-500">
               {owned.length}/{total} cards · {season.name}
             </p>
@@ -84,9 +86,9 @@ export default async function CollectionPage({
 
         {/* Progress bar */}
         <div className="max-w-4xl mx-auto px-4 pb-4">
-          <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+          <div className="h-3 bg-gray-950 border border-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-yellow-500 rounded-full transition-all"
+              className="h-full bg-gradient-to-r from-yellow-300 to-yellow-600 rounded-full transition-all"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -118,7 +120,7 @@ export default async function CollectionPage({
             No cards in this season yet.
           </div>
         ) : (
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-3">
             {allCards.map(card => {
               const count = countMap.get(card.number) ?? 0;
               const isOwned = count > 0;
@@ -127,10 +129,10 @@ export default async function CollectionPage({
                 <div
                   key={card.id}
                   title={isOwned ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}` : `#${card.number} ???`}
-                  className="relative aspect-[2/3] rounded-lg overflow-hidden border border-gray-800 group"
-                  style={{
-                    borderColor: isOwned ? rarity?.hex + '40' : undefined,
-                  }}
+                  className={`relative aspect-[2/3] rounded-xl overflow-hidden group transition-transform ${
+                    isOwned ? 'holo-hover border-2 hover:-translate-y-1' : 'border border-dashed border-gray-700 bg-gray-900/40'
+                  }`}
+                  style={isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}` } : undefined}
                 >
                   {isOwned && card.imageUrl ? (
                     <img
@@ -140,11 +142,11 @@ export default async function CollectionPage({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                    <div className="w-full h-full bg-gray-900/60 flex items-center justify-center">
                       {isOwned ? (
                         <span className="text-xs text-gray-500 font-bold">#{card.number}</span>
                       ) : (
-                        <span className="text-gray-700 font-bold text-sm">?</span>
+                        <span className="font-display text-gray-600 font-bold text-2xl">?</span>
                       )}
                     </div>
                   )}
@@ -161,7 +163,7 @@ export default async function CollectionPage({
                   )}
                   {/* Pull count badge */}
                   {count > 1 && (
-                    <div className="absolute top-1 left-1 bg-black/70 text-yellow-400 text-[9px] font-bold px-1 rounded leading-tight">
+                    <div className="absolute top-1 left-1 bg-gray-950/85 border border-yellow-500/50 text-yellow-300 text-[10px] font-extrabold px-1.5 rounded-full leading-tight">
                       ×{count}
                     </div>
                   )}

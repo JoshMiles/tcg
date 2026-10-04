@@ -1,8 +1,10 @@
+import Link from 'next/link';
 import { listAllPacks, getPackCards } from '@/lib/kv';
+import { rarityStats } from '@/lib/rarity';
 import { deletePackAction } from '../actions';
 import { NewPackButton } from '../components/NewPackButton';
-import Link from 'next/link';
-import { rarityStats } from '@/lib/rarity';
+import { BrandMark } from '../components/BrandMark';
+import { StatusChip } from '../components/StatusChip';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +24,7 @@ export default async function PacksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Packs</h1>
+          <h1 className="text-3xl font-bold text-white">Packs</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {packs.length} pack{packs.length !== 1 ? 's' : ''} · assign to any season
           </p>
@@ -30,98 +32,80 @@ export default async function PacksPage() {
         <NewPackButton />
       </div>
 
-      <div className="tcg-panel rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <th className="text-left pl-6 pr-2 py-4 w-14"></th>
-              <th className="text-left px-4 py-4">Pack</th>
-              <th className="text-right px-4 py-4">Cards</th>
-              <th className="text-right px-4 py-4 hidden md:table-cell">Weight</th>
-              <th className="text-left px-4 py-4 hidden lg:table-cell">Rarity Mix</th>
-              <th className="text-left px-4 py-4">Status</th>
-              <th className="text-right pr-6 pl-4 py-4">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800/50">
-            {packs.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-6 py-20 text-center">
-                  <p className="text-gray-500 mb-3">No packs yet</p>
-                  <NewPackButton />
-                </td>
-              </tr>
-            )}
-            {packs.map(pack => {
-              const { count, tiers } = statsMap[pack.id] ?? { count: 0, tiers: [] };
-              const del = deletePackAction.bind(null, pack.id);
-              return (
-                <tr key={pack.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="pl-6 pr-2 py-3">
-                    {pack.coverImageUrl ? (
-                      <img src={pack.coverImageUrl} alt={pack.name} loading="lazy" className="w-9 h-12 object-cover rounded-lg" />
-                    ) : (
-                      <div className="w-9 h-12 bg-gray-800 rounded-lg" />
-                    )}
-                  </td>
+      {packs.length === 0 ? (
+        <div className="tcg-panel rounded-2xl py-20 text-center space-y-3">
+          <p className="text-gray-500">No packs yet</p>
+          <NewPackButton />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+          {packs.map(pack => {
+            const { count, tiers } = statsMap[pack.id] ?? { count: 0, tiers: [] };
+            const del = deletePackAction.bind(null, pack.id);
+            return (
+              // Gradient rim = the card border. Active packs get the gold frame.
+              <div
+                key={pack.id}
+                className={`rounded-[1.6rem] p-[3px] transition-all hover:-translate-y-1 ${
+                  pack.active
+                    ? 'bg-gradient-to-br from-yellow-300 via-yellow-500 to-amber-600 shadow-glow'
+                    : 'bg-gradient-to-br from-gray-600 to-gray-800'
+                }`}
+              >
+                <div className="rounded-[1.4rem] bg-gray-900 overflow-hidden flex flex-col h-full">
+                  <div className="p-3 pb-0">
+                    <div className="holo-hover relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-950 border border-white/10 flex items-center justify-center">
+                      {pack.coverImageUrl ? (
+                        <img src={pack.coverImageUrl} alt={pack.name} loading="lazy" className="w-full h-full object-cover" />
+                      ) : (
+                        <BrandMark size={64} />
+                      )}
+                      <span className="absolute top-2 right-2 font-display text-xs font-bold bg-gray-950/80 text-yellow-300 border border-yellow-500/40 rounded-full px-2.5 py-1">
+                        {count} cards
+                      </span>
+                    </div>
+                  </div>
 
-                  <td className="px-4 py-3 font-medium text-white">{pack.name}</td>
+                  <div className="p-4 space-y-3 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="font-display text-xl font-bold text-white leading-tight">{pack.name}</h2>
+                      <StatusChip active={pack.active} />
+                    </div>
 
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-400">{count}</td>
-
-                  <td className="px-4 py-3 text-right tabular-nums text-gray-500 hidden md:table-cell">
-                    {pack.weight}×
-                  </td>
-
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap gap-1.5 min-h-[1.75rem]">
                       {tiers.filter(t => t.pct > 0).map(t => (
-                        <span key={t.stars} className={`text-xs ${t.text}`}>
-                          {'★'.repeat(t.stars)} <span className="text-gray-600">{t.pct}%</span>
+                        <span key={t.stars} className={`text-xs font-bold bg-white/5 rounded-md px-2 py-1 ${t.text}`}>
+                          {'★'.repeat(t.stars)} <span className="text-gray-400 font-semibold">{t.pct}%</span>
                         </span>
                       ))}
-                      {count === 0 && <span className="text-xs text-gray-700">—</span>}
+                      {count === 0 && <span className="text-xs text-gray-600">No cards yet</span>}
                     </div>
-                  </td>
 
-                  <td className="px-4 py-3">
-                    {pack.active ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 shadow shadow-green-400/50" />
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-700" />
-                        Inactive
-                      </span>
-                    )}
-                  </td>
+                    <p className="text-xs text-gray-500 font-semibold">Draw weight {pack.weight}×</p>
+                  </div>
 
-                  <td className="pl-4 pr-6 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        href={`/admin/packs/${pack.id}`}
-                        className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg transition-colors"
+                  <div className="px-4 pb-4 flex items-center gap-2">
+                    <Link
+                      href={`/admin/packs/${pack.id}`}
+                      className="tcg-btn flex-1 text-center px-3 py-2 text-sm rounded-xl"
+                    >
+                      Manage →
+                    </Link>
+                    <form action={del}>
+                      <button
+                        type="submit"
+                        className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
                       >
-                        Manage →
-                      </Link>
-                      <form action={del}>
-                        <button
-                          type="submit"
-                          className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

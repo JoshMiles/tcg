@@ -61,7 +61,7 @@ export default async function UserDetailPage({
   if (!hasAnyCards && !profile) notFound();
 
   const displayName = profile?.displayName || username;
-  const totalCards = seasonEntries.reduce((s, e) => s + e.ownedNumbers.length, 0);
+  const totalCards = seasonEntries.reduce((s, e) => s + e.countMap.size, 0); // unique cards
   const activeSeasons = seasonEntries.filter(e => e.ownedNumbers.length > 0).length;
 
   const updateProfile = updateUserProfile.bind(null, username);
@@ -80,12 +80,12 @@ export default async function UserDetailPage({
 
       {/* Header */}
       <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center text-xl font-bold text-gray-300 uppercase shrink-0">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-poke-blue to-poke-blue-light ring-2 ring-yellow-500/60 flex items-center justify-center text-2xl font-bold text-white uppercase shrink-0">
           {displayName[0]}
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold text-white">{displayName}</h1>
+            <h1 className="text-3xl font-bold text-white">{displayName}</h1>
             {profile?.twitchId && (
               <span className="text-xs px-1.5 py-0.5 bg-purple-900/40 text-purple-400 rounded-md">Twitch</span>
             )}
@@ -155,7 +155,7 @@ export default async function UserDetailPage({
       {/* Per-season collection */}
       {seasonEntries.filter(e => e.packs.length > 0).map(({ season, ownedNumbers, countMap, packs }) => {
         const totalSeasonCards = packs.reduce((s, p) => s + p.cards.length, 0);
-        const pct = totalSeasonCards > 0 ? Math.round(ownedNumbers.length / totalSeasonCards * 100) : 0;
+        const pct = totalSeasonCards > 0 ? Math.round(countMap.size / totalSeasonCards * 100) : 0;
         const grant = grantUserCard.bind(null, username, season.collectionName);
         const resetSeason = resetUserSeason.bind(null, username, season.collectionName);
 
@@ -163,16 +163,17 @@ export default async function UserDetailPage({
           <section key={season.id} className="tcg-panel rounded-2xl overflow-hidden">
 
             {/* Season header */}
+            <div className="holo-strip" />
             <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-white">{season.name}</h2>
+                  <h2 className="font-display text-xl font-bold text-white">{season.name}</h2>
                   {season.active && (
                     <span className="text-xs px-1.5 py-0.5 bg-green-900/40 text-green-400 rounded-md">Active</span>
                   )}
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {ownedNumbers.length} / {totalSeasonCards} cards · {pct}%
+                  {countMap.size} / {totalSeasonCards} cards · {pct}%{ownedNumbers.length > countMap.size && ` · ${ownedNumbers.length} total pulls`}
                 </p>
               </div>
               {ownedNumbers.length > 0 && (
@@ -200,7 +201,7 @@ export default async function UserDetailPage({
                         {pack.name} · {ownedInPack} / {cards.length}
                       </p>
                     )}
-                    <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+                    <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 gap-3">
                       {cards.map(card => {
                         const count = countMap.get(card.number) ?? 0;
                         const owned = count > 0;
@@ -210,8 +211,8 @@ export default async function UserDetailPage({
                         return (
                           <div key={card.id} className="relative group">
                             <div
-                              className="aspect-[2/3] rounded-lg overflow-hidden border bg-gray-800"
-                              style={{ borderColor: owned ? color + '80' : undefined }}
+                              className={`aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 ${owned ? 'holo-hover border-2' : 'border border-dashed border-gray-700'}`}
+                              style={owned ? { borderColor: color, boxShadow: `0 0 12px -4px ${color}` } : undefined}
                             >
                               {owned && card.imageUrl ? (
                                 <img
@@ -229,14 +230,14 @@ export default async function UserDetailPage({
 
                             {/* Duplicate count badge */}
                             {count > 1 && (
-                              <div className="absolute top-1 left-1 bg-black/70 text-yellow-400 text-[9px] font-bold px-1 rounded leading-tight pointer-events-none">
+                              <div className="absolute top-1 left-1 bg-gray-950/85 border border-yellow-500/50 text-yellow-300 text-[10px] font-extrabold px-1.5 rounded-full leading-tight pointer-events-none z-10">
                                 ×{count}
                               </div>
                             )}
 
                             {/* Remove button (hover) */}
                             {owned && (
-                              <form action={remove} className="absolute -top-1.5 -right-1.5 hidden group-hover:block">
+                              <form action={remove} className="absolute -top-1.5 -right-1.5 hidden group-hover:block z-10">
                                 <button
                                   type="submit"
                                   title={`Remove ${card.name}`}
