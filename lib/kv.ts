@@ -17,6 +17,13 @@ function normalizeSeason(raw: unknown): Season {
   };
 }
 
+// Card art used to ship as 20MB+ GIFs in /assets/GIF; it now lives as animated WebP in /assets/cards.
+// Rewrite stored legacy URLs on read so existing KV data keeps working without a migration.
+function normalizeCard(card: Card): Card {
+  const imageUrl = card.imageUrl?.replace(/^\/assets\/GIF\/(.+)\.gif$/i, '/assets/cards/$1.webp');
+  return imageUrl === card.imageUrl ? card : { ...card, imageUrl };
+}
+
 function normalizePack(raw: unknown): Pack {
   const p = raw as Record<string, unknown>;
   return {
@@ -132,7 +139,7 @@ export async function getActivePacksForSeason(season: Season): Promise<Pack[]> {
 // ── Cards ──────────────────────────────────────────────────
 
 export async function getPackCards(packId: string): Promise<Card[]> {
-  return (await kv.get<Card[]>(`pack:${packId}:cards`)) ?? [];
+  return ((await kv.get<Card[]>(`pack:${packId}:cards`)) ?? []).map(normalizeCard);
 }
 
 export async function savePackCards(packId: string, cards: Card[]): Promise<void> {

@@ -177,5 +177,8 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 | `TWITCH_CLIENT_ID` | Twitch OAuth app Client ID (for Helix API) |
 | `TWITCH_CLIENT_SECRET` | Twitch OAuth app Client Secret (for Helix API) |
 
+## Card art
+Card images are animated WebP in `public/assets/cards/` (600px wide, ~1–4MB each). The original 800px GIFs were 20MB+ each and were removed. `getPackCards` rewrites legacy stored URLs (`/assets/GIF/X.gif` → `/assets/cards/X.webp`) on read, so old KV data keeps working. To convert new GIFs: put them in a folder and run `node scripts/optimize-cards.mjs <inDir> <outDir>` (uses `sharp`). Images uploaded through the admin UI go to Vercel Blob as-is, so compress GIFs before uploading.
+
 ## Local dev
 `npm install` then `npx tsc --noEmit` / `npm run build` work locally. `node_modules/` is gitignored.
