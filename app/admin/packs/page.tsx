@@ -2,16 +2,9 @@ import { listAllPacks, getPackCards } from '@/lib/kv';
 import { deletePackAction } from '../actions';
 import { NewPackButton } from '../components/NewPackButton';
 import Link from 'next/link';
+import { rarityStats } from '@/lib/rarity';
 
 export const dynamic = 'force-dynamic';
-
-const RARITY = [
-  { stars: 5, color: 'text-amber-400'  },
-  { stars: 4, color: 'text-purple-400' },
-  { stars: 3, color: 'text-blue-400'   },
-  { stars: 2, color: 'text-green-400'  },
-  { stars: 1, color: 'text-gray-500'   },
-];
 
 export default async function PacksPage() {
   const packs = await listAllPacks();
@@ -20,12 +13,7 @@ export default async function PacksPage() {
   const stats = await Promise.all(
     packs.map(async p => {
       const cards = await getPackCards(p.id);
-      const total = cards.reduce((s, c) => s + c.probability, 0);
-      const tiers = RARITY.map(r => ({
-        ...r,
-        pct: total > 0 ? Math.round(cards.filter(c => c.stars === r.stars).reduce((s, c) => s + c.probability, 0) / total * 100) : 0,
-      }));
-      return { id: p.id, count: cards.length, tiers };
+      return { id: p.id, count: cards.length, tiers: rarityStats(cards) };
     })
   );
   const statsMap = Object.fromEntries(stats.map(s => [s.id, s]));
@@ -88,7 +76,7 @@ export default async function PacksPage() {
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <div className="flex items-center gap-3">
                       {tiers.filter(t => t.pct > 0).map(t => (
-                        <span key={t.stars} className={`text-xs ${t.color}`}>
+                        <span key={t.stars} className={`text-xs ${t.text}`}>
                           {'★'.repeat(t.stars)} <span className="text-gray-600">{t.pct}%</span>
                         </span>
                       ))}

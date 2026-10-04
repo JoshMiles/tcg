@@ -4,16 +4,10 @@ import {
   getCollection,
   getUserProfile,
 } from '@/lib/kv';
+import { RARITIES, getRarity } from '@/lib/rarity';
+import { countPulls } from '@/lib/collection';
 
 export const dynamic = 'force-dynamic';
-
-const RARITY = [
-  { stars: 5, label: 'Legendary', color: '#f59e0b' },
-  { stars: 4, label: 'Epic',      color: '#a855f7' },
-  { stars: 3, label: 'Rare',      color: '#3b82f6' },
-  { stars: 2, label: 'Uncommon',  color: '#22c55e' },
-  { stars: 1, label: 'Common',    color: '#6b7280' },
-];
 
 export default async function CollectionPage({
   params,
@@ -49,8 +43,7 @@ export default async function CollectionPage({
 
   const collection = await getCollection(season.collectionName);
   const ownedArray = collection[lower] ?? [];
-  const countMap = new Map<number, number>();
-  for (const n of ownedArray) countMap.set(n, (countMap.get(n) ?? 0) + 1);
+  const countMap = countPulls(ownedArray);
 
   const totalPulls = ownedArray.length;
   const owned = allCards.filter(c => countMap.has(c.number));
@@ -58,7 +51,7 @@ export default async function CollectionPage({
   const pct = total > 0 ? Math.round(owned.length / total * 100) : 0;
 
   // Group by rarity for the breakdown
-  const rarityBreakdown = RARITY.map(r => {
+  const rarityBreakdown = RARITIES.map(r => {
     const rarityCards = allCards.filter(c => c.stars === r.stars);
     const rarityOwned = rarityCards.filter(c => countMap.has(c.number));
     return { ...r, total: rarityCards.length, owned: rarityOwned.length };
@@ -109,7 +102,7 @@ export default async function CollectionPage({
                 key={r.stars}
                 className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center"
               >
-                <p className="text-xs font-medium mb-1" style={{ color: r.color }}>
+                <p className="text-xs font-medium mb-1" style={{ color: r.hex }}>
                   {'★'.repeat(r.stars)}
                 </p>
                 <p className="text-lg font-bold text-white tabular-nums">{r.owned}/{r.total}</p>
@@ -129,14 +122,14 @@ export default async function CollectionPage({
             {allCards.map(card => {
               const count = countMap.get(card.number) ?? 0;
               const isOwned = count > 0;
-              const rarity = RARITY.find(r => r.stars === card.stars);
+              const rarity = getRarity(card.stars);
               return (
                 <div
                   key={card.id}
                   title={isOwned ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}` : `#${card.number} ???`}
                   className="relative aspect-[2/3] rounded-lg overflow-hidden border border-gray-800 group"
                   style={{
-                    borderColor: isOwned ? rarity?.color + '40' : undefined,
+                    borderColor: isOwned ? rarity?.hex + '40' : undefined,
                   }}
                 >
                   {isOwned && card.imageUrl ? (
@@ -163,7 +156,7 @@ export default async function CollectionPage({
                   {isOwned && (
                     <div
                       className="absolute top-1 right-1 w-2 h-2 rounded-full"
-                      style={{ backgroundColor: rarity?.color }}
+                      style={{ backgroundColor: rarity?.hex }}
                     />
                   )}
                   {/* Pull count badge */}

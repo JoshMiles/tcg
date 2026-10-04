@@ -4,16 +4,9 @@ import { getPack, getPackCards } from '@/lib/kv';
 import { updatePack, deleteCard } from '../../actions';
 import { PackFields } from '../../components/PackFields';
 import { AddCardButton } from '../../components/AddCardButton';
+import { rarityStats, getRarity } from '@/lib/rarity';
 
 export const dynamic = 'force-dynamic';
-
-const RARITY = [
-  { stars: 5, label: 'Legendary', color: 'text-amber-400',  bar: 'bg-amber-500'  },
-  { stars: 4, label: 'Epic',      color: 'text-purple-400', bar: 'bg-purple-500' },
-  { stars: 3, label: 'Rare',      color: 'text-blue-400',   bar: 'bg-blue-500'   },
-  { stars: 2, label: 'Uncommon',  color: 'text-green-400',  bar: 'bg-green-500'  },
-  { stars: 1, label: 'Common',    color: 'text-gray-400',   bar: 'bg-gray-600'   },
-];
 
 export default async function PackPage({ params }: { params: Promise<{ packId: string }> }) {
   const { packId } = await params;
@@ -24,11 +17,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
   const totalProb = cards.reduce((s, c) => s + c.probability, 0);
   const updateThisPack = updatePack.bind(null, packId);
 
-  const rarityStats = RARITY.map(r => {
-    const rCards = cards.filter(c => c.stars === r.stars);
-    const prob = rCards.reduce((s, c) => s + c.probability, 0);
-    return { ...r, count: rCards.length, pct: totalProb > 0 ? Math.round(prob / totalProb * 100) : 0 };
-  }).filter(r => r.count > 0);
+  const rarityBreakdown = rarityStats(cards);
 
   return (
     <div className="space-y-8">
@@ -90,7 +79,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
                 {sorted.map(card => {
                   const del = deleteCard.bind(null, packId, card.id);
                   const pct = totalProb > 0 ? (card.probability / totalProb * 100).toFixed(1) : '—';
-                  const rarity = RARITY.find(r => r.stars === card.stars);
+                  const rarity = getRarity(card.stars);
                   return (
                     <tr key={card.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-5 py-2.5 text-gray-600 tabular-nums text-xs">{card.number}</td>
@@ -105,7 +94,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-right">
-                        <span className={`text-xs font-medium ${rarity?.color ?? 'text-gray-400'}`}>
+                        <span className={`text-xs font-medium ${rarity?.text ?? 'text-gray-400'}`}>
                           {'★'.repeat(card.stars)}
                         </span>
                       </td>
@@ -145,13 +134,13 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
         <div className="space-y-6">
 
           {/* Rarity breakdown */}
-          {rarityStats.length > 0 && (
+          {rarityBreakdown.length > 0 && (
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
               <h3 className="text-sm font-semibold text-white">Rarity Mix</h3>
-              {rarityStats.map(r => (
+              {rarityBreakdown.map(r => (
                 <div key={r.stars} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className={r.color}>{'★'.repeat(r.stars)} {r.label}</span>
+                    <span className={r.text}>{'★'.repeat(r.stars)} {r.label}</span>
                     <span className="text-gray-600">{r.count} cards · {r.pct}%</span>
                   </div>
                   <div className="h-1 bg-gray-800 rounded-full overflow-hidden">

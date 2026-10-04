@@ -33,7 +33,12 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 | File | Purpose |
 |------|---------|
 | `lib/types.ts` | All TypeScript types (Season, Pack, Card, PullRecord, UserProfile) |
-| `lib/kv.ts` | All KV reads/writes. Single source of truth for data access |
+| `lib/kv.ts` | All KV reads/writes (incl. `setActiveSeason`, `ensureUserProfile`, `removeUserFromCollection`, `seedSeason1`). Single source of truth for data access |
+| `lib/rarity.ts` | Rarity tiers (label, Tailwind classes, hex) + `rarityStats()`. Don't redefine rarity tables in pages |
+| `lib/collection.ts` | `countPulls()` — builds the pull-count Map from a collection array |
+| `lib/twitch-helix.ts` | Helix app-token cache + `resolveTwitchLogin()` (shared by login + resolve-username routes) |
+| `lib/admin-token.ts` | Edge-safe admin cookie check (used by middleware); fails closed when `ADMIN_SECRET` unset |
+| `lib/legacy-data.ts` | Season 1 legacy collection data for the one-time import route |
 | `lib/seed.ts` | Static seed data for Season 1 / Cheesy Starter Pack (25 cards with soundUrl set) |
 | `lib/webhooks.ts` | Webhook settings helpers (incomingSecret, etc.) |
 | `app/admin/actions.ts` | All server actions (mutations). No data fetching here |
@@ -46,7 +51,7 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 | `app/admin/components/NewPackButton.tsx` | Client button that owns PackWizard open/close state |
 | `app/admin/components/NewSeasonButton.tsx` | Client button that owns SeasonDialog open/close state |
 | `app/admin/components/AddCardButton.tsx` | Client button that owns AddCardDialog open/close state |
-| `lib/twitch-jwt.ts` | Manual JWT verification via Node `crypto` (no external deps) |
+| `lib/twitch-jwt.ts` | Manual JWT verification via Node `crypto` (no external deps) + `getBearerToken()` |
 | `public/widget.js` | OBS overlay widget. Vanilla JS, no build step |
 | `public/overlay.html` | OBS browser source HTML |
 | `public/widget.css` | Overlay styles |
@@ -109,7 +114,7 @@ The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMin
 - Auth: `ADMIN_SECRET` env var checked against `admin-auth` cookie in middleware
 - **Modal pattern**: pages stay as server components; a thin client wrapper component (e.g. `NewPackButton`) owns only the open/close boolean and renders the dialog. The dialog itself uses `<form action={serverAction}>` — redirects still work correctly.
 - **NEVER add `onClick` or other event handlers to JSX in server components** — Next.js will throw at runtime even if the element is inside a client component's children prop. This applies to `<a>`, `<button>`, or any element rendered directly in a server component file.
-- Users page reads from `getAllCollectionUsers()` in `lib/kv.ts` which aggregates across all seasons' legacy collections. Do not use `listAllUsers()` — that reads from `users:all` KV set which nothing writes to.
+- Users page reads from `getAllCollectionUsers()` in `lib/kv.ts` which aggregates across all seasons' legacy collections. `listAllUsers()` and the per-user pull-record helpers were removed — nothing wrote to them.
 
 ## Twitch Extension Panel
 
@@ -164,12 +169,13 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 ## Environment variables
 | Variable | Purpose |
 |----------|---------|
-| `ADMIN_SECRET` | Admin panel auth cookie value |
+| `ADMIN_SECRET` | Admin panel auth cookie value (admin is locked out if unset) |
+| `ADMIN_PASSWORD` | Password checked by `/api/auth/login` |
 | `KV_URL`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN` | Vercel KV credentials |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob credentials |
 | `TWITCH_EXTENSION_SECRET` | Base64 Extension Secret for JWT verification |
 | `TWITCH_CLIENT_ID` | Twitch OAuth app Client ID (for Helix API) |
 | `TWITCH_CLIENT_SECRET` | Twitch OAuth app Client Secret (for Helix API) |
 
-## No node_modules locally
-The project builds on Vercel. `npm run dev` / `npm run build` won't work in WSL without running `npm install` first. Verify correctness by reading code carefully rather than running tsc.
+## Local dev
+`npm install` then `npx tsc --noEmit` / `npm run build` work locally. `node_modules/` is gitignored.

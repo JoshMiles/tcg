@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
-import type { Season, Pack, Card, PullRecord, UserProfile } from './types';
+import type { Season, Pack, Card, UserProfile } from './types';
+import { SEED_SEASON, SEED_PACK, SEED_CARDS } from './seed';
 
 // ── Normalizers (handle legacy KV shapes) ─────────────────
 
@@ -62,6 +63,16 @@ export async function saveSeason(season: Season): Promise<void> {
   if (!ids.includes(season.id)) {
     await kv.set('seasons:list', [...ids, season.id]);
   }
+}
+
+/** Makes exactly one season active (or none, if `activeId` is omitted). */
+export async function setActiveSeason(activeId?: string): Promise<void> {
+  const all = await listSeasons();
+  await Promise.all(
+    all
+      .filter(s => s.active !== (s.id === activeId))
+      .map(s => saveSeason({ ...s, active: s.id === activeId }))
+  );
 }
 
 export async function deleteSeason(id: string): Promise<void> {
@@ -128,27 +139,6 @@ export async function savePackCards(packId: string, cards: Card[]): Promise<void
   await kv.set(`pack:${packId}:cards`, cards);
 }
 
-// ── Pulls ──────────────────────────────────────────────────
-
-export async function getUserPulls(username: string): Promise<PullRecord[]> {
-  return (await kv.get<PullRecord[]>(`user:${username.toLowerCase()}:pulls`)) ?? [];
-}
-
-export async function addUserPull(username: string, pull: PullRecord): Promise<void> {
-  const existing = await getUserPulls(username);
-  await kv.set(`user:${username.toLowerCase()}:pulls`, [...existing, pull]);
-  await kv.sadd('users:all', username.toLowerCase());
-}
-
-export async function deleteUserPulls(username: string): Promise<void> {
-  await kv.del(`user:${username.toLowerCase()}:pulls`);
-  await kv.srem('users:all', username.toLowerCase());
-}
-
-export async function listAllUsers(): Promise<string[]> {
-  return (await kv.smembers('users:all')) as string[];
-}
-
 // ── Composite ─────────────────────────────────────────────
 
 export async function getActiveSeasonWithPacks(): Promise<{
@@ -172,6 +162,17 @@ export async function getUserProfile(username: string): Promise<UserProfile | nu
 
 export async function saveUserProfile(profile: UserProfile): Promise<void> {
   await kv.set(`user:${profile.username}:profile`, profile);
+}
+
+/** Creates a profile if missing; backfills twitchId on an existing one. */
+export async function ensureUserProfile(username: string, twitchId?: string): Promise<void> {
+  const name = username.toLowerCase();
+  const existing = await getUserProfile(name);
+  if (!existing) {
+    await saveUserProfile({ username: name, displayName: name, twitchId, createdAt: Date.now() });
+  } else if (twitchId && !existing.twitchId) {
+    await saveUserProfile({ ...existing, twitchId });
+  }
 }
 
 export async function deleteUserProfile(username: string): Promise<void> {
@@ -231,4 +232,44 @@ export async function saveCollection(collectionName: string, data: Record<string
 
 export async function deleteCollection(collectionName: string): Promise<void> {
   await kv.del(`tcg_${collectionName}`);
+}
+
+/** Removes a user's entry from one collection. Returns true if there was anything to remove. */
+export async function removeUserFromCollection(collectionName: string, username: string): Promise<boolean> {
+  const lower = username.toLowerCase();
+  const data = await getCollection(collectionName);
+  if (!(lower in data)) return false;
+  delete data[lower];
+  await saveCollection(collectionName, data);
+  return true;
+}
+
+// ── Seed ──────────────────────────────────────────────────
+
+/** Idempotently installs Season 1 / Cheesy Starter Pack and backfills missing card sounds. */
+export async function seedSeason1(): Promise<void> {
+  const [seasonIds, packIds] = await Promise.all([listSeasonIds(), listAllPackIds()]);
+
+  if (!packIds.includes(SEED_PACK.id)) {
+    await savePack(SEED_PACK);
+    await savePackCards(SEED_PACK.id, SEED_CARDS);
+  } else {
+    const seedSound = new Map(SEED_CARDS.map(c => [c.id, c.soundUrl]));
+    const existing = await getPackCards(SEED_PACK.id);
+    if (existing.some(c => !c.soundUrl && seedSound.get(c.id))) {
+      await savePackCards(
+        SEED_PACK.id,
+        existing.map(c => (c.soundUrl ? c : { ...c, soundUrl: seedSound.get(c.id) }))
+      );
+    }
+  }
+
+  if (!seasonIds.includes(SEED_SEASON.id)) {
+    await saveSeason(SEED_SEASON);
+  } else {
+    const existing = await getSeason(SEED_SEASON.id);
+    if (existing && !existing.packIds.includes(SEED_PACK.id)) {
+      await saveSeason({ ...existing, packIds: [...existing.packIds, SEED_PACK.id] });
+    }
+  }
 }

@@ -36,3 +36,9 @@ export function verifyTwitchJwt(token: string): TwitchJwtPayload | null {
     return null;
   }
 }
+
+/** Pulls a Twitch Extension JWT out of an `Authorization: Bearer <jwt>` header. */
+export function getBearerToken(req: Request): string | null {
+  const header = req.headers.get('authorization') ?? '';
+  return header.startsWith('Bearer ') ? header.slice(7) : null;
+}

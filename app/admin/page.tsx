@@ -1,16 +1,9 @@
 import Link from 'next/link';
 import { getActiveSeasonWithPacks, getCollection } from '@/lib/kv';
 import { seedSeason1 } from './actions';
+import { rarityStats, getRarity } from '@/lib/rarity';
 
 export const dynamic = 'force-dynamic';
-
-const RARITY = [
-  { stars: 5, label: 'Legendary', color: 'text-amber-400',  bar: 'bg-amber-400'  },
-  { stars: 4, label: 'Epic',      color: 'text-purple-400', bar: 'bg-purple-400' },
-  { stars: 3, label: 'Rare',      color: 'text-blue-400',   bar: 'bg-blue-400'   },
-  { stars: 2, label: 'Uncommon',  color: 'text-green-400',  bar: 'bg-green-400'  },
-  { stars: 1, label: 'Common',    color: 'text-gray-400',   bar: 'bg-gray-500'   },
-];
 
 export default async function AdminDashboard() {
   const result = await getActiveSeasonWithPacks();
@@ -71,13 +64,7 @@ export default async function AdminDashboard() {
     .map(c => ({ ...c, ownedBy: freq[c.number] ?? 0 }))
     .sort((a, b) => b.stars - a.stars || b.ownedBy - a.ownedBy);
 
-  // Rarity distribution by prob weight
-  const totalProb = allCards.reduce((s, c) => s + c.probability, 0);
-  const rarityDist = RARITY.map(r => {
-    const prob = allCards.filter(c => c.stars === r.stars).reduce((s, c) => s + c.probability, 0);
-    const count = allCards.filter(c => c.stars === r.stars).length;
-    return { ...r, pct: totalProb > 0 ? Math.round(prob / totalProb * 100) : 0, count };
-  }).filter(r => r.count > 0);
+  const rarityDist = rarityStats(allCards);
 
   const stats = [
     { label: 'Players',      value: totalUsers,        sub: 'unique collectors'            },
@@ -177,7 +164,7 @@ export default async function AdminDashboard() {
                 rarityDist.map(r => (
                   <div key={r.stars} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className={`${r.color} font-medium`}>{'★'.repeat(r.stars)}</span>
+                      <span className={`${r.text} font-medium`}>{'★'.repeat(r.stars)}</span>
                       <span className="text-gray-600">{r.count} cards · {r.pct}%</span>
                     </div>
                     <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
@@ -250,7 +237,7 @@ export default async function AdminDashboard() {
                 </tr>
               )}
               {cardStats.map(c => {
-                const rarity = RARITY.find(r => r.stars === c.stars);
+                const rarity = getRarity(c.stars);
                 const covPct = totalUsers > 0 ? Math.round(c.ownedBy / totalUsers * 100) : 0;
                 // find which pack this card is in
                 const packName = packs.find(({ cards }) => cards.some(pc => pc.id === c.id))?.pack.name ?? '';
@@ -269,7 +256,7 @@ export default async function AdminDashboard() {
                     </td>
                     <td className="px-5 py-2.5 text-gray-600 text-xs">{packName}</td>
                     <td className="px-5 py-2.5 text-right">
-                      <span className={`text-xs font-medium ${rarity?.color ?? 'text-gray-400'}`}>
+                      <span className={`text-xs font-medium ${rarity?.text ?? 'text-gray-400'}`}>
                         {'★'.repeat(c.stars)}
                       </span>
                     </td>

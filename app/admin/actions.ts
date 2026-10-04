@@ -3,14 +3,14 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { randomBytes } from 'crypto';
 import {
-  saveSeason, getSeason, deleteSeason, listSeasons, listSeasonIds,
-  savePack, getPack, deletePack, listAllPackIds,
+  saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
+  savePack, getPack, deletePack,
   getPackCards, savePackCards,
-  getCollection, saveCollection, deleteCollection,
+  getCollection, saveCollection, deleteCollection, removeUserFromCollection,
   getUserProfile, saveUserProfile, deleteUserProfile,
+  seedSeason1 as seedSeason1Data,
 } from '@/lib/kv';
-import type { Season, Pack, Card, UserProfile } from '@/lib/types';
-import { SEED_SEASON, SEED_PACK, SEED_CARDS } from '@/lib/seed';
+import type { UserProfile } from '@/lib/types';
 import { getWebhookSettings, saveWebhookSettings } from '@/lib/webhooks';
 
 // ── Seasons ───────────────────────────────────────────────
@@ -19,10 +19,7 @@ export async function createSeason(formData: FormData) {
   const id = crypto.randomUUID();
   const willBeActive = formData.get('active') === 'true';
 
-  if (willBeActive) {
-    const all = await listSeasons();
-    await Promise.all(all.map(s => saveSeason({ ...s, active: false })));
-  }
+  if (willBeActive) await setActiveSeason();
 
   await saveSeason({
     id,
@@ -42,10 +39,7 @@ export async function updateSeason(id: string, formData: FormData) {
   if (!existing) return;
 
   const willBeActive = formData.get('active') === 'true';
-  if (willBeActive && !existing.active) {
-    const all = await listSeasons();
-    await Promise.all(all.map(s => saveSeason({ ...s, active: false })));
-  }
+  if (willBeActive && !existing.active) await setActiveSeason();
 
   await saveSeason({
     ...existing,
@@ -61,8 +55,7 @@ export async function updateSeason(id: string, formData: FormData) {
 }
 
 export async function activateSeason(id: string) {
-  const all = await listSeasons();
-  await Promise.all(all.map(s => saveSeason({ ...s, active: s.id === id })));
+  await setActiveSeason(id);
   revalidatePath('/admin/seasons');
   revalidatePath('/admin');
 }
@@ -235,11 +228,7 @@ export async function grantUserCard(username: string, collectionName: string, fo
 // Remove a user from a single season's collection
 export async function resetUserSeason(username: string, collectionName: string) {
   const lower = username.toLowerCase();
-  const data = await getCollection(collectionName);
-  if (lower in data) {
-    delete data[lower];
-    await saveCollection(collectionName, data);
-  }
+  await removeUserFromCollection(collectionName, lower);
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
 }
@@ -249,13 +238,7 @@ export async function deleteUser(username: string) {
   const lower = username.toLowerCase();
   const seasons = await listSeasons();
   await Promise.all([
-    ...seasons.map(async season => {
-      const data = await getCollection(season.collectionName);
-      if (lower in data) {
-        delete data[lower];
-        await saveCollection(season.collectionName, data);
-      }
-    }),
+    ...seasons.map(s => removeUserFromCollection(s.collectionName, lower)),
     deleteUserProfile(lower),
   ]);
   revalidatePath('/admin/users');
@@ -265,16 +248,7 @@ export async function deleteUser(username: string) {
 // Reset a user across ALL seasons
 export async function resetUser(username: string) {
   const seasons = await listSeasons();
-  await Promise.all(
-    seasons.map(async season => {
-      const data = await getCollection(season.collectionName);
-      const lower = username.toLowerCase();
-      if (lower in data) {
-        delete data[lower];
-        await saveCollection(season.collectionName, data);
-      }
-    })
-  );
+  await Promise.all(seasons.map(s => removeUserFromCollection(s.collectionName, username)));
   revalidatePath(`/admin/users/${username.toLowerCase()}`);
   revalidatePath('/admin/users');
 }
@@ -286,40 +260,10 @@ export async function resetAllUsers() {
   revalidatePath('/admin/users');
 }
 
-
 // ── Seed ──────────────────────────────────────────────────
 
 export async function seedSeason1() {
-  const ids = await listSeasonIds();
-  const packIds = await listAllPackIds();
-
-  if (!packIds.includes('pack1')) {
-    await savePack(SEED_PACK);
-    await savePackCards('pack1', SEED_CARDS);
-  } else {
-    // Patch existing pack1 cards with soundUrl from seed data if missing
-    const existing = await getPackCards('pack1');
-    const seedMap = new Map(SEED_CARDS.map(c => [c.id, c]));
-    const needsPatch = existing.some(c => !c.soundUrl && seedMap.get(c.id)?.soundUrl);
-    if (needsPatch) {
-      const patched = existing.map(c => {
-        const seed = seedMap.get(c.id);
-        return !c.soundUrl && seed?.soundUrl ? { ...c, soundUrl: seed.soundUrl } : c;
-      });
-      await savePackCards('pack1', patched);
-    }
-  }
-
-  if (!ids.includes('season1')) {
-    await saveSeason(SEED_SEASON);
-  } else {
-    // ensure pack1 is assigned to the existing season1
-    const existing = await getSeason('season1');
-    if (existing && !existing.packIds.includes('pack1')) {
-      await saveSeason({ ...existing, packIds: [...existing.packIds, 'pack1'] });
-    }
-  }
-
+  await seedSeason1Data();
   revalidatePath('/admin');
   revalidatePath('/admin/packs');
   revalidatePath('/admin/seasons');
