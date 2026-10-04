@@ -56,7 +56,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             <AddCardButton packId={packId} />
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+          <div className="tcg-panel rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -135,7 +135,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
 
           {/* Rarity breakdown */}
           {rarityBreakdown.length > 0 && (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
+            <div className="tcg-panel rounded-2xl p-5 space-y-3">
               <h3 className="text-sm font-semibold text-white">Rarity Mix</h3>
               {rarityBreakdown.map(r => (
                 <div key={r.stars} className="space-y-1">
@@ -152,7 +152,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
           )}
 
           {/* Settings form */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+          <div className="tcg-panel rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-800">
               <h3 className="text-sm font-semibold text-white">Pack Settings</h3>
             </div>
@@ -160,7 +160,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
               <PackFields defaults={pack} />
               <button
                 type="submit"
-                className="w-full px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors"
+                className="w-full px-4 py-2.5 tcg-btn rounded-xl text-sm transition-colors"
               >
                 Save Changes
               </button>

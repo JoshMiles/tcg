@@ -1,14 +1,18 @@
 import type { Metadata } from 'next';
+import { Fredoka, Nunito } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
+
+const display = Fredoka({ subsets: ['latin'], variable: '--font-display', weight: ['500', '600', '700'] });
+const body = Nunito({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = { title: 'TCG Admin' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-950 text-white min-h-screen">
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
+      <body className="font-sans text-white min-h-screen">
         {children}
         <Analytics />
         <SpeedInsights />

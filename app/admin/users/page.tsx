@@ -36,7 +36,7 @@ export default async function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Users</h1>
+          <h1 className="text-3xl font-bold text-white">Users</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {sorted.length} collector{sorted.length !== 1 ? 's' : ''} across all seasons
           </p>
@@ -63,7 +63,7 @@ export default async function UsersPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+      <div className="tcg-panel rounded-2xl overflow-hidden">
         {sorted.length === 0 ? (
           <div className="py-20 text-center space-y-2">
             <p className="text-2xl mb-4">👥</p>
@@ -77,7 +77,7 @@ export default async function UsersPage() {
               <span>#</span>
               <span>User</span>
               <span className="text-right">Cards</span>
-              <span>Seasons</span>
+              <span className="pl-6">Seasons</span>
               <span className="text-right">Best</span>
               <span className="text-right">Actions</span>
             </div>
@@ -95,17 +95,21 @@ export default async function UsersPage() {
                 if (total > 0) best = Math.max(best, Math.round(uniqueCount(us.cards) / total * 100));
               }
 
-              const rankColor = i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-700' : 'text-gray-700';
+              const rankBadge =
+                i === 0 ? 'bg-gradient-to-br from-yellow-300 to-amber-600 text-gray-950 shadow-glow'
+                : i === 1 ? 'bg-gradient-to-br from-gray-100 to-gray-400 text-gray-950'
+                : i === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-700 text-gray-950'
+                : 'text-gray-600';
               const bestColor = best >= 80 ? 'text-amber-400' : best >= 50 ? 'text-green-400' : 'text-gray-500';
 
               return (
                 <details key={user.username} className="group border-t border-gray-800/60 first:border-0">
                   <summary className="grid grid-cols-[2.5rem_1fr_5rem_14rem_5rem_9rem] gap-0 items-center px-6 py-3.5 cursor-pointer list-none hover:bg-white/[0.02] transition-colors [&::-webkit-details-marker]:hidden">
 
-                    <span className={`text-sm font-bold tabular-nums ${rankColor}`}>{i + 1}</span>
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold tabular-nums ${rankBadge}`}>{i + 1}</span>
 
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0 uppercase">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-poke-blue to-poke-blue-light flex items-center justify-center text-xs font-extrabold text-white shrink-0 uppercase">
                         {displayName[0]}
                       </div>
                       <div className="min-w-0">
@@ -121,7 +125,7 @@ export default async function UsersPage() {
 
                     <span className="text-right text-gray-400 tabular-nums text-sm">{totalCards}</span>
 
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-0.5 pl-6">
                       {user.seasons.map(us => {
                         const total = seasonCardCounts[us.id] ?? 0;
                         const pct = total > 0 ? Math.round(uniqueCount(us.cards) / total * 100) : 0;
@@ -181,7 +185,7 @@ export default async function UsersPage() {
                         <div className="col-span-3 flex items-center gap-3">
                           <button
                             type="submit"
-                            className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-xs transition-colors"
+                            className="px-4 py-1.5 tcg-btn rounded-xl text-xs transition-colors"
                           >
                             Save Profile
                           </button>

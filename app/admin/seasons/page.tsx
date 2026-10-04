@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { listSeasons, getPacksForSeason } from '@/lib/kv';
 import { deleteSeasonAction, activateSeason } from '../actions';
 import { NewSeasonButton } from '../components/NewSeasonButton';
+import { StatusChip } from '../components/StatusChip';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export default async function SeasonsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Seasons</h1>
+          <h1 className="text-3xl font-bold text-white">Seasons</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {seasons.length} season{seasons.length !== 1 ? 's' : ''} · one active at a time
           </p>
@@ -29,79 +30,55 @@ export default async function SeasonsPage() {
         <NewSeasonButton />
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <th className="text-left px-6 py-4">Season</th>
-              <th className="text-left px-4 py-4 hidden md:table-cell">Collection Key</th>
-              <th className="text-right px-4 py-4">Packs</th>
-              <th className="text-left px-4 py-4">Status</th>
-              <th className="text-right px-4 py-4 hidden md:table-cell">Created</th>
-              <th className="text-right pr-6 pl-4 py-4">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800/50">
-            {seasons.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-6 py-20 text-center">
-                  <p className="text-gray-500 mb-3">No seasons yet</p>
-                  <NewSeasonButton />
-                </td>
-              </tr>
-            )}
-            {seasons.map(s => {
-              const packs = packMap[s.id] ?? { total: 0, active: 0 };
-              const activate = activateSeason.bind(null, s.id);
-              const del = deleteSeasonAction.bind(null, s.id);
-              return (
-                <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="px-6 py-4">
-                    <span className="font-medium text-white">{s.name}</span>
-                  </td>
+      {seasons.length === 0 ? (
+        <div className="tcg-panel rounded-2xl py-20 text-center space-y-3">
+          <p className="text-gray-500">No seasons yet</p>
+          <NewSeasonButton />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {seasons.map(s => {
+            const packs = packMap[s.id] ?? { total: 0, active: 0 };
+            const activate = activateSeason.bind(null, s.id);
+            const del = deleteSeasonAction.bind(null, s.id);
+            return (
+              <div
+                key={s.id}
+                className={`rounded-3xl p-[3px] transition-all ${
+                  s.active
+                    ? 'bg-gradient-to-r from-yellow-300 via-yellow-500 to-amber-600 shadow-glow'
+                    : 'bg-gradient-to-r from-gray-700 to-gray-800'
+                }`}
+              >
+                <div className="rounded-[1.35rem] bg-gray-900 overflow-hidden">
+                  {s.active && <div className="holo-strip" />}
+                  <div className="flex flex-wrap items-center gap-x-8 gap-y-4 p-5">
+                    <div className="min-w-0 flex-1 basis-64">
+                      <div className="flex items-center gap-3">
+                        <h2 className="font-display text-2xl font-bold text-white truncate">{s.name}</h2>
+                        <StatusChip active={s.active} />
+                      </div>
+                      <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 font-semibold">
+                        <code className="bg-gray-950 border border-gray-800 px-2 py-1 rounded-md text-gray-400">
+                          {s.collectionName}
+                        </code>
+                        <span>Created {new Date(s.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
 
-                  <td className="px-4 py-4 hidden md:table-cell">
-                    <code className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
-                      {s.collectionName}
-                    </code>
-                  </td>
+                    <div className="text-center">
+                      <p className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-none">
+                        {packs.total === 0 ? '—' : `${packs.active}/${packs.total}`}
+                      </p>
+                      <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mt-1">Packs active</p>
+                    </div>
 
-                  <td className="px-4 py-4 text-right tabular-nums">
-                    {packs.total === 0 ? (
-                      <span className="text-gray-700">—</span>
-                    ) : (
-                      <span className="text-gray-400">
-                        {packs.active}/{packs.total}
-                        <span className="text-gray-700 ml-1 text-xs">active</span>
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="px-4 py-4">
-                    {s.active ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 shadow shadow-green-400/50" />
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-700" />
-                        Inactive
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="px-4 py-4 text-right text-xs text-gray-600 tabular-nums hidden md:table-cell">
-                    {new Date(s.createdAt).toLocaleDateString()}
-                  </td>
-
-                  <td className="pl-4 pr-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center gap-2">
                       {!s.active && (
                         <form action={activate}>
                           <button
                             type="submit"
-                            className="px-3 py-1.5 text-xs bg-green-950/50 hover:bg-green-900/50 text-green-500 hover:text-green-300 rounded-lg transition-colors"
+                            className="px-3 py-2 text-xs font-bold bg-green-500/10 border border-green-400/30 hover:bg-green-500/20 text-green-300 rounded-xl transition-colors"
                           >
                             Activate
                           </button>
@@ -109,26 +86,26 @@ export default async function SeasonsPage() {
                       )}
                       <Link
                         href={`/admin/seasons/${s.id}`}
-                        className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg transition-colors"
+                        className="tcg-btn px-4 py-2 text-sm rounded-xl"
                       >
                         Manage →
                       </Link>
                       <form action={del}>
                         <button
                           type="submit"
-                          className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
+                          className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
                         >
                           Delete
                         </button>
                       </form>
                     </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

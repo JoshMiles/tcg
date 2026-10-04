@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { BrandMark } from '../admin/components/BrandMark';
 
 export default function CollectionLanding() {
   async function goToCollection(formData: FormData) {
@@ -8,28 +9,28 @@ export default function CollectionLanding() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6 text-center">
-        <div>
-          <div className="text-4xl mb-3">🃏</div>
-          <h1 className="text-2xl font-bold text-white">TCG Collection</h1>
-          <p className="text-gray-500 text-sm mt-1">Enter your Twitch username to view your cards</p>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="tcg-panel rounded-3xl w-full max-w-md overflow-hidden shadow-glow">
+        <div className="holo-strip" />
+        <div className="p-8 space-y-6 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <BrandMark size={64} />
+            <h1 className="text-3xl font-bold text-yellow-400">TCG Collection</h1>
+            <p className="text-gray-500 text-sm">Enter your Twitch username to view your cards</p>
+          </div>
+          <form action={goToCollection} className="flex gap-2">
+            <input
+              name="username"
+              type="text"
+              placeholder="your_username"
+              autoComplete="off"
+              className="flex-1 bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 focus:shadow-glow transition text-sm"
+            />
+            <button type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">
+              Go →
+            </button>
+          </form>
         </div>
-        <form action={goToCollection} className="flex gap-2">
-          <input
-            name="username"
-            type="text"
-            placeholder="your_username"
-            autoComplete="off"
-            className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors text-sm"
-          />
-          <button
-            type="submit"
-            className="px-5 py-3 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors shrink-0"
-          >
-            Go →
-          </button>
-        </form>
       </div>
     </div>
   );

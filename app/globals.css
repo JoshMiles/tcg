@@ -1,3 +1,74 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html { color-scheme: dark; }
+
+  body {
+    background-color: #0a0f21;
+    background-image:
+      radial-gradient(900px 500px at 85% -10%, rgba(59, 76, 202, 0.28), transparent 60%),
+      radial-gradient(700px 400px at -5% 110%, rgba(238, 59, 59, 0.12), transparent 60%),
+      radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: auto, auto, 22px 22px;
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3 { font-family: var(--font-display), ui-rounded, system-ui, sans-serif; letter-spacing: 0.01em; }
+
+  ::selection { background: rgba(255, 203, 5, 0.35); color: #fff; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #0a0f21; }
+  ::-webkit-scrollbar-thumb { background: #2e3860; border-radius: 999px; border: 2px solid #0a0f21; }
+  ::-webkit-scrollbar-thumb:hover { background: #434f7b; }
+}
+
+@layer components {
+  /* Card-frame surface: navy panel with a soft blue rim and a faint top sheen. */
+  .tcg-panel {
+    position: relative;
+    background-color: theme('colors.gray.900');
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 40%);
+    border: 1px solid rgba(107, 124, 255, 0.18);
+    box-shadow: theme('boxShadow.card');
+  }
+
+  /* Chunky "press" button in trading-card yellow. */
+  .tcg-btn {
+    background-image: linear-gradient(180deg, #ffe14d, #ffcb05);
+    color: #1a1400;
+    font-weight: 800;
+    box-shadow: 0 3px 0 0 #b88a00, 0 6px 14px -4px rgba(255, 203, 5, 0.45);
+    transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+  }
+  .tcg-btn:hover { filter: brightness(1.06); }
+  .tcg-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 0 #b88a00; }
+  .tcg-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+  /* Rainbow foil strip used as a decorative edge on hero panels. */
+  .holo-strip {
+    height: 3px;
+    background: linear-gradient(90deg, #ff5f6d, #ffc371, #ffe14d, #6bffb0, #6bb6ff, #b58cff, #ff5f6d);
+    background-size: 200% 100%;
+    animation: holo-slide 6s linear infinite;
+  }
+
+  /* Subtle foil shimmer on hover for card-like tiles. */
+  .holo-hover { position: relative; overflow: hidden; }
+  .holo-hover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.10) 45%, rgba(107, 182, 255, 0.12) 50%, rgba(255, 203, 5, 0.10) 55%, transparent 70%);
+    background-size: 250% 100%;
+    background-position: 120% 0;
+    opacity: 0;
+    transition: opacity 0.2s, background-position 0.7s;
+    pointer-events: none;
+  }
+  .holo-hover:hover::after { opacity: 1; background-position: -20% 0; }
+}
+
+@keyframes holo-slide { to { background-position: 200% 0; } }

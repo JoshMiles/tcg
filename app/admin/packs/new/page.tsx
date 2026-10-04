@@ -12,12 +12,12 @@ export default function NewPackPage() {
         </Link>
       </div>
 
-      <form action={createPack} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+      <form action={createPack} className="tcg-panel rounded-xl p-6 space-y-4">
         <PackFields />
         <div className="pt-2">
           <button
             type="submit"
-            className="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg transition-colors"
+            className="px-6 py-2 tcg-btn rounded-lg transition-colors"
           >
             Create Pack
           </button>
