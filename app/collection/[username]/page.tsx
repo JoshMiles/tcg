@@ -6,6 +6,7 @@ import {
 } from '@/lib/kv';
 import { RARITIES, getRarity } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
+import { CardTile } from '@/app/components/CardTile';
 import { BrandMark } from '@/app/admin/components/BrandMark';
 
 export const dynamic = 'force-dynamic';
@@ -125,31 +126,15 @@ export default async function CollectionPage({
               const count = countMap.get(card.number) ?? 0;
               const isOwned = count > 0;
               const rarity = getRarity(card.stars);
-              return (
-                <div
-                  key={card.id}
-                  title={isOwned ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}` : `#${card.number} ???`}
-                  className={`relative aspect-[2/3] rounded-xl overflow-hidden group transition-transform ${
-                    isOwned ? 'holo-hover border-2 hover:-translate-y-1' : 'border border-dashed border-gray-700 bg-gray-900/40'
-                  }`}
-                  style={isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}` } : undefined}
-                >
-                  {isOwned && card.imageUrl ? (
-                    <img
-                      src={card.imageUrl}
-                      alt={card.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-900/60 flex items-center justify-center">
-                      {isOwned ? (
-                        <span className="text-xs text-gray-500 font-bold">#{card.number}</span>
-                      ) : (
-                        <span className="font-display text-gray-600 font-bold text-2xl">?</span>
-                      )}
-                    </div>
-                  )}
+              const title = isOwned
+                ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}`
+                : `#${card.number} ???`;
+              const tileClass = `relative aspect-[2/3] rounded-xl overflow-hidden group transition-transform ${
+                isOwned ? 'holo-hover border-2 hover:-translate-y-1' : 'border border-dashed border-gray-700 bg-gray-900/40'
+              }`;
+              const tileStyle = isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}` } : undefined;
+              const overlays = (
+                <>
                   {/* Hover name */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <p className="text-xs text-white truncate leading-none">{isOwned ? card.name : `#${card.number}`}</p>
@@ -167,6 +152,28 @@ export default async function CollectionPage({
                       ×{count}
                     </div>
                   )}
+                </>
+              );
+
+              // Owned cards show a static thumbnail and animate only on hover.
+              if (isOwned && card.imageUrl) {
+                return (
+                  <CardTile key={card.id} imageUrl={card.imageUrl} alt={card.name} title={title} className={tileClass} style={tileStyle}>
+                    {overlays}
+                  </CardTile>
+                );
+              }
+
+              return (
+                <div key={card.id} title={title} className={tileClass} style={tileStyle}>
+                  <div className="w-full h-full bg-gray-900/60 flex items-center justify-center">
+                    {isOwned ? (
+                      <span className="text-xs text-gray-500 font-bold">#{card.number}</span>
+                    ) : (
+                      <span className="font-display text-gray-600 font-bold text-2xl">?</span>
+                    )}
+                  </div>
+                  {overlays}
                 </div>
               );
             })}
