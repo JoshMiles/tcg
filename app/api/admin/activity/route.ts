@@ -1,0 +1,25 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { isAuthenticated } from '@/lib/auth';
+import { getActivity } from '@/lib/activity';
+import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+
+export const dynamic = 'force-dynamic';
+
+// Polled by the live activity page: GET /api/admin/activity?after=<seq>
+// Returns events newer than `seq` (newest first), the current seq, and avatars for those users.
+// When nothing is new this is a single KV read. (/api/admin/* isn't covered by the /admin middleware.)
+export async function GET(req: NextRequest) {
+  if (!(await isAuthenticated())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const afterParam = req.nextUrl.searchParams.get('after');
+  const after = afterParam !== null && /^\d+$/.test(afterParam) ? Number(afterParam) : undefined;
+
+  const { events, seq } = await getActivity({ after, limit: 100 });
+
+  const raw = events.length > 0 ? await getAvatars(events.map(e => e.username)) : {};
+  const avatars = Object.fromEntries(Object.entries(raw).map(([u, url]) => [u, sizeTwitchAvatar(url, 70)]));
+
+  return NextResponse.json({ events, seq, avatars }, { headers: { 'Cache-Control': 'no-store' } });
+}
