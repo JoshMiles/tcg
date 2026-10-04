@@ -4,3 +4,8 @@ export function countPulls(owned: number[]): Map<number, number> {
   for (const n of owned) counts.set(n, (counts.get(n) ?? 0) + 1);
   return counts;
 }
+
+/** Number of distinct cards owned — what completion % should be based on (duplicates don't count). */
+export function uniqueCount(owned: number[]): number {
+  return new Set(owned).size;
+}

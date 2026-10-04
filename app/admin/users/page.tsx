@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getAllCollectionUsers, getUserProfile, listSeasons, getPackCards } from '@/lib/kv';
+import { uniqueCount } from '@/lib/collection';
 import { resetUser, resetAllUsers, updateUserProfile } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -25,8 +26,8 @@ export default async function UsersPage() {
 
   const sorted = [...users].sort(
     (a, b) =>
-      b.seasons.reduce((s, x) => s + x.cards.length, 0) -
-      a.seasons.reduce((s, x) => s + x.cards.length, 0)
+      b.seasons.reduce((s, x) => s + uniqueCount(x.cards), 0) -
+      a.seasons.reduce((s, x) => s + uniqueCount(x.cards), 0)
   );
 
   return (
@@ -84,14 +85,14 @@ export default async function UsersPage() {
             {sorted.map((user, i) => {
               const profile = profileMap[user.username];
               const displayName = profile?.displayName || user.username;
-              const totalCards = user.seasons.reduce((s, x) => s + x.cards.length, 0);
+              const totalCards = user.seasons.reduce((s, x) => s + uniqueCount(x.cards), 0);
               const updateProfile = updateUserProfile.bind(null, user.username);
               const resetThis = resetUser.bind(null, user.username);
 
               let best = 0;
               for (const us of user.seasons) {
                 const total = seasonCardCounts[us.id] ?? 0;
-                if (total > 0) best = Math.max(best, Math.round(us.cards.length / total * 100));
+                if (total > 0) best = Math.max(best, Math.round(uniqueCount(us.cards) / total * 100));
               }
 
               const rankColor = i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-700' : 'text-gray-700';
@@ -123,12 +124,12 @@ export default async function UsersPage() {
                     <div className="flex flex-col gap-0.5">
                       {user.seasons.map(us => {
                         const total = seasonCardCounts[us.id] ?? 0;
-                        const pct = total > 0 ? Math.round(us.cards.length / total * 100) : 0;
+                        const pct = total > 0 ? Math.round(uniqueCount(us.cards) / total * 100) : 0;
                         return (
                           <span key={us.id} className="text-xs text-gray-600 truncate">
                             {us.name}:&nbsp;
                             <span className="text-yellow-500 tabular-nums">{pct}%</span>
-                            <span className="text-gray-700"> ({us.cards.length}/{total})</span>
+                            <span className="text-gray-700"> ({uniqueCount(us.cards)}/{total})</span>
                           </span>
                         );
                       })}

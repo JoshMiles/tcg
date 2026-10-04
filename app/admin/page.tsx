@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getActiveSeasonWithPacks, getCollection } from '@/lib/kv';
 import { seedSeason1 } from './actions';
 import { rarityStats, getRarity } from '@/lib/rarity';
+import { uniqueCount } from '@/lib/collection';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,19 +44,21 @@ export default async function AdminDashboard() {
   const users = Object.entries(collection);
 
   const totalUsers = users.length;
+  // Total pulls (duplicates included) vs. unique cards, which is what completion is based on
   const totalOwned = users.reduce((s, [, c]) => s + c.length, 0);
+  const totalUnique = users.reduce((s, [, c]) => s + uniqueCount(c), 0);
   const avgCompletion = totalUsers > 0 && allCards.length > 0
-    ? Math.round(totalOwned / totalUsers / allCards.length * 100)
+    ? Math.round(totalUnique / totalUsers / allCards.length * 100)
     : 0;
 
   const freq: Record<number, number> = {};
-  users.forEach(([, owned]) => owned.forEach(n => { freq[n] = (freq[n] ?? 0) + 1; }));
+  users.forEach(([, owned]) => new Set(owned).forEach(n => { freq[n] = (freq[n] ?? 0) + 1; }));
 
   const topCollectors = users
     .map(([username, owned]) => ({
       username,
-      owned: owned.length,
-      pct: allCards.length > 0 ? Math.round(owned.length / allCards.length * 100) : 0,
+      owned: uniqueCount(owned),
+      pct: allCards.length > 0 ? Math.round(uniqueCount(owned) / allCards.length * 100) : 0,
     }))
     .sort((a, b) => b.owned - a.owned)
     .slice(0, 8);
