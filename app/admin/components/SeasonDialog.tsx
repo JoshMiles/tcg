@@ -75,7 +75,7 @@ export function SeasonDialog({ open, onClose }: { open: boolean; onClose: () => 
           </button>
           <button
             type="submit"
-            className="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors"
+            className="px-5 py-2.5 tcg-btn rounded-xl text-sm transition-colors"
           >
             Create Season →
           </button>

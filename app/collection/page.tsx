@@ -25,7 +25,7 @@ export default function CollectionLanding() {
           />
           <button
             type="submit"
-            className="px-5 py-3 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors shrink-0"
+            className="px-5 py-3 tcg-btn rounded-xl text-sm transition-colors shrink-0"
           >
             Go →
           </button>

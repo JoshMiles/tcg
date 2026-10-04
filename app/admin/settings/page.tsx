@@ -13,7 +13,7 @@ export default async function SettingsPage() {
       <h1 className="text-2xl font-bold">Settings</h1>
 
       {/* OBS overlay */}
-      <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+      <section className="tcg-panel rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">OBS Overlay</h2>
         <p className="text-sm text-gray-400">
           Add as a <strong className="text-white">Browser Source</strong> in OBS.
@@ -26,7 +26,7 @@ export default async function SettingsPage() {
       </section>
 
       {/* Collection page */}
-      <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+      <section className="tcg-panel rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Viewer Collection Page</h2>
         <p className="text-sm text-gray-400">
           Share this with viewers so they can look up their collection. Append their username to go directly to their cards.
@@ -38,7 +38,7 @@ export default async function SettingsPage() {
       </section>
 
       {/* Twitch panel */}
-      <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+      <section className="tcg-panel rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Twitch Extension Panel</h2>
         <p className="text-sm text-gray-400">
           Register this as the <strong className="text-white">Panel HTML</strong> URL in your extension on{' '}
@@ -56,7 +56,7 @@ export default async function SettingsPage() {
       </section>
 
       {/* Bot integration */}
-      <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+      <section className="tcg-panel rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Bot / Channel Points</h2>
         <p className="text-sm text-gray-400">
           Call these functions via your Twitch bot or the Browser Source's{' '}
@@ -70,7 +70,7 @@ queueCollection('username');`}</pre>
       </section>
 
       {/* Active season */}
-      <section className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+      <section className="tcg-panel rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Active Season</h2>
         {result ? (
           <div className="space-y-3">

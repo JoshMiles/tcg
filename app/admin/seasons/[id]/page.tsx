@@ -38,7 +38,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
           </Link>
         </div>
 
-        <form action={updateThisSeason} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+        <form action={updateThisSeason} className="tcg-panel rounded-xl p-6 space-y-4">
           <SeasonFields
             defaults={{
               name: season.name,
@@ -50,7 +50,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
           <div className="pt-2">
             <button
               type="submit"
-              className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors"
+              className="px-5 py-2 tcg-btn rounded-lg text-sm transition-colors"
             >
               Save Changes
             </button>
@@ -73,7 +73,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
         {/* Assigned packs */}
         <div className="space-y-2 mb-4">
           {assignedPacks.length === 0 ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center text-gray-600">
+            <div className="tcg-panel rounded-xl p-8 text-center text-gray-600">
               No packs assigned. Add packs from your library below.
             </div>
           ) : (
@@ -82,7 +82,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
               return (
                 <div
                   key={pack.id}
-                  className="bg-gray-900 border border-gray-800 rounded-xl p-3 flex items-center gap-3"
+                  className="tcg-panel rounded-xl p-3 flex items-center gap-3"
                 >
                   {pack.coverImageUrl ? (
                     <img src={pack.coverImageUrl} alt={pack.name} loading="lazy" className="w-9 h-12 object-cover rounded shrink-0" />

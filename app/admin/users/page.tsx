@@ -63,7 +63,7 @@ export default async function UsersPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+      <div className="tcg-panel rounded-2xl overflow-hidden">
         {sorted.length === 0 ? (
           <div className="py-20 text-center space-y-2">
             <p className="text-2xl mb-4">👥</p>
@@ -181,7 +181,7 @@ export default async function UsersPage() {
                         <div className="col-span-3 flex items-center gap-3">
                           <button
                             type="submit"
-                            className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-xs transition-colors"
+                            className="px-4 py-1.5 tcg-btn rounded-xl text-xs transition-colors"
                           >
                             Save Profile
                           </button>

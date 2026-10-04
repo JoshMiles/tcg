@@ -23,7 +23,7 @@ export default async function AdminDashboard() {
           <SeedButton />
           <Link
             href="/admin/seasons/new"
-            className="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors"
+            className="px-5 py-2.5 tcg-btn rounded-xl text-sm transition-colors"
           >
             Create Season
           </Link>
@@ -70,10 +70,10 @@ export default async function AdminDashboard() {
   const rarityDist = rarityStats(allCards);
 
   const stats = [
-    { label: 'Players',      value: totalUsers,        sub: 'unique collectors'            },
-    { label: 'Cards Pulled', value: totalOwned,        sub: 'total across all players'     },
-    { label: 'Card Pool',    value: allCards.length,   sub: `across ${packs.length} pack${packs.length !== 1 ? 's' : ''}` },
-    { label: 'Avg Complete', value: `${avgCompletion}%`, sub: totalUsers > 0 ? `${topCollectors[0]?.pct ?? 0}% best` : 'no players yet' },
+    { label: 'Players',      accent: 'from-poke-blue-light to-poke-blue', value: totalUsers,        sub: 'unique collectors'            },
+    { label: 'Cards Pulled', accent: 'from-yellow-300 to-yellow-600', value: totalOwned,        sub: 'total across all players'     },
+    { label: 'Card Pool',    accent: 'from-red-400 to-poke-red', value: allCards.length,   sub: `across ${packs.length} pack${packs.length !== 1 ? 's' : ''}` },
+    { label: 'Avg Complete', accent: 'from-emerald-300 to-emerald-600', value: `${avgCompletion}%`, sub: totalUsers > 0 ? `${topCollectors[0]?.pct ?? 0}% best` : 'no players yet' },
   ];
 
   return (
@@ -82,8 +82,8 @@ export default async function AdminDashboard() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs text-gray-600 uppercase tracking-widest mb-1">Active Season</p>
-          <h1 className="text-3xl font-bold text-white">{season.name}</h1>
+          <p className="text-xs text-yellow-500 font-bold uppercase tracking-widest mb-1">★ Active Season</p>
+          <h1 className="text-4xl font-bold text-white">{season.name}</h1>
         </div>
         <div className="flex gap-2 pt-1">
           <Link
@@ -98,14 +98,17 @@ export default async function AdminDashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(({ label, value, sub }) => (
+        {stats.map(({ label, accent, value, sub }) => (
           <div
             key={label}
-            className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-1 hover:border-gray-700 transition-colors"
+            className="tcg-panel holo-hover rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-glow transition-all"
           >
-            <p className="text-xs text-gray-600 uppercase tracking-wider">{label}</p>
-            <p className="text-3xl font-bold text-white tabular-nums">{value}</p>
-            <p className="text-xs text-gray-600">{sub}</p>
+            <div className={`h-1.5 bg-gradient-to-r ${accent}`} />
+            <div className="p-5 space-y-1">
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{label}</p>
+              <p className="font-display text-4xl font-bold text-white tabular-nums">{value}</p>
+              <p className="text-xs text-gray-500">{sub}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -114,7 +117,7 @@ export default async function AdminDashboard() {
       <div className="grid lg:grid-cols-3 gap-4">
 
         {/* Top Collectors */}
-        <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+        <div className="lg:col-span-2 tcg-panel rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
             <h2 className="font-semibold text-white">Top Collectors</h2>
             <Link href="/admin/users" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
@@ -156,7 +159,7 @@ export default async function AdminDashboard() {
         <div className="space-y-4">
 
           {/* Rarity distribution */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+          <div className="tcg-panel rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-800">
               <h2 className="font-semibold text-white">Rarity Mix</h2>
             </div>
@@ -180,7 +183,7 @@ export default async function AdminDashboard() {
           </div>
 
           {/* Active packs */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+          <div className="tcg-panel rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
               <h2 className="font-semibold text-white">Active Packs</h2>
               <Link href="/admin/packs" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
@@ -216,7 +219,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Card ownership table */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+      <div className="tcg-panel rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
           <h2 className="font-semibold text-white">Card Ownership</h2>
           <span className="text-xs text-gray-600">sorted by rarity</span>

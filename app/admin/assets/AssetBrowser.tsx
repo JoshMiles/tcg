@@ -34,7 +34,7 @@ export function AssetBrowser({ assets }: { assets: AssetItem[] }) {
   return (
     <div className="space-y-5">
       {/* Tab bar */}
-      <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 tcg-panel rounded-xl p-1 w-fit">
         {TABS.map(t => (
           <button
             key={t.key}
@@ -92,7 +92,7 @@ function AssetCard({ asset, copied, onCopy }: { asset: AssetItem; copied: boolea
       : `/admin/packs/${origin.packId}/cards/${origin.cardId}`;
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-colors flex flex-col">
+    <div className="tcg-panel rounded-xl overflow-hidden hover:border-gray-700 transition-colors flex flex-col">
 
       {/* Preview */}
       {asset.type === 'audio' ? (

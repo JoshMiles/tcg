@@ -112,7 +112,7 @@ export default async function UserDetailPage({
       </div>
 
       {/* Profile edit */}
-      <section className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+      <section className="tcg-panel rounded-2xl p-6">
         <h2 className="font-semibold text-white mb-4">Profile</h2>
         <form action={updateProfile} className="grid grid-cols-3 gap-4">
           <div>
@@ -144,7 +144,7 @@ export default async function UserDetailPage({
           <div className="col-span-3">
             <button
               type="submit"
-              className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors"
+              className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors"
             >
               Save Profile
             </button>
@@ -160,7 +160,7 @@ export default async function UserDetailPage({
         const resetSeason = resetUserSeason.bind(null, username, season.collectionName);
 
         return (
-          <section key={season.id} className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+          <section key={season.id} className="tcg-panel rounded-2xl overflow-hidden">
 
             {/* Season header */}
             <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between gap-4">
@@ -282,7 +282,7 @@ export default async function UserDetailPage({
                   </select>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-xl text-sm transition-colors"
+                    className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors"
                   >
                     Grant
                   </button>
@@ -296,7 +296,7 @@ export default async function UserDetailPage({
 
       {/* Empty state */}
       {!hasAnyCards && (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl py-16 text-center">
+        <div className="tcg-panel rounded-2xl py-16 text-center">
           <p className="text-gray-500 text-sm">No cards pulled yet</p>
         </div>
       )}

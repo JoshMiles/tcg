@@ -29,7 +29,7 @@ export default async function SeasonsPage() {
         <NewSeasonButton />
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+      <div className="tcg-panel rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">

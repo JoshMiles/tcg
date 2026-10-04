@@ -100,7 +100,7 @@ export default async function CollectionPage({
             {rarityBreakdown.map(r => (
               <div
                 key={r.stars}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center"
+                className="tcg-panel rounded-xl p-3 text-center"
               >
                 <p className="text-xs font-medium mb-1" style={{ color: r.hex }}>
                   {'★'.repeat(r.stars)}

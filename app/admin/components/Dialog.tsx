@@ -27,9 +27,10 @@ export function Dialog({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-md" onClick={onClose} />
       <div className="flex min-h-full items-start justify-center p-4 pt-16">
-        <div className={`relative w-full ${w} bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl shadow-black/60`}>
+        <div className={`relative w-full ${w} tcg-panel rounded-2xl shadow-2xl shadow-black/60 overflow-hidden`}>
+          <div className="holo-strip" />
           {title && (
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-800">
               <h2 className="font-bold text-white text-lg">{title}</h2>

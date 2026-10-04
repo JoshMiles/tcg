@@ -30,7 +30,7 @@ export default async function EditCardPage({
         </Link>
       </div>
 
-      <form action={updateThisCard} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+      <form action={updateThisCard} className="tcg-panel rounded-xl p-6 space-y-4">
         <Field label="Card Number" name="number" type="number" defaultValue={String(card.number)} required />
         <Field label="Name" name="name" defaultValue={card.name} required />
         <ImageUploadField name="imageUrl" defaultValue={card.imageUrl} />
@@ -42,7 +42,7 @@ export default async function EditCardPage({
         <div className="pt-2">
           <button
             type="submit"
-            className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold rounded-lg text-sm transition-colors"
+            className="px-5 py-2 tcg-btn rounded-lg text-sm transition-colors"
           >
             Save Card
           </button>
