@@ -46,3 +46,25 @@ export async function resolveTwitchLogin(numericUserId: string): Promise<string 
   const data = await res.json() as { data?: Array<{ login: string }> };
   return data.data?.[0]?.login ?? null;
 }
+
+/**
+ * Looks up profile pictures for Twitch logins (Helix allows up to 100 per request).
+ * Returns login → profile_image_url; logins that don't exist on Twitch are simply absent.
+ * Throws on credential/network/API errors so callers can avoid caching a failure as "no avatar".
+ */
+export async function fetchTwitchAvatars(logins: string[]): Promise<Record<string, string>> {
+  const creds = twitchCredentials();
+  if (!creds) throw new Error('Twitch credentials not configured');
+  const token = await getAppAccessToken(creds.clientId, creds.clientSecret);
+  const out: Record<string, string> = {};
+  for (let i = 0; i < logins.length; i += 100) {
+    const query = logins.slice(i, i + 100).map(l => `login=${encodeURIComponent(l)}`).join('&');
+    const res = await fetch(`https://api.twitch.tv/helix/users?${query}`, {
+      headers: { 'Client-ID': creds.clientId, Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Helix error: ${res.status}`);
+    const data = await res.json() as { data?: Array<{ login: string; profile_image_url: string }> };
+    for (const u of data.data ?? []) out[u.login.toLowerCase()] = u.profile_image_url;
+  }
+  return out;
+}
