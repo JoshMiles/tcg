@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { getAllCollectionUsers, getUserProfile, listSeasons, getPackCards } from '@/lib/kv';
 import { uniqueCount } from '@/lib/collection';
+import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+import { Avatar } from '@/app/components/Avatar';
 import { resetUser, resetAllUsers, updateUserProfile } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +13,10 @@ export default async function UsersPage() {
     listSeasons(),
   ]);
 
-  const profiles = await Promise.all(users.map(u => getUserProfile(u.username)));
+  const [profiles, avatars] = await Promise.all([
+    Promise.all(users.map(u => getUserProfile(u.username))),
+    getAvatars(users.map(u => u.username)),
+  ]);
   const profileMap = Object.fromEntries(
     profiles.filter(Boolean).map(p => [p!.username, p!])
   );
@@ -109,9 +114,7 @@ export default async function UsersPage() {
                     <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold tabular-nums ${rankBadge}`}>{i + 1}</span>
 
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-poke-blue to-poke-blue-light flex items-center justify-center text-xs font-extrabold text-white shrink-0 uppercase">
-                        {displayName[0]}
-                      </div>
+                      <Avatar src={avatars[user.username] && sizeTwitchAvatar(avatars[user.username], 70)} name={displayName} className="w-8 h-8 text-xs" />
                       <div className="min-w-0">
                         <p className="font-medium text-white text-sm truncate">{displayName}</p>
                         {profile?.displayName && profile.displayName !== user.username && (
@@ -196,16 +199,17 @@ export default async function UsersPage() {
                           >
                             View Collection →
                           </a>
-                          <form action={resetThis}>
-                            <button
-                              type="submit"
-                              className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
-                            >
-                              Reset User
-                            </button>
-                          </form>
+                          {/* Attached via the form attribute: nesting a <form> here would be dropped by the HTML parser */}
+                          <button
+                            type="submit"
+                            form={`reset-${user.username}`}
+                            className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
+                          >
+                            Reset User
+                          </button>
                         </div>
                       </form>
+                      <form id={`reset-${user.username}`} action={resetThis} />
                     </div>
                   </div>
                 </details>

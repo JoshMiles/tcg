@@ -4,6 +4,8 @@ import { listSeasons, getCollection, getPackCards, getPack, getUserProfile } fro
 import type { Season, Pack, Card } from '@/lib/types';
 import { getRarity } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
+import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+import { Avatar } from '@/app/components/Avatar';
 import { CardTile } from '@/app/components/CardTile';
 import {
   updateUserProfile, removeUserCard, grantUserCard,
@@ -27,9 +29,10 @@ export default async function UserDetailPage({
   const { username: rawUsername } = await params;
   const username = rawUsername.toLowerCase();
 
-  const [profile, seasons] = await Promise.all([
+  const [profile, seasons, avatars] = await Promise.all([
     getUserProfile(username),
     listSeasons(),
+    getAvatars([username]),
   ]);
 
   const collections = await Promise.all(
@@ -81,9 +84,7 @@ export default async function UserDetailPage({
 
       {/* Header */}
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-poke-blue to-poke-blue-light ring-2 ring-yellow-500/60 flex items-center justify-center text-2xl font-bold text-white uppercase shrink-0">
-          {displayName[0]}
-        </div>
+        <Avatar src={avatars[username] && sizeTwitchAvatar(avatars[username], 150)} name={displayName} className="w-16 h-16 text-2xl ring-2 ring-yellow-500/60" />
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-3xl font-bold text-white">{displayName}</h1>

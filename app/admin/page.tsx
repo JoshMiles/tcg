@@ -3,6 +3,8 @@ import { getActiveSeasonWithPacks, getCollection } from '@/lib/kv';
 import { seedSeason1 } from './actions';
 import { rarityStats, getRarity } from '@/lib/rarity';
 import { uniqueCount } from '@/lib/collection';
+import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+import { Avatar } from '@/app/components/Avatar';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +68,8 @@ export default async function AdminDashboard() {
   const cardStats = allCards
     .map(c => ({ ...c, ownedBy: freq[c.number] ?? 0 }))
     .sort((a, b) => b.stars - a.stars || b.ownedBy - a.ownedBy);
+
+  const avatars = await getAvatars(topCollectors.map(c => c.username));
 
   const rarityDist = rarityStats(allCards);
 
@@ -137,6 +141,7 @@ export default async function AdminDashboard() {
                   }`}>
                     {i + 1}
                   </span>
+                  <Avatar src={avatars[username] && sizeTwitchAvatar(avatars[username], 70)} name={username} className="w-8 h-8 text-xs" />
                   <span className="flex-1 text-sm font-mono text-gray-200 truncate">{username}</span>
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
