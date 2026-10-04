@@ -11,6 +11,7 @@ import {
   seedSeason1 as seedSeason1Data,
 } from '@/lib/kv';
 import type { UserProfile } from '@/lib/types';
+import { recordActivity } from '@/lib/activity';
 import { getWebhookSettings, saveWebhookSettings } from '@/lib/webhooks';
 
 // ── Seasons ───────────────────────────────────────────────
@@ -208,6 +209,7 @@ export async function removeUserCard(username: string, collectionName: string, c
     }
     if (data[lower].length === 0) delete data[lower];
     await saveCollection(collectionName, data);
+    await recordActivity({ type: 'remove', username: lower, cardNumber, collectionName });
   }
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
@@ -221,6 +223,7 @@ export async function grantUserCard(username: string, collectionName: string, fo
   const data = await getCollection(collectionName);
   data[lower] = [...(data[lower] ?? []), cardNumber];
   await saveCollection(collectionName, data);
+  await recordActivity({ type: 'grant', source: 'admin', username: lower, cardNumber, collectionName });
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
 }
@@ -228,7 +231,9 @@ export async function grantUserCard(username: string, collectionName: string, fo
 // Remove a user from a single season's collection
 export async function resetUserSeason(username: string, collectionName: string) {
   const lower = username.toLowerCase();
-  await removeUserFromCollection(collectionName, lower);
+  if (await removeUserFromCollection(collectionName, lower)) {
+    await recordActivity({ type: 'reset', scope: 'season', username: lower, collectionName });
+  }
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
 }
@@ -241,6 +246,7 @@ export async function deleteUser(username: string) {
     ...seasons.map(s => removeUserFromCollection(s.collectionName, lower)),
     deleteUserProfile(lower),
   ]);
+  await recordActivity({ type: 'delete', username: lower });
   revalidatePath('/admin/users');
   redirect('/admin/users');
 }
@@ -249,6 +255,7 @@ export async function deleteUser(username: string) {
 export async function resetUser(username: string) {
   const seasons = await listSeasons();
   await Promise.all(seasons.map(s => removeUserFromCollection(s.collectionName, username)));
+  await recordActivity({ type: 'reset', scope: 'all', username });
   revalidatePath(`/admin/users/${username.toLowerCase()}`);
   revalidatePath('/admin/users');
 }
@@ -257,6 +264,7 @@ export async function resetUser(username: string) {
 export async function resetAllUsers() {
   const seasons = await listSeasons();
   await Promise.all(seasons.map(s => deleteCollection(s.collectionName)));
+  await recordActivity({ type: 'reset', scope: 'everyone', username: '' });
   revalidatePath('/admin/users');
 }
 

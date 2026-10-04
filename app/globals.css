@@ -72,3 +72,11 @@
 }
 
 @keyframes holo-slide { to { background-position: 200% 0; } }
+
+/* New live-activity rows: slide in and fade a gold glow out. */
+@keyframes activity-in {
+  0%   { opacity: 0; transform: translateY(-8px); background-color: rgba(255, 203, 5, 0.28); }
+  15%  { opacity: 1; transform: translateY(0); }
+  100% { background-color: rgba(255, 203, 5, 0); }
+}
+.activity-fresh { animation: activity-in 2.4s ease-out; }

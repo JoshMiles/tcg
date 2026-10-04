@@ -187,5 +187,10 @@ Card images are animated WebP in `public/assets/cards/` (600px wide, ~1–4MB ea
 ## User avatars
 Admin pages (dashboard Top Collectors, users list, user detail) show each user's Twitch profile picture. `getAvatars(usernames)` in `lib/avatars.ts` batches Helix `users?login=…` lookups (`fetchTwitchAvatars` in `lib/twitch-helix.ts`, up to 100 per request) and caches results in the KV hash `twitch:avatars` (login → `{ url, at }`; 7 days for found, 1 day for "no avatar"). It never throws — without `TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET`, or if Twitch is down, users just get the initial-letter fallback, and a failed lookup is not cached. Logins that can't be Twitch names (e.g. `mrbeast#`) are skipped. Use `sizeTwitchAvatar(url, px)` to request the right size and the `Avatar` client component (`app/components/Avatar.tsx`) to render it; it falls back to the initial if the image fails to load.
 
+## Live activity (`/admin/activity`)
+An event log of everything that happens: widget pulls (new vs duplicate, copies, unique owned), card grants/removals (admin + webhook), resets/deletes, incoming webhook triggers, and "collection shown" notices. `recordActivity()` in `lib/activity.ts` appends to the KV list `activity:log` (newest first, capped at 500) and bumps the counter `activity:seq`; it never throws and must be `await`ed in serverless routes. Call it from any new code path that changes a collection.
+
+The page is a server-rendered snapshot plus a client component (`ActivityFeed`) that polls `GET /api/admin/activity?after=<seq>` every 3s while the tab is visible (pausable). With nothing new that is one KV GET; new events come back with avatars. Polling rather than SSE because serverless functions can't hold long connections cheaply. `pull` events come from the unauthenticated `/api/collection` POST (the widget's payload), so treat their contents as untrusted display text.
+
 ## Local dev
 `npm install` then `npx tsc --noEmit` / `npm run build` work locally. `node_modules/` is gitignored.
