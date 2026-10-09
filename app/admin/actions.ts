@@ -21,6 +21,7 @@ import {
 } from '@/lib/discord';
 import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
+import { saveOverlaySettings } from '@/lib/overlay-settings';
 
 // ── Seasons ───────────────────────────────────────────────
 
@@ -306,6 +307,16 @@ export async function regenerateWebhookSecret() {
   settings.incomingSecret = randomBytes(16).toString('hex');
   await saveWebhookSettings(settings);
   revalidatePath('/admin/webhooks');
+}
+
+// ── Overlay settings ──────────────────────────────────────
+
+export async function saveOverlaySettingsAction(formData: FormData) {
+  await saveOverlaySettings({
+    livePacksOnly:       formData.get('livePacksOnly') === 'on',
+    liveCollectionsOnly: formData.get('liveCollectionsOnly') === 'on',
+  });
+  revalidatePath('/admin/settings');
 }
 
 // ── Assets ────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { CopyableUrl } from '../components/copyable-url';
 import { getBuildInfo } from '@/lib/version';
+import { getOverlaySettings } from '@/lib/overlay-settings';
+import { saveOverlaySettingsAction } from '../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +11,7 @@ const BASE = 'https://tcg-khaki.vercel.app';
 export default async function SettingsPage() {
   const result = await getActiveSeasonWithPacks();
   const build = getBuildInfo();
+  const overlay = await getOverlaySettings();
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -35,6 +38,23 @@ export default async function SettingsPage() {
             connected, but its stream status stays unknown.
           </p>
         </div>
+        <form action={saveOverlaySettingsAction} className="rounded-lg bg-gray-950/60 border border-gray-800 p-3 space-y-3">
+          <p className="text-sm text-gray-300 font-semibold">Only when live</p>
+          <label className="flex items-start gap-2.5 text-sm text-gray-300 cursor-pointer">
+            <input type="checkbox" name="livePacksOnly" defaultChecked={overlay.livePacksOnly} className="mt-1 accent-yellow-500" />
+            <span>Pack openings<span className="block text-xs text-gray-500">Ignore pack triggers from your bot / channel points while you&apos;re offline.</span></span>
+          </label>
+          <label className="flex items-start gap-2.5 text-sm text-gray-300 cursor-pointer">
+            <input type="checkbox" name="liveCollectionsOnly" defaultChecked={overlay.liveCollectionsOnly} className="mt-1 accent-yellow-500" />
+            <span>Collection displays<span className="block text-xs text-gray-500">Ignore &ldquo;show collection&rdquo; triggers while you&apos;re offline.</span></span>
+          </label>
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Ignored triggers are dropped, not saved for later. Offline means no overlay is open, or OBS says it isn&apos;t streaming.
+            That needs the browser source&apos;s <em className="text-gray-300">“Read access to OBS status information”</em> permission above;
+            without it the overlay can&apos;t tell, so triggers are allowed whenever it&apos;s open. Quick actions on the dashboard always work.
+          </p>
+          <button type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-500 text-gray-950 text-sm font-semibold hover:bg-yellow-400 transition-colors">Save</button>
+        </form>
       </section>
 
       {/* Collection page */}
