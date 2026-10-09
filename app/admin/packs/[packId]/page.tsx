@@ -6,6 +6,7 @@ import { PackFields } from '../../components/PackFields';
 import { AddCardButton } from '../../components/AddCardButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { rarityStats, getRarity } from '@/lib/rarity';
+import { cardThumbUrl } from '@/lib/card-art';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,7 +88,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
                           {card.imageUrl ? (
-                            <img src={card.imageUrl} alt={card.name} loading="lazy" className="w-7 h-10 object-cover rounded shrink-0" />
+                            <img src={cardThumbUrl(card.imageUrl)} alt={card.name} loading="lazy" className="w-7 h-10 object-cover rounded shrink-0" />
                           ) : (
                             <div className="w-7 h-10 bg-gray-800 rounded shrink-0" />
                           )}
