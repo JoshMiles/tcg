@@ -51,7 +51,8 @@ async function initSeason() {
       cards: (cards ?? []).map(c => ({
         number:      c.number,
         name:        c.name,
-        image:       c.imageUrl,
+        image:       c.imageUrl,                    // full animated art (only the revealed card uses this)
+        thumb:       c.thumbUrl || c.imageUrl,      // static first frame, for the collection grid
         soundUrl:    c.soundUrl || null,
         probability: c.probability,
         stars:       c.stars,
@@ -67,6 +68,7 @@ async function initSeason() {
       }
     }
     ALL_CARDS.sort((a, b) => a.number - b.number);
+    preloadThumbs();
   } catch {
     // fall back to defaults if API unreachable
   }
@@ -181,6 +183,28 @@ function playAudio(src, volume) {
 // ═══════════════════════════════════════════════════════
 //  BUILD MINI CARD LIST
 // ═══════════════════════════════════════════════════════
+// ── Image warming ─────────────────────────────────────────
+// Card art is a 600px animated WebP (1-4MB). Showing 25 of them at once in the collection grid makes
+// the browser source decode and animate all of them; the grid uses tiny static thumbnails instead,
+// preloaded + decoded once at startup so it appears instantly. Only the one revealed card is animated.
+const WARM_IMAGES = new Map(); // url -> Image, kept alive so the decoded bitmap stays cached
+
+function warmImage(url) {
+  if (!url) return Promise.resolve();
+  let img = WARM_IMAGES.get(url);
+  if (!img) {
+    img = new Image();
+    img.decoding = async;
+    img.src = url;
+    WARM_IMAGES.set(url, img);
+  }
+  return (img.decode ? img.decode() : Promise.resolve()).catch(() => {}); // never let a failed image break the overlay
+}
+
+function preloadThumbs() {
+  for (const card of ALL_CARDS) warmImage(card.thumb);
+}
+
 function buildMiniList(miniList, userCards, highlightNumber, cfg) {
   miniList.innerHTML = '';
   const countMap = new Map();
@@ -193,10 +217,10 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg) {
 
     const count   = countMap.get(card.number) ?? 0;
     const owned   = count > 0;
-    const showImg = (owned || card.number === highlightNumber) && card.image;
+    const showImg = (owned || card.number === highlightNumber) && (card.thumb || card.image);
 
     if (showImg) {
-      div.style.backgroundImage    = `url('${card.image}')`;
+      div.style.backgroundImage    = `url('${card.thumb || card.image}')`;
       div.style.backgroundSize     = 'cover';
       div.style.backgroundPosition = 'center';
       div.style.backgroundRepeat   = 'no-repeat';
@@ -278,6 +302,8 @@ function drawCard(username) {
   }
 
   const { card, cfg, packName } = pick;
+  // The card isn't revealed for ~3s; fetch and decode its animated art now so the reveal never hitches.
+  warmImage(card.image);
   const theater = createTheater(cfg);
   const { wrapper, packageContainer, tearBorder1, cardBox, cardLabel,
           mainCard, holoOverlay, cardInfoOverlay, radialContainer,

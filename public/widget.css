@@ -3,6 +3,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700,900&display=swap');
 
 /* ── Holographic shimmer ── */
+/* The shimmer is a gradient sliding across the card. It used to animate background-position, which
+   repaints the whole overlay every frame (plus a blur filter on top); it now slides a pre-painted
+   layer with transform, which the compositor does without repainting. Same look: the gradient tile is
+   5x the card size, and the layer is three tiles wide so it can slide 8 card-widths. */
 .holographic-overlay {
   position: absolute;
   top: 35px;
@@ -11,6 +15,19 @@
   height: 88%;
   pointer-events: none;
   border-radius: 18px;
+  overflow: hidden;
+  z-index: 990;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  mix-blend-mode: overlay;
+}
+.holographic-overlay::before {
+  content: "";
+  position: absolute;
+  top: -400%;
+  left: 0;
+  width: 1500%;
+  height: 500%;
   background: linear-gradient(
     120deg,
     rgba(255,255,255,0),   rgba(255,254,227,.9),
@@ -23,20 +40,18 @@
     rgba(255,255,255,0),   rgba(255,254,227,.9),
     rgba(255,255,255,0)
   );
-  background-size: 500% 500%;
-  z-index: 990;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  mix-blend-mode: overlay;
-  filter: blur(2px);
+  background-size: 33.3333% 100%;
+  will-change: transform;
 }
 .holographic-animate {
-  animation: rainbowShimmer 10.5s forwards;
   opacity: 1 !important;
 }
+.holographic-animate::before {
+  animation: rainbowShimmer 10.5s forwards;
+}
 @keyframes rainbowShimmer {
-  0%   { background-position: 0% 100%; opacity: 1; }
-  100% { background-position: 200% 100%; opacity: 0; }
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-53.3333%, 0, 0); }
 }
 
 /* ── Card entrance animations ── */

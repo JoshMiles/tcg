@@ -226,3 +226,10 @@ Settings live in KV `discord:settings` (edited on `/admin/webhooks`). `recordAct
 
 ## Local dev
 `npm install` then `npx tsc --noEmit` / `npm run build` work locally. `node_modules/` is gitignored.
+
+## Overlay performance
+The OBS overlay must stay smooth, so keep these rules when editing `public/widget.js` / `widget.css`:
+- **The collection grid uses thumbnails, never the animated WebPs.** `/api/seasons/active` adds `thumbUrl` to every card (`cardThumbUrl()`); the widget maps it to `card.thumb` and `buildMiniList` uses it. `preloadThumbs()` decodes them all on load, and `drawCard` calls `warmImage(card.image)` as soon as a card is picked so the reveal doesn't hitch on decode.
+- **Animate only `transform`/`opacity`.** The holographic shimmer slides a pre-painted `::before` layer with `translate3d` instead of animating `background-position` (which repaints every frame). No `filter: blur` on animated layers.
+- **Keep images small.** `public/assets/pack-cover.png` is drawn ~287px wide but used 3× per pack theater, so it is stored at 640px wide (~0.4MB). Don't replace it with a full-resolution original.
+- `/assets/cards/*` and `/assets/sounds/*` are served with a day of `Cache-Control` (see `next.config.ts`) so OBS refreshes don't re-download the art.

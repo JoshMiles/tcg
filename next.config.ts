@@ -26,6 +26,20 @@ const nextConfig: NextConfig = {
         ? `${process.env.VERCEL_GIT_REPO_OWNER}/${process.env.VERCEL_GIT_REPO_SLUG}`
         : '',
   },
+  // Card art is big and the overlay re-requests it on every OBS refresh. Files are replaced under the
+  // same name only rarely, so a day of caching (and a week of serve-stale-while-revalidating) is safe.
+  async headers() {
+    return [
+      {
+        source: "/assets/cards/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+      },
+      {
+        source: "/assets/sounds/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
