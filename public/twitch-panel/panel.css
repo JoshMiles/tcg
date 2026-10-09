@@ -504,8 +504,16 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s;
 }
 .footer-username::before { content: '👤 '; }
+/* Links to the viewer's public collection page; the arrow hints it opens in a new tab. */
+.footer-username:hover,
+.footer-username:focus-visible { color: var(--accent); text-decoration: underline; }
+.footer-username:hover::after,
+.footer-username:focus-visible::after { content: ' ↗'; }
 
 .change-btn {
   background: transparent;

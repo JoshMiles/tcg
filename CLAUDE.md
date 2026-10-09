@@ -145,6 +145,9 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 - Season name, card count, purple "Login with Twitch" button
 - No manual username form — Twitch identity only
 
+**Collection link:**
+- The username in the collection-view footer is an `<a target="_blank">` to the viewer's public page, `/collection/<username>` on the same origin as the API calls (set in `login()`). Twitch's extension sandbox allows popups, so it opens in a new tab. If Twitch blocks it, check the extension's URL/link allowlists in the developer console.
+
 **Logout persistence:**
 - `localStorage` key `tcg_panel_loggedout = '1'` survives panel refresh
 - Checked at the start of `init()` before any auto-login attempt

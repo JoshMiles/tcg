@@ -270,8 +270,13 @@ async function login(username) {
   renderPackTabs();
   renderGrid();
 
+  // The username links to the viewer's public collection page (opens in a new tab; Twitch's
+  // extension sandbox allows popups). Same origin as the API calls above.
   const footerName = document.getElementById('footer-username');
-  if (footerName) footerName.textContent = username;
+  if (footerName) {
+    footerName.textContent = username;
+    footerName.href = new URL('/collection/' + encodeURIComponent(username.toLowerCase()), window.location.origin).href;
+  }
 }
 
 async function tryAutoLogin() {
