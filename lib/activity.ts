@@ -1,4 +1,6 @@
 import { kv } from '@vercel/kv';
+import { after } from 'next/server';
+import { notifyDiscord } from './discord';
 
 // Append-only activity log powering /admin/activity. Newest first in the KV list `activity:log`
 // (capped at LOG_CAP); `activity:seq` is a monotonic counter so pollers can ask "anything after N?"
@@ -33,8 +35,20 @@ export async function recordActivity(event: NewActivity): Promise<void> {
     const full: ActivityEvent = { ...event, username: event.username.toLowerCase(), seq, at: Date.now() };
     await kv.lpush(LOG_KEY, full);
     await kv.ltrim(LOG_KEY, 0, LOG_CAP - 1);
+    forwardToDiscord(full);
   } catch {
     // swallow
+  }
+}
+
+// Posts to Discord after the response has been sent (so it never slows the request that caused the
+// event). Outside a request (scripts/tests) `after` isn't available, so just run it.
+function forwardToDiscord(event: ActivityEvent): void {
+  const run = () => notifyDiscord(event);
+  try {
+    after(run);
+  } catch {
+    void run();
   }
 }
 

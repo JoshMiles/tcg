@@ -14,6 +14,11 @@ import type { UserProfile } from '@/lib/types';
 import { recordActivity } from '@/lib/activity';
 import { deleteUnusedBlobs } from '@/lib/assets';
 import { getOverlayStatus } from '@/lib/overlay';
+import { getActivity } from '@/lib/activity';
+import {
+  saveDiscordSettings, isValidDiscordWebhookUrl, postToDiscord, buildMessage, buildTestMessage,
+  type DiscordSettings,
+} from '@/lib/discord';
 import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
 
@@ -394,4 +399,48 @@ export async function clearQueueAction(): Promise<ActionResult> {
   const n = await clearQueue();
   revalidatePath('/admin');
   return { ok: true, message: n > 0 ? `Cleared ${n} waiting event${n !== 1 ? 's' : ''}.` : 'The queue was already empty.' };
+}
+
+// ── Discord activity feed ─────────────────────────────────
+// One form, three submit buttons (intent = save | test | last). Test and "last" use the URL currently
+// in the form, so a webhook can be verified before it is saved.
+
+const NOT_A_WEBHOOK = 'That doesn’t look like a Discord webhook URL. It should start with https://discord.com/api/webhooks/…';
+
+export async function discordAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const on = (name: string) => formData.get(name) === 'on';
+  const url = String(formData.get('url') ?? '').trim();
+  const intent = String(formData.get('intent') ?? 'save');
+
+  if (intent === 'save') {
+    const settings: DiscordSettings = {
+      url,
+      enabled: on('enabled'),
+      categories: { pulls: on('cat_pulls'), cards: on('cat_cards'), stream: on('cat_stream'), resets: on('cat_resets') },
+      minStars: Math.min(5, Math.max(1, parseInt(String(formData.get('minStars') ?? '1'), 10) || 1)),
+      newOnly: on('newOnly'),
+    };
+    if (url && !isValidDiscordWebhookUrl(url)) return { ok: false, message: NOT_A_WEBHOOK };
+    if (settings.enabled && !url) return { ok: false, message: 'Add a webhook URL before turning it on.' };
+    await saveDiscordSettings(settings);
+    revalidatePath('/admin/webhooks');
+    return { ok: true, message: settings.enabled ? 'Saved. Activity will be posted to Discord.' : 'Saved. Posting to Discord is off.' };
+  }
+
+  if (!url) return { ok: false, message: 'Paste a webhook URL first.' };
+  if (!isValidDiscordWebhookUrl(url)) return { ok: false, message: NOT_A_WEBHOOK };
+
+  let result;
+  if (intent === 'test') {
+    result = await postToDiscord(url, buildTestMessage());
+  } else {
+    const { events } = await getActivity({ limit: 1 });
+    if (!events[0]) return { ok: false, message: 'There is no activity to send yet.' };
+    result = await postToDiscord(url, await buildMessage(events[0], { footer: 'Resent from admin' }));
+  }
+
+  if (!result.ok) {
+    return { ok: false, message: `Discord didn’t accept it: ${result.error}${result.status ? ` (HTTP ${result.status})` : ''}` };
+  }
+  return { ok: true, message: intent === 'test' ? 'Test message sent. Check your Discord channel.' : 'Sent the most recent activity to Discord.' };
 }
