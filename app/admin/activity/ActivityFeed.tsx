@@ -296,10 +296,14 @@ function EventRow({
       body = <><UserLink username={e.username} /> was deleted</>;
       break;
     case 'trigger':
-      icon = e.kind === 'pull' ? '⚡' : '📖';
+      icon = e.kind === 'pull' ? (e.source === 'admin' ? '🎁' : '⚡') : '📖';
       accent = 'border-l-poke-blue-light';
-      body = <><UserLink username={e.username} /> triggered {e.kind === 'pull' ? 'a pack draw' : 'a collection view'}</>;
-      sub = 'via webhook';
+      body = e.source === 'admin' && e.kind === 'pull' ? (
+        <>{(e.count ?? 1) > 1 ? `${e.count} packs` : 'A pack'} gifted to <UserLink username={e.username} /></>
+      ) : (
+        <><UserLink username={e.username} /> triggered {e.kind === 'pull' ? 'a pack draw' : 'a collection view'}</>
+      );
+      sub = e.source === 'admin' ? 'by admin' : 'via webhook';
       break;
     case 'collection_shown':
       icon = '📺';

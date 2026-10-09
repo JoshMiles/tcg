@@ -2,26 +2,49 @@ import Link from 'next/link';
 import { getAllCollectionUsers, getUserProfile, listSeasons, getPackCards } from '@/lib/kv';
 import { uniqueCount } from '@/lib/collection';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+import { getActivity } from '@/lib/activity';
 import { Avatar } from '@/app/components/Avatar';
-import { resetUser, resetAllUsers, updateUserProfile } from '../actions';
+import { resetAllUsers } from '../actions';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { UserSearch } from './UserSearch';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UsersPage() {
-  const [users, seasons] = await Promise.all([
+type SortKey = 'cards' | 'pulls' | 'active' | 'name';
+
+const SORTS: { key: SortKey; label: string }[] = [
+  { key: 'cards', label: 'Most cards' },
+  { key: 'pulls', label: 'Most pulls' },
+  { key: 'active', label: 'Recently active' },
+  { key: 'name', label: 'A–Z' },
+];
+
+function timeAgo(at: number | undefined, now: number): string {
+  if (!at) return '—';
+  const s = Math.max(0, Math.round((now - at) / 1000));
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+export default async function UsersPage({ searchParams }: { searchParams: Promise<{ sort?: string }> }) {
+  const { sort: sortParam } = await searchParams;
+  const sort: SortKey = SORTS.some(s => s.key === sortParam) ? (sortParam as SortKey) : 'cards';
+
+  const [users, seasons, activity] = await Promise.all([
     getAllCollectionUsers(),
     listSeasons(),
+    getActivity({ limit: 500 }),
   ]);
 
   const [profiles, avatars] = await Promise.all([
     Promise.all(users.map(u => getUserProfile(u.username))),
     getAvatars(users.map(u => u.username)),
   ]);
-  const profileMap = Object.fromEntries(
-    profiles.filter(Boolean).map(p => [p!.username, p!])
-  );
+  const profileMap = Object.fromEntries(profiles.filter(Boolean).map(p => [p!.username, p!]));
 
   const seasonCardCounts: Record<string, number> = {};
   await Promise.all(
@@ -30,12 +53,51 @@ export default async function UsersPage() {
       seasonCardCounts[s.id] = cardArrays.reduce((sum, cards) => sum + cards.length, 0);
     })
   );
+  const activeSeasonId = seasons.find(s => s.active)?.id;
 
-  const sorted = [...users].sort(
-    (a, b) =>
-      b.seasons.reduce((s, x) => s + uniqueCount(x.cards), 0) -
-      a.seasons.reduce((s, x) => s + uniqueCount(x.cards), 0)
-  );
+  // Most recent logged activity per user (the log keeps the latest 500 events, newest first).
+  const lastActive = new Map<string, number>();
+  for (const e of activity.events) {
+    if (e.username && !lastActive.has(e.username)) lastActive.set(e.username, e.at);
+  }
+
+  const rows = users.map(user => {
+    const unique = user.seasons.reduce((s, x) => s + uniqueCount(x.cards), 0);
+    const pulls = user.seasons.reduce((s, x) => s + x.cards.length, 0);
+
+    // Headline progress: the active season if they have cards in it, else their best season.
+    const withPct = user.seasons.map(us => {
+      const total = seasonCardCounts[us.id] ?? 0;
+      const owned = uniqueCount(us.cards);
+      return { id: us.id, name: us.name, owned, total, pct: total > 0 ? Math.round((owned / total) * 100) : 0 };
+    });
+    const primary =
+      withPct.find(w => w.id === activeSeasonId) ??
+      [...withPct].sort((a, b) => b.pct - a.pct)[0];
+
+    const profile = profileMap[user.username];
+    return {
+      username: user.username,
+      displayName: profile?.displayName || user.username,
+      isTwitch: !!profile?.twitchId,
+      unique, pulls, primary,
+      otherSeasons: withPct.length - 1,
+      lastActive: lastActive.get(user.username),
+    };
+  });
+
+  // Rank is by unique cards regardless of how the list is sorted.
+  const byCards = [...rows].sort((a, b) => b.unique - a.unique || b.pulls - a.pulls);
+  const rank = new Map(byCards.map((r, i) => [r.username, i + 1]));
+
+  const sorted = [...rows].sort((a, b) => {
+    if (sort === 'pulls') return b.pulls - a.pulls || b.unique - a.unique;
+    if (sort === 'name') return a.username.localeCompare(b.username);
+    if (sort === 'active') return (b.lastActive ?? 0) - (a.lastActive ?? 0) || b.unique - a.unique;
+    return b.unique - a.unique || b.pulls - a.pulls;
+  });
+
+  const now = Date.now();
 
   return (
     <div className="space-y-6">
@@ -45,7 +107,7 @@ export default async function UsersPage() {
         <div>
           <h1 className="text-3xl font-bold text-white">Users</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {sorted.length} collector{sorted.length !== 1 ? 's' : ''} across all seasons
+            {sorted.length} collector{sorted.length !== 1 ? 's' : ''} across all seasons · click a row to manage them
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -71,7 +133,6 @@ export default async function UsersPage() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="tcg-panel rounded-2xl overflow-hidden">
         {sorted.length === 0 ? (
           <div className="py-20 text-center space-y-2">
@@ -81,150 +142,102 @@ export default async function UsersPage() {
           </div>
         ) : (
           <>
+            {/* Search + sort */}
             <UserSearch total={sorted.length} />
-
-            {/* Column headers */}
-            <div className="grid grid-cols-[2.5rem_1fr_5rem_14rem_5rem_9rem] gap-0 px-6 py-3 border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <span>#</span>
-              <span>User</span>
-              <span className="text-right">Cards</span>
-              <span className="pl-6">Seasons</span>
-              <span className="text-right">Best</span>
-              <span className="text-right">Actions</span>
+            <div className="px-6 py-2.5 border-b border-gray-800 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-gray-500 font-bold uppercase tracking-wider mr-1">Sort</span>
+              {SORTS.map(s => (
+                <Link
+                  key={s.key}
+                  href={s.key === 'cards' ? '/admin/users' : `/admin/users?sort=${s.key}`}
+                  className={`px-3 py-1 rounded-full font-bold border transition-colors ${
+                    sort === s.key
+                      ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300'
+                      : 'border-gray-700 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {s.label}
+                </Link>
+              ))}
             </div>
 
-            {sorted.map((user, i) => {
-              const profile = profileMap[user.username];
-              const displayName = profile?.displayName || user.username;
-              const totalCards = user.seasons.reduce((s, x) => s + uniqueCount(x.cards), 0);
-              const updateProfile = updateUserProfile.bind(null, user.username);
-              const resetThis = resetUser.bind(null, user.username);
+            {/* Column headers */}
+            <div className="grid grid-cols-[2.5rem_minmax(0,1.4fr)_minmax(0,1.3fr)_5.5rem_6.5rem_5rem] gap-3 px-6 py-3 border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <span>#</span>
+              <span>Viewer</span>
+              <span>Collection</span>
+              <span className="text-right">Pulls</span>
+              <span className="text-right" title="From the latest 500 activity events">Last active</span>
+              <span />
+            </div>
 
-              let best = 0;
-              for (const us of user.seasons) {
-                const total = seasonCardCounts[us.id] ?? 0;
-                if (total > 0) best = Math.max(best, Math.round(uniqueCount(us.cards) / total * 100));
-              }
-
+            {sorted.map(r => {
+              const n = rank.get(r.username) ?? 0;
               const rankBadge =
-                i === 0 ? 'bg-gradient-to-br from-yellow-300 to-amber-600 text-gray-950 shadow-glow'
-                : i === 1 ? 'bg-gradient-to-br from-gray-100 to-gray-400 text-gray-950'
-                : i === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-700 text-gray-950'
+                n === 1 ? 'bg-gradient-to-br from-yellow-300 to-amber-600 text-gray-950 shadow-glow'
+                : n === 2 ? 'bg-gradient-to-br from-gray-100 to-gray-400 text-gray-950'
+                : n === 3 ? 'bg-gradient-to-br from-orange-300 to-orange-700 text-gray-950'
                 : 'text-gray-600';
-              const bestColor = best >= 80 ? 'text-amber-400' : best >= 50 ? 'text-green-400' : 'text-gray-500';
+              const pct = r.primary?.pct ?? 0;
+              const barColor = pct >= 80 ? 'from-amber-300 to-amber-500' : pct >= 50 ? 'from-green-300 to-green-500' : 'from-gray-500 to-gray-400';
+              const dupes = r.pulls - r.unique;
 
               return (
-                <details
-                  key={user.username}
-                  data-search={`${user.username} ${displayName}`.toLowerCase()}
-                  className="group border-t border-gray-800/60 first:border-0"
+                // The whole row is one link (stretched anchor); the gift link sits above it.
+                <div
+                  key={r.username}
+                  data-search={`${r.username} ${r.displayName}`.toLowerCase()}
+                  className="relative grid grid-cols-[2.5rem_minmax(0,1.4fr)_minmax(0,1.3fr)_5.5rem_6.5rem_5rem] gap-3 items-center px-6 py-3 border-t border-gray-800/60 first:border-0 hover:bg-white/[0.03] transition-colors"
                 >
-                  <summary className="grid grid-cols-[2.5rem_1fr_5rem_14rem_5rem_9rem] gap-0 items-center px-6 py-3.5 cursor-pointer list-none hover:bg-white/[0.02] transition-colors [&::-webkit-details-marker]:hidden">
+                  <Link href={`/admin/users/${r.username}`} aria-label={`Manage ${r.displayName}`} className="absolute inset-0" />
 
-                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold tabular-nums ${rankBadge}`}>{i + 1}</span>
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold tabular-nums ${rankBadge}`}>{n}</span>
 
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Avatar src={avatars[user.username] && sizeTwitchAvatar(avatars[user.username], 70)} name={displayName} className="w-8 h-8 text-xs" />
-                      <div className="min-w-0">
-                        <p className="font-medium text-white text-sm truncate">{displayName}</p>
-                        {profile?.displayName && profile.displayName !== user.username && (
-                          <p className="text-xs text-gray-600 font-mono">{user.username}</p>
-                        )}
-                      </div>
-                      {profile?.twitchId && (
-                        <span className="text-xs px-1.5 py-0.5 bg-purple-900/40 text-purple-400 rounded-md shrink-0">Twitch</span>
-                      )}
-                    </div>
-
-                    <span className="text-right text-gray-400 tabular-nums text-sm">{totalCards}</span>
-
-                    <div className="flex flex-col gap-0.5 pl-6">
-                      {user.seasons.map(us => {
-                        const total = seasonCardCounts[us.id] ?? 0;
-                        const pct = total > 0 ? Math.round(uniqueCount(us.cards) / total * 100) : 0;
-                        return (
-                          <span key={us.id} className="text-xs text-gray-600 truncate">
-                            {us.name}:&nbsp;
-                            <span className="text-yellow-500 tabular-nums">{pct}%</span>
-                            <span className="text-gray-700"> ({uniqueCount(us.cards)}/{total})</span>
-                          </span>
-                        );
-                      })}
-                    </div>
-
-                    <span className={`text-right font-semibold tabular-nums text-sm ${bestColor}`}>{best}%</span>
-
-                    <div className="flex items-center justify-end gap-3">
-                      <Link
-                        href={`/admin/users/${user.username}`}
-                        className="text-xs text-yellow-500 hover:text-yellow-400 transition-colors shrink-0"
-                      >
-                        View
-                      </Link>
-                      <span className="text-xs text-gray-700 group-open:rotate-90 transition-transform inline-block">›</span>
-                    </div>
-                  </summary>
-
-                  {/* Expanded edit + reset panel */}
-                  <div className="px-6 py-4 bg-gray-800/30 border-t border-gray-800/60">
-                    <div className="flex items-start justify-between gap-6">
-                      <form action={updateProfile} className="flex-1 grid grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">Display name</label>
-                          <input
-                            name="displayName"
-                            defaultValue={profile?.displayName || user.username}
-                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">Twitch username</label>
-                          <input
-                            name="twitchId"
-                            defaultValue={profile?.twitchId || ''}
-                            placeholder="twitch_username"
-                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-1">Notes</label>
-                          <input
-                            name="notes"
-                            defaultValue={profile?.notes || ''}
-                            placeholder="Optional"
-                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
-                          />
-                        </div>
-                        <div className="col-span-3 flex items-center gap-3">
-                          <button
-                            type="submit"
-                            className="px-4 py-1.5 tcg-btn rounded-xl text-xs transition-colors"
-                          >
-                            Save Profile
-                          </button>
-                          <a
-                            href={`/collection/${user.username}`}
-                            target="_blank"
-                            className="px-4 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-xl transition-colors"
-                          >
-                            View Collection →
-                          </a>
-                          {/* Attached via the form attribute: nesting a <form> here would be dropped by the HTML parser */}
-                          <ConfirmButton
-                            formId={`reset-${user.username}`}
-                            title="Reset user?"
-                            confirmLabel="Reset user"
-                            message={<>Clear <strong className="text-white">{displayName}</strong>&apos;s cards in every season? Their profile is kept. This can&apos;t be undone.</>}
-                            className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
-                          >
-                            Reset User
-                          </ConfirmButton>
-                        </div>
-                      </form>
-                      <form id={`reset-${user.username}`} action={resetThis} />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.displayName} className="w-9 h-9 text-sm" />
+                    <div className="min-w-0">
+                      <p className="font-bold text-white text-sm truncate">{r.displayName}</p>
+                      <p className="text-xs text-gray-600 font-mono truncate">
+                        {r.displayName !== r.username ? `@${r.username}` : r.isTwitch ? 'Twitch linked' : ''}
+                      </p>
                     </div>
                   </div>
-                </details>
+
+                  <div className="min-w-0">
+                    {r.primary ? (
+                      <>
+                        <div className="h-1.5 rounded-full bg-gray-800 overflow-hidden">
+                          <div className={`h-full rounded-full bg-gradient-to-r ${barColor}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-400 truncate">
+                          <span className="font-bold text-white tabular-nums">{r.primary.owned}/{r.primary.total}</span>
+                          <span className="tabular-nums"> · {pct}%</span>
+                          <span className="text-gray-600"> · {r.primary.name}{r.otherSeasons > 0 ? ` +${r.otherSeasons} more` : ''}</span>
+                        </p>
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-600">—</span>
+                    )}
+                  </div>
+
+                  <span className="text-right tabular-nums text-sm text-gray-300" title={dupes > 0 ? `${r.unique} unique, ${dupes} duplicate${dupes !== 1 ? 's' : ''}` : undefined}>
+                    {r.pulls}
+                    {dupes > 0 && <span className="block text-[10px] text-gray-600">{dupes} dupes</span>}
+                  </span>
+
+                  <span className="text-right text-xs text-gray-500 tabular-nums">{timeAgo(r.lastActive, now)}</span>
+
+                  <div className="relative z-10 flex items-center justify-end gap-2">
+                    <Link
+                      href={`/admin?gift=${encodeURIComponent(r.username)}#quick-actions`}
+                      title={`Gift ${r.displayName} a pack`}
+                      className="px-2 py-1 text-base rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      🎁
+                    </Link>
+                    <span aria-hidden className="text-gray-600">›</span>
+                  </div>
+                </div>
               );
             })}
           </>

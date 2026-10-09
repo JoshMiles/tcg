@@ -25,6 +25,16 @@ export default async function SettingsPage() {
         <p className="text-xs text-gray-600">
           Append <code className="text-gray-500">?dev</code> to show the on-screen test panel.
         </p>
+        <div className="rounded-lg bg-gray-950/60 border border-gray-800 p-3 space-y-1">
+          <p className="text-sm text-gray-300 font-semibold">Connection &amp; live status</p>
+          <p className="text-xs text-gray-500 leading-relaxed">
+            The overlay checks in every 10 seconds, so the admin sidebar and dashboard show whether it&apos;s open.
+            To also show when you&apos;re <strong className="text-gray-300">live</strong>, open the browser source&apos;s properties in OBS and set{' '}
+            <strong className="text-gray-300">Page permissions</strong> to{' '}
+            <em className="text-gray-300">“Read access to OBS status information”</em>. Without it the overlay still reports as
+            connected, but its stream status stays unknown.
+          </p>
+        </div>
       </section>
 
       {/* Collection page */}

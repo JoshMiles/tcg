@@ -35,10 +35,14 @@ export interface UnusedBlob {
   format: string;
 }
 
+/** Why the Blob inventory couldn't be read (so the UI can say the real reason). */
+export type BlobProblem = { kind: 'no-token' } | { kind: 'error'; message: string };
+
 export interface AssetLibrary {
   assets: LibraryAsset[];
   unused: UnusedBlob[];
   blobConnected: boolean;       // false when Blob storage isn't configured/reachable
+  blobProblem?: BlobProblem;    // set when blobConnected is false
 }
 
 const HEAVY_BYTES = 8 * 1024 * 1024;
@@ -72,19 +76,41 @@ async function collectReferenced() {
   return { refs, referenced };
 }
 
-async function listAllBlobs(): Promise<{ connected: boolean; blobs: { url: string; pathname: string; size: number; uploadedAt: Date }[] }> {
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      v => { clearTimeout(timer); resolve(v); },
+      e => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
+async function listAllBlobs(): Promise<{
+  connected: boolean;
+  problem?: BlobProblem;
+  blobs: { url: string; pathname: string; size: number; uploadedAt: Date }[];
+}> {
+  // Say which it is: no token in this environment (e.g. a Vercel preview whose env vars are scoped to
+  // Production only) vs. a token that exists but Vercel rejected or couldn't be reached.
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.VERCEL_BLOB_RW_TOKEN) {
+    return { connected: false, problem: { kind: 'no-token' }, blobs: [] };
+  }
   try {
     const blobs: { url: string; pathname: string; size: number; uploadedAt: Date }[] = [];
     let cursor: string | undefined;
     for (let page = 0; page < 10; page++) {            // up to 10,000 files
-      const res = await list({ cursor, limit: 1000 });
+      // The SDK retries network failures with backoff and doesn't reliably honour an abort signal while
+      // doing so, so race it against a timer — a broken store must not hang the whole page.
+      const res = await withTimeout(list({ cursor, limit: 1000 }), 8000, 'Timed out reaching Vercel Blob');
       blobs.push(...res.blobs);
       if (!res.hasMore) break;
       cursor = res.cursor;
     }
     return { connected: true, blobs };
-  } catch {
-    return { connected: false, blobs: [] };
+  } catch (err) {
+    const message = (err instanceof Error ? err.message : String(err)).replace(/vercel_blob_rw_\w+/gi, '[token]').slice(0, 300);
+    return { connected: false, problem: { kind: 'error', message }, blobs: [] };
   }
 }
 
@@ -146,7 +172,7 @@ export async function loadAssetLibrary(origin: string): Promise<AssetLibrary> {
     .map(b => ({ url: b.url, pathname: b.pathname, bytes: b.size, uploadedAt: new Date(b.uploadedAt).toISOString(), format: formatOf(b.pathname) }))
     .sort((a, b) => b.bytes - a.bytes);
 
-  return { assets, unused, blobConnected: inventory.connected };
+  return { assets, unused, blobConnected: inventory.connected, blobProblem: inventory.problem };
 }
 
 /**

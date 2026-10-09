@@ -102,3 +102,15 @@ export async function parseIncomingWebhook(req: Request): Promise<IncomingWebhoo
   }
   return { ok: true, username, body };
 }
+
+/** Number of events waiting for an overlay to pick up. */
+export async function queueLength(): Promise<number> {
+  return kv.llen('webhooks:queue');
+}
+
+/** Drops everything waiting in the queue; returns how many events were discarded. */
+export async function clearQueue(): Promise<number> {
+  const n = await queueLength();
+  if (n > 0) await kv.del('webhooks:queue');
+  return n;
+}

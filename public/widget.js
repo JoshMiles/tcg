@@ -503,7 +503,59 @@ async function pollWebhookQueue() {
   }
 }
 
+// ═══════════════════════════════════════════════════════
+//  HEARTBEAT  (lets the admin dashboard see the overlay is open)
+// ═══════════════════════════════════════════════════════
+// One random id per page load. If OBS grants this source "Read access to OBS status information"
+// (Browser source → Page permissions), window.obsstudio.getStatus() also tells us whether OBS is
+// streaming/recording; without that permission those fields are simply null ("unknown").
+const OVERLAY_ID = (window.crypto && crypto.randomUUID)
+  ? crypto.randomUUID()
+  : Math.random().toString(36).slice(2) + Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+function readObsStatus() {
+  return new Promise(resolve => {
+    if (!window.obsstudio || typeof window.obsstudio.getStatus !== 'function') return resolve(null);
+    // Without the permission the callback may never fire, so don't wait forever.
+    const timer = setTimeout(() => resolve(null), 1500);
+    try {
+      window.obsstudio.getStatus(status => {
+        clearTimeout(timer);
+        resolve(status ? { streaming: !!status.streaming, recording: !!status.recording } : null);
+      });
+    } catch {
+      clearTimeout(timer);
+      resolve(null);
+    }
+  });
+}
+
+async function sendHeartbeat() {
+  const obs = await readObsStatus();
+  fetch('/api/overlay/heartbeat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    keepalive: true,
+    body: JSON.stringify({
+      id: OVERLAY_ID,
+      streaming: obs ? obs.streaming : null,
+      recording: obs ? obs.recording : null,
+      obs: !!window.obsstudio || /OBS\//i.test(navigator.userAgent),
+      dev: new URLSearchParams(window.location.search).has('dev'),
+    }),
+  }).catch(() => {}); // never let a failed ping affect the overlay
+}
+
+function startHeartbeat() {
+  sendHeartbeat();
+  setInterval(sendHeartbeat, 10000);
+  // OBS fires these when the stream/recording starts or stops — report the change straight away.
+  ['obsStreamingStarted', 'obsStreamingStopped', 'obsRecordingStarted', 'obsRecordingStopped']
+    .forEach(name => window.addEventListener(name, sendHeartbeat));
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+  startHeartbeat(); // first, so "overlay open" shows even if the season fails to load
   await initSeason();
   await loadCollection();
   initDevPanel();
