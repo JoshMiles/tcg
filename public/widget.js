@@ -194,7 +194,7 @@ function warmImage(url) {
   let img = WARM_IMAGES.get(url);
   if (!img) {
     img = new Image();
-    img.decoding = async;
+    img.decoding = 'async';
     img.src = url;
     WARM_IMAGES.set(url, img);
   }
