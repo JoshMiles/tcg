@@ -1,10 +1,13 @@
 import { AdminNav } from './components/AdminNav';
 import { BrandMark } from './components/BrandMark';
 import { BuildBadge } from './components/BuildBadge';
+import { OverlayStatus } from './components/OverlayStatus';
+import { OverlayStatusProvider } from './components/OverlayStatusContext';
 import { CopyUrlButton } from './components/copy-url-button';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
+    <OverlayStatusProvider>
     <div className="flex min-h-screen text-gray-100">
       <aside className="w-60 bg-gray-950/80 backdrop-blur border-r border-poke-blue-light/15 flex flex-col shrink-0 sticky top-0 h-screen">
         {/* Brand */}
@@ -20,6 +23,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="holo-strip mx-4 rounded-full opacity-80" />
 
         <AdminNav />
+
+        <OverlayStatus variant="compact" />
 
         {/* Bottom actions */}
         <div className="p-3 border-t border-poke-blue-light/10 space-y-0.5">
@@ -44,5 +49,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {children}
       </main>
     </div>
+    </OverlayStatusProvider>
   );
 }

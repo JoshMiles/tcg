@@ -8,12 +8,14 @@ import {
   getPackCards, savePackCards,
   getCollection, saveCollection, deleteCollection, removeUserFromCollection,
   getUserProfile, saveUserProfile, deleteUserProfile,
-  seedSeason1 as seedSeason1Data,
+  seedSeason1 as seedSeason1Data, getActiveSeasonWithPacks, ensureUserProfile,
 } from '@/lib/kv';
 import type { UserProfile } from '@/lib/types';
 import { recordActivity } from '@/lib/activity';
 import { deleteUnusedBlobs } from '@/lib/assets';
-import { getWebhookSettings, saveWebhookSettings } from '@/lib/webhooks';
+import { getOverlayStatus } from '@/lib/overlay';
+import type { ActionResult } from './action-types';
+import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
 
 // ── Seasons ───────────────────────────────────────────────
 
@@ -308,4 +310,88 @@ export async function deleteUnusedAssets(formData: FormData) {
   const urls = formData.getAll('url').map(String);
   await deleteUnusedBlobs(urls);
   revalidatePath('/admin/assets');
+}
+
+// ── Dashboard quick actions ───────────────────────────────
+// Each returns a result message for the UI (via useActionState) instead of redirecting.
+
+function cleanUsername(raw: FormDataEntryValue | null): string | null {
+  const u = String(raw ?? '').trim().replace(/^@/, '').toLowerCase();
+  return /^[a-z0-9_]{1,25}$/.test(u) ? u : null;
+}
+
+const BAD_USERNAME: ActionResult = { ok: false, message: 'Enter a valid Twitch username (letters, numbers and underscores).' };
+
+// Queue overlay events (the overlay polls the queue every 2s and plays them on stream).
+async function queueForOverlay(kind: 'pull' | 'collection', formData: FormData, count: number): Promise<ActionResult> {
+  const username = cleanUsername(formData.get('username'));
+  if (!username) return BAD_USERNAME;
+
+  const status = await getOverlayStatus();
+  const force = formData.get('force') === 'on';
+  if (status.connected === 0 && !force) {
+    return {
+      ok: false,
+      needsForce: true,
+      message: 'No overlay is connected, so nothing would play on stream. Open the overlay in OBS first, or queue it anyway to play when one connects.',
+    };
+  }
+
+  for (let i = 0; i < count; i++) {
+    await enqueueEvent({ id: crypto.randomUUID(), type: kind, username, queuedAt: Date.now() });
+  }
+  await recordActivity({ type: 'trigger', kind, username, source: 'admin', count });
+  revalidatePath('/admin');
+  revalidatePath('/admin/activity');
+
+  const waiting = status.connected === 0 ? ' It will play when an overlay connects.' : '';
+  return kind === 'pull'
+    ? { ok: true, message: `Queued ${count} pack${count !== 1 ? 's' : ''} for ${username}.${waiting}` }
+    : { ok: true, message: `Showing ${username}'s collection on stream.${waiting}` };
+}
+
+async function giftPack(formData: FormData): Promise<ActionResult> {
+  const count = Math.min(10, Math.max(1, parseInt(String(formData.get('count') ?? '1'), 10) || 1));
+  return queueForOverlay('pull', formData, count);
+}
+
+async function showCollection(formData: FormData): Promise<ActionResult> {
+  return queueForOverlay('collection', formData, 1);
+}
+
+// One form, several submit buttons: the clicked button's name="intent" value picks the action.
+export async function quickAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  switch (formData.get('intent')) {
+    case 'gift': return giftPack(formData);
+    case 'show': return showCollection(formData);
+    case 'grant': return grantCard(formData);
+    default: return { ok: false, message: 'Unknown action.' };
+  }
+}
+
+async function grantCard(formData: FormData): Promise<ActionResult> {
+  const username = cleanUsername(formData.get('username'));
+  if (!username) return BAD_USERNAME;
+
+  const cardNumber = parseInt(String(formData.get('cardNumber') ?? ''), 10);
+  const active = await getActiveSeasonWithPacks();
+  if (!active) return { ok: false, message: 'There is no active season to grant a card in.' };
+  const card = active.packs.flatMap(p => p.cards).find(c => c.number === cardNumber);
+  if (!card) return { ok: false, message: 'Pick a card from the list.' };
+
+  const collectionName = active.season.collectionName;
+  const data = await getCollection(collectionName);
+  data[username] = [...(data[username] ?? []), card.number];
+  await saveCollection(collectionName, data);
+  await ensureUserProfile(username);
+  await recordActivity({ type: 'grant', source: 'admin', username, cardNumber: card.number, collectionName });
+  revalidatePath('/admin');
+  revalidatePath('/admin/users');
+  return { ok: true, message: `Granted ${card.name} (#${card.number}) to ${username}.` };
+}
+
+export async function clearQueueAction(): Promise<ActionResult> {
+  const n = await clearQueue();
+  revalidatePath('/admin');
+  return { ok: true, message: n > 0 ? `Cleared ${n} waiting event${n !== 1 ? 's' : ''}.` : 'The queue was already empty.' };
 }

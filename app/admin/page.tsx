@@ -6,10 +6,13 @@ import { cardThumbUrl } from '@/lib/card-art';
 import { uniqueCount } from '@/lib/collection';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { Avatar } from '@/app/components/Avatar';
+import { OverlayStatus } from './components/OverlayStatus';
+import { QuickActions } from './components/QuickActions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ gift?: string }> }) {
+  const { gift } = await searchParams; // /admin?gift=username prefills the quick-actions viewer
   const result = await getActiveSeasonWithPacks();
 
   if (!result) {
@@ -90,14 +93,14 @@ export default async function AdminDashboard() {
           <p className="text-xs text-yellow-500 font-bold uppercase tracking-widest mb-1">★ Active Season</p>
           <h1 className="text-4xl font-bold text-white">{season.name}</h1>
         </div>
-        <div className="flex gap-2 pt-1">
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
           <Link
             href={`/admin/seasons/${season.id}`}
             className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
           >
             Season Settings
           </Link>
-          <SeedButton />
+          <OverlayStatus />
         </div>
       </div>
 
@@ -117,6 +120,13 @@ export default async function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {/* Quick actions */}
+      <QuickActions
+        usernames={users.map(([name]) => name).sort()}
+        cards={[...allCards].sort((a, b) => a.number - b.number).map(c => ({ number: c.number, name: c.name, stars: c.stars }))}
+        defaultUsername={gift ?? ''}
+      />
 
       {/* Middle row */}
       <div className="grid lg:grid-cols-3 gap-4">

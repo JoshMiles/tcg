@@ -13,7 +13,8 @@ export type ActivityDetail =
   | { type: 'remove'; cardNumber: number }
   | { type: 'reset'; scope: 'season' | 'all' | 'everyone' }
   | { type: 'delete' }
-  | { type: 'trigger'; kind: 'pull' | 'collection' }   // incoming webhook asked the overlay to draw / show a collection
+  // something asked the overlay to draw / show a collection: an incoming webhook, or an admin quick action
+  | { type: 'trigger'; kind: 'pull' | 'collection'; source?: 'webhook' | 'admin'; count?: number }
   | { type: 'collection_shown' };                      // overlay displayed a viewer's collection
 
 export type ActivityEvent = ActivityDetail & {

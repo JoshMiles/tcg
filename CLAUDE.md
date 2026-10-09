@@ -98,6 +98,10 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 ### Admin (one-time / utility)
 - `GET /api/admin/import-legacy?secret={ADMIN_SECRET}` — seeds `tcg_CheesyStarterDeck` with Season 1 legacy player data. Add `&dry=1` to preview, `&overwrite=1` to replace existing user data. Also creates user profiles for imported users.
 
+### Overlay
+- `POST /api/overlay/heartbeat` — the OBS overlay (`public/widget.js`) pings this every 10s with `{ id, streaming, recording, obs, dev }`; strictly validated, unauthenticated like the rest of the overlay's endpoints
+- `GET /api/admin/overlay-status` — admin-only; `{ connected, clients, streaming, recording, lastSeen, queued }`
+
 ### Webhooks
 - `POST /api/webhooks/grant-card` — MixItUp integration: body `{ secret, username, cardNumber }` → appends card to user's active season collection
 
@@ -210,6 +214,12 @@ Every build is stamped so you can tell which deployment you are looking at. `nex
 - **Tiny card icons use `cardThumbUrl()`**, never the animated `imageUrl` (a 28px icon should not download 2MB).
 - **Assets page** (`lib/assets.ts` + `app/admin/assets/`): groups by purpose (card art / pack covers / sounds / unused), not file type. Flags `legacy-gif`, `missing`, `no-thumbnail`, `heavy`. Sizes come from the Blob `list()` for Blob files and same-origin HEAD requests for bundled `/assets/…` files. "Unused" = Blob files no card/pack references (a card's companion thumbnail counts as referenced; files under 10 minutes old are hidden in case they're mid-optimize). `deleteUnusedBlobs()` re-verifies on the server — it only deletes files that are in our store and unreferenced — so a stale page or crafted form can't delete live art.
 - The users list has a client-side search (`UserSearch`, press `/`); rows opt in with a `data-search` attribute.
+
+## Overlay status & quick actions
+- **Connection indicator**: each overlay page load picks a random id and sends a heartbeat every 10s (`lib/overlay.ts`, KV hash `overlay:clients`); a client counts as connected for 25s after its last heartbeat. `OverlayStatusProvider` (in the admin layout) polls `/api/admin/overlay-status` once every 5s and `OverlayStatus` (sidebar + dashboard header) and `QuickActions` read it. Open the overlay in a normal browser tab and it shows as "browser tab".
+- **Live detection**: if OBS grants the browser source *Page permissions → "Read access to OBS status information"*, the widget calls `window.obsstudio.getStatus()` and reports `streaming`/`recording` (and re-reports on the `obsStreamingStarted/Stopped` events). Without that permission those stay `null` and the UI says only "connected". It cannot know the stream is live any other way.
+- **Quick actions** (dashboard): `quickAction` in `actions.ts` dispatches on the submit button's `intent` (gift packs, show collection, grant card); `clearQueueAction` empties the overlay queue. Gift/show enqueue the same events the webhooks do (`enqueueEvent`) and are refused with a "queue anyway" option when no overlay is connected, so packs can't pile up unseen. They return an `ActionResult` shown inline via `useActionState`. Keep form fields controlled — React resets uncontrolled fields after a form action. `/admin?gift=<username>` prefills the viewer (the users list 🎁 link uses it).
+- **Users list**: rows are one stretched link to `/admin/users/[username]` (profile editing lives there), sortable via `?sort=cards|pulls|active|name`; "last active" comes from the latest 500 activity events.
 
 ## Local dev
 `npm install` then `npx tsc --noEmit` / `npm run build` work locally. `node_modules/` is gitignored.
