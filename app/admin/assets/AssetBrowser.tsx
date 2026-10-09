@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { AssetIssue, AssetKind, AssetLibrary, LibraryAsset, UnusedBlob } from '@/lib/assets';
+import type { AssetIssue, AssetKind, AssetLibrary, BlobProblem, LibraryAsset, UnusedBlob } from '@/lib/assets';
 import { CardTile } from '@/app/components/CardTile';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { deleteUnusedAssets } from '../actions';
@@ -39,7 +39,7 @@ function filename(url: string): string {
 }
 
 export function AssetBrowser({ library }: { library: AssetLibrary }) {
-  const { assets, unused, blobConnected } = library;
+  const { assets, unused, blobConnected, blobProblem } = library;
   const [tab, setTab] = useState<Tab>('card-art');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<Sort>('default');
@@ -102,7 +102,7 @@ export function AssetBrowser({ library }: { library: AssetLibrary }) {
         <Stat
           label="Unused"
           value={blobConnected ? String(unused.length) : '—'}
-          sub={blobConnected ? (unused.length ? `${formatBytes(totals.unusedBytes)} to reclaim` : 'nothing to clean up') : 'storage not connected'}
+          sub={blobConnected ? (unused.length ? `${formatBytes(totals.unusedBytes)} to reclaim` : 'nothing to clean up') : 'storage unavailable'}
           tone={unused.length > 0 ? 'amber' : undefined}
           onClick={blobConnected && unused.length > 0 ? () => setTab('unused') : undefined}
         />
@@ -164,7 +164,7 @@ export function AssetBrowser({ library }: { library: AssetLibrary }) {
 
       {/* Content */}
       {tab === 'unused' ? (
-        <UnusedPanel items={visibleUnused} all={unused} blobConnected={blobConnected} copy={copy} copied={copied} />
+        <UnusedPanel items={visibleUnused} all={unused} blobConnected={blobConnected} problem={blobProblem} copy={copy} copied={copied} />
       ) : visibleAssets.length === 0 ? (
         <div className="py-16 text-center text-sm text-gray-500">
           {onlyIssues || q ? 'Nothing matches the current filters.' : 'No files here yet — they appear once packs and cards use them.'}
@@ -291,12 +291,32 @@ function AssetCard({ asset, copied, onCopy }: { asset: LibraryAsset; copied: boo
 }
 
 function UnusedPanel({
-  items, all, blobConnected, copy, copied,
-}: { items: UnusedBlob[]; all: UnusedBlob[]; blobConnected: boolean; copy: (url: string) => void; copied: string | null }) {
+  items, all, blobConnected, problem, copy, copied,
+}: { items: UnusedBlob[]; all: UnusedBlob[]; blobConnected: boolean; problem?: BlobProblem; copy: (url: string) => void; copied: string | null }) {
   if (!blobConnected) {
     return (
-      <div className="tcg-panel rounded-xl p-6 text-sm text-gray-400">
-        Blob storage isn&apos;t connected in this environment (no <code className="text-gray-300">BLOB_READ_WRITE_TOKEN</code>), so unused files can&apos;t be checked here.
+      <div className="tcg-panel rounded-xl p-6 text-sm text-gray-400 space-y-2">
+        {problem?.kind === 'error' ? (
+          <>
+            <p>
+              Blob storage is configured here, but reading it failed, so unused files can&apos;t be checked.
+            </p>
+            <p className="font-mono text-xs text-amber-300 break-words">{problem.message}</p>
+            <p className="text-xs text-gray-500">
+              Check the store is still linked to this project and not suspended (Vercel → Storage). Your cards and covers are unaffected.
+            </p>
+          </>
+        ) : (
+          <>
+            <p>
+              This environment has no <code className="text-gray-300">BLOB_READ_WRITE_TOKEN</code>, so unused files can&apos;t be checked here.
+            </p>
+            <p className="text-xs text-gray-500">
+              On Vercel, make sure the variable is enabled for this environment — a <strong className="text-gray-400">Preview</strong> deployment
+              doesn&apos;t get Production-only variables. If you&apos;re viewing production, check Settings → Environment Variables and redeploy.
+            </p>
+          </>
+        )}
       </div>
     );
   }
