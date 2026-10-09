@@ -428,7 +428,11 @@ function showCollection(username) {
   cardBox.style.display          = 'none';
   radialContainer.style.display  = 'none';
 
+  // Fade in: commit the transparent start state, then release it so the opacity transition runs.
+  wrapper.classList.add('fade-in', 'fade-in-start');
   wrapper.style.visibility = 'visible';
+  void wrapper.offsetWidth;
+  wrapper.classList.remove('fade-in-start');
   cardInfo.style.opacity   = '1';
   cardInfo.style.transform = 'scale(1)';
   userText.textContent     = (username || 'Someone') + "'s collection:";
@@ -443,6 +447,7 @@ function showCollection(username) {
 
   if (collectionTimeout) clearTimeout(collectionTimeout);
   collectionTimeout = setTimeout(() => {
+    wrapper.classList.remove('fade-in');   // fade-out keeps the shorter default timing
     wrapper.classList.add('hid');
     setTimeout(() => {
       wrapper.remove();
