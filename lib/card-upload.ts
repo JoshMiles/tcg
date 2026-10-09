@@ -1,12 +1,8 @@
 import { put, del } from '@vercel/blob';
 import { toAnimatedCard, toThumb } from './card-image';
-import { optimizedCardPaths } from './card-art';
+import { optimizedCardPaths, isBlobUrl } from './card-art';
 
-const BLOB_HOST = /^https:\/\/[^/]+\.public\.blob\.vercel-storage\.com\//i;
-
-export function isBlobUrl(url: string): boolean {
-  return BLOB_HOST.test(url);
-}
+export { isBlobUrl };
 
 /**
  * Optimizes a GIF and stores the animated WebP plus a static thumbnail in Blob.

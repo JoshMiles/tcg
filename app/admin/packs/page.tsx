@@ -3,6 +3,7 @@ import { listAllPacks, getPackCards } from '@/lib/kv';
 import { rarityStats } from '@/lib/rarity';
 import { deletePackAction } from '../actions';
 import { NewPackButton } from '../components/NewPackButton';
+import { ConfirmButton } from '../components/ConfirmButton';
 import { BrandMark } from '../components/BrandMark';
 import { StatusChip } from '../components/StatusChip';
 
@@ -92,12 +93,14 @@ export default async function PacksPage() {
                       Manage →
                     </Link>
                     <form action={del}>
-                      <button
-                        type="submit"
-                        className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
-                      >
-                        Delete
-                      </button>
+                      <ConfirmButton
+                title="Delete pack?"
+                confirmLabel="Delete pack"
+                message={<>Delete <strong className="text-white">{pack.name}</strong>? Its cards are deleted and it is removed from every season. This can&apos;t be undone.</>}
+                className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
+              >
+                Delete
+              </ConfirmButton>
                     </form>
                   </div>
                 </div>

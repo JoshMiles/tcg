@@ -12,6 +12,7 @@ import {
 } from '@/lib/kv';
 import type { UserProfile } from '@/lib/types';
 import { recordActivity } from '@/lib/activity';
+import { deleteUnusedBlobs } from '@/lib/assets';
 import { getWebhookSettings, saveWebhookSettings } from '@/lib/webhooks';
 
 // ── Seasons ───────────────────────────────────────────────
@@ -298,4 +299,13 @@ export async function regenerateWebhookSecret() {
   settings.incomingSecret = randomBytes(16).toString('hex');
   await saveWebhookSettings(settings);
   revalidatePath('/admin/webhooks');
+}
+
+// ── Assets ────────────────────────────────────────────────
+
+// Deletes Blob files that nothing references (urls come from the form, but are re-verified server-side).
+export async function deleteUnusedAssets(formData: FormData) {
+  const urls = formData.getAll('url').map(String);
+  await deleteUnusedBlobs(urls);
+  revalidatePath('/admin/assets');
 }

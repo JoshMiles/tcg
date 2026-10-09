@@ -70,7 +70,10 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 - `/admin/packs/[packId]/cards/[cardId]` — edit individual card
 - `/admin/users` — all collectors across all seasons, with link to each user's detail page
 - `/admin/users/[username]` — user detail: per-season card grid, grant/remove cards, danger zone (reset/delete)
-- `/admin/settings` — misc settings
+- `/admin/activity` — live activity feed
+- `/admin/assets` — media library: every card image, pack cover and sound with size/health flags, plus a cleanup tab for unreferenced Blob files
+- `/admin/webhooks` — incoming/outgoing webhook config
+- `/admin/settings` — misc settings, build info
 
 ## Public routes
 - `/collection` — landing page (username search)
@@ -201,6 +204,12 @@ The page is a server-rendered snapshot plus a client component (`ActivityFeed`) 
 
 ## Build version
 Every build is stamped so you can tell which deployment you are looking at. `next.config.ts` bakes `BUILD_VERSION` (from `package.json`), `BUILD_COMMIT`/`BRANCH`/`ENV`/`REPO` (from Vercel's `VERCEL_GIT_*` and `VERCEL_ENV`, falling back to `git` locally) and `BUILD_TIME` into the bundle; `lib/version.ts` (`getBuildInfo()`) reads them. It shows as `v1.1.0 · 75fdb70` in the admin sidebar (`BuildBadge`, links to the commit on GitHub, with a `DEV`/`PREVIEW` pill outside production), in a **Build** section on `/admin/settings`, and in the top-right corner of the Twitch panel (fetched from the public `GET /api/version`). The semver is manual — bump `version` in `package.json` for releases; the commit changes automatically every build.
+
+## Admin UX conventions
+- **Destructive actions use `ConfirmButton`** (`app/admin/components/ConfirmButton.tsx`): wrap the submit button of a `<form action={serverAction}>` and it opens a confirmation dialog first, then calls `form.requestSubmit()`. Never ship a bare delete/reset button. For a button outside its form, pass `formId`.
+- **Tiny card icons use `cardThumbUrl()`**, never the animated `imageUrl` (a 28px icon should not download 2MB).
+- **Assets page** (`lib/assets.ts` + `app/admin/assets/`): groups by purpose (card art / pack covers / sounds / unused), not file type. Flags `legacy-gif`, `missing`, `no-thumbnail`, `heavy`. Sizes come from the Blob `list()` for Blob files and same-origin HEAD requests for bundled `/assets/…` files. "Unused" = Blob files no card/pack references (a card's companion thumbnail counts as referenced; files under 10 minutes old are hidden in case they're mid-optimize). `deleteUnusedBlobs()` re-verifies on the server — it only deletes files that are in our store and unreferenced — so a stale page or crafted form can't delete live art.
+- The users list has a client-side search (`UserSearch`, press `/`); rows opt in with a `data-search` attribute.
 
 ## Local dev
 `npm install` then `npx tsc --noEmit` / `npm run build` work locally. `node_modules/` is gitignored.

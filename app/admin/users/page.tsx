@@ -4,6 +4,8 @@ import { uniqueCount } from '@/lib/collection';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { Avatar } from '@/app/components/Avatar';
 import { resetUser, resetAllUsers, updateUserProfile } from '../actions';
+import { ConfirmButton } from '../components/ConfirmButton';
+import { UserSearch } from './UserSearch';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,12 +58,14 @@ export default async function UsersPage() {
           </a>
           {sorted.length > 0 && (
             <form action={resetAllUsers}>
-              <button
-                type="submit"
+              <ConfirmButton
+                title="Reset ALL collections?"
+                confirmLabel="Reset everyone"
+                message={<>This wipes <strong className="text-white">every viewer&apos;s cards in every season</strong> ({sorted.length} collector{sorted.length !== 1 ? 's' : ''}). This can&apos;t be undone.</>}
                 className="px-3 py-2 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-xl transition-colors"
               >
                 Reset All
-              </button>
+              </ConfirmButton>
             </form>
           )}
         </div>
@@ -77,6 +81,8 @@ export default async function UsersPage() {
           </div>
         ) : (
           <>
+            <UserSearch total={sorted.length} />
+
             {/* Column headers */}
             <div className="grid grid-cols-[2.5rem_1fr_5rem_14rem_5rem_9rem] gap-0 px-6 py-3 border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
               <span>#</span>
@@ -108,7 +114,11 @@ export default async function UsersPage() {
               const bestColor = best >= 80 ? 'text-amber-400' : best >= 50 ? 'text-green-400' : 'text-gray-500';
 
               return (
-                <details key={user.username} className="group border-t border-gray-800/60 first:border-0">
+                <details
+                  key={user.username}
+                  data-search={`${user.username} ${displayName}`.toLowerCase()}
+                  className="group border-t border-gray-800/60 first:border-0"
+                >
                   <summary className="grid grid-cols-[2.5rem_1fr_5rem_14rem_5rem_9rem] gap-0 items-center px-6 py-3.5 cursor-pointer list-none hover:bg-white/[0.02] transition-colors [&::-webkit-details-marker]:hidden">
 
                     <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold tabular-nums ${rankBadge}`}>{i + 1}</span>
@@ -200,13 +210,15 @@ export default async function UsersPage() {
                             View Collection →
                           </a>
                           {/* Attached via the form attribute: nesting a <form> here would be dropped by the HTML parser */}
-                          <button
-                            type="submit"
-                            form={`reset-${user.username}`}
+                          <ConfirmButton
+                            formId={`reset-${user.username}`}
+                            title="Reset user?"
+                            confirmLabel="Reset user"
+                            message={<>Clear <strong className="text-white">{displayName}</strong>&apos;s cards in every season? Their profile is kept. This can&apos;t be undone.</>}
                             className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
                           >
                             Reset User
-                          </button>
+                          </ConfirmButton>
                         </div>
                       </form>
                       <form id={`reset-${user.username}`} action={resetThis} />

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getActiveSeasonWithPacks, getCollection } from '@/lib/kv';
 import { seedSeason1 } from './actions';
 import { rarityStats, getRarity } from '@/lib/rarity';
+import { cardThumbUrl } from '@/lib/card-art';
 import { uniqueCount } from '@/lib/collection';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { Avatar } from '@/app/components/Avatar';
@@ -258,7 +259,7 @@ export default async function AdminDashboard() {
                     <td className="px-5 py-2.5">
                       <div className="flex items-center gap-2.5">
                         {c.imageUrl ? (
-                          <img src={c.imageUrl} alt={c.name} loading="lazy" className="w-5 h-7 object-cover rounded shrink-0" />
+                          <img src={cardThumbUrl(c.imageUrl)} alt={c.name} loading="lazy" className="w-5 h-7 object-cover rounded shrink-0" />
                         ) : (
                           <div className="w-5 h-7 bg-gray-800 rounded shrink-0" />
                         )}

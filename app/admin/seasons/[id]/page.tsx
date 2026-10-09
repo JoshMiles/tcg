@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, getPacksForSeason, listAllPacks } from '@/lib/kv';
+import { ConfirmButton } from '../../components/ConfirmButton';
 import { updateSeason, addPackToSeason, removePackFromSeason } from '../../actions';
 import { SeasonFields } from '../../components/SeasonFields';
 
@@ -108,12 +109,14 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
                       Edit
                     </Link>
                     <form action={remove}>
-                      <button
-                        type="submit"
-                        className="px-2.5 py-1 text-xs bg-red-900/50 hover:bg-red-900 text-red-400 rounded transition-colors"
-                      >
-                        Remove
-                      </button>
+                      <ConfirmButton
+                title="Remove pack from season?"
+                confirmLabel="Remove"
+                message={<>Remove <strong className="text-white">{pack.name}</strong> from this season? The pack itself is kept and can be added back.</>}
+                className="px-2.5 py-1 text-xs bg-red-900/50 hover:bg-red-900 text-red-400 rounded transition-colors"
+              >
+                Remove
+              </ConfirmButton>
                     </form>
                   </div>
                 </div>

@@ -15,3 +15,9 @@ export function cardThumbUrl(imageUrl: string): string {
 export function optimizedCardPaths(id: string): { full: string; thumb: string } {
   return { full: `cards/${id}.webp`, thumb: `cards/${id}.thumb.webp` };
 }
+
+/** True for files in this project's Vercel Blob store. */
+const BLOB_HOST = /^https:\/\/[^/]+\.public\.blob\.vercel-storage\.com\//i;
+export function isBlobUrl(url: string): boolean {
+  return BLOB_HOST.test(url);
+}

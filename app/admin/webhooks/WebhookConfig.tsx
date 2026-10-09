@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import type { WebhookSettings, OutgoingWebhookConfig, WebhookField } from '@/lib/webhooks';
 import { saveOutgoingWebhook, regenerateWebhookSecret } from '../actions';
+import { ConfirmButton } from '../components/ConfirmButton';
 
 // ── Outgoing event definitions ────────────────────────────
 
@@ -136,12 +137,14 @@ function SecretRow({ secret }: { secret: string }) {
           {copied ? '✓' : 'Copy'}
         </button>
         <form action={regenerateWebhookSecret}>
-          <button
-            type="submit"
-            className="px-3 py-2 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors shrink-0"
-          >
-            Regenerate
-          </button>
+          <ConfirmButton
+                title="Regenerate secret?"
+                confirmLabel="Regenerate"
+                message={<>Anything using the current secret (MixItUp, bots, scripts) will stop working until you update it. This can&apos;t be undone.</>}
+                className="px-3 py-2 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors shrink-0"
+              >
+                Regenerate
+              </ConfirmButton>
         </form>
       </div>
       <p className="text-xs text-gray-600 mt-1.5">Include as <code className="text-gray-500">secret</code> in the request body</p>
