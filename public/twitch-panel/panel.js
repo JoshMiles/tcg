@@ -444,6 +444,30 @@ async function init(twitchAuth) {
   showLoginScreen(result.status === 403 || result.status === 0 ? undefined : loginFailureMessage(result));
 }
 
+// ── Build version ─────────────────────────────────────────
+// Shows which deployment this panel is running (the page, script and API ship together on Vercel).
+// Purely informational — never blocks or breaks the panel.
+async function showVersion() {
+  const el = document.getElementById('panel-version');
+  if (!el) return;
+  try {
+    const res = await fetch('/api/version', { cache: 'no-store' });
+    if (!res.ok) return;
+    const v = await res.json();
+    el.textContent = 'v' + v.version + ' · ' + v.commit + (v.env && v.env !== 'production' ? ' · ' + v.env : '');
+    el.title = [
+      'Version ' + v.version,
+      'Commit ' + v.commit,
+      v.branch && 'Branch ' + v.branch,
+      'Environment ' + v.env,
+      v.builtAt && 'Built ' + new Date(v.builtAt).toLocaleString(),
+    ].filter(Boolean).join('\n');
+  } catch {
+    // leave blank
+  }
+}
+showVersion();
+
 // ── Event wiring ──────────────────────────────────────────
 document.getElementById('login-btn').addEventListener('click', async () => {
   const btn = document.getElementById('login-btn');

@@ -1,5 +1,6 @@
 import { AdminNav } from './components/AdminNav';
 import { BrandMark } from './components/BrandMark';
+import { BuildBadge } from './components/BuildBadge';
 import { CopyUrlButton } from './components/copy-url-button';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span>→</span> Log out
             </button>
           </form>
+          <BuildBadge />
         </div>
       </aside>
 

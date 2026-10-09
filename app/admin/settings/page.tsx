@@ -1,5 +1,6 @@
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { CopyableUrl } from '../components/copyable-url';
+import { getBuildInfo } from '@/lib/version';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,7 @@ const BASE = 'https://tcg-khaki.vercel.app';
 
 export default async function SettingsPage() {
   const result = await getActiveSeasonWithPacks();
+  const build = getBuildInfo();
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -67,6 +69,31 @@ queueDraw('username');
 
 // Show a viewer's collection
 queueCollection('username');`}</pre>
+      </section>
+
+      {/* Build */}
+      <section className="tcg-panel rounded-xl p-5 space-y-3">
+        <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Build</h2>
+        <dl className="grid grid-cols-[7rem_1fr] gap-y-1.5 text-sm">
+          <dt className="text-gray-500">Version</dt>
+          <dd className="text-white font-mono">v{build.version}</dd>
+          <dt className="text-gray-500">Commit</dt>
+          <dd className="font-mono">
+            {build.commitUrl ? (
+              <a href={build.commitUrl} target="_blank" rel="noreferrer" className="text-purple-400 hover:text-purple-300 transition-colors">{build.commit}</a>
+            ) : (
+              <span className="text-gray-300">{build.commit}</span>
+            )}
+          </dd>
+          {build.branch && (<><dt className="text-gray-500">Branch</dt><dd className="text-gray-300 font-mono">{build.branch}</dd></>)}
+          <dt className="text-gray-500">Environment</dt>
+          <dd className="text-gray-300">{build.env}</dd>
+          {build.builtAt && (<><dt className="text-gray-500">Built</dt><dd className="text-gray-300">{new Date(build.builtAt).toLocaleString()}</dd></>)}
+        </dl>
+        <p className="text-xs text-gray-600">
+          The same version shows on the Twitch panel, so you can confirm viewers are on the latest deploy. Bump the number in{' '}
+          <code className="text-gray-500">package.json</code>; the commit updates automatically on every build.
+        </p>
       </section>
 
       {/* Active season */}
