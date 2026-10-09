@@ -87,7 +87,7 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 - `GET /api/twitch/season` — active season + packs + cards (public, used by panel)
 - `GET /api/twitch/collection?username=foo` — user's owned card numbers across all seasons, as `{ collections: [{ seasonId, seasonName, active, ownedNumbers }] }`
 - `GET /api/twitch/user?opaqueId=xxx` — look up username by Twitch opaque ID
-- `POST /api/twitch/login` — **primary login endpoint**: verifies Extension JWT, extracts `user_id` from payload (set by Twitch after identity grant), resolves via Helix API, saves opaque→username mapping, creates user profile if needed, returns `{ username }`
+- `POST /api/twitch/login` — **primary login endpoint**: verifies Extension JWT, gets the viewer's numeric ID via `getTwitchUserId()` (`user_id` after an identity grant, or `channel_id` when the signed `role` is `broadcaster`), resolves via Helix API, saves opaque→username mapping, creates user profile if needed, returns `{ username }`
 - `POST /api/twitch/link` — JWT-validated, links opaque ID to username; also creates user profile if not present
 - `POST /api/twitch/unlink` — JWT-validated, deletes opaque ID → username mapping (logout)
 - `GET /api/twitch/resolve-username?userId={numericId}` — resolves Twitch numeric user ID → login name via Helix API (requires `TWITCH_CLIENT_ID` + `TWITCH_CLIENT_SECRET`)
@@ -130,14 +130,14 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 
 **Twitch auth flow (current implementation):**
 1. Panel loads → `onAuthorized` fires → `init()` called
-2. If `identityRequestPending` flag is set (user just responded to Twitch identity popup) → call `tryLoginFromJwt()` → on success: login; on fail: show error on login screen
+2. If `identityRequestPending` flag is set (user just responded to Twitch identity popup) → call `loginFromJwt()` → on success: login; on fail: show the failure reason on the login screen
 3. Load season data; if none → show no-season state
 4. If `isExplicitlyLoggedOut()` (localStorage flag) → show login screen
 5. Try `tryAutoLogin()` — `GET /api/twitch/user?opaqueId=...`; if mapping exists, silent login
-6. Try `tryLoginFromJwt()` — `POST /api/twitch/login` with current JWT; if JWT already contains `user_id` from a prior identity grant, silent login without any user interaction
+6. Try `loginFromJwt()` — `POST /api/twitch/login` with current JWT; if JWT already contains `user_id` from a prior identity grant (or the viewer is the channel owner), silent login without any user interaction. A 403 ("identity not shared yet") shows a plain login screen; any other failure shows its reason on the login screen
 7. Otherwise → show login screen with teaser grid and "Login with Twitch" button
-8. Login button pressed → call `requestIdShare()`, show status hint ("A Twitch prompt appeared above the video — click Allow"), set `identityRequestPending = true`, 20s timeout fallback
-9. Twitch re-fires `onAuthorized` after user responds → `init()` re-enters with `identityRequestPending = true` → `tryLoginFromJwt()` resolves via `/api/twitch/login`
+8. Login button pressed → **if the JWT role is `broadcaster`, call `loginFromJwt()` directly** (Twitch's `requestIdShare()` is a documented no-op on your own channel, so waiting for it hangs forever); otherwise call `requestIdShare()`, show a status hint, set `identityRequestPending = true`, 20s timeout fallback
+9. Twitch re-fires `onAuthorized` after user responds → `init()` re-enters with `identityRequestPending = true` → `loginFromJwt()` resolves via `/api/twitch/login`
 10. Logout: set localStorage flag + `POST /api/twitch/unlink` → show login screen
 
 **Login screen design:**

@@ -3,11 +3,21 @@
 // ── Rarity colours matching the admin panel ──────────────
 const RARITY_COLOR = { 1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f59e0b' };
 
-// Returns true only when Twitch has shared the real numeric user ID (post-requestIdShare).
-// auth.userId starts with 'U' for any logged-in viewer (opaque IDs like UJ4TfQ1fF…),
-// but the actual Twitch user ID is U + digits only, e.g. U123456789.
-function hasSharedTwitchId(userId) {
-  return !!(userId?.startsWith('U') && /^\d+$/.test(userId.slice(1)));
+// Reads a claim from the (unverified) Extension JWT. Only used for UX decisions — the server
+// verifies the signature before trusting anything.
+function jwtClaim(token, name) {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(b64))[name];
+  } catch {
+    return undefined;
+  }
+}
+
+// Twitch's requestIdShare() is a documented no-op on the viewer's own channel, so broadcasters
+// can never be prompted. The server recognises them from the signed role claim instead.
+function isBroadcaster() {
+  return jwtClaim(auth?.token, 'role') === 'broadcaster';
 }
 
 // ── State ─────────────────────────────────────────────────
@@ -251,25 +261,36 @@ async function tryAutoLogin() {
 // JWT payload (set by Twitch after requestIdShare() grant), resolves via Helix,
 // saves the opaque→username mapping, creates the user profile, and returns the username.
 // This works even when auth.userId is still showing as a non-numeric opaque ID.
-async function tryLoginFromJwt() {
-  if (!auth?.token) return false;
+// Resolves to { ok: true } on success, or { ok: false, status, message } so callers can tell
+// "identity not shared yet" (403, expected for first-time viewers) from real failures.
+async function loginFromJwt() {
+  if (!auth?.token) return { ok: false, status: 0, message: 'No Twitch token available' };
   try {
     const res = await fetch('/api/twitch/login', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + auth.token },
     });
     if (!res.ok) {
-      console.warn('[TCG] tryLoginFromJwt failed:', res.status, await res.text().catch(() => ''));
-      return false;
+      const body = await res.json().catch(() => ({}));
+      console.warn('[TCG] login failed:', res.status, body);
+      return { ok: false, status: res.status, message: body.error || 'Login failed (' + res.status + ')' };
     }
     const { username } = await res.json();
-    if (!username) return false;
+    if (!username) return { ok: false, status: res.status, message: 'Login returned no username' };
     await login(username);
-    return true;
+    return { ok: true };
   } catch (err) {
-    console.error('[TCG] tryLoginFromJwt error:', err);
-    return false;
+    console.error('[TCG] login error:', err);
+    return { ok: false, status: 0, message: 'Could not reach the server' };
   }
+}
+
+// Friendly text for a failed login, for the login screen.
+function loginFailureMessage(result) {
+  if (result.status === 401) return 'Sign-in failed: the Twitch token was rejected (check the extension secret on the server).';
+  if (result.status === 500) return 'Sign-in is unavailable: ' + result.message;
+  if (result.status === 502) return 'Sign-in failed: could not look up your Twitch account. Try again in a moment.';
+  return 'Could not sign you in: ' + result.message;
 }
 
 // ── Season load ───────────────────────────────────────────
@@ -365,9 +386,9 @@ async function init(twitchAuth) {
     identityRequestPending = false;
     console.log('[TCG] identity share response — trying JWT login');
     showState('loading');
-    const resolved = await tryLoginFromJwt();
-    if (resolved) return;
-    showLoginScreen('Could not sign you in. Please try again.');
+    const result = await loginFromJwt();
+    if (result.ok) return;
+    showLoginScreen(loginFailureMessage(result));
     return;
   }
 
@@ -387,11 +408,12 @@ async function init(twitchAuth) {
   if (autoLoggedIn) return;
 
   // JWT may already contain user_id from a previous grant — try silent login
-  const jwtLoggedIn = await tryLoginFromJwt();
-  if (jwtLoggedIn) return;
+  const result = await loginFromJwt();
+  if (result.ok) return;
 
-  // First visit or resolution failed — show login screen
-  showLoginScreen();
+  // 403 just means this viewer hasn't shared their identity yet — show a plain login screen.
+  // Anything else is a real failure; say so instead of silently looking logged out.
+  showLoginScreen(result.status === 403 || result.status === 0 ? undefined : loginFailureMessage(result));
 }
 
 // ── Event wiring ──────────────────────────────────────────
@@ -399,14 +421,22 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   const btn = document.getElementById('login-btn');
   btn.disabled = true;
 
-  console.log('[TCG] login-btn clicked — userId:', auth?.userId, '| requestIdShare:', typeof window.Twitch?.ext?.actions?.requestIdShare);
+  console.log('[TCG] login-btn clicked — userId:', auth?.userId, '| broadcaster:', isBroadcaster(), '| requestIdShare:', typeof window.Twitch?.ext?.actions?.requestIdShare);
+
+  // Channel owner: Twitch never shows the share prompt on your own channel, so don't wait for it.
+  if (isBroadcaster()) {
+    btn.textContent = 'Signing in...';
+    const result = await loginFromJwt();
+    if (!result.ok) showLoginScreen(loginFailureMessage(result));
+    return;
+  }
 
   if (window.Twitch?.ext?.actions?.requestIdShare) {
     // Keep the login screen visible — just update the button and show a hint
     btn.textContent = 'Waiting for Twitch...';
     const statusEl = document.getElementById('login-status');
     if (statusEl) {
-      statusEl.textContent = 'A Twitch prompt appeared above the video — click Allow to continue';
+      statusEl.textContent = 'Look for the Twitch prompt above the video and click Allow to continue';
       statusEl.classList.remove('hidden');
     }
 
@@ -417,7 +447,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
       if (identityRequestPending) {
         console.warn('[TCG] 20s timeout — onAuthorized never re-fired after requestIdShare');
         identityRequestPending = false;
-        showLoginScreen('Timed out. Click Allow on the Twitch prompt, then try again.');
+        showLoginScreen("Twitch didn't respond. If no prompt appeared, the extension may not have identity linking enabled. Try again, or reload the page.");
       }
     }, 20000);
     return;
