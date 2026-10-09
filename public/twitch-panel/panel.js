@@ -20,6 +20,46 @@ function isBroadcaster() {
   return jwtClaim(auth?.token, 'role') === 'broadcaster';
 }
 
+// ── Card images ───────────────────────────────────────────
+// Card art is a 600px animated WebP (1–4MB, ~50 frames). Decoding and animating two dozen of
+// them at once makes the panel crawl, so the grid shows a tiny static thumbnail and only loads
+// and plays the animated version for the card under the pointer.
+const reducedMotion = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Appends the thumbnail <img> to `container` and wires up hover-to-animate.
+// `dimmed` mirrors the faded look used for cards owned only in a past season.
+function addCardImage(container, card, { alt = '', dimmed = false } = {}) {
+  if (!card.imageUrl) return;
+
+  const img = document.createElement('img');
+  img.src = card.thumbUrl || card.imageUrl;
+  img.alt = alt;
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  if (dimmed) img.style.opacity = '0.55';
+  container.appendChild(img);
+
+  const animates = card.thumbUrl && card.thumbUrl !== card.imageUrl && !reducedMotion;
+  if (!animates) return;
+
+  let overlay = null;
+  const start = () => {
+    if (overlay) return;
+    overlay = document.createElement('img');
+    overlay.className = 'anim-overlay';
+    overlay.alt = '';
+    overlay.decoding = 'async';
+    // Stay invisible until loaded so the thumbnail underneath never flickers.
+    overlay.addEventListener('load', () => { if (overlay) overlay.style.opacity = dimmed ? '0.55' : '1'; });
+    overlay.src = card.imageUrl;
+    container.appendChild(overlay);
+  };
+  const stop = () => { overlay?.remove(); overlay = null; };
+  // Touch screens emulate mouseenter on tap and mouseleave when tapping elsewhere.
+  container.addEventListener('mouseenter', start);
+  container.addEventListener('mouseleave', stop);
+}
+
 // ── State ─────────────────────────────────────────────────
 let auth                   = null;   // Twitch Extension auth object
 let season                 = null;   // { seasonId, seasonName, collectionName, packs }
@@ -147,16 +187,8 @@ function renderGrid() {
       const color = RARITY_COLOR[card.stars] || '#fbbf24';
       cell.style.setProperty('--rarity-color', color);
 
-      if (card.imageUrl) {
-        const img = document.createElement('img');
-        img.src = card.imageUrl;
-        img.alt = card.name;
-        img.loading = 'lazy';
-        if (!ownedActive && ownedPast.length > 0) {
-          img.style.opacity = '0.55'; // dimmed — pulled in past season only
-        }
-        cell.appendChild(img);
-      }
+      // dimmed — pulled in past season only
+      addCardImage(cell, card, { alt: card.name, dimmed: !ownedActive && ownedPast.length > 0 });
 
       // Season badge for past-season-only cards
       if (!ownedActive && ownedPast.length > 0) {
@@ -336,11 +368,7 @@ function populateLoginTeaser() {
     div.className = 'teaser-card' + (reveal ? ' revealed' : '');
 
     if (reveal && card.imageUrl) {
-      const img = document.createElement('img');
-      img.src = card.imageUrl;
-      img.alt = '';
-      img.loading = 'lazy';
-      div.appendChild(img);
+      addCardImage(div, card);
     } else {
       const q = document.createElement('div');
       q.className = 'teaser-q';

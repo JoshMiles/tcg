@@ -371,6 +371,15 @@ html, body {
   display: block;
 }
 
+/* Animated card shown over the static thumbnail while hovered (see addCardImage in panel.js). */
+.card-cell img.anim-overlay,
+.teaser-card img.anim-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
 .card-question {
   position: absolute;
   inset: 0;
