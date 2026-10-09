@@ -42,3 +42,16 @@ export function getBearerToken(req: Request): string | null {
   const header = req.headers.get('authorization') ?? '';
   return header.startsWith('Bearer ') ? header.slice(7) : null;
 }
+
+/**
+ * The viewer's numeric Twitch user ID, or undefined if it isn't known.
+ *  - Viewers who shared their identity have `user_id` in the JWT.
+ *  - Broadcasters can't be prompted (Twitch's requestIdShare is a no-op on your own channel) and
+ *    their token carries no `user_id`, but `role: "broadcaster"` is signed by Twitch and means the
+ *    viewer owns the channel, so `channel_id` is their user ID.
+ */
+export function getTwitchUserId(payload: TwitchJwtPayload): string | undefined {
+  if (payload.user_id) return payload.user_id;
+  if (payload.role === 'broadcaster' && payload.channel_id) return payload.channel_id;
+  return undefined;
+}

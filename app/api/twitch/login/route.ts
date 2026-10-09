@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveTwitchOpaqueUser, ensureUserProfile } from '@/lib/kv';
-import { verifyTwitchJwt, getBearerToken } from '@/lib/twitch-jwt';
+import { verifyTwitchJwt, getBearerToken, getTwitchUserId } from '@/lib/twitch-jwt';
 import { resolveTwitchLogin, twitchCredentials } from '@/lib/twitch-helix';
 
 export const dynamic = 'force-dynamic';
 
 // POST /api/twitch/login
-// Verifies the Extension JWT, extracts user_id, resolves Twitch username via Helix,
+// Verifies the Extension JWT, works out the viewer's Twitch user ID (shared identity, or the
+// channel owner), resolves the username via Helix,
 // saves the opaque→username mapping, and creates the user profile if needed.
 export async function POST(req: NextRequest) {
   const token = getBearerToken(req);
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
   const payload = verifyTwitchJwt(token);
   if (!payload) return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
 
-  const numericUserId = payload.user_id;
+  const numericUserId = getTwitchUserId(payload);
   if (!numericUserId) {
     return NextResponse.json({ error: 'Identity not shared yet' }, { status: 403 });
   }
