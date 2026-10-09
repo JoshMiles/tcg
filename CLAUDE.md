@@ -193,5 +193,8 @@ An event log of everything that happens: widget pulls (new vs duplicate, copies,
 
 The page is a server-rendered snapshot plus a client component (`ActivityFeed`) that polls `GET /api/admin/activity?after=<seq>` every 3s while the tab is visible (pausable). With nothing new that is one KV GET; new events come back with avatars. Polling rather than SSE because serverless functions can't hold long connections cheaply. `pull` events come from the unauthenticated `/api/collection` POST (the widget's payload), so treat their contents as untrusted display text.
 
+## Build version
+Every build is stamped so you can tell which deployment you are looking at. `next.config.ts` bakes `BUILD_VERSION` (from `package.json`), `BUILD_COMMIT`/`BRANCH`/`ENV`/`REPO` (from Vercel's `VERCEL_GIT_*` and `VERCEL_ENV`, falling back to `git` locally) and `BUILD_TIME` into the bundle; `lib/version.ts` (`getBuildInfo()`) reads them. It shows as `v1.1.0 · 75fdb70` in the admin sidebar (`BuildBadge`, links to the commit on GitHub, with a `DEV`/`PREVIEW` pill outside production), in a **Build** section on `/admin/settings`, and in the top-right corner of the Twitch panel (fetched from the public `GET /api/version`). The semver is manual — bump `version` in `package.json` for releases; the commit changes automatically every build.
+
 ## Local dev
 `npm install` then `npx tsc --noEmit` / `npm run build` work locally. `node_modules/` is gitignored.

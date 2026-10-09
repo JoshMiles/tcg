@@ -468,6 +468,23 @@ html, body {
   flex-shrink: 0;
 }
 
+/* ── Build version ── */
+
+.panel-version {
+  position: fixed;
+  top: 3px;
+  right: 6px;
+  z-index: 5;
+  font-size: 9px;
+  line-height: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--muted);
+  opacity: 0.55;
+  user-select: none;
+}
+
+.panel-version:empty { display: none; }
+
 /* ── Footer ── */
 
 .panel-footer {
