@@ -2,6 +2,8 @@
 
 // ── Rarity colours matching the admin panel ──────────────
 const RARITY_COLOR = { 1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f59e0b' };
+// Keep in sync with lib/rarity.ts
+const RARITY_LABEL = { 1: 'Common', 2: 'Uncommon', 3: 'Rare', 4: 'Epic', 5: 'Legendary' };
 
 // Reads a claim from the (unverified) Extension JWT. Only used for UX decisions — the server
 // verifies the signature before trusting anything.
@@ -77,6 +79,7 @@ const STATES = {
 };
 
 function showState(name) {
+  closeDetail(); // never leave the card overlay open across login/logout/state changes
   Object.entries(STATES).forEach(([k, el]) => {
     el.classList.toggle('hidden', k !== name);
   });
@@ -148,6 +151,21 @@ function renderPackTabs() {
 }
 
 // ── Card grid ─────────────────────────────────────────────
+// How many of `card` the viewer has: pulls in the active season, plus per-season counts for any
+// past seasons. The collection arrays keep duplicates (one entry per pull).
+function cardStatus(card) {
+  let activeCount = 0;
+  const past = []; // [{ seasonName, count }]
+  for (const c of collections) {
+    let count = 0;
+    for (const n of c.ownedNumbers) if (n === card.number) count++;
+    if (!count) continue;
+    if (c.active) activeCount += count;
+    else past.push({ seasonName: c.seasonName, count });
+  }
+  return { activeCount, past, owned: activeCount > 0 || past.length > 0 };
+}
+
 function renderGrid() {
   const grid = document.getElementById('card-grid');
   if (!grid || !season) return;
@@ -156,32 +174,26 @@ function renderGrid() {
   const pack = season.packs[currentPackIdx];
   if (!pack) return;
 
-  // Build a map: card number → which seasons the viewer owns it in
-  const ownedMap = new Map(); // number → [{ seasonName, active }]
-  collections.forEach(c => {
-    c.ownedNumbers.forEach(n => {
-      if (!ownedMap.has(n)) ownedMap.set(n, []);
-      ownedMap.get(n).push({ seasonName: c.seasonName, active: c.active });
-    });
-  });
-
-  // Pull count for the active season only
-  const activeColl = collections.find(c => c.active);
-  const pullCountMap = new Map();
-  if (activeColl) {
-    for (const n of activeColl.ownedNumbers) {
-      pullCountMap.set(n, (pullCountMap.get(n) ?? 0) + 1);
-    }
-  }
-
-  pack.cards.forEach(card => {
-    const ownership = ownedMap.get(card.number) ?? [];
-    const ownedActive   = ownership.some(o => o.active);
-    const ownedPast     = ownership.filter(o => !o.active);
-    const isOwned       = ownedActive || ownedPast.length > 0;
+  pack.cards.forEach((card, idx) => {
+    const status        = cardStatus(card);
+    const ownedActive   = status.activeCount > 0;
+    const ownedPast     = status.past;
+    const isOwned       = status.owned;
 
     const cell = document.createElement('div');
     cell.className = 'card-cell' + (isOwned ? ' owned' : '');
+
+    // Click / Enter / Space opens the card detail view
+    cell.setAttribute('role', 'button');
+    cell.tabIndex = 0;
+    cell.setAttribute('aria-label', isOwned ? card.name : 'Undiscovered card #' + card.number);
+    cell.addEventListener('click', () => openDetail(idx, cell));
+    cell.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openDetail(idx, cell);
+      }
+    });
 
     if (isOwned) {
       const color = RARITY_COLOR[card.stars] || '#fbbf24';
@@ -205,7 +217,7 @@ function renderGrid() {
       cell.appendChild(dot);
 
       // Pull count badge (active season only)
-      const pullCount = pullCountMap.get(card.number) ?? 0;
+      const pullCount = status.activeCount;
       if (ownedActive && pullCount > 1) {
         const countBadge = document.createElement('div');
         countBadge.className = 'pull-count';
@@ -228,6 +240,130 @@ function renderGrid() {
     grid.appendChild(cell);
   });
 }
+
+// ── Card detail view ──────────────────────────────────────
+// Clicking a card opens an overlay with a large version of it and how many the viewer has.
+// Undiscovered cards open as a locked "???" view (same secrecy as the grid), and prev/next
+// browse the current pack.
+let detailIdx   = -1;    // index into the current pack's cards, or -1 when closed
+let detailOpener = null; // element to refocus on close
+
+function openDetail(idx, opener) {
+  detailIdx = idx;
+  if (opener) detailOpener = opener;
+  document.getElementById('card-detail').classList.remove('hidden');
+  renderDetail();
+  document.getElementById('detail-close').focus();
+}
+
+function closeDetail() {
+  const el = document.getElementById('card-detail');
+  if (!el || detailIdx === -1) return;
+  detailIdx = -1;
+  el.classList.add('hidden');
+  document.getElementById('detail-art').innerHTML = '';
+  if (detailOpener && document.contains(detailOpener)) detailOpener.focus();
+  detailOpener = null;
+}
+
+function stepDetail(delta) {
+  const cards = season?.packs[currentPackIdx]?.cards ?? [];
+  if (detailIdx === -1 || cards.length === 0) return;
+  detailIdx = (detailIdx + delta + cards.length) % cards.length;
+  renderDetail();
+}
+
+function detailLine(className, text) {
+  const el = document.createElement('div');
+  el.className = className;
+  el.textContent = text;
+  return el;
+}
+
+function renderDetail() {
+  const pack = season?.packs[currentPackIdx];
+  const card = pack?.cards[detailIdx];
+  if (!card) { closeDetail(); return; }
+
+  const status = cardStatus(card);
+  const color = RARITY_COLOR[card.stars] || '#fbbf24';
+  const art = document.getElementById('detail-art');
+  const info = document.getElementById('detail-info');
+  art.innerHTML = '';
+  info.innerHTML = '';
+  art.style.setProperty('--rarity-color', color);
+  info.style.setProperty('--rarity-color', color);
+
+  // Art: owned cards show the thumbnail immediately, then the animated version fades in over it.
+  if (status.owned && card.imageUrl) {
+    const thumb = document.createElement('img');
+    thumb.src = card.thumbUrl || card.imageUrl;
+    thumb.alt = card.name;
+    art.appendChild(thumb);
+    if (card.thumbUrl && card.thumbUrl !== card.imageUrl && !reducedMotion) {
+      const full = document.createElement('img');
+      full.className = 'anim-overlay';
+      full.alt = '';
+      full.addEventListener('load', () => { full.style.opacity = '1'; });
+      full.src = card.imageUrl;
+      art.appendChild(full);
+    }
+  } else {
+    art.appendChild(detailLine('detail-locked', '?'));
+  }
+
+  // Text
+  info.appendChild(detailLine('detail-name', status.owned ? card.name : '???'));
+  info.appendChild(detailLine('detail-rarity',
+    '★'.repeat(card.stars) + ' ' + (RARITY_LABEL[card.stars] || '')));
+  info.appendChild(detailLine('detail-meta',
+    '#' + card.number + ' · ' + pack.packName + ' · ' + (detailIdx + 1) + ' of ' + pack.cards.length));
+
+  // How many the viewer has
+  const count = document.createElement('div');
+  count.className = 'detail-count' + (status.activeCount > 0 ? '' : ' empty');
+  const num = document.createElement('span');
+  num.className = 'detail-count-num';
+  const label = document.createElement('span');
+  label.className = 'detail-count-label';
+  if (status.activeCount > 0) {
+    num.textContent = '×' + status.activeCount;
+    label.textContent = status.activeCount === 1 ? 'Pulled once' : 'Pulled ' + status.activeCount + ' times';
+  } else if (status.owned) {
+    num.textContent = '×0';
+    label.textContent = 'Not pulled this season';
+  } else {
+    num.textContent = '—';
+    label.textContent = 'Not collected yet';
+  }
+  count.append(num, label);
+  info.appendChild(count);
+
+  // Past seasons
+  if (status.past.length > 0) {
+    const past = document.createElement('div');
+    past.className = 'detail-past';
+    status.past.forEach(p => {
+      const row = document.createElement('div');
+      const strong = document.createElement('strong');
+      strong.textContent = p.seasonName;
+      row.append(strong, ' · ×' + p.count);
+      past.appendChild(row);
+    });
+    info.appendChild(past);
+  }
+}
+
+document.getElementById('detail-close').addEventListener('click', closeDetail);
+document.getElementById('detail-backdrop').addEventListener('click', closeDetail);
+document.getElementById('detail-prev').addEventListener('click', () => stepDetail(-1));
+document.getElementById('detail-next').addEventListener('click', () => stepDetail(1));
+document.addEventListener('keydown', e => {
+  if (detailIdx === -1) return;
+  if (e.key === 'Escape') closeDetail();
+  else if (e.key === 'ArrowLeft') stepDetail(-1);
+  else if (e.key === 'ArrowRight') stepDetail(1);
+});
 
 // ── Login flow ────────────────────────────────────────────
 async function loadUserCollection(username) {

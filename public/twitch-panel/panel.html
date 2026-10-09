@@ -60,6 +60,20 @@
     </div>
   </div>
 
+  <!-- Card detail overlay (opened by clicking a card; built in panel.js) -->
+  <div id="card-detail" class="card-detail hidden" role="dialog" aria-modal="true" aria-label="Card details">
+    <div class="detail-backdrop" id="detail-backdrop"></div>
+    <div class="detail-body">
+      <button class="detail-close" id="detail-close" aria-label="Close card details">×</button>
+      <div class="detail-stage">
+        <button class="detail-nav" id="detail-prev" aria-label="Previous card">‹</button>
+        <div class="detail-art" id="detail-art"></div>
+        <button class="detail-nav" id="detail-next" aria-label="Next card">›</button>
+      </div>
+      <div class="detail-info" id="detail-info"></div>
+    </div>
+  </div>
+
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <script src="panel.js"></script>
 </body>

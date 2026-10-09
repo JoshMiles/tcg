@@ -145,6 +145,9 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 - Season name, card count, purple "Login with Twitch" button
 - No manual username form — Twitch identity only
 
+**Card details:**
+- Clicking (or Enter/Space on) a grid card opens an overlay (`#card-detail`, `openDetail()` in `panel.js`): large animated card, name, rarity, `#N · pack · position`, and how many the viewer has (`cardStatus()` — pulls this season, plus per-season counts for past seasons). Undiscovered cards open as a locked "???" view. Prev/next (and ←/→) browse the current pack, Esc/backdrop/× close it, and focus returns to the card. `showState()` closes it so it never survives a logout. The grid badges and the overlay both read `cardStatus()` — keep it that way so they can't disagree.
+
 **Collection link:**
 - The username in the collection-view footer is an `<a target="_blank">` to the viewer's public page, `/collection/<username>` on the same origin as the API calls (set in `login()`). Twitch's extension sandbox allows popups, so it opens in a new tab. If Twitch blocks it, check the extension's URL/link allowlists in the developer console.
 
