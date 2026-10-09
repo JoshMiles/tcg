@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
+import { cardThumbUrl } from '@/lib/card-art';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,8 @@ export async function GET() {
           number: c.number,
           name: c.name,
           imageUrl: c.imageUrl,
+          // Static first-frame thumbnail; the panel only loads the animated imageUrl on hover.
+          thumbUrl: cardThumbUrl(c.imageUrl),
           stars: c.stars,
         })),
     })),
