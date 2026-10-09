@@ -4,6 +4,7 @@ import { listSeasons, getCollection, getPackCards, getPack, getUserProfile } fro
 import type { Season, Pack, Card } from '@/lib/types';
 import { getRarity } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
+import { ConfirmButton } from '../../components/ConfirmButton';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { Avatar } from '@/app/components/Avatar';
 import { CardTile } from '@/app/components/CardTile';
@@ -180,12 +181,14 @@ export default async function UserDetailPage({
               </div>
               {ownedNumbers.length > 0 && (
                 <form action={resetSeason}>
-                  <button
-                    type="submit"
-                    className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors shrink-0"
-                  >
-                    Reset Season
-                  </button>
+                  <ConfirmButton
+                title="Reset this season?"
+                confirmLabel="Reset season"
+                message={<>Clear <strong className="text-white">{displayName}</strong>&apos;s cards for <strong className="text-white">{season.name}</strong>? This can&apos;t be undone.</>}
+                className="px-3 py-1.5 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors shrink-0"
+              >
+                Reset Season
+              </ConfirmButton>
                 </form>
               )}
             </div>
@@ -240,13 +243,14 @@ export default async function UserDetailPage({
                             {/* Remove button (hover) */}
                             {owned && (
                               <form action={remove} className="absolute -top-1.5 -right-1.5 hidden group-hover:block z-10">
-                                <button
-                                  type="submit"
-                                  title={`Remove ${card.name}`}
-                                  className="w-5 h-5 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center text-xs leading-none transition-colors"
-                                >
-                                  ×
-                                </button>
+                                <ConfirmButton
+                title="Remove card?"
+                confirmLabel="Remove one"
+                message={<>Remove one copy of <strong className="text-white">{card.name}</strong> from <strong className="text-white">{displayName}</strong>&apos;s collection?</>}
+                className="w-5 h-5 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center text-xs leading-none transition-colors"
+              >
+                ×
+              </ConfirmButton>
                               </form>
                             )}
 
@@ -312,20 +316,24 @@ export default async function UserDetailPage({
         </p>
         <div className="flex items-center gap-3 flex-wrap">
           <form action={resetAll}>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm text-red-500 hover:text-red-300 bg-red-950/40 hover:bg-red-950/70 rounded-xl transition-colors"
-            >
-              Reset All Seasons
-            </button>
+            <ConfirmButton
+                title="Reset all seasons?"
+                confirmLabel="Reset all seasons"
+                message={<>Clear <strong className="text-white">{displayName}</strong>&apos;s cards in every season? Their profile is kept. This can&apos;t be undone.</>}
+                className="px-4 py-2 text-sm text-red-500 hover:text-red-300 bg-red-950/40 hover:bg-red-950/70 rounded-xl transition-colors"
+              >
+                Reset All Seasons
+              </ConfirmButton>
           </form>
           <form action={deleteThisUser}>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-semibold text-white bg-red-700 hover:bg-red-600 rounded-xl transition-colors"
-            >
-              Delete User
-            </button>
+            <ConfirmButton
+                title="Delete user?"
+                confirmLabel="Delete user"
+                message={<>Permanently delete <strong className="text-white">{displayName}</strong>, including all their cards and their profile? This can&apos;t be undone.</>}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-700 hover:bg-red-600 rounded-xl transition-colors"
+              >
+                Delete User
+              </ConfirmButton>
           </form>
         </div>
       </section>

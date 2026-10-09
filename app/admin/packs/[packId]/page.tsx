@@ -4,6 +4,7 @@ import { getPack, getPackCards } from '@/lib/kv';
 import { updatePack, deleteCard } from '../../actions';
 import { PackFields } from '../../components/PackFields';
 import { AddCardButton } from '../../components/AddCardButton';
+import { ConfirmButton } from '../../components/ConfirmButton';
 import { rarityStats, getRarity } from '@/lib/rarity';
 
 export const dynamic = 'force-dynamic';
@@ -113,12 +114,14 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
                             Edit
                           </Link>
                           <form action={del}>
-                            <button
-                              type="submit"
-                              className="px-2.5 py-1 text-xs text-red-600 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
-                            >
-                              Del
-                            </button>
+                            <ConfirmButton
+                title="Delete card?"
+                confirmLabel="Delete card"
+                message={<>Delete <strong className="text-white">{card.name}</strong> (#{card.number}) from this pack? Viewers who already pulled it keep the entry in their data, but the card will no longer show anywhere. This can&apos;t be undone.</>}
+                className="px-2.5 py-1 text-xs text-red-600 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"
+              >
+                Del
+              </ConfirmButton>
                           </form>
                         </div>
                       </td>

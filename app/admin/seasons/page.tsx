@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { listSeasons, getPacksForSeason } from '@/lib/kv';
 import { deleteSeasonAction, activateSeason } from '../actions';
 import { NewSeasonButton } from '../components/NewSeasonButton';
+import { ConfirmButton } from '../components/ConfirmButton';
 import { StatusChip } from '../components/StatusChip';
 
 export const dynamic = 'force-dynamic';
@@ -91,12 +92,14 @@ export default async function SeasonsPage() {
                         Manage →
                       </Link>
                       <form action={del}>
-                        <button
-                          type="submit"
-                          className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
-                        >
-                          Delete
-                        </button>
+                        <ConfirmButton
+                title="Delete season?"
+                confirmLabel="Delete season"
+                message={<>Delete <strong className="text-white">{s.name}</strong>? The season and its settings are removed. Packs and viewers&apos; collection data are kept. This can&apos;t be undone.</>}
+                className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
+              >
+                Delete
+              </ConfirmButton>
                       </form>
                     </div>
                   </div>
