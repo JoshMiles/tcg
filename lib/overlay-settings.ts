@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
 import { getOverlayStatus } from './overlay';
+import { sanitizeLayout, type OverlayLayout } from './overlay-layout';
 
 // Admin switches for the overlay. Stored in one KV key; missing = everything allowed.
 const KEY = 'overlay:settings';
@@ -9,13 +10,17 @@ export interface OverlaySettings {
   livePacksOnly: boolean;
   /** Ignore incoming "show collection" triggers unless the stream is live. */
   liveCollectionsOnly: boolean;
+  /** Size/position of the overlay's stage (see lib/overlay-layout.ts). */
+  layout: OverlayLayout;
 }
-
-const DEFAULTS: OverlaySettings = { livePacksOnly: false, liveCollectionsOnly: false };
 
 export async function getOverlaySettings(): Promise<OverlaySettings> {
   const stored = await kv.get<Partial<OverlaySettings>>(KEY).catch(() => null);
-  return { ...DEFAULTS, livePacksOnly: !!stored?.livePacksOnly, liveCollectionsOnly: !!stored?.liveCollectionsOnly };
+  return {
+    livePacksOnly: !!stored?.livePacksOnly,
+    liveCollectionsOnly: !!stored?.liveCollectionsOnly,
+    layout: sanitizeLayout(stored?.layout),
+  };
 }
 
 export async function saveOverlaySettings(settings: OverlaySettings): Promise<void> {
