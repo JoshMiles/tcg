@@ -326,6 +326,7 @@ function drawCard(username) {
   radialContainer.style.animation = 'none';
   wrapper.style.visibility        = 'visible';
   wrapper.classList.remove('hid', 'hidden');
+  wrapper.classList.add('pack-fit');
 
   // Animations
   packageContainer.style.animation = 'none';

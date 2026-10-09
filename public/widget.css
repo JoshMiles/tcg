@@ -161,6 +161,10 @@
   transition: opacity 0.5s ease;
 }
 .card-wrapper.hid { opacity: 0; }
+/* The pack opening swings the card and tear strip up to ~125px above the stage at its peak, which gets
+   clipped by an 800x600 browser source. Pack draws are shrunk slightly and nudged down so the whole
+   animation (measured -125px..508px tall) fits with a few px to spare. Collections aren't affected. */
+.card-wrapper.pack-fit { transform: translateY(100px) scale(0.92); }
 /* Collections start transparent and fade in via the wrapper's opacity transition. */
 .card-wrapper.fade-in-start { opacity: 0; }
 .card-wrapper.fade-in { transition-duration: 0.8s; }
