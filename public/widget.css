@@ -88,9 +88,14 @@
 
 /* ── Layout ── */
 .container {
+  /* The "design stage": drawn at a fixed size, then scaled to fit the real browser source and nudged by the
+     admin's scale/offset (Settings → Overlay layout). widget.js sets the --stage-* variables. */
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  left: 50%; top: 50%;
+  width: var(--stage-w, 1280px);
+  height: var(--stage-h, 720px);
+  transform: translate(-50%, -50%) translate(var(--stage-x, 0px), var(--stage-y, 0px)) scale(var(--stage-scale, 1));
+  transform-origin: center;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -152,6 +157,7 @@
 }
 
 .card-wrapper {
+  max-width: 800px;   /* the collection grid wraps at the width of the original 800px stage, whatever the stage size */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -161,10 +167,10 @@
   transition: opacity 0.5s ease;
 }
 .card-wrapper.hid { opacity: 0; }
-/* The pack opening swings the card and tear strip up to ~125px above the stage at its peak, which gets
-   clipped by an 800x600 browser source. Pack draws are shrunk slightly and nudged down so the whole
-   animation (measured -125px..508px tall) fits with a few px to spare. Collections aren't affected. */
-.card-wrapper.pack-fit { transform: translateY(100px) scale(0.92); }
+/* The pack opening isn't symmetric around the wrapper's centre: at its peak the card and tear strip swing
+   ~425px above it but only ~208px below. Nudge pack draws down so the animation (measured -425..+208px)
+   sits in the middle of the stage. Collections aren't affected. */
+.card-wrapper.pack-fit { transform: translateY(108px); }
 /* Collections start transparent and fade in via the wrapper's opacity transition. */
 .card-wrapper.fade-in-start { opacity: 0; }
 .card-wrapper.fade-in { transition-duration: 0.8s; }

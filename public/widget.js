@@ -1,6 +1,55 @@
 'use strict';
 
 // ═══════════════════════════════════════════════════════
+//  STAGE LAYOUT  (Settings → Overlay layout)
+// ═══════════════════════════════════════════════════════
+// Everything is drawn on a fixed "design stage" (default 1280x720) and scaled to fit whatever size the OBS
+// browser source actually is, so a differently sized source still shows the whole animation. The admin's
+// scale/offset are applied on top. `?preview` is the admin editor's iframe: it takes layout changes by
+// postMessage and never talks to the real queue, heartbeat or collection data.
+const PREVIEW = new URLSearchParams(window.location.search).has('preview');
+let STAGE = { width: 1280, height: 720, scale: 1, offsetX: 0, offsetY: 0 };
+
+function applyLayout(layout) {
+  if (layout) {
+    const n = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
+    STAGE = {
+      width:   Math.max(1, n(layout.width,   STAGE.width)),
+      height:  Math.max(1, n(layout.height,  STAGE.height)),
+      scale:   Math.max(0.05, n(layout.scale, STAGE.scale)),
+      offsetX: n(layout.offsetX, STAGE.offsetX),
+      offsetY: n(layout.offsetY, STAGE.offsetY),
+    };
+  }
+  const fit = Math.min(window.innerWidth / STAGE.width, window.innerHeight / STAGE.height);
+  const root = document.documentElement.style;
+  root.setProperty('--stage-w', STAGE.width + 'px');
+  root.setProperty('--stage-h', STAGE.height + 'px');
+  root.setProperty('--stage-scale', String(fit * STAGE.scale));
+  root.setProperty('--stage-x', STAGE.offsetX * fit + 'px');
+  root.setProperty('--stage-y', STAGE.offsetY * fit + 'px');
+}
+
+async function loadLayout() {
+  try {
+    const res = await fetch('/api/overlay/config', { cache: 'no-store' });
+    if (res.ok) applyLayout((await res.json()).layout);
+  } catch { /* keep the defaults */ }
+}
+
+window.addEventListener('resize', () => applyLayout());
+applyLayout();
+
+if (PREVIEW) {
+  window.addEventListener('message', (e) => {
+    if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
+    if (e.data.type === 'layout') applyLayout(e.data.layout);
+    else if (e.data.type === 'pack') queueDraw('preview');
+    else if (e.data.type === 'collection') queueCollection('preview');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
 //  SEASON DATA  (loaded from /api/seasons/active)
 // ═══════════════════════════════════════════════════════
 let PACKS = [];      // [{ pack, cards: [{number,name,image,probability,stars}] }]
@@ -136,7 +185,7 @@ async function loadCollection() {
 }
 
 function saveCollection(pull) {
-  if (!SEASON_CFG.collectionName) return;
+  if (PREVIEW || !SEASON_CFG.collectionName) return;
   const body = { data: revealedCardsByUser };
   if (pull) body.pull = pull;
   fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, {
@@ -175,6 +224,7 @@ function showAlert(msg) {
 //  AUDIO
 // ═══════════════════════════════════════════════════════
 function playAudio(src, volume) {
+  if (PREVIEW) return;
   const audio = new Audio(src);
   audio.volume = volume ?? 1.0;
   audio.play().catch(() => {});
@@ -438,7 +488,7 @@ function showCollection(username) {
   cardInfo.style.transform = 'scale(1)';
   userText.textContent     = (username || 'Someone') + "'s collection:";
 
-  fetch('/api/webhooks/notify', {
+  if (!PREVIEW) fetch('/api/webhooks/notify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ event: 'collectionShown', username: user }),
@@ -587,8 +637,15 @@ function startHeartbeat() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (PREVIEW) {
+    // Admin editor preview: fake data only, no heartbeat / queue polling / saving.
+    document.getElementById('dev-panel')?.classList.add('hidden');
+    await initSeason();
+    revealedCardsByUser.preview = ALL_CARDS.slice(0, 10).map(c => c.number);
+    return;
+  }
   startHeartbeat(); // first, so "overlay open" shows even if the season fails to load
-  await initSeason();
+  await Promise.all([loadLayout(), initSeason()]);
   await loadCollection();
   initDevPanel();
   setInterval(pollWebhookQueue, 2000);

@@ -2,7 +2,8 @@ import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { CopyableUrl } from '../components/copyable-url';
 import { getBuildInfo } from '@/lib/version';
 import { getOverlaySettings } from '@/lib/overlay-settings';
-import { saveOverlaySettingsAction } from '../actions';
+import { saveOverlaySettingsAction, saveOverlayLayoutAction } from '../actions';
+import { OverlayLayoutEditor } from './OverlayLayoutEditor';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export default async function SettingsPage() {
         <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">OBS Overlay</h2>
         <p className="text-sm text-gray-400">
           Add as a <strong className="text-white">Browser Source</strong> in OBS.
-          Width <code className="text-yellow-400">800</code> · Height <code className="text-yellow-400">600</code>.
+          Size it as recommended in <strong className="text-white">Overlay Layout</strong> below ({overlay.layout.width} × {overlay.layout.height}).
         </p>
         <CopyableUrl url={`${BASE}/overlay.html`} />
         <p className="text-xs text-gray-600">
@@ -55,6 +56,12 @@ export default async function SettingsPage() {
           </p>
           <button type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-500 text-gray-950 text-sm font-semibold hover:bg-yellow-400 transition-colors">Save</button>
         </form>
+      </section>
+
+      {/* Overlay layout */}
+      <section className="tcg-panel rounded-xl p-5 space-y-3">
+        <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Overlay Layout</h2>
+        <OverlayLayoutEditor initial={overlay.layout} action={saveOverlayLayoutAction} />
       </section>
 
       {/* Collection page */}
