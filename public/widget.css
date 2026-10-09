@@ -6,7 +6,7 @@
 /* The shimmer is a gradient sliding across the card. It used to animate background-position, which
    repaints the whole overlay every frame (plus a blur filter on top); it now slides a pre-painted
    layer with transform, which the compositor does without repainting. Same look: the gradient tile is
-   5x the card size, and the layer is three tiles wide so it can slide 8 card-widths. */
+   5x the card size, and the layer is three tiles wide so it can slide 8 card-widths (kept only one card tall so the GPU layer stays small). */
 .holographic-overlay {
   position: absolute;
   top: 35px;
@@ -24,10 +24,10 @@
 .holographic-overlay::before {
   content: "";
   position: absolute;
-  top: -400%;
+  top: 0;
   left: 0;
   width: 1500%;
-  height: 500%;
+  height: 100%;
   background: linear-gradient(
     120deg,
     rgba(255,255,255,0),   rgba(255,254,227,.9),
@@ -40,14 +40,15 @@
     rgba(255,255,255,0),   rgba(255,254,227,.9),
     rgba(255,255,255,0)
   );
-  background-size: 33.3333% 100%;
-  will-change: transform;
+  background-size: 33.3333% 500%;
+  background-position: 0 100%; /* the card sees the bottom fifth of the tall gradient, as before */
 }
 .holographic-animate {
   opacity: 1 !important;
 }
 .holographic-animate::before {
   animation: rainbowShimmer 10.5s forwards;
+  will-change: transform; /* only while shimmering, so collection views don't allocate the layer */
 }
 @keyframes rainbowShimmer {
   0%   { transform: translate3d(0, 0, 0); }
