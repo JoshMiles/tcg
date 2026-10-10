@@ -799,3 +799,15 @@ html, body {
 .lb-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-sub { font-size: 10px; color: var(--muted); }
 .lb-score { font-size: 15px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+/* ── Legal links on the login screen ── */
+.login-legal {
+  margin-top: 10px;
+  max-width: 220px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+}
+.login-legal a { color: var(--muted); text-decoration: underline; }
+.login-legal a:hover { color: var(--text); }
