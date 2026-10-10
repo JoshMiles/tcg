@@ -35,6 +35,14 @@ export default async function EditCardPage({
         <Field label="Name" name="name" defaultValue={card.name} required />
         <ImageUploadField name="imageUrl" defaultValue={card.imageUrl} />
         <AudioUploadField name="soundUrl" defaultValue={card.soundUrl} />
+        <ImageUploadField name="fullArtImageUrl" defaultValue={card.fullArtImageUrl} label="Full Art Image URL (Full Art &amp; Shiny variants)" />
+        <div className="flex items-center gap-3">
+          <input type="checkbox" id="card-upgrades" name="upgradesEnabled" defaultChecked={card.upgradesEnabled !== false} className="w-4 h-4 accent-yellow-400" />
+          <label htmlFor="card-upgrades" className="text-sm text-gray-300">
+            Allow variants &amp; upgrades for this card
+            {!pack.upgradesEnabled && <span className="text-gray-600"> (pack has upgrades off)</span>}
+          </label>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Stars (1–5)" name="stars" type="number" defaultValue={String(card.stars)} required />
           <Field label="Probability" name="probability" type="number" defaultValue={String(card.probability)} required />

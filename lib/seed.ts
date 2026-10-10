@@ -1,4 +1,5 @@
 import type { Season, Pack, Card } from './types';
+import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS } from './variants';
 
 export const SEED_SEASON: Season = {
   id: 'season1',
@@ -23,6 +24,9 @@ export const SEED_PACK: Pack = {
   cooldownTime: 1,
   soundVolume: 1.0,
   createdAt: Date.now(),
+  upgradesEnabled: false,           // Season 1 stays single-version
+  variantWeights: DEFAULT_VARIANT_WEIGHTS,
+  upgradeCosts: DEFAULT_UPGRADE_COSTS,
 };
 
 export const SEED_CARDS: Card[] = [

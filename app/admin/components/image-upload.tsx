@@ -4,7 +4,7 @@ import { upload } from '@vercel/blob/client';
 
 type Status = 'idle' | 'uploading' | 'optimizing';
 
-export function ImageUploadField({ name = 'imageUrl', defaultValue }: { name?: string; defaultValue?: string }) {
+export function ImageUploadField({ name = 'imageUrl', defaultValue, label: fieldLabel = 'Image URL' }: { name?: string; defaultValue?: string; label?: string }) {
   const [url, setUrl] = useState(defaultValue ?? '');
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
@@ -55,7 +55,7 @@ export function ImageUploadField({ name = 'imageUrl', defaultValue }: { name?: s
 
   return (
     <div>
-      <label className="block text-sm text-gray-400 mb-1">Image URL</label>
+      <label className="block text-sm text-gray-400 mb-1">{fieldLabel}</label>
       <div className="flex gap-2">
         <input
           type="text"

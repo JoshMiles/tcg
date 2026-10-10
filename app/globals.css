@@ -80,3 +80,22 @@
   100% { background-color: rgba(255, 203, 5, 0); }
 }
 .activity-fresh { animation: activity-in 2.4s ease-out; }
+
+/* ── Card variants (upgrade system) ── */
+.vfx-reverse, .vfx-shiny { position: relative; }
+.vfx-reverse::after, .vfx-shiny::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg,
+    transparent 15%, rgba(255,255,255,.35) 32%, rgba(150,245,255,.4) 45%,
+    rgba(255,224,120,.4) 58%, rgba(255,150,230,.35) 70%, transparent 85%);
+  background-size: 260% 100%;
+  background-position: 0 0;
+  mix-blend-mode: overlay;
+  transition: background-position 0.9s ease;
+}
+.vfx-reverse:hover::after, .vfx-shiny:hover::after { background-position: 100% 0; }
+.vfx-full { box-shadow: 0 0 16px -2px rgba(96,190,255,.85) !important; }
+.vfx-shiny { box-shadow: 0 0 18px -2px rgba(255,190,60,.95) !important; }

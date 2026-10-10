@@ -52,6 +52,29 @@ if (PREVIEW) {
 // ═══════════════════════════════════════════════════════
 //  SEASON DATA  (loaded from /api/seasons/active)
 // ═══════════════════════════════════════════════════════
+// Collection entries encode the variant: cardNumber + VARIANT_OFFSET * variantIndex (regular = plain number).
+// Keep in sync with lib/variants.ts.
+const VARIANTS = ['regular', 'reverse', 'full', 'shiny'];
+const VARIANT_OFFSET = 1000000;
+const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny Full Art' };
+const DEFAULT_VARIANT_WEIGHTS = { regular: 100, reverse: 25, full: 5, shiny: 1 };
+function encodeEntry(cardNumber, variant) { return cardNumber + VARIANT_OFFSET * Math.max(0, VARIANTS.indexOf(variant)); }
+function decodeEntry(entry) {
+  const idx = Math.min(Math.floor(entry / VARIANT_OFFSET), VARIANTS.length - 1);
+  return { cardNumber: entry - idx * VARIANT_OFFSET, variant: VARIANTS[idx] };
+}
+let forceVariant = null; // dev panel only: r / f / s keys force a variant on the next draw
+
+function rollVariant(weights) {
+  if (forceVariant) { const v = forceVariant; forceVariant = null; return v; }
+  const w = Object.assign({}, DEFAULT_VARIANT_WEIGHTS, weights);
+  const total = VARIANTS.reduce((s, v) => s + Math.max(0, w[v]), 0);
+  if (total <= 0) return 'regular';
+  let r = Math.random() * total;
+  for (const v of VARIANTS) { r -= Math.max(0, w[v]); if (r < 0) return v; }
+  return 'regular';
+}
+
 let PACKS = [];      // [{ pack, cards: [{number,name,image,probability,stars}] }]
 let ALL_CARDS = [];  // flat list of all cards across all packs (for mini-list)
 
@@ -105,6 +128,9 @@ async function initSeason() {
         soundUrl:    c.soundUrl || null,
         probability: c.probability,
         stars:       c.stars,
+        upgradesEnabled: c.upgradesEnabled !== false,
+        fullArt:      c.fullArtImageUrl || null,
+        fullArtThumb: c.fullArtThumbUrl || c.fullArtImageUrl || null,
       })),
     }));
 
@@ -148,7 +174,12 @@ function pickPackAndCard() {
     if (rp <= 0) { card = c; break; }
   }
 
-  return { card, cfg: packConfig(chosen.pack), packName: chosen.pack.name };
+  // Variant is rolled after the card, and only where the pack and card both have upgrades on.
+  const variant = chosen.pack.upgradesEnabled && card.upgradesEnabled
+    ? rollVariant(chosen.pack.variantWeights)
+    : 'regular';
+
+  return { card, variant, cfg: packConfig(chosen.pack), packName: chosen.pack.name };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -192,7 +223,12 @@ function saveCollection(pull) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }).catch(() => {});
+  })
+    .then(res => (res.ok ? res.json() : null))
+    // The server appended the pull to the real collection (which may have changed since the overlay
+    // loaded it, e.g. a viewer upgraded a card); take its copy for this user.
+    .then(r => { if (pull && r && Array.isArray(r.owned)) revealedCardsByUser[pull.username] = r.owned; })
+    .catch(() => {});
 }
 
 async function resetAllCollections() {
@@ -258,7 +294,12 @@ function preloadThumbs() {
 function buildMiniList(miniList, userCards, highlightNumber, cfg) {
   miniList.innerHTML = '';
   const countMap = new Map();
-  for (const n of userCards) countMap.set(n, (countMap.get(n) ?? 0) + 1);
+  const bestVariant = new Map(); // highest variant index owned per card
+  for (const entry of userCards) {
+    const { cardNumber, variant } = decodeEntry(entry);
+    countMap.set(cardNumber, (countMap.get(cardNumber) ?? 0) + 1);
+    bestVariant.set(cardNumber, Math.max(bestVariant.get(cardNumber) ?? 0, VARIANTS.indexOf(variant)));
+  }
 
   for (const card of ALL_CARDS) {
     const div = document.createElement('div');
@@ -288,6 +329,13 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg) {
       badge.style.cssText = 'position:absolute;bottom:1px;right:1px;background:rgba(0,0,0,0.8);color:#f59e0b;font-size:7px;font-weight:700;padding:0 2px;border-radius:2px;line-height:1.4;pointer-events:none;';
       badge.textContent = '×' + count;
       div.appendChild(badge);
+    }
+
+    if ((bestVariant.get(card.number) ?? 0) > 0) {
+      const spark = document.createElement('div');
+      spark.style.cssText = 'position:absolute;top:1px;left:2px;font-size:8px;line-height:1;pointer-events:none;text-shadow:0 0 3px #000;';
+      spark.textContent = '✨';
+      div.appendChild(spark);
     }
 
     miniList.appendChild(div);
@@ -351,9 +399,11 @@ function drawCard(username) {
     return;
   }
 
-  const { card, cfg, packName } = pick;
+  const { card, variant, cfg, packName } = pick;
+  // Full Art and Shiny use the card's full-art image when it has one; Regular and Reverse use the base art.
+  const art = (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArt : card.image;
   // The card isn't revealed for ~3s; fetch and decode its animated art now so the reveal never hitches.
-  warmImage(card.image);
+  warmImage(art);
   const theater = createTheater(cfg);
   const { wrapper, packageContainer, tearBorder1, cardBox, cardLabel,
           mainCard, holoOverlay, cardInfoOverlay, radialContainer,
@@ -377,6 +427,8 @@ function drawCard(username) {
   wrapper.style.visibility        = 'visible';
   wrapper.classList.remove('hid', 'hidden');
   wrapper.classList.add('pack-fit');
+  wrapper.classList.remove('variant-reverse', 'variant-full', 'variant-shiny');
+  if (variant !== 'regular') wrapper.classList.add('variant-' + variant);
 
   // Animations
   packageContainer.style.animation = 'none';
@@ -399,6 +451,7 @@ function drawCard(username) {
   }, 2800);
 
   // "new" label
+  if (variant !== 'regular') cardLabel.textContent = variant === 'shiny' ? '✨ ' + VARIANT_LABELS[variant] : VARIANT_LABELS[variant];
   setTimeout(() => {
     cardLabel.style.opacity    = '1';
     cardLabel.style.visibility = 'visible';
@@ -412,8 +465,8 @@ function drawCard(username) {
   }, 3000);
 
   // Card image
-  if (card.image) {
-    mainCard.style.backgroundImage    = `url('${card.image}')`;
+  if (art) {
+    mainCard.style.backgroundImage    = `url('${art}')`;
     mainCard.style.backgroundSize     = 'cover';
     mainCard.style.backgroundPosition = 'center';
     mainCard.style.backgroundRepeat   = 'no-repeat';
@@ -434,7 +487,8 @@ function drawCard(username) {
   if (starsEl) starsEl.innerHTML  = STAR_SVG.repeat(card.stars);
 
   if (holoOverlay) {
-    if (card.stars >= cfg.holoMinStars) {
+    // Reverse Holo and Shiny are the holo effect on top of their base art, whatever the card's star rating.
+    if (card.stars >= cfg.holoMinStars || variant === 'reverse' || variant === 'shiny') {
       holoOverlay.classList.remove('holographic-animate');
       void holoOverlay.offsetWidth;
       holoOverlay.classList.add('holographic-animate');
@@ -446,8 +500,9 @@ function drawCard(username) {
 
   buildMiniList(miniList, revealedCardsByUser[user], card.number, cfg);
 
-  revealedCardsByUser[user].push(card.number);
-  saveCollection({ username: user, cardNumber: card.number, cardName: card.name, stars: card.stars, packName });
+  const entry = encodeEntry(card.number, variant);
+  revealedCardsByUser[user].push(entry);
+  saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName });
 
   // Hide + cleanup
   const showDuration = cfg.cardTime * 1000 + 4000;
@@ -565,6 +620,9 @@ function initDevPanel() {
     if (e.target.tagName === 'INPUT') return;
     const name = usernameInput.value.trim() || 'testuser';
     if (e.key === 'd' || e.key === 'D') queueDraw(name);
+    // Force a variant on the next draw to preview its effects: r = Reverse, f = Full Art, s = Shiny.
+    const forced = { r: 'reverse', f: 'full', s: 'shiny' }[e.key.toLowerCase()];
+    if (forced) { forceVariant = forced; queueDraw(name); }
     if (e.key === 'c' || e.key === 'C') queueCollection(name);
   });
 }

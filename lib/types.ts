@@ -1,3 +1,11 @@
+/** Card variants, lowest to highest. Upgrades only ever move one step up this ladder. */
+export type Variant = 'regular' | 'reverse' | 'full' | 'shiny';
+
+export type VariantWeights = Record<Variant, number>;
+
+/** Duplicates of the previous variant needed to craft each variant (regular can't be crafted). */
+export type UpgradeCosts = Record<Exclude<Variant, 'regular'>, number>;
+
 export interface Season {
   id: string;
   name: string;
@@ -21,6 +29,9 @@ export interface Pack {
   cooldownTime: number;
   soundVolume: number;
   createdAt: number;
+  upgradesEnabled: boolean;   // variants + upgrades; off for Season 1 style packs
+  variantWeights: VariantWeights;
+  upgradeCosts: UpgradeCosts;
 }
 
 export interface Card {
@@ -31,6 +42,8 @@ export interface Card {
   soundUrl?: string;          // overrides the default assets/sounds/{number}.mp3
   probability: number;
   stars: number;              // 1–5
+  upgradesEnabled?: boolean;  // per-card opt-out; undefined = follow the pack
+  fullArtImageUrl?: string;   // art for the Full Art / Shiny variants
 }
 
 export interface UserProfile {

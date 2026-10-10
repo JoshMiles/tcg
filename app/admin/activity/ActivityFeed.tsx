@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { ActivityEvent } from '@/lib/activity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { getRarity } from '@/lib/rarity';
+import { VARIANT_LABELS } from '@/lib/variants';
 import { Avatar } from '@/app/components/Avatar';
 
 export type CardInfo = { packName: string; number: number; name: string; imageUrl: string; stars: number };
@@ -17,7 +18,7 @@ const MAX_EVENTS = 300;
 const FILTERS: { id: Filter; label: string; match: (e: ActivityEvent) => boolean }[] = [
   { id: 'all', label: 'All', match: () => true },
   { id: 'pulls', label: 'Pulls', match: e => e.type === 'pull' },
-  { id: 'cards', label: 'Grants & removals', match: e => e.type === 'grant' || e.type === 'remove' },
+  { id: 'cards', label: 'Grants & removals', match: e => e.type === 'grant' || e.type === 'remove' || e.type === 'upgrade' },
   { id: 'stream', label: 'Stream', match: e => e.type === 'trigger' || e.type === 'collection_shown' },
   { id: 'resets', label: 'Resets', match: e => e.type === 'reset' || e.type === 'delete' },
 ];
@@ -247,6 +248,9 @@ function EventRow({
         <>
           <UserLink username={e.username} /> pulled <span className="font-bold text-white">{e.cardName || card?.name || `#${e.cardNumber}`}</span>{' '}
           <Stars n={e.stars} />
+          {e.variant && e.variant !== 'regular' && (
+            <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-fuchsia-300 border border-fuchsia-500/50 rounded-full px-2 py-0.5">{VARIANT_LABELS[e.variant]}</span>
+          )}
           {e.isNew ? (
             <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5">New</span>
           ) : (
@@ -281,6 +285,19 @@ function EventRow({
         </>
       );
       sub = 'by admin';
+      break;
+    }
+    case 'upgrade': {
+      const card = cardIndex(e.cardNumber);
+      icon = '✨';
+      accent = 'border-l-yellow-400';
+      thumb = <CardThumb card={card} stars={card?.stars ?? 1} />;
+      body = (
+        <>
+          <UserLink username={e.username} /> upgraded <span className="font-bold text-white">{e.cardName || card?.name || `#${e.cardNumber}`}</span> to <span className="font-bold text-yellow-300">{VARIANT_LABELS[e.to]}</span>
+        </>
+      );
+      sub = `${e.cost}× ${VARIANT_LABELS[e.from]} spent`;
       break;
     }
     case 'reset':

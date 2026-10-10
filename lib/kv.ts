@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
-import type { Season, Pack, Card, UserProfile } from './types';
+import type { Season, Pack, Card, UserProfile, UpgradeCosts, VariantWeights } from './types';
+import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS } from './variants';
 import { SEED_SEASON, SEED_PACK, SEED_CARDS } from './seed';
 
 // ── Normalizers (handle legacy KV shapes) ─────────────────
@@ -39,6 +40,9 @@ function normalizePack(raw: unknown): Pack {
     cooldownTime: (p.cooldownTime as number) ?? 1,
     soundVolume: (p.soundVolume as number) ?? 1.0,
     createdAt: (p.createdAt as number) ?? Date.now(),
+    upgradesEnabled: (p.upgradesEnabled as boolean) ?? false,
+    variantWeights: { ...DEFAULT_VARIANT_WEIGHTS, ...(p.variantWeights as Partial<VariantWeights> | undefined) },
+    upgradeCosts: { ...DEFAULT_UPGRADE_COSTS, ...(p.upgradeCosts as Partial<UpgradeCosts> | undefined) },
   };
 }
 
@@ -235,6 +239,39 @@ export async function getCollection(collectionName: string): Promise<Record<stri
 
 export async function saveCollection(collectionName: string, data: Record<string, number[]>): Promise<void> {
   await kv.set(`tcg_${collectionName}`, data);
+}
+
+/**
+ * Runs `fn` while holding a short per-collection lock. The whole collection is one JSON blob, so any
+ * read-modify-write (pull, grant, remove, upgrade) must go through this or concurrent serverless
+ * invocations overwrite each other's changes.
+ */
+export async function withCollectionLock<T>(collectionName: string, fn: () => Promise<T>): Promise<T> {
+  const key = `lock:tcg_${collectionName}`;
+  const token = crypto.randomUUID();
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const got = await kv.set(key, token, { nx: true, ex: 10 });
+    if (got) {
+      try {
+        return await fn();
+      } finally {
+        if ((await kv.get(key)) === token) await kv.del(key);
+      }
+    }
+    await new Promise(r => setTimeout(r, 80 + Math.random() * 120));
+  }
+  throw new Error('Collection is busy, try again');
+}
+
+/** Appends one entry (card + variant, see lib/variants.ts) to a user's collection. Returns their new array. */
+export async function addCollectionEntry(collectionName: string, username: string, entry: number): Promise<number[]> {
+  const lower = username.toLowerCase();
+  return withCollectionLock(collectionName, async () => {
+    const data = await getCollection(collectionName);
+    data[lower] = [...(data[lower] ?? []), entry];
+    await saveCollection(collectionName, data);
+    return data[lower];
+  });
 }
 
 export async function deleteCollection(collectionName: string): Promise<void> {

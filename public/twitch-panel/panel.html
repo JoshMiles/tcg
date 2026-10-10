@@ -42,13 +42,22 @@
     <!-- Season header -->
     <div class="season-header" id="collection-season-header"></div>
 
+    <!-- View tabs: collection / leaderboard -->
+    <div class="view-tabs" id="view-tabs">
+      <button class="view-tab active" data-view="collection">Collection</button>
+      <button class="view-tab" data-view="leaderboard">Leaderboard</button>
+    </div>
+
     <!-- Pack tabs -->
     <div class="pack-tabs" id="pack-tabs"></div>
 
     <!-- Card grid -->
-    <div class="grid-area">
+    <div class="grid-area" id="collection-area">
       <div class="card-grid" id="card-grid"></div>
     </div>
+
+    <!-- Leaderboard (built in panel.js) -->
+    <div class="grid-area hidden" id="leaderboard-area"></div>
 
     <!-- Footer -->
     <div class="panel-footer">
