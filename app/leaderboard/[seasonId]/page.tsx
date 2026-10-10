@@ -15,7 +15,7 @@ const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny
 export default async function LeaderboardPage({ params }: { params: Promise<{ seasonId: string }> }) {
   const { seasonId } = await params;
   const [season, seasons] = await Promise.all([getSeason(seasonId), listSeasons()]);
-  if (!season) notFound();
+  if (!season || season.status === 'draft') notFound();
 
   const { rows, values, packs } = await getSeasonLeaderboard(season);
   const top = rows.slice(0, 100);
@@ -44,9 +44,9 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
           </Link>
         </div>
 
-        {seasons.length > 1 && (
+        {seasons.filter(s => s.status === 'published').length > 1 && (
           <div className="max-w-3xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
-            {seasons.sort((a, b) => b.createdAt - a.createdAt).map(s => (
+            {seasons.filter(s => s.status === 'published').sort((a, b) => b.createdAt - a.createdAt).map(s => (
               <Link
                 key={s.id}
                 href={`/leaderboard/${s.id}`}

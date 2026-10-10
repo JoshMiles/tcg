@@ -15,3 +15,13 @@ export function StatusChip({ active, activeLabel = 'Active', inactiveLabel = 'In
     </span>
   );
 }
+
+/** Marks a pack or season that is saved but not yet published. */
+export function DraftChip() {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-amber-300 bg-amber-500/10 border border-amber-400/30 rounded-full px-2.5 py-0.5">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+      Draft
+    </span>
+  );
+}

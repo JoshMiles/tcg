@@ -28,6 +28,14 @@ The collection array stores duplicates intentionally. To get unique card count: 
 
 KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy data shapes on read — never need manual KV migrations.
 
+## Drafts & wizards
+- `Pack.status` / `Season.status` are `'draft' | 'published'` (missing = published, via the normalizers). **Drafts are never drawn or activated**: `getActiveSeason` ignores draft seasons, `setActiveSeason` throws for one, `getActivePacksForSeason` skips draft packs, the public leaderboard hides draft seasons. A published season may have a draft pack attached; it just isn't drawn until published.
+- The wizards create the draft record when the first step is completed (`createDraftPack` / `createDraftSeason`), rewrite the URL to `?draft=<id>` with `history.replaceState`, then **autosave** (`useAutosave`: ~0.9s debounce, serialised, `flush()` before navigating). Resume = open the same URL (the lists link to it). Publishing re-validates on the server (`validatePack` / `validateSeason`).
+- **Don't add `revalidatePath` to autosave actions and don't put a changing `key` on the wizard element** — either re-renders/remounts the page mid-edit and bounces the user back to step 1. List pages are `force-dynamic` so they don't need it.
+- `saveCards` replaces a pack's card list; existing cards **keep their numbers** (viewer collections point at them), new cards get the next free number, and the assigned numbers are returned to the editor.
+- Season `collectionName` must be unique across seasons (a clash would merge two seasons' viewer collections) — validated live and on publish.
+- Published packs can be moved back to drafts from the pack page (`unpublishPack`).
+
 ## Variants, upgrades & leaderboard
 
 Packs can opt in to **variants**: every card can be pulled as Regular / Reverse Holo / Full Art / Shiny Full Art, and viewers upgrade duplicates in the Twitch panel. Season 1's pack has `upgradesEnabled: false`, so it behaves exactly as before.
@@ -60,11 +68,14 @@ Packs can opt in to **variants**: every card can be pulled as Regular / Reverse 
 | `app/admin/layout.tsx` | Admin shell with sidebar (AdminNav client component) |
 | `app/admin/components/AdminNav.tsx` | Client component — uses `usePathname()` for active nav state |
 | `app/admin/components/Dialog.tsx` | Base modal with blur backdrop, ESC-to-close |
-| `app/admin/components/PackWizard.tsx` | 3-step wizard for pack creation (Details → Visual → Timing) |
-| `app/admin/components/SeasonDialog.tsx` | Dialog for season creation |
-| `app/admin/components/AddCardDialog.tsx` | Dialog for adding a card to a pack |
-| `app/admin/components/NewPackButton.tsx` | Client button that owns PackWizard open/close state |
-| `app/admin/components/NewSeasonButton.tsx` | Client button that owns SeasonDialog open/close state |
+| `app/admin/packs/new/PackFlow.tsx` | Full-page pack wizard (Details → Look & feel → Upgrades → Timing → Cards → Review). Autosaves a draft; see Drafts & wizards |
+| `app/admin/seasons/new/SeasonFlow.tsx` | Full-page season wizard (Details → Packs → Review); also autosaves a draft |
+| `app/admin/components/CardsEditor.tsx` | Controlled bulk card editor (drag-drop many images → rows with inline name/stars/odds/sound/full-art). Used by the pack wizard and `/admin/packs/[id]/cards` |
+| `app/admin/components/{Stepper,Toggle,PackPreview}.tsx`, `use-autosave.ts`, `upload-client.ts` | Wizard building blocks: step bar + save indicator, switch, live pack preview, debounced serialised autosave hook, browser upload helpers (GIFs → Blob → optimize) |
+| `app/admin/draft-actions.ts` | Server actions for the wizards (create/save draft, `saveCards`, publish, discard). Return data instead of redirecting |
+| `lib/draft-validation.ts` | `validatePack` / `validateSeason` — the same checks run live in the wizard and again on publish |
+| `app/admin/components/AddCardDialog.tsx` | Dialog for adding a single card to a pack |
+| `app/admin/components/NewPackButton.tsx`, `NewSeasonButton.tsx` | Plain links to the wizards |
 | `app/admin/components/AddCardButton.tsx` | Client button that owns AddCardDialog open/close state |
 | `lib/twitch-jwt.ts` | Manual JWT verification via Node `crypto` (no external deps) + `getBearerToken()` |
 | `public/widget.js` | OBS overlay widget. Vanilla JS, no build step |
@@ -79,10 +90,12 @@ Packs can opt in to **variants**: every card can be pulled as Regular / Reverse 
 
 ## Admin routes
 - `/admin` — dashboard (stats, top collectors, card ownership table)
-- `/admin/seasons` — season list + create
+- `/admin/seasons` — season list (drafts first)
+- `/admin/seasons/new[?draft=id]` — season wizard / resume a draft
 - `/admin/seasons/[id]` — season settings + pack assignment
 - `/admin/packs` — global pack library
-- `/admin/packs/new` — create pack
+- `/admin/packs/new[?draft=id]` — pack wizard / resume a draft
+- `/admin/packs/[packId]/cards` — bulk card editor for an existing pack (explicit save)
 - `/admin/packs/[packId]` — pack settings + cards table + add card
 - `/admin/packs/[packId]/cards/[cardId]` — edit individual card
 - `/admin/users` — all collectors across all seasons, with link to each user's detail page
@@ -139,6 +152,7 @@ The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMin
 - Server actions use `.bind(null, fixedArg)` to pre-fill arguments before passing to `<form action={}>`
 - Image uploads go through `ImageUploadField` component → Vercel Blob
 - Auth: `ADMIN_SECRET` env var checked against `admin-auth` cookie in middleware
+- **Wizards, not modals, for multi-step creation.** Packs and seasons are created in full-page flows (`PackFlow`, `SeasonFlow`) — see *Drafts & wizards*. Dialogs remain for small one-shot forms (add one card).
 - **Modal pattern**: pages stay as server components; a thin client wrapper component (e.g. `NewPackButton`) owns only the open/close boolean and renders the dialog. The dialog itself uses `<form action={serverAction}>` — redirects still work correctly.
 - **NEVER add `onClick` or other event handlers to JSX in server components** — Next.js will throw at runtime even if the element is inside a client component's children prop. This applies to `<a>`, `<button>`, or any element rendered directly in a server component file.
 - Users page reads from `getAllCollectionUsers()` in `lib/kv.ts` which aggregates across all seasons' legacy collections. `listAllUsers()` and the per-user pull-record helpers were removed — nothing wrote to them.

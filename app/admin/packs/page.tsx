@@ -2,16 +2,19 @@ import Link from 'next/link';
 import { listAllPacks, getPackCards } from '@/lib/kv';
 import { rarityStats } from '@/lib/rarity';
 import { deletePackAction } from '../actions';
+import { discardDraftPack } from '../draft-actions';
 import { NewPackButton } from '../components/NewPackButton';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { BrandMark } from '../components/BrandMark';
-import { StatusChip } from '../components/StatusChip';
+import { StatusChip, DraftChip } from '../components/StatusChip';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PacksPage() {
   const packs = await listAllPacks();
-  packs.sort((a, b) => b.createdAt - a.createdAt);
+  // Drafts first (they're unfinished work), then newest first.
+  packs.sort((a, b) => Number(b.status === 'draft') - Number(a.status === 'draft') || b.createdAt - a.createdAt);
+  const draftCount = packs.filter(p => p.status === 'draft').length;
 
   const stats = await Promise.all(
     packs.map(async p => {
@@ -27,7 +30,7 @@ export default async function PacksPage() {
         <div>
           <h1 className="text-3xl font-bold text-white">Packs</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {packs.length} pack{packs.length !== 1 ? 's' : ''} · assign to any season
+            {packs.length} pack{packs.length !== 1 ? 's' : ''}{draftCount > 0 ? ` · ${draftCount} draft${draftCount !== 1 ? 's' : ''}` : ''} · assign to any season
           </p>
         </div>
         <NewPackButton />
@@ -42,13 +45,16 @@ export default async function PacksPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {packs.map(pack => {
             const { count, tiers } = statsMap[pack.id] ?? { count: 0, tiers: [] };
-            const del = deletePackAction.bind(null, pack.id);
+            const isDraft = pack.status === 'draft';
+            const del = isDraft ? discardDraftPack.bind(null, pack.id) : deletePackAction.bind(null, pack.id);
             return (
               // Gradient rim = the card border. Active packs get the gold frame.
               <div
                 key={pack.id}
                 className={`rounded-[1.6rem] p-[3px] transition-all hover:-translate-y-1 ${
-                  pack.active
+                  isDraft
+                    ? 'bg-gradient-to-br from-amber-700/60 to-gray-800'
+                    : pack.active
                     ? 'bg-gradient-to-br from-yellow-300 via-yellow-500 to-amber-600 shadow-glow'
                     : 'bg-gradient-to-br from-gray-600 to-gray-800'
                 }`}
@@ -69,8 +75,8 @@ export default async function PacksPage() {
 
                   <div className="p-4 space-y-3 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <h2 className="font-display text-xl font-bold text-white leading-tight">{pack.name}</h2>
-                      <StatusChip active={pack.active} />
+                      <h2 className="font-display text-xl font-bold text-white leading-tight">{pack.name || 'Untitled pack'}</h2>
+                      {isDraft ? <DraftChip /> : <StatusChip active={pack.active} />}
                     </div>
 
                     <div className="flex flex-wrap gap-1.5 min-h-[1.75rem]">
@@ -87,19 +93,19 @@ export default async function PacksPage() {
 
                   <div className="px-4 pb-4 flex items-center gap-2">
                     <Link
-                      href={`/admin/packs/${pack.id}`}
+                      href={isDraft ? `/admin/packs/new?draft=${pack.id}` : `/admin/packs/${pack.id}`}
                       className="tcg-btn flex-1 text-center px-3 py-2 text-sm rounded-xl"
                     >
-                      Manage →
+                      {isDraft ? 'Continue setup →' : 'Manage →'}
                     </Link>
                     <form action={del}>
                       <ConfirmButton
-                title="Delete pack?"
-                confirmLabel="Delete pack"
-                message={<>Delete <strong className="text-white">{pack.name}</strong>? Its cards are deleted and it is removed from every season. This can&apos;t be undone.</>}
+                title={isDraft ? 'Discard draft?' : 'Delete pack?'}
+                confirmLabel={isDraft ? 'Discard draft' : 'Delete pack'}
+                message={<>{isDraft ? 'Discard' : 'Delete'} <strong className="text-white">{pack.name || 'Untitled pack'}</strong>? Its cards are deleted{isDraft ? '' : ' and it is removed from every season'}. This can&apos;t be undone.</>}
                 className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
               >
-                Delete
+                {isDraft ? 'Discard' : 'Delete'}
               </ConfirmButton>
                     </form>
                   </div>

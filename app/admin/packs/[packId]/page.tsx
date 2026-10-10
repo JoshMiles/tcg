@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPack, getPackCards } from '@/lib/kv';
 import { updatePack, deleteCard } from '../../actions';
+import { unpublishPack } from '../../draft-actions';
+import { DraftChip } from '../../components/StatusChip';
 import { PackFields } from '../../components/PackFields';
 import { AddCardButton } from '../../components/AddCardButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
@@ -18,6 +20,8 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
   const sorted = [...cards].sort((a, b) => a.number - b.number);
   const totalProb = cards.reduce((s, c) => s + c.probability, 0);
   const updateThisPack = updatePack.bind(null, packId);
+  const isDraft = pack.status === 'draft';
+  const moveToDrafts = unpublishPack.bind(null, packId);
 
   const rarityBreakdown = rarityStats(cards);
 
@@ -33,7 +37,9 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold text-white">{pack.name}</h1>
-              {pack.active ? (
+              {isDraft ? (
+                <DraftChip />
+              ) : pack.active ? (
                 <span className="text-xs px-2 py-0.5 bg-green-900/50 text-green-400 rounded-full">Active</span>
               ) : (
                 <span className="text-xs px-2 py-0.5 bg-gray-800 text-gray-500 rounded-full">Inactive</span>
@@ -47,6 +53,15 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
         </Link>
       </div>
 
+      {isDraft && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-amber-200">
+            This pack is a <strong>draft</strong> — it&apos;s never drawn on stream until you publish it.
+          </p>
+          <Link href={`/admin/packs/new?draft=${packId}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Continue setup →</Link>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-8">
 
         {/* ── Left: Cards table ── */}
@@ -55,7 +70,15 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             <h2 className="text-lg font-semibold text-white">
               Cards <span className="text-gray-600 font-normal text-base ml-1">({sorted.length})</span>
             </h2>
-            <AddCardButton packId={packId} />
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/admin/packs/${packId}/cards`}
+                className="px-3 py-2 text-sm font-semibold bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl transition-colors"
+              >
+                Bulk edit cards
+              </Link>
+              <AddCardButton packId={packId} />
+            </div>
           </div>
 
           <div className="tcg-panel rounded-2xl overflow-hidden">
@@ -153,6 +176,14 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Draft / publish state */}
+          {!isDraft && (
+            <form action={moveToDrafts} className="tcg-panel rounded-2xl p-4 flex items-center justify-between gap-3">
+              <p className="text-xs text-gray-500">Published. Move it back to drafts to stop it being drawn while you rework it.</p>
+              <button type="submit" className="shrink-0 px-3 py-1.5 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors">Move to drafts</button>
+            </form>
           )}
 
           {/* Settings form */}

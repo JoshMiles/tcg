@@ -40,6 +40,7 @@ export async function createSeason(formData: FormData) {
     name: formData.get('name') as string,
     collectionName: (formData.get('collectionName') as string).replace(/\s+/g, ''),
     active: willBeActive,
+    status: 'published',
     createdAt: Date.now(),
     maxConcurrentPacks: Number(formData.get('maxConcurrentPacks')) || 1,
     packIds: [],
@@ -52,7 +53,7 @@ export async function updateSeason(id: string, formData: FormData) {
   const existing = await getSeason(id);
   if (!existing) return;
 
-  const willBeActive = formData.get('active') === 'true';
+  const willBeActive = formData.get('active') === 'true' && existing.status === 'published';
   if (willBeActive && !existing.active) await setActiveSeason();
 
   await saveSeason({
@@ -69,6 +70,7 @@ export async function updateSeason(id: string, formData: FormData) {
 }
 
 export async function activateSeason(id: string) {
+  if ((await getSeason(id))?.status === 'draft') return; // publish it first
   await setActiveSeason(id);
   revalidatePath('/admin/seasons');
   revalidatePath('/admin');
@@ -141,6 +143,7 @@ export async function createPack(formData: FormData) {
     name: formData.get('name') as string,
     coverImageUrl: (formData.get('coverImageUrl') as string) || '',
     active: formData.get('active') === 'true',
+    status: 'published',
     weight: Number(formData.get('weight')) || 1,
     accentColor: (formData.get('accentColor') as string) || 'rgb(241,187,6)',
     tearBorderColor: (formData.get('tearBorderColor') as string) || 'rgb(218,163,18)',

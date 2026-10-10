@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const me = req.nextUrl.searchParams.get('username')?.toLowerCase().trim();
 
   const season = seasonId ? await getSeason(seasonId) : await getActiveSeason();
-  if (!season) return NextResponse.json({ error: 'No season' }, { status: 404 });
+  if (!season || season.status === 'draft') return NextResponse.json({ error: 'No season' }, { status: 404 });
 
   const { rows, values } = await getSeasonLeaderboard(season);
   const mine = me ? rows.findIndex(r => r.username === me) : -1;

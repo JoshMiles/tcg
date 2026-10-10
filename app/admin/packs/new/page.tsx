@@ -1,28 +1,45 @@
-import Link from 'next/link';
-import { createPack } from '../../actions';
-import { PackFields } from '../../components/PackFields';
+import { redirect } from 'next/navigation';
+import { getPack, getPackCards } from '@/lib/kv';
+import { PackFlow } from './PackFlow';
+import type { PackInput } from '../../draft-actions';
 
-export default function NewPackPage() {
-  return (
-    <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">New Pack</h1>
-        <Link href="/admin/packs" className="text-sm text-gray-500 hover:text-white transition-colors">
-          ← Packs
-        </Link>
-      </div>
+export const dynamic = 'force-dynamic';
 
-      <form action={createPack} className="tcg-panel rounded-xl p-6 space-y-4">
-        <PackFields />
-        <div className="pt-2">
-          <button
-            type="submit"
-            className="px-6 py-2 tcg-btn rounded-lg transition-colors"
-          >
-            Create Pack
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+export default async function NewPackPage({ searchParams }: { searchParams: Promise<{ draft?: string }> }) {
+  const { draft } = await searchParams;
+
+  // Resume a saved draft: ?draft=<id>
+  if (draft) {
+    const [pack, cards] = await Promise.all([getPack(draft), getPackCards(draft)]);
+    if (!pack) redirect('/admin/packs/new');
+    if (pack.status !== 'draft') redirect(`/admin/packs/${pack.id}`);
+    const input: PackInput = {
+      name: pack.name,
+      coverImageUrl: pack.coverImageUrl,
+      active: pack.active,
+      weight: pack.weight,
+      accentColor: pack.accentColor,
+      tearBorderColor: pack.tearBorderColor,
+      holoMinStars: pack.holoMinStars,
+      cardTime: pack.cardTime,
+      cooldownTime: pack.cooldownTime,
+      soundVolume: pack.soundVolume,
+      upgradesEnabled: pack.upgradesEnabled,
+      variantWeights: pack.variantWeights,
+      upgradeCosts: pack.upgradeCosts,
+    };
+    return (
+      // No `key`: the client wizard creates its draft mid-session and rewrites the URL to ?draft=..., and a
+      // changing key would remount it (losing the current step).
+      <PackFlow
+        initial={{
+          id: pack.id,
+          pack: input,
+          cards: cards.map(c => ({ ...c, upgradesEnabled: c.upgradesEnabled !== false })),
+        }}
+      />
+    );
+  }
+
+  return <PackFlow />;
 }

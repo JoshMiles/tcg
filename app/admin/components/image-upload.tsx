@@ -1,39 +1,29 @@
 'use client';
 import { useState } from 'react';
-import { upload } from '@vercel/blob/client';
+import { uploadImageFile } from './upload-client';
 
 type Status = 'idle' | 'uploading' | 'optimizing';
 
-export function ImageUploadField({ name = 'imageUrl', defaultValue, label: fieldLabel = 'Image URL' }: { name?: string; defaultValue?: string; label?: string }) {
-  const [url, setUrl] = useState(defaultValue ?? '');
+export function ImageUploadField({
+  name = 'imageUrl',
+  defaultValue,
+  label: fieldLabel = 'Image URL',
+  onUrlChange,
+}: {
+  name?: string;
+  defaultValue?: string;
+  label?: string;
+  /** Called whenever the URL changes (typed or uploaded) — for forms that keep their own state. */
+  onUrlChange?: (url: string) => void;
+}) {
+  const [url, setUrlState] = useState(defaultValue ?? '');
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
   const busy = status !== 'idle';
 
-  // GIFs go straight from the browser to Blob (the serverless request-body limit is 4.5MB, and
-  // card GIFs are 20MB+), then the server shrinks them to animated WebP and makes a static thumbnail.
-  async function uploadGif(file: File): Promise<string> {
-    setStatus('uploading');
-    const blob = await upload(`tmp/${file.name}`, file, { access: 'public', handleUploadUrl: '/api/upload/token' });
-    setStatus('optimizing');
-    const res = await fetch('/api/upload/optimize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: blob.url }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error ?? 'Optimization failed');
-    return data.url;
-  }
-
-  async function uploadPlain(file: File): Promise<string> {
-    setStatus('uploading');
-    const form = new FormData();
-    form.append('file', file);
-    const res = await fetch('/api/upload', { method: 'POST', body: form });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error ?? 'Upload failed');
-    return data.url;
+  function setUrl(next: string) {
+    setUrlState(next);
+    onUrlChange?.(next);
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -42,7 +32,7 @@ export function ImageUploadField({ name = 'imageUrl', defaultValue, label: field
     if (!file) return;
     setError('');
     try {
-      setUrl(await (file.type === 'image/gif' ? uploadGif(file) : uploadPlain(file)));
+      setUrl(await uploadImageFile(file, setStatus));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {

@@ -6,11 +6,15 @@ export type VariantWeights = Record<Variant, number>;
 /** Duplicates of the previous variant needed to craft each variant (regular can't be crafted). */
 export type UpgradeCosts = Record<Exclude<Variant, 'regular'>, number>;
 
+/** Drafts are saved work-in-progress: never drawn, never activatable, hidden from viewers until published. */
+export type DraftStatus = 'draft' | 'published';
+
 export interface Season {
   id: string;
   name: string;
   collectionName: string;
   active: boolean;
+  status: DraftStatus;
   createdAt: number;
   maxConcurrentPacks: number;
   packIds: string[];          // ordered list of pack IDs used by this season
@@ -21,6 +25,7 @@ export interface Pack {
   name: string;
   coverImageUrl: string;
   active: boolean;
+  status: DraftStatus;
   weight: number;             // relative draw weight when multiple packs are in a season
   accentColor: string;
   tearBorderColor: string;

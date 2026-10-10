@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 // /leaderboard → the active season's board (or the newest season if none is active).
 export default async function LeaderboardIndex() {
-  const season = (await getActiveSeason()) ?? (await listSeasons()).sort((a, b) => b.createdAt - a.createdAt)[0];
+  const season = (await getActiveSeason()) ?? (await listSeasons()).filter(s => s.status === 'published').sort((a, b) => b.createdAt - a.createdAt)[0];
   if (!season) {
     return (
       <div className="min-h-screen flex items-center justify-center text-center p-8">

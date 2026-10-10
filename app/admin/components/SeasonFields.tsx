@@ -1,4 +1,4 @@
-export function SeasonFields({ defaults }: { defaults?: { name?: string; collectionName?: string; maxConcurrentPacks?: number; active?: boolean } }) {
+export function SeasonFields({ defaults }: { defaults?: { name?: string; collectionName?: string; maxConcurrentPacks?: number; active?: boolean; canActivate?: boolean } }) {
   return (
     <>
       <Field label="Season Name" name="name" required defaultValue={defaults?.name} />
@@ -16,6 +16,9 @@ export function SeasonFields({ defaults }: { defaults?: { name?: string; collect
         defaultValue={String(defaults?.maxConcurrentPacks ?? 1)}
         help="How many pack openings are shown on screen at once"
       />
+      {defaults?.canActivate === false ? (
+        <p className="text-xs text-gray-500">This season is a draft, so it can&apos;t be activated yet.</p>
+      ) : (
       <div className="flex items-center gap-3">
         <input
           type="checkbox"
@@ -29,6 +32,7 @@ export function SeasonFields({ defaults }: { defaults?: { name?: string; collect
           Set as active season (deactivates all others)
         </label>
       </div>
+      )}
     </>
   );
 }

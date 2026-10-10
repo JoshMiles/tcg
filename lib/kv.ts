@@ -11,7 +11,8 @@ function normalizeSeason(raw: unknown): Season {
     id: s.id as string,
     name: s.name as string,
     collectionName: (s.collectionName as string) ?? '',
-    active: (s.active as boolean) ?? false,
+    active: ((s.active as boolean) ?? false) && s.status !== 'draft',
+    status: s.status === 'draft' ? 'draft' : 'published',
     createdAt: (s.createdAt as number) ?? Date.now(),
     maxConcurrentPacks: (s.maxConcurrentPacks as number) ?? 1,
     packIds: (s.packIds as string[]) ?? [],
@@ -32,6 +33,7 @@ function normalizePack(raw: unknown): Pack {
     name: p.name as string,
     coverImageUrl: (p.coverImageUrl as string) ?? '',
     active: (p.active as boolean) ?? true,
+    status: p.status === 'draft' ? 'draft' : 'published',
     weight: (p.weight as number) ?? 1,
     accentColor: (p.accentColor as string) ?? 'rgb(241,187,6)',
     tearBorderColor: (p.tearBorderColor as string) ?? 'rgb(218,163,18)',
@@ -65,7 +67,7 @@ export async function getSeason(id: string): Promise<Season | null> {
 
 export async function getActiveSeason(): Promise<Season | null> {
   const seasons = await listSeasons();
-  return seasons.find(s => s.active) ?? null;
+  return seasons.find(s => s.active && s.status === 'published') ?? null;
 }
 
 export async function saveSeason(season: Season): Promise<void> {
@@ -79,6 +81,9 @@ export async function saveSeason(season: Season): Promise<void> {
 /** Makes exactly one season active (or none, if `activeId` is omitted). */
 export async function setActiveSeason(activeId?: string): Promise<void> {
   const all = await listSeasons();
+  if (activeId && all.find(s => s.id === activeId)?.status === 'draft') {
+    throw new Error('A draft season cannot be activated. Publish it first.');
+  }
   await Promise.all(
     all
       .filter(s => s.active !== (s.id === activeId))
@@ -137,7 +142,7 @@ export async function getPacksForSeason(season: Season): Promise<Pack[]> {
 
 export async function getActivePacksForSeason(season: Season): Promise<Pack[]> {
   const packs = await getPacksForSeason(season);
-  return packs.filter(p => p.active);
+  return packs.filter(p => p.active && p.status === 'published');
 }
 
 // ── Cards ──────────────────────────────────────────────────

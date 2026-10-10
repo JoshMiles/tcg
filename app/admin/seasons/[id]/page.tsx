@@ -4,6 +4,7 @@ import { getSeason, getPacksForSeason, listAllPacks } from '@/lib/kv';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { updateSeason, addPackToSeason, removePackFromSeason } from '../../actions';
 import { SeasonFields } from '../../components/SeasonFields';
+import { DraftChip } from '../../components/StatusChip';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{season.name}</h1>
+            {season.status === 'draft' && <DraftChip />}
             {season.active && (
               <span className="text-xs px-2 py-1 bg-green-900/60 text-green-400 rounded-full">Active</span>
             )}
@@ -39,6 +41,15 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
           </Link>
         </div>
 
+        {season.status === 'draft' && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-5 py-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-amber-200">
+              This season is a <strong>draft</strong> — it can&apos;t be activated until you create it.
+            </p>
+            <Link href={`/admin/seasons/new?draft=${id}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Continue setup →</Link>
+          </div>
+        )}
+
         <form action={updateThisSeason} className="tcg-panel rounded-xl p-6 space-y-4">
           <SeasonFields
             defaults={{
@@ -46,6 +57,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
               collectionName: season.collectionName,
               maxConcurrentPacks: season.maxConcurrentPacks,
               active: season.active,
+              canActivate: season.status === 'published',
             }}
           />
           <div className="pt-2">
@@ -93,7 +105,9 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-white text-sm">{pack.name}</span>
-                      {pack.active ? (
+                      {pack.status === 'draft' ? (
+                        <span className="text-xs px-1.5 py-0.5 bg-amber-900/50 text-amber-300 rounded-md">Draft</span>
+                      ) : pack.active ? (
                         <span className="text-xs px-1.5 py-0.5 bg-green-900/60 text-green-400 rounded-md">Active</span>
                       ) : (
                         <span className="text-xs px-1.5 py-0.5 bg-gray-800 text-gray-500 rounded-md">Inactive</span>
