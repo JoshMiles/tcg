@@ -131,15 +131,54 @@
      Dev / Test Panel  (only shown with ?dev in URL)
 ══════════════════════════════════════════════ -->
 <div id="dev-panel">
-  <h3>🃏 TCG Test Panel</h3>
+  <div class="dev-head">
+    <h3>🃏 TCG Test Panel</h3>
+    <button id="dev-toggle" type="button" title="Collapse / expand">–</button>
+  </div>
 
-  <label for="dev-username">Username</label>
-  <input type="text" id="dev-username" placeholder="testuser" value="testuser">
+  <div id="dev-body">
+    <div id="dev-live-warning" class="dev-warning hidden">⚠ Draws are being saved to the real collection</div>
 
-  <button class="dev-btn dev-btn-draw"       id="btn-draw">▶ Draw Card  [D]</button>
-  <button class="dev-btn dev-btn-collection" id="btn-collection">📋 Show Collection  [C]</button>
-  <button class="dev-btn dev-btn-reset"      id="btn-reset-user">🔄 Reset User</button>
-  <button class="dev-btn dev-btn-reset-all"  id="btn-reset-all">💣 Reset All Collections</button>
+    <label for="dev-username">Username</label>
+    <input type="text" id="dev-username" placeholder="testuser" value="testuser">
+
+    <label for="dev-pack">Pack</label>
+    <select id="dev-pack"></select>
+
+    <label for="dev-card">Card</label>
+    <select id="dev-card"></select>
+
+    <label for="dev-variant">Variant</label>
+    <select id="dev-variant">
+      <option value="">Random (pack odds)</option>
+      <option value="regular">Regular</option>
+      <option value="reverse">Reverse Holo</option>
+      <option value="full">Full Art</option>
+      <option value="shiny">Shiny Full Art</option>
+    </select>
+    <div id="dev-odds" class="dev-note"></div>
+
+    <div class="dev-row">
+      <input type="number" id="dev-count" value="1" min="1" max="20" title="How many to draw">
+      <button class="dev-btn dev-btn-draw" id="btn-draw" type="button">▶ Draw  [D]</button>
+    </div>
+    <button class="dev-btn dev-btn-variants"   id="btn-all-variants" type="button">✨ All 4 variants  [A]</button>
+    <button class="dev-btn dev-btn-collection" id="btn-collection" type="button">📋 Show Collection  [C]</button>
+    <button class="dev-btn dev-btn-clear"      id="btn-clear-queue" type="button">⏹ Clear queue</button>
+    <p class="dev-hint">R / F / S draw a Reverse / Full Art / Shiny</p>
+
+    <label class="dev-check"><input type="checkbox" id="dev-dry"> Don&rsquo;t save (dry run)</label>
+    <label class="dev-check"><input type="checkbox" id="dev-mute"> Mute sounds</label>
+    <label class="dev-check"><input type="checkbox" id="dev-quick"> Quick timing</label>
+
+    <div id="dev-status" class="dev-note"></div>
+
+    <details class="dev-danger">
+      <summary>Danger zone</summary>
+      <button class="dev-btn dev-btn-reset"     id="btn-reset-user" type="button">🔄 Reset User</button>
+      <button class="dev-btn dev-btn-reset-all" id="btn-reset-all" type="button">💣 Reset All Collections</button>
+    </details>
+  </div>
 </div>
 
 <script src="widget.js"></script>
