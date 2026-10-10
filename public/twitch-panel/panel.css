@@ -672,6 +672,9 @@ html, body {
 }
 .detail-past strong { color: var(--text); font-weight: 600; }
 
+/* Collection / leaderboard views toggle with .hidden */
+.pack-tabs.hidden, .grid-area.hidden { display: none; }
+
 /* ── View tabs (Collection / Leaderboard) ── */
 .view-tabs {
   display: flex;

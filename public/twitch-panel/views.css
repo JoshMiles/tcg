@@ -1,0 +1,150 @@
+/* Layout overrides for the other two Twitch Extension views, loaded after panel.css.
+   mobile.html      -> <body class="view-mobile">  (full-screen, touch, below the video on phones)
+   video_component.html -> <body class="view-video">  (resizable box floating over the video, so translucent + compact)
+   panel.html needs none of this. Same panel.js / panel.css drive all three. */
+
+/* ═════════════ Mobile ═════════════ */
+body.view-mobile {
+  font-size: 15px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+/* Phones with a notch / dynamic island: keep content inside the safe area. */
+body.view-mobile #state-collection,
+body.view-mobile #state-login,
+body.view-mobile .state {
+  height: 100vh;
+  height: 100dvh;
+}
+body.view-mobile .panel-footer { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+body.view-mobile .season-header { padding: 12px 14px 10px; }
+body.view-mobile .season-title { font-size: 17px; }
+body.view-mobile .progress-bar { height: 6px; }
+body.view-mobile .progress-label { font-size: 12px; }
+
+body.view-mobile .view-tab { padding: 12px 0; font-size: 14px; }
+body.view-mobile .pack-tabs { padding: 10px 14px; gap: 6px; }
+body.view-mobile .pack-tab { padding: 8px 14px; font-size: 14px; }
+
+body.view-mobile .grid-area { padding: 12px 14px; }
+body.view-mobile .card-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (min-width: 560px) { body.view-mobile .card-grid { grid-template-columns: repeat(6, 1fr); } }
+body.view-mobile .card-cell { border-radius: 6px; }
+body.view-mobile .pull-count,
+body.view-mobile .variant-mark { font-size: 10px; padding: 1px 4px; }
+body.view-mobile .rarity-dot { width: 7px; height: 7px; }
+/* No hover on touch: the name tooltip is replaced by tapping into the detail view. */
+body.view-mobile .card-cell .card-tooltip { display: none; }
+
+body.view-mobile .panel-footer { padding-top: 10px; }
+body.view-mobile .footer-username { font-size: 14px; }
+body.view-mobile .change-btn { min-height: 38px; padding: 0 14px; font-size: 14px; }
+
+body.view-mobile .login-teaser { gap: 8px; padding: 20px 16px 12px; }
+body.view-mobile .login-title { font-size: 22px; }
+body.view-mobile .login-sub { font-size: 13px; }
+body.view-mobile .login-btn { max-width: 280px; padding: 14px 0; font-size: 16px; }
+body.view-mobile .login-status { max-width: 300px; font-size: 13px; }
+
+/* Card detail: a near full-screen sheet with big tap targets. */
+body.view-mobile .detail-art { height: min(50vh, 420px); }
+body.view-mobile .detail-nav { width: 40px; height: 64px; font-size: 24px; }
+body.view-mobile .detail-close { width: 44px; height: 44px; font-size: 30px; top: 6px; right: 6px; }
+body.view-mobile .detail-name { font-size: 20px; }
+body.view-mobile .detail-rarity { font-size: 14px; }
+body.view-mobile .detail-meta { font-size: 12px; }
+body.view-mobile .variant-list { max-width: 340px; gap: 5px; }
+body.view-mobile .variant-row { padding: 8px 12px; font-size: 14px; }
+body.view-mobile .upgrade-btn { min-width: 70px; min-height: 32px; padding: 4px 14px; font-size: 13px; }
+body.view-mobile .upgrade-msg { font-size: 13px; }
+
+body.view-mobile .lb-row { padding: 11px 12px; gap: 12px; }
+body.view-mobile .lb-name { font-size: 15px; }
+body.view-mobile .lb-sub { font-size: 12px; }
+body.view-mobile .lb-score { font-size: 17px; }
+body.view-mobile .lb-note { font-size: 13px; }
+body.view-mobile .lb-foot { font-size: 11px; }
+
+/* ═════════════ Video component ═════════════ */
+/* Floats over the stream, so let the video show through and keep everything small. The viewer can
+   resize it, so columns follow the width. */
+body.view-video {
+  --bg: rgba(14, 14, 16, 0.70);
+  --surface: rgba(24, 24, 27, 0.78);
+  --surface2: rgba(31, 31, 35, 0.78);
+  --border: rgba(255, 255, 255, 0.14);
+  font-size: 11px;
+  background: transparent;
+}
+html:has(body.view-video) { background: transparent; }
+body.view-video #state-collection,
+body.view-video #state-login,
+body.view-video .state {
+  background: var(--bg);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+body.view-video .panel-version { display: none; }
+
+body.view-video .season-header { padding: 6px 8px 5px; }
+body.view-video .season-name { display: none; }
+body.view-video .season-title { font-size: 12px; margin-bottom: 4px; }
+body.view-video .progress-label { font-size: 10px; }
+
+body.view-video .view-tab { padding: 5px 0; font-size: 11px; }
+body.view-video .pack-tabs { padding: 4px 6px; }
+body.view-video .pack-tab { padding: 3px 8px; font-size: 10px; }
+
+body.view-video .grid-area { padding: 6px; }
+body.view-video .card-grid { grid-template-columns: repeat(3, 1fr); gap: 3px; }
+@media (min-width: 260px) { body.view-video .card-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 380px) { body.view-video .card-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 560px) { body.view-video .card-grid { grid-template-columns: repeat(7, 1fr); } }
+body.view-video .card-cell .card-tooltip { font-size: 8px; padding: 8px 2px 2px; }
+
+body.view-video .panel-footer { padding: 4px 8px; }
+body.view-video .footer-username { font-size: 10px; }
+body.view-video .change-btn { font-size: 10px; padding: 2px 6px; }
+
+/* Login: drop the teaser grid when there's little room — the button matters most. */
+body.view-video .login-teaser { grid-template-columns: repeat(5, 1fr); gap: 3px; padding: 8px 8px 4px; }
+body.view-video .login-content { padding: 6px 10px 10px; gap: 4px; }
+body.view-video .login-title { font-size: 13px; }
+body.view-video .login-btn { padding: 7px 0; font-size: 12px; }
+body.view-video .login-status { font-size: 10px; }
+@media (max-height: 300px) { body.view-video .login-teaser { display: none; } }
+
+/* Card detail: keep it inside the (small, resizable) component. */
+body.view-video .detail-art { height: min(40vh, 220px); }
+body.view-video .detail-nav { width: 20px; height: 34px; font-size: 14px; }
+body.view-video .detail-name { font-size: 13px; }
+body.view-video .detail-rarity,
+body.view-video .detail-meta { font-size: 10px; }
+body.view-video .detail-count { padding: 3px 10px; }
+body.view-video .detail-count-num { font-size: 15px; }
+body.view-video .variant-list { max-width: 220px; }
+body.view-video .variant-row { padding: 3px 6px; font-size: 10px; }
+body.view-video .upgrade-btn { min-width: 44px; font-size: 9px; }
+@media (max-height: 340px) {
+  /* Very short: hide the secondary info so the art and counts stay visible. */
+  body.view-video .detail-meta,
+  body.view-video .detail-past { display: none; }
+}
+
+body.view-video .lb-row { padding: 4px 6px; gap: 6px; margin-bottom: 3px; }
+body.view-video .lb-rank { width: 22px; font-size: 11px; }
+body.view-video .lb-name { font-size: 11px; }
+body.view-video .lb-sub { display: none; }
+body.view-video .lb-score { font-size: 12px; }
+body.view-video .lb-foot { display: none; }
+
+/* Short boxes (a small video component): give the card grid the room. */
+@media (max-height: 300px) {
+  body.view-video .season-title { display: none; }
+  body.view-video .season-header { padding: 4px 8px; }
+  body.view-video .view-tab { padding: 3px 0; }
+  body.view-video .pack-tabs { padding: 2px 6px; }
+  body.view-video .pack-tab { padding: 2px 8px; }
+  body.view-video .panel-footer { padding: 2px 8px; }
+}

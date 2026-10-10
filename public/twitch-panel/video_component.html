@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Card Collection</title>
+  <link rel="stylesheet" href="panel.css">
+  <link rel="stylesheet" href="views.css">
+  <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body class="view-video">
+
+  <!-- Twitch Extension "Video - Component" view. Same markup and panel.js as panel.html; layout comes from views.css (.view-video). -->
+
+  <!-- Build version (filled from /api/version by panel.js) -->
+  <span id="panel-version" class="panel-version"></span>
+
+  <!-- Loading -->
+  <div id="state-loading" class="state">
+    <div class="spinner"></div>
+    <p class="muted">Loading...</p>
+  </div>
+
+  <!-- No active season -->
+  <div id="state-no-season" class="state hidden">
+    <div class="empty-icon">🃏</div>
+    <p class="empty-title">No active season</p>
+    <p class="muted">Check back when the stream is live!</p>
+  </div>
+
+  <!-- Login screen -->
+  <div id="state-login" class="hidden">
+    <div class="login-teaser" id="login-teaser"></div>
+    <div class="login-content">
+      <p class="login-eyebrow">Active Season</p>
+      <p class="login-title" id="login-season-name">Card Collection</p>
+      <p class="login-sub" id="login-card-count"></p>
+      <button id="login-btn" class="login-btn">Login with Twitch</button>
+      <p class="login-status hidden" id="login-status"></p>
+    </div>
+  </div>
+
+  <!-- Collection view -->
+  <div id="state-collection" class="state hidden">
+    <!-- Season header -->
+    <div class="season-header" id="collection-season-header"></div>
+
+    <!-- View tabs: collection / leaderboard -->
+    <div class="view-tabs" id="view-tabs">
+      <button class="view-tab active" data-view="collection">Collection</button>
+      <button class="view-tab" data-view="leaderboard">Leaderboard</button>
+    </div>
+
+    <!-- Pack tabs -->
+    <div class="pack-tabs" id="pack-tabs"></div>
+
+    <!-- Card grid -->
+    <div class="grid-area" id="collection-area">
+      <div class="card-grid" id="card-grid"></div>
+    </div>
+
+    <!-- Leaderboard (built in panel.js) -->
+    <div class="grid-area hidden" id="leaderboard-area"></div>
+
+    <!-- Footer -->
+    <div class="panel-footer">
+      <a class="footer-username" id="footer-username" target="_blank" rel="noopener noreferrer" title="Open your collection page"></a>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="change-btn" id="refresh-btn" title="Refresh collection">↻</button>
+        <button class="change-btn" id="logout-btn">logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card detail overlay (opened by clicking a card; built in panel.js) -->
+  <div id="card-detail" class="card-detail hidden" role="dialog" aria-modal="true" aria-label="Card details">
+    <div class="detail-backdrop" id="detail-backdrop"></div>
+    <div class="detail-body">
+      <button class="detail-close" id="detail-close" aria-label="Close card details">×</button>
+      <div class="detail-stage">
+        <button class="detail-nav" id="detail-prev" aria-label="Previous card">‹</button>
+        <div class="detail-art" id="detail-art"></div>
+        <button class="detail-nav" id="detail-next" aria-label="Next card">›</button>
+      </div>
+      <div class="detail-info" id="detail-info"></div>
+    </div>
+  </div>
+
+  <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+  <script src="panel.js"></script>
+</body>
+</html>
