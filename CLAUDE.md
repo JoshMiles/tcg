@@ -58,6 +58,7 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 | `public/twitch-panel/panel.html` | Twitch Extension Panel HTML (loads Extension Helper + panel.js) |
 | `public/twitch-panel/panel.js` | Extension panel logic: Twitch auth flow, pack tabs, collection display |
 | `public/twitch-panel/panel.css` | Extension panel styles (Twitch dark theme) |
+| `scripts/mock-kv.cjs`, `scripts/seed-dev.mts` | Dev-only fake KV server + Season 1 seeder (see Testing locally); `scripts/optimize-cards.mjs` converts card GIFs |
 | `middleware.ts` | Auth gate — only covers `/admin/*`. `/collection/*` is public |
 
 ## Admin routes
@@ -229,6 +230,45 @@ Settings → OBS Overlay has two checkboxes (KV `overlay:settings`, `lib/overlay
 
 ## Discord activity feed
 Settings live in KV `discord:settings` (edited on `/admin/webhooks`). `recordActivity()` forwards every event via `after()` to `notifyDiscord()` in `lib/discord.ts`, which applies the category toggles + pull filters (min rarity, new-only), builds an embed (rarity colour, static card thumbnail, link to the viewer's collection) and POSTs it. Only real discord.com webhook URLs are accepted (the server POSTs to the stored URL); `allowed_mentions` is empty and names are Markdown-escaped because event text comes from unauthenticated endpoints. Browser-safe types live in `lib/discord-config.ts` — client components must import from there, not `lib/discord.ts`. The form's Test / Send-last-activity buttons use the URL currently typed, so it can be verified before saving.
+
+## Hosting & deploys
+- **Vercel**, connected to the GitHub repo `JoshMiles/tcg`. Pushing a branch builds a **Preview** deployment; merging to `main` deploys **Production** at `https://tcg-khaki.vercel.app` (that URL is hardcoded in the Twitch panel setup, the settings page and the overlay URL users paste into OBS — don't rename the project/domain without updating them). `vercel.json` is just `{ "version": 2 }`; there is no `.vercel` link in the repo and nothing here needs the Vercel CLI.
+- **Storage** is Vercel KV (Upstash Redis) and Vercel Blob, attached to the project from the Vercel dashboard (Storage tab). Their env vars (`KV_*`, `BLOB_READ_WRITE_TOKEN`) live in Vercel → Project → Settings → Environment Variables and are **scoped per environment** (Production / Preview / Development). A Preview build only sees a variable that has Preview ticked — if a feature says "Blob not connected" or the admin can't read data on a preview URL, check the scoping first. **Env var changes only apply to new deployments — redeploy after editing them.** Never paste secret values into chat, commits or docs.
+- **Previews share the production database** if KV is attached to all environments. Treat anything that writes (admin actions, the overlay's pack draws, webhooks) on a preview URL as writing real data.
+- Build: `next build` (Node, Next 15). `next.config.ts` stamps the build version/commit and sets cache headers for card art. Tailwind is pinned to **v3** — Dependabot's v4 bump fails the build (different config/CSS model); close those PRs. `@vercel/blob` is pinned at 0.27 (a 2.x bump, PR #15, is untested against uploads).
+- Static files in `public/` (overlay, widget, Twitch panel, card art, sounds) are served as-is by Vercel, no build step. The overlay/widget are cached by OBS — after a deploy, right-click the browser source → **Refresh cache of current page**.
+- **Twitch Extension** is configured at dev.twitch.tv (see "Twitch Extension Panel"); it loads the panel from the production URL, so panel changes only reach viewers after a production deploy, and Twitch's iframe can cache the old JS for a short while.
+
+## Git & PR workflow
+- Work on a feature branch off an up-to-date `origin/main` (`git fetch && git checkout -b <branch> origin/main`), push it, and open a PR with `gh pr create --base main`. `gh` is installed and authenticated. Don't push to `main` directly and don't merge/close PRs unless the user asks.
+- **One feature per PR, each branched from `main`.** Don't stack PRs on each other: merging stacked PRs out of order leaves commits out of `main` (this happened once and needed a combined PR to recover). If a fix lands on a branch *after* its PR merged, it is not in `main` — open a new branch/PR with it.
+- Commit messages end with the `Co-Authored-By` line and PR bodies with the "Generated with Claude Code" line given by the harness. Line endings are normalised by `.gitattributes` (`* text=auto`); the "LF will be replaced by CRLF" warnings on Windows are harmless.
+- `Old/` and `olddata.txt` are pre-rewrite leftovers (original StreamElements overlay, Season 1 assets); ignore them.
+
+## Testing locally
+There is **no automated test suite**. Verification is: `npx tsc --noEmit` (run `rm -rf .next` first if you switched branches — stale `.next/types` give false errors), `node --check public/widget.js` (syntax only! it does not catch undefined identifiers — actually load the overlay), `npm run build`, and exercising the app by hand.
+
+**Run the app against a fake database (never develop against production KV):**
+1. `node scripts/mock-kv.cjs` — in-memory Upstash REST fake on `:4111`. Data is lost when it stops.
+2. Create `.env.local` (gitignored; **delete it when you're done**):
+   ```
+   KV_REST_API_URL=http://localhost:4111
+   KV_REST_API_TOKEN=dev
+   KV_URL=redis://dev
+   ADMIN_SECRET=testsecret
+   ADMIN_PASSWORD=pw
+   ```
+3. `npx tsx scripts/seed-dev.mts` — seeds Season 1 (refuses any non-localhost KV URL).
+4. `npm run dev` (or start it through the Claude app's `preview_start` with a `.claude/launch.json` entry running `npx next dev -p 3111`).
+5. Log in: `POST /api/auth/login` with `{"password":"pw"}` sets the `admin-auth` cookie (setting `document.cookie` by hand doesn't work — it's httpOnly), then open `/admin`. Overlay: `/overlay.html` (add `?dev` for the test panel: keys **D** = draw a card, **C** = show collection; `?preview` is the admin editor's isolated mode).
+
+**Things that bite:**
+- **Never call `drawCard`/the dev panel on the production overlay** — a draw `POST`s to `/api/collection` and writes a real pull for that username (once left a stray `tester` user in production data). Use the mock KV or `?preview`.
+- Run server-side TypeScript with `npx tsx script.mts` and **extensionless imports** (`../lib/kv`); plain `node --experimental-strip-types` can't resolve them. Set `KV_REST_API_URL` etc. *before* the dynamic `import()`.
+- The Claude app's built-in browser pane is often **hidden**: `requestAnimationFrame` is paused, CSS background images aren't fetched and animations don't advance, so frame rate/smoothness can't be measured there. Instead scrub animations (`document.getAnimations()` → `pause()`/`currentTime`) and measure bounding boxes, or inspect computed styles. Be honest in PR descriptions about what wasn't checked in real OBS.
+- Restore the browser pane afterwards (`resize_window` preset `desktop`), stop dev servers/mock processes, and remove `.env.local` / `.claude/launch.json` before committing.
+- Port 4111 (mock KV) and 3111 (dev server) are the conventional test ports; check nothing stale is listening before starting.
+- Real-environment checks that can't be done locally and are left to the user: OBS (stream status permission, real frame rate), Discord webhook delivery, Vercel Blob uploads, the Twitch panel inside Twitch.
 
 ## Local dev
 `npm install` then `npx tsc --noEmit` / `npm run build` work locally. `node_modules/` is gitignored.
