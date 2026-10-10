@@ -28,6 +28,20 @@ The collection array stores duplicates intentionally. To get unique card count: 
 
 KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy data shapes on read — never need manual KV migrations.
 
+## Variants, upgrades & leaderboard
+
+Packs can opt in to **variants**: every card can be pulled as Regular / Reverse Holo / Full Art / Shiny Full Art, and viewers upgrade duplicates in the Twitch panel. Season 1's pack has `upgradesEnabled: false`, so it behaves exactly as before.
+
+- **Entry encoding (`lib/variants.ts`)**: a collection entry is `cardNumber + 1_000_000 × variantIndex` (regular = plain number, so all legacy data is valid). Always go through `encodeEntry` / `decodeEntry`; card numbers must stay < 1,000,000. `public/widget.js` and `public/twitch-panel/panel.js` mirror the constant (no build step there) — keep in sync. `countPulls()` / `uniqueCount()` decode, so "a card" is one card regardless of variant.
+- **Config**: `Pack.upgradesEnabled`, `variantWeights` (default 100/25/5/1, relative — rolled *after* the card, normalised), `upgradeCosts` (5 regular→reverse, 3 reverse→full, 3 full→shiny). `Card.upgradesEnabled` (undefined/true = follow pack; false opts the card out) and `Card.fullArtImageUrl` (art for Full Art + Shiny). Reverse Holo and Shiny are the holo effect on the Regular / Full Art image — there is no separate holo art. Effective check: `upgradesAllowed(pack, card)`. All edited in admin (pack settings, card editor).
+- **Upgrades**: strictly one step up, same card, same variant, active season only; no downgrades. `lib/upgrade.ts` → `POST /api/twitch/upgrade` (JWT → opaque ID → username; dev mode accepts any bearer).
+- **Locking**: the collection is one JSON blob per season. Every read-modify-write goes through `withCollectionLock` / `addCollectionEntry` in `lib/kv.ts` (Redis `SET NX EX`). `POST /api/collection` with a `pull` now **appends server-side** (the overlay's in-memory copy goes stale after upgrades/grants and used to overwrite them) and returns `{ owned }`, which the widget adopts.
+- **Grants**: webhook (`variant` in the body, default regular), admin quick action and admin user page all take a variant.
+- **Value & leaderboard (`lib/leaderboard.ts`)**: per-copy value = `SCORE_BASE (10) × rarity × scarcity × variantMultiplier`. rarity = 1/(pull rate × cards in season); scarcity = season-wide copies vs average, clamped 0.5–2×; variant multiplier = max(odds ratio, previous × cost × 1.2) so an upgrade is always a net score gain whatever the admin sets. Score = sum over every copy owned. Per season. Surfaces: `/leaderboard[/seasonId]`, `GET /api/twitch/leaderboard`, a Leaderboard tab in the panel, and a rank link on `/collection/[username]`.
+- **Overlay effects**: `variant-reverse|full|shiny` classes on the theater wrapper (`widget.css`). Dev panel (`?dev`): **R / F / S** force a Reverse / Full Art / Shiny draw.
+- **Trading** is deliberately not built yet (planned as its own branch).
+- `npx tsx scripts/check-upgrades.mts` sanity-checks encoding, roll odds, and the value maths.
+
 ## Key files
 
 | File | Purpose |
@@ -35,7 +49,8 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 | `lib/types.ts` | All TypeScript types (Season, Pack, Card, PullRecord, UserProfile) |
 | `lib/kv.ts` | All KV reads/writes (incl. `setActiveSeason`, `ensureUserProfile`, `removeUserFromCollection`, `seedSeason1`). Single source of truth for data access |
 | `lib/rarity.ts` | Rarity tiers (label, Tailwind classes, hex) + `rarityStats()`. Don't redefine rarity tables in pages |
-| `lib/collection.ts` | `countPulls()` — builds the pull-count Map from a collection array |
+| `lib/collection.ts` | `countPulls()` — builds the pull-count Map from a collection array (decodes variant entries) |
+| `lib/variants.ts`, `lib/upgrade.ts`, `lib/leaderboard.ts` | Variant encoding/roll helpers, the upgrade transaction, card values + leaderboard (see Variants, upgrades & leaderboard) |
 | `lib/twitch-helix.ts` | Helix app-token cache + `resolveTwitchLogin()` (shared by login + resolve-username routes) |
 | `lib/admin-token.ts` | Edge-safe admin cookie check (used by middleware); fails closed when `ADMIN_SECRET` unset |
 | `lib/legacy-data.ts` | Season 1 legacy collection data for the one-time import route |
@@ -94,6 +109,8 @@ KV normalizers (`normalizeSeason`, `normalizePack` in `lib/kv.ts`) handle legacy
 - `POST /api/twitch/login` — **primary login endpoint**: verifies Extension JWT, gets the viewer's numeric ID via `getTwitchUserId()` (`user_id` after an identity grant, or `channel_id` when the signed `role` is `broadcaster`), resolves via Helix API, saves opaque→username mapping, creates user profile if needed, returns `{ username }`
 - `POST /api/twitch/link` — JWT-validated, links opaque ID to username; also creates user profile if not present
 - `POST /api/twitch/unlink` — JWT-validated, deletes opaque ID → username mapping (logout)
+- `POST /api/twitch/upgrade` — JWT-validated; body `{ seasonId, cardNumber, from }`; spends the pack's upgrade cost in `from` copies for one of the next variant
+- `GET /api/twitch/leaderboard?seasonId=&username=` — public per-season ranking, the viewer's own rank, and per-card point values
 - `GET /api/twitch/resolve-username?userId={numericId}` — resolves Twitch numeric user ID → login name via Helix API (requires `TWITCH_CLIENT_ID` + `TWITCH_CLIENT_SECRET`)
 
 ### Admin (one-time / utility)

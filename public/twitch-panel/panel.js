@@ -5,6 +5,25 @@ const RARITY_COLOR = { 1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5
 // Keep in sync with lib/rarity.ts
 const RARITY_LABEL = { 1: 'Common', 2: 'Uncommon', 3: 'Rare', 4: 'Epic', 5: 'Legendary' };
 
+// ── Variants ──────────────────────────────────────────────
+// Collection entries encode the variant: cardNumber + VARIANT_OFFSET * variantIndex (regular = plain number).
+// Keep in sync with lib/variants.ts.
+const VARIANTS = ['regular', 'reverse', 'full', 'shiny'];
+const VARIANT_OFFSET = 1000000;
+const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny Full Art' };
+function decodeEntry(entry) {
+  const idx = Math.min(Math.floor(entry / VARIANT_OFFSET), VARIANTS.length - 1);
+  return { cardNumber: entry - idx * VARIANT_OFFSET, variant: VARIANTS[idx] };
+}
+
+// Art for a variant: Full Art and Shiny use the card's full-art image when it has one.
+function variantArt(card, variant) {
+  if ((variant === 'full' || variant === 'shiny') && card.fullArtImageUrl) {
+    return { imageUrl: card.fullArtImageUrl, thumbUrl: card.fullArtThumbUrl || card.fullArtImageUrl };
+  }
+  return { imageUrl: card.imageUrl, thumbUrl: card.thumbUrl };
+}
+
 // Reads a claim from the (unverified) Extension JWT. Only used for UX decisions — the server
 // verifies the signature before trusting anything.
 function jwtClaim(token, name) {
@@ -92,7 +111,7 @@ function renderSeasonHeader(containerId) {
 
   const totalCards = season.packs.reduce((s, p) => s + p.cards.length, 0);
   const activeColl = collections.find(c => c.active);
-  const ownedCount = activeColl ? new Set(activeColl.ownedNumbers).size : 0;
+  const ownedCount = activeColl ? new Set(activeColl.ownedNumbers.map(e => decodeEntry(e).cardNumber)).size : 0;
   const totalPulls = activeColl ? activeColl.ownedNumbers.length : 0;
   const pct = totalCards > 0 ? Math.round(ownedCount / totalCards * 100) : 0;
 
@@ -155,15 +174,24 @@ function renderPackTabs() {
 // past seasons. The collection arrays keep duplicates (one entry per pull).
 function cardStatus(card) {
   let activeCount = 0;
+  const variants = { regular: 0, reverse: 0, full: 0, shiny: 0 }; // active season, per variant
   const past = []; // [{ seasonName, count }]
   for (const c of collections) {
     let count = 0;
-    for (const n of c.ownedNumbers) if (n === card.number) count++;
+    for (const entry of c.ownedNumbers) {
+      const d = decodeEntry(entry);
+      if (d.cardNumber !== card.number) continue;
+      count++;
+      if (c.active) variants[d.variant]++;
+    }
     if (!count) continue;
     if (c.active) activeCount += count;
     else past.push({ seasonName: c.seasonName, count });
   }
-  return { activeCount, past, owned: activeCount > 0 || past.length > 0 };
+  // Highest variant owned this season (drives the art and the holo look)
+  let best = 'regular';
+  for (const v of VARIANTS) if (variants[v] > 0) best = v;
+  return { activeCount, variants, best, past, owned: activeCount > 0 || past.length > 0 };
 }
 
 function renderGrid() {
@@ -200,7 +228,17 @@ function renderGrid() {
       cell.style.setProperty('--rarity-color', color);
 
       // dimmed — pulled in past season only
-      addCardImage(cell, card, { alt: card.name, dimmed: !ownedActive && ownedPast.length > 0 });
+      addCardImage(cell, { ...card, ...variantArt(card, status.best) }, { alt: card.name, dimmed: !ownedActive && ownedPast.length > 0 });
+
+      // Upgraded variants get a holo sheen / glow, and a marker
+      if (ownedActive && status.best !== 'regular') {
+        cell.classList.add('vfx-' + status.best);
+        const mark = document.createElement('div');
+        mark.className = 'variant-mark';
+        mark.textContent = status.best === 'reverse' ? 'RH' : status.best === 'full' ? 'FA' : '\u2728';
+        mark.title = VARIANT_LABELS[status.best];
+        cell.appendChild(mark);
+      }
 
       // Season badge for past-season-only cards
       if (!ownedActive && ownedPast.length > 0) {
@@ -246,10 +284,14 @@ function renderGrid() {
 // Undiscovered cards open as a locked "???" view (same secrecy as the grid), and prev/next
 // browse the current pack.
 let detailIdx   = -1;    // index into the current pack's cards, or -1 when closed
+let detailVariant = null; // variant being previewed in the detail view (null = best owned)
+let upgradeMsg  = '';    // result of the last upgrade attempt, shown under the variant list
 let detailOpener = null; // element to refocus on close
 
 function openDetail(idx, opener) {
   detailIdx = idx;
+  detailVariant = null;
+  upgradeMsg = '';
   if (opener) detailOpener = opener;
   document.getElementById('card-detail').classList.remove('hidden');
   renderDetail();
@@ -260,6 +302,8 @@ function closeDetail() {
   const el = document.getElementById('card-detail');
   if (!el || detailIdx === -1) return;
   detailIdx = -1;
+  detailVariant = null;
+  upgradeMsg = '';
   el.classList.add('hidden');
   document.getElementById('detail-art').innerHTML = '';
   if (detailOpener && document.contains(detailOpener)) detailOpener.focus();
@@ -270,6 +314,8 @@ function stepDetail(delta) {
   const cards = season?.packs[currentPackIdx]?.cards ?? [];
   if (detailIdx === -1 || cards.length === 0) return;
   detailIdx = (detailIdx + delta + cards.length) % cards.length;
+  detailVariant = null;
+  upgradeMsg = '';
   renderDetail();
 }
 
@@ -295,17 +341,21 @@ function renderDetail() {
   info.style.setProperty('--rarity-color', color);
 
   // Art: owned cards show the thumbnail immediately, then the animated version fades in over it.
-  if (status.owned && card.imageUrl) {
+  // With upgrades on, it shows the variant being previewed (default: the best one owned).
+  const shown = detailVariant && status.variants[detailVariant] > 0 ? detailVariant : status.best;
+  const shownArt = variantArt(card, shown);
+  art.className = 'detail-art' + (status.owned && shown !== 'regular' ? ' vfx-' + shown : '');
+  if (status.owned && shownArt.imageUrl) {
     const thumb = document.createElement('img');
-    thumb.src = card.thumbUrl || card.imageUrl;
+    thumb.src = shownArt.thumbUrl || shownArt.imageUrl;
     thumb.alt = card.name;
     art.appendChild(thumb);
-    if (card.thumbUrl && card.thumbUrl !== card.imageUrl && !reducedMotion) {
+    if (shownArt.thumbUrl && shownArt.thumbUrl !== shownArt.imageUrl && !reducedMotion) {
       const full = document.createElement('img');
       full.className = 'anim-overlay';
       full.alt = '';
       full.addEventListener('load', () => { full.style.opacity = '1'; });
-      full.src = card.imageUrl;
+      full.src = shownArt.imageUrl;
       art.appendChild(full);
     }
   } else {
@@ -339,6 +389,45 @@ function renderDetail() {
   count.append(num, label);
   info.appendChild(count);
 
+  // Variants & upgrades (only for cards in packs with upgrades on)
+  if (card.upgradesEnabled && status.activeCount > 0) {
+    const list = document.createElement('div');
+    list.className = 'variant-list';
+    VARIANTS.forEach((v, i) => {
+      const n = status.variants[v];
+      const next = VARIANTS[i + 1];
+      const cost = next ? pack.upgradeCosts?.[next] : 0;
+
+      const row = document.createElement('div');
+      row.className = 'variant-row' + (n === 0 ? ' none' : '') + (v === shown ? ' active' : '');
+      if (n > 0) row.addEventListener('click', () => { detailVariant = v; renderDetail(); });
+
+      const name = document.createElement('span');
+      name.className = 'variant-name';
+      name.textContent = VARIANT_LABELS[v];
+      const cnt = document.createElement('span');
+      cnt.className = 'variant-count';
+      cnt.textContent = '\u00d7' + n;
+      row.append(name, cnt);
+
+      if (next && cost) {
+        const btn = document.createElement('button');
+        btn.className = 'upgrade-btn';
+        const can = n >= cost;
+        btn.disabled = !can;
+        btn.textContent = can ? 'Upgrade' : n + '/' + cost;
+        btn.title = can
+          ? 'Spend ' + cost + ' ' + VARIANT_LABELS[v] + ' for 1 ' + VARIANT_LABELS[next]
+          : 'Need ' + cost + ' ' + VARIANT_LABELS[v] + ' to make 1 ' + VARIANT_LABELS[next];
+        btn.addEventListener('click', e => { e.stopPropagation(); upgrade(card, v, btn); });
+        row.appendChild(btn);
+      }
+      list.appendChild(row);
+    });
+    info.appendChild(list);
+    if (upgradeMsg) info.appendChild(detailLine('upgrade-msg', upgradeMsg));
+  }
+
   // Past seasons
   if (status.past.length > 0) {
     const past = document.createElement('div');
@@ -364,6 +453,119 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') stepDetail(-1);
   else if (e.key === 'ArrowRight') stepDetail(1);
 });
+
+// Spends duplicates of `from` for one copy of the next variant. The server decides everything (cost,
+// whether upgrades are on, whether the viewer has enough); this just reports the outcome.
+async function upgrade(card, from, btn) {
+  if (!auth?.token || !season) return;
+  btn.disabled = true;
+  btn.textContent = '\u2026';
+  try {
+    const res = await fetch('/api/twitch/upgrade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
+      body: JSON.stringify({ seasonId: season.seasonId, cardNumber: card.number, from }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      const active = collections.find(c => c.active);
+      if (active) active.ownedNumbers = body.owned;
+      detailVariant = VARIANTS[VARIANTS.indexOf(from) + 1];
+      upgradeMsg = '\u2728 Upgraded to ' + VARIANT_LABELS[detailVariant] + '!';
+      renderSeasonHeader('collection-season-header');
+      renderGrid();
+    } else {
+      upgradeMsg = body.error || 'Upgrade failed (' + res.status + ')';
+    }
+  } catch {
+    upgradeMsg = 'Could not reach the server';
+  }
+  if (detailIdx !== -1) renderDetail();
+}
+
+// ── Leaderboard ───────────────────────────────────────────
+let currentView = 'collection';
+let leaderboardLoadedAt = 0;
+
+function setView(view) {
+  currentView = view;
+  closeDetail();
+  document.querySelectorAll('#view-tabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.getElementById('pack-tabs').classList.toggle('hidden', view !== 'collection');
+  document.getElementById('collection-area').classList.toggle('hidden', view !== 'collection');
+  document.getElementById('leaderboard-area').classList.toggle('hidden', view !== 'leaderboard');
+  if (view === 'leaderboard') loadLeaderboard();
+}
+
+function boardRow(r, me) {
+  const row = document.createElement('a');
+  row.className = 'lb-row' + (r.username === me ? ' me' : '') + (r.rank <= 3 ? ' top' + r.rank : '');
+  row.href = new URL('/collection/' + encodeURIComponent(r.username), window.location.origin).href;
+  row.target = '_blank';
+  row.rel = 'noopener noreferrer';
+
+  const rank = document.createElement('span');
+  rank.className = 'lb-rank';
+  rank.textContent = r.rank === 1 ? '\ud83e\udd47' : r.rank === 2 ? '\ud83e\udd48' : r.rank === 3 ? '\ud83e\udd49' : '#' + r.rank;
+
+  const who = document.createElement('span');
+  who.className = 'lb-who';
+  const name = document.createElement('span');
+  name.className = 'lb-name';
+  name.textContent = r.username;
+  const sub = document.createElement('span');
+  sub.className = 'lb-sub';
+  const v = r.variants;
+  const extras = [];
+  if (v.reverse) extras.push(v.reverse + ' RH');
+  if (v.full) extras.push(v.full + ' FA');
+  if (v.shiny) extras.push(v.shiny + ' \u2728');
+  sub.textContent = r.uniqueCards + ' cards' + (extras.length ? ' \u00b7 ' + extras.join(' \u00b7 ') : '');
+  who.append(name, sub);
+
+  const score = document.createElement('span');
+  score.className = 'lb-score';
+  score.textContent = r.score.toLocaleString();
+
+  row.append(rank, who, score);
+  return row;
+}
+
+async function loadLeaderboard() {
+  const area = document.getElementById('leaderboard-area');
+  if (!area || !season) return;
+  // Re-fetch at most every 30s while flipping between tabs
+  if (Date.now() - leaderboardLoadedAt < 30000 && area.childElementCount > 0) return;
+  area.innerHTML = '';
+  area.appendChild(detailLine('lb-note', 'Loading\u2026'));
+  try {
+    const q = new URLSearchParams({ seasonId: season.seasonId });
+    if (currentUsername) q.set('username', currentUsername.toLowerCase());
+    const res = await fetch('/api/twitch/leaderboard?' + q);
+    if (!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    leaderboardLoadedAt = Date.now();
+    area.innerHTML = '';
+
+    area.appendChild(detailLine('lb-note', data.seasonName + ' \u00b7 ' + data.players + ' collector' + (data.players === 1 ? '' : 's')));
+    if (data.rows.length === 0) {
+      area.appendChild(detailLine('lb-note', 'No one is on the board yet.'));
+      return;
+    }
+    const me = currentUsername ? currentUsername.toLowerCase() : null;
+    data.rows.forEach(r => area.appendChild(boardRow(r, me)));
+    if (data.me && data.me.rank > data.rows.length) {
+      area.appendChild(detailLine('lb-note', '\u2026'));
+      area.appendChild(boardRow(data.me, me));
+    }
+    area.appendChild(detailLine('lb-foot', 'Score = value of every card you own. Rarer cards, rarer variants and cards few people have are worth more.'));
+  } catch {
+    area.innerHTML = '';
+    area.appendChild(detailLine('lb-note', 'Could not load the leaderboard.'));
+  }
+}
+
+document.querySelectorAll('#view-tabs .view-tab').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
 
 // ── Login flow ────────────────────────────────────────────
 async function loadUserCollection(username) {
@@ -402,6 +604,8 @@ async function login(username) {
   currentUsername = username;
   await loadUserCollection(username);
   showState('collection');
+  leaderboardLoadedAt = 0;
+  setView('collection');
   renderSeasonHeader('collection-season-header');
   renderPackTabs();
   renderGrid();
@@ -675,6 +879,8 @@ document.getElementById('refresh-btn').addEventListener('click', async () => {
   await loadUserCollection(currentUsername);
   renderSeasonHeader('collection-season-header');
   renderGrid();
+  leaderboardLoadedAt = 0;
+  if (currentView === 'leaderboard') await loadLeaderboard();
   btn.classList.remove('spinning');
 });
 

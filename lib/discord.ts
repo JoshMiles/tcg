@@ -4,6 +4,7 @@ import { getActiveSeasonWithPacks } from './kv';
 import { cardThumbUrl } from './card-art';
 import { getRarity } from './rarity';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
+import { VARIANT_LABELS } from './variants';
 import { SITE_URL } from './site';
 import { DEFAULT_DISCORD, type DiscordCategory, type DiscordSettings } from './discord-config';
 
@@ -48,7 +49,8 @@ export function categoryOf(e: ActivityEvent): DiscordCategory {
   switch (e.type) {
     case 'pull': return 'pulls';
     case 'grant':
-    case 'remove': return 'cards';
+    case 'remove':
+    case 'upgrade': return 'cards';
     case 'trigger':
     case 'collection_shown': return 'stream';
     default: return 'resets'; // reset, delete
@@ -131,7 +133,7 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
         ...thumb(card?.imageUrl),
         color: rarity ? hexToInt(rarity.hex) : GOLD,
         title: `${'★'.repeat(e.stars)} ${esc(e.cardName || card?.name || `#${e.cardNumber}`)}`,
-        description: `**${esc(e.username)}** pulled ${/^[aeiou]/i.test(rarity?.label ?? '') ? 'an' : 'a'} **${rarity?.label ?? 'card'}** card${e.isNew ? ' — **NEW!**' : e.copies > 1 ? ` — ×${e.copies}` : ''}`,
+        description: `**${esc(e.username)}** pulled ${/^[aeiou]/i.test(rarity?.label ?? '') ? 'an' : 'a'} **${rarity?.label ?? 'card'}** card${e.variant && e.variant !== 'regular' ? ` — ✨ **${VARIANT_LABELS[e.variant]}**` : ''}${e.isNew ? ' — **NEW!**' : e.copies > 1 ? ` — ×${e.copies}` : ''}`,
         fields: [
           { name: 'Pack', value: esc(e.packName) || '—', inline: true },
           { name: 'Collected', value: totalCards ? `${e.uniqueOwned}/${totalCards}` : String(e.uniqueOwned), inline: true },
@@ -147,6 +149,11 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
       const card = cardFor(e.cardNumber);
       return payload({ ...base, ...thumb(card?.imageUrl), color: RED, title: '🗑️ Card removed',
         description: `**${esc(card?.name ?? `Card #${e.cardNumber}`)}** removed from **${esc(e.username)}**` });
+    }
+    case 'upgrade': {
+      const card = cardFor(e.cardNumber);
+      return payload({ ...base, ...thumb(card?.imageUrl), color: GOLD, title: '✨ Card upgraded',
+        description: `**${esc(e.username)}** upgraded **${esc(e.cardName || card?.name || `#${e.cardNumber}`)}** to **${VARIANT_LABELS[e.to]}** (${e.cost}× ${VARIANT_LABELS[e.from]})` });
     }
     case 'reset':
       return payload({ ...base, color: RED, title: '🔄 Collection reset',

@@ -12,7 +12,11 @@ export async function GET() {
     ...result,
     packs: result.packs.map(({ pack, cards }) => ({
       pack,
-      cards: cards.map(c => ({ ...c, thumbUrl: cardThumbUrl(c.imageUrl) })),
+      cards: cards.map(c => ({
+        ...c,
+        thumbUrl: cardThumbUrl(c.imageUrl),
+        ...(c.fullArtImageUrl && { fullArtThumbUrl: cardThumbUrl(c.fullArtImageUrl) }),
+      })),
     })),
   });
 }

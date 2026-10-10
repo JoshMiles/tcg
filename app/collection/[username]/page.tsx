@@ -6,6 +6,8 @@ import {
 } from '@/lib/kv';
 import { RARITIES, getRarity } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
+import { VARIANTS, VARIANT_LABELS, countVariants } from '@/lib/variants';
+import { getSeasonLeaderboard } from '@/lib/leaderboard';
 import { CardTile } from '@/app/components/CardTile';
 import { Avatar } from '@/app/components/Avatar';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
@@ -48,6 +50,10 @@ export default async function CollectionPage({
   const collection = await getCollection(season.collectionName);
   const ownedArray = collection[lower] ?? [];
   const countMap = countPulls(ownedArray);
+  const variantMap = countVariants(ownedArray);
+  const board = await getSeasonLeaderboard(season);
+  const myRank = board.rows.findIndex(r => r.username === lower);
+  const myRow = myRank >= 0 ? board.rows[myRank] : null;
 
   const totalPulls = ownedArray.length;
   const owned = allCards.filter(c => countMap.has(c.number));
@@ -84,6 +90,9 @@ export default async function CollectionPage({
             {totalPulls > owned.length && (
               <p className="text-xs text-gray-600">{totalPulls} total pulls</p>
             )}
+            <a href={`/leaderboard/${season.id}`} className="text-xs text-yellow-500 hover:text-yellow-300 transition-colors">
+              {myRow ? `🏆 #${myRank + 1} · ${myRow.score.toLocaleString()} pts` : '🏆 Leaderboard'} →
+            </a>
           </div>
         </div>
 
@@ -128,12 +137,18 @@ export default async function CollectionPage({
               const count = countMap.get(card.number) ?? 0;
               const isOwned = count > 0;
               const rarity = getRarity(card.stars);
+              const variantCounts = variantMap.get(card.number);
+              const best = variantCounts ? [...VARIANTS].reverse().find(v => variantCounts[v] > 0) ?? 'regular' : 'regular';
+              const art = (best === 'full' || best === 'shiny') && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl;
+              const variantSummary = variantCounts
+                ? VARIANTS.filter(v => v !== 'regular' && variantCounts[v] > 0).map(v => `${VARIANT_LABELS[v]} ×${variantCounts[v]}`).join(', ')
+                : '';
               const title = isOwned
-                ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}`
+                ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}${variantSummary ? ` · ${variantSummary}` : ''}`
                 : `#${card.number} ???`;
               const tileClass = `relative aspect-[2/3] rounded-xl overflow-hidden group transition-transform ${
                 isOwned ? 'holo-hover border-2 hover:-translate-y-1' : 'border border-dashed border-gray-700 bg-gray-900/40'
-              }`;
+              }${isOwned && best !== 'regular' ? ` vfx-${best}` : ''}`;
               const tileStyle = isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}` } : undefined;
               const overlays = (
                 <>
@@ -148,6 +163,12 @@ export default async function CollectionPage({
                       style={{ backgroundColor: rarity?.hex }}
                     />
                   )}
+                  {/* Best variant owned */}
+                  {isOwned && best !== 'regular' && (
+                    <div className="absolute bottom-1 right-1 bg-gray-950/85 border border-fuchsia-400/50 text-fuchsia-200 text-[9px] font-extrabold px-1.5 rounded-full leading-tight">
+                      {best === 'shiny' ? '✨' : best === 'full' ? 'FA' : 'RH'}
+                    </div>
+                  )}
                   {/* Pull count badge */}
                   {count > 1 && (
                     <div className="absolute top-1 left-1 bg-gray-950/85 border border-yellow-500/50 text-yellow-300 text-[10px] font-extrabold px-1.5 rounded-full leading-tight">
@@ -158,9 +179,9 @@ export default async function CollectionPage({
               );
 
               // Owned cards show a static thumbnail and animate only on hover.
-              if (isOwned && card.imageUrl) {
+              if (isOwned && art) {
                 return (
-                  <CardTile key={card.id} imageUrl={card.imageUrl} alt={card.name} title={title} className={tileClass} style={tileStyle}>
+                  <CardTile key={card.id} imageUrl={art} alt={card.name} title={title} className={tileClass} style={tileStyle}>
                     {overlays}
                   </CardTile>
                 );

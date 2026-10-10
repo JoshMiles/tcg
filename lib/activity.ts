@@ -1,6 +1,7 @@
 import { kv } from '@vercel/kv';
 import { after } from 'next/server';
 import { notifyDiscord } from './discord';
+import type { Variant } from './types';
 
 // Append-only activity log powering /admin/activity. Newest first in the KV list `activity:log`
 // (capped at LOG_CAP); `activity:seq` is a monotonic counter so pollers can ask "anything after N?"
@@ -10,9 +11,10 @@ const SEQ_KEY = 'activity:seq';
 const LOG_CAP = 500;
 
 export type ActivityDetail =
-  | { type: 'pull'; cardNumber: number; cardName: string; stars: number; packName: string; isNew: boolean; copies: number; uniqueOwned: number }
-  | { type: 'grant'; source: 'admin' | 'webhook'; cardNumber: number }
-  | { type: 'remove'; cardNumber: number }
+  | { type: 'pull'; cardNumber: number; cardName: string; stars: number; packName: string; variant?: Variant; isNew: boolean; copies: number; uniqueOwned: number }
+  | { type: 'grant'; source: 'admin' | 'webhook'; cardNumber: number; variant?: Variant }
+  | { type: 'remove'; cardNumber: number; variant?: Variant }
+  | { type: 'upgrade'; cardNumber: number; cardName: string; from: Variant; to: Variant; cost: number }
   | { type: 'reset'; scope: 'season' | 'all' | 'everyone' }
   | { type: 'delete' }
   // something asked the overlay to draw / show a collection: an incoming webhook, or an admin quick action

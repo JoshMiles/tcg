@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCollection, saveCollection, deleteCollection } from '@/lib/kv';
+import { getCollection, saveCollection, deleteCollection, addCollectionEntry } from '@/lib/kv';
 import { getWebhookSettings, fireOutgoing } from '@/lib/webhooks';
 import { recordActivity } from '@/lib/activity';
+import { decodeEntry } from '@/lib/variants';
 
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get('name');
@@ -13,14 +14,28 @@ export async function POST(req: NextRequest) {
   const name = req.nextUrl.searchParams.get('name');
   if (!name) return NextResponse.json({ error: 'missing name' }, { status: 400 });
   const { data, pull } = await req.json();
-  // Only draws need the previous state (to tell a new card from a duplicate).
-  const before = pull ? await getCollection(name) : null;
-  await saveCollection(name, data);
+
+  // A reported pull is appended server-side. The overlay's in-memory copy of the collection goes stale
+  // whenever something else changes it (an upgrade, a grant, an admin edit), and overwriting with it
+  // would silently undo that. The new array is returned so the overlay can resync.
+  let owned: number[] = [];
+  let before: Record<string, number[]> | null = null;
+  if (pull) {
+    const username = String(pull.username ?? '').toLowerCase();
+    const entry = Number(pull.entry ?? pull.cardNumber);
+    if (!username || !Number.isInteger(entry) || entry < 1) {
+      return NextResponse.json({ error: 'invalid pull' }, { status: 400 });
+    }
+    before = await getCollection(name);
+    owned = await addCollectionEntry(name, username, entry);
+  } else {
+    await saveCollection(name, data);
+  }
 
   if (pull) {
     const username = String(pull.username ?? '').toLowerCase();
     const cardNumber = Number(pull.cardNumber);
-    const owned: number[] = Array.isArray(data?.[username]) ? data[username] : [];
+    const variant = decodeEntry(Number(pull.entry ?? cardNumber)).variant;
     await recordActivity({
       type: 'pull',
       username,
@@ -29,9 +44,10 @@ export async function POST(req: NextRequest) {
       cardName: String(pull.cardName ?? '').slice(0, 80),
       stars: Number(pull.stars) || 0,
       packName: String(pull.packName ?? '').slice(0, 80),
-      isNew: !before?.[username]?.includes(cardNumber),
-      copies: owned.filter(n => n === cardNumber).length,
-      uniqueOwned: new Set(owned).size,
+      variant,
+      isNew: !before?.[username]?.some(e => decodeEntry(e).cardNumber === cardNumber),
+      copies: owned.filter(e => decodeEntry(e).cardNumber === cardNumber).length,
+      uniqueOwned: new Set(owned.map(e => decodeEntry(e).cardNumber)).size,
     });
 
     getWebhookSettings().then(settings =>
@@ -40,12 +56,13 @@ export async function POST(req: NextRequest) {
         cardName:   String(pull.cardName   ?? ''),
         cardNumber: String(pull.cardNumber ?? ''),
         stars:      String(pull.stars      ?? ''),
+        variant,
         packName:   String(pull.packName   ?? ''),
       })
     ).catch(() => {});
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, owned });
 }
 
 export async function DELETE(req: NextRequest) {

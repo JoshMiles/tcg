@@ -671,3 +671,128 @@ html, body {
   color: var(--muted);
 }
 .detail-past strong { color: var(--text); font-weight: 600; }
+
+/* ── View tabs (Collection / Leaderboard) ── */
+.view-tabs {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.view-tab {
+  flex: 1;
+  padding: 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.view-tab:hover { color: var(--text); }
+.view-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Variants: holo sheen on grid cells and the detail art ── */
+.card-cell, .detail-art { position: relative; }
+.vfx-reverse::after, .vfx-shiny::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(120deg,
+    transparent 15%, rgba(255,255,255,.35) 32%, rgba(150,245,255,.4) 45%,
+    rgba(255,224,120,.4) 58%, rgba(255,150,230,.35) 70%, transparent 85%);
+  background-size: 260% 100%;
+  background-position: 0 0;
+  mix-blend-mode: overlay;
+  transition: background-position 0.9s ease;
+}
+.card-cell.vfx-reverse:hover::after, .card-cell.vfx-shiny:hover::after { background-position: 100% 0; }
+.detail-art.vfx-reverse::after, .detail-art.vfx-shiny::after { animation: holoSweep 3.5s ease-in-out infinite alternate; }
+@keyframes holoSweep { from { background-position: 0 0; } to { background-position: 100% 0; } }
+.vfx-full { box-shadow: 0 0 14px -2px rgba(96,190,255,.85) !important; }
+.vfx-shiny { box-shadow: 0 0 16px -2px rgba(255,190,60,.95) !important; }
+@media (prefers-reduced-motion: reduce) {
+  .detail-art.vfx-reverse::after, .detail-art.vfx-shiny::after { animation: none; }
+}
+
+.variant-mark {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  padding: 0 4px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.5;
+  color: #fff;
+  background: rgba(0,0,0,.65);
+  border: 1px solid rgba(255,255,255,.35);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── Variant list + upgrade buttons (card detail) ── */
+.variant-list {
+  margin-top: 8px;
+  width: 100%;
+  max-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.variant-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  cursor: pointer;
+}
+.variant-row.none { opacity: 0.5; cursor: default; }
+.variant-row.active { border-color: var(--accent); }
+.variant-name { flex: 1; text-align: left; font-weight: 600; }
+.variant-count { font-weight: 800; color: var(--accent); }
+.upgrade-btn {
+  min-width: 52px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.upgrade-btn:disabled { color: var(--muted); background: transparent; border: 1px solid var(--border); cursor: default; }
+.upgrade-msg { margin-top: 4px; font-size: 11px; color: var(--accent); }
+
+/* ── Leaderboard ── */
+.lb-note { padding: 6px 4px; font-size: 11px; color: var(--muted); text-align: center; }
+.lb-foot { padding: 10px 6px 4px; font-size: 10px; color: var(--muted); text-align: center; line-height: 1.4; }
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+.lb-row:hover { border-color: var(--muted); }
+.lb-row.me { border-color: var(--accent); background: var(--surface2); }
+.lb-row.top1 { border-color: #f59e0b; }
+.lb-rank { width: 30px; text-align: center; font-size: 13px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+.lb-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lb-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-sub { font-size: 10px; color: var(--muted); }
+.lb-score { font-size: 15px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }

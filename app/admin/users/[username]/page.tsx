@@ -4,6 +4,7 @@ import { listSeasons, getCollection, getPackCards, getPack, getUserProfile } fro
 import type { Season, Pack, Card } from '@/lib/types';
 import { getRarity } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
+import { VARIANTS, VARIANT_LABELS, countVariants, encodeEntry } from '@/lib/variants';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { Avatar } from '@/app/components/Avatar';
@@ -19,6 +20,7 @@ type SeasonEntry = {
   season: Season;
   ownedNumbers: number[];
   countMap: Map<number, number>;
+  variantMap: Map<number, ReturnType<typeof countVariants> extends Map<number, infer V> ? V : never>;
   packs: Array<{ pack: Pack; cards: Card[] }>;
 };
 
@@ -44,6 +46,7 @@ export default async function UserDetailPage({
     seasons.map(async (season, i) => {
       const ownedNumbers = collections[i][username] ?? [];
       const countMap = countPulls(ownedNumbers);
+      const variantMap = countVariants(ownedNumbers);
 
       const packData = await Promise.all(
         season.packIds.map(async packId => {
@@ -56,6 +59,7 @@ export default async function UserDetailPage({
         season,
         ownedNumbers,
         countMap,
+        variantMap,
         packs: packData.filter((p): p is { pack: Pack; cards: Card[] } => p !== null),
       };
     })
@@ -156,7 +160,7 @@ export default async function UserDetailPage({
       </section>
 
       {/* Per-season collection */}
-      {seasonEntries.filter(e => e.packs.length > 0).map(({ season, ownedNumbers, countMap, packs }) => {
+      {seasonEntries.filter(e => e.packs.length > 0).map(({ season, ownedNumbers, countMap, variantMap, packs }) => {
         const totalSeasonCards = packs.reduce((s, p) => s + p.cards.length, 0);
         const pct = totalSeasonCards > 0 ? Math.round(countMap.size / totalSeasonCards * 100) : 0;
         const grant = grantUserCard.bind(null, username, season.collectionName);
@@ -211,7 +215,7 @@ export default async function UserDetailPage({
                         const count = countMap.get(card.number) ?? 0;
                         const owned = count > 0;
                         const color = getRarity(card.stars)?.hex ?? '#fbbf24';
-                        const remove = removeUserCard.bind(null, username, season.collectionName, card.number);
+                        const counts = variantMap.get(card.number);
 
                         return (
                           <div key={card.id} className="relative group">
@@ -240,18 +244,22 @@ export default async function UserDetailPage({
                               </div>
                             )}
 
-                            {/* Remove button (hover) */}
-                            {owned && (
-                              <form action={remove} className="absolute -top-1.5 -right-1.5 hidden group-hover:block z-10">
-                                <ConfirmButton
-                title="Remove card?"
-                confirmLabel="Remove one"
-                message={<>Remove one copy of <strong className="text-white">{card.name}</strong> from <strong className="text-white">{displayName}</strong>&apos;s collection?</>}
-                className="w-5 h-5 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center text-xs leading-none transition-colors"
-              >
-                ×
-              </ConfirmButton>
-                              </form>
+                            {/* Remove buttons (hover) — one per variant owned */}
+                            {owned && counts && (
+                              <div className="absolute -top-1.5 -right-1.5 hidden group-hover:flex flex-col gap-1 z-10">
+                                {VARIANTS.filter(v => counts[v] > 0).map(v => (
+                                  <form key={v} action={removeUserCard.bind(null, username, season.collectionName, encodeEntry(card.number, v))}>
+                                    <ConfirmButton
+                                      title="Remove card?"
+                                      confirmLabel="Remove one"
+                                      message={<>Remove one copy of <strong className="text-white">{v === 'regular' ? '' : `${VARIANT_LABELS[v]} `}{card.name}</strong> from <strong className="text-white">{displayName}</strong>&apos;s collection?</>}
+                                      className="min-w-5 h-5 px-1 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center gap-0.5 text-[10px] font-bold leading-none transition-colors"
+                                    >
+                                      {v === 'regular' ? '' : `${VARIANT_LABELS[v].split(' ')[0]} `}×{counts[v]}
+                                    </ConfirmButton>
+                                  </form>
+                                ))}
+                              </div>
                             )}
 
                             {/* Card name on hover */}
@@ -287,6 +295,14 @@ export default async function UserDetailPage({
                       ))
                     )}
                   </select>
+                  {packs.some(({ pack }) => pack.upgradesEnabled) && (
+                    <select
+                      name="variant"
+                      className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
+                    >
+                      {VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}
+                    </select>
+                  )}
                   <button
                     type="submit"
                     className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors"

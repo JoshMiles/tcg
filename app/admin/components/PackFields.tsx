@@ -1,4 +1,5 @@
 import type { Pack } from '@/lib/types';
+import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS } from '@/lib/variants';
 import { ImageUploadField } from './image-upload';
 
 export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
@@ -72,6 +73,45 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
         <label htmlFor="pack-active" className="text-sm text-gray-300">
           Pack is active (included in draws)
         </label>
+      </div>
+
+      <div className="border-t border-gray-800 pt-4 space-y-4">
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="pack-upgrades"
+            name="upgradesEnabled"
+            defaultChecked={defaults?.upgradesEnabled ?? false}
+            className="w-4 h-4 accent-yellow-400"
+          />
+          <label htmlFor="pack-upgrades" className="text-sm text-gray-300">
+            Enable variants &amp; upgrades
+          </label>
+        </div>
+        <p className="text-xs text-gray-600 -mt-2">
+          Pulls roll Regular / Reverse Holo / Full Art / Shiny Full Art, and viewers can upgrade duplicates.
+          Leave off for packs that should stay single-version. Individual cards can opt out too.
+        </p>
+
+        <div>
+          <p className="text-sm text-gray-400 mb-2">Variant weights</p>
+          <div className="grid grid-cols-4 gap-3">
+            <Field label="Regular" name="weight_regular" type="number" defaultValue={String(defaults?.variantWeights?.regular ?? DEFAULT_VARIANT_WEIGHTS.regular)} />
+            <Field label="Reverse" name="weight_reverse" type="number" defaultValue={String(defaults?.variantWeights?.reverse ?? DEFAULT_VARIANT_WEIGHTS.reverse)} />
+            <Field label="Full Art" name="weight_full" type="number" defaultValue={String(defaults?.variantWeights?.full ?? DEFAULT_VARIANT_WEIGHTS.full)} />
+            <Field label="Shiny" name="weight_shiny" type="number" defaultValue={String(defaults?.variantWeights?.shiny ?? DEFAULT_VARIANT_WEIGHTS.shiny)} />
+          </div>
+          <p className="text-xs text-gray-600 mt-1">Relative odds, rolled after the card. 100 / 25 / 5 / 1 ≈ 77% / 19% / 4% / 1%.</p>
+        </div>
+
+        <div>
+          <p className="text-sm text-gray-400 mb-2">Upgrade cost (duplicates consumed)</p>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Regular → Reverse" name="cost_reverse" type="number" defaultValue={String(defaults?.upgradeCosts?.reverse ?? DEFAULT_UPGRADE_COSTS.reverse)} />
+            <Field label="Reverse → Full Art" name="cost_full" type="number" defaultValue={String(defaults?.upgradeCosts?.full ?? DEFAULT_UPGRADE_COSTS.full)} />
+            <Field label="Full Art → Shiny" name="cost_shiny" type="number" defaultValue={String(defaults?.upgradeCosts?.shiny ?? DEFAULT_UPGRADE_COSTS.shiny)} />
+          </div>
+        </div>
       </div>
     </>
   );

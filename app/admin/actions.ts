@@ -6,11 +6,14 @@ import {
   saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
   savePack, getPack, deletePack,
   getPackCards, savePackCards,
-  getCollection, saveCollection, deleteCollection, removeUserFromCollection,
+  getCollection, saveCollection, deleteCollection, removeUserFromCollection, addCollectionEntry, withCollectionLock,
   getUserProfile, saveUserProfile, deleteUserProfile,
   seedSeason1 as seedSeason1Data, getActiveSeasonWithPacks, ensureUserProfile,
 } from '@/lib/kv';
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile, Variant } from '@/lib/types';
+import {
+  VARIANTS, VARIANT_LABELS, DEFAULT_VARIANT_WEIGHTS, DEFAULT_UPGRADE_COSTS, encodeEntry, decodeEntry,
+} from '@/lib/variants';
 import { recordActivity } from '@/lib/activity';
 import { deleteUnusedBlobs } from '@/lib/assets';
 import { getOverlayStatus } from '@/lib/overlay';
@@ -95,6 +98,40 @@ export async function removePackFromSeason(seasonId: string, packId: string) {
   revalidatePath(`/admin/seasons/${seasonId}`);
 }
 
+// ── Upgrade/variant form parsing ──────────────────────────
+
+function parseVariant(raw: FormDataEntryValue | null): Variant {
+  const v = String(raw ?? 'regular');
+  return (VARIANTS as readonly string[]).includes(v) ? (v as Variant) : 'regular';
+}
+
+function positiveInt(raw: FormDataEntryValue | null, fallback: number): number {
+  const n = Math.floor(Number(raw));
+  return Number.isFinite(n) && n >= 1 ? n : fallback;
+}
+
+function nonNegative(raw: FormDataEntryValue | null, fallback: number): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+function upgradeSettings(formData: FormData) {
+  return {
+    upgradesEnabled: formData.get('upgradesEnabled') === 'on',
+    variantWeights: {
+      regular: nonNegative(formData.get('weight_regular'), DEFAULT_VARIANT_WEIGHTS.regular),
+      reverse: nonNegative(formData.get('weight_reverse'), DEFAULT_VARIANT_WEIGHTS.reverse),
+      full:    nonNegative(formData.get('weight_full'),    DEFAULT_VARIANT_WEIGHTS.full),
+      shiny:   nonNegative(formData.get('weight_shiny'),   DEFAULT_VARIANT_WEIGHTS.shiny),
+    },
+    upgradeCosts: {
+      reverse: positiveInt(formData.get('cost_reverse'), DEFAULT_UPGRADE_COSTS.reverse),
+      full:    positiveInt(formData.get('cost_full'),    DEFAULT_UPGRADE_COSTS.full),
+      shiny:   positiveInt(formData.get('cost_shiny'),   DEFAULT_UPGRADE_COSTS.shiny),
+    },
+  };
+}
+
 // ── Packs (global) ────────────────────────────────────────
 
 export async function createPack(formData: FormData) {
@@ -112,6 +149,7 @@ export async function createPack(formData: FormData) {
     cooldownTime: Number(formData.get('cooldownTime')) || 1,
     soundVolume: Number(formData.get('soundVolume')) || 1.0,
     createdAt: Date.now(),
+    ...upgradeSettings(formData),
   });
   redirect(`/admin/packs/${id}`);
 }
@@ -131,6 +169,7 @@ export async function updatePack(packId: string, formData: FormData) {
     cardTime: Number(formData.get('cardTime')),
     cooldownTime: Number(formData.get('cooldownTime')),
     soundVolume: Number(formData.get('soundVolume')) || 1.0,
+    ...upgradeSettings(formData),
   });
   revalidatePath(`/admin/packs/${packId}`);
   revalidatePath('/admin/packs');
@@ -148,6 +187,7 @@ export async function addCard(packId: string, formData: FormData) {
   const cards = await getPackCards(packId);
   const maxNum = cards.reduce((m, c) => Math.max(m, c.number), 0);
   const soundUrl = (formData.get('soundUrl') as string) || undefined;
+  const fullArtImageUrl = (formData.get('fullArtImageUrl') as string) || undefined;
   await savePackCards(packId, [
     ...cards,
     {
@@ -156,6 +196,8 @@ export async function addCard(packId: string, formData: FormData) {
       name: formData.get('name') as string,
       imageUrl: (formData.get('imageUrl') as string) || '',
       ...(soundUrl && { soundUrl }),
+      ...(fullArtImageUrl && { fullArtImageUrl }),
+      upgradesEnabled: formData.get('upgradesEnabled') !== 'off',
       probability: Number(formData.get('probability')),
       stars: Number(formData.get('stars')),
     },
@@ -175,6 +217,8 @@ export async function updateCard(packId: string, cardId: string, formData: FormD
             name: formData.get('name') as string,
             imageUrl: (formData.get('imageUrl') as string) || c.imageUrl,
             soundUrl,
+            fullArtImageUrl: (formData.get('fullArtImageUrl') as string) || undefined,
+            upgradesEnabled: formData.get('upgradesEnabled') === 'on',
             probability: Number(formData.get('probability')),
             stars: Number(formData.get('stars')),
             number: Number(formData.get('number')),
@@ -208,19 +252,20 @@ export async function updateUserProfile(username: string, formData: FormData) {
   revalidatePath('/admin/users');
 }
 
-// Remove one instance of a card from a user's collection
-export async function removeUserCard(username: string, collectionName: string, cardNumber: number) {
+// Remove one instance of a card from a user's collection. `entry` is the encoded card + variant (see lib/variants.ts).
+export async function removeUserCard(username: string, collectionName: string, entry: number) {
   const lower = username.toLowerCase();
-  const data = await getCollection(collectionName);
-  if (data[lower]) {
-    const idx = data[lower].indexOf(cardNumber);
-    if (idx !== -1) {
-      data[lower] = [...data[lower].slice(0, idx), ...data[lower].slice(idx + 1)];
-    }
+  const { cardNumber, variant } = decodeEntry(entry);
+  const removed = await withCollectionLock(collectionName, async () => {
+    const data = await getCollection(collectionName);
+    const idx = data[lower]?.indexOf(entry) ?? -1;
+    if (idx === -1) return false;
+    data[lower] = [...data[lower].slice(0, idx), ...data[lower].slice(idx + 1)];
     if (data[lower].length === 0) delete data[lower];
     await saveCollection(collectionName, data);
-    await recordActivity({ type: 'remove', username: lower, cardNumber, collectionName });
-  }
+    return true;
+  });
+  if (removed) await recordActivity({ type: 'remove', username: lower, cardNumber, variant, collectionName });
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
 }
@@ -230,10 +275,9 @@ export async function grantUserCard(username: string, collectionName: string, fo
   const cardNumber = parseInt(formData.get('cardNumber') as string, 10);
   if (!cardNumber || cardNumber < 1) return;
   const lower = username.toLowerCase();
-  const data = await getCollection(collectionName);
-  data[lower] = [...(data[lower] ?? []), cardNumber];
-  await saveCollection(collectionName, data);
-  await recordActivity({ type: 'grant', source: 'admin', username: lower, cardNumber, collectionName });
+  const variant = parseVariant(formData.get('variant'));
+  await addCollectionEntry(collectionName, lower, encodeEntry(cardNumber, variant));
+  await recordActivity({ type: 'grant', source: 'admin', username: lower, cardNumber, variant, collectionName });
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
 }
@@ -414,14 +458,13 @@ async function grantCard(formData: FormData): Promise<ActionResult> {
   if (!card) return { ok: false, message: 'Pick a card from the list.' };
 
   const collectionName = active.season.collectionName;
-  const data = await getCollection(collectionName);
-  data[username] = [...(data[username] ?? []), card.number];
-  await saveCollection(collectionName, data);
+  const variant = parseVariant(formData.get('variant'));
+  await addCollectionEntry(collectionName, username, encodeEntry(card.number, variant));
   await ensureUserProfile(username);
-  await recordActivity({ type: 'grant', source: 'admin', username, cardNumber: card.number, collectionName });
+  await recordActivity({ type: 'grant', source: 'admin', username, cardNumber: card.number, variant, collectionName });
   revalidatePath('/admin');
   revalidatePath('/admin/users');
-  return { ok: true, message: `Granted ${card.name} (#${card.number}) to ${username}.` };
+  return { ok: true, message: `Granted ${variant === 'regular' ? '' : VARIANT_LABELS[variant] + ' '}${card.name} (#${card.number}) to ${username}.` };
 }
 
 export async function clearQueueAction(): Promise<ActionResult> {
