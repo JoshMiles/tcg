@@ -63,10 +63,10 @@ function decodeEntry(entry) {
   const idx = Math.min(Math.floor(entry / VARIANT_OFFSET), VARIANTS.length - 1);
   return { cardNumber: entry - idx * VARIANT_OFFSET, variant: VARIANTS[idx] };
 }
-let forceVariant = null; // dev panel only: r / f / s keys force a variant on the next draw
+// Test-panel switches (?dev). Only the panel changes these; real draws never see them.
+const DEV = { dry: true, mute: false, quick: false };
 
 function rollVariant(weights) {
-  if (forceVariant) { const v = forceVariant; forceVariant = null; return v; }
   const w = Object.assign({}, DEFAULT_VARIANT_WEIGHTS, weights);
   const total = VARIANTS.reduce((s, v) => s + Math.max(0, w[v]), 0);
   if (total <= 0) return 'regular';
@@ -152,32 +152,48 @@ async function initSeason() {
 // ═══════════════════════════════════════════════════════
 //  CARD SELECTION  (pick pack by weight, then card by prob)
 // ═══════════════════════════════════════════════════════
-function pickPackAndCard() {
+/**
+ * Picks what to draw. `opts` (test panel only) can pin any of: `packId`, `cardNumber`, `variant`.
+ * Anything not pinned is rolled exactly as in a real draw.
+ */
+function pickPackAndCard(opts) {
+  opts = opts || {};
   if (PACKS.length === 0) return null;
 
-  // Weighted pack selection
-  const totalWeight = PACKS.reduce((s, { pack }) => s + (pack.weight || 1), 0);
-  let rw = Math.random() * totalWeight;
-  let chosen = PACKS[PACKS.length - 1];
-  for (const p of PACKS) {
-    rw -= (p.pack.weight || 1);
-    if (rw <= 0) { chosen = p; break; }
+  let chosen = null;
+  if (opts.packId) chosen = PACKS.find(p => p.pack.id === opts.packId) || null;
+  // A pinned card with no pinned pack: use the first pack that has it.
+  if (!chosen && opts.cardNumber != null) chosen = PACKS.find(p => p.cards.some(c => c.number === opts.cardNumber)) || null;
+
+  if (!chosen) {
+    // Weighted pack selection
+    const totalWeight = PACKS.reduce((s, { pack }) => s + (pack.weight || 1), 0);
+    let rw = Math.random() * totalWeight;
+    chosen = PACKS[PACKS.length - 1];
+    for (const p of PACKS) {
+      rw -= (p.pack.weight || 1);
+      if (rw <= 0) { chosen = p; break; }
+    }
   }
 
   // Weighted card selection within the chosen pack
   if (chosen.cards.length === 0) return null;
-  const totalProb = chosen.cards.reduce((s, c) => s + c.probability, 0);
-  let rp = Math.random() * totalProb;
-  let card = chosen.cards[chosen.cards.length - 1];
-  for (const c of chosen.cards) {
-    rp -= c.probability;
-    if (rp <= 0) { card = c; break; }
+  let card = opts.cardNumber != null ? chosen.cards.find(c => c.number === opts.cardNumber) : null;
+  if (!card) {
+    const totalProb = chosen.cards.reduce((s, c) => s + c.probability, 0);
+    let rp = Math.random() * totalProb;
+    card = chosen.cards[chosen.cards.length - 1];
+    for (const c of chosen.cards) {
+      rp -= c.probability;
+      if (rp <= 0) { card = c; break; }
+    }
   }
 
   // Variant is rolled after the card, and only where the pack and card both have upgrades on.
-  const variant = chosen.pack.upgradesEnabled && card.upgradesEnabled
-    ? rollVariant(chosen.pack.variantWeights)
-    : 'regular';
+  // A pinned variant (test panel) is used as-is, even where upgrades are off, so effects can be previewed.
+  let variant = 'regular';
+  if (opts.variant && VARIANTS.indexOf(opts.variant) !== -1) variant = opts.variant;
+  else if (chosen.pack.upgradesEnabled && card.upgradesEnabled) variant = rollVariant(chosen.pack.variantWeights);
 
   return { card, variant, cfg: packConfig(chosen.pack), packName: chosen.pack.name };
 }
@@ -260,7 +276,7 @@ function showAlert(msg) {
 //  AUDIO
 // ═══════════════════════════════════════════════════════
 function playAudio(src, volume) {
-  if (PREVIEW) return;
+  if (PREVIEW || DEV.mute) return;
   const audio = new Audio(src);
   audio.volume = volume ?? 1.0;
   audio.play().catch(() => {});
@@ -387,11 +403,12 @@ function createTheater(cfg) {
 // ═══════════════════════════════════════════════════════
 //  DRAW CARD
 // ═══════════════════════════════════════════════════════
-function drawCard(username) {
+function drawCard(username, opts) {
+  opts = opts || {};
   const user = (username || 'someone').toLowerCase().trim();
   if (!Array.isArray(revealedCardsByUser[user])) revealedCardsByUser[user] = [];
 
-  const pick = pickPackAndCard();
+  const pick = pickPackAndCard(opts);
   if (!pick) {
     showAlert('⚠️ No cards available — check your active season has packs with cards.');
     activeDraws--;
@@ -399,7 +416,9 @@ function drawCard(username) {
     return;
   }
 
-  const { card, variant, cfg, packName } = pick;
+  const { card, variant, packName } = pick;
+  // Test panel "quick" mode shortens the on-screen time so many draws can be reviewed fast.
+  const cfg = DEV.quick ? Object.assign({}, pick.cfg, { cardTime: Math.min(pick.cfg.cardTime, 1.5), cooldownTime: 0.2 }) : pick.cfg;
   // Full Art and Shiny use the card's full-art image when it has one; Regular and Reverse use the base art.
   const art = (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArt : card.image;
   // The card isn't revealed for ~3s; fetch and decode its animated art now so the reveal never hitches.
@@ -501,8 +520,11 @@ function drawCard(username) {
   buildMiniList(miniList, revealedCardsByUser[user], card.number, cfg);
 
   const entry = encodeEntry(card.number, variant);
-  revealedCardsByUser[user].push(entry);
-  saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName });
+  // Dry runs (test panel) show the draw but leave the collection, activity log and webhooks alone.
+  if (!opts.dry) {
+    revealedCardsByUser[user].push(entry);
+    saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName });
+  }
 
   // Hide + cleanup
   const showDuration = cfg.cardTime * 1000 + 4000;
@@ -521,7 +543,8 @@ function drawCard(username) {
 // ═══════════════════════════════════════════════════════
 //  SHOW COLLECTION
 // ═══════════════════════════════════════════════════════
-function showCollection(username) {
+function showCollection(username, opts) {
+  opts = opts || {};
   const user = (username || 'someone').toLowerCase().trim();
   if (!Array.isArray(revealedCardsByUser[user])) revealedCardsByUser[user] = [];
 
@@ -543,7 +566,7 @@ function showCollection(username) {
   cardInfo.style.transform = 'scale(1)';
   userText.textContent     = (username || 'Someone') + "'s collection:";
 
-  if (!PREVIEW) fetch('/api/webhooks/notify', {
+  if (!PREVIEW && !opts.dry) fetch('/api/webhooks/notify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ event: 'collectionShown', username: user }),
@@ -577,13 +600,13 @@ function processCardQueue() {
 // ═══════════════════════════════════════════════════════
 //  PUBLIC API
 // ═══════════════════════════════════════════════════════
-function queueDraw(username) {
-  cardQueue.push(() => drawCard(username));
+function queueDraw(username, opts) {
+  cardQueue.push(() => drawCard(username, opts));
   processCardQueue();
 }
 
-function queueCollection(username) {
-  cardQueue.push(() => showCollection(username));
+function queueCollection(username, opts) {
+  cardQueue.push(() => showCollection(username, opts));
   processCardQueue();
 }
 
@@ -599,31 +622,131 @@ function initDevPanel() {
     return;
   }
 
-  const usernameInput = document.getElementById('dev-username');
+  const $ = id => document.getElementById(id);
+  const usernameInput = $('dev-username');
+  const packSel = $('dev-pack');
+  const cardSel = $('dev-card');
+  const variantSel = $('dev-variant');
+  const countInput = $('dev-count');
+  const user = () => usernameInput.value.trim() || 'testuser';
 
-  document.getElementById('btn-draw').addEventListener('click', () => {
-    queueDraw(usernameInput.value.trim() || 'testuser');
-  });
-  document.getElementById('btn-collection').addEventListener('click', () => {
-    queueCollection(usernameInput.value.trim() || 'testuser');
-  });
-  document.getElementById('btn-reset-user').addEventListener('click', () => {
+  // ── Pack + card pickers (filled from the loaded season) ──
+  const addOption = (sel, value, text) => {
+    const o = document.createElement('option');
+    o.value = value;
+    o.textContent = text;
+    sel.appendChild(o);
+  };
+  addOption(packSel, '', 'Any pack (by weight)');
+  PACKS.forEach(p => addOption(packSel, p.pack.id, p.pack.name + (p.pack.upgradesEnabled ? '  ✨' : '')));
+
+  function fillCards() {
+    const keep = cardSel.value;
+    cardSel.innerHTML = '';
+    addOption(cardSel, '', 'Random card');
+    const source = packSel.value ? PACKS.filter(p => p.pack.id === packSel.value) : PACKS;
+    const seen = new Set();
+    source.flatMap(p => p.cards).sort((a, b) => a.number - b.number).forEach(c => {
+      if (seen.has(c.number)) return;
+      seen.add(c.number);
+      addOption(cardSel, String(c.number), '#' + c.number + ' ' + c.name + '  ' + '★'.repeat(c.stars));
+    });
+    if ([...cardSel.options].some(o => o.value === keep)) cardSel.value = keep;
+  }
+
+  // What the current pack/card/variant choices will do, in words.
+  function updateInfo() {
+    const info = $('dev-odds');
+    const packs = packSel.value ? PACKS.filter(p => p.pack.id === packSel.value) : PACKS;
+    const upg = packs.filter(p => p.pack.upgradesEnabled);
+    if (variantSel.value) {
+      info.textContent = 'Forced ' + VARIANT_LABELS[variantSel.value] + (upg.length === 0 ? ' (this pack has upgrades off — shown anyway)' : '');
+    } else if (upg.length === 0) {
+      info.textContent = 'Upgrades off: always Regular';
+    } else {
+      const w = Object.assign({}, DEFAULT_VARIANT_WEIGHTS, upg[0].pack.variantWeights);
+      const total = VARIANTS.reduce((s, v) => s + Math.max(0, w[v]), 0) || 1;
+      const pct = v => (w[v] / total * 100).toFixed(w[v] / total < 0.1 ? 1 : 0) + '%';
+      info.textContent = 'Odds: Reg ' + pct('regular') + ' · RH ' + pct('reverse') + ' · FA ' + pct('full') + ' · Shiny ' + pct('shiny');
+    }
+  }
+  packSel.addEventListener('change', () => { fillCards(); updateInfo(); });
+  variantSel.addEventListener('change', updateInfo);
+  fillCards();
+  updateInfo();
+
+  // Current choices as draw options. `variant` overrides the dropdown (used by "all variants" and R/F/S).
+  const options = over => Object.assign({
+    packId: packSel.value || null,
+    cardNumber: cardSel.value ? Number(cardSel.value) : null,
+    variant: variantSel.value || null,
+    dry: DEV.dry,
+  }, over);
+
+  // ── Actions ──
+  function draw(n) {
+    const count = Math.max(1, Math.min(20, n || 1));
+    for (let i = 0; i < count; i++) queueDraw(user(), options());
+  }
+  // One draw of the chosen card per variant, in rarity order. With "Random card" it's a single random
+  // card shown four ways, so the variants can be compared like for like.
+  function drawAllVariants() {
+    let cardNumber = cardSel.value ? Number(cardSel.value) : null;
+    if (cardNumber == null) {
+      const source = packSel.value ? PACKS.filter(p => p.pack.id === packSel.value) : PACKS;
+      const cards = source.flatMap(p => p.cards);
+      if (cards.length) cardNumber = cards[Math.floor(Math.random() * cards.length)].number;
+    }
+    VARIANTS.forEach(v => queueDraw(user(), options({ cardNumber, variant: v })));
+  }
+
+  $('btn-draw').addEventListener('click', () => draw(Number(countInput.value)));
+  $('btn-all-variants').addEventListener('click', drawAllVariants);
+  $('btn-collection').addEventListener('click', () => queueCollection(user(), { dry: DEV.dry }));
+  $('btn-clear-queue').addEventListener('click', () => { cardQueue.length = 0; });
+  $('btn-reset-user').addEventListener('click', () => {
     const name = usernameInput.value.trim();
     if (!name) { showAlert('⚠️ Enter a username to reset'); return; }
-    resetUserCollection(name);
+    if (confirm('Reset ' + name + '\'s saved collection? This writes to the real data.')) resetUserCollection(name);
   });
-  document.getElementById('btn-reset-all').addEventListener('click', () => {
-    if (confirm('Reset ALL player collections?')) resetAllCollections();
+  $('btn-reset-all').addEventListener('click', () => {
+    if (confirm('Reset ALL player collections? This writes to the real data.')) resetAllCollections();
   });
 
+  // ── Switches ──
+  const bindSwitch = (id, key) => {
+    const el = $(id);
+    el.checked = DEV[key];
+    el.addEventListener('change', () => { DEV[key] = el.checked; updateBanner(); });
+  };
+  bindSwitch('dev-dry', 'dry');
+  bindSwitch('dev-mute', 'mute');
+  bindSwitch('dev-quick', 'quick');
+
+  // A loud reminder while draws are being saved, since that writes real pulls.
+  function updateBanner() { $('dev-live-warning').classList.toggle('hidden', DEV.dry); }
+  updateBanner();
+
+  // ── Collapse ──
+  $('dev-toggle').addEventListener('click', () => {
+    const collapsed = panel.classList.toggle('collapsed');
+    $('dev-toggle').textContent = collapsed ? '+' : '–';
+  });
+
+  // ── Live status ──
+  setInterval(() => {
+    $('dev-status').textContent = 'Queue ' + cardQueue.length + ' · showing ' + activeDraws + ' / ' + SEASON_CFG.maxConcurrentPacks;
+  }, 400);
+
+  // ── Keyboard: D draw · A all variants · R / F / S force a variant · C collection ──
   document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
-    const name = usernameInput.value.trim() || 'testuser';
-    if (e.key === 'd' || e.key === 'D') queueDraw(name);
-    // Force a variant on the next draw to preview its effects: r = Reverse, f = Full Art, s = Shiny.
-    const forced = { r: 'reverse', f: 'full', s: 'shiny' }[e.key.toLowerCase()];
-    if (forced) { forceVariant = forced; queueDraw(name); }
-    if (e.key === 'c' || e.key === 'C') queueCollection(name);
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const key = e.key.toLowerCase();
+    if (key === 'd') draw(Number(countInput.value));
+    else if (key === 'a') drawAllVariants();
+    else if (key === 'c') queueCollection(user(), { dry: DEV.dry });
+    else if ({ r: 'reverse', f: 'full', s: 'shiny' }[key]) queueDraw(user(), options({ variant: { r: 'reverse', f: 'full', s: 'shiny' }[key] }));
   });
 }
 
