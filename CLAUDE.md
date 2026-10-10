@@ -73,6 +73,7 @@ Packs can opt in to **variants**: every card can be pulled as Regular / Reverse 
 | `public/twitch-panel/panel.html` | Twitch Extension Panel HTML (loads Extension Helper + panel.js) |
 | `public/twitch-panel/panel.js` | Extension panel logic: Twitch auth flow, pack tabs, collection display |
 | `public/twitch-panel/panel.css` | Extension panel styles (Twitch dark theme) |
+| `public/twitch-panel/mobile.html`, `video_component.html`, `views.css` | The Extension's Mobile and Video - Component views: same markup + `panel.js`/`panel.css` as the panel, with a `view-mobile` / `view-video` body class and layout overrides in `views.css`. Keep the three HTML files' markup in sync |
 | `scripts/mock-kv.cjs`, `scripts/seed-dev.mts` | Dev-only fake KV server + Season 1 seeder (see Testing locally); `scripts/optimize-cards.mjs` converts card GIFs |
 | `middleware.ts` | Auth gate — only covers `/admin/*`. `/collection/*` is public |
 
@@ -148,6 +149,7 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 **Extension dashboard setup (dev.twitch.tv):**
 1. Create extension → type: Panel
 2. Panel HTML file URL: `https://tcg-khaki.vercel.app/twitch-panel/panel.html`
+   - Mobile view: `https://tcg-khaki.vercel.app/twitch-panel/mobile.html`; Video - Component view: `https://tcg-khaki.vercel.app/twitch-panel/video_component.html` (enable those view types on the extension's Capabilities / Views page in dev.twitch.tv)
 3. Allowlisted domains (for fetch): `https://tcg-khaki.vercel.app`
 4. Copy the Extension Secret (base64 encoded) → set as `TWITCH_EXTENSION_SECRET` env var in Vercel
 
