@@ -30,6 +30,11 @@ export default function CollectionLanding() {
               Go →
             </button>
           </form>
+          <p className="text-[11px] text-gray-600">
+            <a href="/terms" className="hover:text-gray-400 transition-colors">Terms</a>
+            {' · '}
+            <a href="/privacy" className="hover:text-gray-400 transition-colors">Privacy</a>
+          </p>
         </div>
       </div>
     </div>

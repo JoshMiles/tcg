@@ -94,6 +94,7 @@ Packs can opt in to **variants**: every card can be pulled as Regular / Reverse 
 
 ## Public routes
 - `/collection` — landing page (username search)
+- `/privacy` — Privacy Policy and `/terms` — Terms of Use / EULA (public; the URLs to enter in the extension's dev.twitch.tv Privacy Policy / EULA fields). Content lives in `app/privacy/page.tsx` and `app/terms/page.tsx`; **keep them in step with what the app really collects** (Twitch IDs/usernames, collections, activity log, avatars, analytics, Discord/webhook forwarding). Bump `LEGAL_UPDATED` in `lib/legal.ts` when you change them.
 - `/collection/[username]` — viewer's card collection (no auth). Shows owned cards with ×N badge for duplicates and total pull count when it exceeds unique count.
 
 ## API routes
@@ -151,6 +152,7 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 2. Panel HTML file URL: `https://tcg-khaki.vercel.app/twitch-panel/panel.html`
    - Mobile view: `https://tcg-khaki.vercel.app/twitch-panel/mobile.html`; Video - Component view: `https://tcg-khaki.vercel.app/twitch-panel/video_component.html` (enable those view types on the extension's Capabilities / Views page in dev.twitch.tv)
 3. Allowlisted domains (for fetch): `https://tcg-khaki.vercel.app`
+   - Privacy Policy URL: `https://tcg-khaki.vercel.app/privacy`; EULA URL: `https://tcg-khaki.vercel.app/terms`
 4. Copy the Extension Secret (base64 encoded) → set as `TWITCH_EXTENSION_SECRET` env var in Vercel
 
 **Critical: `auth.userId` is always an opaque ID — it never becomes a numeric ID on the client**, even after `requestIdShare()`. The real Twitch numeric user ID only appears in the JWT payload's `user_id` field (server-side). All login resolution goes through `POST /api/twitch/login` which reads it from there.
@@ -209,6 +211,7 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 | `TWITCH_EXTENSION_SECRET` | Base64 Extension Secret for JWT verification |
 | `TWITCH_CLIENT_ID` | Twitch OAuth app Client ID (for Helix API) |
 | `TWITCH_CLIENT_SECRET` | Twitch OAuth app Client Secret (for Helix API) |
+| `LEGAL_OPERATOR_NAME`, `LEGAL_CONTACT_EMAIL`, `LEGAL_GOVERNING_LAW` | Optional. Name the operator, a privacy contact email, and governing law on `/privacy` and `/terms`; neutral wording is used when unset. **Set these before submitting the extension for review** |
 
 ## Card art
 Card images are animated WebP in `public/assets/cards/` (600px wide, ~1–4MB each) with a static first-frame thumbnail of each in `public/assets/cards/thumb/` (~15KB). The original 800px GIFs were 20MB+ each and were removed. `getPackCards` rewrites legacy stored URLs (`/assets/GIF/X.gif` → `/assets/cards/X.webp`) on read, so old KV data keeps working.
