@@ -1,15 +1,16 @@
 import Link from 'next/link';
 import { listSeasons, getPacksForSeason } from '@/lib/kv';
 import { deleteSeasonAction, activateSeason } from '../actions';
+import { discardDraftSeason } from '../draft-actions';
 import { NewSeasonButton } from '../components/NewSeasonButton';
 import { ConfirmButton } from '../components/ConfirmButton';
-import { StatusChip } from '../components/StatusChip';
+import { StatusChip, DraftChip } from '../components/StatusChip';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SeasonsPage() {
   const seasons = await listSeasons();
-  seasons.sort((a, b) => b.createdAt - a.createdAt);
+  seasons.sort((a, b) => Number(b.status === 'draft') - Number(a.status === 'draft') || b.createdAt - a.createdAt);
 
   const packStats = await Promise.all(
     seasons.map(async s => {
@@ -41,12 +42,15 @@ export default async function SeasonsPage() {
           {seasons.map(s => {
             const packs = packMap[s.id] ?? { total: 0, active: 0 };
             const activate = activateSeason.bind(null, s.id);
-            const del = deleteSeasonAction.bind(null, s.id);
+            const isDraft = s.status === 'draft';
+            const del = isDraft ? discardDraftSeason.bind(null, s.id) : deleteSeasonAction.bind(null, s.id);
             return (
               <div
                 key={s.id}
                 className={`rounded-3xl p-[3px] transition-all ${
-                  s.active
+                  isDraft
+                    ? 'bg-gradient-to-r from-amber-700/60 to-gray-800'
+                    : s.active
                     ? 'bg-gradient-to-r from-yellow-300 via-yellow-500 to-amber-600 shadow-glow'
                     : 'bg-gradient-to-r from-gray-700 to-gray-800'
                 }`}
@@ -56,8 +60,8 @@ export default async function SeasonsPage() {
                   <div className="flex flex-wrap items-center gap-x-8 gap-y-4 p-5">
                     <div className="min-w-0 flex-1 basis-64">
                       <div className="flex items-center gap-3">
-                        <h2 className="font-display text-2xl font-bold text-white truncate">{s.name}</h2>
-                        <StatusChip active={s.active} />
+                        <h2 className="font-display text-2xl font-bold text-white truncate">{s.name || 'Untitled season'}</h2>
+                        {isDraft ? <DraftChip /> : <StatusChip active={s.active} />}
                       </div>
                       <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 font-semibold">
                         <code className="bg-gray-950 border border-gray-800 px-2 py-1 rounded-md text-gray-400">
@@ -75,7 +79,7 @@ export default async function SeasonsPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {!s.active && (
+                      {!s.active && !isDraft && (
                         <form action={activate}>
                           <button
                             type="submit"
@@ -86,19 +90,19 @@ export default async function SeasonsPage() {
                         </form>
                       )}
                       <Link
-                        href={`/admin/seasons/${s.id}`}
+                        href={isDraft ? `/admin/seasons/new?draft=${s.id}` : `/admin/seasons/${s.id}`}
                         className="tcg-btn px-4 py-2 text-sm rounded-xl"
                       >
-                        Manage →
+                        {isDraft ? 'Continue setup →' : 'Manage →'}
                       </Link>
                       <form action={del}>
                         <ConfirmButton
-                title="Delete season?"
-                confirmLabel="Delete season"
-                message={<>Delete <strong className="text-white">{s.name}</strong>? The season and its settings are removed. Packs and viewers&apos; collection data are kept. This can&apos;t be undone.</>}
+                title={isDraft ? 'Discard draft?' : 'Delete season?'}
+                confirmLabel={isDraft ? 'Discard draft' : 'Delete season'}
+                message={<>{isDraft ? 'Discard' : 'Delete'} <strong className="text-white">{s.name || 'Untitled season'}</strong>? The season and its settings are removed. Packs and viewers&apos; collection data are kept. This can&apos;t be undone.</>}
                 className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
               >
-                Delete
+                {isDraft ? 'Discard' : 'Delete'}
               </ConfirmButton>
                       </form>
                     </div>
