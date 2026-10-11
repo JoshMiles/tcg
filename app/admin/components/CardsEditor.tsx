@@ -5,6 +5,8 @@ import type { CardInput } from '../draft-actions';
 import { RARITIES, getRarity, rarityStats } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { uploadAudioFile, uploadImageFile } from './upload-client';
+import { VariantChips } from './VariantSwitches';
+import type { OptionalVariant } from '@/lib/types';
 
 /** An editor row: the saved fields plus client-only upload state. `number` is assigned by the server. */
 export interface CardRow extends CardInput {
@@ -42,11 +44,14 @@ export function CardsEditor({
   cards,
   setCards,
   upgradesEnabled,
+  packDisabled = [],
   confirmDelete = false,
 }: {
   cards: CardRow[];
   setCards: Dispatch<SetStateAction<CardRow[]>>;
   upgradesEnabled: boolean;
+  /** Variants already switched off for the whole pack (shown locked on each card). */
+  packDisabled?: OptionalVariant[];
   /** Ask before deleting a card that already has a number (i.e. may be in viewers' collections). */
   confirmDelete?: boolean;
 }) {
@@ -249,6 +254,14 @@ export function CardsEditor({
                           />
                           Variants &amp; upgrades
                         </label>
+                        {c.upgradesEnabled && (
+                          <VariantChips
+                            compact
+                            disabled={c.disabledVariants ?? []}
+                            locked={packDisabled}
+                            onChange={next => patch(c.id, { disabledVariants: next })}
+                          />
+                        )}
                       </>
                     )}
                   </div>

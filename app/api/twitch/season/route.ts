@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { cardThumbUrl } from '@/lib/card-art';
+import { allowedVariants } from '@/lib/variants';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ export async function GET() {
       coverImageUrl: pack.coverImageUrl,
       upgradesEnabled: pack.upgradesEnabled,
       upgradeCosts: pack.upgradeCosts,
+      disabledVariants: pack.disabledVariants ?? [],
       cards: cards
         .sort((a, b) => a.number - b.number)
         .map(c => ({
@@ -33,6 +35,8 @@ export async function GET() {
           thumbUrl: cardThumbUrl(c.imageUrl),
           stars: c.stars,
           upgradesEnabled: pack.upgradesEnabled && c.upgradesEnabled !== false,
+          // The variants this card can be (the panel only lists these, and skips a switched-off one when upgrading).
+          variants: allowedVariants(pack, c),
           ...(c.fullArtImageUrl && {
             fullArtImageUrl: c.fullArtImageUrl,
             fullArtThumbUrl: cardThumbUrl(c.fullArtImageUrl),

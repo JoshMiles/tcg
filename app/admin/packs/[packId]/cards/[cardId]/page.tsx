@@ -4,6 +4,7 @@ import { getPack, getPackCards } from '@/lib/kv';
 import { updateCard } from '../../../../actions';
 import { ImageUploadField } from '../../../../components/image-upload';
 import { AudioUploadField } from '../../../../components/audio-upload';
+import { VariantChecks } from '../../../../components/VariantSwitches';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,11 @@ export default async function EditCardPage({
             Allow variants &amp; upgrades for this card
             {!pack.upgradesEnabled && <span className="text-gray-600"> (pack has upgrades off)</span>}
           </label>
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-sm text-gray-300">Variants this card can be</p>
+          <VariantChecks disabled={card.disabledVariants} dimmed={pack.disabledVariants} />
+          <p className="text-xs text-gray-600">E.g. switch off Full Art and Shiny for a card with no full-art image. Variants already off for the whole pack are dimmed.</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Stars (1–5)" name="stars" type="number" defaultValue={String(card.stars)} required />

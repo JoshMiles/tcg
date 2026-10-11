@@ -1,6 +1,6 @@
 import type { Variant } from './types';
 import { RARITIES } from './rarity';
-import { VARIANTS, VARIANT_LABELS, countVariants, emptyCounts, nextVariant, type VariantCounts } from './variants';
+import { VARIANTS, VARIANT_LABELS, countVariants, emptyCounts, upgradeStep, type VariantCounts } from './variants';
 import type { SeasonCard, SeasonOverview } from './site-data';
 import { projectUpgradeGain, collectionBonuses } from './leaderboard';
 
@@ -68,9 +68,10 @@ export function computeUserStats(
     if (!counts) continue;
     for (const v of VARIANTS) {
       if (counts[v] > 0) topCopies.push({ card, variant: v, value: valueOf(card, v), count: counts[v] });
-      const to = nextVariant(v);
-      if (!to || !card.pack.upgradesEnabled || card.upgradesEnabled === false) continue;
-      const cost = card.pack.upgradeCosts[to as Exclude<Variant, 'regular'>];
+      if (!card.pack.upgradesEnabled || card.upgradesEnabled === false) continue;
+      const step = upgradeStep(card.pack, card, v);
+      if (!step) continue;
+      const { to, cost } = step;
       if (counts[v] >= cost) {
         upgradable.push({
           card, from: v, to, have: counts[v], cost,

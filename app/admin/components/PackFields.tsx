@@ -1,6 +1,7 @@
 import type { Pack } from '@/lib/types';
 import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS } from '@/lib/variants';
 import { ImageUploadField } from './image-upload';
+import { VariantChecks } from './VariantSwitches';
 
 export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
   return (
@@ -92,6 +93,15 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
           Pulls roll Regular / Reverse Holo / Full Art / Shiny Full Art, and viewers can upgrade duplicates.
           Leave off for packs that should stay single-version. Individual cards can opt out too.
         </p>
+
+        <div>
+          <p className="text-sm text-gray-400 mb-2">Variants in this pack</p>
+          <VariantChecks disabled={defaults?.disabledVariants} />
+          <p className="text-xs text-gray-600 mt-1">
+            An unticked variant is never rolled, and upgrades skip it (skipping costs the combined price, so it is no shortcut).
+            You can also switch variants off per card.
+          </p>
+        </div>
 
         <div>
           <p className="text-sm text-gray-400 mb-2">Variant weights</p>

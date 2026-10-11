@@ -6,6 +6,7 @@ import { updatePack, deleteCard, setPackActive, deletePackAction } from '../../a
 import { unpublishPack } from '../../draft-actions';
 import { DraftChip, StatusChip } from '../../components/StatusChip';
 import { CardFilter } from './CardFilter';
+import { PackVariantsPanel, CardToggles, BulkBar } from './VariantControls';
 import { PackFields } from '../../components/PackFields';
 import { AddCardButton } from '../../components/AddCardButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
@@ -88,7 +89,8 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             <h2 className="text-lg font-semibold text-white">
               Cards <span className="text-gray-600 font-normal text-base ml-1">({sorted.length})</span>
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {pack.upgradesEnabled && <BulkBar packId={packId} />}
               <Link
                 href={`/admin/packs/${packId}/cards`}
                 className="px-3 py-2 text-sm font-semibold bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl transition-colors"
@@ -108,6 +110,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
                   <th className="text-left px-5 py-3 w-10">#</th>
                   <th className="text-left px-4 py-3">Card</th>
                   <th className="text-right px-4 py-3">Rarity</th>
+                  <th className="text-right px-4 py-3 hidden md:table-cell">Variants</th>
                   <th className="text-right px-4 py-3 hidden sm:table-cell">Prob</th>
                   <th className="text-right px-4 py-3 hidden sm:table-cell">%</th>
                   <th className="text-right pr-5 pl-4 py-3"></th>
@@ -116,7 +119,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
               <tbody className="divide-y divide-gray-800/50">
                 {sorted.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-16 text-center text-gray-600">
+                    <td colSpan={7} className="px-5 py-16 text-center text-gray-600">
                       No cards yet — add your first card →
                     </td>
                   </tr>
@@ -142,6 +145,17 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
                         <span className={`text-xs font-medium ${rarity?.text ?? 'text-gray-400'}`}>
                           {'★'.repeat(card.stars)}
                         </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right hidden md:table-cell">
+                        <CardToggles
+                          packId={packId}
+                          cardId={card.id}
+                          packUpgrades={pack.upgradesEnabled}
+                          upgrades={card.upgradesEnabled !== false}
+                          disabled={card.disabledVariants ?? []}
+                          packDisabled={pack.disabledVariants ?? []}
+                          hasFullArt={!!card.fullArtImageUrl}
+                        />
                       </td>
                       <td className="px-4 py-2.5 text-right text-gray-500 tabular-nums hidden sm:table-cell">
                         {card.probability}
@@ -201,6 +215,8 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
               </p>
             )}
           </div>
+
+          <PackVariantsPanel packId={packId} upgradesEnabled={pack.upgradesEnabled} disabled={pack.disabledVariants ?? []} weights={pack.variantWeights} />
 
           {/* Rarity breakdown */}
           {rarityBreakdown.length > 0 && (

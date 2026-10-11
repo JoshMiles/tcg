@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
-import { VARIANTS, VARIANT_LABELS, nextVariant, type VariantCounts } from '@/lib/variants';
+import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import { UpgradeButton } from '@/app/components/UpgradeButton';
 import type { UpgradeCosts, Variant } from '@/lib/types';
 
@@ -31,6 +31,10 @@ export interface GridCard {
   scarcity: Record<Variant, number>;
   /** Copies needed for each upgrade step (used by the owner's Upgrade buttons). */
   costs: UpgradeCosts;
+  /** The variants switched on for this card (Regular plus whatever its pack and the card allow). */
+  variants: Variant[];
+  /** Where an upgrade from each variant goes and what it costs (switched-off variants are skipped at the combined cost). */
+  steps: Record<Variant, { to: Variant; cost: number } | null>;
 }
 
 const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: '✨' };
@@ -199,7 +203,7 @@ function CardDetail({
 
   const best = bestVariant(card.counts);
   const shown = preview && card.counts[preview] > 0 ? preview : best;
-  const rows = card.upgradable ? VARIANTS : (['regular'] as Variant[]);
+  const rows = card.upgradable ? VARIANTS.filter(v => card.variants.includes(v) || card.counts[v] > 0) : (['regular'] as Variant[]);
   const showUpgrades = canUpgrade && card.upgradable;
   const cardTotal = VARIANTS.reduce((s, v) => s + card.counts[v] * card.values[v], 0);
   const share = totalScore > 0 ? Math.round((cardTotal / totalScore) * 100) : 0;
@@ -297,8 +301,8 @@ function CardDetail({
                         <td className="py-2 px-3 text-right tabular-nums font-semibold text-yellow-300">{card.values[v].toLocaleString()} pts</td>
                         {showUpgrades && (
                           <td className="py-2 px-3 text-right">
-                            {nextVariant(v) && n > 0 ? (
-                              <UpgradeButton cardNumber={card.number} from={v} to={nextVariant(v)!} have={n} cost={card.costs[nextVariant(v) as Exclude<Variant, 'regular'>]} />
+                            {card.steps[v] && n > 0 ? (
+                              <UpgradeButton cardNumber={card.number} from={v} to={card.steps[v]!.to} have={n} cost={card.steps[v]!.cost} />
                             ) : null}
                           </td>
                         )}

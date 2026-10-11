@@ -4,7 +4,7 @@ import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
 import { getCollection } from '@/lib/kv';
 import { getSession } from '@/lib/session';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
-import { VARIANTS, countVariants } from '@/lib/variants';
+import { VARIANTS, countVariants, effectiveWeights } from '@/lib/variants';
 import { CardDex, type DexCard } from './CardDex';
 
 export const dynamic = 'force-dynamic';
@@ -60,7 +60,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
         values: [v?.values.regular ?? 0, v?.values.reverse ?? 0, v?.values.full ?? 0, v?.values.shiny ?? 0] as DexCard['values'],
         fullArtImageUrl: c.fullArtImageUrl,
         variantCopies: v?.variantCopies ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
-        variantOdds: variantOdds(c.pack.variantWeights, v?.pullRate ?? 0),
+        variantOdds: variantOdds(effectiveWeights(c.pack, c), v?.pullRate ?? 0),
         collectors: owners.get(c.number)?.collectors ?? 0,
         owners: (owners.get(c.number)?.top ?? []).map(o => ({ ...o, avatar: avatars[o.username] ? sizeTwitchAvatar(avatars[o.username], 70) : undefined })),
         owned: mine ? mine.has(c.number) : undefined,

@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { getActive, getSeasonOverview } from '@/lib/site-data';
 import { collectionBonuses } from '@/lib/leaderboard';
 import { DEFAULT_SCORING } from '@/lib/scoring';
-import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, VARIANTS, VARIANT_LABELS } from '@/lib/variants';
+import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, VARIANTS, VARIANT_LABELS, effectiveWeights } from '@/lib/variants';
 import { RARITIES } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
@@ -36,7 +36,7 @@ export default async function FaqPage() {
   // Live numbers from the current season where we have them; sensible defaults otherwise.
   const upgradePack = overview?.cards.find(c => c.pack.upgradesEnabled)?.pack ?? null;
   const costs = upgradePack?.upgradeCosts ?? DEFAULT_UPGRADE_COSTS;
-  const weights = upgradePack?.variantWeights ?? DEFAULT_VARIANT_WEIGHTS;
+  const weights = upgradePack ? effectiveWeights(upgradePack) : DEFAULT_VARIANT_WEIGHTS;
   const wTotal = VARIANTS.reduce((s, v) => s + Math.max(0, weights[v]), 0) || 1;
   const pct = (v: (typeof VARIANTS)[number]) => {
     const p = (Math.max(0, weights[v]) / wTotal) * 100;

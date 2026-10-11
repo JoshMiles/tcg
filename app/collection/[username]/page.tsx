@@ -6,7 +6,7 @@ import {
 } from '@/lib/kv';
 import { RARITIES } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
-import { VARIANTS, countVariants, emptyCounts } from '@/lib/variants';
+import { VARIANTS, allowedVariants, countVariants, effectiveWeights, emptyCounts, upgradeStep } from '@/lib/variants';
 import { getSeasonLeaderboard } from '@/lib/leaderboard';
 import { getSession } from '@/lib/session';
 import { CollectionGrid, type GridCard } from './CollectionGrid';
@@ -62,7 +62,7 @@ export default async function CollectionPage({
   // Per-card data for the grid + the click-to-expand detail (values come from the season leaderboard maths).
   const gridCards: GridCard[] = allCards.map(c => {
     const v = board.values.cards.get(c.number);
-    const w = c.pack.variantWeights;
+    const w = effectiveWeights(c.pack, c);
     const wTotal = VARIANTS.reduce((s, k) => s + Math.max(0, w[k]), 0) || 1;
     const pullRate = v?.pullRate ?? 0;
     return {
@@ -86,6 +86,8 @@ export default async function CollectionPage({
       variantCopies: v?.variantCopies ?? emptyCounts(),
       scarcity: v?.scarcity ?? { regular: 1, reverse: 1, full: 1, shiny: 1 },
       costs: c.pack.upgradeCosts,
+      variants: allowedVariants(c.pack, c),
+      steps: Object.fromEntries(VARIANTS.map(v => [v, upgradeStep(c.pack, c, v)])) as GridCard['steps'],
     };
   });
   const leaderboardHref = `/leaderboard/${season.id}`;

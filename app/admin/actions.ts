@@ -10,7 +10,7 @@ import {
   getUserProfile, saveUserProfile, deleteUserProfile,
   seedSeason1 as seedSeason1Data, getActiveSeasonWithPacks, ensureUserProfile,
 } from '@/lib/kv';
-import type { UserProfile, Variant } from '@/lib/types';
+import type { OptionalVariant, UserProfile, Variant } from '@/lib/types';
 import {
   VARIANTS, VARIANT_LABELS, DEFAULT_VARIANT_WEIGHTS, DEFAULT_UPGRADE_COSTS, encodeEntry, decodeEntry,
 } from '@/lib/variants';
@@ -119,9 +119,19 @@ function nonNegative(raw: FormDataEntryValue | null, fallback: number): number {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
+const OPTIONAL: OptionalVariant[] = ['reverse', 'full', 'shiny'];
+
+// A form that carries the variant switches (marker `variant_switches`) lists the ones that are ticked; a form without them
+// leaves whatever is stored alone, so no other form can switch variants off by accident.
+function disabledFromForm(formData: FormData, fallback: OptionalVariant[] = []): OptionalVariant[] {
+  if (formData.get('variant_switches') !== '1') return fallback;
+  return OPTIONAL.filter(v => formData.get(`variant_on_${v}`) !== 'on');
+}
+
 function upgradeSettings(formData: FormData) {
   return {
     upgradesEnabled: formData.get('upgradesEnabled') === 'on',
+    ...(formData.get('variant_switches') === '1' && { disabledVariants: disabledFromForm(formData) }),
     variantWeights: {
       regular: nonNegative(formData.get('weight_regular'), DEFAULT_VARIANT_WEIGHTS.regular),
       reverse: nonNegative(formData.get('weight_reverse'), DEFAULT_VARIANT_WEIGHTS.reverse),
@@ -211,6 +221,7 @@ export async function addCard(packId: string, formData: FormData) {
       imageUrl: (formData.get('imageUrl') as string) || '',
       ...(soundUrl && { soundUrl }),
       ...(fullArtImageUrl && { fullArtImageUrl }),
+      ...(disabledFromForm(formData).length > 0 && { disabledVariants: disabledFromForm(formData) }),
       upgradesEnabled: formData.get('upgradesEnabled') !== 'off',
       probability: Number(formData.get('probability')),
       stars: Number(formData.get('stars')),
@@ -233,6 +244,7 @@ export async function updateCard(packId: string, cardId: string, formData: FormD
             soundUrl,
             fullArtImageUrl: (formData.get('fullArtImageUrl') as string) || undefined,
             upgradesEnabled: formData.get('upgradesEnabled') === 'on',
+            disabledVariants: disabledFromForm(formData, c.disabledVariants ?? []),
             probability: Number(formData.get('probability')),
             stars: Number(formData.get('stars')),
             number: Number(formData.get('number')),
@@ -242,6 +254,63 @@ export async function updateCard(packId: string, cardId: string, formData: FormD
   );
   revalidatePath(`/admin/packs/${packId}`);
   redirect(`/admin/packs/${packId}`);
+}
+
+// ── Quick variant / upgrade switches (the pack page) ──────
+
+const withoutVariant = (list: OptionalVariant[] | undefined, v: OptionalVariant) => (list ?? []).filter(x => x !== v);
+const withVariant = (list: OptionalVariant[] | undefined, v: OptionalVariant) => [...new Set([...(list ?? []), v])];
+
+/** Switches one variant on or off for a whole pack. Off = never rolled, and upgrades skip it. */
+export async function setPackVariant(packId: string, variant: OptionalVariant, enabled: boolean) {
+  if (!OPTIONAL.includes(variant)) return;
+  const pack = await getPack(packId);
+  if (!pack) return;
+  await savePack({ ...pack, disabledVariants: enabled ? withoutVariant(pack.disabledVariants, variant) : withVariant(pack.disabledVariants, variant) });
+  revalidatePath(`/admin/packs/${packId}`);
+  revalidatePath('/admin/packs');
+}
+
+export async function setCardUpgrades(packId: string, cardId: string, enabled: boolean) {
+  const cards = await getPackCards(packId);
+  await savePackCards(packId, cards.map(c => (c.id === cardId ? { ...c, upgradesEnabled: enabled } : c)));
+  revalidatePath(`/admin/packs/${packId}`);
+}
+
+/** Switches one variant on or off for a single card (on top of the pack's own switches). */
+export async function setCardVariant(packId: string, cardId: string, variant: OptionalVariant, enabled: boolean) {
+  if (!OPTIONAL.includes(variant)) return;
+  const cards = await getPackCards(packId);
+  await savePackCards(packId, cards.map(c => {
+    if (c.id !== cardId) return c;
+    const next = enabled ? withoutVariant(c.disabledVariants, variant) : withVariant(c.disabledVariants, variant);
+    return { ...c, disabledVariants: next.length ? next : undefined };
+  }));
+  revalidatePath(`/admin/packs/${packId}`);
+}
+
+export type BulkCardOp = 'upgrades-on' | 'upgrades-off' | 'fullart-off-without-art' | 'all-variants-on';
+
+/** Bulk changes across every card in a pack. Returns how many cards actually changed. */
+export async function bulkCards(packId: string, op: BulkCardOp): Promise<{ changed: number }> {
+  const cards = await getPackCards(packId);
+  let changed = 0;
+  const next = cards.map(c => {
+    let updated = c;
+    if (op === 'upgrades-on' && c.upgradesEnabled === false) updated = { ...c, upgradesEnabled: true };
+    else if (op === 'upgrades-off' && c.upgradesEnabled !== false) updated = { ...c, upgradesEnabled: false };
+    else if (op === 'all-variants-on' && c.disabledVariants?.length) updated = { ...c, disabledVariants: undefined };
+    else if (op === 'fullart-off-without-art' && !c.fullArtImageUrl) {
+      // A card with no full-art image would show its normal art as Full Art / Shiny: switch those off for it.
+      const off = [...new Set([...(c.disabledVariants ?? []), 'full', 'shiny'])] as OptionalVariant[];
+      if (off.length !== (c.disabledVariants ?? []).length) updated = { ...c, disabledVariants: off };
+    }
+    if (updated !== c) changed++;
+    return updated;
+  });
+  if (changed > 0) await savePackCards(packId, next);
+  revalidatePath(`/admin/packs/${packId}`);
+  return { changed };
 }
 
 export async function deleteCard(packId: string, cardId: string) {
