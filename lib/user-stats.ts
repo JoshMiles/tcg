@@ -2,6 +2,7 @@ import type { Variant } from './types';
 import { RARITIES } from './rarity';
 import { VARIANTS, VARIANT_LABELS, countVariants, emptyCounts, nextVariant, type VariantCounts } from './variants';
 import type { SeasonCard, SeasonOverview } from './site-data';
+import { projectUpgradeGain } from './leaderboard';
 
 export interface UpgradeOption {
   card: SeasonCard;
@@ -9,7 +10,7 @@ export interface UpgradeOption {
   to: Variant;
   have: number;
   cost: number;
-  /** Points gained by turning `cost` copies of `from` into one `to`. */
+  /** Projected change to the viewer's score if they did this upgrade now (recomputed with scarcity, so it can be negative). */
   gain: number;
 }
 
@@ -32,7 +33,13 @@ export interface UserStats {
 }
 
 /** Everything the My Stats page shows, derived from the season overview and the viewer's entries. */
-export function computeUserStats(o: SeasonOverview, username: string, owned: number[]): UserStats {
+export function computeUserStats(
+  o: SeasonOverview,
+  username: string,
+  owned: number[],
+  /** Everyone's entries for the season; needed to project upgrade gains. */
+  collection: Record<string, number[]>,
+): UserStats {
   const byCard = countVariants(owned);
   const idx = o.rows.findIndex(r => r.username === username);
   const row = idx >= 0 ? o.rows[idx] : null;
@@ -41,6 +48,10 @@ export function computeUserStats(o: SeasonOverview, username: string, owned: num
   for (const counts of byCard.values()) for (const v of VARIANTS) variants[v] += counts[v];
 
   const valueOf = (c: SeasonCard, v: Variant) => o.values.cards.get(c.number)?.values[v] ?? 0;
+
+  // Cards grouped back into their packs, for re-running the value maths on a hypothetical collection.
+  const packs = [...new Map(o.cards.map(c => [c.pack.id, c.pack])).values()]
+    .map(pack => ({ pack, cards: o.cards.filter(c => c.pack.id === pack.id) }));
 
   const topCopies: UserStats['topCopies'] = [];
   const upgradable: UpgradeOption[] = [];
@@ -53,7 +64,10 @@ export function computeUserStats(o: SeasonOverview, username: string, owned: num
       if (!to || !card.pack.upgradesEnabled || card.upgradesEnabled === false) continue;
       const cost = card.pack.upgradeCosts[to as Exclude<Variant, 'regular'>];
       if (counts[v] >= cost) {
-        upgradable.push({ card, from: v, to, have: counts[v], cost, gain: valueOf(card, to) - cost * valueOf(card, v) });
+        upgradable.push({
+          card, from: v, to, have: counts[v], cost,
+          gain: projectUpgradeGain(packs, collection, username, card.number, v, to, cost) ?? valueOf(card, to) - cost * valueOf(card, v),
+        });
       }
     }
   }

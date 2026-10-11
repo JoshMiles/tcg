@@ -94,19 +94,19 @@ export default async function LeaderboardPage({
                   <strong className="text-white">Rarity</strong> — how hard the card is to pull compared with an average card. A card that comes up half as often is worth twice as much.
                 </li>
                 <li>
-                  <strong className="text-white">Scarcity</strong> — how few copies exist across everyone this season. Fewer copies than average gives a bonus (up to 2×), more gives a penalty (down to 0.5×), so
-                  values shift as more cards are pulled.
+                  <strong className="text-white">Scarcity</strong> — how few copies of that <em>exact version</em> exist across everyone this season (a Shiny is compared with other Shinies, a Regular with
+                  other Regulars). Fewer than average gives a bonus (up to 2×), more gives a penalty (down to 0.5×), so values shift as cards are pulled and upgraded.
                 </li>
                 {upgrades && (
                   <li>
-                    <strong className="text-white">Variant</strong> — Reverse Holo, Full Art and Shiny Full Art copies are worth far more than a Regular. An upgraded card is worth more than the copies
-                    you spend to make it.
+                    <strong className="text-white">Variant</strong> — Reverse Holo, Full Art and Shiny Full Art copies are worth far more than a Regular. An upgraded card is normally worth more than the copies
+                    you spend to make it, though scarcity can shift that.
                   </li>
                 )}
                 {upgrades && (
                   <li>
-                    <strong className="text-white">Upgrades use cards up.</strong> The copies you spend are destroyed, so fewer of that card exist and it becomes scarcer. That can raise the value of
-                    the remaining copies of it, including the lower versions. It also nudges the season-wide average, so other cards&rsquo; values can move slightly too.
+                    <strong className="text-white">Upgrades use cards up.</strong> The copies you spend are destroyed, so fewer of that version exist and it becomes scarcer — which can raise the value of the
+                    copies of it you keep. The new, higher version adds to its own count, so it can become a little less scarce. Other cards&rsquo; values can move slightly too.
                   </li>
                 )}
               </ul>

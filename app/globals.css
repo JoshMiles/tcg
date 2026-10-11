@@ -135,3 +135,12 @@
 }
 .cheese-float { animation: cheese-float 5s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .cheese-float { animation: none; } }
+
+/* Shiny cards rock gently left to right. Uses `rotate` (not `transform`) so the hover lift still works. */
+@keyframes shiny-rock {
+  0%, 100% { rotate: 0deg; }
+  25%      { rotate: 1.6deg; }
+  75%      { rotate: -1.6deg; }
+}
+.vfx-shiny { animation: shiny-rock 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .vfx-shiny { animation: none; } }

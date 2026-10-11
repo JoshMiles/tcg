@@ -497,7 +497,7 @@
 
 /* Shiny Full Art: bigger pop, pulsing gold glow, a colour-cycling burst, and the holo shimmer. */
 .variant-shiny .main-card {
-  animation: variantPopBig 0.9s cubic-bezier(.2,1.8,.4,1) 2.8s both, variantGlowGold 1.1s ease-in-out 3.7s infinite alternate;
+  animation: variantPopBig 0.9s cubic-bezier(.2,1.8,.4,1) 2.8s both, variantGlowGold 1.1s ease-in-out 3.7s infinite alternate, variantRock 3.6s ease-in-out 3.7s infinite;
 }
 .variant-shiny .card-label { background: linear-gradient(90deg, #f59e0b, #ef4444, #a855f7); }
 .variant-shiny .fade-square { animation: burstHue 2.5s linear infinite; }
@@ -545,3 +545,10 @@
 #dev-panel .dev-danger .dev-btn { margin-bottom: 6px; }
 .dev-btn-variants { background: linear-gradient(90deg, #8b5cf6, #ec4899, #f59e0b); color: white; }
 .dev-btn-clear    { background: rgba(255,255,255,.15); color: white; }
+
+/* Gentle left-to-right rock for the Shiny reveal. Uses `rotate`, so it layers on the pop-in's transform. */
+@keyframes variantRock {
+  0%, 100% { rotate: 0deg; }
+  25%      { rotate: 2deg; }
+  75%      { rotate: -2deg; }
+}

@@ -41,8 +41,9 @@ export default async function AccountPage() {
   }
 
   const overview = await getSeasonOverview(season);
-  const owned = (await getCollection(season.collectionName))[session.username] ?? [];
-  const s = computeUserStats(overview, session.username, owned);
+  const collection = await getCollection(season.collectionName);
+  const owned = collection[session.username] ?? [];
+  const s = computeUserStats(overview, session.username, owned, collection);
   const upgradesOn = overview.cards.some(c => c.pack.upgradesEnabled);
 
   const tiles = [
@@ -105,7 +106,12 @@ export default async function AccountPage() {
                             <span className="text-gray-600"> · you have {u.have}</span>
                           </span>
                         </span>
-                        <span className="text-xs font-bold text-emerald-300 tabular-nums shrink-0">+{u.gain.toLocaleString()} pts</span>
+                        <span
+                          className={`text-xs font-bold tabular-nums shrink-0 ${u.gain >= 0 ? 'text-emerald-300' : 'text-red-300'}`}
+                          title="Projected change to your score, after scarcity moves"
+                        >
+                          {u.gain >= 0 ? '+' : '−'}{Math.abs(u.gain).toLocaleString()} pts
+                        </span>
                         <UpgradeButton cardNumber={u.card.number} from={u.from} to={u.to} have={u.have} cost={u.cost} />
                       </li>
                     );
@@ -113,8 +119,8 @@ export default async function AccountPage() {
                 </ul>
               )}
               <p className="text-xs text-gray-500 leading-relaxed">
-                Upgrades are permanent — the copies you spend are destroyed. That makes the card scarcer, which can raise the value of the copies you keep (including lower versions).
-                It also nudges the season-wide average, so other cards&rsquo; values can shift slightly.
+                Upgrades are permanent — the copies you spend are destroyed. That makes that version of the card scarcer, which can raise the value of the copies of it you keep, while the
+                new, higher version adds to its own count. The points shown are projected with those shifts included, so they can occasionally be negative.
               </p>
             </section>
           )}
