@@ -106,6 +106,11 @@ function showStatic(mode) {
   const { wrapper, packageContainer, cardBox, cardLabel, mainCard, holoOverlay, cardInfoOverlay, radialContainer, cardInfo, userText, miniList } = theater;
   wrapper.classList.add('static-preview');
   wrapper.style.visibility = 'visible';
+  // Elements the editor can jump to when clicked (see the click handler below).
+  const editable = (el, target, tip) => { if (el) { el.dataset.edit = target; el.title = tip; } };
+  editable(mainCard, 'card', 'Click to edit this card variant');
+  editable(cardLabel, 'label', 'Click to edit the label');
+  editable(cardInfoOverlay, 'bar', 'Click to edit the name and stars bar');
   packageContainer.style.opacity = '0';
 
   if (previewMode === 'pack') {
@@ -122,9 +127,12 @@ function showStatic(mode) {
       applyLook(theater, P, variant, card, cfg, false);
       cardLabel.style.opacity = '1';
       cardLabel.style.visibility = 'visible';
-      radialContainer.style.opacity = String(pv(P, 'reveal.burstOpacity', 0.85));
-      if (!pv(P, 'reveal.showBurst', true)) radialContainer.style.display = 'none';
+      const burst = burstSpec(P, variant);
+      radialContainer.style.opacity = String(burst.opacity);
+      if (!burst.on) radialContainer.style.display = 'none';
       userText.textContent = gotText(P, 'Preview');
+      editable(userText, 'got', 'Click to edit the "got:" line');
+      editable(miniList, 'strip', 'Click to edit the cards under the card');
       const art = (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArt : card.image;
       paintCard(theater, card, art, (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArtThumb : card.thumb);
       const fx = mainCardAnimation(P, variant, 1, 0, true);
@@ -142,6 +150,8 @@ function showStatic(mode) {
     cardInfo.style.opacity = '1';
     cardInfo.style.transform = 'scale(1)';
     userText.textContent = headingText(P, 'Preview');
+    editable(userText, 'heading', 'Click to edit the heading');
+    editable(miniList, 'collection', 'Click to edit the collection grid');
     if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
     const opts = listOpts(P, false);
     if (opts.perRow > 0) wrapper.style.maxWidth = 'none';
@@ -150,6 +160,12 @@ function showStatic(mode) {
 }
 
 if (PREVIEW) {
+  // Clicking an element in the editor's preview asks the editor to open that element's settings.
+  document.body.classList.add('preview-edit');
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest && e.target.closest('[data-edit]');
+    if (el && window.parent !== window) window.parent.postMessage({ type: 'select', target: el.dataset.edit }, window.location.origin);
+  });
   window.addEventListener('message', (e) => {
     if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
     if (e.data.type === 'layout') applyLayout(e.data.layout);
@@ -433,12 +449,13 @@ function listOpts(P, strip) {
     cardWidth:       strip ? pv(P, 'reveal.stripCardWidth', 48) : pv(P, 'collection.cardWidth', 48),
     gap:             strip ? pv(P, 'reveal.stripGap', 13) : pv(P, 'collection.gap', 13),
     showUncollected: strip ? pv(P, 'reveal.showUncollectedStrip', true) : pv(P, 'collection.showUncollected', true),
-    showCounts:      pv(P, 'collection.showCounts', true),
-    showMarkers:     pv(P, 'collection.showVariantMarkers', true),
-    border:          pv(P, 'collection.borderColor', '#ffffff'),
-    placeholder:     pv(P, 'collection.placeholderColor', '#f1bb06'),
-    radius:          pv(P, 'collection.cardRadius', 2),
-    sort:            pv(P, 'collection.sort', 'number'),
+    // The strip under a revealed card and the collection view each have their own card look.
+    showCounts:      strip ? pv(P, 'reveal.stripShowCounts', true) : pv(P, 'collection.showCounts', true),
+    showMarkers:     strip ? pv(P, 'reveal.stripShowMarkers', true) : pv(P, 'collection.showVariantMarkers', true),
+    border:          strip ? pv(P, 'reveal.stripBorderColor', '#ffffff') : pv(P, 'collection.borderColor', '#ffffff'),
+    placeholder:     strip ? pv(P, 'reveal.stripPlaceholderColor', '#f1bb06') : pv(P, 'collection.placeholderColor', '#f1bb06'),
+    radius:          strip ? pv(P, 'reveal.stripCardRadius', 2) : pv(P, 'collection.cardRadius', 2),
+    sort:            strip ? pv(P, 'reveal.stripSort', 'number') : pv(P, 'collection.sort', 'number'),
   };
 }
 
@@ -570,17 +587,47 @@ const REVEALS = {
   flip:        { pack: null, tear: null, card: ['revealFlip', 1.9, 'ease'], back: true, reveal: 1.3, info: 1.6, label: 1.8, sounds: false },
   'rip-shake': { pack: ['ripShakePack', 3.2, 'linear'], tear: ['ripTearFly', 3.2, 'ease'], card: ['ripCardBurst', 3.2, 'ease'], reveal: 1.9, info: 2.1, label: 2.3, sounds: true },
   'rip-peel':  { pack: ['ripPeelPack', 4, 'ease'],    tear: ['ripPeelTear', 4, 'ease'],    card: ['ripPeelCard', 4, 'ease'],    reveal: 2.8, info: 3.0, label: 3.2, sounds: true },
+  'rip-slice': { pack: ['ripSlicePack', 3.6, 'ease'], tear: ['ripSliceTear', 3.6, 'ease'], card: ['ripSliceCard', 3.6, 'ease'], reveal: 2.4, info: 2.6, label: 2.8, sounds: true },
+  'rip-explode': { pack: ['ripExplodePack', 3.2, 'ease'], tear: ['ripExplodeTear', 3.2, 'ease'], card: ['ripExplodeCard', 3.2, 'ease'], reveal: 1.9, info: 2.1, label: 2.3, sounds: true },
+  drop:        { pack: null, tear: null, card: ['revealDrop', 1.2, 'ease'], reveal: 0.6, info: 1.0, label: 1.2, sounds: false },
+  spin:        { pack: null, tear: null, card: ['revealSpin', 1.5, 'ease'], reveal: 1.0, info: 1.3, label: 1.5, sounds: false },
+  impact:      { pack: null, tear: null, card: ['revealImpact', 1.0, 'cubic-bezier(.2,.8,.2,1)'], reveal: 0.4, info: 0.8, label: 1.0, sounds: false },
+  deal:        { pack: null, tear: null, card: ['revealDeal', 1.1, 'ease-out'], reveal: 0.7, info: 1.0, label: 1.1, sounds: false },
 };
+
+// The light burst behind a revealed card is per variant (see the Variants editor).
+function burstSpec(P, variant) {
+  const g = (s, d) => pv(P, 'variant.' + variant + '.' + s, d);
+  return {
+    on:      g('burst', true),
+    opacity: g('burstOpacity', 0.85),
+    size:    g('burstSize', 1),
+    rays:    Math.max(3, Math.round(g('burstRays', 8))),
+    speed:   g('burstSpeed', 4),
+  };
+}
+// Rebuilds the rays (the template ships eight) and sets their spacing and the burst's size.
+function buildRays(radialContainer, spec) {
+  radialContainer.innerHTML = '';
+  for (let i = 0; i < spec.rays; i++) {
+    const ray = document.createElement('div');
+    ray.className = 'fade-square';
+    ray.style.setProperty('--i', String(i));
+    radialContainer.appendChild(ray);
+  }
+  radialContainer.style.setProperty('--ray-step', (360 / spec.rays) + 'deg');
+  radialContainer.style.scale = String(spec.size);
+}
 
 function rgba(hex, a) {
   const n = parseInt(String(hex).replace('#', ''), 16) || 0;
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
 
-function setAnim(el, spec, speed) {
+function setAnim(el, spec, speed, delay) {
   el.style.animation = 'none';
   void el.offsetWidth;
-  el.style.animation = spec ? spec[0] + ' ' + (spec[1] / speed) + 's ' + spec[2] + ' forwards' : 'none';
+  el.style.animation = spec ? spec[0] + ' ' + (spec[1] / speed) + 's ' + spec[2] + ' ' + (delay || 0) + 's forwards' : 'none';
 }
 
 const gotText = (P, user) => String(pv(P, 'reveal.gotText', '{user} got:')).split('{user}').join(user || 'Someone');
@@ -667,6 +714,8 @@ function applyLook(theater, P, variant, card, cfg, owned) {
 
   // Card styling shared by every version (Pack opening group)
   st.setProperty('--card-scale', String(pv(P, 'reveal.cardScale', 1)));
+  st.setProperty('--pack-size', String(pv(P, 'reveal.packScale', 1)));
+  buildRays(theater.radialContainer, burstSpec(P, variant));
   st.setProperty('--label-size', pv(P, 'reveal.labelSize', 14) + 'px');
   st.setProperty('--name-color', pv(P, 'reveal.nameColor', '#f1bb06'));
   st.setProperty('--star-color', pv(P, 'reveal.starColor', '#f1bb06'));
@@ -744,8 +793,11 @@ function drawCard(username, opts) {
   const { card, variant, packName, packId } = pick;
   const P = effectiveProps(packId);
   const S = Math.max(0.25, pv(P, 'reveal.speed', 1));
-  const R = REVEALS[pv(P, 'reveal.style', 'classic')] || REVEALS.classic;
-  const at = sec => (sec * 1000) / S;
+  // A variant can override the pack opening's style (e.g. Shiny always rips the pack).
+  const variantStyle = pv(P, 'variant.' + variant + '.style', 'inherit');
+  const R = REVEALS[variantStyle !== 'inherit' ? variantStyle : pv(P, 'reveal.style', 'classic')] || REVEALS.classic;
+  const D = pv(P, 'reveal.startDelay', 0);   // seconds to wait before anything happens
+  const at = sec => (sec * 1000) / S + D * 1000;
   // Test panel "quick" mode shortens the on-screen time so many draws can be reviewed fast.
   const cfg = DEV.quick ? Object.assign({}, pick.cfg, { cardTime: Math.min(pick.cfg.cardTime, 1.5), cooldownTime: 0.2 }) : pick.cfg;
   // Full Art and Shiny use the card's full-art image when it has one; Regular and Reverse use the base art.
@@ -762,7 +814,7 @@ function drawCard(username, opts) {
   const cardVol = Math.min(1, vol * pv(P, 'variant.' + variant + '.volume', 1));
 
   if (R.sounds && pv(P, 'reveal.packSounds', true)) {
-    for (const s of PACK_SOUNDS) setTimeout(() => playAudio(s.src, vol), s.delay / S);
+    for (const s of PACK_SOUNDS) setTimeout(() => playAudio(s.src, vol), s.delay / S + D * 1000);
   }
 
   // Reset state
@@ -789,13 +841,13 @@ function drawCard(username, opts) {
     back.className = 'card-back';
     back.style.backgroundImage = "url('" + cfg.packageImage + "')";
     mainCard.appendChild(back);
-    setAnim(back, ['flipBack', R.card[1], 'linear'], S);
+    setAnim(back, ['flipBack', R.card[1], 'linear'], S, D);
   }
 
   // Animations
-  if (R.pack) { setAnim(packageContainer, R.pack, S); setAnim(tearBorder1, R.tear, S); }
-  setAnim(cardBox, R.card, S);
-  const fx = mainCardAnimation(P, variant, S, R.reveal, false);
+  if (R.pack) { setAnim(packageContainer, R.pack, S, D); setAnim(tearBorder1, R.tear, S, D); }
+  setAnim(cardBox, R.card, S, D);
+  const fx = mainCardAnimation(P, variant, S, R.reveal + D * S, false);
   mainCard.style.animation = fx.anim;
   wrapper.style.setProperty('--fx-start', fx.start + 's');
   const tilt = tiltAnimation(P, variant, S, fx.start);
@@ -805,9 +857,10 @@ function drawCard(username, opts) {
   setTimeout(() => {
     playAudio(card.soundUrl || `assets/sounds/${card.number}.mp3`, cardVol);
     if (pv(P, 'variant.' + variant + '.sparkles', false)) burstSparkles(cardBox, P, variant, S);
-    if (pv(P, 'reveal.showBurst', true)) {
-      radialContainer.style.opacity   = String(pv(P, 'reveal.burstOpacity', 0.85));
-      radialContainer.style.animation = 'spinRadial 4s linear infinite';
+    const burst = burstSpec(P, variant);
+    if (burst.on) {
+      radialContainer.style.opacity   = String(burst.opacity);
+      radialContainer.style.animation = 'spinRadial ' + (burst.speed / S) + 's linear infinite';
     }
   }, at(R.reveal));
 

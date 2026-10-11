@@ -132,6 +132,7 @@
   filter: drop-shadow(-8px 20px 10px rgba(0,0,0,.5));
   opacity: 0;
   animation-fill-mode: forwards;
+  scale: var(--pack-size, 1);   /* standalone property: stacks with the pack's entrance animations */
 }
 
 .tear-border-1 {
@@ -425,7 +426,7 @@
   background: linear-gradient(to top, var(--burst-a, rgba(255,240,140,1)), var(--burst-b, rgba(255,240,140,0)));
   clip-path: polygon(0% 0%, 100% 0%, 80% 100%, 20% 100%);
   transform-origin: center bottom;
-  transform: rotate(calc(45deg * var(--i))) translateY(-50px);
+  transform: rotate(calc(var(--ray-step, 45deg) * var(--i))) translateY(-50px);
 }
 
 /* ── Alert bar ── */
@@ -549,6 +550,10 @@
   75%      { rotate: calc(var(--rock-amt, 2deg) * -1); }
 }
 
+/* Admin editor preview: the elements you can click to edit light up on hover. */
+.preview-edit [data-edit] { cursor: pointer; }
+.preview-edit [data-edit]:hover { outline: 2px dashed rgba(250, 204, 21, .9); outline-offset: 3px; }
+
 /* Sparkle burst (variant.*.sparkles): particles fly out from the middle of the card and fade. */
 .spark-layer { position: absolute; left: 0; right: 0; top: 40px; height: 380px; pointer-events: none; z-index: 2000; }
 .spark-layer span {
@@ -560,6 +565,83 @@
   0%   { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0deg); }
   15%  { opacity: 1; }
   100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1) rotate(var(--rot)); }
+}
+
+/* ── More reveal styles ── */
+@keyframes revealDrop {
+  0%   { opacity: 0; transform: translateY(-620px) rotate(-8deg); }
+  35%  { opacity: 1; transform: translateY(0) rotate(0deg); }
+  50%  { transform: translateY(-70px); }
+  65%  { transform: translateY(0); }
+  78%  { transform: translateY(-24px); }
+  90%  { transform: translateY(0); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes revealSpin {
+  0%   { opacity: 0; transform: perspective(900px) rotateY(-720deg) scale(.2); }
+  15%  { opacity: 1; }
+  70%  { opacity: 1; transform: perspective(900px) rotateY(-30deg) scale(1.08); }
+  100% { opacity: 1; transform: perspective(900px) rotateY(0deg) scale(1); }
+}
+@keyframes revealImpact {
+  0%   { opacity: 0; transform: scale(3.4); }
+  30%  { opacity: 1; transform: scale(.9); }
+  42%  { transform: scale(1.04) translate(-9px, 4px) rotate(-1.5deg); }
+  54%  { transform: scale(.99) translate(9px, -4px) rotate(1.5deg); }
+  68%  { transform: scale(1.01) translate(-4px, 2px); }
+  82%  { transform: scale(1) translate(3px, -1px); }
+  100% { opacity: 1; transform: scale(1) translate(0, 0) rotate(0deg); }
+}
+@keyframes revealDeal {
+  0%   { opacity: 0; transform: translateX(-760px) rotate(-38deg) scale(.7); }
+  20%  { opacity: 1; }
+  62%  { opacity: 1; transform: translateX(26px) rotate(5deg) scale(1.02); }
+  80%  { transform: translateX(-8px) rotate(-1.5deg); }
+  100% { opacity: 1; transform: translateX(0) rotate(0deg) scale(1); }
+}
+/* Rip - slice: the tear strip slides straight off sideways, the pack drops away, the card rises. */
+@keyframes ripSlicePack {
+  0%   { opacity: 0; transform: scale(.5) rotate(-6deg); }
+  12%  { opacity: 1; transform: scale(1) rotate(-6deg); }
+  55%  { opacity: 1; transform: scale(1) rotate(-6deg) translateY(0); }
+  76%  { opacity: 1; transform: scale(1) rotate(-6deg) translateY(240px); }
+  92%  { opacity: 0; transform: scale(.6) rotate(-6deg) translateY(520px); }
+  100% { opacity: 0; transform: scale(.6) rotate(-6deg) translateY(520px); }
+}
+@keyframes ripSliceTear {
+  0%, 30% { opacity: 1; transform: scale(.45) translateX(0); }
+  36%     { opacity: 1; transform: scale(.45) translateX(40px) rotate(2deg); }
+  50%     { opacity: 1; transform: scale(.45) translateX(900px) rotate(6deg); }
+  60%, 100% { opacity: 0; transform: scale(.45) translateX(1200px) rotate(8deg); }
+}
+@keyframes ripSliceCard {
+  0%, 46% { opacity: 0; transform: scale(.8) rotate(-6deg) translateY(60px); }
+  50%     { opacity: 1; transform: scale(.8) rotate(-6deg) translateY(60px); }
+  64%     { opacity: 1; transform: scale(.92) rotate(-4deg) translateY(-175px); }
+  74%     { opacity: 1; transform: scale(1) rotate(0deg) translateY(0); }
+  100%    { opacity: 1; transform: scale(1) rotate(0deg) translateY(0); }
+}
+/* Rip - explode: the pack swells and flashes white, then bursts as the card slams out. */
+@keyframes ripExplodePack {
+  0%   { opacity: 0; transform: scale(.4) rotate(-8deg); filter: drop-shadow(-8px 20px 10px rgba(0,0,0,.5)) brightness(1); }
+  10%  { opacity: 1; transform: scale(1) rotate(-8deg); filter: drop-shadow(-8px 20px 10px rgba(0,0,0,.5)) brightness(1); }
+  40%  { opacity: 1; transform: scale(1.06) rotate(-8deg); filter: drop-shadow(-8px 20px 10px rgba(0,0,0,.5)) brightness(1.2); }
+  56%  { opacity: 1; transform: scale(1.3) rotate(-8deg); filter: drop-shadow(0 0 30px rgba(255,255,255,.9)) brightness(2.4); }
+  64%  { opacity: 1; transform: scale(1.7) rotate(-8deg); filter: drop-shadow(0 0 60px rgba(255,255,255,1)) brightness(5); }
+  72%  { opacity: 0; transform: scale(2.4) rotate(-8deg); filter: brightness(8); }
+  100% { opacity: 0; transform: scale(2.4) rotate(-8deg); }
+}
+@keyframes ripExplodeTear {
+  0%, 52% { opacity: 1; transform: scale(.45) rotate(0deg) translate(0, 0); }
+  70%     { opacity: .5; transform: scale(.45) rotate(-50deg) translate(-420px, -300px); }
+  100%    { opacity: 0; transform: scale(.45) rotate(-80deg) translate(-640px, -460px); }
+}
+@keyframes ripExplodeCard {
+  0%, 56% { opacity: 0; transform: scale(.3); }
+  62%     { opacity: 1; transform: scale(1.35); }
+  74%     { opacity: 1; transform: scale(.96); }
+  86%     { opacity: 1; transform: scale(1.02); }
+  100%    { opacity: 1; transform: scale(1); }
 }
 
 /* ── Reveal styles (Settings -> Overlay Properties -> Pack opening -> Reveal animation) ── */
