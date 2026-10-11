@@ -163,3 +163,7 @@
 }
 .live-dot { animation: live-pulse 1.6s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+/* The admin <main> scrolls horizontally for wide tables, which makes it the "scroll container" for position: sticky and
+   stops sticky elements sticking to the window. Pages with a sticky panel (the overlay look preview) opt out. */
+main:has([data-sticky-host]) { overflow: visible; }

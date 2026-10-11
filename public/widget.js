@@ -48,10 +48,35 @@ function applyLayout(layout) {
   root.setProperty('--col-y', PLACEMENTS.collection.offsetY + 'px');
 }
 
+// ── Look & animation properties (Settings -> Overlay Properties) ──
+// The server sends every property's default plus the admin's values; a pack can override some of them.
+// Keys are dotted paths ("collection.perRow", "variant.shiny.holoSpeed"); see lib/overlay-props.ts.
+let PROP_DEFAULTS = {};
+let PROPS_GLOBAL = {};
+let PACK_OVERRIDES = {};
+let PREVIEW_PROPS = null;   // admin editor: unsaved values shown live (replaces the saved ones)
+let PREVIEW_VARIANT = '';   // admin editor: "preview as" variant
+
+function effectiveProps(packId) {
+  const out = Object.assign({}, PROP_DEFAULTS);
+  if (PREVIEW_PROPS) return Object.assign(out, PREVIEW_PROPS);
+  Object.assign(out, PROPS_GLOBAL);
+  if (packId && PACK_OVERRIDES[packId]) Object.assign(out, PACK_OVERRIDES[packId]);
+  return out;
+}
+// Falls back to the literal (the shipped default) if the config couldn't be fetched.
+const pv = (P, key, fallback) => (P[key] !== undefined ? P[key] : fallback);
+
 async function loadLayout() {
   try {
     const res = await fetch('/api/overlay/config', { cache: 'no-store' });
-    if (res.ok) applyLayout((await res.json()).layout);
+    if (res.ok) {
+      const cfg = await res.json();
+      applyLayout(cfg.layout);
+      PROP_DEFAULTS = cfg.defaults || {};
+      PROPS_GLOBAL = cfg.props || {};
+      PACK_OVERRIDES = cfg.packOverrides || {};
+    }
   } catch { /* keep the defaults */ }
 }
 
@@ -62,6 +87,7 @@ applyLayout();
 // Shows a still of the pack opening / collection view while nothing is animating, so it can be positioned, and plays
 // the real animation on request. Messages from the editor: layout, static (which view to show), pack, collection.
 let previewMode = 'pack';
+let previewPackId = '';
 
 function clearStatic() {
   document.querySelectorAll('.static-preview').forEach(el => el.remove());
@@ -73,45 +99,37 @@ function showStatic(mode) {
   clearStatic();
   if (PACKS.length === 0) return;
 
-  const cfg = packConfig(PACKS[0].pack);
+  const chosen = PACKS.find(p => p.pack.id === previewPackId) || PACKS[0];
+  const cfg = packConfig(chosen.pack);
+  const P = effectiveProps(previewMode === 'pack' ? chosen.pack.id : null);
   const theater = createTheater(cfg);
-  const { wrapper, packageContainer, cardBox, cardLabel, mainCard, cardInfoOverlay, radialContainer, cardInfo, userText, miniList } = theater;
+  const { wrapper, packageContainer, cardBox, cardLabel, mainCard, holoOverlay, cardInfoOverlay, radialContainer, cardInfo, userText, miniList } = theater;
   wrapper.classList.add('static-preview');
   wrapper.style.visibility = 'visible';
   packageContainer.style.opacity = '0';
 
   if (previewMode === 'pack') {
     // The settled moment of a pack opening: the revealed card, its label and the collection strip beneath it.
-    const cards = PACKS.flatMap(p => p.cards);
-    const card = [...cards].sort((x, y) => y.stars - x.stars)[0];
+    const variant = PREVIEW_VARIANT || 'regular';
+    const card = [...chosen.cards].sort((x, y) => y.stars - x.stars)[0] || ALL_CARDS[0];
     wrapper.classList.add('is-pack', 'pack-fit');
     cardBox.style.animation = 'none';
     cardBox.style.opacity = '1';
-    cardLabel.style.opacity = '1';
-    cardLabel.style.visibility = 'visible';
     radialContainer.style.animation = 'none';
-    radialContainer.style.opacity = '1';
     cardInfo.style.opacity = '1';
     cardInfo.style.transform = 'scale(1)';
-    userText.textContent = 'Preview got:';
     if (card) {
-      if (card.image) {
-        mainCard.style.backgroundImage = `url('${card.image}')`;
-        mainCard.style.backgroundSize = 'cover';
-        mainCard.style.backgroundPosition = 'center';
-        mainCard.style.backgroundRepeat = 'no-repeat';
-        mainCard.style.backgroundColor = 'transparent';
-      }
-      mainCard.style.setProperty('--card-mask', card.thumb && card.thumb !== card.image ? `url('${card.thumb}')` : 'none');
-      const num1 = mainCard.querySelector('.card-number-1 > span:first-child');
-      const num2 = mainCard.querySelector('.card-number-2 > span:first-child');
-      if (num1) num1.textContent = card.number;
-      if (num2) num2.textContent = card.number;
-      const nameEl = cardInfoOverlay.querySelector('.card-name');
-      const starsEl = cardInfoOverlay.querySelector('.card-stars');
-      if (nameEl) nameEl.textContent = card.name;
-      if (starsEl) starsEl.innerHTML = STAR_SVG.repeat(card.stars);
-      buildMiniList(miniList, revealedCardsByUser.preview || [], card.number, cfg);
+      applyLook(theater, P, variant, card, cfg);
+      cardLabel.style.opacity = '1';
+      cardLabel.style.visibility = 'visible';
+      radialContainer.style.opacity = String(pv(P, 'reveal.burstOpacity', 0.85));
+      if (!pv(P, 'reveal.showBurst', true)) radialContainer.style.display = 'none';
+      userText.textContent = gotText(P, 'Preview');
+      const art = (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArt : card.image;
+      paintCard(theater, card, art, (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArtThumb : card.thumb);
+      mainCard.style.animation = mainCardAnimation(P, variant, 1, 0, true);
+      buildMiniList(miniList, revealedCardsByUser.preview || [], card.number, cfg, listOpts(P, true));
+      if (holoOn(P, variant, card, cfg)) holoOverlay.classList.add('holographic-animate');
     }
   } else {
     // The collection view: just the name and the card grid.
@@ -120,8 +138,11 @@ function showStatic(mode) {
     radialContainer.style.display = 'none';
     cardInfo.style.opacity = '1';
     cardInfo.style.transform = 'scale(1)';
-    userText.textContent = "Preview's collection:";
-    buildMiniList(miniList, revealedCardsByUser.preview || [], null, cfg);
+    userText.textContent = headingText(P, 'Preview');
+    if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
+    const opts = listOpts(P, false);
+    if (opts.perRow > 0) wrapper.style.maxWidth = 'none';
+    buildMiniList(miniList, revealedCardsByUser.preview || [], null, cfg, opts);
   }
 }
 
@@ -129,8 +150,17 @@ if (PREVIEW) {
   window.addEventListener('message', (e) => {
     if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
     if (e.data.type === 'layout') applyLayout(e.data.layout);
+    else if (e.data.type === 'props') {
+      PREVIEW_PROPS = e.data.props && typeof e.data.props === 'object' ? e.data.props : null;
+      previewPackId = typeof e.data.packId === 'string' ? e.data.packId : '';
+      if (activeDraws === 0) showStatic();
+    }
+    else if (e.data.type === 'variant') {
+      PREVIEW_VARIANT = ['reverse', 'full', 'shiny'].includes(e.data.variant) ? e.data.variant : '';
+      if (activeDraws === 0) showStatic();
+    }
     else if (e.data.type === 'static') { if (activeDraws === 0) showStatic(e.data.mode); else previewMode = e.data.mode === 'collection' ? 'collection' : 'pack'; }
-    else if (e.data.type === 'pack') { clearStatic(); queueDraw('preview', { dry: true }); }
+    else if (e.data.type === 'pack') { clearStatic(); queueDraw('preview', { dry: true, packId: previewPackId || undefined, variant: PREVIEW_VARIANT || undefined }); }
     else if (e.data.type === 'collection') { clearStatic(); queueCollection('preview', { dry: true }); }
   });
 }
@@ -281,7 +311,7 @@ function pickPackAndCard(opts) {
   if (opts.variant && VARIANTS.indexOf(opts.variant) !== -1) variant = opts.variant;
   else if (chosen.pack.upgradesEnabled && card.upgradesEnabled) variant = rollVariant(chosen.pack.variantWeights);
 
-  return { card, variant, cfg: packConfig(chosen.pack), packName: chosen.pack.name };
+  return { card, variant, cfg: packConfig(chosen.pack), packName: chosen.pack.name, packId: chosen.pack.id };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -393,8 +423,35 @@ function preloadThumbs() {
   for (const card of ALL_CARDS) warmImage(card.thumb);
 }
 
-function buildMiniList(miniList, userCards, highlightNumber, cfg) {
+// Grid options for the card list (both the "show collection" view and the strip under a revealed card).
+function listOpts(P, strip) {
+  return {
+    showUncollected: strip ? pv(P, 'reveal.showUncollectedStrip', true) : pv(P, 'collection.showUncollected', true),
+    showCounts:      pv(P, 'collection.showCounts', true),
+    showMarkers:     pv(P, 'collection.showVariantMarkers', true),
+    perRow:          pv(P, 'collection.perRow', 0),
+    cardWidth:       pv(P, 'collection.cardWidth', 48),
+    gap:             pv(P, 'collection.gap', 13),
+    border:          pv(P, 'collection.borderColor', '#ffffff'),
+    placeholder:     pv(P, 'collection.placeholderColor', '#f1bb06'),
+  };
+}
+
+function buildMiniList(miniList, userCards, highlightNumber, cfg, opts) {
+  opts = Object.assign({ showUncollected: true, showCounts: true, showMarkers: true, perRow: 0, cardWidth: 48, gap: 13, border: '#ffffff', placeholder: '#f1bb06' }, opts || {});
   miniList.innerHTML = '';
+  const w = opts.cardWidth, h = Math.round(w * 70 / 48), k = w / 48;
+  if (opts.perRow > 0) {
+    miniList.style.display = 'grid';
+    miniList.style.gridTemplateColumns = 'repeat(' + opts.perRow + ', max-content)';
+    miniList.style.justifyContent = 'center';
+  } else {
+    miniList.style.display = '';
+    miniList.style.gridTemplateColumns = '';
+  }
+  miniList.style.gap = opts.gap + 'px';
+  miniList.style.setProperty('--mini-placeholder', opts.placeholder);
+
   const countMap = new Map();
   const bestVariant = new Map(); // highest variant index owned per card
   for (const entry of userCards) {
@@ -404,12 +461,16 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg) {
   }
 
   for (const card of ALL_CARDS) {
+    const count   = countMap.get(card.number) ?? 0;
+    const owned   = count > 0;
+    if (!owned && card.number !== highlightNumber && !opts.showUncollected) continue;
+
     const div = document.createElement('div');
     div.classList.add('mini-card');
     div.style.position = 'relative';
+    div.style.width  = w + 'px';
+    div.style.height = h + 'px';
 
-    const count   = countMap.get(card.number) ?? 0;
-    const owned   = count > 0;
     const showImg = (owned || card.number === highlightNumber) && (card.thumb || card.image);
 
     if (showImg) {
@@ -418,24 +479,25 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg) {
       div.style.backgroundPosition = 'center';
       div.style.backgroundRepeat   = 'no-repeat';
       div.style.backgroundColor    = (cfg || PACK_DEFAULTS).accentColor;
-      div.style.border             = '3px solid white';
+      div.style.border             = '3px solid ' + opts.border;
     } else {
       const q = document.createElement('span');
       q.classList.add('mini-question');
       q.textContent = '?';
+      q.style.fontSize = Math.round(20 * k) + 'px';
       div.appendChild(q);
     }
 
-    if (count > 1) {
+    if (count > 1 && opts.showCounts) {
       const badge = document.createElement('div');
-      badge.style.cssText = 'position:absolute;bottom:1px;right:1px;background:rgba(0,0,0,0.8);color:#f59e0b;font-size:7px;font-weight:700;padding:0 2px;border-radius:2px;line-height:1.4;pointer-events:none;';
+      badge.style.cssText = 'position:absolute;bottom:1px;right:1px;background:rgba(0,0,0,0.8);color:#f59e0b;font-weight:700;padding:0 2px;border-radius:2px;line-height:1.4;pointer-events:none;font-size:' + Math.max(7, Math.round(7 * k)) + 'px;';
       badge.textContent = '×' + count;
       div.appendChild(badge);
     }
 
-    if ((bestVariant.get(card.number) ?? 0) > 0) {
+    if ((bestVariant.get(card.number) ?? 0) > 0 && opts.showMarkers) {
       const spark = document.createElement('div');
-      spark.style.cssText = 'position:absolute;top:1px;left:2px;font-size:8px;line-height:1;pointer-events:none;text-shadow:0 0 3px #000;';
+      spark.style.cssText = 'position:absolute;top:1px;left:2px;line-height:1;pointer-events:none;text-shadow:0 0 3px #000;font-size:' + Math.max(8, Math.round(8 * k)) + 'px;';
       spark.textContent = '✨';
       div.appendChild(spark);
     }
@@ -487,6 +549,130 @@ function createTheater(cfg) {
 }
 
 // ═══════════════════════════════════════════════════════
+//  LOOK  (reveal styles + per-variant effects, driven by the overlay properties)
+// ═══════════════════════════════════════════════════════
+// Each reveal style = which keyframes drive the pack / tear strip / card, and when (seconds at 1× speed) the card is
+// revealed (sound, light burst, pop), its info appears, and its label appears. Classic is the original animation.
+const REVEALS = {
+  classic:     { pack: ['fadeScaleIn', 4.5, 'ease'],  tear: ['tearBorderIn', 4.5, 'ease'], card: ['cardBoxIn', 7.5, 'ease'], reveal: 2.8, info: 3.0, label: 3.2, sounds: true },
+  simple:      { pack: null, tear: null, card: ['revealZoom', 0.7, 'cubic-bezier(.2,1.4,.4,1)'], reveal: 0.3, info: 0.7, label: 0.9, sounds: false },
+  slide:       { pack: null, tear: null, card: ['revealSlide', 0.8, 'cubic-bezier(.2,.9,.3,1.15)'], reveal: 0.3, info: 0.7, label: 0.9, sounds: false },
+  flip:        { pack: null, tear: null, card: ['revealFlip', 1.9, 'ease'], back: true, reveal: 1.3, info: 1.6, label: 1.8, sounds: false },
+  'rip-shake': { pack: ['ripShakePack', 3.2, 'linear'], tear: ['ripTearFly', 3.2, 'ease'], card: ['ripCardBurst', 3.2, 'ease'], reveal: 1.9, info: 2.1, label: 2.3, sounds: true },
+  'rip-peel':  { pack: ['ripPeelPack', 4, 'ease'],    tear: ['ripPeelTear', 4, 'ease'],    card: ['ripPeelCard', 4, 'ease'],    reveal: 2.8, info: 3.0, label: 3.2, sounds: true },
+};
+
+function rgba(hex, a) {
+  const n = parseInt(String(hex).replace('#', ''), 16) || 0;
+  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+
+function setAnim(el, spec, speed) {
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = spec ? spec[0] + ' ' + (spec[1] / speed) + 's ' + spec[2] + ' forwards' : 'none';
+}
+
+const gotText = (P, user) => String(pv(P, 'reveal.gotText', '{user} got:')).split('{user}').join(user || 'Someone');
+const headingText = (P, user) => String(pv(P, 'collection.headingText', "{user}'s collection:")).split('{user}').join(user || 'Someone');
+
+function holoOn(P, variant, card, cfg) {
+  const mode = pv(P, 'variant.' + variant + '.holoMode', variant === 'reverse' || variant === 'shiny' ? 'on' : 'auto');
+  return mode === 'on' || (mode === 'auto' && card.stars >= cfg.holoMinStars);
+}
+
+// The card's steady-state effects as one animation list: pop on reveal, pulsing glow, gentle rock. `steady` (editor
+// still) skips the pop and starts the glow/rock immediately.
+function mainCardAnimation(P, variant, speed, revealAt, steady) {
+  const g = (s, d) => pv(P, 'variant.' + variant + '.' + s, d);
+  const parts = [];
+  let t = revealAt;
+  if (g('pop', false) && !steady) {
+    const sc = g('popScale', 1.12), extra = Math.max(0, sc - 1.12) * 2;
+    const dur = 0.7 + extra;
+    parts.push('variantPop ' + (dur / speed) + 's cubic-bezier(.2,' + (1.6 + extra).toFixed(2) + ',.4,1) ' + (revealAt / speed) + 's both');
+    t = revealAt + dur;
+  }
+  const start = steady ? 0 : t / speed;
+  if (g('glow', false)) parts.push('variantGlow ' + (g('glowSpeed', 1.4) / speed) + 's ease-in-out ' + start + 's infinite alternate');
+  if (g('rock', false)) parts.push('variantRock ' + (g('rockSpeed', 3.6) / speed) + 's ease-in-out ' + start + 's infinite');
+  return parts.join(', ') || 'none';
+}
+
+// Sets this card's per-variant look as CSS variables on the theater, plus its label.
+function applyLook(theater, P, variant, card, cfg) {
+  const { wrapper, cardLabel, holoOverlay, cardInfoOverlay, userText, miniList } = theater;
+  const g = (s, d) => pv(P, 'variant.' + variant + '.' + s, d);
+  const st = wrapper.style;
+
+  wrapper.classList.remove('variant-reverse', 'variant-full', 'variant-shiny');
+  if (variant !== 'regular') wrapper.classList.add('variant-' + variant);
+
+  // Label
+  const lc = g('labelColors', ['#f1bb06']);
+  st.setProperty('--label-bg', lc.length > 1 ? 'linear-gradient(90deg, ' + lc.join(', ') + ')' : lc[0]);
+  cardLabel.textContent = g('labelText', variant === 'regular' ? 'new' : VARIANT_LABELS[variant]);
+  if (!pv(P, 'reveal.showLabel', true)) cardLabel.style.display = 'none';
+
+  // Holographic shimmer
+  const colors = g('holoColors', ['#fffee3', '#ffe078', '#afffb5', '#fffee3', '#96f5ff', '#fffee3', '#ffe078', '#fffee3']);
+  const stops = [];
+  for (let i = 0; i < 8; i++) stops.push('#ffffff00', colors[i % colors.length]);
+  stops.push('#ffffff00');
+  st.setProperty('--holo-gradient', 'linear-gradient(' + g('holoAngle', 120) + 'deg, ' + stops.join(', ') + ')');
+  st.setProperty('--holo-opacity', String(g('holoOpacity', 0.9)));
+  st.setProperty('--holo-time', g('holoSpeed', 10.5) + 's');
+  st.setProperty('--holo-blend', g('holoBlend', 'overlay'));
+  const loop = g('holoLoop', false);
+  st.setProperty('--holo-name', loop ? 'rainbowLoop' : 'rainbowShimmer');
+  st.setProperty('--holo-iter', loop ? 'infinite' : '1');
+  st.setProperty('--holo-timing', loop ? 'linear' : 'ease');
+
+  // Glow, pop and burst
+  st.setProperty('--glow-lo', rgba(g('glowColorA', '#ffffff'), 0.6));
+  st.setProperty('--glow-hi', rgba(g('glowColorB', '#ffffff'), 0.95));
+  st.setProperty('--glow-blur', g('glowBlur', 40) + 'px');
+  st.setProperty('--glow-blur-lo', g('glowBlur', 40) * 0.4 + 'px');
+  st.setProperty('--glow-spread', g('glowSpread', 8) + 'px');
+  st.setProperty('--glow-spread-lo', g('glowSpread', 8) * 0.2 + 'px');
+  st.setProperty('--pop-scale', String(g('popScale', 1.1)));
+  st.setProperty('--pop-tilt', g('popTilt', 0) + 'deg');
+  st.setProperty('--rock-amt', g('rockAmount', 2) + 'deg');
+  st.setProperty('--burst-a', rgba(g('burstColor', '#fff08c'), 1));
+  st.setProperty('--burst-b', rgba(g('burstColor', '#fff08c'), 0));
+  wrapper.classList.toggle('burst-cycle', !!g('burstHue', false));
+
+  // Visibility toggles
+  if (!pv(P, 'reveal.showInfoBar', true)) cardInfoOverlay.style.display = 'none';
+  if (!pv(P, 'reveal.showGotLine', true)) userText.style.display = 'none';
+  if (!pv(P, 'reveal.showMiniList', true)) miniList.style.display = 'none';
+}
+
+function paintCard(theater, card, art, artThumb) {
+  const { mainCard, cardInfoOverlay } = theater;
+  // The holo layer is masked to this art's silhouette using its static thumbnail (same shape, tiny, never animated).
+  mainCard.style.setProperty('--card-mask', artThumb && artThumb !== art ? "url('" + artThumb + "')" : 'none');
+  if (art) {
+    mainCard.style.backgroundImage    = "url('" + art + "')";
+    mainCard.style.backgroundSize     = 'cover';
+    mainCard.style.backgroundPosition = 'center';
+    mainCard.style.backgroundRepeat   = 'no-repeat';
+    mainCard.style.backgroundColor    = 'transparent';
+  } else {
+    mainCard.style.backgroundImage = 'none';
+    mainCard.style.backgroundColor = 'white';
+  }
+  const num1 = mainCard.querySelector('.card-number-1 > span:first-child');
+  const num2 = mainCard.querySelector('.card-number-2 > span:first-child');
+  if (num1) num1.textContent = card.number;
+  if (num2) num2.textContent = card.number;
+  const nameEl  = cardInfoOverlay.querySelector('.card-name');
+  const starsEl = cardInfoOverlay.querySelector('.card-stars');
+  if (nameEl)  nameEl.textContent = card.name;
+  if (starsEl) starsEl.innerHTML  = STAR_SVG.repeat(card.stars);
+}
+
+// ═══════════════════════════════════════════════════════
 //  DRAW CARD
 // ═══════════════════════════════════════════════════════
 function drawCard(username, opts) {
@@ -502,26 +688,32 @@ function drawCard(username, opts) {
     return;
   }
 
-  const { card, variant, packName } = pick;
+  const { card, variant, packName, packId } = pick;
+  const P = effectiveProps(packId);
+  const S = Math.max(0.25, pv(P, 'reveal.speed', 1));
+  const R = REVEALS[pv(P, 'reveal.style', 'classic')] || REVEALS.classic;
+  const at = sec => (sec * 1000) / S;
   // Test panel "quick" mode shortens the on-screen time so many draws can be reviewed fast.
   const cfg = DEV.quick ? Object.assign({}, pick.cfg, { cardTime: Math.min(pick.cfg.cardTime, 1.5), cooldownTime: 0.2 }) : pick.cfg;
   // Full Art and Shiny use the card's full-art image when it has one; Regular and Reverse use the base art.
-  const art = (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArt : card.image;
-  // The card isn't revealed for ~3s; fetch and decode its animated art now so the reveal never hitches.
+  const isFullArt = (variant === 'full' || variant === 'shiny') && card.fullArt;
+  const art = isFullArt ? card.fullArt : card.image;
+  // The card isn't revealed for a moment; fetch and decode its animated art now so the reveal never hitches.
   warmImage(art);
   const theater = createTheater(cfg);
   const { wrapper, packageContainer, tearBorder1, cardBox, cardLabel,
-          mainCard, holoOverlay, cardInfoOverlay, radialContainer,
+          mainCard, holoOverlay, radialContainer,
           cardInfo, userText, miniList } = theater;
 
   const vol = cfg.soundVolume;
 
-  for (const s of PACK_SOUNDS) {
-    setTimeout(() => playAudio(s.src, vol), s.delay);
+  if (R.sounds && pv(P, 'reveal.packSounds', true)) {
+    for (const s of PACK_SOUNDS) setTimeout(() => playAudio(s.src, vol), s.delay / S);
   }
 
   // Reset state
   packageContainer.style.opacity = '0';
+  if (!R.pack) packageContainer.style.display = 'none';
   cardBox.style.opacity           = '0';
   cardLabel.style.opacity         = '0';
   cardLabel.style.visibility      = 'hidden';
@@ -532,73 +724,48 @@ function drawCard(username, opts) {
   wrapper.style.visibility        = 'visible';
   wrapper.classList.remove('hid', 'hidden');
   wrapper.classList.add('pack-fit', 'is-pack');
-  wrapper.classList.remove('variant-reverse', 'variant-full', 'variant-shiny');
-  if (variant !== 'regular') wrapper.classList.add('variant-' + variant);
+
+  applyLook(theater, P, variant, card, cfg);
+  paintCard(theater, card, art, isFullArt ? card.fullArtThumb : card.thumb);
+
+  // Flip reveal: a card back (the pack's cover) sits over the art until the card turns edge-on.
+  if (R.back) {
+    const back = document.createElement('div');
+    back.className = 'card-back';
+    back.style.backgroundImage = "url('" + cfg.packageImage + "')";
+    mainCard.appendChild(back);
+    setAnim(back, ['flipBack', R.card[1], 'linear'], S);
+  }
 
   // Animations
-  packageContainer.style.animation = 'none';
-  void packageContainer.offsetWidth;
-  packageContainer.style.animation = 'fadeScaleIn 4.5s ease';
-
-  tearBorder1.style.animation = 'none';
-  void tearBorder1.offsetWidth;
-  tearBorder1.style.animation = 'tearBorderIn 4.5s';
-
-  cardBox.style.animation = 'none';
-  void cardBox.offsetWidth;
-  cardBox.style.animation = 'cardBoxIn 7.5s ease forwards';
+  if (R.pack) { setAnim(packageContainer, R.pack, S); setAnim(tearBorder1, R.tear, S); }
+  setAnim(cardBox, R.card, S);
+  mainCard.style.animation = mainCardAnimation(P, variant, S, R.reveal, false);
 
   // Card reveal sound + radial burst
   setTimeout(() => {
     playAudio(card.soundUrl || `assets/sounds/${card.number}.mp3`, vol);
-    radialContainer.style.opacity   = '1';
-    radialContainer.style.animation = 'spinRadial 4s linear infinite';
-  }, 2800);
+    if (pv(P, 'reveal.showBurst', true)) {
+      radialContainer.style.opacity   = String(pv(P, 'reveal.burstOpacity', 0.85));
+      radialContainer.style.animation = 'spinRadial 4s linear infinite';
+    }
+  }, at(R.reveal));
 
-  // "new" label
-  if (variant !== 'regular') cardLabel.textContent = variant === 'shiny' ? '✨ ' + VARIANT_LABELS[variant] : VARIANT_LABELS[variant];
+  // Label
   setTimeout(() => {
     cardLabel.style.opacity    = '1';
     cardLabel.style.visibility = 'visible';
-  }, 3200);
+  }, at(R.label));
 
   // User text
   setTimeout(() => {
     cardInfo.style.opacity   = '1';
     cardInfo.style.transform = 'scale(1)';
-    userText.textContent     = (username || 'Someone') + ' got:';
-  }, 3000);
-
-  // Card image
-  // The holo layer is masked to this art's silhouette using its static thumbnail (same shape, tiny, never animated).
-  const isFullArt = (variant === 'full' || variant === 'shiny') && card.fullArt;
-  const artThumb = isFullArt ? card.fullArtThumb : card.thumb;
-  mainCard.style.setProperty('--card-mask', artThumb && artThumb !== art ? `url('${artThumb}')` : 'none');
-
-  if (art) {
-    mainCard.style.backgroundImage    = `url('${art}')`;
-    mainCard.style.backgroundSize     = 'cover';
-    mainCard.style.backgroundPosition = 'center';
-    mainCard.style.backgroundRepeat   = 'no-repeat';
-    mainCard.style.backgroundColor    = 'transparent';
-  } else {
-    mainCard.style.backgroundImage = 'none';
-    mainCard.style.backgroundColor = 'white';
-  }
-
-  const num1 = mainCard.querySelector('.card-number-1 > span:first-child');
-  const num2 = mainCard.querySelector('.card-number-2 > span:first-child');
-  if (num1) num1.textContent = card.number;
-  if (num2) num2.textContent = card.number;
-
-  const nameEl  = cardInfoOverlay.querySelector('.card-name');
-  const starsEl = cardInfoOverlay.querySelector('.card-stars');
-  if (nameEl)  nameEl.textContent = card.name;
-  if (starsEl) starsEl.innerHTML  = STAR_SVG.repeat(card.stars);
+    userText.textContent     = gotText(P, username);
+  }, at(R.info));
 
   if (holoOverlay) {
-    // Reverse Holo and Shiny are the holo effect on top of their base art, whatever the card's star rating.
-    if (card.stars >= cfg.holoMinStars || variant === 'reverse' || variant === 'shiny') {
+    if (holoOn(P, variant, card, cfg)) {
       holoOverlay.classList.remove('holographic-animate');
       void holoOverlay.offsetWidth;
       holoOverlay.classList.add('holographic-animate');
@@ -608,7 +775,8 @@ function drawCard(username, opts) {
     }
   }
 
-  buildMiniList(miniList, revealedCardsByUser[user], card.number, cfg);
+  buildMiniList(miniList, revealedCardsByUser[user], card.number, cfg, listOpts(P, true));
+  if (listOpts(P, true).perRow > 0) wrapper.style.maxWidth = 'none';
 
   const entry = encodeEntry(card.number, variant);
   // Dry runs (test panel) show the draw but leave the collection, activity log and webhooks alone.
@@ -618,7 +786,7 @@ function drawCard(username, opts) {
   }
 
   // Hide + cleanup
-  const showDuration = cfg.cardTime * 1000 + 4000;
+  const showDuration = at(R.label) + 800 + cfg.cardTime * 1000;
   setTimeout(() => {
     radialContainer.style.opacity   = '0';
     radialContainer.style.animation = 'none';
@@ -639,6 +807,7 @@ function showCollection(username, opts) {
   const user = (username || 'someone').toLowerCase().trim();
   if (!Array.isArray(revealedCardsByUser[user])) revealedCardsByUser[user] = [];
 
+  const P = effectiveProps(null);
   const cfg = packConfig(PACKS[0]?.pack);
   const theater = createTheater(cfg);
   const { wrapper, packageContainer, cardBox, radialContainer,
@@ -648,14 +817,15 @@ function showCollection(username, opts) {
   cardBox.style.display          = 'none';
   radialContainer.style.display  = 'none';
 
-  // Fade in: commit the transparent start state, then release it so the opacity transition runs.
-  wrapper.classList.add('fade-in', 'fade-in-start', 'is-collection');
+  // Fade in: commit the transparent start state, then release it so the transition runs.
+  wrapper.classList.add('fade-in', 'fade-in-start', 'is-collection', 'appear-' + pv(P, 'collection.appear', 'fade'));
   wrapper.style.visibility = 'visible';
   void wrapper.offsetWidth;
   wrapper.classList.remove('fade-in-start');
   cardInfo.style.opacity   = '1';
   cardInfo.style.transform = 'scale(1)';
-  userText.textContent     = (username || 'Someone') + "'s collection:";
+  userText.textContent     = headingText(P, username);
+  if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
 
   if (!PREVIEW && !opts.dry) fetch('/api/webhooks/notify', {
     method: 'POST',
@@ -663,7 +833,9 @@ function showCollection(username, opts) {
     body: JSON.stringify({ event: 'collectionShown', username: user }),
   }).catch(() => {});
 
-  buildMiniList(miniList, revealedCardsByUser[user], null, cfg);
+  const listOptions = listOpts(P, false);
+  if (listOptions.perRow > 0) wrapper.style.maxWidth = 'none';
+  buildMiniList(miniList, revealedCardsByUser[user], null, cfg, listOptions);
 
   if (collectionTimeout) clearTimeout(collectionTimeout);
   collectionTimeout = setTimeout(() => {
@@ -674,7 +846,7 @@ function showCollection(username, opts) {
       activeDraws--;
       processCardQueue();
     }, 500);
-  }, 4000);
+  }, pv(P, 'collection.hold', 4) * 1000);
 }
 
 // ═══════════════════════════════════════════════════════

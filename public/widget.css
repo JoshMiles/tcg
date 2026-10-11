@@ -26,7 +26,7 @@
   z-index: 990;
   opacity: 0;
   transition: opacity 0.3s ease;
-  mix-blend-mode: overlay;
+  mix-blend-mode: var(--holo-blend, overlay);
 }
 .holographic-overlay::before {
   content: "";
@@ -35,7 +35,8 @@
   left: 0;
   width: 1500%;
   height: 100%;
-  background: linear-gradient(
+  opacity: var(--holo-opacity, 0.9);
+  background-image: var(--holo-gradient, linear-gradient(
     120deg,
     rgba(255,255,255,0),   rgba(255,254,227,.9),
     rgba(255,255,255,0),   rgba(255,224,120,.9),
@@ -46,7 +47,7 @@
     rgba(255,255,255,0),   rgba(255,224,120,.9),
     rgba(255,255,255,0),   rgba(255,254,227,.9),
     rgba(255,255,255,0)
-  );
+  ));
   background-size: 33.3333% 500%;
   background-position: 0 100%; /* the card sees the bottom fifth of the tall gradient, as before */
 }
@@ -54,8 +55,13 @@
   opacity: 1 !important;
 }
 .holographic-animate::before {
-  animation: rainbowShimmer 10.5s forwards;
+  animation: var(--holo-name, rainbowShimmer) var(--holo-time, 10.5s) var(--holo-timing, ease) 0s var(--holo-iter, 1) normal forwards;
   will-change: transform; /* only while shimmering, so collection views don't allocate the layer */
+}
+/* Looping version: slides exactly one gradient tile (a third of the layer) so the end joins the start. */
+@keyframes rainbowLoop {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-33.3333%, 0, 0); }
 }
 @keyframes rainbowShimmer {
   0%   { transform: translate3d(0, 0, 0); }
@@ -185,7 +191,9 @@
 .card-wrapper.pack-fit { transform: translateY(108px); }
 /* Collections start transparent and fade in via the wrapper's opacity transition. */
 .card-wrapper.fade-in-start { opacity: 0; }
-.card-wrapper.fade-in { transition-duration: 0.8s; }
+.card-wrapper.fade-in { transition: opacity 0.8s ease, transform 0.8s cubic-bezier(.2,.9,.3,1); }
+.card-wrapper.appear-zoom.fade-in-start  { transform: scale(0.7); }
+.card-wrapper.appear-slide.fade-in-start { transform: translateY(70px); }
 
 .card-placeholder {
   position: relative;
@@ -212,7 +220,7 @@
   font-weight: 700;
   font-size: 14px;
   color: #fffefe;
-  background: rgb(241,187,6);
+  background: var(--label-bg, rgb(241,187,6));
   padding: 3.6px 16px;
   margin-right: 4px;
   border-radius: 30px;
@@ -370,8 +378,8 @@
 .mini-card {
   width: 48px;
   height: 70px;
-  background-color: rgb(241,187,6);
-  border: 3px solid rgb(241,187,6);
+  background-color: var(--mini-placeholder, rgb(241,187,6));
+  border: 3px solid var(--mini-placeholder, rgb(241,187,6));
   border-radius: 2px;
   box-shadow: 0 2px 4px rgba(0,0,0,.5);
   background-size: cover;
@@ -412,7 +420,7 @@
   position: absolute;
   top: -50%; left: 33%;
   width: 95px; height: 300px;
-  background: linear-gradient(to top, rgba(255,240,140,0.85), rgba(255,240,140,0));
+  background: linear-gradient(to top, var(--burst-a, rgba(255,240,140,1)), var(--burst-b, rgba(255,240,140,0)));
   clip-path: polygon(0% 0%, 100% 0%, 80% 100%, 20% 100%);
   transform-origin: center bottom;
   transform: rotate(calc(45deg * var(--i))) translateY(-50px);
@@ -496,29 +504,108 @@
 /* hide the panel when not in dev mode */
 #dev-panel.hidden { display: none; }
 
-/* ── Variant reveals (upgrade system) ── */
-/* Reverse Holo reuses the holographic shimmer on the base art, plus a violet label. */
-.variant-reverse .card-label { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+/* ── Variant effects (upgrade system) ── */
+/* Every version's look is a set of properties (Settings -> Overlay Properties); widget.js writes them as the variables
+   below on each theater and composes the .main-card animation list from the keyframes here. */
+.burst-cycle .fade-square { animation: burstHue 2.5s linear infinite; }
 
-/* Full Art: a pop on reveal, then a steady cool glow, and a blue light burst. */
-.variant-full .main-card {
-  animation: variantPop 0.7s cubic-bezier(.2,1.6,.4,1) 2.8s both, variantGlowBlue 1.6s ease-in-out 3.5s infinite alternate;
+@keyframes variantPop {
+  0%   { transform: scale(1) rotate(0deg); }
+  45%  { transform: scale(var(--pop-scale, 1.12)) rotate(var(--pop-tilt, 0deg)); }
+  100% { transform: scale(1) rotate(0deg); }
 }
-.variant-full .card-label { background: linear-gradient(90deg, #0ea5e9, #6366f1); }
-.variant-full .fade-square { background: linear-gradient(to top, rgba(120,200,255,0.9), rgba(120,200,255,0)); }
-
-/* Shiny Full Art: bigger pop, pulsing gold glow, a colour-cycling burst, and the holo shimmer. */
-.variant-shiny .main-card {
-  animation: variantPopBig 0.9s cubic-bezier(.2,1.8,.4,1) 2.8s both, variantGlowGold 1.1s ease-in-out 3.7s infinite alternate, variantRock 3.6s ease-in-out 3.7s infinite;
+@keyframes variantGlow {
+  from { box-shadow: 0 0 var(--glow-blur-lo, 16px) var(--glow-spread-lo, 2px) var(--glow-lo, rgba(255,255,255,.6)); }
+  to   { box-shadow: 0 0 var(--glow-blur, 40px) var(--glow-spread, 8px) var(--glow-hi, rgba(255,255,255,.95)); }
 }
-.variant-shiny .card-label { background: linear-gradient(90deg, #f59e0b, #ef4444, #a855f7); }
-.variant-shiny .fade-square { animation: burstHue 2.5s linear infinite; }
-
-@keyframes variantPop    { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
-@keyframes variantPopBig { 0% { transform: scale(1) rotate(0); } 40% { transform: scale(1.22) rotate(-2deg); } 100% { transform: scale(1) rotate(0); } }
-@keyframes variantGlowBlue { from { box-shadow: 0 0 18px 2px rgba(96,190,255,.55); } to { box-shadow: 0 0 46px 12px rgba(96,190,255,.95); } }
-@keyframes variantGlowGold { from { box-shadow: 0 0 24px 4px rgba(255,200,40,.6); } to { box-shadow: 0 0 70px 20px rgba(255,120,200,.95); } }
 @keyframes burstHue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+/* Gentle left-to-right rock. Uses `rotate`, so it layers on the pop-in's transform. */
+@keyframes variantRock {
+  0%, 100% { rotate: 0deg; }
+  25%      { rotate: var(--rock-amt, 2deg); }
+  75%      { rotate: calc(var(--rock-amt, 2deg) * -1); }
+}
+
+/* ── Reveal styles (Settings -> Overlay Properties -> Pack opening -> Reveal animation) ── */
+/* "Classic" is fadeScaleIn / tearBorderIn / cardBoxIn above. The others: */
+@keyframes revealZoom {
+  0%   { opacity: 0; transform: scale(.3); }
+  60%  { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes revealSlide {
+  0%   { opacity: 0; transform: translateY(320px); }
+  25%  { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0); }
+}
+/* Flip: the card shows its back (the pack's cover, .card-back), turns edge-on, and comes round face up. */
+@keyframes revealFlip {
+  0%   { opacity: 0; transform: perspective(900px) scale(.6) rotateY(0deg); }
+  15%  { opacity: 1; transform: perspective(900px) scale(1) rotateY(0deg); }
+  35%  { opacity: 1; transform: perspective(900px) scale(1) rotateY(0deg); }
+  55%  { opacity: 1; transform: perspective(900px) scale(1.04) rotateY(90deg); }
+  55.1% { opacity: 1; transform: perspective(900px) scale(1.04) rotateY(-90deg); }
+  80%  { opacity: 1; transform: perspective(900px) scale(1) rotateY(0deg); }
+  100% { opacity: 1; transform: perspective(900px) scale(1) rotateY(0deg); }
+}
+@keyframes flipBack { 0%, 55% { opacity: 1; } 55.1%, 100% { opacity: 0; } }
+.card-back {
+  position: absolute; inset: 0; z-index: 999;
+  background-size: cover; background-position: center; background-color: #222;
+  -webkit-mask-image: var(--card-mask, none); mask-image: var(--card-mask, none);
+  -webkit-mask-size: cover; mask-size: cover; border-radius: 12px;
+  box-shadow: inset 0 0 0 4px rgba(255,255,255,.35);
+}
+/* Rip - shake: the pack trembles harder and harder, the tear strip flies off and the card bursts out. */
+@keyframes ripShakePack {
+  0%   { opacity: 0; transform: scale(.3) rotate(-12deg); }
+  8%   { opacity: 1; transform: scale(1) rotate(-12deg); }
+  16%  { opacity: 1; transform: scale(1) rotate(-14deg) translateX(-3px); }
+  22%  { opacity: 1; transform: scale(1) rotate(-10deg) translateX(3px); }
+  28%  { opacity: 1; transform: scale(1) rotate(-15deg) translateX(-6px); }
+  34%  { opacity: 1; transform: scale(1) rotate(-9deg)  translateX(6px); }
+  40%  { opacity: 1; transform: scale(1.02) rotate(-16deg) translateX(-9px); }
+  46%  { opacity: 1; transform: scale(1.03) rotate(-8deg)  translateX(9px); }
+  52%  { opacity: 1; transform: scale(1.06) rotate(-17deg) translateX(-12px); }
+  57%  { opacity: 1; transform: scale(1.1)  rotate(-12deg); }
+  66%  { opacity: 0; transform: scale(1.5)  rotate(-14deg) translateY(40px); }
+  100% { opacity: 0; transform: scale(1.5)  rotate(-14deg) translateY(40px); }
+}
+@keyframes ripTearFly {
+  0%, 52% { opacity: 1; transform: scale(.45) rotate(0deg) translate(0, 0); }
+  66%     { opacity: .6; transform: scale(.45) rotate(-45deg) translate(-300px, -260px); }
+  100%    { opacity: 0;  transform: scale(.45) rotate(-70deg) translate(-460px, -420px); }
+}
+@keyframes ripCardBurst {
+  0%, 50% { opacity: 0; transform: scale(.4) rotate(-12deg) translateY(40px); }
+  58%     { opacity: 1; transform: scale(1.25) rotate(-6deg) translateY(-70px); }
+  72%     { opacity: 1; transform: scale(.96) rotate(1deg) translateY(0); }
+  82%     { opacity: 1; transform: scale(1.02) rotate(0deg); }
+  100%    { opacity: 1; transform: scale(1) rotate(0deg) translateY(0); }
+}
+/* Rip - peel: the tear strip lifts and peels back from its left end like a wrapper, then the card rises. */
+@keyframes ripPeelPack {
+  0%   { opacity: 0; transform: scale(.5) rotate(-8deg); }
+  10%  { opacity: 1; transform: scale(1) rotate(-8deg) translateY(0); }
+  60%  { opacity: 1; transform: scale(1) rotate(-8deg) translateY(0); }
+  78%  { opacity: 1; transform: scale(1) rotate(-8deg) translateY(230px); }
+  92%  { opacity: 0; transform: scale(.6) rotate(-8deg) translateY(520px); }
+  100% { opacity: 0; transform: scale(.6) rotate(-8deg) translateY(520px); }
+}
+@keyframes ripPeelTear {
+  0%, 22% { opacity: 1; transform: scale(.45) rotate(0deg); }
+  38%     { opacity: 1; transform: scale(.45) rotate(-18deg) translateY(-14px); }
+  54%     { opacity: 1; transform: scale(.45) rotate(-62deg) translate(-30px, -60px); }
+  68%     { opacity: 0; transform: scale(.4) rotate(-100deg) translate(-120px, -90px); }
+  100%    { opacity: 0; transform: scale(.4) rotate(-100deg) translate(-120px, -90px); }
+}
+@keyframes ripPeelCard {
+  0%, 50% { opacity: 0; transform: scale(.8) rotate(-8deg) translateY(60px); }
+  54%     { opacity: 1; transform: scale(.8) rotate(-8deg) translateY(60px); }
+  70%     { opacity: 1; transform: scale(.92) rotate(-6deg) translateY(-175px) translateX(-20px); }
+  78%     { opacity: 1; transform: scale(1) rotate(0deg) translateY(0); }
+  100%    { opacity: 1; transform: scale(1) rotate(0deg) translateY(0); }
+}
 
 /* ── Test panel: extra controls ── */
 #dev-panel .dev-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
