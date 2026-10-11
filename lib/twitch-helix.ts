@@ -1,6 +1,11 @@
 // Twitch Helix API access via the app (client_credentials) token.
 // Distinct from TWITCH_EXTENSION_SECRET, which only verifies Extension JWTs.
 
+// Outside production the Twitch URLs can point at scripts/mock-twitch.cjs so this can be tested without real credentials.
+const dev = process.env.NODE_ENV !== 'production';
+export const TWITCH_ID_URL = (dev && process.env.TWITCH_ID_URL) || 'https://id.twitch.tv';
+export const TWITCH_API_URL = (dev && process.env.TWITCH_API_URL) || 'https://api.twitch.tv';
+
 let cachedToken: { access_token: string; expires_at: number } | null = null;
 
 export function twitchCredentials(): { clientId: string; clientSecret: string } | null {
@@ -9,10 +14,10 @@ export function twitchCredentials(): { clientId: string; clientSecret: string } 
   return clientId && clientSecret ? { clientId, clientSecret } : null;
 }
 
-async function getAppAccessToken(clientId: string, clientSecret: string): Promise<string> {
+export async function getAppAccessToken(clientId: string, clientSecret: string): Promise<string> {
   // Module-scoped cache — survives across requests in the same serverless instance
   if (cachedToken && Date.now() < cachedToken.expires_at) return cachedToken.access_token;
-  const res = await fetch('https://id.twitch.tv/oauth2/token', {
+  const res = await fetch(`${TWITCH_ID_URL}/oauth2/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -39,7 +44,7 @@ export async function resolveTwitchLogin(numericUserId: string): Promise<string 
   const creds = twitchCredentials();
   if (!creds) throw new Error('Twitch credentials not configured');
   const token = await getAppAccessToken(creds.clientId, creds.clientSecret);
-  const res = await fetch(`https://api.twitch.tv/helix/users?id=${encodeURIComponent(numericUserId)}`, {
+  const res = await fetch(`${TWITCH_API_URL}/helix/users?id=${encodeURIComponent(numericUserId)}`, {
     headers: { 'Client-ID': creds.clientId, Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error(`Helix error: ${res.status}`);
@@ -59,7 +64,7 @@ export async function fetchTwitchAvatars(logins: string[]): Promise<Record<strin
   const out: Record<string, string> = {};
   for (let i = 0; i < logins.length; i += 100) {
     const query = logins.slice(i, i + 100).map(l => `login=${encodeURIComponent(l)}`).join('&');
-    const res = await fetch(`https://api.twitch.tv/helix/users?${query}`, {
+    const res = await fetch(`${TWITCH_API_URL}/helix/users?${query}`, {
       headers: { 'Client-ID': creds.clientId, Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error(`Helix error: ${res.status}`);

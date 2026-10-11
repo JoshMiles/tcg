@@ -6,6 +6,7 @@ import { VARIANT_LABELS } from '@/lib/variants';
 import { cardThumbUrl } from '@/lib/card-art';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
+import { LiveBanner } from '@/app/components/site/Live';
 import { Avatar } from '@/app/components/Avatar';
 
 export const dynamic = 'force-dynamic';
@@ -40,6 +41,7 @@ export default async function HomePage() {
       <section className="cheese-hero cheese-holes border-b border-yellow-500/10">
         <div className="max-w-6xl mx-auto px-4 py-14 sm:py-20 grid md:grid-cols-[1.4fr_1fr] gap-10 items-center relative">
           <div className="space-y-6">
+            <LiveBanner />
             {season && (
               <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-yellow-300 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> {season.name}{season.active ? ' · live now' : ''}
