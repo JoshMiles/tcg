@@ -10,6 +10,7 @@ import { countPulls } from '@/lib/collection';
 import { VARIANTS, allowedVariants, countVariants, effectiveWeights, emptyCounts, upgradeStep } from '@/lib/variants';
 import { getSeasonLeaderboard } from '@/lib/leaderboard';
 import { getSession } from '@/lib/session';
+import { sweepTrades } from '@/lib/trades';
 import { CollectionGrid, type GridCard } from './CollectionGrid';
 import { Avatar } from '@/app/components/Avatar';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
@@ -25,6 +26,7 @@ export default async function CollectionPage({
   const lower = username.toLowerCase();
   // Viewing your own collection while logged in unlocks upgrades in the card details.
   const session = await getSession();
+  await sweepTrades(); // hand back copies from offers that have run out of time
   const isOwner = session?.username === lower;
 
   const [result, profile] = await Promise.all([
@@ -146,6 +148,14 @@ export default async function CollectionPage({
             >
               🏆 {myRow ? `#${myRank + 1} · ${myRow.score.toLocaleString()} pts · ` : ''}Full leaderboard →
             </a>
+            {session && !isOwner && (
+              <a
+                href={`/trade/new?to=${encodeURIComponent(lower)}`}
+                className="mt-2 ml-2 inline-flex items-center gap-1.5 text-xs font-bold text-purple-300 bg-purple-500/10 border border-purple-400/40 hover:bg-purple-500/20 rounded-full px-3 py-1 transition-colors"
+              >
+                🔁 Trade with {displayName}
+              </a>
+            )}
           </div>
         </div>
 

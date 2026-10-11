@@ -50,7 +50,8 @@ export function categoryOf(e: ActivityEvent): DiscordCategory {
     case 'pull': return 'pulls';
     case 'grant':
     case 'remove':
-    case 'upgrade': return 'cards';
+    case 'upgrade':
+    case 'trade': return 'cards';
     case 'trigger':
     case 'collection_shown': return 'stream';
     default: return 'resets'; // reset, delete
@@ -155,6 +156,9 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
       return payload({ ...base, ...thumb(card?.imageUrl), color: GOLD, title: '✨ Card upgraded',
         description: `**${esc(e.username)}** upgraded **${esc(e.cardName || card?.name || `#${e.cardNumber}`)}** to **${VARIANT_LABELS[e.to]}** (${e.cost}× ${VARIANT_LABELS[e.from]})` });
     }
+    case 'trade':
+      return payload({ ...base, color: GREEN, title: '🔁 Trade completed',
+        description: `**${esc(e.username)}** traded ${e.gave} card${e.gave === 1 ? '' : 's'} with **${esc(e.partner)}** for ${e.got}` });
     case 'reset':
       return payload({ ...base, color: RED, title: '🔄 Collection reset',
         description: e.scope === 'everyone' ? '**All collections** were reset' : `**${esc(e.username)}**'s collection was reset${e.scope === 'all' ? ' across all seasons' : ''}` });

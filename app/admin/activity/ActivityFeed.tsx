@@ -18,7 +18,7 @@ const MAX_EVENTS = 300;
 const FILTERS: { id: Filter; label: string; match: (e: ActivityEvent) => boolean }[] = [
   { id: 'all', label: 'All', match: () => true },
   { id: 'pulls', label: 'Pulls', match: e => e.type === 'pull' },
-  { id: 'cards', label: 'Grants & removals', match: e => e.type === 'grant' || e.type === 'remove' || e.type === 'upgrade' },
+  { id: 'cards', label: 'Grants & removals', match: e => e.type === 'grant' || e.type === 'remove' || e.type === 'upgrade' || e.type === 'trade' },
   { id: 'stream', label: 'Stream', match: e => e.type === 'trigger' || e.type === 'collection_shown' },
   { id: 'resets', label: 'Resets', match: e => e.type === 'reset' || e.type === 'delete' },
 ];
@@ -300,6 +300,16 @@ function EventRow({
       sub = `${e.cost}× ${VARIANT_LABELS[e.from]} spent`;
       break;
     }
+    case 'trade':
+      icon = '🔁';
+      accent = 'border-l-emerald-400';
+      body = (
+        <>
+          <UserLink username={e.username} /> traded with <UserLink username={e.partner} />
+        </>
+      );
+      sub = `${e.gave} card${e.gave === 1 ? '' : 's'} for ${e.got}`;
+      break;
     case 'reset':
       icon = '🔄';
       accent = 'border-l-red-400';
