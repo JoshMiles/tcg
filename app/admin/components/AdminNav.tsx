@@ -8,6 +8,7 @@ const nav = [
   { href: '/admin/seasons', label: 'Seasons', icon: '🏆' },
   { href: '/admin/packs', label: 'Packs', icon: '🎴' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
+  { href: '/admin/trades', label: 'Trades', icon: '🔁' },
   { href: '/admin/assets', label: 'Assets', icon: '🖼️' },
   { href: '/admin/overlay', label: 'Overlay Editor', icon: '🎨' },
   { href: '/admin/sandbox', label: 'Sandbox', icon: '🧪' },

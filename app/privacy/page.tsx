@@ -54,8 +54,11 @@ export default function PrivacyPage() {
             the resulting <strong className="text-white">leaderboard score</strong>, which is calculated from your collection.
           </li>
           <li>
-            <strong className="text-white">An activity log</strong> of recent game events (pulls, grants, upgrades, resets), each with your username and a
+            <strong className="text-white">An activity log</strong> of recent game events (pulls, grants, upgrades, trades, resets), each with your username and a
             timestamp. Only the most recent 500 events are kept.
+          </li>
+          <li>
+            <strong className="text-white">Trade offers</strong> you make or receive (who, which cards, any note you write, and when), kept in a log of the latest 400 finished trades. Open offers on the Trade page, including the board, are visible to logged-in viewers.
           </li>
           <li>
             <strong className="text-white">A profile record</strong> (username, display name, Twitch user ID, creation time, and an optional note the channel

@@ -256,7 +256,16 @@ export async function saveCollection(collectionName: string, data: Record<string
  * invocations overwrite each other's changes.
  */
 export async function withCollectionLock<T>(collectionName: string, fn: () => Promise<T>): Promise<T> {
-  const key = `lock:tcg_${collectionName}`;
+  return withLock(`tcg_${collectionName}`, fn);
+}
+
+/**
+ * A short named lock (Redis SET NX EX), for any read-modify-write that must not interleave across serverless invocations.
+ * Locks are never held across anything slow. If one code path takes two locks it must always take them in the same order
+ * (trading takes 'trades' first, then a collection's lock; nothing takes them the other way round).
+ */
+export async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  const key = `lock:${name}`;
   const token = crypto.randomUUID();
   for (let attempt = 0; attempt < 30; attempt++) {
     const got = await kv.set(key, token, { nx: true, ex: 10 });
@@ -269,7 +278,7 @@ export async function withCollectionLock<T>(collectionName: string, fn: () => Pr
     }
     await new Promise(r => setTimeout(r, 80 + Math.random() * 120));
   }
-  throw new Error('Collection is busy, try again');
+  throw new Error('That is busy, try again');
 }
 
 /** Appends one entry (card + variant, see lib/variants.ts) to a user's collection. Returns their new array. */

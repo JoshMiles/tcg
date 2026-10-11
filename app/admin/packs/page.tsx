@@ -1,3 +1,4 @@
+import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
 import { listAllPacks, getPackCards, listSeasons } from '@/lib/kv';
 import { getPackOverrides } from '@/lib/overlay-settings';
@@ -126,13 +127,13 @@ export default async function PacksPage() {
                         ) : (
                           // The chip is the switch: click to turn the pack on or off.
                           <form action={setPackActive.bind(null, pack.id, !pack.active)}>
-                            <button
+                            <PendingButton
                               type="submit"
                               title={pack.active ? 'Active: click to deactivate' : 'Inactive: click to activate'}
                               className="rounded-full hover:brightness-125 transition"
                             >
                               <StatusChip active={pack.active} />
-                            </button>
+                            </PendingButton>
                           </form>
                         )}
                       </div>

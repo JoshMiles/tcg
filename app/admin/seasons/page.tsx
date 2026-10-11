@@ -1,3 +1,4 @@
+import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
 import { listSeasons, getPacksForSeason } from '@/lib/kv';
 import { deleteSeasonAction, activateSeason } from '../actions';
@@ -81,12 +82,12 @@ export default async function SeasonsPage() {
                     <div className="flex items-center gap-2">
                       {!s.active && !isDraft && (
                         <form action={activate}>
-                          <button
+                          <PendingButton
                             type="submit"
                             className="px-3 py-2 text-xs font-bold bg-green-500/10 border border-green-400/30 hover:bg-green-500/20 text-green-300 rounded-xl transition-colors"
                           >
                             Activate
-                          </button>
+                          </PendingButton>
                         </form>
                       )}
                       <Link

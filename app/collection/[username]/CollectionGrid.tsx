@@ -6,6 +6,8 @@ import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import { UpgradeButton } from '@/app/components/UpgradeButton';
+import { CardMathsPanel } from '@/app/components/CardMathsPanel';
+import type { CardMaths } from '@/lib/card-maths';
 import type { UpgradeCosts, Variant } from '@/lib/types';
 
 /** Everything the grid and the card detail need, precomputed on the server. */
@@ -38,6 +40,8 @@ export interface GridCard {
   steps: Record<Variant, { to: Variant; cost: number } | null>;
   /** The holographic shimmer per variant, from the Overlay Editor's settings for this card's pack. */
   holo: HoloSpecs;
+  /** The working behind this card's points, for the Advanced information panel. */
+  maths?: CardMaths;
 }
 
 const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: '✨' };
@@ -47,7 +51,7 @@ const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0)
 const artFor = (c: GridCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
 
-export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false }: { cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean }) {
+export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName }: { cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
   // the server renders the default so there's no flash of ? tiles).
@@ -168,6 +172,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           totalScore={totalScore}
           leaderboardHref={leaderboardHref}
           canUpgrade={canUpgrade}
+          ownerName={canUpgrade ? undefined : ownerName}
           canStep={ownedIdx.length > 1}
           onClose={close}
           onStep={step}
@@ -180,9 +185,9 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
 // ── Detail dialog ─────────────────────────────────────────
 
 function CardDetail({
-  card, totalScore, leaderboardHref, canUpgrade, canStep, onClose, onStep,
+  card, totalScore, leaderboardHref, canUpgrade, ownerName, canStep, onClose, onStep,
 }: {
-  card: GridCard; totalScore: number; leaderboardHref: string; canUpgrade: boolean; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
+  card: GridCard; totalScore: number; leaderboardHref: string; canUpgrade: boolean; ownerName?: string; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
 }) {
   const rarity = getRarity(card.stars);
   const [preview, setPreview] = useState<Variant | null>(null);
@@ -261,9 +266,9 @@ function CardDetail({
             {/* Value summary */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3">
-                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Your copies are worth</p>
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{ownerName ? `${ownerName}’s copies are worth` : 'Your copies are worth'}</p>
                 <p className="font-display text-3xl font-bold text-yellow-400 tabular-nums">{cardTotal.toLocaleString()}<span className="text-sm text-gray-500 ml-1">pts</span></p>
-                {share > 0 && <p className="text-xs text-gray-500">{share}% of your card points</p>}
+                {share > 0 && <p className="text-xs text-gray-500">{share}% of {ownerName ? `${ownerName}’s` : 'your'} card points</p>}
               </div>
               <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3">
                 <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Pull chance</p>
@@ -282,7 +287,7 @@ function CardDetail({
                 <thead>
                   <tr className="text-[11px] uppercase tracking-wider text-gray-500 text-left bg-gray-950/50">
                     <th className="py-2 px-3 font-bold">Version</th>
-                    <th className="py-2 px-2 font-bold text-right">You own</th>
+                    <th className="py-2 px-2 font-bold text-right">{ownerName ? 'Owned' : 'You own'}</th>
                     {card.upgradable && <th className="py-2 px-2 font-bold text-right hidden sm:table-cell">Pull odds</th>}
                     <th className="py-2 px-2 font-bold text-right hidden sm:table-cell">Out there</th>
                     <th className="py-2 px-3 font-bold text-right">Each is worth</th>
@@ -316,6 +321,8 @@ function CardDetail({
                 </tbody>
               </table>
             </div>
+
+            {card.maths && <CardMathsPanel maths={card.maths} variants={rows} shown={shown} />}
 
             <p className="text-xs text-gray-500">
               {canUpgrade && card.upgradable ? 'Upgrades are permanent: the copies you spend are destroyed. That makes that version scarcer, which can raise what your remaining copies of it are worth. ' : ''}Values change as cards are pulled and upgraded this season.{' '}

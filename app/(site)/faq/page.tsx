@@ -9,6 +9,7 @@ import { RARITIES } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
+import { getTradeSettings } from '@/lib/trades';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ const SECTIONS = [
   { id: 'start', label: 'Getting started' },
   { id: 'cards', label: 'Cards & versions' },
   { id: 'upgrades', label: 'Upgrading' },
+  { id: 'trading', label: 'Trading' },
   { id: 'points', label: 'Points & leaderboard' },
   { id: 'seasons', label: 'Seasons' },
   { id: 'extension', label: 'Twitch extension' },
@@ -32,6 +34,7 @@ const SECTIONS = [
 export default async function FaqPage() {
   const { season } = await getActive();
   const overview = season ? await getSeasonOverview(season) : null;
+  const trade = await getTradeSettings();
 
   // Live numbers from the current season where we have them; sensible defaults otherwise.
   const upgradePack = overview?.cards.find(c => c.pack.upgradesEnabled)?.pack ?? null;
@@ -174,7 +177,47 @@ export default async function FaqPage() {
           </Q>
         )}
         <Q q="Can I trade cards with other people?">
-          Not yet. Trading is planned for the future, and this page will explain it when it arrives.
+          Yes — see <a href="#trading" className="text-yellow-400 hover:text-yellow-300">Trading</a>. You can also trade duplicates for the version you&rsquo;re missing instead of upgrading them.
+        </Q>
+      </Section>
+
+      {/* ── Trading ── */}
+      <Section id="trading" title="Trading" icon="🔁">
+        <Q q="How does trading work?" open>
+          <p>
+            Open the <Link href="/trade" className="text-yellow-400 hover:text-yellow-300">Trade</Link> page (you need to be logged in with Twitch) and make an offer: pick the cards you give and the cards you want back. Any copy of any version can be traded.
+            There are two kinds of offer:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
+            <li><strong className="text-white">To one person</strong> — only they can accept, decline or counter it. You can start one from the &ldquo;Trade with…&rdquo; button on their collection page.</li>
+            <li><strong className="text-white">On the open board</strong> — a listing anyone can take, as long as they own what you ask for.</li>
+          </ul>
+          <p className="mt-2">When someone accepts, the swap happens instantly and both collections update. There are no fees and no randomness.</p>
+        </Q>
+        <Q q="What is escrow? Where do my cards go while an offer is open?">
+          When you send an offer, the cards you&rsquo;re giving leave your collection and are <strong className="text-white">held safely in escrow</strong>. That guarantees you really have them, so nobody can accept an offer
+          you can&rsquo;t honour. They come straight back to you if the offer is declined, cancelled, countered or runs out of time, and go to the other person if it&rsquo;s accepted. While they are in escrow they don&rsquo;t count
+          towards your points (or towards how scarce a card is).
+        </Q>
+        <Q q="How long do offers last, and what are the limits?">
+          <p>
+            Offers last <strong className="text-white">{trade.expiryHours} hours</strong>. After that they end and your cards are returned (you may need to open the site once for the cards to reappear in your collection).
+            To keep things fair and tidy, you can have up to <strong className="text-white">{trade.maxOpenPerUser}</strong> open offers at once, wait about <strong className="text-white">{trade.cooldownSeconds} seconds</strong> between offers,
+            and each side of an offer can include up to <strong className="text-white">{trade.maxStacksPerSide}</strong> different card and version combinations. You can cancel an offer yourself whenever you like.
+          </p>
+        </Q>
+        <Q q="What is a counter-offer?">
+          If someone sends you an offer you almost like, press <em>Counter</em>. Their offer is closed and their cards go back to them; you pick a different swap, which is sent back to them to accept or counter in turn.
+        </Q>
+        <Q q="Is a trade fair? How do I know what a card is worth?">
+          Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule — you can
+          trade anything for anything. Remember that trading changes how scarce each version is, so values shift after a trade, and the person giving up a rare version may care about more than the points.
+        </Q>
+        <Q q="Trading seems to be switched off">
+          Trading can be paused by the streamer, for example while something is being fixed. While it&rsquo;s paused nothing new can be offered or accepted, but you can still cancel your own offers to get your cards back.
+        </Q>
+        <Q q="Can I trade in the Twitch extension?">
+          Not yet — trading is on the website for now. Your collection is the same in both places.
         </Q>
       </Section>
 
@@ -225,6 +268,22 @@ export default async function FaqPage() {
           <p className="mt-2">
             Duplicates and rarer versions don&rsquo;t count towards completeness — only having at least one copy of each card does. The bonuses move with the set value, so they stay in proportion as card values shift. You can see your own
             breakdown on <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>.
+          </p>
+        </Q>
+        <Q q="Can I see the exact maths for a card?">
+          <p>
+            Yes. Click any card on the <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">card dex</Link> or in a collection to open its details, then open{' '}
+            <strong className="text-white">🤓 Advanced information (for nerds)</strong>. It shows every step with the real numbers filled in, for each version: the pull chance, rarity, scarcity, the version multiplier
+            and the final rounding, plus the pull odds, how many packs you&rsquo;d expect to need, and what one more or one fewer copy would do to the value. In short:
+          </p>
+          <p className="font-mono text-[12px] text-gray-300 my-2 leading-relaxed">
+            points = max(1, round( {scoring.baseScore} × rarity × scarcity × version ))<br />
+            rarity = (1 ÷ (pull chance × cards in the season)) ^ {scoring.rarityExponent}<br />
+            scarcity = clamp( (average copies per card of that version + {scoring.scarcitySmoothing}) ÷ (copies of this card&rsquo;s version + {scoring.scarcitySmoothing}), {scoring.scarcityMin}, {scoring.scarcityMax} )<br />
+            version = max( Regular weight ÷ version weight, previous version × upgrade cost × {scoring.upgradeMargin} )
+          </p>
+          <p>
+            The {scoring.baseScore}, the limits and the margin are settings the streamer can change, so the numbers above are today&rsquo;s. Cards sitting in an open trade (escrow) aren&rsquo;t counted as copies in anyone&rsquo;s collection.
           </p>
         </Q>
         <Q q="Why did my points change?">

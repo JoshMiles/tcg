@@ -67,6 +67,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
         owners: (owners.get(c.number)?.top ?? []).map(o => ({ ...o, avatar: avatars[o.username] ? sizeTwitchAvatar(avatars[o.username], 70) : undefined })),
         owned: mine ? mine.has(c.number) : undefined,
         holo: holoFor(c.pack, c.stars),
+        maths: v?.maths,
       };
     })
     .filter(c => c.pullRate > 0);

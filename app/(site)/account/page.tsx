@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
+import { sweepTrades } from '@/lib/trades';
 import { getCollection } from '@/lib/kv';
 import { getActive, getSeasonOverview } from '@/lib/site-data';
 import { computeUserStats, VARIANT_LABELS } from '@/lib/user-stats';
@@ -20,6 +21,7 @@ export default async function AccountPage() {
   const session = await getSession();
   if (!session) redirect('/auth/twitch?returnTo=/account');
 
+  await sweepTrades(); // hand back copies from offers that have run out of time
   const { season } = await getActive();
   const avatar = (await getAvatars([session.username]))[session.username];
 

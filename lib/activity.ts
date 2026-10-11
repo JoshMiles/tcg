@@ -15,6 +15,8 @@ export type ActivityDetail =
   | { type: 'grant'; source: 'admin' | 'webhook'; cardNumber: number; variant?: Variant }
   | { type: 'remove'; cardNumber: number; variant?: Variant }
   | { type: 'upgrade'; cardNumber: number; cardName: string; from: Variant; to: Variant; cost: number }
+  // a completed trade: `username` is the viewer who made the offer, `partner` the one who accepted; the counts are copies each way
+  | { type: 'trade'; partner: string; gave: number; got: number }
   | { type: 'reset'; scope: 'season' | 'all' | 'everyone' }
   | { type: 'delete' }
   // something asked the overlay to draw / show a collection: an incoming webhook, or an admin quick action

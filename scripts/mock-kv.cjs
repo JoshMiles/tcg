@@ -9,7 +9,15 @@ function run(cmd) {
   const [op, key, ...rest] = cmd; const o = String(op).toLowerCase();
   switch (o) {
     case 'get': return store.has(key) ? store.get(key) : null;
-    case 'set': store.set(key, rest[0]); return 'OK';
+    case 'set': {
+      // SET key value [NX] [EX seconds]: NX only sets when the key is absent (what the app's locks rely on), EX expires it.
+      const opts = rest.slice(1).map(x => String(x).toLowerCase());
+      if (opts.includes('nx') && store.has(key)) return null;
+      store.set(key, rest[0]);
+      const ex = opts.indexOf('ex');
+      if (ex >= 0) setTimeout(() => store.delete(key), Number(rest[1 + ex + 1]) * 1000).unref();
+      return 'OK';
+    }
     case 'del': { let n = 0; for (const k of [key, ...rest]) if (store.delete(k)) n++; return n; }
     case 'scan': {
       // SCAN cursor MATCH pattern COUNT n: one pass over everything, cursor 0 means done.

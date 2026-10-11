@@ -55,7 +55,7 @@ export default function TermsPage() {
           </li>
           <li>
             You receive a licence to display and use the items you earn within the Service. You don&rsquo;t own them, and they are not transferable except by features we provide
-            (we don&rsquo;t currently offer trading).
+            (such as trading with other viewers on the website, where offered cards are held in escrow until the offer ends; an offer can be declined, cancelled or expire, and trading can be paused or changed at any time).
           </li>
           <li>
             We may add, change, rebalance, rename or remove cards, packs, variants, odds, upgrade costs, point values, and seasons at any time, and may reset or retire collections and leaderboards

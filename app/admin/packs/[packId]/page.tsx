@@ -1,3 +1,4 @@
+import { PendingButton } from '../../components/PendingButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPack, getPackCards, listSeasons } from '@/lib/kv';
@@ -56,9 +57,9 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
           <div className="flex flex-wrap items-center gap-2">
             {!isDraft && (
               <form action={setPackActive.bind(null, packId, !pack.active)}>
-                <button type="submit" className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 transition-colors">
+                <PendingButton type="submit" className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 transition-colors">
                   {pack.active ? 'Deactivate' : 'Activate'}
-                </button>
+                </PendingButton>
               </form>
             )}
             <Link
@@ -240,7 +241,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
           {!isDraft && (
             <form action={moveToDrafts} className="tcg-panel rounded-2xl p-4 flex items-center justify-between gap-3">
               <p className="text-xs text-gray-500">Published. Move it back to drafts to stop it being drawn while you rework it.</p>
-              <button type="submit" className="shrink-0 px-3 py-1.5 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors">Move to drafts</button>
+              <PendingButton type="submit" className="shrink-0 px-3 py-1.5 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors">Move to drafts</PendingButton>
             </form>
           )}
 
@@ -252,7 +253,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             <form action={updateThisPack} className="p-5 space-y-4">
               <PackFields defaults={pack} />
               <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-3 bg-gray-900/95 backdrop-blur border-t border-gray-800">
-                <button type="submit" className="w-full px-4 py-2.5 tcg-btn rounded-xl text-sm transition-colors">Save Changes</button>
+                <PendingButton type="submit" className="w-full px-4 py-2.5 tcg-btn rounded-xl text-sm transition-colors">Save Changes</PendingButton>
               </div>
             </form>
           </div>

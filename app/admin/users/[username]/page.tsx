@@ -1,3 +1,4 @@
+import { PendingButton } from '../../components/PendingButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { listSeasons, getCollection, getPackCards, getPack, getUserProfile } from '@/lib/kv';
@@ -149,12 +150,12 @@ export default async function UserDetailPage({
             />
           </div>
           <div className="col-span-3">
-            <button
+            <PendingButton
               type="submit"
               className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors"
             >
               Save Profile
-            </button>
+            </PendingButton>
           </div>
         </form>
       </section>
@@ -303,12 +304,12 @@ export default async function UserDetailPage({
                       {VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}
                     </select>
                   )}
-                  <button
+                  <PendingButton
                     type="submit"
                     className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors"
                   >
                     Grant
-                  </button>
+                  </PendingButton>
                 </form>
               </div>
 

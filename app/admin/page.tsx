@@ -1,3 +1,4 @@
+import { PendingButton } from './components/PendingButton';
 import Link from 'next/link';
 import { getActiveSeasonWithPacks, getCollection } from '@/lib/kv';
 import { seedSeason1 } from './actions';
@@ -317,12 +318,12 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
 function SeedButton() {
   return (
     <form action={seedSeason1}>
-      <button
+      <PendingButton
         type="submit"
         className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors"
       >
         Seed S1
-      </button>
+      </PendingButton>
     </form>
   );
 }

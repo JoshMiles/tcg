@@ -8,6 +8,8 @@ import { RARITIES, getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
+import { CardMathsPanel } from '@/app/components/CardMathsPanel';
+import type { CardMaths } from '@/lib/card-maths';
 
 export interface DexOwner {
   username: string;
@@ -40,6 +42,8 @@ export interface DexCard {
   owned?: boolean;
   /** The holographic shimmer per variant, from the Overlay Editor's settings for this card's pack. */
   holo: HoloSpecs;
+  /** The working behind this card's points, for the Advanced information panel. */
+  maths?: CardMaths;
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -260,6 +264,8 @@ function DexDetail({ card, canStep, onClose, onStep }: { card: DexCard; canStep:
                 </tbody>
               </table>
             </div>
+
+            {card.maths && <CardMathsPanel maths={card.maths} variants={rows} shown={shown} />}
 
             {/* Top collectors */}
             <div className="space-y-2">
