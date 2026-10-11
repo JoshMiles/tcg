@@ -9,7 +9,6 @@ const nav = [
   { href: '/admin/packs', label: 'Packs', icon: '🎴' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
   { href: '/admin/assets', label: 'Assets', icon: '🖼️' },
-  { href: '/admin/webhooks', label: 'Webhooks', icon: '🔗' },
   { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
 ];
 
