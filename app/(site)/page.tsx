@@ -5,6 +5,7 @@ import { getRarity } from '@/lib/rarity';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { cardThumbUrl } from '@/lib/card-art';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { Avatar } from '@/app/components/Avatar';
 
 export const dynamic = 'force-dynamic';
@@ -48,7 +49,7 @@ export default async function HomePage() {
               Pull cards.<br />Collect the <span className="text-yellow-300">cheese</span>.
             </h1>
             <p className="text-lg text-gray-300 max-w-xl leading-relaxed">
-              The Cheesy TCG is a collectible card game played live on Twitch. Open packs on stream, hunt rare and shiny
+              The Cheesy TCG is a collectible card game played live on {CHANNEL_NAME}&rsquo;s Twitch channel — and nowhere else. Open packs on stream, hunt rare and shiny
               variants, upgrade your duplicates and climb the leaderboard.
             </p>
 
@@ -67,6 +68,7 @@ export default async function HomePage() {
               <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300 font-semibold">🏆 Leaderboard</Link>
               <Link href="/stats" className="text-yellow-400 hover:text-yellow-300 font-semibold">📊 Season stats</Link>
               <Link href="/cards" className="text-yellow-400 hover:text-yellow-300 font-semibold">🃏 Card dex</Link>
+              <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 font-semibold">📺 Watch on Twitch ↗</a>
             </div>
           </div>
 

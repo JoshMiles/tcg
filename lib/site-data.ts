@@ -1,9 +1,9 @@
 import type { Card, Pack, Season, Variant } from './types';
 import { getActive, listSeasons } from './site-seasons';
-import { getSeasonLeaderboard, type CardValue, type LeaderboardRow } from './leaderboard';
+import { getSeasonLeaderboard, type CardValue, type LeaderboardRow, type SeasonValues } from './leaderboard';
 import { getActivity, type ActivityEvent } from './activity';
 import { RARITIES } from './rarity';
-import { VARIANTS, emptyCounts, type VariantCounts } from './variants';
+import { VARIANTS, countVariants, emptyCounts, type VariantCounts } from './variants';
 
 export { getActive, listSeasons };
 
@@ -40,6 +40,46 @@ export async function getRecentPulls(collectionName: string, limit = 10): Promis
   return events
     .filter((e): e is Extract<ActivityEvent, { type: 'pull' }> => e.type === 'pull' && e.collectionName === collectionName)
     .slice(0, limit);
+}
+
+// ── Who owns each card ─────────────────────────────────────
+
+export interface CardOwner {
+  username: string;
+  /** Copies of this card across all versions. */
+  copies: number;
+  variants: VariantCounts;
+  /** What those copies are worth right now. */
+  points: number;
+}
+
+/**
+ * For every card: its biggest collectors (most copies first, then most points) and how many collectors own at least one.
+ * Built in one pass over the season's collection.
+ */
+export function ownersByCard(
+  collection: Record<string, number[]>,
+  values: SeasonValues,
+  limit = 10,
+): Map<number, { top: CardOwner[]; collectors: number }> {
+  const lists = new Map<number, CardOwner[]>();
+  for (const [username, entries] of Object.entries(collection)) {
+    for (const [cardNumber, counts] of countVariants(entries)) {
+      const cv = values.cards.get(cardNumber);
+      if (!cv) continue; // card since removed from the season
+      const copies = VARIANTS.reduce((s, v) => s + counts[v], 0);
+      const points = VARIANTS.reduce((s, v) => s + counts[v] * cv.values[v], 0);
+      const list = lists.get(cardNumber) ?? [];
+      list.push({ username: username.toLowerCase(), copies, variants: counts, points });
+      lists.set(cardNumber, list);
+    }
+  }
+  const out = new Map<number, { top: CardOwner[]; collectors: number }>();
+  for (const [n, list] of lists) {
+    list.sort((a, b) => b.copies - a.copies || b.points - a.points || a.username.localeCompare(b.username));
+    out.set(n, { top: list.slice(0, limit), collectors: list.length });
+  }
+  return out;
 }
 
 // ── Season stats ──────────────────────────────────────────

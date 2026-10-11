@@ -42,10 +42,24 @@ const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()
 
 export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false }: { cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+  // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
+  // the server renders the default so there's no flash of ? tiles).
+  const [hideUncollected, setHideUncollected] = useState(true);
+  useEffect(() => {
+    try { if (localStorage.getItem('tcg_hide_uncollected') === '0') setHideUncollected(false); } catch { /* storage unavailable */ }
+  }, []);
+  const toggleHide = () => setHideUncollected(h => {
+    const next = !h;
+    try { localStorage.setItem('tcg_hide_uncollected', next ? '1' : '0'); } catch { /* storage unavailable */ }
+    return next;
+  });
   const opener = useRef<HTMLElement | null>(null);
 
   // Only collected cards open (uncollected ones stay a mystery).
   const ownedIdx = cards.map((c, i) => (totalCopies(c.counts) > 0 ? i : -1)).filter(i => i >= 0);
+  const uncollected = cards.length - ownedIdx.length;
+  // With nothing collected yet there's nothing to show, so the placeholders stay visible instead of an empty page.
+  const hiding = hideUncollected && ownedIdx.length > 0;
 
   const open = (idx: number, el: HTMLElement | null) => { opener.current = el; setOpenIdx(idx); };
   const close = useCallback(() => {
@@ -63,10 +77,29 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
 
   return (
     <>
+      {uncollected > 0 && ownedIdx.length > 0 && (
+        <div className="flex items-center justify-between gap-3 pb-1">
+          <p className="text-xs text-gray-500">
+            {ownedIdx.length} collected · {uncollected} still to find
+          </p>
+          <button
+            type="button"
+            onClick={toggleHide}
+            aria-pressed={hideUncollected}
+            className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+              hideUncollected ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-300 hover:text-white'
+            }`}
+          >
+            {hideUncollected ? `Show uncollected (${uncollected})` : 'Hide uncollected'}
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-3">
         {cards.map((card, idx) => {
           const count = totalCopies(card.counts);
           const isOwned = count > 0;
+          if (hiding && !isOwned) return null;
           const rarity = getRarity(card.stars);
           const best = bestVariant(card.counts);
           const art = artFor(card, best);
