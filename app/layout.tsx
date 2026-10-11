@@ -9,7 +9,7 @@ const body = Nunito({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {
   title: { default: 'The Cheesy TCG', template: '%s · The Cheesy TCG' },
-  description: 'A cheesy collectible card game played live on Twitch. Pull cards, collect every variant, climb the leaderboard.',
+  description: 'A cheesy collectible card game played live on the Cheesygidds Twitch channel. Pull cards, collect every variant, climb the leaderboard.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

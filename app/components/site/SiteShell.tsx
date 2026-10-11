@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { SiteNav, type NavUser } from './SiteNav';
+import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { getSession, loginConfigured } from '@/lib/session';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 
@@ -25,7 +26,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
               <span className="font-display font-bold text-yellow-300">The Cheesy TCG</span>
             </div>
             <p className="text-xs text-gray-500 max-w-md leading-relaxed">
-              A cheesy collectible card game played live on Twitch. Fan-made and not affiliated with or endorsed by Twitch.
+              A cheesy collectible card game played live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-500 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a> — and nowhere else. Fan-made and not affiliated with or endorsed by Twitch.
             </p>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400" aria-label="Footer">

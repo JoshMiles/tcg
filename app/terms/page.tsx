@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { LegalPage, Section, List } from '@/app/components/LegalPage';
 import { APP_NAME, CONTACT_EMAIL, GOVERNING_LAW, OPERATOR } from '@/lib/legal';
+import { CHANNEL_NAME } from '@/lib/site';
 
 export const metadata: Metadata = { title: `Terms of Use (EULA) · ${APP_NAME}` };
 
@@ -22,7 +23,7 @@ export default function TermsPage() {
     >
       <Section title="1. What the Service is">
         <p>
-          {APP_NAME} is a digital collectible card game for a Twitch community. Cards are earned live on stream (for example when a pack is opened for you), can be viewed in a
+          {APP_NAME} is a digital collectible card game that runs only on the {CHANNEL_NAME} Twitch channel (and on this website, which shows and manages your collection). Cards are earned live on stream (for example when a pack is opened for you), can be viewed in a
           collection, and — in seasons that enable it — can be upgraded into rarer variants. A leaderboard ranks collections for each season.
         </p>
         <p>

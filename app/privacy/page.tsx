@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { LegalPage, Section, List } from '@/app/components/LegalPage';
 import { APP_NAME, CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
+import { CHANNEL_NAME } from '@/lib/site';
 
 export const metadata: Metadata = { title: `Privacy Policy · ${APP_NAME}` };
 
@@ -15,9 +16,9 @@ export default function PrivacyPage() {
             why, who it is shared with, and the choices you have. It is operated by {OPERATOR} (&ldquo;we&rdquo;, &ldquo;us&rdquo;).
           </p>
           <p>
-            {APP_NAME} is a collectible card game played on a Twitch channel: viewers get cards when packs are opened
-            on stream, and can see their collection in a Twitch Extension and on this website. It is a hobby project made for a
-            Twitch community; we do not sell your information and we do not run advertising.
+            {APP_NAME} is a collectible card game played only on the {CHANNEL_NAME} Twitch channel: viewers get cards when packs are opened
+            on stream, and can see their collection in a Twitch Extension and on this website. It is a hobby project made for the
+            {CHANNEL_NAME} community; we do not sell your information and we do not run advertising.
           </p>
         </>
       }

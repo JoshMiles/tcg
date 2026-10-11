@@ -1,6 +1,9 @@
 # TCG Admin — CLAUDE.md
 
 ## What this project is
+
+**The game runs only on the Cheesygidds Twitch channel (https://www.twitch.tv/cheesygidds) and nowhere else** — the Twitch Extension is only installed there and packs are opened live on that stream. Say so in public copy (FAQ, Terms, Privacy, home, footer); use `CHANNEL_NAME` / `CHANNEL_URL` from `lib/site.ts` rather than hard-coding it.
+
 A Twitch stream overlay + admin panel for a trading card game. Viewers pull cards live on stream via OBS browser source. An admin panel manages seasons, packs, and cards. A public collection viewer lets viewers see their cards. A Twitch Extension Panel lets viewers see their collection inside Twitch.
 
 ## Tech stack
@@ -122,7 +125,7 @@ The product is branded **The Cheesy TCG** (icon: `public/brand/icon.png`, also `
 - `/` — home (see above); `/stats`, `/cards`
 - `/collection` — landing page (username search)
 - `/privacy` — Privacy Policy and `/terms` — Terms of Use / EULA (public; the URLs to enter in the extension's dev.twitch.tv Privacy Policy / EULA fields). Content lives in `app/privacy/page.tsx` and `app/terms/page.tsx`; **keep them in step with what the app really collects** (Twitch IDs/usernames, collections, activity log, avatars, analytics, Discord/webhook forwarding). Bump `LEGAL_UPDATED` in `lib/legal.ts` when you change them.
-- `/collection/[username]` — viewer's card collection (no auth). Shows owned cards with ×N badge for duplicates and total pull count when it exceeds unique count. **Clicking a collected card opens a detail view** (`CollectionGrid.tsx`, client): art (click a variant row to preview it), rarity, pull chance, per-variant copies / pull odds / points each, the card's total value and share of the viewer's score, and a scarcity note. Uncollected cards stay a `?` and don't open; a **Hide uncollected / Show uncollected** toggle above the grid (remembered per device in `localStorage` key `tcg_hide_uncollected`) hides them. All values are precomputed server-side from `getSeasonLeaderboard`.
+- `/collection/[username]` — viewer's card collection (no auth). Shows owned cards with ×N badge for duplicates and total pull count when it exceeds unique count. **Clicking a collected card opens a detail view** (`CollectionGrid.tsx`, client): art (click a variant row to preview it), rarity, pull chance, per-variant copies / pull odds / points each, the card's total value and share of the viewer's score, and a scarcity note. Uncollected cards stay a `?` and don't open; a **Hide uncollected / Show uncollected** toggle above the grid. **Uncollected cards are hidden by default** (also in the server render, so no flash); choosing "Show" is remembered per device (`tcg_hide_uncollected` = `0`). With nothing collected yet the placeholders stay visible and the toggle is hidden. All values are precomputed server-side from `getSeasonLeaderboard`.
 
 ## API routes
 

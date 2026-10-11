@@ -7,6 +7,7 @@ import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, VARIANTS, VARIANT_LABEL
 import { RARITIES } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
+import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -68,11 +69,15 @@ export default async function FaqPage() {
       {/* ── Getting started ── */}
       <Section id="start" title="Getting started" icon="🧀">
         <Q q="What is The Cheesy TCG?" open>
-          A collectible card game played live on Twitch. Packs are opened on stream, the cards you pull go into your collection, and you can hunt for rare versions, upgrade your duplicates and climb
+          A collectible card game played live on {CHANNEL_NAME}&rsquo;s Twitch channel. Packs are opened on stream, the cards you pull go into your collection, and you can hunt for rare versions, upgrade your duplicates and climb
           the leaderboard. It&rsquo;s a fan-made community game and isn&rsquo;t affiliated with Twitch.
         </Q>
+        <Q q="Where can I play?">
+          Only on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a> — it doesn&rsquo;t run anywhere else. Packs are opened live there,
+          and the Twitch extension is only available on that channel. This website just lets you look at your collection and, when you&rsquo;re logged in, upgrade your cards.
+        </Q>
         <Q q="How do I get cards?">
-          Packs are opened live on the stream. When one is opened for you, your name appears on screen with the card you pulled, and it&rsquo;s added to your collection straight away. How packs are earned
+          Packs are opened live on {CHANNEL_NAME}&rsquo;s stream. When one is opened for you, your name appears on screen with the card you pulled, and it&rsquo;s added to your collection straight away. How packs are earned
           (for example channel rewards or special events) is up to the streamer and can change from stream to stream, so watch the channel for what&rsquo;s currently running.
         </Q>
         <Q q="Where can I see my cards?">
@@ -264,7 +269,7 @@ export default async function FaqPage() {
       {/* ── Extension ── */}
       <Section id="extension" title="Twitch extension" icon="📺">
         <Q q="How do I use the extension?" open>
-          Open the stream on Twitch and look under the video for the card collection panel (on mobile it&rsquo;s in the extensions tab, and on desktop it can also appear on the video). Press
+          Open {CHANNEL_NAME}&rsquo;s stream on Twitch and look under the video for the card collection panel (on mobile it&rsquo;s in the extensions tab, and on desktop it can also appear on the video). Press
           <strong className="text-white"> Login with Twitch</strong> and allow Twitch&rsquo;s &ldquo;share your identity&rdquo; prompt. Your collection appears, with the same cards as on the website.
         </Q>
         <Q q="The extension doesn&rsquo;t show my cards">

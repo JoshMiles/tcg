@@ -42,10 +42,11 @@ const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()
 
 export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false }: { cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
-  // "Hide uncollected" is remembered on this device (read after mount so server and client markup match).
-  const [hideUncollected, setHideUncollected] = useState(false);
+  // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
+  // the server renders the default so there's no flash of ? tiles).
+  const [hideUncollected, setHideUncollected] = useState(true);
   useEffect(() => {
-    try { setHideUncollected(localStorage.getItem('tcg_hide_uncollected') === '1'); } catch { /* storage unavailable */ }
+    try { if (localStorage.getItem('tcg_hide_uncollected') === '0') setHideUncollected(false); } catch { /* storage unavailable */ }
   }, []);
   const toggleHide = () => setHideUncollected(h => {
     const next = !h;
@@ -57,6 +58,8 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
   // Only collected cards open (uncollected ones stay a mystery).
   const ownedIdx = cards.map((c, i) => (totalCopies(c.counts) > 0 ? i : -1)).filter(i => i >= 0);
   const uncollected = cards.length - ownedIdx.length;
+  // With nothing collected yet there's nothing to show, so the placeholders stay visible instead of an empty page.
+  const hiding = hideUncollected && ownedIdx.length > 0;
 
   const open = (idx: number, el: HTMLElement | null) => { opener.current = el; setOpenIdx(idx); };
   const close = useCallback(() => {
@@ -96,7 +99,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         {cards.map((card, idx) => {
           const count = totalCopies(card.counts);
           const isOwned = count > 0;
-          if (hideUncollected && !isOwned) return null;
+          if (hiding && !isOwned) return null;
           const rarity = getRarity(card.stars);
           const best = bestVariant(card.counts);
           const art = artFor(card, best);
