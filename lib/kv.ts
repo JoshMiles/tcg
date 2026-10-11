@@ -1,6 +1,6 @@
 import { kv } from '@vercel/kv';
 import type { Season, Pack, Card, UserProfile, UpgradeCosts, VariantWeights } from './types';
-import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS } from './variants';
+import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, cleanDisabled } from './variants';
 import { SEED_SEASON, SEED_PACK, SEED_CARDS } from './seed';
 
 // ── Normalizers (handle legacy KV shapes) ─────────────────
@@ -23,7 +23,10 @@ function normalizeSeason(raw: unknown): Season {
 // Rewrite stored legacy URLs on read so existing KV data keeps working without a migration.
 function normalizeCard(card: Card): Card {
   const imageUrl = card.imageUrl?.replace(/^\/assets\/GIF\/(.+)\.gif$/i, '/assets/cards/$1.webp');
-  return imageUrl === card.imageUrl ? card : { ...card, imageUrl };
+  const disabled = cleanDisabled(card.disabledVariants);
+  const next = imageUrl === card.imageUrl ? card : { ...card, imageUrl };
+  // Only carry the field when something is switched off, so existing records are unchanged.
+  return disabled.length ? { ...next, disabledVariants: disabled } : next.disabledVariants ? { ...next, disabledVariants: undefined } : next;
 }
 
 function normalizePack(raw: unknown): Pack {
@@ -45,6 +48,7 @@ function normalizePack(raw: unknown): Pack {
     upgradesEnabled: (p.upgradesEnabled as boolean) ?? false,
     variantWeights: { ...DEFAULT_VARIANT_WEIGHTS, ...(p.variantWeights as Partial<VariantWeights> | undefined) },
     upgradeCosts: { ...DEFAULT_UPGRADE_COSTS, ...(p.upgradeCosts as Partial<UpgradeCosts> | undefined) },
+    disabledVariants: cleanDisabled(p.disabledVariants),
   };
 }
 

@@ -2,15 +2,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { CardsEditor, cardsSignature, type CardRow } from '../../../components/CardsEditor';
 import { saveCards } from '../../../draft-actions';
+import type { OptionalVariant } from '@/lib/types';
 
 /**
  * Bulk card editor for an existing pack. Unlike the wizard (which autosaves a hidden draft), a published
  * pack is live, so edits here are saved explicitly.
  */
 export function BulkCards({
-  packId, initial, upgradesEnabled, isDraft,
+  packId, initial, upgradesEnabled, packDisabled, isDraft,
 }: {
-  packId: string; initial: CardRow[]; upgradesEnabled: boolean; isDraft: boolean;
+  packId: string; initial: CardRow[]; upgradesEnabled: boolean; packDisabled: OptionalVariant[]; isDraft: boolean;
 }) {
   const [cards, setCards] = useState<CardRow[]>(initial);
   const saved = useRef(cardsSignature(initial));
@@ -46,7 +47,7 @@ export function BulkCards({
 
   return (
     <div className="space-y-4">
-      <CardsEditor cards={cards} setCards={setCards} upgradesEnabled={upgradesEnabled} confirmDelete={!isDraft} />
+      <CardsEditor cards={cards} setCards={setCards} upgradesEnabled={upgradesEnabled} packDisabled={packDisabled} confirmDelete={!isDraft} />
 
       {/* Sticky save bar */}
       <div className="sticky bottom-4 flex items-center justify-between gap-4 tcg-panel rounded-2xl px-5 py-3 shadow-glow">

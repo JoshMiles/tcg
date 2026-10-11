@@ -4,8 +4,8 @@ import {
   getPack, savePack, deletePack, getPackCards, savePackCards,
   getSeason, saveSeason, deleteSeason, listSeasons, setActiveSeason,
 } from '@/lib/kv';
-import type { Card, Pack, Season, UpgradeCosts, VariantWeights } from '@/lib/types';
-import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS } from '@/lib/variants';
+import type { Card, OptionalVariant, Pack, Season, UpgradeCosts, VariantWeights } from '@/lib/types';
+import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, cleanDisabled } from '@/lib/variants';
 import { validatePack, validateSeason, type Issue } from '@/lib/draft-validation';
 
 // Server actions behind the pack / season wizards. Unlike actions.ts they return data instead of
@@ -28,6 +28,7 @@ export interface PackInput {
   upgradesEnabled: boolean;
   variantWeights: VariantWeights;
   upgradeCosts: UpgradeCosts;
+  disabledVariants?: OptionalVariant[];
 }
 
 const num = (v: unknown, fallback: number, min = 0, max = Infinity) => {
@@ -63,6 +64,7 @@ function cleanPackInput(i: PackInput): Omit<Pack, 'id' | 'createdAt' | 'status'>
       full: int(c.full, DEFAULT_UPGRADE_COSTS.full),
       shiny: int(c.shiny, DEFAULT_UPGRADE_COSTS.shiny),
     },
+    disabledVariants: cleanDisabled(i.disabledVariants),
   };
 }
 
@@ -92,6 +94,7 @@ export interface CardInput {
   stars: number;
   probability: number;
   upgradesEnabled: boolean;
+  disabledVariants?: OptionalVariant[];
 }
 
 /**
@@ -114,6 +117,7 @@ export async function saveCards(packId: string, rows: CardInput[]): Promise<Card
     const prev = byId.get(r.id);
     const full = str(r.fullArtImageUrl) || undefined;
     const sound = str(r.soundUrl) || undefined;
+    const off = cleanDisabled(r.disabledVariants);
     cards.push({
       id: r.id,
       number: prev?.number ?? ++next,
@@ -121,6 +125,7 @@ export async function saveCards(packId: string, rows: CardInput[]): Promise<Card
       imageUrl: str(r.imageUrl),
       ...(sound && { soundUrl: sound }),
       ...(full && { fullArtImageUrl: full }),
+      ...(off.length > 0 && { disabledVariants: off }),
       upgradesEnabled: r.upgradesEnabled !== false,
       probability: num(r.probability, 1, 0),
       stars: int(r.stars, 1),

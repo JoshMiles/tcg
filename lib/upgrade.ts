@@ -1,7 +1,7 @@
 import { getSeason, getPacksForSeason, getPackCards, withCollectionLock, getCollection, saveCollection } from './kv';
 import { recordActivity } from './activity';
 import type { Variant } from './types';
-import { VARIANT_LABELS, encodeEntry, nextVariant, removeEntries, upgradesAllowed } from './variants';
+import { VARIANT_LABELS, encodeEntry, removeEntries, upgradeStep, upgradesAllowed } from './variants';
 
 export type UpgradeResult =
   | { ok: true; owned: number[]; cardName: string; from: Variant; to: Variant; cost: number }
@@ -21,8 +21,7 @@ export async function upgradeCard(opts: {
   const { seasonId, cardNumber, from } = opts;
   const username = opts.username.toLowerCase();
 
-  const to = nextVariant(from);
-  if (!to) return { ok: false, status: 400, error: `${VARIANT_LABELS[from]} can't be upgraded any further.` };
+  if (from === 'shiny') return { ok: false, status: 400, error: `${VARIANT_LABELS[from]} can't be upgraded any further.` };
 
   const season = await getSeason(seasonId);
   if (!season) return { ok: false, status: 404, error: 'Season not found.' };
@@ -37,7 +36,10 @@ export async function upgradeCard(opts: {
   const { pack, card } = found;
   if (!upgradesAllowed(pack, card)) return { ok: false, status: 400, error: 'Upgrades are turned off for this card.' };
 
-  const cost = pack.upgradeCosts[to as Exclude<Variant, 'regular'>];
+  // The next variant that is switched on for this pack and card (a switched-off one is skipped at the combined cost).
+  const step = upgradeStep(pack, card, from);
+  if (!step) return { ok: false, status: 400, error: `${VARIANT_LABELS[from]} can't be upgraded any further for this card.` };
+  const { to, cost } = step;
   const fromEntry = encodeEntry(cardNumber, from);
 
   const result = await withCollectionLock(season.collectionName, async (): Promise<UpgradeResult> => {

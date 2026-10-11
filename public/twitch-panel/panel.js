@@ -401,10 +401,18 @@ function renderDetail() {
   if (card.upgradesEnabled && status.activeCount > 0) {
     const list = document.createElement('div');
     list.className = 'variant-list';
-    VARIANTS.forEach((v, i) => {
+    const allowed = card.variants || VARIANTS;
+    VARIANTS.forEach(v => {
       const n = status.variants[v];
-      const next = VARIANTS[i + 1];
-      const cost = next ? pack.upgradeCosts?.[next] : 0;
+      // A variant that is switched off for this card is hidden unless the viewer already owns one.
+      if (n === 0 && !allowed.includes(v)) return;
+      // The next variant up that is on; skipping a switched-off one costs the product of the steps crossed.
+      let next = null, cost = 1;
+      for (let k = VARIANTS.indexOf(v) + 1; k < VARIANTS.length; k++) {
+        cost *= Math.max(1, pack.upgradeCosts?.[VARIANTS[k]] || 1);
+        if (allowed.includes(VARIANTS[k])) { next = VARIANTS[k]; break; }
+      }
+      if (!next) cost = 0;
 
       const row = document.createElement('div');
       row.className = 'variant-row' + (n === 0 ? ' none' : '') + (v === shown ? ' active' : '');

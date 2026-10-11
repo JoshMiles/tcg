@@ -201,12 +201,14 @@ function decodeEntry(entry) {
 // Test-panel switches (?dev). Only the panel changes these; real draws never see them.
 const DEV = { dry: true, mute: false, quick: false };
 
-function rollVariant(weights) {
+// `off` lists the variants switched off for this pack / card: they are never rolled (Regular can't be switched off).
+function rollVariant(weights, off) {
   const w = Object.assign({}, DEFAULT_VARIANT_WEIGHTS, weights);
-  const total = VARIANTS.reduce((s, v) => s + Math.max(0, w[v]), 0);
+  const weight = v => (v !== 'regular' && off && off.indexOf(v) !== -1 ? 0 : Math.max(0, w[v]));
+  const total = VARIANTS.reduce((s, v) => s + weight(v), 0);
   if (total <= 0) return 'regular';
   let r = Math.random() * total;
-  for (const v of VARIANTS) { r -= Math.max(0, w[v]); if (r < 0) return v; }
+  for (const v of VARIANTS) { r -= weight(v); if (r < 0) return v; }
   return 'regular';
 }
 
@@ -264,6 +266,7 @@ async function initSeason() {
         probability: c.probability,
         stars:       c.stars,
         upgradesEnabled: c.upgradesEnabled !== false,
+        disabledVariants: c.disabledVariants || [],
         fullArt:      c.fullArtImageUrl || null,
         fullArtThumb: c.fullArtThumbUrl || c.fullArtImageUrl || null,
       })),
@@ -328,7 +331,7 @@ function pickPackAndCard(opts) {
   // A pinned variant (test panel) is used as-is, even where upgrades are off, so effects can be previewed.
   let variant = 'regular';
   if (opts.variant && VARIANTS.indexOf(opts.variant) !== -1) variant = opts.variant;
-  else if (chosen.pack.upgradesEnabled && card.upgradesEnabled) variant = rollVariant(chosen.pack.variantWeights);
+  else if (chosen.pack.upgradesEnabled && card.upgradesEnabled) variant = rollVariant(chosen.pack.variantWeights, (chosen.pack.disabledVariants || []).concat(card.disabledVariants || []));
 
   return { card, variant, cfg: packConfig(chosen.pack), packName: chosen.pack.name, packId: chosen.pack.id };
 }

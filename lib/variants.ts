@@ -1,4 +1,4 @@
-import type { Card, Pack, UpgradeCosts, Variant, VariantWeights } from './types';
+import type { Card, OptionalVariant, Pack, UpgradeCosts, Variant, VariantWeights } from './types';
 
 export const VARIANTS: readonly Variant[] = ['regular', 'reverse', 'full', 'shiny'];
 
@@ -54,6 +54,46 @@ export function nextVariant(variant: Variant): Variant | null {
 /** Whether pulls roll variants and the card can be upgraded. */
 export function upgradesAllowed(pack: Pick<Pack, 'upgradesEnabled'>, card: Pick<Card, 'upgradesEnabled'>): boolean {
   return pack.upgradesEnabled && card.upgradesEnabled !== false;
+}
+
+/** Keeps only real, switch-off-able variant ids (unknown values and "regular" are dropped), in ladder order, no repeats. */
+export function cleanDisabled(input: unknown): OptionalVariant[] {
+  const list = Array.isArray(input) ? input : [];
+  return VARIANTS.filter((v): v is OptionalVariant => v !== 'regular' && list.includes(v));
+}
+
+/** The variants this card can be pulled as / upgraded to in this pack: Regular plus whatever neither the pack nor the card switched off. */
+export function allowedVariants(pack: Pick<Pack, 'disabledVariants'>, card?: Pick<Card, 'disabledVariants'>): Variant[] {
+  const off = new Set<string>([...(pack.disabledVariants ?? []), ...(card?.disabledVariants ?? [])]);
+  return VARIANTS.filter(v => v === 'regular' || !off.has(v));
+}
+
+/** The pack's roll weights with the variants that are off for this pack / card zeroed. */
+export function effectiveWeights(pack: Pick<Pack, 'variantWeights' | 'disabledVariants'>, card?: Pick<Card, 'disabledVariants'>): VariantWeights {
+  const allowed = allowedVariants(pack, card);
+  const w = { ...pack.variantWeights };
+  for (const v of VARIANTS) if (!allowed.includes(v)) w[v] = 0;
+  return w;
+}
+
+/**
+ * Where an upgrade from `from` goes: the next variant up that is switched on. Skipping a switched-off variant does not
+ * make it cheaper: the cost is the product of every step crossed (regular → full with Reverse off costs reverse × full
+ * regular copies, exactly what crafting through it would take). Null when there is nothing above to upgrade to.
+ */
+export function upgradeStep(
+  pack: Pick<Pack, 'disabledVariants' | 'upgradeCosts'>,
+  card: Pick<Card, 'disabledVariants'> | undefined,
+  from: Variant,
+): { to: Variant; cost: number } | null {
+  const allowed = allowedVariants(pack, card);
+  let cost = 1;
+  for (let i = VARIANTS.indexOf(from) + 1; i < VARIANTS.length; i++) {
+    const v = VARIANTS[i];
+    cost *= Math.max(1, pack.upgradeCosts[v as OptionalVariant] ?? 1);
+    if (allowed.includes(v)) return { to: v, cost };
+  }
+  return null;
 }
 
 /** Weighted variant roll. Weights are relative, so 100/25/5/1 means ~76.6% regular. */

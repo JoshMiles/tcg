@@ -30,6 +30,7 @@ export default async function BulkCardsPage({ params }: { params: Promise<{ pack
         packId={packId}
         isDraft={pack.status === 'draft'}
         upgradesEnabled={pack.upgradesEnabled}
+        packDisabled={pack.disabledVariants ?? []}
         initial={cards.map(c => ({ ...c, upgradesEnabled: c.upgradesEnabled !== false }))}
       />
     </div>

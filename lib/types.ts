@@ -3,6 +3,9 @@ export type Variant = 'regular' | 'reverse' | 'full' | 'shiny';
 
 export type VariantWeights = Record<Variant, number>;
 
+/** Variants that can be switched off (Regular always exists). */
+export type OptionalVariant = Exclude<Variant, 'regular'>;
+
 /** Duplicates of the previous variant needed to craft each variant (regular can't be crafted). */
 export type UpgradeCosts = Record<Exclude<Variant, 'regular'>, number>;
 
@@ -37,6 +40,7 @@ export interface Pack {
   upgradesEnabled: boolean;   // variants + upgrades; off for Season 1 style packs
   variantWeights: VariantWeights;
   upgradeCosts: UpgradeCosts;
+  disabledVariants?: OptionalVariant[];   // never rolled and skipped by upgrades in this pack
 }
 
 export interface Card {
@@ -49,6 +53,7 @@ export interface Card {
   stars: number;              // 1–5
   upgradesEnabled?: boolean;  // per-card opt-out; undefined = follow the pack
   fullArtImageUrl?: string;   // art for the Full Art / Shiny variants
+  disabledVariants?: OptionalVariant[];   // variants this card can't be (on top of the pack's own switches)
 }
 
 export interface UserProfile {

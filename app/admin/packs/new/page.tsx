@@ -27,6 +27,7 @@ export default async function NewPackPage({ searchParams }: { searchParams: Prom
       upgradesEnabled: pack.upgradesEnabled,
       variantWeights: pack.variantWeights,
       upgradeCosts: pack.upgradeCosts,
+      disabledVariants: pack.disabledVariants ?? [],
     };
     return (
       // No `key`: the client wizard creates its draft mid-session and rewrites the URL to ?draft=..., and a

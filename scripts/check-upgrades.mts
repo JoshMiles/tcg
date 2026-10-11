@@ -121,3 +121,24 @@ const messy = sanitizeScoring({ baseScore: '-5', rarityExponent: 'abc', scarcity
 if (messy.baseScore !== 1 || messy.rarityExponent !== DEFAULT_SCORING.rarityExponent || messy.scarcityMin !== 1 || messy.scarcityMax !== 1 || messy.completionBonusPct !== 500 || messy.leaderboardSize !== 13) throw new Error('sanitize: ' + JSON.stringify(messy));
 eq(sanitizeScoring(undefined), DEFAULT_SCORING, 'no stored settings -> defaults');
 console.log('scoring settings checks passed');
+
+// ── Switched-off variants: pack / card switches, upgrade steps and odds ──
+import { allowedVariants, effectiveWeights, upgradeStep, cleanDisabled } from '../lib/variants';
+const vp = { disabledVariants: [] as ('reverse' | 'full' | 'shiny')[], upgradeCosts: DEFAULT_UPGRADE_COSTS, variantWeights: DEFAULT_VARIANT_WEIGHTS };
+eq(allowedVariants(vp), ['regular', 'reverse', 'full', 'shiny'], 'everything is on by default');
+eq(allowedVariants({ ...vp, disabledVariants: ['reverse'] }, { disabledVariants: ['shiny'] }), ['regular', 'full'], 'pack and card switches combine');
+eq(cleanDisabled(['shiny', 'regular', 'bogus', 'shiny', 'reverse']), ['reverse', 'shiny'], 'regular and junk are dropped, order and uniqueness are fixed');
+eq(upgradeStep(vp, undefined, 'regular'), { to: 'reverse', cost: 5 }, 'plain step');
+eq(upgradeStep(vp, undefined, 'shiny'), null, 'nothing above shiny');
+// Skipping a switched-off variant costs the combined price (no shortcut): regular -> full with Reverse off = 5 x 3.
+eq(upgradeStep({ ...vp, disabledVariants: ['reverse'] }, undefined, 'regular'), { to: 'full', cost: 15 }, 'skip reverse');
+eq(upgradeStep(vp, { disabledVariants: ['full'] }, 'reverse'), { to: 'shiny', cost: 9 }, 'card-level skip');
+eq(upgradeStep({ ...vp, disabledVariants: ['full', 'shiny'] }, undefined, 'reverse'), null, 'top variants off -> reverse is the end of the line');
+eq(effectiveWeights({ ...vp, disabledVariants: ['full'] }), { regular: 100, reverse: 25, full: 0, shiny: 1 }, 'switched-off weights are zeroed');
+// Rolling never returns a switched-off variant.
+const offW = effectiveWeights({ ...vp, disabledVariants: ['reverse', 'shiny'] });
+for (let i = 0; i < 20_000; i++) { const v = rollVariant(offW); if (v === 'reverse' || v === 'shiny') throw new Error('rolled a switched-off variant'); }
+// The value multipliers only credit variants that exist: with Full off, Shiny is still priced from the chain of costs.
+const mOff = variantMultipliers(pack({ disabledVariants: ['full'] }));
+if (!(mOff.shiny >= mOff.reverse)) throw new Error('shiny should never be worth less than reverse');
+console.log('switched-off variant checks passed');

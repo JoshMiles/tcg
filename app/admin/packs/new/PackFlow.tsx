@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ImageUploadField } from '../../components/image-upload';
 import { CardsEditor, cardsSignature, type CardRow } from '../../components/CardsEditor';
+import { VariantChips } from '../../components/VariantSwitches';
 import { PackPreview } from '../../components/PackPreview';
 import { Toggle } from '../../components/Toggle';
 import { SaveIndicator, Stepper, worstState } from '../../components/Stepper';
@@ -48,6 +49,7 @@ const NEW_PACK: PackInput = {
   upgradesEnabled: false,
   variantWeights: DEFAULT_VARIANT_WEIGHTS,
   upgradeCosts: DEFAULT_UPGRADE_COSTS,
+  disabledVariants: [],
 };
 
 const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors disabled:opacity-40';
@@ -232,7 +234,7 @@ export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput;
           {step === 'cards' && (
             <>
               <StepTitle title="Add cards" hint="Drop all your card art at once, then fix names, rarity and odds below. Everything saves as you go." />
-              <CardsEditor cards={cards} setCards={setCards} upgradesEnabled={pack.upgradesEnabled} />
+              <CardsEditor cards={cards} setCards={setCards} upgradesEnabled={pack.upgradesEnabled} packDisabled={pack.disabledVariants ?? []} />
             </>
           )}
 
@@ -296,7 +298,9 @@ export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput;
 function UpgradesStep({ pack, set }: { pack: PackInput; set: <K extends keyof PackInput>(k: K, v: PackInput[K]) => void }) {
   const w = pack.variantWeights;
   const c = pack.upgradeCosts;
-  const total = w.regular + w.reverse + w.full + w.shiny;
+  const off = pack.disabledVariants ?? [];
+  const eff = { regular: w.regular, reverse: off.includes('reverse') ? 0 : w.reverse, full: off.includes('full') ? 0 : w.full, shiny: off.includes('shiny') ? 0 : w.shiny };
+  const total = eff.regular + eff.reverse + eff.full + eff.shiny;
   const pct = (n: number) => (total > 0 ? ((n / total) * 100).toFixed(n / total < 0.1 ? 1 : 0) : '0');
   const setW = (k: keyof typeof w, v: number) => set('variantWeights', { ...w, [k]: v });
   const setC = (k: keyof typeof c, v: number) => set('upgradeCosts', { ...c, [k]: v });
@@ -316,15 +320,21 @@ function UpgradesStep({ pack, set }: { pack: PackInput; set: <K extends keyof Pa
 
       <div className={pack.upgradesEnabled ? 'space-y-6' : 'space-y-6 opacity-40 pointer-events-none select-none'} aria-disabled={!pack.upgradesEnabled}>
         <div>
+          <p className="text-sm font-medium text-gray-300 mb-2">Variants in this pack</p>
+          <p className="text-xs text-gray-500 mb-3">Switch a variant off to leave it out entirely: it is never rolled and upgrades skip it. You can also switch variants off per card in the Cards step.</p>
+          <VariantChips disabled={off} onChange={v => set('disabledVariants', v)} />
+        </div>
+
+        <div>
           <p className="text-sm font-medium text-gray-300 mb-2">Chance of each variant</p>
           <p className="text-xs text-gray-500 mb-3">
             After a card is picked, its variant is rolled using these weights. Relative numbers — only the proportions matter.
           </p>
           <div className="grid grid-cols-4 gap-3">
             <VariantWeight label="Regular" value={w.regular} percent={pct(w.regular)} onChange={v => setW('regular', v)} />
-            <VariantWeight label="Reverse Holo" value={w.reverse} percent={pct(w.reverse)} onChange={v => setW('reverse', v)} />
-            <VariantWeight label="Full Art" value={w.full} percent={pct(w.full)} onChange={v => setW('full', v)} />
-            <VariantWeight label="Shiny Full Art" value={w.shiny} percent={pct(w.shiny)} onChange={v => setW('shiny', v)} />
+            <VariantWeight label="Reverse Holo" value={w.reverse} percent={pct(eff.reverse)} onChange={v => setW('reverse', v)} />
+            <VariantWeight label="Full Art" value={w.full} percent={pct(eff.full)} onChange={v => setW('full', v)} />
+            <VariantWeight label="Shiny Full Art" value={w.shiny} percent={pct(eff.shiny)} onChange={v => setW('shiny', v)} />
           </div>
         </div>
 

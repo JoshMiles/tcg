@@ -1,6 +1,6 @@
 import type { Card, Pack, Season, Variant } from './types';
 import { getCollection, getPackCards, getPacksForSeason } from './kv';
-import { VARIANTS, decodeEntry, emptyCounts, encodeEntry, type VariantCounts } from './variants';
+import { VARIANTS, decodeEntry, effectiveWeights, emptyCounts, encodeEntry, type VariantCounts } from './variants';
 import { DEFAULT_SCORING, getScoringSettings, type ScoringSettings } from './scoring';
 
 // Every tunable number (base score, scarcity range, upgrade margin, bonus sizes, ...) lives in ScoringSettings
@@ -76,12 +76,12 @@ export function collectionBonuses(values: Pick<SeasonValues, 'totalCards' | 'set
  * upgrading could lower a viewer's score.
  */
 export function variantMultipliers(
-  pack: Pick<Pack, 'upgradesEnabled' | 'variantWeights' | 'upgradeCosts'>,
+  pack: Pick<Pack, 'upgradesEnabled' | 'variantWeights' | 'upgradeCosts' | 'disabledVariants'>,
   settings: ScoringSettings = DEFAULT_SCORING,
 ): Record<Variant, number> {
   const m: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1 };
   if (!pack.upgradesEnabled) return m;
-  const w = pack.variantWeights;
+  const w = effectiveWeights(pack); // switched-off variants have no odds, so only the crafting cost sets their value
   for (let i = 1; i < VARIANTS.length; i++) {
     const v = VARIANTS[i];
     const byOdds = w[v] > 0 ? w.regular / w[v] : 0;
