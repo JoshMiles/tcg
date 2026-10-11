@@ -1,10 +1,25 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getActive, getSeasonOverview } from '@/lib/site-data';
+import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
+import { getCollection } from '@/lib/kv';
+import { getSession } from '@/lib/session';
+import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+import { VARIANTS, countVariants } from '@/lib/variants';
 import { CardDex, type DexCard } from './CardDex';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Card Dex' };
+
+/** Chance of each version per pull: the card's pull rate times that version's share of the pack's variant weights. */
+function variantOdds(w: Record<(typeof VARIANTS)[number], number>, pullRate: number): DexCard['variantOdds'] {
+  const total = VARIANTS.reduce((s, v) => s + Math.max(0, w[v]), 0) || 1;
+  return {
+    regular: (pullRate * Math.max(0, w.regular)) / total,
+    reverse: (pullRate * Math.max(0, w.reverse)) / total,
+    full: (pullRate * Math.max(0, w.full)) / total,
+    shiny: (pullRate * Math.max(0, w.shiny)) / total,
+  };
+}
 
 export default async function CardDexPage({ searchParams }: { searchParams: Promise<{ season?: string }> }) {
   const { season: seasonParam } = await searchParams;
@@ -21,6 +36,14 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
   }
 
   const overview = await getSeasonOverview(season);
+  const collection = await getCollection(season.collectionName);
+  const owners = ownersByCard(collection, overview.values, 10);
+  const avatars = await getAvatars([...new Set([...owners.values()].flatMap(o => o.top.map(t => t.username)))]);
+
+  // Cards the logged-in viewer owns (for the Collected / Missing filter). Only meaningful for the active season.
+  const session = await getSession();
+  const mine = session ? new Set(countVariants(collection[session.username] ?? []).keys()) : null;
+
   const cards: DexCard[] = overview.cards
     .map(c => {
       const v = overview.values.cards.get(c.number);
@@ -35,6 +58,12 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
         copies: v?.copies ?? 0,
         upgradable: c.pack.upgradesEnabled && c.upgradesEnabled !== false,
         values: [v?.values.regular ?? 0, v?.values.reverse ?? 0, v?.values.full ?? 0, v?.values.shiny ?? 0] as DexCard['values'],
+        fullArtImageUrl: c.fullArtImageUrl,
+        variantCopies: v?.variantCopies ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
+        variantOdds: variantOdds(c.pack.variantWeights, v?.pullRate ?? 0),
+        collectors: owners.get(c.number)?.collectors ?? 0,
+        owners: (owners.get(c.number)?.top ?? []).map(o => ({ ...o, avatar: avatars[o.username] ? sizeTwitchAvatar(avatars[o.username], 70) : undefined })),
+        owned: mine ? mine.has(c.number) : undefined,
       };
     })
     .filter(c => c.pullRate > 0);
@@ -67,7 +96,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
       {cards.length === 0 ? (
         <p className="text-gray-500 text-sm py-10 text-center">This season has no cards yet.</p>
       ) : (
-        <CardDex cards={cards} />
+        <CardDex cards={cards} showMine={!!session && season.active} />
       )}
     </div>
   );

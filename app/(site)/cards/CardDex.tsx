@@ -1,13 +1,27 @@
 'use client';
-import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
+import { Avatar } from '@/app/components/Avatar';
 import { RARITIES, getRarity } from '@/lib/rarity';
+import { cardThumbUrl } from '@/lib/card-art';
+import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
+import type { Variant } from '@/lib/types';
+
+export interface DexOwner {
+  username: string;
+  copies: number;
+  variants: VariantCounts;
+  points: number;
+  avatar?: string;
+}
 
 export interface DexCard {
   id: string;
   number: number;
   name: string;
   imageUrl: string;
+  fullArtImageUrl?: string;
   stars: number;
   packName: string;
   pullRate: number;
@@ -15,24 +29,57 @@ export interface DexCard {
   upgradable: boolean;
   /** Points per copy: Regular, Reverse Holo, Full Art, Shiny Full Art. */
   values: [number, number, number, number];
+  /** Copies of each version out there, and the chance of each per pull. */
+  variantCopies: VariantCounts;
+  variantOdds: Record<Variant, number>;
+  /** Biggest collectors of this card (most copies first) and how many collectors own it at all. */
+  owners: DexOwner[];
+  collectors: number;
+  /** Whether the logged-in viewer owns it; undefined when nobody is logged in. */
+  owned?: boolean;
 }
 
-/** Every card in a season, with a rarity filter and name search. */
-export function CardDex({ cards }: { cards: DexCard[] }) {
+const MEDALS = ['🥇', '🥈', '🥉'];
+const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: '✨' };
+const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
+const artFor = (c: DexCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
+const maskFor = (url: string) => (cardThumbUrl(url) !== url ? `url("${cardThumbUrl(url)}")` : 'none');
+
+type Mine = 'all' | 'collected' | 'missing';
+
+/** Every card in a season, with a rarity filter, name search, and click-through details with the top collectors. */
+export function CardDex({ cards, showMine = false }: { cards: DexCard[]; showMine?: boolean }) {
   const [stars, setStars] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'number' | 'rarity' | 'value'>('number');
+  const [mine, setMine] = useState<Mine>('all');
+  const [openId, setOpenId] = useState<string | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = cards.filter(c => (stars === null || c.stars === stars) && (!q || c.name.toLowerCase().includes(q)));
+    const list = cards.filter(c =>
+      (stars === null || c.stars === stars) &&
+      (!q || c.name.toLowerCase().includes(q)) &&
+      (!showMine || mine === 'all' || (mine === 'collected' ? c.owned : !c.owned)));
     return list.sort((a, b) =>
       sort === 'rarity' ? a.pullRate - b.pullRate || a.number - b.number
       : sort === 'value' ? b.values[0] - a.values[0] || a.number - b.number
       : a.number - b.number);
-  }, [cards, stars, query, sort]);
+  }, [cards, stars, query, sort, mine, showMine]);
 
   const tiers = RARITIES.filter(r => cards.some(c => c.stars === r.stars));
+  const ownedCount = cards.filter(c => c.owned).length;
+
+  const openIdx = openId ? shown.findIndex(c => c.id === openId) : -1;
+  const close = useCallback(() => { setOpenId(null); opener.current?.focus(); }, []);
+  const step = useCallback((d: number) => {
+    setOpenId(cur => {
+      if (!cur || shown.length === 0) return cur;
+      const i = shown.findIndex(c => c.id === cur);
+      return shown[(i + d + shown.length) % shown.length].id;
+    });
+  }, [shown]);
 
   return (
     <div className="space-y-5">
@@ -52,6 +99,13 @@ export function CardDex({ cards }: { cards: DexCard[] }) {
             </Chip>
           ))}
         </div>
+        {showMine && (
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Show cards">
+            <Chip active={mine === 'all'} onClick={() => setMine('all')}>Everything</Chip>
+            <Chip active={mine === 'collected'} onClick={() => setMine(mine === 'collected' ? 'all' : 'collected')}>Collected ({ownedCount})</Chip>
+            <Chip active={mine === 'missing'} onClick={() => setMine(mine === 'missing' ? 'all' : 'missing')}>Missing ({cards.length - ownedCount})</Chip>
+          </div>
+        )}
         <label className="ml-auto flex items-center gap-2 text-xs text-gray-500">
           Sort
           <select value={sort} onChange={e => setSort(e.target.value as typeof sort)} className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-200">
@@ -68,15 +122,32 @@ export function CardDex({ cards }: { cards: DexCard[] }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {shown.map(c => {
             const rarity = getRarity(c.stars);
-            const tileClass = 'holo-hover relative aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900';
+            const tileClass = 'holo-hover relative aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 cursor-pointer transition-transform hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400';
             const style = { borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` };
+            const badges = (
+              <>
+                <span className="absolute top-1 left-1 bg-gray-950/85 text-gray-300 text-[10px] font-bold px-1.5 rounded-full">#{c.number}</span>
+                {c.owned && <span className="absolute top-1 right-1 bg-emerald-500/90 text-gray-950 text-[10px] font-extrabold px-1.5 rounded-full" title="You own this card">✓</span>}
+              </>
+            );
             return (
-              <div key={c.id} className="space-y-2">
+              <div key={c.id} className={`space-y-2 ${showMine && c.owned === false ? 'opacity-80' : ''}`}>
                 {c.imageUrl ? (
-                  <CardTile imageUrl={c.imageUrl} alt={c.name} className={tileClass} style={style}>
-                    <span className="absolute top-1 left-1 bg-gray-950/85 text-gray-300 text-[10px] font-bold px-1.5 rounded-full">#{c.number}</span>
+                  <CardTile imageUrl={c.imageUrl} alt={c.name} title={`${c.name} — click for details`} className={tileClass} style={style} onActivate={el => { opener.current = el; setOpenId(c.id); }}>
+                    {badges}
                   </CardTile>
-                ) : <div className={tileClass} style={style} />}
+                ) : (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className={tileClass}
+                    style={style}
+                    onClick={e => { opener.current = e.currentTarget; setOpenId(c.id); }}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); opener.current = e.currentTarget; setOpenId(c.id); } }}
+                  >
+                    {badges}
+                  </div>
+                )}
                 <div className="text-center space-y-0.5">
                   <p className="text-sm font-semibold text-white truncate">{c.name}</p>
                   <p className="text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)} {rarity?.label}</p>
@@ -90,7 +161,172 @@ export function CardDex({ cards }: { cards: DexCard[] }) {
           })}
         </div>
       )}
+
+      {openIdx >= 0 && <DexDetail card={shown[openIdx]} canStep={shown.length > 1} onClose={close} onStep={step} />}
     </div>
+  );
+}
+
+// ── Detail dialog ─────────────────────────────────────────
+
+function DexDetail({ card, canStep, onClose, onStep }: { card: DexCard; canStep: boolean; onClose: () => void; onStep: (d: number) => void }) {
+  const rarity = getRarity(card.stars);
+  const [shown, setShown] = useState<Variant>('regular');
+  const closeBtn = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => { setShown('regular'); }, [card.id]);
+
+  useEffect(() => {
+    closeBtn.current?.focus();
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowLeft') onStep(-1);
+      else if (e.key === 'ArrowRight') onStep(1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+  }, [onClose, onStep]);
+
+  const rows: Variant[] = card.upgradable ? [...VARIANTS] : ['regular'];
+  const art = artFor(card, shown);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${card.name} details`}>
+      <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="relative w-full max-w-4xl max-h-full overflow-y-auto tcg-panel rounded-2xl shadow-glow">
+        <button ref={closeBtn} onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-gray-900/80 text-gray-300 hover:text-white text-xl leading-none">×</button>
+
+        <div className="grid md:grid-cols-[240px_1fr] gap-6 p-5 sm:p-6">
+          {/* Art */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2 w-full justify-center">
+              {canStep && <button onClick={() => onStep(-1)} aria-label="Previous card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">‹</button>}
+              <div
+                className={`relative w-full max-w-[210px] aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown}` : ''}`}
+                style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ['--art-mask' as string]: maskFor(art) } as React.CSSProperties}
+              >
+                <img src={cardThumbUrl(art)} alt={card.name} className="w-full h-full object-cover" />
+                <FullArt url={art} />
+              </div>
+              {canStep && <button onClick={() => onStep(1)} aria-label="Next card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">›</button>}
+            </div>
+            {card.upgradable && <p className="text-[11px] text-gray-500">Showing: {VARIANT_LABELS[shown]}</p>}
+          </div>
+
+          {/* Info */}
+          <div className="space-y-4 min-w-0">
+            <div>
+              <p className="text-xs text-gray-500">#{card.number} · {card.packName}</p>
+              <h2 className="font-display text-3xl font-bold text-white leading-tight break-words">{card.name}</h2>
+              <p className="text-sm font-semibold mt-1" style={{ color: rarity?.hex }}>{'★'.repeat(card.stars)} {rarity?.label}</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <Stat label="Pull chance" value={oneIn(card.pullRate)} sub="per pack" />
+              <Stat label="Copies out there" value={card.copies.toLocaleString()} sub="across everyone" />
+              <Stat label="Collectors" value={card.collectors.toLocaleString()} sub="own at least one" />
+            </div>
+
+            {/* Versions */}
+            <div className="rounded-xl border border-gray-800 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[11px] uppercase tracking-wider text-gray-500 text-left bg-gray-950/50">
+                    <th className="py-2 px-3 font-bold">Version</th>
+                    {card.upgradable && <th className="py-2 px-2 font-bold text-right hidden sm:table-cell">Pull odds</th>}
+                    <th className="py-2 px-2 font-bold text-right">Out there</th>
+                    <th className="py-2 px-3 font-bold text-right">Worth each</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/70">
+                  {rows.map(v => (
+                    <tr
+                      key={v}
+                      onClick={() => card.upgradable && setShown(v)}
+                      className={`${card.upgradable ? 'cursor-pointer hover:bg-white/[0.03]' : ''} ${v === shown && card.upgradable ? 'bg-white/[0.04]' : ''}`}
+                    >
+                      <td className="py-2 px-3 text-gray-200">{VARIANT_LABELS[v]}</td>
+                      {card.upgradable && <td className="py-2 px-2 text-right tabular-nums text-gray-500 hidden sm:table-cell">{oneIn(card.variantOdds[v])}</td>}
+                      <td className="py-2 px-2 text-right tabular-nums text-gray-400">{card.variantCopies[v].toLocaleString()}</td>
+                      <td className="py-2 px-3 text-right tabular-nums font-semibold text-yellow-300">{card.values[VARIANTS.indexOf(v)].toLocaleString()} pts</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Top collectors */}
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="font-display text-xl font-bold text-white">Top collectors</h3>
+                {card.collectors > card.owners.length && <span className="text-xs text-gray-500">+{card.collectors - card.owners.length} more own it</span>}
+              </div>
+              {card.owners.length === 0 ? (
+                <p className="rounded-xl bg-gray-950/50 border border-gray-800 px-4 py-5 text-sm text-gray-400 text-center">
+                  Nobody owns this card yet — be the first to pull it!
+                </p>
+              ) : (
+                <ol className="divide-y divide-gray-800/70 rounded-xl border border-gray-800 overflow-hidden">
+                  {card.owners.map((o, i) => {
+                    const extras = VARIANTS.filter(v => v !== 'regular' && o.variants[v] > 0);
+                    return (
+                      <li key={o.username}>
+                        <Link href={`/collection/${o.username}`} className="flex items-center gap-3 px-3 py-2 hover:bg-white/[0.04] transition-colors">
+                          <span className="w-7 text-center text-sm font-bold text-gray-500 tabular-nums">{MEDALS[i] ?? `#${i + 1}`}</span>
+                          <Avatar src={o.avatar} name={o.username} className="w-8 h-8 text-xs" />
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-sm font-semibold text-white truncate">{o.username}</span>
+                            {extras.length > 0 && (
+                              <span className="block text-[11px] text-fuchsia-300">
+                                {extras.map(v => `${o.variants[v]}× ${SHORT[v]}`).join(' · ')}
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-right shrink-0">
+                            <span className="block font-display text-lg font-bold text-yellow-400 tabular-nums leading-none">×{o.copies}</span>
+                            <span className="block text-[11px] text-gray-500 tabular-nums">{o.points.toLocaleString()} pts</span>
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+              <p className="text-[11px] text-gray-600">Ranked by how many copies of this card they own, across all versions.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3">
+      <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
+      <p className="font-display text-2xl font-bold text-white tabular-nums">{value}</p>
+      <p className="text-[11px] text-gray-500">{sub}</p>
+    </div>
+  );
+}
+
+/** The animated full-resolution art, faded in over the thumbnail once loaded. */
+function FullArt({ url }: { url: string }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => { setReady(false); }, [url]);
+  if (cardThumbUrl(url) === url) return null;
+  return (
+    <img
+      src={url}
+      alt=""
+      aria-hidden
+      onLoad={() => setReady(true)}
+      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${ready ? 'opacity-100' : 'opacity-0'}`}
+    />
   );
 }
 
