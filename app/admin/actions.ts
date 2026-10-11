@@ -26,6 +26,7 @@ import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
 import { getOverlaySettings, saveOverlaySettings } from '@/lib/overlay-settings';
 import { sanitizeLayout } from '@/lib/overlay-layout';
+import { DEFAULT_SCORING, sanitizeScoring, saveScoringSettings, resetScoringSettings } from '@/lib/scoring';
 
 // ── Seasons ───────────────────────────────────────────────
 
@@ -359,6 +360,26 @@ export async function regenerateWebhookSecret() {
 
 // ── Overlay settings ──────────────────────────────────────
 
+// ── Scoring ───────────────────────────────────────────────
+
+/** Saves the scoring settings. Values are clamped to their allowed ranges (see lib/scoring.ts), never rejected. */
+export async function saveScoringSettingsAction(formData: FormData) {
+  const raw: Record<string, FormDataEntryValue | null> = {};
+  for (const key of Object.keys(DEFAULT_SCORING)) raw[key] = formData.get(key);
+  await saveScoringSettings(sanitizeScoring(raw));
+  // Public pages compute values live (force-dynamic), but the admin pages that show them need refreshing.
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin');
+  redirect('/admin/settings?tab=scoring&saved=scoring');
+}
+
+export async function resetScoringSettingsAction() {
+  await resetScoringSettings();
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin');
+  redirect('/admin/settings?tab=scoring&saved=scoring-reset');
+}
+
 export async function saveOverlaySettingsAction(formData: FormData) {
   const current = await getOverlaySettings();
   await saveOverlaySettings({
@@ -367,6 +388,7 @@ export async function saveOverlaySettingsAction(formData: FormData) {
     liveCollectionsOnly: formData.get('liveCollectionsOnly') === 'on',
   });
   revalidatePath('/admin/settings');
+  redirect('/admin/settings?tab=overlay&saved=overlay');
 }
 
 export async function saveOverlayLayoutAction(formData: FormData) {
@@ -374,14 +396,22 @@ export async function saveOverlayLayoutAction(formData: FormData) {
   await saveOverlaySettings({
     ...current,
     layout: sanitizeLayout({
-      width:   formData.get('width'),
-      height:  formData.get('height'),
-      scale:   formData.get('scale'),
-      offsetX: formData.get('offsetX'),
-      offsetY: formData.get('offsetY'),
+      width:  formData.get('width'),
+      height: formData.get('height'),
+      pack: {
+        scale:   formData.get('pack_scale'),
+        offsetX: formData.get('pack_offsetX'),
+        offsetY: formData.get('pack_offsetY'),
+      },
+      collection: {
+        scale:   formData.get('collection_scale'),
+        offsetX: formData.get('collection_offsetX'),
+        offsetY: formData.get('collection_offsetY'),
+      },
     }),
   });
   revalidatePath('/admin/settings');
+  redirect('/admin/settings?tab=layout&saved=layout');
 }
 
 // ── Assets ────────────────────────────────────────────────

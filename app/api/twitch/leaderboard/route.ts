@@ -4,10 +4,9 @@ import { getSeasonLeaderboard } from '@/lib/leaderboard';
 
 export const dynamic = 'force-dynamic';
 
-const LIMIT = 100;
 
 // Public per-season leaderboard for the Twitch panel. `seasonId` defaults to the active season;
-// `username` adds that viewer's own rank even when they're outside the top LIMIT.
+// `username` adds that viewer's own rank even when they're outside the top entries.
 export async function GET(req: NextRequest) {
   const seasonId = req.nextUrl.searchParams.get('seasonId');
   const me = req.nextUrl.searchParams.get('username')?.toLowerCase().trim();
@@ -23,7 +22,7 @@ export async function GET(req: NextRequest) {
     seasonName: season.name,
     totalCards: values.totalCards,
     players: rows.length,
-    rows: rows.slice(0, LIMIT).map((r, i) => ({ rank: i + 1, ...r })),
+    rows: rows.slice(0, values.settings.leaderboardSize).map((r, i) => ({ rank: i + 1, ...r })),
     me: mine >= 0 ? { rank: mine + 1, ...rows[mine] } : null,
     // Per-card point values, so the panel can show what each copy is worth.
     values: Object.fromEntries(

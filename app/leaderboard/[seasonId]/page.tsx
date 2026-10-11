@@ -17,7 +17,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
   if (!season || season.status === 'draft') notFound();
 
   const { rows, values } = await getSeasonLeaderboard(season);
-  const top = rows.slice(0, 100);
+  const top = rows.slice(0, values.settings.leaderboardSize);
   const avatars = await getAvatars(top.map(r => r.username));
 
   return (
@@ -82,7 +82,17 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
                 <span className="w-8 text-center font-bold text-gray-500 tabular-nums">{MEDALS[i] ?? `#${i + 1}`}</span>
                 <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-white truncate">{r.username}</p>
+                  <p className="font-semibold text-white truncate">
+                    {r.username}
+                    {r.complete && (
+                      <span
+                        className="ml-2 align-middle text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5"
+                        title="Owns every card in the season"
+                      >
+                        🧀 Complete
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-gray-500">
                     {r.uniqueCards}/{values.totalCards} cards · {r.copies} cop{r.copies === 1 ? 'y' : 'ies'}
                     {VARIANTS.filter(v => v !== 'regular' && r.variants[v] > 0).map(v => (
@@ -90,7 +100,12 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
                     ))}
                   </p>
                 </div>
-                <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums">{r.score.toLocaleString()}</span>
+                <span
+                  className="font-display text-2xl font-bold text-yellow-400 tabular-nums"
+                  title={`Cards ${r.cardPoints.toLocaleString()} + completion bonus ${r.completionBonus.toLocaleString()}${r.setBonus ? ` + complete collection bonus ${r.setBonus.toLocaleString()}` : ''}`}
+                >
+                  {r.score.toLocaleString()}
+                </span>
               </Link>
             ))}
           </div>

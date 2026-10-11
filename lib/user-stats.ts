@@ -2,7 +2,7 @@ import type { Variant } from './types';
 import { RARITIES } from './rarity';
 import { VARIANTS, VARIANT_LABELS, countVariants, emptyCounts, nextVariant, type VariantCounts } from './variants';
 import type { SeasonCard, SeasonOverview } from './site-data';
-import { projectUpgradeGain } from './leaderboard';
+import { projectUpgradeGain, collectionBonuses } from './leaderboard';
 
 export interface UpgradeOption {
   card: SeasonCard;
@@ -17,7 +17,15 @@ export interface UpgradeOption {
 export interface UserStats {
   rank: number | null;
   players: number;
+  /** Total: card points + the two collection bonuses. */
   score: number;
+  cardPoints: number;
+  completionBonus: number;
+  setBonus: number;
+  complete: boolean;
+  /** What the bonuses are worth at 100% / when complete, right now (to show what's still on offer). */
+  maxCompletionBonus: number;
+  completeSetBonusValue: number;
   uniqueCards: number;
   totalCards: number;
   completionPct: number;
@@ -66,7 +74,7 @@ export function computeUserStats(
       if (counts[v] >= cost) {
         upgradable.push({
           card, from: v, to, have: counts[v], cost,
-          gain: projectUpgradeGain(packs, collection, username, card.number, v, to, cost) ?? valueOf(card, to) - cost * valueOf(card, v),
+          gain: projectUpgradeGain(packs, collection, username, card.number, v, to, cost, o.values.settings) ?? valueOf(card, to) - cost * valueOf(card, v),
         });
       }
     }
@@ -80,6 +88,12 @@ export function computeUserStats(
     rank: idx >= 0 ? idx + 1 : null,
     players: o.rows.length,
     score: row?.score ?? 0,
+    cardPoints: row?.cardPoints ?? 0,
+    completionBonus: row?.completionBonus ?? 0,
+    setBonus: row?.setBonus ?? 0,
+    complete: row?.complete ?? false,
+    maxCompletionBonus: collectionBonuses(o.values, o.values.totalCards).completion,
+    completeSetBonusValue: collectionBonuses(o.values, o.values.totalCards).set,
     uniqueCards: unique,
     totalCards: total,
     completionPct: total > 0 ? Math.round((unique / total) * 100) : 0,

@@ -8,26 +8,44 @@
 // scale/offset are applied on top. `?preview` is the admin editor's iframe: it takes layout changes by
 // postMessage and never talks to the real queue, heartbeat or collection data.
 const PREVIEW = new URLSearchParams(window.location.search).has('preview');
-let STAGE = { width: 1280, height: 720, scale: 1, offsetX: 0, offsetY: 0 };
+// The stage is the browser source's size; scale/offset are set separately for the pack opening and the collection
+// view (each theater wrapper gets .is-pack or .is-collection, which picks up its own --pack-* / --col-* variables).
+let STAGE = { width: 1280, height: 720 };
+let PLACEMENTS = {
+  pack:       { scale: 1, offsetX: 0, offsetY: 0 },
+  collection: { scale: 1, offsetX: 0, offsetY: 0 },
+};
 
 function applyLayout(layout) {
   if (layout) {
     const n = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
     STAGE = {
-      width:   Math.max(1, n(layout.width,   STAGE.width)),
-      height:  Math.max(1, n(layout.height,  STAGE.height)),
-      scale:   Math.max(0.05, n(layout.scale, STAGE.scale)),
-      offsetX: n(layout.offsetX, STAGE.offsetX),
-      offsetY: n(layout.offsetY, STAGE.offsetY),
+      width:  Math.max(1, n(layout.width,  STAGE.width)),
+      height: Math.max(1, n(layout.height, STAGE.height)),
     };
+    // Accept the old single-placement shape too (a cached config from before the split).
+    const legacy = { scale: layout.scale, offsetX: layout.offsetX, offsetY: layout.offsetY };
+    for (const mode of ['pack', 'collection']) {
+      const p = layout[mode] || legacy;
+      PLACEMENTS[mode] = {
+        scale:   Math.max(0.05, n(p.scale, PLACEMENTS[mode].scale)),
+        offsetX: n(p.offsetX, PLACEMENTS[mode].offsetX),
+        offsetY: n(p.offsetY, PLACEMENTS[mode].offsetY),
+      };
+    }
   }
   const fit = Math.min(window.innerWidth / STAGE.width, window.innerHeight / STAGE.height);
   const root = document.documentElement.style;
   root.setProperty('--stage-w', STAGE.width + 'px');
   root.setProperty('--stage-h', STAGE.height + 'px');
-  root.setProperty('--stage-scale', String(fit * STAGE.scale));
-  root.setProperty('--stage-x', STAGE.offsetX * fit + 'px');
-  root.setProperty('--stage-y', STAGE.offsetY * fit + 'px');
+  root.setProperty('--stage-scale', String(fit));
+  // Offsets are in design pixels and applied inside the scaled stage, so they scale with the fit automatically.
+  root.setProperty('--pack-scale', String(PLACEMENTS.pack.scale));
+  root.setProperty('--pack-x', PLACEMENTS.pack.offsetX + 'px');
+  root.setProperty('--pack-y', PLACEMENTS.pack.offsetY + 'px');
+  root.setProperty('--col-scale', String(PLACEMENTS.collection.scale));
+  root.setProperty('--col-x', PLACEMENTS.collection.offsetX + 'px');
+  root.setProperty('--col-y', PLACEMENTS.collection.offsetY + 'px');
 }
 
 async function loadLayout() {
@@ -40,12 +58,80 @@ async function loadLayout() {
 window.addEventListener('resize', () => applyLayout());
 applyLayout();
 
+// ── Admin editor preview (?preview) ──
+// Shows a still of the pack opening / collection view while nothing is animating, so it can be positioned, and plays
+// the real animation on request. Messages from the editor: layout, static (which view to show), pack, collection.
+let previewMode = 'pack';
+
+function clearStatic() {
+  document.querySelectorAll('.static-preview').forEach(el => el.remove());
+}
+
+function showStatic(mode) {
+  if (!PREVIEW) return;
+  if (mode) previewMode = mode;
+  clearStatic();
+  if (PACKS.length === 0) return;
+
+  const cfg = packConfig(PACKS[0].pack);
+  const theater = createTheater(cfg);
+  const { wrapper, packageContainer, cardBox, cardLabel, mainCard, cardInfoOverlay, radialContainer, cardInfo, userText, miniList } = theater;
+  wrapper.classList.add('static-preview');
+  wrapper.style.visibility = 'visible';
+  packageContainer.style.opacity = '0';
+
+  if (previewMode === 'pack') {
+    // The settled moment of a pack opening: the revealed card, its label and the collection strip beneath it.
+    const cards = PACKS.flatMap(p => p.cards);
+    const card = [...cards].sort((x, y) => y.stars - x.stars)[0];
+    wrapper.classList.add('is-pack', 'pack-fit');
+    cardBox.style.animation = 'none';
+    cardBox.style.opacity = '1';
+    cardLabel.style.opacity = '1';
+    cardLabel.style.visibility = 'visible';
+    radialContainer.style.animation = 'none';
+    radialContainer.style.opacity = '1';
+    cardInfo.style.opacity = '1';
+    cardInfo.style.transform = 'scale(1)';
+    userText.textContent = 'Preview got:';
+    if (card) {
+      if (card.image) {
+        mainCard.style.backgroundImage = `url('${card.image}')`;
+        mainCard.style.backgroundSize = 'cover';
+        mainCard.style.backgroundPosition = 'center';
+        mainCard.style.backgroundRepeat = 'no-repeat';
+        mainCard.style.backgroundColor = 'transparent';
+      }
+      mainCard.style.setProperty('--card-mask', card.thumb && card.thumb !== card.image ? `url('${card.thumb}')` : 'none');
+      const num1 = mainCard.querySelector('.card-number-1 > span:first-child');
+      const num2 = mainCard.querySelector('.card-number-2 > span:first-child');
+      if (num1) num1.textContent = card.number;
+      if (num2) num2.textContent = card.number;
+      const nameEl = cardInfoOverlay.querySelector('.card-name');
+      const starsEl = cardInfoOverlay.querySelector('.card-stars');
+      if (nameEl) nameEl.textContent = card.name;
+      if (starsEl) starsEl.innerHTML = STAR_SVG.repeat(card.stars);
+      buildMiniList(miniList, revealedCardsByUser.preview || [], card.number, cfg);
+    }
+  } else {
+    // The collection view: just the name and the card grid.
+    wrapper.classList.add('is-collection');
+    cardBox.style.display = 'none';
+    radialContainer.style.display = 'none';
+    cardInfo.style.opacity = '1';
+    cardInfo.style.transform = 'scale(1)';
+    userText.textContent = "Preview's collection:";
+    buildMiniList(miniList, revealedCardsByUser.preview || [], null, cfg);
+  }
+}
+
 if (PREVIEW) {
   window.addEventListener('message', (e) => {
     if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
     if (e.data.type === 'layout') applyLayout(e.data.layout);
-    else if (e.data.type === 'pack') queueDraw('preview');
-    else if (e.data.type === 'collection') queueCollection('preview');
+    else if (e.data.type === 'static') { if (activeDraws === 0) showStatic(e.data.mode); else previewMode = e.data.mode === 'collection' ? 'collection' : 'pack'; }
+    else if (e.data.type === 'pack') { clearStatic(); queueDraw('preview', { dry: true }); }
+    else if (e.data.type === 'collection') { clearStatic(); queueCollection('preview', { dry: true }); }
   });
 }
 
@@ -445,7 +531,7 @@ function drawCard(username, opts) {
   radialContainer.style.animation = 'none';
   wrapper.style.visibility        = 'visible';
   wrapper.classList.remove('hid', 'hidden');
-  wrapper.classList.add('pack-fit');
+  wrapper.classList.add('pack-fit', 'is-pack');
   wrapper.classList.remove('variant-reverse', 'variant-full', 'variant-shiny');
   if (variant !== 'regular') wrapper.classList.add('variant-' + variant);
 
@@ -563,7 +649,7 @@ function showCollection(username, opts) {
   radialContainer.style.display  = 'none';
 
   // Fade in: commit the transparent start state, then release it so the opacity transition runs.
-  wrapper.classList.add('fade-in', 'fade-in-start');
+  wrapper.classList.add('fade-in', 'fade-in-start', 'is-collection');
   wrapper.style.visibility = 'visible';
   void wrapper.offsetWidth;
   wrapper.classList.remove('fade-in-start');
@@ -600,6 +686,8 @@ function processCardQueue() {
     const fn = cardQueue.shift();
     fn();
   }
+  // Admin editor preview: once an animation has finished, go back to the still so it can be positioned again.
+  if (PREVIEW && activeDraws === 0 && cardQueue.length === 0) showStatic();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -828,6 +916,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('dev-panel')?.classList.add('hidden');
     await initSeason();
     revealedCardsByUser.preview = ALL_CARDS.slice(0, 10).map(c => c.number);
+    showStatic('pack');
     return;
   }
   startHeartbeat(); // first, so "overlay open" shows even if the season fails to load

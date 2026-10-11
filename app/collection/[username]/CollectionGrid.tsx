@@ -255,7 +255,7 @@ function CardDetail({
               <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3">
                 <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Your copies are worth</p>
                 <p className="font-display text-3xl font-bold text-yellow-400 tabular-nums">{cardTotal.toLocaleString()}<span className="text-sm text-gray-500 ml-1">pts</span></p>
-                {share > 0 && <p className="text-xs text-gray-500">{share}% of your total</p>}
+                {share > 0 && <p className="text-xs text-gray-500">{share}% of your card points</p>}
               </div>
               <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3">
                 <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Pull chance</p>
