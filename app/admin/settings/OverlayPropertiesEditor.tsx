@@ -2,28 +2,26 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  PROPS, PROP_BY_KEY, PROP_GROUPS, REVEAL_STYLES, cleanValue, exportProps, importProps,
-  type PropDef, type PropValue, type PropValues,
+  PROPS, PROP_BY_KEY, PROP_GROUPS, REVEAL_STYLES, SECTION_ORDER, VARIANT_IDS, cleanValue, exportProps, importProps,
+  type PropDef, type PropValue, type PropValues, type VariantId,
 } from '@/lib/overlay-props';
 import type { OverlayLayout } from '@/lib/overlay-layout';
 
-// Every adjustable property of the overlay, generated from the registry in lib/overlay-props.ts: the controls, reset
-// buttons, presets and import/export all work off that one list. Values are stored sparsely (only what differs from the
-// default). There are two scopes: Global, and per-pack overrides that sit on top of Global for that pack's reveals.
-// The preview is the real overlay (/overlay.html?preview) fed the unsaved values by postMessage.
+// A Photoshop-style workspace for the overlay's look. Everything is generated from the registry in
+// lib/overlay-props.ts. Layout: an options bar (scope, presets, import/export, save) over a fixed canvas (the real overlay
+// in an iframe, always fitted whole into the available space, never scrolling) and a docked properties panel (category
+// rail, version tabs, collapsible sections, search). Values are stored sparsely; there are two scopes: Global and
+// per-pack overrides. The preview is /overlay.html?preview fed the unsaved values by postMessage.
 
 interface PackInfo { id: string; name: string }
 interface PresetInfo { id: string; name: string; props: PropValues; updatedAt: number }
+type Mode = 'pack' | 'collection';
 
-const VARIANT_CHOICES = [
-  { id: '', label: 'Regular' },
-  { id: 'reverse', label: 'Reverse Holo' },
-  { id: 'full', label: 'Full Art' },
-  { id: 'shiny', label: '✨ Shiny' },
-];
+const VERSION_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: '✨ Shiny' };
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
+const sectionRank = (s: string) => { const i = SECTION_ORDER.indexOf(s); return i < 0 ? 99 : i; };
 
 // Which other property switches a property's controls on or off (so the panel can grey out what has no effect).
 function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean } | null {
@@ -32,6 +30,7 @@ function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean 
     const [, g, name] = m;
     if (/^glow(ColorA|ColorB|Blur|Spread|Speed)$/.test(name)) return { key: `${g}.glow`, when: v => v === true };
     if (/^pop(Scale|Tilt)$/.test(name)) return { key: `${g}.pop`, when: v => v === true };
+    if (/^tilt(Axis|Amount|Speed|Perspective)$/.test(name)) return { key: `${g}.tilt`, when: v => v === true };
     if (/^rock(Amount|Speed)$/.test(name)) return { key: `${g}.rock`, when: v => v === true };
     if (/^sparkle(Count|Color)$/.test(name)) return { key: `${g}.sparkles`, when: v => v === true };
     if (/^holo(Colors|Opacity|Speed|Angle|Blend|Loop)$/.test(name)) return { key: `${g}.holoMode`, when: v => v !== 'off' };
@@ -41,6 +40,8 @@ function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean 
   if (key === 'collection.headingText') return { key: 'collection.showHeading', when: v => v === true };
   return null;
 }
+
+type SidebarWindow = Window & { __tcgSidebarForce?: boolean };
 
 export function OverlayPropertiesEditor({
   initialGlobal, initialPacks, packs, presets, layout, initialScope, saveAction, savePresetAction, deletePresetAction,
@@ -58,12 +59,15 @@ export function OverlayPropertiesEditor({
   const [globalVals, setGlobalVals] = useState<PropValues>(initialGlobal);
   const [packVals, setPackVals] = useState<Record<string, PropValues>>(initialPacks);
   const [scope, setScope] = useState<string>(initialScope === 'global' || packs.some(p => p.id === initialScope) ? initialScope : 'global');
-  const [group, setGroup] = useState('reveal');
-  const [previewVariant, setPreviewVariant] = useState('');
+  const [category, setCategory] = useState('reveal');
+  const [version, setVersion] = useState<VariantId>('regular');   // the version being edited AND previewed
+  const [mode, setMode] = useState<Mode>('pack');                  // which view the canvas shows
+  const [query, setQuery] = useState('');
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [ready, setReady] = useState(false);
   const [loadedCount, setLoadedCount] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [boxWidth, setBoxWidth] = useState(0);
+  const [box, setBox] = useState({ w: 0, h: 0 });
   const [presetName, setPresetName] = useState('');
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
@@ -72,9 +76,18 @@ export function OverlayPropertiesEditor({
   const frameRef = useRef<HTMLIFrameElement>(null);
 
   const isPack = scope !== 'global';
-  const groups = PROP_GROUPS.filter(g => !(isPack && g.id === 'collection')); // the collection view isn't per-pack
-  const activeGroup = groups.find(g => g.id === group) ?? groups[0];
   const current: PropValues = isPack ? packVals[scope] ?? {} : globalVals;
+
+  // The admin sidebar collapses while this workspace is open (and is restored afterwards).
+  useEffect(() => {
+    const w = window as SidebarWindow;
+    w.__tcgSidebarForce = true;
+    window.dispatchEvent(new CustomEvent('tcg:sidebar', { detail: true }));
+    return () => {
+      w.__tcgSidebarForce = false;
+      window.dispatchEvent(new CustomEvent('tcg:sidebar', { detail: false }));
+    };
+  }, []);
 
   // The value a row shows: its own, else (pack scope) the global value, else the default.
   const valueOf = useCallback((key: string): PropValue => {
@@ -122,8 +135,31 @@ export function OverlayPropertiesEditor({
   });
   const revert = () => { setGlobalVals(initialGlobal); setPackVals(initialPacks); };
 
-  // The values that apply at this scope, sparse: what the preview should show and what export/presets capture.
+  // The values that apply at this scope, sparse: what the preview shows and what export/presets capture.
   const effectiveSparse: PropValues = useMemo(() => (isPack ? { ...globalVals, ...(packVals[scope] ?? {}) } : globalVals), [isPack, globalVals, packVals, scope]);
+
+  // ── What is listed ──
+  const hiddenInScope = (d: PropDef) => isPack && d.view === 'collection'; // the collection view isn't per-pack
+  const listView: Mode = isPack ? 'pack' : mode;
+  const defsFor = (cat: string): PropDef[] => PROPS.filter(d => {
+    if (d.group !== cat || hiddenInScope(d)) return false;
+    if (cat === 'versions') return d.variant === version;
+    if (cat === 'lists') return d.view === listView || d.view === 'both';
+    return true;
+  });
+  const modifiedCount = (cat: string) => PROPS.filter(d => d.group === cat && !hiddenInScope(d) && current[d.key] !== undefined).length;
+  const versionModified = (v: VariantId) => PROPS.some(d => d.variant === v && current[d.key] !== undefined);
+
+  const q = query.trim().toLowerCase();
+  const searching = q.length > 0;
+  const matches = (d: PropDef) => `${d.label} ${d.help ?? ''} ${d.section ?? ''} ${d.key}`.toLowerCase().includes(q);
+
+  // Sections of the visible defs, in a sensible order.
+  const groupSections = (defs: PropDef[]) => {
+    const m = new Map<string, PropDef[]>();
+    defs.forEach(d => m.set(d.section ?? '', [...(m.get(d.section ?? '') ?? []), d]));
+    return [...m.entries()].sort((a, b) => sectionRank(a[0]) - sectionRank(b[0]));
+  };
 
   // ── Preview plumbing ──
   const post = useCallback((message: object) => {
@@ -133,9 +169,9 @@ export function OverlayPropertiesEditor({
   useEffect(() => {
     const el = boxRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setBoxWidth(el.clientWidth));
+    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth, h: el.clientHeight }));
     ro.observe(el);
-    setBoxWidth(el.clientWidth);
+    setBox({ w: el.clientWidth, h: el.clientHeight });
     return () => ro.disconnect();
   }, []);
   useEffect(() => {
@@ -143,13 +179,7 @@ export function OverlayPropertiesEditor({
     if (d && d.readyState === 'complete' && d.location.href !== 'about:blank') { setReady(true); setLoadedCount(c => c + 1); }
   }, []);
 
-  const mode = activeGroup.id === 'collection' ? 'collection' : 'pack';
-  // Show the version being edited when a version's tab is open.
-  useEffect(() => {
-    const m = activeGroup.id.match(/^variant\.(.+)$/);
-    if (m) setPreviewVariant(m[1] === 'regular' ? '' : m[1]);
-  }, [activeGroup.id]);
-
+  const previewVariant = version === 'regular' ? '' : version;
   useEffect(() => { if (ready) post({ type: 'layout', layout }); }, [ready, loadedCount, layout, post]);
   useEffect(() => { if (ready) post({ type: 'variant', variant: previewVariant }); }, [ready, loadedCount, previewVariant, post]);
   useEffect(() => { if (ready) post({ type: 'props', props: effectiveSparse, packId: isPack ? scope : '' }); }, [ready, loadedCount, effectiveSparse, isPack, scope, post]);
@@ -162,7 +192,10 @@ export function OverlayPropertiesEditor({
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  const previewScale = boxWidth > 0 ? boxWidth / layout.width : 0.3;
+  // Fit the whole stage into the canvas area, both ways, so the preview never needs to scroll.
+  const fit = box.w > 0 && box.h > 0 ? Math.min(box.w / layout.width, box.h / layout.height) : 0.3;
+  const frameW = layout.width * fit, frameH = layout.height * fit;
+
   const play = () => {
     if (!ready || playing) return;
     setPlaying(true);
@@ -181,7 +214,7 @@ export function OverlayPropertiesEditor({
   };
   const copyJson = async () => {
     try { await navigator.clipboard.writeText(JSON.stringify(exportProps(effectiveSparse), null, 2)); setNotice('Copied to the clipboard.'); }
-    catch { setNotice('Could not copy — use Download instead.'); }
+    catch { setNotice('Could not copy. Use Download instead.'); }
   };
   const runImport = (text: string) => {
     try {
@@ -189,24 +222,34 @@ export function OverlayPropertiesEditor({
       replaceCurrent(values);
       setImportError('');
       setImportText('');
-      setNotice(`Imported ${Object.keys(values).length} setting${Object.keys(values).length === 1 ? '' : 's'} — review, then Save.`);
+      setNotice(`Imported ${Object.keys(values).length} setting${Object.keys(values).length === 1 ? '' : 's'}. Review, then Save.`);
     } catch (e) {
       setImportError(e instanceof Error ? e.message : 'Could not import that.');
     }
   };
   const applyPreset = (p: PresetInfo) => {
     replaceCurrent(isPack ? { ...(packVals[scope] ?? {}), ...p.props } : { ...p.props });
-    setNotice(`Applied "${p.name}" — review, then Save.`);
+    setNotice(`Applied "${p.name}". Review, then Save.`);
   };
 
-  const modifiedIn = (groupId: string) => PROPS.some(d => d.group === groupId && current[d.key] !== undefined);
-  const groupDefs = PROPS.filter(d => d.group === activeGroup.id);
-  const anyModifiedInGroup = groupDefs.some(d => current[d.key] !== undefined);
+  // Copy every setting of one version onto the version being edited.
+  const copyVersion = (from: VariantId) => {
+    const next: PropValues = { ...current };
+    for (const d of PROPS.filter(x => x.variant === version)) {
+      const src = PROP_BY_KEY[d.key.replace(`variant.${version}.`, `variant.${from}.`)];
+      if (!src) continue;
+      const v = valueOf(src.key);
+      // In global scope store sparsely; in pack scope store the value explicitly.
+      if (!isPack && eq(v, d.default)) delete next[d.key]; else next[d.key] = v;
+    }
+    replaceCurrent(next);
+    setNotice(`Copied the ${VERSION_LABELS[from]} look onto ${VERSION_LABELS[version]}. Review, then Save.`);
+  };
 
   const btn = 'px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors';
   const ghost = `${btn} border border-gray-700 text-gray-200 hover:border-gray-500`;
 
-  const rows = (defs: PropDef[]) => defs.map(def => {
+  const renderRow = (def: PropDef) => {
     const dep = dependsOn(def.key);
     const off = dep ? !dep.when(valueOf(dep.key)) : false;
     return (
@@ -222,231 +265,394 @@ export function OverlayPropertiesEditor({
         onReset={() => resetKeys([def.key])}
       />
     );
-  });
+  };
 
-  // Rows are listed under their sub-headings, in the order the registry defines them.
-  const sections = [...groupDefs.reduce((m, d) => m.set(d.section ?? '', [...(m.get(d.section ?? '') ?? []), d]), new Map<string, PropDef[]>())];
+  const renderSection = (scopeKey: string, name: string, defs: PropDef[], index: number) => {
+    const k = `${scopeKey}/${name}`;
+    const open = searching || (openMap[k] ?? index < 2);
+    const changed = defs.filter(d => current[d.key] !== undefined);
+    return (
+      <section key={k} className="border-b border-gray-800/80 last:border-0">
+        <div className="flex items-center gap-1 pr-2">
+          <button
+            type="button"
+            onClick={() => setOpenMap(m => ({ ...m, [k]: !open }))}
+            aria-expanded={open}
+            className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2.5 text-left hover:bg-white/5"
+          >
+            <span aria-hidden className={`text-[10px] text-gray-500 transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
+            <span className="text-sm font-semibold text-gray-200 truncate">{name || 'Settings'}</span>
+            {changed.length > 0 && <span className="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 rounded-full px-1.5">{changed.length}</span>}
+          </button>
+          {changed.length > 0 && (
+            <button
+              type="button"
+              onClick={() => resetKeys(defs.map(d => d.key))}
+              className="text-xs text-gray-500 hover:text-white px-1"
+              title={isPack ? 'Clear the overrides in this section' : 'Reset this section to the defaults'}
+            >
+              {isPack ? 'inherit' : 'reset'}
+            </button>
+          )}
+        </div>
+        {open && <div className="px-3 pb-4 pt-1 space-y-4">{defs.map(renderRow)}</div>}
+      </section>
+    );
+  };
+
+  const cat = PROP_GROUPS.find(g => g.id === category) ?? PROP_GROUPS[0];
+  const catDefs = defsFor(cat.id);
+  const scopeKey = `${cat.id}${cat.id === 'versions' ? '.' + version : ''}${cat.id === 'lists' ? '.' + listView : ''}`;
+  const catSections = groupSections(catDefs);
+
+  // Search results span every category (and every version), labelled with where each one lives.
+  const searchResults = searching
+    ? PROP_GROUPS.flatMap(g => groupSections(PROPS.filter(d => d.group === g.id && !hiddenInScope(d) && matches(d)))
+        .flatMap(([name, defs]) => defs.map(d => ({ d, crumb: `${g.label}${d.variant ? ' › ' + VERSION_LABELS[d.variant] : ''} › ${name}` }))))
+    : [];
 
   return (
-    <div data-sticky-host className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem] items-start">
-      {/* ── Controls ── */}
-      <div className="space-y-4 min-w-0 order-2 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
-        {/* Scope */}
-        <div className="rounded-lg bg-gray-950/60 border border-gray-800 p-3 space-y-2">
-          <label className="flex flex-wrap items-center gap-3 text-sm text-gray-300 font-semibold">
-            Editing
-            <select
-              value={scope}
-              onChange={e => setScope(e.target.value)}
-              className="rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none"
-            >
-              <option value="global">Everything (global settings)</option>
-              {packs.map(p => (
-                <option key={p.id} value={p.id}>
-                  Override for pack: {p.name}{Object.keys(packVals[p.id] ?? {}).length ? ' ●' : ''}
-                </option>
+    <div data-workspace className="flex flex-col gap-3 xl:h-full min-h-0">
+      {/* ── Options bar ── */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-2">
+        <label className="flex items-center gap-2 text-xs text-gray-400 font-semibold">
+          Editing
+          <select
+            value={scope}
+            onChange={e => setScope(e.target.value)}
+            className="rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none max-w-[14rem]"
+          >
+            <option value="global">Everything (global)</option>
+            {packs.map(p => (
+              <option key={p.id} value={p.id}>Pack: {p.name}{Object.keys(packVals[p.id] ?? {}).length ? ' ●' : ''}</option>
+            ))}
+          </select>
+        </label>
+        {isPack && <span className="text-xs text-yellow-300/80 hidden md:inline">Only what you change applies to this pack; the rest follows global.</span>}
+
+        <Popover label="Presets" badge={presets.length || undefined}>
+          <div className="w-80 space-y-3 text-sm">
+            <p className="text-xs text-gray-500">A preset is a named set of {isPack ? 'this pack’s effective' : 'global'} values you can apply later{isPack ? ' to any pack' : ''}.</p>
+            {presets.length === 0 && <p className="text-xs text-gray-600">No presets yet.</p>}
+            <ul className="space-y-1 max-h-48 overflow-y-auto">
+              {presets.map(p => (
+                <li key={p.id} className="flex items-center gap-2">
+                  <span className="flex-1 truncate text-gray-200">{p.name} <span className="text-gray-600 text-xs">· {Object.keys(p.props).length}</span></span>
+                  <button type="button" onClick={() => applyPreset(p)} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`}>Apply</button>
+                  <form action={deletePresetAction}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="scope" value={scope} />
+                    <button type="submit" className={`${btn} text-gray-500 hover:text-red-300 py-1`} aria-label={`Delete preset ${p.name}`}>Delete</button>
+                  </form>
+                </li>
               ))}
-            </select>
-          </label>
-          <p className="text-xs text-gray-500 leading-relaxed">
-            {isPack
-              ? <>Only the settings you change here apply to this pack; everything else follows the global settings. A <span className="text-yellow-400">●</span> marks a value this pack overrides. The collection view isn&rsquo;t pack-specific, so it isn&rsquo;t listed.</>
-              : <>These apply to every pack unless a pack overrides them. Only values that differ from the defaults are saved. A <span className="text-yellow-400">●</span> marks a value you&rsquo;ve changed.</>}
-          </p>
-        </div>
-
-        {/* Presets / import / export */}
-        <details className="rounded-lg bg-gray-950/60 border border-gray-800 group/p">
-          <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold text-gray-300 flex items-center justify-between">
-            <span>Presets, import &amp; export</span>
-            <span className="text-xs text-gray-500 font-normal">{presets.length} saved preset{presets.length === 1 ? '' : 's'}</span>
-          </summary>
-          <div className="px-3 pb-3 space-y-4 text-sm">
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500">A preset is a named set of {isPack ? 'this pack’s effective' : 'global'} values you can apply later{isPack ? ' to any pack' : ''}.</p>
-              {presets.length === 0 && <p className="text-xs text-gray-600">No presets yet.</p>}
-              <ul className="space-y-1">
-                {presets.map(p => (
-                  <li key={p.id} className="flex items-center gap-2">
-                    <span className="flex-1 truncate text-gray-200">{p.name} <span className="text-gray-600 text-xs">· {Object.keys(p.props).length} changed</span></span>
-                    <button type="button" onClick={() => applyPreset(p)} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`}>Apply</button>
-                    <form action={deletePresetAction}>
-                      <input type="hidden" name="id" value={p.id} />
-                      <input type="hidden" name="scope" value={scope} />
-                      <button type="submit" className={`${btn} text-gray-500 hover:text-red-300 py-1`} aria-label={`Delete preset ${p.name}`}>Delete</button>
-                    </form>
-                  </li>
-                ))}
-              </ul>
-              <form action={savePresetAction} className="flex flex-wrap items-center gap-2">
-                <input type="hidden" name="props" value={JSON.stringify(effectiveSparse)} />
-                <input type="hidden" name="scope" value={scope} />
-                <input
-                  name="name"
-                  value={presetName}
-                  onChange={e => setPresetName(e.target.value)}
-                  maxLength={40}
-                  placeholder="Preset name (saving over a name replaces it)"
-                  className="flex-1 min-w-[12rem] rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none"
-                />
-                <button type="submit" disabled={!presetName.trim()} className={`${ghost} disabled:opacity-40`}>Save as preset</button>
-              </form>
-              {dirty && <p className="text-xs text-yellow-500/80">Presets capture what you see in the preview, including unsaved changes.</p>}
-            </div>
-
-            <div className="space-y-2 border-t border-gray-800 pt-3">
-              <p className="text-xs text-gray-500">Share or back up a look as JSON. Importing replaces the values at the current scope (you can still Revert).</p>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={download} className={ghost}>⬇ Download JSON</button>
-                <button type="button" onClick={copyJson} className={ghost}>Copy JSON</button>
-                <label className={`${ghost} cursor-pointer`}>
-                  Import file…
-                  <input
-                    type="file"
-                    accept="application/json,.json"
-                    className="sr-only"
-                    onChange={async e => {
-                      const f = e.target.files?.[0];
-                      e.target.value = '';
-                      if (f) runImport(await f.text());
-                    }}
-                  />
-                </label>
-              </div>
-              <textarea
-                value={importText}
-                onChange={e => { setImportText(e.target.value); setImportError(''); }}
-                rows={3}
-                placeholder="…or paste exported JSON here"
-                className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-xs font-mono text-white focus:border-yellow-500 focus:outline-none"
+            </ul>
+            <form action={savePresetAction} className="flex items-center gap-2">
+              <input type="hidden" name="props" value={JSON.stringify(effectiveSparse)} />
+              <input type="hidden" name="scope" value={scope} />
+              <input
+                name="name"
+                value={presetName}
+                onChange={e => setPresetName(e.target.value)}
+                maxLength={40}
+                placeholder="New preset name"
+                className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none"
               />
-              <div className="flex items-center gap-3">
-                <button type="button" disabled={!importText.trim()} onClick={() => runImport(importText)} className={`${ghost} disabled:opacity-40`}>Import pasted JSON</button>
-                {importError && <span role="alert" className="text-xs text-red-300">{importError}</span>}
-              </div>
+              <button type="submit" disabled={!presetName.trim()} className={`${ghost} disabled:opacity-40`}>Save</button>
+            </form>
+            {dirty && <p className="text-xs text-yellow-500/80">Saving a preset reloads the page. Save your changes first.</p>}
+          </div>
+        </Popover>
+
+        <Popover label="Import / Export">
+          <div className="w-80 space-y-2 text-sm">
+            <p className="text-xs text-gray-500">Share or back up this look as JSON. Importing replaces the values at the current scope (you can still Revert).</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={download} className={ghost}>⬇ Download</button>
+              <button type="button" onClick={copyJson} className={ghost}>Copy</button>
+              <label className={`${ghost} cursor-pointer`}>
+                Import file…
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  className="sr-only"
+                  onChange={async e => {
+                    const f = e.target.files?.[0];
+                    e.target.value = '';
+                    if (f) runImport(await f.text());
+                  }}
+                />
+              </label>
+            </div>
+            <textarea
+              value={importText}
+              onChange={e => { setImportText(e.target.value); setImportError(''); }}
+              rows={3}
+              placeholder="…or paste exported JSON here"
+              className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-xs font-mono text-white focus:border-yellow-500 focus:outline-none"
+            />
+            <div className="flex items-center gap-3">
+              <button type="button" disabled={!importText.trim()} onClick={() => runImport(importText)} className={`${ghost} disabled:opacity-40`}>Import pasted JSON</button>
+              {importError && <span role="alert" className="text-xs text-red-300">{importError}</span>}
             </div>
           </div>
-        </details>
-        {notice && <p role="status" className="text-xs text-green-300">{notice}</p>}
+        </Popover>
 
-        {/* Group tabs */}
-        <div role="tablist" aria-label="Property groups" className="flex flex-wrap gap-2">
-          {groups.map(g => (
-            <button
-              key={g.id}
-              type="button"
-              role="tab"
-              aria-selected={activeGroup.id === g.id}
-              onClick={() => setGroup(g.id)}
-              className={`${btn} border flex items-center gap-1.5 ${activeGroup.id === g.id ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-300 hover:border-gray-500'}`}
-            >
-              <span aria-hidden>{g.icon}</span> {g.label}
-              {modifiedIn(g.id) && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" title={isPack ? 'Overrides in this group' : 'Changed from the default'} />}
-            </button>
-          ))}
-        </div>
+        <span role="status" className="flex-1 min-w-0 truncate text-xs text-green-300 px-2">{notice}</span>
 
-        {/* The active group */}
-        <section className="tcg-panel rounded-xl p-4 space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h3 className="font-semibold text-white">{activeGroup.icon} {activeGroup.label}</h3>
-              <p className="text-xs text-gray-500">{activeGroup.description}</p>
-            </div>
-            <button
-              type="button"
-              disabled={!anyModifiedInGroup}
-              onClick={() => resetKeys(groupDefs.map(d => d.key))}
-              className={`${btn} text-gray-400 hover:text-white disabled:opacity-30 py-1`}
-            >
-              {isPack ? 'Clear overrides in this group' : 'Reset this group'}
-            </button>
-          </div>
-
-          {sections.map(([name, defs]) => (
-            <div key={name} className="space-y-3 border-t border-gray-800 pt-3 first:border-0 first:pt-0">
-              {name && <h4 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">{name}</h4>}
-              {rows(defs)}
-            </div>
-          ))}
-        </section>
-
-        {/* Save */}
-        <form action={saveAction} className="flex flex-wrap items-center gap-3 sticky bottom-3 z-10 rounded-xl bg-gray-900/95 border border-gray-800 backdrop-blur px-3 py-2.5">
+        <span className="text-xs text-gray-500 hidden md:inline">
+          {dirty
+            ? <span className="text-yellow-500">Unsaved: {[changedGlobal && 'global', ...changedPacks.map(id => packs.find(p => p.id === id)?.name ?? id)].filter(Boolean).join(', ')}</span>
+            : 'Saved. Refresh the OBS source to apply.'}
+        </span>
+        <form action={saveAction} className="flex items-center gap-2">
           <input type="hidden" name="payload" value={payload} />
           <input type="hidden" name="scope" value={scope} />
-          <button type="submit" disabled={!dirty} className={`${btn} bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}>Save</button>
           <button type="button" disabled={!dirty} onClick={revert} className={`${btn} text-gray-400 hover:text-white disabled:opacity-40`}>Revert</button>
-          <span className="text-xs text-gray-500 ml-auto">
-            {dirty
-              ? <span className="text-yellow-500">Unsaved: {[changedGlobal && 'global', ...changedPacks.map(id => packs.find(p => p.id === id)?.name ?? id)].filter(Boolean).join(', ')}</span>
-              : 'All changes saved. Refresh the OBS browser source to pick them up.'}
-          </span>
+          <button type="submit" disabled={!dirty} className={`${btn} bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}>Save</button>
         </form>
       </div>
 
-      {/* ── Preview ── */}
-      <div className="space-y-2 xl:sticky xl:top-4 order-1 min-w-0">
-        <div
-          ref={boxRef}
-          className="relative w-full overflow-hidden rounded-lg border border-gray-700"
-          style={{
-            height: layout.height * previewScale,
-            backgroundColor: '#1a1d23',
-            backgroundImage: 'conic-gradient(#262a32 25%, transparent 0 50%, #262a32 0 75%, transparent 0)',
-            backgroundSize: '24px 24px',
-          }}
-        >
-          <iframe
-            ref={frameRef}
-            src="/overlay.html?preview"
-            title="Overlay preview"
-            onLoad={() => { setReady(true); setLoadedCount(c => c + 1); }}
-            style={{
-              width: layout.width,
-              height: layout.height,
-              border: 0,
-              background: 'transparent',
-              colorScheme: 'light',
-              transform: `scale(${previewScale})`,
-              transformOrigin: 'top left',
-              pointerEvents: 'none',
-            }}
-          />
-          {!ready && <p className="absolute inset-0 flex items-center justify-center text-sm text-gray-500">Loading preview…</p>}
+      <div className="flex-1 min-h-0 grid gap-3 xl:grid-cols-[minmax(0,1fr)_26rem]">
+        {/* ── Canvas ── */}
+        <div className="min-h-0 min-w-0 flex flex-col gap-2">
+          <div
+            ref={boxRef}
+            className="relative flex-1 min-h-[16rem] h-[55vh] xl:h-auto rounded-xl border border-gray-800 bg-gray-950/70 overflow-hidden flex items-center justify-center"
+          >
+            <div
+              className="relative overflow-hidden rounded-md border border-gray-700 shrink-0"
+              style={{
+                width: frameW,
+                height: frameH,
+                backgroundColor: '#1a1d23',
+                backgroundImage: 'conic-gradient(#262a32 25%, transparent 0 50%, #262a32 0 75%, transparent 0)',
+                backgroundSize: '24px 24px',
+              }}
+            >
+              <iframe
+                ref={frameRef}
+                src="/overlay.html?preview"
+                title="Overlay preview"
+                onLoad={() => { setReady(true); setLoadedCount(c => c + 1); }}
+                style={{
+                  width: layout.width,
+                  height: layout.height,
+                  border: 0,
+                  background: 'transparent',
+                  colorScheme: 'light',
+                  transform: `scale(${fit})`,
+                  transformOrigin: 'top left',
+                  pointerEvents: 'none',
+                }}
+              />
+              {!ready && <p className="absolute inset-0 flex items-center justify-center text-sm text-gray-500">Loading preview…</p>}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-2">
+            <Segmented
+              label="View"
+              value={mode}
+              onChange={v => { setMode(v as Mode); if (v === 'collection' && !isPack) setCategory('lists'); }}
+              options={[{ id: 'pack', label: '🎴 Pack opening' }, { id: 'collection', label: '📋 Collection' }]}
+              disabled={isPack ? ['collection'] : []}
+            />
+            {mode === 'pack' && (
+              <Segmented
+                label="Show as"
+                value={version}
+                onChange={v => setVersion(v as VariantId)}
+                options={VARIANT_IDS.map(v => ({ id: v, label: VERSION_LABELS[v] }))}
+              />
+            )}
+            <button
+              type="button"
+              onClick={play}
+              disabled={!ready || playing}
+              className={`${btn} ml-auto bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}
+            >
+              {playing ? '… playing' : mode === 'pack' ? '▶ Play pack opening' : '▶ Play collection'}
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {mode === 'pack' && (
-            <div role="group" aria-label="Preview as" className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-gray-500 mr-1">Preview as</span>
-              {VARIANT_CHOICES.map(v => (
+        {/* ── Properties dock ── */}
+        <div className="min-h-0 flex rounded-xl border border-gray-800 bg-gray-900/80 overflow-hidden h-[75vh] xl:h-auto">
+          <nav aria-label="Property categories" className="w-[4.5rem] shrink-0 border-r border-gray-800 bg-gray-950/50 flex flex-col py-2 gap-1">
+            {PROP_GROUPS.map(g => {
+              const n = modifiedCount(g.id);
+              const active = !searching && cat.id === g.id;
+              return (
                 <button
-                  key={v.id || 'regular'}
+                  key={g.id}
                   type="button"
-                  aria-pressed={previewVariant === v.id}
-                  onClick={() => setPreviewVariant(v.id)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${previewVariant === v.id ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}
+                  onClick={() => {
+                    setCategory(g.id);
+                    setQuery('');
+                    if (g.id === 'reveal' || g.id === 'versions') setMode('pack');
+                  }}
+                  aria-current={active ? 'page' : undefined}
+                  title={g.description}
+                  className={`relative mx-1.5 rounded-lg py-2 flex flex-col items-center gap-0.5 text-[11px] font-semibold transition-colors ${active ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
                 >
-                  {v.label}
+                  <span className="text-lg leading-none" aria-hidden>{g.icon}</span>
+                  {g.label}
+                  {n > 0 && <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-yellow-500 text-gray-950 text-[10px] font-bold leading-4 text-center">{n}</span>}
                 </button>
-              ))}
+              );
+            })}
+          </nav>
+
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="p-3 space-y-2 border-b border-gray-800">
+              <input
+                type="search"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search every setting…"
+                aria-label="Search settings"
+                className="w-full rounded-md bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-sm text-white placeholder:text-gray-600 focus:border-yellow-500 focus:outline-none"
+              />
+              {!searching && (
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-white text-sm">{cat.icon} {cat.label}</h3>
+                    <p className="text-xs text-gray-500 leading-snug">{cat.description}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setOpenMap(m => ({ ...m, ...Object.fromEntries(catSections.map(([n]) => [`${scopeKey}/${n}`, true])) }))}
+                      className="text-xs text-gray-500 hover:text-white"
+                    >Expand all</button>
+                    <button
+                      type="button"
+                      onClick={() => setOpenMap(m => ({ ...m, ...Object.fromEntries(catSections.map(([n]) => [`${scopeKey}/${n}`, false])) }))}
+                      className="text-xs text-gray-500 hover:text-white"
+                    >Collapse all</button>
+                  </div>
+                </div>
+              )}
+
+              {!searching && cat.id === 'versions' && (
+                <div className="space-y-1.5">
+                  <Segmented
+                    label="Version"
+                    value={version}
+                    onChange={v => { setVersion(v as VariantId); setMode('pack'); }}
+                    options={VARIANT_IDS.map(v => ({ id: v, label: VERSION_LABELS[v], dot: versionModified(v) }))}
+                    wrap
+                  />
+                  <label className="flex items-center gap-2 text-xs text-gray-500">
+                    Copy the look of
+                    <select
+                      value=""
+                      onChange={e => { if (e.target.value) copyVersion(e.target.value as VariantId); }}
+                      className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200"
+                    >
+                      <option value="">choose a version…</option>
+                      {VARIANT_IDS.filter(v => v !== version).map(v => <option key={v} value={v}>{VERSION_LABELS[v]}</option>)}
+                    </select>
+                    onto {VERSION_LABELS[version]}
+                  </label>
+                </div>
+              )}
+
+              {!searching && cat.id === 'lists' && (
+                <Segmented
+                  label="List"
+                  value={listView}
+                  onChange={v => setMode(v as Mode)}
+                  options={[{ id: 'pack', label: 'Under revealed card' }, { id: 'collection', label: 'Collection view' }]}
+                  disabled={isPack ? ['collection'] : []}
+                  wrap
+                />
+              )}
             </div>
-          )}
-          <button
-            type="button"
-            onClick={play}
-            disabled={!ready || playing}
-            className={`${btn} ml-auto bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}
-          >
-            {playing ? '… playing' : mode === 'pack' ? '▶ Play pack opening' : '▶ Play collection'}
-          </button>
+
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {searching ? (
+                searchResults.length === 0
+                  ? <p className="p-4 text-sm text-gray-500">No settings match &ldquo;{query}&rdquo;.</p>
+                  : <div className="p-3 space-y-4">
+                      {searchResults.map(({ d, crumb }) => (
+                        <div key={d.key} className="space-y-1">
+                          <p className="text-[10px] uppercase tracking-wide text-gray-600">{crumb}</p>
+                          {renderRow(d)}
+                        </div>
+                      ))}
+                    </div>
+              ) : (
+                catSections.map(([name, defs], i) => renderSection(scopeKey, name, defs, i))
+              )}
+            </div>
+          </div>
         </div>
-        <p className="text-xs text-gray-500 leading-relaxed">
-          Live preview with your unsaved values. The still shows the moment the card has settled; <strong className="text-gray-400">Play</strong> runs the real animation
-          {mode === 'pack' ? <> as the chosen version{isPack ? ' with this pack’s art' : ''}</> : null}. Nothing here touches real collections.
-        </p>
       </div>
+    </div>
+  );
+}
+
+// ── Small building blocks ─────────────────────────────────
+
+/** A button that opens a floating panel; closes on an outside click or Escape. */
+function Popover({ label, badge, children }: { label: string; badge?: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${open ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-200 hover:border-gray-500'}`}
+      >
+        {label}{badge ? <span className="ml-1.5 text-xs text-gray-500">{badge}</span> : null} <span aria-hidden className="text-[10px] text-gray-500">▾</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-2 z-40 rounded-xl border border-gray-700 bg-gray-900 shadow-2xl p-3">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A row of mutually exclusive choices. */
+function Segmented({
+  label, value, onChange, options, disabled = [], wrap = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { id: string; label: string; dot?: boolean }[];
+  disabled?: string[];
+  wrap?: boolean;
+}) {
+  return (
+    <div role="group" aria-label={label} className={`flex items-center gap-1 ${wrap ? 'flex-wrap' : ''}`}>
+      <span className="text-xs text-gray-500 mr-1">{label}</span>
+      {options.map(o => (
+        <button
+          key={o.id}
+          type="button"
+          aria-pressed={value === o.id}
+          disabled={disabled.includes(o.id)}
+          onClick={() => onChange(o.id)}
+          className={`px-2.5 py-1 rounded-md text-xs font-semibold border disabled:opacity-35 ${value === o.id ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}
+        >
+          {o.label}{o.dot && <span className="ml-1 text-yellow-400">●</span>}
+        </button>
+      ))}
     </div>
   );
 }
@@ -467,26 +673,36 @@ function PropRow({
 }) {
   const id = `prop-${def.key}`;
   const styleHelp = def.key === 'reveal.style' ? REVEAL_STYLES.find(s => s.value === value)?.description : undefined;
+  const inline = def.type === 'boolean';
+  const label = (
+    <label htmlFor={id} className="text-sm text-gray-200 font-medium">
+      {def.label}
+      {modified && <span className="ml-1.5 text-yellow-400" title={isPack ? 'Overridden for this pack' : 'Changed from the default'}>●</span>}
+      {inherited && <span className="ml-1.5 text-xs text-gray-600 font-normal">(from global)</span>}
+      {def.experimental && <span className="ml-1.5 text-[10px] uppercase tracking-wide rounded bg-purple-500/20 text-purple-300 px-1.5 py-0.5 font-semibold">experimental</span>}
+    </label>
+  );
+  const reset = (
+    <button
+      type="button"
+      onClick={onReset}
+      disabled={!modified}
+      className="text-xs text-gray-500 hover:text-white disabled:opacity-0 shrink-0"
+      title={isPack ? 'Stop overriding (use the global value)' : `Reset to ${formatValue(def, def.default)}`}
+    >
+      {isPack ? 'inherit' : 'reset'}
+    </button>
+  );
   return (
     <div className={`space-y-1 ${off ? 'opacity-45' : ''}`}>
-      <div className="flex items-start justify-between gap-2">
-        <label htmlFor={id} className="text-sm text-gray-200 font-medium">
-          {def.label}
-          {modified && <span className="ml-1.5 text-yellow-400" title={isPack ? 'Overridden for this pack' : 'Changed from the default'}>●</span>}
-          {inherited && <span className="ml-1.5 text-xs text-gray-600 font-normal">(from global)</span>}
-          {def.experimental && <span className="ml-1.5 text-[10px] uppercase tracking-wide rounded bg-purple-500/20 text-purple-300 px-1.5 py-0.5 font-semibold">experimental</span>}
-        </label>
-        <button
-          type="button"
-          onClick={onReset}
-          disabled={!modified}
-          className="text-xs text-gray-500 hover:text-white disabled:opacity-0 shrink-0"
-          title={isPack ? 'Stop overriding (use the global value)' : `Reset to ${formatValue(def, def.default)}`}
-        >
-          {isPack ? 'inherit' : 'reset'}
-        </button>
+      <div className="flex items-center justify-between gap-2">
+        {label}
+        <span className="flex items-center gap-2">
+          {reset}
+          {inline && <Control def={def} id={id} value={value} onChange={onChange} />}
+        </span>
       </div>
-      <Control def={def} id={id} value={value} onChange={onChange} />
+      {!inline && <Control def={def} id={id} value={value} onChange={onChange} />}
       {(styleHelp || def.help) && <p className="text-xs text-gray-500 leading-relaxed">{styleHelp ?? def.help}</p>}
     </div>
   );

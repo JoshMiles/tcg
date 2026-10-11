@@ -67,6 +67,10 @@
       <span class="card-label">new</span>
 
       <div class="main-card">
+        <!-- Glow: a blurred copy of the art's silhouette (masked by the static thumbnail) behind the card, so it follows
+             rounded corners and holes in the artwork. The art itself is .card-art. -->
+        <div class="glow-layer"><div class="glow-fill glow-a"></div><div class="glow-fill glow-b"></div></div>
+        <div class="card-art"></div>
         <!-- Holo shimmer: inside the card so it follows the art's pop / rock, and masked to the art's own shape
              (widget.js sets --card-mask to the card's static thumbnail, which keeps the rounded transparent corners). -->
         <div class="holographic-overlay"></div>

@@ -232,7 +232,7 @@
 .main-card {
   width: 253px;
   height: 380px;
-  background-color: #fffefe;
+  background-color: transparent;   /* the art (and its white fallback) lives on .card-art */
   border-radius: 0px;
   border: 0px solid #fffefe;
   position: relative;
@@ -516,10 +516,31 @@
   45%  { transform: scale(var(--pop-scale, 1.12)) rotate(var(--pop-tilt, 0deg)); }
   100% { transform: scale(1) rotate(0deg); }
 }
-@keyframes variantGlow {
-  from { box-shadow: 0 0 var(--glow-blur-lo, 16px) var(--glow-spread-lo, 2px) var(--glow-lo, rgba(255,255,255,.6)); }
-  to   { box-shadow: 0 0 var(--glow-blur, 40px) var(--glow-spread, 8px) var(--glow-hi, rgba(255,255,255,.95)); }
+/* Glow: .glow-layer is a blurred copy of the art's silhouette behind the card. The blur is on the OUTER element and the
+   mask (the card's static thumbnail, same shape as the art) on the INNER one, because CSS applies filter before mask:
+   masking the blurred layer would cut the halo off at the card edge. Only opacity / transform animate. */
+.main-card .card-art { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; background-repeat: no-repeat; }
+.glow-layer {
+  position: absolute; inset: 0; z-index: -1; display: none; pointer-events: none; opacity: 0;
+  filter: blur(var(--glow-blur, 20px));
 }
+.glow-fill {
+  position: absolute; inset: 0; background: var(--glow-a, #fff);
+  -webkit-mask-image: var(--card-mask, none); mask-image: var(--card-mask, none);
+  -webkit-mask-size: cover; mask-size: cover; -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+}
+.glow-fill.glow-b { background: var(--glow-b, #fff); opacity: 0; }
+.glow-on .glow-layer { display: block; animation: glowPulse var(--glow-speed, 1.4s) ease-in-out var(--fx-start, 0s) infinite alternate; }
+.glow-on .glow-fill.glow-b { animation: glowShift var(--glow-speed, 1.4s) ease-in-out var(--fx-start, 0s) infinite alternate both; }
+@keyframes glowPulse { from { opacity: .55; transform: scale(var(--glow-scale-lo, 1)); } to { opacity: 1; transform: scale(var(--glow-scale-hi, 1.05)); } }
+@keyframes glowShift { from { opacity: 0; } to { opacity: 1; } }
+
+/* 3D tilt: the card box tips toward / away from the camera, as if someone is showing the card. */
+.card-wrapper.tilt-on { perspective: var(--tilt-persp, 900px); }
+@keyframes variantTiltx  { 0%, 100% { rotate: 1 0 0 0deg; } 25% { rotate: 1 0 0 var(--tilt-amt, 14deg); } 75% { rotate: 1 0 0 calc(var(--tilt-amt, 14deg) * -1); } }
+@keyframes variantTilty  { 0%, 100% { rotate: 0 1 0 0deg; } 25% { rotate: 0 1 0 var(--tilt-amt, 14deg); } 75% { rotate: 0 1 0 calc(var(--tilt-amt, 14deg) * -1); } }
+@keyframes variantTiltxy { 0%, 100% { rotate: 1 1 0 0deg; } 25% { rotate: 1 1 0 var(--tilt-amt, 14deg); } 75% { rotate: 1 1 0 calc(var(--tilt-amt, 14deg) * -1); } }
 @keyframes burstHue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
 /* Gentle left-to-right rock. Uses `rotate`, so it layers on the pop-in's transform. */
 @keyframes variantRock {
