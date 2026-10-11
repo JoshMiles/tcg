@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { SANDBOX_COOKIE } from '@/lib/db';
 import { createSandbox, deleteSandbox, getSandbox, resetSandbox, resetTestData, type SandboxSource } from '@/lib/sandbox';
-import { cleanTestUsername, grantCopies, simulatePulls } from '@/lib/sandbox-tools';
+import { cleanTestUsername, grantCopies, seedUsers, simulatePulls, type SeedShape } from '@/lib/sandbox-tools';
 import { SESSION_COOKIE, sessionCookieOptions, signSession } from '@/lib/session';
 import { ensureUserProfile } from '@/lib/kv';
 import { runInSandbox } from '@/lib/db';
@@ -79,6 +79,19 @@ export async function simulatePullsAction(id: string, formData: FormData) {
   } catch (e) {
     if (isRedirect(e)) throw e;
     back(id, e instanceof Error ? e.message : 'Could not simulate pulls.', 'error');
+  }
+}
+
+export async function seedUsersAction(id: string, formData: FormData) {
+  await requireAdmin();
+  try {
+    const shape: SeedShape = formData.get('shape') === 'even' ? 'even' : 'realistic';
+    const r = await seedUsers(id, { count: Number(formData.get('count')), minPulls: Number(formData.get('minPulls')), maxPulls: Number(formData.get('maxPulls')), shape });
+    const bits = VARIANTS.filter(v => r.byVariant[v] > 0).map(v => `${r.byVariant[v].toLocaleString()} ${v}`).join(', ');
+    back(id, `Created ${r.users} test users with ${r.pulls.toLocaleString()} pulls between them (${bits}). The heaviest collector pulled ${r.heaviest}.`);
+  } catch (e) {
+    if (isRedirect(e)) throw e;
+    back(id, e instanceof Error ? e.message : 'Could not seed users.', 'error');
   }
 }
 

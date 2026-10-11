@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getHoloResolver } from '@/lib/holo';
 import Link from 'next/link';
 import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
 import { getCollection } from '@/lib/kv';
@@ -44,6 +45,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
   const session = await getSession();
   const mine = session ? new Set(countVariants(collection[session.username] ?? []).keys()) : null;
 
+  const holoFor = await getHoloResolver();
   const cards: DexCard[] = overview.cards
     .map(c => {
       const v = overview.values.cards.get(c.number);
@@ -64,6 +66,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
         collectors: owners.get(c.number)?.collectors ?? 0,
         owners: (owners.get(c.number)?.top ?? []).map(o => ({ ...o, avatar: avatars[o.username] ? sizeTwitchAvatar(avatars[o.username], 70) : undefined })),
         owned: mine ? mine.has(c.number) : undefined,
+        holo: holoFor(c.pack, c.stars),
       };
     })
     .filter(c => c.pullRate > 0);
