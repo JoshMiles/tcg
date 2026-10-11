@@ -34,7 +34,7 @@ export function CardTile({
   return (
     <div
       className={className}
-      style={style}
+      style={{ ...style, ['--art-mask' as string]: animates ? `url("${thumb}")` : 'none' } as CSSProperties}
       title={title}
       {...(onActivate ? {
         role: 'button',

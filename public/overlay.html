@@ -64,10 +64,12 @@
 
     <!-- Card box (slides in from behind the pack) -->
     <div class="card-box">
-      <div class="holographic-overlay"></div>
       <span class="card-label">new</span>
 
       <div class="main-card">
+        <!-- Holo shimmer: inside the card so it follows the art's pop / rock, and masked to the art's own shape
+             (widget.js sets --card-mask to the card's static thumbnail, which keeps the rounded transparent corners). -->
+        <div class="holographic-overlay"></div>
         <!-- Top-left card number -->
         <div class="card-number-1">
           <span>1</span>
