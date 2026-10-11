@@ -100,6 +100,13 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           >
             Season Settings
           </Link>
+          <Link
+            href={`/leaderboard/${season.id}`}
+            target="_blank"
+            className="px-3 py-1.5 text-xs bg-yellow-500/10 border border-yellow-500/30 hover:bg-yellow-500/20 text-yellow-300 font-semibold rounded-lg transition-colors"
+          >
+            🏆 Leaderboard ↗
+          </Link>
           <OverlayStatus />
         </div>
       </div>
@@ -135,9 +142,14 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
         <div className="lg:col-span-2 tcg-panel rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
             <h2 className="font-semibold text-white">Top Collectors</h2>
-            <Link href="/admin/users" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
-              View all →
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link href={`/leaderboard/${season.id}`} target="_blank" className="text-xs text-yellow-500 hover:text-yellow-300 transition-colors">
+                Full leaderboard ↗
+              </Link>
+              <Link href="/admin/users" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+                View all →
+              </Link>
+            </div>
           </div>
           {topCollectors.length === 0 ? (
             <div className="px-5 py-10 text-center text-gray-600 text-sm">
