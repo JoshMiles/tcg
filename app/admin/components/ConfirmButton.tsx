@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { createPortal, useFormStatus } from 'react-dom';
+import { Spinner } from './PendingButton';
 import { Dialog } from './Dialog';
 
 /**
@@ -25,6 +26,7 @@ export function ConfirmButton({
   formId?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const { pending } = useFormStatus(); // the surrounding form is running its action
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   function confirm() {
@@ -37,7 +39,8 @@ export function ConfirmButton({
 
   return (
     <>
-      <button ref={buttonRef} type="button" form={formId} className={className} onClick={() => setOpen(true)}>
+      <button ref={buttonRef} type="button" form={formId} disabled={pending} aria-busy={pending} className={`${className} inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait`} onClick={() => setOpen(true)}>
+        {pending && <Spinner />}
         {children}
       </button>
       {open &&

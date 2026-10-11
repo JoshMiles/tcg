@@ -1,3 +1,4 @@
+import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
 import { currentSandboxId } from '@/lib/db';
 import { listSandboxes, SOURCE_LABELS, type SandboxSource } from '@/lib/sandbox';
@@ -24,13 +25,13 @@ export default async function SandboxPage() {
             <p className="text-sm text-purple-200">You are in the sandbox <strong>{active.name}</strong>. Everything you do in the admin and on the website (in this browser) uses its data.</p>
             <div className="flex items-center gap-2">
               <Link href={`/admin/sandbox/${active.id}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Open tools →</Link>
-              <form action={exitSandboxAction}><button className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Exit to production</button></form>
+              <form action={exitSandboxAction}><PendingButton className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Exit to production</PendingButton></form>
             </div>
           </>
         ) : activeId ? (
           <>
             <p className="text-sm text-amber-200">This browser points at a sandbox that no longer exists, so it is looking at an empty, safe namespace.</p>
-            <form action={exitSandboxAction}><button className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Exit to production</button></form>
+            <form action={exitSandboxAction}><PendingButton className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Exit to production</PendingButton></form>
           </>
         ) : (
           <p className="text-sm text-gray-300">You are on <strong className="text-white">production</strong>. Create a sandbox below and enter it to experiment safely.</p>
@@ -66,7 +67,7 @@ export default async function SandboxPage() {
           ))}
         </fieldset>
         <p className="text-xs text-gray-600">Copying reads production but only ever writes into the new sandbox. Discord and webhook settings are never copied.</p>
-        <button type="submit" className="tcg-btn px-5 py-2.5 text-sm rounded-xl">Create and enter</button>
+        <PendingButton pendingLabel="Creating…" className="tcg-btn px-5 py-2.5 text-sm rounded-xl">Create and enter</PendingButton>
       </form>
 
       {/* Existing */}
@@ -86,7 +87,7 @@ export default async function SandboxPage() {
               <div className="flex items-center gap-2">
                 <Link href={`/admin/sandbox/${s.id}`} className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Tools</Link>
                 {s.id !== activeId && (
-                  <form action={enterSandboxAction.bind(null, s.id)}><button className="tcg-btn px-3.5 py-2 text-sm rounded-xl">Enter</button></form>
+                  <form action={enterSandboxAction.bind(null, s.id)}><PendingButton pendingLabel="Entering…" className="tcg-btn px-3.5 py-2 text-sm rounded-xl">Enter</PendingButton></form>
                 )}
               </div>
             </li>

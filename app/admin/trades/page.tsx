@@ -4,6 +4,7 @@ import { TRADE_LIMITS } from '@/lib/trade-core';
 import { getTradeCards } from '@/lib/trade-view';
 import type { TradeCardInfo } from '@/lib/trade-view-core';
 import { TradeCard } from '@/app/components/trade/TradeCard';
+import { PendingButton } from '../components/PendingButton';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { adminCancelTradeAction, saveTradeSettingsAction } from '../trade-actions';
 
@@ -54,7 +55,7 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
               <input type="number" name="maxStacksPerSide" defaultValue={settings.maxStacksPerSide} min={TRADE_LIMITS.maxStacksPerSide.min} max={TRADE_LIMITS.maxStacksPerSide.max} className={field} />
             </label>
           </div>
-          <button type="submit" className="px-5 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold text-sm">Save settings</button>
+          <PendingButton pendingLabel="Saving…" className="px-5 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-gray-950 font-bold text-sm">Save settings</PendingButton>
         </form>
       </section>
 

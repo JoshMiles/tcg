@@ -1,3 +1,4 @@
+import { PendingButton } from '../../components/PendingButton';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -46,9 +47,9 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
             <p className="text-xs text-gray-500 mt-1">{SOURCE_LABELS[sandbox.source]} · created {new Date(sandbox.createdAt).toLocaleString()}</p>
           </div>
           {here ? (
-            <form action={exitSandboxAction}><button className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Exit to production</button></form>
+            <form action={exitSandboxAction}><PendingButton className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Exit to production</PendingButton></form>
           ) : (
-            <form action={enterSandboxAction.bind(null, id)}><button className="tcg-btn px-4 py-2 text-sm rounded-xl">Enter this sandbox</button></form>
+            <form action={enterSandboxAction.bind(null, id)}><PendingButton className="tcg-btn px-4 py-2 text-sm rounded-xl">Enter this sandbox</PendingButton></form>
           )}
         </div>
       </div>
@@ -90,7 +91,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                   <td className="py-2 text-right tabular-nums text-gray-400">{u.unique}</td>
                   <td className="py-2 text-right">
                     <form action={loginAsAction.bind(null, id, u.username)} className="inline">
-                      <button className="px-3 py-1 text-xs font-semibold rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500/60 hover:text-yellow-300" title="Log this browser in as this user on the website (sandbox only)">Log in as →</button>
+                      <PendingButton className="px-3 py-1 text-xs font-semibold rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500/60 hover:text-yellow-300" title="Log this browser in as this user on the website (sandbox only)">Log in as →</PendingButton>
                     </form>
                   </td>
                 </tr>
@@ -109,7 +110,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                   <td className="py-2 text-right tabular-nums text-gray-400">{u.unique}</td>
                   <td className="py-2 text-right">
                     <form action={loginAsAction.bind(null, id, u.username)} className="inline">
-                      <button className="px-3 py-1 text-xs font-semibold rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500/60 hover:text-yellow-300" title="Log this browser in as this user on the website (sandbox only)">Log in as →</button>
+                      <PendingButton className="px-3 py-1 text-xs font-semibold rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500/60 hover:text-yellow-300" title="Log this browser in as this user on the website (sandbox only)">Log in as →</PendingButton>
                     </form>
                   </td>
                 </tr>
@@ -124,7 +125,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
           <label className="text-xs text-gray-500 space-y-1">Add a test user
             <input name="username" required maxLength={25} placeholder="alice" className={`${field} w-48`} />
           </label>
-          <button className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Add</button>
+          <PendingButton pendingLabel="Adding…" className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Add</PendingButton>
         </form>
         <datalist id="sandbox-users">{users.map(u => <option key={u.username} value={u.username} />)}</datalist>
       </section>
@@ -136,7 +137,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
           <p className="text-xs text-gray-500">Draws cards exactly as the overlay does (pack by weight, card by odds, then the variant roll) and adds them to the user&apos;s collection.</p>
           <label className="block text-xs text-gray-500 space-y-1">User<input name="username" list="sandbox-users" required className={field} placeholder="alice" /></label>
           <label className="block text-xs text-gray-500 space-y-1">Number of pulls<input name="count" type="number" min={1} max={500} defaultValue={25} className={field} /></label>
-          <button className="tcg-btn px-4 py-2 text-sm rounded-xl">Pull</button>
+          <PendingButton pendingLabel="Pulling…" className="tcg-btn px-4 py-2 text-sm rounded-xl">Pull</PendingButton>
         </form>
 
         <form action={grantCopiesAction.bind(null, id)} className="tcg-panel rounded-2xl p-5 space-y-3">
@@ -159,7 +160,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
             </label>
             <label className="block text-xs text-gray-500 space-y-1">Copies<input name="count" type="number" min={1} max={200} defaultValue={5} className={field} /></label>
           </div>
-          <button className="tcg-btn px-4 py-2 text-sm rounded-xl" disabled={cards.length === 0}>Give</button>
+          <PendingButton className="tcg-btn px-4 py-2 text-sm rounded-xl" disabled={cards.length === 0}>Give</PendingButton>
         </form>
       </div>
 
@@ -183,7 +184,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
             </select>
           </label>
         </div>
-        <button className="tcg-btn px-4 py-2 text-sm rounded-xl">Seed users</button>
+        <PendingButton pendingLabel="Seeding…" className="tcg-btn px-4 py-2 text-sm rounded-xl">Seed users</PendingButton>
       </form>
 
       {/* How the points work out, card by card */}
