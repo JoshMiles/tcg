@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './db';
 import type { ActivityEvent } from './activity';
 import { getActiveSeasonWithPacks } from './kv';
 import { cardThumbUrl } from './card-art';

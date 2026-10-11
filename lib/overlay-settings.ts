@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './db';
 import { getOverlayStatus } from './overlay';
 import { sanitizeLayout, type OverlayLayout } from './overlay-layout';
 import { sanitizePropValues, type PropValues } from './overlay-props';

@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './db';
 
 /**
  * Everything that tunes how cards are valued and how the leaderboard is scored. Edited in Admin → Settings → Scoring and

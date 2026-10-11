@@ -10,7 +10,15 @@ function run(cmd) {
   switch (o) {
     case 'get': return store.has(key) ? store.get(key) : null;
     case 'set': store.set(key, rest[0]); return 'OK';
-    case 'del': return store.delete(key) ? 1 : 0;
+    case 'del': { let n = 0; for (const k of [key, ...rest]) if (store.delete(k)) n++; return n; }
+    case 'scan': {
+      // SCAN cursor MATCH pattern COUNT n: one pass over everything, cursor 0 means done.
+      const mi = rest.findIndex(x => String(x).toLowerCase() === 'match');
+      const pat = mi >= 0 ? String(rest[mi + 1]) : '*';
+      const esc = pat.split('*').map(part => part.replace(/[.+?^${}()|[\]\\]/g, c => '\\' + c)).join('.*');
+      const re = new RegExp('^' + esc + '$');
+      return ['0', [...store.keys()].filter(k => re.test(k))];
+    }
     case 'lpush': { const l = store.get(key) || []; l.unshift(rest[0]); store.set(key, l); return l.length; }
     case 'rpop': { const l = store.get(key) || []; return l.pop() ?? null; }
     case 'incr': { const n = Number(store.get(key) || 0) + 1; store.set(key, String(n)); return n; }

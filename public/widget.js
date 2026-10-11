@@ -7,6 +7,26 @@
 // browser source actually is, so a differently sized source still shows the whole animation. The admin's
 // scale/offset are applied on top. `?preview` is the admin editor's iframe: it takes layout changes by
 // postMessage and never talks to the real queue, heartbeat or collection data.
+// Sandbox: with ?sandbox=<id> every request to this site carries the sandbox header, so the overlay reads and writes that
+// sandbox's data instead of production's (see lib/db.ts). A badge makes it obvious the overlay is not live data.
+const SANDBOX_ID = new URLSearchParams(window.location.search).get('sandbox');
+if (SANDBOX_ID) {
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (typeof input !== 'string' || !(url.startsWith('/') || url.startsWith(window.location.origin))) return nativeFetch(input, init);
+    const headers = new Headers((init && init.headers) || undefined);
+    headers.set('x-tcg-sandbox', SANDBOX_ID);
+    return nativeFetch(input, Object.assign({}, init, { headers }));
+  };
+  window.addEventListener('DOMContentLoaded', () => {
+    const badge = document.createElement('div');
+    badge.textContent = '🧪 SANDBOX · ' + SANDBOX_ID;
+    badge.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99998;font:700 12px Poppins,sans-serif;color:#f3e8ff;background:rgba(88,28,135,.9);border:1px solid rgba(192,132,252,.6);border-radius:999px;padding:4px 12px;pointer-events:none;';
+    document.body.appendChild(badge);
+  });
+}
+
 const PREVIEW = new URLSearchParams(window.location.search).has('preview');
 // The stage is the browser source's size; scale/offset are set separately for the pack opening and the collection
 // view (each theater wrapper gets .is-pack or .is-collection, which picks up its own --pack-* / --col-* variables).

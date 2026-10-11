@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv, inSandbox } from './db';
 import { after } from 'next/server';
 import { notifyDiscord } from './discord';
 import type { Variant } from './types';
@@ -37,7 +37,8 @@ export async function recordActivity(event: NewActivity): Promise<void> {
     const full: ActivityEvent = { ...event, username: event.username.toLowerCase(), seq, at: Date.now() };
     await kv.lpush(LOG_KEY, full);
     await kv.ltrim(LOG_KEY, 0, LOG_CAP - 1);
-    forwardToDiscord(full);
+    // A sandbox never posts to Discord (the post runs in after(), where the request's sandbox isn't visible, so decide here).
+    if (!(await inSandbox())) forwardToDiscord(full);
   } catch {
     // swallow
   }

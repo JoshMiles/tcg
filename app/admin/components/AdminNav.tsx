@@ -10,6 +10,7 @@ const nav = [
   { href: '/admin/users', label: 'Users', icon: '👥' },
   { href: '/admin/assets', label: 'Assets', icon: '🖼️' },
   { href: '/admin/overlay', label: 'Overlay Editor', icon: '🎨' },
+  { href: '/admin/sandbox', label: 'Sandbox', icon: '🧪' },
   { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
 ];
 

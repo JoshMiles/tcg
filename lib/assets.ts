@@ -1,4 +1,5 @@
 import { list, del } from '@vercel/blob';
+import { inSandbox } from './db';
 import { listAllPacks, getPackCards } from './kv';
 import { cardThumbUrl, isBlobUrl } from './card-art';
 
@@ -183,6 +184,8 @@ export async function loadAssetLibrary(origin: string): Promise<AssetLibrary> {
 export async function deleteUnusedBlobs(urls: string[]): Promise<number> {
   const requested = [...new Set(urls)].filter(isBlobUrl);
   if (requested.length === 0) return 0;
+  // The Blob store is shared with production and a sandbox's data can lag behind it, so a sandbox must never delete files.
+  if (await inSandbox()) return 0;
 
   const [{ referenced }, inventory] = await Promise.all([collectReferenced(), listAllBlobs()]);
   if (!inventory.connected) return 0;

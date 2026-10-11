@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './db';
 import { queueLength } from './webhooks';
 
 // Which OBS overlays (overlay.html browser sources) are currently open, and — when OBS lets the

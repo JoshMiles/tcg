@@ -5,6 +5,7 @@ import { BuildBadge } from './components/BuildBadge';
 import { OverlayStatus } from './components/OverlayStatus';
 import { OverlayStatusProvider } from './components/OverlayStatusContext';
 import { CopyUrlButton } from './components/copy-url-button';
+import { SandboxPill } from '@/app/components/SandboxPill';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -44,6 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </>
         }
       >
+        <SandboxPill />
         {children}
       </AdminShell>
     </OverlayStatusProvider>
