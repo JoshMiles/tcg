@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getPack, getPackCards } from '@/lib/kv';
-import { updatePack, deleteCard } from '../../actions';
+import { getPack, getPackCards, listSeasons } from '@/lib/kv';
+import { getPackOverrides } from '@/lib/overlay-settings';
+import { updatePack, deleteCard, setPackActive, deletePackAction } from '../../actions';
 import { unpublishPack } from '../../draft-actions';
-import { DraftChip } from '../../components/StatusChip';
+import { DraftChip, StatusChip } from '../../components/StatusChip';
+import { CardFilter } from './CardFilter';
 import { PackFields } from '../../components/PackFields';
 import { AddCardButton } from '../../components/AddCardButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
@@ -14,8 +16,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function PackPage({ params }: { params: Promise<{ packId: string }> }) {
   const { packId } = await params;
-  const [pack, cards] = await Promise.all([getPack(packId), getPackCards(packId)]);
+  const [pack, cards, seasons, overrides] = await Promise.all([getPack(packId), getPackCards(packId), listSeasons(), getPackOverrides().catch((): Record<string, unknown> => ({}))]);
   if (!pack) notFound();
+  const inSeasons = seasons.filter(s => s.packIds.includes(packId));
+  const hasOverrides = Object.keys(overrides[packId] ?? {}).length > 0;
+  const starLevels = [...new Set(cards.map(c => c.stars))].sort((a, b) => b - a);
 
   const sorted = [...cards].sort((a, b) => a.number - b.number);
   const totalProb = cards.reduce((s, c) => s + c.probability, 0);
@@ -29,28 +34,41 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
     <div className="space-y-8">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {pack.coverImageUrl && (
-            <img src={pack.coverImageUrl} alt={pack.name} className="w-10 h-14 object-cover rounded-lg" />
-          )}
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-white">{pack.name}</h1>
-              {isDraft ? (
-                <DraftChip />
-              ) : pack.active ? (
-                <span className="text-xs px-2 py-0.5 bg-green-900/50 text-green-400 rounded-full">Active</span>
-              ) : (
-                <span className="text-xs px-2 py-0.5 bg-gray-800 text-gray-500 rounded-full">Inactive</span>
-              )}
+      <div className="space-y-4">
+        <Link href="/admin/packs" className="inline-block text-sm text-gray-500 hover:text-white transition-colors">← All packs</Link>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            {pack.coverImageUrl && (
+              <img src={pack.coverImageUrl} alt="" className="w-14 h-20 object-cover rounded-xl border border-white/10 shrink-0" />
+            )}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-2xl font-bold text-white truncate">{pack.name}</h1>
+                {isDraft ? <DraftChip /> : <StatusChip active={pack.active} />}
+                {pack.upgradesEnabled && <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-300 bg-purple-500/10 border border-purple-400/30 rounded-full px-2.5 py-0.5">✨ Upgrades</span>}
+              </div>
+              <p className="text-sm text-gray-500 mt-1">{cards.length} cards · Draw weight {pack.weight}×</p>
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">{cards.length} cards · Weight {pack.weight}×</p>
+          </div>
+
+          {/* Quick actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            {!isDraft && (
+              <form action={setPackActive.bind(null, packId, !pack.active)}>
+                <button type="submit" className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 transition-colors">
+                  {pack.active ? 'Deactivate' : 'Activate'}
+                </button>
+              </form>
+            )}
+            <Link
+              href={`/admin/overlay?scope=${packId}`}
+              className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-yellow-500/60 hover:text-yellow-300 transition-colors"
+              title="Open the Overlay Editor with this pack's overrides"
+            >
+              🎨 Overlay look{hasOverrides ? ' ●' : ''}
+            </Link>
           </div>
         </div>
-        <Link href="/admin/packs" className="text-sm text-gray-500 hover:text-white transition-colors">
-          ← Packs
-        </Link>
       </div>
 
       {isDraft && (
@@ -81,6 +99,8 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             </div>
           </div>
 
+          <CardFilter total={sorted.length} stars={starLevels} />
+
           <div className="tcg-panel rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -106,7 +126,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
                   const pct = totalProb > 0 ? (card.probability / totalProb * 100).toFixed(1) : '—';
                   const rarity = getRarity(card.stars);
                   return (
-                    <tr key={card.id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={card.id} data-card data-stars={card.stars} data-search={`${card.name} ${card.number}`.toLowerCase()} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-5 py-2.5 text-gray-600 tabular-nums text-xs">{card.number}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
@@ -115,7 +135,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
                           ) : (
                             <div className="w-7 h-10 bg-gray-800 rounded shrink-0" />
                           )}
-                          <span className="text-gray-200 font-medium">{card.name}</span>
+                          <Link href={`/admin/packs/${packId}/cards/${card.id}`} className="text-gray-200 font-medium hover:text-yellow-300 transition-colors">{card.name}</Link>
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-right">
@@ -160,6 +180,28 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
         {/* ── Right: Pack settings ── */}
         <div className="space-y-6">
 
+          {/* Where it's used */}
+          <div className="tcg-panel rounded-2xl p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-white">Used in</h3>
+            {inSeasons.length > 0 ? (
+              <ul className="space-y-1.5">
+                {inSeasons.map(s => (
+                  <li key={s.id}>
+                    <Link href={`/admin/seasons/${s.id}`} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 bg-white/[0.03] hover:bg-white/[0.07] text-sm text-gray-200 transition-colors">
+                      <span className="truncate">{s.name}</span>
+                      {s.active && <span className="text-[10px] font-extrabold uppercase tracking-wider text-yellow-300">Active season</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-amber-300">
+                {isDraft ? 'Not in a season yet.' : 'Not in any season, so this pack is never drawn.'}{' '}
+                <Link href="/admin/seasons" className="underline hover:text-amber-100">Add it to a season →</Link>
+              </p>
+            )}
+          </div>
+
           {/* Rarity breakdown */}
           {rarityBreakdown.length > 0 && (
             <div className="tcg-panel rounded-2xl p-5 space-y-3">
@@ -193,12 +235,25 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             </div>
             <form action={updateThisPack} className="p-5 space-y-4">
               <PackFields defaults={pack} />
-              <button
-                type="submit"
-                className="w-full px-4 py-2.5 tcg-btn rounded-xl text-sm transition-colors"
+              <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-3 bg-gray-900/95 backdrop-blur border-t border-gray-800">
+                <button type="submit" className="w-full px-4 py-2.5 tcg-btn rounded-xl text-sm transition-colors">Save Changes</button>
+              </div>
+            </form>
+          </div>
+
+          {/* Danger zone */}
+          <div className="rounded-2xl border border-red-500/20 p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-red-300">Danger zone</h3>
+            <p className="text-xs text-gray-500">Deleting removes the pack and its cards, and takes it out of every season. Viewers keep any entries they already pulled in their data.</p>
+            <form action={deletePackAction.bind(null, packId)}>
+              <ConfirmButton
+                title="Delete pack?"
+                confirmLabel="Delete pack"
+                message={<>Delete <strong className="text-white">{pack.name}</strong>? Its cards are deleted and it is removed from every season. This can&apos;t be undone.</>}
+                className="px-3.5 py-2 text-sm font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 border border-red-500/30 rounded-xl transition-colors"
               >
-                Save Changes
-              </button>
+                Delete this pack
+              </ConfirmButton>
             </form>
           </div>
         </div>
