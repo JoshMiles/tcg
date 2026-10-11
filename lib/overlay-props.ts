@@ -56,6 +56,12 @@ export const REVEAL_STYLES: { value: string; label: string; experimental?: boole
   { value: 'flip',     label: 'Flip reveal', description: 'A card back flips over to reveal the art.' },
   { value: 'rip-shake', label: 'Rip — shake & burst', experimental: true, description: 'The pack shakes harder and harder, the tear strip flies off and the card bursts out.' },
   { value: 'rip-peel',  label: 'Rip — peel open', experimental: true, description: 'The tear strip peels back from one side like a wrapper, then the card rises.' },
+  { value: 'rip-slice', label: 'Rip — slice off', experimental: true, description: 'The tear strip slides straight off to the side like a clean cut, the pack drops away and the card rises.' },
+  { value: 'rip-explode', label: 'Rip — explode', experimental: true, description: 'The pack swells and flashes white, then bursts apart as the card slams out.' },
+  { value: 'drop',     label: 'Drop in', description: 'No pack. The card drops from above and bounces into place.' },
+  { value: 'spin',     label: 'Spin in', description: 'No pack. The card spins in from small, turning to face the camera.' },
+  { value: 'impact',   label: 'Impact', description: 'No pack. The card slams in huge, then judders to rest, like a heavy hit.' },
+  { value: 'deal',     label: 'Deal', description: 'No pack. The card is dealt from the side, spinning in and settling.' },
 ];
 
 export const BLEND_MODES = [
@@ -155,6 +161,16 @@ function variantPropsRaw(v: VariantId): PropDef[] {
     { key: `${g}.sparkles`, group: g, label: 'Sparkle burst', type: 'boolean', default: false, experimental: true, help: 'A burst of sparkles flies out from the card when it is revealed.' },
     { key: `${g}.sparkleCount`, group: g, label: 'Sparkle amount', type: 'number', default: 28, min: 6, max: 80, step: 1 },
     { key: `${g}.sparkleColor`, group: g, label: 'Sparkle colour', type: 'color', default: '#ffe27a' },
+    {
+      key: `${g}.style`, group: g, label: 'Reveal animation', type: 'select', default: 'inherit',
+      options: [{ value: 'inherit', label: 'Same as the pack opening' }, ...REVEAL_STYLES.map(x => ({ value: x.value, label: x.label + (x.experimental ? ' (experimental)' : '') }))],
+      help: `Give ${name} its own entrance, e.g. rarer pulls could always rip the pack open.`,
+    },
+    { key: `${g}.burst`, group: g, label: 'Light burst', type: 'boolean', default: true, help: 'Rays spinning behind the revealed card.' },
+    { key: `${g}.burstOpacity`, group: g, label: 'Burst strength', type: 'number', default: 0.85, min: 0, max: 1, step: 0.05 },
+    { key: `${g}.burstSize`, group: g, label: 'Burst size', type: 'number', default: 1, min: 0.4, max: 2.5, step: 0.05, unit: '×' },
+    { key: `${g}.burstRays`, group: g, label: 'Number of rays', type: 'number', default: 8, min: 3, max: 24, step: 1 },
+    { key: `${g}.burstSpeed`, group: g, label: 'Spin cycle time', type: 'number', default: 4, min: 1, max: 20, step: 0.5, unit: 's', help: 'Seconds for one full turn. Lower is faster.' },
     { key: `${g}.burstColor`, group: g, label: 'Light-burst colour', type: 'color', default: d.burstColor, help: 'The rays behind the card.' },
     { key: `${g}.burstHue`, group: g, label: 'Cycle burst colours', type: 'boolean', default: d.burstHue, experimental: true, help: 'The rays slowly shift through the rainbow.' },
   ];
@@ -164,6 +180,8 @@ export const PROPS: PropDef[] = [
   // ── Pack opening ──
   { key: 'reveal.style', group: 'pack', label: 'Reveal animation', type: 'select', default: 'classic', options: REVEAL_STYLES.map(s => ({ value: s.value, label: s.label + (s.experimental ? ' (experimental)' : '') })), help: 'How the pulled card appears.' },
   { key: 'reveal.speed', group: 'pack', label: 'Animation speed', type: 'number', default: 1, min: 0.5, max: 2.5, step: 0.05, unit: '×', help: '1 is the designed speed. 2 plays everything twice as fast (the on-screen hold time is not changed).' },
+  { key: 'reveal.startDelay', group: 'pack', label: 'Start delay', type: 'number', default: 0, min: 0, max: 5, step: 0.1, unit: 's', help: 'Wait this long before the reveal begins (handy to line it up with a bot message or alert).' },
+  { key: 'reveal.packScale', group: 'pack', label: 'Pack size', type: 'number', default: 1, min: 0.5, max: 1.5, step: 0.05, unit: '×', help: 'Scales the pack in the styles that show one.' },
   { key: 'reveal.packSounds', group: 'pack', label: 'Pack-opening sounds', type: 'boolean', default: true, help: 'The rip and shake sounds for the pack styles. (Card sounds are set on each card.)' },
   { key: 'reveal.cardScale', group: 'pack', label: 'Revealed card size', type: 'number', default: 1, min: 0.5, max: 1.5, step: 0.05, unit: '×', help: 'Scales the card itself (the pack and the strip stay as they are).' },
   { key: 'reveal.labelSize', group: 'pack', label: 'Label text size', type: 'number', default: 14, min: 10, max: 30, step: 1, unit: 'px' },
@@ -172,8 +190,6 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.infoBg', group: 'pack', label: 'Name & stars bar colour', type: 'color', default: '#fffefe' },
   { key: 'reveal.gotColor', group: 'pack', label: '"got:" pill colour', type: 'color', default: '#f1bb06' },
   { key: 'reveal.gotTextColor', group: 'pack', label: '"got:" text colour', type: 'color', default: '#fffefe' },
-  { key: 'reveal.showBurst', group: 'pack', label: 'Light burst', type: 'boolean', default: true, help: 'Rays spinning behind the revealed card.' },
-  { key: 'reveal.burstOpacity', group: 'pack', label: 'Burst strength', type: 'number', default: 0.85, min: 0, max: 1, step: 0.05 },
   { key: 'reveal.showLabel', group: 'pack', label: 'Label above the card', type: 'boolean', default: true, help: 'The tag: "new", or the version name.' },
   { key: 'reveal.labelOwned', group: 'pack', label: 'Label for a card they already own', type: 'text', default: '', maxLength: 30, help: 'Regular pulls say "new" even when it is a duplicate. Put a word here (e.g. "again") to use it for cards the viewer already has. Empty keeps the normal label.' },
   { key: 'reveal.showInfoBar', group: 'pack', label: 'Name and stars bar', type: 'boolean', default: true, help: 'The card name and star rating at the bottom of the card.' },
@@ -231,16 +247,16 @@ function sectionFor(key: string): string {
     if (n.startsWith('tilt')) return '3D tilt';
     if (n.startsWith('rock')) return 'Rocking';
     if (n.startsWith('burst')) return 'Light burst';
+    if (n === 'style') return 'Reveal animation';
     if (n.startsWith('sparkle')) return 'Sparkles';
     return 'Time and sound';
   }
   const r: [RegExp, string][] = [
-    [/^reveal.(style|speed|packSounds)$/, 'Animation'],
+    [/^reveal.(style|speed|startDelay|packScale|packSounds)$/, 'Animation'],
     [/^reveal.cardScale$/, 'Card'],
     [/^reveal.(showLabel|labelSize|labelOwned)$/, 'Label'],
     [/^reveal.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
     [/^reveal.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],
-    [/^reveal.(showBurst|burstOpacity)$/, 'Light burst'],
     [/^reveal.(showMiniList|showUncollectedStrip|stripShowCounts|stripShowMarkers)$/, 'Cards under the card'],
     [/^reveal.(stripPerRow|stripCardWidth|stripGap|stripSort)$/, 'Strip layout'],
     [/^reveal.strip/, 'Strip card look'],
@@ -255,7 +271,7 @@ function sectionFor(key: string): string {
 /** The order sections appear in within a category (anything unlisted follows). */
 export const SECTION_ORDER = [
   'Animation', 'Card', 'Label', 'Name and stars bar', '"got:" line',
-  'Holographic shimmer', 'Glow', 'Pop-in', '3D tilt', 'Rocking', 'Light burst', 'Sparkles', 'Time and sound',
+  'Reveal animation', 'Holographic shimmer', 'Glow', 'Pop-in', '3D tilt', 'Rocking', 'Light burst', 'Sparkles', 'Time and sound',
   'Cards under the card', 'Strip layout', 'Strip card look',
   'Layout', 'What to show', 'Timing', 'Card look',
 ];

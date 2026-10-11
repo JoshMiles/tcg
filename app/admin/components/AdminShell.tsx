@@ -36,6 +36,9 @@ export function AdminShell({
     return () => window.removeEventListener('tcg:sidebar', onForce);
   }, []);
   const shownCollapsed = collapsed || forced;
+  // A collapsed sidebar opens over the page while hovered or focused (the page itself doesn't move).
+  const [peek, setPeek] = useState(false);
+  const expandedLook = !shownCollapsed || peek;
   const toggle = () => {
     // Expanding while a page forced it collapsed just overrides that (not saved).
     if (forced && !collapsed) { setForced(false); return; }
@@ -75,10 +78,14 @@ export function AdminShell({
       {open && <div className="lg:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setOpen(false)} aria-hidden />}
 
       <aside
-        data-collapsed={shownCollapsed}
+        data-collapsed={!expandedLook}
+        onMouseEnter={() => setPeek(true)}
+        onMouseLeave={() => setPeek(false)}
+        onFocusCapture={() => setPeek(true)}
+        onBlurCapture={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPeek(false); }}
         className={`admin-aside bg-gray-950/95 lg:bg-gray-950/80 backdrop-blur border-r border-poke-blue-light/15 flex flex-col shrink-0
           fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}
-          lg:sticky lg:top-0 lg:h-screen lg:z-auto lg:translate-x-0 lg:transition-[width] ${shownCollapsed ? 'lg:w-[4.5rem]' : 'lg:w-60'}`}
+          lg:z-40 lg:translate-x-0 lg:transition-[width] ${expandedLook ? 'lg:w-60' : 'lg:w-[4.5rem]'} ${shownCollapsed && peek ? 'lg:shadow-2xl' : ''}`}
       >
         <div className="px-4 py-5 flex items-center gap-2">
           <div className="flex-1 min-w-0">{brand}</div>
@@ -105,12 +112,12 @@ export function AdminShell({
             className="hidden lg:flex w-full items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:text-yellow-300 hover:bg-white/5 text-xs font-semibold transition-colors aside-item"
           >
             <span aria-hidden>{shownCollapsed ? '»' : '«'}</span>
-            <span className="aside-label">Collapse</span>
+            <span className="aside-label">{shownCollapsed ? 'Keep open' : 'Collapse'}</span>
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0 overflow-auto px-4 pb-6 pt-20 sm:px-6 lg:p-8">
+      <main className={`flex-1 min-w-0 overflow-auto px-4 pb-6 pt-20 sm:px-6 lg:p-8 lg:transition-[margin] ${shownCollapsed ? 'lg:ml-[4.5rem]' : 'lg:ml-60'}`}>
         {children}
       </main>
     </div>

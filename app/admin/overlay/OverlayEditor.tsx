@@ -34,8 +34,8 @@ function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean 
     if (/^rock(Amount|Speed)$/.test(name)) return { key: `${g}.rock`, when: v => v === true };
     if (/^sparkle(Count|Color)$/.test(name)) return { key: `${g}.sparkles`, when: v => v === true };
     if (/^holo(Colors|Opacity|Speed|Angle|Blend|Loop)$/.test(name)) return { key: `${g}.holoMode`, when: v => v !== 'off' };
+    if (/^burst(Opacity|Size|Rays|Speed|Color|Hue)$/.test(name)) return { key: `${g}.burst`, when: v => v === true };
   }
-  if (key === 'reveal.burstOpacity') return { key: 'reveal.showBurst', when: v => v === true };
   if (key === 'reveal.gotText') return { key: 'reveal.showGotLine', when: v => v === true };
   if (key === 'collection.headingText') return { key: 'collection.showHeading', when: v => v === true };
   return null;
@@ -888,7 +888,7 @@ function PropRow({
   onReset: () => void;
 }) {
   const id = `prop-${def.key}`;
-  const styleHelp = def.key === 'reveal.style' ? REVEAL_STYLES.find(s => s.value === value)?.description : undefined;
+  const styleHelp = def.key === 'reveal.style' || /^variant.[a-z]+.style$/.test(def.key) ? REVEAL_STYLES.find(s => s.value === value)?.description : undefined;
   const inline = def.type === 'boolean';
   const label = (
     <label htmlFor={id} className="text-sm text-gray-200 font-medium">
