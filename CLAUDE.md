@@ -102,10 +102,10 @@ Packs can opt in to **variants**: every card can be pulled as Regular / Reverse 
 - `/admin/seasons` — season list (drafts first)
 - `/admin/seasons/new[?draft=id]` — season wizard / resume a draft
 - `/admin/seasons/[id]` — season settings + pack assignment
-- `/admin/packs` — global pack library
+- `/admin/packs` — global pack library: search (matches season names too, `/` focuses it), status filters (All / Live / Inactive / Drafts) and sorting via `PackToolbar` (tiles opt in with `data-pack` + `data-*` attributes; it toggles `hidden` / CSS `order`, no re-render); each tile shows the seasons it is used in (a warning when a published pack is in none, so it can never be drawn), an Upgrades chip, a one-click Active/Inactive switch (`setPackActive`) and a link to that pack's overlay overrides (`/admin/overlay?scope=<id>`)
 - `/admin/packs/new[?draft=id]` — pack wizard / resume a draft
 - `/admin/packs/[packId]/cards` — bulk card editor for an existing pack (explicit save)
-- `/admin/packs/[packId]` — pack settings + cards table + add card
+- `/admin/packs/[packId]` — pack page: header actions (activate / overlay look), a "Used in" seasons panel, a searchable / rarity-filterable cards table (`CardFilter`, same data-attribute approach), pack settings with a sticky Save, move to drafts, and a danger zone (delete)
 - `/admin/packs/[packId]/cards/[cardId]` — edit individual card
 - `/admin/users` — all collectors across all seasons, with link to each user's detail page
 - `/admin/users/[username]` — user detail: per-season card grid, grant/remove cards, danger zone (reset/delete)
