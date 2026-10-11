@@ -811,3 +811,12 @@ html, body {
 }
 .login-legal a { color: var(--muted); text-decoration: underline; }
 .login-legal a:hover { color: var(--text); }
+
+/* ── Shiny cards rock gently left to right ── */
+@keyframes shinyRock {
+  0%, 100% { rotate: 0deg; }
+  25%      { rotate: 1.6deg; }
+  75%      { rotate: -1.6deg; }
+}
+.vfx-shiny { animation: shinyRock 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .vfx-shiny { animation: none; } }

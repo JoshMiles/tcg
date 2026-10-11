@@ -26,9 +26,9 @@ export interface GridCard {
   counts: VariantCounts;
   /** Points per copy, per variant. */
   values: Record<Variant, number>;
-  /** How many copies of this card exist across the whole season, and the resulting value factor (0.5–2). */
-  copies: number;
-  scarcity: number;
+  /** How many copies of each version exist across the whole season, and the resulting value factor per version (0.5–2). */
+  variantCopies: VariantCounts;
+  scarcity: Record<Variant, number>;
   /** Copies needed for each upgrade step (used by the owner's Upgrade buttons). */
   costs: UpgradeCosts;
 }
@@ -171,10 +171,13 @@ function CardDetail({
   const cardTotal = VARIANTS.reduce((s, v) => s + card.counts[v] * card.values[v], 0);
   const share = totalScore > 0 ? Math.round((cardTotal / totalScore) * 100) : 0;
 
+  // Scarcity is per version: describe the version being shown.
+  const sc = card.scarcity[shown];
+  const outThere = card.variantCopies[shown];
   const scarcityLabel =
-    card.scarcity >= 1.25 ? { text: 'Scarce — few copies exist this season, which boosts its value', cls: 'text-emerald-300' }
-    : card.scarcity <= 0.8 ? { text: 'Common — lots of copies exist this season, which lowers its value', cls: 'text-gray-400' }
-    : { text: 'About an average number of copies exist this season', cls: 'text-gray-300' };
+    sc >= 1.25 ? { text: `${VARIANT_LABELS[shown]}: scarce — fewer copies of this version exist than average, which boosts its value`, cls: 'text-emerald-300' }
+    : sc <= 0.8 ? { text: `${VARIANT_LABELS[shown]}: plentiful — more copies of this version exist than average, which lowers its value`, cls: 'text-gray-400' }
+    : { text: `${VARIANT_LABELS[shown]}: about an average number of copies of this version exist`, cls: 'text-gray-300' };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${card.name} details`}>
@@ -225,7 +228,7 @@ function CardDetail({
             </div>
 
             <p className={`text-xs ${scarcityLabel.cls}`}>
-              {scarcityLabel.text} <span className="text-gray-500">(×{card.scarcity.toFixed(2)}, {card.copies.toLocaleString()} cop{card.copies === 1 ? 'y' : 'ies'} out there)</span>
+              {scarcityLabel.text} <span className="text-gray-500">(×{sc.toFixed(2)}, {outThere.toLocaleString()} cop{outThere === 1 ? 'y' : 'ies'} out there)</span>
             </p>
 
             {/* Per-variant table */}
@@ -236,6 +239,7 @@ function CardDetail({
                     <th className="py-2 px-3 font-bold">Version</th>
                     <th className="py-2 px-2 font-bold text-right">You own</th>
                     {card.upgradable && <th className="py-2 px-2 font-bold text-right hidden sm:table-cell">Pull odds</th>}
+                    <th className="py-2 px-2 font-bold text-right hidden sm:table-cell">Out there</th>
                     <th className="py-2 px-3 font-bold text-right">Each is worth</th>
                     {showUpgrades && <th className="py-2 px-3 font-bold text-right">Upgrade</th>}
                   </tr>
@@ -252,6 +256,7 @@ function CardDetail({
                         <td className="py-2 px-3 text-gray-200">{VARIANT_LABELS[v]}</td>
                         <td className="py-2 px-2 text-right tabular-nums text-gray-300">{n > 0 ? `×${n}` : '—'}</td>
                         {card.upgradable && <td className="py-2 px-2 text-right tabular-nums text-gray-500 hidden sm:table-cell">{oneIn(card.variantOdds[v])}</td>}
+                        <td className="py-2 px-2 text-right tabular-nums text-gray-500 hidden sm:table-cell">{card.variantCopies[v].toLocaleString()}</td>
                         <td className="py-2 px-3 text-right tabular-nums font-semibold text-yellow-300">{card.values[v].toLocaleString()} pts</td>
                         {showUpgrades && (
                           <td className="py-2 px-3 text-right">
@@ -268,7 +273,7 @@ function CardDetail({
             </div>
 
             <p className="text-xs text-gray-500">
-              {canUpgrade && card.upgradable ? 'Upgrades are permanent: the copies you spend are destroyed. That makes this card scarcer, which can raise what its remaining copies are worth. ' : ''}Values change as cards are pulled and upgraded this season.{' '}
+              {canUpgrade && card.upgradable ? 'Upgrades are permanent: the copies you spend are destroyed. That makes that version scarcer, which can raise what your remaining copies of it are worth. ' : ''}Values change as cards are pulled and upgraded this season.{' '}
               <a href={`${leaderboardHref}?how=1`} className="text-yellow-500 hover:text-yellow-300">How are points worked out? →</a>
             </p>
           </div>

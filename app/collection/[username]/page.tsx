@@ -83,8 +83,8 @@ export default async function CollectionPage({
       },
       counts: variantMap.get(c.number) ?? emptyCounts(),
       values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
-      copies: v?.copies ?? 0,
-      scarcity: v?.scarcity ?? 1,
+      variantCopies: v?.variantCopies ?? emptyCounts(),
+      scarcity: v?.scarcity ?? { regular: 1, reverse: 1, full: 1, shiny: 1 },
       costs: c.pack.upgradeCosts,
     };
   });

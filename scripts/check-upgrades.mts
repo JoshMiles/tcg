@@ -49,9 +49,26 @@ const cards: Card[] = [
 ];
 const collection = { alice: [1, 1, 1, 1, 1, encodeEntry(2, 'regular')], bob: [encodeEntry(2, 'reverse'), 99] };
 const values = computeSeasonValues([{ pack: pack(), cards }], collection);
-console.log('card values:', [...values.cards.values()].map(c => ({ n: c.number, scarcity: +c.scarcity.toFixed(2), regular: c.values.regular, reverse: c.values.reverse })));
+console.log('card values:', [...values.cards.values()].map(c => ({ n: c.number, scarcity: { reg: +c.scarcity.regular.toFixed(2), rh: +c.scarcity.reverse.toFixed(2) }, regular: c.values.regular, reverse: c.values.reverse })));
 if (!(values.cards.get(2)!.values.regular > values.cards.get(1)!.values.regular)) throw new Error('rare should be worth more');
 const rows = buildLeaderboard(values, collection);
 console.log('rows:', rows.map(r => [r.username, r.score]));
 eq(rows.find(r => r.username === 'bob')!.copies, 1, 'deleted card #99 ignored');
 console.log('all checks passed');
+
+// Scarcity is per variant: spending Regulars makes the Regulars you keep worth more, and adds to the Reverse count.
+import { projectUpgradeGain, scoreFor, computeSeasonValues as csv } from '../lib/leaderboard';
+const big: Record<string, number[]> = { a: [1, 1, 1, 1, 1, 1, 2, 2, 2, 2], b: [1, 2, 2, 2] };
+const packs = [{ pack: pack(), cards }];
+const beforeV = csv(packs, big);
+const afterV = csv(packs, { ...big, a: [1, encodeEntry(1, 'reverse'), 2, 2, 2, 2] }); // a upgraded card 1: 5 Regular -> 1 Reverse
+const c1b = beforeV.cards.get(1)!, c1a = afterV.cards.get(1)!;
+console.log('card 1 regular scarcity', +c1b.scarcity.regular.toFixed(2), '->', +c1a.scarcity.regular.toFixed(2), '| value', c1b.values.regular, '->', c1a.values.regular);
+if (!(c1a.scarcity.regular > c1b.scarcity.regular)) throw new Error('spending regulars should make that version scarcer');
+if (!(c1a.variantCopies.reverse === 1 && c1b.variantCopies.reverse === 0)) throw new Error('reverse count should rise');
+// Another card's Regular value is unaffected by card 1's Reverse (different version), but does move with the Regular average.
+const gain = projectUpgradeGain(packs, big, 'a', 1, 'regular', 'reverse', 5);
+console.log('projected gain for a:', gain, '(before', scoreFor(beforeV, big.a), 'after', scoreFor(afterV, [1, encodeEntry(1, 'reverse'), 2, 2, 2, 2]), ')');
+if (gain === null || gain !== scoreFor(afterV, [1, encodeEntry(1, 'reverse'), 2, 2, 2, 2]) - scoreFor(beforeV, big.a)) throw new Error('projection should equal a full recompute');
+if (projectUpgradeGain(packs, big, 'b', 1, 'regular', 'reverse', 5) !== null) throw new Error('not enough copies should return null');
+console.log('per-variant scarcity checks passed');

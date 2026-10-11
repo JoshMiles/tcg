@@ -1,6 +1,6 @@
 import type { Card, Pack, Season, Variant } from './types';
 import { getCollection, getPackCards, getPacksForSeason } from './kv';
-import { VARIANTS, decodeEntry, emptyCounts, type VariantCounts } from './variants';
+import { VARIANTS, decodeEntry, emptyCounts, encodeEntry, type VariantCounts } from './variants';
 
 /** Points an average card (equal pull chance to every other card) at Regular is worth. */
 export const SCORE_BASE = 10;
@@ -13,8 +13,13 @@ export interface CardValue {
   pullRate: number;
   /** How many copies of this card exist across everyone's collections this season (all variants). */
   copies: number;
-  /** >1 when the card is scarcer than average this season, <1 when it's more common. */
-  scarcity: number;
+  /** The same, split by variant. */
+  variantCopies: VariantCounts;
+  /**
+   * Per variant: >1 when that version of this card is scarcer than the average card's copies of that version,
+   * <1 when it's more common. A Shiny is compared with other Shinies, a Regular with other Regulars.
+   */
+  scarcity: Record<Variant, number>;
   /** Points per copy, by variant. */
   values: Record<Variant, number>;
 }
@@ -55,7 +60,9 @@ export function variantMultipliers(pack: Pick<Pack, 'upgradesEnabled' | 'variant
  * Per-card values for a season:
  *   value = SCORE_BASE × rarity × scarcity × variantMultiplier
  * - rarity: how much rarer than an average card it is to roll (1 = average; from card probability and pack weight)
- * - scarcity: season-wide, from how many copies exist vs the average card; bounded 0.5×–2× so one hot week can't swamp the board
+ * - scarcity: season-wide and **per variant** — how many copies of this exact version exist vs the average card's copies of
+ *   that version; bounded 0.5×–2× so one hot week can't swamp the board. Spending copies in an upgrade therefore makes
+ *   the version you spent scarcer (its remaining copies are worth more) and adds to the next version's count
  * - variantMultiplier: see variantMultipliers
  */
 export function computeSeasonValues(
@@ -66,16 +73,22 @@ export function computeSeasonValues(
   const totalPackWeight = active.reduce((s, p) => s + (p.pack.weight || 1), 0);
   const totalCards = active.reduce((s, p) => s + p.cards.length, 0);
 
-  const copiesByCard = new Map<number, number>();
+  const copiesByCard = new Map<number, VariantCounts>();
+  const totalByVariant = emptyCounts();
   let totalCopies = 0;
   for (const entries of Object.values(collection)) {
     for (const entry of entries) {
-      const { cardNumber } = decodeEntry(entry);
-      copiesByCard.set(cardNumber, (copiesByCard.get(cardNumber) ?? 0) + 1);
+      const { cardNumber, variant } = decodeEntry(entry);
+      const counts = copiesByCard.get(cardNumber) ?? emptyCounts();
+      counts[variant]++;
+      copiesByCard.set(cardNumber, counts);
+      totalByVariant[variant]++;
       totalCopies++;
     }
   }
-  const avgCopies = totalCards > 0 ? totalCopies / totalCards : 0;
+  // Average copies of each version per card in the season.
+  const avgByVariant = emptyCounts();
+  for (const v of VARIANTS) avgByVariant[v] = totalCards > 0 ? totalByVariant[v] / totalCards : 0;
 
   const cards = new Map<number, CardValue>();
   for (const { pack, cards: packCards } of active) {
@@ -86,14 +99,59 @@ export function computeSeasonValues(
         ? ((pack.weight || 1) / totalPackWeight) * (card.probability / totalProb)
         : 1 / Math.max(1, totalCards);
       const rarity = pullRate > 0 ? 1 / (pullRate * totalCards) : 1;
-      const copies = copiesByCard.get(card.number) ?? 0;
-      const scarcity = Math.min(2, Math.max(0.5, (avgCopies + 1) / (copies + 1)));
+      const variantCopies = copiesByCard.get(card.number) ?? emptyCounts();
+      const copies = VARIANTS.reduce((s, v) => s + variantCopies[v], 0);
+      const scarcity = {} as Record<Variant, number>;
       const values = {} as Record<Variant, number>;
-      for (const v of VARIANTS) values[v] = Math.max(1, Math.round(SCORE_BASE * rarity * scarcity * mult[v]));
-      cards.set(card.number, { number: card.number, pullRate, copies, scarcity, values });
+      for (const v of VARIANTS) {
+        // +1 smoothing keeps early-season values (when counts are tiny) from lurching around.
+        scarcity[v] = Math.min(2, Math.max(0.5, (avgByVariant[v] + 1) / (variantCopies[v] + 1)));
+        values[v] = Math.max(1, Math.round(SCORE_BASE * rarity * scarcity[v] * mult[v]));
+      }
+      cards.set(card.number, { number: card.number, pullRate, copies, variantCopies, scarcity, values });
     }
   }
   return { cards, totalCards, totalCopies };
+}
+
+/** One viewer's score: the value of every copy they hold. */
+export function scoreFor(values: SeasonValues, entries: number[]): number {
+  let score = 0;
+  for (const entry of entries) {
+    const { cardNumber, variant } = decodeEntry(entry);
+    score += values.cards.get(cardNumber)?.values[variant] ?? 0;
+  }
+  return score;
+}
+
+/**
+ * What an upgrade would really do to a viewer's score: recompute every value with `cost` copies of `from` removed
+ * and one `to` added (so scarcity moves too), and compare. Can be negative if scarcity shifts more than the variant gains.
+ */
+export function projectUpgradeGain(
+  packs: { pack: Pack; cards: Card[] }[],
+  collection: Record<string, number[]>,
+  username: string,
+  cardNumber: number,
+  from: Variant,
+  to: Variant,
+  cost: number,
+): number | null {
+  const owned = collection[username];
+  if (!owned) return null;
+  const fromEntry = encodeEntry(cardNumber, from);
+  const after: number[] = [];
+  let toRemove = cost;
+  for (const e of owned) {
+    if (e === fromEntry && toRemove > 0) toRemove--;
+    else after.push(e);
+  }
+  if (toRemove > 0) return null; // doesn't have enough copies
+  after.push(encodeEntry(cardNumber, to));
+
+  const before = scoreFor(computeSeasonValues(packs, collection), owned);
+  const next = scoreFor(computeSeasonValues(packs, { ...collection, [username]: after }), after);
+  return next - before;
 }
 
 export function buildLeaderboard(values: SeasonValues, collection: Record<string, number[]>): LeaderboardRow[] {
