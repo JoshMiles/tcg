@@ -17,6 +17,8 @@ export interface PropDef {
   key: string;
   group: string;
   label: string;
+  /** Sub-heading the property is listed under inside its group (set automatically by `sectionFor`). */
+  section?: string;
   help?: string;
   type: PropType;
   default: PropValue;
@@ -137,6 +139,11 @@ function variantProps(v: VariantId): PropDef[] {
     { key: `${g}.rock`, group: g, label: 'Rocking', type: 'boolean', default: d.rock, help: 'A gentle left-to-right sway while shown.' },
     { key: `${g}.rockAmount`, group: g, label: 'Rock amount', type: 'number', default: d.rockAmount, min: 0, max: 8, step: 0.25, unit: '°' },
     { key: `${g}.rockSpeed`, group: g, label: 'Rock cycle time', type: 'number', default: d.rockSpeed, min: 0.8, max: 10, step: 0.1, unit: 's' },
+    { key: `${g}.holdExtra`, group: g, label: 'Extra time on screen', type: 'number', default: 0, min: 0, max: 15, step: 0.5, unit: 's', help: 'Keep this version on screen longer, so a rare pull gets its moment.' },
+    { key: `${g}.volume`, group: g, label: 'Reveal sound volume', type: 'number', default: 1, min: 0, max: 2, step: 0.05, unit: '×', help: "Multiplies the card's reveal sound on top of the pack's volume. Playback is capped at full volume, so above 1 only helps where the pack volume is below 1." },
+    { key: `${g}.sparkles`, group: g, label: 'Sparkle burst', type: 'boolean', default: false, experimental: true, help: 'A burst of sparkles flies out from the card when it is revealed.' },
+    { key: `${g}.sparkleCount`, group: g, label: 'Sparkle amount', type: 'number', default: 28, min: 6, max: 80, step: 1 },
+    { key: `${g}.sparkleColor`, group: g, label: 'Sparkle colour', type: 'color', default: '#ffe27a' },
     { key: `${g}.burstColor`, group: g, label: 'Light-burst colour', type: 'color', default: d.burstColor, help: 'The rays behind the card.' },
     { key: `${g}.burstHue`, group: g, label: 'Cycle burst colours', type: 'boolean', default: d.burstHue, experimental: true, help: 'The rays slowly shift through the rainbow.' },
   ];
@@ -147,6 +154,13 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.style', group: 'reveal', label: 'Reveal animation', type: 'select', default: 'classic', options: REVEAL_STYLES.map(s => ({ value: s.value, label: s.label + (s.experimental ? ' (experimental)' : '') })), help: 'How the pulled card appears.' },
   { key: 'reveal.speed', group: 'reveal', label: 'Animation speed', type: 'number', default: 1, min: 0.5, max: 2.5, step: 0.05, unit: '×', help: '1 is the designed speed. 2 plays everything twice as fast (the on-screen hold time is not changed).' },
   { key: 'reveal.packSounds', group: 'reveal', label: 'Pack-opening sounds', type: 'boolean', default: true, help: 'The rip and shake sounds for the pack styles. (Card sounds are set on each card.)' },
+  { key: 'reveal.cardScale', group: 'reveal', label: 'Revealed card size', type: 'number', default: 1, min: 0.5, max: 1.5, step: 0.05, unit: '×', help: 'Scales the card itself (the pack and the strip stay as they are).' },
+  { key: 'reveal.labelSize', group: 'reveal', label: 'Label text size', type: 'number', default: 14, min: 10, max: 30, step: 1, unit: 'px' },
+  { key: 'reveal.nameColor', group: 'reveal', label: 'Card name colour', type: 'color', default: '#f1bb06' },
+  { key: 'reveal.starColor', group: 'reveal', label: 'Star colour', type: 'color', default: '#f1bb06' },
+  { key: 'reveal.infoBg', group: 'reveal', label: 'Name & stars bar colour', type: 'color', default: '#fffefe' },
+  { key: 'reveal.gotColor', group: 'reveal', label: '"got:" pill colour', type: 'color', default: '#f1bb06' },
+  { key: 'reveal.gotTextColor', group: 'reveal', label: '"got:" text colour', type: 'color', default: '#fffefe' },
   { key: 'reveal.showBurst', group: 'reveal', label: 'Light burst', type: 'boolean', default: true, help: 'Rays spinning behind the revealed card.' },
   { key: 'reveal.burstOpacity', group: 'reveal', label: 'Burst strength', type: 'number', default: 0.85, min: 0, max: 1, step: 0.05 },
   { key: 'reveal.showLabel', group: 'reveal', label: 'Label above the card', type: 'boolean', default: true, help: 'The tag: "new", or the version name.' },
@@ -159,6 +173,12 @@ export const PROPS: PropDef[] = [
   // ── Collection view ──
   { key: 'collection.perRow', group: 'collection', label: 'Cards per row', type: 'number', default: 0, min: 0, max: 30, step: 1, help: '0 = fit as many as the width allows (the original). Otherwise rows hold exactly this many.' },
   { key: 'collection.cardWidth', group: 'collection', label: 'Card size', type: 'number', default: 48, min: 24, max: 200, step: 2, unit: 'px', help: 'Width of each small card (the height follows).' },
+  { key: 'collection.cardRadius', group: 'collection', label: 'Corner rounding', type: 'number', default: 2, min: 0, max: 14, step: 1, unit: 'px' },
+  {
+    key: 'collection.sort', group: 'collection', label: 'Order', type: 'select', default: 'number',
+    options: [{ value: 'number', label: 'Card number' }, { value: 'owned', label: 'Collected first' }, { value: 'rarity', label: 'Rarest first' }],
+    help: 'How the cards are arranged.',
+  },
   { key: 'collection.gap', group: 'collection', label: 'Gap between cards', type: 'number', default: 13, min: 0, max: 60, step: 1, unit: 'px' },
   { key: 'collection.showUncollected', group: 'collection', label: 'Show uncollected cards', type: 'boolean', default: true, help: 'Off: only the cards the viewer owns are shown (no "?" placeholders).' },
   { key: 'collection.showCounts', group: 'collection', label: 'Show ×N counts', type: 'boolean', default: true, help: 'The duplicate-count badge.' },
@@ -176,6 +196,38 @@ export const PROPS: PropDef[] = [
   // ── Per-variant (regular, reverse, full, shiny) ──
   ...VARIANT_IDS.flatMap(variantProps),
 ];
+
+/** Which sub-heading a property is listed under in the editor. */
+function sectionFor(key: string): string {
+  const v = key.match(/^variant.[a-z]+.(.+)$/);
+  if (v) {
+    const n = v[1];
+    if (n.startsWith('label')) return 'Label';
+    if (n.startsWith('holo')) return 'Holographic shimmer';
+    if (n.startsWith('glow')) return 'Glow';
+    if (n.startsWith('pop')) return 'Pop-in';
+    if (n.startsWith('rock')) return 'Rocking';
+    if (n.startsWith('burst')) return 'Light burst';
+    if (n.startsWith('sparkle')) return 'Sparkles';
+    return 'Time and sound';
+  }
+  const r: [RegExp, string][] = [
+    [/^reveal.(style|speed|packSounds)$/, 'Animation'],
+    [/^reveal.cardScale$/, 'Card'],
+    [/^reveal.(showBurst|burstOpacity)$/, 'Light burst'],
+    [/^reveal.(showLabel|labelSize)$/, 'Label'],
+    [/^reveal.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
+    [/^reveal.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],
+    [/^reveal./, 'Collection strip'],
+    [/^collection.(perRow|cardWidth|gap|cardRadius|sort)$/, 'Grid'],
+    [/^collection.(showUncollected|showCounts|showVariantMarkers)$/, 'What to show'],
+    [/^collection.(showHeading|headingText)$/, 'Heading'],
+    [/^collection.(hold|appear)$/, 'Timing'],
+    [/^collection./, 'Colours'],
+  ];
+  return r.find(([re]) => re.test(key))?.[1] ?? '';
+}
+for (const p of PROPS) p.section = sectionFor(p.key);
 
 export const PROP_BY_KEY: Record<string, PropDef> = Object.fromEntries(PROPS.map(p => [p.key, p]));
 

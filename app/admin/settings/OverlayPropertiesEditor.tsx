@@ -22,15 +22,6 @@ const VARIANT_CHOICES = [
   { id: 'shiny', label: '✨ Shiny' },
 ];
 
-const SUBGROUPS: { prefix: string; label: string }[] = [
-  { prefix: 'label', label: 'Label' },
-  { prefix: 'holo', label: 'Holographic shimmer' },
-  { prefix: 'glow', label: 'Glow' },
-  { prefix: 'pop', label: 'Pop-in' },
-  { prefix: 'rock', label: 'Rocking' },
-  { prefix: 'burst', label: 'Light burst' },
-];
-
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -42,6 +33,7 @@ function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean 
     if (/^glow(ColorA|ColorB|Blur|Spread|Speed)$/.test(name)) return { key: `${g}.glow`, when: v => v === true };
     if (/^pop(Scale|Tilt)$/.test(name)) return { key: `${g}.pop`, when: v => v === true };
     if (/^rock(Amount|Speed)$/.test(name)) return { key: `${g}.rock`, when: v => v === true };
+    if (/^sparkle(Count|Color)$/.test(name)) return { key: `${g}.sparkles`, when: v => v === true };
     if (/^holo(Colors|Opacity|Speed|Angle|Blend|Loop)$/.test(name)) return { key: `${g}.holoMode`, when: v => v !== 'off' };
   }
   if (key === 'reveal.burstOpacity') return { key: 'reveal.showBurst', when: v => v === true };
@@ -232,12 +224,13 @@ export function OverlayPropertiesEditor({
     );
   });
 
-  const subgrouped = activeGroup.id.startsWith('variant.');
+  // Rows are listed under their sub-headings, in the order the registry defines them.
+  const sections = [...groupDefs.reduce((m, d) => m.set(d.section ?? '', [...(m.get(d.section ?? '') ?? []), d]), new Map<string, PropDef[]>())];
 
   return (
-    <div data-sticky-host className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,38rem)] items-start">
+    <div data-sticky-host className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem] items-start">
       {/* ── Controls ── */}
-      <div className="space-y-4 min-w-0 order-2 lg:order-1">
+      <div className="space-y-4 min-w-0 order-2 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
         {/* Scope */}
         <div className="rounded-lg bg-gray-950/60 border border-gray-800 p-3 space-y-2">
           <label className="flex flex-wrap items-center gap-3 text-sm text-gray-300 font-semibold">
@@ -370,18 +363,12 @@ export function OverlayPropertiesEditor({
             </button>
           </div>
 
-          {subgrouped
-            ? SUBGROUPS.map(sg => {
-                const defs = groupDefs.filter(d => d.key.split('.')[2].startsWith(sg.prefix));
-                if (defs.length === 0) return null;
-                return (
-                  <div key={sg.prefix} className="space-y-3 border-t border-gray-800 pt-3 first:border-0 first:pt-0">
-                    <h4 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">{sg.label}</h4>
-                    {rows(defs)}
-                  </div>
-                );
-              })
-            : <div className="space-y-3">{rows(groupDefs)}</div>}
+          {sections.map(([name, defs]) => (
+            <div key={name} className="space-y-3 border-t border-gray-800 pt-3 first:border-0 first:pt-0">
+              {name && <h4 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">{name}</h4>}
+              {rows(defs)}
+            </div>
+          ))}
         </section>
 
         {/* Save */}
@@ -399,7 +386,7 @@ export function OverlayPropertiesEditor({
       </div>
 
       {/* ── Preview ── */}
-      <div className="space-y-2 lg:sticky lg:top-4 order-1 lg:order-2 min-w-0">
+      <div className="space-y-2 xl:sticky xl:top-4 order-1 min-w-0">
         <div
           ref={boxRef}
           className="relative w-full overflow-hidden rounded-lg border border-gray-700"

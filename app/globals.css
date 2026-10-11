@@ -167,3 +167,10 @@
 /* The admin <main> scrolls horizontally for wide tables, which makes it the "scroll container" for position: sticky and
    stops sticky elements sticking to the window. Pages with a sticky panel (the overlay look preview) opt out. */
 main:has([data-sticky-host]) { overflow: visible; }
+
+/* Admin sidebar: on desktop it can collapse to an icon rail; "aside-label" parts disappear and items centre. */
+@media (min-width: 1024px) {
+  .admin-aside[data-collapsed='true'] .aside-label { display: none; }
+  .admin-aside[data-collapsed='true'] .aside-item { justify-content: center; padding-left: 0; padding-right: 0; }
+  .admin-aside[data-collapsed='true'] .holo-strip { margin-left: 0.75rem; margin-right: 0.75rem; }
+}

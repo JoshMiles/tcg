@@ -6,6 +6,10 @@ import { saveOverlaySettingsAction, saveOverlayLayoutAction, saveOverlayPropsAct
 import { getScoringSettings, DEFAULT_SCORING, SCORING_LIMITS, type ScoringSettings } from '@/lib/scoring';
 import { getSeasonLeaderboard, collectionBonuses } from '@/lib/leaderboard';
 import { OverlayLayoutEditor } from './OverlayLayoutEditor';
+import { DiscordConfig } from './DiscordConfig';
+import { WebhookConfig } from './WebhookConfig';
+import { getWebhookSettings } from '@/lib/webhooks';
+import { getDiscordSettings } from '@/lib/discord';
 import { OverlayPropertiesEditor } from './OverlayPropertiesEditor';
 import Link from 'next/link';
 
@@ -18,6 +22,7 @@ const TABS = [
   { id: 'layout',   label: 'Overlay Layout', icon: '📐', hint: 'Size and place the pack opening and collection' },
   { id: 'look',     label: 'Overlay Look', icon: '🎨', hint: 'Animations, holo and card effects, and the collection grid' },
   { id: 'scoring',  label: 'Scoring',      icon: '🏆', hint: 'Card values, bonuses and the leaderboard' },
+  { id: 'webhooks', label: 'Webhooks', icon: '🔗', hint: 'Discord feed, MixItUp integration — incoming triggers and outgoing events' },
   { id: 'viewers',  label: 'Viewers & Twitch', icon: '👥', hint: 'Collection page and the Twitch extension' },
   { id: 'about',    label: 'About',        icon: 'ℹ️', hint: 'Build info and the active season' },
 ] as const;
@@ -40,6 +45,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const build = getBuildInfo();
   const overlay = await getOverlaySettings();
   // Only the Overlay Look tab needs these.
+  const [webhookSettings, discordSettings] = tab === 'webhooks' ? await Promise.all([getWebhookSettings(), getDiscordSettings()]) : [null, null];
   const [allPacks, packOverrides, presets] = tab === 'look'
     ? await Promise.all([listAllPacks(), getPackOverrides(), listPresets()])
     : [[], {}, []];
@@ -49,7 +55,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const bonusAtFull = board ? collectionBonuses(board.values, board.values.totalCards) : null;
 
   return (
-    <div className={"space-y-6 " + (tab === 'look' ? 'max-w-7xl' : 'max-w-4xl')}>
+    <div className={"space-y-6 " + (tab === 'look' ? 'max-w-none' : 'max-w-4xl')}>
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-sm text-gray-500 mt-0.5">{TABS.find(t => t.id === tab)?.hint}</p>
@@ -129,7 +135,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {/* Overlay look: every adjustable animation / holo / grid property */}
       {tab === 'look' && (
-        <section className="tcg-panel rounded-xl p-5 space-y-4">
+        <section className="space-y-4">
           <div className="space-y-1">
             <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Overlay Look</h2>
             <p className="text-sm text-gray-400 leading-relaxed">
@@ -149,6 +155,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             deletePresetAction={deleteOverlayPresetAction}
           />
         </section>
+      )}
+
+      {/* Webhooks & Discord */}
+      {tab === 'webhooks' && webhookSettings && discordSettings && (
+        <div className="space-y-8">
+          <DiscordConfig settings={discordSettings} />
+          <WebhookConfig settings={webhookSettings} base={BASE} />
+        </div>
       )}
 
       {/* Scoring */}

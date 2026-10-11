@@ -349,14 +349,14 @@ export async function saveOutgoingWebhook(
     fields:  JSON.parse((formData.get('fieldsJson') as string) || '[]'),
   };
   await saveWebhookSettings(settings);
-  revalidatePath('/admin/webhooks');
+  revalidatePath('/admin/settings');
 }
 
 export async function regenerateWebhookSecret() {
   const settings = await getWebhookSettings();
   settings.incomingSecret = randomBytes(16).toString('hex');
   await saveWebhookSettings(settings);
-  revalidatePath('/admin/webhooks');
+  revalidatePath('/admin/settings');
 }
 
 // ── Overlay settings ──────────────────────────────────────
@@ -560,7 +560,7 @@ export async function discordAction(_prev: ActionResult | null, formData: FormDa
     if (url && !isValidDiscordWebhookUrl(url)) return { ok: false, message: NOT_A_WEBHOOK };
     if (settings.enabled && !url) return { ok: false, message: 'Add a webhook URL before turning it on.' };
     await saveDiscordSettings(settings);
-    revalidatePath('/admin/webhooks');
+    revalidatePath('/admin/settings');
     return { ok: true, message: settings.enabled ? 'Saved. Activity will be posted to Discord.' : 'Saved. Posting to Discord is off.' };
   }
 

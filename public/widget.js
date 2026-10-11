@@ -394,7 +394,7 @@ function showAlert(msg) {
 function playAudio(src, volume) {
   if (PREVIEW || DEV.mute) return;
   const audio = new Audio(src);
-  audio.volume = volume ?? 1.0;
+  audio.volume = Math.min(1, Math.max(0, volume ?? 1.0));
   audio.play().catch(() => {});
 }
 
@@ -434,11 +434,13 @@ function listOpts(P, strip) {
     gap:             pv(P, 'collection.gap', 13),
     border:          pv(P, 'collection.borderColor', '#ffffff'),
     placeholder:     pv(P, 'collection.placeholderColor', '#f1bb06'),
+    radius:          pv(P, 'collection.cardRadius', 2),
+    sort:            pv(P, 'collection.sort', 'number'),
   };
 }
 
 function buildMiniList(miniList, userCards, highlightNumber, cfg, opts) {
-  opts = Object.assign({ showUncollected: true, showCounts: true, showMarkers: true, perRow: 0, cardWidth: 48, gap: 13, border: '#ffffff', placeholder: '#f1bb06' }, opts || {});
+  opts = Object.assign({ showUncollected: true, showCounts: true, showMarkers: true, perRow: 0, cardWidth: 48, gap: 13, border: '#ffffff', placeholder: '#f1bb06', radius: 2, sort: 'number' }, opts || {});
   miniList.innerHTML = '';
   const w = opts.cardWidth, h = Math.round(w * 70 / 48), k = w / 48;
   if (opts.perRow > 0) {
@@ -460,7 +462,11 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg, opts) {
     bestVariant.set(cardNumber, Math.max(bestVariant.get(cardNumber) ?? 0, VARIANTS.indexOf(variant)));
   }
 
-  for (const card of ALL_CARDS) {
+  let ordered = ALL_CARDS;
+  if (opts.sort === 'owned') ordered = [...ALL_CARDS].sort((a, b) => (countMap.has(b.number) ? 1 : 0) - (countMap.has(a.number) ? 1 : 0) || a.number - b.number);
+  else if (opts.sort === 'rarity') ordered = [...ALL_CARDS].sort((a, b) => a.probability - b.probability || b.stars - a.stars || a.number - b.number);
+
+  for (const card of ordered) {
     const count   = countMap.get(card.number) ?? 0;
     const owned   = count > 0;
     if (!owned && card.number !== highlightNumber && !opts.showUncollected) continue;
@@ -470,6 +476,7 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg, opts) {
     div.style.position = 'relative';
     div.style.width  = w + 'px';
     div.style.height = h + 'px';
+    div.style.borderRadius = opts.radius + 'px';
 
     const showImg = (owned || card.number === highlightNumber) && (card.thumb || card.image);
 
@@ -642,6 +649,15 @@ function applyLook(theater, P, variant, card, cfg) {
   st.setProperty('--burst-b', rgba(g('burstColor', '#fff08c'), 0));
   wrapper.classList.toggle('burst-cycle', !!g('burstHue', false));
 
+  // Card styling shared by every version (Pack opening group)
+  st.setProperty('--card-scale', String(pv(P, 'reveal.cardScale', 1)));
+  st.setProperty('--label-size', pv(P, 'reveal.labelSize', 14) + 'px');
+  st.setProperty('--name-color', pv(P, 'reveal.nameColor', '#f1bb06'));
+  st.setProperty('--star-color', pv(P, 'reveal.starColor', '#f1bb06'));
+  st.setProperty('--info-bg', pv(P, 'reveal.infoBg', '#fffefe'));
+  st.setProperty('--got-bg', pv(P, 'reveal.gotColor', '#f1bb06'));
+  st.setProperty('--got-fg', pv(P, 'reveal.gotTextColor', '#fffefe'));
+
   // Visibility toggles
   if (!pv(P, 'reveal.showInfoBar', true)) cardInfoOverlay.style.display = 'none';
   if (!pv(P, 'reveal.showGotLine', true)) userText.style.display = 'none';
@@ -670,6 +686,29 @@ function paintCard(theater, card, art, artThumb) {
   const starsEl = cardInfoOverlay.querySelector('.card-stars');
   if (nameEl)  nameEl.textContent = card.name;
   if (starsEl) starsEl.innerHTML  = STAR_SVG.repeat(card.stars);
+}
+
+// A burst of sparkles flying out from the middle of the revealed card (per-version, experimental).
+function burstSparkles(cardBox, P, variant, speed) {
+  const g = (s, d) => pv(P, 'variant.' + variant + '.' + s, d);
+  const n = Math.round(g('sparkleCount', 28));
+  const layer = document.createElement('div');
+  layer.className = 'spark-layer';
+  for (let i = 0; i < n; i++) {
+    const a = (Math.PI * 2 * i) / n + Math.random() * 0.4;
+    const dist = 140 + Math.random() * 190;
+    const el = document.createElement('span');
+    el.textContent = i % 3 === 0 ? '✦' : '✧';
+    el.style.color = g('sparkleColor', '#ffe27a');
+    el.style.fontSize = (12 + Math.random() * 18) + 'px';
+    el.style.setProperty('--dx', Math.round(Math.cos(a) * dist) + 'px');
+    el.style.setProperty('--dy', Math.round(Math.sin(a) * dist) + 'px');
+    el.style.setProperty('--rot', Math.round(Math.random() * 360 - 180) + 'deg');
+    el.style.animationDuration = ((0.9 + Math.random() * 0.8) / speed) + 's';
+    layer.appendChild(el);
+  }
+  cardBox.appendChild(layer);
+  setTimeout(() => layer.remove(), 2200 / speed);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -706,6 +745,7 @@ function drawCard(username, opts) {
           cardInfo, userText, miniList } = theater;
 
   const vol = cfg.soundVolume;
+  const cardVol = Math.min(1, vol * pv(P, 'variant.' + variant + '.volume', 1));
 
   if (R.sounds && pv(P, 'reveal.packSounds', true)) {
     for (const s of PACK_SOUNDS) setTimeout(() => playAudio(s.src, vol), s.delay / S);
@@ -744,7 +784,8 @@ function drawCard(username, opts) {
 
   // Card reveal sound + radial burst
   setTimeout(() => {
-    playAudio(card.soundUrl || `assets/sounds/${card.number}.mp3`, vol);
+    playAudio(card.soundUrl || `assets/sounds/${card.number}.mp3`, cardVol);
+    if (pv(P, 'variant.' + variant + '.sparkles', false)) burstSparkles(cardBox, P, variant, S);
     if (pv(P, 'reveal.showBurst', true)) {
       radialContainer.style.opacity   = String(pv(P, 'reveal.burstOpacity', 0.85));
       radialContainer.style.animation = 'spinRadial 4s linear infinite';
@@ -786,7 +827,7 @@ function drawCard(username, opts) {
   }
 
   // Hide + cleanup
-  const showDuration = at(R.label) + 800 + cfg.cardTime * 1000;
+  const showDuration = at(R.label) + 800 + cfg.cardTime * 1000 + pv(P, 'variant.' + variant + '.holdExtra', 0) * 1000;
   setTimeout(() => {
     radialContainer.style.opacity   = '0';
     radialContainer.style.animation = 'none';
