@@ -268,7 +268,7 @@ function CardDetail({
             </div>
 
             <p className="text-xs text-gray-500">
-              {canUpgrade && card.upgradable ? 'Upgrades are permanent — the copies you spend are used up. ' : ''}Values change as more cards are pulled this season.{' '}
+              {canUpgrade && card.upgradable ? 'Upgrades are permanent: the copies you spend are destroyed. That makes this card scarcer, which can raise what its remaining copies are worth. ' : ''}Values change as cards are pulled and upgraded this season.{' '}
               <a href={`${leaderboardHref}?how=1`} className="text-yellow-500 hover:text-yellow-300">How are points worked out? →</a>
             </p>
           </div>

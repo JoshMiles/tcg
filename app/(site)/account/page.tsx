@@ -112,6 +112,10 @@ export default async function AccountPage() {
                   })}
                 </ul>
               )}
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Upgrades are permanent — the copies you spend are destroyed. That makes the card scarcer, which can raise the value of the copies you keep (including lower versions).
+                It also nudges the season-wide average, so other cards&rsquo; values can shift slightly.
+              </p>
             </section>
           )}
 

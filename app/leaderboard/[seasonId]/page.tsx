@@ -99,8 +99,14 @@ export default async function LeaderboardPage({
                 </li>
                 {upgrades && (
                   <li>
-                    <strong className="text-white">Variant</strong> — Reverse Holo, Full Art and Shiny Full Art copies are worth far more than a Regular. Upgrading is always worth it: the upgraded
-                    card is worth more than the copies you spend.
+                    <strong className="text-white">Variant</strong> — Reverse Holo, Full Art and Shiny Full Art copies are worth far more than a Regular. An upgraded card is worth more than the copies
+                    you spend to make it.
+                  </li>
+                )}
+                {upgrades && (
+                  <li>
+                    <strong className="text-white">Upgrades use cards up.</strong> The copies you spend are destroyed, so fewer of that card exist and it becomes scarcer. That can raise the value of
+                    the remaining copies of it, including the lower versions. It also nudges the season-wide average, so other cards&rsquo; values can move slightly too.
                   </li>
                 )}
               </ul>
