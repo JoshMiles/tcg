@@ -64,9 +64,9 @@ export function OverlayStatus({ variant = 'full' }: { variant?: 'compact' | 'ful
 
   if (variant === 'compact') {
     return (
-      <div className="px-4 pb-3 flex items-center gap-2 text-[11px] font-semibold text-gray-400" title={title}>
+      <div className="aside-item px-4 pb-3 flex items-center gap-2 text-[11px] font-semibold text-gray-400" title={title}>
         <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
-        <span className="truncate">{status?.connected ? (status.streaming === true ? 'Overlay · LIVE' : 'Overlay connected') : label}</span>
+        <span className="aside-label truncate">{status?.connected ? (status.streaming === true ? 'Overlay · LIVE' : 'Overlay connected') : label}</span>
       </div>
     );
   }

@@ -1,0 +1,107 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+
+const STORAGE_KEY = 'tcg_admin_sidebar';
+
+/**
+ * The admin frame. Server-rendered pieces (brand, nav, footer) are passed in as slots; this owns only the layout state:
+ *  - phones/tablets (< lg): the sidebar is an off-canvas drawer opened from a top bar, closed by the backdrop, Esc or
+ *    choosing a page;
+ *  - desktop (lg+): the sidebar can be collapsed to an icon rail (remembered in localStorage).
+ * Anything that should disappear when collapsed carries the `aside-label` class (see globals.css).
+ */
+export function AdminShell({
+  brand, nav, status, footer, children,
+}: {
+  brand: React.ReactNode;
+  nav: React.ReactNode;
+  status: React.ReactNode;
+  footer: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem(STORAGE_KEY) === 'collapsed'); } catch { /* private mode */ }
+  }, []);
+  const toggle = () => {
+    setCollapsed(c => {
+      try { localStorage.setItem(STORAGE_KEY, c ? 'expanded' : 'collapsed'); } catch { /* ignore */ }
+      return !c;
+    });
+  };
+
+  // Choosing a page closes the drawer.
+  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  return (
+    <div className="flex min-h-screen text-gray-100">
+      {/* Mobile top bar */}
+      <header className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center gap-3 px-3 bg-gray-950/95 backdrop-blur border-b border-poke-blue-light/15">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={open}
+          className="w-10 h-10 rounded-lg text-gray-300 hover:bg-white/10 flex items-center justify-center text-xl"
+        >
+          ☰
+        </button>
+        <span className="font-display text-yellow-400 font-bold tracking-tight">The Cheesy TCG</span>
+      </header>
+
+      {/* Backdrop for the drawer */}
+      {open && <div className="lg:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setOpen(false)} aria-hidden />}
+
+      <aside
+        data-collapsed={collapsed}
+        className={`admin-aside bg-gray-950/95 lg:bg-gray-950/80 backdrop-blur border-r border-poke-blue-light/15 flex flex-col shrink-0
+          fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}
+          lg:sticky lg:top-0 lg:h-screen lg:z-auto lg:translate-x-0 lg:transition-[width] ${collapsed ? 'lg:w-[4.5rem]' : 'lg:w-60'}`}
+      >
+        <div className="px-4 py-5 flex items-center gap-2">
+          <div className="flex-1 min-w-0">{brand}</div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close menu"
+            className="lg:hidden w-9 h-9 rounded-lg text-gray-400 hover:bg-white/10 text-lg"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="holo-strip mx-4 rounded-full opacity-80" />
+
+        {nav}
+        {status}
+        <div className="p-3 border-t border-poke-blue-light/10 space-y-0.5">
+          {footer}
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden lg:flex w-full items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:text-yellow-300 hover:bg-white/5 text-xs font-semibold transition-colors aside-item"
+          >
+            <span aria-hidden>{collapsed ? '»' : '«'}</span>
+            <span className="aside-label">Collapse</span>
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 min-w-0 overflow-auto px-4 pb-6 pt-20 sm:px-6 lg:p-8">
+        {children}
+      </main>
+    </div>
+  );
+}

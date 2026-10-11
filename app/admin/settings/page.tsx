@@ -49,7 +49,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const bonusAtFull = board ? collectionBonuses(board.values, board.values.totalCards) : null;
 
   return (
-    <div className={"space-y-6 " + (tab === 'look' ? 'max-w-7xl' : 'max-w-4xl')}>
+    <div className={"space-y-6 " + (tab === 'look' ? 'max-w-none' : 'max-w-4xl')}>
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-sm text-gray-500 mt-0.5">{TABS.find(t => t.id === tab)?.hint}</p>
@@ -129,7 +129,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {/* Overlay look: every adjustable animation / holo / grid property */}
       {tab === 'look' && (
-        <section className="tcg-panel rounded-xl p-5 space-y-4">
+        <section className="space-y-4">
           <div className="space-y-1">
             <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Overlay Look</h2>
             <p className="text-sm text-gray-400 leading-relaxed">

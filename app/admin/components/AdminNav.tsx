@@ -17,21 +17,22 @@ export function AdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex-1 p-3 pt-4 space-y-1 overflow-y-auto">
+    <nav aria-label="Admin" className="flex-1 p-3 pt-4 space-y-1 overflow-y-auto">
       {nav.map(({ href, label, icon, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href);
         return (
           <Link
             key={href}
             href={href}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            title={label}
+            className={`aside-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
               active
                 ? 'bg-gradient-to-r from-yellow-500/20 to-yellow-500/5 text-yellow-300 shadow-glow'
                 : 'text-gray-400 hover:bg-white/5 hover:text-white'
             }`}
           >
             <span className={`text-base leading-none ${active ? '' : 'grayscale opacity-70'}`}>{icon}</span>
-            {label}
+            <span className="aside-label">{label}</span>
           </Link>
         );
       })}

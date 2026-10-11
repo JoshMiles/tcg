@@ -212,13 +212,14 @@
   width: 270px;
   animation-fill-mode: forwards;
   z-index: 10;
+  scale: var(--card-scale, 1);   /* standalone property: stacks with the entrance animations */
 }
 
 .card-label {
   position: relative;
   font-family: Montserrat, sans-serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--label-size, 14px);
   color: #fffefe;
   background: var(--label-bg, rgb(241,187,6));
   padding: 3.6px 16px;
@@ -328,7 +329,8 @@
   font-family: Montserrat, sans-serif;
   font-weight: 700;
   font-size: 12px;
-  background: #fffefe;
+  color: var(--name-color, rgb(241,187,6));
+  background: var(--info-bg, #fffefe);
   padding: 6px 12px;
   border-radius: 30px;
   box-shadow: 0 2px 5px rgba(0,0,0,.2);
@@ -338,13 +340,13 @@
   display: flex;
   align-items: center;
   font-size: 17px;
-  background: #fffefe;
+  background: var(--info-bg, #fffefe);
   padding: 6px 7px;
   border-radius: 30px;
   box-shadow: 0 2px 5px rgba(0,0,0,.2);
 }
 .card-stars svg { width: 16px; height: 16px; }
-.card-stars svg path { fill: rgb(241,187,6); }
+.card-stars svg path { fill: var(--star-color, rgb(241,187,6)); }
 
 .hidden { display: none; }
 
@@ -360,8 +362,8 @@
   font-family: Montserrat, sans-serif;
   font-size: 14px;
   font-weight: 700;
-  color: #fffefe;
-  background: rgb(241,187,6);
+  color: var(--got-fg, #fffefe);
+  background: var(--got-bg, rgb(241,187,6));
   padding: 3.6px 16px;
   border-radius: 30px;
   box-shadow: 0 3px 4px rgba(0,0,0,.5);
@@ -524,6 +526,19 @@
   0%, 100% { rotate: 0deg; }
   25%      { rotate: var(--rock-amt, 2deg); }
   75%      { rotate: calc(var(--rock-amt, 2deg) * -1); }
+}
+
+/* Sparkle burst (variant.*.sparkles): particles fly out from the middle of the card and fade. */
+.spark-layer { position: absolute; left: 0; right: 0; top: 40px; height: 380px; pointer-events: none; z-index: 2000; }
+.spark-layer span {
+  position: absolute; left: 50%; top: 50%; line-height: 1;
+  text-shadow: 0 0 6px currentColor, 0 0 14px currentColor;
+  animation: sparkFly 1.4s ease-out forwards;
+}
+@keyframes sparkFly {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0deg); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1) rotate(var(--rot)); }
 }
 
 /* ── Reveal styles (Settings -> Overlay Properties -> Pack opening -> Reveal animation) ── */
