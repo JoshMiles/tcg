@@ -164,9 +164,8 @@
 .live-dot { animation: live-pulse 1.6s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
 
-/* The admin <main> scrolls horizontally for wide tables, which makes it the "scroll container" for position: sticky and
-   stops sticky elements sticking to the window. Pages with a sticky panel (the overlay look preview) opt out. */
-main:has([data-sticky-host]) { overflow: visible; }
+/* The Overlay Look editor is a fixed-height workspace (Photoshop style): on wide screens the page itself must not scroll. */
+@media (min-width: 1280px) { main:has([data-workspace]) { overflow: hidden; } }
 
 /* Admin sidebar: on desktop it can collapse to an icon rail; "aside-label" parts disappear and items centre. */
 @media (min-width: 1024px) {

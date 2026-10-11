@@ -392,58 +392,41 @@ export async function saveOverlaySettingsAction(formData: FormData) {
   redirect('/admin/settings?tab=overlay&saved=overlay');
 }
 
-export async function saveOverlayLayoutAction(formData: FormData) {
-  const current = await getOverlaySettings();
-  await saveOverlaySettings({
-    ...current,
-    layout: sanitizeLayout({
-      width:  formData.get('width'),
-      height: formData.get('height'),
-      pack: {
-        scale:   formData.get('pack_scale'),
-        offsetX: formData.get('pack_offsetX'),
-        offsetY: formData.get('pack_offsetY'),
-      },
-      collection: {
-        scale:   formData.get('collection_scale'),
-        offsetX: formData.get('collection_offsetX'),
-        offsetY: formData.get('collection_offsetY'),
-      },
-    }),
-  });
-  revalidatePath('/admin/settings');
-  redirect('/admin/settings?tab=layout&saved=layout');
-}
-
-// Saves the overlay's look & animation properties. `payload` is JSON: { global?: values, packs?: { [packId]: values } } with
-// only the scopes that changed. Global values are stored sparsely (defaults dropped); pack overrides keep every value.
-export async function saveOverlayPropsAction(formData: FormData) {
-  let payload: { global?: unknown; packs?: Record<string, unknown> } = {};
+// Saves the Overlay Editor. `payload` is JSON: { layout?, global?, packs? } with only the parts that changed:
+//  - layout: the stage size and the pack / collection placements (sanitizeLayout clamps everything);
+//  - global: look & animation properties, stored sparsely (defaults dropped);
+//  - packs: { [packId]: values } per-pack overrides, which keep every value (an override equal to the default must survive).
+export async function saveOverlayEditorAction(formData: FormData) {
+  let payload: { layout?: unknown; global?: unknown; packs?: Record<string, unknown> } = {};
   try { payload = JSON.parse(String(formData.get('payload') ?? '{}')); } catch { /* ignore: saves nothing */ }
-  if (payload.global !== undefined) {
+  if (payload.layout !== undefined || payload.global !== undefined) {
     const current = await getOverlaySettings();
-    await saveOverlaySettings({ ...current, props: sanitizePropValues(payload.global) });
+    await saveOverlaySettings({
+      ...current,
+      layout: payload.layout !== undefined ? sanitizeLayout(payload.layout) : current.layout,
+      props: payload.global !== undefined ? sanitizePropValues(payload.global) : current.props,
+    });
   }
   for (const [packId, values] of Object.entries(payload.packs ?? {})) {
     await savePackOverrides(packId, sanitizePropValues(values, { keepDefaults: true }));
   }
-  revalidatePath('/admin/settings');
+  revalidatePath('/admin/overlay');
   const scope = String(formData.get('scope') ?? 'global');
-  redirect(`/admin/settings?tab=look&scope=${encodeURIComponent(scope)}&saved=look`);
+  redirect(`/admin/overlay?scope=${encodeURIComponent(scope)}&saved=saved`);
 }
 
 export async function saveOverlayPresetAction(formData: FormData) {
   let values: unknown = {};
   try { values = JSON.parse(String(formData.get('props') ?? '{}')); } catch { /* empty preset is ignored below */ }
   await savePreset(String(formData.get('name') ?? ''), sanitizePropValues(values));
-  revalidatePath('/admin/settings');
-  redirect(`/admin/settings?tab=look&scope=${encodeURIComponent(String(formData.get('scope') ?? 'global'))}&saved=preset`);
+  revalidatePath('/admin/overlay');
+  redirect(`/admin/overlay?scope=${encodeURIComponent(String(formData.get('scope') ?? 'global'))}&saved=preset`);
 }
 
 export async function deleteOverlayPresetAction(formData: FormData) {
   await deletePreset(String(formData.get('id') ?? ''));
-  revalidatePath('/admin/settings');
-  redirect(`/admin/settings?tab=look&scope=${encodeURIComponent(String(formData.get('scope') ?? 'global'))}&saved=preset-deleted`);
+  revalidatePath('/admin/overlay');
+  redirect(`/admin/overlay?scope=${encodeURIComponent(String(formData.get('scope') ?? 'global'))}&saved=preset-deleted`);
 }
 
 // ── Assets ────────────────────────────────────────────────

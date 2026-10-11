@@ -119,7 +119,7 @@ function showStatic(mode) {
     cardInfo.style.opacity = '1';
     cardInfo.style.transform = 'scale(1)';
     if (card) {
-      applyLook(theater, P, variant, card, cfg);
+      applyLook(theater, P, variant, card, cfg, false);
       cardLabel.style.opacity = '1';
       cardLabel.style.visibility = 'visible';
       radialContainer.style.opacity = String(pv(P, 'reveal.burstOpacity', 0.85));
@@ -127,7 +127,10 @@ function showStatic(mode) {
       userText.textContent = gotText(P, 'Preview');
       const art = (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArt : card.image;
       paintCard(theater, card, art, (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArtThumb : card.thumb);
-      mainCard.style.animation = mainCardAnimation(P, variant, 1, 0, true);
+      const fx = mainCardAnimation(P, variant, 1, 0, true);
+      mainCard.style.animation = fx.anim;
+      wrapper.style.setProperty('--fx-start', '0s');
+      cardBox.style.animation = tiltAnimation(P, variant, 1, 0) || 'none';
       buildMiniList(miniList, revealedCardsByUser.preview || [], card.number, cfg, listOpts(P, true));
       if (holoOn(P, variant, card, cfg)) holoOverlay.classList.add('holographic-animate');
     }
@@ -426,12 +429,12 @@ function preloadThumbs() {
 // Grid options for the card list (both the "show collection" view and the strip under a revealed card).
 function listOpts(P, strip) {
   return {
+    perRow:          strip ? pv(P, 'reveal.stripPerRow', 0) : pv(P, 'collection.perRow', 0),
+    cardWidth:       strip ? pv(P, 'reveal.stripCardWidth', 48) : pv(P, 'collection.cardWidth', 48),
+    gap:             strip ? pv(P, 'reveal.stripGap', 13) : pv(P, 'collection.gap', 13),
     showUncollected: strip ? pv(P, 'reveal.showUncollectedStrip', true) : pv(P, 'collection.showUncollected', true),
     showCounts:      pv(P, 'collection.showCounts', true),
     showMarkers:     pv(P, 'collection.showVariantMarkers', true),
-    perRow:          pv(P, 'collection.perRow', 0),
-    cardWidth:       pv(P, 'collection.cardWidth', 48),
-    gap:             pv(P, 'collection.gap', 13),
     border:          pv(P, 'collection.borderColor', '#ffffff'),
     placeholder:     pv(P, 'collection.placeholderColor', '#f1bb06'),
     radius:          pv(P, 'collection.cardRadius', 2),
@@ -591,6 +594,7 @@ function holoOn(P, variant, card, cfg) {
 // The card's steady-state effects as one animation list: pop on reveal, pulsing glow, gentle rock. `steady` (editor
 // still) skips the pop and starts the glow/rock immediately.
 function mainCardAnimation(P, variant, speed, revealAt, steady) {
+  // Returns { anim, start }: the card's own animation list, and when (seconds) glow / rock / tilt should begin.
   const g = (s, d) => pv(P, 'variant.' + variant + '.' + s, d);
   const parts = [];
   let t = revealAt;
@@ -601,13 +605,19 @@ function mainCardAnimation(P, variant, speed, revealAt, steady) {
     t = revealAt + dur;
   }
   const start = steady ? 0 : t / speed;
-  if (g('glow', false)) parts.push('variantGlow ' + (g('glowSpeed', 1.4) / speed) + 's ease-in-out ' + start + 's infinite alternate');
   if (g('rock', false)) parts.push('variantRock ' + (g('rockSpeed', 3.6) / speed) + 's ease-in-out ' + start + 's infinite');
-  return parts.join(', ') || 'none';
+  return { anim: parts.join(', ') || 'none', start };
+}
+
+// The 3D tilt runs on the card box (its own `rotate` property, so it doesn't fight the entrance transform).
+function tiltAnimation(P, variant, speed, start) {
+  const g = (s, d) => pv(P, 'variant.' + variant + '.' + s, d);
+  if (!g('tilt', false)) return '';
+  return 'variantTilt' + g('tiltAxis', 'x') + ' ' + (g('tiltSpeed', 4) / speed) + 's ease-in-out ' + start + 's infinite';
 }
 
 // Sets this card's per-variant look as CSS variables on the theater, plus its label.
-function applyLook(theater, P, variant, card, cfg) {
+function applyLook(theater, P, variant, card, cfg, owned) {
   const { wrapper, cardLabel, holoOverlay, cardInfoOverlay, userText, miniList } = theater;
   const g = (s, d) => pv(P, 'variant.' + variant + '.' + s, d);
   const st = wrapper.style;
@@ -618,7 +628,8 @@ function applyLook(theater, P, variant, card, cfg) {
   // Label
   const lc = g('labelColors', ['#f1bb06']);
   st.setProperty('--label-bg', lc.length > 1 ? 'linear-gradient(90deg, ' + lc.join(', ') + ')' : lc[0]);
-  cardLabel.textContent = g('labelText', variant === 'regular' ? 'new' : VARIANT_LABELS[variant]);
+  const ownedLabel = pv(P, 'reveal.labelOwned', '');
+  cardLabel.textContent = variant === 'regular' && owned && ownedLabel ? ownedLabel : g('labelText', variant === 'regular' ? 'new' : VARIANT_LABELS[variant]);
   if (!pv(P, 'reveal.showLabel', true)) cardLabel.style.display = 'none';
 
   // Holographic shimmer
@@ -636,12 +647,17 @@ function applyLook(theater, P, variant, card, cfg) {
   st.setProperty('--holo-timing', loop ? 'linear' : 'ease');
 
   // Glow, pop and burst
-  st.setProperty('--glow-lo', rgba(g('glowColorA', '#ffffff'), 0.6));
-  st.setProperty('--glow-hi', rgba(g('glowColorB', '#ffffff'), 0.95));
-  st.setProperty('--glow-blur', g('glowBlur', 40) + 'px');
-  st.setProperty('--glow-blur-lo', g('glowBlur', 40) * 0.4 + 'px');
-  st.setProperty('--glow-spread', g('glowSpread', 8) + 'px');
-  st.setProperty('--glow-spread-lo', g('glowSpread', 8) * 0.2 + 'px');
+  // Glow: a blurred silhouette layer behind the art (see .glow-layer); blur(r) is a standard deviation, so use half the radius.
+  st.setProperty('--glow-a', g('glowColorA', '#ffffff'));
+  st.setProperty('--glow-b', g('glowColorB', '#ffffff'));
+  st.setProperty('--glow-blur', g('glowBlur', 40) / 2 + 'px');
+  st.setProperty('--glow-speed', g('glowSpeed', 1.4) + 's');
+  st.setProperty('--glow-scale-lo', String(1 + g('glowSpread', 8) * 0.2 / 160));
+  st.setProperty('--glow-scale-hi', String(1 + g('glowSpread', 8) / 160));
+  wrapper.classList.toggle('glow-on', !!g('glow', false));
+  st.setProperty('--tilt-amt', g('tiltAmount', 14) + 'deg');
+  st.setProperty('--tilt-persp', g('tiltPerspective', 900) + 'px');
+  wrapper.classList.toggle('tilt-on', !!g('tilt', false));
   st.setProperty('--pop-scale', String(g('popScale', 1.1)));
   st.setProperty('--pop-tilt', g('popTilt', 0) + 'deg');
   st.setProperty('--rock-amt', g('rockAmount', 2) + 'deg');
@@ -666,17 +682,15 @@ function applyLook(theater, P, variant, card, cfg) {
 
 function paintCard(theater, card, art, artThumb) {
   const { mainCard, cardInfoOverlay } = theater;
+  const artEl = mainCard.querySelector('.card-art');
   // The holo layer is masked to this art's silhouette using its static thumbnail (same shape, tiny, never animated).
   mainCard.style.setProperty('--card-mask', artThumb && artThumb !== art ? "url('" + artThumb + "')" : 'none');
   if (art) {
-    mainCard.style.backgroundImage    = "url('" + art + "')";
-    mainCard.style.backgroundSize     = 'cover';
-    mainCard.style.backgroundPosition = 'center';
-    mainCard.style.backgroundRepeat   = 'no-repeat';
-    mainCard.style.backgroundColor    = 'transparent';
+    artEl.style.backgroundImage = "url('" + art + "')";
+    artEl.style.backgroundColor = 'transparent';
   } else {
-    mainCard.style.backgroundImage = 'none';
-    mainCard.style.backgroundColor = 'white';
+    artEl.style.backgroundImage = 'none';
+    artEl.style.backgroundColor = 'white';
   }
   const num1 = mainCard.querySelector('.card-number-1 > span:first-child');
   const num2 = mainCard.querySelector('.card-number-2 > span:first-child');
@@ -765,7 +779,8 @@ function drawCard(username, opts) {
   wrapper.classList.remove('hid', 'hidden');
   wrapper.classList.add('pack-fit', 'is-pack');
 
-  applyLook(theater, P, variant, card, cfg);
+  const owned = revealedCardsByUser[user].some(e => decodeEntry(e).cardNumber === card.number);
+  applyLook(theater, P, variant, card, cfg, owned);
   paintCard(theater, card, art, isFullArt ? card.fullArtThumb : card.thumb);
 
   // Flip reveal: a card back (the pack's cover) sits over the art until the card turns edge-on.
@@ -780,7 +795,11 @@ function drawCard(username, opts) {
   // Animations
   if (R.pack) { setAnim(packageContainer, R.pack, S); setAnim(tearBorder1, R.tear, S); }
   setAnim(cardBox, R.card, S);
-  mainCard.style.animation = mainCardAnimation(P, variant, S, R.reveal, false);
+  const fx = mainCardAnimation(P, variant, S, R.reveal, false);
+  mainCard.style.animation = fx.anim;
+  wrapper.style.setProperty('--fx-start', fx.start + 's');
+  const tilt = tiltAnimation(P, variant, S, fx.start);
+  if (tilt) cardBox.style.animation = cardBox.style.animation + ', ' + tilt;
 
   // Card reveal sound + radial burst
   setTimeout(() => {

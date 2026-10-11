@@ -19,6 +19,10 @@ export interface PropDef {
   label: string;
   /** Sub-heading the property is listed under inside its group (set automatically by `sectionFor`). */
   section?: string;
+  /** Card versions: which version this property belongs to. */
+  variant?: VariantId;
+  /** Card lists: which preview it affects — the strip under a revealed card, the collection view, or both. */
+  view?: 'pack' | 'collection' | 'both';
   help?: string;
   type: PropType;
   default: PropValue;
@@ -69,12 +73,9 @@ export const VARIANT_IDS = ['regular', 'reverse', 'full', 'shiny'] as const;
 export type VariantId = (typeof VARIANT_IDS)[number];
 
 export const PROP_GROUPS: PropGroup[] = [
-  { id: 'reveal', label: 'Pack opening', icon: '🎴', description: 'How a pulled card is revealed on stream.' },
-  { id: 'collection', label: 'Collection view', icon: '📋', description: 'The "show collection" grid.' },
-  { id: 'variant.regular', label: 'Regular cards', icon: '🃏', description: 'Label and holo for standard cards.' },
-  { id: 'variant.reverse', label: 'Reverse Holo', icon: '🌈', description: 'Holographic shimmer on the regular art.' },
-  { id: 'variant.full', label: 'Full Art', icon: '🖼️', description: 'The full-art version.' },
-  { id: 'variant.shiny', label: 'Shiny Full Art', icon: '✨', description: 'The rarest version: full art with holo.' },
+  { id: 'reveal', label: 'Reveal', icon: '🎴', description: 'How a pulled card is revealed: the animation, the card, its label and the light burst.' },
+  { id: 'versions', label: 'Versions', icon: '✨', description: 'The look of each card version: label, holo shimmer, glow, motion and sound.' },
+  { id: 'lists', label: 'Card lists', icon: '📋', description: 'The row of small cards under a revealed card, and the "show collection" view.' },
 ];
 
 const GROUP_LABEL: Record<VariantId, string> = { regular: 'Regular cards', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny Full Art' };
@@ -110,6 +111,10 @@ const VARIANT_DEFAULTS: Record<VariantId, VariantDefaults> = {
 };
 
 function variantProps(v: VariantId): PropDef[] {
+  return variantPropsRaw(v).map(p => ({ ...p, group: 'versions', variant: v }));
+}
+
+function variantPropsRaw(v: VariantId): PropDef[] {
   const g = `variant.${v}`;
   const d = VARIANT_DEFAULTS[v];
   const name = GROUP_LABEL[v];
@@ -127,7 +132,7 @@ function variantProps(v: VariantId): PropDef[] {
     { key: `${g}.holoAngle`, group: g, label: 'Shimmer angle', type: 'number', default: 120, min: 0, max: 360, step: 5, unit: '°', help: 'The tilt of the bands.' },
     { key: `${g}.holoBlend`, group: g, label: 'Shimmer blending', type: 'select', default: 'overlay', options: BLEND_MODES, help: 'How the light mixes with the art. Overlay is the original.' },
     { key: `${g}.holoLoop`, group: g, label: 'Keep sweeping', type: 'boolean', default: false, help: 'Off: one pass then it fades. On: sweeps repeatedly while the card is shown.' },
-    { key: `${g}.glow`, group: g, label: 'Glow', type: 'boolean', default: d.glow, help: 'A pulsing coloured halo around the card.' },
+    { key: `${g}.glow`, group: g, label: 'Glow', type: 'boolean', default: d.glow, help: 'A pulsing coloured halo. It follows the card\'s own shape, so rounded corners and holes in the art stay clear.' },
     { key: `${g}.glowColorA`, group: g, label: 'Glow colour A', type: 'color', default: d.glowColorA, help: 'The glow pulses between colour A and colour B.' },
     { key: `${g}.glowColorB`, group: g, label: 'Glow colour B', type: 'color', default: d.glowColorB },
     { key: `${g}.glowBlur`, group: g, label: 'Glow size', type: 'number', default: d.glowBlur, min: 0, max: 200, step: 2, unit: 'px', help: 'How far the glow reaches at its brightest.' },
@@ -139,6 +144,14 @@ function variantProps(v: VariantId): PropDef[] {
     { key: `${g}.rock`, group: g, label: 'Rocking', type: 'boolean', default: d.rock, help: 'A gentle left-to-right sway while shown.' },
     { key: `${g}.rockAmount`, group: g, label: 'Rock amount', type: 'number', default: d.rockAmount, min: 0, max: 8, step: 0.25, unit: '°' },
     { key: `${g}.rockSpeed`, group: g, label: 'Rock cycle time', type: 'number', default: d.rockSpeed, min: 0.8, max: 10, step: 0.1, unit: 's' },
+    { key: `${g}.tilt`, group: g, label: '3D tilt', type: 'boolean', default: false, help: 'The card tips toward and away from the camera, as if someone were showing it off.' },
+    {
+      key: `${g}.tiltAxis`, group: g, label: 'Tilt direction', type: 'select', default: 'x',
+      options: [{ value: 'x', label: 'Nod: tips forward and back (X axis)' }, { value: 'y', label: 'Turn: swings side to side (Y axis)' }, { value: 'xy', label: 'Diagonal: both at once' }],
+    },
+    { key: `${g}.tiltAmount`, group: g, label: 'Tilt angle', type: 'number', default: 14, min: 2, max: 45, step: 1, unit: '°', help: 'How far it tips each way.' },
+    { key: `${g}.tiltSpeed`, group: g, label: 'Tilt cycle time', type: 'number', default: 4, min: 1, max: 12, step: 0.1, unit: 's' },
+    { key: `${g}.tiltPerspective`, group: g, label: '3D depth', type: 'number', default: 900, min: 300, max: 2500, step: 50, unit: 'px', help: 'Lower is a stronger, closer 3D effect; higher is flatter.' },
     { key: `${g}.holdExtra`, group: g, label: 'Extra time on screen', type: 'number', default: 0, min: 0, max: 15, step: 0.5, unit: 's', help: 'Keep this version on screen longer, so a rare pull gets its moment.' },
     { key: `${g}.volume`, group: g, label: 'Reveal sound volume', type: 'number', default: 1, min: 0, max: 2, step: 0.05, unit: '×', help: "Multiplies the card's reveal sound on top of the pack's volume. Playback is capped at full volume, so above 1 only helps where the pack volume is below 1." },
     { key: `${g}.sparkles`, group: g, label: 'Sparkle burst', type: 'boolean', default: false, experimental: true, help: 'A burst of sparkles flies out from the card when it is revealed.' },
@@ -164,34 +177,38 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.showBurst', group: 'reveal', label: 'Light burst', type: 'boolean', default: true, help: 'Rays spinning behind the revealed card.' },
   { key: 'reveal.burstOpacity', group: 'reveal', label: 'Burst strength', type: 'number', default: 0.85, min: 0, max: 1, step: 0.05 },
   { key: 'reveal.showLabel', group: 'reveal', label: 'Label above the card', type: 'boolean', default: true, help: 'The tag: "new", or the version name.' },
+  { key: 'reveal.labelOwned', group: 'reveal', label: 'Label for a card they already own', type: 'text', default: '', maxLength: 30, help: 'Regular pulls say "new" even when it is a duplicate. Put a word here (e.g. "again") to use it for cards the viewer already has. Empty keeps the normal label.' },
   { key: 'reveal.showInfoBar', group: 'reveal', label: 'Name and stars bar', type: 'boolean', default: true, help: 'The card name and star rating at the bottom of the card.' },
   { key: 'reveal.showGotLine', group: 'reveal', label: '"… got:" line', type: 'boolean', default: true },
   { key: 'reveal.gotText', group: 'reveal', label: '"… got:" wording', type: 'text', default: '{user} got:', maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
-  { key: 'reveal.showMiniList', group: 'reveal', label: 'Collection strip below the card', type: 'boolean', default: true, help: 'The row of small cards showing what they already own.' },
-  { key: 'reveal.showUncollectedStrip', group: 'reveal', label: 'Show uncollected in the strip', type: 'boolean', default: true, help: 'Off: only cards they own appear.' },
+  { key: 'reveal.stripPerRow', group: 'lists', label: 'Cards per row', type: 'number', default: 0, min: 0, max: 30, step: 1, help: '0 = fit as many as the width allows (the original). Otherwise each row holds exactly this many.' },
+  { key: 'reveal.stripCardWidth', group: 'lists', label: 'Card size', type: 'number', default: 48, min: 24, max: 200, step: 2, unit: 'px', help: 'Width of each small card (the height follows).' },
+  { key: 'reveal.stripGap', group: 'lists', label: 'Gap between cards', type: 'number', default: 13, min: 0, max: 60, step: 1, unit: 'px' },
+  { key: 'reveal.showMiniList', group: 'lists', label: 'Collection strip below the card', type: 'boolean', default: true, help: 'The row of small cards showing what they already own.' },
+  { key: 'reveal.showUncollectedStrip', group: 'lists', label: 'Show uncollected in the strip', type: 'boolean', default: true, help: 'Off: only cards they own appear.' },
 
   // ── Collection view ──
-  { key: 'collection.perRow', group: 'collection', label: 'Cards per row', type: 'number', default: 0, min: 0, max: 30, step: 1, help: '0 = fit as many as the width allows (the original). Otherwise rows hold exactly this many.' },
-  { key: 'collection.cardWidth', group: 'collection', label: 'Card size', type: 'number', default: 48, min: 24, max: 200, step: 2, unit: 'px', help: 'Width of each small card (the height follows).' },
-  { key: 'collection.cardRadius', group: 'collection', label: 'Corner rounding', type: 'number', default: 2, min: 0, max: 14, step: 1, unit: 'px' },
+  { key: 'collection.perRow', group: 'lists', label: 'Cards per row', type: 'number', default: 0, min: 0, max: 30, step: 1, help: '0 = fit as many as the width allows (the original). Otherwise rows hold exactly this many.' },
+  { key: 'collection.cardWidth', group: 'lists', label: 'Card size', type: 'number', default: 48, min: 24, max: 200, step: 2, unit: 'px', help: 'Width of each small card (the height follows).' },
+  { key: 'collection.cardRadius', group: 'lists', label: 'Corner rounding', type: 'number', default: 2, min: 0, max: 14, step: 1, unit: 'px' },
   {
-    key: 'collection.sort', group: 'collection', label: 'Order', type: 'select', default: 'number',
+    key: 'collection.sort', group: 'lists', label: 'Order', type: 'select', default: 'number',
     options: [{ value: 'number', label: 'Card number' }, { value: 'owned', label: 'Collected first' }, { value: 'rarity', label: 'Rarest first' }],
     help: 'How the cards are arranged.',
   },
-  { key: 'collection.gap', group: 'collection', label: 'Gap between cards', type: 'number', default: 13, min: 0, max: 60, step: 1, unit: 'px' },
-  { key: 'collection.showUncollected', group: 'collection', label: 'Show uncollected cards', type: 'boolean', default: true, help: 'Off: only the cards the viewer owns are shown (no "?" placeholders).' },
-  { key: 'collection.showCounts', group: 'collection', label: 'Show ×N counts', type: 'boolean', default: true, help: 'The duplicate-count badge.' },
-  { key: 'collection.showVariantMarkers', group: 'collection', label: 'Show ✨ on upgraded cards', type: 'boolean', default: true },
-  { key: 'collection.showHeading', group: 'collection', label: 'Show the heading', type: 'boolean', default: true, help: 'The "name\'s collection:" line.' },
-  { key: 'collection.headingText', group: 'collection', label: 'Heading wording', type: 'text', default: "{user}'s collection:", maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
-  { key: 'collection.hold', group: 'collection', label: 'Time on screen', type: 'number', default: 4, min: 1, max: 30, step: 0.5, unit: 's' },
+  { key: 'collection.gap', group: 'lists', label: 'Gap between cards', type: 'number', default: 13, min: 0, max: 60, step: 1, unit: 'px' },
+  { key: 'collection.showUncollected', group: 'lists', label: 'Show uncollected cards', type: 'boolean', default: true, help: 'Off: only the cards the viewer owns are shown (no "?" placeholders).' },
+  { key: 'collection.showCounts', group: 'lists', label: 'Show ×N counts', type: 'boolean', default: true, help: 'The duplicate-count badge.' },
+  { key: 'collection.showVariantMarkers', group: 'lists', label: 'Show ✨ on upgraded cards', type: 'boolean', default: true },
+  { key: 'collection.showHeading', group: 'lists', label: 'Show the heading', type: 'boolean', default: true, help: 'The "name\'s collection:" line.' },
+  { key: 'collection.headingText', group: 'lists', label: 'Heading wording', type: 'text', default: "{user}'s collection:", maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
+  { key: 'collection.hold', group: 'lists', label: 'Time on screen', type: 'number', default: 4, min: 1, max: 30, step: 0.5, unit: 's' },
   {
-    key: 'collection.appear', group: 'collection', label: 'Entrance', type: 'select', default: 'fade',
+    key: 'collection.appear', group: 'lists', label: 'Entrance', type: 'select', default: 'fade',
     options: [{ value: 'fade', label: 'Fade in' }, { value: 'zoom', label: 'Zoom in' }, { value: 'slide', label: 'Slide up' }],
   },
-  { key: 'collection.borderColor', group: 'collection', label: 'Card border colour', type: 'color', default: '#ffffff', help: 'The outline around collected cards.' },
-  { key: 'collection.placeholderColor', group: 'collection', label: 'Placeholder colour', type: 'color', default: '#f1bb06', help: 'The fill of uncollected "?" cards.' },
+  { key: 'collection.borderColor', group: 'lists', label: 'Card border colour', type: 'color', default: '#ffffff', help: 'The outline around collected cards.' },
+  { key: 'collection.placeholderColor', group: 'lists', label: 'Placeholder colour', type: 'color', default: '#f1bb06', help: 'The fill of uncollected "?" cards.' },
 
   // ── Per-variant (regular, reverse, full, shiny) ──
   ...VARIANT_IDS.flatMap(variantProps),
@@ -199,35 +216,51 @@ export const PROPS: PropDef[] = [
 
 /** Which sub-heading a property is listed under in the editor. */
 function sectionFor(key: string): string {
-  const v = key.match(/^variant.[a-z]+.(.+)$/);
+  const v = key.match(/^variant\.[a-z]+\.(.+)$/);
   if (v) {
     const n = v[1];
     if (n.startsWith('label')) return 'Label';
     if (n.startsWith('holo')) return 'Holographic shimmer';
     if (n.startsWith('glow')) return 'Glow';
     if (n.startsWith('pop')) return 'Pop-in';
+    if (n.startsWith('tilt')) return '3D tilt';
     if (n.startsWith('rock')) return 'Rocking';
     if (n.startsWith('burst')) return 'Light burst';
     if (n.startsWith('sparkle')) return 'Sparkles';
     return 'Time and sound';
   }
   const r: [RegExp, string][] = [
-    [/^reveal.(style|speed|packSounds)$/, 'Animation'],
-    [/^reveal.cardScale$/, 'Card'],
-    [/^reveal.(showBurst|burstOpacity)$/, 'Light burst'],
-    [/^reveal.(showLabel|labelSize)$/, 'Label'],
-    [/^reveal.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
-    [/^reveal.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],
-    [/^reveal./, 'Collection strip'],
-    [/^collection.(perRow|cardWidth|gap|cardRadius|sort)$/, 'Grid'],
-    [/^collection.(showUncollected|showCounts|showVariantMarkers)$/, 'What to show'],
-    [/^collection.(showHeading|headingText)$/, 'Heading'],
-    [/^collection.(hold|appear)$/, 'Timing'],
-    [/^collection./, 'Colours'],
+    [/^reveal\.(style|speed|packSounds)$/, 'Animation'],
+    [/^reveal\.cardScale$/, 'Card'],
+    [/^reveal\.(showLabel|labelSize|labelOwned)$/, 'Label'],
+    [/^reveal\.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
+    [/^reveal\.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],
+    [/^reveal\.(showBurst|burstOpacity)$/, 'Light burst'],
+    [/^reveal\.(showMiniList|showUncollectedStrip|stripPerRow|stripCardWidth|stripGap)$/, 'Under the revealed card'],
+    [/^collection\.(perRow|cardWidth|gap)$/, 'Layout'],
+    [/^collection\.(showUncollected|showHeading|headingText)$/, 'What to show'],
+    [/^collection\.(hold|appear)$/, 'Timing'],
+    [/^collection\.(cardRadius|sort|showCounts|showVariantMarkers|borderColor|placeholderColor)$/, 'Card look'],
   ];
   return r.find(([re]) => re.test(key))?.[1] ?? '';
 }
-for (const p of PROPS) p.section = sectionFor(p.key);
+
+/** Which preview a card-list property affects. The shared "Card look" settings apply to both lists. */
+function viewFor(key: string): 'pack' | 'collection' | 'both' | undefined {
+  if (key.startsWith('reveal.strip') || key === 'reveal.showMiniList' || key === 'reveal.showUncollectedStrip') return 'pack';
+  if (/^collection\.(cardRadius|sort|showCounts|showVariantMarkers|borderColor|placeholderColor)$/.test(key)) return 'both';
+  if (key.startsWith('collection.')) return 'collection';
+  return undefined;
+}
+
+/** The order sections appear in within a category (anything unlisted follows). */
+export const SECTION_ORDER = [
+  'Animation', 'Card', 'Label', 'Name and stars bar', '"got:" line',
+  'Under the revealed card', 'Layout', 'What to show', 'Timing', 'Card look',
+  'Holographic shimmer', 'Glow', 'Pop-in', '3D tilt', 'Rocking', 'Light burst', 'Sparkles', 'Time and sound',
+];
+
+for (const p of PROPS) { p.section = sectionFor(p.key); p.view = viewFor(p.key); }
 
 export const PROP_BY_KEY: Record<string, PropDef> = Object.fromEntries(PROPS.map(p => [p.key, p]));
 

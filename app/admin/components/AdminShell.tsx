@@ -23,16 +23,27 @@ export function AdminShell({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [open, setOpen] = useState(false);
+  // A page (the Overlay Editor) can ask for the sidebar to collapse while it is open, without touching the saved
+  // choice: it sets window.__tcgSidebarForce and fires a 'tcg:sidebar' event (the flag covers a child that mounts first).
+  const [forced, setForced] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
     try { setCollapsed(localStorage.getItem(STORAGE_KEY) === 'collapsed'); } catch { /* private mode */ }
+    setForced(!!(window as Window & { __tcgSidebarForce?: boolean }).__tcgSidebarForce);
+    const onForce = (e: Event) => setForced(!!(e as CustomEvent<boolean>).detail);
+    window.addEventListener('tcg:sidebar', onForce);
+    return () => window.removeEventListener('tcg:sidebar', onForce);
   }, []);
+  const shownCollapsed = collapsed || forced;
   const toggle = () => {
+    // Expanding while a page forced it collapsed just overrides that (not saved).
+    if (forced && !collapsed) { setForced(false); return; }
     setCollapsed(c => {
       try { localStorage.setItem(STORAGE_KEY, c ? 'expanded' : 'collapsed'); } catch { /* ignore */ }
       return !c;
     });
+    setForced(false);
   };
 
   // Choosing a page closes the drawer.
@@ -64,10 +75,10 @@ export function AdminShell({
       {open && <div className="lg:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setOpen(false)} aria-hidden />}
 
       <aside
-        data-collapsed={collapsed}
+        data-collapsed={shownCollapsed}
         className={`admin-aside bg-gray-950/95 lg:bg-gray-950/80 backdrop-blur border-r border-poke-blue-light/15 flex flex-col shrink-0
           fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}
-          lg:sticky lg:top-0 lg:h-screen lg:z-auto lg:translate-x-0 lg:transition-[width] ${collapsed ? 'lg:w-[4.5rem]' : 'lg:w-60'}`}
+          lg:sticky lg:top-0 lg:h-screen lg:z-auto lg:translate-x-0 lg:transition-[width] ${shownCollapsed ? 'lg:w-[4.5rem]' : 'lg:w-60'}`}
       >
         <div className="px-4 py-5 flex items-center gap-2">
           <div className="flex-1 min-w-0">{brand}</div>
@@ -89,11 +100,11 @@ export function AdminShell({
           <button
             type="button"
             onClick={toggle}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={shownCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={shownCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className="hidden lg:flex w-full items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:text-yellow-300 hover:bg-white/5 text-xs font-semibold transition-colors aside-item"
           >
-            <span aria-hidden>{collapsed ? '»' : '«'}</span>
+            <span aria-hidden>{shownCollapsed ? '»' : '«'}</span>
             <span className="aside-label">Collapse</span>
           </button>
         </div>
