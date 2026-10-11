@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './db';
 import { getAppAccessToken, twitchCredentials, TWITCH_API_URL } from './twitch-helix';
 import { CHANNEL_LOGIN } from './site';
 

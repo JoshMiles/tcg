@@ -6,6 +6,7 @@ import { getLiveStatus } from '@/lib/twitch-live';
 import { LiveProvider } from './Live';
 import { getSession, loginConfigured } from '@/lib/session';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+import { SandboxPill } from '@/app/components/SandboxPill';
 
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
 export async function SiteShell({ children }: { children: ReactNode }) {
@@ -20,6 +21,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
   return (
     <LiveProvider initial={live}>
     <div className="min-h-screen flex flex-col">
+      <SandboxPill />
       <SiteNav user={user} loginEnabled={loginConfigured()} />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">

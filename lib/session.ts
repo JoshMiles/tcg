@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
+import { currentSandboxId } from './db';
 
 // Website login session: a small signed cookie, no database. The payload is signed with SESSION_SECRET (HMAC-SHA256),
 // so it can be read but not forged or edited. Logging out clears the cookie; otherwise it expires after 30 days.
@@ -16,6 +17,8 @@ export interface Session {
   twitchId: string;
   displayName: string;
   exp: number; // unix seconds
+  /** Set for a sandbox test login: only valid while the request is in that same sandbox. */
+  sandbox?: string;
 }
 
 function secret(): string | null {
@@ -59,7 +62,10 @@ export function verifySession(token: string | undefined): Session | null {
 
 /** The logged-in viewer for this request, or null. */
 export async function getSession(): Promise<Session | null> {
-  return verifySession((await cookies()).get(SESSION_COOKIE)?.value);
+  const session = verifySession((await cookies()).get(SESSION_COOKIE)?.value);
+  // A sandbox test login is useless (and ignored) outside its sandbox, so it can't be mistaken for a real viewer on production.
+  if (session?.sandbox && (await currentSandboxId()) !== session.sandbox) return null;
+  return session;
 }
 
 export function sessionCookieOptions(maxAge = MAX_AGE_S) {

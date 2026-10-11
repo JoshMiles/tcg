@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './db';
 import { fetchTwitchAvatars, twitchCredentials } from './twitch-helix';
 
 // Twitch profile pictures, cached in one KV hash so pages don't hit Twitch on every render.

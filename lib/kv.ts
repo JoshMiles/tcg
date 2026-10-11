@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './db';
 import type { Season, Pack, Card, UserProfile, UpgradeCosts, VariantWeights } from './types';
 import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, cleanDisabled } from './variants';
 import { SEED_SEASON, SEED_PACK, SEED_CARDS } from './seed';

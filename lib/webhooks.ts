@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv, inSandbox } from './db';
 import { randomBytes } from 'crypto';
 import { NextResponse } from 'next/server';
 
@@ -73,6 +73,7 @@ export async function fireOutgoing(
   vars: Record<string, string>,
 ): Promise<void> {
   if (!config.enabled || !config.url) return;
+  if (await inSandbox()) return; // sandboxes never call outside services
   const payload = Object.fromEntries(
     config.fields.map(f => [f.key, interpolate(f.value, vars)])
   );
