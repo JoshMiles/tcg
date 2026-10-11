@@ -99,3 +99,39 @@
 .vfx-reverse:hover::after, .vfx-shiny:hover::after { background-position: 100% 0; }
 .vfx-full { box-shadow: 0 0 16px -2px rgba(96,190,255,.85) !important; }
 .vfx-shiny { box-shadow: 0 0 18px -2px rgba(255,190,60,.95) !important; }
+
+/* ── The Cheesy TCG: public-site theme ── */
+/* Warm cheddar glow + cheese-hole dots, layered over the dark card-table background. */
+.cheese-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(600px 300px at 15% 0%, rgba(255, 203, 5, 0.22), transparent 70%),
+    radial-gradient(500px 300px at 90% 100%, rgba(255, 140, 0, 0.16), transparent 70%);
+}
+.cheese-holes::before,
+.cheese-holes::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 203, 5, 0.18), rgba(255, 140, 0, 0.06) 70%);
+  box-shadow: inset 0 0 0 2px rgba(255, 203, 5, 0.12);
+  pointer-events: none;
+}
+.cheese-holes::before { width: 220px; height: 220px; top: -70px; right: 12%; }
+.cheese-holes::after  { width: 120px; height: 120px; bottom: -40px; left: 6%; }
+
+/* Rind-style gradient border for feature cards. */
+.rind {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgb(20, 27, 54), rgb(20, 27, 54)) padding-box,
+    linear-gradient(135deg, rgba(255, 215, 38, 0.55), rgba(255, 140, 0, 0.25), rgba(255, 215, 38, 0.1)) border-box;
+}
+
+@keyframes cheese-float {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-8px) rotate(3deg); }
+}
+.cheese-float { animation: cheese-float 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .cheese-float { animation: none; } }

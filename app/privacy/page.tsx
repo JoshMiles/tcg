@@ -16,7 +16,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             {APP_NAME} is a collectible card game played on a Twitch channel: viewers get cards when packs are opened
-            on stream, and can see their collection in a Twitch Extension and on a web page. It is a hobby project made for a
+            on stream, and can see their collection in a Twitch Extension and on this website. It is a hobby project made for a
             Twitch community; we do not sell your information and we do not run advertising.
           </p>
         </>
@@ -96,6 +96,9 @@ export default function PrivacyPage() {
           <li>
             <strong className="text-white">Collection pages and leaderboards are public.</strong> Anyone can open a collection page by typing a Twitch username, and
             the leaderboard lists usernames, profile pictures, scores and card counts for each season. They are not behind a login.
+          </li>
+          <li>
+            <strong className="text-white">The home page shows recent pulls</strong> (username, card, and when), the top collectors, and season statistics that are built from everyone&rsquo;s collections.
           </li>
           <li>
             Pack openings and collection displays are shown <strong className="text-white">live on the streamer&rsquo;s broadcast</strong> with your username, and may be

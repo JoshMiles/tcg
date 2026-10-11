@@ -9,7 +9,7 @@ import { SITE_URL } from './site';
 
 export const LEGAL_UPDATED = '10 October 2026';
 
-export const APP_NAME = 'TCG Collection';
+export const APP_NAME = 'The Cheesy TCG';
 
 export const OPERATOR = process.env.LEGAL_OPERATOR_NAME?.trim() || 'the streamer who operates this extension';
 export const CONTACT_EMAIL = process.env.LEGAL_CONTACT_EMAIL?.trim() || '';
