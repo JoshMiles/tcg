@@ -14,6 +14,7 @@ export function CardTile({
   className,
   style,
   title,
+  onActivate,
   children,
 }: {
   imageUrl: string;
@@ -21,6 +22,8 @@ export function CardTile({
   className?: string;
   style?: CSSProperties;
   title?: string;
+  /** Makes the tile a button; called with the tile element on click / Enter / Space. */
+  onActivate?: (el: HTMLElement) => void;
   children?: ReactNode;
 }) {
   const thumb = cardThumbUrl(imageUrl);
@@ -33,6 +36,14 @@ export function CardTile({
       className={className}
       style={style}
       title={title}
+      {...(onActivate ? {
+        role: 'button',
+        tabIndex: 0,
+        onClick: (e: React.MouseEvent<HTMLElement>) => onActivate(e.currentTarget),
+        onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(e.currentTarget); }
+        },
+      } : {})}
       onMouseEnter={() => animates && setHovered(true)}
       onMouseLeave={() => { setHovered(false); setReady(false); }}
     >

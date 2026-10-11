@@ -4,11 +4,11 @@ import {
   getCollection,
   getUserProfile,
 } from '@/lib/kv';
-import { RARITIES, getRarity } from '@/lib/rarity';
+import { RARITIES } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
-import { VARIANTS, VARIANT_LABELS, countVariants } from '@/lib/variants';
+import { VARIANTS, countVariants, emptyCounts } from '@/lib/variants';
 import { getSeasonLeaderboard } from '@/lib/leaderboard';
-import { CardTile } from '@/app/components/CardTile';
+import { CollectionGrid, type GridCard } from './CollectionGrid';
 import { Avatar } from '@/app/components/Avatar';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 
@@ -44,7 +44,7 @@ export default async function CollectionPage({
 
   const { season, packs } = result;
   const allCards = packs
-    .flatMap(({ pack, cards }) => cards.map(c => ({ ...c, packName: pack.name })))
+    .flatMap(({ pack, cards }) => cards.map(c => ({ ...c, packName: pack.name, pack })))
     .sort((a, b) => b.stars - a.stars || a.number - b.number);
 
   const collection = await getCollection(season.collectionName);
@@ -54,6 +54,36 @@ export default async function CollectionPage({
   const board = await getSeasonLeaderboard(season);
   const myRank = board.rows.findIndex(r => r.username === lower);
   const myRow = myRank >= 0 ? board.rows[myRank] : null;
+
+  // Per-card data for the grid + the click-to-expand detail (values come from the season leaderboard maths).
+  const gridCards: GridCard[] = allCards.map(c => {
+    const v = board.values.cards.get(c.number);
+    const w = c.pack.variantWeights;
+    const wTotal = VARIANTS.reduce((s, k) => s + Math.max(0, w[k]), 0) || 1;
+    const pullRate = v?.pullRate ?? 0;
+    return {
+      id: c.id,
+      number: c.number,
+      name: c.name,
+      imageUrl: c.imageUrl,
+      fullArtImageUrl: c.fullArtImageUrl,
+      stars: c.stars,
+      packName: c.packName,
+      upgradable: c.pack.upgradesEnabled && c.upgradesEnabled !== false,
+      pullRate,
+      variantOdds: {
+        regular: pullRate * Math.max(0, w.regular) / wTotal,
+        reverse: pullRate * Math.max(0, w.reverse) / wTotal,
+        full: pullRate * Math.max(0, w.full) / wTotal,
+        shiny: pullRate * Math.max(0, w.shiny) / wTotal,
+      },
+      counts: variantMap.get(c.number) ?? emptyCounts(),
+      values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
+      copies: v?.copies ?? 0,
+      scarcity: v?.scarcity ?? 1,
+    };
+  });
+  const leaderboardHref = `/leaderboard/${season.id}`;
 
   const totalPulls = ownedArray.length;
   const owned = allCards.filter(c => countMap.has(c.number));
@@ -90,8 +120,11 @@ export default async function CollectionPage({
             {totalPulls > owned.length && (
               <p className="text-xs text-gray-600">{totalPulls} total pulls</p>
             )}
-            <a href={`/leaderboard/${season.id}`} className="text-xs text-yellow-500 hover:text-yellow-300 transition-colors">
-              {myRow ? `🏆 #${myRank + 1} · ${myRow.score.toLocaleString()} pts` : '🏆 Leaderboard'} →
+            <a
+              href={leaderboardHref}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/40 hover:bg-yellow-500/20 rounded-full px-3 py-1 transition-colors"
+            >
+              🏆 {myRow ? `#${myRank + 1} · ${myRow.score.toLocaleString()} pts · ` : ''}Full leaderboard →
             </a>
           </div>
         </div>
@@ -126,84 +159,18 @@ export default async function CollectionPage({
           </div>
         )}
 
-        {/* Card grid */}
+        {/* Card grid — click a collected card for its details and current value */}
         {allCards.length === 0 ? (
           <div className="text-center py-16 text-gray-600">
             No cards in this season yet.
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-3">
-            {allCards.map(card => {
-              const count = countMap.get(card.number) ?? 0;
-              const isOwned = count > 0;
-              const rarity = getRarity(card.stars);
-              const variantCounts = variantMap.get(card.number);
-              const best = variantCounts ? [...VARIANTS].reverse().find(v => variantCounts[v] > 0) ?? 'regular' : 'regular';
-              const art = (best === 'full' || best === 'shiny') && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl;
-              const variantSummary = variantCounts
-                ? VARIANTS.filter(v => v !== 'regular' && variantCounts[v] > 0).map(v => `${VARIANT_LABELS[v]} ×${variantCounts[v]}`).join(', ')
-                : '';
-              const title = isOwned
-                ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}${variantSummary ? ` · ${variantSummary}` : ''}`
-                : `#${card.number} ???`;
-              const tileClass = `relative aspect-[2/3] rounded-xl overflow-hidden group transition-transform ${
-                isOwned ? 'holo-hover border-2 hover:-translate-y-1' : 'border border-dashed border-gray-700 bg-gray-900/40'
-              }${isOwned && best !== 'regular' ? ` vfx-${best}` : ''}`;
-              const tileStyle = isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}` } : undefined;
-              const overlays = (
-                <>
-                  {/* Hover name */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-xs text-white truncate leading-none">{isOwned ? card.name : `#${card.number}`}</p>
-                  </div>
-                  {/* Rarity dot */}
-                  {isOwned && (
-                    <div
-                      className="absolute top-1 right-1 w-2 h-2 rounded-full"
-                      style={{ backgroundColor: rarity?.hex }}
-                    />
-                  )}
-                  {/* Best variant owned */}
-                  {isOwned && best !== 'regular' && (
-                    <div className="absolute bottom-1 right-1 bg-gray-950/85 border border-fuchsia-400/50 text-fuchsia-200 text-[9px] font-extrabold px-1.5 rounded-full leading-tight">
-                      {best === 'shiny' ? '✨' : best === 'full' ? 'FA' : 'RH'}
-                    </div>
-                  )}
-                  {/* Pull count badge */}
-                  {count > 1 && (
-                    <div className="absolute top-1 left-1 bg-gray-950/85 border border-yellow-500/50 text-yellow-300 text-[10px] font-extrabold px-1.5 rounded-full leading-tight">
-                      ×{count}
-                    </div>
-                  )}
-                </>
-              );
-
-              // Owned cards show a static thumbnail and animate only on hover.
-              if (isOwned && art) {
-                return (
-                  <CardTile key={card.id} imageUrl={art} alt={card.name} title={title} className={tileClass} style={tileStyle}>
-                    {overlays}
-                  </CardTile>
-                );
-              }
-
-              return (
-                <div key={card.id} title={title} className={tileClass} style={tileStyle}>
-                  <div className="w-full h-full bg-gray-900/60 flex items-center justify-center">
-                    {isOwned ? (
-                      <span className="text-xs text-gray-500 font-bold">#{card.number}</span>
-                    ) : (
-                      <span className="font-display text-gray-600 font-bold text-2xl">?</span>
-                    )}
-                  </div>
-                  {overlays}
-                </div>
-              );
-            })}
-          </div>
+          <CollectionGrid cards={gridCards} totalScore={myRow?.score ?? 0} leaderboardHref={leaderboardHref} />
         )}
 
         <p className="text-center text-xs text-gray-700 pt-2">
+          <a href={leaderboardHref} className="text-yellow-600 hover:text-yellow-400 transition-colors">View the full leaderboard →</a>
+          {' · '}
           Pull cards live on stream · <a href="/collection" className="hover:text-gray-500 transition-colors">view another collection →</a>
         </p>
       </div>
