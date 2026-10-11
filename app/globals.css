@@ -232,3 +232,50 @@
   .ug-ingredient, .ug-flash, .ug-ring, .ug-spark { display: none; }
   .ug-card, .ug-text { animation: none; opacity: 1; transform: none; }
 }
+
+/* ── Trade ceremony (TradeCeremony.tsx): both sides present their cards, they swap across the middle, a flash, the new cards settle ── */
+.tr-overlay {
+  position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(24, 40, 60, .93), rgba(5, 5, 12, .97)); backdrop-filter: blur(5px);
+  animation: ugFade .3s ease both; cursor: pointer;
+}
+.tr-stage { --dx: min(190px, 27vw); position: relative; width: min(640px, 96vw); height: 420px; }
+.tr-group { position: absolute; left: 50%; top: 56px; display: flex; flex-direction: column; align-items: center; gap: 8px; margin-left: calc(min(380px, 94vw) / -2); width: min(380px, 94vw); }
+.tr-cap { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; white-space: nowrap; }
+.tr-row { display: flex; justify-content: center; gap: 8px; flex-wrap: nowrap; }
+.tr-card { position: relative; width: min(104px, 27vw); aspect-ratio: 600 / 891; flex: none; }
+.tr-art { position: relative; width: 100%; height: 100%; border-radius: 9px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,.6); }
+.tr-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tr-art.vfx-full { box-shadow: 0 0 30px 3px rgba(96,190,255,.85) !important; }
+.tr-art.vfx-shiny { box-shadow: 0 0 40px 6px rgba(255,200,60,.9) !important; }
+.tr-count { position: absolute; top: -6px; right: -6px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: #facc15; color: #111827; font-weight: 900; font-size: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,.6); }
+.tr-var { position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); white-space: nowrap; padding: 1px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.tr-more { align-self: center; font-weight: 800; color: #cbd5e1; }
+.tr-gave { animation: trGave 3.3s cubic-bezier(.45,.05,.3,1) forwards; }
+.tr-got  { animation: trGot 3.3s cubic-bezier(.45,.05,.3,1) forwards; }
+@keyframes trGave {
+  0%   { opacity: 0; translate: calc(var(--dx) * -1) 14px; scale: .85; rotate: -4deg; }
+  12%  { opacity: 1; translate: calc(var(--dx) * -1) 0; scale: 1; rotate: 0deg; }
+  36%  { opacity: 1; translate: calc(var(--dx) * -1) 0; scale: 1; rotate: 0deg; }
+  58%  { opacity: 1; translate: 0 -28px; scale: .86; rotate: 6deg; }
+  80%  { opacity: 0; translate: calc(var(--dx) * 1.4) 0; scale: .5; rotate: 14deg; }
+  100% { opacity: 0; translate: calc(var(--dx) * 1.4) 0; scale: .5; }
+}
+@keyframes trGot {
+  0%   { opacity: 0; translate: var(--dx) 14px; scale: .85; rotate: 4deg; }
+  12%  { opacity: 1; translate: var(--dx) 0; scale: 1; rotate: 0deg; }
+  36%  { opacity: 1; translate: var(--dx) 0; scale: 1; rotate: 0deg; }
+  58%  { opacity: 1; translate: 0 28px; scale: .92; rotate: -5deg; }
+  80%  { opacity: 1; translate: 0 0; scale: 1.1; rotate: 0deg; }
+  100% { opacity: 1; translate: 0 0; scale: 1.06; rotate: 0deg; }
+}
+.tr-flash { position: absolute; left: 50%; top: 160px; width: 640px; height: 640px; margin: -320px 0 0 -320px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #fff 0%, rgba(190,235,255,.65) 25%, rgba(255,255,255,0) 62%); opacity: 0; animation: ugFlash .9s ease-out 1.85s forwards; }
+.tr-ring { position: absolute; left: 50%; top: 160px; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 3px solid rgba(160,220,255,.9); opacity: 0; animation: ugRing .95s ease-out 1.85s forwards; }
+.tr-text { position: absolute; left: 0; right: 0; top: 318px; text-align: center; opacity: 0; transform: translateY(12px); animation: ugText .6s ease-out 2.4s forwards; }
+.tr-title { font-family: Poppins, sans-serif; font-weight: 900; font-size: 26px; color: #bae6fd; text-shadow: 0 2px 12px rgba(56,189,248,.5); }
+.tr-sub { margin-top: 4px; font-size: 13px; color: #cbd5e1; }
+@media (prefers-reduced-motion: reduce) {
+  .tr-gave, .tr-flash, .tr-ring { display: none; }
+  .tr-got, .tr-text { animation: none; opacity: 1; translate: 0 0; scale: 1; transform: none; }
+}

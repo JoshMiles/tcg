@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { acceptTrade, cancelTrade, counterTrade, declineTrade } from '@/lib/trades';
 import { requireViewer, respond } from '@/lib/trade-api';
+import { buildSwap } from '@/lib/trade-notify';
+import { NextResponse as Res } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +16,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   try {
     switch (body.action) {
-      case 'accept': return respond(await acceptTrade(id, user));
+      case 'accept': {
+        const result = await acceptTrade(id, user);
+        if (!result.ok) return respond(result);
+        // What changed hands from the accepter's side, for the trade animation.
+        const swap = await buildSwap(result.trade.seasonId, result.trade.get, result.trade.give, result.trade.from);
+        return Res.json({ ...result, swap });
+      }
       case 'decline': return respond(await declineTrade(id, user));
       case 'cancel': return respond(await cancelTrade(id, user));
       case 'counter': return respond(await counterTrade(id, user, { give: body.give, get: body.get, note: typeof body.note === 'string' ? body.note : undefined }));

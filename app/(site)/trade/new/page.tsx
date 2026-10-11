@@ -7,15 +7,15 @@ import { getActive } from '@/lib/site-seasons';
 import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
 import { getTradeCards } from '@/lib/trade-view';
 import { TradeComposer } from '@/app/components/trade/TradeComposer';
-import { decodeEntry } from '@/lib/variants';
+import { VARIANTS, decodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import type { TradeItem } from '@/lib/trade-core';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'New trade offer' };
 
-export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ to?: string; counter?: string; season?: string }> }) {
-  const { to, counter, season: seasonParam } = await searchParams;
+export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ to?: string; counter?: string; season?: string; want?: string }> }) {
+  const { to, counter, season: seasonParam, want } = await searchParams;
   const session = await getSession();
   if (!session) redirect(`/auth/twitch?returnTo=${encodeURIComponent('/trade/new')}`);
 
@@ -47,7 +47,9 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
   const startGive: TradeItem[] = original
     ? original.get.map(i => ({ ...i, count: Math.min(i.count, mine[i.cardNumber]?.[i.variant] ?? 0) })).filter(i => i.count > 0)
     : [];
-  const startGet: TradeItem[] = original ? original.give : [];
+  // ?want=<card>.<variant> (from the "Offer a trade" button on a card) pre-selects the card you are asking for.
+  const wanted = /^(d{1,6}).(regular|reverse|full|shiny)$/.exec(want ?? '');
+  const startGet: TradeItem[] = original ? original.give : wanted && VARIANTS.includes(wanted[2] as Variant) ? [{ cardNumber: Number(wanted[1]), variant: wanted[2] as Variant, count: 1 }] : [];
 
   return wrap(
     <>

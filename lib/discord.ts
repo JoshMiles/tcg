@@ -60,6 +60,8 @@ export function categoryOf(e: ActivityEvent): DiscordCategory {
 
 export function shouldSend(e: ActivityEvent, s: DiscordSettings): boolean {
   if (!s.categories[categoryOf(e)]) return false;
+  // Offers, counters, completed trades and admin cancels are worth a post; a viewer declining, withdrawing or letting one expire is noise.
+  if (e.type === 'trade' && !(e.action === 'offered' || e.action === 'countered' || e.action === 'accepted' || e.by === 'admin')) return false;
   if (e.type === 'pull') {
     if (e.stars < s.minStars) return false;
     if (s.newOnly && !e.isNew) return false;
@@ -156,9 +158,27 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
       return payload({ ...base, ...thumb(card?.imageUrl), color: GOLD, title: '✨ Card upgraded',
         description: `**${esc(e.username)}** upgraded **${esc(e.cardName || card?.name || `#${e.cardNumber}`)}** to **${VARIANT_LABELS[e.to]}** (${e.cost}× ${VARIANT_LABELS[e.from]})` });
     }
-    case 'trade':
-      return payload({ ...base, color: GREEN, title: '🔁 Trade completed',
-        description: `**${esc(e.username)}** traded ${e.gave} card${e.gave === 1 ? '' : 's'} with **${esc(e.partner)}** for ${e.got}` });
+    case 'trade': {
+      const card = e.cardNumber ? cardFor(e.cardNumber) : undefined;
+      const adminCancel = e.action === 'cancelled' && e.by === 'admin';
+      const who = esc(e.username);
+      const other = e.partner ? esc(e.partner) : null;
+      const head = {
+        offered: { color: BLUE, title: e.kind === 'listing' ? '📋 Trade listed on the board' : '🔁 Trade offered', text: e.kind === 'listing' ? `**${who}** posted a listing on the open board` : `**${who}** offered **${other}** a trade` },
+        countered: { color: BLUE, title: '↩️ Counter-offer', text: `**${who}** countered **${other}**'s offer` },
+        accepted: { color: GREEN, title: '🤝 Trade completed', text: `**${who}** and **${other}** swapped cards` },
+        declined: { color: RED, title: '🚫 Trade declined', text: `**${other}** declined **${who}**'s offer` },
+        cancelled: { color: RED, title: adminCancel ? '🛡️ Trade cancelled by an admin' : '✖️ Trade cancelled', text: `**${who}**'s offer was cancelled` },
+        expired: { color: RED, title: '⌛ Trade expired', text: `**${who}**'s offer ran out of time` },
+      }[e.action];
+      const list = (lines: string[]) => (lines.join('\n') || '—').slice(0, 1000);
+      const fields: { name: string; value: string; inline?: boolean }[] = [
+        { name: `${who} gives · ≈${e.givePts.toLocaleString()} pts`, value: list(e.give.map(esc)), inline: true },
+        { name: `${e.action === 'accepted' && other ? other : e.kind === 'listing' ? 'In return' : other ?? 'In return'} gives · ≈${e.getPts.toLocaleString()} pts`, value: list(e.get.map(esc)), inline: true },
+      ];
+      if (e.note) fields.push({ name: 'Note', value: esc(e.note).slice(0, 200) });
+      return payload({ ...base, ...thumb(card?.imageUrl), color: head.color, title: head.title, description: head.text, fields });
+    }
     case 'reset':
       return payload({ ...base, color: RED, title: '🔄 Collection reset',
         description: e.scope === 'everyone' ? '**All collections** were reset' : `**${esc(e.username)}**'s collection was reset${e.scope === 'all' ? ' across all seasons' : ''}` });

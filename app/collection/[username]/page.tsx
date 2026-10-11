@@ -196,7 +196,7 @@ export default async function CollectionPage({
             No cards in this season yet.
           </div>
         ) : (
-          <CollectionGrid cards={gridCards} totalScore={myRow?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} ownerName={displayName} />
+          <CollectionGrid cards={gridCards} totalScore={myRow?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} ownerName={displayName} tradeWith={session && !isOwner ? lower : undefined} />
         )}
 
         <p className="text-center text-xs text-gray-700 pt-2">

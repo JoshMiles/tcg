@@ -1,6 +1,6 @@
 'use client';
 import { Spinner } from '../../admin/components/PendingButton';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANT_LABELS } from '@/lib/variants';
@@ -61,8 +61,11 @@ export function TradeComposer({
       setLookingUp(false);
     }
   }
-  // A counter already knows who it is for: load their cards straight away.
-  useState(() => { if (counter && initial.to) setTimeout(lookUp, 0); });
+  // A counter, or an offer started from a card, already knows who it is for: load their cards straight away.
+  useEffect(() => {
+    if (initial.to && (counter || initial.get.length > 0)) lookUp();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // What can be picked on each side, and how many of each.
   const taken = (list: TradeItem[], n: number, v: Variant) => list.find(i => i.cardNumber === n && i.variant === v)?.count ?? 0;

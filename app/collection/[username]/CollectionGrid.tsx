@@ -51,7 +51,7 @@ const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0)
 const artFor = (c: GridCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
 
-export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName }: { cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string }) {
+export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith }: { cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
   // the server renders the default so there's no flash of ? tiles).
@@ -173,6 +173,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           leaderboardHref={leaderboardHref}
           canUpgrade={canUpgrade}
           ownerName={canUpgrade ? undefined : ownerName}
+          tradeWith={tradeWith}
           canStep={ownedIdx.length > 1}
           onClose={close}
           onStep={step}
@@ -185,9 +186,9 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
 // ── Detail dialog ─────────────────────────────────────────
 
 function CardDetail({
-  card, totalScore, leaderboardHref, canUpgrade, ownerName, canStep, onClose, onStep,
+  card, totalScore, leaderboardHref, canUpgrade, ownerName, tradeWith, canStep, onClose, onStep,
 }: {
-  card: GridCard; totalScore: number; leaderboardHref: string; canUpgrade: boolean; ownerName?: string; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
+  card: GridCard; totalScore: number; leaderboardHref: string; canUpgrade: boolean; ownerName?: string; tradeWith?: string; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
 }) {
   const rarity = getRarity(card.stars);
   const [preview, setPreview] = useState<Variant | null>(null);
@@ -321,6 +322,16 @@ function CardDetail({
                 </tbody>
               </table>
             </div>
+
+            {tradeWith && (
+              <a
+                href={`/trade/new?to=${encodeURIComponent(tradeWith)}&want=${card.number}.${shown}`}
+                className="flex items-center justify-between gap-3 rounded-xl border border-purple-400/40 bg-purple-500/10 hover:bg-purple-500/20 px-4 py-3 transition-colors"
+              >
+                <span className="text-sm font-bold text-purple-200">🔁 Offer a trade for {card.upgradable && shown !== 'regular' ? `this ${VARIANT_LABELS[shown]}` : 'this card'}</span>
+                <span className="text-xs text-purple-300/80">Set up an offer to {ownerName ?? tradeWith} →</span>
+              </a>
+            )}
 
             {card.maths && <CardMathsPanel maths={card.maths} variants={rows} shown={shown} />}
 

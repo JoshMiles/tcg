@@ -1,9 +1,9 @@
 import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserProfile, saveCollection, withCollectionLock, withLock } from './kv';
-import { recordActivity } from './activity';
+import { announceTrade, type TradeAction } from './trade-notify';
 import { allowedVariants } from './variants';
 import {
-  DEFAULT_TRADE_SETTINGS, TRADE_LIMITS, cleanItems, itemCopies, itemEntries, sanitizeTradeSettings, settleTrade, takeForEscrow,
+  DEFAULT_TRADE_SETTINGS, TRADE_LIMITS, cleanItems, itemEntries, sanitizeTradeSettings, settleTrade, takeForEscrow,
   describeItems, type Trade, type TradeItem, type TradeSettings, type TradeStatus,
 } from './trade-core';
 import type { Card, Pack } from './types';
@@ -22,6 +22,21 @@ const HISTORY_KEY = 'trades:history';
 const SETTINGS_KEY = 'trade:settings';
 const HISTORY_CAP = 400;
 const LOCK = 'trades';
+
+// Notifications / activity for what happens to offers are queued while the trade lock is held and sent after it is released
+// (building them reads the season and its card values, which must not delay the lock). Whoever flushes first sends everything queued.
+const queued: { trade: Trade; action: TradeAction; by?: string }[] = [];
+function queueEvent(trade: Trade, action: TradeAction, by?: string): void {
+  queued.push({ trade: structuredClone(trade), action, by });
+}
+async function flushEvents(): Promise<void> {
+  const batch = queued.splice(0, queued.length);
+  for (const e of batch) await announceTrade(e.trade, e.action, e.by);
+}
+/** Runs a locked section, then sends the notifications it queued. */
+function locked<T>(fn: () => Promise<T>): Promise<T> {
+  return withLock(LOCK, fn).finally(flushEvents);
+}
 
 export type TradeResult<T = object> = ({ ok: true } & T) | { ok: false; status: number; error: string };
 const fail = (status: number, error: string): { ok: false; status: number; error: string } => ({ ok: false, status, error });
@@ -75,6 +90,8 @@ async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status:
   if (i >= 0) open.splice(i, 1);
   history.unshift(trade);
   if (history.length > HISTORY_CAP) history.length = HISTORY_CAP;
+  // (a counter is announced by the new offer it creates)
+  if (status === 'accepted' || status === 'declined' || status === 'cancelled' || status === 'expired') queueEvent(trade, status, by);
 }
 
 /** Expires (and refunds) every overdue open offer. Returns whether anything changed. Call inside the lock. */
@@ -98,7 +115,7 @@ export async function sweepTrades(): Promise<number> {
   const peek = await readOpen();
   const now = Date.now();
   if (!peek.some(t => t.expiresAt <= now)) return 0; // the common case costs one read and no lock
-  return withLock(LOCK, async () => {
+  return locked(async () => {
     const open = await readOpen();
     const history = await readHistory();
     const before = open.length;
@@ -224,13 +241,14 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     throw e;
   }
   if (settings.cooldownSeconds > 0) await kv.set(`trade:cd:${from}`, '1', { ex: settings.cooldownSeconds });
+  queueEvent(trade, 'offered', from);
   return { ok: true, trade };
 }
 
 export async function createTrade(input: NewTrade): Promise<TradeResult<{ trade: Trade }>> {
   const settings = await getTradeSettings();
   if (!settings.enabled) return fail(403, 'Trading is paused right now.');
-  return withLock(LOCK, async () => {
+  return locked(async () => {
     const open = await readOpen();
     const history = await readHistory();
     await sweepInLock(open, history);
@@ -257,7 +275,7 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
   const taker = username.toLowerCase();
   const settings = await getTradeSettings();
   if (!settings.enabled) return fail(403, 'Trading is paused right now.');
-  return withLock(LOCK, async () => {
+  return locked(async () => {
     const found = await findOpen(id);
     if ('error' in found) return found.error;
     const { open, history, trade } = found;
@@ -282,7 +300,6 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
     trade.escrowed = false;
     await closeTrade(open, history, trade, 'accepted', taker, undefined, false);
     await persist(open, history);
-    await recordActivity({ type: 'trade', username: trade.from, partner: taker, gave: itemCopies(trade.give), got: itemCopies(trade.get), collectionName: season.collectionName });
     return { ok: true, trade };
   });
 }
@@ -290,7 +307,7 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
 /** The recipient says no: the offerer's copies are refunded. */
 export async function declineTrade(id: string, username: string): Promise<TradeResult<{ trade: Trade }>> {
   const user = username.toLowerCase();
-  return withLock(LOCK, async () => {
+  return locked(async () => {
     const found = await findOpen(id);
     if ('error' in found) return found.error;
     const { open, history, trade } = found;
@@ -304,7 +321,7 @@ export async function declineTrade(id: string, username: string): Promise<TradeR
 /** The offerer withdraws (or an admin cancels): the copies are refunded. Works even while trading is paused. */
 export async function cancelTrade(id: string, username: string, opts: { admin?: boolean; reason?: string } = {}): Promise<TradeResult<{ trade: Trade }>> {
   const user = username.toLowerCase();
-  return withLock(LOCK, async () => {
+  return locked(async () => {
     const found = await findOpen(id);
     if ('error' in found) return found.error;
     const { open, history, trade } = found;
@@ -323,7 +340,7 @@ export async function counterTrade(id: string, username: string, input: { give: 
   const user = username.toLowerCase();
   const settings = await getTradeSettings();
   if (!settings.enabled) return fail(403, 'Trading is paused right now.');
-  return withLock(LOCK, async () => {
+  return locked(async () => {
     const found = await findOpen(id);
     if ('error' in found) return found.error;
     const { open, history, trade } = found;

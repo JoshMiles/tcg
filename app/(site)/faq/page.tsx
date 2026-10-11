@@ -209,6 +209,9 @@ export default async function FaqPage() {
         <Q q="What is a counter-offer?">
           If someone sends you an offer you almost like, press <em>Counter</em>. Their offer is closed and their cards go back to them; you pick a different swap, which is sent back to them to accept or counter in turn.
         </Q>
+        <Q q="How will I know if someone answers my offer?">
+          The bell in the top bar tells you when you get an offer or counter-offer, and when yours is accepted, declined, withdrawn or runs out. When someone accepts one of your offers you also get a short trade animation showing the swap (you can replay it from the bell).
+        </Q>
         <Q q="Is a trade fair? How do I know what a card is worth?">
           Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule — you can
           trade anything for anything. Remember that trading changes how scarce each version is, so values shift after a trade, and the person giving up a rare version may care about more than the points.
