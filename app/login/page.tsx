@@ -33,7 +33,7 @@ export default function LoginPage() {
         <div className="p-8 space-y-5">
           <div className="flex flex-col items-center gap-2">
             <BrandMark size={56} />
-            <h1 className="text-yellow-400 font-bold text-2xl">TCG Admin</h1>
+            <h1 className="text-yellow-400 font-bold text-2xl">The Cheesy TCG</h1>
             <p className="text-gray-500 text-xs font-semibold uppercase tracking-widest">Trainer sign-in</p>
           </div>
           <input

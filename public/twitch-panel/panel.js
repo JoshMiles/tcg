@@ -727,7 +727,7 @@ function populateLoginTeaser() {
 function renderLoginMeta() {
   const nameEl = document.getElementById('login-season-name');
   const countEl = document.getElementById('login-card-count');
-  if (nameEl) nameEl.textContent = season?.seasonName ?? 'Card Collection';
+  if (nameEl) nameEl.textContent = season?.seasonName ?? 'The Cheesy TCG';
   if (countEl && season) {
     const total = season.packs.reduce((s, p) => s + p.cards.length, 0);
     countEl.textContent = total > 0 ? `${total} cards to discover` : '';

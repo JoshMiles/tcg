@@ -20,7 +20,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center">
         <div className="space-y-2">
           <div className="text-5xl mb-4">🃏</div>
-          <h1 className="text-3xl font-bold text-white">Welcome to TCG Admin</h1>
+          <h1 className="text-3xl font-bold text-white">Welcome to The Cheesy TCG</h1>
           <p className="text-gray-500 max-w-sm">
             No active season yet. Seed Season 1 to get started with the starter pack, or create your own.
           </p>

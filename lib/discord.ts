@@ -177,7 +177,7 @@ export function buildTestMessage(): DiscordPayload {
   return payload({
     color: GREEN,
     title: '✅ Discord webhook connected',
-    description: 'This is a test message from **TCG Admin**. Live activity will appear in this channel once the webhook is enabled.',
+    description: 'This is a test message from **The Cheesy TCG**. Live activity will appear in this channel once the webhook is enabled.',
     timestamp: new Date().toISOString(),
     footer: { text: 'Test message' },
   });

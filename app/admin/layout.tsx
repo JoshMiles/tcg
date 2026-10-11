@@ -15,7 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3">
             <BrandMark />
             <div>
-              <p className="font-display text-yellow-400 font-bold text-lg leading-none tracking-tight">TCG Admin</p>
+              <p className="font-display text-yellow-400 font-bold text-lg leading-none tracking-tight">The Cheesy TCG</p>
               <p className="text-gray-500 text-xs mt-1 font-semibold uppercase tracking-widest">Card Manager</p>
             </div>
           </div>

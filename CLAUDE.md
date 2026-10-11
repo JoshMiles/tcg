@@ -105,7 +105,15 @@ Packs can opt in to **variants**: every card can be pulled as Regular / Reverse 
 - `/admin/webhooks` — incoming/outgoing webhook config
 - `/admin/settings` — misc settings, build info
 
+## Public site (The Cheesy TCG)
+The product is branded **The Cheesy TCG** (icon: `public/brand/icon.png`, also `app/icon.png` / `app/apple-icon.png` for the favicon; `BrandMark` renders it). Every public page sits inside `SiteShell` (`app/components/site/`: sticky `SiteNav` with a mobile menu, plus a footer with Privacy/Terms). Existing sections get it from a small `layout.tsx` (`collection`, `leaderboard`, `privacy`, `terms`); the new pages live in the `app/(site)/` route group, which shares the same shell. The admin area keeps its own layout and password login.
+- Theme: the dark card-table look plus cheese accents — `.cheese-hero`, `.cheese-holes`, `.rind`, `.cheese-float` in `globals.css`.
+- `/` home: hero + collection search, how it works, top 5, recent pulls (from the activity log, filtered to the season), rarest cards. `/stats` season stats (`computeStats` in `lib/site-data.ts`), `/cards` card dex (rarity filter / search / sort). Season pickers use `?season=<id>`; `lib/site-seasons.ts` `getActive()` resolves it and hides drafts.
+- The nav has a placeholder "Log in with Twitch · soon" slot — website login (sessions, web upgrades, user stats) is the next piece.
+- Because the home page shows recent pulls publicly, the Privacy Policy says so; keep it in step if you expose more.
+
 ## Public routes
+- `/` — home (see above); `/stats`, `/cards`
 - `/collection` — landing page (username search)
 - `/privacy` — Privacy Policy and `/terms` — Terms of Use / EULA (public; the URLs to enter in the extension's dev.twitch.tv Privacy Policy / EULA fields). Content lives in `app/privacy/page.tsx` and `app/terms/page.tsx`; **keep them in step with what the app really collects** (Twitch IDs/usernames, collections, activity log, avatars, analytics, Discord/webhook forwarding). Bump `LEGAL_UPDATED` in `lib/legal.ts` when you change them.
 - `/collection/[username]` — viewer's card collection (no auth). Shows owned cards with ×N badge for duplicates and total pull count when it exceeds unique count. **Clicking a collected card opens a detail view** (`CollectionGrid.tsx`, client): art (click a variant row to preview it), rarity, pull chance, per-variant copies / pull odds / points each, the card's total value and share of the viewer's score, and a scarcity note. Uncollected cards stay a `?` and don't open. All values are precomputed server-side from `getSeasonLeaderboard`.

@@ -15,8 +15,8 @@ export default function CollectionLanding() {
         <div className="p-8 space-y-6 text-center">
           <div className="flex flex-col items-center gap-2">
             <BrandMark size={64} />
-            <h1 className="text-3xl font-bold text-yellow-400">TCG Collection</h1>
-            <p className="text-gray-500 text-sm">Enter your Twitch username to view your cards</p>
+            <h1 className="text-3xl font-bold text-yellow-400">The Cheesy TCG</h1>
+            <p className="text-gray-500 text-sm">Enter a Twitch username to view a collection</p>
           </div>
           <form action={goToCollection} className="flex gap-2">
             <input
