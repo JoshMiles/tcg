@@ -1,38 +1,24 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, listSeasons } from '@/lib/kv';
-import { getSeasonLeaderboard, SCORE_BASE } from '@/lib/leaderboard';
+import { getSeasonLeaderboard } from '@/lib/leaderboard';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { Avatar } from '@/app/components/Avatar';
-import { cardThumbUrl } from '@/lib/card-art';
 
 export const dynamic = 'force-dynamic';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny: '✨' };
 
-export default async function LeaderboardPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ seasonId: string }>;
-  searchParams: Promise<{ how?: string }>;
-}) {
+export default async function LeaderboardPage({ params }: { params: Promise<{ seasonId: string }> }) {
   const { seasonId } = await params;
-  const { how } = await searchParams; // ?how=1 opens the explainer (linked from card details)
   const [season, seasons] = await Promise.all([getSeason(seasonId), listSeasons()]);
   if (!season || season.status === 'draft') notFound();
 
-  const { rows, values, packs } = await getSeasonLeaderboard(season);
+  const { rows, values } = await getSeasonLeaderboard(season);
   const top = rows.slice(0, 100);
   const avatars = await getAvatars(top.map(r => r.username));
-  const upgrades = packs.some(p => p.pack.upgradesEnabled);
-
-  const cards = packs
-    .flatMap(({ pack, cards }) => cards.map(c => ({ card: c, value: values.cards.get(c.number), upgradable: pack.upgradesEnabled && c.upgradesEnabled !== false })))
-    .filter(x => x.value)
-    .sort((a, b) => b.value!.values.regular - a.value!.values.regular);
 
   return (
     <div className="min-h-screen text-gray-200">
@@ -72,80 +58,16 @@ export default async function LeaderboardPage({
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
 
-        {/* How points work — at the top so it's easy to find */}
-        {cards.length > 0 && (
-          <details open={!!how} className="group tcg-panel rounded-xl overflow-hidden">
-            <summary className="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-              <span className="flex items-center gap-2 text-sm font-semibold text-white">
-                <span aria-hidden>ℹ️</span> How are points worked out?
-              </span>
-              <span className="text-xs text-gray-500 group-open:hidden">Show</span>
-              <span className="text-xs text-gray-500 hidden group-open:inline">Hide</span>
-            </summary>
-            <div className="px-4 pb-4 space-y-4 border-t border-gray-800/70 pt-4">
-              <p className="text-sm text-gray-300 leading-relaxed">
-                Your score is the value of <strong className="text-white">every card you own</strong>, duplicates included. Each copy is worth:
-              </p>
-              <p className="font-display text-lg font-bold text-yellow-300">
-                {SCORE_BASE} × rarity × scarcity{upgrades ? ' × variant' : ''}
-              </p>
-              <ul className="space-y-2 text-sm text-gray-300 leading-relaxed">
-                <li>
-                  <strong className="text-white">Rarity</strong> — how hard the card is to pull compared with an average card. A card that comes up half as often is worth twice as much.
-                </li>
-                <li>
-                  <strong className="text-white">Scarcity</strong> — how few copies of that <em>exact version</em> exist across everyone this season (a Shiny is compared with other Shinies, a Regular with
-                  other Regulars). Fewer than average gives a bonus (up to 2×), more gives a penalty (down to 0.5×), so values shift as cards are pulled and upgraded.
-                </li>
-                {upgrades && (
-                  <li>
-                    <strong className="text-white">Variant</strong> — Reverse Holo, Full Art and Shiny Full Art copies are worth far more than a Regular. An upgraded card is normally worth more than the copies
-                    you spend to make it, though scarcity can shift that.
-                  </li>
-                )}
-                {upgrades && (
-                  <li>
-                    <strong className="text-white">Upgrades use cards up.</strong> The copies you spend are destroyed, so fewer of that version exist and it becomes scarcer — which can raise the value of the
-                    copies of it you keep. The new, higher version adds to its own count, so it can become a little less scarce. Other cards&rsquo; values can move slightly too.
-                  </li>
-                )}
-              </ul>
-
-              <div className="overflow-x-auto rounded-lg border border-gray-800">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-gray-500 text-left bg-gray-950/50">
-                      <th className="py-2 px-3 font-medium">Card</th>
-                      <th className="py-2 px-2 font-medium text-right">Copies</th>
-                      <th className="py-2 px-2 font-medium text-right">Regular</th>
-                      {upgrades && VARIANTS.filter(v => v !== 'regular').map(v => (
-                        <th key={v} className="py-2 px-2 font-medium text-right" title={VARIANT_LABELS[v]}>{VARIANT_SHORT[v]}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800/60">
-                    {cards.map(({ card, value, upgradable }) => (
-                      <tr key={card.id} className="text-gray-300">
-                        <td className="py-1.5 px-3">
-                          <span className="flex items-center gap-2">
-                            {card.imageUrl && <img src={cardThumbUrl(card.imageUrl)} alt="" loading="lazy" className="w-5 h-7 object-cover rounded-sm" />}
-                            <span className="truncate">{card.name}</span>
-                          </span>
-                        </td>
-                        <td className="py-1.5 px-2 text-right tabular-nums text-gray-500">{value!.copies}</td>
-                        <td className="py-1.5 px-2 text-right tabular-nums">{value!.values.regular}</td>
-                        {upgrades && VARIANTS.filter(v => v !== 'regular').map(v => (
-                          <td key={v} className="py-1.5 px-2 text-right tabular-nums text-gray-400">{upgradable ? value!.values[v] : '—'}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="text-[11px] text-gray-600">RH = Reverse Holo · FA = Full Art · ✨ = Shiny Full Art. Click a card in your collection to see its value there too.</p>
-            </div>
-          </details>
-        )}
+        {/* The full explanation lives on the FAQ page */}
+        <Link
+          href="/faq#points"
+          className="rind rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:brightness-125 transition"
+        >
+          <span className="flex items-center gap-2 text-sm font-semibold text-white">
+            <span aria-hidden>ℹ️</span> How are points worked out?
+          </span>
+          <span className="text-xs text-yellow-400 font-semibold shrink-0">Read the FAQ →</span>
+        </Link>
 
         {top.length === 0 ? (
           <div className="text-center py-16 text-gray-600">No one is on the board yet.</div>

@@ -210,6 +210,21 @@ export async function publishSeason(id: string, activate: boolean): Promise<{ ok
   return { ok: true };
 }
 
+/**
+ * Takes a published season back to a draft. It stops being the active season (the overlay and Twitch panel see "no
+ * active season" until another is activated) and disappears from the public site. Nothing is deleted: viewers'
+ * collections, the season's packs and its settings are all kept, and it can be edited and published again from
+ * /admin/seasons/new?draft=<id>.
+ */
+export async function unpublishSeason(id: string): Promise<void> {
+  const season = await getSeason(id);
+  if (!season || season.status === 'draft') return;
+  await saveSeason({ ...season, status: 'draft', active: false });
+  revalidatePath('/admin/seasons');
+  revalidatePath(`/admin/seasons/${id}`);
+  revalidatePath('/admin');
+}
+
 export async function discardDraftSeason(id: string): Promise<void> {
   const season = await getSeason(id);
   if (!season || season.status !== 'draft') return;

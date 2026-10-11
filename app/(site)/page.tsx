@@ -11,12 +11,7 @@ export const dynamic = 'force-dynamic';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-const STEPS = [
-  { icon: '📺', title: 'Watch the stream', text: 'Packs are opened live on stream — cards drop on screen with your name on them.' },
-  { icon: '🧀', title: 'Collect the cheese', text: 'Every card you pull lands in your collection. Chase them all and fill the set.' },
-  { icon: '✨', title: 'Find the shiny ones', text: 'Cards can come as Reverse Holo, Full Art or the ultra-rare Shiny Full Art.' },
-  { icon: '⬆️', title: 'Upgrade & climb', text: 'Duplicates can be upgraded into rarer versions. Rarer cards score more on the leaderboard.' },
-];
+
 
 export default async function HomePage() {
   async function goToCollection(formData: FormData) {
@@ -83,20 +78,17 @@ export default async function HomePage() {
 
       <div className="max-w-6xl mx-auto px-4 py-12 space-y-14">
 
-        {/* ── How it works ── */}
-        <section>
-          <h2 className="font-display text-3xl font-bold text-white mb-6">How it works</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {STEPS.map((s, i) => (
-              <div key={s.title} className="rind rounded-2xl p-5 space-y-2">
-                <div className="flex items-center gap-3">
-                  <span className="w-9 h-9 rounded-full bg-yellow-500/15 flex items-center justify-center text-lg">{s.icon}</span>
-                  <span className="text-xs font-extrabold text-yellow-500/80">STEP {i + 1}</span>
-                </div>
-                <h3 className="font-display text-lg font-bold text-white">{s.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{s.text}</p>
-              </div>
-            ))}
+        {/* ── New here? (the full explanation lives on the FAQ page) ── */}
+        <section className="rind rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-5">
+          <div className="space-y-1.5 max-w-xl">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">New here?</h2>
+            <p className="text-gray-400 leading-relaxed">
+              Watch the stream, collect cards as packs are opened, hunt for rare and shiny versions, upgrade your duplicates and climb the leaderboard.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/faq" className="tcg-btn px-5 py-2.5 rounded-xl text-sm">How it works →</Link>
+            <Link href="/faq#points" className="px-5 py-2.5 rounded-xl text-sm bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold">How points work</Link>
           </div>
         </section>
 

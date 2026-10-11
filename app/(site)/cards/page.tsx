@@ -45,7 +45,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
         <h1 className="font-display text-4xl font-bold text-white">🃏 Card dex</h1>
         <p className="text-sm text-gray-400">
           Every card in {season.name}, with how rare it is and what it&rsquo;s worth. Values shift as more cards are pulled — see{' '}
-          <Link href={`/leaderboard/${season.id}?how=1`} className="text-yellow-400 hover:text-yellow-300">how points are worked out</Link>.
+          <Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how points are worked out</Link>.
         </p>
         {seasons.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
