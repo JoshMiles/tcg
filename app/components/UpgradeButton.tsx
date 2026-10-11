@@ -4,19 +4,22 @@ import { useRouter } from 'next/navigation';
 import { VARIANT_LABELS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { UpgradeCeremony, type CeremonyCard } from './UpgradeCeremony';
+import type { HoloSpecs } from '@/lib/holo-core';
 
 /**
  * Spends `cost` copies of `from` for one of the next variant, via the logged-in session. The server decides
  * everything (ownership, cost, whether upgrades are on); this only reports the outcome and refreshes the page.
  */
 export function UpgradeButton({
-  cardNumber, from, to, have, cost, className = '', card, gain,
+  cardNumber, from, to, have, cost, className = '', card, gain, holo,
 }: {
   cardNumber: number; from: Variant; to: Variant; have: number; cost: number; className?: string;
   /** The card's art and name. With it, a successful upgrade plays the upgrade animation. */
   card?: CeremonyCard;
   /** Projected score change, shown in the animation. */
   gain?: number;
+  /** The card's shimmer per variant (the Overlay Editor's holo settings). */
+  holo?: HoloSpecs;
 }) {
   const router = useRouter();
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
@@ -68,6 +71,7 @@ export function UpgradeButton({
           to={ceremony.to}
           cost={ceremony.cost}
           gain={gain}
+          holo={holo}
           // The page refreshes when the animation closes: the row being upgraded may disappear, which would cut it short.
           onClose={() => { setCeremony(null); router.refresh(); }}
         />

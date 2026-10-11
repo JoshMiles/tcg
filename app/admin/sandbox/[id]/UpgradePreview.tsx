@@ -3,8 +3,9 @@ import { useState } from 'react';
 import type { Variant } from '@/lib/types';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { UpgradeCeremony } from '@/app/components/UpgradeCeremony';
+import type { HoloSpecs } from '@/lib/holo-core';
 
-interface PreviewCard { number: number; name: string; imageUrl: string; fullArtImageUrl?: string }
+interface PreviewCard { number: number; name: string; imageUrl: string; fullArtImageUrl?: string; holo: HoloSpecs }
 
 /** Plays the viewer-facing upgrade animation for any card and variant step, without needing to set up a real upgrade. */
 export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: { reverse: number; full: number; shiny: number } }) {
@@ -34,7 +35,7 @@ export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: 
         </label>
       </div>
       <button type="button" onClick={() => setPlaying(true)} className="tcg-btn px-4 py-2 text-sm rounded-xl">▶ Play</button>
-      {playing && <UpgradeCeremony card={card} from={from} to={to} cost={cost} gain={Math.round(40 + Math.random() * 400)} onClose={() => setPlaying(false)} />}
+      {playing && <UpgradeCeremony card={card} holo={card.holo} from={from} to={to} cost={cost} gain={Math.round(40 + Math.random() * 400)} onClose={() => setPlaying(false)} />}
     </div>
   );
 }

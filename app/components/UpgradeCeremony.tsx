@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANT_LABELS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
+import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 
 export interface CeremonyCard {
   name: string;
@@ -26,9 +27,12 @@ const artFor = (card: CeremonyCard, v: Variant) => ((v === 'full' || v === 'shin
  * Click, tap, Enter or Escape to continue (it also closes by itself). Reduced motion skips the movement and shows the result.
  */
 export function UpgradeCeremony({
-  card, from, to, cost, gain, onClose,
+  card, from, to, cost, gain, holo, onClose,
 }: {
-  card: CeremonyCard; from: Variant; to: Variant; cost: number; gain?: number; onClose: () => void;
+  card: CeremonyCard; from: Variant; to: Variant; cost: number; gain?: number;
+  /** The card's holographic shimmer per variant, from the Overlay Editor settings (see lib/holo.ts). */
+  holo?: HoloSpecs;
+  onClose: () => void;
 }) {
   const [mounted, setMounted] = useState(false);
   const [ready, setReady] = useState(false);          // the animated art has loaded
@@ -48,10 +52,10 @@ export function UpgradeCeremony({
   const fromThumb = cardThumbUrl(artFor(card, from));
   const newThumb = cardThumbUrl(newArt);
   const n = Math.min(Math.max(cost, 2), 10);          // show up to ten ingredient cards, however many were spent
-  const fx = to === 'regular' ? '' : `vfx-${to} vfx-live`;
+  const fx = `${to === 'regular' ? '' : `vfx-${to}`} ${holoClass(holo?.[to], true)}`.trim();
   // The spent copies keep the look of the variant they were (a Reverse Holo ingredient still shimmers).
   const fromArtUrl = artFor(card, from);
-  const fromFx = from === 'regular' ? '' : `vfx-${from}`;
+  const fromFx = `${from === 'regular' ? '' : `vfx-${from}`} ${holoClass(holo?.[from], true)}`.trim();
   const fromMask = fromThumb !== fromArtUrl ? `url("${fromThumb}")` : 'none';
 
   return createPortal(
@@ -64,14 +68,14 @@ export function UpgradeCeremony({
       <div className="ug-stage">
         <div className="ug-ring" aria-hidden />
         {Array.from({ length: n }).map((_, i) => (
-          <div key={i} className={`ug-ingredient ${fromFx}`} aria-hidden style={{ ['--a' as string]: `${(360 / n) * i}deg`, ['--d' as string]: `${i * 70}ms`, ['--art-mask' as string]: fromMask }}>
+          <div key={i} className={`ug-ingredient ${fromFx}`} aria-hidden style={{ ['--a' as string]: `${(360 / n) * i}deg`, ['--d' as string]: `${i * 70}ms`, ['--art-mask' as string]: fromMask, ...holoVars(holo?.[from]) }}>
             <img src={fromThumb} alt="" />
           </div>
         ))}
         <div className="ug-flash" aria-hidden />
 
         <div className="ug-card">
-          <div className={`ug-art ${fx}`} style={{ ['--art-mask' as string]: newThumb !== newArt ? `url("${newThumb}")` : 'none' }}>
+          <div className={`ug-art ${fx}`} style={{ ['--art-mask' as string]: newThumb !== newArt ? `url("${newThumb}")` : 'none', ...holoVars(holo?.[to]) }}>
             <img src={newThumb} alt={card.name} />
             {newThumb !== newArt && (
               <img src={newArt} alt="" aria-hidden onLoad={() => setReady(true)} className={`ug-anim ${ready ? 'ug-anim-on' : ''}`} />

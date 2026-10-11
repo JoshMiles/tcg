@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { getHoloResolver } from '@/lib/holo';
 import {
   getActiveSeasonWithPacks,
   getCollection,
@@ -60,6 +61,7 @@ export default async function CollectionPage({
   const myRow = myRank >= 0 ? board.rows[myRank] : null;
 
   // Per-card data for the grid + the click-to-expand detail (values come from the season leaderboard maths).
+  const holoFor = await getHoloResolver();
   const gridCards: GridCard[] = allCards.map(c => {
     const v = board.values.cards.get(c.number);
     const w = effectiveWeights(c.pack, c);
@@ -87,6 +89,7 @@ export default async function CollectionPage({
       scarcity: v?.scarcity ?? { regular: 1, reverse: 1, full: 1, shiny: 1 },
       costs: c.pack.upgradeCosts,
       variants: allowedVariants(c.pack, c),
+      holo: holoFor(c.pack, c.stars),
       steps: Object.fromEntries(VARIANTS.map(v => [v, upgradeStep(c.pack, c, v)])) as GridCard['steps'],
     };
   });

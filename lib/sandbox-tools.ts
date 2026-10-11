@@ -1,5 +1,6 @@
 import { addCollectionEntry, ensureUserProfile, getActiveSeasonWithPacks, getAllCollectionUsers, getCollection, saveCollection, withCollectionLock } from './kv';
 import { getSeasonLeaderboard } from './leaderboard';
+import { getHoloResolver, type HoloSpecs } from './holo';
 import { runInSandbox } from './db';
 import { VARIANTS, effectiveWeights, encodeEntry, rollVariant, upgradesAllowed, type VariantCounts, emptyCounts } from './variants';
 import type { Card, Pack, Variant } from './types';
@@ -80,12 +81,13 @@ export function listSandboxUsers(sandboxId: string): Promise<{ username: string;
 }
 
 /** The active season's cards (for the "grant copies" picker). */
-export function listSandboxCards(sandboxId: string): Promise<{ number: number; name: string; pack: string; imageUrl: string; fullArtImageUrl?: string }[]> {
+export function listSandboxCards(sandboxId: string): Promise<{ number: number; name: string; pack: string; imageUrl: string; fullArtImageUrl?: string; holo: HoloSpecs }[]> {
   return runInSandbox(sandboxId, async () => {
     const active = await getActiveSeasonWithPacks();
     if (!active) return [];
+    const holoFor = await getHoloResolver();
     return active.packs
-      .flatMap(p => p.cards.map(c => ({ number: c.number, name: c.name, pack: p.pack.name, imageUrl: c.imageUrl, fullArtImageUrl: c.fullArtImageUrl })))
+      .flatMap(p => p.cards.map(c => ({ number: c.number, name: c.name, pack: p.pack.name, imageUrl: c.imageUrl, fullArtImageUrl: c.fullArtImageUrl, holo: holoFor(p.pack, c.stars) })))
       .sort((a, b) => a.number - b.number);
   });
 }

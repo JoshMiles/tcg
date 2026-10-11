@@ -30,6 +30,16 @@ function setArtMask(el, art) {
   el.style.setProperty('--art-mask', thumb ? 'url("' + thumb + '")' : 'none');
 }
 
+// The holographic shimmer for a card's variant: the same settings as the OBS overlay (Overlay Editor -> Variants), sent per
+// card by the season API as CSS variables (see lib/holo.ts). .holo-live makes it sweep on its own; otherwise it sweeps on hover.
+function applyHolo(el, card, variant, live) {
+  const spec = card.holo && card.holo[variant];
+  if (!spec || !spec.on) return;
+  el.classList.add('holo-fx');
+  if (live) el.classList.add('holo-live');
+  for (const k in spec.style) el.style.setProperty(k, spec.style[k]);
+}
+
 // Reads a claim from the (unverified) Extension JWT. Only used for UX decisions — the server
 // verifies the signature before trusting anything.
 function jwtClaim(token, name) {
@@ -237,6 +247,7 @@ function renderGrid() {
       addCardImage(cell, { ...card, ...variantArt(card, status.best) }, { alt: card.name, dimmed: !ownedActive && ownedPast.length > 0 });
 
       // Upgraded variants get a holo sheen / glow, and a marker
+      if (ownedActive) applyHolo(cell, card, status.best, false);
       if (ownedActive && status.best !== 'regular') {
         cell.classList.add('vfx-' + status.best);
         setArtMask(cell, variantArt(card, status.best));
@@ -353,6 +364,7 @@ function renderDetail() {
   const shownArt = variantArt(card, shown);
   art.className = 'detail-art' + (status.owned && shown !== 'regular' ? ' vfx-' + shown : '');
   setArtMask(art, shownArt);
+  if (status.owned) applyHolo(art, card, shown, true);
   if (status.owned && shownArt.imageUrl) {
     const thumb = document.createElement('img');
     thumb.src = shownArt.thumbUrl || shownArt.imageUrl;
@@ -497,6 +509,7 @@ function playUpgradeCeremony(card, from, to, cost) {
   for (let i = 0; i < n; i++) {
     const ing = add('ug-ingredient' + (from === 'regular' ? '' : ' vfx-' + from));
     setArtMask(ing, fromArt);
+    applyHolo(ing, card, from, true);
     ing.style.setProperty('--a', (360 / n) * i + 'deg');
     ing.style.setProperty('--d', i * 70 + 'ms');
     const img = document.createElement('img');
@@ -507,6 +520,7 @@ function playUpgradeCeremony(card, from, to, cost) {
   const frame = add('ug-card');
   const art = add('ug-art' + (to === 'regular' ? '' : ' vfx-' + to), frame);
   setArtMask(art, toArt);
+  applyHolo(art, card, to, true);
   const thumb = document.createElement('img');
   thumb.src = toArt.thumbUrl; thumb.alt = card.name;
   art.appendChild(thumb);

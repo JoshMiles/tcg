@@ -10,11 +10,13 @@ import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { Avatar } from '@/app/components/Avatar';
 import { UpgradeButton } from '@/app/components/UpgradeButton';
+import { getHoloResolver } from '@/lib/holo';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'My Stats' };
 
 export default async function AccountPage() {
+  const holoFor = await getHoloResolver();
   const session = await getSession();
   if (!session) redirect('/auth/twitch?returnTo=/account');
 
@@ -145,7 +147,7 @@ export default async function AccountPage() {
                         >
                           {u.gain >= 0 ? '+' : '−'}{Math.abs(u.gain).toLocaleString()} pts
                         </span>
-                        <UpgradeButton cardNumber={u.card.number} from={u.from} to={u.to} have={u.have} cost={u.cost} gain={u.gain} card={{ name: u.card.name, imageUrl: u.card.imageUrl, fullArtImageUrl: u.card.fullArtImageUrl }} />
+                        <UpgradeButton cardNumber={u.card.number} from={u.from} to={u.to} have={u.have} cost={u.cost} gain={u.gain} holo={holoFor(u.card.pack, u.card.stars)} card={{ name: u.card.name, imageUrl: u.card.imageUrl, fullArtImageUrl: u.card.fullArtImageUrl }} />
                       </li>
                     );
                   })}

@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { Avatar } from '@/app/components/Avatar';
@@ -37,6 +38,8 @@ export interface DexCard {
   collectors: number;
   /** Whether the logged-in viewer owns it; undefined when nobody is logged in. */
   owned?: boolean;
+  /** The holographic shimmer per variant, from the Overlay Editor's settings for this card's pack. */
+  holo: HoloSpecs;
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -205,8 +208,8 @@ function DexDetail({ card, canStep, onClose, onStep }: { card: DexCard; canStep:
             <div className="flex items-center gap-2 w-full justify-center">
               {canStep && <button onClick={() => onStep(-1)} aria-label="Previous card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">‹</button>}
               <div
-                className={`relative w-full max-w-[210px] aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown} vfx-live` : ''}`}
-                style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ['--art-mask' as string]: maskFor(art) } as React.CSSProperties}
+                className={`relative w-full max-w-[210px] aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown}` : ''} ${holoClass(card.holo[shown], true)}`}
+                style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ...holoVars(card.holo[shown]), ['--art-mask' as string]: maskFor(art) } as React.CSSProperties}
               >
                 <img src={cardThumbUrl(art)} alt={card.name} className="w-full h-full object-cover" />
                 <FullArt url={art} />

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { cardThumbUrl } from '@/lib/card-art';
 import { allowedVariants } from '@/lib/variants';
+import { getHoloResolver } from '@/lib/holo';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ export async function GET() {
   }
 
   const { season, packs } = result;
+  const holoFor = await getHoloResolver();
 
   return NextResponse.json({
     seasonId: season.id,
@@ -37,6 +39,8 @@ export async function GET() {
           upgradesEnabled: pack.upgradesEnabled && c.upgradesEnabled !== false,
           // The variants this card can be (the panel only lists these, and skips a switched-off one when upgrading).
           variants: allowedVariants(pack, c),
+          // The holographic shimmer per variant: the Overlay Editor's settings for this pack (see lib/holo.ts).
+          holo: holoFor(pack, c.stars),
           ...(c.fullArtImageUrl && {
             fullArtImageUrl: c.fullArtImageUrl,
             fullArtThumbUrl: cardThumbUrl(c.fullArtImageUrl),

@@ -82,19 +82,22 @@
 .activity-fresh { animation: activity-in 2.4s ease-out; }
 
 /* ── Card variants (upgrade system) ── */
-.vfx-reverse, .vfx-shiny { position: relative; }
-.vfx-reverse::after, .vfx-shiny::after {
+/* Holographic shimmer = the same look as the OBS overlay, from the same per-variant settings (Overlay Editor -> Variants).
+   lib/holo.ts turns those settings into the --holo-* variables set on the art; this only draws them. Geometry mirrors
+   the overlay: an 8-band gradient tile 5 card-widths wide and tall, sliding 8 card-widths in one sweep (a loop slides one tile).
+   Detail views and the upgrade animation add .holo-live (sweeps on its own); grid tiles sweep on hover only. */
+.holo-fx { position: relative; }
+.holo-fx::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg,
-    transparent 15%, rgba(255,255,255,.35) 32%, rgba(150,245,255,.4) 45%,
-    rgba(255,224,120,.4) 58%, rgba(255,150,230,.35) 70%, transparent 85%);
-  background-size: 260% 100%;
-  background-position: 0 0;
-  mix-blend-mode: overlay;
-  transition: background-position 0.9s ease;
+  background-image: var(--holo-gradient, linear-gradient(120deg, #ffffff00, #fffee3, #ffffff00, #ffe078, #ffffff00, #afffb5, #ffffff00, #fffee3, #ffffff00, #96f5ff, #ffffff00, #fffee3, #ffffff00, #ffe078, #ffffff00, #fffee3, #ffffff00));
+  background-size: 500% 500%;
+  background-repeat: repeat-x;
+  background-position: 0% 100%;
+  opacity: var(--holo-opacity, .9);
+  mix-blend-mode: var(--holo-blend, overlay);
   /* Clip the sheen to the art's own silhouette (rounded transparent corners). --art-mask is the art's static thumbnail,
      set per tile/art by the page; without one the sheen just fills the box. */
   -webkit-mask-image: var(--art-mask, none);
@@ -106,17 +109,13 @@
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
-.vfx-reverse:hover::after, .vfx-shiny:hover::after { background-position: 100% 0; }
-/* "Live" holo: the sheen keeps sweeping back and forth without needing a hover. Used where a card is the focus (detail views,
-   the upgrade animation). Grid tiles stay hover-only so a full collection isn't animating dozens of layers at once. */
-@keyframes holoSweepSite { from { background-position: 0 0; } to { background-position: 100% 0; } }
-.vfx-live.vfx-reverse::after, .vfx-live.vfx-shiny::after { transition: none; animation: holoSweepSite 3.2s ease-in-out infinite alternate; }
-/* A richer, more saturated sheen for the big reveal. */
-.ug-art.vfx-reverse::after, .ug-art.vfx-shiny::after {
-  background: linear-gradient(120deg, transparent 8%, rgba(255,255,255,.6) 26%, rgba(150,245,255,.65) 40%, rgba(255,224,120,.65) 54%, rgba(255,150,230,.6) 68%, transparent 90%);
-  background-size: 260% 100%;
+.holo-fx:hover::after, .holo-fx.holo-live::after {
+  animation: var(--holo-name, holoSite) var(--holo-time, 10.5s) var(--holo-timing, ease) 0s var(--holo-iter, 1) normal forwards;
 }
-@media (prefers-reduced-motion: reduce) { .vfx-live.vfx-reverse::after, .vfx-live.vfx-shiny::after { animation: none; } }
+/* percentages beyond 100% move a 500%-wide image further left: offset = (box - image) * p = -4 widths * p */
+@keyframes holoSite     { from { background-position: 0% 100%; } to { background-position: 200% 100%; } }
+@keyframes holoSiteLoop { from { background-position: 0% 100%; } to { background-position: 125% 100%; } }
+@media (prefers-reduced-motion: reduce) { .holo-fx:hover::after, .holo-fx.holo-live::after { animation: none; } }
 .vfx-full { box-shadow: 0 0 16px -2px rgba(96,190,255,.85) !important; }
 .vfx-shiny { box-shadow: 0 0 18px -2px rgba(255,190,60,.95) !important; }
 

@@ -4,6 +4,7 @@ import { CardTile } from '@/app/components/CardTile';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
+import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import { UpgradeButton } from '@/app/components/UpgradeButton';
 import type { UpgradeCosts, Variant } from '@/lib/types';
 
@@ -35,6 +36,8 @@ export interface GridCard {
   variants: Variant[];
   /** Where an upgrade from each variant goes and what it costs (switched-off variants are skipped at the combined cost). */
   steps: Record<Variant, { to: Variant; cost: number } | null>;
+  /** The holographic shimmer per variant, from the Overlay Editor's settings for this card's pack. */
+  holo: HoloSpecs;
 }
 
 const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: '✨' };
@@ -114,8 +117,8 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
             : `#${card.number} ???`;
           const tileClass = `relative aspect-[2/3] rounded-xl overflow-hidden group transition-transform ${
             isOwned ? 'holo-hover border-2 hover:-translate-y-1 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400' : 'border border-dashed border-gray-700 bg-gray-900/40'
-          }${isOwned && best !== 'regular' ? ` vfx-${best}` : ''}`;
-          const tileStyle = isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}` } : undefined;
+          }${isOwned && best !== 'regular' ? ` vfx-${best}` : ''}${isOwned ? ` ${holoClass(card.holo[best])}` : ''}`;
+          const tileStyle = isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}`, ...holoVars(card.holo[best]) } : undefined;
           const overlays = (
             <>
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -229,10 +232,11 @@ function CardDetail({
             <div className="flex items-center gap-2 w-full justify-center">
               {canStep && <button onClick={() => onStep(-1)} aria-label="Previous card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">‹</button>}
               <div
-                className={`relative w-full max-w-[230px] aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown} vfx-live` : ''}`}
+                className={`relative w-full max-w-[230px] aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown}` : ''} ${holoClass(card.holo[shown], true)}`}
                 style={{
                   borderColor: rarity?.hex,
                   boxShadow: `0 0 24px -6px ${rarity?.hex}`,
+                  ...holoVars(card.holo[shown]),
                   ['--art-mask' as string]: cardThumbUrl(artFor(card, shown)) !== artFor(card, shown) ? `url("${cardThumbUrl(artFor(card, shown))}")` : 'none',
                 } as React.CSSProperties}
               >
@@ -302,7 +306,7 @@ function CardDetail({
                         {showUpgrades && (
                           <td className="py-2 px-3 text-right">
                             {card.steps[v] && n > 0 ? (
-                              <UpgradeButton cardNumber={card.number} from={v} to={card.steps[v]!.to} have={n} cost={card.steps[v]!.cost} card={{ name: card.name, imageUrl: card.imageUrl, fullArtImageUrl: card.fullArtImageUrl }} />
+                              <UpgradeButton cardNumber={card.number} from={v} to={card.steps[v]!.to} have={n} cost={card.steps[v]!.cost} holo={card.holo} card={{ name: card.name, imageUrl: card.imageUrl, fullArtImageUrl: card.fullArtImageUrl }} />
                             ) : null}
                           </td>
                         )}
