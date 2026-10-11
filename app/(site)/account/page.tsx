@@ -82,6 +82,39 @@ export default async function AccountPage() {
             ))}
           </div>
 
+          {/* Where the score comes from */}
+          <section className="rind rounded-2xl p-5 space-y-3">
+            <h2 className="font-display text-xl font-bold text-white">Where your points come from</h2>
+            <dl className="divide-y divide-gray-800/70 text-sm">
+              <div className="py-2.5 flex items-center justify-between gap-4">
+                <dt className="text-gray-300">Your cards <span className="text-gray-600">· every copy you own</span></dt>
+                <dd className="font-semibold text-white tabular-nums">{s.cardPoints.toLocaleString()}</dd>
+              </div>
+              <div className="py-2.5 flex items-center justify-between gap-4">
+                <dt className="text-gray-300">Completion bonus <span className="text-gray-600">· {s.completionPct}% of the set (up to {s.maxCompletionBonus.toLocaleString()})</span></dt>
+                <dd className="font-semibold text-emerald-300 tabular-nums">+{s.completionBonus.toLocaleString()}</dd>
+              </div>
+              <div className="py-2.5 flex items-center justify-between gap-4">
+                <dt className="text-gray-300">
+                  Complete collection bonus{' '}
+                  <span className="text-gray-600">· {s.complete ? 'you own every card!' : `own every card to earn +${s.completeSetBonusValue.toLocaleString()}`}</span>
+                </dt>
+                <dd className={`font-semibold tabular-nums ${s.complete ? 'text-emerald-300' : 'text-gray-600'}`}>
+                  {s.complete ? '+' : ''}{s.setBonus.toLocaleString()}
+                </dd>
+              </div>
+              <div className="py-2.5 flex items-center justify-between gap-4">
+                <dt className="font-semibold text-white">Total</dt>
+                <dd className="font-display text-xl font-bold text-yellow-400 tabular-nums">{s.score.toLocaleString()}</dd>
+              </div>
+            </dl>
+            {s.missing > 0 && (
+              <p className="text-xs text-gray-500 leading-relaxed">
+                {s.missing} card{s.missing === 1 ? '' : 's'} to go for a complete collection. Each new card adds its own points <em>and</em> raises your completion bonus.
+              </p>
+            )}
+          </section>
+
           {/* Upgrades you can afford */}
           {upgradesOn && (
             <section className="rind rounded-2xl p-5 space-y-3">

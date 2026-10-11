@@ -72,3 +72,23 @@ console.log('projected gain for a:', gain, '(before', scoreFor(beforeV, big.a), 
 if (gain === null || gain !== scoreFor(afterV, [1, encodeEntry(1, 'reverse'), 2, 2, 2, 2]) - scoreFor(beforeV, big.a)) throw new Error('projection should equal a full recompute');
 if (projectUpgradeGain(packs, big, 'b', 1, 'regular', 'reverse', 5) !== null) throw new Error('not enough copies should return null');
 console.log('per-variant scarcity checks passed');
+
+// ── Collection bonuses ──
+import { collectionBonuses, COMPLETION_BONUS_RATE, COMPLETE_SET_BONUS_RATE, buildLeaderboard as bl } from '../lib/leaderboard';
+const setCards: Card[] = [1, 2, 3, 4].map(n => ({ id: 's' + n, number: n, name: 'C' + n, imageUrl: '', probability: 10, stars: 1 }));
+const sets = { full: [1, 2, 3, 4], half: [1, 2], dupes: [1, 1, 1, 1, 1, 1, 1, 1] };
+const sv = csv([{ pack: pack({ upgradesEnabled: false }), cards: setCards }], sets);
+const bFull = collectionBonuses(sv, 4), bHalf = collectionBonuses(sv, 2), bNone = collectionBonuses(sv, 0), bOne = collectionBonuses(sv, 1);
+console.log('set value', sv.setValue, '| full', bFull, '| half', bHalf);
+if (!(bFull.complete && bFull.set === Math.round(sv.setValue * COMPLETE_SET_BONUS_RATE))) throw new Error('complete set bonus');
+if (bFull.completion !== Math.round(sv.setValue * COMPLETION_BONUS_RATE)) throw new Error('completion bonus at 100%');
+if (bHalf.set !== 0 || bHalf.complete) throw new Error('half set must not get the complete bonus');
+if (bHalf.completion !== Math.round(sv.setValue * COMPLETION_BONUS_RATE * 0.5)) throw new Error('completion bonus should be proportional');
+if (bNone.completion !== 0 || bNone.set !== 0) throw new Error('no cards, no bonus');
+if (!(bOne.completion < bHalf.completion && bHalf.completion < bFull.completion)) throw new Error('bonus should grow with completion');
+const brows = bl(sv, sets);
+const full = brows.find(r => r.username === 'full')!, dupes = brows.find(r => r.username === 'dupes')!;
+if (!full.complete || full.setBonus <= 0 || full.score !== full.cardPoints + full.completionBonus + full.setBonus) throw new Error('row totals');
+if (dupes.complete || dupes.setBonus !== 0) throw new Error('duplicates of one card are not a complete collection');
+console.log('rows:', brows.map(r => [r.username, r.cardPoints, r.completionBonus, r.setBonus, r.score]));
+console.log('collection bonus checks passed');

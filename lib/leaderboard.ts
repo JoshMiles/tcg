@@ -7,6 +7,16 @@ export const SCORE_BASE = 10;
 /** Each upgrade must be worth at least this much more than the copies it consumes. */
 const UPGRADE_MARGIN = 1.2;
 
+/**
+ * Collection bonuses, both measured against the "set value" (what one Regular copy of every card in the season is worth
+ * right now), so they stay proportionate as values shift:
+ *  - completion bonus: COMPLETION_BONUS_RATE x set value x the share of the set collected (0-100%), growing as you collect;
+ *  - complete-collection bonus: an extra COMPLETE_SET_BONUS_RATE x set value once you own at least one of EVERY card.
+ * A complete collection therefore earns (COMPLETION + COMPLETE_SET) x set value on top of its cards.
+ */
+export const COMPLETION_BONUS_RATE = 0.25;
+export const COMPLETE_SET_BONUS_RATE = 0.5;
+
 export interface CardValue {
   number: number;
   /** Chance that one pull of the season is this card, before the variant roll. */
@@ -26,7 +36,14 @@ export interface CardValue {
 
 export interface LeaderboardRow {
   username: string;
+  /** Total: card points + completion bonus + complete-collection bonus. */
   score: number;
+  /** Value of every copy owned. */
+  cardPoints: number;
+  completionBonus: number;
+  setBonus: number;
+  /** Owns at least one of every card in the season. */
+  complete: boolean;
   uniqueCards: number;
   copies: number;
   variants: VariantCounts;
@@ -36,6 +53,29 @@ export interface SeasonValues {
   cards: Map<number, CardValue>;
   totalCards: number;
   totalCopies: number;
+  /** What one Regular copy of every card is worth right now: the yardstick for the collection bonuses. */
+  setValue: number;
+}
+
+export interface Bonuses {
+  completion: number;
+  set: number;
+  /** Fraction of the season's cards owned (0-1). */
+  fraction: number;
+  complete: boolean;
+}
+
+/** The two collection bonuses for someone who owns `uniqueCards` distinct cards of the season. */
+export function collectionBonuses(values: Pick<SeasonValues, 'totalCards' | 'setValue'>, uniqueCards: number): Bonuses {
+  const total = values.totalCards;
+  const fraction = total > 0 ? Math.min(1, uniqueCards / total) : 0;
+  const complete = total > 0 && uniqueCards >= total;
+  return {
+    completion: Math.round(values.setValue * COMPLETION_BONUS_RATE * fraction),
+    set: complete ? Math.round(values.setValue * COMPLETE_SET_BONUS_RATE) : 0,
+    fraction,
+    complete,
+  };
 }
 
 /**
@@ -111,17 +151,24 @@ export function computeSeasonValues(
       cards.set(card.number, { number: card.number, pullRate, copies, variantCopies, scarcity, values });
     }
   }
-  return { cards, totalCards, totalCopies };
+  let setValue = 0;
+  for (const cv of cards.values()) setValue += cv.values.regular;
+  return { cards, totalCards, totalCopies, setValue };
 }
 
-/** One viewer's score: the value of every copy they hold. */
+/** One viewer's total score: the value of every copy they hold, plus the collection bonuses. */
 export function scoreFor(values: SeasonValues, entries: number[]): number {
   let score = 0;
+  const unique = new Set<number>();
   for (const entry of entries) {
     const { cardNumber, variant } = decodeEntry(entry);
-    score += values.cards.get(cardNumber)?.values[variant] ?? 0;
+    const cv = values.cards.get(cardNumber);
+    if (!cv) continue; // card since deleted from the season
+    score += cv.values[variant];
+    unique.add(cardNumber);
   }
-  return score;
+  const b = collectionBonuses(values, unique.size);
+  return score + b.completion + b.set;
 }
 
 /**
@@ -170,7 +217,20 @@ export function buildLeaderboard(values: SeasonValues, collection: Record<string
       unique.add(cardNumber);
       copies++;
     }
-    if (copies > 0) rows.push({ username: username.toLowerCase(), score, uniqueCards: unique.size, copies, variants });
+    if (copies > 0) {
+      const b = collectionBonuses(values, unique.size);
+      rows.push({
+        username: username.toLowerCase(),
+        score: score + b.completion + b.set,
+        cardPoints: score,
+        completionBonus: b.completion,
+        setBonus: b.set,
+        complete: b.complete,
+        uniqueCards: unique.size,
+        copies,
+        variants,
+      });
+    }
   }
   return rows.sort((a, b) => b.score - a.score || b.uniqueCards - a.uniqueCards || a.username.localeCompare(b.username));
 }

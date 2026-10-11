@@ -111,7 +111,17 @@ export default async function CollectionPage({
           <div className="flex items-center gap-3">
             <Avatar src={avatarUrl && sizeTwitchAvatar(avatarUrl, 150)} name={displayName} className="w-11 h-11 text-lg ring-2 ring-yellow-500/60" />
             <div>
-              <h1 className="font-bold text-white text-2xl leading-none">{displayName}</h1>
+              <h1 className="font-bold text-white text-2xl leading-none">
+                {displayName}
+                {myRow?.complete && (
+                  <span
+                    className="ml-2 align-middle text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5"
+                    title="Owns every card in the season"
+                  >
+                    🧀 Complete collection
+                  </span>
+                )}
+              </h1>
               {profile?.twitchId && (
                 <p className="text-xs text-purple-400 mt-0.5">Twitch: {profile.twitchId}</p>
               )}
@@ -170,7 +180,7 @@ export default async function CollectionPage({
             No cards in this season yet.
           </div>
         ) : (
-          <CollectionGrid cards={gridCards} totalScore={myRow?.score ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} />
+          <CollectionGrid cards={gridCards} totalScore={myRow?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} />
         )}
 
         <p className="text-center text-xs text-gray-700 pt-2">

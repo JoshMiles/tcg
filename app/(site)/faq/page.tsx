@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { getActive, getSeasonOverview } from '@/lib/site-data';
-import { SCORE_BASE } from '@/lib/leaderboard';
+import { SCORE_BASE, COMPLETION_BONUS_RATE, COMPLETE_SET_BONUS_RATE, collectionBonuses } from '@/lib/leaderboard';
 import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { RARITIES } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
@@ -42,6 +42,9 @@ export default async function FaqPage() {
     return p >= 10 ? p.toFixed(0) : p.toFixed(1);
   };
   const upgradesOn = !!upgradePack;
+
+  // Live numbers for the collection bonuses.
+  const bonusAtFull = overview ? collectionBonuses(overview.values, overview.values.totalCards) : null;
 
   const valueRows = overview
     ? overview.cards
@@ -195,7 +198,32 @@ export default async function FaqPage() {
               </li>
             )}
           </ul>
-          <p className="mt-2">Add up all your copies and that&rsquo;s your score on the <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300">leaderboard</Link>.</p>
+          <p className="mt-2">
+            Add up all your copies, then add the <a href="#bonuses" className="text-yellow-400 hover:text-yellow-300">collection bonuses</a> below, and that&rsquo;s your score on the{' '}
+            <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300">leaderboard</Link>.
+          </p>
+        </Q>
+        <Q q="What are the collection bonuses?">
+          <p id="bonuses">
+            Collecting more of the set pays off, on top of what your individual cards are worth. There are two bonuses, both measured against the <strong className="text-white">set value</strong> — what one
+            Regular copy of every card in the season is worth right now{overview ? <> (currently <strong className="text-white">{overview.values.setValue.toLocaleString()}</strong> points)</> : null}:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
+            <li>
+              <strong className="text-white">Completion bonus</strong> — grows with the share of the set you own, up to{' '}
+              <strong className="text-white">{Math.round(COMPLETION_BONUS_RATE * 100)}%</strong> of the set value
+              {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.completion.toLocaleString()}</strong> points at 100%)</> : null}. Every new card you find adds its own points <em>and</em> raises this.
+            </li>
+            <li>
+              <strong className="text-white">Complete collection bonus</strong> — own at least one of <em>every</em> card in the season and you earn an extra{' '}
+              <strong className="text-white">{Math.round(COMPLETE_SET_BONUS_RATE * 100)}%</strong> of the set value
+              {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.set.toLocaleString()}</strong> points)</> : null}, and a <strong className="text-white">🧀 Complete</strong> badge on the leaderboard.
+            </li>
+          </ul>
+          <p className="mt-2">
+            Duplicates and rarer versions don&rsquo;t count towards completeness — only having at least one copy of each card does. The bonuses move with the set value, so they stay in proportion as card values shift. You can see your own
+            breakdown on <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>.
+          </p>
         </Q>
         <Q q="Why did my points change?">
           Values aren&rsquo;t fixed. Scarcity depends on how many copies of each version exist, so as other people pull and upgrade cards, what your copies are worth moves up and down. Early in a season, when there are
