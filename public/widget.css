@@ -96,12 +96,13 @@
 /* ── Layout ── */
 .container {
   /* The "design stage": drawn at a fixed size, then scaled to fit the real browser source and nudged by the
-     admin's scale/offset (Settings → Overlay layout). widget.js sets the --stage-* variables. */
+     browser source size (--stage-scale = fit). Each view then places itself: see .is-pack / .is-collection below.
+     widget.js sets these variables from Settings → Overlay layout. */
   position: absolute;
   left: 50%; top: 50%;
   width: var(--stage-w, 1280px);
   height: var(--stage-h, 720px);
-  transform: translate(-50%, -50%) translate(var(--stage-x, 0px), var(--stage-y, 0px)) scale(var(--stage-scale, 1));
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
   transform-origin: center;
   display: flex;
   justify-content: center;
@@ -174,6 +175,10 @@
   transition: opacity 0.5s ease;
 }
 .card-wrapper.hid { opacity: 0; }
+/* Independent placement for the pack opening and the collection view (Settings -> Overlay layout). These use the
+   standalone translate / scale properties, so they stack with the animations' own transforms instead of fighting them. */
+.card-wrapper.is-pack       { translate: var(--pack-x, 0px) var(--pack-y, 0px); scale: var(--pack-scale, 1); }
+.card-wrapper.is-collection { translate: var(--col-x, 0px)  var(--col-y, 0px);  scale: var(--col-scale, 1); }
 /* The pack opening isn't symmetric around the wrapper's centre: at its peak the card and tear strip swing
    ~425px above it but only ~208px below. Nudge pack draws down so the animation (measured -425..+208px)
    sits in the middle of the stage. Collections aren't affected. */

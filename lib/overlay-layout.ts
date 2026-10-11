@@ -2,17 +2,32 @@
 //
 // The overlay is drawn on a fixed "design stage" of width × height and then scaled to fit whatever
 // size the OBS browser source really is, so nothing is cut off even if the source is a different size.
-// `scale` and the offsets are on top of that fit, in design-stage pixels.
+// That size is shared (it is one browser source). Where things sit on the stage is set separately for the
+// pack opening and for the collection view, because they are different shapes: each has its own `scale`
+// and offsets, in design-stage pixels, applied on top of that fit.
 
-export interface OverlayLayout {
-  width: number;     // design stage, px
-  height: number;
-  scale: number;     // 1 = fit exactly; 0.9 = 10% smaller
+export interface Placement {
+  scale: number;     // 1 = as designed; 0.9 = 10% smaller
   offsetX: number;   // design px, + = right
   offsetY: number;   // design px, + = down
 }
 
-export const DEFAULT_LAYOUT: OverlayLayout = { width: 1280, height: 720, scale: 1, offsetX: 0, offsetY: 0 };
+export interface OverlayLayout {
+  width: number;     // design stage = the browser source size, px
+  height: number;
+  pack: Placement;        // the pack opening / card reveal
+  collection: Placement;  // the "show collection" view
+}
+
+export type LayoutMode = 'pack' | 'collection';
+
+export const DEFAULT_PLACEMENT: Placement = { scale: 1, offsetX: 0, offsetY: 0 };
+export const DEFAULT_LAYOUT: OverlayLayout = {
+  width: 1280,
+  height: 720,
+  pack: { ...DEFAULT_PLACEMENT },
+  collection: { ...DEFAULT_PLACEMENT },
+};
 
 export const LAYOUT_PRESETS: { label: string; width: number; height: number }[] = [
   { label: '1280 × 720', width: 1280, height: 720 },
@@ -27,14 +42,29 @@ const num = (v: unknown, fallback: number) => {
   return typeof n === 'number' && Number.isFinite(n) ? n : fallback;
 };
 
-/** Coerces anything (form data, stored JSON, query string) into a valid layout. */
-export function sanitizeLayout(input: Partial<Record<keyof OverlayLayout, unknown>> | null | undefined): OverlayLayout {
-  const i = input ?? {};
+type Loose = Record<string, unknown>;
+
+export function sanitizePlacement(input: unknown, fallback: Placement = DEFAULT_PLACEMENT): Placement {
+  const i = (input && typeof input === 'object' ? input : {}) as Loose;
   return {
-    width:   Math.round(clamp(num(i.width,   DEFAULT_LAYOUT.width),   320, 3840)),
-    height:  Math.round(clamp(num(i.height,  DEFAULT_LAYOUT.height),  240, 2160)),
-    scale:   Math.round(clamp(num(i.scale,   DEFAULT_LAYOUT.scale),   0.25, 3) * 100) / 100,
-    offsetX: Math.round(clamp(num(i.offsetX, DEFAULT_LAYOUT.offsetX), -2000, 2000)),
-    offsetY: Math.round(clamp(num(i.offsetY, DEFAULT_LAYOUT.offsetY), -2000, 2000)),
+    scale:   Math.round(clamp(num(i.scale,   fallback.scale),   0.25, 3) * 100) / 100,
+    offsetX: Math.round(clamp(num(i.offsetX, fallback.offsetX), -2000, 2000)),
+    offsetY: Math.round(clamp(num(i.offsetY, fallback.offsetY), -2000, 2000)),
+  };
+}
+
+/**
+ * Coerces anything (stored JSON, form data, a postMessage) into a valid layout. Also upgrades the original
+ * single-placement shape ({ width, height, scale, offsetX, offsetY }): both views start from that old placement,
+ * so an existing setup looks exactly the same until the admin separates them.
+ */
+export function sanitizeLayout(input: unknown): OverlayLayout {
+  const i = (input && typeof input === 'object' ? input : {}) as Loose;
+  const legacy = sanitizePlacement(i); // flat scale/offsetX/offsetY from before the split (defaults if absent)
+  return {
+    width:  Math.round(clamp(num(i.width,  DEFAULT_LAYOUT.width),  320, 3840)),
+    height: Math.round(clamp(num(i.height, DEFAULT_LAYOUT.height), 240, 2160)),
+    pack:       sanitizePlacement(i.pack, legacy),
+    collection: sanitizePlacement(i.collection, legacy),
   };
 }
