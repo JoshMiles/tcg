@@ -5,6 +5,7 @@ import { ConfirmButton } from '../../components/ConfirmButton';
 import { updateSeason, addPackToSeason, removePackFromSeason } from '../../actions';
 import { SeasonFields } from '../../components/SeasonFields';
 import { DraftChip } from '../../components/StatusChip';
+import { unpublishSeason } from '../../draft-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
   const availablePacks = allPacks.filter(p => !assignedIds.has(p.id));
 
   const updateThisSeason = updateSeason.bind(null, id);
+  const moveToDrafts = unpublishSeason.bind(null, id);
   const addPack = addPackToSeason.bind(null, id);
 
   return (
@@ -48,6 +50,23 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
             </p>
             <Link href={`/admin/seasons/new?draft=${id}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Continue setup →</Link>
           </div>
+        )}
+
+        {season.status === 'published' && (
+          <form action={moveToDrafts} className="tcg-panel rounded-xl p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-gray-500 max-w-xl leading-relaxed">
+              <strong className="text-gray-300">Published.</strong> Move it back to a draft to take it off the public site while you rework it. Viewers&apos; cards, the season&apos;s packs and its settings are all kept.
+              {season.active && <span className="text-amber-300"> This is the active season, so the overlay and Twitch panel will have no season until you activate another.</span>}
+            </p>
+            <ConfirmButton
+              title="Move season to drafts?"
+              confirmLabel="Move to drafts"
+              message={<>Move <strong className="text-white">{season.name}</strong> back to a draft?{season.active ? ' It is the active season, so it will stop being active: nothing can be drawn on stream until you publish and activate a season again.' : ''} Viewers&apos; collections and all settings are kept, and you can publish it again from the Seasons list.</>}
+              className="shrink-0 px-3 py-1.5 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors"
+            >
+              Move to drafts
+            </ConfirmButton>
+          </form>
         )}
 
         <form action={updateThisSeason} className="tcg-panel rounded-xl p-6 space-y-4">
