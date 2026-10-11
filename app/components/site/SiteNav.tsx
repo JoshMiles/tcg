@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '@/app/components/Avatar';
+import { LiveBadge } from './Live';
 
 const LINKS = [
   { href: '/', label: 'Home', exact: true },
@@ -72,6 +73,7 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <LiveBadge />
           {user ? (
             <div className="relative hidden sm:block" ref={menuRef}>
               <button

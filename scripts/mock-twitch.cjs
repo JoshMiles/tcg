@@ -11,6 +11,7 @@ const { URL } = require('url');
 const codes = new Map();   // code -> login
 const tokens = new Map();  // token -> login
 const revoked = [];
+let live = false;           // is the fake channel live? toggle with /__live?on=1 or ?on=0
 let defaultUser = 'tester'; // who the next login becomes; change with /__as?login=name
 
 const profile = login => ({
@@ -43,6 +44,7 @@ http.createServer((req, res) => {
 
     if (url.pathname === '/oauth2/token' && req.method === 'POST') {
       const p = new URLSearchParams(body);
+      if (p.get('grant_type') === 'client_credentials') return json(200, { access_token: 'app-token', expires_in: 3600, token_type: 'bearer' });
       const login = codes.get(p.get('code'));
       if (!login || p.get('client_secret') === null) return json(400, { status: 400, message: 'invalid code' });
       codes.delete(p.get('code'));
@@ -64,6 +66,15 @@ http.createServer((req, res) => {
       if (!login) return json(401, { error: 'Unauthorized' });
       return json(200, { data: [profile(login)] });
     }
+
+    // App-token endpoint used for the live indicator.
+    if (url.pathname === '/helix/streams') {
+      if (!/^Bearer (app-token|tok-)/.test(req.headers.authorization || '')) return json(401, { error: 'Unauthorized' });
+      const login = (url.searchParams.get('user_login') || '').toLowerCase();
+      if (!live || !login) return json(200, { data: [] });
+      return json(200, { data: [{ type: 'live', user_login: login, title: 'Opening packs with chat! (mock)', game_name: 'Just Chatting', viewer_count: 128, started_at: new Date(Date.now() - 3600e3).toISOString() }] });
+    }
+    if (url.pathname === '/__live') { live = url.searchParams.get('on') === '1'; return json(200, { live }); }
 
     // Test helpers: switch who logs in next, and see which tokens were revoked.
     if (url.pathname === '/__as') { defaultUser = (url.searchParams.get('login') || 'tester').toLowerCase(); return json(200, { defaultUser }); }

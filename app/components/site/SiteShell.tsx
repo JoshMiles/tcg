@@ -2,12 +2,15 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { SiteNav, type NavUser } from './SiteNav';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
+import { getLiveStatus } from '@/lib/twitch-live';
+import { LiveProvider } from './Live';
 import { getSession, loginConfigured } from '@/lib/session';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
 export async function SiteShell({ children }: { children: ReactNode }) {
   const session = await getSession();
+  const live = await getLiveStatus().catch(() => null); // cached, so this is normally one KV read
   let user: NavUser | null = null;
   if (session) {
     const avatar = (await getAvatars([session.username]))[session.username];
@@ -15,6 +18,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
   }
 
   return (
+    <LiveProvider initial={live}>
     <div className="min-h-screen flex flex-col">
       <SiteNav user={user} loginEnabled={loginConfigured()} />
       <main className="flex-1">{children}</main>
@@ -41,5 +45,6 @@ export async function SiteShell({ children }: { children: ReactNode }) {
         </div>
       </footer>
     </div>
+    </LiveProvider>
   );
 }
