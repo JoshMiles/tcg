@@ -8,6 +8,7 @@ import { RARITIES } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
 import { VARIANTS, countVariants, emptyCounts } from '@/lib/variants';
 import { getSeasonLeaderboard } from '@/lib/leaderboard';
+import { getSession } from '@/lib/session';
 import { CollectionGrid, type GridCard } from './CollectionGrid';
 import { Avatar } from '@/app/components/Avatar';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
@@ -21,6 +22,9 @@ export default async function CollectionPage({
 }) {
   const { username } = await params;
   const lower = username.toLowerCase();
+  // Viewing your own collection while logged in unlocks upgrades in the card details.
+  const session = await getSession();
+  const isOwner = session?.username === lower;
 
   const [result, profile] = await Promise.all([
     getActiveSeasonWithPacks(),
@@ -81,6 +85,7 @@ export default async function CollectionPage({
       values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
       copies: v?.copies ?? 0,
       scarcity: v?.scarcity ?? 1,
+      costs: c.pack.upgradeCosts,
     };
   });
   const leaderboardHref = `/leaderboard/${season.id}`;
@@ -165,7 +170,7 @@ export default async function CollectionPage({
             No cards in this season yet.
           </div>
         ) : (
-          <CollectionGrid cards={gridCards} totalScore={myRow?.score ?? 0} leaderboardHref={leaderboardHref} />
+          <CollectionGrid cards={gridCards} totalScore={myRow?.score ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} />
         )}
 
         <p className="text-center text-xs text-gray-700 pt-2">
