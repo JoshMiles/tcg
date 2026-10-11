@@ -2,6 +2,7 @@ import type { Card, Pack, Season, Variant } from './types';
 import { getCollection, getPackCards, getPacksForSeason } from './kv';
 import { VARIANTS, decodeEntry, effectiveWeights, emptyCounts, encodeEntry, type VariantCounts } from './variants';
 import { DEFAULT_SCORING, getScoringSettings, type ScoringSettings } from './scoring';
+import type { CardMaths } from './card-maths';
 
 // Every tunable number (base score, scarcity range, upgrade margin, bonus sizes, ...) lives in ScoringSettings
 // (lib/scoring.ts), edited in Admin -> Settings -> Scoring. Functions here take them as a parameter and default to the
@@ -22,6 +23,8 @@ export interface CardValue {
   scarcity: Record<Variant, number>;
   /** Points per copy, by variant. */
   values: Record<Variant, number>;
+  /** The working behind `values`, for the card details' Advanced information panel. */
+  maths: CardMaths;
 }
 
 export interface LeaderboardRow {
@@ -75,20 +78,31 @@ export function collectionBonuses(values: Pick<SeasonValues, 'totalCards' | 'set
  * shiny is worth ~100 regulars), but never less than the cost of crafting it plus a margin — otherwise
  * upgrading could lower a viewer's score.
  */
-export function variantMultipliers(
+export function variantMultiplierDetail(
   pack: Pick<Pack, 'upgradesEnabled' | 'variantWeights' | 'upgradeCosts' | 'disabledVariants'>,
   settings: ScoringSettings = DEFAULT_SCORING,
-): Record<Variant, number> {
+): { multiplier: Record<Variant, number>; byOdds: Record<Variant, number>; byCost: Record<Variant, number> } {
   const m: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1 };
-  if (!pack.upgradesEnabled) return m;
+  const byOddsAll: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1 };
+  const byCostAll: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1 };
+  if (!pack.upgradesEnabled) return { multiplier: m, byOdds: byOddsAll, byCost: byCostAll };
   const w = effectiveWeights(pack); // switched-off variants have no odds, so only the crafting cost sets their value
   for (let i = 1; i < VARIANTS.length; i++) {
     const v = VARIANTS[i];
     const byOdds = w[v] > 0 ? w.regular / w[v] : 0;
     const byCost = m[VARIANTS[i - 1]] * pack.upgradeCosts[v as Exclude<Variant, 'regular'>] * settings.upgradeMargin;
+    byOddsAll[v] = byOdds;
+    byCostAll[v] = byCost;
     m[v] = Math.max(byOdds, byCost);
   }
-  return m;
+  return { multiplier: m, byOdds: byOddsAll, byCost: byCostAll };
+}
+
+export function variantMultipliers(
+  pack: Pick<Pack, 'upgradesEnabled' | 'variantWeights' | 'upgradeCosts' | 'disabledVariants'>,
+  settings: ScoringSettings = DEFAULT_SCORING,
+): Record<Variant, number> {
+  return variantMultiplierDetail(pack, settings).multiplier;
 }
 
 /**
@@ -129,7 +143,9 @@ export function computeSeasonValues(
   const cards = new Map<number, CardValue>();
   for (const { pack, cards: packCards } of active) {
     const totalProb = packCards.reduce((s, c) => s + c.probability, 0);
-    const mult = variantMultipliers(pack, settings);
+    const detail = variantMultiplierDetail(pack, settings);
+    const mult = detail.multiplier;
+    const packWeights = effectiveWeights(pack);
     for (const card of packCards) {
       const pullRate = totalProb > 0 && totalPackWeight > 0
         ? ((pack.weight || 1) / totalPackWeight) * (card.probability / totalProb)
@@ -139,17 +155,33 @@ export function computeSeasonValues(
       const copies = VARIANTS.reduce((s, v) => s + variantCopies[v], 0);
       const scarcity = {} as Record<Variant, number>;
       const values = {} as Record<Variant, number>;
+      const scarcityRaw = {} as Record<Variant, number>;
+      const raw = {} as Record<Variant, number>;
       for (const v of VARIANTS) {
         // Smoothing keeps early-season values (when counts are tiny) from lurching around.
         const k = settings.scarcitySmoothing;
-        scarcity[v] = Math.min(settings.scarcityMax, Math.max(settings.scarcityMin, (avgByVariant[v] + k) / (variantCopies[v] + k)));
-        values[v] = Math.max(1, Math.round(settings.baseScore * rarity * scarcity[v] * mult[v]));
+        scarcityRaw[v] = (avgByVariant[v] + k) / (variantCopies[v] + k);
+        scarcity[v] = Math.min(settings.scarcityMax, Math.max(settings.scarcityMin, scarcityRaw[v]));
+        raw[v] = settings.baseScore * rarity * scarcity[v] * mult[v];
+        values[v] = Math.max(1, Math.round(raw[v]));
       }
-      cards.set(card.number, { number: card.number, pullRate, copies, variantCopies, scarcity, values });
+      const maths: CardMaths = {
+        baseScore: settings.baseScore, rarityExponent: settings.rarityExponent,
+        scarcityMin: settings.scarcityMin, scarcityMax: settings.scarcityMax, scarcitySmoothing: settings.scarcitySmoothing,
+        upgradeMargin: settings.upgradeMargin, completionBonusPct: settings.completionBonusPct, completeSetBonusPct: settings.completeSetBonusPct,
+        packWeight: pack.weight || 1, totalPackWeight, cardProbability: card.probability, totalProbability: totalProb, pullRate,
+        totalCards, rarityBase: pullRate > 0 ? 1 / (pullRate * totalCards) : 1, rarity,
+        upgradesEnabled: !!pack.upgradesEnabled, weights: packWeights, costs: pack.upgradeCosts,
+        byOdds: detail.byOdds, byCost: detail.byCost, multiplier: mult,
+        avgCopies: avgByVariant, copies: variantCopies, scarcityRaw, scarcity, raw, values,
+        setValue: 0, totalCopies,
+      };
+      cards.set(card.number, { number: card.number, pullRate, copies, variantCopies, scarcity, values, maths });
     }
   }
   let setValue = 0;
   for (const cv of cards.values()) setValue += cv.values.regular;
+  for (const cv of cards.values()) cv.maths.setValue = setValue;
   return { cards, totalCards, totalCopies, setValue, settings };
 }
 

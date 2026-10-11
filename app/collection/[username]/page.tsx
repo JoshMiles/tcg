@@ -92,6 +92,7 @@ export default async function CollectionPage({
       costs: c.pack.upgradeCosts,
       variants: allowedVariants(c.pack, c),
       holo: holoFor(c.pack, c.stars),
+      maths: v?.maths,
       steps: Object.fromEntries(VARIANTS.map(v => [v, upgradeStep(c.pack, c, v)])) as GridCard['steps'],
     };
   });
@@ -195,7 +196,7 @@ export default async function CollectionPage({
             No cards in this season yet.
           </div>
         ) : (
-          <CollectionGrid cards={gridCards} totalScore={myRow?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} />
+          <CollectionGrid cards={gridCards} totalScore={myRow?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} ownerName={displayName} />
         )}
 
         <p className="text-center text-xs text-gray-700 pt-2">
