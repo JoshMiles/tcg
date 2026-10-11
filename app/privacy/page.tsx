@@ -37,6 +37,11 @@ export default function PrivacyPage() {
             your role into the token instead, and we use your channel ID.)
           </li>
           <li>
+            <strong className="text-white">When you use &ldquo;Log in with Twitch&rdquo; on the website</strong>, Twitch asks for your permission to share your basic public profile with us:
+            your Twitch user ID, login name, display name and profile picture. We request <em>no extra permissions</em> — we cannot see your email address, chat, follows or
+            subscriptions, and we cannot act on your Twitch account. We use the Twitch access token only once, to read that profile, and then revoke it; we never store it.
+          </li>
+          <li>
             <strong className="text-white">Your public Twitch profile picture</strong>, fetched from Twitch&rsquo;s public API to
             show next to your collection and on the leaderboard. Profile pictures are cached for up to 7 days.
           </li>
@@ -68,6 +73,11 @@ export default function PrivacyPage() {
             for the Extension and website. These do not use cookies and are not used to build a profile of you.
           </li>
           <li>
+            <strong className="text-white">A login cookie</strong> (&ldquo;tcg_session&rdquo;) if you log in on the website. It is a signed token holding your Twitch login name, user ID and display name, so the site
+            knows who you are when you view your stats or upgrade cards. It is strictly necessary for logging in, lasts up to 30 days, and is removed when you log out. A short-lived cookie
+            (&ldquo;tcg_oauth&rdquo;, about 10 minutes) also protects the sign-in step itself.
+          </li>
+          <li>
             <strong className="text-white">One item of local storage</strong> in the Extension (&ldquo;tcg_panel_loggedout&rdquo;) that remembers you chose to log out, so it
             doesn&rsquo;t log you straight back in. It stays on your device.
           </li>
@@ -80,7 +90,8 @@ export default function PrivacyPage() {
 
       <Section title="2. How we use it">
         <List>
-          <li>To show you your cards and let you upgrade them, and to record cards you earn on stream.</li>
+          <li>To show you your cards and let you upgrade them (in the Extension or, when you are logged in, on the website), and to record cards you earn on stream.</li>
+          <li>To keep you logged in on the website and show your personal stats.</li>
           <li>To calculate and display leaderboards and card values for each season.</li>
           <li>To run the stream overlay and the website, keep them secure, prevent abuse, and fix problems.</li>
           <li>To understand, in aggregate, how the Extension and website perform.</li>
@@ -146,7 +157,8 @@ export default function PrivacyPage() {
       <Section title="7. Your choices and rights">
         <List>
           <li><strong className="text-white">Don&rsquo;t share your identity.</strong> Decline Twitch&rsquo;s prompt, and we never learn your username or Twitch ID.</li>
-          <li><strong className="text-white">Log out.</strong> The <em>logout</em> button in the Extension deletes the link between your Twitch opaque ID and your username. It does not delete your collection or profile.</li>
+          <li><strong className="text-white">Log out.</strong> The <em>logout</em> button in the Extension deletes the link between your Twitch opaque ID and your username. <em>Log out</em> on the website deletes your login cookie. Neither deletes your collection or profile.</li>
+          <li><strong className="text-white">Disconnect from Twitch.</strong> You can remove this site&rsquo;s access from your Twitch account under Settings &rarr; Connections at any time; we hold no Twitch token, so there is nothing further to revoke on our side.</li>
           <li><strong className="text-white">Stop sharing your identity.</strong> You can stop sharing your Twitch identity with an Extension from Twitch itself (see Twitch&rsquo;s help pages on Extension permissions).</li>
           <li>
             <strong className="text-white">Access, correct or delete your data.</strong> Contact us (below) and we will provide a copy of the data we hold about you, correct it, or delete your collection,

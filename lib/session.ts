@@ -1,0 +1,88 @@
+import { createHmac, timingSafeEqual } from 'crypto';
+import { cookies } from 'next/headers';
+
+// Website login session: a small signed cookie, no database. The payload is signed with SESSION_SECRET (HMAC-SHA256),
+// so it can be read but not forged or edited. Logging out clears the cookie; otherwise it expires after 30 days.
+// Never put anything secret in it — it is readable by the browser's owner.
+
+export const SESSION_COOKIE = 'tcg_session';
+/** Short-lived cookie holding the OAuth `state` (+ return path) between leaving for Twitch and coming back. */
+export const OAUTH_COOKIE = 'tcg_oauth';
+const MAX_AGE_S = 60 * 60 * 24 * 30;
+
+export interface Session {
+  /** Lowercase Twitch login — the key collections and profiles are stored under. */
+  username: string;
+  twitchId: string;
+  displayName: string;
+  exp: number; // unix seconds
+}
+
+function secret(): string | null {
+  const s = process.env.SESSION_SECRET;
+  return s && s.length >= 16 ? s : null;
+}
+
+/** True when website login can work (a usable SESSION_SECRET plus Twitch app credentials). */
+export function loginConfigured(): boolean {
+  return !!secret() && !!process.env.TWITCH_CLIENT_ID && !!process.env.TWITCH_CLIENT_SECRET;
+}
+
+const sign = (payload: string, key: string) => createHmac('sha256', key).update(payload).digest('base64url');
+
+export function signSession(data: Omit<Session, 'exp'>): string | null {
+  const key = secret();
+  if (!key) return null;
+  const session: Session = { ...data, exp: Math.floor(Date.now() / 1000) + MAX_AGE_S };
+  const payload = Buffer.from(JSON.stringify(session)).toString('base64url');
+  return `${payload}.${sign(payload, key)}`;
+}
+
+export function verifySession(token: string | undefined): Session | null {
+  const key = secret();
+  if (!key || !token) return null;
+  const [payload, sig, extra] = token.split('.');
+  if (!payload || !sig || extra !== undefined) return null;
+
+  const expected = Buffer.from(sign(payload, key));
+  const given = Buffer.from(sig);
+  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+
+  try {
+    const s = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as Session;
+    if (typeof s.username !== 'string' || !s.username || typeof s.exp !== 'number' || s.exp < Date.now() / 1000) return null;
+    return s;
+  } catch {
+    return null;
+  }
+}
+
+/** The logged-in viewer for this request, or null. */
+export async function getSession(): Promise<Session | null> {
+  return verifySession((await cookies()).get(SESSION_COOKIE)?.value);
+}
+
+export function sessionCookieOptions(maxAge = MAX_AGE_S) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge,
+  };
+}
+
+/**
+ * Cross-site request guard for state-changing endpoints: the Origin (or Referer) must be this site. SameSite=Lax
+ * on the cookie already blocks cross-site POSTs; this is a second layer for browsers that send an Origin.
+ */
+export function isSameOrigin(req: Request): boolean {
+  const host = req.headers.get('host');
+  const origin = req.headers.get('origin') ?? req.headers.get('referer');
+  if (!origin || !host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}

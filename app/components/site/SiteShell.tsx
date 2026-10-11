@@ -1,12 +1,21 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { SiteNav } from './SiteNav';
+import { SiteNav, type NavUser } from './SiteNav';
+import { getSession, loginConfigured } from '@/lib/session';
+import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
-export function SiteShell({ children }: { children: ReactNode }) {
+export async function SiteShell({ children }: { children: ReactNode }) {
+  const session = await getSession();
+  let user: NavUser | null = null;
+  if (session) {
+    const avatar = (await getAvatars([session.username]))[session.username];
+    user = { username: session.username, displayName: session.displayName, avatarUrl: avatar && sizeTwitchAvatar(avatar, 70) };
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
-      <SiteNav />
+      <SiteNav user={user} loginEnabled={loginConfigured()} />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">
         <div className="max-w-6xl mx-auto px-4 py-8 grid gap-6 sm:grid-cols-[1fr_auto] items-start">

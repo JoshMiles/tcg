@@ -3,8 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
-import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
-import type { Variant } from '@/lib/types';
+import { VARIANTS, VARIANT_LABELS, nextVariant, type VariantCounts } from '@/lib/variants';
+import { UpgradeButton } from '@/app/components/UpgradeButton';
+import type { UpgradeCosts, Variant } from '@/lib/types';
 
 /** Everything the grid and the card detail need, precomputed on the server. */
 export interface GridCard {
@@ -28,6 +29,8 @@ export interface GridCard {
   /** How many copies of this card exist across the whole season, and the resulting value factor (0.5–2). */
   copies: number;
   scarcity: number;
+  /** Copies needed for each upgrade step (used by the owner's Upgrade buttons). */
+  costs: UpgradeCosts;
 }
 
 const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: '✨' };
@@ -37,7 +40,7 @@ const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0)
 const artFor = (c: GridCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
 
-export function CollectionGrid({ cards, totalScore, leaderboardHref }: { cards: GridCard[]; totalScore: number; leaderboardHref: string }) {
+export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false }: { cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const opener = useRef<HTMLElement | null>(null);
 
@@ -124,6 +127,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref }: { cards: 
           card={cards[openIdx]}
           totalScore={totalScore}
           leaderboardHref={leaderboardHref}
+          canUpgrade={canUpgrade}
           canStep={ownedIdx.length > 1}
           onClose={close}
           onStep={step}
@@ -136,9 +140,9 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref }: { cards: 
 // ── Detail dialog ─────────────────────────────────────────
 
 function CardDetail({
-  card, totalScore, leaderboardHref, canStep, onClose, onStep,
+  card, totalScore, leaderboardHref, canUpgrade, canStep, onClose, onStep,
 }: {
-  card: GridCard; totalScore: number; leaderboardHref: string; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
+  card: GridCard; totalScore: number; leaderboardHref: string; canUpgrade: boolean; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
 }) {
   const rarity = getRarity(card.stars);
   const [preview, setPreview] = useState<Variant | null>(null);
@@ -163,6 +167,7 @@ function CardDetail({
   const best = bestVariant(card.counts);
   const shown = preview && card.counts[preview] > 0 ? preview : best;
   const rows = card.upgradable ? VARIANTS : (['regular'] as Variant[]);
+  const showUpgrades = canUpgrade && card.upgradable;
   const cardTotal = VARIANTS.reduce((s, v) => s + card.counts[v] * card.values[v], 0);
   const share = totalScore > 0 ? Math.round((cardTotal / totalScore) * 100) : 0;
 
@@ -232,6 +237,7 @@ function CardDetail({
                     <th className="py-2 px-2 font-bold text-right">You own</th>
                     {card.upgradable && <th className="py-2 px-2 font-bold text-right hidden sm:table-cell">Pull odds</th>}
                     <th className="py-2 px-3 font-bold text-right">Each is worth</th>
+                    {showUpgrades && <th className="py-2 px-3 font-bold text-right">Upgrade</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800/70">
@@ -247,6 +253,13 @@ function CardDetail({
                         <td className="py-2 px-2 text-right tabular-nums text-gray-300">{n > 0 ? `×${n}` : '—'}</td>
                         {card.upgradable && <td className="py-2 px-2 text-right tabular-nums text-gray-500 hidden sm:table-cell">{oneIn(card.variantOdds[v])}</td>}
                         <td className="py-2 px-3 text-right tabular-nums font-semibold text-yellow-300">{card.values[v].toLocaleString()} pts</td>
+                        {showUpgrades && (
+                          <td className="py-2 px-3 text-right">
+                            {nextVariant(v) && n > 0 ? (
+                              <UpgradeButton cardNumber={card.number} from={v} to={nextVariant(v)!} have={n} cost={card.costs[nextVariant(v) as Exclude<Variant, 'regular'>]} />
+                            ) : null}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -255,7 +268,7 @@ function CardDetail({
             </div>
 
             <p className="text-xs text-gray-500">
-              Values change as more cards are pulled this season.{' '}
+              {canUpgrade && card.upgradable ? 'Upgrades are permanent — the copies you spend are used up. ' : ''}Values change as more cards are pulled this season.{' '}
               <a href={`${leaderboardHref}?how=1`} className="text-yellow-500 hover:text-yellow-300">How are points worked out? →</a>
             </p>
           </div>
