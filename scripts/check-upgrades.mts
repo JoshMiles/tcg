@@ -74,7 +74,9 @@ if (projectUpgradeGain(packs, big, 'b', 1, 'regular', 'reverse', 5) !== null) th
 console.log('per-variant scarcity checks passed');
 
 // ── Collection bonuses ──
-import { collectionBonuses, COMPLETION_BONUS_RATE, COMPLETE_SET_BONUS_RATE, buildLeaderboard as bl } from '../lib/leaderboard';
+import { collectionBonuses, buildLeaderboard as bl } from '../lib/leaderboard';
+import { DEFAULT_SCORING, sanitizeScoring } from '../lib/scoring';
+const COMPLETION_BONUS_RATE = DEFAULT_SCORING.completionBonusPct / 100, COMPLETE_SET_BONUS_RATE = DEFAULT_SCORING.completeSetBonusPct / 100;
 const setCards: Card[] = [1, 2, 3, 4].map(n => ({ id: 's' + n, number: n, name: 'C' + n, imageUrl: '', probability: 10, stars: 1 }));
 const sets = { full: [1, 2, 3, 4], half: [1, 2], dupes: [1, 1, 1, 1, 1, 1, 1, 1] };
 const sv = csv([{ pack: pack({ upgradesEnabled: false }), cards: setCards }], sets);
@@ -92,3 +94,30 @@ if (!full.complete || full.setBonus <= 0 || full.score !== full.cardPoints + ful
 if (dupes.complete || dupes.setBonus !== 0) throw new Error('duplicates of one card are not a complete collection');
 console.log('rows:', brows.map(r => [r.username, r.cardPoints, r.completionBonus, r.setBonus, r.score]));
 console.log('collection bonus checks passed');
+
+
+// ── Tunable settings: each knob must really change the numbers (and defaults must reproduce the old behaviour) ──
+const base = csv([{ pack: pack(), cards }], collection);
+const same = csv([{ pack: pack(), cards }], collection, DEFAULT_SCORING);
+eq([...base.cards.values()].map(c => c.values), [...same.cards.values()].map(c => c.values), 'explicit defaults == implicit defaults');
+const dbl = csv([{ pack: pack(), cards }], collection, { ...DEFAULT_SCORING, baseScore: 20 });
+if (dbl.cards.get(2)!.values.regular !== 2 * base.cards.get(2)!.values.regular) throw new Error('baseScore should scale values');
+const flat = csv([{ pack: pack(), cards }], collection, { ...DEFAULT_SCORING, rarityExponent: 0 });
+if (flat.cards.get(1)!.values.regular === base.cards.get(1)!.values.regular && flat.cards.get(2)!.values.regular === base.cards.get(2)!.values.regular) throw new Error('rarityExponent 0 should change values');
+const rarityGap = (v: typeof base) => v.cards.get(2)!.values.regular / v.cards.get(1)!.values.regular;
+if (!(rarityGap(flat) < rarityGap(base))) throw new Error('lower rarity exponent should narrow the gap between rare and common');
+const noScarce = csv([{ pack: pack(), cards }], collection, { ...DEFAULT_SCORING, scarcityMin: 1, scarcityMax: 1 });
+for (const c of noScarce.cards.values()) for (const v of VARIANTS) if (c.scarcity[v] !== 1) throw new Error('min=max=1 should disable scarcity');
+const bigBonus = collectionBonuses({ ...sv, settings: { ...DEFAULT_SCORING, completionBonusPct: 100, completeSetBonusPct: 200 } }, 4);
+if (bigBonus.completion !== sv.setValue || bigBonus.set !== 2 * sv.setValue) throw new Error('bonus percentages should be honoured');
+const noBonus = collectionBonuses({ ...sv, settings: { ...DEFAULT_SCORING, completionBonusPct: 0, completeSetBonusPct: 0 } }, 4);
+if (noBonus.completion !== 0 || noBonus.set !== 0) throw new Error('0% disables the bonuses');
+// margin changes the variant multipliers
+const wide = variantMultipliers(pack({ variantWeights: { regular: 1, reverse: 1, full: 1, shiny: 1 } }), { ...DEFAULT_SCORING, upgradeMargin: 2 });
+const narrow = variantMultipliers(pack({ variantWeights: { regular: 1, reverse: 1, full: 1, shiny: 1 } }), { ...DEFAULT_SCORING, upgradeMargin: 1 });
+if (!(wide.shiny > narrow.shiny)) throw new Error('a bigger upgrade margin should raise upgraded values');
+// sanitising: junk, out-of-range and inconsistent input are all made safe
+const messy = sanitizeScoring({ baseScore: '-5', rarityExponent: 'abc', scarcityMin: 3, scarcityMax: 0.2, completionBonusPct: 99999, leaderboardSize: 12.6, unknown: 1 });
+if (messy.baseScore !== 1 || messy.rarityExponent !== DEFAULT_SCORING.rarityExponent || messy.scarcityMin !== 1 || messy.scarcityMax !== 1 || messy.completionBonusPct !== 500 || messy.leaderboardSize !== 13) throw new Error('sanitize: ' + JSON.stringify(messy));
+eq(sanitizeScoring(undefined), DEFAULT_SCORING, 'no stored settings -> defaults');
+console.log('scoring settings checks passed');

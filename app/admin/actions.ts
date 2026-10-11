@@ -26,6 +26,7 @@ import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
 import { getOverlaySettings, saveOverlaySettings } from '@/lib/overlay-settings';
 import { sanitizeLayout } from '@/lib/overlay-layout';
+import { DEFAULT_SCORING, sanitizeScoring, saveScoringSettings, resetScoringSettings } from '@/lib/scoring';
 
 // ── Seasons ───────────────────────────────────────────────
 
@@ -358,6 +359,24 @@ export async function regenerateWebhookSecret() {
 }
 
 // ── Overlay settings ──────────────────────────────────────
+
+// ── Scoring ───────────────────────────────────────────────
+
+/** Saves the scoring settings. Values are clamped to their allowed ranges (see lib/scoring.ts), never rejected. */
+export async function saveScoringSettingsAction(formData: FormData) {
+  const raw: Record<string, FormDataEntryValue | null> = {};
+  for (const key of Object.keys(DEFAULT_SCORING)) raw[key] = formData.get(key);
+  await saveScoringSettings(sanitizeScoring(raw));
+  // Public pages compute values live (force-dynamic), but the admin pages that show them need refreshing.
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin');
+}
+
+export async function resetScoringSettingsAction() {
+  await resetScoringSettings();
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin');
+}
 
 export async function saveOverlaySettingsAction(formData: FormData) {
   const current = await getOverlaySettings();

@@ -1,21 +1,11 @@
 import type { Card, Pack, Season, Variant } from './types';
 import { getCollection, getPackCards, getPacksForSeason } from './kv';
 import { VARIANTS, decodeEntry, emptyCounts, encodeEntry, type VariantCounts } from './variants';
+import { DEFAULT_SCORING, getScoringSettings, type ScoringSettings } from './scoring';
 
-/** Points an average card (equal pull chance to every other card) at Regular is worth. */
-export const SCORE_BASE = 10;
-/** Each upgrade must be worth at least this much more than the copies it consumes. */
-const UPGRADE_MARGIN = 1.2;
-
-/**
- * Collection bonuses, both measured against the "set value" (what one Regular copy of every card in the season is worth
- * right now), so they stay proportionate as values shift:
- *  - completion bonus: COMPLETION_BONUS_RATE x set value x the share of the set collected (0-100%), growing as you collect;
- *  - complete-collection bonus: an extra COMPLETE_SET_BONUS_RATE x set value once you own at least one of EVERY card.
- * A complete collection therefore earns (COMPLETION + COMPLETE_SET) x set value on top of its cards.
- */
-export const COMPLETION_BONUS_RATE = 0.25;
-export const COMPLETE_SET_BONUS_RATE = 0.5;
+// Every tunable number (base score, scarcity range, upgrade margin, bonus sizes, ...) lives in ScoringSettings
+// (lib/scoring.ts), edited in Admin -> Settings -> Scoring. Functions here take them as a parameter and default to the
+// built-in defaults, so they stay pure and testable.
 
 export interface CardValue {
   number: number;
@@ -55,6 +45,8 @@ export interface SeasonValues {
   totalCopies: number;
   /** What one Regular copy of every card is worth right now: the yardstick for the collection bonuses. */
   setValue: number;
+  /** The scoring settings these values were computed with. */
+  settings: ScoringSettings;
 }
 
 export interface Bonuses {
@@ -66,13 +58,13 @@ export interface Bonuses {
 }
 
 /** The two collection bonuses for someone who owns `uniqueCards` distinct cards of the season. */
-export function collectionBonuses(values: Pick<SeasonValues, 'totalCards' | 'setValue'>, uniqueCards: number): Bonuses {
+export function collectionBonuses(values: Pick<SeasonValues, 'totalCards' | 'setValue' | 'settings'>, uniqueCards: number): Bonuses {
   const total = values.totalCards;
   const fraction = total > 0 ? Math.min(1, uniqueCards / total) : 0;
   const complete = total > 0 && uniqueCards >= total;
   return {
-    completion: Math.round(values.setValue * COMPLETION_BONUS_RATE * fraction),
-    set: complete ? Math.round(values.setValue * COMPLETE_SET_BONUS_RATE) : 0,
+    completion: Math.round(values.setValue * (values.settings.completionBonusPct / 100) * fraction),
+    set: complete ? Math.round(values.setValue * (values.settings.completeSetBonusPct / 100)) : 0,
     fraction,
     complete,
   };
@@ -83,14 +75,17 @@ export function collectionBonuses(values: Pick<SeasonValues, 'totalCards' | 'set
  * shiny is worth ~100 regulars), but never less than the cost of crafting it plus a margin — otherwise
  * upgrading could lower a viewer's score.
  */
-export function variantMultipliers(pack: Pick<Pack, 'upgradesEnabled' | 'variantWeights' | 'upgradeCosts'>): Record<Variant, number> {
+export function variantMultipliers(
+  pack: Pick<Pack, 'upgradesEnabled' | 'variantWeights' | 'upgradeCosts'>,
+  settings: ScoringSettings = DEFAULT_SCORING,
+): Record<Variant, number> {
   const m: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1 };
   if (!pack.upgradesEnabled) return m;
   const w = pack.variantWeights;
   for (let i = 1; i < VARIANTS.length; i++) {
     const v = VARIANTS[i];
     const byOdds = w[v] > 0 ? w.regular / w[v] : 0;
-    const byCost = m[VARIANTS[i - 1]] * pack.upgradeCosts[v as Exclude<Variant, 'regular'>] * UPGRADE_MARGIN;
+    const byCost = m[VARIANTS[i - 1]] * pack.upgradeCosts[v as Exclude<Variant, 'regular'>] * settings.upgradeMargin;
     m[v] = Math.max(byOdds, byCost);
   }
   return m;
@@ -108,6 +103,7 @@ export function variantMultipliers(pack: Pick<Pack, 'upgradesEnabled' | 'variant
 export function computeSeasonValues(
   packs: { pack: Pack; cards: Card[] }[],
   collection: Record<string, number[]>,
+  settings: ScoringSettings = DEFAULT_SCORING,
 ): SeasonValues {
   const active = packs.filter(p => p.cards.length > 0);
   const totalPackWeight = active.reduce((s, p) => s + (p.pack.weight || 1), 0);
@@ -133,27 +129,28 @@ export function computeSeasonValues(
   const cards = new Map<number, CardValue>();
   for (const { pack, cards: packCards } of active) {
     const totalProb = packCards.reduce((s, c) => s + c.probability, 0);
-    const mult = variantMultipliers(pack);
+    const mult = variantMultipliers(pack, settings);
     for (const card of packCards) {
       const pullRate = totalProb > 0 && totalPackWeight > 0
         ? ((pack.weight || 1) / totalPackWeight) * (card.probability / totalProb)
         : 1 / Math.max(1, totalCards);
-      const rarity = pullRate > 0 ? 1 / (pullRate * totalCards) : 1;
+      const rarity = pullRate > 0 ? Math.pow(1 / (pullRate * totalCards), settings.rarityExponent) : 1;
       const variantCopies = copiesByCard.get(card.number) ?? emptyCounts();
       const copies = VARIANTS.reduce((s, v) => s + variantCopies[v], 0);
       const scarcity = {} as Record<Variant, number>;
       const values = {} as Record<Variant, number>;
       for (const v of VARIANTS) {
-        // +1 smoothing keeps early-season values (when counts are tiny) from lurching around.
-        scarcity[v] = Math.min(2, Math.max(0.5, (avgByVariant[v] + 1) / (variantCopies[v] + 1)));
-        values[v] = Math.max(1, Math.round(SCORE_BASE * rarity * scarcity[v] * mult[v]));
+        // Smoothing keeps early-season values (when counts are tiny) from lurching around.
+        const k = settings.scarcitySmoothing;
+        scarcity[v] = Math.min(settings.scarcityMax, Math.max(settings.scarcityMin, (avgByVariant[v] + k) / (variantCopies[v] + k)));
+        values[v] = Math.max(1, Math.round(settings.baseScore * rarity * scarcity[v] * mult[v]));
       }
       cards.set(card.number, { number: card.number, pullRate, copies, variantCopies, scarcity, values });
     }
   }
   let setValue = 0;
   for (const cv of cards.values()) setValue += cv.values.regular;
-  return { cards, totalCards, totalCopies, setValue };
+  return { cards, totalCards, totalCopies, setValue, settings };
 }
 
 /** One viewer's total score: the value of every copy they hold, plus the collection bonuses. */
@@ -183,6 +180,7 @@ export function projectUpgradeGain(
   from: Variant,
   to: Variant,
   cost: number,
+  settings: ScoringSettings = DEFAULT_SCORING,
 ): number | null {
   const owned = collection[username];
   if (!owned) return null;
@@ -196,8 +194,8 @@ export function projectUpgradeGain(
   if (toRemove > 0) return null; // doesn't have enough copies
   after.push(encodeEntry(cardNumber, to));
 
-  const before = scoreFor(computeSeasonValues(packs, collection), owned);
-  const next = scoreFor(computeSeasonValues(packs, { ...collection, [username]: after }), after);
+  const before = scoreFor(computeSeasonValues(packs, collection, settings), owned);
+  const next = scoreFor(computeSeasonValues(packs, { ...collection, [username]: after }, settings), after);
   return next - before;
 }
 
@@ -241,8 +239,12 @@ export async function getSeasonLeaderboard(season: Season): Promise<{
   values: SeasonValues;
   packs: { pack: Pack; cards: Card[] }[];
 }> {
-  const [packList, collection] = await Promise.all([getPacksForSeason(season), getCollection(season.collectionName)]);
+  const [packList, collection, settings] = await Promise.all([
+    getPacksForSeason(season),
+    getCollection(season.collectionName),
+    getScoringSettings(),
+  ]);
   const packs = await Promise.all(packList.map(async pack => ({ pack, cards: await getPackCards(pack.id) })));
-  const values = computeSeasonValues(packs, collection);
+  const values = computeSeasonValues(packs, collection, settings);
   return { rows: buildLeaderboard(values, collection), values, packs };
 }

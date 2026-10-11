@@ -2,7 +2,9 @@ import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { CopyableUrl } from '../components/copyable-url';
 import { getBuildInfo } from '@/lib/version';
 import { getOverlaySettings } from '@/lib/overlay-settings';
-import { saveOverlaySettingsAction, saveOverlayLayoutAction } from '../actions';
+import { saveOverlaySettingsAction, saveOverlayLayoutAction, saveScoringSettingsAction, resetScoringSettingsAction } from '../actions';
+import { getScoringSettings, DEFAULT_SCORING, SCORING_LIMITS, type ScoringSettings } from '@/lib/scoring';
+import { getSeasonLeaderboard, collectionBonuses } from '@/lib/leaderboard';
 import { OverlayLayoutEditor } from './OverlayLayoutEditor';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +15,10 @@ export default async function SettingsPage() {
   const result = await getActiveSeasonWithPacks();
   const build = getBuildInfo();
   const overlay = await getOverlaySettings();
+  const scoring = await getScoringSettings();
+  // A live read-out of what the current numbers mean for the active season.
+  const board = result ? await getSeasonLeaderboard(result.season) : null;
+  const bonusAtFull = board ? collectionBonuses(board.values, board.values.totalCards) : null;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -62,6 +68,62 @@ export default async function SettingsPage() {
       <section className="tcg-panel rounded-xl p-5 space-y-3">
         <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Overlay Layout</h2>
         <OverlayLayoutEditor initial={overlay.layout} action={saveOverlayLayoutAction} />
+      </section>
+
+      {/* Scoring */}
+      <section className="tcg-panel rounded-xl p-5 space-y-4">
+        <div className="space-y-1">
+          <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Scoring</h2>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            Tune how cards are valued and how the leaderboard is scored. Changes apply <strong className="text-white">immediately to every season</strong> — the
+            leaderboard, card values, My Stats and the FAQ all recompute from these numbers. The defaults match the original scoring.
+          </p>
+        </div>
+
+        {board && bonusAtFull && (
+          <div className="rounded-lg bg-gray-950/60 border border-gray-800 p-3 text-xs text-gray-400 leading-relaxed">
+            <span className="text-gray-300 font-semibold">Right now ({result!.season.name}):</span> one Regular of every card is worth{' '}
+            <strong className="text-white">{board.values.setValue.toLocaleString()}</strong> points (the &ldquo;set value&rdquo;). A completed collection earns{' '}
+            <strong className="text-white">{bonusAtFull.completion.toLocaleString()}</strong> completion +{' '}
+            <strong className="text-white">{bonusAtFull.set.toLocaleString()}</strong> complete-collection bonus. The top collector has{' '}
+            <strong className="text-white">{(board.rows[0]?.score ?? 0).toLocaleString()}</strong> points.
+          </div>
+        )}
+
+        <form action={saveScoringSettingsAction} className="space-y-5">
+          <ScoringGroup title="Card values">
+            <ScoringField name="baseScore" label="Base score" settings={scoring} help="Points one Regular copy of an average card is worth. Scales every card value (and the bonuses, which are measured against card values)." />
+            <ScoringField name="rarityExponent" label="Rarity strength" settings={scoring} help="How strongly rarity counts. 1 = a card half as likely is worth twice as much; below 1 flattens the gap between common and rare, above 1 widens it." />
+          </ScoringGroup>
+
+          <ScoringGroup title="Scarcity (how few copies of a version exist)">
+            <ScoringField name="scarcityMax" label="Max bonus (×)" settings={scoring} help="The most a scarce version can be worth over average. 2 = up to double." />
+            <ScoringField name="scarcityMin" label="Min multiplier (×)" settings={scoring} help="The least a very common version can fall to. 0.5 = down to half." />
+            <ScoringField name="scarcitySmoothing" label="Smoothing" settings={scoring} help="Steadies values while few cards exist (early season). Higher = values move less; 1 is the original behaviour." />
+          </ScoringGroup>
+
+          <ScoringGroup title="Upgrades">
+            <ScoringField name="upgradeMargin" label="Upgrade margin (×)" settings={scoring} help="An upgraded copy is worth at least this many times the copies spent to make it (before scarcity shifts). 1.2 = 20% more." />
+          </ScoringGroup>
+
+          <ScoringGroup title="Collection bonuses (% of the set value)">
+            <ScoringField name="completionBonusPct" label="Completion bonus (%)" settings={scoring} help="Earned in proportion to how much of the set you own; this is the amount at 100%. 25 = a quarter of the set value." />
+            <ScoringField name="completeSetBonusPct" label="Complete collection bonus (%)" settings={scoring} help="Extra, for owning at least one of every card. 50 = half the set value." />
+          </ScoringGroup>
+
+          <ScoringGroup title="Leaderboard">
+            <ScoringField name="leaderboardSize" label="Collectors listed" settings={scoring} help="How many collectors the leaderboard page and the Twitch panel show." />
+          </ScoringGroup>
+
+          <div className="flex items-center gap-3 pt-1">
+            <button type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-500 text-gray-950 text-sm font-semibold hover:bg-yellow-400 transition-colors">Save scoring</button>
+            <span className="text-xs text-gray-600">Values outside the allowed range are clamped when saved.</span>
+          </div>
+        </form>
+
+        <form action={resetScoringSettingsAction}>
+          <button type="submit" className="text-xs text-gray-500 hover:text-red-300 transition-colors underline underline-offset-2">Reset all scoring to the defaults</button>
+        </form>
       </section>
 
       {/* Collection page */}
@@ -165,6 +227,41 @@ queueCollection('username');`}</pre>
           <p className="text-sm text-gray-500">No active season.</p>
         )}
       </section>
+    </div>
+  );
+}
+
+function ScoringGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="rounded-lg bg-gray-950/60 border border-gray-800 p-3 space-y-3">
+      <legend className="px-1 text-xs font-semibold text-gray-300 uppercase tracking-wide">{title}</legend>
+      {children}
+    </fieldset>
+  );
+}
+
+function ScoringField({ name, label, help, settings }: { name: keyof ScoringSettings; label: string; help: string; settings: ScoringSettings }) {
+  const { min, max, step } = SCORING_LIMITS[name];
+  const isDefault = settings[name] === DEFAULT_SCORING[name];
+  return (
+    <div className="grid sm:grid-cols-[11rem_1fr] gap-x-4 gap-y-1 items-start">
+      <label htmlFor={`scoring-${name}`} className="text-sm text-gray-300 font-medium pt-1.5">
+        {label}
+        <span className="block text-[11px] font-normal text-gray-600">default {DEFAULT_SCORING[name]}{isDefault ? '' : ' · changed'}</span>
+      </label>
+      <div className="space-y-1">
+        <input
+          id={`scoring-${name}`}
+          name={name}
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          defaultValue={settings[name]}
+          className="w-32 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500"
+        />
+        <p className="text-xs text-gray-500 leading-relaxed">{help}</p>
+      </div>
     </div>
   );
 }

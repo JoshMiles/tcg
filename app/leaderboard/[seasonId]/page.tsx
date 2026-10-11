@@ -17,7 +17,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
   if (!season || season.status === 'draft') notFound();
 
   const { rows, values } = await getSeasonLeaderboard(season);
-  const top = rows.slice(0, 100);
+  const top = rows.slice(0, values.settings.leaderboardSize);
   const avatars = await getAvatars(top.map(r => r.username));
 
   return (

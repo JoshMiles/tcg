@@ -74,7 +74,7 @@ export function computeUserStats(
       if (counts[v] >= cost) {
         upgradable.push({
           card, from: v, to, have: counts[v], cost,
-          gain: projectUpgradeGain(packs, collection, username, card.number, v, to, cost) ?? valueOf(card, to) - cost * valueOf(card, v),
+          gain: projectUpgradeGain(packs, collection, username, card.number, v, to, cost, o.values.settings) ?? valueOf(card, to) - cost * valueOf(card, v),
         });
       }
     }
