@@ -5,9 +5,9 @@ import {
   PROPS, PROP_BY_KEY, PROP_GROUPS, REVEAL_STYLES, SECTION_ORDER, VARIANT_IDS, cleanValue, exportProps, importProps,
   type PropDef, type PropValue, type PropValues, type VariantId,
 } from '@/lib/overlay-props';
-import type { OverlayLayout } from '@/lib/overlay-layout';
+import { DEFAULT_LAYOUT, DEFAULT_PLACEMENT, LAYOUT_PRESETS, sanitizeLayout, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
 
-// A Photoshop-style workspace for the overlay's look. Everything is generated from the registry in
+// The Overlay Editor: one Photoshop-style workspace for where the overlay sits (Layout) and how it looks and moves. Everything is generated from the registry in
 // lib/overlay-props.ts. Layout: an options bar (scope, presets, import/export, save) over a fixed canvas (the real overlay
 // in an iframe, always fitted whole into the available space, never scrolling) and a docked properties panel (category
 // rail, version tabs, collapsible sections, search). Values are stored sparsely; there are two scopes: Global and
@@ -41,22 +41,29 @@ function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean 
   return null;
 }
 
+// "Layout" sits in the rail beside the registry's categories but isn't registry-driven: it edits the stage size and where each
+// view is placed. Layout is global (not per pack), so it is hidden while editing a pack.
+const LAYOUT_CAT = { id: 'layout', label: 'Layout', icon: '📐', description: 'Where the overlay sits on your OBS browser source.' };
+
 type SidebarWindow = Window & { __tcgSidebarForce?: boolean };
 
-export function OverlayPropertiesEditor({
-  initialGlobal, initialPacks, packs, presets, layout, initialScope, saveAction, savePresetAction, deletePresetAction,
+export function OverlayEditor({
+  initialGlobal, initialPacks, packs, presets, initialLayout, initialScope, saveAction, savePresetAction, deletePresetAction,
 }: {
   initialGlobal: PropValues;
   initialPacks: Record<string, PropValues>;
   packs: PackInfo[];
   presets: PresetInfo[];
-  layout: OverlayLayout;
+  initialLayout: OverlayLayout;
   initialScope: string;
   saveAction: (formData: FormData) => void | Promise<void>;
   savePresetAction: (formData: FormData) => void | Promise<void>;
   deletePresetAction: (formData: FormData) => void | Promise<void>;
 }) {
   const [globalVals, setGlobalVals] = useState<PropValues>(initialGlobal);
+  // Raw while typing (so a half-typed size isn't clamped under the cursor); `layout` is the sanitized copy that is previewed and saved.
+  const [layoutVals, setLayoutVals] = useState<OverlayLayout>(initialLayout);
+  const layout = useMemo(() => sanitizeLayout(layoutVals), [layoutVals]);
   const [packVals, setPackVals] = useState<Record<string, PropValues>>(initialPacks);
   const [scope, setScope] = useState<string>(initialScope === 'global' || packs.some(p => p.id === initialScope) ? initialScope : 'global');
   const [category, setCategory] = useState('reveal');
@@ -74,6 +81,7 @@ export function OverlayPropertiesEditor({
   const [notice, setNotice] = useState('');
   const boxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
 
   const isPack = scope !== 'global';
   const current: PropValues = isPack ? packVals[scope] ?? {} : globalVals;
@@ -128,12 +136,14 @@ export function OverlayPropertiesEditor({
   // What the editor would save: only the scopes that changed.
   const changedGlobal = canon(globalVals) !== canon(initialGlobal);
   const changedPacks = Object.keys({ ...initialPacks, ...packVals }).filter(id => canon(packVals[id] ?? {}) !== canon(initialPacks[id] ?? {}));
-  const dirty = changedGlobal || changedPacks.length > 0;
+  const changedLayout = JSON.stringify(layout) !== JSON.stringify(initialLayout);
+  const dirty = changedGlobal || changedPacks.length > 0 || changedLayout;
   const payload = JSON.stringify({
+    ...(changedLayout ? { layout } : {}),
     ...(changedGlobal ? { global: globalVals } : {}),
     packs: Object.fromEntries(changedPacks.map(id => [id, packVals[id] ?? {}])),
   });
-  const revert = () => { setGlobalVals(initialGlobal); setPackVals(initialPacks); };
+  const revert = () => { setGlobalVals(initialGlobal); setPackVals(initialPacks); setLayoutVals(initialLayout); };
 
   // The values that apply at this scope, sparse: what the preview shows and what export/presets capture.
   const effectiveSparse: PropValues = useMemo(() => (isPack ? { ...globalVals, ...(packVals[scope] ?? {}) } : globalVals), [isPack, globalVals, packVals, scope]);
@@ -300,6 +310,39 @@ export function OverlayPropertiesEditor({
     );
   };
 
+  // ── Layout (stage size + where each view sits) ──
+  const placement = layout[mode];
+  const setSize = (patch: Partial<Pick<OverlayLayout, 'width' | 'height'>>) => setLayoutVals(l => ({ ...l, ...patch }));
+  // `patch` may be a function of the latest placement, so rapid key presses never work from stale state.
+  const setPlacement = (patch: Partial<Placement> | ((p: Placement) => Partial<Placement>)) =>
+    setLayoutVals(l => ({ ...l, [mode]: { ...l[mode], ...(typeof patch === 'function' ? patch(l[mode]) : patch) } }));
+  const moved = (p: Placement) => p.scale !== 1 || p.offsetX !== 0 || p.offsetY !== 0;
+  const layoutMoved = (moved(layout.pack) ? 1 : 0) + (moved(layout.collection) ? 1 : 0) + (layout.width !== DEFAULT_LAYOUT.width || layout.height !== DEFAULT_LAYOUT.height ? 1 : 0);
+  const layoutCat = category === 'layout' && !isPack;
+  const rail = isPack ? PROP_GROUPS : [LAYOUT_CAT, ...PROP_GROUPS];
+  const dragging = layoutCat && !query.trim();
+
+  // Dragging the canvas (or the arrow keys) moves the view being edited. One screen pixel = 1/fit design pixels.
+  const onPointerDown = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    drag.current = { x: e.clientX, y: e.clientY, ox: placement.offsetX, oy: placement.offsetY };
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    setPlacement({ offsetX: Math.round(d.ox + (e.clientX - d.x) / fit), offsetY: Math.round(d.oy + (e.clientY - d.y) / fit) });
+  };
+  const onPointerUp = () => { drag.current = null; };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!dragging) return;
+    const step = e.shiftKey ? 10 : 1;
+    const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    const m = moves[e.key];
+    if (!m) return;
+    e.preventDefault();
+    setPlacement(p => ({ offsetX: p.offsetX + m[0], offsetY: p.offsetY + m[1] }));
+  };
+
   const cat = PROP_GROUPS.find(g => g.id === category) ?? PROP_GROUPS[0];
   const catDefs = defsFor(cat.id);
   const scopeKey = `${cat.id}${cat.id === 'versions' ? '.' + version : ''}${cat.id === 'lists' ? '.' + listView : ''}`;
@@ -310,6 +353,75 @@ export function OverlayPropertiesEditor({
     ? PROP_GROUPS.flatMap(g => groupSections(PROPS.filter(d => d.group === g.id && !hiddenInScope(d) && matches(d)))
         .flatMap(([name, defs]) => defs.map(d => ({ d, crumb: `${g.label}${d.variant ? ' › ' + VERSION_LABELS[d.variant] : ''} › ${name}` }))))
     : [];
+
+  const viewName = mode === 'pack' ? 'pack opening' : 'collection view';
+  const layoutPanel = (
+    <div className="p-3 space-y-5">
+      <section className="space-y-2">
+        <h4 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Browser source size <span className="normal-case text-gray-600 font-normal">· shared by both views</span></h4>
+        <p className="text-xs text-gray-400 leading-relaxed">
+          Set the OBS browser source to <code className="text-yellow-400">{layout.width}</code> × <code className="text-yellow-400">{layout.height}</code>.
+          The overlay is drawn at this size and scaled to fit if your source differs, so nothing gets cut off.
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {LAYOUT_PRESETS.map(p => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setSize({ width: p.width, height: p.height })}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${layout.width === p.width && layout.height === p.height ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-300 hover:border-gray-500'}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-3">
+          <label className="text-xs text-gray-500 space-y-1">Width
+            <input type="number" min={320} max={3840} value={layoutVals.width} onChange={e => setSize({ width: Number(e.target.value) })} className={`${inputCls} block w-24`} />
+          </label>
+          <label className="text-xs text-gray-500 space-y-1">Height
+            <input type="number" min={240} max={2160} value={layoutVals.height} onChange={e => setSize({ height: Number(e.target.value) })} className={`${inputCls} block w-24`} />
+          </label>
+        </div>
+      </section>
+
+      <section className="space-y-3 border-t border-gray-800 pt-4">
+        <h4 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Position</h4>
+        <Segmented
+          label="Placing"
+          value={mode}
+          onChange={v => setMode(v as Mode)}
+          options={[{ id: 'pack', label: '🎴 Pack opening', dot: moved(layout.pack) }, { id: 'collection', label: '📋 Collection', dot: moved(layout.collection) }]}
+          wrap
+        />
+        <p className="text-xs text-gray-500 leading-relaxed">
+          The size and position of the {viewName} are independent of the other view. <strong className="text-gray-400">Drag the canvas</strong>, or click it and use the arrow keys (Shift for bigger steps).
+        </p>
+        <label className="block space-y-1 text-sm text-gray-300">
+          Size <span className="text-white font-semibold">{Math.round(placement.scale * 100)}%</span>
+          <input
+            type="range" min={0.3} max={1.5} step={0.01} value={placement.scale}
+            onChange={e => setPlacement({ scale: Number(e.target.value) })}
+            className="block w-full accent-yellow-500"
+          />
+        </label>
+        <div className="flex gap-3">
+          <label className="text-xs text-gray-500 space-y-1">Offset X
+            <input type="number" value={placement.offsetX} onChange={e => setPlacement({ offsetX: Number(e.target.value) })} className={`${inputCls} block w-24`} />
+          </label>
+          <label className="text-xs text-gray-500 space-y-1">Offset Y
+            <input type="number" value={placement.offsetY} onChange={e => setPlacement({ offsetY: Number(e.target.value) })} className={`${inputCls} block w-24`} />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setPlacement({ offsetX: 0, offsetY: 0 })} className={ghost}>Center</button>
+          <button type="button" onClick={() => setPlacement({ ...DEFAULT_PLACEMENT })} className={`${btn} text-gray-400 hover:text-white`}>Reset {viewName}</button>
+        </div>
+      </section>
+
+      <button type="button" onClick={() => setLayoutVals(DEFAULT_LAYOUT)} className="text-xs text-gray-500 hover:text-red-300">Reset the whole layout</button>
+    </div>
+  );
 
   return (
     <div data-workspace className="flex flex-col gap-3 xl:h-full min-h-0">
@@ -402,7 +514,7 @@ export function OverlayPropertiesEditor({
 
         <span className="text-xs text-gray-500 hidden md:inline">
           {dirty
-            ? <span className="text-yellow-500">Unsaved: {[changedGlobal && 'global', ...changedPacks.map(id => packs.find(p => p.id === id)?.name ?? id)].filter(Boolean).join(', ')}</span>
+            ? <span className="text-yellow-500">Unsaved: {[changedLayout && 'layout', changedGlobal && 'look', ...changedPacks.map(id => packs.find(p => p.id === id)?.name ?? id)].filter(Boolean).join(', ')}</span>
             : 'Saved. Refresh the OBS source to apply.'}
         </span>
         <form action={saveAction} className="flex items-center gap-2">
@@ -421,7 +533,9 @@ export function OverlayPropertiesEditor({
             className="relative flex-1 min-h-[16rem] h-[55vh] xl:h-auto rounded-xl border border-gray-800 bg-gray-950/70 overflow-hidden flex items-center justify-center"
           >
             <div
-              className="relative overflow-hidden rounded-md border border-gray-700 shrink-0"
+              className="relative overflow-hidden rounded-md border border-gray-700 shrink-0 outline-none focus-visible:border-yellow-500"
+              tabIndex={dragging ? 0 : -1}
+              onKeyDown={onKeyDown}
               style={{
                 width: frameW,
                 height: frameH,
@@ -446,6 +560,21 @@ export function OverlayPropertiesEditor({
                   pointerEvents: 'none',
                 }}
               />
+              {dragging && (
+                <>
+                  {/* Centre guides: the middle of the browser source */}
+                  <div className="absolute inset-y-0 left-1/2 w-px bg-yellow-400/25 pointer-events-none" />
+                  <div className="absolute inset-x-0 top-1/2 h-px bg-yellow-400/25 pointer-events-none" />
+                  <div
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={onPointerUp}
+                    className="absolute inset-0 cursor-move touch-none"
+                    aria-label={`Drag to move the ${viewName}`}
+                  />
+                </>
+              )}
               {!ready && <p className="absolute inset-0 flex items-center justify-center text-sm text-gray-500">Loading preview…</p>}
             </div>
           </div>
@@ -454,7 +583,7 @@ export function OverlayPropertiesEditor({
             <Segmented
               label="View"
               value={mode}
-              onChange={v => { setMode(v as Mode); if (v === 'collection' && !isPack) setCategory('lists'); }}
+              onChange={v => { setMode(v as Mode); if (v === 'collection' && !isPack && category !== 'layout') setCategory('lists'); }}
               options={[{ id: 'pack', label: '🎴 Pack opening' }, { id: 'collection', label: '📋 Collection' }]}
               disabled={isPack ? ['collection'] : []}
             />
@@ -480,9 +609,9 @@ export function OverlayPropertiesEditor({
         {/* ── Properties dock ── */}
         <div className="min-h-0 flex rounded-xl border border-gray-800 bg-gray-900/80 overflow-hidden h-[75vh] xl:h-auto">
           <nav aria-label="Property categories" className="w-[4.5rem] shrink-0 border-r border-gray-800 bg-gray-950/50 flex flex-col py-2 gap-1">
-            {PROP_GROUPS.map(g => {
-              const n = modifiedCount(g.id);
-              const active = !searching && cat.id === g.id;
+            {rail.map(g => {
+              const n = g.id === 'layout' ? layoutMoved : modifiedCount(g.id);
+              const active = !searching && (g.id === 'layout' ? layoutCat : !layoutCat && cat.id === g.id);
               return (
                 <button
                   key={g.id}
@@ -514,7 +643,13 @@ export function OverlayPropertiesEditor({
                 aria-label="Search settings"
                 className="w-full rounded-md bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-sm text-white placeholder:text-gray-600 focus:border-yellow-500 focus:outline-none"
               />
-              {!searching && (
+              {!searching && layoutCat && (
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-white text-sm">{LAYOUT_CAT.icon} {LAYOUT_CAT.label}</h3>
+                  <p className="text-xs text-gray-500 leading-snug">{LAYOUT_CAT.description}</p>
+                </div>
+              )}
+              {!searching && !layoutCat && (
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h3 className="font-semibold text-white text-sm">{cat.icon} {cat.label}</h3>
@@ -535,7 +670,7 @@ export function OverlayPropertiesEditor({
                 </div>
               )}
 
-              {!searching && cat.id === 'versions' && (
+              {!searching && !layoutCat && cat.id === 'versions' && (
                 <div className="space-y-1.5">
                   <Segmented
                     label="Version"
@@ -559,7 +694,7 @@ export function OverlayPropertiesEditor({
                 </div>
               )}
 
-              {!searching && cat.id === 'lists' && (
+              {!searching && !layoutCat && cat.id === 'lists' && (
                 <Segmented
                   label="List"
                   value={listView}
@@ -583,7 +718,7 @@ export function OverlayPropertiesEditor({
                         </div>
                       ))}
                     </div>
-              ) : (
+              ) : layoutCat ? layoutPanel : (
                 catSections.map(([name, defs], i) => renderSection(scopeKey, name, defs, i))
               )}
             </div>

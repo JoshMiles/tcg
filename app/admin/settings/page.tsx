@@ -1,16 +1,15 @@
-import { getActiveSeasonWithPacks, listAllPacks } from '@/lib/kv';
+import { redirect } from 'next/navigation';
+import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { CopyableUrl } from '../components/copyable-url';
 import { getBuildInfo } from '@/lib/version';
-import { getOverlaySettings, getPackOverrides, listPresets } from '@/lib/overlay-settings';
-import { saveOverlaySettingsAction, saveOverlayLayoutAction, saveOverlayPropsAction, saveOverlayPresetAction, deleteOverlayPresetAction, saveScoringSettingsAction, resetScoringSettingsAction } from '../actions';
+import { getOverlaySettings } from '@/lib/overlay-settings';
+import { saveOverlaySettingsAction, saveScoringSettingsAction, resetScoringSettingsAction } from '../actions';
 import { getScoringSettings, DEFAULT_SCORING, SCORING_LIMITS, type ScoringSettings } from '@/lib/scoring';
 import { getSeasonLeaderboard, collectionBonuses } from '@/lib/leaderboard';
-import { OverlayLayoutEditor } from './OverlayLayoutEditor';
 import { DiscordConfig } from './DiscordConfig';
 import { WebhookConfig } from './WebhookConfig';
 import { getWebhookSettings } from '@/lib/webhooks';
 import { getDiscordSettings } from '@/lib/discord';
-import { OverlayPropertiesEditor } from './OverlayPropertiesEditor';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -19,8 +18,6 @@ const BASE = 'https://tcg-khaki.vercel.app';
 
 const TABS = [
   { id: 'overlay',  label: 'OBS Overlay',  icon: '📺', hint: 'Browser source, connection and bot triggers' },
-  { id: 'layout',   label: 'Overlay Layout', icon: '📐', hint: 'Size and place the pack opening and collection' },
-  { id: 'look',     label: 'Overlay Look', icon: '🎨', hint: 'Animations, holo and card effects, and the collection grid' },
   { id: 'scoring',  label: 'Scoring',      icon: '🏆', hint: 'Card values, bonuses and the leaderboard' },
   { id: 'webhooks', label: 'Webhooks', icon: '🔗', hint: 'Discord feed, MixItUp integration — incoming triggers and outgoing events' },
   { id: 'viewers',  label: 'Viewers & Twitch', icon: '👥', hint: 'Collection page and the Twitch extension' },
@@ -30,32 +27,26 @@ type TabId = (typeof TABS)[number]['id'];
 
 const SAVED_MESSAGES: Record<string, string> = {
   overlay: 'Overlay switches saved.',
-  layout: 'Overlay layout saved. Refresh the OBS browser source (or its cache) to see it.',
-  look: 'Overlay look saved. Refresh the OBS browser source (or its cache) to see it.',
-  preset: 'Preset saved.',
-  'preset-deleted': 'Preset deleted.',
   scoring: 'Scoring saved. The leaderboard and card values now use the new numbers.',
   'scoring-reset': 'Scoring reset to the defaults.',
 };
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; scope?: string }> }) {
-  const { tab: tabParam, saved, scope: scopeParam } = await searchParams;
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string }> }) {
+  const { tab: tabParam, saved } = await searchParams;
+  // The overlay layout and look now live in the Overlay Editor (old links keep working).
+  if (tabParam === 'layout' || tabParam === 'look') redirect('/admin/overlay');
   const tab: TabId = (TABS.find(t => t.id === tabParam)?.id ?? 'overlay');
   const result = await getActiveSeasonWithPacks();
   const build = getBuildInfo();
   const overlay = await getOverlaySettings();
-  // Only the Overlay Look tab needs these.
   const [webhookSettings, discordSettings] = tab === 'webhooks' ? await Promise.all([getWebhookSettings(), getDiscordSettings()]) : [null, null];
-  const [allPacks, packOverrides, presets] = tab === 'look'
-    ? await Promise.all([listAllPacks(), getPackOverrides(), listPresets()])
-    : [[], {}, []];
   const scoring = await getScoringSettings();
   // A live read-out of what the current numbers mean for the active season.
   const board = tab === 'scoring' && result ? await getSeasonLeaderboard(result.season) : null;
   const bonusAtFull = board ? collectionBonuses(board.values, board.values.totalCards) : null;
 
   return (
-    <div className={tab === 'look' ? 'space-y-3 max-w-none flex flex-col xl:h-[calc(100vh-4rem)]' : 'space-y-6 max-w-4xl'}>
+    <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-sm text-gray-500 mt-0.5">{TABS.find(t => t.id === tab)?.hint}</p>
@@ -89,7 +80,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">OBS Overlay</h2>
           <p className="text-sm text-gray-400">
             Add as a <strong className="text-white">Browser Source</strong> in OBS.
-            Size it as recommended in the <Link href="/admin/settings?tab=layout" className="text-yellow-400 hover:text-yellow-300 font-semibold">Overlay Layout</Link> tab ({overlay.layout.width} × {overlay.layout.height}).
+            Size it as recommended in the <Link href="/admin/overlay" className="text-yellow-400 hover:text-yellow-300 font-semibold">Overlay Editor</Link> ({overlay.layout.width} × {overlay.layout.height}).
           </p>
           <CopyableUrl url={`${BASE}/overlay.html`} />
           <p className="text-xs text-gray-600">
@@ -122,31 +113,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </p>
             <button type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-500 text-gray-950 text-sm font-semibold hover:bg-yellow-400 transition-colors">Save</button>
           </form>
-        </section>
-      )}
-
-      {/* Overlay layout */}
-      {tab === 'layout' && (
-        <section className="tcg-panel rounded-xl p-5 space-y-3">
-          <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Overlay Layout</h2>
-          <OverlayLayoutEditor initial={overlay.layout} action={saveOverlayLayoutAction} />
-        </section>
-      )}
-
-      {/* Overlay look: every adjustable animation / holo / grid property */}
-      {tab === 'look' && (
-        <section className="flex-1 min-h-0">
-          <OverlayPropertiesEditor
-            initialGlobal={overlay.props}
-            initialPacks={packOverrides}
-            packs={allPacks.map(p => ({ id: p.id, name: p.name }))}
-            presets={presets}
-            layout={overlay.layout}
-            initialScope={scopeParam ?? 'global'}
-            saveAction={saveOverlayPropsAction}
-            savePresetAction={saveOverlayPresetAction}
-            deletePresetAction={deleteOverlayPresetAction}
-          />
         </section>
       )}
 

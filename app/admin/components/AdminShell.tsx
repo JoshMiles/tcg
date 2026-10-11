@@ -23,7 +23,7 @@ export function AdminShell({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [open, setOpen] = useState(false);
-  // A page (the Overlay Look workspace) can ask for the sidebar to collapse while it is open, without touching the saved
+  // A page (the Overlay Editor) can ask for the sidebar to collapse while it is open, without touching the saved
   // choice: it sets window.__tcgSidebarForce and fires a 'tcg:sidebar' event (the flag covers a child that mounts first).
   const [forced, setForced] = useState(false);
   const pathname = usePathname();
