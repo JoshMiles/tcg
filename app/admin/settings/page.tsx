@@ -1,11 +1,12 @@
-import { getActiveSeasonWithPacks } from '@/lib/kv';
+import { getActiveSeasonWithPacks, listAllPacks } from '@/lib/kv';
 import { CopyableUrl } from '../components/copyable-url';
 import { getBuildInfo } from '@/lib/version';
-import { getOverlaySettings } from '@/lib/overlay-settings';
-import { saveOverlaySettingsAction, saveOverlayLayoutAction, saveScoringSettingsAction, resetScoringSettingsAction } from '../actions';
+import { getOverlaySettings, getPackOverrides, listPresets } from '@/lib/overlay-settings';
+import { saveOverlaySettingsAction, saveOverlayLayoutAction, saveOverlayPropsAction, saveOverlayPresetAction, deleteOverlayPresetAction, saveScoringSettingsAction, resetScoringSettingsAction } from '../actions';
 import { getScoringSettings, DEFAULT_SCORING, SCORING_LIMITS, type ScoringSettings } from '@/lib/scoring';
 import { getSeasonLeaderboard, collectionBonuses } from '@/lib/leaderboard';
 import { OverlayLayoutEditor } from './OverlayLayoutEditor';
+import { OverlayPropertiesEditor } from './OverlayPropertiesEditor';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,7 @@ const BASE = 'https://tcg-khaki.vercel.app';
 const TABS = [
   { id: 'overlay',  label: 'OBS Overlay',  icon: '📺', hint: 'Browser source, connection and bot triggers' },
   { id: 'layout',   label: 'Overlay Layout', icon: '📐', hint: 'Size and place the pack opening and collection' },
+  { id: 'look',     label: 'Overlay Look', icon: '🎨', hint: 'Animations, holo and card effects, and the collection grid' },
   { id: 'scoring',  label: 'Scoring',      icon: '🏆', hint: 'Card values, bonuses and the leaderboard' },
   { id: 'viewers',  label: 'Viewers & Twitch', icon: '👥', hint: 'Collection page and the Twitch extension' },
   { id: 'about',    label: 'About',        icon: 'ℹ️', hint: 'Build info and the active season' },
@@ -24,23 +26,30 @@ type TabId = (typeof TABS)[number]['id'];
 const SAVED_MESSAGES: Record<string, string> = {
   overlay: 'Overlay switches saved.',
   layout: 'Overlay layout saved. Refresh the OBS browser source (or its cache) to see it.',
+  look: 'Overlay look saved. Refresh the OBS browser source (or its cache) to see it.',
+  preset: 'Preset saved.',
+  'preset-deleted': 'Preset deleted.',
   scoring: 'Scoring saved. The leaderboard and card values now use the new numbers.',
   'scoring-reset': 'Scoring reset to the defaults.',
 };
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string }> }) {
-  const { tab: tabParam, saved } = await searchParams;
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; scope?: string }> }) {
+  const { tab: tabParam, saved, scope: scopeParam } = await searchParams;
   const tab: TabId = (TABS.find(t => t.id === tabParam)?.id ?? 'overlay');
   const result = await getActiveSeasonWithPacks();
   const build = getBuildInfo();
   const overlay = await getOverlaySettings();
+  // Only the Overlay Look tab needs these.
+  const [allPacks, packOverrides, presets] = tab === 'look'
+    ? await Promise.all([listAllPacks(), getPackOverrides(), listPresets()])
+    : [[], {}, []];
   const scoring = await getScoringSettings();
   // A live read-out of what the current numbers mean for the active season.
   const board = tab === 'scoring' && result ? await getSeasonLeaderboard(result.season) : null;
   const bonusAtFull = board ? collectionBonuses(board.values, board.values.totalCards) : null;
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className={"space-y-6 " + (tab === 'look' ? 'max-w-7xl' : 'max-w-4xl')}>
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-sm text-gray-500 mt-0.5">{TABS.find(t => t.id === tab)?.hint}</p>
@@ -115,6 +124,30 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <section className="tcg-panel rounded-xl p-5 space-y-3">
           <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Overlay Layout</h2>
           <OverlayLayoutEditor initial={overlay.layout} action={saveOverlayLayoutAction} />
+        </section>
+      )}
+
+      {/* Overlay look: every adjustable animation / holo / grid property */}
+      {tab === 'look' && (
+        <section className="tcg-panel rounded-xl p-5 space-y-4">
+          <div className="space-y-1">
+            <h2 className="font-semibold text-sm text-gray-300 uppercase tracking-wide">Overlay Look</h2>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              Choose how a pull is revealed, tune the holographic shimmer, glow and pop for each card version, and shape the collection grid.
+              Set values for everything, or override them for a single pack. Where it appears on stream is set under <Link href="/admin/settings?tab=layout" className="text-yellow-400 hover:underline">Overlay Layout</Link>.
+            </p>
+          </div>
+          <OverlayPropertiesEditor
+            initialGlobal={overlay.props}
+            initialPacks={packOverrides}
+            packs={allPacks.map(p => ({ id: p.id, name: p.name }))}
+            presets={presets}
+            layout={overlay.layout}
+            initialScope={scopeParam ?? 'global'}
+            saveAction={saveOverlayPropsAction}
+            savePresetAction={saveOverlayPresetAction}
+            deletePresetAction={deleteOverlayPresetAction}
+          />
         </section>
       )}
 

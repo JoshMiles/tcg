@@ -24,7 +24,8 @@ import {
 } from '@/lib/discord';
 import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
-import { getOverlaySettings, saveOverlaySettings } from '@/lib/overlay-settings';
+import { getOverlaySettings, saveOverlaySettings, savePackOverrides, savePreset, deletePreset } from '@/lib/overlay-settings';
+import { sanitizePropValues } from '@/lib/overlay-props';
 import { sanitizeLayout } from '@/lib/overlay-layout';
 import { DEFAULT_SCORING, sanitizeScoring, saveScoringSettings, resetScoringSettings } from '@/lib/scoring';
 
@@ -412,6 +413,37 @@ export async function saveOverlayLayoutAction(formData: FormData) {
   });
   revalidatePath('/admin/settings');
   redirect('/admin/settings?tab=layout&saved=layout');
+}
+
+// Saves the overlay's look & animation properties. `payload` is JSON: { global?: values, packs?: { [packId]: values } } with
+// only the scopes that changed. Global values are stored sparsely (defaults dropped); pack overrides keep every value.
+export async function saveOverlayPropsAction(formData: FormData) {
+  let payload: { global?: unknown; packs?: Record<string, unknown> } = {};
+  try { payload = JSON.parse(String(formData.get('payload') ?? '{}')); } catch { /* ignore: saves nothing */ }
+  if (payload.global !== undefined) {
+    const current = await getOverlaySettings();
+    await saveOverlaySettings({ ...current, props: sanitizePropValues(payload.global) });
+  }
+  for (const [packId, values] of Object.entries(payload.packs ?? {})) {
+    await savePackOverrides(packId, sanitizePropValues(values, { keepDefaults: true }));
+  }
+  revalidatePath('/admin/settings');
+  const scope = String(formData.get('scope') ?? 'global');
+  redirect(`/admin/settings?tab=look&scope=${encodeURIComponent(scope)}&saved=look`);
+}
+
+export async function saveOverlayPresetAction(formData: FormData) {
+  let values: unknown = {};
+  try { values = JSON.parse(String(formData.get('props') ?? '{}')); } catch { /* empty preset is ignored below */ }
+  await savePreset(String(formData.get('name') ?? ''), sanitizePropValues(values));
+  revalidatePath('/admin/settings');
+  redirect(`/admin/settings?tab=look&scope=${encodeURIComponent(String(formData.get('scope') ?? 'global'))}&saved=preset`);
+}
+
+export async function deleteOverlayPresetAction(formData: FormData) {
+  await deletePreset(String(formData.get('id') ?? ''));
+  revalidatePath('/admin/settings');
+  redirect(`/admin/settings?tab=look&scope=${encodeURIComponent(String(formData.get('scope') ?? 'global'))}&saved=preset-deleted`);
 }
 
 // ── Assets ────────────────────────────────────────────────
