@@ -302,13 +302,19 @@ function EventRow({
     }
     case 'trade':
       icon = '🔁';
-      accent = 'border-l-emerald-400';
+      accent = e.action === 'accepted' ? 'border-l-emerald-400' : e.action === 'offered' || e.action === 'countered' ? 'border-l-blue-400' : 'border-l-red-400';
       body = (
         <>
-          <UserLink username={e.username} /> traded with <UserLink username={e.partner} />
+          <UserLink username={e.username} />{' '}
+          {e.action === 'accepted' ? <>traded with <UserLink username={e.partner ?? ''} /></>
+            : e.action === 'offered' ? (e.kind === 'listing' ? 'posted a listing on the board' : <>offered <UserLink username={e.partner ?? ''} /> a trade</>)
+            : e.action === 'countered' ? <>countered <UserLink username={e.partner ?? ''} />&rsquo;s offer</>
+            : e.action === 'declined' ? 'had their offer declined'
+            : e.action === 'expired' ? 'had an offer expire'
+            : e.by === 'admin' ? 'had an offer cancelled by an admin' : 'cancelled an offer'}
         </>
       );
-      sub = `${e.gave} card${e.gave === 1 ? '' : 's'} for ${e.got}`;
+      sub = `${e.give.join(', ')} (≈${e.givePts.toLocaleString()} pts) ⇄ ${e.get.join(', ')} (≈${e.getPts.toLocaleString()} pts)`;
       break;
     case 'reset':
       icon = '🔄';

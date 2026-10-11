@@ -106,6 +106,14 @@ await runInSandbox(box.id, async () => {
   ok(await universe() === start, 'copies conserved after accepting');
   ok(!(await trades.acceptTrade(a1.trade.id, 'bob')).ok, 'an offer can only be accepted once');
   ok((await trades.getTrade(a1.trade.id))?.status === 'accepted', 'it is recorded as accepted');
+  {
+    // Notifications: the offerer hears about the acceptance (after the trade lock is released), the recipient heard about the offer.
+    const notify = await import('../lib/trade-notify');
+    const alice = await notify.listNotices('alice');
+    ok(alice.notices.some(n => n.kind === 'accepted' && n.text.includes('@bob')), 'the offerer is told it was accepted');
+    const bob = await notify.listNotices('bob');
+    ok(bob.notices.some(n => n.kind === 'offer' && n.text.includes('@alice')), 'the recipient is told about the offer');
+  }
 
   // Decline refunds. Counter swaps the offer around.
   const d = await trades.createTrade({ seasonId: season.id, from: 'alice', kind: 'direct', to: 'bob', give: [stack(5, 'reverse')], get: [stack(3)] });

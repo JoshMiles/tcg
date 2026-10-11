@@ -3,6 +3,8 @@ import { Spinner } from '../../admin/components/PendingButton';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { TradeCeremony } from '../TradeCeremony';
+import type { Swap } from '@/lib/trade-notice-core';
 
 type Action = 'accept' | 'decline' | 'cancel';
 
@@ -21,6 +23,7 @@ export function TradeActions({
   const [busy, setBusy] = useState<Action | null>(null);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
+  const [swap, setSwap] = useState<Swap | null>(null);
 
   async function run(action: Action) {
     setBusy(action);
@@ -30,7 +33,9 @@ export function TradeActions({
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || `That didn't work (${res.status})`);
       setDone(action === 'accept' ? 'Trade complete!' : action === 'decline' ? 'Declined' : 'Cancelled');
-      router.refresh();
+      // The trade animation plays first; the page refreshes when it closes (the accepted offer disappears from this list).
+      if (action === 'accept' && body.swap) setSwap(body.swap as Swap);
+      else router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That didn\'t work');
     } finally {
@@ -39,7 +44,14 @@ export function TradeActions({
   }
 
   const btn = 'inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-bold transition-colors disabled:opacity-50';
-  if (done) return <span className="text-sm font-semibold text-emerald-300">✓ {done}</span>;
+  if (done) {
+    return (
+      <>
+        <span className="text-sm font-semibold text-emerald-300">✓ {done}</span>
+        {swap && <TradeCeremony swap={swap} onClose={() => { setSwap(null); router.refresh(); }} />}
+      </>
+    );
+  }
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex flex-wrap items-center justify-end gap-2">
