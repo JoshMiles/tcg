@@ -495,7 +495,8 @@ function playUpgradeCeremony(card, from, to, cost) {
   add('ug-ring').setAttribute('aria-hidden', 'true');
   const n = Math.min(Math.max(cost, 2), 10);
   for (let i = 0; i < n; i++) {
-    const ing = add('ug-ingredient');
+    const ing = add('ug-ingredient' + (from === 'regular' ? '' : ' vfx-' + from));
+    setArtMask(ing, fromArt);
     ing.style.setProperty('--a', (360 / n) * i + 'deg');
     ing.style.setProperty('--d', i * 70 + 'ms');
     const img = document.createElement('img');

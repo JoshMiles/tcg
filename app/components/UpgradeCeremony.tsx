@@ -48,7 +48,11 @@ export function UpgradeCeremony({
   const fromThumb = cardThumbUrl(artFor(card, from));
   const newThumb = cardThumbUrl(newArt);
   const n = Math.min(Math.max(cost, 2), 10);          // show up to ten ingredient cards, however many were spent
-  const fx = to === 'regular' ? '' : `vfx-${to}`;
+  const fx = to === 'regular' ? '' : `vfx-${to} vfx-live`;
+  // The spent copies keep the look of the variant they were (a Reverse Holo ingredient still shimmers).
+  const fromArtUrl = artFor(card, from);
+  const fromFx = from === 'regular' ? '' : `vfx-${from}`;
+  const fromMask = fromThumb !== fromArtUrl ? `url("${fromThumb}")` : 'none';
 
   return createPortal(
     <div
@@ -60,7 +64,7 @@ export function UpgradeCeremony({
       <div className="ug-stage">
         <div className="ug-ring" aria-hidden />
         {Array.from({ length: n }).map((_, i) => (
-          <div key={i} className="ug-ingredient" aria-hidden style={{ ['--a' as string]: `${(360 / n) * i}deg`, ['--d' as string]: `${i * 70}ms` }}>
+          <div key={i} className={`ug-ingredient ${fromFx}`} aria-hidden style={{ ['--a' as string]: `${(360 / n) * i}deg`, ['--d' as string]: `${i * 70}ms`, ['--art-mask' as string]: fromMask }}>
             <img src={fromThumb} alt="" />
           </div>
         ))}

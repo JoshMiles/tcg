@@ -229,7 +229,7 @@ function CardDetail({
             <div className="flex items-center gap-2 w-full justify-center">
               {canStep && <button onClick={() => onStep(-1)} aria-label="Previous card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">‹</button>}
               <div
-                className={`relative w-full max-w-[230px] aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown}` : ''}`}
+                className={`relative w-full max-w-[230px] aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown} vfx-live` : ''}`}
                 style={{
                   borderColor: rarity?.hex,
                   boxShadow: `0 0 24px -6px ${rarity?.hex}`,
