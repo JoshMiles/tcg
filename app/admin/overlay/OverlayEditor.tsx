@@ -17,7 +17,7 @@ interface PackInfo { id: string; name: string }
 interface PresetInfo { id: string; name: string; props: PropValues; updatedAt: number }
 type Mode = 'pack' | 'collection';
 
-const VERSION_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: '✨ Shiny' };
+const VARIANT_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: '✨ Shiny' };
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
@@ -66,9 +66,11 @@ export function OverlayEditor({
   const layout = useMemo(() => sanitizeLayout(layoutVals), [layoutVals]);
   const [packVals, setPackVals] = useState<Record<string, PropValues>>(initialPacks);
   const [scope, setScope] = useState<string>(initialScope === 'global' || packs.some(p => p.id === initialScope) ? initialScope : 'global');
-  const [category, setCategory] = useState('reveal');
-  const [version, setVersion] = useState<VariantId>('regular');   // the version being edited AND previewed
+  const [category, setCategory] = useState('pack');
+  const [version, setVersion] = useState<VariantId>('regular');   // the variant being edited AND previewed
   const [mode, setMode] = useState<Mode>('pack');                  // which view the canvas shows
+  const [variantOpen, setVariantOpen] = useState(false);          // Variants: false = the variant picker, true = editing `version`
+  const [focusKey, setFocusKey] = useState('');                    // a section to scroll into view after a click on the preview
   const [query, setQuery] = useState('');
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [ready, setReady] = useState(false);
@@ -149,12 +151,10 @@ export function OverlayEditor({
   const effectiveSparse: PropValues = useMemo(() => (isPack ? { ...globalVals, ...(packVals[scope] ?? {}) } : globalVals), [isPack, globalVals, packVals, scope]);
 
   // ── What is listed ──
-  const hiddenInScope = (d: PropDef) => isPack && d.view === 'collection'; // the collection view isn't per-pack
-  const listView: Mode = isPack ? 'pack' : mode;
+  const hiddenInScope = (d: PropDef) => isPack && d.group === 'collection'; // the collection view isn't per-pack
   const defsFor = (cat: string): PropDef[] => PROPS.filter(d => {
     if (d.group !== cat || hiddenInScope(d)) return false;
-    if (cat === 'versions') return d.variant === version;
-    if (cat === 'lists') return d.view === listView || d.view === 'both';
+    if (cat === 'variants') return d.variant === version;
     return true;
   });
   const modifiedCount = (cat: string) => PROPS.filter(d => d.group === cat && !hiddenInScope(d) && current[d.key] !== undefined).length;
@@ -243,7 +243,7 @@ export function OverlayEditor({
   };
 
   // Copy every setting of one version onto the version being edited.
-  const copyVersion = (from: VariantId) => {
+  const copyVariant = (from: VariantId) => {
     const next: PropValues = { ...current };
     for (const d of PROPS.filter(x => x.variant === version)) {
       const src = PROP_BY_KEY[d.key.replace(`variant.${version}.`, `variant.${from}.`)];
@@ -253,7 +253,7 @@ export function OverlayEditor({
       if (!isPack && eq(v, d.default)) delete next[d.key]; else next[d.key] = v;
     }
     replaceCurrent(next);
-    setNotice(`Copied the ${VERSION_LABELS[from]} look onto ${VERSION_LABELS[version]}. Review, then Save.`);
+    setNotice(`Copied the ${VARIANT_LABELS[from]} look onto ${VARIANT_LABELS[version]}. Review, then Save.`);
   };
 
   const btn = 'px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors';
@@ -282,7 +282,7 @@ export function OverlayEditor({
     const open = searching || (openMap[k] ?? index < 2);
     const changed = defs.filter(d => current[d.key] !== undefined);
     return (
-      <section key={k} className="border-b border-gray-800/80 last:border-0">
+      <section key={k} data-section={k} className="border-b border-gray-800/80 last:border-0">
         <div className="flex items-center gap-1 pr-2">
           <button
             type="button"
@@ -319,7 +319,7 @@ export function OverlayEditor({
   const moved = (p: Placement) => p.scale !== 1 || p.offsetX !== 0 || p.offsetY !== 0;
   const layoutMoved = (moved(layout.pack) ? 1 : 0) + (moved(layout.collection) ? 1 : 0) + (layout.width !== DEFAULT_LAYOUT.width || layout.height !== DEFAULT_LAYOUT.height ? 1 : 0);
   const layoutCat = category === 'layout' && !isPack;
-  const rail = isPack ? PROP_GROUPS : [LAYOUT_CAT, ...PROP_GROUPS];
+  const rail = isPack ? PROP_GROUPS.filter(g => g.id !== 'collection') : [LAYOUT_CAT, ...PROP_GROUPS];
   const dragging = layoutCat && !query.trim();
 
   // Dragging the canvas (or the arrow keys) moves the view being edited. One screen pixel = 1/fit design pixels.
@@ -343,16 +343,97 @@ export function OverlayEditor({
     setPlacement(p => ({ offsetX: p.offsetX + m[0], offsetY: p.offsetY + m[1] }));
   };
 
-  const cat = PROP_GROUPS.find(g => g.id === category) ?? PROP_GROUPS[0];
+  const catId = isPack && category === 'collection' ? 'pack' : category;   // the collection view isn't per-pack
+  // Clicking an element in the preview opens its settings.
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.source !== frameRef.current?.contentWindow) return;
+      const data = e.data as { type?: string; target?: string } | null;
+      if (data?.type !== 'select' || !data.target) return;
+      const go = (c: string, section?: string) => {
+        setCategory(c);
+        setQuery('');
+        setMode(c === 'collection' ? 'collection' : 'pack');
+        if (c === 'variants') setVariantOpen(true);
+        if (section) {
+          const k = `${c}${c === 'variants' ? '.' + version : ''}/${section}`;
+          setOpenMap(m => ({ ...m, [k]: true }));
+          setFocusKey(k);
+        }
+      };
+      switch (data.target) {
+        case 'card': go('variants'); break;
+        case 'label': go('variants', 'Label'); break;
+        case 'bar': go('pack', 'Name and stars bar'); break;
+        case 'got': go('pack', '"got:" line'); break;
+        case 'strip': go('pack', 'Cards under the card'); break;
+        case 'heading': if (!isPack) go('collection', 'What to show'); break;
+        case 'collection': if (!isPack) go('collection', 'Layout'); break;
+      }
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [version, isPack]);
+  useEffect(() => {
+    if (!focusKey) return;
+    document.querySelector(`[data-section="${CSS.escape(focusKey)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    setFocusKey('');
+  }, [focusKey]);
+
+  const cat = PROP_GROUPS.find(g => g.id === catId) ?? PROP_GROUPS[0];
   const catDefs = defsFor(cat.id);
-  const scopeKey = `${cat.id}${cat.id === 'versions' ? '.' + version : ''}${cat.id === 'lists' ? '.' + listView : ''}`;
+  const scopeKey = `${cat.id}${cat.id === 'variants' ? '.' + version : ''}`;
+  const variantPicker = cat.id === 'variants' && !variantOpen;
   const catSections = groupSections(catDefs);
 
   // Search results span every category (and every version), labelled with where each one lives.
   const searchResults = searching
     ? PROP_GROUPS.flatMap(g => groupSections(PROPS.filter(d => d.group === g.id && !hiddenInScope(d) && matches(d)))
-        .flatMap(([name, defs]) => defs.map(d => ({ d, crumb: `${g.label}${d.variant ? ' › ' + VERSION_LABELS[d.variant] : ''} › ${name}` }))))
+        .flatMap(([name, defs]) => defs.map(d => ({ d, crumb: `${g.label}${d.variant ? ' › ' + VARIANT_LABELS[d.variant] : ''} › ${name}` }))))
     : [];
+
+  const variantSummary = (v: VariantId) => {
+    const g = (n: string) => valueOf(`variant.${v}.${n}`);
+    const bits: string[] = [];
+    if (g('holoMode') === 'on') bits.push('Holo'); else if (g('holoMode') === 'auto') bits.push('Holo by stars');
+    if (g('glow') === true) bits.push('Glow');
+    if (g('pop') === true) bits.push('Pop');
+    if (g('tilt') === true) bits.push('3D tilt');
+    if (g('rock') === true) bits.push('Rock');
+    if (g('sparkles') === true) bits.push('Sparkles');
+    return bits.join(' · ') || 'Plain';
+  };
+  const variantPickerList = (
+    <div className="p-3 space-y-2">
+      <p className="text-xs text-gray-500 leading-relaxed">Choose a card variant to edit. Clicking the card in the preview opens the variant you are previewing.</p>
+      {VARIANT_IDS.map(v => {
+        const colors = valueOf(`variant.${v}.labelColors`) as string[];
+        const changed = PROPS.filter(d => d.variant === v && current[d.key] !== undefined).length;
+        return (
+          <button
+            key={v}
+            type="button"
+            onClick={() => { setVersion(v); setVariantOpen(true); setMode('pack'); }}
+            className={`w-full text-left rounded-xl border p-3 flex items-center gap-3 transition-colors ${version === v ? 'border-yellow-500/60 bg-yellow-500/5' : 'border-gray-700 hover:border-gray-500 hover:bg-white/5'}`}
+          >
+            <span
+              className="px-2.5 py-1 rounded-full text-[11px] font-bold text-white shrink-0 max-w-[8rem] truncate"
+              style={{ background: colors.length > 1 ? `linear-gradient(90deg, ${colors.join(', ')})` : colors[0] }}
+            >
+              {String(valueOf(`variant.${v}.labelText`))}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold text-white">{VARIANT_LABELS[v]}</span>
+              <span className="block text-xs text-gray-500 truncate">{variantSummary(v)}</span>
+            </span>
+            {version === v && <span className="text-[10px] uppercase tracking-wide text-yellow-400 font-bold shrink-0">Previewing</span>}
+            {changed > 0 && <span className="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 rounded-full px-1.5 shrink-0">{changed}</span>}
+            <span aria-hidden className="text-gray-500">›</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   const viewName = mode === 'pack' ? 'pack opening' : 'collection view';
   const layoutPanel = (
@@ -557,7 +638,6 @@ export function OverlayEditor({
                   colorScheme: 'light',
                   transform: `scale(${fit})`,
                   transformOrigin: 'top left',
-                  pointerEvents: 'none',
                 }}
               />
               {dragging && (
@@ -583,18 +663,22 @@ export function OverlayEditor({
             <Segmented
               label="View"
               value={mode}
-              onChange={v => { setMode(v as Mode); if (v === 'collection' && !isPack && category !== 'layout') setCategory('lists'); }}
+              onChange={v => {
+                setMode(v as Mode);
+                if (!isPack && category !== 'layout') setCategory(v === 'collection' ? 'collection' : category === 'collection' ? 'pack' : category);
+              }}
               options={[{ id: 'pack', label: '🎴 Pack opening' }, { id: 'collection', label: '📋 Collection' }]}
               disabled={isPack ? ['collection'] : []}
             />
             {mode === 'pack' && (
               <Segmented
-                label="Show as"
+                label="Preview as"
                 value={version}
                 onChange={v => setVersion(v as VariantId)}
-                options={VARIANT_IDS.map(v => ({ id: v, label: VERSION_LABELS[v] }))}
+                options={VARIANT_IDS.map(v => ({ id: v, label: VARIANT_LABELS[v] }))}
               />
             )}
+            <span className="hidden lg:inline text-xs text-gray-500">Click anything in the preview to edit it.</span>
             <button
               type="button"
               onClick={play}
@@ -619,7 +703,9 @@ export function OverlayEditor({
                   onClick={() => {
                     setCategory(g.id);
                     setQuery('');
-                    if (g.id === 'reveal' || g.id === 'versions') setMode('pack');
+                    if (g.id === 'pack' || g.id === 'variants') setMode('pack');
+                    if (g.id === 'collection') setMode('collection');
+                    if (g.id === 'variants') setVariantOpen(false);
                   }}
                   aria-current={active ? 'page' : undefined}
                   title={g.description}
@@ -649,7 +735,31 @@ export function OverlayEditor({
                   <p className="text-xs text-gray-500 leading-snug">{LAYOUT_CAT.description}</p>
                 </div>
               )}
-              {!searching && !layoutCat && (
+              {!searching && !layoutCat && cat.id === 'variants' && variantOpen && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <button type="button" onClick={() => setVariantOpen(false)} className="text-gray-400 hover:text-white font-semibold">← Variants</button>
+                    <span className="text-gray-600" aria-hidden>/</span>
+                    <span className="font-bold text-yellow-300">{VARIANT_LABELS[version]}</span>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-snug rounded-md bg-yellow-500/10 border border-yellow-500/20 px-2 py-1.5">
+                    Editing the <strong className="text-yellow-300">{VARIANT_LABELS[version]}</strong> card. The preview shows it.
+                  </p>
+                  <label className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                    Copy the look of
+                    <select
+                      value=""
+                      onChange={e => { if (e.target.value) copyVariant(e.target.value as VariantId); }}
+                      className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200"
+                    >
+                      <option value="">choose a variant…</option>
+                      {VARIANT_IDS.filter(v => v !== version).map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}
+                    </select>
+                    onto {VARIANT_LABELS[version]}
+                  </label>
+                </div>
+              )}
+              {!searching && !layoutCat && !variantPicker && !(cat.id === 'variants') && (
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h3 className="font-semibold text-white text-sm">{cat.icon} {cat.label}</h3>
@@ -669,40 +779,11 @@ export function OverlayEditor({
                   </div>
                 </div>
               )}
-
-              {!searching && !layoutCat && cat.id === 'versions' && (
-                <div className="space-y-1.5">
-                  <Segmented
-                    label="Version"
-                    value={version}
-                    onChange={v => { setVersion(v as VariantId); setMode('pack'); }}
-                    options={VARIANT_IDS.map(v => ({ id: v, label: VERSION_LABELS[v], dot: versionModified(v) }))}
-                    wrap
-                  />
-                  <label className="flex items-center gap-2 text-xs text-gray-500">
-                    Copy the look of
-                    <select
-                      value=""
-                      onChange={e => { if (e.target.value) copyVersion(e.target.value as VariantId); }}
-                      className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200"
-                    >
-                      <option value="">choose a version…</option>
-                      {VARIANT_IDS.filter(v => v !== version).map(v => <option key={v} value={v}>{VERSION_LABELS[v]}</option>)}
-                    </select>
-                    onto {VERSION_LABELS[version]}
-                  </label>
+              {!searching && !layoutCat && variantPicker && (
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-white text-sm">{cat.icon} {cat.label}</h3>
+                  <p className="text-xs text-gray-500 leading-snug">{cat.description}</p>
                 </div>
-              )}
-
-              {!searching && !layoutCat && cat.id === 'lists' && (
-                <Segmented
-                  label="List"
-                  value={listView}
-                  onChange={v => setMode(v as Mode)}
-                  options={[{ id: 'pack', label: 'Under revealed card' }, { id: 'collection', label: 'Collection view' }]}
-                  disabled={isPack ? ['collection'] : []}
-                  wrap
-                />
               )}
             </div>
 
@@ -718,7 +799,7 @@ export function OverlayEditor({
                         </div>
                       ))}
                     </div>
-              ) : layoutCat ? layoutPanel : (
+              ) : layoutCat ? layoutPanel : variantPicker ? variantPickerList : (
                 catSections.map(([name, defs], i) => renderSection(scopeKey, name, defs, i))
               )}
             </div>

@@ -549,6 +549,10 @@
   75%      { rotate: calc(var(--rock-amt, 2deg) * -1); }
 }
 
+/* Admin editor preview: the elements you can click to edit light up on hover. */
+.preview-edit [data-edit] { cursor: pointer; }
+.preview-edit [data-edit]:hover { outline: 2px dashed rgba(250, 204, 21, .9); outline-offset: 3px; }
+
 /* Sparkle burst (variant.*.sparkles): particles fly out from the middle of the card and fade. */
 .spark-layer { position: absolute; left: 0; right: 0; top: 40px; height: 380px; pointer-events: none; z-index: 2000; }
 .spark-layer span {

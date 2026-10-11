@@ -106,6 +106,11 @@ function showStatic(mode) {
   const { wrapper, packageContainer, cardBox, cardLabel, mainCard, holoOverlay, cardInfoOverlay, radialContainer, cardInfo, userText, miniList } = theater;
   wrapper.classList.add('static-preview');
   wrapper.style.visibility = 'visible';
+  // Elements the editor can jump to when clicked (see the click handler below).
+  const editable = (el, target, tip) => { if (el) { el.dataset.edit = target; el.title = tip; } };
+  editable(mainCard, 'card', 'Click to edit this card variant');
+  editable(cardLabel, 'label', 'Click to edit the label');
+  editable(cardInfoOverlay, 'bar', 'Click to edit the name and stars bar');
   packageContainer.style.opacity = '0';
 
   if (previewMode === 'pack') {
@@ -125,6 +130,8 @@ function showStatic(mode) {
       radialContainer.style.opacity = String(pv(P, 'reveal.burstOpacity', 0.85));
       if (!pv(P, 'reveal.showBurst', true)) radialContainer.style.display = 'none';
       userText.textContent = gotText(P, 'Preview');
+      editable(userText, 'got', 'Click to edit the "got:" line');
+      editable(miniList, 'strip', 'Click to edit the cards under the card');
       const art = (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArt : card.image;
       paintCard(theater, card, art, (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArtThumb : card.thumb);
       const fx = mainCardAnimation(P, variant, 1, 0, true);
@@ -142,6 +149,8 @@ function showStatic(mode) {
     cardInfo.style.opacity = '1';
     cardInfo.style.transform = 'scale(1)';
     userText.textContent = headingText(P, 'Preview');
+    editable(userText, 'heading', 'Click to edit the heading');
+    editable(miniList, 'collection', 'Click to edit the collection grid');
     if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
     const opts = listOpts(P, false);
     if (opts.perRow > 0) wrapper.style.maxWidth = 'none';
@@ -150,6 +159,12 @@ function showStatic(mode) {
 }
 
 if (PREVIEW) {
+  // Clicking an element in the editor's preview asks the editor to open that element's settings.
+  document.body.classList.add('preview-edit');
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest && e.target.closest('[data-edit]');
+    if (el && window.parent !== window) window.parent.postMessage({ type: 'select', target: el.dataset.edit }, window.location.origin);
+  });
   window.addEventListener('message', (e) => {
     if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
     if (e.data.type === 'layout') applyLayout(e.data.layout);
@@ -433,12 +448,13 @@ function listOpts(P, strip) {
     cardWidth:       strip ? pv(P, 'reveal.stripCardWidth', 48) : pv(P, 'collection.cardWidth', 48),
     gap:             strip ? pv(P, 'reveal.stripGap', 13) : pv(P, 'collection.gap', 13),
     showUncollected: strip ? pv(P, 'reveal.showUncollectedStrip', true) : pv(P, 'collection.showUncollected', true),
-    showCounts:      pv(P, 'collection.showCounts', true),
-    showMarkers:     pv(P, 'collection.showVariantMarkers', true),
-    border:          pv(P, 'collection.borderColor', '#ffffff'),
-    placeholder:     pv(P, 'collection.placeholderColor', '#f1bb06'),
-    radius:          pv(P, 'collection.cardRadius', 2),
-    sort:            pv(P, 'collection.sort', 'number'),
+    // The strip under a revealed card and the collection view each have their own card look.
+    showCounts:      strip ? pv(P, 'reveal.stripShowCounts', true) : pv(P, 'collection.showCounts', true),
+    showMarkers:     strip ? pv(P, 'reveal.stripShowMarkers', true) : pv(P, 'collection.showVariantMarkers', true),
+    border:          strip ? pv(P, 'reveal.stripBorderColor', '#ffffff') : pv(P, 'collection.borderColor', '#ffffff'),
+    placeholder:     strip ? pv(P, 'reveal.stripPlaceholderColor', '#f1bb06') : pv(P, 'collection.placeholderColor', '#f1bb06'),
+    radius:          strip ? pv(P, 'reveal.stripCardRadius', 2) : pv(P, 'collection.cardRadius', 2),
+    sort:            strip ? pv(P, 'reveal.stripSort', 'number') : pv(P, 'collection.sort', 'number'),
   };
 }
 
