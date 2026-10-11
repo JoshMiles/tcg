@@ -9,13 +9,20 @@
    5x the card size, and the layer is three tiles wide so it can slide 8 card-widths (kept only one card tall so the GPU layer stays small). */
 .holographic-overlay {
   position: absolute;
-  top: 35px;
-  left: -3px;
-  width: 101%;
-  height: 88%;
+  inset: 0;                 /* exactly the card art's box (it is a child of .main-card) */
   pointer-events: none;
-  border-radius: 18px;
+  border-radius: 14px;      /* fallback corners for art without a thumbnail to mask with */
   overflow: hidden;
+  /* Clip to the art's own silhouette: the card's static thumbnail has the same rounded transparent corners.
+     Same sizing as the art's background (cover, centred) so the two line up exactly. */
+  -webkit-mask-image: var(--card-mask, none);
+  mask-image: var(--card-mask, none);
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   z-index: 990;
   opacity: 0;
   transition: opacity 0.3s ease;

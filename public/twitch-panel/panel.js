@@ -24,6 +24,12 @@ function variantArt(card, variant) {
   return { imageUrl: card.imageUrl, thumbUrl: card.thumbUrl };
 }
 
+// Clips the holo sheen to the art's own shape: the static thumbnail has the same rounded transparent corners.
+function setArtMask(el, art) {
+  const thumb = art && art.thumbUrl && art.thumbUrl !== art.imageUrl ? art.thumbUrl : null;
+  el.style.setProperty('--art-mask', thumb ? 'url("' + thumb + '")' : 'none');
+}
+
 // Reads a claim from the (unverified) Extension JWT. Only used for UX decisions — the server
 // verifies the signature before trusting anything.
 function jwtClaim(token, name) {
@@ -233,6 +239,7 @@ function renderGrid() {
       // Upgraded variants get a holo sheen / glow, and a marker
       if (ownedActive && status.best !== 'regular') {
         cell.classList.add('vfx-' + status.best);
+        setArtMask(cell, variantArt(card, status.best));
         const mark = document.createElement('div');
         mark.className = 'variant-mark';
         mark.textContent = status.best === 'reverse' ? 'RH' : status.best === 'full' ? 'FA' : '\u2728';
@@ -345,6 +352,7 @@ function renderDetail() {
   const shown = detailVariant && status.variants[detailVariant] > 0 ? detailVariant : status.best;
   const shownArt = variantArt(card, shown);
   art.className = 'detail-art' + (status.owned && shown !== 'regular' ? ' vfx-' + shown : '');
+  setArtMask(art, shownArt);
   if (status.owned && shownArt.imageUrl) {
     const thumb = document.createElement('img');
     thumb.src = shownArt.thumbUrl || shownArt.imageUrl;

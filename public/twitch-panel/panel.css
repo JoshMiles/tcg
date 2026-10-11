@@ -712,6 +712,16 @@ html, body {
   background-position: 0 0;
   mix-blend-mode: overlay;
   transition: background-position 0.9s ease;
+  /* Clip the sheen to the art's own silhouette (rounded transparent corners). --art-mask is the art's static thumbnail,
+     set per tile/art by the page; without one the sheen just fills the box. */
+  -webkit-mask-image: var(--art-mask, none);
+  mask-image: var(--art-mask, none);
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 .card-cell.vfx-reverse:hover::after, .card-cell.vfx-shiny:hover::after { background-position: 100% 0; }
 .detail-art.vfx-reverse::after, .detail-art.vfx-shiny::after { animation: holoSweep 3.5s ease-in-out infinite alternate; }

@@ -484,6 +484,11 @@ function drawCard(username, opts) {
   }, 3000);
 
   // Card image
+  // The holo layer is masked to this art's silhouette using its static thumbnail (same shape, tiny, never animated).
+  const isFullArt = (variant === 'full' || variant === 'shiny') && card.fullArt;
+  const artThumb = isFullArt ? card.fullArtThumb : card.thumb;
+  mainCard.style.setProperty('--card-mask', artThumb && artThumb !== art ? `url('${artThumb}')` : 'none');
+
   if (art) {
     mainCard.style.backgroundImage    = `url('${art}')`;
     mainCard.style.backgroundSize     = 'cover';

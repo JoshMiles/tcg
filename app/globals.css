@@ -95,6 +95,16 @@
   background-position: 0 0;
   mix-blend-mode: overlay;
   transition: background-position 0.9s ease;
+  /* Clip the sheen to the art's own silhouette (rounded transparent corners). --art-mask is the art's static thumbnail,
+     set per tile/art by the page; without one the sheen just fills the box. */
+  -webkit-mask-image: var(--art-mask, none);
+  mask-image: var(--art-mask, none);
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 .vfx-reverse:hover::after, .vfx-shiny:hover::after { background-position: 100% 0; }
 .vfx-full { box-shadow: 0 0 16px -2px rgba(96,190,255,.85) !important; }
