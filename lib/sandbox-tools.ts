@@ -1,7 +1,8 @@
-import { addCollectionEntry, ensureUserProfile, getActiveSeasonWithPacks, getAllCollectionUsers } from './kv';
+import { addCollectionEntry, ensureUserProfile, getActiveSeasonWithPacks, getAllCollectionUsers, getCollection, saveCollection, withCollectionLock } from './kv';
+import { getSeasonLeaderboard } from './leaderboard';
 import { runInSandbox } from './db';
 import { VARIANTS, effectiveWeights, encodeEntry, rollVariant, upgradesAllowed, type VariantCounts, emptyCounts } from './variants';
-import type { Variant } from './types';
+import type { Card, Pack, Variant } from './types';
 
 // Helpers for driving a sandbox without needing the stream: simulate pulls the way the overlay would, and hand out specific
 // copies (e.g. exactly enough Regulars to test an upgrade). Each runs pinned to the given sandbox, wherever the admin is.
@@ -10,6 +11,20 @@ const sanitizeName = (n: string) => n.toLowerCase().replace(/[^a-z0-9_]/g, '').s
 
 export function cleanTestUsername(input: string): string {
   return sanitizeName(input.trim());
+}
+
+type DrawPacks = { pack: Pack; cards: Card[] }[];
+
+/** One overlay-style draw: pack by weight, card by probability, then (where upgrades are on) the variant roll. */
+function drawOne(packs: DrawPacks): { card: Card; pack: Pack; variant: Variant } {
+  let r = Math.random() * packs.reduce((s, p) => s + (p.pack.weight || 1), 0);
+  let chosen = packs[packs.length - 1];
+  for (const p of packs) { r -= p.pack.weight || 1; if (r <= 0) { chosen = p; break; } }
+  let rp = Math.random() * chosen.cards.reduce((s, c) => s + c.probability, 0);
+  let card = chosen.cards[chosen.cards.length - 1];
+  for (const c of chosen.cards) { rp -= c.probability; if (rp <= 0) { card = c; break; } }
+  const variant: Variant = upgradesAllowed(chosen.pack, card) ? rollVariant(effectiveWeights(chosen.pack, card)) : 'regular';
+  return { card, pack: chosen.pack, variant };
 }
 
 /** Draws `count` pulls for a user exactly as the overlay does (pack by weight, card by probability, then the variant roll). */
@@ -26,13 +41,7 @@ export function simulatePulls(sandboxId: string, username: string, count: number
     const byVariant = emptyCounts();
     await ensureUserProfile(user);
     for (let i = 0; i < n; i++) {
-      let r = Math.random() * packs.reduce((s, p) => s + (p.pack.weight || 1), 0);
-      let chosen = packs[packs.length - 1];
-      for (const p of packs) { r -= p.pack.weight || 1; if (r <= 0) { chosen = p; break; } }
-      let rp = Math.random() * chosen.cards.reduce((s, c) => s + c.probability, 0);
-      let card = chosen.cards[chosen.cards.length - 1];
-      for (const c of chosen.cards) { rp -= c.probability; if (rp <= 0) { card = c; break; } }
-      const variant: Variant = upgradesAllowed(chosen.pack, card) ? rollVariant(effectiveWeights(chosen.pack, card)) : 'regular';
+      const { card, variant } = drawOne(packs);
       await addCollectionEntry(active.season.collectionName, user, encodeEntry(card.number, variant));
       byVariant[variant]++;
     }
@@ -71,12 +80,104 @@ export function listSandboxUsers(sandboxId: string): Promise<{ username: string;
 }
 
 /** The active season's cards (for the "grant copies" picker). */
-export function listSandboxCards(sandboxId: string): Promise<{ number: number; name: string; pack: string }[]> {
+export function listSandboxCards(sandboxId: string): Promise<{ number: number; name: string; pack: string; imageUrl: string; fullArtImageUrl?: string }[]> {
   return runInSandbox(sandboxId, async () => {
     const active = await getActiveSeasonWithPacks();
     if (!active) return [];
     return active.packs
-      .flatMap(p => p.cards.map(c => ({ number: c.number, name: c.name, pack: p.pack.name })))
+      .flatMap(p => p.cards.map(c => ({ number: c.number, name: c.name, pack: p.pack.name, imageUrl: c.imageUrl, fullArtImageUrl: c.fullArtImageUrl })))
+      .sort((a, b) => a.number - b.number);
+  });
+}
+
+// ── Bulk seeding ──────────────────────────────────────────
+
+const WORDS_A = ['nacho', 'gouda', 'brie', 'swiss', 'cheddar', 'feta', 'edam', 'curd', 'melty', 'crispy', 'cheesy', 'smoky', 'sharp', 'creamy', 'toasty', 'spicy', 'golden', 'holey', 'mighty', 'sleepy', 'turbo', 'lucky', 'salty', 'zesty'];
+const WORDS_B = ['gus', 'fox', 'owl', 'moth', 'otter', 'wizard', 'knight', 'ninja', 'goblin', 'panda', 'badger', 'crab', 'llama', 'raven', 'viking', 'robot', 'pirate', 'duck', 'yeti', 'mole', 'newt', 'bear', 'toad', 'hawk'];
+
+/** Distinct, valid, readable usernames that don't clash with anyone already in the collection. */
+function makeNames(count: number, taken: Set<string>): string[] {
+  const names: string[] = [];
+  let guard = 0;
+  while (names.length < count && guard++ < count * 40) {
+    const a = WORDS_A[Math.floor(Math.random() * WORDS_A.length)];
+    const b = WORDS_B[Math.floor(Math.random() * WORDS_B.length)];
+    const name = `${a}_${b}${guard > count * 4 ? Math.floor(Math.random() * 90 + 10) : ''}`;
+    if (!taken.has(name)) { taken.add(name); names.push(name); }
+  }
+  for (let i = 0; names.length < count; i++) { const name = `viewer_${taken.size + i}`; if (!taken.has(name)) { taken.add(name); names.push(name); } }
+  return names;
+}
+
+export type SeedShape = 'realistic' | 'even';
+
+/**
+ * Creates `count` test viewers who have each pulled a number of cards the way the overlay would draw them, so the leaderboard,
+ * card values and scarcity look like a real season. 'realistic' gives a few heavy collectors and many light ones (a long tail);
+ * 'even' spreads pulls evenly between min and max. Everything is drawn in memory and written once, so 100 users is quick.
+ */
+export function seedUsers(
+  sandboxId: string,
+  opts: { count: number; minPulls: number; maxPulls: number; shape: SeedShape },
+): Promise<{ users: number; pulls: number; byVariant: VariantCounts; heaviest: number }> {
+  return runInSandbox(sandboxId, async () => {
+    const active = await getActiveSeasonWithPacks();
+    if (!active) throw new Error('This sandbox has no active season. Activate one first.');
+    const packs = active.packs.filter(p => p.cards.length > 0 && p.pack.active);
+    if (packs.length === 0) throw new Error('No active pack with cards in the active season.');
+
+    const count = Math.max(1, Math.min(300, Math.floor(opts.count) || 1));
+    const min = Math.max(1, Math.min(2000, Math.floor(opts.minPulls) || 1));
+    const max = Math.max(min, Math.min(2000, Math.floor(opts.maxPulls) || min));
+    const collection = active.season.collectionName;
+
+    const seeded: Record<string, number[]> = {};
+    const byVariant = emptyCounts();
+    let pulls = 0, heaviest = 0;
+    const names = makeNames(count, new Set(Object.keys(await getCollection(collection))));
+    for (const name of names) {
+      const u = Math.random();
+      const n = Math.round(min + (max - min) * (opts.shape === 'even' ? u : u ** 3));
+      const entries: number[] = [];
+      for (let i = 0; i < n; i++) {
+        const { card, variant } = drawOne(packs);
+        entries.push(encodeEntry(card.number, variant));
+        byVariant[variant]++;
+      }
+      seeded[name] = entries;
+      pulls += n;
+      heaviest = Math.max(heaviest, n);
+    }
+
+    // One locked read-modify-write for everyone.
+    await withCollectionLock(collection, async () => {
+      const data = await getCollection(collection);
+      for (const [name, entries] of Object.entries(seeded)) data[name] = [...(data[name] ?? []), ...entries];
+      await saveCollection(collection, data);
+    });
+    return { users: names.length, pulls, byVariant, heaviest };
+  });
+}
+
+/** Every card in the active season with what it is worth right now and why (odds, copies out there, scarcity). */
+export function listCardValues(sandboxId: string): Promise<{
+  number: number; name: string; stars: number; pack: string; upgrades: boolean;
+  pullRate: number; copies: VariantCounts; scarcity: Record<Variant, number>; values: Record<Variant, number>;
+}[]> {
+  return runInSandbox(sandboxId, async () => {
+    const active = await getActiveSeasonWithPacks();
+    if (!active) return [];
+    const board = await getSeasonLeaderboard(active.season);
+    return board.packs
+      .flatMap(({ pack, cards }) => cards.map(c => ({ pack, card: c })))
+      .map(({ pack, card }) => {
+        const v = board.values.cards.get(card.number);
+        return {
+          number: card.number, name: card.name, stars: card.stars, pack: pack.name, upgrades: upgradesAllowed(pack, card),
+          pullRate: v?.pullRate ?? 0, copies: v?.variantCopies ?? emptyCounts(),
+          scarcity: v?.scarcity ?? { regular: 1, reverse: 1, full: 1, shiny: 1 }, values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
+        };
+      })
       .sort((a, b) => a.number - b.number);
   });
 }

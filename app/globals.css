@@ -173,3 +173,53 @@
   .admin-aside[data-collapsed='true'] .aside-item { justify-content: center; padding-left: 0; padding-right: 0; }
   .admin-aside[data-collapsed='true'] .holo-strip { margin-left: 0.75rem; margin-right: 0.75rem; }
 }
+
+/* ── Upgrade ceremony (UpgradeCeremony.tsx): copies spiral in, a flash, the new variant is revealed ── */
+.ug-overlay {
+  position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(40, 24, 60, .92), rgba(5, 5, 12, .96)); backdrop-filter: blur(5px);
+  animation: ugFade .3s ease both; cursor: pointer;
+}
+.ug-stage { position: relative; width: min(340px, 86vw); height: 520px; }
+.ug-ingredient {
+  position: absolute; left: 50%; top: 200px; width: 84px; height: 124px; margin: -62px 0 0 -42px; border-radius: 9px; overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,.6); opacity: 0;
+  animation: ugConverge 1.3s cubic-bezier(.55,0,.75,.35) var(--d) forwards;
+}
+.ug-ingredient img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@keyframes ugConverge {
+  0%   { opacity: 0; transform: rotate(var(--a)) translateY(-240px) rotate(calc(var(--a) * -1)) scale(.55); }
+  18%  { opacity: 1; }
+  72%  { opacity: 1; transform: rotate(calc(var(--a) + 150deg)) translateY(-70px) rotate(calc((var(--a) + 150deg) * -1)) scale(.9); }
+  100% { opacity: 0; transform: rotate(calc(var(--a) + 230deg)) translateY(0) rotate(calc((var(--a) + 230deg) * -1)) scale(.15); }
+}
+.ug-flash { position: absolute; left: 50%; top: 200px; width: 700px; height: 700px; margin: -350px 0 0 -350px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #fff 0%, rgba(255,240,180,.7) 25%, rgba(255,255,255,0) 62%); opacity: 0; animation: ugFlash .8s ease-out 1.5s forwards; }
+@keyframes ugFlash { 0% { opacity: 0; transform: scale(.2); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.25); } }
+.ug-ring { position: absolute; left: 50%; top: 200px; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 3px solid rgba(255,220,120,.9); opacity: 0;
+  animation: ugRing .9s ease-out 1.5s forwards; }
+@keyframes ugRing { 0% { opacity: .9; transform: scale(.3); } 100% { opacity: 0; transform: scale(4.2); } }
+.ug-card { position: absolute; left: 50%; top: 24px; width: 216px; height: 320px; margin-left: -108px; opacity: 0; animation: ugReveal 1s cubic-bezier(.2,1.5,.35,1) 1.55s forwards; }
+@keyframes ugReveal { 0% { opacity: 0; transform: scale(.2) rotate(-12deg); } 55% { opacity: 1; transform: scale(1.12) rotate(2deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+.ug-art { position: relative; width: 100%; height: 100%; }
+.ug-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ug-anim { opacity: 0; transition: opacity .2s ease; }
+.ug-anim-on { opacity: 1; }
+.ug-art.vfx-full { box-shadow: 0 0 46px 6px rgba(96,190,255,.9) !important; }
+.ug-art.vfx-shiny { box-shadow: 0 0 60px 10px rgba(255,200,60,.95) !important; }
+.ug-spark { position: absolute; left: 50%; top: 184px; font-size: 20px; line-height: 1; opacity: 0; text-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
+  animation: ugSpark 1.5s ease-out 1.6s forwards; }
+@keyframes ugSpark { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1.2) rotate(120deg); } }
+.ug-text { position: absolute; left: 0; right: 0; top: 352px; text-align: center; opacity: 0; transform: translateY(12px); animation: ugText .6s ease-out 2.2s forwards; }
+@keyframes ugText { to { opacity: 1; transform: translateY(0); } }
+.ug-title { font-family: Poppins, sans-serif; font-weight: 900; font-size: 26px; color: #fde68a; text-shadow: 0 2px 12px rgba(250,204,21,.5); }
+.ug-card-name { margin-top: 2px; font-weight: 700; color: #fff; }
+.ug-pill { display: inline-block; margin-top: 8px; padding: 3px 14px; border-radius: 999px; font-size: 13px; font-weight: 800; color: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.5); }
+.ug-sub { margin-top: 8px; font-size: 13px; color: #cbd5e1; }
+.ug-gain { color: #6ee7b7; font-weight: 700; } .ug-loss { color: #fca5a5; font-weight: 700; }
+.ug-hint { margin-top: 14px; font-size: 11px; color: #94a3b8; }
+@keyframes ugFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .ug-ingredient, .ug-flash, .ug-ring, .ug-spark { display: none; }
+  .ug-card, .ug-text { animation: none; opacity: 1; transform: none; }
+}

@@ -472,6 +472,85 @@ document.addEventListener('keydown', e => {
 
 // Spends duplicates of `from` for one copy of the next variant. The server decides everything (cost,
 // whether upgrades are on, whether the viewer has enough); this just reports the outcome.
+// The upgrade moment (mirrors app/components/UpgradeCeremony.tsx; styles are the .ug-* rules in panel.css): the spent copies
+// spiral into the middle, a flash, then the new variant is revealed with its holo / glow. Tap or Esc to continue.
+function playUpgradeCeremony(card, from, to, cost) {
+  const artFor = v => ((v === 'full' || v === 'shiny') && card.fullArtImageUrl
+    ? { imageUrl: card.fullArtImageUrl, thumbUrl: card.fullArtThumbUrl || card.fullArtImageUrl }
+    : { imageUrl: card.imageUrl, thumbUrl: card.thumbUrl || card.imageUrl });
+  const fromArt = artFor(from), toArt = artFor(to);
+  const PILL = { reverse: 'linear-gradient(90deg,#8b5cf6,#ec4899)', full: 'linear-gradient(90deg,#0ea5e9,#6366f1)', shiny: 'linear-gradient(90deg,#f59e0b,#ef4444,#a855f7)' };
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ug-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-label', 'Upgraded ' + card.name + ' to ' + VARIANT_LABELS[to]);
+  const stage = document.createElement('div');
+  stage.className = 'ug-stage';
+  // The stage is designed at 340x520; shrink it to fit the (small) panel.
+  const fit = Math.min(1, window.innerWidth / 360, window.innerHeight / 540);
+  stage.style.transform = 'scale(' + fit + ')';
+
+  const add = (cls, parent) => { const el = document.createElement('div'); el.className = cls; (parent || stage).appendChild(el); return el; };
+  add('ug-ring').setAttribute('aria-hidden', 'true');
+  const n = Math.min(Math.max(cost, 2), 10);
+  for (let i = 0; i < n; i++) {
+    const ing = add('ug-ingredient');
+    ing.style.setProperty('--a', (360 / n) * i + 'deg');
+    ing.style.setProperty('--d', i * 70 + 'ms');
+    const img = document.createElement('img');
+    img.src = fromArt.thumbUrl; img.alt = '';
+    ing.appendChild(img);
+  }
+  add('ug-flash');
+  const frame = add('ug-card');
+  const art = add('ug-art' + (to === 'regular' ? '' : ' vfx-' + to), frame);
+  setArtMask(art, toArt);
+  const thumb = document.createElement('img');
+  thumb.src = toArt.thumbUrl; thumb.alt = card.name;
+  art.appendChild(thumb);
+  if (toArt.thumbUrl !== toArt.imageUrl && !reducedMotion) {
+    const anim = document.createElement('img');
+    anim.className = 'ug-anim'; anim.alt = ''; anim.setAttribute('aria-hidden', 'true');
+    anim.addEventListener('load', () => anim.classList.add('ug-anim-on'));
+    anim.src = toArt.imageUrl;
+    art.appendChild(anim);
+  }
+  if (to === 'full' || to === 'shiny') {
+    for (let i = 0; i < 16; i++) {
+      const sp = document.createElement('span');
+      sp.className = 'ug-spark';
+      sp.textContent = i % 2 ? '\u2726' : '\u2727';
+      sp.style.color = to === 'shiny' ? '#ffd24d' : '#7cc7ff';
+      sp.style.setProperty('--x', Math.round(Math.cos((i / 16) * Math.PI * 2) * (130 + (i % 3) * 40)) + 'px');
+      sp.style.setProperty('--y', Math.round(Math.sin((i / 16) * Math.PI * 2) * (150 + (i % 4) * 30)) + 'px');
+      stage.appendChild(sp);
+    }
+  }
+  const text = add('ug-text');
+  const line = (cls, content) => { const p = document.createElement('p'); p.className = cls; p.textContent = content; text.appendChild(p); return p; };
+  line('ug-title', 'Upgraded!');
+  line('ug-card-name', card.name);
+  const pill = line('ug-pill', VARIANT_LABELS[to]);
+  pill.style.background = PILL[to] || PILL.reverse;
+  line('ug-sub', cost + '\u00d7 ' + VARIANT_LABELS[from] + ' \u2192 1 ' + VARIANT_LABELS[to]);
+  const hint = line('ug-hint', '\u00a0');
+
+  let closable = false;
+  const close = () => {
+    if (!closable) return;
+    document.removeEventListener('keydown', onKey);
+    overlay.remove();
+  };
+  const onKey = e => { if (e.key === 'Escape' || e.key === 'Enter') close(); };
+  setTimeout(() => { closable = true; hint.textContent = 'Tap anywhere to continue'; }, 1800);
+  setTimeout(() => { closable = true; close(); }, 9000);
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+  overlay.appendChild(stage);
+  document.body.appendChild(overlay);
+}
+
 async function upgrade(card, from, btn) {
   if (!auth?.token || !season) return;
   btn.disabled = true;
@@ -486,10 +565,12 @@ async function upgrade(card, from, btn) {
     if (res.ok) {
       const active = collections.find(c => c.active);
       if (active) active.ownedNumbers = body.owned;
-      detailVariant = VARIANTS[VARIANTS.indexOf(from) + 1];
+      // The server says where the upgrade went (a switched-off variant is skipped) and what it cost.
+      detailVariant = body.to || VARIANTS[VARIANTS.indexOf(from) + 1];
       upgradeMsg = '\u2728 Upgraded to ' + VARIANT_LABELS[detailVariant] + '!';
       renderSeasonHeader('collection-season-header');
       renderGrid();
+      playUpgradeCeremony(card, from, detailVariant, body.cost || 0);
     } else {
       upgradeMsg = body.error || 'Upgrade failed (' + res.status + ')';
     }

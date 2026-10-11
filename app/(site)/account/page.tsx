@@ -145,7 +145,7 @@ export default async function AccountPage() {
                         >
                           {u.gain >= 0 ? '+' : '−'}{Math.abs(u.gain).toLocaleString()} pts
                         </span>
-                        <UpgradeButton cardNumber={u.card.number} from={u.from} to={u.to} have={u.have} cost={u.cost} />
+                        <UpgradeButton cardNumber={u.card.number} from={u.from} to={u.to} have={u.have} cost={u.cost} gain={u.gain} card={{ name: u.card.name, imageUrl: u.card.imageUrl, fullArtImageUrl: u.card.fullArtImageUrl }} />
                       </li>
                     );
                   })}

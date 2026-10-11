@@ -3,14 +3,15 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { currentSandboxId, runInSandbox } from '@/lib/db';
 import { getSandbox, SOURCE_LABELS } from '@/lib/sandbox';
-import { listSandboxCards, listSandboxUsers } from '@/lib/sandbox-tools';
+import { listCardValues, listSandboxCards, listSandboxUsers } from '@/lib/sandbox-tools';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { ConfirmButton } from '../../components/ConfirmButton';
+import { UpgradePreview } from './UpgradePreview';
 import { CopyableUrl } from '../../components/copyable-url';
 import {
   addTestUserAction, deleteSandboxAction, enterSandboxAction, exitSandboxAction, grantCopiesAction, loginAsAction,
-  resetSandboxAction, resetTestDataAction, simulatePullsAction,
+  resetSandboxAction, resetTestDataAction, seedUsersAction, simulatePullsAction,
 } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -23,10 +24,11 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
   const sandbox = await getSandbox(id);
   if (!sandbox) notFound();
 
-  const [activeId, users, cards, active] = await Promise.all([
+  const [activeId, users, cards, values, active] = await Promise.all([
     currentSandboxId(),
     listSandboxUsers(id),
     listSandboxCards(id),
+    listCardValues(id),
     runInSandbox(id, () => getActiveSeasonWithPacks()),
   ]);
   const here = activeId === id;
@@ -77,10 +79,11 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         {users.length === 0 ? (
           <p className="text-sm text-gray-500">No viewers yet. Add a test user, then give them pulls or specific copies.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead><tr className="text-xs uppercase tracking-wider text-gray-500 border-b border-gray-800"><th className="text-left py-2">User</th><th className="text-right py-2">Copies</th><th className="text-right py-2">Unique</th><th className="py-2" /></tr></thead>
-            <tbody className="divide-y divide-gray-800/60">
-              {users.map(u => (
+          <div className="space-y-2">
+            <table className="w-full text-sm">
+              <thead><tr className="text-xs uppercase tracking-wider text-gray-500 border-b border-gray-800"><th className="text-left py-2">User</th><th className="text-right py-2">Copies</th><th className="text-right py-2">Unique</th><th className="py-2" /></tr></thead>
+              <tbody className="divide-y divide-gray-800/60">
+                {users.slice(0, 10).map(u => (
                 <tr key={u.username}>
                   <td className="py-2 text-gray-200 font-medium">{u.username}</td>
                   <td className="py-2 text-right tabular-nums text-gray-400">{u.copies}</td>
@@ -92,8 +95,30 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+            {users.length > 10 && (
+              <details>
+                <summary className="cursor-pointer text-xs text-gray-400 hover:text-white">Show the other {users.length - 10} users</summary>
+                <table className="w-full text-sm mt-2">
+                  <tbody className="divide-y divide-gray-800/60">
+                    {users.slice(10).map(u => (
+                <tr key={u.username}>
+                  <td className="py-2 text-gray-200 font-medium">{u.username}</td>
+                  <td className="py-2 text-right tabular-nums text-gray-400">{u.copies}</td>
+                  <td className="py-2 text-right tabular-nums text-gray-400">{u.unique}</td>
+                  <td className="py-2 text-right">
+                    <form action={loginAsAction.bind(null, id, u.username)} className="inline">
+                      <button className="px-3 py-1 text-xs font-semibold rounded-lg border border-gray-700 text-gray-300 hover:border-yellow-500/60 hover:text-yellow-300" title="Log this browser in as this user on the website (sandbox only)">Log in as →</button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+                  </tbody>
+                </table>
+              </details>
+            )}
+          </div>
         )}
         <form action={addTestUserAction.bind(null, id)} className="flex flex-wrap items-end gap-2">
           <label className="text-xs text-gray-500 space-y-1">Add a test user
@@ -137,6 +162,76 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
           <button className="tcg-btn px-4 py-2 text-sm rounded-xl" disabled={cards.length === 0}>Give</button>
         </form>
       </div>
+
+      <UpgradePreview cards={cards} costs={upgradePacks[0]?.pack.upgradeCosts ?? { reverse: 5, full: 3, shiny: 3 }} />
+
+      {/* Seed a whole season's worth of viewers */}
+      <form action={seedUsersAction.bind(null, id)} className="tcg-panel rounded-2xl p-5 space-y-3">
+        <h2 className="font-semibold text-white">Seed a crowd of test users</h2>
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Creates many viewers who have each pulled cards the way the overlay would draw them, so the leaderboard, card values and scarcity look like a real season.
+          Run it again to add more. The <strong className="text-gray-400">Card values</strong> table below updates, so you can watch how rarity and scarcity set each card&apos;s points.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <label className="block text-xs text-gray-500 space-y-1">Users<input name="count" type="number" min={1} max={300} defaultValue={100} className={field} /></label>
+          <label className="block text-xs text-gray-500 space-y-1">Fewest pulls<input name="minPulls" type="number" min={1} max={2000} defaultValue={3} className={field} /></label>
+          <label className="block text-xs text-gray-500 space-y-1">Most pulls<input name="maxPulls" type="number" min={1} max={2000} defaultValue={150} className={field} /></label>
+          <label className="block text-xs text-gray-500 space-y-1">Spread
+            <select name="shape" className={field}>
+              <option value="realistic">Realistic: a few heavy collectors, many light ones</option>
+              <option value="even">Even: everyone between fewest and most</option>
+            </select>
+          </label>
+        </div>
+        <button className="tcg-btn px-4 py-2 text-sm rounded-xl">Seed users</button>
+      </form>
+
+      {/* How the points work out, card by card */}
+      <details open className="tcg-panel rounded-2xl p-5 space-y-3">
+        <summary className="cursor-pointer font-semibold text-white">Card values <span className="text-gray-600 font-normal text-sm">· what each copy is worth right now</span></summary>
+        {values.length === 0 ? (
+          <p className="text-sm text-gray-500 mt-3">No active season, so there are no cards to value.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Points per copy = base × <strong className="text-gray-400">rarity</strong> (how unlikely the card is to be pulled) × <strong className="text-gray-400">scarcity</strong> (how few copies of that exact version exist
+              compared with the average card) × the variant multiplier. Hover a value for its scarcity factor.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
+                    <th className="text-left py-2 pr-2">#</th>
+                    <th className="text-left py-2 pr-2">Card</th>
+                    <th className="text-right py-2 px-2">Pull odds</th>
+                    <th className="text-right py-2 px-2" title="Copies out there: Regular / Reverse / Full / Shiny">Copies R·RH·FA·✨</th>
+                    {VARIANTS.map(v => <th key={v} className="text-right py-2 px-2">{v === 'regular' ? 'Regular' : v === 'reverse' ? 'Reverse' : v === 'full' ? 'Full Art' : '✨ Shiny'} pts</th>)}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/50">
+                  {values.map(c => (
+                    <tr key={c.number} className="hover:bg-white/[0.02]">
+                      <td className="py-1.5 pr-2 text-gray-600 tabular-nums">{c.number}</td>
+                      <td className="py-1.5 pr-2 text-gray-200">{c.name} <span className="text-yellow-500/80">{'★'.repeat(c.stars)}</span></td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-gray-400">{c.pullRate > 0 ? `${(c.pullRate * 100).toFixed(c.pullRate < 0.01 ? 2 : 1)}%` : '—'}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-gray-500">{c.copies.regular}·{c.copies.reverse}·{c.copies.full}·{c.copies.shiny}</td>
+                      {VARIANTS.map(v => (
+                        <td
+                          key={v}
+                          className={`py-1.5 px-2 text-right tabular-nums font-semibold ${v !== 'regular' && !c.upgrades ? 'text-gray-700' : 'text-yellow-300'}`}
+                          title={`Scarcity ×${c.scarcity[v].toFixed(2)}`}
+                        >
+                          {c.values[v].toLocaleString()}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </details>
 
       {/* Reset */}
       <section className="rounded-2xl border border-red-500/20 p-5 space-y-3">

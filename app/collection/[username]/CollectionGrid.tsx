@@ -302,7 +302,7 @@ function CardDetail({
                         {showUpgrades && (
                           <td className="py-2 px-3 text-right">
                             {card.steps[v] && n > 0 ? (
-                              <UpgradeButton cardNumber={card.number} from={v} to={card.steps[v]!.to} have={n} cost={card.steps[v]!.cost} />
+                              <UpgradeButton cardNumber={card.number} from={v} to={card.steps[v]!.to} have={n} cost={card.steps[v]!.cost} card={{ name: card.name, imageUrl: card.imageUrl, fullArtImageUrl: card.fullArtImageUrl }} />
                             ) : null}
                           </td>
                         )}
