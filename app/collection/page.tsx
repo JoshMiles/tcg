@@ -1,3 +1,4 @@
+import { PendingButton } from '../admin/components/PendingButton';
 import { redirect } from 'next/navigation';
 import { BrandMark } from '../admin/components/BrandMark';
 
@@ -26,9 +27,9 @@ export default function CollectionLanding() {
               autoComplete="off"
               className="flex-1 bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 focus:shadow-glow transition text-sm"
             />
-            <button type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">
+            <PendingButton type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">
               Go →
-            </button>
+            </PendingButton>
           </form>
           <p className="text-[11px] text-gray-600">
             <a href="/terms" className="hover:text-gray-400 transition-colors">Terms</a>

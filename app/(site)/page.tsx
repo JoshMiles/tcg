@@ -1,3 +1,4 @@
+import { PendingButton } from '../admin/components/PendingButton';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getActive, getSeasonOverview, getRecentPulls, timeAgo } from '@/lib/site-data';
@@ -64,7 +65,7 @@ export default async function HomePage() {
                 aria-label="Twitch username"
                 className="flex-1 min-w-0 bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 text-sm"
               />
-              <button type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">Go →</button>
+              <PendingButton type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">Go →</PendingButton>
             </form>
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
               <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300 font-semibold">🏆 Leaderboard</Link>

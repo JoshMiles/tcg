@@ -1,4 +1,5 @@
 'use client';
+import { Spinner } from '../../admin/components/PendingButton';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cardThumbUrl } from '@/lib/card-art';
@@ -180,7 +181,7 @@ export function TradeComposer({
           <input value={note} maxLength={140} onChange={e => setNote(e.target.value)} placeholder="e.g. my last Shiny for your Full Art?" className={`${input} w-full`} />
         </label>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={send} disabled={!ready || busy} className="tcg-btn px-6 py-2.5 rounded-xl text-sm disabled:opacity-50">{busy ? 'Sending…' : counter ? 'Send counter-offer' : kind === 'listing' ? 'Post to the board' : 'Send offer'}</button>
+          <button type="button" onClick={send} disabled={!ready || busy} className="tcg-btn inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm disabled:opacity-50">{busy ? <><Spinner /> Sending…</> : counter ? 'Send counter-offer' : kind === 'listing' ? 'Post to the board' : 'Send offer'}</button>
           <span className="text-xs text-gray-500">Lasts {expiryHours}h. You can cancel any time to get your cards back.</span>
         </div>
         {error && <p role="alert" className="text-sm text-red-400">{error}</p>}

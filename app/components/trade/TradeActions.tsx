@@ -1,4 +1,5 @@
 'use client';
+import { Spinner } from '../../admin/components/PendingButton';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -37,24 +38,24 @@ export function TradeActions({
     }
   }
 
-  const btn = 'px-3.5 py-1.5 rounded-full text-sm font-bold transition-colors disabled:opacity-50';
+  const btn = 'inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-bold transition-colors disabled:opacity-50';
   if (done) return <span className="text-sm font-semibold text-emerald-300">✓ {done}</span>;
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex flex-wrap items-center justify-end gap-2">
         {mode !== 'outgoing' && (
           <button type="button" disabled={!!busy || !canAccept} onClick={() => run('accept')} title={blocked} className={`${btn} bg-yellow-400 text-gray-950 hover:bg-yellow-300`}>
-            {busy === 'accept' ? '…' : mode === 'board' ? 'Take this trade' : 'Accept'}
+            {busy === 'accept' ? <Spinner /> : mode === 'board' ? 'Take this trade' : 'Accept'}
           </button>
         )}
         {mode === 'incoming' && (
           <>
             <Link href={`/trade/new?counter=${tradeId}`} className={`${btn} border border-gray-600 text-gray-200 hover:border-yellow-500/60 hover:text-yellow-300`}>Counter</Link>
-            <button type="button" disabled={!!busy} onClick={() => run('decline')} className={`${btn} text-gray-400 hover:text-white`}>{busy === 'decline' ? '…' : 'Decline'}</button>
+            <button type="button" disabled={!!busy} onClick={() => run('decline')} className={`${btn} text-gray-400 hover:text-white`}>{busy === 'decline' ? <Spinner /> : 'Decline'}</button>
           </>
         )}
         {mode === 'outgoing' && (
-          <button type="button" disabled={!!busy} onClick={() => run('cancel')} className={`${btn} border border-gray-600 text-gray-200 hover:border-red-400/60 hover:text-red-300`}>{busy === 'cancel' ? '…' : 'Cancel offer'}</button>
+          <button type="button" disabled={!!busy} onClick={() => run('cancel')} className={`${btn} border border-gray-600 text-gray-200 hover:border-red-400/60 hover:text-red-300`}>{busy === 'cancel' ? <Spinner /> : 'Cancel offer'}</button>
         )}
       </div>
       {blocked && mode !== 'outgoing' && !canAccept && <span className="text-[11px] text-amber-400 max-w-[16rem] text-right">{blocked}</span>}

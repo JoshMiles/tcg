@@ -1,4 +1,5 @@
 'use client';
+import { PendingButton } from '../components/PendingButton';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -535,7 +536,7 @@ export function OverlayEditor({
                   <form action={deletePresetAction}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="scope" value={scope} />
-                    <button type="submit" className={`${btn} text-gray-500 hover:text-red-300 py-1`} aria-label={`Delete preset ${p.name}`}>Delete</button>
+                    <PendingButton type="submit" className={`${btn} text-gray-500 hover:text-red-300 py-1`} aria-label={`Delete preset ${p.name}`}>Delete</PendingButton>
                   </form>
                 </li>
               ))}
@@ -551,7 +552,7 @@ export function OverlayEditor({
                 placeholder="New preset name"
                 className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none"
               />
-              <button type="submit" disabled={!presetName.trim()} className={`${ghost} disabled:opacity-40`}>Save</button>
+              <PendingButton type="submit" disabled={!presetName.trim()} className={`${ghost} disabled:opacity-40`}>Save</PendingButton>
             </form>
             {dirty && <p className="text-xs text-yellow-500/80">Saving a preset reloads the page. Save your changes first.</p>}
           </div>
@@ -602,7 +603,7 @@ export function OverlayEditor({
           <input type="hidden" name="payload" value={payload} />
           <input type="hidden" name="scope" value={scope} />
           <button type="button" disabled={!dirty} onClick={revert} className={`${btn} text-gray-400 hover:text-white disabled:opacity-40`}>Revert</button>
-          <button type="submit" disabled={!dirty} className={`${btn} bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}>Save</button>
+          <PendingButton type="submit" disabled={!dirty} className={`${btn} bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}>Save</PendingButton>
         </form>
       </div>
 

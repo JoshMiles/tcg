@@ -1,3 +1,4 @@
+import { PendingButton } from '../../components/PendingButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, getPacksForSeason, listAllPacks } from '@/lib/kv';
@@ -80,12 +81,12 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
             }}
           />
           <div className="pt-2">
-            <button
+            <PendingButton
               type="submit"
               className="px-5 py-2 tcg-btn rounded-lg text-sm transition-colors"
             >
               Save Changes
-            </button>
+            </PendingButton>
           </div>
         </form>
       </div>
@@ -170,12 +171,12 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
-            <button
+            <PendingButton
               type="submit"
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors shrink-0"
             >
               Add to Season
-            </button>
+            </PendingButton>
           </form>
         )}
 

@@ -1,4 +1,5 @@
 'use client';
+import { Spinner } from '../admin/components/PendingButton';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { VARIANT_LABELS } from '@/lib/variants';
@@ -58,11 +59,11 @@ export function UpgradeButton({
         title={can
           ? `Spend ${cost} ${VARIANT_LABELS[from]} for 1 ${VARIANT_LABELS[to]}`
           : `Needs ${cost} ${VARIANT_LABELS[from]} (you have ${have})`}
-        className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+        className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold transition-colors ${
           can ? 'bg-yellow-400 text-gray-950 hover:bg-yellow-300' : 'border border-gray-700 text-gray-500 cursor-default'
         } disabled:opacity-70 ${className}`}
       >
-        {state === 'working' ? '…' : state === 'done' ? '✓ Done' : can ? `Upgrade (${cost})` : `${have}/${cost}`}
+        {state === 'working' ? <Spinner /> : state === 'done' ? '✓ Done' : can ? `Upgrade (${cost})` : `${have}/${cost}`}
       </button>
       {ceremony && card && (
         <UpgradeCeremony

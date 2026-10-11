@@ -1,4 +1,5 @@
 'use client';
+import { PendingButton } from '../components/PendingButton';
 import { useState } from 'react';
 import type { WebhookSettings, OutgoingWebhookConfig, WebhookField } from '@/lib/webhooks';
 import { saveOutgoingWebhook, regenerateWebhookSecret } from '../actions';
@@ -306,12 +307,12 @@ function OutgoingEventForm({ eventKey, config, variables }: {
       </div>
 
       <div className="pt-1">
-        <button
+        <PendingButton
           type="submit"
           className="px-5 py-2.5 tcg-btn rounded-xl text-sm transition-colors"
         >
           Save Changes
-        </button>
+        </PendingButton>
       </div>
     </form>
   );

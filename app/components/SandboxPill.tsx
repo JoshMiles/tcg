@@ -1,3 +1,4 @@
+import { PendingButton } from '../admin/components/PendingButton';
 import Link from 'next/link';
 import { currentSandboxId } from '@/lib/db';
 import { getSandbox } from '@/lib/sandbox';
@@ -17,7 +18,7 @@ export async function SandboxPill() {
       <span className="text-purple-400/60" aria-hidden>·</span>
       {sandbox && <Link href={`/admin/sandbox/${sandbox.id}`} className="underline decoration-dotted hover:text-white">Tools</Link>}
       <form action="/api/sandbox/exit?to=/admin/sandbox" method="POST">
-        <button className="underline decoration-dotted hover:text-white">Exit</button>
+        <PendingButton className="underline decoration-dotted hover:text-white">Exit</PendingButton>
       </form>
     </div>
   );

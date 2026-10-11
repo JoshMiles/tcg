@@ -1,3 +1,4 @@
+import { PendingButton } from './components/PendingButton';
 import { AdminNav } from './components/AdminNav';
 import { AdminShell } from './components/AdminShell';
 import { BrandMark } from './components/BrandMark';
@@ -34,12 +35,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span aria-hidden>↗</span> <span className="aside-label">Preview Overlay</span>
             </a>
             <form action="/api/auth/logout" method="POST">
-              <button
+              <PendingButton
                 title="Log out"
                 className="aside-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:text-poke-red hover:bg-white/5 text-xs font-semibold transition-colors"
               >
                 <span aria-hidden>→</span> <span className="aside-label">Log out</span>
-              </button>
+              </PendingButton>
             </form>
             <div className="aside-label"><BuildBadge /></div>
           </>

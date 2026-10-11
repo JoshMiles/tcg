@@ -1,3 +1,4 @@
+import { PendingButton } from '../components/PendingButton';
 import { redirect } from 'next/navigation';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { CopyableUrl } from '../components/copyable-url';
@@ -111,7 +112,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               That needs the browser source&apos;s <em className="text-gray-300">“Read access to OBS status information”</em> permission above;
               without it the overlay can&apos;t tell, so triggers are allowed whenever it&apos;s open. Quick actions on the dashboard always work.
             </p>
-            <button type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-500 text-gray-950 text-sm font-semibold hover:bg-yellow-400 transition-colors">Save</button>
+            <PendingButton type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-500 text-gray-950 text-sm font-semibold hover:bg-yellow-400 transition-colors">Save</PendingButton>
           </form>
         </section>
       )}
@@ -171,13 +172,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </ScoringGroup>
   
             <div className="flex items-center gap-3 pt-1">
-              <button type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-500 text-gray-950 text-sm font-semibold hover:bg-yellow-400 transition-colors">Save scoring</button>
+              <PendingButton type="submit" className="px-3 py-1.5 rounded-lg bg-yellow-500 text-gray-950 text-sm font-semibold hover:bg-yellow-400 transition-colors">Save scoring</PendingButton>
               <span className="text-xs text-gray-600">Values outside the allowed range are clamped when saved.</span>
             </div>
           </form>
   
           <form action={resetScoringSettingsAction}>
-            <button type="submit" className="text-xs text-gray-500 hover:text-red-300 transition-colors underline underline-offset-2">Reset all scoring to the defaults</button>
+            <PendingButton type="submit" className="text-xs text-gray-500 hover:text-red-300 transition-colors underline underline-offset-2">Reset all scoring to the defaults</PendingButton>
           </form>
         </section>
       )}

@@ -1,4 +1,5 @@
 'use client';
+import { PendingButton } from '../components/PendingButton';
 import { useActionState, useState } from 'react';
 import { DISCORD_CATEGORIES, type DiscordSettings } from '@/lib/discord-config';
 import type { ActionResult } from '../action-types';
@@ -131,15 +132,15 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
 
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" name="intent" value="save" disabled={pending} className="px-5 py-2 tcg-btn rounded-xl text-sm">
+          <PendingButton type="submit" name="intent" value="save" disabled={pending} className="px-5 py-2 tcg-btn rounded-xl text-sm">
             Save
-          </button>
-          <button type="submit" name="intent" value="test" disabled={pending} className={secondaryBtn} title="Posts a sample message using the URL above — nothing is saved">
+          </PendingButton>
+          <PendingButton type="submit" name="intent" value="test" disabled={pending} className={secondaryBtn} title="Posts a sample message using the URL above — nothing is saved">
             Send test message
-          </button>
-          <button type="submit" name="intent" value="last" disabled={pending} className={secondaryBtn} title="Re-posts the most recent activity event using the URL above, regardless of your filters">
+          </PendingButton>
+          <PendingButton type="submit" name="intent" value="last" disabled={pending} className={secondaryBtn} title="Re-posts the most recent activity event using the URL above, regardless of your filters">
             Send last activity
-          </button>
+          </PendingButton>
         </div>
 
         {state && (

@@ -1,4 +1,5 @@
 'use client';
+import { PendingButton } from './PendingButton';
 import { useActionState, useEffect, useState } from 'react';
 import { quickAction, clearQueueAction } from '../actions';
 import type { ActionResult } from '../action-types';
@@ -92,18 +93,18 @@ export function QuickActions({
         <div className="flex flex-wrap items-end gap-3">
           {/* Gift packs */}
           <div className="flex items-center gap-2">
-            <button type="submit" name="intent" value="gift" disabled={pending} className="px-4 py-2 tcg-btn rounded-xl text-sm">
+            <PendingButton type="submit" name="intent" value="gift" disabled={pending} className="px-4 py-2 tcg-btn rounded-xl text-sm">
               🎁 Gift
-            </button>
+            </PendingButton>
             <select name="count" value={count} onChange={e => setCount(e.target.value)} aria-label="Number of packs" className={`${inputClass} py-2 pr-7`}>
               {[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n} pack{n !== 1 ? 's' : ''}</option>)}
             </select>
           </div>
 
           {/* Show collection */}
-          <button type="submit" name="intent" value="show" disabled={pending} className={secondaryBtn}>
+          <PendingButton type="submit" name="intent" value="show" disabled={pending} className={secondaryBtn}>
             📖 Show collection
-          </button>
+          </PendingButton>
 
           {/* Grant a specific card */}
           <div className="flex items-center gap-2">
@@ -113,9 +114,9 @@ export function QuickActions({
                 <option key={c.number} value={c.number}>#{c.number} {c.name} {'★'.repeat(c.stars)}</option>
               ))}
             </select>
-            <button type="submit" name="intent" value="grant" disabled={pending} className={secondaryBtn}>
+            <PendingButton type="submit" name="intent" value="grant" disabled={pending} className={secondaryBtn}>
               🃏 Grant card
-            </button>
+            </PendingButton>
           </div>
         </div>
 

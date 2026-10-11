@@ -1,3 +1,4 @@
+import { PendingButton } from '../../../../components/PendingButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPack, getPackCards } from '@/lib/kv';
@@ -54,12 +55,12 @@ export default async function EditCardPage({
           <Field label="Probability" name="probability" type="number" defaultValue={String(card.probability)} required />
         </div>
         <div className="pt-2">
-          <button
+          <PendingButton
             type="submit"
             className="px-5 py-2 tcg-btn rounded-lg text-sm transition-colors"
           >
             Save Card
-          </button>
+          </PendingButton>
         </div>
       </form>
     </div>

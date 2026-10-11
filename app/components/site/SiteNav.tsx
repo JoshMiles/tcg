@@ -1,4 +1,5 @@
 'use client';
+import { PendingButton } from '../../admin/components/PendingButton';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -92,7 +93,7 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
                   <Link role="menuitem" href="/account" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5">📈 My stats</Link>
                   <Link role="menuitem" href={`/collection/${user.username}`} className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5">🃏 My collection</Link>
                   <form action="/auth/logout" method="post" className="contents">
-                    <button role="menuitem" type="submit" className="text-left px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-red-950/40">Log out</button>
+                    <PendingButton role="menuitem" type="submit" className="text-left px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-red-950/40">Log out</PendingButton>
                   </form>
                 </div>
               )}
@@ -134,7 +135,7 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
               <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-yellow-200 hover:bg-white/5">📈 My stats ({user.displayName})</Link>
               <Link href={`/collection/${user.username}`} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5">🃏 My collection</Link>
               <form action="/auth/logout" method="post">
-                <button type="submit" className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-300 hover:bg-red-950/40">Log out</button>
+                <PendingButton type="submit" className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-300 hover:bg-red-950/40">Log out</PendingButton>
               </form>
             </>
           ) : loginEnabled ? (
