@@ -61,7 +61,8 @@ export interface PullItem {
 }
 
 /** Why a pull stands out (the chip text), or null for an ordinary one. */
-export function notableReason(p: { variant?: string; stars: number }): string | null {
+export function notableReason(p: { variant?: string; stars: number; serial?: number }): string | null {
+  if (p.serial === 1) return 'First ever';
   if (p.variant === 'shiny') return 'Shiny';
   if (p.variant === 'full') return 'Full Art';
   if (p.stars >= 5) return '5★';

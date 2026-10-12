@@ -1,6 +1,6 @@
 import type { IconName } from '@/app/components/Icon';
 import type { Variant } from './types';
-import { VARIANTS, VARIANT_LABELS, type VariantCounts } from './variants';
+import { VARIANTS, VARIANT_LABELS, decodeEntry, type VariantCounts } from './variants';
 import { RARITIES } from './rarity';
 
 // Profile achievements (pure, client-safe): collection goals per season, such as completing the season, owning every card of a
@@ -15,6 +15,10 @@ export interface AchSeason {
   cards: AchCard[];
   /** The viewer's copies per card number, by version. */
   counts: Map<number, VariantCounts>;
+  /** The edition numbers they hold, by entry (card + version), when the season's copies are numbered. Switches on the serial milestones. */
+  held?: Map<number, number[]>;
+  /** The serial bonus cutoff (editions up to this number earn extra points; 0 = none). */
+  bonusCutoff?: number;
 }
 
 export interface Achievement {
@@ -62,7 +66,32 @@ export function evaluateSeason(s: AchSeason): Achievement[] {
     const wanted = s.cards.flatMap(c => c.variants.map(v => ({ number: c.number, stars: c.stars, variants: [v] as Variant[] })));
     out.push(goal(s, 'master', `Master set: ${s.seasonName}`, `Own every card in every version in ${s.seasonName}.`, 'trophy', wanted, c => owns(s, c.number, c.variants[0])));
   }
+  if (s.held) out.push(...serialGoals(s));
   return out.filter((a): a is Achievement => a !== null);
+}
+
+/** One-off goals about the numbers on the copies you hold: first editions and early numbers. Needs the season's copies to be numbered. */
+export function serialGoals(s: AchSeason): Achievement[] {
+  if (!s.held) return [];
+  const goals: Achievement[] = [];
+  const mk = (kind: string, title: string, detail: string, icon: IconName, have: number, need: number): Achievement =>
+    ({ id: `${s.seasonId}:${kind}`, seasonId: s.seasonId, seasonName: s.seasonName, title, detail, icon, have: Math.min(have, need), need, earned: have >= need });
+
+  const firsts = new Map<number, Set<Variant>>(); // card -> versions whose edition #1 they hold
+  let early = 0;
+  for (const [entry, list] of s.held) {
+    const { cardNumber, variant } = decodeEntry(entry);
+    if (list.includes(1)) firsts.set(cardNumber, (firsts.get(cardNumber) ?? new Set()).add(variant));
+    if ((s.bonusCutoff ?? 0) > 0 && list.some(n => n <= (s.bonusCutoff ?? 0))) early++;
+  }
+  goals.push(mk('first-edition', 'First edition', `Hold edition #1 of any card in ${s.seasonName}: the very first copy ever made.`, 'gem', firsts.size > 0 ? 1 : 0, 1));
+  if (s.cards.some(c => c.variants.includes('shiny'))) {
+    const shinyFirst = [...firsts.values()].some(v => v.has('shiny'));
+    goals.push(mk('first-shiny', 'First shiny edition', `Hold edition #1 of a Shiny Full Art card in ${s.seasonName}.`, 'sparkles', shinyFirst ? 1 : 0, 1));
+  }
+  goals.push(mk('five-firsts', 'Five firsts', `Hold edition #1 of five different cards in ${s.seasonName}.`, 'award', firsts.size, Math.min(5, Math.max(1, s.cards.length))));
+  if ((s.bonusCutoff ?? 0) > 0) goals.push(mk('early-bird', 'Early bird', `Hold a copy with a low enough edition number (#${s.bonusCutoff} or lower) to earn the serial points bonus in ${s.seasonName}.`, 'zap', early > 0 ? 1 : 0, 1));
+  return goals;
 }
 
 /** Earned first (newest first when dates are known), then the closest to done. */
