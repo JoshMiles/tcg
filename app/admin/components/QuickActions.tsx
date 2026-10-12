@@ -83,21 +83,22 @@ export function QuickActions({
 
       <form action={formAction} className="p-5 space-y-5">
         {/* Who */}
-        <label className="block">
-          <span className="block text-xs text-gray-500 font-bold uppercase tracking-wider mb-1.5">Viewer</span>
-          <div className="relative max-w-md">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600 select-none" aria-hidden>@</span>
+        <label className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-xl border border-gray-800 bg-gray-950/50 px-4 py-3 focus-within:border-yellow-500/60 transition-colors">
+          <span className="flex items-center gap-2 text-sm font-semibold text-gray-300 shrink-0"><span aria-hidden>🎯</span>Viewer to act on</span>
+          <div className="relative flex-1 min-w-0">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 select-none" aria-hidden>@</span>
             <input
               name="username"
               list="quick-usernames"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="twitch_username"
+              placeholder="their Twitch username"
               autoComplete="off"
               required
-              className={`${inputClass} w-full pl-8`}
+              className="w-full bg-transparent pl-7 pr-2 py-1.5 text-base text-white placeholder-gray-600 focus:outline-none"
             />
           </div>
+          <span className="hidden sm:block text-xs text-gray-600 shrink-0">applies to the three actions below</span>
           <datalist id="quick-usernames">
             {usernames.map(u => <option key={u} value={u} />)}
           </datalist>
