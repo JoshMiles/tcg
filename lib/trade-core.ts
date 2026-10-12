@@ -57,6 +57,8 @@ export interface TradeSettings {
   cooldownSeconds: number;
   /** Different card/variant stacks allowed on each side of an offer. */
   maxStacksPerSide: number;
+  /** Hours a viewer's profile must have existed before they can offer or accept (0 = no limit). */
+  minAccountHours: number;
 }
 
 export const DEFAULT_TRADE_SETTINGS: TradeSettings = {
@@ -65,6 +67,7 @@ export const DEFAULT_TRADE_SETTINGS: TradeSettings = {
   maxOpenPerUser: 5,
   cooldownSeconds: 20,
   maxStacksPerSide: 8,
+  minAccountHours: 0,
 };
 
 export const TRADE_LIMITS = {
@@ -72,6 +75,7 @@ export const TRADE_LIMITS = {
   maxOpenPerUser: { min: 1, max: 50 },
   cooldownSeconds: { min: 0, max: 3600 },
   maxStacksPerSide: { min: 1, max: 30 },
+  minAccountHours: { min: 0, max: 24 * 30 },
   copiesPerStack: 99,
   noteLength: 140,
 } as const;
@@ -91,6 +95,7 @@ export function sanitizeTradeSettings(input: unknown): TradeSettings {
     maxOpenPerUser: clampInt(i.maxOpenPerUser, TRADE_LIMITS.maxOpenPerUser.min, TRADE_LIMITS.maxOpenPerUser.max, d.maxOpenPerUser),
     cooldownSeconds: clampInt(i.cooldownSeconds, TRADE_LIMITS.cooldownSeconds.min, TRADE_LIMITS.cooldownSeconds.max, d.cooldownSeconds),
     maxStacksPerSide: clampInt(i.maxStacksPerSide, TRADE_LIMITS.maxStacksPerSide.min, TRADE_LIMITS.maxStacksPerSide.max, d.maxStacksPerSide),
+    minAccountHours: clampInt(i.minAccountHours, TRADE_LIMITS.minAccountHours.min, TRADE_LIMITS.minAccountHours.max, d.minAccountHours),
   };
 }
 
