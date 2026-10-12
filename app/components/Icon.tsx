@@ -1,6 +1,6 @@
 import type { ComponentType, SVGProps } from 'react';
 import {
-  ArrowDown, ArrowUp, Award, Ban, BookOpen, Bomb, CalendarDays, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
+  Activity, Bell, BellOff, Filter, List, Pin, ArrowDown, ArrowUp, Award, Ban, BookOpen, Bomb, CalendarDays, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   CircleAlert, CircleCheck, CircleDashed, ClipboardList, Clock, Coins, Compass, Copy, Crown, Download, Film, FlaskConical, Gamepad2, Gem,
   Gift, GripVertical, Handshake, History, Hourglass, Image, Inbox, Info, Layers, Link, Lock, Medal, Menu, MessageSquare, Monitor, Music,
   Palette, PartyPopper, Pause, Pencil, Play, Puzzle, Radio, RefreshCw, Repeat, Ruler, Search, Send, Settings, Shield, Sigma, Sparkles,
@@ -38,7 +38,7 @@ export const ICONS = {
   target: Target, pencil: Pencil, puzzle: Puzzle, gem: Gem, monitor: Monitor, trend: TrendingUp, chart: ChartColumn, coins: Coins,
   hole: CircleDashed, party: PartyPopper, compass: Compass, note: StickyNote, ruler: Ruler, search: Search, gamepad: Gamepad2,
   chat: MessageSquare, link: Link, shield: Shield, stop: Square, bomb: Bomb, grip: GripVertical, download: Download, copy: Copy,
-  pause: Pause, play: Play, calendar: CalendarDays, tv: Tv, lock: Lock, wrench: Wrench, nerd: Sigma, clock: Clock, cheese: CheeseGlyph,
+  pause: Pause, play: Play, filter: Filter, bell: Bell, bellOff: BellOff, list: List, pin: Pin, activity: Activity, calendar: CalendarDays, tv: Tv, lock: Lock, wrench: Wrench, nerd: Sigma, clock: Clock, cheese: CheeseGlyph,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;
