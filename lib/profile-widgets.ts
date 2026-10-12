@@ -4,7 +4,7 @@ import type { IconName } from '@/app/components/Icon';
 // layout + its sanitizer). The widgets themselves are in app/u/[username]/widgets.tsx, the editor in ProfileGrid.tsx, and the
 // owner's chosen layout lives in their settings (UserSettings.profileLayout).
 
-export const PROFILE_WIDGET_TYPES = ['stats', 'showcase', 'rarity', 'progress', 'rarest', 'recent', 'activity', 'trades', 'awards', 'wishlist', 'collection'] as const;
+export const PROFILE_WIDGET_TYPES = ['stats', 'showcase', 'rarity', 'progress', 'rarest', 'recent', 'activity', 'trades', 'awards', 'achievements', 'wishlist', 'collection'] as const;
 export type ProfileWidgetType = (typeof PROFILE_WIDGET_TYPES)[number];
 
 /** Column spans on a 12-column grid (everything stacks on phones; spans of 6 or less pair up on tablets). */
@@ -30,6 +30,7 @@ export const PROFILE_WIDGETS: Record<ProfileWidgetType, ProfileWidgetDef> = {
   activity: { type: 'activity', title: 'Recent activity', icon: 'activity', description: 'Pulls, upgrades and trades as they happen.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   trades: { type: 'trades', title: 'Trading', icon: 'trade', description: 'Completed trades and your open board listings.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   awards: { type: 'awards', title: 'Awards', icon: 'trophy', description: 'Season awards you have earned.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  achievements: { type: 'achievements', title: 'Achievements', icon: 'award', description: 'Collection goals you have reached, such as completing a season or owning every card of a rarity, and how close you are to the next.', defaultSpan: 12, spans: [6, 8, 12] },
   wishlist: { type: 'wishlist', title: 'Looking for', icon: 'search', description: 'Cards you want. Collectors who own one get a one-click trade offer.', defaultSpan: 4, spans: [3, 4, 6, 8, 12] },
   collection: { type: 'collection', title: 'Collection preview', icon: 'cards', description: 'A strip of the cards you own, linking to the full collection.', defaultSpan: 12, spans: [6, 8, 12] },
 };
@@ -45,6 +46,7 @@ export const DEFAULT_PROFILE_LAYOUT: ProfilePlacement[] = [
   { type: 'recent', span: 6 },
   { type: 'activity', span: 6 },
   { type: 'awards', span: 6 },
+  { type: 'achievements', span: 12 },
 ];
 
 const isType = (t: unknown): t is ProfileWidgetType => typeof t === 'string' && (PROFILE_WIDGET_TYPES as readonly string[]).includes(t);
