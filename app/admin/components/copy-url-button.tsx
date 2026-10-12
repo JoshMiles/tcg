@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 const OVERLAY_URL = 'https://tcg-khaki.vercel.app/overlay.html';
 
+/** Copies the OBS overlay URL. Sized to sit beside the Preview button in the sidebar. */
 export function CopyUrlButton() {
   const [copied, setCopied] = useState(false);
 
@@ -17,11 +18,11 @@ export function CopyUrlButton() {
   return (
     <button
       onClick={copy}
-      title="Copy Overlay URL"
-      className="aside-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:text-white text-sm transition-colors"
+      title="Copy the OBS overlay URL"
+      className="aside-item flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.09] text-gray-300 hover:text-white text-xs font-semibold transition-colors"
     >
-      {copied ? <Icon name="check" /> : <Icon name="copy" />}
-      <span className="aside-label">{copied ? 'Copied!' : 'Copy Overlay URL'}</span>
+      <Icon name={copied ? 'check' : 'copy'} className={copied ? 'text-green-400' : ''} />
+      <span className="aside-label truncate">{copied ? 'Copied' : 'Copy URL'}</span>
     </button>
   );
 }
