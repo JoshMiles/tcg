@@ -18,6 +18,7 @@ import { ENV_GROUPS, checkEnv, readEnv, summarizeEnv } from '@/lib/env-health';
 import { extensionChecklist } from '@/lib/twitch-setup';
 import { SITE_URL } from '@/lib/site';
 import { Chip, Panel, Tile, PageHeader } from '../components/ui';
+import { SerialsPanel } from './SerialsPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,7 @@ const TABS: (PageTab & { hint: string })[] = [
 const SAVED_MESSAGES: Record<string, string> = {
   scoring: 'Scoring saved. The leaderboard and card values now use the new numbers.',
   'scoring-reset': 'Scoring reset to the defaults.',
+  serials: 'Existing copies numbered. New pulls now get exact serials.',
   webhook: 'Webhook saved.',
   'webhook-secret': 'Incoming webhook secret regenerated. Update the URL in MixItUp.',
 };
@@ -181,6 +183,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <CopyableUrl url={`${SITE_URL}/collection`} />
               <p className="text-xs text-gray-600">Direct link example: <code className="text-gray-500">{SITE_URL}/collection/username</code></p>
             </Panel>
+            <SerialsPanel />
           </div>
         </div>
       )}

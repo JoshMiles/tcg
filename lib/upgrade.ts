@@ -56,7 +56,7 @@ export async function upgradeCard(opts: {
     }
     const updated = [...remaining, encodeEntry(cardNumber, to)];
     data[username] = updated;
-    await saveCollection(season.collectionName, data);
+    await saveCollection(season.collectionName, data, { upgrade: { user: username, spent: fromEntry, count: cost, made: encodeEntry(cardNumber, to) } });
     return { ok: true, owned: updated, cardName: card.name, from, to, cost };
   });
 

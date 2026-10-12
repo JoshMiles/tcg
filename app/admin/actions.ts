@@ -385,7 +385,7 @@ export async function grantUserCard(username: string, collectionName: string, fo
   if (!cardNumber || cardNumber < 1) return;
   const lower = username.toLowerCase();
   const variant = parseVariant(formData.get('variant'));
-  await addCollectionEntry(collectionName, lower, encodeEntry(cardNumber, variant));
+  await addCollectionEntry(collectionName, lower, encodeEntry(cardNumber, variant), 'grant');
   await recordActivity({ type: 'grant', source: 'admin', username: lower, cardNumber, variant, collectionName });
   await recordAudit(lower, 'Card granted', `#${cardNumber}${variant === 'regular' ? '' : ` (${VARIANT_LABELS[variant]})`}`);
   revalidatePath(`/admin/users/${lower}`);
@@ -636,7 +636,7 @@ async function grantCard(formData: FormData): Promise<ActionResult> {
 
   const collectionName = active.season.collectionName;
   const variant = parseVariant(formData.get('variant'));
-  await addCollectionEntry(collectionName, username, encodeEntry(card.number, variant));
+  await addCollectionEntry(collectionName, username, encodeEntry(card.number, variant), 'grant');
   await ensureUserProfile(username);
   await recordActivity({ type: 'grant', source: 'admin', username, cardNumber: card.number, variant, collectionName });
   revalidatePath('/admin');

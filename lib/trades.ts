@@ -1,8 +1,9 @@
+import { escrowOwner } from './serials-core';
 import { getUserSettings } from './user-settings-store';
 import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserProfile, saveCollection, withCollectionLock, withLock } from './kv';
 import { announceTrade, type TradeAction } from './trade-notify';
-import { allowedVariants } from './variants';
+import { allowedVariants, encodeEntry } from './variants';
 import {
   DEFAULT_TRADE_SETTINGS, TRADE_LIMITS, cleanItems, itemEntries, sanitizeTradeSettings, settleTrade, takeForEscrow,
   describeItems, type Trade, type TradeItem, type TradeSettings, type TradeStatus,
@@ -81,20 +82,21 @@ async function seasonContext(seasonId: string) {
 }
 
 /** Puts copies back into a viewer's collection (a refund). Safe to call once per escrow: callers flip `escrowed` first. */
-async function returnToCollection(seasonId: string, username: string, items: TradeItem[]): Promise<void> {
+async function returnToCollection(seasonId: string, username: string, items: TradeItem[], tradeId?: string): Promise<void> {
   const season = await getSeason(seasonId);
   if (!season) return; // the season is gone: nothing to refund into
   await withCollectionLock(season.collectionName, async () => {
     const data = await getCollection(season.collectionName);
     data[username] = [...(data[username] ?? []), ...itemEntries(items)];
-    await saveCollection(season.collectionName, data);
+    // The copies come back out of escrow with their identity (serials) intact.
+    await saveCollection(season.collectionName, data, tradeId ? { moves: items.map(i => ({ from: escrowOwner(tradeId), to: username, entry: encodeEntry(i.cardNumber, i.variant), count: i.count })) } : undefined);
   });
 }
 
 /** Ends an offer: refunds its escrow (unless it is being settled), records why, and moves it to history. */
 async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status: TradeStatus, by: string | undefined, reason?: string, refund = true): Promise<void> {
   if (refund && trade.escrowed) {
-    await returnToCollection(trade.seasonId, trade.from, trade.give);
+    await returnToCollection(trade.seasonId, trade.from, trade.give, trade.id);
     trade.escrowed = false;
   }
   trade.status = status;
@@ -248,7 +250,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     const res = takeForEscrow(data[from] ?? [], give);
     if (!res.ok) return res;
     data[from] = res.rest;
-    await saveCollection(season.collectionName, data);
+    await saveCollection(season.collectionName, data, { moves: give.map(i => ({ from, to: escrowOwner(trade.id), entry: encodeEntry(i.cardNumber, i.variant), count: i.count })) });
     return res;
   });
   if (!taken.ok) {
@@ -259,7 +261,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     open.unshift(trade);
     await persist(open, history);
   } catch (e) {
-    await returnToCollection(season.id, from, give); // never lose the copies
+    await returnToCollection(season.id, from, give, trade.id); // never lose the copies
     throw e;
   }
   if (settings.cooldownSeconds > 0) await kv.set(`trade:cd:${from}`, '1', { ex: settings.cooldownSeconds });
@@ -315,7 +317,11 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
       if (!settled.ok) return settled;
       data[trade.from] = settled.offerer;
       data[taker] = settled.taker;
-      await saveCollection(season.collectionName, data);
+      // Identity follows the cards: the offer's copies leave escrow for the taker, the asked-for copies go to the offerer.
+      await saveCollection(season.collectionName, data, { moves: [
+        ...trade.give.map(i => ({ from: escrowOwner(trade.id), to: taker, entry: encodeEntry(i.cardNumber, i.variant), count: i.count })),
+        ...trade.get.map(i => ({ from: taker, to: trade.from, entry: encodeEntry(i.cardNumber, i.variant), count: i.count })),
+      ] });
       return settled;
     });
     if (!result.ok) {
