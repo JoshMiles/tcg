@@ -283,7 +283,7 @@ function DexDetail({ card, canStep, onClose, onStep }: { card: DexCard; canStep:
                     const extras = VARIANTS.filter(v => v !== 'regular' && o.variants[v] > 0);
                     return (
                       <li key={o.username}>
-                        <Link href={`/collection/${o.username}`} className="flex items-center gap-3 px-3 py-2 hover:bg-white/[0.04] transition-colors">
+                        <Link href={`/u/${o.username}`} className="flex items-center gap-3 px-3 py-2 hover:bg-white/[0.04] transition-colors">
                           <span className="w-7 text-center text-sm font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>
                           <Avatar src={o.avatar} name={o.username} className="w-8 h-8 text-xs" />
                           <span className="flex-1 min-w-0">

@@ -47,6 +47,8 @@ export function computeUserStats(
   owned: number[],
   /** Everyone's entries for the season; needed to project upgrade gains. */
   collection: Record<string, number[]>,
+  /** `upgrades: false` skips working out what they could upgrade (the costly part), for public views that never show it. */
+  opts: { upgrades?: boolean } = {},
 ): UserStats {
   const byCard = countVariants(owned);
   const idx = o.rows.findIndex(r => r.username === username);
@@ -68,7 +70,7 @@ export function computeUserStats(
     if (!counts) continue;
     for (const v of VARIANTS) {
       if (counts[v] > 0) topCopies.push({ card, variant: v, value: valueOf(card, v), count: counts[v] });
-      if (!card.pack.upgradesEnabled || card.upgradesEnabled === false) continue;
+      if (opts.upgrades === false || !card.pack.upgradesEnabled || card.upgradesEnabled === false) continue;
       const step = upgradeStep(card.pack, card, v);
       if (!step) continue;
       const { to, cost } = step;

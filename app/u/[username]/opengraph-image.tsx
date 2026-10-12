@@ -10,7 +10,7 @@ export const size = OG_SIZE;
 export const contentType = 'image/png';
 export const dynamic = 'force-dynamic';
 
-// The link preview for /collection/<name>: their name, rank, points and how much of the set they own.
+// The link preview for /u/<name>: their name, rank, points and how much of the set they own.
 export default async function Image({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
   const lower = decodeURIComponent(username).toLowerCase();

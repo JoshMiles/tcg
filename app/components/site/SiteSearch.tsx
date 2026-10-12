@@ -95,7 +95,7 @@ export function SiteSearch() {
     else if (e.key === 'ArrowDown') { e.preventDefault(); setIndex(i => Math.min(results.length - 1, i + 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setIndex(i => Math.max(0, i - 1)); }
     else if (e.key === 'Enter' && results[index]) { e.preventDefault(); go(results[index]); }
-    else if (e.key === 'Enter' && cleanQuery(query)) { e.preventDefault(); close(); router.push(`/collection/${encodeURIComponent(cleanQuery(query).toLowerCase())}`); }
+    else if (e.key === 'Enter' && cleanQuery(query)) { e.preventDefault(); close(); router.push(`/u/${encodeURIComponent(cleanQuery(query).toLowerCase())}`); }
   }
 
   if (!open || typeof document === 'undefined') return null;
@@ -121,7 +121,7 @@ export function SiteSearch() {
           {!q && <li className="px-5 pt-1 pb-2 text-[10px] uppercase tracking-wider font-extrabold text-gray-600">Jump to</li>}
           {q && results.length === 0 && !loading && (
             <li className="px-5 py-6 text-center text-sm text-gray-500">
-              No match for “{q}”.<br /><span className="text-xs text-gray-600">Press Enter to open <span className="text-gray-400">/collection/{q.toLowerCase()}</span> anyway.</span>
+              No match for “{q}”.<br /><span className="text-xs text-gray-600">Press Enter to open <span className="text-gray-400">/u/{q.toLowerCase()}</span> anyway.</span>
             </li>
           )}
           {results.map((it, i) => {

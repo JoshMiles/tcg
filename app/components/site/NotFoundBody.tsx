@@ -7,7 +7,7 @@ export function NotFoundBody({ title = "That page isn't here", note }: { title?:
   async function find(formData: FormData) {
     'use server';
     const name = String(formData.get('username') ?? '').trim().toLowerCase().replace(/^@/, '');
-    if (/^[a-z0-9_]{1,25}$/.test(name)) redirect(`/collection/${name}`);
+    if (/^[a-z0-9_]{1,25}$/.test(name)) redirect(`/u/${name}`);
   }
   return (
     <SiteMessage
