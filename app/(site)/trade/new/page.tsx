@@ -7,6 +7,8 @@ import { getCollection } from '@/lib/kv';
 import { getActive } from '@/lib/site-seasons';
 import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
 import { getTradeCards } from '@/lib/trade-view';
+import { loadSerialIndex } from '@/lib/serials';
+import { poolOf } from '@/lib/serials-core';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { TradeComposer } from '@/app/components/trade/TradeComposer';
 import { VARIANTS, decodeEntry } from '@/lib/variants';
@@ -64,6 +66,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
         seasonId={season.id}
         cards={Object.values(cards).sort((a, b) => a.number - b.number)}
         mine={mine}
+        minePool={poolOf((await loadSerialIndex(season.collectionName))?.held.get(session.username))}
         myWanted={prefs.wanted}
         maxStacks={settings.maxStacksPerSide}
         expiryHours={settings.expiryHours}

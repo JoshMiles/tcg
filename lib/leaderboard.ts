@@ -262,7 +262,7 @@ export function projectUpgradeGain(
     const next = new Map(held);
     next.set(fromEntry, spent.slice(0, Math.max(0, spent.length - cost)));
     next.set(toEntry, [...(held.get(toEntry) ?? []), (idx.minted.get(toEntry) ?? 0) + 1].sort((a, b) => a - b));
-    afterValues = { ...values, serials: { minted: idx.minted, held: new Map(idx.held).set(username, next) } };
+    afterValues = { ...values, serials: { ...idx, held: new Map(idx.held).set(username, next) } };
   }
   return scoreFor(afterValues, after, username) - scoreFor(values, owned, username);
 }

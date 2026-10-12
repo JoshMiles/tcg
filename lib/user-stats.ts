@@ -1,8 +1,9 @@
 import type { Variant } from './types';
 import { RARITIES } from './rarity';
-import { VARIANTS, VARIANT_LABELS, countVariants, emptyCounts, upgradeStep, type VariantCounts } from './variants';
+import { serialMultiplier } from './scoring-core';
+import { VARIANTS, VARIANT_LABELS, countVariants, emptyCounts, encodeEntry, upgradeStep, type VariantCounts } from './variants';
 import type { SeasonCard, SeasonOverview } from './site-data';
-import { projectUpgradeGain, collectionBonuses } from './leaderboard';
+import { projectUpgradeGain, collectionBonuses, copyPoints } from './leaderboard';
 
 export interface UpgradeOption {
   card: SeasonCard;
@@ -19,7 +20,10 @@ export interface UserStats {
   players: number;
   /** Total: card points + the two collection bonuses. */
   score: number;
+  /** Points of every copy, serial bonuses included. */
   cardPoints: number;
+  /** The part of `cardPoints` earned by low serial numbers. */
+  serialPoints: number;
   completionBonus: number;
   setBonus: number;
   complete: boolean;
@@ -33,7 +37,7 @@ export interface UserStats {
   variants: VariantCounts;
   rarity: { stars: number; label: string; hex: string; owned: number; total: number }[];
   /** The viewer's most valuable single copies. */
-  topCopies: { card: SeasonCard; variant: Variant; value: number; count: number }[];
+  topCopies: { card: SeasonCard; variant: Variant; value: number; count: number; /** Set when this is one numbered copy that earns a serial bonus. */ serial?: number; mult?: number }[];
   /** Upgrades they can afford right now, biggest gain first. */
   upgradable: UpgradeOption[];
   /** Cards they don't own a single copy of yet (names withheld: only a count). */
@@ -57,6 +61,7 @@ export function computeUserStats(
   const variants = emptyCounts();
   for (const counts of byCard.values()) for (const v of VARIANTS) variants[v] += counts[v];
 
+  const held = o.values.serials?.held.get(username);
   const valueOf = (c: SeasonCard, v: Variant) => o.values.cards.get(c.number)?.values[v] ?? 0;
 
   // Cards grouped back into their packs, for re-running the value maths on a hypothetical collection.
@@ -69,7 +74,19 @@ export function computeUserStats(
     const counts = byCard.get(card.number);
     if (!counts) continue;
     for (const v of VARIANTS) {
-      if (counts[v] > 0) topCopies.push({ card, variant: v, value: valueOf(card, v), count: counts[v] });
+      if (counts[v] > 0) {
+        // Copies with a bonus-earning serial are listed one by one (they are worth different amounts); the rest are grouped.
+        const cv = o.values.cards.get(card.number);
+        const serials = (held?.get(encodeEntry(card.number, v)) ?? []).slice(0, counts[v]);
+        let plain = counts[v];
+        for (const n of serials) {
+          const mult = serialMultiplier(n, o.values.settings);
+          if (!cv || mult === 1) continue;
+          topCopies.push({ card, variant: v, value: copyPoints(cv, v, n, o.values.settings), count: 1, serial: n, mult });
+          plain--;
+        }
+        if (plain > 0) topCopies.push({ card, variant: v, value: valueOf(card, v), count: plain });
+      }
       if (opts.upgrades === false || !card.pack.upgradesEnabled || card.upgradesEnabled === false) continue;
       const step = upgradeStep(card.pack, card, v);
       if (!step) continue;
@@ -92,6 +109,7 @@ export function computeUserStats(
     players: o.rows.length,
     score: row?.score ?? 0,
     cardPoints: row?.cardPoints ?? 0,
+    serialPoints: row?.serialPoints ?? 0,
     completionBonus: row?.completionBonus ?? 0,
     setBonus: row?.setBonus ?? 0,
     complete: row?.complete ?? false,

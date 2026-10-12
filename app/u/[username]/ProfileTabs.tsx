@@ -8,7 +8,7 @@ import { getSeasonOverview } from '@/lib/site-data';
 import { computeUserStats } from '@/lib/user-stats';
 import { getTradeSettings, listOpenTrades, tradeHistory } from '@/lib/trades';
 import { describeItems, firstMissing } from '@/lib/trade-core';
-import { getTradeCards } from '@/lib/trade-view';
+import { getTradeCards, getTradePools } from '@/lib/trade-view';
 import { PUBLIC_ACTIVITY_TYPES, profileHref } from '@/lib/profile-url';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
@@ -65,7 +65,8 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
       <section className="tcg-panel rounded-2xl p-5 space-y-3 lg:col-span-2">
         <h2 className="font-display text-xl font-bold text-white">Where the points come from</h2>
         <dl className="text-sm divide-y divide-gray-800/70">
-          <div className="flex justify-between py-2"><dt className="text-gray-300">Cards <span className="text-gray-600">· every copy</span></dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints).toLocaleString()}</dd></div>
+          <div className="flex justify-between py-2"><dt className="text-gray-300">Cards <span className="text-gray-600">· every copy</span></dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
+          <div className="flex justify-between py-2"><dt className="text-gray-300">Serial number bonus <span className="text-gray-600">· low numbers</span></dt><dd className={`tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{Math.round(s.serialPoints).toLocaleString()}</dd></div>
           <div className="flex justify-between py-2"><dt className="text-gray-300">Completion bonus <span className="text-gray-600">· {s.completionPct}% of the set</span></dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
           <div className="flex justify-between py-2"><dt className="text-gray-300">Complete collection bonus</dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : <span className="text-gray-600">{s.totalCards - s.uniqueCards} card{s.totalCards - s.uniqueCards === 1 ? '' : 's'} to go</span>}</dd></div>
           <div className="flex justify-between py-2 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
@@ -90,9 +91,9 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
         <h2 className="font-display text-xl font-bold text-white">Most valuable copies</h2>
         <ul className="divide-y divide-gray-800/70">
           {s.topCopies.slice(0, 5).map(t => (
-            <li key={`${t.card.number}-${t.variant}`} className="flex items-center gap-3 py-2">
+            <li key={`${t.card.number}-${t.variant}-${t.serial ?? 'all'}`} className="flex items-center gap-3 py-2">
               <span className="w-8 h-11 rounded overflow-hidden bg-gray-800 shrink-0"><CardTile imageUrl={t.card.imageUrl} alt="" className="relative w-full h-full" /></span>
-              <span className="min-w-0 flex-1"><span className="block text-sm text-white truncate">{t.card.name}</span><span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''} <span className={getRarity(t.card.stars)?.text}>{'★'.repeat(t.card.stars)}</span></span></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm text-white truncate">{t.card.name}</span><span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? ` · #${t.serial}` : ''} <span className={getRarity(t.card.stars)?.text}>{'★'.repeat(t.card.stars)}</span></span></span>
               <span className="font-display font-bold text-yellow-400 tabular-nums">{t.value.toLocaleString()}</span>
             </li>
           ))}
@@ -108,6 +109,7 @@ export async function TradesTab({ b, viewer }: { b: ProfileBase; viewer?: string
   const listings = open.filter(t => t.kind === 'listing' && t.from === b.lower && t.seasonId === b.season.id);
   const completed = history.filter(t => t.status === 'accepted' && (t.from === b.lower || t.to === b.lower || t.resolvedBy === b.lower)).length;
   const mine = viewer ? b.collection[viewer] ?? [] : [];
+  const pools = await getTradePools(b.season, listings, viewer);
   const nameOf = (n: number) => cards[n]?.name;
   return (
     <div className="space-y-5">
@@ -118,7 +120,7 @@ export async function TradesTab({ b, viewer }: { b: ProfileBase; viewer?: string
         const lack = viewer ? firstMissing(mine, t.get) : null;
         return (
           <TradeCard
-            key={t.id} trade={t} cards={cards}
+            key={t.id} trade={t} cards={cards} pools={pools}
             title={<>{b.displayName}&rsquo;s listing</>}
             actions={viewer && viewer !== b.lower
               ? <TradeActions tradeId={t.id} mode="board" canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />

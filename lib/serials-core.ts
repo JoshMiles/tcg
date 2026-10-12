@@ -97,22 +97,33 @@ export const serialLabel = (c: { variant: Variant; n: number }, labels: Record<V
  * open trade offer (escrow) are left out, like they are everywhere in the score. `minted` is how many of each entry were ever made,
  * so the next copy of it will be `minted + 1`.
  */
-export interface SerialIndex { held: Map<string, Map<number, number[]>>; minted: Map<number, number> }
+export interface SerialIndex {
+  held: Map<string, Map<number, number[]>>;
+  /** Copies held by open trade offers: trade id -> entry -> serials. They score nothing while there, but price the offer's give side. */
+  escrow: Map<string, Map<number, number[]>>;
+  minted: Map<number, number>;
+}
+
+/** Serials by collection entry (card + version), lowest first: what one holder or one offer's escrow has. */
+export type SerialPool = Record<number, number[]>;
+export const poolOf = (m: Map<number, number[]> | undefined): SerialPool => Object.fromEntries(m ?? []);
 
 /** Builds the scoring view from the ledger's id -> owner index and its minted counters. */
 export function buildSerialIndex(idx: Record<string, string>, minted: Map<number, number>): SerialIndex {
   const held = new Map<string, Map<number, number[]>>();
+  const escrow = new Map<string, Map<number, number[]>>();
   for (const [id, owner] of Object.entries(idx)) {
-    if (isEscrow(owner)) continue;
+    const inEscrow = isEscrow(owner);
     const p = parseCopyId(id);
     if (!p) continue;
-    const byEntry = held.get(owner) ?? new Map<number, number[]>();
+    const [bucket, who] = inEscrow ? [escrow, owner.slice(ESCROW_PREFIX.length)] : [held, owner];
+    const byEntry = bucket.get(who) ?? new Map<number, number[]>();
     const e = encodeEntry(p.card, p.variant);
     byEntry.set(e, [...(byEntry.get(e) ?? []), p.n]);
-    held.set(owner, byEntry);
+    bucket.set(who, byEntry);
   }
-  for (const byEntry of held.values()) for (const list of byEntry.values()) list.sort((a, b) => a - b);
-  return { held, minted };
+  for (const bucket of [held, escrow]) for (const byEntry of bucket.values()) for (const list of byEntry.values()) list.sort((a, b) => a - b);
+  return { held, escrow, minted };
 }
 
 export { decodeEntry };

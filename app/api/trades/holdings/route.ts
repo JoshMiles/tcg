@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection, getSeason } from '@/lib/kv';
 import { decodeEntry } from '@/lib/variants';
+import { loadSerialIndex } from '@/lib/serials';
+import { poolOf } from '@/lib/serials-core';
 import { getUserSettings } from '@/lib/user-settings-store';
 import type { Variant } from '@/lib/types';
 
@@ -23,5 +25,7 @@ export async function GET(req: NextRequest) {
   }
   // Their Looking for list is public on their profile, so the composer may suggest cards they want.
   const wanted = (await getUserSettings(username)).wanted;
-  return NextResponse.json({ username, holdings, wanted });
+  // The serial numbers they hold (the newest move first in a trade), so the composer can price the bonuses.
+  const pool = poolOf((await loadSerialIndex(season.collectionName))?.held.get(username));
+  return NextResponse.json({ username, holdings, wanted, pool });
 }

@@ -74,7 +74,8 @@ const idx = buildSerialIndex({
   '1.0.1': 'a', '1.0.2': 'a', '1.0.3': 'a', '1.0.4': 'a', '1.0.5': 'a', '1.0.30': 'a', '1.0.6': 'b',
   '2.0.1': 'a', '2.0.2': 'a', '2.0.3': 'a', '2.0.4': 'a', '2.0.5': 'b', '2.0.6': 'b', '2.0.7': 'b', '2.0.8': 'escrow:t1',
 }, new Map([[encodeEntry(1, 'regular'), 30], [encodeEntry(2, 'regular'), 8]]));
-if (idx.held.has('escrow:t1')) throw new Error('escrowed copies are not held by anyone');
+if (idx.held.has('escrow:t1') || idx.held.has('t1')) throw new Error('escrowed copies are not held by anyone');
+eq(idx.escrow.get('t1')?.get(2), [8], 'escrowed copies are listed under their trade');
 const withSerials = csv(packs, big, DEFAULT_SCORING, idx);
 const without = csv(packs, big, DEFAULT_SCORING, null);
 const plain = pointsFor(without, big.a, 'a');
@@ -96,7 +97,7 @@ const idx2 = buildSerialIndex({ ...Object.fromEntries(Object.entries({ '1.0.1': 
 const v2 = csv(packs, { a: [1, 1, 1, 1, 1, 1] }, DEFAULT_SCORING, idx2);
 const gain = projectUpgradeGain(v2, [1, 1, 1, 1, 1, 1], 'a', 1, 'regular', 'reverse', 5);
 const afterEntries = [1, encodeEntry(1, 'reverse')];
-const manual = scoreFor({ ...v2, serials: { minted: idx2.minted, held: new Map([['a', new Map([[1, [1]], [encodeEntry(1, 'reverse'), [2]]])]]) } }, afterEntries, 'a') - scoreFor(v2, [1, 1, 1, 1, 1, 1], 'a');
+const manual = scoreFor({ ...v2, serials: { minted: idx2.minted, escrow: new Map(), held: new Map([['a', new Map([[1, [1]], [encodeEntry(1, 'reverse'), [2]]])]]) } }, afterEntries, 'a') - scoreFor(v2, [1, 1, 1, 1, 1, 1], 'a');
 console.log('projected gain', gain, 'manual', manual);
 eq(gain, manual, 'projection spends the newest serials and mints the next free one');
 if (projectUpgradeGain(v2, [1], 'a', 1, 'regular', 'reverse', 5) !== null) throw new Error('not enough copies should return null');
@@ -169,3 +170,23 @@ for (let i = 0; i < 20_000; i++) { const v = rollVariant(offW); if (v === 'rever
 const mOff = variantMultipliers(pack({ disabledVariants: ['full'] }));
 if (!(mOff.shiny >= mOff.reverse)) throw new Error('shiny should never be worth less than reverse');
 console.log('switched-off variant checks passed');
+
+// ── My Stats: serial bonuses show up as their own line and as individually listed copies ──
+import { computeUserStats } from '../lib/user-stats';
+{
+  const c = { a: [1, 1, 2] };
+  const sidx = buildSerialIndex({ '1.0.1': 'a', '1.0.40': 'a', '2.0.3': 'a' }, new Map([[encodeEntry(1, 'regular'), 40], [encodeEntry(2, 'regular'), 3]]));
+  const sv = csv(packs, c, DEFAULT_SCORING, sidx);
+  const seasonCards = cards.map(k => ({ ...k, id: String(k.number), packName: 'p', pack: pack() }));
+  const overview = { rows: buildLeaderboard(sv, c), values: sv, cards: seasonCards } as never;
+  const st = computeUserStats(overview, 'a', c.a, c, { upgrades: false });
+  const row = buildLeaderboard(sv, c)[0];
+  eq(st.serialPoints, row.serialPoints, 'My Stats reports the serial points');
+  const ok = (c: unknown, m: string) => { if (!c) throw new Error(m); };
+  ok(st.serialPoints > 0 && st.cardPoints === row.cardPoints, 'card points include the bonus');
+  const numbered = st.topCopies.filter(t => t.serial);
+  ok(numbered.length === 2 && numbered.some(t => t.card.number === 1 && t.serial === 1) && numbered.some(t => t.card.number === 2 && t.serial === 3), 'copies with a bonus are listed one by one');
+  const plain = st.topCopies.find(t => t.card.number === 1 && !t.serial);
+  ok(plain && plain.count === 1 && plain.value === sv.cards.get(1)!.values.regular, 'the copy past the cutoff is listed at the plain value');
+  console.log('my stats serial checks passed');
+}
