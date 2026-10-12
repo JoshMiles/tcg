@@ -28,10 +28,10 @@ import {
 } from '@/lib/discord';
 import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
-import { getOverlaySettings, saveOverlaySettings, savePackOverrides, savePreset, deletePreset, bumpReloadToken } from '@/lib/overlay-settings';
+import { getOverlaySettings, saveOverlaySettings, savePackOverrides, savePreset, deletePreset, bumpReloadToken, updateScene } from '@/lib/overlay-settings';
 import { listVersions, recordVersion } from '@/lib/overlay-versions';
 import { sanitizePropValues } from '@/lib/overlay-props';
-import { sanitizeLayout } from '@/lib/overlay-layout';
+import { sanitizeLayout, sceneLayout, type OverlayLayout } from '@/lib/overlay-layout';
 import { DEFAULT_SCORING, sanitizeScoring, saveScoringSettings, resetScoringSettings } from '@/lib/scoring';
 
 // ── Seasons ───────────────────────────────────────────────
@@ -519,7 +519,7 @@ export async function saveOverlaySettingsAction(formData: FormData) {
 //  - packs: { [packId]: values } per-pack overrides, which keep every value (an override equal to the default must survive).
 export async function saveOverlayEditorAction(formData: FormData) {
   await requireAdmin();
-  let payload: { layout?: unknown; global?: unknown; packs?: Record<string, unknown> } = {};
+  let payload: { layout?: unknown; global?: unknown; packs?: Record<string, unknown>; scenes?: Record<string, { props?: unknown; layout?: unknown }> } = {};
   try { payload = JSON.parse(String(formData.get('payload') ?? '{}')); } catch { /* ignore: saves nothing */ }
   const autoReload = formData.get('autoReload') === 'on';
   const before = await getOverlaySettings();
@@ -534,6 +534,13 @@ export async function saveOverlayEditorAction(formData: FormData) {
   for (const [packId, values] of Object.entries(payload.packs ?? {})) {
     await savePackOverrides(packId, sanitizePropValues(values, { keepDefaults: true }));
   }
+  // Scenes (presets with their own overlay URL): each carries its own values and/or layout.
+  for (const [id, scene] of Object.entries(payload.scenes ?? {})) {
+    await updateScene(id, {
+      ...(scene.props !== undefined ? { props: sanitizePropValues(scene.props, { keepDefaults: true }) } : {}),
+      ...(scene.layout !== undefined ? { layout: sanitizeLayout(scene.layout) } : {}),
+    });
+  }
   await recordVersion(String(formData.get('note') ?? ''));
   if (autoReload) await bumpReloadToken();
   revalidatePath('/admin/overlay');
@@ -545,9 +552,18 @@ export async function saveOverlayPresetAction(formData: FormData) {
   await requireAdmin();
   let values: unknown = {};
   try { values = JSON.parse(String(formData.get('props') ?? '{}')); } catch { /* empty preset is ignored below */ }
-  await savePreset(String(formData.get('name') ?? ''), sanitizePropValues(values));
+  // A new scene starts from a layout (a landscape copy of the current one, or a vertical stage); a plain preset sends none.
+  const kind = String(formData.get('sceneKind') ?? '');
+  let layout: OverlayLayout | null = null;
+  if (kind === 'landscape' || kind === 'vertical') {
+    let base: unknown;
+    try { base = JSON.parse(String(formData.get('layout') ?? 'null')); } catch { base = null; }
+    layout = sceneLayout(kind, sanitizeLayout(base));
+  }
+  const id = await savePreset(String(formData.get('name') ?? ''), sanitizePropValues(values), layout);
   revalidatePath('/admin/overlay');
-  redirect(`/admin/overlay?scope=${encodeURIComponent(String(formData.get('scope') ?? 'global'))}&saved=preset`);
+  // A new scene opens in the editor so its layout can be set straight away.
+  redirect(`/admin/overlay?scope=${encodeURIComponent(layout && id ? 'scene:' + id : String(formData.get('scope') ?? 'global'))}&saved=${layout ? 'scene' : 'preset'}`);
 }
 
 export async function deleteOverlayPresetAction(formData: FormData) {

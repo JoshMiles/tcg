@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCollection, saveCollection, deleteCollection, addCollectionEntry } from '@/lib/kv';
+import { getCollection, saveCollection, deleteCollection, addCollectionEntryWithSerial } from '@/lib/kv';
+import { getScoringSettings } from '@/lib/scoring';
+import { serialMultiplier } from '@/lib/scoring-core';
 import { getWebhookSettings, fireOutgoing } from '@/lib/webhooks';
 import { recordActivity } from '@/lib/activity';
 import { decodeEntry } from '@/lib/variants';
@@ -19,6 +21,7 @@ export async function POST(req: NextRequest) {
   // whenever something else changes it (an upgrade, a grant, an admin edit), and overwriting with it
   // would silently undo that. The new array is returned so the overlay can resync.
   let owned: number[] = [];
+  let serial: number | null = null;
   let before: Record<string, number[]> | null = null;
   if (pull) {
     const username = String(pull.username ?? '').toLowerCase();
@@ -27,10 +30,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invalid pull' }, { status: 400 });
     }
     before = await getCollection(name);
-    owned = await addCollectionEntry(name, username, entry, 'pull');
+    ({ owned, serial } = await addCollectionEntryWithSerial(name, username, entry, 'pull'));
   } else {
     await saveCollection(name, data);
   }
+
+  // The serial the new copy got and what it is worth (the overlay shows it on the reveal).
+  const mult = serial ? serialMultiplier(serial, await getScoringSettings()) : 1;
 
   if (pull) {
     const username = String(pull.username ?? '').toLowerCase();
@@ -48,6 +54,7 @@ export async function POST(req: NextRequest) {
       isNew: !before?.[username]?.some(e => decodeEntry(e).cardNumber === cardNumber),
       copies: owned.filter(e => decodeEntry(e).cardNumber === cardNumber).length,
       uniqueOwned: new Set(owned.map(e => decodeEntry(e).cardNumber)).size,
+      ...(serial ? { serial, ...(mult > 1 ? { bonus: Math.round(mult * 100) / 100 } : {}) } : {}),
     });
 
     getWebhookSettings().then(settings =>
@@ -62,7 +69,7 @@ export async function POST(req: NextRequest) {
     ).catch(() => {});
   }
 
-  return NextResponse.json({ ok: true, owned });
+  return NextResponse.json({ ok: true, owned, serial, serialMult: Math.round(mult * 100) / 100 });
 }
 
 export async function DELETE(req: NextRequest) {

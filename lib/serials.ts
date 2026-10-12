@@ -121,6 +121,15 @@ export async function liveCounts(c: string): Promise<Map<number, number>> {
   return out;
 }
 
+/** The serial number the most recently made copy of this card + version got (null while the collection is not numbered). Read under the collection lock, it is the copy just made. */
+export async function lastSerial(c: string, entry: number): Promise<number | null> {
+  try {
+    if (!(await isTracking(c))) return null;
+    const n = Number(await kv.hget(key.n(c), String(entry)));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch { return null; }
+}
+
 /** Every live copy of one card + version (all owners, escrow included), for "who holds the other numbers". */
 export async function liveCopiesOfEntry(c: string, entry: number): Promise<{ id: string; owner: string }[]> {
   const idx = (await kv.hgetall(key.idx(c)).catch(() => null)) as Record<string, string> | null;

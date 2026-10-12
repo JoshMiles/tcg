@@ -176,6 +176,21 @@ await db.runInSandbox(box.id, async () => {
   ok(heldCount === (await live()) - [...Object.values((await db.kv.hgetall(`copies:${c}:idx`)) ?? {})].filter(o => String(o).startsWith('escrow:')).length, 'the index holds every live copy that is not in escrow');
   for (const [entry, top] of sidx!.minted) for (const list of sidx!.held.values()) for (const n of list.get(entry) ?? []) ok(n >= 1 && n <= top, 'every held serial is within what was ever made');
 
+  // The serial a new copy got is reported back (the overlay shows it on the reveal), and an upgrade reports its new copy's serial.
+  {
+    const before = (await ser.mintedCounts(c)).get(E(7)) ?? 0;
+    const got = await kvLib.addCollectionEntryWithSerial(c, 'erin', E(7), 'pull');
+    ok(got.serial === before + 1 && got.owned.includes(E(7)), `a pull reports its serial: ${got.serial} vs ${before + 1}`);
+    ok((await ser.lastSerial(c, E(7))) === got.serial, 'lastSerial is the latest number made');
+    const again = await kvLib.addCollectionEntryWithSerial(c, 'erin', E(7), 'pull');
+    eq(again.serial, (got.serial ?? 0) + 1, 'the next pull of the same card and version gets the next number');
+    ok((await ser.lastSerial('no-such-collection', E(7))) === null, 'a collection that is not numbered has no serial');
+    const mintedBefore = (await ser.mintedCounts(c)).get(E(2, 'reverse')) ?? 0;
+    for (let i = 0; i < 5; i++) await kvLib.addCollectionEntry(c, 'erin', E(2), 'pull');
+    const up = await upgrade.upgradeCard({ seasonId: season.id, username: 'erin', cardNumber: 2, from: 'regular' });
+    ok(up.ok && up.serial === mintedBefore + 1, `an upgrade reports the serial of the copy it made: ${up.ok ? up.serial : 'failed'} vs ${mintedBefore + 1}`);
+  }
+
   // Deleting the collection clears the ledger.
   await kvLib.deleteCollection(c);
   eq(await live(), 0, 'deleting a collection clears its ledger');

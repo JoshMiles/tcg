@@ -89,7 +89,9 @@ const pv = (P, key, fallback) => (P[key] !== undefined ? P[key] : fallback);
 
 async function loadLayout() {
   try {
-    const res = await fetch('/api/overlay/config', { cache: 'no-store' });
+    // ?preset=<id> in the browser source's URL picks a scene: its own layout and values (see lib/overlay-settings.ts).
+    const scene = new URLSearchParams(window.location.search).get('preset');
+    const res = await fetch('/api/overlay/config' + (scene ? '?preset=' + encodeURIComponent(scene) : ''), { cache: 'no-store' });
     if (res.ok) {
       const cfg = await res.json();
       applyLayout(cfg.layout);
@@ -148,6 +150,8 @@ function showStatic(mode) {
       applyLook(theater, P, variant, card, cfg, false);
       cardLabel.style.opacity = '1';
       cardLabel.style.visibility = 'visible';
+      showSerial(theater, P, { n: 3, mult: 2.8 });
+      editable(theater.cardBox.querySelector('.serial-badge'), 'label', 'Click to edit the label and serial badge');
       const burst = burstSpec(P, variant);
       radialContainer.style.opacity = String(burst.opacity);
       if (!burst.on) radialContainer.style.display = 'none';
@@ -391,11 +395,12 @@ async function loadCollection() {
   }
 }
 
+// Returns a promise of the server's reply ({ owned, serial, serialMult } for a pull), or null.
 function saveCollection(pull) {
-  if (PREVIEW || !SEASON_CFG.collectionName) return;
+  if (PREVIEW || !SEASON_CFG.collectionName) return Promise.resolve(null);
   const body = { data: revealedCardsByUser };
   if (pull) body.pull = pull;
-  fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, {
+  return fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -403,8 +408,30 @@ function saveCollection(pull) {
     .then(res => (res.ok ? res.json() : null))
     // The server appended the pull to the real collection (which may have changed since the overlay
     // loaded it, e.g. a viewer upgraded a card); take its copy for this user.
-    .then(r => { if (pull && r && Array.isArray(r.owned)) revealedCardsByUser[pull.username] = r.owned; })
-    .catch(() => {});
+    .then(r => { if (pull && r && Array.isArray(r.owned)) revealedCardsByUser[pull.username] = r.owned; return r; })
+    .catch(() => null);
+}
+
+// The serial number a card was given, as a pill on the card's top-left (the label pill sits on the right). Hidden when the season's
+// copies are not numbered yet, or the admin turned it off (Overlay Editor -> Pack opening -> Label).
+function showSerial(theater, P, info) {
+  const { cardBox } = theater;
+  if (!info || !info.n || !pv(P, 'reveal.showSerial', true) || !cardBox) return;
+  cardBox.querySelectorAll('.serial-badge').forEach(e => e.remove());
+  const el = document.createElement('div');
+  el.className = 'serial-badge' + (info.mult > 1 ? ' bonus' : '') + (info.n === 1 ? ' first' : '');
+  const num = document.createElement('span');
+  num.className = 'serial-num';
+  num.textContent = '#' + info.n;
+  el.appendChild(num);
+  if (info.n === 1 || info.mult > 1) {
+    const note = document.createElement('span');
+    note.className = 'serial-note';
+    note.textContent = info.n === 1 ? 'first ever' : '\u00d7' + (Math.round(info.mult * 10) / 10);
+    el.appendChild(note);
+  }
+  cardBox.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('on'));
 }
 
 async function resetAllCollections() {
@@ -893,6 +920,8 @@ function drawCard(username, opts) {
   setTimeout(() => {
     cardLabel.style.opacity    = '1';
     cardLabel.style.visibility = 'visible';
+    // The serial the server gave this copy (the reply is normally in long before the label shows).
+    saved.then(r => { if (r && r.serial) showSerial(theater, P, { n: r.serial, mult: r.serialMult || 1 }); });
   }, at(R.label));
 
   // User text
@@ -917,10 +946,15 @@ function drawCard(username, opts) {
   if (listOpts(P, true).perRow > 0) wrapper.style.maxWidth = 'none';
 
   const entry = encodeEntry(card.number, variant);
+  let saved = Promise.resolve(null);
   // Dry runs (test panel) show the draw but leave the collection, activity log and webhooks alone.
   if (!opts.dry) {
     revealedCardsByUser[user].push(entry);
-    saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName });
+    saved = saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName });
+  } else if (!PREVIEW) {
+    // Test panel (dry run): nothing is saved, so show a sample serial to see how the badge looks.
+    const n = 1 + Math.floor(Math.random() * 30);
+    saved = Promise.resolve({ serial: n, serialMult: n <= 20 ? 1 + 2 * (1 - (n - 1) / 20) : 1 });
   }
 
   // Hide + cleanup

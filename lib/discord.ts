@@ -140,6 +140,7 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
         fields: [
           { name: 'Pack', value: esc(e.packName) || '—', inline: true },
           { name: 'Collected', value: totalCards ? `${e.uniqueOwned}/${totalCards}` : String(e.uniqueOwned), inline: true },
+          ...(e.serial ? [{ name: 'Serial', value: `**#${e.serial}**${e.serial === 1 ? ' (the first ever)' : ''}${e.bonus ? ` · ×${e.bonus} points` : ''}`, inline: true }] : []),
         ],
       });
     }

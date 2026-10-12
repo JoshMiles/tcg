@@ -7,7 +7,7 @@ import {
   PROPS, PROP_BY_KEY, PROP_GROUPS, REVEAL_STYLES, SECTION_ORDER, VARIANT_IDS, cleanValue, exportProps, importProps,
   type PropDef, type PropValue, type PropValues, type VariantId,
 } from '@/lib/overlay-props';
-import { DEFAULT_LAYOUT, DEFAULT_PLACEMENT, LAYOUT_PRESETS, sanitizeLayout, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { DEFAULT_LAYOUT, DEFAULT_PLACEMENT, LAYOUT_PRESETS, VERTICAL_LAYOUT_PRESETS, isVertical, sanitizeLayout, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
 import { diffLayout, diffProps } from '@/lib/overlay-diff';
 import { PERF_LABEL, variantPerf, type PerfLevel } from '@/lib/overlay-perf';
 import { deleteOverlayVersionAction, refreshOverlayAction, setSeasonLookAction } from '../overlay-actions';
@@ -19,11 +19,11 @@ import { deleteOverlayVersionAction, refreshOverlayAction, setSeasonLookAction }
 // per-pack overrides. The preview is /overlay.html?preview fed the unsaved values by postMessage.
 
 interface PackInfo { id: string; name: string }
-interface PresetInfo { id: string; name: string; props: PropValues; updatedAt: number }
+interface PresetInfo { id: string; name: string; props: PropValues; layout?: OverlayLayout; updatedAt: number }
 interface VersionInfo { id: string; at: number; note: string; layout: OverlayLayout; props: PropValues; packs: Record<string, PropValues> }
 interface SeasonInfo { id: string; name: string; active: boolean }
 interface CardInfo { number: number; name: string; stars: number }
-type Snap = { g: PropValues; p: Record<string, PropValues>; l: OverlayLayout };
+type Snap = { g: PropValues; p: Record<string, PropValues>; l: Record<string, OverlayLayout> };   // p / l also hold the scenes, keyed "scene:<preset id>"
 type Bg = 'checker' | 'dark' | 'light' | 'green' | 'image';
 const PERF_STYLE: Record<PerfLevel, string> = { light: 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10', medium: 'text-amber-300 border-amber-400/30 bg-amber-500/10', heavy: 'text-red-300 border-red-400/30 bg-red-500/10' };
 type Mode = 'pack' | 'collection';
@@ -61,8 +61,10 @@ type SidebarWindow = Window & { __tcgSidebarForce?: boolean };
 
 export function OverlayEditor({
   initialGlobal, initialPacks, packs, presets, initialLayout, initialScope, saveAction, savePresetAction, deletePresetAction,
-  versions, seasons, seasonLooks, packCards, initialAutoReload,
+  versions, seasons, seasonLooks, packCards, initialAutoReload, siteUrl,
 }: {
+  /** Where the overlay is served from (a scene's OBS URL is this + /overlay.html?preset=<id>). */
+  siteUrl: string;
   versions: VersionInfo[];
   seasons: SeasonInfo[];
   seasonLooks: Record<string, string>;
@@ -79,11 +81,22 @@ export function OverlayEditor({
   deletePresetAction: (formData: FormData) => void | Promise<void>;
 }) {
   const [globalVals, setGlobalVals] = useState<PropValues>(initialGlobal);
+  // Scenes are presets with their own overlay URL. Their values live beside the pack overrides (key "scene:<id>") and their layouts
+  // beside the global one, so one set of edit / undo / save machinery serves global, packs and scenes.
+  const initialPackMap = useMemo<Record<string, PropValues>>(() => ({ ...initialPacks, ...Object.fromEntries(presets.map(x => ['scene:' + x.id, x.props])) }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const initialLayoutMap = useMemo<Record<string, OverlayLayout>>(() => ({ global: initialLayout, ...Object.fromEntries(presets.map(x => ['scene:' + x.id, x.layout ?? initialLayout])) }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [layoutMap, setLayoutMap] = useState<Record<string, OverlayLayout>>(initialLayoutMap);
+  const [packVals, setPackVals] = useState<Record<string, PropValues>>(initialPackMap);
+  const [scope, setScope] = useState<string>(initialScope === 'global' || packs.some(p => p.id === initialScope) || presets.some(x => 'scene:' + x.id === initialScope) ? initialScope : 'global');
+  const isScene = scope.startsWith('scene:');
+  const scene = isScene ? presets.find(x => 'scene:' + x.id === scope) ?? null : null;
+  const layoutKey = isScene ? scope : 'global';
   // Raw while typing (so a half-typed size isn't clamped under the cursor); `layout` is the sanitized copy that is previewed and saved.
-  const [layoutVals, setLayoutVals] = useState<OverlayLayout>(initialLayout);
+  const layoutVals = layoutMap[layoutKey] ?? layoutMap.global;
+  const setLayoutVals = useCallback((u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout)) =>
+    setLayoutMap(m => ({ ...m, [layoutKey]: typeof u === 'function' ? u(m[layoutKey] ?? m.global) : u })), [layoutKey]);
   const layout = useMemo(() => sanitizeLayout(layoutVals), [layoutVals]);
-  const [packVals, setPackVals] = useState<Record<string, PropValues>>(initialPacks);
-  const [scope, setScope] = useState<string>(initialScope === 'global' || packs.some(p => p.id === initialScope) ? initialScope : 'global');
+  const initialActiveLayout = initialLayoutMap[layoutKey] ?? initialLayout;
   const [category, setCategory] = useState('pack');
   const [version, setVersion] = useState<VariantId>('regular');   // the variant being edited AND previewed
   const [mode, setMode] = useState<Mode>('pack');                  // which view the canvas shows
@@ -122,8 +135,9 @@ export function OverlayEditor({
   const [copyTargets, setCopyTargets] = useState<string[]>([]);
   const [copyFrom, setCopyFrom] = useState('');
 
-  const isPack = scope !== 'global';
-  const current: PropValues = isPack ? packVals[scope] ?? {} : globalVals;
+  const isPack = scope !== 'global' && !isScene;       // editing one pack's overrides
+  const isOver = scope !== 'global';                   // editing overrides of the global look (a pack or a scene)
+  const current: PropValues = isOver ? packVals[scope] ?? {} : globalVals;
 
   // The admin sidebar collapses while this workspace is open (and is restored afterwards).
   useEffect(() => {
@@ -140,15 +154,15 @@ export function OverlayEditor({
   const valueOf = useCallback((key: string): PropValue => {
     const def = PROP_BY_KEY[key];
     if (current[key] !== undefined) return current[key];
-    if (isPack && globalVals[key] !== undefined) return globalVals[key];
+    if (isOver && globalVals[key] !== undefined) return globalVals[key];
     return def.default;
-  }, [current, isPack, globalVals]);
+  }, [current, isOver, globalVals]);
 
   const setValue = (key: string, raw: unknown) => {
     const def = PROP_BY_KEY[key];
     const v = cleanValue(def, raw);
     if (v === undefined) return;
-    if (!isPack) {
+    if (!isOver) {
       setGlobalVals(g => {
         const next = { ...g };
         if (eq(v, def.default)) delete next[key]; else next[key] = v;
@@ -166,17 +180,17 @@ export function OverlayEditor({
   };
   const resetKeys = (keys: string[]) => {
     const drop = (m: PropValues) => { const n = { ...m }; keys.forEach(k => delete n[k]); return n; };
-    if (!isPack) setGlobalVals(drop); else setPackVals(p => ({ ...p, [scope]: drop(p[scope] ?? {}) }));
+    if (!isOver) setGlobalVals(drop); else setPackVals(p => ({ ...p, [scope]: drop(p[scope] ?? {}) }));
   };
   const replaceCurrent = (next: PropValues) => {
-    if (!isPack) setGlobalVals(next); else setPackVals(p => ({ ...p, [scope]: next }));
+    if (!isOver) setGlobalVals(next); else setPackVals(p => ({ ...p, [scope]: next }));
   };
 
   // ── Undo / redo: every edit (a drag or a slider burst counts as one) is a step; Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y ──
-  const stateRef = useRef<Snap>({ g: globalVals, p: packVals, l: layoutVals });
-  stateRef.current = { g: globalVals, p: packVals, l: layoutVals };
+  const stateRef = useRef<Snap>({ g: globalVals, p: packVals, l: layoutMap });
+  stateRef.current = { g: globalVals, p: packVals, l: layoutMap };
   const hist = useRef<{ list: Snap[]; i: number; timer: ReturnType<typeof setTimeout> | null; skip: boolean }>({
-    list: [{ g: initialGlobal, p: initialPacks, l: initialLayout }], i: 0, timer: null, skip: false,
+    list: [{ g: initialGlobal, p: initialPackMap, l: initialLayoutMap }], i: 0, timer: null, skip: false,
   });
   const [, bump] = useState(0);
   const commit = useCallback(() => {
@@ -193,8 +207,8 @@ export function OverlayEditor({
     if (h.skip) { h.skip = false; return; }
     if (h.timer) clearTimeout(h.timer);
     h.timer = setTimeout(commit, 500);
-  }, [globalVals, packVals, layoutVals, commit]);
-  const restoreSnap = (x: Snap) => { hist.current.skip = true; setGlobalVals(x.g); setPackVals(x.p); setLayoutVals(x.l); bump(n => n + 1); };
+  }, [globalVals, packVals, layoutMap, commit]);
+  const restoreSnap = (x: Snap) => { hist.current.skip = true; setGlobalVals(x.g); setPackVals(x.p); setLayoutMap(x.l); bump(n => n + 1); };
   const undo = () => { commit(); const h = hist.current; if (h.i > 0) { h.i--; restoreSnap(h.list[h.i]); } };
   const redo = () => { commit(); const h = hist.current; if (h.i < h.list.length - 1) { h.i++; restoreSnap(h.list[h.i]); } };
   const undoRef = useRef(undo); undoRef.current = undo;
@@ -216,35 +230,47 @@ export function OverlayEditor({
 
   // What the editor would save: only the scopes that changed.
   const changedGlobal = canon(globalVals) !== canon(initialGlobal);
-  const changedPacks = Object.keys({ ...initialPacks, ...packVals }).filter(id => canon(packVals[id] ?? {}) !== canon(initialPacks[id] ?? {}));
-  const changedLayout = JSON.stringify(layout) !== JSON.stringify(initialLayout);
-  const dirty = changedGlobal || changedPacks.length > 0 || changedLayout;
+  const keys = (m: Record<string, unknown>) => Object.keys(m);
+  const changedPacks = keys({ ...initialPackMap, ...packVals }).filter(id => !id.startsWith('scene:') && canon(packVals[id] ?? {}) !== canon(initialPackMap[id] ?? {}));
+  const layoutOf = (k: string) => sanitizeLayout(layoutMap[k] ?? layoutMap.global);
+  const changedLayout = JSON.stringify(layoutOf('global')) !== JSON.stringify(initialLayout);
+  // Scenes: a scene is saved when its values or its layout changed.
+  const changedScenes = presets.filter(x => {
+    const k = 'scene:' + x.id;
+    return canon(packVals[k] ?? {}) !== canon(initialPackMap[k] ?? {}) || JSON.stringify(layoutOf(k)) !== JSON.stringify(sanitizeLayout(initialLayoutMap[k]));
+  });
+  const dirty = changedGlobal || changedPacks.length > 0 || changedLayout || changedScenes.length > 0;
   const payload = JSON.stringify({
-    ...(changedLayout ? { layout } : {}),
+    ...(changedLayout ? { layout: layoutOf('global') } : {}),
     ...(changedGlobal ? { global: globalVals } : {}),
     packs: Object.fromEntries(changedPacks.map(id => [id, packVals[id] ?? {}])),
+    scenes: Object.fromEntries(changedScenes.map(x => [x.id, { props: packVals['scene:' + x.id] ?? {}, layout: layoutOf('scene:' + x.id) }])),
   });
-  const revert = () => { setGlobalVals(initialGlobal); setPackVals(initialPacks); setLayoutVals(initialLayout); };
+  const revert = () => { setGlobalVals(initialGlobal); setPackVals(initialPackMap); setLayoutMap(initialLayoutMap); };
   // Review changes: every setting that differs from what is saved.
   const diffs = [
-    ...diffLayout(initialLayout, layout),
+    ...diffLayout(initialLayout, layoutOf('global')),
     ...diffProps('Everything', initialGlobal, globalVals, k => PROP_BY_KEY[k]?.default),
     ...changedPacks.flatMap(id => diffProps(`Pack: ${packs.find(x => x.id === id)?.name ?? id}`, initialPacks[id] ?? {}, packVals[id] ?? {}, () => '(follows global)')),
+    ...changedScenes.flatMap(x => [
+      ...diffLayout(sanitizeLayout(initialLayoutMap['scene:' + x.id]), layoutOf('scene:' + x.id)).map(d => ({ ...d, scope: `Scene: ${x.name}` })),
+      ...diffProps(`Scene: ${x.name}`, initialPackMap['scene:' + x.id] ?? {}, packVals['scene:' + x.id] ?? {}, () => '(follows global)'),
+    ]),
   ];
   useEffect(() => { if (!dirty) setShowSaved(false); }, [dirty]);
-  const shownLayout = showSaved ? initialLayout : layout;
-  const savedEffective: PropValues = isPack ? { ...initialGlobal, ...(initialPacks[scope] ?? {}) } : initialGlobal;
+  const shownLayout = showSaved ? initialActiveLayout : layout;
+  const savedEffective: PropValues = isOver ? { ...initialGlobal, ...(initialPackMap[scope] ?? {}) } : initialGlobal;
   const versionDistance = (v: VersionInfo) =>
     diffLayout(v.layout, layout).length +
     diffProps('', v.props, globalVals, k => PROP_BY_KEY[k]?.default).length +
     [...new Set([...Object.keys(v.packs), ...Object.keys(packVals)])].reduce((n, id) => n + diffProps('', v.packs[id] ?? {}, packVals[id] ?? {}, () => '(follows global)').length, 0);
   const loadVersion = (v: VersionInfo) => {
-    setGlobalVals(v.props); setPackVals(v.packs); setLayoutVals(v.layout);
+    setGlobalVals(v.props); setPackVals(m => ({ ...Object.fromEntries(Object.entries(m).filter(([k]) => k.startsWith('scene:'))), ...v.packs })); setLayoutMap(m => ({ ...m, global: v.layout }));
     setNotice(`Loaded the version from ${new Date(v.at).toLocaleString()}. Review, then Save.`);
   };
 
   // The values that apply at this scope, sparse: what the preview shows and what export/presets capture.
-  const effectiveSparse: PropValues = useMemo(() => (isPack ? { ...globalVals, ...(packVals[scope] ?? {}) } : globalVals), [isPack, globalVals, packVals, scope]);
+  const effectiveSparse: PropValues = useMemo(() => (isOver ? { ...globalVals, ...(packVals[scope] ?? {}) } : globalVals), [isOver, globalVals, packVals, scope]);
   const shownProps = showSaved ? savedEffective : effectiveSparse;
 
   // ── What is listed ──
@@ -352,7 +378,7 @@ export function OverlayEditor({
       if (!src) continue;
       const v = valueOf(src.key);
       // In global scope store sparsely; in pack scope store the value explicitly.
-      if (!isPack && eq(v, d.default)) delete next[d.key]; else next[d.key] = v;
+      if (!isOver && eq(v, d.default)) delete next[d.key]; else next[d.key] = v;
     }
     replaceCurrent(next);
     setNotice(`Copied the ${VARIANT_LABELS[from]} look onto ${VARIANT_LABELS[version]}. Review, then Save.`);
@@ -370,8 +396,8 @@ export function OverlayEditor({
         def={def}
         value={valueOf(def.key)}
         modified={current[def.key] !== undefined}
-        inherited={isPack && current[def.key] === undefined && globalVals[def.key] !== undefined}
-        isPack={isPack}
+        inherited={isOver && current[def.key] === undefined && globalVals[def.key] !== undefined}
+        isPack={isOver}
         off={off}
         onChange={v => setValue(def.key, v)}
         onReset={() => resetKeys([def.key])}
@@ -401,9 +427,9 @@ export function OverlayEditor({
               type="button"
               onClick={() => resetKeys(defs.map(d => d.key))}
               className="text-xs text-gray-500 hover:text-white px-1"
-              title={isPack ? 'Clear the overrides in this section' : 'Reset this section to the defaults'}
+              title={isOver ? 'Clear the overrides in this section' : 'Reset this section to the defaults'}
             >
-              {isPack ? 'inherit' : 'reset'}
+              {isOver ? 'inherit' : 'reset'}
             </button>
           )}
         </div>
@@ -550,7 +576,7 @@ export function OverlayEditor({
   const layoutPanel = (
     <div className="p-3 space-y-5">
       <section className="space-y-2">
-        <h4 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Browser source size <span className="normal-case text-gray-600 font-normal">· shared by both views</span></h4>
+        <h4 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Browser source size <span className="normal-case text-gray-600 font-normal">· {isScene ? `scene "${scene?.name ?? ''}"` : 'shared by both views'}</span></h4>
         <p className="text-xs text-gray-400 leading-relaxed">
           Set the OBS browser source to <code className="text-yellow-400">{layout.width}</code> × <code className="text-yellow-400">{layout.height}</code>.
           The overlay is drawn at this size and scaled to fit if your source differs, so nothing gets cut off.
@@ -567,6 +593,26 @@ export function OverlayEditor({
             </button>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] uppercase tracking-wide text-gray-600 mr-1">Vertical</span>
+          {VERTICAL_LAYOUT_PRESETS.map(p => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setSize({ width: p.width, height: p.height })}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${layout.width === p.width && layout.height === p.height ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-300 hover:border-gray-500'}`}
+            >
+              {p.label}
+            </button>
+          ))}
+          <button type="button" onClick={() => setSize({ width: layout.height, height: layout.width })} title="Swap width and height" className={`${btn} border border-gray-700 text-gray-300 hover:border-gray-500 py-1`}>Rotate</button>
+        </div>
+        {isVertical(layout) && (
+          <div className="rounded-lg border border-sky-500/25 bg-sky-950/20 p-2.5 text-xs text-sky-100/90 space-y-1.5">
+            <p>Vertical stage. The collection wraps to the stage width, so pick how many cards fit on a line (3 or 4 suits a phone-shaped canvas) under Collection, then centre each view here.</p>
+            {!isPack && <button type="button" onClick={() => { setValue('collection.perRow', 4); setNotice('Set the collection to 4 cards per row. Review, then Save.'); }} className={`${btn} border border-sky-400/40 text-sky-200 hover:bg-sky-500/10 py-1`}>Show 4 cards per row</button>}
+          </div>
+        )}
         <div className="flex gap-3">
           <label className="text-xs text-gray-500 space-y-1">Width
             <input type="number" min={320} max={3840} value={layoutVals.width} onChange={e => setSize({ width: Number(e.target.value) })} className={`${inputCls} block w-24`} />
@@ -630,9 +676,15 @@ export function OverlayEditor({
             {packs.map(p => (
               <option key={p.id} value={p.id}>Pack: {p.name}{Object.keys(packVals[p.id] ?? {}).length ? ' ●' : ''}</option>
             ))}
+            {presets.length > 0 && (
+              <optgroup label="Scenes (own overlay URL)">
+                {presets.map(x => <option key={x.id} value={'scene:' + x.id}>Scene: {x.name}</option>)}
+              </optgroup>
+            )}
           </select>
         </label>
         {isPack && <span className="text-xs text-yellow-300/80 hidden md:inline">Only what you change applies to this pack; the rest follows global.</span>}
+        {isScene && <span className="text-xs text-sky-300/80 hidden md:inline">This scene has its own overlay URL and layout; only what you change differs from the global look.</span>}
 
         <Popover label="Presets" badge={presets.length || undefined}>
           <div className="w-80 space-y-3 text-sm">
@@ -691,6 +743,53 @@ export function OverlayEditor({
                 ))}
               </div>
             )}
+          </div>
+        </Popover>
+
+        <Popover label="Scenes" icon="tv" badge={presets.length || undefined}>
+          <div className="w-[26rem] max-w-[85vw] space-y-3 text-sm">
+            <p className="text-xs text-gray-500">
+              A scene has its own overlay URL, so each OBS scene (a vertical one, a different canvas size) can use its own size, position and look.
+              Put the URL in that scene&apos;s browser source. Everything a scene does not change follows the global look.
+            </p>
+            <ul className="space-y-1.5 max-h-64 overflow-y-auto">
+              {[{ id: '', name: 'Everything (global)', size: `${initialLayout.width} × ${initialLayout.height}`, own: true }, ...presets.map(x => {
+                const l = x.layout;
+                return { id: x.id, name: x.name, size: l ? `${l.width} × ${l.height}${isVertical(l) ? ' · vertical' : ''}` : 'uses the global layout', own: !!l };
+              })].map(row => {
+                const url = `${siteUrl}/overlay.html${row.id ? '?preset=' + row.id : ''}`;
+                const key = row.id ? 'scene:' + row.id : 'global';
+                return (
+                  <li key={row.id || 'global'} className={`rounded-lg border px-2.5 py-2 space-y-1.5 ${scope === key ? 'border-yellow-500/60 bg-yellow-500/5' : 'border-gray-800'}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="flex-1 min-w-0 truncate text-gray-200 font-semibold">{row.name}</span>
+                      <span className="text-[11px] text-gray-500 shrink-0">{row.size}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <code className="flex-1 min-w-0 truncate rounded bg-gray-950 border border-gray-800 px-1.5 py-1 text-[11px] text-gray-400">{url}</code>
+                      <button type="button" onClick={() => navigator.clipboard.writeText(url).then(() => setNotice(`Copied the URL for "${row.name}".`), () => setNotice('Could not copy. Select the URL instead.'))} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`}>Copy</button>
+                      <a href={url} target="_blank" rel="noreferrer" className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`} aria-label={`Open the overlay for ${row.name}`}>Open</a>
+                      <button type="button" onClick={() => setScope(key)} disabled={scope === key} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1 disabled:opacity-40`}>Edit</button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <form action={savePresetAction} className="border-t border-gray-800 pt-3 space-y-2">
+              <p className="text-xs font-semibold text-gray-300">New scene</p>
+              <input type="hidden" name="props" value="{}" />
+              <input type="hidden" name="scope" value={scope} />
+              <input type="hidden" name="layout" value={JSON.stringify(layoutOf('global'))} />
+              <div className="flex items-center gap-2">
+                <input name="name" value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={40} placeholder="e.g. Vertical, Just chatting" className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none" />
+                <select name="sceneKind" defaultValue="landscape" aria-label="Orientation" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1.5 text-sm text-gray-200">
+                  <option value="landscape">Landscape</option>
+                  <option value="vertical">Vertical</option>
+                </select>
+                <PendingButton type="submit" disabled={!presetName.trim() || dirty} className={`${ghost} disabled:opacity-40`}>Create</PendingButton>
+              </div>
+              {dirty ? <p className="text-xs text-yellow-500/80">Creating a scene reloads the page. Save your changes first.</p> : <p className="text-xs text-gray-600">Landscape starts from the global layout; vertical starts from a 1080 × 1920 stage. Then adjust it under Layout.</p>}
+            </form>
           </div>
         </Popover>
 
@@ -812,7 +911,7 @@ export function OverlayEditor({
 
         <span className="text-xs text-gray-500 hidden md:inline">
           {dirty
-            ? <span className="text-yellow-500">Unsaved: {[changedLayout && 'layout', changedGlobal && 'look', ...changedPacks.map(id => packs.find(p => p.id === id)?.name ?? id)].filter(Boolean).join(', ')}</span>
+            ? <span className="text-yellow-500">Unsaved: {[changedLayout && 'layout', changedGlobal && 'look', ...changedPacks.map(id => packs.find(p => p.id === id)?.name ?? id), ...changedScenes.map(x => `scene ${x.name}`)].filter(Boolean).join(', ')}</span>
             : 'Saved.'}
         </span>
         <button

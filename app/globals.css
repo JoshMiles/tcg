@@ -227,6 +227,9 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
 .art-anim { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .2s ease; }
 .art-anim-on { opacity: 1; }
 .ug-anim { opacity: 0; transition: opacity .2s ease; }
+.ug-serial { margin-top: 6px; display: inline-block; padding: 2px 14px; font-size: 15px; font-weight: 800; color: #e5e7eb; background: rgba(12,14,24,.85); border: 1px solid rgba(255,255,255,.4); border-radius: 999px; }
+.ug-serial.bonus { color: #ffe27a; border-color: #f1bb06; box-shadow: 0 0 14px rgba(241,187,6,.55); }
+.ug-serial.first { color: #1a1205; background: linear-gradient(90deg, #ffe27a, #f1bb06, #ffe27a); border-color: #fff2b0; box-shadow: 0 0 20px rgba(255,220,90,.9); }
 .ug-anim-on { opacity: 1; }
 .ug-art.vfx-full { box-shadow: 0 0 46px 6px rgba(96,190,255,.9) !important; }
 .ug-art.vfx-shiny { box-shadow: 0 0 60px 10px rgba(255,200,60,.95) !important; }

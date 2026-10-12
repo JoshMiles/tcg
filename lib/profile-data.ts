@@ -122,7 +122,15 @@ function serialFor(b: ProfileBase, cardNumber: number): GridCard['serial'] {
 /** The per-card data the collection grid and its detail view need (values come from the season leaderboard maths). */
 export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promise<GridCard[]> {
   const copiesByCard = new Map<number, GridCard['copies']>();
-  for (const c of copies) copiesByCard.set(c.card, [...(copiesByCard.get(c.card) ?? []), { id: c.id, variant: c.variant, n: c.n, ...(c.est ? { est: true } : {}) }]);
+  const { settings } = b.board.values;
+  for (const c of copies) {
+    const m = serialMultiplier(c.n, settings);
+    const cv = b.board.values.cards.get(c.card);
+    // m = the points multiplier when above 1; p = what this very copy is worth.
+    copiesByCard.set(c.card, [...(copiesByCard.get(c.card) ?? []), {
+      id: c.id, variant: c.variant, n: c.n, ...(c.est ? { est: true } : {}), ...(m > 1 ? { m: Math.round(m * 100) / 100 } : {}), ...(cv ? { p: copyPoints(cv, c.variant, c.n, settings) } : {}),
+    }]);
+  }
   const holoFor = await getHoloResolver();
   return b.allCards.map(c => {
     const v = b.board.values.cards.get(c.number);

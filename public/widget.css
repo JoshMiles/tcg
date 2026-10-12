@@ -230,6 +230,21 @@
   visibility: hidden;
 }
 
+/* The serial number of the card just pulled: top-left of the card, opposite the label pill. */
+.serial-badge {
+  position: absolute; top: 0; left: 4px; z-index: 12;
+  display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 16px;
+  font-family: Montserrat, sans-serif; font-weight: 800; font-size: calc(var(--label-size, 14px) * 1.15); line-height: 1.2;
+  color: #fff7d6; background: rgba(12, 14, 24, .88); border: 2px solid rgba(255, 255, 255, .55); border-radius: 30px;
+  box-shadow: 0 3px 4px rgba(0, 0, 0, .5);
+  opacity: 0; transform: translateY(6px) scale(.9); transition: opacity .45s ease, transform .45s cubic-bezier(.2, 1.5, .4, 1);
+}
+.serial-badge.on { opacity: 1; transform: none; }
+.serial-badge .serial-num { font-size: 1.3em; letter-spacing: .02em; }
+.serial-badge .serial-note { font-size: .72em; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .9; }
+.serial-badge.bonus { color: #ffe27a; border-color: #f1bb06; box-shadow: 0 0 14px rgba(241, 187, 6, .65), 0 3px 4px rgba(0, 0, 0, .5); }
+.serial-badge.first { color: #1a1205; background: linear-gradient(90deg, #ffe27a, #f1bb06, #ffe27a); border-color: #fff2b0; box-shadow: 0 0 22px rgba(255, 220, 90, .95), 0 3px 4px rgba(0, 0, 0, .5); }
+
 .main-card {
   width: 253px;
   height: 380px;

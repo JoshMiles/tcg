@@ -1,5 +1,6 @@
 'use client';
 import { Icon, type IconName } from '@/app/components/Icon';
+import { SerialChip } from '@/app/components/SerialChip';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ActivityEvent } from '@/lib/activity';
@@ -498,6 +499,7 @@ function EventRow({
           {e.variant && e.variant !== 'regular' && (
             <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-fuchsia-300 border border-fuchsia-500/50 rounded-full px-2 py-0.5">{VARIANT_LABELS[e.variant]}</span>
           )}
+          {e.serial ? <span className="ml-2 align-middle"><SerialChip n={e.serial} bonus={e.bonus} /></span> : null}
           {e.isNew ? (
             <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5">New</span>
           ) : (

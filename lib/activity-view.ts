@@ -34,7 +34,7 @@ export function plainText(e: ActivityEvent, cardName: CardNamer): string {
   const name = (n: number, pack?: string) => cardName(n, pack) ?? `Card #${n}`;
   const v = (x?: string) => (x && x !== 'regular' ? ` (${VARIANT_LABELS[x as keyof typeof VARIANT_LABELS] ?? x})` : '');
   switch (e.type) {
-    case 'pull': return `${e.username} pulled ${e.cardName || name(e.cardNumber, e.packName)}${v(e.variant)}${e.isNew ? ' (new)' : ` (x${e.copies})`}`;
+    case 'pull': return `${e.username} pulled ${e.cardName || name(e.cardNumber, e.packName)}${v(e.variant)}${e.serial ? ` #${e.serial}` : ''}${e.isNew ? ' (new)' : ` (x${e.copies})`}`;
     case 'grant': return `${name(e.cardNumber)}${v(e.variant)} granted to ${e.username} (${e.source})`;
     case 'remove': return `${name(e.cardNumber)}${v(e.variant)} removed from ${e.username}`;
     case 'upgrade': return `${e.username} upgraded ${e.cardName || name(e.cardNumber)} to ${VARIANT_LABELS[e.to]} (${e.cost}x ${VARIANT_LABELS[e.from]})`;

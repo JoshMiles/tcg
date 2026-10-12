@@ -39,7 +39,12 @@ export async function saveOverlaySettings(settings: OverlaySettings): Promise<vo
 const PACK_KEY = 'overlay:packprops';   // { [packId]: sparse PropValues }
 const PRESET_KEY = 'overlay:presets';   // OverlayPreset[]
 
-export interface OverlayPreset { id: string; name: string; props: PropValues; updatedAt: number }
+/**
+ * A named look, and (optionally) its own layout. A preset with a layout is a "scene": it has its own overlay URL
+ * (/overlay.html?preset=<id>) so a different OBS scene (a vertical one, a different canvas size) can use its own stage size and
+ * placement and its own values on top of the global look. A preset without a layout keeps using the global layout.
+ */
+export interface OverlayPreset { id: string; name: string; props: PropValues; layout?: OverlayLayout; updatedAt: number }
 
 export async function getPackOverrides(): Promise<Record<string, PropValues>> {
   const raw = await kv.get<Record<string, unknown>>(PACK_KEY).catch(() => null);
@@ -62,21 +67,45 @@ export async function listPresets(): Promise<OverlayPreset[]> {
   const raw = await kv.get<OverlayPreset[]>(PRESET_KEY).catch(() => null);
   return (Array.isArray(raw) ? raw : [])
     .filter(p => p && typeof p.id === 'string' && typeof p.name === 'string')
-    .map(p => ({ id: p.id, name: p.name.slice(0, 40), props: sanitizePropValues(p.props), updatedAt: Number(p.updatedAt) || 0 }));
+    // keepDefaults: a scene's value equal to the default must survive (it overrides a global value that is not the default).
+    .map(p => ({ id: p.id, name: p.name.slice(0, 40), props: sanitizePropValues(p.props, { keepDefaults: true }), ...(p.layout ? { layout: sanitizeLayout(p.layout) } : {}), updatedAt: Number(p.updatedAt) || 0 }));
 }
 
-export async function savePreset(name: string, props: PropValues): Promise<void> {
+export async function savePreset(name: string, props: PropValues, layout?: OverlayLayout | null): Promise<string | null> {
   const clean = name.trim().slice(0, 40);
-  if (!clean) return;
+  if (!clean) return null;
   const all = await listPresets();
   const existing = all.find(p => p.name.toLowerCase() === clean.toLowerCase());
   const entry: OverlayPreset = {
     id: existing?.id ?? Math.random().toString(36).slice(2, 10),
     name: clean,
     props: sanitizePropValues(props),
+    // A new layout replaces the old one; leaving it out keeps what the preset already had.
+    ...(layout ? { layout: sanitizeLayout(layout) } : existing?.layout ? { layout: existing.layout } : {}),
     updatedAt: Date.now(),
   };
   await kv.set(PRESET_KEY, [...all.filter(p => p.id !== entry.id), entry].slice(-30));
+  return entry.id;
+}
+
+/** Saves the edits made to a scene in the Overlay Editor: its own values (overrides on top of the global look) and/or its layout. */
+export async function updateScene(id: string, patch: { props?: PropValues; layout?: OverlayLayout }): Promise<boolean> {
+  const all = await listPresets();
+  const existing = all.find(p => p.id === id);
+  if (!existing) return false;
+  const next: OverlayPreset = {
+    ...existing,
+    props: patch.props !== undefined ? sanitizePropValues(patch.props, { keepDefaults: true }) : existing.props,
+    ...(patch.layout ? { layout: sanitizeLayout(patch.layout) } : {}),
+    updatedAt: Date.now(),
+  };
+  await kv.set(PRESET_KEY, all.map(p => (p.id === id ? next : p)));
+  return true;
+}
+
+export async function getPreset(id: string | null | undefined): Promise<OverlayPreset | null> {
+  if (!id) return null;
+  return (await listPresets()).find(p => p.id === id) ?? null;
 }
 
 export async function deletePreset(id: string): Promise<void> {

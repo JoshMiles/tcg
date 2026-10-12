@@ -12,7 +12,7 @@ const SEQ_KEY = 'activity:seq';
 const LOG_CAP = 500;
 
 export type ActivityDetail =
-  | { type: 'pull'; cardNumber: number; cardName: string; stars: number; packName: string; variant?: Variant; isNew: boolean; copies: number; uniqueOwned: number }
+  | { type: 'pull'; cardNumber: number; cardName: string; stars: number; packName: string; variant?: Variant; isNew: boolean; copies: number; uniqueOwned: number; /** The serial number this copy got, and its points multiplier when that is above 1. */ serial?: number; bonus?: number }
   | { type: 'grant'; source: 'admin' | 'webhook'; cardNumber: number; variant?: Variant }
   | { type: 'remove'; cardNumber: number; variant?: Variant }
   | { type: 'upgrade'; cardNumber: number; cardName: string; from: Variant; to: Variant; cost: number }

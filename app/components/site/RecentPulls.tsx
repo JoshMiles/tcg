@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { agoShort, notableReason, type PullItem } from '@/lib/home-data';
 import { VARIANT_LABELS } from '@/lib/variants';
+import { SerialChip } from '@/app/components/SerialChip';
 import { profileHref } from '@/lib/profile-url';
 import type { ReactNode } from 'react';
 
@@ -52,6 +53,7 @@ export function RecentPulls({ initial, empty }: { initial: PullItem[]; empty: Re
                 <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wider text-yellow-300 border border-yellow-500/40 rounded-full px-1.5 py-0.5">{why}</span>
               )}
             </span>
+            {e.serial ? <SerialChip n={e.serial} bonus={e.bonus} /> : null}
             <span className="text-xs text-gray-600 shrink-0">{agoShort(e.at, now)}</span>
           </li>
         );
