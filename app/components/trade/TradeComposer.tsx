@@ -9,6 +9,7 @@ import { getRarity } from '@/lib/rarity';
 import type { Variant } from '@/lib/types';
 import type { TradeItem } from '@/lib/trade-core';
 import { stackPoints, type TradeCardInfo } from '@/lib/trade-view-core';
+import { fairness } from '@/lib/trade-match';
 import { TradeStacks } from './TradeStacks';
 
 type Holdings = Record<number, Partial<Record<Variant, number>>>;
@@ -21,11 +22,13 @@ const MAX_COPIES = 99;
  * The server re-checks everything (ownership, limits, who the offer is for), so this only guides.
  */
 export function TradeComposer({
-  seasonId, cards, mine, maxStacks, expiryHours, initial,
+  seasonId, cards, mine, myWanted = [], maxStacks, expiryHours, initial,
 }: {
   seasonId: string;
   cards: TradeCardInfo[];
   mine: Holdings;
+  /** Cards on the viewer's own Looking for list. */
+  myWanted?: number[];
   maxStacks: number;
   expiryHours: number;
   initial: { kind: 'direct' | 'listing'; to: string; give: TradeItem[]; get: TradeItem[]; counterOf?: string };
@@ -35,6 +38,8 @@ export function TradeComposer({
   const [kind, setKind] = useState<'direct' | 'listing'>(initial.kind);
   const [to, setTo] = useState(initial.to);
   const [partner, setPartner] = useState<Holdings | null>(null);
+  const [partnerWanted, setPartnerWanted] = useState<number[]>([]);
+  const [okLopsided, setOkLopsided] = useState(false);
   const [partnerError, setPartnerError] = useState('');
   const [lookingUp, setLookingUp] = useState(false);
   const [give, setGive] = useState<TradeItem[]>(initial.give);
@@ -56,6 +61,7 @@ export function TradeComposer({
       if (!res.ok) throw new Error(body.error || 'Could not find them');
       setTo(name);
       setPartner(body.holdings as Holdings);
+      setPartnerWanted(Array.isArray(body.wanted) ? body.wanted : []);
     } catch (e) {
       setPartnerError(e instanceof Error ? e.message : 'Could not find them');
     } finally {
@@ -92,7 +98,14 @@ export function TradeComposer({
 
   const givePts = stackPoints(give, byNumber);
   const getPts = stackPoints(get, byNumber);
-  const ready = give.length > 0 && get.length > 0 && (kind === 'listing' || !!to.trim());
+  const verdict = fairness(givePts, getPts);
+  const ready = give.length > 0 && get.length > 0 && (kind === 'listing' || !!to.trim()) && (!verdict.warn || okLopsided);
+
+  // Quick picks from the Looking for lists: what they want that you own, and what you want that they have.
+  const bestOwned = (n: number): Variant | null => (['regular', 'reverse', 'full', 'shiny'] as Variant[]).find(v => giveAvail(n, v) > 0) ?? null;
+  const theyWantAndYouHave = kind === 'direct' && partner ? partnerWanted.filter(n => byNumber[n] && bestOwned(n)) : [];
+  const youWantAndTheyHave = kind === 'direct' && partner ? myWanted.filter(n => byNumber[n] && (['regular', 'reverse', 'full', 'shiny'] as Variant[]).some(v => getAvail(n, v) > 0)) : [];
+  const bestTheirs = (n: number): Variant | null => (['regular', 'reverse', 'full', 'shiny'] as Variant[]).find(v => getAvail(n, v) > 0) ?? null;
 
   async function send() {
     setBusy(true);
@@ -144,6 +157,25 @@ export function TradeComposer({
       )}
       {counter && <p className="rind rounded-2xl p-4 text-sm text-gray-300">Countering <strong className="text-yellow-300">{to}</strong>&rsquo;s offer. Their offer is returned to them when you send this; yours goes back to them for an answer.</p>}
 
+      {(theyWantAndYouHave.length > 0 || youWantAndTheyHave.length > 0) && (
+        <div className="rind rounded-2xl p-4 space-y-2" aria-label="Quick picks">
+          {theyWantAndYouHave.length > 0 && (
+            <p className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
+              <span className="text-gray-400">{to} is looking for:</span>
+              {theyWantAndYouHave.map(n => { const v = bestOwned(n)!; return <button key={n} type="button" onClick={() => add(give, setGive, giveAvail, n, v)} className="rounded-full border border-purple-400/40 bg-purple-500/10 px-2.5 py-1 text-xs font-bold text-purple-200 hover:bg-purple-500/20">+ {byNumber[n].name}{v === 'regular' ? '' : ` (${SHORT[v]})`}</button>; })}
+              <span className="text-xs text-gray-600">you have these</span>
+            </p>
+          )}
+          {youWantAndTheyHave.length > 0 && (
+            <p className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
+              <span className="text-gray-400">You are looking for:</span>
+              {youWantAndTheyHave.map(n => { const v = bestTheirs(n)!; return <button key={n} type="button" onClick={() => add(get, setGet, getAvail, n, v)} className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-1 text-xs font-bold text-yellow-200 hover:bg-yellow-500/20">+ {byNumber[n].name}{v === 'regular' ? '' : ` (${SHORT[v]})`}</button>; })}
+              <span className="text-xs text-gray-600">{to} has these</span>
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Side
           title="You give"
@@ -157,6 +189,7 @@ export function TradeComposer({
           points={givePts}
           maxStacks={maxStacks}
           empty="You don't own any cards to offer yet."
+          spareOf={c => Object.values(mine[c.number] ?? {}).some(n => (n ?? 0) >= 2)}
         />
         <Side
           title="You want"
@@ -178,8 +211,15 @@ export function TradeComposer({
           <p className="text-sm text-gray-300">
             You give <strong className="text-white">≈ {givePts.toLocaleString()} pts</strong> and get <strong className="text-white">≈ {getPts.toLocaleString()} pts</strong>
             {Math.abs(givePts - getPts) > 0 && <span className="text-gray-500"> ({getPts >= givePts ? '+' : '−'}{Math.abs(getPts - givePts).toLocaleString()} for you)</span>}.
+            <span className={`ml-2 inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${verdict.warn ? 'border-amber-400/50 bg-amber-500/10 text-amber-300' : verdict.label === 'Even' ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300' : 'border-gray-700 text-gray-400'}`}>{verdict.label}</span>
             <span className="block text-xs text-gray-500 mt-1">Values move as cards are pulled and traded, so treat these as a guide.</span>
           </p>
+        )}
+        {verdict.warn && (
+          <label className="flex items-start gap-2 rounded-xl border border-amber-400/40 bg-amber-950/20 px-3 py-2 text-sm text-amber-200">
+            <input type="checkbox" checked={okLopsided} onChange={e => setOkLopsided(e.target.checked)} className="mt-0.5 h-4 w-4 accent-yellow-500" />
+            <span>You are giving much more than you get. I understand and want to send it anyway.</span>
+          </label>
         )}
         <label className="block text-xs text-gray-500 space-y-1">Note (optional)
           <input value={note} maxLength={140} onChange={e => setNote(e.target.value)} placeholder="e.g. my last Shiny for your Full Art?" className={`${input} w-full`} />
@@ -196,14 +236,17 @@ export function TradeComposer({
 
 /** One side of the offer: the selected stacks on top, a searchable card picker below. */
 function Side({
-  title, hint, cards, items, avail, byNumber, onAdd, onAdjust, points, maxStacks, empty,
+  title, hint, cards, items, avail, byNumber, onAdd, onAdjust, points, maxStacks, empty, spareOf,
 }: {
   title: string; hint: string; cards: TradeCardInfo[]; items: TradeItem[]; avail: (n: number, v: Variant) => number;
   byNumber: Record<number, TradeCardInfo>; onAdd: (n: number, v: Variant) => void; onAdjust: (item: TradeItem, delta: number) => void;
   points: number; maxStacks: number; empty: string;
+  /** When given, a "Spares only" filter appears: cards with two or more copies of some version. */
+  spareOf?: (c: TradeCardInfo) => boolean;
 }) {
   const [q, setQ] = useState('');
-  const shown = cards.filter(c => !q.trim() || `${c.name} ${c.number}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const [spares, setSpares] = useState(false);
+  const shown = cards.filter(c => (!q.trim() || `${c.name} ${c.number}`.toLowerCase().includes(q.trim().toLowerCase())) && (!spares || !spareOf || spareOf(c)));
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-900/70 p-4 space-y-3 min-w-0">
       <div className="flex items-baseline justify-between gap-2">
@@ -229,6 +272,9 @@ function Side({
 
       <div className="border-t border-gray-800 pt-3 space-y-2">
         <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards…" aria-label={`Search ${title} cards`} className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
+        {spareOf && cards.length > 0 && (
+          <button type="button" onClick={() => setSpares(x => !x)} aria-pressed={spares} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${spares ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-400 hover:text-white'}`}>Spares only (2+ copies)</button>
+        )}
         {cards.length === 0 ? <p className="text-sm text-gray-500">{empty}</p> : (
           <ul className="max-h-72 overflow-y-auto space-y-1 pr-1">
             {shown.map(c => {

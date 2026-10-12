@@ -7,6 +7,7 @@ import { getCollection } from '@/lib/kv';
 import { getActive } from '@/lib/site-seasons';
 import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
 import { getTradeCards } from '@/lib/trade-view';
+import { getUserSettings } from '@/lib/user-settings-store';
 import { TradeComposer } from '@/app/components/trade/TradeComposer';
 import { VARIANTS, decodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
@@ -38,7 +39,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
     return wrap(<p className="rind rounded-2xl p-8 text-center text-gray-400">That offer is no longer open, so it can&rsquo;t be countered.</p>);
   }
 
-  const [cards, collection] = await Promise.all([getTradeCards(season), getCollection(season.collectionName)]);
+  const [cards, collection, prefs] = await Promise.all([getTradeCards(season), getCollection(season.collectionName), getUserSettings(session.username)]);
   const mine: Record<number, Partial<Record<Variant, number>>> = {};
   for (const entry of collection[session.username] ?? []) {
     const { cardNumber, variant } = decodeEntry(entry);
@@ -63,6 +64,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
         seasonId={season.id}
         cards={Object.values(cards).sort((a, b) => a.number - b.number)}
         mine={mine}
+        myWanted={prefs.wanted}
         maxStacks={settings.maxStacksPerSide}
         expiryHours={settings.expiryHours}
         initial={{ kind: 'direct', to: original?.from ?? to ?? '', give: startGive, get: startGet, counterOf: original?.id }}
