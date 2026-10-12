@@ -1052,3 +1052,5 @@ html, body {
 .tr-select { max-width: 86px; font-family: inherit; font-size: 10px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 2px; }
 .tr-input { width: 100%; margin-top: 4px; padding: 6px 8px; font-family: inherit; font-size: 11px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
 .tr-input:focus-visible, .tr-btn:focus-visible, .tr-step-btn:focus-visible, .tr-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tr-alert { align-self: flex-start; padding: 1px 8px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #bae6fd; background: rgba(56, 189, 248, .14); border: 1px solid rgba(56, 189, 248, .5); border-radius: 999px; }
+.tr-input[readonly] { opacity: .75; cursor: not-allowed; }

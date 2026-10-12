@@ -11,6 +11,8 @@ import { stackPoints, type TradeCardInfo } from './trade-view-core';
 import type { SerialPool } from './serials-core';
 import { getTradeCards } from './trade-view';
 import type { Notice, NoticeKind, Swap, SwapCard } from './trade-notice-core';
+import { watchersOf } from './watch-index';
+import { matchingAlerts } from './watch-core';
 
 // Notifications and activity records for trade events. Everything here is best-effort: a failure must never undo or block
 // a trade, so every entry point swallows errors. (Called after the trade lock is released: see flushEvents in lib/trades.ts.)
@@ -99,6 +101,7 @@ export async function announceTrade(trade: Trade, action: TradeAction, by?: stri
       case 'offered':
         if (trade.counterOf) await tell(trade.to, 'countered', `@${trade.from} countered your offer: they give ${sentence}.`);
         else if (trade.kind === 'direct') await tell(trade.to, 'offer', `@${trade.from} offered you a trade: they give ${sentence}.`);
+        else await notifyWatchers(trade, cards);
         break;
       case 'accepted': {
         const swap = await buildSwap(trade.seasonId, trade.give, trade.get, by ?? '');
@@ -119,6 +122,25 @@ export async function announceTrade(trade: Trade, action: TradeAction, by?: stri
         await tell(trade.to, 'expired', `The offer from @${trade.from} expired.`);
         break;
       default: break;
+    }
+  } catch { /* best effort */ }
+}
+
+const WATCHERS_CAP = 200;
+
+/**
+ * A new board listing: tell every viewer whose Looking for list or saved alerts include one of the cards it gives (never the lister).
+ * Each hears about it once, in the bell. Best-effort like the rest of this file.
+ */
+export async function notifyWatchers(trade: Trade, cards: Record<number, TradeCardInfo>): Promise<void> {
+  try {
+    const candidates = (await watchersOf(trade.give.map(i => i.cardNumber))).filter(u => u !== trade.from).slice(0, WATCHERS_CAP);
+    const asking = stackLines(trade.get, cards).join(', ');
+    for (const u of candidates) {
+      const hits = matchingAlerts(await getUserSettings(u), trade.give);
+      if (hits.length === 0) continue;
+      const what = stackLines(trade.give.filter(i => hits.some(h => h.cardNumber === i.cardNumber && h.variant === i.variant)), cards).join(', ');
+      await notify(u, { kind: 'watch', text: `@${trade.from} listed ${what} on the board, which you are watching for. They want ${asking}.`, tradeId: trade.id });
     }
   } catch { /* best effort */ }
 }

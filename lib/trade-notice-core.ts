@@ -25,7 +25,7 @@ export interface Swap {
   got: SwapCard[];
 }
 
-export type NoticeKind = 'offer' | 'countered' | 'accepted' | 'declined' | 'cancelled' | 'expired' | 'admin';
+export type NoticeKind = 'offer' | 'countered' | 'accepted' | 'declined' | 'cancelled' | 'expired' | 'admin' | 'watch';
 
 /** One item in a viewer's notification bell. */
 export interface Notice {
@@ -40,5 +40,5 @@ export interface Notice {
 }
 
 export const NOTICE_ICON: Record<NoticeKind, IconName> = {
-  offer: 'inbox', countered: 'undo', accepted: 'party', declined: 'ban', cancelled: 'x', expired: 'hourglass', admin: 'shield',
+  offer: 'inbox', countered: 'undo', accepted: 'party', declined: 'ban', cancelled: 'x', expired: 'hourglass', admin: 'shield', watch: 'search',
 };

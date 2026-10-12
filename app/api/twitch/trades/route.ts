@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason, getCollection } from '@/lib/kv';
-import { acceptTrade, cancelTrade, createTrade, declineTrade, getTradeSettings, sweepTrades, tradesForUser, listOpenTrades } from '@/lib/trades';
+import { acceptTrade, cancelTrade, counterTrade, createTrade, declineTrade, getTradeSettings, sweepTrades, tradesForUser, listOpenTrades } from '@/lib/trades';
 import { firstMissing, type Trade } from '@/lib/trade-core';
 import { getTradeCards, getTradePools, poolsFor, stackPoints } from '@/lib/trade-view';
 import { extensionViewer } from '@/lib/twitch-viewer';
 import { respond } from '@/lib/trade-api';
+import { getUserSettings } from '@/lib/user-settings-store';
+import { matchingAlerts } from '@/lib/watch-core';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,13 +26,16 @@ export async function GET(req: NextRequest) {
   if (!season || season.status === 'draft') return NextResponse.json({ error: 'No active season' }, { status: 404 });
   await sweepTrades(); // refund anything that ran out of time before listing it
 
-  const [settings, cards, mine, open, data] = await Promise.all([
-    getTradeSettings(), getTradeCards(season), tradesForUser(me), listOpenTrades(), getCollection(season.collectionName),
+  const [settings, cards, mine, open, data, prefs] = await Promise.all([
+    getTradeSettings(), getTradeCards(season), tradesForUser(me), listOpenTrades(), getCollection(season.collectionName), getUserSettings(me),
   ]);
   const here = (list: Trade[]) => list.filter(t => t.seasonId === season.id);
   const incoming = here(mine.incoming);
   const outgoing = here(mine.outgoing);
-  const board = here(open.filter(t => t.kind === 'listing' && t.from !== me)).slice(0, BOARD_MAX);
+  // The whole board is checked against the viewer's Looking for list and saved alerts; the matches come first and are never cut off.
+  const allBoard = here(open.filter(t => t.kind === 'listing' && t.from !== me));
+  const isMatch = (t: Trade) => matchingAlerts(prefs, t.give).length > 0;
+  const board = [...allBoard.filter(isMatch), ...allBoard.filter(t => !isMatch(t))].slice(0, BOARD_MAX);
   const recent = here(mine.recent).slice(0, RECENT_MAX);
   const owned = data[me] ?? [];
   const pools = await getTradePools(season, [...incoming, ...outgoing, ...board, ...recent], me);
@@ -43,6 +48,8 @@ export async function GET(req: NextRequest) {
       givePts: stackPoints(t.give, cards, p.give), getPts: stackPoints(t.get, cards, p.get),
       // Can the viewer hand over what the offer asks for?
       canTake: t.from !== me && firstMissing(owned, t.get) === null,
+      // Gives a card from the viewer's Looking for list or one of their saved alerts.
+      alert: t.kind === 'listing' && t.from !== me && isMatch(t),
     };
   };
 
@@ -59,7 +66,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-/** Make an offer, or answer / cancel one. Body: { action: 'create' | 'accept' | 'decline' | 'cancel', ... }. */
+/** Make an offer, or answer / cancel one. Body: { action: 'create' | 'accept' | 'decline' | 'cancel' | 'counter', ... }. */
 export async function POST(req: NextRequest) {
   const viewer = await extensionViewer(req);
   if ('response' in viewer) return viewer.response;
@@ -82,8 +89,9 @@ export async function POST(req: NextRequest) {
       }
       case 'accept': return respond(await acceptTrade(id, me));
       case 'decline': return respond(await declineTrade(id, me));
+      case 'counter': return respond(await counterTrade(id, me, { give: body.give, get: body.get, note: typeof body.note === 'string' ? body.note : undefined }));
       case 'cancel': return respond(await cancelTrade(id, me));
-      default: return NextResponse.json({ error: 'action must be create, accept, decline or cancel' }, { status: 400 });
+      default: return NextResponse.json({ error: 'action must be create, accept, decline, cancel or counter' }, { status: 400 });
     }
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'That did not work' }, { status: 503 });
