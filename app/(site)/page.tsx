@@ -10,6 +10,10 @@ import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { LiveBanner } from '@/app/components/site/Live';
 import { Avatar } from '@/app/components/Avatar';
+import { getSession, loginConfigured } from '@/lib/session';
+import { listOpenTrades } from '@/lib/trades';
+import { seasonCountdown, viewerStanding } from '@/lib/home-data';
+import { profileHref } from '@/lib/profile-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,8 +27,14 @@ export default async function HomePage() {
     if (username) redirect(`/u/${encodeURIComponent(username)}`);
   }
 
-  const { season } = await getActive();
+  const [{ season }, session] = await Promise.all([getActive(), getSession()]);
   const overview = season ? await getSeasonOverview(season) : null;
+  const standing = session && overview ? viewerStanding(overview.rows, session.username, overview.values.totalCards) : null;
+  // Offers waiting for the viewer (a quiet nudge, so a failure just leaves it out).
+  const offers = session && season
+    ? (await listOpenTrades().catch(() => [])).filter(t => t.kind === 'direct' && t.to === session.username && t.seasonId === season.id && t.expiresAt > Date.now()).length
+    : 0;
+  const countdown = season ? seasonCountdown(season.endsAt) : null;
 
   const top = overview?.rows.slice(0, 5) ?? [];
   const recent = season ? await getRecentPulls(season.collectionName, 8) : [];
@@ -45,7 +55,7 @@ export default async function HomePage() {
             <LiveBanner />
             {season && (
               <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-yellow-300 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> {season.name}{season.active ? ' · live now' : ''}
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> {season.name}{countdown ? ` · ${countdown}` : season.active ? ' · in progress' : ''}
               </p>
             )}
             <h1 className="font-display text-5xl sm:text-6xl font-bold text-white leading-[1.05]">
@@ -67,6 +77,11 @@ export default async function HomePage() {
               />
               <PendingButton type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">Go →</PendingButton>
             </form>
+            {!session && loginConfigured() && (
+              <Link href="/auth/twitch?returnTo=/" className="inline-flex items-center gap-2 rounded-xl bg-purple-600 hover:bg-purple-500 px-5 py-3 text-sm font-bold text-white transition-colors">
+                <Icon name="user" />Log in with Twitch to see your rank
+              </Link>
+            )}
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
               <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300 font-semibold"><Icon name="trophy" className="mr-1" />Leaderboard</Link>
               <Link href="/stats" className="text-yellow-400 hover:text-yellow-300 font-semibold"><Icon name="chart" className="mr-1" />Season stats</Link>
@@ -83,7 +98,37 @@ export default async function HomePage() {
 
       <div className="max-w-6xl mx-auto px-4 py-12 space-y-14">
 
+        {/* ── Your standing (signed in) ── */}
+        {session && overview && (
+          <section aria-label="Your standing" className="rind rounded-2xl p-5 sm:p-6 flex flex-wrap items-center gap-5">
+            <Avatar src={avatars[session.username] && sizeTwitchAvatar(avatars[session.username], 70)} name={session.displayName} className="w-14 h-14 text-xl ring-2 ring-yellow-500/60" />
+            <div className="min-w-0 flex-1 basis-56">
+              <p className="font-display text-xl font-bold text-white truncate">Welcome back, {session.displayName}</p>
+              {standing ? (
+                <>
+                  <p className="text-sm text-gray-400">
+                    <span className="font-bold text-yellow-300">#{standing.rank}</span> of {standing.of} · <span className="tabular-nums text-white">{standing.score.toLocaleString()}</span> pts
+                    {standing.ahead ? <> · <span className="tabular-nums">{standing.ahead.gap.toLocaleString()}</span> to pass <Link href={profileHref(standing.ahead.username)} className="text-yellow-400 hover:text-yellow-300">@{standing.ahead.username}</Link></> : <> · you lead the board</>}
+                  </p>
+                  <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                    <div className="h-2 w-40 max-w-full rounded-full bg-gray-950 border border-gray-800 overflow-hidden" role="progressbar" aria-valuenow={standing.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Cards collected"><div className="h-full bg-gradient-to-r from-yellow-300 to-yellow-600" style={{ width: `${standing.pct}%` }} /></div>
+                    <span className="tabular-nums">{standing.uniqueCards}/{standing.totalCards} cards · {standing.totalCards - standing.uniqueCards} to find</span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-gray-400">You are not on the board yet. Watch the stream and pull a card to join, or your profile may be private.</p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {offers > 0 && <Link href="/trade" className="inline-flex items-center gap-1.5 rounded-xl bg-purple-500/15 border border-purple-400/40 px-4 py-2 text-sm font-bold text-purple-200 hover:bg-purple-500/25"><Icon name="inbox" />{offers} trade offer{offers === 1 ? '' : 's'}</Link>}
+              <Link href={profileHref(session.username)} className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="user" className="mr-1.5" />My profile</Link>
+              <Link href="/account" className="px-4 py-2 text-sm rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold"><Icon name="trend" className="mr-1.5" />My stats</Link>
+            </div>
+          </section>
+        )}
+
         {/* ── New here? (the full explanation lives on the FAQ page) ── */}
+        {!standing && (
         <section className="rind rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-5">
           <div className="space-y-1.5 max-w-xl">
             <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">New here?</h2>
@@ -96,6 +141,7 @@ export default async function HomePage() {
             <Link href="/faq#points" className="px-5 py-2.5 rounded-xl text-sm bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold">How points work</Link>
           </div>
         </section>
+        )}
 
         {!season || !overview ? (
           <section className="rind rounded-2xl py-14 text-center space-y-2">
@@ -108,6 +154,12 @@ export default async function HomePage() {
 
             {/* ── Top 5 ── */}
             <section className="space-y-4">
+              <ul className="flex flex-wrap gap-2 text-xs" aria-label="Season snapshot">
+                <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.rows.length}</strong> collector{overview.rows.length === 1 ? '' : 's'}</li>
+                <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.rows.reduce((n, r) => n + r.copies, 0).toLocaleString()}</strong> cards pulled</li>
+                <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.values.totalCards}</strong> cards to find</li>
+                {countdown && <li className="rounded-full border border-yellow-500/30 bg-yellow-500/5 px-3 py-1 text-yellow-300">{countdown}</li>}
+              </ul>
               <div className="flex items-end justify-between">
                 <h2 className="font-display text-3xl font-bold text-white">Top collectors</h2>
                 <Link href={`/leaderboard/${season.id}`} className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold">Full leaderboard →</Link>
@@ -118,7 +170,7 @@ export default async function HomePage() {
                 <ol className="space-y-2">
                   {top.map((r, i) => (
                     <li key={r.username}>
-                      <Link href={`/u/${r.username}`} className="rind rounded-xl px-4 py-3 flex items-center gap-4 hover:brightness-125 transition">
+                      <Link href={profileHref(r.username)} className={`rind rounded-xl px-4 py-3 flex items-center gap-4 hover:brightness-125 transition ${session?.username === r.username ? 'ring-2 ring-yellow-500/70' : ''}`}>
                         <span className="w-8 text-center font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>
                         <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
                         <span className="flex-1 min-w-0">
@@ -129,6 +181,16 @@ export default async function HomePage() {
                       </Link>
                     </li>
                   ))}
+                  {standing && standing.rank > top.length && (
+                    <li>
+                      <Link href={profileHref(session!.username)} className="rind rounded-xl px-4 py-3 flex items-center gap-4 ring-2 ring-yellow-500/70 hover:brightness-125 transition">
+                        <span className="w-8 text-center font-bold text-yellow-300 tabular-nums">#{standing.rank}</span>
+                        <Avatar src={avatars[session!.username] && sizeTwitchAvatar(avatars[session!.username], 70)} name={session!.displayName} className="w-9 h-9 text-sm" />
+                        <span className="flex-1 min-w-0"><span className="block font-semibold text-white truncate">You</span><span className="block text-xs text-gray-500">{standing.uniqueCards}/{standing.totalCards} cards</span></span>
+                        <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums">{standing.score.toLocaleString()}</span>
+                      </Link>
+                    </li>
+                  )}
                 </ol>
               )}
             </section>
@@ -137,7 +199,7 @@ export default async function HomePage() {
             <section className="space-y-4">
               <h2 className="font-display text-3xl font-bold text-white">Recent pulls</h2>
               {recent.length === 0 ? (
-                <p className="rind rounded-2xl p-6 text-sm text-gray-400">Nothing pulled yet this season.</p>
+                <p className="rind rounded-2xl p-6 text-sm text-gray-400">Nothing pulled yet this season. Packs are opened live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 font-semibold">{CHANNEL_NAME}&rsquo;s stream</a>, and every pull shows up here.</p>
               ) : (
                 <ul className="rind rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
                   {recent.map(e => {
@@ -151,9 +213,9 @@ export default async function HomePage() {
                           <span className="w-8 h-11 rounded bg-gray-800" />
                         )}
                         <span className="flex-1 min-w-0 text-sm">
-                          <Link href={`/u/${e.username}`} className="font-semibold text-white hover:text-yellow-300">{e.username}</Link>{' '}
+                          <Link href={profileHref(e.username)} className="font-semibold text-white hover:text-yellow-300">{e.username}</Link>{' '}
                           <span className="text-gray-400">pulled</span>{' '}
-                          <span className="font-semibold" style={{ color: rarity?.hex }}>{e.cardName || `#${e.cardNumber}`}</span>
+                          <Link href={`/cards?card=${e.cardNumber}`} className="font-semibold hover:underline" style={{ color: rarity?.hex }}>{e.cardName || `#${e.cardNumber}`}</Link>
                           {e.variant && e.variant !== 'regular' && (
                             <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wider text-fuchsia-300 border border-fuchsia-500/40 rounded-full px-1.5 py-0.5">{VARIANT_LABELS[e.variant]}</span>
                           )}
@@ -180,7 +242,7 @@ export default async function HomePage() {
               {rarest.map(({ card, v }) => {
                 const rarity = getRarity(card.stars);
                 return (
-                  <div key={card.id} className="space-y-2">
+                  <Link key={card.id} href={`/cards?card=${card.number}`} className="block space-y-2 group">
                     <div className="holo-hover aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900" style={{ borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` }}>
                       {card.imageUrl && <img src={cardThumbUrl(card.imageUrl)} alt={card.name} loading="lazy" className="w-full h-full object-cover" />}
                     </div>
@@ -188,7 +250,7 @@ export default async function HomePage() {
                       <p className="text-sm font-semibold text-white truncate">{card.name}</p>
                       <p className="text-xs text-gray-500">1 in {Math.round(1 / v.pullRate).toLocaleString()} pulls</p>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
