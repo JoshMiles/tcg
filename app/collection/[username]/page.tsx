@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { notFound } from 'next/navigation';
 import { getHoloResolver } from '@/lib/holo';
@@ -10,6 +11,7 @@ import { RARITIES } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
 import { VARIANTS, allowedVariants, countVariants, effectiveWeights, emptyCounts, upgradeStep } from '@/lib/variants';
 import { getSeasonLeaderboard } from '@/lib/leaderboard';
+import { getUserAwards } from '@/lib/season-wrap';
 import { getSession } from '@/lib/session';
 import { sweepTrades } from '@/lib/trades';
 import { CollectionGrid, type GridCard } from './CollectionGrid';
@@ -60,6 +62,7 @@ export default async function CollectionPage({
   const countMap = countPulls(ownedArray);
   const variantMap = countVariants(ownedArray);
   const board = await getSeasonLeaderboard(season);
+  const awards = await getUserAwards(lower).catch(() => []);
   const myRank = board.rows.findIndex(r => r.username === lower);
   const myRow = myRank >= 0 ? board.rows[myRank] : null;
 
@@ -133,6 +136,17 @@ export default async function CollectionPage({
               </h1>
               {profile?.twitchId && (
                 <p className="text-xs text-purple-400 mt-0.5">Twitch: {profile.twitchId}</p>
+              )}
+              {awards.length > 0 && (
+                <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Season awards">
+                  {awards.slice(0, 8).map((a, i) => (
+                    <li key={`${a.seasonId}-${a.award.id}-${i}`}>
+                      <Link href={`/leaderboard/${a.seasonId}`} title={`${a.award.title} · ${a.seasonName} · ${a.award.detail}`} className="inline-flex items-center gap-1 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-0.5 text-[11px] font-bold text-yellow-300 hover:bg-yellow-500/20 transition-colors">
+                        <Icon name={a.award.icon} className="w-3 h-3" />{a.award.title}<span className="text-yellow-500/70 font-semibold">· {a.seasonName}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>
