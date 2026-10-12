@@ -14,7 +14,15 @@ export interface Sandbox {
   createdAt: number;
   /** What it was created from; "reset" starts over from the same source. */
   source: SandboxSource;
+  /** Last time an admin action ran in it (set by touchSandbox). */
+  lastUsedAt?: number;
+  /** When set, it is deleted automatically once this time has passed (see sweepExpiredSandboxes). */
+  expiresAt?: number;
 }
+
+/** Every sandbox is a full namespace of the shared database, so the number is capped. */
+export const MAX_SANDBOXES = 10;
+export const EXPIRY_CHOICES = [0, 7, 30] as const; // days; 0 = never
 
 export const SOURCE_LABELS: Record<SandboxSource, string> = {
   config: 'A copy of production setup (seasons, packs, cards, settings), no viewers',
@@ -88,10 +96,13 @@ export async function wipeKeys(id: string, pattern = '*'): Promise<number> {
   return removed;
 }
 
-export async function createSandbox(input: { name: string; source: SandboxSource }): Promise<Sandbox> {
+export async function createSandbox(input: { name: string; source: SandboxSource; expiresInDays?: number }): Promise<Sandbox> {
   const list = await listSandboxes();
+  if (list.length >= MAX_SANDBOXES) throw new Error(`You already have ${MAX_SANDBOXES} sandboxes. Delete one first.`);
   const name = input.name.trim().slice(0, 40) || 'Sandbox';
-  const sandbox: Sandbox = { id: makeId(name, list.map(s => s.id)), name, createdAt: Date.now(), source: input.source };
+  const days = (EXPIRY_CHOICES as readonly number[]).includes(input.expiresInDays ?? 0) ? input.expiresInDays ?? 0 : 0;
+  const now = Date.now();
+  const sandbox: Sandbox = { id: makeId(name, list.map(s => s.id)), name, createdAt: now, lastUsedAt: now, source: input.source, ...(days > 0 ? { expiresAt: now + days * 86_400_000 } : {}) };
   await saveRegistry([...list, sandbox]);
   if (input.source !== 'empty') await cloneFromProduction(sandbox.id, input.source === 'collections');
   return sandbox;
@@ -116,3 +127,52 @@ export async function deleteSandbox(id: string): Promise<void> {
   await wipeKeys(id);
   await saveRegistry((await listSandboxes()).filter(s => s.id !== id));
 }
+
+/** Records that something was done in a sandbox (best effort: a failed write must never block the action itself). */
+export async function touchSandbox(id: string, now = Date.now()): Promise<void> {
+  try {
+    const list = await listSandboxes();
+    if (!list.some(s => s.id === id)) return;
+    await saveRegistry(list.map(s => (s.id === id ? { ...s, lastUsedAt: now } : s)));
+  } catch { /* ignore */ }
+}
+
+/** Sets (days > 0) or clears (0) the automatic deletion date, counted from now. */
+export async function setSandboxExpiry(id: string, days: number, now = Date.now()): Promise<void> {
+  const list = await listSandboxes();
+  await saveRegistry(list.map(s => {
+    if (s.id !== id) return s;
+    const { expiresAt: _drop, ...rest } = s;
+    void _drop;
+    return days > 0 ? { ...rest, expiresAt: now + days * 86_400_000 } : rest;
+  }));
+}
+
+/** Pure: which sandboxes have passed their expiry. */
+export function expiredSandboxes(list: Sandbox[], now = Date.now()): Sandbox[] {
+  return list.filter(s => typeof s.expiresAt === 'number' && s.expiresAt <= now);
+}
+
+/** Deletes every sandbox past its expiry (called lazily when the Sandbox page loads; there is no background job). Returns their names. */
+export async function sweepExpiredSandboxes(now = Date.now()): Promise<string[]> {
+  const gone = expiredSandboxes(await listSandboxes(), now);
+  for (const s of gone) await deleteSandbox(s.id);
+  return gone.map(s => s.name);
+}
+
+/** How many keys a sandbox holds (a rough size for the list). */
+export async function countKeys(id: string): Promise<number> {
+  let cursor: string | number = 0;
+  let n = 0;
+  do {
+    const [next, keys] = (await prodKv.scan(cursor, { match: ns(id, '*'), count: 500 })) as [string | number, string[]];
+    n += keys.filter(k => k.startsWith(`sbx:${id}:`)).length;
+    cursor = next;
+  } while (String(cursor) !== '0');
+  return n;
+}
+
+/** Reads one key from production (null when absent). Used only to compare a sandbox against it. */
+export const readProduction = (key: string) => prodKv.get(key);
+/** Reads one key from inside a sandbox's namespace. */
+export const readSandboxKey = (id: string, key: string) => prodKv.get(ns(id, key));
