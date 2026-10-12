@@ -4,7 +4,7 @@ import { scoreItem } from './palette';
 // Pages are searched in the browser; viewers and cards come from GET /api/search. Viewers an admin has hidden from public
 // boards never appear here (their own page still works if you know the address).
 
-export type SearchKind = 'page' | 'player' | 'card';
+export type SearchKind = 'page' | 'player' | 'card' | 'copy';
 
 export interface SearchItem {
   id: string;
@@ -32,7 +32,7 @@ export const PUBLIC_PAGES: SearchItem[] = [
 ];
 
 export const MAX_QUERY = 40;
-const LIMITS: Record<SearchKind, number> = { page: 3, player: 5, card: 4 };
+const LIMITS: Record<SearchKind, number> = { page: 3, player: 5, card: 4, copy: 1 };
 
 /** What the user typed, made safe to send and match: trimmed, no control characters, no leading @, length-capped. */
 export function cleanQuery(raw: string): string {
@@ -62,7 +62,7 @@ export function rankSearch(items: SearchItem[], rawQuery: string, limit = 10): S
     // Loose letter-order matching is fine for names, but for pages it only produces noise ("alic" finding "Privacy policy").
     .filter(x => x.s > 0 && (x.it.kind !== 'page' || x.s >= 25))
     .sort((a, b) => b.s - a.s || a.it.label.localeCompare(b.it.label));
-  const taken: Record<SearchKind, number> = { page: 0, player: 0, card: 0 };
+  const taken: Record<SearchKind, number> = { page: 0, player: 0, card: 0, copy: 0 };
   const out: SearchItem[] = [];
   for (const { it } of scored) {
     if (taken[it.kind] >= LIMITS[it.kind]) continue;

@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { CardTile } from '@/app/components/CardTile';
+import { FlipCard } from '@/app/components/FlipCard';
+import { engravedDate } from '@/lib/flip-back';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
@@ -39,7 +41,21 @@ export async function generateMetadata({ params }: { params: Promise<{ seasonId:
   const d = await load(decodeURIComponent(seasonId), copyId).catch(() => null);
   if (!d) return { title: 'Card copy', robots: { index: false } };
   const v = d.copy.variant === 'regular' ? '' : `${VARIANT_LABELS[d.copy.variant]} `;
-  return { title: `${v}${d.card.name} #${d.copy.n}`, description: `Copy #${d.copy.n} of ${d.card.name}: who has held it and where it has been.`, robots: { index: false, follow: true } };
+  return { title: `${v}${d.card.name} ${d.copy.uid ? `#${d.copy.uid}` : `#${d.copy.n}`}`, description: `Copy #${d.copy.n} of ${d.card.name}: who has held it and where it has been.`, robots: { index: false, follow: true } };
+}
+
+/** One short line of a copy's history for the engraved back (private collectors stay private). */
+function histText(e: { type: string; who?: string; to?: string }, hidden: Set<string>): string {
+  const name = (n?: string) => (!n ? '' : isEscrow(n) ? 'an offer' : hidden.has(n) ? 'a private collector' : `@${n}`);
+  switch (e.type) {
+    case 'minted': return 'Created';
+    case 'traded': return `Traded to ${name(e.to)}`;
+    case 'escrowed': return 'Put up in a trade';
+    case 'returned': return 'Back from a trade';
+    case 'upgraded': return 'Spent in an upgrade';
+    case 'removed': return 'Removed';
+    default: return e.type;
+  }
 }
 
 const when = (t: number) => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
@@ -76,21 +92,39 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
 
       <div className="grid md:grid-cols-[260px_1fr] gap-8 items-start">
         <div className="mx-auto w-full max-w-[260px]">
-          <CardTile
-            imageUrl={art}
-            alt={label}
-            className={`relative aspect-[2/3] rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''} ${holoClass(holo, true)}`}
-            style={{ borderColor: rarity?.hex, boxShadow: `0 0 28px -6px ${rarity?.hex}`, ...holoVars(holo) }}
-          />
+          <FlipCard
+            back={{
+              n: copy.n, uid: copy.uid, total, variantLabel: VARIANT_LABELS[copy.variant], name: card.name, date: engravedDate(copy.at), est: copy.est,
+              bonus: mult > 1 ? Math.round(mult * 100) / 100 : undefined, hex: rarity?.hex, origin: ORIGIN_LABELS[copy.origin],
+              holder: gone ? null : copy.owner && isEscrow(copy.owner) ? 'a trade offer' : hidden.has(copy.owner) ? 'a private collector' : `@${copy.owner}`,
+              history: copy.ev.slice(-3).map(e => ({ text: histText(e, hidden), date: engravedDate(e.t) })),
+              qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
+            }}
+          >
+            <CardTile
+              imageUrl={art}
+              alt={label}
+              className={`relative aspect-[2/3] rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''} ${holoClass(holo, true)}`}
+              style={{ borderColor: rarity?.hex, boxShadow: `0 0 28px -6px ${rarity?.hex}`, ...holoVars(holo) }}
+            />
+          </FlipCard>
         </div>
 
         <div className="space-y-5 min-w-0">
           <div>
             <p className="text-xs text-gray-500">#{card.number} · {pack.name} · {season.name}</p>
             <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">{label}</h1>
+            {copy.uid && (
+              <p className="mt-2 flex flex-wrap items-baseline gap-2">
+                <span className="font-display text-5xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.uid}</span>
+                <span className="text-xs uppercase tracking-wider text-gray-500 font-bold">Unique copy number</span>
+              </p>
+            )}
             <p className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="font-display text-5xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.n}</span>
-              <span className="text-sm text-gray-400">of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span>
+              {copy.uid
+                ? <span className="text-sm text-gray-300">Edition <strong className="text-white tabular-nums">#{copy.n}</strong> of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span>
+                : <><span className="font-display text-5xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.n}</span>
+                  <span className="text-sm text-gray-400">of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span></>}
               {copy.est && <span title="This copy existed before serials. Numbers within a version were assigned afterwards, so the order is an estimate." className="text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}
             </p>
           </div>

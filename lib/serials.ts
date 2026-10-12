@@ -1,7 +1,7 @@
 import { kv } from './db';
 import {
   buildSerialIndex, diffCounts, copyId, parseCopyId, countEntries, entryOf, escrowOwner, isEscrow, newestFirst, sameCollection, withEvent,
-  type Copy, type CopyEvent, type Origin, type SerialIndex, type SerialPool,
+  UID_BASE, type Copy, type CopyEvent, type Origin, type SerialIndex, type SerialPool,
 } from './serials-core';
 import { decodeEntry, encodeEntry } from './variants';
 import type { Variant } from './types';
@@ -16,6 +16,8 @@ import type { Variant } from './types';
 //   copies:<c>:n          hash  entry   -> count      (how many were ever made of each card + version: the next serial)
 //   copies:<c>:ret        hash  copy id -> Copy       (retired copies keep their history)
 //   copies:<c>:init       flag  set once existing copies have been numbered; until then nothing is tracked
+//   copies:uid:seq        hash  n -> how many unique numbers were handed out, game-wide (the next unique number is UID_BASE + that + 1)
+//   copies:uid:idx        hash  unique number -> "<collection>|<copy id>" (find any copy from its number, live or retired)
 
 const key = {
   owner: (c: string, o: string) => `copies:${c}:o:${o}`,
@@ -23,6 +25,8 @@ const key = {
   n: (c: string) => `copies:${c}:n`,
   ret: (c: string) => `copies:${c}:ret`,
   init: (c: string) => `copies:${c}:init`,
+  uidSeq: 'copies:uid:seq',
+  uidIdx: 'copies:uid:idx',
 };
 
 /** A move that keeps a copy's identity: `to` / `from` is a viewer or an escrow owner. */
@@ -138,21 +142,33 @@ export async function liveCopiesOfEntry(c: string, entry: number): Promise<{ id:
   return Object.entries(idx ?? {}).filter(([id]) => id.startsWith(prefix)).map(([id, owner]) => ({ id, owner }));
 }
 
-async function mint(c: string, owner: string, entry: number, count: number, origin: Origin, opts: { est?: boolean; madeFrom?: string[]; who?: string } = {}): Promise<Copy[]> {
+/** Hands out `count` unique numbers (consecutive); returns the first, or 0 when the counter could not be reached (the copies are then made without one). */
+async function nextUids(count: number): Promise<number> {
+  try { return UID_BASE + Number(await kv.hincrby(key.uidSeq, 'n', count)) - count + 1; } catch { return 0; }
+}
+
+async function registerUids(c: string, copies: Copy[]): Promise<void> {
+  const entries = copies.filter(x => x.uid).map(x => [String(x.uid), `${c}|${x.id}`] as const);
+  if (entries.length) await kv.hset(key.uidIdx, Object.fromEntries(entries)).catch(() => {});
+}
+
+async function mint(c: string, owner: string, entry: number, count: number, origin: Origin, opts: { est?: boolean; madeFrom?: string[]; who?: string; noUid?: boolean } = {}): Promise<Copy[]> {
   if (count <= 0) return [];
   const { cardNumber, variant } = decodeEntry(entry);
   const top = Number(await kv.hincrby(key.n(c), String(entry), count));
+  const uid0 = opts.noUid ? 0 : await nextUids(count);
   const now = Date.now();
   const made: Copy[] = [];
   for (let i = 0; i < count; i++) {
     const n = top - count + 1 + i;
     made.push({
-      id: copyId(cardNumber, variant, n), card: cardNumber, variant, n, owner, at: now, origin, ...(opts.est ? { est: true } : {}), ...(opts.madeFrom ? { madeFrom: opts.madeFrom } : {}),
+      id: copyId(cardNumber, variant, n), ...(uid0 ? { uid: uid0 + i } : {}), card: cardNumber, variant, n, owner, at: now, origin, ...(opts.est ? { est: true } : {}), ...(opts.madeFrom ? { madeFrom: opts.madeFrom } : {}),
       ev: [{ t: now, type: 'minted', who: opts.who ?? owner }],
     });
   }
   await kv.hset(key.owner(c, owner), Object.fromEntries(made.map(m => [m.id, m])));
   await kv.hset(key.idx(c), Object.fromEntries(made.map(m => [m.id, owner])));
+  await registerUids(c, made);
   return made;
 }
 
@@ -185,13 +201,13 @@ async function move(c: string, m: Move): Promise<number> {
 }
 
 /** Makes the ledger match one viewer's collection: mint what they have that it lacks, retire what it holds that they no longer have. */
-async function reconcileUser(c: string, user: string, owned: number[], origin: Origin, est = false): Promise<void> {
+async function reconcileUser(c: string, user: string, owned: number[], origin: Origin, est = false, noUid = false): Promise<void> {
   const have = await readOwner(c, user);
   const byEntry = new Map<number, Copy[]>();
   for (const x of have) { const e = entryOf(x); byEntry.set(e, [...(byEntry.get(e) ?? []), x]); }
   const { mint: toMint, retire: toRetire } = diffCounts(new Map([...byEntry].map(([e, l]) => [e, l.length])), countEntries(owned));
   for (const [e, k] of toRetire) await retire(c, user, newestFirst(byEntry.get(e) ?? [], k), { type: 'removed', who: user });
-  for (const [e, k] of toMint) await mint(c, user, e, k, origin, { est });
+  for (const [e, k] of toMint) await mint(c, user, e, k, origin, { est, noUid });
 }
 
 /**
@@ -231,7 +247,7 @@ export async function syncAfterSave(c: string, before: Record<string, number[]>,
   }
 }
 
-export interface BackfillResult { users: number; copies: number }
+export interface BackfillResult { users: number; copies: number; /** Copies that were given a unique number in this run. */ numbered: number }
 
 /**
  * Numbers every copy that exists now (once per collection). The order is a best guess: viewers in the order the collection stores
@@ -242,11 +258,52 @@ export async function backfillSerials(c: string, data: Record<string, number[]>)
   let copies = 0;
   for (const [user, owned] of Object.entries(data)) {
     const before = (await readOwner(c, user)).length;
-    await reconcileUser(c, user, owned, 'estimated', true);
+    await reconcileUser(c, user, owned, 'estimated', true, true);
     copies += Math.max(0, owned.length - before);
   }
   await kv.set(key.init(c), Date.now());
-  return { users: Object.keys(data).length, copies };
+  // Unique numbers last, oldest copy first, so older copies get the lower numbers.
+  const numbered = await assignMissingUids(c);
+  return { users: Object.keys(data).length, copies, numbered };
+}
+
+/**
+ * Gives a unique number to every copy of this collection that has none (live and retired), oldest first (by when it was made, then by
+ * card, version and edition number, which is the best order we have for copies numbered after the fact). Safe to run again.
+ */
+export async function assignMissingUids(c: string): Promise<number> {
+  const idx = ((await kv.hgetall(key.idx(c)).catch(() => null)) ?? {}) as Record<string, string>;
+  const owners = [...new Set(Object.values(idx))];
+  const live = (await Promise.all(owners.map(async o => ({ o, copies: await readOwner(c, o) })))).filter(x => x.copies.length > 0);
+  const retHash = ((await kv.hgetall(key.ret(c)).catch(() => null)) ?? {}) as Record<string, unknown>;
+  const retired = Object.values(retHash).map(parse).filter((x): x is Copy => !!x);
+
+  const missing = [...live.flatMap(x => x.copies), ...retired].filter(x => !x.uid);
+  if (missing.length === 0) return 0;
+  missing.sort((a, b) => a.at - b.at || a.card - b.card || ['regular', 'reverse', 'full', 'shiny'].indexOf(a.variant) - ['regular', 'reverse', 'full', 'shiny'].indexOf(b.variant) || a.n - b.n);
+  const first = await nextUids(missing.length);
+  if (!first) return 0;
+  missing.forEach((x, i) => { x.uid = first + i; });
+
+  const done = new Set(missing.map(x => x.id));
+  for (const { o, copies } of live) {
+    const changed = copies.filter(x => done.has(x.id));
+    if (changed.length) await kv.hset(key.owner(c, o), Object.fromEntries(changed.map(x => [x.id, x])));
+  }
+  const changedRet = retired.filter(x => done.has(x.id));
+  if (changedRet.length) await kv.hset(key.ret(c), Object.fromEntries(changedRet.map(x => [x.id, x])));
+  await registerUids(c, missing);
+  return missing.length;
+}
+
+/** Finds a copy from its unique number, in any season: which collection it belongs to and its copy id. */
+export async function findByUid(uid: number): Promise<{ collection: string; copyId: string } | null> {
+  try {
+    const v = await kv.hget<string>(key.uidIdx, String(uid));
+    if (!v) return null;
+    const cut = v.indexOf('|');
+    return cut > 0 ? { collection: v.slice(0, cut), copyId: v.slice(cut + 1) } : null;
+  } catch { return null; }
 }
 
 /** Quick facts for the admin panel. */

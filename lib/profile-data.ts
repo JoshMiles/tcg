@@ -13,7 +13,8 @@ import { getHoloResolver } from './holo';
 import type { GridCard } from '@/app/u/[username]/CollectionGrid';
 import type { Card, Pack, Season, UserProfile, Variant } from './types';
 import type { VariantCounts } from './variants';
-import type { Copy } from './serials-core';
+import { ORIGIN_LABELS, entryOf, type Copy } from './serials-core';
+import { mintedCounts } from './serials';
 import type { ShareSpec } from './share-image';
 import { copyPoints, type CardValue, type LeaderboardRow } from './leaderboard';
 import type { ScoringSettings } from './scoring-core';
@@ -123,12 +124,13 @@ function serialFor(b: ProfileBase, cardNumber: number): GridCard['serial'] {
 export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promise<GridCard[]> {
   const copiesByCard = new Map<number, GridCard['copies']>();
   const { settings } = b.board.values;
+  const minted = copies.length ? await mintedCounts(b.season.collectionName).catch(() => null) : null;
   for (const c of copies) {
     const m = serialMultiplier(c.n, settings);
     const cv = b.board.values.cards.get(c.card);
     // m = the points multiplier when above 1; p = what this very copy is worth.
     copiesByCard.set(c.card, [...(copiesByCard.get(c.card) ?? []), {
-      id: c.id, variant: c.variant, n: c.n, ...(c.est ? { est: true } : {}), ...(m > 1 ? { m: Math.round(m * 100) / 100 } : {}), ...(cv ? { p: copyPoints(cv, c.variant, c.n, settings) } : {}),
+      id: c.id, ...(c.uid ? { uid: c.uid } : {}), variant: c.variant, n: c.n, at: c.at, origin: ORIGIN_LABELS[c.origin], ...(minted?.get(entryOf(c)) ? { made: minted.get(entryOf(c)) } : {}), ...(c.est ? { est: true } : {}), ...(m > 1 ? { m: Math.round(m * 100) / 100 } : {}), ...(cv ? { p: copyPoints(cv, c.variant, c.n, settings) } : {}),
     }]);
   }
   const holoFor = await getHoloResolver();

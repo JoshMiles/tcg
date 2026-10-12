@@ -13,6 +13,8 @@ export interface CopyEvent { t: number; type: CopyEventType; who?: string; to?: 
 export interface Copy {
   /** "<card>.<variant index>.<n>", safe in URLs. */
   id: string;
+  /** The copy's unique number across every season ("#1023381"): how it is referred to, searched and linked (`/c/<uid>`). Absent on copies made before unique numbers existed until the next "Number existing copies" run. The edition number `n` below is what earns the points bonus. */
+  uid?: number;
   card: number;
   variant: Variant;
   /** Which copy of this card in this version it was (1 = the first ever made). */
@@ -127,3 +129,17 @@ export function buildSerialIndex(idx: Record<string, string>, minted: Map<number
 }
 
 export { decodeEntry };
+
+/** Unique copy numbers start here, so they are all the same length ("#1000001"). */
+export const UID_BASE = 1_000_000;
+
+/** "#1023381", or '' for a copy without one. */
+export const uidLabel = (uid?: number) => (uid ? `#${uid}` : '');
+
+/** A typed query as a unique copy number ("#1023381", "1023381"), or null. Only 7-9 digit numbers qualify, so card numbers and short digits never match. */
+export function parseUid(raw: string): number | null {
+  const m = /^#?\s*(\d{7,9})$/.exec(raw.trim());
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n > UID_BASE ? n : null;
+}

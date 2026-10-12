@@ -10,6 +10,7 @@ import { getRarity } from '@/lib/rarity';
 export const OPEN_SEARCH_EVENT = 'tcg:site-search';
 
 const GROUPS: { kind: SearchKind; title: string; icon: IconName }[] = [
+  { kind: 'copy', title: 'Card copy', icon: 'cards' },
   { kind: 'player', title: 'Collectors', icon: 'user' },
   { kind: 'card', title: 'Cards', icon: 'cards' },
   { kind: 'page', title: 'Pages', icon: 'compass' },
@@ -83,7 +84,7 @@ export function SiteSearch() {
     if (!q) return PUBLIC_PAGES.filter(p => ['page:leaderboard', 'page:collection', 'page:cards', 'page:trade', 'page:account'].includes(p.id));
     const pages = rankSearch(PUBLIC_PAGES, q, 3);
     const entities = remote.filter(r => r.kind !== 'page');
-    return [...entities.filter(r => r.kind === 'player'), ...entities.filter(r => r.kind === 'card'), ...pages];
+    return [...entities.filter(r => r.kind === 'copy'), ...entities.filter(r => r.kind === 'player'), ...entities.filter(r => r.kind === 'card'), ...pages];
   }, [query, remote]);
   useEffect(() => setIndex(0), [results.length, query]);
   useEffect(() => { listRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' }); }, [index]);
