@@ -18,7 +18,14 @@ export type AssetIssue =
   | 'no-thumbnail'      // card art whose static thumbnail is missing (grids would show a broken image)
   | 'heavy';            // unusually large for its type
 
+/** Identifies one reference to a file (a card's art / sound, or a pack's cover). Never carries a URL: the server re-reads the current one. */
+export interface AssetKey { kind: AssetKind; packId: string; cardId?: string }
+
+export const assetId = (k: AssetKey): string => `${k.kind}:${k.packId}:${k.cardId ?? 'cover'}`;
+export const keyOf = (o: AssetOrigin, kind: AssetKind): AssetKey => ({ kind, packId: o.packId, cardId: o.kind === 'pack-cover' ? undefined : o.cardId });
+
 export interface LibraryAsset {
+  id: string;                   // assetId() of the reference
   url: string;
   kind: AssetKind;
   origin: AssetOrigin;
@@ -26,6 +33,7 @@ export interface LibraryAsset {
   bytes: number | null;         // null when we couldn't determine it (external URLs)
   issues: AssetIssue[];
   optimized: boolean;           // card art served as WebP with a thumbnail
+  sharedWith: AssetOrigin[];    // other cards / packs that point at the very same file
 }
 
 export interface UnusedBlob {
@@ -46,7 +54,7 @@ export interface AssetLibrary {
   blobProblem?: BlobProblem;    // set when blobConnected is false
 }
 
-const HEAVY_BYTES = 8 * 1024 * 1024;
+export const HEAVY_BYTES = 8 * 1024 * 1024;
 const RECENT_MS = 10 * 60 * 1000;  // don't call a just-uploaded file "unused" (it may be mid-optimize)
 
 export function formatOf(url: string): string {
@@ -55,7 +63,7 @@ export function formatOf(url: string): string {
 }
 
 /** Every URL referenced by a pack or card, plus the thumbnails that ride along with card art. */
-async function collectReferenced() {
+export async function collectReferenced() {
   const packs = await listAllPacks();
   const cardLists = await Promise.all(packs.map(p => getPackCards(p.id)));
   const refs: { url: string; kind: AssetKind; origin: AssetOrigin }[] = [];
@@ -160,8 +168,9 @@ export async function loadAssetLibrary(origin: string): Promise<AssetLibrary> {
       if (thumbOk === false && exists !== false) issues.push('no-thumbnail');
       if (bytes !== null && bytes > HEAVY_BYTES && format !== 'GIF') issues.push('heavy');
 
+      const sharedWith = refs.filter(r => r.url === url && r.origin !== o).map(r => r.origin);
       return {
-        url, kind, origin: o, format, bytes, issues,
+        id: assetId(keyOf(o, kind)), url, kind, origin: o, format, bytes, issues, sharedWith,
         optimized: kind === 'card-art' && format === 'WebP' && thumb !== url && thumbOk !== false,
       };
     }),
@@ -174,6 +183,11 @@ export async function loadAssetLibrary(origin: string): Promise<AssetLibrary> {
     .sort((a, b) => b.bytes - a.bytes);
 
   return { assets, unused, blobConnected: inventory.connected, blobProblem: inventory.problem };
+}
+
+/** Of the requested URLs, the ones that exist in the store and that nothing (including a card's companion thumbnail) references. */
+export function pickDeletable(requested: string[], inStore: Set<string>, referenced: Set<string>): string[] {
+  return [...new Set(requested)].filter(u => isBlobUrl(u) && inStore.has(u) && !referenced.has(u));
 }
 
 /**
@@ -190,8 +204,7 @@ export async function deleteUnusedBlobs(urls: string[]): Promise<number> {
   const [{ referenced }, inventory] = await Promise.all([collectReferenced(), listAllBlobs()]);
   if (!inventory.connected) return 0;
 
-  const inStore = new Set(inventory.blobs.map(b => b.url));
-  const safe = requested.filter(u => inStore.has(u) && !referenced.has(u));
+  const safe = pickDeletable(requested, new Set(inventory.blobs.map(b => b.url)), referenced);
   if (safe.length === 0) return 0;
 
   await del(safe);

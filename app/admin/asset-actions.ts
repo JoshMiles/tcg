@@ -1,0 +1,43 @@
+'use server';
+import { headers } from 'next/headers';
+import { revalidatePath } from 'next/cache';
+import { requireAdmin } from '@/lib/admin-guard';
+import { fixAsset, replaceAsset, type FixResult } from '@/lib/asset-fix';
+import type { AssetKey } from '@/lib/assets';
+
+// Server actions behind /admin/assets. Each re-checks the admin cookie (a server action can be invoked outside its page)
+// and takes an AssetKey, never a URL to act on: the server reads the current file from the database itself.
+
+const KINDS = ['card-art', 'pack-cover', 'sound'];
+function cleanKey(k: AssetKey): AssetKey | null {
+  if (!k || !KINDS.includes(k.kind) || typeof k.packId !== 'string') return null;
+  if (k.kind !== 'pack-cover' && typeof k.cardId !== 'string') return null;
+  return { kind: k.kind, packId: k.packId, cardId: k.kind === 'pack-cover' ? undefined : k.cardId };
+}
+
+async function origin() {
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
+  return `${h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')}://${host}`;
+}
+
+/** Repairs one file (the page calls this once per file so progress shows and each request stays short). */
+export async function fixAssetAction(key: AssetKey): Promise<FixResult> {
+  await requireAdmin();
+  const k = cleanKey(key);
+  if (!k) return { ok: false, message: 'Unknown file.' };
+  const result = await fixAsset(k, await origin());
+  revalidatePath('/admin/assets');
+  return result;
+}
+
+/** Points a card / pack at a file the browser has just uploaded. */
+export async function replaceAssetAction(key: AssetKey, newUrl: string): Promise<FixResult> {
+  await requireAdmin();
+  const k = cleanKey(key);
+  if (!k || typeof newUrl !== 'string') return { ok: false, message: 'Unknown file.' };
+  const result = await replaceAsset(k, newUrl);
+  revalidatePath('/admin/assets');
+  revalidatePath(`/admin/packs/${k.packId}`);
+  return result;
+}
