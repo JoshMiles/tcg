@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getActive, getSeasonOverview, computeStats } from '@/lib/site-data';
@@ -15,7 +16,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   if (!season) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-20 text-center space-y-2">
-        <p className="text-4xl">📊</p>
+        <p className="text-4xl"><Icon name="chart" className="w-10 h-10 text-yellow-400" /></p>
         <h1 className="font-display text-3xl font-bold text-white">No seasons yet</h1>
         <p className="text-gray-400 text-sm">Stats appear once a season is running.</p>
       </div>
@@ -38,7 +39,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
       <div className="space-y-3">
-        <h1 className="font-display text-4xl font-bold text-white">📊 Season stats</h1>
+        <h1 className="font-display text-4xl font-bold text-white"><Icon name="chart" className="mr-2 text-yellow-400" />Season stats</h1>
         <p className="text-sm text-gray-400">{season.name}{season.active ? ' · live' : ''}</p>
         {seasons.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-1">

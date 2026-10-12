@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type DragEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_LAYOUT, SPAN_CLASS, WIDGETS, WIDGET_TYPES, type DashboardLayout, type Span, type WidgetPlacement, type WidgetType } from '@/lib/dashboard';
@@ -159,15 +160,15 @@ export function DashboardGrid({ layout, nodes }: { layout: DashboardLayout; node
       {/* Toolbar */}
       {!edit ? (
         <div className="flex justify-end">
-          <button type="button" onClick={() => { setDraft(saved.widgets); setEdit(true); }} className={ghost}>✏️ Customize dashboard</button>
+          <button type="button" onClick={() => { setDraft(saved.widgets); setEdit(true); }} className={ghost}><Icon name="pencil" className="mr-1" />Customize dashboard</button>
         </div>
       ) : (
         <div className="dash-slide sticky top-0 z-20 rounded-xl border border-yellow-500/40 bg-gray-900/95 backdrop-blur px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
           <div className="min-w-0 mr-auto">
             <p className="text-sm font-bold text-yellow-300">Editing the dashboard</p>
-            <p className="text-xs text-gray-500">Drag widgets to rearrange, use ◀ ▶ to resize, ↑ ↓ to move, ✕ to remove. Drag from the library to add.</p>
+            <p className="text-xs text-gray-500">Drag widgets to rearrange, use the arrow buttons to resize and move, the cross to remove. Drag from the library to add.</p>
           </div>
-          <button type="button" onClick={() => setLibraryOpen(o => !o)} className={ghost} aria-expanded={libraryOpen}>🧩 Widgets ({unused.length} to add)</button>
+          <button type="button" onClick={() => setLibraryOpen(o => !o)} className={ghost} aria-expanded={libraryOpen}><Icon name="puzzle" className="mr-1" />Widgets ({unused.length} to add)</button>
           <button type="button" onClick={reset} disabled={pending} className={`${ghost} hover:border-red-400/60 hover:text-red-300`}>Reset to default</button>
           <button type="button" onClick={cancel} disabled={pending} className={ghost}>Cancel</button>
           <button type="button" onClick={save} disabled={pending || !dirty} className={`${btn} border-yellow-500 bg-yellow-500 text-gray-950 hover:bg-yellow-400`}>{pending && <Spinner />}Save layout</button>
@@ -190,7 +191,7 @@ export function DashboardGrid({ layout, nodes }: { layout: DashboardLayout; node
                     onDragEnd={() => { setDrag(null); setDrop(null); }}
                     className={`flex items-start gap-3 rounded-lg border bg-gray-950/50 hover:border-yellow-500/40 hover:-translate-y-0.5 hover:shadow-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-150 ${drag?.type === t && drag.fromLibrary ? 'border-yellow-500/60 opacity-50 scale-[0.98]' : 'border-gray-800'}`}
                   >
-                    <span className="text-xl leading-none" aria-hidden>{def.icon}</span>
+                    <Icon name={def.icon} className="w-5 h-5 text-yellow-500/90" />
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold text-gray-200">{def.title}</span>
                       <span className="block text-xs text-gray-500">{def.description}</span>
@@ -227,20 +228,20 @@ export function DashboardGrid({ layout, nodes }: { layout: DashboardLayout; node
             >
               {/* Edit controls */}
               <div className="absolute top-1.5 right-2 z-10 flex items-center gap-1 rounded-lg bg-gray-950/90 border border-gray-700 px-1.5 py-1 shadow-lg">
-                <span className="px-1 text-gray-500 cursor-grab text-sm select-none" title="Drag to move" aria-hidden>⠿</span>
+                <span className="px-1 text-gray-500 cursor-grab text-sm select-none" title="Drag to move" aria-hidden><Icon name="grip" className="w-4 h-4" /></span>
                 <span className="text-[11px] font-bold text-gray-300 px-1 max-w-[9rem] truncate">{def.title}</span>
-                <button type="button" onClick={() => step(w.type, -1)} disabled={idx === 0} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} earlier`}>↑</button>
-                <button type="button" onClick={() => step(w.type, 1)} disabled={idx === shown.length - 1} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} later`}>↓</button>
-                <button type="button" onClick={() => widen(w, -1)} disabled={w.span === def.spans[0]} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} narrower`}>◀</button>
+                <button type="button" onClick={() => step(w.type, -1)} disabled={idx === 0} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} earlier`}><Icon name="chevronUp" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => step(w.type, 1)} disabled={idx === shown.length - 1} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} later`}><Icon name="chevronDown" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => widen(w, -1)} disabled={w.span === def.spans[0]} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} narrower`}><Icon name="chevronLeft" className="w-4 h-4" /></button>
                 <span className="text-[10px] text-gray-500 tabular-nums w-7 text-center" title="Width in twelfths of the page">{w.span}/12</span>
-                <button type="button" onClick={() => widen(w, 1)} disabled={w.span === def.spans[def.spans.length - 1]} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} wider`}>▶</button>
-                <button type="button" onClick={() => remove(w.type)} className="w-6 h-6 rounded text-red-300 hover:bg-red-500/20" aria-label={`Remove ${def.title}`}>✕</button>
+                <button type="button" onClick={() => widen(w, 1)} disabled={w.span === def.spans[def.spans.length - 1]} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} wider`}><Icon name="chevronRight" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => remove(w.type)} className="w-6 h-6 rounded text-red-300 hover:bg-red-500/20" aria-label={`Remove ${def.title}`}><Icon name="x" className="w-4 h-4" /></button>
               </div>
               {/* Content, inert while editing so a click or drag never triggers the widget itself */}
               <div className="pointer-events-none select-none h-full">
                 {node ?? (
                   <div className="tcg-panel rounded-2xl h-full min-h-40 p-6 flex flex-col items-center justify-center text-center gap-1.5">
-                    <span className="text-3xl" aria-hidden>{def.icon}</span>
+                    <Icon name={def.icon} className="w-8 h-8 text-yellow-500/90" />
                     <p className="font-semibold text-white">{def.title}</p>
                     <p className="text-xs text-gray-500 max-w-xs">{def.description}</p>
                     <p className="text-[11px] text-yellow-500/80 mt-1">Its data appears once you save the layout.</p>

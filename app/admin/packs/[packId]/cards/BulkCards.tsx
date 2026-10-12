@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useEffect, useRef, useState } from 'react';
 import { CardsEditor, cardsSignature, type CardRow } from '../../../components/CardsEditor';
 import { saveCards } from '../../../draft-actions';
@@ -56,7 +57,7 @@ export function BulkCards({
             : state === 'saving' ? 'Saving…'
             : uploading ? 'Uploading images…'
             : dirty ? 'Unsaved changes'
-            : state === 'saved' ? '✓ All changes saved'
+            : state === 'saved' ? <><Icon name="check" className="mr-1" />All changes saved</>
             : 'No changes'}
         </p>
         <button

@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -197,7 +198,7 @@ export function SeasonFlow({
                         }`}
                       >
                         <span className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs font-bold shrink-0 ${on ? 'bg-yellow-500 border-yellow-500 text-gray-950' : 'border-gray-600'}`}>
-                          {on ? '✓' : ''}
+                          {on ? <Icon name="check" className="w-3 h-3" /> : ''}
                         </span>
                         {p.coverImageUrl ? (
                           <img src={p.coverImageUrl} alt="" className="w-10 h-12 object-cover rounded shrink-0" />
@@ -245,7 +246,7 @@ export function SeasonFlow({
                 </ul>
               </div>
             ) : (
-              <p className="rounded-xl border border-green-500/30 bg-green-950/20 p-4 text-sm text-green-300">✓ Ready to create.</p>
+              <p className="rounded-xl border border-green-500/30 bg-green-950/20 p-4 text-sm text-green-300"><Icon name="check" className="mr-1" />Ready to create.</p>
             )}
             {issues.length === 0 && drawable.length === 0 && (
               <p className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 text-sm text-amber-200">

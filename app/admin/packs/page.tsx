@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
 import { listAllPacks, getPackCards, listSeasons } from '@/lib/kv';
@@ -113,7 +114,7 @@ export default async function PacksPage() {
                         </span>
                         {pack.upgradesEnabled && (
                           <span className="absolute top-2 left-2 text-[11px] font-extrabold uppercase tracking-wider bg-gray-950/80 text-purple-300 border border-purple-400/40 rounded-full px-2 py-1" title="Variants and upgrades are on for this pack">
-                            ✨ Upgrades{(pack.disabledVariants?.length ?? 0) > 0 ? ` · ${pack.disabledVariants!.length} off` : ''}
+                            <Icon name="sparkles" className="mr-1" />Upgrades{(pack.disabledVariants?.length ?? 0) > 0 ? ` · ${pack.disabledVariants!.length} off` : ''}
                           </span>
                         )}
                       </div>

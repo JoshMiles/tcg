@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -54,7 +55,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
   return wrap(
     <>
       <header className="space-y-1">
-        <h1 className="font-display text-4xl font-bold text-white">{original ? '↩ Counter-offer' : '🔁 New offer'}</h1>
+        <h1 className="font-display text-4xl font-bold text-white">{original ? <><Icon name="undo" className="mr-2" />Counter-offer</> : <><Icon name="trade" className="mr-2" />New offer</>}</h1>
         <p className="text-sm text-gray-400">Pick what you give and what you want. Nothing leaves your collection until you send it, and it comes back if the offer ends without a trade.</p>
       </header>
       <TradeComposer

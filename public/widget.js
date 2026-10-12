@@ -21,7 +21,7 @@ if (SANDBOX_ID) {
   };
   window.addEventListener('DOMContentLoaded', () => {
     const badge = document.createElement('div');
-    badge.textContent = '🧪 SANDBOX · ' + SANDBOX_ID;
+    badge.textContent = 'SANDBOX · ' + SANDBOX_ID;
     badge.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99998;font:700 12px Poppins,sans-serif;color:#f3e8ff;background:rgba(88,28,135,.9);border:1px solid rgba(192,132,252,.6);border-radius:999px;padding:4px 12px;pointer-events:none;';
     document.body.appendChild(badge);
   });
@@ -408,7 +408,7 @@ function saveCollection(pull) {
 async function resetAllCollections() {
   revealedCardsByUser = {};
   await fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, { method: 'DELETE' }).catch(() => {});
-  showAlert('🔄 All collections reset');
+  showAlert('All collections reset');
 }
 
 async function resetUserCollection(username) {
@@ -416,7 +416,7 @@ async function resetUserCollection(username) {
   if (!user) return;
   delete revealedCardsByUser[user];
   await fetch(`/api/collection?name=${SEASON_CFG.collectionName}&username=${user}`, { method: 'DELETE' }).catch(() => {});
-  showAlert('🔄 Reset collection for ' + user);
+  showAlert('Reset collection for ' + user);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -807,7 +807,7 @@ function drawCard(username, opts) {
 
   const pick = pickPackAndCard(opts);
   if (!pick) {
-    showAlert('⚠️ No cards available — check your active season has packs with cards.');
+    showAlert('No cards available — check your active season has packs with cards.');
     activeDraws--;
     setTimeout(processCardQueue, 1000);
     return;
@@ -1039,7 +1039,7 @@ function initDevPanel() {
     sel.appendChild(o);
   };
   addOption(packSel, '', 'Any pack (by weight)');
-  PACKS.forEach(p => addOption(packSel, p.pack.id, p.pack.name + (p.pack.upgradesEnabled ? '  ✨' : '')));
+  PACKS.forEach(p => addOption(packSel, p.pack.id, p.pack.name + (p.pack.upgradesEnabled ? '  (variants)' : '')));
 
   function fillCards() {
     const keep = cardSel.value;
@@ -1107,7 +1107,7 @@ function initDevPanel() {
   $('btn-clear-queue').addEventListener('click', () => { cardQueue.length = 0; });
   $('btn-reset-user').addEventListener('click', () => {
     const name = usernameInput.value.trim();
-    if (!name) { showAlert('⚠️ Enter a username to reset'); return; }
+    if (!name) { showAlert('Enter a username to reset'); return; }
     if (confirm('Reset ' + name + '\'s saved collection? This writes to the real data.')) resetUserCollection(name);
   });
   $('btn-reset-all').addEventListener('click', () => {

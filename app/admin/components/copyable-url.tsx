@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useState } from 'react';
 
 export function CopyableUrl({ url }: { url: string }) {
@@ -20,7 +21,7 @@ export function CopyableUrl({ url }: { url: string }) {
         onClick={copy}
         className="shrink-0 px-3 py-2 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors"
       >
-        {copied ? '✓' : 'Copy'}
+        {copied ? <Icon name="check" /> : 'Copy'}
       </button>
     </div>
   );

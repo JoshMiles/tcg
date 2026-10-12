@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { Card } from '@/lib/types';
 import type { CardInput } from '../draft-actions';
@@ -273,7 +274,7 @@ export function CardsEditor({
 
                 <div className="flex items-center gap-1 shrink-0">
                   <button type="button" onClick={() => duplicate(c)} title="Duplicate" className="px-2 py-1 text-xs text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">⧉</button>
-                  <button type="button" onClick={() => remove(c)} title="Delete" className="px-2 py-1 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors">✕</button>
+                  <button type="button" onClick={() => remove(c)} title="Delete" className="px-2 py-1 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"><Icon name="x" className="w-3.5 h-3.5" /></button>
                 </div>
               </li>
             );
@@ -309,7 +310,7 @@ function ArtSlot({
       {compact ? (
         <span className="text-gray-400">
           {label}
-          {url && <button type="button" onClick={onClear} className="ml-1.5 text-gray-600 hover:text-red-400" title="Remove">✕</button>}
+          {url && <button type="button" onClick={onClear} className="ml-1.5 text-gray-600 hover:text-red-400" title="Remove"><Icon name="x" className="w-3.5 h-3.5" /></button>}
         </span>
       ) : null}
     </div>
@@ -320,13 +321,13 @@ function SoundSlot({ url, onFile, onClear }: { url?: string; onFile: (f: File) =
   return (
     <span className="flex items-center gap-1.5 text-gray-400">
       <label className="cursor-pointer hover:text-white transition-colors">
-        🔊 {url ? 'Sound set' : 'Add sound'}
+        <Icon name="volume" className="mr-1" />{url ? 'Sound set' : 'Add sound'}
         <input type="file" accept="audio/*,.mp3,.wav,.ogg" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
       </label>
       {url && (
         <>
-          <button type="button" onClick={() => void new Audio(url).play().catch(() => {})} className="text-gray-500 hover:text-white" title="Play">▶</button>
-          <button type="button" onClick={onClear} className="text-gray-600 hover:text-red-400" title="Remove sound">✕</button>
+          <button type="button" onClick={() => void new Audio(url).play().catch(() => {})} className="text-gray-500 hover:text-white" title="Play"><Icon name="play" className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={onClear} className="text-gray-600 hover:text-red-400" title="Remove sound"><Icon name="x" className="w-3.5 h-3.5" /></button>
         </>
       )}
     </span>

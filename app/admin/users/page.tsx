@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import Link from 'next/link';
 import { getAllCollectionUsers, getUserProfile, listSeasons, getPackCards } from '@/lib/kv';
 import { uniqueCount } from '@/lib/collection';
@@ -136,7 +137,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       <div className="tcg-panel rounded-2xl overflow-hidden">
         {sorted.length === 0 ? (
           <div className="py-20 text-center space-y-2">
-            <p className="text-2xl mb-4">👥</p>
+            <p className="text-2xl mb-4"><Icon name="users" className="w-8 h-8 text-gray-600" /></p>
             <p className="text-gray-400 font-medium">No collectors yet</p>
             <p className="text-gray-600 text-sm">Viewers appear here when they pull cards on stream</p>
           </div>
@@ -233,7 +234,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                       title={`Gift ${r.displayName} a pack`}
                       className="px-2 py-1 text-base rounded-lg hover:bg-white/10 transition-colors"
                     >
-                      🎁
+                      <Icon name="gift" />
                     </Link>
                     <span aria-hidden className="text-gray-600">›</span>
                   </div>

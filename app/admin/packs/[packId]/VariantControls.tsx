@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useState, useTransition } from 'react';
 import type { OptionalVariant, VariantWeights } from '@/lib/types';
 import { VARIANT_LABELS } from '@/lib/variants';
@@ -97,7 +98,7 @@ export function CardToggles({
               if (changed) start(async () => { await setCardVariant(packId, cardId, changed, !next.includes(changed)); });
             }}
           />
-          {!hasFullArt && fullArtOn && <span className="text-xs text-amber-500" title="No full-art image: Full Art and Shiny reuse the normal art. Use Variant tools to switch them off for cards like this." aria-label="No full-art image">⚠</span>}
+          {!hasFullArt && fullArtOn && <span className="text-xs text-amber-500" title="No full-art image: Full Art and Shiny reuse the normal art. Use Variant tools to switch them off for cards like this." aria-label="No full-art image"><Icon name="warning" className="w-3.5 h-3.5" /></span>}
         </>
       ) : (
         <span className="text-[11px] text-gray-600">off</span>

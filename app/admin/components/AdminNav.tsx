@@ -1,18 +1,19 @@
 'use client';
+import { Icon, type IconName } from '@/app/components/Icon';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const nav = [
-  { href: '/admin', label: 'Dashboard', icon: '📊', exact: true },
-  { href: '/admin/activity', label: 'Live Activity', icon: '📡' },
-  { href: '/admin/seasons', label: 'Seasons', icon: '🏆' },
-  { href: '/admin/packs', label: 'Packs', icon: '🎴' },
-  { href: '/admin/users', label: 'Users', icon: '👥' },
-  { href: '/admin/trades', label: 'Trades', icon: '🔁' },
-  { href: '/admin/assets', label: 'Assets', icon: '🖼️' },
-  { href: '/admin/overlay', label: 'Overlay Editor', icon: '🎨' },
-  { href: '/admin/sandbox', label: 'Sandbox', icon: '🧪' },
-  { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
+const nav: { href: string; label: string; icon: IconName; exact?: boolean }[] = [
+  { href: '/admin', label: 'Dashboard', icon: 'chart', exact: true },
+  { href: '/admin/activity', label: 'Live Activity', icon: 'radio' },
+  { href: '/admin/seasons', label: 'Seasons', icon: 'trophy' },
+  { href: '/admin/packs', label: 'Packs', icon: 'cards' },
+  { href: '/admin/users', label: 'Users', icon: 'users' },
+  { href: '/admin/trades', label: 'Trades', icon: 'trade' },
+  { href: '/admin/assets', label: 'Assets', icon: 'image' },
+  { href: '/admin/overlay', label: 'Overlay Editor', icon: 'palette' },
+  { href: '/admin/sandbox', label: 'Sandbox', icon: 'flask' },
+  { href: '/admin/settings', label: 'Settings', icon: 'settings' },
 ];
 
 export function AdminNav() {
@@ -33,7 +34,7 @@ export function AdminNav() {
                 : 'text-gray-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <span className={`text-base leading-none ${active ? '' : 'grayscale opacity-70'}`}>{icon}</span>
+            <Icon name={icon} className={`w-[1.15rem] h-[1.15rem] ${active ? 'text-yellow-400' : 'text-gray-500'}`} />
             <span className="aside-label">{label}</span>
           </Link>
         );

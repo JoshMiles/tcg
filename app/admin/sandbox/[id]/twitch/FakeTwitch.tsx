@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 type ViewKind = 'panel' | 'mobile' | 'video';
@@ -85,7 +86,7 @@ export function FakeTwitch({ sandboxId, users, channel }: { sandboxId: string; u
           <div className="flex flex-wrap items-center gap-1.5">
             {login && (
               <button type="button" onClick={() => { const w: Who = who.kind === 'broadcaster' ? { kind: 'viewer', login } : { kind: 'broadcaster', login }; setWho(w); load({ who: w }); }} className={chip(who.kind === 'broadcaster')} title="Twitch signs the broadcaster role for the channel owner; the panel logs them in without the share prompt">
-                👑 As the broadcaster
+                <Icon name="crown" className="mr-1" />As the broadcaster
               </button>
             )}
             <button type="button" onClick={() => load()} className={chip(false)}>↻ Reload panel</button>
@@ -114,7 +115,7 @@ export function FakeTwitch({ sandboxId, users, channel }: { sandboxId: string; u
             {/* Stream */}
             <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-[#1f1147] via-[#2b1a63] to-[#0b3b4a]">
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white/30 select-none">
-                <span className="text-5xl">🎮</span>
+                <span className="text-5xl"><Icon name="gamepad" className="w-12 h-12" /></span>
                 <span className="mt-2 text-sm font-semibold">{channel} — pretend stream</span>
               </div>
               {showOverlay && <iframe title="Overlay" src={`/overlay.html?sandbox=${encodeURIComponent(sandboxId)}`} style={{ colorScheme: 'light' }} className="absolute inset-0 w-full h-full border-0" />}

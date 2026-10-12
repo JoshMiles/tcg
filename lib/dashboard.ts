@@ -1,3 +1,4 @@
+import type { IconName } from '@/app/components/Icon';
 // The admin dashboard is a grid of widgets the admin can add, remove, reorder (drag and drop) and resize. This file is the
 // client-safe model: the registry of widget types and the layout shape + its sanitizer. The server side (data + persistence)
 // is in lib/dashboard-data.ts, the widgets themselves in app/admin/dashboard/.
@@ -15,7 +16,7 @@ export type Span = (typeof SPANS)[number];
 export interface WidgetDef {
   type: WidgetType;
   title: string;
-  icon: string;
+  icon: IconName;
   description: string;
   defaultSpan: Span;
   /** Spans this widget makes sense at (a table is useless at 3 columns). */
@@ -23,23 +24,23 @@ export interface WidgetDef {
 }
 
 export const WIDGETS: Record<WidgetType, WidgetDef> = {
-  overview: { type: 'overview', title: 'Season overview', icon: '📊', description: 'Players, cards pulled, card pool and average completion at a glance.', defaultSpan: 12, spans: [6, 8, 12] },
-  'quick-actions': { type: 'quick-actions', title: 'Quick actions', icon: '⚡', description: 'Gift packs, show a collection or grant a card to a viewer.', defaultSpan: 12, spans: [8, 12] },
-  'top-collectors': { type: 'top-collectors', title: 'Top collectors', icon: '🏅', description: 'Who owns the most different cards this season.', defaultSpan: 8, spans: [6, 8, 12] },
-  leaderboard: { type: 'leaderboard', title: 'Leaderboard', icon: '🏆', description: 'The top scorers (points, not card count), with their completion.', defaultSpan: 4, spans: [4, 6, 8] },
-  rarity: { type: 'rarity', title: 'Rarity mix', icon: '💎', description: 'How the season\'s cards split across rarities.', defaultSpan: 4, spans: [3, 4, 6] },
-  packs: { type: 'packs', title: 'Active packs', icon: '🎴', description: 'The packs being drawn this season, with a link to each.', defaultSpan: 4, spans: [3, 4, 6] },
-  'card-ownership': { type: 'card-ownership', title: 'Card ownership', icon: '🃏', description: 'Every card with how many collectors own it.', defaultSpan: 12, spans: [6, 8, 12] },
-  activity: { type: 'activity', title: 'Recent activity', icon: '📡', description: 'The latest pulls, grants, upgrades and trades.', defaultSpan: 6, spans: [4, 6, 8, 12] },
-  trades: { type: 'trades', title: 'Trading', icon: '🔁', description: 'Open offers, cards held in escrow and recent completed trades.', defaultSpan: 6, spans: [4, 6, 8] },
-  overlay: { type: 'overlay', title: 'Overlay status', icon: '🖥️', description: 'Whether OBS has the overlay open, and shortcuts to edit it.', defaultSpan: 4, spans: [3, 4, 6] },
-  pulse: { type: 'pulse', title: 'Activity pulse', icon: '📈', description: 'Pulls and active viewers over the last hour, day and week.', defaultSpan: 4, spans: [3, 4, 6] },
-  variants: { type: 'variants', title: 'Variant mix', icon: '✨', description: 'How many Regular, Reverse Holo, Full Art and Shiny copies exist.', defaultSpan: 4, spans: [3, 4, 6] },
-  valuable: { type: 'valuable', title: 'Most valuable cards', icon: '💰', description: 'The cards worth the most points per copy right now.', defaultSpan: 4, spans: [4, 6, 8] },
-  unowned: { type: 'unowned', title: 'Cards nobody owns', icon: '🕳️', description: 'Cards no viewer has pulled yet.', defaultSpan: 4, spans: [3, 4, 6] },
-  live: { type: 'live', title: 'Stream status', icon: '🔴', description: 'Whether the channel is live on Twitch, with the title and viewer count.', defaultSpan: 4, spans: [3, 4, 6] },
-  shortcuts: { type: 'shortcuts', title: 'Shortcuts', icon: '🧭', description: 'Jump to creating a pack or season, the overlay editor, trades and the sandbox.', defaultSpan: 4, spans: [3, 4, 6, 8] },
-  notes: { type: 'notes', title: 'Notes', icon: '📝', description: 'A scratchpad for reminders. Saved with the dashboard.', defaultSpan: 4, spans: [3, 4, 6, 8] },
+  overview: { type: 'overview', title: 'Season overview', icon: 'chart', description: 'Players, cards pulled, card pool and average completion at a glance.', defaultSpan: 12, spans: [6, 8, 12] },
+  'quick-actions': { type: 'quick-actions', title: 'Quick actions', icon: 'zap', description: 'Gift packs, show a collection or grant a card to a viewer.', defaultSpan: 12, spans: [8, 12] },
+  'top-collectors': { type: 'top-collectors', title: 'Top collectors', icon: 'award', description: 'Who owns the most different cards this season.', defaultSpan: 8, spans: [6, 8, 12] },
+  leaderboard: { type: 'leaderboard', title: 'Leaderboard', icon: 'trophy', description: 'The top scorers (points, not card count), with their completion.', defaultSpan: 4, spans: [4, 6, 8] },
+  rarity: { type: 'rarity', title: 'Rarity mix', icon: 'gem', description: 'How the season\'s cards split across rarities.', defaultSpan: 4, spans: [3, 4, 6] },
+  packs: { type: 'packs', title: 'Active packs', icon: 'cards', description: 'The packs being drawn this season, with a link to each.', defaultSpan: 4, spans: [3, 4, 6] },
+  'card-ownership': { type: 'card-ownership', title: 'Card ownership', icon: 'cards', description: 'Every card with how many collectors own it.', defaultSpan: 12, spans: [6, 8, 12] },
+  activity: { type: 'activity', title: 'Recent activity', icon: 'radio', description: 'The latest pulls, grants, upgrades and trades.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  trades: { type: 'trades', title: 'Trading', icon: 'trade', description: 'Open offers, cards held in escrow and recent completed trades.', defaultSpan: 6, spans: [4, 6, 8] },
+  overlay: { type: 'overlay', title: 'Overlay status', icon: 'monitor', description: 'Whether OBS has the overlay open, and shortcuts to edit it.', defaultSpan: 4, spans: [3, 4, 6] },
+  pulse: { type: 'pulse', title: 'Activity pulse', icon: 'trend', description: 'Pulls and active viewers over the last hour, day and week.', defaultSpan: 4, spans: [3, 4, 6] },
+  variants: { type: 'variants', title: 'Variant mix', icon: 'sparkles', description: 'How many Regular, Reverse Holo, Full Art and Shiny copies exist.', defaultSpan: 4, spans: [3, 4, 6] },
+  valuable: { type: 'valuable', title: 'Most valuable cards', icon: 'coins', description: 'The cards worth the most points per copy right now.', defaultSpan: 4, spans: [4, 6, 8] },
+  unowned: { type: 'unowned', title: 'Cards nobody owns', icon: 'hole', description: 'Cards no viewer has pulled yet.', defaultSpan: 4, spans: [3, 4, 6] },
+  live: { type: 'live', title: 'Stream status', icon: 'radio', description: 'Whether the channel is live on Twitch, with the title and viewer count.', defaultSpan: 4, spans: [3, 4, 6] },
+  shortcuts: { type: 'shortcuts', title: 'Shortcuts', icon: 'compass', description: 'Jump to creating a pack or season, the overlay editor, trades and the sandbox.', defaultSpan: 4, spans: [3, 4, 6, 8] },
+  notes: { type: 'notes', title: 'Notes', icon: 'note', description: 'A scratchpad for reminders. Saved with the dashboard.', defaultSpan: 4, spans: [3, 4, 6, 8] },
 };
 
 export interface WidgetPlacement {

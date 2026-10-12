@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import { useState } from 'react';
 import type { WebhookSettings, OutgoingWebhookConfig, WebhookField } from '@/lib/webhooks';
@@ -135,7 +136,7 @@ function SecretRow({ secret }: { secret: string }) {
           onClick={copy}
           className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors shrink-0"
         >
-          {copied ? '✓' : 'Copy'}
+          {copied ? <Icon name="check" /> : 'Copy'}
         </button>
         <form action={regenerateWebhookSecret}>
           <ConfirmButton
@@ -185,7 +186,7 @@ function IncomingUrl({ label, description, url, secret, extraFields }: {
           onClick={copy}
           className="px-3 py-2 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg transition-colors shrink-0"
         >
-          {copied ? '✓' : 'Copy'}
+          {copied ? <Icon name="check" /> : 'Copy'}
         </button>
       </div>
       <p className="text-xs text-gray-600">

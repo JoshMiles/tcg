@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { getRarity } from '@/lib/rarity';
@@ -44,7 +45,7 @@ export interface GridCard {
   maths?: CardMaths;
 }
 
-const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: '✨' };
+const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
 
 const bestVariant = (c: VariantCounts): Variant => [...VARIANTS].reverse().find(v => c[v] > 0) ?? 'regular';
 const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0);
@@ -328,7 +329,7 @@ function CardDetail({
                 href={`/trade/new?to=${encodeURIComponent(tradeWith)}&want=${card.number}.${shown}`}
                 className="flex items-center justify-between gap-3 rounded-xl border border-purple-400/40 bg-purple-500/10 hover:bg-purple-500/20 px-4 py-3 transition-colors"
               >
-                <span className="text-sm font-bold text-purple-200">🔁 Offer a trade for {card.upgradable && shown !== 'regular' ? `this ${VARIANT_LABELS[shown]}` : 'this card'}</span>
+                <span className="text-sm font-bold text-purple-200"><Icon name="trade" className="mr-2" />Offer a trade for {card.upgradable && shown !== 'regular' ? `this ${VARIANT_LABELS[shown]}` : 'this card'}</span>
                 <span className="text-xs text-purple-300/80">Set up an offer to {ownerName ?? tradeWith} →</span>
               </a>
             )}

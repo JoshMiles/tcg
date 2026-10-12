@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -15,7 +16,7 @@ export default async function AuthErrorPage({ searchParams }: { searchParams: Pr
   const m = MESSAGES[reason ?? ''] ?? MESSAGES.failed;
   return (
     <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-4">
-      <p className="text-5xl">🧀</p>
+      <p className="text-5xl"><Icon name="cheese" className="w-14 h-14 text-yellow-400" /></p>
       <h1 className="font-display text-3xl font-bold text-white">{m.title}</h1>
       <p className="text-gray-400 leading-relaxed">{m.text}</p>
       <div className="flex justify-center gap-3 pt-2">

@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useEffect, useRef, useState } from 'react';
 
 /**
@@ -39,7 +40,7 @@ export function UserSearch({ total }: { total: number }) {
   return (
     <div className="px-6 py-3 border-b border-gray-800 flex items-center gap-3">
       <div className="relative flex-1 max-w-sm">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">🔍</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"><Icon name="search" /></span>
         <input
           ref={inputRef}
           type="search"

@@ -138,12 +138,12 @@
 ══════════════════════════════════════════════ -->
 <div id="dev-panel">
   <div class="dev-head">
-    <h3>🃏 TCG Test Panel</h3>
+    <h3>TCG Test Panel</h3>
     <button id="dev-toggle" type="button" title="Collapse / expand">–</button>
   </div>
 
   <div id="dev-body">
-    <div id="dev-live-warning" class="dev-warning hidden">⚠ Draws are being saved to the real collection</div>
+    <div id="dev-live-warning" class="dev-warning hidden">Warning: draws are being saved to the real collection</div>
 
     <label for="dev-username">Username</label>
     <input type="text" id="dev-username" placeholder="testuser" value="testuser">
@@ -166,11 +166,11 @@
 
     <div class="dev-row">
       <input type="number" id="dev-count" value="1" min="1" max="20" title="How many to draw">
-      <button class="dev-btn dev-btn-draw" id="btn-draw" type="button">▶ Draw  [D]</button>
+      <button class="dev-btn dev-btn-draw" id="btn-draw" type="button">Draw  [D]</button>
     </div>
-    <button class="dev-btn dev-btn-variants"   id="btn-all-variants" type="button">✨ All 4 variants  [A]</button>
-    <button class="dev-btn dev-btn-collection" id="btn-collection" type="button">📋 Show Collection  [C]</button>
-    <button class="dev-btn dev-btn-clear"      id="btn-clear-queue" type="button">⏹ Clear queue</button>
+    <button class="dev-btn dev-btn-variants"   id="btn-all-variants" type="button">All 4 variants  [A]</button>
+    <button class="dev-btn dev-btn-collection" id="btn-collection" type="button">Show Collection  [C]</button>
+    <button class="dev-btn dev-btn-clear"      id="btn-clear-queue" type="button">Clear queue</button>
     <p class="dev-hint">R / F / S draw a Reverse / Full Art / Shiny</p>
 
     <label class="dev-check"><input type="checkbox" id="dev-dry"> Don&rsquo;t save (dry run)</label>
@@ -181,8 +181,8 @@
 
     <details class="dev-danger">
       <summary>Danger zone</summary>
-      <button class="dev-btn dev-btn-reset"     id="btn-reset-user" type="button">🔄 Reset User</button>
-      <button class="dev-btn dev-btn-reset-all" id="btn-reset-all" type="button">💣 Reset All Collections</button>
+      <button class="dev-btn dev-btn-reset"     id="btn-reset-user" type="button">Reset User</button>
+      <button class="dev-btn dev-btn-reset-all" id="btn-reset-all" type="button">Reset All Collections</button>
     </details>
   </div>
 </div>

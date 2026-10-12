@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useState } from 'react';
 import type { Variant } from '@/lib/types';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
@@ -34,7 +35,7 @@ export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: 
           </select>
         </label>
       </div>
-      <button type="button" onClick={() => setPlaying(true)} className="tcg-btn px-4 py-2 text-sm rounded-xl">▶ Play</button>
+      <button type="button" onClick={() => setPlaying(true)} className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="play" className="mr-1" />Play</button>
       {playing && <UpgradeCeremony card={card} holo={card.holo} from={from} to={to} cost={cost} gain={Math.round(40 + Math.random() * 400)} onClose={() => setPlaying(false)} />}
     </div>
   );

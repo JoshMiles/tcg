@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
 import { currentSandboxId } from '@/lib/db';
@@ -15,7 +16,7 @@ export default async function SandboxPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white">🧪 Sandbox</h1>
+        <h1 className="text-3xl font-bold text-white"><Icon name="flask" className="mr-2 text-purple-300" />Sandbox</h1>
         <p className="text-sm text-gray-500 mt-0.5">A private copy of the app to test upgrades, trades and anything risky, without touching production.</p>
       </div>
 

@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useEffect, useRef, useState } from 'react';
 
 /**
@@ -37,7 +38,7 @@ export function CardFilter({ total, stars }: { total: number; stars: number[] })
   return (
     <div className="flex flex-wrap items-center gap-3">
       <div className="relative flex-1 min-w-[12rem] max-w-xs">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">🔍</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"><Icon name="search" /></span>
         <input
           ref={inputRef}
           type="search"
