@@ -2,7 +2,7 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
-import { BIO_MAX, EXPERIMENTS, sanitizeUserSettings, type UserSettings } from '@/lib/user-settings';
+import { ACCENTS, BIO_MAX, EXPERIMENTS, WANTED_MAX, sanitizeUserSettings, type UserSettings } from '@/lib/user-settings';
 
 type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'allowOffers' | 'hideUncollected' | 'compactGrids';
 
@@ -30,11 +30,15 @@ function Row({ label, help, checked, onChange, id }: { label: string; help: stri
   );
 }
 
-export function SettingsForm({ initial, username }: { initial: UserSettings; username: string }) {
+export function SettingsForm({ initial, username, cards }: { initial: UserSettings; username: string; cards: { number: number; name: string; stars: number }[] }) {
   const router = useRouter();
   const [saved, setSaved] = useState(initial);
   const [s, setS] = useState(initial);
   const [state, setState] = useState<{ kind: 'idle' | 'saving' | 'ok' | 'error'; msg?: string }>({ kind: 'idle' });
+  const [find, setFind] = useState('');
+  const toggleWanted = (n: number) => setS(p => ({ ...p, wanted: p.wanted.includes(n) ? p.wanted.filter(x => x !== n) : p.wanted.length < WANTED_MAX ? [...p.wanted, n] : p.wanted }));
+  const matches = find.trim() ? cards.filter(c => c.name.toLowerCase().includes(find.trim().toLowerCase()) || String(c.number) === find.trim()).slice(0, 8) : [];
+  const nameOf = (n: number) => cards.find(c => c.number === n)?.name ?? `#${n}`;
   const dirty = JSON.stringify(s) !== JSON.stringify(saved);
 
   const flip = (k: BoolKey) => (v: boolean) => setS(p => ({ ...p, [k]: v }));
@@ -79,9 +83,40 @@ export function SettingsForm({ initial, username }: { initial: UserSettings; use
         <Row id="motion" label="Reduce motion" help="Calm the site's animations even if your device doesn't ask for it." checked={s.motion === 'reduce'} onChange={v => setS(p => ({ ...p, motion: v ? 'reduce' : 'system' }))} />
       </Section>
 
-      <Section icon="flask" title="Experimental" hint="Early features. They change only what you see, and may change or go away.">
+      <Section icon="flask" title="Experimental" hint="Early features that may change or go away. Profile ones show on your own public page.">
         {EXPERIMENTS.map(x => (
-          <Row key={x.id} id={`x-${x.id}`} label={x.label} help={x.description} checked={s.experiments.includes(x.id)} onChange={v => toggleExp(x.id, v)} />
+          <div key={x.id}>
+            <Row id={`x-${x.id}`} label={x.label} help={x.description} checked={s.experiments.includes(x.id)} onChange={v => toggleExp(x.id, v)} />
+            {x.id === 'accent' && s.experiments.includes('accent') && (
+              <div className="pb-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Profile accent colour">
+                {ACCENTS.map(a => (
+                  <button key={a.id} type="button" role="radio" aria-checked={s.accent === a.id} onClick={() => setS(p => ({ ...p, accent: p.accent === a.id ? '' : a.id }))}
+                    className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${s.accent === a.id ? 'border-white text-white' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
+                    <span className="h-3 w-3 rounded-full" style={{ background: a.hex }} />{a.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {x.id === 'wishlist' && s.experiments.includes('wishlist') && (
+              <div className="pb-3 space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {s.wanted.length === 0 && <span className="text-xs text-gray-600">Nothing listed yet.</span>}
+                  {s.wanted.map(n => (
+                    <button key={n} type="button" onClick={() => toggleWanted(n)} title="Remove" className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-1 text-xs font-bold text-yellow-200 hover:bg-yellow-500/20">{nameOf(n)} <Icon name="x" /></button>
+                  ))}
+                  <span className="text-xs text-gray-600 self-center">{s.wanted.length}/{WANTED_MAX}</span>
+                </div>
+                <input type="search" value={find} onChange={e => setFind(e.target.value)} placeholder="Search a card to add" aria-label="Search cards to add" className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
+                {matches.length > 0 && (
+                  <ul className="flex flex-wrap gap-1.5">
+                    {matches.map(c => (
+                      <li key={c.number}><button type="button" disabled={s.wanted.includes(c.number) || s.wanted.length >= WANTED_MAX} onClick={() => toggleWanted(c.number)} className="rounded-full border border-gray-700 px-2.5 py-1 text-xs text-gray-300 hover:text-white disabled:opacity-40">+ #{c.number} {c.name}</button></li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         ))}
       </Section>
 

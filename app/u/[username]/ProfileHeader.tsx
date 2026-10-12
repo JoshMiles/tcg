@@ -3,13 +3,17 @@ import { Icon } from '@/app/components/Icon';
 import { Avatar } from '@/app/components/Avatar';
 import type { ProfileBase } from '@/lib/profile-data';
 import { ShareProfile } from './ShareProfile';
+import { CardTile } from '@/app/components/CardTile';
+import { accentHex, hasExperiment } from '@/lib/user-settings';
+import { VARIANT_LABELS } from '@/lib/variants';
 
 /** Who this is: avatar, name, awards, rank and progress, and the main actions (trade, share, leaderboard). */
 export function ProfileHeader({ b, isOwner, signedIn }: { b: ProfileBase; isOwner: boolean; signedIn: boolean }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
+  const accent = hasExperiment(b.settings, 'accent') ? accentHex(b.settings.accent) : undefined;
   return (
-    <header className="rounded-3xl border border-yellow-500/20 bg-gradient-to-br from-gray-900/80 to-gray-950/80 overflow-hidden">
-      <div className="holo-strip" />
+    <header className="rounded-3xl border border-yellow-500/20 bg-gradient-to-br from-gray-900/80 to-gray-950/80 overflow-hidden" style={accent ? { borderColor: `${accent}88`, boxShadow: `0 0 40px -16px ${accent}` } : undefined}>
+      <div className="holo-strip" style={accent ? { background: `linear-gradient(90deg, transparent, ${accent}, transparent)` } : undefined} />
       <div className="p-5 sm:p-6 flex flex-wrap items-start justify-between gap-5">
         <div className="flex items-start gap-4 min-w-0">
           <Avatar src={b.avatarUrl} name={b.displayName} className="w-16 h-16 sm:w-20 sm:h-20 text-2xl ring-2 ring-yellow-500/60 shrink-0" />
@@ -44,6 +48,21 @@ export function ProfileHeader({ b, isOwner, signedIn }: { b: ProfileBase; isOwne
           <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Cards</dt><dd className="font-display text-3xl font-bold text-white tabular-nums leading-tight">{b.uniqueOwned}<span className="text-lg text-gray-500">/{b.total}</span></dd></div>
         </dl>
       </div>
+
+      {b.showcase.length > 0 && (
+        <div className="px-5 sm:px-6 pb-4">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-2">Showcase</p>
+          <ul className="flex gap-3">
+            {b.showcase.map(c => (
+              <li key={c.number} className="w-20 sm:w-24" title={`${c.name}${c.variant === 'regular' ? '' : ` (${VARIANT_LABELS[c.variant]})`} · ${Math.round(c.points).toLocaleString()} pts`}>
+                <CardTile imageUrl={(c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl} alt={c.name} className="relative aspect-[2/3] rounded-lg overflow-hidden border border-gray-700" />
+                <p className="mt-1 text-[11px] text-gray-300 truncate">{c.name}</p>
+                <p className="text-[10px] text-yellow-400 tabular-nums">{Math.round(c.points).toLocaleString()} pts</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="px-5 sm:px-6 pb-5 space-y-4">
         <div>
