@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { Icon } from './Icon';
-import { SHARE_H, SHARE_W, HEADER_H, cardArea, layoutCards, type ShareSpec } from '@/lib/share-image';
+import { SHARE_H, SHARE_W, HEADER_H, cardArea, cardAreaWithPlate, plateRect, layoutCards, type ShareSpec } from '@/lib/share-image';
+import { qrModules } from '@/lib/qr';
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise(resolve => {
@@ -16,6 +17,57 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+/** The engraved steel plate under a single copy's card. */
+function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plate']>, edge: string, font: string) {
+  const r = plateRect();
+  ctx.save();
+  ctx.shadowColor = edge; ctx.shadowBlur = 26;
+  const steel = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h);
+  steel.addColorStop(0, '#a9a9b3'); steel.addColorStop(0.36, '#dcdce3'); steel.addColorStop(0.62, '#9a9aa5'); steel.addColorStop(1, '#c4c4cd');
+  ctx.fillStyle = steel; roundRect(ctx, r.x, r.y, r.w, r.h, 22); ctx.fill();
+  ctx.restore();
+  ctx.save();
+  roundRect(ctx, r.x, r.y, r.w, r.h, 22); ctx.clip();
+  // Brushed lines.
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  for (let x = r.x; x < r.x + r.w; x += 4) ctx.fillRect(x, r.y, 1, r.h);
+  ctx.restore();
+  ctx.strokeStyle = edge; ctx.lineWidth = 5; roundRect(ctx, r.x, r.y, r.w, r.h, 22); ctx.stroke();
+
+  const pad = 34;
+  const qr = p.qrUrl ? qrModules(p.qrUrl) : null;
+  const qrSize = 170;
+  const textW = r.w - pad * 2 - (qr ? qrSize + 30 : 0);
+
+  // Engraved lettering: a light edge below and a dark edge above, so it looks cut into the metal.
+  const engrave = (text: string, x: number, y: number, size: number, weight: number, fill: string, maxW: number) => {
+    ctx.font = `${weight} ${size}px ${font}`; ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillText(text, x, y + 2, maxW);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillText(text, x, y - 1, maxW);
+    ctx.fillStyle = fill; ctx.fillText(text, x, y, maxW);
+  };
+  engrave('THE CHEESY TCG  ·  UNIQUE COPY', r.x + pad, r.y + 46, 22, 800, 'rgba(24,24,32,0.75)', textW);
+  if (p.gold) {
+    const g = ctx.createLinearGradient(0, r.y + 56, 0, r.y + 124);
+    g.addColorStop(0, '#e0a81c'); g.addColorStop(0.45, '#f7d56b'); g.addColorStop(1, '#8a5a00');
+    ctx.font = `800 82px ${font}`; ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillText(p.number, r.x + pad, r.y + 123, textW);
+    ctx.fillStyle = g; ctx.fillText(p.number, r.x + pad, r.y + 120, textW);
+  } else {
+    engrave(p.number, r.x + pad, r.y + 120, 82, 800, 'rgba(30,30,38,0.8)', textW);
+  }
+  engrave(p.edition, r.x + pad, r.y + 162, 30, 800, 'rgba(18,18,26,0.82)', textW);
+  const rest = [p.date, ...(p.lines ?? [])].filter(Boolean) as string[];
+  rest.slice(0, 2).forEach((line, i) => engrave(line, r.x + pad, r.y + 197 + i * 30, i === 0 ? 24 : 22, i === 0 ? 800 : 700, 'rgba(18,18,26,0.78)', textW));
+
+  if (qr) {
+    const q = r.x + r.w - pad - qrSize, qy = r.y + (r.h - qrSize) / 2;
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; roundRect(ctx, q - 8, qy - 8, qrSize + 16, qrSize + 16, 10); ctx.fill();
+    const cell = qrSize / (qr.size + 2);
+    ctx.fillStyle = '#1f1f24';
+    for (let row = 0; row < qr.size; row++) for (let col = 0; col < qr.size; col++) if (qr.dark(row, col)) ctx.fillRect(q + (col + 1) * cell, qy + (row + 1) * cell, Math.ceil(cell), Math.ceil(cell));
+  }
 }
 
 /** Draws the image on a canvas. A card whose art can't be loaded (blocked or offline) is drawn as a plain tile, never skipped. */
@@ -51,7 +103,7 @@ export async function renderShare(spec: ShareSpec): Promise<HTMLCanvasElement> {
     }
   }
 
-  const rects = layoutCards(spec.cards.length, cardArea());
+  const rects = layoutCards(spec.cards.length, spec.plate ? cardAreaWithPlate() : cardArea());
   const imgs = await Promise.all(spec.cards.slice(0, rects.length).map(c => loadImage(c.src)));
   rects.forEach((r, i) => {
     const card = spec.cards[i];
@@ -75,6 +127,8 @@ export async function renderShare(spec: ShareSpec): Promise<HTMLCanvasElement> {
     ctx.restore();
     ctx.strokeStyle = card.hex ?? '#facc15'; ctx.lineWidth = 4; roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.stroke();
   });
+
+  if (spec.plate) drawPlate(ctx, spec.plate, spec.cards[0]?.hex ?? '#facc15', font);
 
   ctx.fillStyle = '#9ca3af'; ctx.font = `600 28px ${font}`; ctx.textAlign = 'center';
   ctx.fillText(spec.footer, SHARE_W / 2, SHARE_H - 40, SHARE_W - 140);

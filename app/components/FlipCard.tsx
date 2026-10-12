@@ -1,21 +1,8 @@
 'use client';
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import qrcode from 'qrcode-generator';
+import { qrPath } from '@/lib/qr';
 import { editionLine, madeLine, type FlipBack } from '@/lib/flip-back';
-
-/** A QR code as one SVG path (dark modules only), so it can be styled like the rest of the engraving. */
-function qrPath(text: string): { d: string; size: number } | null {
-  try {
-    const q = qrcode(0, 'M');
-    q.addData(text);
-    q.make();
-    const size = q.getModuleCount();
-    let d = '';
-    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (q.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
-    return { d, size };
-  } catch { return null; }
-}
 
 const MAX_TILT = 12;
 
