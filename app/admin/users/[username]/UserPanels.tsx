@@ -171,7 +171,7 @@ export function ToolsPanel({ username, snapshots, collections }: { username: str
     <div className="space-y-6">
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-white">Compare with another viewer</h3>
-        <form onSubmit={e => { e.preventDefault(); if (other.trim()) router.push(`/admin/users/${encodeURIComponent(username)}?compare=${encodeURIComponent(other.trim().replace(/^@/, '').toLowerCase())}#compare`); }} className="flex items-center gap-2">
+        <form onSubmit={e => { e.preventDefault(); if (other.trim()) router.push(`/admin/users/${encodeURIComponent(username)}?tab=admin&compare=${encodeURIComponent(other.trim().replace(/^@/, '').toLowerCase())}#compare`); }} className="flex items-center gap-2">
           <input value={other} onChange={e => setOther(e.target.value)} placeholder="their username" aria-label="Compare with" className={`${field} w-56`} />
           <button type="submit" disabled={!other.trim()} className={btn}>Compare</button>
         </form>
@@ -203,13 +203,5 @@ export function ToolsPanel({ username, snapshots, collections }: { username: str
       </div>
       <Result r={result} />
     </div>
-  );
-}
-
-export function SectionNav({ items }: { items: { id: string; label: string }[] }) {
-  return (
-    <nav aria-label="Sections" className="flex flex-wrap gap-2 sticky top-0 z-10 bg-gray-950/90 backdrop-blur py-2 -mx-1 px-1">
-      {items.map(i => <Link key={i.id} href={`#${i.id}`} className="px-3 py-1.5 rounded-full text-xs font-bold border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors">{i.label}</Link>)}
-    </nav>
   );
 }

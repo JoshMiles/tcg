@@ -190,7 +190,7 @@ export default async function PacksPage() {
                           {health.length === 0 ? (
                             <span className="inline-flex items-center gap-1 font-semibold text-emerald-400"><Icon name="checkCircle" className="w-3.5 h-3.5" />Healthy</span>
                           ) : (
-                            <Link href={`/admin/packs/${pack.id}#health`} title={health.map(h => h.text).join('\n')} className={`inline-flex items-center gap-1 font-semibold hover:underline ${health.some(h => h.level === 'warn') ? 'text-amber-300' : 'text-sky-300'}`}>
+                            <Link href={`/admin/packs/${pack.id}?tab=overview#health`} title={health.map(h => h.text).join('\n')} className={`inline-flex items-center gap-1 font-semibold hover:underline ${health.some(h => h.level === 'warn') ? 'text-amber-300' : 'text-sky-300'}`}>
                               <Icon name={health.some(h => h.level === 'warn') ? 'warning' : 'info'} className="w-3.5 h-3.5" />{health.length} issue{health.length === 1 ? '' : 's'}
                             </Link>
                           )}

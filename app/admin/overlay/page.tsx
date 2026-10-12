@@ -27,7 +27,7 @@ export default async function OverlayEditorPage({ searchParams }: { searchParams
   return (
     <div className="flex flex-col gap-3 max-w-none xl:h-[calc(100vh-4rem)]">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="text-2xl font-bold">Overlay Editor</h1>
+        <h1 className="text-3xl font-bold text-white">Overlay Editor</h1>
         <p className="text-sm text-gray-500">Where the overlay sits on stream, and how packs, cards and collections look and move.</p>
       </div>
 

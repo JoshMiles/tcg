@@ -21,7 +21,7 @@ export async function saveTradeSettingsAction(formData: FormData) {
     minAccountHours: Number(formData.get('minAccountHours')),
   }));
   revalidatePath('/admin/trades');
-  redirect('/admin/trades?saved=1');
+  redirect('/admin/trades?tab=settings&saved=1');
 }
 
 /** Cancels an open offer and returns the escrowed cards to their owner. Works while trading is paused. */

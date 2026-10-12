@@ -7,6 +7,7 @@ import { stackPoints, type TradeCardInfo } from '@/lib/trade-view-core';
 import { FLAG_RULES, computeTradeStats, flagTrades, partnerOf, type TradeRow } from '@/lib/trade-insights';
 import { PendingButton } from '../components/PendingButton';
 import { saveTradeSettingsAction } from '../trade-actions';
+import { PageTabs, pickTab } from '../components/PageTabs';
 import { TradeControls } from './TradeControls';
 import { TradeLog } from './TradeLog';
 
@@ -29,7 +30,7 @@ const Panel = ({ title, hint, children }: { title: string; hint?: string; childr
   </section>
 );
 
-export default async function AdminTradesPage({ searchParams }: { searchParams: Promise<{ saved?: string; flagged?: string }> }) {
+export default async function AdminTradesPage({ searchParams }: { searchParams: Promise<{ saved?: string; flagged?: string; tab?: string }> }) {
   const sp = await searchParams;
   await sweepTrades();
   const [settings, open, history, seasons] = await Promise.all([getTradeSettings(), listOpenTrades(), tradeHistory(), listSeasons()]);
@@ -70,6 +71,13 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
   const maxDay = Math.max(1, ...stats.perDay.map(d => d.offered));
   const cardLabel = (key: string) => { const [sid, n] = key.split(':'); return cardsBySeason[sid]?.[Number(n)]?.name ?? `Card #${n}`; };
   const publishedSeasons = seasons.filter(s => s.status !== 'draft');
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: 'chart' },
+    { id: 'log', label: 'Offers & log', icon: 'list', count: stats.openCount > 0 ? stats.openCount : undefined },
+    { id: 'settings', label: 'Controls & settings', icon: 'settings' },
+  ] as const;
+  // Opening the log from the flagged banner (?flagged=1) lands on the log tab.
+  const tab = pickTab(tabs, sp.tab ?? (sp.flagged === '1' ? 'log' : undefined));
 
   return (
     <div className="space-y-6">
@@ -92,6 +100,9 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
         <Tile label="Flagged" value={rows.filter(r => r.flags.length > 0).length} sub="in the kept history" />
       </div>
 
+      <PageTabs tabs={tabs} active={tab} base="/admin/trades" label="Trade sections" />
+
+      {tab === 'overview' && (
       <div className="grid xl:grid-cols-3 gap-6">
         <Panel title="Offers per day" hint="Last 14 days. The bar is offers made; the green part is trades completed that day.">
           <div className="flex items-end gap-1.5 h-32" role="img" aria-label="Offers and completed trades per day">
@@ -120,11 +131,15 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
           )}
         </Panel>
       </div>
+      )}
 
+      {tab === 'log' && (
       <Panel title="Offers & log" hint="Open offers first, then the latest ended ones. Click a row for the full detail, to cancel, extend or block a viewer.">
         <TradeLog rows={rows} seasons={publishedSeasons.map(s => ({ id: s.id, name: s.name }))} initialFlaggedOnly={sp.flagged === '1'} />
       </Panel>
+      )}
 
+      {tab === 'settings' && (
       <div className="grid xl:grid-cols-2 gap-6">
         <Panel title="Controls">
           <TradeControls seasons={publishedSeasons.map(s => ({ id: s.id, name: s.name, frozen: !!s.tradingFrozen, open: open.filter(t => t.seasonId === s.id).length }))} openTotal={open.length} />
@@ -158,6 +173,7 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
           </form>
         </Panel>
       </div>
+      )}
     </div>
   );
 }

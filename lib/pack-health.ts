@@ -43,7 +43,7 @@ export function packHealth(pack: Pack, cards: Card[], opts: { inSeason: boolean 
   for (const c of cards) { const k = c.name.trim().toLowerCase(); if (k) names.set(k, (names.get(k) ?? 0) + 1); }
   const dupNames = [...names.entries()].filter(([, n]) => n > 1);
   if (dupNames.length > 0) issues.push({ id: 'dup-names', level: 'info', text: `${dupNames.length} card ${plural(dupNames.length, 'name is', 'names are')} used more than once.`, href: base });
-  if (!pack.coverImageUrl) issues.push({ id: 'no-cover', level: 'info', text: 'No cover image.', href: `${base}#settings` });
+  if (!pack.coverImageUrl) issues.push({ id: 'no-cover', level: 'info', text: 'No cover image.', href: `${base}?tab=settings` });
   if (pack.status === 'published' && !opts.inSeason) issues.push({ id: 'no-season', level: 'warn', text: 'Not in any season, so it is never drawn.', href: '/admin/seasons' });
   return issues;
 }
