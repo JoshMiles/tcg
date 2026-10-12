@@ -11,6 +11,7 @@ import { UnusedPanel } from './UnusedPanel';
 import { IssueChips, KIND_LABEL, SizeBar, assetTitle, filename, formatBytes, isFixable } from './asset-ui';
 import { keyOf } from './replace-key';
 import { useReplace } from './useReplace';
+import { useSlashFocus } from '../components/use-slash-focus';
 
 export type AssetTab = AssetKind | 'unused' | 'insights';
 type Sort = 'default' | 'size' | 'issues';
@@ -46,13 +47,7 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
   useEffect(() => { try { const v = localStorage.getItem('tcg_assets_view'); if (v === 'grid' || v === 'list' || v === 'compact') setView(v); } catch { /* optional */ } }, []);
   useEffect(() => setOnlyIssues(!!issuesOnly), [issuesOnly]);
   useEffect(() => { setSelected(new Set()); setOpenId(null); }, [tab]);
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => {
-      if (e.key === '/' && !(e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))) { e.preventDefault(); searchRef.current?.focus(); }
-    };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, []);
+  useSlashFocus(searchRef);
   const chooseView = (v: View) => { setView(v); try { localStorage.setItem('tcg_assets_view', v); } catch { /* optional */ } };
 
   const q = query.trim().toLowerCase();

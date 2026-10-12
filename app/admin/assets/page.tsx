@@ -6,21 +6,10 @@ import { GIF_SAVINGS } from '@/lib/asset-insights';
 import { PageTabs, pickTab, type PageTab } from '../components/PageTabs';
 import { AssetBrowser, type AssetTab } from './AssetBrowser';
 import { formatBytes } from './asset-ui';
+import { Tile, PageHeader } from '../components/ui';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // the Fix action re-encodes a GIF per request (up to ~15s)
-
-const Tile = ({ label, value, sub, tone, href, icon }: { label: string; value: string; sub: string; tone?: 'amber' | 'green'; href?: string; icon: Parameters<typeof Icon>[0]['name'] }) => {
-  const body = (
-    <>
-      <div className="flex items-center justify-between"><p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p><Icon name={icon} className={tone === 'amber' ? 'text-amber-400' : tone === 'green' ? 'text-green-400' : 'text-gray-600'} /></div>
-      <p className={`font-display text-2xl font-bold tabular-nums leading-tight ${tone === 'amber' ? 'text-amber-300' : tone === 'green' ? 'text-green-300' : 'text-white'}`}>{value}</p>
-      <p className="text-[11px] text-gray-500">{sub}</p>
-    </>
-  );
-  const cls = 'rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3 block';
-  return href ? <Link href={href} className={`${cls} hover:border-yellow-500/40 transition-colors`}>{body}</Link> : <div className={cls}>{body}</div>;
-};
 
 export default async function AssetsPage({ searchParams }: { searchParams: Promise<{ tab?: string; issues?: string }> }) {
   const sp = await searchParams;
@@ -50,10 +39,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Assets</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Every image and sound the game uses, with its size and health. Click a file for details; drop a file on it to replace it.</p>
-      </div>
+      <PageHeader title="Assets" subtitle="Every image and sound the game uses, with its size and health. Click a file for details; drop a file on it to replace it." />
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <Tile label="Files in use" icon="image" value={String(assets.length)} sub={`${formatBytes(inUse)} in total`} href="?tab=insights" />

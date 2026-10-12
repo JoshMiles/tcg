@@ -1,5 +1,6 @@
 import { Icon } from '@/app/components/Icon';
 import type { Rates } from '@/lib/activity-view';
+import { Tile } from '../components/ui';
 
 function Spark({ values }: { values: number[] }) {
   const max = Math.max(1, ...values);
@@ -11,14 +12,6 @@ function Spark({ values }: { values: number[] }) {
     </div>
   );
 }
-
-const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
-  <div className="rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3">
-    <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
-    <p className="font-display text-2xl font-bold text-white tabular-nums leading-tight">{value}</p>
-    {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
-  </div>
-);
 
 /** Pulls per minute / hour, viewers, rare pulls and a 30 minute sparkline, from the events loaded on the page; plus a spike warning. */
 export function SummaryStrip({ rates, onFilterRare }: { rates: Rates; onFilterRare: () => void }) {

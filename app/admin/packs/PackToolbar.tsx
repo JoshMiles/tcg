@@ -1,6 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { useEffect, useRef, useState } from 'react';
+import { useSlashFocus } from '../components/use-slash-focus';
 
 type Filter = 'all' | 'live' | 'inactive' | 'draft' | 'archived';
 type Sort = 'default' | 'name' | 'cards' | 'weight';
@@ -54,15 +55,7 @@ export function PackToolbar({ counts }: { counts: Record<Filter, number> }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, filter, sort, countKey]); // countKey: re-apply after a server refresh changes which tiles are archived, live, etc.
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const target = e.target as HTMLElement | null;
-      const typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
-      if (e.key === '/' && !typing) { e.preventDefault(); inputRef.current?.focus(); }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  useSlashFocus(inputRef);
 
   return (
     <div className="space-y-3">

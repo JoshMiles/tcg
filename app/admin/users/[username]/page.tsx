@@ -22,6 +22,7 @@ import { listUserSnapshots, SUGGESTED_TAGS } from '@/lib/user-admin';
 import { updateUserProfile, removeUserCard, resetUserSeason, resetUser, deleteUser } from '../../actions';
 import { PageTabs, pickTab } from '../../components/PageTabs';
 import { GrantPanel, ModerationPanel, TagsEditor, ToolsPanel, TradesPanel, type TradeLine } from './UserPanels';
+import { Panel, Tile } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,21 +33,6 @@ type SeasonEntry = {
   variantMap: Map<number, ReturnType<typeof countVariants> extends Map<number, infer V> ? V : never>;
   packs: Array<{ pack: Pack; cards: Card[] }>;
 };
-
-const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
-  <div className="rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3">
-    <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
-    <p className="font-display text-2xl font-bold text-white tabular-nums leading-tight">{value}</p>
-    {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
-  </div>
-);
-
-const Section = ({ id, title, hint, children }: { id: string; title: string; hint?: string; children: React.ReactNode }) => (
-  <section id={id} className="tcg-panel rounded-2xl p-6 space-y-4 scroll-mt-16">
-    <div><h2 className="font-semibold text-white">{title}</h2>{hint && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}</div>
-    {children}
-  </section>
-);
 
 function ago(t: number | null | undefined, now: number): string {
   if (!t) return 'never';
@@ -209,7 +195,7 @@ export default async function UserDetailPage({
 
       {tab === 'profile' && (
         <>
-      <Section id="overview" title="Profile" hint="Tags and notes are only visible to admins.">
+      <Panel id="overview" title="Profile" hint="Tags and notes are only visible to admins.">
         <TagsEditor username={username} initial={profile?.tags ?? []} suggestions={SUGGESTED_TAGS} />
         <form action={updateProfile} className="grid md:grid-cols-3 gap-4">
           <div>
@@ -226,9 +212,9 @@ export default async function UserDetailPage({
           </div>
           <div className="md:col-span-3"><PendingButton type="submit" className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors">Save Profile</PendingButton></div>
         </form>
-      </Section>
+      </Panel>
 
-      <Section id="activity" title="Timeline" hint="Their latest events (pulls, upgrades, grants, trades). The live log keeps the newest 500 events across everyone.">
+      <Panel id="activity" title="Timeline" hint="Their latest events (pulls, upgrades, grants, trades). The live log keeps the newest 500 events across everyone.">
         {timeline.length === 0 ? <p className="text-sm text-gray-600">Nothing recent.</p> : (
           <ul className="divide-y divide-gray-800/60 rounded-lg border border-gray-800 overflow-hidden">
             {timeline.map(e => (
@@ -239,16 +225,16 @@ export default async function UserDetailPage({
             ))}
           </ul>
         )}
-      </Section>
+      </Panel>
 
         </>
       )}
 
       {tab === 'trades' && (
         <>
-      <Section id="trades" title="Trades" hint="Open offers can be cancelled here; the escrowed cards go back to their owner.">
+      <Panel id="trades" title="Trades" hint="Open offers can be cancelled here; the escrowed cards go back to their owner.">
         <TradesPanel username={username} lines={tradeLines} />
-      </Section>
+      </Panel>
 
         </>
       )}
@@ -343,28 +329,28 @@ export default async function UserDetailPage({
 
       {tab === 'grant' && (
         <>
-      <Section id="grant" title="Grant cards & packs" hint={activeSeason ? `Into ${activeSeason.name}. Pick several cards, choose a version and how many copies of each.` : 'There is no active season.'}>
+      <Panel id="grant" title="Grant cards & packs" hint={activeSeason ? `Into ${activeSeason.name}. Pick several cards, choose a version and how many copies of each.` : 'There is no active season.'}>
         {activeSeason ? <GrantPanel username={username} cards={grantCards} upgrades={grantUpgrades} /> : <p className="text-sm text-gray-600">Activate a season first.</p>}
-      </Section>
+      </Panel>
 
         </>
       )}
 
       {tab === 'admin' && (
         <>
-      <Section id="moderation" title="Moderation" hint="Restrictions apply immediately across the website and the Twitch panel.">
+      <Panel id="moderation" title="Moderation" hint="Restrictions apply immediately across the website and the Twitch panel.">
         <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at }} />
-      </Section>
+      </Panel>
 
-      <Section id="tools" title="Restore points, compare & merge">
+      <Panel id="tools" title="Restore points, compare & merge">
         <ToolsPanel
           username={username}
           snapshots={snaps.map(s => ({ id: s.id, at: s.at, reason: s.reason, cards: s.collections.reduce((n, c) => n + c.entries.length, 0), seasons: s.collections.map(c => c.seasonName).join(', ') }))}
           collections={{ cards: totalPulls, seasons: activeSeasons }}
         />
-      </Section>
+      </Panel>
 
-      <Section id="compare" title="Compare" hint="Cards missing on each side in the active season, and how many one-for-one duplicate swaps would help both.">
+      <Panel id="compare" title="Compare" hint="Cards missing on each side in the active season, and how many one-for-one duplicate swaps would help both.">
         {compare ? (
           <div className="space-y-3 text-sm">
             <p className="text-gray-300">With <Link href={`/admin/users/${encodeURIComponent(compare.name)}`} className="text-yellow-400 hover:text-yellow-300">{compare.name}</Link>: <strong className="text-white">{compare.swaps}</strong> possible duplicate swap{compare.swaps === 1 ? '' : 's'}.</p>
@@ -374,9 +360,9 @@ export default async function UserDetailPage({
             </div>
           </div>
         ) : <p className="text-sm text-gray-600">Use “Compare with another viewer” in the tools above.</p>}
-      </Section>
+      </Panel>
 
-      <Section id="audit" title="Audit trail" hint="What admins did to this account (newest first).">
+      <Panel id="audit" title="Audit trail" hint="What admins did to this account (newest first).">
         {audit.length === 0 ? <p className="text-sm text-gray-600">No admin actions recorded yet.</p> : (
           <ul className="divide-y divide-gray-800/60 rounded-lg border border-gray-800 overflow-hidden">
             {audit.map((a, i) => (
@@ -388,7 +374,7 @@ export default async function UserDetailPage({
             ))}
           </ul>
         )}
-      </Section>
+      </Panel>
 
       <section className="bg-gray-900 border border-red-950/40 rounded-2xl p-6">
         <h2 className="font-semibold text-red-400 mb-1">Danger Zone</h2>

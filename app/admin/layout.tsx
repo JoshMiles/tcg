@@ -1,5 +1,6 @@
 import { PendingButton } from './components/PendingButton';
 import { AdminNav } from './components/AdminNav';
+import { AdminKeyboard, PaletteButton } from './components/AdminKeyboard';
 import { AdminShell } from './components/AdminShell';
 import { BrandMark } from './components/BrandMark';
 import { BuildBadge } from './components/BuildBadge';
@@ -22,7 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
         }
-        nav={<AdminNav />}
+        nav={<><div className="px-3 pt-1"><PaletteButton /></div><AdminNav /></>}
         status={<OverlayStatus variant="compact" />}
         footer={
           <>
@@ -56,6 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
       >
         <SandboxPill />
+        <AdminKeyboard />
         {children}
       </AdminShell>
     </OverlayStatusProvider>

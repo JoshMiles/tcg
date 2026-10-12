@@ -14,6 +14,7 @@ import { ConfirmButton } from '../components/ConfirmButton';
 import { BrandMark } from '../components/BrandMark';
 import { StatusChip, DraftChip } from '../components/StatusChip';
 import { PackToolbar } from './PackToolbar';
+import { PageHeader, EmptyState } from '../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,16 +50,11 @@ export default async function PacksPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Packs</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {counts.all} pack{counts.all !== 1 ? 's' : ''} · {totalCards} cards
-            {counts.draft > 0 ? ` · ${counts.draft} draft${counts.draft !== 1 ? 's' : ''}` : ''} · packs are shared: add them to any season
-          </p>
-        </div>
-        <NewPackButton />
-      </div>
+      <PageHeader
+        title="Packs"
+        subtitle={`${counts.all} pack${counts.all !== 1 ? 's' : ''} · ${totalCards} cards${counts.draft > 0 ? ` · ${counts.draft} draft${counts.draft !== 1 ? 's' : ''}` : ''} · packs are shared: add them to any season`}
+        actions={<NewPackButton />}
+      />
 
       {orphaned.length > 0 && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-sm text-amber-200">
@@ -69,10 +65,9 @@ export default async function PacksPage() {
       )}
 
       {packs.length === 0 ? (
-        <div className="tcg-panel rounded-2xl py-20 text-center space-y-3">
-          <p className="text-gray-500">No packs yet</p>
-          <NewPackButton />
-        </div>
+        <EmptyState icon="cards" title="No packs yet" action={<NewPackButton />}>
+          A pack is a set of cards viewers can pull. Create one, then add it to a season to start drawing it on stream.
+        </EmptyState>
       ) : (
         <>
           <PackToolbar counts={counts} />

@@ -1,6 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { useEffect, useRef, useState } from 'react';
+import { useSlashFocus } from '../../components/use-slash-focus';
 
 /**
  * Search + rarity filter for the (server-rendered) cards table. Rows opt in with `data-card`, `data-search` (lowercase
@@ -23,15 +24,7 @@ export function CardFilter({ total, stars }: { total: number; stars: number[] })
     setShown(count);
   }, [query, star]);
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const t = e.target as HTMLElement | null;
-      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
-      if (e.key === '/' && !typing) { e.preventDefault(); inputRef.current?.focus(); }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  useSlashFocus(inputRef);
 
   if (total < 6) return null; // not worth a filter for a handful of cards
 

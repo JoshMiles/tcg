@@ -16,18 +16,11 @@ import { StackedBars } from '../../dashboard/charts';
 import { LineupEditor, type LineupPack } from './LineupEditor';
 import { seasonTiming } from '../season-timing';
 import { PageTabs, pickTab, type PageTab } from '../../components/PageTabs';
+import { Tile } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
 
 const when = (ms: number) => new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
-  <div className="rounded-xl border border-gray-800 bg-gray-950/50 px-4 py-3">
-    <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
-    <p className="font-display text-2xl font-bold text-white tabular-nums leading-tight">{value}</p>
-    {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
-  </div>
-);
-
 export default async function SeasonPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = await params;
   const { tab: tabParam } = await searchParams;

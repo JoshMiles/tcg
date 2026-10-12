@@ -10,25 +10,11 @@ import { saveTradeSettingsAction } from '../trade-actions';
 import { PageTabs, pickTab } from '../components/PageTabs';
 import { TradeControls } from './TradeControls';
 import { TradeLog } from './TradeLog';
+import { Panel, Tile, PageHeader } from '../components/ui';
 
 export const dynamic = 'force-dynamic';
 
 const field = 'w-28 rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500';
-
-const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
-  <div className="rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3">
-    <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
-    <p className="font-display text-2xl font-bold text-white tabular-nums leading-tight">{value}</p>
-    {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
-  </div>
-);
-
-const Panel = ({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) => (
-  <section className="tcg-panel rounded-2xl p-5 space-y-3">
-    <div><h2 className="font-semibold text-white">{title}</h2>{hint && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}</div>
-    {children}
-  </section>
-);
 
 export default async function AdminTradesPage({ searchParams }: { searchParams: Promise<{ saved?: string; flagged?: string; tab?: string }> }) {
   const sp = await searchParams;
@@ -81,10 +67,7 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Trades</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Viewer-to-viewer card trading on the website. Offered cards are held in escrow until the offer ends.</p>
-      </div>
+      <PageHeader title="Trades" subtitle="Viewer-to-viewer card trading on the website. Offered cards are held in escrow until the offer ends." />
       {sp.saved && <p role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 px-4 py-2 text-sm text-emerald-300">Trade settings saved.</p>}
       {!settings.enabled && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-4 py-2 text-sm text-amber-200"><Icon name="pause" className="mr-1" />Trading is paused for everyone. Viewers can still cancel their own offers.</p>}
       {(flaggedOpen > 0 || flaggedRecent > 0) && (
