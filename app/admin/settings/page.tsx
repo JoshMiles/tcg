@@ -44,13 +44,12 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
     { name: 'baseScore', label: 'Base score', help: 'Points one Regular copy of an average card is worth. Scales every card value (and the bonuses, which are measured against card values).' },
     { name: 'rarityExponent', label: 'Rarity strength', help: 'How strongly rarity counts. 1 = a card half as likely is worth twice as much; below 1 flattens the gap between common and rare, above 1 widens it.' },
   ] },
-  { title: 'Scarcity (how few copies of a version exist)', fields: [
-    { name: 'scarcityMax', label: 'Max bonus (×)', help: 'The most a scarce version can be worth over average. 2 = up to double.' },
-    { name: 'scarcityMin', label: 'Min multiplier (×)', help: 'The least a very common version can fall to. 0.5 = down to half.' },
-    { name: 'scarcitySmoothing', label: 'Smoothing', help: 'Steadies values while few cards exist (early season). Higher = values move less; 1 is the original behaviour.' },
+  { title: 'Serial bonus (the first copies of a card are worth more)', fields: [
+    { name: 'serialBonusMax', label: 'Copy #1 multiplier (×)', help: 'What the very first copy ever made of a card (in each version) is worth compared with a normal copy. 3 = triple. 1 = no bonus.' },
+    { name: 'serialBonusCutoff', label: 'Serials that get a bonus', help: 'The bonus fades in a straight line from copy #1 down to nothing after this serial. 20 = copies #1 to #20 earn a bonus. 0 switches the bonus off.' },
   ] },
   { title: 'Upgrades', fields: [
-    { name: 'upgradeMargin', label: 'Upgrade margin (×)', help: 'An upgraded copy is worth at least this many times the copies spent to make it (before scarcity shifts). 1.2 = 20% more.' },
+    { name: 'upgradeMargin', label: 'Upgrade margin (×)', help: 'An upgraded copy is worth at least this many times the copies spent to make it. 1.2 = 20% more.' },
   ] },
   { title: 'Collection bonuses (% of the set value)', fields: [
     { name: 'completionBonusPct', label: 'Completion bonus (%)', help: 'Earned in proportion to how much of the set you own; this is the amount at 100%. 25 = a quarter of the set value.' },

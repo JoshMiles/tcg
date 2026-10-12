@@ -10,6 +10,7 @@ import type { Variant } from '@/lib/types';
 import type { TradeItem } from '@/lib/trade-core';
 import { stackPoints, type TradeCardInfo } from '@/lib/trade-view-core';
 import { fairness } from '@/lib/trade-match';
+import type { SerialPool } from '@/lib/serials-core';
 import { TradeStacks } from './TradeStacks';
 
 type Holdings = Record<number, Partial<Record<Variant, number>>>;
@@ -22,11 +23,13 @@ const MAX_COPIES = 99;
  * The server re-checks everything (ownership, limits, who the offer is for), so this only guides.
  */
 export function TradeComposer({
-  seasonId, cards, mine, myWanted = [], maxStacks, expiryHours, initial,
+  seasonId, cards, mine, minePool = {}, myWanted = [], maxStacks, expiryHours, initial,
 }: {
   seasonId: string;
   cards: TradeCardInfo[];
   mine: Holdings;
+  /** The serial numbers the viewer holds: trades move the newest first, so the offer is priced with those. */
+  minePool?: SerialPool;
   /** Cards on the viewer's own Looking for list. */
   myWanted?: number[];
   maxStacks: number;
@@ -39,6 +42,7 @@ export function TradeComposer({
   const [to, setTo] = useState(initial.to);
   const [partner, setPartner] = useState<Holdings | null>(null);
   const [partnerWanted, setPartnerWanted] = useState<number[]>([]);
+  const [partnerPool, setPartnerPool] = useState<SerialPool>({});
   const [okLopsided, setOkLopsided] = useState(false);
   const [partnerError, setPartnerError] = useState('');
   const [lookingUp, setLookingUp] = useState(false);
@@ -55,6 +59,7 @@ export function TradeComposer({
     setLookingUp(true);
     setPartnerError('');
     setPartner(null);
+    setPartnerPool({});
     try {
       const res = await fetch(`/api/trades/holdings?username=${encodeURIComponent(name)}&season=${encodeURIComponent(seasonId)}`);
       const body = await res.json().catch(() => ({}));
@@ -62,6 +67,7 @@ export function TradeComposer({
       setTo(name);
       setPartner(body.holdings as Holdings);
       setPartnerWanted(Array.isArray(body.wanted) ? body.wanted : []);
+      setPartnerPool(body.pool && typeof body.pool === 'object' ? body.pool as SerialPool : {});
     } catch (e) {
       setPartnerError(e instanceof Error ? e.message : 'Could not find them');
     } finally {
@@ -96,8 +102,9 @@ export function TradeComposer({
     set(count < 1 ? list.filter(i => i !== item) : list.map(i => (i === item ? { ...i, count } : i)));
   };
 
-  const givePts = stackPoints(give, byNumber);
-  const getPts = stackPoints(get, byNumber);
+  // Your copies leave newest first, so a low serial number stays with you unless you give up every copy of that version.
+  const givePts = stackPoints(give, byNumber, minePool);
+  const getPts = stackPoints(get, byNumber, kind === 'direct' ? partnerPool : undefined);
   const verdict = fairness(givePts, getPts);
   const ready = give.length > 0 && get.length > 0 && (kind === 'listing' || !!to.trim()) && (!verdict.warn || okLopsided);
 

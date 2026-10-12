@@ -1,6 +1,6 @@
 import { encodeEntry } from './variants';
 import { firstMissing, type Trade, type TradeItem } from './trade-core';
-import { stackPoints, type TradeCardInfo } from './trade-view-core';
+import { poolsFor, stackPoints, type TradeCardInfo, type TradePools } from './trade-view-core';
 
 // Which open listings on the board suit a viewer (pure, client-safe): ones that give a card they are looking for or do not own yet,
 // and ones that only ask for spare copies. The server still decides whether a trade is allowed; this only ranks and explains.
@@ -29,7 +29,7 @@ export interface MatchInfo {
 
 const ownsAny = (copies: Map<number, number>, card: number) => [0, 1, 2, 3].some(v => (copies.get(card + 1_000_000 * v) ?? 0) > 0);
 
-export function matchTrade(trade: Trade, viewer: MatchViewer, cards: Record<number, TradeCardInfo>): MatchInfo {
+export function matchTrade(trade: Trade, viewer: MatchViewer, cards: Record<number, TradeCardInfo>, pools?: TradePools): MatchInfo {
   // ownedList for firstMissing: expand counts back into an entry list (small: only the asked-for stacks matter).
   const owned: number[] = [];
   for (const i of trade.get) owned.push(...Array<number>(viewer.copies.get(encodeEntry(i.cardNumber, i.variant)) ?? 0).fill(encodeEntry(i.cardNumber, i.variant)));
@@ -37,7 +37,8 @@ export function matchTrade(trade: Trade, viewer: MatchViewer, cards: Record<numb
   const offersWanted = trade.give.filter(i => viewer.wanted.has(i.cardNumber));
   const offersNew = trade.give.filter(i => !ownsAny(viewer.copies, i.cardNumber));
   const asksOnlySpares = canTake && trade.get.every(i => (viewer.copies.get(encodeEntry(i.cardNumber, i.variant)) ?? 0) > i.count);
-  const gain = Math.round(stackPoints(trade.give, cards) - stackPoints(trade.get, cards));
+  const p = poolsFor(trade, pools);
+  const gain = Math.round(stackPoints(trade.give, cards, p.give) - stackPoints(trade.get, cards, p.get));
 
   const reasons: string[] = [];
   if (offersWanted.length > 0) reasons.push('Offers a card you are looking for');
@@ -50,9 +51,9 @@ export function matchTrade(trade: Trade, viewer: MatchViewer, cards: Record<numb
 }
 
 /** Listings worth showing as "matches": something you want or lack, or a fair trade of spares, that you can actually take. Best first. */
-export function bestMatches(trades: Trade[], viewer: MatchViewer, cards: Record<number, TradeCardInfo>, limit = 5): MatchInfo[] {
+export function bestMatches(trades: Trade[], viewer: MatchViewer, cards: Record<number, TradeCardInfo>, limit = 5, pools?: TradePools): MatchInfo[] {
   return trades
-    .map(t => matchTrade(t, viewer, cards))
+    .map(t => matchTrade(t, viewer, cards, pools))
     .filter(m => m.canTake && (m.offersWanted.length > 0 || m.offersNew.length > 0 || (m.asksOnlySpares && m.gain >= 0)))
     .sort((a, b) => b.score - a.score || b.trade.createdAt - a.trade.createdAt)
     .slice(0, limit);

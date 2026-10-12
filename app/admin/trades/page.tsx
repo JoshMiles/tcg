@@ -2,8 +2,8 @@ import { Icon } from '@/app/components/Icon';
 import { getUserProfile, listSeasons } from '@/lib/kv';
 import { getTradeSettings, listOpenTrades, sweepTrades, tradeHistory } from '@/lib/trades';
 import { TRADE_LIMITS, describeItems, type Trade } from '@/lib/trade-core';
-import { getTradeCards } from '@/lib/trade-view';
-import { stackPoints, type TradeCardInfo } from '@/lib/trade-view-core';
+import { getTradeCards, getTradePools } from '@/lib/trade-view';
+import { stackPoints, type TradeCardInfo, type TradePools } from '@/lib/trade-view-core';
 import { FLAG_RULES, computeTradeStats, flagTrades, partnerOf, type TradeRow } from '@/lib/trade-insights';
 import { PendingButton } from '../components/PendingButton';
 import { saveTradeSettingsAction } from '../trade-actions';
@@ -25,12 +25,16 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
 
   // Card names / points for every season that has a trade, and when each involved viewer first appeared.
   const cardsBySeason: Record<string, Record<number, TradeCardInfo>> = {};
-  for (const s of seasons) if (all.some(t => t.seasonId === s.id)) cardsBySeason[s.id] = await getTradeCards(s).catch(() => ({}));
+  const poolsBySeason: Record<string, TradePools> = {};
+  for (const s of seasons) if (all.some(t => t.seasonId === s.id)) {
+    cardsBySeason[s.id] = await getTradeCards(s).catch(() => ({}));
+    poolsBySeason[s.id] = await getTradePools(s, open).catch(() => ({ viewer: null, give: {}, mine: {} }));
+  }
   const users = [...new Set(all.flatMap(t => [t.from, partnerOf(t)].filter((u): u is string => !!u)))];
   const created = new Map<string, number>();
   await Promise.all(users.map(async u => { const c = (await getUserProfile(u).catch(() => null))?.createdAt; if (c) created.set(u, c); }));
 
-  const pts = (t: Trade, side: 'give' | 'get') => stackPoints(side === 'give' ? t.give : t.get, cardsBySeason[t.seasonId] ?? {});
+  const pts = (t: Trade, side: 'give' | 'get') => stackPoints(side === 'give' ? t.give : t.get, cardsBySeason[t.seasonId] ?? {}, side === 'give' ? poolsBySeason[t.seasonId]?.give[t.id] : undefined);
   const flags = flagTrades(all, { points: pts, createdAt: u => created.get(u) });
   const stats = computeTradeStats(open, history, now);
 

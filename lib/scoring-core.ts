@@ -10,12 +10,11 @@ export interface ScoringSettings {
   baseScore: number;
   /** How strongly rarity counts: value scales with rarity^exponent. 1 = proportional, <1 flattens, >1 exaggerates. */
   rarityExponent: number;
-  /** Floor and ceiling for the scarcity multiplier (a version with few copies out there is worth up to the max). */
-  scarcityMin: number;
-  scarcityMax: number;
-  /** Counts added to both sides of the scarcity ratio; higher = values move less while counts are small (early season). */
-  scarcitySmoothing: number;
-  /** An upgraded copy is guaranteed to be worth at least this many times the copies it consumes (before scarcity moves). */
+  /** Serial bonus: copy #1 of a card (in its version) is worth this many times a normal copy; the bonus shrinks steadily with the serial. */
+  serialBonusMax: number;
+  /** How many serials get a bonus. #1 gets the full bonus, the bonus fades to nothing after this serial. 0 switches it off. */
+  serialBonusCutoff: number;
+  /** An upgraded copy is guaranteed to be worth at least this many times the copies it consumes. */
   upgradeMargin: number;
   /** Completion bonus at 100% of the set, as a percent of the set value (what one Regular of every card is worth). */
   completionBonusPct: number;
@@ -28,9 +27,8 @@ export interface ScoringSettings {
 export const DEFAULT_SCORING: ScoringSettings = {
   baseScore: 10,
   rarityExponent: 1,
-  scarcityMin: 0.5,
-  scarcityMax: 2,
-  scarcitySmoothing: 1,
+  serialBonusMax: 3,
+  serialBonusCutoff: 20,
   upgradeMargin: 1.2,
   completionBonusPct: 25,
   completeSetBonusPct: 50,
@@ -41,9 +39,8 @@ export const DEFAULT_SCORING: ScoringSettings = {
 export const SCORING_LIMITS: Record<keyof ScoringSettings, { min: number; max: number; step: number }> = {
   baseScore: { min: 1, max: 1000, step: 1 },
   rarityExponent: { min: 0, max: 3, step: 0.1 },
-  scarcityMin: { min: 0.1, max: 1, step: 0.05 },
-  scarcityMax: { min: 1, max: 10, step: 0.1 },
-  scarcitySmoothing: { min: 0.1, max: 50, step: 0.1 },
+  serialBonusMax: { min: 1, max: 20, step: 0.1 },
+  serialBonusCutoff: { min: 0, max: 1000, step: 1 },
   upgradeMargin: { min: 1, max: 5, step: 0.05 },
   completionBonusPct: { min: 0, max: 500, step: 1 },
   completeSetBonusPct: { min: 0, max: 1000, step: 1 },
@@ -62,8 +59,15 @@ export function sanitizeScoring(raw: unknown): ScoringSettings {
     }
   }
   out.leaderboardSize = Math.round(out.leaderboardSize);
-  // The floor can't be above 1 or the ceiling below 1, or "average" scarcity would stop meaning 1x.
-  out.scarcityMin = Math.min(out.scarcityMin, 1);
-  out.scarcityMax = Math.max(out.scarcityMax, 1);
+  out.serialBonusCutoff = Math.round(out.serialBonusCutoff);
   return out;
+}
+
+/**
+ * What a copy's serial does to its points: the first copy ever made of a card (in its version) gets `serialBonusMax`×, the
+ * bonus fades in a straight line and is gone after serial `serialBonusCutoff`. No serial (or one past the cutoff) = 1×.
+ */
+export function serialMultiplier(n: number | undefined, s: Pick<ScoringSettings, 'serialBonusMax' | 'serialBonusCutoff'>): number {
+  if (n === undefined || !(n >= 1) || n > s.serialBonusCutoff) return 1;
+  return 1 + (s.serialBonusMax - 1) * (1 - (n - 1) / s.serialBonusCutoff);
 }

@@ -1,8 +1,9 @@
 import { escrowOwner } from './serials-core';
+import { serialPool } from './serials';
 import { getUserSettings } from './user-settings-store';
 import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserProfile, saveCollection, withCollectionLock, withLock } from './kv';
-import { announceTrade, type TradeAction } from './trade-notify';
+import { announceTrade, type EventPools, type TradeAction } from './trade-notify';
 import { allowedVariants, encodeEntry } from './variants';
 import {
   DEFAULT_TRADE_SETTINGS, TRADE_LIMITS, cleanItems, itemEntries, sanitizeTradeSettings, settleTrade, takeForEscrow,
@@ -27,13 +28,22 @@ const LOCK = 'trades';
 
 // Notifications / activity for what happens to offers are queued while the trade lock is held and sent after it is released
 // (building them reads the season and its card values, which must not delay the lock). Whoever flushes first sends everything queued.
-const queued: { trade: Trade; action: TradeAction; by?: string }[] = [];
-function queueEvent(trade: Trade, action: TradeAction, by?: string): void {
-  queued.push({ trade: structuredClone(trade), action, by });
+const queued: { trade: Trade; action: TradeAction; by?: string; pools?: EventPools }[] = [];
+function queueEvent(trade: Trade, action: TradeAction, by?: string, pools?: EventPools): void {
+  queued.push({ trade: structuredClone(trade), action, by, pools });
+}
+/** The serials on each side of an offer right now (call before the copies move): `give` from the escrow, `get` from whoever would hand it over. */
+async function snapshotPools(seasonId: string, owners: { give?: string; get?: string }): Promise<EventPools> {
+  try {
+    const c = (await getSeason(seasonId))?.collectionName;
+    if (!c) return {};
+    const [give, get] = await Promise.all([owners.give ? serialPool(c, owners.give) : undefined, owners.get ? serialPool(c, owners.get) : undefined]);
+    return { give, get };
+  } catch { return {}; }
 }
 async function flushEvents(): Promise<void> {
   const batch = queued.splice(0, queued.length);
-  for (const e of batch) await announceTrade(e.trade, e.action, e.by);
+  for (const e of batch) await announceTrade(e.trade, e.action, e.by, e.pools);
 }
 /** Runs a locked section, then sends the notifications it queued. */
 function locked<T>(fn: () => Promise<T>): Promise<T> {
@@ -94,7 +104,9 @@ async function returnToCollection(seasonId: string, username: string, items: Tra
 }
 
 /** Ends an offer: refunds its escrow (unless it is being settled), records why, and moves it to history. */
-async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status: TradeStatus, by: string | undefined, reason?: string, refund = true): Promise<void> {
+async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status: TradeStatus, by: string | undefined, reason?: string, refund = true, settledPools?: EventPools): Promise<void> {
+  // A refund puts the escrowed copies back with the offerer, so price the give side from the escrow before that happens.
+  const pools = settledPools ?? (trade.escrowed ? await snapshotPools(trade.seasonId, { give: escrowOwner(trade.id) }) : undefined);
   if (refund && trade.escrowed) {
     await returnToCollection(trade.seasonId, trade.from, trade.give, trade.id);
     trade.escrowed = false;
@@ -108,7 +120,7 @@ async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status:
   history.unshift(trade);
   if (history.length > HISTORY_CAP) history.length = HISTORY_CAP;
   // (a counter is announced by the new offer it creates)
-  if (status === 'accepted' || status === 'declined' || status === 'cancelled' || status === 'expired') queueEvent(trade, status, by);
+  if (status === 'accepted' || status === 'declined' || status === 'cancelled' || status === 'expired') queueEvent(trade, status, by, pools);
 }
 
 /** Expires (and refunds) every overdue open offer. Returns whether anything changed. Call inside the lock. */
@@ -265,7 +277,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     throw e;
   }
   if (settings.cooldownSeconds > 0) await kv.set(`trade:cd:${from}`, '1', { ex: settings.cooldownSeconds });
-  queueEvent(trade, 'offered', from);
+  queueEvent(trade, 'offered', from, await snapshotPools(trade.seasonId, { give: escrowOwner(trade.id) }));
   return { ok: true, trade };
 }
 
@@ -311,6 +323,8 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
     if (!season) return fail(404, 'That season no longer exists.');
     if (season.tradingFrozen) return fail(403, 'Trading is closed for this season.');
 
+    // Read the serials on both sides before the copies change hands.
+    const pools = await snapshotPools(trade.seasonId, { give: escrowOwner(trade.id), get: taker });
     const result = await withCollectionLock(season.collectionName, async () => {
       const data = await getCollection(season.collectionName);
       const settled = settleTrade(data[trade.from] ?? [], data[taker] ?? [], trade.give, trade.get);
@@ -329,7 +343,7 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
     }
     // The escrow has been handed over, so close without refunding.
     trade.escrowed = false;
-    await closeTrade(open, history, trade, 'accepted', taker, undefined, false);
+    await closeTrade(open, history, trade, 'accepted', taker, undefined, false, pools);
     await persist(open, history);
     return { ok: true, trade };
   });

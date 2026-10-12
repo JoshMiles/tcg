@@ -205,7 +205,7 @@ export default async function FaqPage() {
         <Q q="What is escrow? Where do my cards go while an offer is open?">
           When you send an offer, the cards you&rsquo;re giving leave your collection and are <strong className="text-white">held safely in escrow</strong>. That guarantees you really have them, so nobody can accept an offer
           you can&rsquo;t honour. They come straight back to you if the offer is declined, cancelled, countered or runs out of time, and go to the other person if it&rsquo;s accepted. While they are in escrow they don&rsquo;t count
-          towards your points (or towards how scarce a card is).
+          towards your points.
         </Q>
         <Q q="How long do offers last, and what are the limits?">
           <p>
@@ -234,7 +234,7 @@ export default async function FaqPage() {
         </Q>
         <Q q="Is a trade fair? How do I know what a card is worth?">
           Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule — you can
-          trade anything for anything. Remember that trading changes how scarce each version is, so values shift after a trade, and the person giving up a rare version may care about more than the points.
+          trade anything for anything. Remember that a copy’s serial number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
         </Q>
         <Q q="Trading seems to be switched off">
           Trading can be paused by the streamer, for example while something is being fixed. While it&rsquo;s paused nothing new can be offered or accepted, but you can still cancel your own offers to get your cards back.
@@ -272,19 +272,21 @@ export default async function FaqPage() {
           <p>
             Your score is the value of <strong className="text-white">every card you own</strong>, duplicates included. Each copy is worth:
           </p>
-          <p className="font-display text-xl font-bold text-yellow-300 my-2">{scoring.baseScore} × rarity × scarcity{upgradesOn ? ' × version' : ''}</p>
+          <p className="font-display text-xl font-bold text-yellow-300 my-2">{scoring.baseScore} × rarity{upgradesOn ? ' × version' : ''} × serial bonus</p>
           <ul className="space-y-2">
             <li>
               <strong className="text-white">Rarity</strong> — how hard the card is to pull compared with an average card. A card that comes up half as often is worth twice as much.
             </li>
             <li>
-              <strong className="text-white">Scarcity</strong> — how few copies of that <em>exact version</em> exist across everyone this season (a Shiny is compared with other Shinies, a Regular with other
-              Regulars). Fewer than average gives a bonus (up to {scoring.scarcityMax}×), more gives a penalty (down to {scoring.scarcityMin}×).
+              <strong className="text-white">Serial bonus</strong> — {scoring.serialBonusCutoff > 0 ? (
+                <>every copy has a <a href="#serials" className="text-yellow-400 hover:text-yellow-300">serial number</a>, and the first copies ever made of a card (in each version) are worth extra. Copy #1 is worth{' '}
+                <strong className="text-white">{scoring.serialBonusMax}×</strong>, and the bonus fades in a straight line until it is gone after #{scoring.serialBonusCutoff}. The bonus belongs to the copy, so it moves with it if you trade it.</>
+              ) : 'switched off in this game, so every copy of a version is worth the same.'}
             </li>
             {upgradesOn && (
               <li>
                 <strong className="text-white">Version</strong> — Reverse Holo, Full Art and Shiny Full Art copies are worth far more than a Regular. An upgraded card is normally worth more than the copies you spend to
-                make it, though scarcity can shift that.
+                make it, though the serial bonus on the copies you spend can change that.
               </li>
             )}
           </ul>
@@ -318,13 +320,13 @@ export default async function FaqPage() {
         <Q q="Can I see the exact maths for a card?">
           <p>
             Yes. Click any card on the <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">card dex</Link> or in a collection to open its details, then open{' '}
-            <strong className="text-white"><Icon name="nerd" className="mr-1" />Advanced information (for nerds)</strong>. It shows every step with the real numbers filled in, for each version: the pull chance, rarity, scarcity, the version multiplier
-            and the final rounding, plus the pull odds, how many packs you&rsquo;d expect to need, and what one more or one fewer copy would do to the value. In short:
+            <strong className="text-white"><Icon name="nerd" className="mr-1" />Advanced information (for nerds)</strong>. It shows every step with the real numbers filled in, for each version: the pull chance, rarity, the version multiplier
+            and the final rounding, plus the pull odds, how many packs you&rsquo;d expect to need, and what the serial bonus is worth at different numbers. In short:
           </p>
           <p className="font-mono text-[12px] text-gray-300 my-2 leading-relaxed">
-            points = max(1, round( {scoring.baseScore} × rarity × scarcity × version ))<br />
+            points = max(1, round( {scoring.baseScore} × rarity × version × serial bonus ))<br />
             rarity = (1 ÷ (pull chance × cards in the season)) ^ {scoring.rarityExponent}<br />
-            scarcity = clamp( (average copies per card of that version + {scoring.scarcitySmoothing}) ÷ (copies of this card&rsquo;s version + {scoring.scarcitySmoothing}), {scoring.scarcityMin}, {scoring.scarcityMax} )<br />
+            serial bonus = 1 + ({scoring.serialBonusMax} − 1) × (1 − (serial − 1) ÷ {scoring.serialBonusCutoff}) for serial 1 to {scoring.serialBonusCutoff}, otherwise 1<br />
             version = max( Regular weight ÷ version weight, previous version × upgrade cost × {scoring.upgradeMargin} )
           </p>
           <p>
@@ -332,14 +334,12 @@ export default async function FaqPage() {
           </p>
         </Q>
         <Q q="Why did my points change?">
-          Values aren&rsquo;t fixed. Scarcity depends on how many copies of each version exist, so as other people pull and upgrade cards, what your copies are worth moves up and down. Early in a season, when there are
-          few cards around, the swings are bigger.
+          A copy’s own points only change if the streamer edits the scoring settings or the card’s pull odds change. What moves most is your rank, because other collectors keep pulling and the completion bonus is measured against the set value. A serial bonus never changes: it is fixed by the number on the copy.
         </Q>
         <Q q="Does upgrading raise my score?">
           {upgradesOn ? (
             <>
-              Usually, yes — a higher version is worth much more. But upgrades <strong className="text-white">use cards up</strong>: the copies you spend are destroyed, so fewer of that version exist and it becomes
-              scarcer, which can raise what the copies you keep are worth. The new, higher version adds to its own count, so it can become a little less scarce. <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>{' '}
+              Usually, yes — a higher version is worth much more. But upgrades <strong className="text-white">use cards up</strong>: the copies you spend are destroyed (the newest serial numbers go first, so your lowest numbers are the last to go), and the new copy gets the next free serial of its version, which is only worth a bonus while it is still early in that version’s count. <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>{' '}
               shows a projected change for each upgrade with all of this included, so occasionally it can be negative.
             </>
           ) : (

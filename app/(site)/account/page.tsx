@@ -177,7 +177,11 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
             <dl className="divide-y divide-gray-800/70 text-sm">
               <div className="py-2.5 flex items-center justify-between gap-4">
                 <dt className="text-gray-300">Your cards <span className="text-gray-600">· every copy you own</span></dt>
-                <dd className="font-semibold text-white tabular-nums">{s.cardPoints.toLocaleString()}</dd>
+                <dd className="font-semibold text-white tabular-nums">{(s.cardPoints - s.serialPoints).toLocaleString()}</dd>
+              </div>
+              <div className="py-2.5 flex items-center justify-between gap-4">
+                <dt className="text-gray-300">Serial number bonus <span className="text-gray-600">· low-numbered copies are worth extra (<Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how it works</Link>)</span></dt>
+                <dd className={`font-semibold tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{s.serialPoints.toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
                 <dt className="text-gray-300">Completion bonus <span className="text-gray-600">· {s.completionPct}% of the set (up to {s.maxCompletionBonus.toLocaleString()})</span></dt>
@@ -230,7 +234,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                         </span>
                         <span
                           className={`text-xs font-bold tabular-nums shrink-0 ${u.gain >= 0 ? 'text-emerald-300' : 'text-red-300'}`}
-                          title="Projected change to your score, after scarcity moves"
+                          title="Projected change to your score, including the serial bonuses it spends"
                         >
                           {u.gain >= 0 ? '+' : '−'}{Math.abs(u.gain).toLocaleString()} pts
                         </span>
@@ -241,8 +245,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 </ul>
               )}
               <p className="text-xs text-gray-500 leading-relaxed">
-                Upgrades are permanent — the copies you spend are destroyed. That makes that version of the card scarcer, which can raise the value of the copies of it you keep, while the
-                new, higher version adds to its own count. The points shown are projected with those shifts included, so they can occasionally be negative.
+                Upgrades are permanent — the copies you spend are destroyed. The newest serial numbers are spent first, and the new copy gets the next free serial of its version. The points shown are projected with the serial bonuses included, so they can occasionally be negative.
               </p>
             </section>
           )}
@@ -296,13 +299,13 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 {s.topCopies.map(t => {
                   const rarity = getRarity(t.card.stars);
                   return (
-                    <li key={`${t.card.id}-${t.variant}`} className="py-2 flex items-center gap-3">
+                    <li key={`${t.card.id}-${t.variant}-${t.serial ?? 'all'}`} className="py-2 flex items-center gap-3">
                       {t.card.imageUrl ? (
                         <img src={cardThumbUrl(t.card.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} />
                       ) : <span className="w-8 h-11 rounded bg-gray-800" />}
                       <span className="flex-1 min-w-0">
                         <span className="block text-sm font-semibold text-white truncate">{t.card.name}</span>
-                        <span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}</span>
+                        <span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? <span className="text-emerald-300"> · #{t.serial} (×{t.mult?.toFixed(2)} serial bonus)</span> : null}</span>
                       </span>
                       <span className="font-display text-lg font-bold text-yellow-400 tabular-nums">{t.value.toLocaleString()}</span>
                     </li>

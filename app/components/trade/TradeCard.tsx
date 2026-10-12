@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Trade } from '@/lib/trade-core';
-import { stackPoints, timeLeft, type TradeCardInfo } from '@/lib/trade-view-core';
+import { poolsFor, stackPoints, timeLeft, type TradeCardInfo, type TradePools } from '@/lib/trade-view-core';
 import { TradeStacks } from './TradeStacks';
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -14,16 +14,19 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 /** One offer: who made it, what they give and what they want back, the points on each side, and (for open offers) the actions. */
 export function TradeCard({
-  trade, cards, title, actions, compact = false,
+  trade, cards, title, actions, compact = false, pools,
 }: {
   trade: Trade;
   cards: Record<number, TradeCardInfo>;
   title: ReactNode;
   actions?: ReactNode;
   compact?: boolean;
+  /** Serial numbers, so the points include the serial bonuses of the copies that would move. */
+  pools?: TradePools;
 }) {
-  const givePts = stackPoints(trade.give, cards);
-  const getPts = stackPoints(trade.get, cards);
+  const p = poolsFor(trade, pools);
+  const givePts = stackPoints(trade.give, cards, p.give);
+  const getPts = stackPoints(trade.get, cards, p.get);
   const st = STATUS[trade.status];
   return (
     <article className="rounded-2xl border border-gray-800 bg-gray-900/70 p-4 space-y-3">

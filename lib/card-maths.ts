@@ -10,9 +10,8 @@ export interface CardMaths {
   /** The scoring settings that applied. */
   baseScore: number;
   rarityExponent: number;
-  scarcityMin: number;
-  scarcityMax: number;
-  scarcitySmoothing: number;
+  serialBonusMax: number;
+  serialBonusCutoff: number;
   upgradeMargin: number;
   completionBonusPct: number;
   completeSetBonusPct: number;
@@ -41,14 +40,10 @@ export interface CardMaths {
   byCost: Record<Variant, number>;
   multiplier: Record<Variant, number>;
 
-  /** Season-wide: average copies per card of each version, this card's copies of it, and the factor that gives. */
-  avgCopies: Record<Variant, number>;
+  /** Season-wide: how many copies of this card exist in each version. */
   copies: VariantCounts;
-  /** (avg + k) / (copies + k) before clamping. */
-  scarcityRaw: Record<Variant, number>;
-  scarcity: Record<Variant, number>;
 
-  /** base × rarity × scarcity × multiplier before rounding, and the points after (rounded, at least 1). */
+  /** base × rarity × multiplier before rounding (a copy's serial bonus comes on top), and the points after (rounded, at least 1). */
   raw: Record<Variant, number>;
   values: Record<Variant, number>;
 

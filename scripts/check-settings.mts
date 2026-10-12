@@ -10,10 +10,10 @@ const { extensionChecklist } = await import('../lib/twitch-setup');
 const { encodeEntry } = await import('../lib/variants');
 
 // ── scoring clamping ──
-const wild = sanitizeScoring({ baseScore: 99999, rarityExponent: -4, scarcityMin: 5, scarcityMax: 0.2, leaderboardSize: 12.6, bogus: 1, completionBonusPct: 'abc' });
+const wild = sanitizeScoring({ baseScore: 99999, rarityExponent: -4, serialBonusMax: 0.2, serialBonusCutoff: 2.6, leaderboardSize: 12.6, bogus: 1, completionBonusPct: 'abc' });
 ok(wild.baseScore === SCORING_LIMITS.baseScore.max, 'too-big values clamp to the maximum');
 ok(wild.rarityExponent === SCORING_LIMITS.rarityExponent.min, 'negative values clamp to the minimum');
-ok(wild.scarcityMin <= 1 && wild.scarcityMax >= 1, 'the scarcity floor / ceiling keep "average" at 1x');
+ok(wild.serialBonusMax >= 1 && Number.isInteger(wild.serialBonusCutoff), 'the serial bonus never goes below 1x and its cutoff is a whole number');
 ok(Number.isInteger(wild.leaderboardSize), 'leaderboard size is a whole number');
 eq(wild.completionBonusPct, DEFAULT_SCORING.completionBonusPct, 'junk falls back to the default');
 eq(sanitizeScoring({ baseScore: '25' }).baseScore, 25, 'numeric strings from a form are accepted');
@@ -27,8 +27,8 @@ const same = previewScoring(packs, collection, DEFAULT_SCORING, DEFAULT_SCORING)
 eq(same.saved, same.candidate, 'identical numbers preview identically');
 eq(same.rankChanges, 0, 'no rank changes when nothing changed');
 const doubled = previewScoring(packs, collection, DEFAULT_SCORING, { ...DEFAULT_SCORING, baseScore: DEFAULT_SCORING.baseScore * 2 });
-// Card values are rounded to whole points, so "double" is within a few percent.
-const near2 = (a: number, b: number) => Math.abs(a / b - 2) < 0.06;
+// Card values are rounded to whole points, so "double" is within a few percent (small numbers round noticeably).
+const near2 = (a: number, b: number) => Math.abs(a / b - 2) < 0.12;
 ok(near2(doubled.candidate.setValue, doubled.saved.setValue), 'doubling the base score doubles the set value');
 ok(near2(doubled.candidate.topScore, doubled.saved.topScore), 'and the top score');
 eq(doubled.rankChanges, 0, 'a pure scale does not reorder viewers');

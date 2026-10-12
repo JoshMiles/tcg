@@ -31,9 +31,10 @@ export interface GridCard {
   counts: VariantCounts;
   /** Points per copy, per variant. */
   values: Record<Variant, number>;
-  /** How many copies of each version exist across the whole season, and the resulting value factor per version (0.5–2). */
+  /** How many copies of each version exist across the whole season. */
   variantCopies: VariantCounts;
-  scarcity: Record<Variant, number>;
+  /** Points this viewer's low serial numbers add to the card, the lowest serial they hold and its multiplier (1 = no bonus). */
+  serial: { points: number; best?: number; mult: number };
   /** Copies needed for each upgrade step (used by the owner's Upgrade buttons). */
   costs: UpgradeCosts;
   /** The variants switched on for this card (Regular plus whatever its pack and the card allow). */
@@ -272,16 +273,10 @@ function CardDetail({
   const shown = preview && card.counts[preview] > 0 ? preview : best;
   const rows = card.upgradable ? VARIANTS.filter(v => card.variants.includes(v) || card.counts[v] > 0) : (['regular'] as Variant[]);
   const showUpgrades = canUpgrade && card.upgradable;
-  const cardTotal = VARIANTS.reduce((s, v) => s + card.counts[v] * card.values[v], 0);
+  const cardTotal = VARIANTS.reduce((s, v) => s + card.counts[v] * card.values[v], 0) + card.serial.points;
   const share = totalScore > 0 ? Math.round((cardTotal / totalScore) * 100) : 0;
 
-  // Scarcity is per version: describe the version being shown.
-  const sc = card.scarcity[shown];
   const outThere = card.variantCopies[shown];
-  const scarcityLabel =
-    sc >= 1.25 ? { text: `${VARIANT_LABELS[shown]}: scarce — fewer copies of this version exist than average, which boosts its value`, cls: 'text-emerald-300' }
-    : sc <= 0.8 ? { text: `${VARIANT_LABELS[shown]}: plentiful — more copies of this version exist than average, which lowers its value`, cls: 'text-gray-400' }
-    : { text: `${VARIANT_LABELS[shown]}: about an average number of copies of this version exist`, cls: 'text-gray-300' };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${card.name} details`}>
@@ -336,8 +331,11 @@ function CardDetail({
               </div>
             </div>
 
-            <p className={`text-xs ${scarcityLabel.cls}`}>
-              {scarcityLabel.text} <span className="text-gray-500">(×{sc.toFixed(2)}, {outThere.toLocaleString()} cop{outThere === 1 ? 'y' : 'ies'} out there)</span>
+            <p className={`text-xs ${card.serial.mult > 1 ? 'text-emerald-300' : 'text-gray-400'}`}>
+              {card.serial.mult > 1
+                ? <>Serial bonus: your #{card.serial.best} is worth ×{card.serial.mult.toFixed(2)}{card.serial.points > 0 ? <> (+{card.serial.points.toLocaleString()} pts in total)</> : null}. </>
+                : 'Low serial numbers earn a bonus; none of your copies of this card qualify. '}
+              <span className="text-gray-500">{outThere.toLocaleString()} cop{outThere === 1 ? 'y' : 'ies'} of {VARIANT_LABELS[shown]} out there</span>
             </p>
 
             {/* Per-variant table */}
@@ -410,7 +408,7 @@ function CardDetail({
             {card.maths && <CardMathsPanel maths={card.maths} variants={rows} shown={shown} />}
 
             <p className="text-xs text-gray-500">
-              {canUpgrade && card.upgradable ? 'Upgrades are permanent: the copies you spend are destroyed. That makes that version scarcer, which can raise what your remaining copies of it are worth. ' : ''}Values change as cards are pulled and upgraded this season.{' '}
+              {canUpgrade && card.upgradable ? 'Upgrades are permanent: the copies you spend are destroyed. The newest serial numbers go first, so a copy with a low number is safe. ' : ''}Card values change as the season goes on; serial bonuses never do.{' '}
               <a href="/faq#points" className="text-yellow-500 hover:text-yellow-300">How are points worked out? →</a>
             </p>
           </div>

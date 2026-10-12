@@ -6,7 +6,7 @@ import { getCollection } from '@/lib/kv';
 import { getActive } from '@/lib/site-seasons';
 import { getTradeSettings, sweepTrades, tradesForUser, listOpenTrades } from '@/lib/trades';
 import { describeItems, firstMissing } from '@/lib/trade-core';
-import { getTradeCards } from '@/lib/trade-view';
+import { getTradeCards, getTradePools } from '@/lib/trade-view';
 import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
 import { getUserSettings } from '@/lib/user-settings-store';
@@ -48,8 +48,9 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
   const copies = new Map<number, number>();
   for (const e of owned) copies.set(e, (copies.get(e) ?? 0) + 1);
   const viewer: MatchViewer = { copies, wanted: new Set(prefs?.wanted ?? []) };
-  const infoFor = new Map(board.map(t => [t.id, matchTrade(t, viewer, cards)]));
-  const matches = me ? bestMatches(board, viewer, cards, 4) : [];
+  const pools = await getTradePools(season, [...board, ...incoming, ...outgoing, ...recent], me);
+  const infoFor = new Map(board.map(t => [t.id, matchTrade(t, viewer, cards, pools)]));
+  const matches = me ? bestMatches(board, viewer, cards, 4, pools) : [];
 
   const tab: TabId = (['mine', 'board', 'history'] as const).find(t => t === tabParam) ?? (me && (incoming.length > 0 || outgoing.length > 0) ? 'mine' : 'board');
   const tabs: { id: TabId; label: string; icon: Parameters<typeof Icon>[0]['name']; count?: number; hidden?: boolean }[] = [
@@ -123,6 +124,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                   <TradeCard
                     key={t.id}
                     trade={t}
+                    pools={pools}
                     cards={cards}
                     title={<>{user(t.from)} offered you a trade</>}
                     actions={<TradeActions tradeId={t.id} mode="incoming" canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />}
@@ -139,6 +141,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                 <TradeCard
                   key={t.id}
                   trade={t}
+                  pools={pools}
                   cards={cards}
                   title={t.kind === 'direct' ? <>You offered {user(t.to!)} a trade</> : <>Your listing on the board</>}
                   actions={<TradeActions tradeId={t.id} mode="outgoing" />}
@@ -156,6 +159,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                 <TradeCard
                   key={m.trade.id}
                   trade={m.trade}
+                  pools={pools}
                   cards={cards}
                   title={<>{user(m.trade.from)}&rsquo;s listing <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons.join(' · ')}</span></>}
                   actions={<TradeActions tradeId={m.trade.id} mode="board" canAccept={settings.enabled} />}
@@ -194,6 +198,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                     >
                       <TradeCard
                         trade={t}
+                        pools={pools}
                         cards={cards}
                         title={<>{user(t.from)}&rsquo;s listing{session && m.reasons.length > 0 && <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons[0]}</span>}</>}
                         actions={session
@@ -218,6 +223,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
             <TradeCard
               key={t.id}
               trade={t}
+              pools={pools}
               cards={cards}
               compact
               title={<>{user(t.from)}{t.to ? <> → {user(t.to)}</> : ' (board)'}{t.status === 'accepted' && t.resolvedBy && t.kind === 'listing' && <> · taken by {user(t.resolvedBy)}</>}</>}

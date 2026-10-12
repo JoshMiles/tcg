@@ -1,7 +1,7 @@
 import { kv } from './db';
 import {
-  diffCounts, copyId, countEntries, entryOf, escrowOwner, isEscrow, newestFirst, sameCollection, withEvent,
-  type Copy, type CopyEvent, type Origin,
+  buildSerialIndex, diffCounts, copyId, countEntries, entryOf, escrowOwner, isEscrow, newestFirst, sameCollection, withEvent,
+  type Copy, type CopyEvent, type Origin, type SerialIndex, type SerialPool,
 } from './serials-core';
 import { decodeEntry, encodeEntry } from './variants';
 import type { Variant } from './types';
@@ -66,6 +66,24 @@ export async function getCopy(c: string, id: string): Promise<Copy | null> {
 export async function mintedCounts(c: string): Promise<Map<number, number>> {
   const h = (await kv.hgetall(key.n(c)).catch(() => null)) as Record<string, unknown> | null;
   return new Map(Object.entries(h ?? {}).map(([e, n]) => [Number(e), Number(n)]));
+}
+
+/** The serials everyone holds, for scoring. null while the collection's copies are not numbered yet (then no serial bonus applies). */
+export async function loadSerialIndex(c: string): Promise<SerialIndex | null> {
+  try {
+    if (!(await isTracking(c))) return null;
+    const [idx, minted] = await Promise.all([kv.hgetall(key.idx(c)), mintedCounts(c)]);
+    return buildSerialIndex((idx ?? {}) as Record<string, string>, minted);
+  } catch { return null; }
+}
+
+/** The serials one owner (a viewer or an escrow) holds right now, by entry, lowest first. Empty while the collection is not tracked. */
+export async function serialPool(c: string, owner: string): Promise<SerialPool> {
+  if (!(await isTracking(c))) return {};
+  const pool: SerialPool = {};
+  for (const x of await readOwner(c, owner)) (pool[entryOf(x)] ??= []).push(x.n);
+  for (const list of Object.values(pool)) list.sort((a, b) => a - b);
+  return pool;
 }
 
 /** Every live copy of one card + version (all owners, escrow included), for "who holds the other numbers". */

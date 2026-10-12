@@ -217,8 +217,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         values.length === 0 ? <p className="tcg-panel rounded-2xl p-8 text-center text-sm text-gray-500">No active season, so there are no cards to value.</p> : (
           <section className="tcg-panel rounded-2xl p-5 space-y-3">
             <p className="text-xs text-gray-500 leading-relaxed">
-              Points per copy = base × <strong className="text-gray-400">rarity</strong> (how unlikely the card is to be pulled) × <strong className="text-gray-400">scarcity</strong> (how few copies of that exact version exist
-              compared with the average card) × the variant multiplier. Hover a value for its scarcity factor.
+              Points per copy = base × <strong className="text-gray-400">rarity</strong> (how unlikely the card is to be pulled) × the variant multiplier. These are the base values: a copy with a low serial number (see Settings → Scoring) is worth more.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -237,7 +236,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                       <td className="py-1.5 pr-2 text-gray-200">{c.name} <span className="text-yellow-500/80">{'★'.repeat(c.stars)}</span></td>
                       <td className="py-1.5 px-2 text-right tabular-nums text-gray-400">{c.pullRate > 0 ? `${(c.pullRate * 100).toFixed(c.pullRate < 0.01 ? 2 : 1)}%` : '—'}</td>
                       <td className="py-1.5 px-2 text-right tabular-nums text-gray-500">{c.copies.regular}·{c.copies.reverse}·{c.copies.full}·{c.copies.shiny}</td>
-                      {VARIANTS.map(v => <td key={v} className={`py-1.5 px-2 text-right tabular-nums font-semibold ${v !== 'regular' && !c.upgrades ? 'text-gray-700' : 'text-yellow-300'}`} title={`Scarcity ×${c.scarcity[v].toFixed(2)}`}>{c.values[v].toLocaleString()}</td>)}
+                      {VARIANTS.map(v => <td key={v} className={`py-1.5 px-2 text-right tabular-nums font-semibold ${v !== 'regular' && !c.upgrades ? 'text-gray-700' : 'text-yellow-300'}`}>{c.values[v].toLocaleString()}</td>)}
                     </tr>
                   ))}
                 </tbody>

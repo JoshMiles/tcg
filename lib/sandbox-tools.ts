@@ -162,10 +162,10 @@ export function seedUsers(
   });
 }
 
-/** Every card in the active season with what it is worth right now and why (odds, copies out there, scarcity). */
+/** Every card in the active season with what it is worth right now and why (odds, copies out there). */
 export function listCardValues(sandboxId: string): Promise<{
   number: number; name: string; stars: number; pack: string; upgrades: boolean;
-  pullRate: number; copies: VariantCounts; scarcity: Record<Variant, number>; values: Record<Variant, number>;
+  pullRate: number; copies: VariantCounts; values: Record<Variant, number>;
 }[]> {
   return runInSandbox(sandboxId, async () => {
     const active = await getActiveSeasonWithPacks();
@@ -178,7 +178,7 @@ export function listCardValues(sandboxId: string): Promise<{
         return {
           number: card.number, name: card.name, stars: card.stars, pack: pack.name, upgrades: upgradesAllowed(pack, card),
           pullRate: v?.pullRate ?? 0, copies: v?.variantCopies ?? emptyCounts(),
-          scarcity: v?.scarcity ?? { regular: 1, reverse: 1, full: 1, shiny: 1 }, values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
+          values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
         };
       })
       .sort((a, b) => a.number - b.number);

@@ -1,5 +1,6 @@
 import { buildLeaderboard, collectionBonuses, computeSeasonValues, type LeaderboardRow } from './leaderboard';
 import { sanitizeScoring, type ScoringSettings } from './scoring';
+import type { SerialIndex } from './serials-core';
 import type { Card, Pack } from './types';
 
 // "What would these scoring numbers do?" Recomputes the active season with the saved settings and with the candidate ones
@@ -45,10 +46,11 @@ export function previewScoring(
   saved: ScoringSettings,
   candidateRaw: unknown,
   hidden: Set<string> = new Set(),
+  serials: SerialIndex | null = null,
 ): ScoringPreview {
   const candidateSettings = sanitizeScoring(candidateRaw);
-  const sv = computeSeasonValues(packs, collection, saved);
-  const cv = computeSeasonValues(packs, collection, candidateSettings);
+  const sv = computeSeasonValues(packs, collection, saved, serials);
+  const cv = computeSeasonValues(packs, collection, candidateSettings, serials);
   const sRows = buildLeaderboard(sv, collection).filter(r => !hidden.has(r.username));
   const cRows = buildLeaderboard(cv, collection).filter(r => !hidden.has(r.username));
   const cRank = new Map(cRows.map((r, i) => [r.username, { rank: i + 1, score: r.score }]));

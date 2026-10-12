@@ -1,5 +1,5 @@
 import { getActiveSeasonWithPacks, getCollection, getUserProfile } from './kv';
-import { getSeasonLeaderboard, getSeasonLeaderboardCached } from './leaderboard';
+import { getSeasonLeaderboard, getSeasonLeaderboardCached, pointsFor } from './leaderboard';
 import { getUserAwards } from './season-wrap';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { getHiddenUsers } from './user-admin';
@@ -7,7 +7,8 @@ import { getUserSettings } from './user-settings-store';
 import { hasExperiment, type UserSettings } from './user-settings';
 import { countPulls } from './collection';
 import { RARITIES } from './rarity';
-import { VARIANTS, allowedVariants, countVariants, effectiveWeights, emptyCounts, upgradeStep } from './variants';
+import { serialMultiplier } from './scoring-core';
+import { VARIANTS, allowedVariants, countVariants, decodeEntry, effectiveWeights, emptyCounts, upgradeStep } from './variants';
 import { getHoloResolver } from './holo';
 import type { GridCard } from '@/app/u/[username]/CollectionGrid';
 import type { Card, Pack, Season, UserProfile, Variant } from './types';
@@ -107,6 +108,16 @@ export async function loadProfileBase(lower: string, fresh: boolean): Promise<Pr
   };
 }
 
+/** What this viewer's low serial numbers add to one card, and the best one they hold (for the card dialog). */
+function serialFor(b: ProfileBase, cardNumber: number): GridCard['serial'] {
+  const { values, } = b.board;
+  const entries = b.owned.filter(e => decodeEntry(e).cardNumber === cardNumber);
+  const points = pointsFor(values, entries, b.lower).serialPoints;
+  let best: number | undefined;
+  for (const [e, list] of values.serials?.held.get(b.lower) ?? []) if (decodeEntry(e).cardNumber === cardNumber && list.length) best = Math.min(best ?? Infinity, list[0]);
+  return { points, best, mult: serialMultiplier(best, values.settings) };
+}
+
 /** The per-card data the collection grid and its detail view need (values come from the season leaderboard maths). */
 export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promise<GridCard[]> {
   const copiesByCard = new Map<number, GridCard['copies']>();
@@ -128,7 +139,7 @@ export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promi
       counts: b.variantMap.get(c.number) ?? emptyCounts(),
       values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
       variantCopies: v?.variantCopies ?? emptyCounts(),
-      scarcity: v?.scarcity ?? { regular: 1, reverse: 1, full: 1, shiny: 1 },
+      serial: serialFor(b, c.number),
       costs: c.pack.upgradeCosts,
       variants: allowedVariants(c.pack, c),
       holo: holoFor(c.pack, c.stars),
