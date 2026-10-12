@@ -61,6 +61,21 @@ export function Binder({ cards, ownerLabel, onOpen }: { cards: GridCard[]; owner
     timer.current = setTimeout(() => { setSpread(target); setTurning(null); }, TURN_MS);
   }, [cur, turning, double, reduce, spreads.length]);
 
+  // Swipe (touch and pen): a mostly horizontal drag turns the page; a swipe never counts as a tap on the pocket underneath.
+  const swipe = useRef<{ x: number; y: number; id: number } | null>(null);
+  const swiped = useRef(0);
+  const onDown = (e: React.PointerEvent) => { if (e.pointerType !== 'mouse') swipe.current = { x: e.clientX, y: e.clientY, id: e.pointerId }; };
+  const onUp = (e: React.PointerEvent) => {
+    const s0 = swipe.current;
+    swipe.current = null;
+    if (!s0 || s0.id !== e.pointerId) return;
+    const dx = e.clientX - s0.x, dy = e.clientY - s0.y;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    swiped.current = Date.now();
+    goTo(cur + (dx < 0 ? 1 : -1));
+  };
+  const swallowTap = (e: React.MouseEvent) => { if (Date.now() - swiped.current < 350) { e.preventDefault(); e.stopPropagation(); } };
+
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight') { e.preventDefault(); goTo(cur + 1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(cur - 1); }
@@ -76,7 +91,7 @@ export function Binder({ cards, ownerLabel, onOpen }: { cards: GridCard[]; owner
         <Icon name="cheese" className="bn-cover-icon" />
         <p className="bn-cover-title">{ownerLabel} binder</p>
         <p className="bn-cover-sub">{owned} of {cards.length} cards collected</p>
-        <p className="bn-cover-hint">{double ? 'Press the right arrow or the page edge to open it' : 'Swipe or use the arrows to turn the page'}</p>
+        <p className="bn-cover-hint">{double ? 'Press the right arrow or the page edge to open it' : 'Swipe or use the buttons to turn the page'}</p>
       </div>
     );
     return (
@@ -133,7 +148,7 @@ export function Binder({ cards, ownerLabel, onOpen }: { cards: GridCard[]; owner
         <p className="text-xs text-gray-500" aria-live="polite">{sp?.label}</p>
       </div>
 
-      <div className="bn-cover-wrap" tabIndex={0} role="group" aria-label={`${ownerLabel} card binder. Use the left and right arrow keys to turn pages.`}>
+      <div className="bn-cover-wrap" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { swipe.current = null; }} onClickCapture={swallowTap} tabIndex={0} role="group" aria-label={`${ownerLabel} card binder. Use the left and right arrow keys to turn pages.`}>
         <div className="bn-leather">
           {book}
           {double && <span aria-hidden className="bn-rings"><i /><i /><i /></span>}

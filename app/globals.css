@@ -393,7 +393,7 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
 [data-motion="reduce"] .flip-glare { display: none; }
 
 /* ── Collection binder ─────────────────────────────────── */
-.bn-cover-wrap { border-radius: 18px; outline: none; }
+.bn-cover-wrap { border-radius: 18px; outline: none; touch-action: pan-y; }
 .bn-cover-wrap:focus-visible { outline: 2px solid #fbbf24; outline-offset: 3px; }
 .bn-leather {
   position: relative; padding: 14px; border-radius: 18px;
