@@ -4,15 +4,32 @@ import { getUserAwards } from './season-wrap';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { getHiddenUsers } from './user-admin';
 import { getUserSettings } from './user-settings-store';
+import { hasExperiment, type UserSettings } from './user-settings';
 import { countPulls } from './collection';
 import { RARITIES } from './rarity';
 import { VARIANTS, allowedVariants, countVariants, effectiveWeights, emptyCounts, upgradeStep } from './variants';
 import { getHoloResolver } from './holo';
 import type { GridCard } from '@/app/u/[username]/CollectionGrid';
-import type { Card, Pack, Season, UserProfile } from './types';
+import type { Card, Pack, Season, UserProfile, Variant } from './types';
+import type { VariantCounts } from './variants';
 import type { LeaderboardRow } from './leaderboard';
 
 // Everything a profile page needs about one viewer in the active season, loaded once and shared by the tabs.
+
+export interface ShowcaseCard { number: number; name: string; imageUrl: string; fullArtImageUrl?: string; stars: number; variant: Variant; points: number }
+
+/** The viewer's `n` most valuable single copies, one per card. */
+export function topCopies(allCards: { number: number; name: string; imageUrl: string; fullArtImageUrl?: string; stars: number }[], variantMap: Map<number, VariantCounts>, values: Map<number, { values: Record<Variant, number> }>, n: number): ShowcaseCard[] {
+  const out: ShowcaseCard[] = [];
+  for (const c of allCards) {
+    const counts = variantMap.get(c.number);
+    if (!counts) continue;
+    let best: { variant: Variant; points: number } | null = null;
+    for (const v of VARIANTS) if (counts[v] > 0) { const pts = values.get(c.number)?.values[v] ?? 0; if (!best || pts > best.points) best = { variant: v, points: pts }; }
+    if (best) out.push({ number: c.number, name: c.name, imageUrl: c.imageUrl, fullArtImageUrl: c.fullArtImageUrl, stars: c.stars, ...best });
+  }
+  return out.sort((a, b) => b.points - a.points || a.number - b.number).slice(0, n);
+}
 
 export interface ProfileBase {
   lower: string;
@@ -30,6 +47,8 @@ export interface ProfileBase {
   rank: number | null;          // 1-based
   row: LeaderboardRow | null;
   awards: Awaited<ReturnType<typeof getUserAwards>>;
+  settings: UserSettings;       // their own Settings (accent, wishlist, experiments)
+  showcase: ShowcaseCard[];     // their most valuable copies (only when they switched the showcase experiment on)
   bio: string;                  // the line they wrote in Settings
   hidden: boolean;              // an admin hid them from public boards (their page still works, but no activity feed)
   uniqueOwned: number;
@@ -61,7 +80,7 @@ export async function loadProfileBase(lower: string, fresh: boolean): Promise<Pr
   return {
     lower, displayName: profile?.displayName || lower, profile, avatarUrl: avatars[lower] ? sizeTwitchAvatar(avatars[lower], 150) : undefined,
     season, packs, allCards, collection, owned, countMap, variantMap: countVariants(owned), board,
-    rank: idx >= 0 ? idx + 1 : null, row: idx >= 0 ? board.rows[idx] : null, awards, bio: theirs.bio, hidden: hiddenSet.has(lower),
+    rank: idx >= 0 ? idx + 1 : null, row: idx >= 0 ? board.rows[idx] : null, awards, settings: theirs, showcase: hasExperiment(theirs, 'showcase') ? topCopies(allCards, countVariants(owned), board.values.cards, 3) : [], bio: theirs.bio, hidden: hiddenSet.has(lower),
     uniqueOwned, total, pct: total > 0 ? Math.round((uniqueOwned / total) * 100) : 0,
     rarity: RARITIES.map(r => {
       const cs = allCards.filter(c => c.stars === r.stars);

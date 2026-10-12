@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { getSession } from '@/lib/session';
+import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { profileHref } from '@/lib/profile-url';
 import { SettingsForm } from './SettingsForm';
@@ -13,7 +14,8 @@ export const metadata: Metadata = { title: 'Settings', robots: { index: false, f
 export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/auth/twitch?returnTo=/settings');
-  const settings = await getUserSettings(session.username);
+  const [settings, active] = await Promise.all([getUserSettings(session.username), getActiveSeasonWithPacks().catch(() => null)]);
+  const cards = (active?.packs ?? []).flatMap(p => p.cards).map(c => ({ number: c.number, name: c.name, stars: c.stars })).sort((a, b) => a.number - b.number);
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -23,7 +25,7 @@ export default async function SettingsPage() {
         </div>
         <Link href={profileHref(session.username)} className="text-sm text-yellow-400 hover:text-yellow-300">View my profile →</Link>
       </header>
-      <SettingsForm initial={settings} username={session.username} />
+      <SettingsForm initial={settings} username={session.username} cards={cards} />
     </div>
   );
 }
