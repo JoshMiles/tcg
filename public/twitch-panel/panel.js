@@ -612,7 +612,7 @@ function setView(view) {
 function boardRow(r, me) {
   const row = document.createElement('a');
   row.className = 'lb-row' + (r.username === me ? ' me' : '') + (r.rank <= 3 ? ' top' + r.rank : '');
-  row.href = new URL('/collection/' + encodeURIComponent(r.username), window.location.origin).href;
+  row.href = new URL('/u/' + encodeURIComponent(r.username), window.location.origin).href;
   row.target = '_blank';
   row.rel = 'noopener noreferrer';
 
@@ -727,7 +727,7 @@ async function login(username) {
   const footerName = document.getElementById('footer-username');
   if (footerName) {
     footerName.textContent = username;
-    footerName.href = new URL('/collection/' + encodeURIComponent(username.toLowerCase()), window.location.origin).href;
+    footerName.href = new URL('/u/' + encodeURIComponent(username.toLowerCase()), window.location.origin).href;
   }
 }
 

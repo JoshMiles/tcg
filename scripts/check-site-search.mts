@@ -22,8 +22,8 @@ const items = s.buildEntityItems(users, new Set(['hidden_hank']), cards);
 ok(!items.some(i => i.label === 'hidden_hank'), 'hidden collectors are never searchable');
 eq(items.filter(i => i.label === 'alice').length, 1, 'names are lower-cased and de-duplicated');
 eq(items.find(i => i.id === 'card:1')?.href, '/cards?card=1', 'a card links to its dex entry');
-eq(items.find(i => i.id === 'player:bob_the_builder')?.href, '/collection/bob_the_builder', 'a collector links to their collection');
-ok(items.find(i => i.id === 'player:carol')?.href === '/collection/carol', 'player href');
+eq(items.find(i => i.id === 'player:bob_the_builder')?.href, '/u/bob_the_builder', 'a collector links to their collection');
+ok(items.find(i => i.id === 'player:carol')?.href === '/u/carol', 'player href');
 
 // ── ranking ──
 const all = [...s.PUBLIC_PAGES, ...items];

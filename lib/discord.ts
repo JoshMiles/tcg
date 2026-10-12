@@ -114,7 +114,7 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
   const author = e.username
     ? {
         name: e.username,
-        url: `${SITE_URL}/collection/${encodeURIComponent(e.username)}`,
+        url: `${SITE_URL}/u/${encodeURIComponent(e.username)}`,
         ...(avatarUrl ? { icon_url: sizeTwitchAvatar(avatarUrl, 70) } : {}),
       }
     : undefined;

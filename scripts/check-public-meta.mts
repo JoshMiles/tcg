@@ -39,6 +39,7 @@ const hasMeta = (src: string) => /export const metadata\b|export async function 
 for (const p of pages) {
   if (p.route === '/') continue; // the home page uses the site default
   const src = readFileSync(p.file, 'utf8');
+  if (/permanentRedirect\(/.test(src)) continue; // a redirect-only address never renders, so it needs no title
   const layout = join(p.file, '..', 'layout.tsx');
   ok(hasMeta(src) || (existsSync(layout) && hasMeta(readFileSync(layout, 'utf8'))), `${p.route} has no title (export metadata or generateMetadata)`);
 }
@@ -51,6 +52,7 @@ function* sources(dir: string): Generator<string> {
 }
 for (const f of sources(appDir)) {
   const src = readFileSync(f, 'utf8');
+  if (!hasMeta(src)) continue; // only files that declare page metadata (a share-sheet title in a client component is not a page title)
   for (const m of src.matchAll(/title:\s*[`'"]([^`'"]*)[`'"]/g)) {
     ok(!/The Cheesy TCG\s*$/.test(m[1]) || f.endsWith('layout.tsx'), `${relative(process.cwd(), f)}: title "${m[1]}" repeats the site name (the template adds it)`);
   }

@@ -76,7 +76,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
                   <li key={`${a.id}-${a.username}-${i}`} className="flex items-center gap-2.5 rounded-lg bg-gray-900/70 border border-gray-800 px-3 py-2 text-sm">
                     <Icon name={a.icon} className="text-yellow-400" />
                     <span className="font-semibold text-gray-200">{a.title}</span>
-                    <Link href={`/collection/${a.username}`} className="text-gray-400 hover:text-white truncate">{a.username}</Link>
+                    <Link href={`/u/${a.username}`} className="text-gray-400 hover:text-white truncate">{a.username}</Link>
                     <span className="ml-auto text-xs text-gray-500 shrink-0">{a.detail}</span>
                   </li>
                 ))}
@@ -103,7 +103,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
             {top.map((r, i) => (
               <Link
                 key={r.username}
-                href={`/collection/${r.username}`}
+                href={`/u/${r.username}`}
                 className={`tcg-panel rounded-xl px-4 py-3 flex items-center gap-4 hover:border-yellow-500/40 transition-colors ${i === 0 ? 'ring-1 ring-yellow-500/50' : ''}`}
               >
                 <span className="w-8 text-center font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>

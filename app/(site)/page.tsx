@@ -20,7 +20,7 @@ export default async function HomePage() {
   async function goToCollection(formData: FormData) {
     'use server';
     const username = String(formData.get('username') ?? '').trim().toLowerCase().replace(/^@/, '');
-    if (username) redirect(`/collection/${encodeURIComponent(username)}`);
+    if (username) redirect(`/u/${encodeURIComponent(username)}`);
   }
 
   const { season } = await getActive();
@@ -118,7 +118,7 @@ export default async function HomePage() {
                 <ol className="space-y-2">
                   {top.map((r, i) => (
                     <li key={r.username}>
-                      <Link href={`/collection/${r.username}`} className="rind rounded-xl px-4 py-3 flex items-center gap-4 hover:brightness-125 transition">
+                      <Link href={`/u/${r.username}`} className="rind rounded-xl px-4 py-3 flex items-center gap-4 hover:brightness-125 transition">
                         <span className="w-8 text-center font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>
                         <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
                         <span className="flex-1 min-w-0">
@@ -151,7 +151,7 @@ export default async function HomePage() {
                           <span className="w-8 h-11 rounded bg-gray-800" />
                         )}
                         <span className="flex-1 min-w-0 text-sm">
-                          <Link href={`/collection/${e.username}`} className="font-semibold text-white hover:text-yellow-300">{e.username}</Link>{' '}
+                          <Link href={`/u/${e.username}`} className="font-semibold text-white hover:text-yellow-300">{e.username}</Link>{' '}
                           <span className="text-gray-400">pulled</span>{' '}
                           <span className="font-semibold" style={{ color: rarity?.hex }}>{e.cardName || `#${e.cardNumber}`}</span>
                           {e.variant && e.variant !== 'regular' && (

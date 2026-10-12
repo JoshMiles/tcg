@@ -45,7 +45,7 @@ export function buildEntityItems(
   cards: { number: number; name: string; stars: number; thumb?: string }[],
 ): SearchItem[] {
   const players = [...new Set(usernames.map(u => u.toLowerCase()))].filter(u => !hidden.has(u)).map<SearchItem>(u => ({
-    id: `player:${u}`, kind: 'player', label: u, href: `/collection/${encodeURIComponent(u)}`, hint: 'Collector',
+    id: `player:${u}`, kind: 'player', label: u, href: `/u/${encodeURIComponent(u)}`, hint: 'Collector',
   }));
   const dex = cards.map<SearchItem>(c => ({
     id: `card:${c.number}`, kind: 'card', label: c.name, href: `/cards?card=${c.number}`, hint: `Card #${c.number}`, image: c.thumb, stars: c.stars,
