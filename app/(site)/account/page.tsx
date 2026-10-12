@@ -63,7 +63,7 @@ export default async function AccountPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         {header}
         <div className="flex gap-2">
-          <Link href={`/u/${session.username}`} className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="cards" className="mr-1.5" />My collection</Link>
+          <Link href={`/u/${session.username}`} className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="user" className="mr-1.5" />My profile</Link>
           <Link href={`/leaderboard/${season.id}`} className="px-4 py-2 text-sm rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold"><Icon name="trophy" className="mr-1.5" />Leaderboard</Link>
         </div>
       </div>

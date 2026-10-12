@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { hasExperiment } from '@/lib/user-settings';
 import { Icon } from '@/app/components/Icon';
 import { CardTile } from '@/app/components/CardTile';
 import { TradeCard } from '@/app/components/trade/TradeCard';
@@ -37,27 +36,8 @@ const Empty = ({ icon, title, children }: { icon: Parameters<typeof Icon>[0]['na
 export function CollectionTab({ b, grid, isOwner, tradeWith, prefs, mine }: { b: ProfileBase; grid: GridCard[]; isOwner: boolean; tradeWith?: string; prefs?: { hideUncollected: boolean; compactGrids: boolean }; mine?: Record<number, number> }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   if (b.allCards.length === 0) return <Empty icon="cards" title="No cards in this season yet">Check back once packs are added.</Empty>;
-  const wanted = hasExperiment(b.settings, 'wishlist') ? b.settings.wanted.map(n => b.allCards.find(c => c.number === n)).filter((c): c is NonNullable<typeof c> => !!c) : [];
   return (
     <div className="space-y-6">
-      {wanted.length > 0 && (
-        <section className="tcg-panel rounded-2xl p-4" aria-label="Looking for">
-          <h2 className="text-sm font-bold text-white mb-2"><Icon name="search" className="mr-1.5 text-yellow-400" />{isOwner ? "You're" : `${b.displayName} is`} looking for</h2>
-          <ul className="flex flex-wrap gap-2">
-            {wanted.map(c => {
-              const mine_ = mine?.[c.number] ?? 0;
-              const have = (b.countMap.get(c.number) ?? 0) > 0;
-              return (
-                <li key={c.number} className={`flex items-center gap-2 rounded-xl border px-2 py-1.5 text-xs ${have ? 'border-gray-800 text-gray-500' : 'border-yellow-500/30 bg-yellow-500/5 text-gray-200'}`}>
-                  <span className="font-bold">{c.name}</span>
-                  {have && <span className="text-emerald-400">got it</span>}
-                  {tradeWith && mine_ > 0 && !have && <Link href={`/trade/new?to=${encodeURIComponent(tradeWith)}`} className="rounded-full bg-purple-500/20 border border-purple-400/40 px-2 py-0.5 font-bold text-purple-200 hover:bg-purple-500/30">You have {mine_} · offer a trade</Link>}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         {b.rarity.map(r => (
           <div key={r.stars} className="tcg-panel rounded-xl p-3 text-center">

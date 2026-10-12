@@ -7,7 +7,7 @@ export interface PublicGoKey { key: string; label: string; href: string | ((user
 
 export const PUBLIC_GO_KEYS: PublicGoKey[] = [
   { key: 'h', label: 'Home', href: '/' },
-  { key: 'c', label: 'My collection', href: u => profileHref(u), needsLogin: true },
+  { key: 'c', label: 'My profile', href: u => profileHref(u), needsLogin: true },
   { key: 'l', label: 'Leaderboard', href: '/leaderboard' },
   { key: 's', label: 'Season stats', href: '/stats' },
   { key: 'd', label: 'Card Dex', href: '/cards' },

@@ -3,6 +3,8 @@
 
 export const BIO_MAX = 160;
 
+import { sanitizeProfileLayout, type ProfilePlacement } from './profile-widgets';
+
 export const WANTED_MAX = 6;
 /** Header colours for the Profile accent experiment. */
 export const ACCENTS = [
@@ -32,8 +34,10 @@ export interface UserSettings {
   compactGrids: boolean;
   /** Header colour (an ACCENTS id) shown on their own profile while the 'accent' experiment is on. */
   accent: string;
-  /** Card numbers they are looking for, shown on their profile while the 'wishlist' experiment is on. */
+  /** Card numbers they are looking for (the Looking for widget on their profile). */
   wanted: number[];
+  /** The widgets of their profile Overview, in order (null = the default layout). */
+  profileLayout: ProfilePlacement[] | null;
   /** Ids of switched-on experimental features (see EXPERIMENTS). */
   experiments: string[];
 }
@@ -49,6 +53,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   compactGrids: false,
   accent: '',
   wanted: [],
+  profileLayout: null,
   experiments: [],
 };
 
@@ -57,9 +62,7 @@ export interface Experiment { id: string; label: string; description: string }
 /** Opt-in features that are still settling. The 'shortcuts' one changes only this viewer's browser; the profile ones change how their own public profile looks. */
 export const EXPERIMENTS: Experiment[] = [
   { id: 'shortcuts', label: 'Keyboard shortcuts', description: 'Press g then h, c, l, s, d, t or a to jump to Home, Collection, Leaderboard, Stats, Card Dex, Trade or My stats. Press ? for the list. Off while you are typing.' },
-  { id: 'showcase', label: 'Profile showcase', description: 'Your three most valuable cards are shown at the top of your public profile.' },
   { id: 'accent', label: 'Profile accent', description: 'Colour your public profile header. Pick the colour below once this is on.' },
-  { id: 'wishlist', label: 'Looking for', description: 'List up to 6 cards you want. They show on your public profile, and collectors who own one get a one-click trade offer.' },
 ];
 
 const EXPERIMENT_IDS = new Set(EXPERIMENTS.map(e => e.id));
@@ -75,6 +78,7 @@ export function sanitizeUserSettings(input: unknown): UserSettings {
   if (o.motion === 'reduce' || o.motion === 'system') out.motion = o.motion;
   if (typeof o.accent === 'string' && ACCENTS.some(a => a.id === o.accent)) out.accent = o.accent;
   if (Array.isArray(o.wanted)) out.wanted = [...new Set(o.wanted.filter((n): n is number => Number.isInteger(n) && n >= 1 && n < 1_000_000))].slice(0, WANTED_MAX);
+  if (Array.isArray(o.profileLayout)) out.profileLayout = sanitizeProfileLayout(o.profileLayout);
   if (Array.isArray(o.experiments)) out.experiments = [...new Set(o.experiments.filter((x): x is string => typeof x === 'string' && EXPERIMENT_IDS.has(x)))];
   return out;
 }

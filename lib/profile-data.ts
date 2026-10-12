@@ -66,8 +66,7 @@ export interface ProfileBase {
   rank: number | null;          // 1-based
   row: LeaderboardRow | null;
   awards: Awaited<ReturnType<typeof getUserAwards>>;
-  settings: UserSettings;       // their own Settings (accent, wishlist, experiments)
-  showcase: ShowcaseCard[];     // their most valuable copies (only when they switched the showcase experiment on)
+  settings: UserSettings;       // their own Settings (accent, wanted cards, layout, experiments)
   bio: string;                  // the line they wrote in Settings
   hidden: boolean;              // an admin hid them from public boards (their page still works, but no activity feed)
   uniqueOwned: number;
@@ -99,7 +98,7 @@ export async function loadProfileBase(lower: string, fresh: boolean): Promise<Pr
   return {
     lower, displayName: profile?.displayName || lower, profile, avatarUrl: avatars[lower] ? sizeTwitchAvatar(avatars[lower], 150) : undefined,
     season, packs, allCards, collection, owned, countMap, variantMap: countVariants(owned), board,
-    rank: idx >= 0 ? idx + 1 : null, row: idx >= 0 ? board.rows[idx] : null, awards, settings: theirs, showcase: hasExperiment(theirs, 'showcase') ? topCopies(allCards, countVariants(owned), board.values.cards, 3) : [], bio: theirs.bio, hidden: hiddenSet.has(lower),
+    rank: idx >= 0 ? idx + 1 : null, row: idx >= 0 ? board.rows[idx] : null, awards, settings: theirs, bio: theirs.bio, hidden: hiddenSet.has(lower),
     uniqueOwned, total, pct: total > 0 ? Math.round((uniqueOwned / total) * 100) : 0,
     rarity: RARITIES.map(r => {
       const cs = allCards.filter(c => c.stars === r.stars);

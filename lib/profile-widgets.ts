@@ -1,0 +1,74 @@
+import type { IconName } from '@/app/components/Icon';
+
+// A profile's Overview is a grid of widgets its owner can add, remove, reorder and resize (client-safe model: the registry and the
+// layout + its sanitizer). The widgets themselves are in app/u/[username]/widgets.tsx, the editor in ProfileGrid.tsx, and the
+// owner's chosen layout lives in their settings (UserSettings.profileLayout).
+
+export const PROFILE_WIDGET_TYPES = ['stats', 'showcase', 'rarity', 'progress', 'rarest', 'recent', 'activity', 'trades', 'awards', 'wishlist', 'collection'] as const;
+export type ProfileWidgetType = (typeof PROFILE_WIDGET_TYPES)[number];
+
+/** Column spans on a 12-column grid (everything stacks on phones; spans of 6 or less pair up on tablets). */
+export const PROFILE_SPANS = [3, 4, 6, 8, 12] as const;
+export type ProfileSpan = (typeof PROFILE_SPANS)[number];
+
+export interface ProfileWidgetDef {
+  type: ProfileWidgetType;
+  title: string;
+  icon: IconName;
+  description: string;
+  defaultSpan: ProfileSpan;
+  spans: readonly ProfileSpan[];
+}
+
+export const PROFILE_WIDGETS: Record<ProfileWidgetType, ProfileWidgetDef> = {
+  stats: { type: 'stats', title: 'Score breakdown', icon: 'trend', description: 'Points from cards and bonuses, version mix and total copies.', defaultSpan: 4, spans: [4, 6, 8] },
+  showcase: { type: 'showcase', title: 'Showcase', icon: 'gem', description: 'Your three most valuable cards, front and centre.', defaultSpan: 8, spans: [4, 6, 8, 12] },
+  rarity: { type: 'rarity', title: 'Rarity progress', icon: 'award', description: 'How much of each rarity you have collected.', defaultSpan: 12, spans: [6, 8, 12] },
+  progress: { type: 'progress', title: 'Pack progress', icon: 'cards', description: 'How complete each pack is.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  rarest: { type: 'rarest', title: 'Rarest finds', icon: 'sparkles', description: 'The hardest-to-pull cards you own.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  recent: { type: 'recent', title: 'Latest copies', icon: 'history', description: 'Your newest numbered cards, each linking to its history.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  activity: { type: 'activity', title: 'Recent activity', icon: 'activity', description: 'Pulls, upgrades and trades as they happen.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  trades: { type: 'trades', title: 'Trading', icon: 'trade', description: 'Completed trades and your open board listings.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  awards: { type: 'awards', title: 'Awards', icon: 'trophy', description: 'Season awards you have earned.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  wishlist: { type: 'wishlist', title: 'Looking for', icon: 'search', description: 'Cards you want. Collectors who own one get a one-click trade offer.', defaultSpan: 4, spans: [3, 4, 6, 8, 12] },
+  collection: { type: 'collection', title: 'Collection preview', icon: 'cards', description: 'A strip of the cards you own, linking to the full collection.', defaultSpan: 12, spans: [6, 8, 12] },
+};
+
+export interface ProfilePlacement { type: ProfileWidgetType; span: ProfileSpan }
+
+/** What a profile shows until its owner changes it. */
+export const DEFAULT_PROFILE_LAYOUT: ProfilePlacement[] = [
+  { type: 'stats', span: 4 },
+  { type: 'showcase', span: 8 },
+  { type: 'rarity', span: 12 },
+  { type: 'rarest', span: 6 },
+  { type: 'recent', span: 6 },
+  { type: 'activity', span: 6 },
+  { type: 'awards', span: 6 },
+];
+
+const isType = (t: unknown): t is ProfileWidgetType => typeof t === 'string' && (PROFILE_WIDGET_TYPES as readonly string[]).includes(t);
+
+/** Known widgets only, each at most once, spans snapped to what the widget allows. Not an array: the default layout. */
+export function sanitizeProfileLayout(input: unknown): ProfilePlacement[] {
+  if (!Array.isArray(input)) return DEFAULT_PROFILE_LAYOUT.map(w => ({ ...w }));
+  const seen = new Set<ProfileWidgetType>();
+  const out: ProfilePlacement[] = [];
+  for (const w of input) {
+    const type = (w as { type?: unknown })?.type;
+    if (!isType(type) || seen.has(type)) continue;
+    seen.add(type);
+    const def = PROFILE_WIDGETS[type];
+    const span = Number((w as { span?: unknown }).span);
+    out.push({ type, span: (def.spans as readonly number[]).includes(span) ? (span as ProfileSpan) : def.defaultSpan });
+  }
+  return out;
+}
+
+export const PROFILE_SPAN_CLASS: Record<ProfileSpan, string> = {
+  3: 'md:col-span-6 xl:col-span-3',
+  4: 'md:col-span-6 xl:col-span-4',
+  6: 'md:col-span-6 xl:col-span-6',
+  8: 'md:col-span-12 xl:col-span-8',
+  12: 'md:col-span-12 xl:col-span-12',
+};
