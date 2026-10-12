@@ -61,6 +61,14 @@ export default function PrivacyPage() {
             <strong className="text-white">Trade offers</strong> you make or receive (who, which cards, any note you write, and when), kept in a log of the latest 400 finished trades. Open offers on the Trade page, including the board, are visible to logged-in viewers.
           </li>
           <li>
+            <strong className="text-white">A history for every card copy.</strong> Each copy of a card has a serial number and a record of when it was created and who
+            held, traded or spent it (kept with the usernames involved). It is shown on the card&rsquo;s public page.
+          </li>
+          <li>
+            <strong className="text-white">Your settings and profile choices</strong> if you set any: a short bio, your Looking for list, display and notification
+            preferences, how you arranged your profile, and a few samples of your score and rank (taken when you open My Stats) for the history chart.
+          </li>
+          <li>
             <strong className="text-white">A profile record</strong> (username, display name, Twitch user ID, creation time, and an optional note the channel
             owner may add).
           </li>

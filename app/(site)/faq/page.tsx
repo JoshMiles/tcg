@@ -26,6 +26,7 @@ const SECTIONS = [
   { id: 'cards', label: 'Cards & versions' },
   { id: 'upgrades', label: 'Upgrading' },
   { id: 'trading', label: 'Trading' },
+  { id: 'profile', label: 'Your profile' },
   { id: 'points', label: 'Points & leaderboard' },
   { id: 'seasons', label: 'Seasons' },
   { id: 'extension', label: 'Twitch extension' },
@@ -92,14 +93,14 @@ export default async function FaqPage() {
         </Q>
         <Q q="Where can I see my cards?">
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
-            <li>On the website: <Link href="/collection" className="text-yellow-400 hover:text-yellow-300">Collections</Link>, then type any Twitch username. Collections are public.</li>
+            <li>On the website: every collector has a public profile with their collection. Use <Link href="/collection" className="text-yellow-400 hover:text-yellow-300">Collections</Link> or the search box at the top (press <kbd className="kbd">/</kbd>) to find anyone.</li>
             <li>Logged in, <strong className="text-white">My profile</strong> and <strong className="text-white">My stats</strong> are in the menu at the top right.</li>
             <li>In Twitch, under the stream, with the extension (see <a href="#extension" className="text-yellow-400 hover:text-yellow-300">Twitch extension</a>).</li>
           </ul>
         </Q>
         <Q q="Do I need an account?">
           Not to browse. Collections, the leaderboard, season stats and the card dex are open to everyone. <strong className="text-white">Log in with Twitch</strong> to see your own stats and to upgrade
-          cards on the website. Logging in only shares your basic public Twitch profile (we ask for no extra permissions).
+          cards on the website, trade, customise your profile and change your settings. Logging in only shares your basic public Twitch profile (we ask for no extra permissions).
         </Q>
         <Q q="I can&rsquo;t find my collection">
           A collection appears once you&rsquo;ve pulled at least one card this season. Check the spelling of your Twitch username (capitals don&rsquo;t matter). If you&rsquo;ve just pulled something, refresh the page.
@@ -141,6 +142,11 @@ export default async function FaqPage() {
         )}
         <Q q="Can I see cards I haven&rsquo;t found yet?">
           Yes — the <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">Card dex</Link> lists every card in the season. On your own collection page, cards you haven&rsquo;t pulled yet show as a <strong className="text-white">?</strong>.
+        </Q>
+        <Q q="What are serial numbers?" id="serials" open>
+          Every copy of a card has its own number, counted per card <em>and</em> version: your Shiny Gouda Goat #3 is the third Shiny Gouda Goat ever made, whatever happens to the Regular ones. Open a card in your collection to see your
+          serials, and press one to see its page: who pulled it, who has held it since, and where it has been traded. Copies that existed before serials began were numbered afterwards, so their order is an estimate
+          (shown with a ~). When you upgrade, the spent copies are retired and the new copy remembers what it was made from.
         </Q>
       </Section>
 
@@ -191,7 +197,7 @@ export default async function FaqPage() {
             There are two kinds of offer:
           </p>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
-            <li><strong className="text-white">To one person</strong> — only they can accept, decline or counter it. You can start one from the &ldquo;Trade with…&rdquo; button on their collection page.</li>
+            <li><strong className="text-white">To one person</strong> — only they can accept, decline or counter it. You can start one from the &ldquo;Trade with…&rdquo; button on their profile.</li>
             <li><strong className="text-white">On the open board</strong> — a listing anyone can take, as long as they own what you ask for.</li>
           </ul>
           <p className="mt-2">When someone accepts, the swap happens instantly and both collections update. There are no fees and no randomness.</p>
@@ -214,6 +220,18 @@ export default async function FaqPage() {
         <Q q="How will I know if someone answers my offer?">
           The bell in the top bar tells you when you get an offer or counter-offer, and when yours is accepted, declined, withdrawn or runs out. When someone accepts one of your offers you also get a short trade animation showing the swap (you can replay it from the bell).
         </Q>
+        <Q q="How do I find a good trade?">
+          The Trade page has three tabs: <em>Your trades</em>, <em>The board</em> and <em>History</em>. <strong className="text-white">Matches for you</strong> picks out board listings you can take that give a card you are
+          looking for or do not have yet, or that only ask for your spare copies. On the board you can search, filter (for example &ldquo;I can take&rdquo;) and sort by points. When you make an offer to someone, quick picks show
+          the cards they are looking for that you own and the cards you want that they have. Add cards to your own <em>Looking for</em> list from the Card Dex, My Stats or Settings.
+        </Q>
+        <Q q="Can I stop getting offers or notifications?">
+          Yes. In <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> you can stop other collectors sending you direct offers (the open board and counters to your own offers still work) and switch off
+          bell notices for new offers or for how your offers ended. Notices from an admin always come through.
+        </Q>
+        <Q q="Which of my copies get traded?">
+          Trades move your <strong className="text-white">newest</strong> copies of a card first, so the low serial numbers you pulled earliest stay with you. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">serial numbers</a>.
+        </Q>
         <Q q="Is a trade fair? How do I know what a card is worth?">
           Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule — you can
           trade anything for anything. Remember that trading changes how scarce each version is, so values shift after a trade, and the person giving up a rare version may care about more than the points.
@@ -223,6 +241,28 @@ export default async function FaqPage() {
         </Q>
         <Q q="Can I trade in the Twitch extension?">
           Not yet — trading is on the website for now. Your collection is the same in both places.
+        </Q>
+      </Section>
+
+      {/* ── Your profile ── */}
+      <Section id="profile" title="Your profile" icon="user">
+        <Q q="What is on a profile?" open>
+          Every collector has a public profile with an <em>Overview</em>, their <em>Collection</em>, <em>Stats</em>, <em>Trades</em> and <em>Activity</em>. The Collection tab lets you search, filter by rarity or pack, sort, and (when you are
+          logged in and looking at someone else) compare what you each have.
+        </Q>
+        <Q q="Can I change how my profile looks?">
+          Yes. On your own profile press <strong className="text-white">Customize profile</strong>: drag widgets to rearrange them, drag a widget&rsquo;s edge (or use the arrows) to resize it, remove the ones you do not want
+          and add others from the list, then Save. You can show your best cards, rarity progress, latest numbered copies, awards, a Looking for list and more. In <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> you can also add a short bio.
+        </Q>
+        <Q q="Can I share my cards as an image?">
+          Yes: <em>Share my cards</em> on your profile, <em>Share my stats</em> on My Stats and <em>Share this card</em> on a card or copy page make a picture you can post or download.
+        </Q>
+        <Q q="Can I hide my profile?">
+          In Settings, <em>Private profile</em> leaves you off the leaderboard, card owner lists and recent pulls and hides your activity. Your page still opens for anyone who has the link, and your cards still appear on stream when
+          they are shown there.
+        </Q>
+        <Q q="What are the experimental features?">
+          Early features you can switch on in Settings, such as keyboard shortcuts (press <kbd className="kbd">g</kbd> then a letter to jump between pages, or <kbd className="kbd">?</kbd> for the list) and a profile accent colour. They may change or go away.
         </Q>
       </Section>
 
@@ -374,11 +414,14 @@ export default async function FaqPage() {
       {/* ── Privacy ── */}
       <Section id="privacy" title="Privacy & data" icon="lock">
         <Q q="What can other people see?" open>
-          Collections, the leaderboard, season stats and recent pulls are public, and your username appears on stream when your cards are shown. The full details are in the{' '}
+          Collections, the leaderboard, season stats, recent pulls and each card copy&rsquo;s history are public, and your username appears on stream when your cards are shown. A private profile hides you from the boards and feeds. The full details are in the{' '}
           <Link href="/privacy" className="text-yellow-400 hover:text-yellow-300">Privacy Policy</Link>; the rules of the game are in the <Link href="/terms" className="text-yellow-400 hover:text-yellow-300">Terms</Link>.
         </Q>
         <Q q="What do you store about me?">
           Your Twitch username and ID, your cards and score, and a short log of recent game events. Logging in on the website uses a login cookie; the Twitch access token isn&rsquo;t kept.
+        </Q>
+        <Q q="Can I download my data?">
+          Yes: <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> has a <em>Download my data</em> button that gives you your profile, settings, collections, trade offers and notices as a file.
         </Q>
         <Q q="How do I get my data deleted?">
           Ask the person who runs the game:{' '}
@@ -391,6 +434,9 @@ export default async function FaqPage() {
       <Section id="help" title="Something not working?" icon="wrench">
         <Q q="I can&rsquo;t log in on the website" open>
           Try again — the sign-in link only lasts a few minutes and must finish in the same browser. If you pressed <em>Cancel</em> on Twitch&rsquo;s page we can&rsquo;t log you in. Make sure cookies are allowed for this site.
+        </Q>
+        <Q q="How do I find things quickly?">
+          Press <kbd className="kbd">/</kbd> (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, copies or shinies, and shows who moved up or down since you last looked.
         </Q>
         <Q q="A card or my score looks wrong">
           Refresh first. Scores are recalculated whenever anyone pulls or upgrades, so they can move even when you haven&rsquo;t done anything. If something still looks wrong, tell the streamer in chat.
@@ -412,9 +458,9 @@ function Section({ id, title, icon, children }: { id: string; title: string; ico
   );
 }
 
-function Q({ q, open, children }: { q: string; open?: boolean; children: ReactNode }) {
+function Q({ q, open, id, children }: { q: string; open?: boolean; id?: string; children: ReactNode }) {
   return (
-    <details open={open} className="group rind rounded-xl overflow-hidden">
+    <details id={id} open={open} className="group rind rounded-xl overflow-hidden">
       <summary className="flex items-center justify-between gap-4 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
         <span className="font-semibold text-white">{q}</span>
         <span aria-hidden className="text-yellow-500 text-lg leading-none transition-transform group-open:rotate-45">+</span>
