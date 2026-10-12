@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import qrcode from 'qrcode-generator';
-import { madeLine, type FlipBack } from '@/lib/flip-back';
+import { editionLine, madeLine, type FlipBack } from '@/lib/flip-back';
 
 /** A QR code as one SVG path (dark modules only), so it can be styled like the rest of the engraving. */
 function qrPath(text: string): { d: string; size: number } | null {
@@ -70,8 +70,8 @@ export function FlipCard({ children, back, compact = false, className = '' }: { 
           <div className="flip-face flip-back" aria-hidden={!flipped} style={{ ['--edge' as string]: hex }}>
             <div className="flip-plate">
               <p className="flip-brand">The Cheesy TCG</p>
-              <p className={`flip-serial ${gold ? 'gold' : ''}`}>#{back.n}</p>
-              {made && <p className="flip-line">{made}</p>}
+              <p className={`flip-serial ${gold ? 'gold' : ''} ${back.uid ? 'long' : ''}`}>#{back.uid ?? back.n}</p>
+              {back.uid ? <p className="flip-line">{editionLine(back.n, back.total)}</p> : made && <p className="flip-line">{made}</p>}
               <p className="flip-line strong">{back.variantLabel} · {back.name}</p>
               {back.date && <p className="flip-date">{back.est ? 'NUMBERED' : 'PULLED'} {back.date}</p>}
               {!compact && (

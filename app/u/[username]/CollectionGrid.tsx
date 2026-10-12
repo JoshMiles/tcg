@@ -47,7 +47,7 @@ export interface GridCard {
   /** The holographic shimmer per variant, from the Overlay Editor's settings for this card's pack. */
   holo: HoloSpecs;
   /** This viewer's numbered copies of the card (only when the season's copies are tracked). */
-  copies?: { id: string; variant: Variant; n: number; /** When it was made (ms), where it came from, and how many of its card and version exist: for the engraved back of the flip card. */ at?: number; origin?: string; made?: number; est?: boolean; /** Points multiplier when the number earns a bonus. */ m?: number; /** What this copy is worth. */ p?: number }[];
+  copies?: { id: string; /** Its unique number across the game. */ uid?: number; variant: Variant; n: number; /** When it was made (ms), where it came from, and how many of its card and version exist: for the engraved back of the flip card. */ at?: number; origin?: string; made?: number; est?: boolean; /** Points multiplier when the number earns a bonus. */ m?: number; /** What this copy is worth. */ p?: number }[];
   /** The working behind this card's points, for the Advanced information panel. */
   maths?: CardMaths;
 }
@@ -319,7 +319,7 @@ function CardDetail({
                     <FlipCard
                       compact
                       back={{
-                        n: copy.n, total: copy.made, variantLabel: VARIANT_LABELS[shown], name: card.name, date: engravedDate(copy.at), est: copy.est,
+                        n: copy.n, uid: copy.uid, total: copy.made, variantLabel: VARIANT_LABELS[shown], name: card.name, date: engravedDate(copy.at), est: copy.est,
                         bonus: copy.m, hex: rarity?.hex, holder: ownerName ? `@${ownerName}` : 'you', href: `/copy/${encodeURIComponent(seasonId!)}/${copy.id}`,
                       }}
                     >{art}</FlipCard>
@@ -460,7 +460,7 @@ function SerialList({ card, seasonId, shown, ownerName }: { card: GridCard; seas
             <a href={`/copy/${encodeURIComponent(seasonId)}/${c.id}`} title={c.est ? 'Numbered after the fact: the order within a version is an estimate. Open this copy and its history' : 'Open this copy and its history'}
               className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 hover:border-yellow-500/60 transition-colors ${c.variant === shown ? 'border-gray-700 bg-gray-900/70' : 'border-gray-800/80'}`}>
               <SerialChip n={c.n} bonus={c.m} est={c.est} className="text-xs !px-2.5 !py-0.5" />
-              <span className="flex-1 min-w-0 truncate text-sm text-gray-200">{VARIANT_LABELS[c.variant]}</span>
+              <span className="flex-1 min-w-0 truncate text-sm text-gray-200">{VARIANT_LABELS[c.variant]}{c.uid ? <span className="ml-2 text-[11px] text-gray-500 tabular-nums">ID #{c.uid}</span> : null}</span>
               {c.m ? <span className="text-xs font-bold text-yellow-300">×{c.m} bonus</span> : null}
               {c.p ? <span className="text-xs tabular-nums text-gray-400">{c.p.toLocaleString()} pts</span> : null}
               <span aria-hidden className="text-gray-600">›</span>

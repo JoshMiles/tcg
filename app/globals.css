@@ -359,6 +359,7 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
 .flip-plate p { margin: 0; }
 .flip-brand { font-size: 9px; letter-spacing: .28em; text-transform: uppercase; font-weight: 800; color: rgba(20,20,26,.7); text-shadow: 0 1px 0 rgba(255,255,255,.6); }
 .flip-serial { font-family: var(--font-display, inherit); font-size: clamp(44px, 24%, 76px); font-weight: 800; line-height: 1; color: rgba(30,30,38,.78); text-shadow: 0 1.5px 0 rgba(255,255,255,.7), 0 -1px 1px rgba(0,0,0,.45); font-variant-numeric: tabular-nums; }
+.flip-serial.long { font-size: clamp(26px, 14%, 38px); letter-spacing: .02em; }
 .flip-serial.gold { color: transparent; background: linear-gradient(180deg, #e0a81c 0%, #f7d56b 45%, #8a5a00 100%); -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.65)); }
 .flip-line { font-size: 11px; color: rgba(16,16,22,.8); text-shadow: 0 1px 0 rgba(255,255,255,.55); line-height: 1.25; }
 .flip-line.strong { font-weight: 800; font-size: 12px; }

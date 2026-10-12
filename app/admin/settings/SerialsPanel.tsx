@@ -30,6 +30,18 @@ export async function SerialsPanel() {
                   </ConfirmButton>
                 </form>
               )}
+              {st.tracking && (
+                <form action={backfillSerialsAction.bind(null, s.id)}>
+                  <ConfirmButton
+                    title={`Give unique numbers in ${s.name}?`}
+                    confirmLabel="Give numbers"
+                    message={<>Every copy that has no <strong className="text-white">unique number</strong> yet (like #1023381) gets one, oldest copy first. Copies that already have one keep it, so it is safe to run again. Nothing in any collection changes.</>}
+                    className="px-4 py-2 text-sm rounded-xl border border-gray-700 text-gray-200 hover:border-yellow-500/60"
+                  >
+                    Give unique numbers
+                  </ConfirmButton>
+                </form>
+              )}
             </li>
           ))}
         </ul>

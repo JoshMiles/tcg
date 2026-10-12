@@ -67,7 +67,19 @@ await db.runInSandbox(box.id, async () => {
   ok(first.every(x => x.est && x.origin === 'estimated'), 'backfilled copies are marked as estimates');
   eq([...(await ser.mintedCounts(c)).entries()].sort(), [[E(1), 4], [E(2), 1], [E(3, 'shiny'), 1]].sort(), 'serial counters');
   ok((await mine('alice')).includes('1.0.1') && (await mine('bob')).length === 1, 'every serial has exactly one owner');
+  // Unique numbers: every copy has one, all different, 7 digits, found again by number.
+  {
+    const all = [...(await ser.getOwnerCopies(c, 'alice')), ...(await ser.getOwnerCopies(c, 'bob'))];
+    const uids = all.map(x => x.uid);
+    ok(uids.every(u => typeof u === 'number' && u > 1_000_000 && u < 10_000_000), 'every copy got a 7-digit unique number');
+    ok(new Set(uids).size === all.length, 'unique numbers are all different');
+    const first = all.find(x => x.uid === Math.min(...(uids as number[])))!;
+    const hit = await ser.findByUid(first.uid!);
+    ok(hit?.collection === c && hit.copyId === first.id, 'a unique number finds its copy');
+    ok((await ser.findByUid(1)) === null, 'an unknown number finds nothing');
+  }
   const again = await ser.backfillSerials(c, await kvLib.getCollection(c));
+  ok(again.numbered === 0, 'running it again numbers nothing new');
   ok(again.copies === 0 && await live() === 6, 'running the backfill again adds nothing');
 
   // New pulls are exact and continue the count.
@@ -122,6 +134,7 @@ await db.runInSandbox(box.id, async () => {
   ok((await mine('alice')).includes('1.3.1'), 'the Shiny went to alice, same id');
   const hist = (await ser.getCopy(c, give[0]))!.ev;
   ok(hist.at(-1)?.type === 'traded' && hist.at(-1)?.to === 'bob', 'history ends with the trade to bob');
+  ok(typeof (await ser.getCopy(c, give[0]))!.uid === 'number', 'a traded copy keeps its unique number');
 
   // Upgrade: five regulars of card 1 for one reverse (pack1 costs); the new copy points back at what was spent.
   await kvLib.saveCollection(c, { ...(await kvLib.getCollection(c)), carol: [] });
@@ -131,7 +144,9 @@ await db.runInSandbox(box.id, async () => {
   await consistent();
   const made = (await ser.getOwnerCopies(c, 'carol')).find(x => x.variant !== 'regular');
   ok(made && made.origin === 'upgrade' && (made.madeFrom?.length ?? 0) >= 2, 'the upgraded copy lists the copies it was made from');
+  ok(typeof made!.uid === 'number' && !(await ser.getOwnerCopies(c, 'carol')).some(x => x.id !== made!.id && x.uid === made!.uid), 'the upgraded copy has a new unique number');
   const spent = await ser.getCopy(c, made!.madeFrom![0]);
+  ok(typeof spent!.uid === 'number' && (await ser.findByUid(spent!.uid!))?.copyId === spent!.id, 'a spent copy can still be found by its number');
   ok(spent && spent.ev.at(-1)?.type === 'upgraded', 'a spent copy is retired as upgraded');
 
   // Admin actions on one exact copy: give away a specific (low) copy rather than the newest, and remove a specific copy.

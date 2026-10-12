@@ -154,7 +154,7 @@ export default async function FaqPage() {
           Yes — the <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">Card dex</Link> lists every card in the season. On your own collection page, cards you haven&rsquo;t pulled yet show as a <strong className="text-white">?</strong>.
         </Q>
         <Q q="What are serial numbers?" id="serials" open>
-          Every copy of a card has its own ID number, counted per card and per version of that card. For example, your Shiny Gouda Goat #3 is the third Shiny Gouda Goat drawn. Open a card in your collection to see your serial numbers,
+          Every copy of a card has two numbers. Its <strong className="text-white">unique copy number</strong> (like #1023381) is different for every copy in the whole game and is how you refer to it: type it in the search box or open <code className="text-yellow-300">/c/1023381</code>. Its <strong className="text-white">edition number</strong> is counted per card and per version of that card, and is the one that earns the points bonus. For example, your Shiny Gouda Goat edition #3 is the third Shiny Gouda Goat drawn. Open a card in your collection to see your serial numbers,
           and press one to see its page: who pulled it, who has held it since, and where it has been traded. Copies that existed before serial numbers began were numbered afterwards, so their order is an estimate (shown with a ~). On a copy&rsquo;s page and in your card details the card can be turned over: move the pointer over it to tilt it, then tap it or press <em>Flip</em> to see the engraved back with the serial number and the date.
           When you upgrade, the spent copies are retired and the new copy remembers what it was made from.
         </Q>

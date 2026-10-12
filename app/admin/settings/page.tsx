@@ -35,7 +35,7 @@ const TABS: (PageTab & { hint: string })[] = [
 const SAVED_MESSAGES: Record<string, string> = {
   scoring: 'Scoring saved. The leaderboard and card values now use the new numbers.',
   'scoring-reset': 'Scoring reset to the defaults.',
-  serials: 'Existing copies numbered. New pulls now get exact serials.',
+  serials: 'Done. Existing copies are numbered, and every copy has a unique number.',
   webhook: 'Webhook saved.',
   'webhook-secret': 'Incoming webhook secret regenerated. Update the URL in MixItUp.',
 };

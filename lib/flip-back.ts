@@ -1,8 +1,10 @@
 // The engraved back of a flip card (client-safe, pure): what is printed on it and how dates and history lines are worded.
 
 export interface FlipBack {
-  /** The copy's serial number ("#7"). */
+  /** The copy's serial number within its card and version ("#7"): the edition. */
   n: number;
+  /** The copy's unique number across the whole game ("#1023381"); the engraved number when present. */
+  uid?: number;
   /** How many copies of this card and version were ever made. */
   total?: number;
   /** "Shiny Full Art" etc. ('Regular' for plain). */
@@ -35,7 +37,13 @@ export function engravedDate(ms: number): string {
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-/** "#7 of 12 made", or just "#7" when the total is unknown. */
+/** "of 12 made", or '' when the total is unknown. */
 export function madeLine(n: number, total?: number): string {
   return total && total >= n ? `of ${total.toLocaleString('en-GB')} made` : '';
+}
+
+/** The edition line under the engraved number: "Edition #7 of 12 made" (just "Edition #7" when the total is unknown). */
+export function editionLine(n: number, total?: number): string {
+  const made = madeLine(n, total);
+  return `Edition #${n}${made ? ` ${made}` : ''}`;
 }

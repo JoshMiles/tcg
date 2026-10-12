@@ -130,7 +130,7 @@ export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promi
     const cv = b.board.values.cards.get(c.card);
     // m = the points multiplier when above 1; p = what this very copy is worth.
     copiesByCard.set(c.card, [...(copiesByCard.get(c.card) ?? []), {
-      id: c.id, variant: c.variant, n: c.n, at: c.at, origin: ORIGIN_LABELS[c.origin], ...(minted?.get(entryOf(c)) ? { made: minted.get(entryOf(c)) } : {}), ...(c.est ? { est: true } : {}), ...(m > 1 ? { m: Math.round(m * 100) / 100 } : {}), ...(cv ? { p: copyPoints(cv, c.variant, c.n, settings) } : {}),
+      id: c.id, ...(c.uid ? { uid: c.uid } : {}), variant: c.variant, n: c.n, at: c.at, origin: ORIGIN_LABELS[c.origin], ...(minted?.get(entryOf(c)) ? { made: minted.get(entryOf(c)) } : {}), ...(c.est ? { est: true } : {}), ...(m > 1 ? { m: Math.round(m * 100) / 100 } : {}), ...(cv ? { p: copyPoints(cv, c.variant, c.n, settings) } : {}),
     }]);
   }
   const holoFor = await getHoloResolver();
