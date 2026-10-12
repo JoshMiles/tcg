@@ -8,6 +8,7 @@ import { getHoloResolver } from './holo';
 import { VARIANT_LABELS } from './variants';
 import type { Trade, TradeItem } from './trade-core';
 import { stackPoints, type TradeCardInfo } from './trade-view-core';
+import type { SerialPool } from './serials-core';
 import { getTradeCards } from './trade-view';
 import type { Notice, NoticeKind, Swap, SwapCard } from './trade-notice-core';
 
@@ -17,6 +18,12 @@ import type { Notice, NoticeKind, Swap, SwapCard } from './trade-notice-core';
 const NOTICE_CAP = 30;
 const noticesKey = (u: string) => `notif:${u}`;
 const seenKey = (u: string) => `notif:${u}:seen`;
+
+/**
+ * The serial numbers of the copies on each side, read BEFORE they moved (afterwards they have changed hands), so the points quoted in
+ * the activity feed and Discord include the serial bonuses. A side that cannot be known (what a listing asks of a stranger) is absent.
+ */
+export interface EventPools { give?: SerialPool; get?: SerialPool }
 
 export type TradeAction = 'offered' | 'countered' | 'accepted' | 'declined' | 'cancelled' | 'expired';
 
@@ -70,7 +77,7 @@ export async function buildSwap(seasonId: string, gave: TradeItem[], got: TradeI
  * Records what happened to an offer: the admin activity feed / Discord (with the cards and points on both sides) and the
  * notification of whoever needs to know. `by` is who did it ('admin' for an admin cancel).
  */
-export async function announceTrade(trade: Trade, action: TradeAction, by?: string): Promise<void> {
+export async function announceTrade(trade: Trade, action: TradeAction, by?: string, pools: EventPools = {}): Promise<void> {
   try {
     const season = await getSeason(trade.seasonId);
     const cards = season ? await getTradeCards(season) : {};
@@ -81,7 +88,7 @@ export async function announceTrade(trade: Trade, action: TradeAction, by?: stri
 
     await recordActivity({
       type: 'trade', action: trade.counterOf && action === 'offered' ? 'countered' : action, username: trade.from, partner, by, kind: trade.kind, give, get,
-      givePts: stackPoints(trade.give, cards), getPts: stackPoints(trade.get, cards), note: trade.note,
+      givePts: stackPoints(trade.give, cards, pools.give), getPts: stackPoints(trade.get, cards, pools.get), note: trade.note,
       cardNumber: trade.give[0]?.cardNumber, collectionName: season?.collectionName,
     });
 
