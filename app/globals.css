@@ -279,3 +279,23 @@
   .tr-gave, .tr-flash, .tr-ring { display: none; }
   .tr-got, .tr-text { animation: none; opacity: 1; translate: 0 0; scale: 1; transform: none; }
 }
+
+/* ── Dashboard edit mode (DashboardGrid.tsx): small motions so rearranging feels physical ── */
+.dash-slide { animation: dashSlide .28s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes dashSlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+/* a widget that was just added */
+.dash-pop { animation: dashPop .45s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes dashPop { 0% { opacity: 0; transform: scale(.88); } 60% { opacity: 1; transform: scale(1.025); } 100% { transform: scale(1); } }
+/* a widget that was just moved or resized: a quick bounce and a ring that fades */
+.dash-settle { animation: dashSettle .5s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes dashSettle {
+  0% { transform: scale(1.025); box-shadow: 0 0 0 3px rgba(234,179,8,.7), 0 12px 30px rgba(0,0,0,.45); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234,179,8,0), 0 0 0 rgba(0,0,0,0); }
+}
+/* a widget being removed */
+.dash-leave { animation: dashLeave .2s ease-in both; }
+@keyframes dashLeave { to { opacity: 0; transform: scale(.92); } }
+@media (prefers-reduced-motion: reduce) {
+  .dash-slide, .dash-pop, .dash-settle, .dash-leave { animation: none; }
+  .dash-item { transition: none; }
+}
