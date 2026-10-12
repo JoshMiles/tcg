@@ -298,6 +298,9 @@ export default async function FaqPage() {
         <Q q="Can I download the pictures?">
           Yes. On a phone the share button opens your share sheet; on a computer it downloads the picture as a PNG you can post anywhere.
         </Q>
+        <Q q="Can I see my collection as a binder?">
+          Yes. On your profile&rsquo;s Collection tab, switch from <strong className="text-white">Grid</strong> to <strong className="text-white">Binder</strong>. Your cards sit in pockets, a pack at a time, with an empty pocket for each card you still need. Turn the pages with the buttons or the arrow keys, and click a card to see its details.
+        </Q>
         <Q q="Can I show off one special copy on my profile?">
           Yes. Open one of your copies (click its number in your card details) and press <strong className="text-white">Pin to my profile</strong>. It appears as a card on your profile that visitors can flip over to see its engraved unique number, and you can share a picture of it. If you trade the copy away it stops being shown.
         </Q>
