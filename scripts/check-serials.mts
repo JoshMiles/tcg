@@ -34,6 +34,14 @@ for (const n of [0, 1, 2, 3, 4, 5, 6, 9, 12]) {
   ok(rs.every((r, i) => rs.every((q, j) => i === j || r.x + r.w <= q.x + 0.5 || q.x + q.w <= r.x + 0.5 || r.y + r.h <= q.y + 0.5 || q.y + q.h <= r.y + 0.5)), `${n} cards do not overlap`);
 }
 
+// The copy image's plate sits under the card without touching it, inside the image.
+{
+  const ca = sh.cardAreaWithPlate(), pr = sh.plateRect();
+  ok(ca.y + ca.h + sh.PLATE_GAP <= pr.y + 0.5 && pr.y + pr.h <= sh.SHARE_H - sh.FOOTER_H, 'the plate fits under the card area and above the footer');
+  const one = sh.layoutCards(1, ca)[0];
+  ok(one.y + one.h <= pr.y && one.x >= ca.x - 0.5 && one.w > 400, 'the card stays big and clear of the plate');
+}
+
 // ── engine, in an isolated sandbox ──
 const db = await import('../lib/db');
 const kvLib = await import('../lib/kv');

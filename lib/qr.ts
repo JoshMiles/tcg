@@ -1,0 +1,20 @@
+import qrcode from 'qrcode-generator';
+
+/** A QR code as a grid of dark modules (client-safe; used by the flip card's back and the share image). Null if the text cannot be encoded. */
+export function qrModules(text: string): { size: number; dark: (r: number, c: number) => boolean } | null {
+  try {
+    const q = qrcode(0, 'M');
+    q.addData(text);
+    q.make();
+    return { size: q.getModuleCount(), dark: (r, c) => q.isDark(r, c) };
+  } catch { return null; }
+}
+
+/** The same as one SVG path (dark modules only), so it can be styled like the rest of an engraving. */
+export function qrPath(text: string): { d: string; size: number } | null {
+  const m = qrModules(text);
+  if (!m) return null;
+  let d = '';
+  for (let r = 0; r < m.size; r++) for (let c = 0; c < m.size; c++) if (m.dark(r, c)) d += `M${c} ${r}h1v1h-1z`;
+  return { d, size: m.size };
+}

@@ -6,7 +6,7 @@ import { CardTile } from '@/app/components/CardTile';
 import { FlipCard } from '@/app/components/FlipCard';
 import { ProvenanceTimeline } from '@/app/components/ProvenanceTimeline';
 import { buildProvenance } from '@/lib/provenance';
-import { engravedDate } from '@/lib/flip-back';
+import { editionLine, engravedDate, madeLine } from '@/lib/flip-back';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
@@ -154,7 +154,21 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
 
           <div className="flex flex-wrap gap-2">
             <ShareImageButton
-              spec={{ title: label, subtitle: `Copy #${copy.n} of ${total.toLocaleString()}`, stats: [season.name], cards: [{ src: art, name: card.name, hex: rarity?.hex, tag: `#${copy.n}` }], footer: SITE_URL.replace(/^https?:\/\//, '') }}
+              spec={{
+                title: label,
+                subtitle: `${season.name} · ${pack.name}`,
+                stats: [VARIANT_LABELS[copy.variant], ...(mult > 1 ? [`Serial bonus ×${Math.round(mult * 100) / 100}`] : [])],
+                cards: [{ src: art, name: card.name, hex: rarity?.hex }],
+                plate: {
+                  number: `#${copy.uid ?? copy.n}`,
+                  edition: copy.uid ? editionLine(copy.n, total) : madeLine(copy.n, total) || `Edition #${copy.n}`,
+                  date: `${copy.est ? 'NUMBERED' : 'PULLED'} ${engravedDate(copy.at)}`,
+                  lines: [gone ? 'No longer exists' : copy.owner && isEscrow(copy.owner) ? 'In a trade offer' : hidden.has(copy.owner) ? 'Held by a private collector' : `Held by @${copy.owner}`],
+                  gold: mult > 1,
+                  qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
+                },
+                footer: copy.uid ? `${SITE_URL.replace(/^https?:\/\//, '')}/c/${copy.uid}` : SITE_URL.replace(/^https?:\/\//, ''),
+              }}
               filename={`cheesy-tcg-${card.number}-${copy.variant}-${copy.n}.png`}
               label="Share this card"
             />
