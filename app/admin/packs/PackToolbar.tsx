@@ -2,7 +2,7 @@
 import { Icon } from '@/app/components/Icon';
 import { useEffect, useRef, useState } from 'react';
 
-type Filter = 'all' | 'live' | 'inactive' | 'draft';
+type Filter = 'all' | 'live' | 'inactive' | 'draft' | 'archived';
 type Sort = 'default' | 'name' | 'cards' | 'weight';
 
 const FILTERS: { id: Filter; label: string }[] = [
@@ -10,6 +10,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'live', label: 'Live' },
   { id: 'inactive', label: 'Inactive' },
   { id: 'draft', label: 'Drafts' },
+  { id: 'archived', label: 'Archived' },
 ];
 const SORTS: { id: Sort; label: string }[] = [
   { id: 'default', label: 'Drafts first, then newest' },
@@ -20,7 +21,7 @@ const SORTS: { id: Sort; label: string }[] = [
 
 /**
  * Search, status filter and sort for the (server-rendered) pack grid. Pack tiles opt in with `data-pack` plus
- * `data-search`, `data-status` (live | inactive | draft), `data-order`, `data-name`, `data-cards` and `data-weight`.
+ * `data-search`, `data-status` (live | inactive | draft | archived), `data-order`, `data-name`, `data-cards` and `data-weight`.
  * We toggle `hidden` and the CSS `order` rather than re-rendering, so each tile keeps its forms and confirm dialogs.
  * Press "/" anywhere to jump to the search box.
  */
@@ -29,6 +30,7 @@ export function PackToolbar({ counts }: { counts: Record<Filter, number> }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('default');
   const [shown, setShown] = useState(counts.all);
+  const countKey = JSON.stringify(counts);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function PackToolbar({ counts }: { counts: Record<Filter, number> }) {
     const tiles = [...document.querySelectorAll<HTMLElement>('[data-pack]')];
     let count = 0;
     for (const t of tiles) {
-      const match = (!q || (t.dataset.search ?? '').includes(q)) && (filter === 'all' || t.dataset.status === filter);
+      const match = (!q || (t.dataset.search ?? '').includes(q)) && (filter === 'all' ? t.dataset.status !== 'archived' : t.dataset.status === filter);
       t.hidden = !match;
       if (match) count++;
     }
@@ -49,7 +51,8 @@ export function PackToolbar({ counts }: { counts: Record<Filter, number> }) {
     });
     sorted.forEach((t, i) => { t.style.order = String(i); });
     setShown(count);
-  }, [query, filter, sort]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, filter, sort, countKey]); // countKey: re-apply after a server refresh changes which tiles are archived, live, etc.
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

@@ -31,6 +31,7 @@ export async function recordStats(e: StatEvent, at = Date.now()): Promise<void> 
       bumps.push('pull');
       if (e.isNew) bumps.push('newCard');
       if (e.copies === 1 && e.uniqueOwned === 1) bumps.push('newViewer');
+      if (typeof e.packName === 'string' && e.packName) bumps.push(`p:${e.packName}` as Metric);
       const v = e.variant as string | undefined;
       if (v === 'reverse' || v === 'full' || v === 'shiny') bumps.push(`v:${v}` as Metric);
     } else if (e.type === 'upgrade') bumps.push('upgrade');
@@ -85,7 +86,8 @@ export async function getSeries(coll: string, starts: number[], step: 'hour' | '
       const h = field.slice(0, bar);
       const i = index.get(step === 'hour' ? h : h.slice(0, 8));
       if (i === undefined) continue;
-      data[field.slice(bar + 1) as Metric][i] += Number(value) || 0;
+      const bucket = data[field.slice(bar + 1) as Metric];
+      if (bucket) bucket[i] += Number(value) || 0; // per-pack counters (p:<name>) aren't part of a series
     }
     const viewers = step === 'day'
       ? await Promise.all(starts.map(s => kv.scard(`stats:u:${coll}:${dayKey(s)}`).catch(() => 0)))
@@ -98,3 +100,20 @@ export async function getSeries(coll: string, starts: number[], step: 'hour' | '
 }
 
 export const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+/** Pulls per pack name since tracking began, summed over the given season collections. Powers the "share of draws" on the pack library. */
+export async function getPackPulls(collections: string[]): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
+  try {
+    const hashes = await Promise.all(collections.map(c => kv.hgetall<Record<string, number | string>>(`stats:h:${c}`)));
+    for (const hash of hashes) {
+      for (const [field, value] of Object.entries(hash ?? {})) {
+        const bar = field.indexOf('|');
+        const metric = field.slice(bar + 1);
+        if (!metric.startsWith('p:')) continue;
+        out[metric.slice(2)] = (out[metric.slice(2)] ?? 0) + (Number(value) || 0);
+      }
+    }
+  } catch { /* best effort */ }
+  return out;
+}

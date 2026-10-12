@@ -49,6 +49,7 @@ function normalizePack(raw: unknown): Pack {
     variantWeights: { ...DEFAULT_VARIANT_WEIGHTS, ...(p.variantWeights as Partial<VariantWeights> | undefined) },
     upgradeCosts: { ...DEFAULT_UPGRADE_COSTS, ...(p.upgradeCosts as Partial<UpgradeCosts> | undefined) },
     disabledVariants: cleanDisabled(p.disabledVariants),
+    ...(p.archived === true ? { archived: true, archivedAt: (p.archivedAt as number | undefined) ?? undefined } : {}),
   };
 }
 
