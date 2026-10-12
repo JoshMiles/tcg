@@ -63,6 +63,10 @@ export interface UserProfile {
   username: string;       // lowercase, canonical key
   displayName: string;    // Twitch display name or custom label
   twitchId?: string;
-  notes?: string;
+  notes?: string;       // private admin notes
   createdAt: number;
+  /** Admin-only labels (VIP, moderator, test account...). */
+  tags?: string[];
+  /** Moderation: blocks trading and/or hides the viewer from public rankings. */
+  flags?: { noTrading?: boolean; hideFromBoard?: boolean; reason?: string; at?: number };
 }

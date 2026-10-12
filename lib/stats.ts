@@ -43,7 +43,10 @@ export async function recordStats(e: StatEvent, at = Date.now()): Promise<void> 
     const h = hourKey(at);
     await Promise.all(bumps.map(m => kv.hincrby(key, `${h}|${m}`, 1)));
     await kv.set(`stats:since:${coll}`, at, { nx: true });
-    if (e.username) await kv.sadd(`stats:u:${coll}:${dayKey(at)}`, e.username);
+    if (e.username) {
+      await kv.sadd(`stats:u:${coll}:${dayKey(at)}`, e.username);
+      await kv.hset('stats:last', { [e.username]: at }); // when each viewer was last seen (the Users page)
+    }
   } catch { /* best effort */ }
 }
 
@@ -116,4 +119,12 @@ export async function getPackPulls(collections: string[]): Promise<Record<string
     }
   } catch { /* best effort */ }
   return out;
+}
+
+/** When each viewer was last seen doing something (pull, upgrade, trade, grant), since tracking began. */
+export async function getLastSeen(): Promise<Record<string, number>> {
+  try {
+    const all = await kv.hgetall<Record<string, number | string>>('stats:last');
+    return Object.fromEntries(Object.entries(all ?? {}).map(([u, t]) => [u, Number(t) || 0]));
+  } catch { return {}; }
 }

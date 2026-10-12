@@ -38,6 +38,11 @@ function locked<T>(fn: () => Promise<T>): Promise<T> {
   return withLock(LOCK, fn).finally(flushEvents);
 }
 
+/** Moderation: is this viewer barred from trading? (reads the profile directly; lib/user-admin.ts imports this module) */
+async function blocked(username: string): Promise<boolean> {
+  try { return !!(await getUserProfile(username))?.flags?.noTrading; } catch { return false; }
+}
+
 export type TradeResult<T = object> = ({ ok: true } & T) | { ok: false; status: number; error: string };
 const fail = (status: number, error: string): { ok: false; status: number; error: string } => ({ ok: false, status, error });
 
@@ -176,6 +181,9 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     if (!to) return fail(400, 'Choose who the offer is for.');
     if (to === from) return fail(400, 'You can\'t trade with yourself.');
   }
+  // Moderation: a restricted viewer can't make offers, and can't be offered one.
+  if (await blocked(from)) return fail(403, 'Trading isn\'t available on your account.');
+  if (input.kind === 'direct' && input.to && (await blocked(String(input.to).toLowerCase()))) return fail(403, 'That viewer can\'t take part in trades.');
 
   const ctx = await seasonContext(input.seasonId);
   if (!ctx) return fail(404, 'That season isn\'t available for trading.');
@@ -281,6 +289,7 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
     const { open, history, trade } = found;
     if (taker === trade.from) return fail(400, 'You can\'t accept your own offer.');
     if (trade.kind === 'direct' && trade.to !== taker) return fail(403, 'That offer is for someone else.');
+    if ((await blocked(taker)) || (await blocked(trade.from))) return fail(403, 'Trading isn\'t available for this trade.');
     const season = await getSeason(trade.seasonId);
     if (!season) return fail(404, 'That season no longer exists.');
 
@@ -357,4 +366,24 @@ export async function counterTrade(id: string, username: string, input: { give: 
 /** What a trade is, in words (for the admin log). */
 export function summarizeTrade(t: Trade, nameOf?: (n: number) => string | undefined): string {
   return `${t.from} gives ${describeItems(t.give, nameOf)} for ${describeItems(t.get, nameOf)}${t.to ? ` (to ${t.to})` : ' (open listing)'}`;
+}
+
+/** How many trades (open and finished, in the kept history) each viewer has been part of: for the admin users list. */
+export async function tradeCountsByUser(): Promise<Record<string, { total: number; open: number; completed: number }>> {
+  const [open, history] = await Promise.all([readOpen(), readHistory()]);
+  const out: Record<string, { total: number; open: number; completed: number }> = {};
+  const bump = (u: string | undefined, key: 'open' | 'completed' | 'other') => {
+    if (!u) return;
+    const e = (out[u] ??= { total: 0, open: 0, completed: 0 });
+    e.total++;
+    if (key === 'open') e.open++;
+    if (key === 'completed') e.completed++;
+  };
+  for (const t of open) { bump(t.from, 'open'); bump(t.to, 'open'); }
+  for (const t of history) {
+    const done = t.status === 'accepted';
+    bump(t.from, done ? 'completed' : 'other');
+    bump(t.to ?? (done ? t.resolvedBy : undefined), done ? 'completed' : 'other');
+  }
+  return out;
 }

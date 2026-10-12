@@ -2,6 +2,7 @@ import type { Card, Pack, Season, Variant } from './types';
 import { getActive, listSeasons } from './site-seasons';
 import { getSeasonLeaderboard, type CardValue, type LeaderboardRow, type SeasonValues } from './leaderboard';
 import { getActivity, type ActivityEvent } from './activity';
+import { getHiddenUsers } from './user-admin';
 import { RARITIES } from './rarity';
 import { VARIANTS, countVariants, emptyCounts, type VariantCounts } from './variants';
 
@@ -37,8 +38,9 @@ export async function getSeasonOverview(season: Season): Promise<SeasonOverview>
 /** Most recent pulls in a season, newest first. */
 export async function getRecentPulls(collectionName: string, limit = 10): Promise<Extract<ActivityEvent, { type: 'pull' }>[]> {
   const { events } = await getActivity({ limit: 150 });
+  const hidden = await getHiddenUsers();
   return events
-    .filter((e): e is Extract<ActivityEvent, { type: 'pull' }> => e.type === 'pull' && e.collectionName === collectionName)
+    .filter((e): e is Extract<ActivityEvent, { type: 'pull' }> => e.type === 'pull' && e.collectionName === collectionName && !hidden.has(e.username))
     .slice(0, limit);
 }
 
@@ -61,9 +63,11 @@ export function ownersByCard(
   collection: Record<string, number[]>,
   values: SeasonValues,
   limit = 10,
+  hidden: Set<string> = new Set(),
 ): Map<number, { top: CardOwner[]; collectors: number }> {
   const lists = new Map<number, CardOwner[]>();
   for (const [username, entries] of Object.entries(collection)) {
+    if (hidden.has(username.toLowerCase())) continue; // an admin hid this viewer from public lists
     for (const [cardNumber, counts] of countVariants(entries)) {
       const cv = values.cards.get(cardNumber);
       if (!cv) continue; // card since removed from the season

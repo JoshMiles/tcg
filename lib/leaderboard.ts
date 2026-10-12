@@ -2,6 +2,12 @@ import type { Card, Pack, Season, Variant } from './types';
 import { getCollection, getPackCards, getPacksForSeason } from './kv';
 import { VARIANTS, decodeEntry, effectiveWeights, emptyCounts, encodeEntry, type VariantCounts } from './variants';
 import { DEFAULT_SCORING, getScoringSettings, type ScoringSettings } from './scoring';
+import { kv } from './db';
+
+/** The set of hidden viewers (KV `users:hidden`, kept by lib/user-admin.ts); read here directly to avoid a circular import. */
+async function getHiddenUsersSafe(): Promise<Set<string>> {
+  try { return new Set((await kv.get<string[]>('users:hidden')) ?? []); } catch { return new Set(); }
+}
 import type { CardMaths } from './card-maths';
 
 // Every tunable number (base score, scarcity range, upgrade margin, bonus sizes, ...) lives in ScoringSettings
@@ -278,5 +284,8 @@ export async function getSeasonLeaderboard(season: Season): Promise<{
   ]);
   const packs = await Promise.all(packList.map(async pack => ({ pack, cards: await getPackCards(pack.id) })));
   const values = computeSeasonValues(packs, collection, settings);
-  return { rows: buildLeaderboard(values, collection), values, packs };
+  // Viewers an admin has hidden from public rankings are left out of the rows (their cards still count towards scarcity).
+  const hidden = await getHiddenUsersSafe();
+  const rows = buildLeaderboard(values, collection).filter(r => !hidden.has(r.username));
+  return { rows, values, packs };
 }

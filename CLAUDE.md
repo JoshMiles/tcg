@@ -114,8 +114,8 @@ Packs can opt in to **variants**: every card can be pulled as Regular / Reverse 
 - `/admin/packs/[packId]/cards` — bulk card editor for an existing pack (explicit save)
 - `/admin/packs/[packId]` — pack page: header actions (activate / overlay look), a "Used in" seasons panel, a searchable / rarity-filterable cards table (`CardFilter`, same data-attribute approach), pack settings with a sticky Save, move to drafts, and a danger zone (delete)
 - `/admin/packs/[packId]/cards/[cardId]` — edit individual card
-- `/admin/users` — all collectors across all seasons, with link to each user's detail page
-- `/admin/users/[username]` — user detail: per-season card grid, grant/remove cards, danger zone (reset/delete)
+- `/admin/users` — all collectors: summary tiles, search + filter chips (tags, complete, shiny, restricted, notes), sort, columns, CSV export, bulk gift / tag (`UsersList`)
+- `/admin/users/[username]` — user detail: overview tiles, tags, notes, timeline, trades (admin cancel), per-season grids, multi-card grant, compare (`?compare=`), moderation, restore points, merge, audit trail, danger zone
 - `/admin/activity` — live activity feed
 - `/admin/assets` — media library: every card image, pack cover and sound with size/health flags, plus a cleanup tab for unreferenced Blob files
 - `/admin/webhooks` — redirects to Settings → Webhooks (incoming/outgoing webhooks + Discord feed now live in that tab; the components are `app/admin/settings/WebhookConfig.tsx` / `DiscordConfig.tsx`)
@@ -237,6 +237,12 @@ Files live in `public/twitch-panel/` — served as static files from Vercel.
 
 **Key KV keys:**
 - `twitch_opaque:{opaqueId}` → username string
+
+## Users admin: tags, moderation, restore points, audit
+- **Tags / flags** live on `UserProfile` (`tags`, `flags: { noTrading, hideFromBoard, reason, at }`); helpers in `lib/user-admin.ts`. `hideFromBoard` also maintains the KV set `users:hidden` (`getHiddenUsers()`), which the leaderboard, `ownersByCard` and `getRecentPulls` filter on; their own collection page still works. `noTrading` is enforced in the trade engine (`createInLock`, `acceptTrade`): a blocked viewer can't offer/accept and can't be offered to; cancelling still works.
+- **Restore points**: `takeUserSnapshot` runs before reset season / reset all / delete / merge / restore (keys `user:<u>:snap:<id>`, 14-day TTL, newest 6). `restoreUserSnapshot` replaces each saved season collection and takes a point of what it overwrites. **Merge** (`mergeUsers`) moves all cards into another account, unions tags, deletes the old profile; refused while either has open trades.
+- **Audit trail** (`lib/audit.ts`): `recordAudit` on every admin action on a viewer (`audit:user:<u>` 100, `audit:all` 500); best-effort. Add a call to any new admin user action. All user actions call `requireAdmin()` themselves (`app/admin/users-actions.ts`, `actions.ts`).
+- `lib/stats.ts` keeps `stats:last` (last counted action per viewer) for "last seen". `scripts/check-users.mts` (mock KV) covers tags, restrictions, restore, merge.
 
 ## Admin user detail page (`/admin/users/[username]`)
 - Fetches profile + all seasons + collections in parallel
