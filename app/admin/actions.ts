@@ -3,6 +3,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { randomBytes } from 'crypto';
 import { requireAdmin } from '@/lib/admin-guard';
+import { recordAudit } from '@/lib/audit';
+import { takeUserSnapshot } from '@/lib/user-admin';
 import { activateWithWrapUp } from '@/lib/season-wrap';
 import {
   saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
@@ -337,8 +339,10 @@ export async function deleteCard(packId: string, cardId: string) {
 // ── Users ─────────────────────────────────────────────────
 
 export async function updateUserProfile(username: string, formData: FormData) {
+  await requireAdmin();
   const existing = await getUserProfile(username);
   const profile: UserProfile = {
+    ...existing,
     username: username.toLowerCase(),
     displayName: ((formData.get('displayName') as string) ?? '').trim() || username,
     twitchId: ((formData.get('twitchId') as string) || '').trim() || existing?.twitchId,
@@ -346,12 +350,14 @@ export async function updateUserProfile(username: string, formData: FormData) {
     createdAt: existing?.createdAt ?? Date.now(),
   };
   await saveUserProfile(profile);
+  await recordAudit(username, 'Profile edited', [profile.displayName !== existing?.displayName && `name: ${profile.displayName}`, profile.twitchId !== existing?.twitchId && 'Twitch username changed', profile.notes !== (existing?.notes ?? '') && 'notes updated'].filter(Boolean).join(' · ') || undefined);
   revalidatePath(`/admin/users/${username.toLowerCase()}`);
   revalidatePath('/admin/users');
 }
 
 // Remove one instance of a card from a user's collection. `entry` is the encoded card + variant (see lib/variants.ts).
 export async function removeUserCard(username: string, collectionName: string, entry: number) {
+  await requireAdmin();
   const lower = username.toLowerCase();
   const { cardNumber, variant } = decodeEntry(entry);
   const removed = await withCollectionLock(collectionName, async () => {
@@ -363,28 +369,36 @@ export async function removeUserCard(username: string, collectionName: string, e
     await saveCollection(collectionName, data);
     return true;
   });
-  if (removed) await recordActivity({ type: 'remove', username: lower, cardNumber, variant, collectionName });
+  if (removed) {
+    await recordActivity({ type: 'remove', username: lower, cardNumber, variant, collectionName });
+    await recordAudit(lower, 'Card removed', `#${cardNumber}${variant === 'regular' ? '' : ` (${VARIANT_LABELS[variant]})`}`);
+  }
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
 }
 
 // Add a card to a user's collection in a specific season
 export async function grantUserCard(username: string, collectionName: string, formData: FormData) {
+  await requireAdmin();
   const cardNumber = parseInt(formData.get('cardNumber') as string, 10);
   if (!cardNumber || cardNumber < 1) return;
   const lower = username.toLowerCase();
   const variant = parseVariant(formData.get('variant'));
   await addCollectionEntry(collectionName, lower, encodeEntry(cardNumber, variant));
   await recordActivity({ type: 'grant', source: 'admin', username: lower, cardNumber, variant, collectionName });
+  await recordAudit(lower, 'Card granted', `#${cardNumber}${variant === 'regular' ? '' : ` (${VARIANT_LABELS[variant]})`}`);
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
 }
 
 // Remove a user from a single season's collection
 export async function resetUserSeason(username: string, collectionName: string) {
+  await requireAdmin();
   const lower = username.toLowerCase();
+  await takeUserSnapshot(lower, `Before resetting ${collectionName}`);
   if (await removeUserFromCollection(collectionName, lower)) {
     await recordActivity({ type: 'reset', scope: 'season', username: lower, collectionName });
+    await recordAudit(lower, 'Season reset', collectionName);
   }
   revalidatePath(`/admin/users/${lower}`);
   revalidatePath('/admin/users');
@@ -392,7 +406,10 @@ export async function resetUserSeason(username: string, collectionName: string) 
 
 // Fully delete a user — removes all cards and their profile, then redirects
 export async function deleteUser(username: string) {
+  await requireAdmin();
   const lower = username.toLowerCase();
+  await takeUserSnapshot(lower, 'Before deleting the account');
+  await recordAudit(lower, 'Account deleted', 'cards and profile removed (a restore point is kept for 14 days)');
   const seasons = await listSeasons();
   await Promise.all([
     ...seasons.map(s => removeUserFromCollection(s.collectionName, lower)),
@@ -405,6 +422,9 @@ export async function deleteUser(username: string) {
 
 // Reset a user across ALL seasons
 export async function resetUser(username: string) {
+  await requireAdmin();
+  await takeUserSnapshot(username, 'Before resetting every season');
+  await recordAudit(username, 'All seasons reset');
   const seasons = await listSeasons();
   await Promise.all(seasons.map(s => removeUserFromCollection(s.collectionName, username)));
   await recordActivity({ type: 'reset', scope: 'all', username });

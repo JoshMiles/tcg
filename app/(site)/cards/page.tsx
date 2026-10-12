@@ -1,6 +1,7 @@
 import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import { getHoloResolver } from '@/lib/holo';
+import { getHiddenUsers } from '@/lib/user-admin';
 import Link from 'next/link';
 import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
 import { getCollection } from '@/lib/kv';
@@ -39,7 +40,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
 
   const overview = await getSeasonOverview(season);
   const collection = await getCollection(season.collectionName);
-  const owners = ownersByCard(collection, overview.values, 10);
+  const owners = ownersByCard(collection, overview.values, 10, await getHiddenUsers());
   const avatars = await getAvatars([...new Set([...owners.values()].flatMap(o => o.top.map(t => t.username)))]);
 
   // Cards the logged-in viewer owns (for the Collected / Missing filter). Only meaningful for the active season.
