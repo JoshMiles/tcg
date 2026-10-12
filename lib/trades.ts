@@ -43,6 +43,15 @@ async function blocked(username: string): Promise<boolean> {
   try { return !!(await getUserProfile(username))?.flags?.noTrading; } catch { return false; }
 }
 
+/** True while the viewer's profile is younger than the "minimum account age" setting (a viewer with no profile counts as new). */
+async function tooNew(username: string, settings: TradeSettings): Promise<boolean> {
+  if (settings.minAccountHours <= 0) return false;
+  try {
+    const created = (await getUserProfile(username))?.createdAt;
+    return !created || Date.now() - created < settings.minAccountHours * 3_600_000;
+  } catch { return false; }
+}
+
 export type TradeResult<T = object> = ({ ok: true } & T) | { ok: false; status: number; error: string };
 const fail = (status: number, error: string): { ok: false; status: number; error: string } => ({ ok: false, status, error });
 
@@ -184,6 +193,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
   // Moderation: a restricted viewer can't make offers, and can't be offered one.
   if (await blocked(from)) return fail(403, 'Trading isn\'t available on your account.');
   if (input.kind === 'direct' && input.to && (await blocked(String(input.to).toLowerCase()))) return fail(403, 'That viewer can\'t take part in trades.');
+  if (await tooNew(from, settings)) return fail(403, `Trading opens ${settings.minAccountHours} hours after you first play.`);
 
   const ctx = await seasonContext(input.seasonId);
   if (!ctx) return fail(404, 'That season isn\'t available for trading.');
@@ -291,6 +301,7 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
     if (taker === trade.from) return fail(400, 'You can\'t accept your own offer.');
     if (trade.kind === 'direct' && trade.to !== taker) return fail(403, 'That offer is for someone else.');
     if ((await blocked(taker)) || (await blocked(trade.from))) return fail(403, 'Trading isn\'t available for this trade.');
+    if (await tooNew(taker, settings)) return fail(403, `Trading opens ${settings.minAccountHours} hours after you first play.`);
     const season = await getSeason(trade.seasonId);
     if (!season) return fail(404, 'That season no longer exists.');
     if (season.tradingFrozen) return fail(403, 'Trading is closed for this season.');
@@ -388,4 +399,38 @@ export async function tradeCountsByUser(): Promise<Record<string, { total: numbe
     bump(t.to ?? (done ? t.resolvedBy : undefined), done ? 'completed' : 'other');
   }
   return out;
+}
+
+// ── admin bulk controls ───────────────────────────────────
+
+/** Cancels (and refunds) every open offer that matches, in one locked pass. Returns how many ended. */
+export async function cancelOpenTrades(filter: { username?: string; seasonId?: string }, reason = 'Cancelled by an admin'): Promise<number> {
+  const user = filter.username?.toLowerCase();
+  return locked(async () => {
+    const open = await readOpen();
+    const history = await readHistory();
+    await sweepInLock(open, history);
+    const hit = open.filter(t => (!user || t.from === user || t.to === user) && (!filter.seasonId || t.seasonId === filter.seasonId));
+    for (const t of hit) await closeTrade(open, history, t, 'cancelled', 'admin', reason);
+    await persist(open, history);
+    return hit.length;
+  });
+}
+
+/** Pushes the expiry of open offers (all, or the given ids) back by `hours` from now-or-their-current-expiry, whichever is later. */
+export async function extendOpenTrades(ids: string[] | null, hours: number): Promise<number> {
+  const add = Math.max(1, Math.min(24 * 14, Math.floor(hours) || 0)) * 3_600_000;
+  return locked(async () => {
+    const open = await readOpen();
+    const history = await readHistory();
+    await sweepInLock(open, history);
+    let n = 0;
+    for (const t of open) {
+      if (ids && !ids.includes(t.id)) continue;
+      t.expiresAt = Math.max(t.expiresAt, Date.now()) + add;
+      n++;
+    }
+    await persist(open, history);
+    return n;
+  });
 }
