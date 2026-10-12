@@ -20,6 +20,7 @@ import { ConfirmButton } from '../../components/ConfirmButton';
 import { rarityStats, getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 
+export const metadata = { title: 'Pack · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function PackPage({ params, searchParams }: { params: Promise<{ packId: string }>; searchParams: Promise<{ tab?: string }> }) {

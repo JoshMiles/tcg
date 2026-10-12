@@ -17,7 +17,7 @@ export function PageTabs({ tabs, active, base, keep, label = 'Page sections' }: 
     return `${base}?${q.toString()}`;
   };
   return (
-    <nav aria-label={label} className="flex gap-1 overflow-x-auto border-b border-gray-800 -mx-1 px-1">
+    <nav aria-label={label} className="no-scrollbar flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-800 -mx-1 px-1">
       {tabs.map(t => (
         <Link
           key={t.id}

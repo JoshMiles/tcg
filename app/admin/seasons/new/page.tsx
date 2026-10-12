@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSeason, listAllPacks, listSeasons, getPackCards } from '@/lib/kv';
 import { SeasonFlow, type PackOption } from './SeasonFlow';
 
+export const metadata = { title: 'New season · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function NewSeasonPage({ searchParams }: { searchParams: Promise<{ draft?: string }> }) {

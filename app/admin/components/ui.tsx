@@ -16,7 +16,7 @@ export function Tile({ label, value, sub, tone, icon, href }: { label: string; v
         <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
         {icon && <Icon name={icon} className={tone ? TONE_ICON[tone] : 'text-gray-600'} />}
       </div>
-      <p className={`font-display text-2xl font-bold tabular-nums leading-tight truncate ${tone ? TONE_TEXT[tone] : 'text-white'}`}>{value}</p>
+      <p title={String(value)} className={`font-display font-bold tabular-nums leading-tight truncate ${String(value).length > 9 ? 'text-lg' : 'text-2xl'} ${tone ? TONE_TEXT[tone] : 'text-white'}`}>{value}</p>
       {sub && <p className="text-[11px] text-gray-500 truncate">{sub}</p>}
     </>
   );

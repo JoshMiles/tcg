@@ -4,6 +4,7 @@ import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { ActivityFeed, type CardInfo } from './ActivityFeed';
 import { PageHeader } from '../components/ui';
 
+export const metadata = { title: 'Live Activity · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function ActivityPage() {

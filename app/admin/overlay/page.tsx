@@ -5,6 +5,7 @@ import { listVersions } from '@/lib/overlay-versions';
 import { saveOverlayEditorAction, saveOverlayPresetAction, deleteOverlayPresetAction } from '../actions';
 import { OverlayEditor } from './OverlayEditor';
 
+export const metadata = { title: 'Overlay Editor · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const SAVED_MESSAGES: Record<string, string> = {

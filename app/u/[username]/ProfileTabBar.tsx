@@ -5,7 +5,7 @@ import { PROFILE_TABS, profileHref, type ProfileTab } from '@/lib/profile-url';
 /** The profile's tab strip: plain links (`?tab=`), so each tab has an address you can share and the back button works. */
 export function ProfileTabBar({ username, active, counts }: { username: string; active: ProfileTab; counts?: Partial<Record<ProfileTab, number>> }) {
   return (
-    <nav aria-label="Profile sections" className="flex gap-1 overflow-x-auto border-b border-gray-800 -mx-1 px-1">
+    <nav aria-label="Profile sections" className="no-scrollbar flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-800 -mx-1 px-1">
       {PROFILE_TABS.map(t => (
         <Link
           key={t.id} href={profileHref(username, t.id)} scroll={false} aria-current={t.id === active ? 'page' : undefined}

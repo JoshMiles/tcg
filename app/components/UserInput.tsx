@@ -26,6 +26,7 @@ export function UserInput({ value, defaultValue = '', onValueChange, onPick, wra
   const [index, setIndex] = useState(-1);
   const [open, setOpen] = useState(false);
   const skip = useRef(false); // set after picking, so the pick itself doesn't reopen the list
+  const typed = useRef(false); // suggestions only open once the person has typed (a prefilled name must not pop a list open)
   const listId = useId();
 
   const set = (v: string) => { setInner(v); onValueChange?.(v); };
@@ -38,14 +39,15 @@ export function UserInput({ value, defaultValue = '', onValueChange, onPick, wra
     const t = setTimeout(() => {
       fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: ctl.signal, cache: 'no-store' })
         .then(r => (r.ok ? r.json() : { results: [] }))
-        .then(d => { setHits((Array.isArray(d.results) ? d.results : []).filter((r: SearchItem) => r.kind === 'player')); setOpen(true); })
+        .then(d => { setHits((Array.isArray(d.results) ? d.results : []).filter((r: SearchItem) => r.kind === 'player')); setOpen(typed.current); })
         .catch(() => { /* suggestions are optional */ });
     }, 150);
     return () => { clearTimeout(t); ctl.abort(); };
   }, [text]);
   useEffect(() => setIndex(-1), [hits]);
 
-  const shown = open && hits.length > 0;
+  // Nothing to suggest when the only match is exactly what is already typed.
+  const shown = open && hits.length > 0 && !(hits.length === 1 && hits[0].label === cleanQuery(text).toLowerCase());
   function pick(name: string) {
     skip.current = true;
     set(name);
@@ -58,7 +60,7 @@ export function UserInput({ value, defaultValue = '', onValueChange, onPick, wra
     <div className={wrapperClassName}>
       <input
         {...rest}
-        value={text} onChange={e => { set(e.target.value); setOpen(true); }} autoComplete="off" spellCheck={false}
+        value={text} onChange={e => { typed.current = true; set(e.target.value); setOpen(true); }} autoComplete="off" spellCheck={false}
         role="combobox" aria-expanded={shown} aria-controls={listId} aria-autocomplete="list" aria-activedescendant={shown && index >= 0 ? `${listId}-${index}` : undefined}
         onKeyDown={e => {
           if (shown && e.key === 'ArrowDown') { e.preventDefault(); setIndex(i => Math.min(hits.length - 1, i + 1)); }

@@ -18,6 +18,7 @@ import { seasonTiming } from '../season-timing';
 import { PageTabs, pickTab, type PageTab } from '../../components/PageTabs';
 import { Tile } from '../../components/ui';
 
+export const metadata = { title: 'Season · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const when = (ms: number) => new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });

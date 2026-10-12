@@ -12,6 +12,7 @@ import { TradeControls } from './TradeControls';
 import { TradeLog } from './TradeLog';
 import { Panel, Tile, PageHeader } from '../components/ui';
 
+export const metadata = { title: 'Trades · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const field = 'w-28 rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500';

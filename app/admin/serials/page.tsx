@@ -8,6 +8,7 @@ import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { Chip, EmptyState, PageHeader, Panel, Tile, selectClass } from '../components/ui';
 
+export const metadata = { title: 'Serials · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const PAGE = 25;

@@ -7,6 +7,7 @@ import { getSandboxStats } from '@/lib/sandbox-tools';
 import { createSandboxAction, enterSandboxAction, exitSandboxAction } from './actions';
 import { Tile } from '../components/ui';
 
+export const metadata = { title: 'Sandbox · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const SOURCES: SandboxSource[] = ['config', 'collections', 'empty'];

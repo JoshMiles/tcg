@@ -288,10 +288,10 @@ function Side({
             {shown.map(c => {
               const rarity = getRarity(c.stars);
               return (
-                <li key={c.number} className="flex items-center gap-2 rounded-lg bg-gray-950/40 px-2 py-1.5">
+                <li key={c.number} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-gray-950/40 px-2 py-1.5">
                   <span className="w-7 h-10 rounded overflow-hidden shrink-0 border" style={{ borderColor: rarity?.hex }}><img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-full h-full object-cover" /></span>
-                  <span className="flex-1 min-w-0 text-xs"><span className="block font-semibold text-gray-200 truncate">{c.name}</span><span className="text-gray-600">#{c.number} · {'★'.repeat(c.stars)}</span></span>
-                  <span className="flex flex-wrap justify-end gap-1">
+                  <span className="flex-1 min-w-[7rem] text-xs"><span className="block font-semibold text-gray-200 truncate">{c.name}</span><span className="text-gray-600">#{c.number} · {'★'.repeat(c.stars)}</span></span>
+                  <span className="flex flex-wrap justify-end gap-1 ml-auto">
                     {c.variants.map(v => {
                       const n = avail(c.number, v);
                       return (

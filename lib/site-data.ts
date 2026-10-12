@@ -1,10 +1,10 @@
 import type { Card, Pack, Season, Variant } from './types';
 import { getActive, listSeasons } from './site-seasons';
-import { getSeasonLeaderboard, getSeasonLeaderboardCached, type CardValue, type LeaderboardRow, type SeasonValues } from './leaderboard';
+import { getSeasonLeaderboard, getSeasonLeaderboardCached, pointsFor, type CardValue, type LeaderboardRow, type SeasonValues } from './leaderboard';
 import { getActivity, type ActivityEvent } from './activity';
 import { getHiddenUsers } from './user-admin';
 import { RARITIES } from './rarity';
-import { VARIANTS, countVariants, emptyCounts, type VariantCounts } from './variants';
+import { VARIANTS, countVariants, decodeEntry, emptyCounts, type VariantCounts } from './variants';
 
 export { getActive, listSeasons };
 
@@ -68,11 +68,14 @@ export function ownersByCard(
   const lists = new Map<number, CardOwner[]>();
   for (const [username, entries] of Object.entries(collection)) {
     if (hidden.has(username.toLowerCase())) continue; // an admin hid this viewer from public lists
+    const byCard = new Map<number, number[]>();
+    for (const e of entries) { const n = decodeEntry(e).cardNumber; byCard.set(n, [...(byCard.get(n) ?? []), e]); }
     for (const [cardNumber, counts] of countVariants(entries)) {
       const cv = values.cards.get(cardNumber);
       if (!cv) continue; // card since removed from the season
       const copies = VARIANTS.reduce((s, v) => s + counts[v], 0);
-      const points = VARIANTS.reduce((s, v) => s + counts[v] * cv.values[v], 0);
+      // The points of these copies, serial bonuses included (the same maths as the leaderboard).
+      const points = pointsFor(values, byCard.get(cardNumber) ?? [], username).points;
       const list = lists.get(cardNumber) ?? [];
       list.push({ username: username.toLowerCase(), copies, variants: counts, points });
       lists.set(cardNumber, list);

@@ -9,6 +9,8 @@ export type SortKey = 'number' | 'rarity' | 'value' | 'copies' | 'name';
 export interface ViewCard {
   number: number; name: string; stars: number; packName: string;
   counts: VariantCounts; values: Record<Variant, number>;
+  /** Points the viewer's low serial numbers add to this card (see lib/leaderboard.ts). */
+  serial?: { points: number };
 }
 export interface ViewState { show: ShowFilter; q: string; stars: number; pack: string; sort: SortKey; dir: 1 | -1 }
 
@@ -21,7 +23,7 @@ export const SHOW_LABELS: Record<ShowFilter, string> = {
 export const SORT_LABELS: Record<SortKey, string> = { number: 'Card number', rarity: 'Rarity', value: 'Points', copies: 'Copies', name: 'Name' };
 
 export const copiesOf = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0);
-export const pointsOf = (c: ViewCard) => VARIANTS.reduce((s, v) => s + c.counts[v] * c.values[v], 0);
+export const pointsOf = (c: ViewCard) => VARIANTS.reduce((s, v) => s + c.counts[v] * c.values[v], 0) + (c.serial?.points ?? 0);
 
 /** Which cards show, in which order: indexes into `cards`. `mine` = the signed-in viewer's copies per card number (only when comparing). */
 export function applyView(cards: ViewCard[], view: ViewState, opts: { hideUncollected: boolean; mine?: Record<number, number> }): number[] {

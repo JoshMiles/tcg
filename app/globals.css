@@ -322,3 +322,7 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
 /* Settings → Reduce motion: the same calming as prefers-reduced-motion, chosen on the account. */
 [data-motion="reduce"] *, [data-motion="reduce"] *::before, [data-motion="reduce"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 .kbd { display: inline-block; min-width: 1.4rem; text-align: center; padding: 0 .35rem; border-radius: .35rem; border: 1px solid rgb(75 85 99); background: rgb(17 24 39); font-size: .75rem; font-weight: 700; color: rgb(229 231 235); }
+
+/* Tab bars that scroll sideways on a phone: no scrollbar track under them (they can still be swiped). */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
