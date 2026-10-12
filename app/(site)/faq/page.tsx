@@ -155,7 +155,7 @@ export default async function FaqPage() {
         </Q>
         <Q q="What are serial numbers?" id="serials" open>
           Every copy of a card has its own ID number, counted per card and per version of that card. For example, your Shiny Gouda Goat #3 is the third Shiny Gouda Goat drawn. Open a card in your collection to see your serial numbers,
-          and press one to see its page: who pulled it, who has held it since, and where it has been traded. Copies that existed before serial numbers began were numbered afterwards, so their order is an estimate (shown with a ~).
+          and press one to see its page: who pulled it, who has held it since, and where it has been traded. Copies that existed before serial numbers began were numbered afterwards, so their order is an estimate (shown with a ~). On a copy&rsquo;s page and in your card details the card can be turned over: move the pointer over it to tilt it, then tap it or press <em>Flip</em> to see the engraved back with the serial number and the date.
           When you upgrade, the spent copies are retired and the new copy remembers what it was made from.
         </Q>
       </Section>
