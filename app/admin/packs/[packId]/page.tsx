@@ -143,13 +143,13 @@ export default async function PackPage({ params, searchParams }: { params: Promi
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <th className="text-left px-5 py-3 w-10">#</th>
-                  <th className="text-left px-4 py-3">Card</th>
+                  <th className="text-left px-5 py-3 w-10 hidden sm:table-cell">#</th>
+                  <th className="text-left px-3 sm:px-4 py-3">Card</th>
                   <th className="text-right px-4 py-3">Rarity</th>
                   <th className="text-right px-4 py-3 hidden md:table-cell">Variants</th>
                   <th className="text-right px-4 py-3 hidden sm:table-cell">Prob</th>
                   <th className="text-right px-4 py-3 hidden sm:table-cell">%</th>
-                  <th className="text-right pr-5 pl-4 py-3"></th>
+                  <th className="text-right pr-3 sm:pr-5 pl-2 sm:pl-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/50">
@@ -166,8 +166,8 @@ export default async function PackPage({ params, searchParams }: { params: Promi
                   const rarity = getRarity(card.stars);
                   return (
                     <tr key={card.id} data-card data-stars={card.stars} data-search={`${card.name} ${card.number}`.toLowerCase()} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-5 py-2.5 text-gray-600 tabular-nums text-xs">{card.number}</td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-5 py-2.5 text-gray-600 tabular-nums text-xs hidden sm:table-cell">{card.number}</td>
+                      <td className="px-3 sm:px-4 py-2.5">
                         <div className="flex items-center gap-3">
                           {card.imageUrl ? (
                             <img src={cardThumbUrl(card.imageUrl)} alt={card.name} loading="lazy" className="w-7 h-10 object-cover rounded shrink-0" />
@@ -199,7 +199,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
                       <td className="px-4 py-2.5 text-right text-gray-700 text-xs tabular-nums hidden sm:table-cell">
                         {pct}%
                       </td>
-                      <td className="pr-5 pl-4 py-2.5 text-right">
+                      <td className="pr-3 sm:pr-5 pl-2 sm:pl-4 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/admin/packs/${packId}/cards/${card.id}`}

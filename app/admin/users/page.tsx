@@ -10,16 +10,9 @@ import { decodeEntry } from '@/lib/variants';
 import { resetAllUsers } from '../actions';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { UsersList, type UserRow } from './UsersList';
+import { Tile, EmptyState } from '../components/ui';
 
 export const dynamic = 'force-dynamic';
-
-const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
-  <div className="rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3">
-    <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
-    <p className="font-display text-2xl font-bold text-white tabular-nums leading-tight">{value}</p>
-    {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
-  </div>
-);
 
 export default async function UsersPage() {
   const [users, seasons, activity, lastSeenMap, trades] = await Promise.all([
@@ -128,11 +121,7 @@ export default async function UsersPage() {
 
       <div className="tcg-panel rounded-2xl overflow-hidden">
         {rows.length === 0 ? (
-          <div className="py-20 text-center space-y-2">
-            <p className="text-2xl mb-4"><Icon name="users" className="w-8 h-8 text-gray-600" /></p>
-            <p className="text-gray-400 font-medium">No collectors yet</p>
-            <p className="text-gray-600 text-sm">Viewers appear here when they pull cards on stream</p>
-          </div>
+          <EmptyState icon="users" title="No collectors yet">Viewers appear here when they pull cards on stream.</EmptyState>
         ) : (
           <UsersList rows={rows} allTags={allTags} activeSeason={active?.name ?? null} />
         )}

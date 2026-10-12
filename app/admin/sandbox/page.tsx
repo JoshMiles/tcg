@@ -5,6 +5,7 @@ import { currentSandboxId } from '@/lib/db';
 import { countKeys, listSandboxes, MAX_SANDBOXES, SOURCE_LABELS, sweepExpiredSandboxes, type SandboxSource } from '@/lib/sandbox';
 import { getSandboxStats } from '@/lib/sandbox-tools';
 import { createSandboxAction, enterSandboxAction, exitSandboxAction } from './actions';
+import { Tile } from '../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,14 +20,6 @@ function ago(at: number | undefined, now: number): string {
   if (m < 1440) return `${Math.floor(m / 60)}h ago`;
   return `${Math.floor(m / 1440)}d ago`;
 }
-
-const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
-  <div className="rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3">
-    <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
-    <p className="font-display text-2xl font-bold text-white tabular-nums leading-tight">{value}</p>
-    {sub && <p className="text-[11px] text-gray-500">{sub}</p>}
-  </div>
-);
 
 export default async function SandboxPage({ searchParams }: { searchParams: Promise<{ err?: string }> }) {
   const sp = await searchParams;

@@ -4,6 +4,7 @@ import { getPack, getPackCards } from '@/lib/kv';
 import { getHoloResolver } from '@/lib/holo';
 import { updateCard } from '../../../../actions';
 import { CardEditor } from './CardEditor';
+import { PageHeader } from '../../../../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,13 +25,8 @@ export default async function EditCardPage({
   const holoByStars = Object.fromEntries([1, 2, 3, 4, 5].map(s => [s, holoFor(pack, s)]));
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Edit Card</h1>
-        <Link href={`/admin/packs/${packId}`} className="text-sm text-gray-500 hover:text-white transition-colors">
-          ← {pack.name}
-        </Link>
-      </div>
+    <div className="space-y-6 mx-auto w-full max-w-5xl">
+      <PageHeader title="Edit card" subtitle={`${card.name} · #${card.number} in ${pack.name}`} back={{ href: `/admin/packs/${packId}`, label: pack.name }} />
 
       <CardEditor
         action={updateThisCard}

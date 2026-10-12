@@ -6,13 +6,7 @@ import { CardTile } from '@/app/components/CardTile';
 import { computeInsights, GIF_SAVINGS } from '@/lib/asset-insights';
 import type { LibraryAsset } from '@/lib/assets';
 import { KIND_LABEL, SizeBar, assetTitle, formatBytes } from './asset-ui';
-
-const Panel = ({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) => (
-  <section className="tcg-panel rounded-2xl p-5 space-y-3">
-    <div><h3 className="font-semibold text-white">{title}</h3>{hint && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}</div>
-    {children}
-  </section>
-);
+import { Panel } from '../components/ui';
 
 export function AssetInsights({ assets, onOpen, onFixGifs }: { assets: LibraryAsset[]; onOpen: (a: LibraryAsset) => void; onFixGifs: () => void }) {
   const ins = useMemo(() => computeInsights(assets), [assets]);

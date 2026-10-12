@@ -116,7 +116,7 @@ export function SeasonFlow({
   const shown = issues.length > 0 ? issues : publishIssues;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mx-auto w-full max-w-3xl">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">{season.name.trim() || 'New season'}</h1>

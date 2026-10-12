@@ -5,6 +5,7 @@ import { Icon } from '@/app/components/Icon';
 import { Avatar } from '@/app/components/Avatar';
 import { Spinner } from '../components/PendingButton';
 import { bulkGiftAction, bulkTagAction } from '../users-actions';
+import { useSlashFocus } from '../components/use-slash-focus';
 
 export interface UserRow {
   username: string;
@@ -73,15 +74,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
   const [now] = useState(() => Date.now());
   const input = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement | null;
-      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
-      if (e.key === '/' && !typing) { e.preventDefault(); input.current?.focus(); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  useSlashFocus(input);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();

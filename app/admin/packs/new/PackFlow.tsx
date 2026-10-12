@@ -143,8 +143,9 @@ export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput;
 
   const wide = step === 'cards' || step === 'review';
 
+  // The form steps are centred and kept readable; the Cards and Review steps hold a wide editor, so they get more room.
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 mx-auto w-full ${wide ? 'max-w-7xl' : 'max-w-5xl'}`}>
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>

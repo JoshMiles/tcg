@@ -17,6 +17,7 @@ import { getDiscordSettings } from '@/lib/discord';
 import { ENV_GROUPS, checkEnv, readEnv, summarizeEnv } from '@/lib/env-health';
 import { extensionChecklist } from '@/lib/twitch-setup';
 import { SITE_URL } from '@/lib/site';
+import { Chip, Panel, Tile, PageHeader } from '../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,31 +59,6 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
   ] },
 ];
 
-const Tile = ({ label, value, sub, tone, icon }: { label: string; value: string; sub: string; tone?: 'amber' | 'green' | 'red'; icon: IconName }) => (
-  <div className="rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3">
-    <div className="flex items-center justify-between"><p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p><Icon name={icon} className={tone === 'amber' ? 'text-amber-400' : tone === 'green' ? 'text-green-400' : tone === 'red' ? 'text-red-400' : 'text-gray-600'} /></div>
-    <p className={`font-display text-xl font-bold leading-tight truncate ${tone === 'amber' ? 'text-amber-300' : tone === 'green' ? 'text-green-300' : tone === 'red' ? 'text-red-300' : 'text-white'}`}>{value}</p>
-    <p className="text-[11px] text-gray-500 truncate">{sub}</p>
-  </div>
-);
-
-const Section = ({ title, hint, icon, children }: { title: string; hint?: React.ReactNode; icon?: IconName; children: React.ReactNode }) => (
-  <section className="tcg-panel rounded-2xl p-5 space-y-3">
-    <div>
-      <h2 className="font-semibold text-white">{icon && <Icon name={icon} className="mr-2 text-yellow-400/90" />}{title}</h2>
-      {hint && <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{hint}</p>}
-    </div>
-    {children}
-  </section>
-);
-
-const Chip = ({ children, tone }: { children: React.ReactNode; tone: 'green' | 'amber' | 'red' | 'gray' }) => (
-  <span className={`text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border ${{
-    green: 'text-green-300 bg-green-500/10 border-green-400/30', amber: 'text-amber-300 bg-amber-500/10 border-amber-400/30',
-    red: 'text-red-300 bg-red-500/10 border-red-400/30', gray: 'text-gray-400 bg-gray-800/60 border-gray-700',
-  }[tone]}`}>{children}</span>
-);
-
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string }> }) {
   const { tab: tabParam, saved } = await searchParams;
   // The overlay layout and look now live in the Overlay Editor (old links keep working).
@@ -103,10 +79,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{TABS.find(t => t.id === tab)?.hint}</p>
-      </div>
+      <PageHeader title="Settings" subtitle={TABS.find(t => t.id === tab)?.hint} />
 
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
         <Tile icon="shield" label="Environment" value={envSummary.ready ? 'Ready' : `${envSummary.requiredMissing} required missing`} sub={envSummary.recommendedMissing > 0 ? `${envSummary.recommendedMissing} recommended not set` : 'everything set'} tone={!envSummary.ready ? 'red' : envSummary.recommendedMissing > 0 ? 'amber' : 'green'} />
@@ -128,26 +101,26 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {tab === 'overlay' && (
         <div className="grid gap-6 xl:grid-cols-2 items-start">
           <div className="space-y-6">
-            <Section title="Browser source" icon="tv" hint={`Add this as a Browser Source in OBS, sized as recommended in the Overlay Editor (${overlay.layout.width} × ${overlay.layout.height}).`}>
+            <Panel title="Browser source" icon="tv" hint={`Add this as a Browser Source in OBS, sized as recommended in the Overlay Editor (${overlay.layout.width} × ${overlay.layout.height}).`}>
               <CopyableUrl url={`${SITE_URL}/overlay.html`} />
               <p className="text-xs text-gray-600">Append <code className="text-gray-500">?dev</code> to show the on-screen test panel. After a deploy, right-click the source in OBS and choose Refresh cache of current page.</p>
-            </Section>
-            <Section title="Connection" icon="radio" hint="The overlay checks in every 10 seconds, so this and the sidebar show whether it is open.">
+            </Panel>
+            <Panel title="Connection" icon="radio" hint="The overlay checks in every 10 seconds, so this and the sidebar show whether it is open.">
               <OverlayStatus />
               <p className="text-xs text-gray-500 leading-relaxed">
                 To also show when you&apos;re <strong className="text-gray-300">live</strong>, open the browser source&apos;s properties in OBS and set <strong className="text-gray-300">Page permissions</strong> to{' '}
                 <em className="text-gray-300">“Read access to OBS status information”</em>. Without it the overlay still reports as connected, but its stream status stays unknown.
               </p>
               <div className="pt-1"><OverlayTest /></div>
-            </Section>
+            </Panel>
           </div>
           <div className="space-y-6">
-            <Section title="Only when live" icon="zap" hint="Saved as soon as you flip a switch.">
+            <Panel title="Only when live" icon="zap" hint="Saved as soon as you flip a switch.">
               <LiveGates packsOnly={overlay.livePacksOnly} collectionsOnly={overlay.liveCollectionsOnly} />
-            </Section>
-            <Section title="Bot / channel points" icon="chat" hint="Call these from your Twitch bot, or from the Browser Source's Custom JavaScript field in OBS.">
+            </Panel>
+            <Panel title="Bot / channel points" icon="chat" hint="Call these from your Twitch bot, or from the Browser Source's Custom JavaScript field in OBS.">
               <CopyBlock label="Custom JavaScript" code={`// Draw a card for a viewer\nqueueDraw('username');\n\n// Show a viewer's collection\nqueueCollection('username');`} />
-            </Section>
+            </Panel>
           </div>
         </div>
       )}
@@ -176,7 +149,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div className="grid gap-6 xl:grid-cols-2 items-start">
           <div className="space-y-6">
             {(['Extension views', 'Policies', 'Allowlists'] as const).map(group => (
-              <Section key={group} title={group === 'Allowlists' ? 'Allowlist' : group === 'Policies' ? 'Policy links' : 'Extension views'} icon={group === 'Extension views' ? 'tv' : group === 'Policies' ? 'book' : 'lock'}
+              <Panel key={group} title={group === 'Allowlists' ? 'Allowlist' : group === 'Policies' ? 'Policy links' : 'Extension views'} icon={group === 'Extension views' ? 'tv' : group === 'Policies' ? 'book' : 'lock'}
                 hint={group === 'Extension views' ? <>Enter these in your extension on <a href="https://dev.twitch.tv/console/extensions" target="_blank" rel="noreferrer" className="text-purple-400 hover:text-purple-300">dev.twitch.tv</a>. Panel changes only reach viewers after a production deploy.</> : undefined}>
                 {checklist.filter(i => i.group === group).map(i => (
                   <div key={i.id} className="space-y-1.5">
@@ -185,11 +158,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                     <p className="text-xs text-gray-600">{i.hint}</p>
                   </div>
                 ))}
-              </Section>
+              </Panel>
             ))}
           </div>
           <div className="space-y-6">
-            <Section title="Website login" icon="user" hint="“Log in with Twitch” on the website. Needs the Twitch API keys and a session secret.">
+            <Panel title="Website login" icon="user" hint="“Log in with Twitch” on the website. Needs the Twitch API keys and a session secret.">
               {checklist.filter(i => i.group === 'Website login').map(i => (
                 <div key={i.id} className="space-y-1.5">
                   <p className="text-sm text-gray-200 font-medium">{i.label}</p>
@@ -203,11 +176,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 ))}
               </div>
               <p className="text-xs text-gray-600">Full detail on the Environment tab.</p>
-            </Section>
-            <Section title="Viewer collection page" icon="cards" hint="Share this so viewers can look up their collection. Append a username to go straight to their cards.">
+            </Panel>
+            <Panel title="Viewer collection page" icon="cards" hint="Share this so viewers can look up their collection. Append a username to go straight to their cards.">
               <CopyableUrl url={`${SITE_URL}/collection`} />
               <p className="text-xs text-gray-600">Direct link example: <code className="text-gray-500">{SITE_URL}/collection/username</code></p>
-            </Section>
+            </Panel>
           </div>
         </div>
       )}
@@ -254,7 +227,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {/* About */}
       {tab === 'about' && (
         <div className="grid gap-6 xl:grid-cols-2 items-start">
-          <Section title="Build" icon="info">
+          <Panel title="Build" icon="info">
             <dl className="grid grid-cols-[7rem_1fr] gap-y-1.5 text-sm">
               <dt className="text-gray-500">Version</dt><dd className="text-white font-mono">v{build.version}</dd>
               <dt className="text-gray-500">Commit</dt>
@@ -264,8 +237,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               {build.builtAt && (<><dt className="text-gray-500">Built</dt><dd className="text-gray-300">{new Date(build.builtAt).toLocaleString()}</dd></>)}
             </dl>
             <p className="text-xs text-gray-600">The same version shows on the Twitch panel, so you can confirm viewers are on the latest deploy. Bump the number in <code className="text-gray-500">package.json</code>; the commit updates automatically on every build.</p>
-          </Section>
-          <Section title="Active season" icon="trophy">
+          </Panel>
+          <Panel title="Active season" icon="trophy">
             {result ? (
               <div className="space-y-3">
                 <div className="text-sm space-y-1">
@@ -286,7 +259,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 )}
               </div>
             ) : <p className="text-sm text-gray-500">No active season.</p>}
-          </Section>
+          </Panel>
         </div>
       )}
     </div>

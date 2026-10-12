@@ -10,6 +10,7 @@ import { NewSeasonButton } from '../components/NewSeasonButton';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { StatusChip, DraftChip } from '../components/StatusChip';
 import { seasonTiming } from './season-timing';
+import { PageHeader, EmptyState } from '../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,21 +35,16 @@ export default async function SeasonsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Seasons</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {seasons.length} season{seasons.length !== 1 ? 's' : ''} · one active at a time · starting one wraps up the one it replaces
-          </p>
-        </div>
-        <NewSeasonButton />
-      </div>
+      <PageHeader
+        title="Seasons"
+        subtitle={`${seasons.length} season${seasons.length !== 1 ? 's' : ''} · one active at a time · starting one wraps up the one it replaces`}
+        actions={<NewSeasonButton />}
+      />
 
       {seasons.length === 0 ? (
-        <div className="tcg-panel rounded-2xl py-20 text-center space-y-3">
-          <p className="text-gray-500">No seasons yet</p>
-          <NewSeasonButton />
-        </div>
+        <EmptyState icon="trophy" title="No seasons yet" action={<NewSeasonButton />}>
+          A season groups packs and keeps its own collections and leaderboard. Create one, add packs, then activate it.
+        </EmptyState>
       ) : (
         <div className="space-y-4">
           {seasons.map(s => {

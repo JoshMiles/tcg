@@ -2,6 +2,7 @@ import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { getActivity } from '@/lib/activity';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { ActivityFeed, type CardInfo } from './ActivityFeed';
+import { PageHeader } from '../components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +19,7 @@ export default async function ActivityPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Live Activity</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Pulls, grants, resets and stream triggers as they happen</p>
-      </div>
+      <PageHeader title="Live Activity" subtitle="Pulls, grants, resets and stream triggers as they happen" />
       <ActivityFeed initialEvents={events} initialSeq={seq} initialAvatars={avatars} cards={cards} />
     </div>
   );

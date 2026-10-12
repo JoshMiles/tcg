@@ -20,19 +20,12 @@ import {
   addTestUserAction, applyScenarioAction, deleteSandboxAction, enterSandboxAction, exitSandboxAction, grantCopiesAction, loginAsFormAction,
   removeUsersAction, resetSandboxAction, resetTestDataAction, seedUsersAction, setExpiryAction, simulatePullsAction, undoLastAction,
 } from '../actions';
+import { Tile, fieldClass } from '../../components/ui';
 
 export const dynamic = 'force-dynamic';
 
-const field = 'block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-none';
+const field = fieldClass;
 const DAY = 86_400_000;
-
-const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
-  <div className="rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3">
-    <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
-    <p className="font-display text-2xl font-bold text-white tabular-nums leading-tight truncate">{value}</p>
-    {sub && <p className="text-[11px] text-gray-500 truncate">{sub}</p>}
-  </div>
-);
 
 function ago(at: number, now: number): string {
   const m = Math.floor((now - at) / 60_000);
