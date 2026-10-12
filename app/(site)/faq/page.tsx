@@ -27,6 +27,7 @@ const SECTIONS = [
   { id: 'upgrades', label: 'Upgrading' },
   { id: 'trading', label: 'Trading' },
   { id: 'profile', label: 'Your profile' },
+  { id: 'show', label: 'Showing off' },
   { id: 'points', label: 'Points & leaderboard' },
   { id: 'seasons', label: 'Seasons' },
   { id: 'extension', label: 'Twitch extension' },
@@ -88,8 +89,17 @@ export default async function FaqPage() {
           and the Twitch extension is only available on that channel. This website just lets you look at your collection and, when you&rsquo;re logged in, upgrade your cards.
         </Q>
         <Q q="How do I get cards?">
-          Packs are opened live on {CHANNEL_NAME}&rsquo;s stream. When one is opened for you, your name appears on screen with the card you pulled, and it&rsquo;s added to your collection straight away. How packs are earned
-          (for example channel rewards or special events) is up to the streamer and can change from stream to stream, so watch the channel for what&rsquo;s currently running.
+          <p>
+            Packs are opened live on {CHANNEL_NAME}&rsquo;s stream. When one is opened for you, your name appears on screen with the card you pulled, and it&rsquo;s added to your collection straight away.
+            In short:
+          </p>
+          <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
+            <li><strong className="text-white">Follow</strong> and <strong className="text-white">subscribe</strong> to the channel: both are ways to earn packs.</li>
+            <li><strong className="text-white">Use the <code className="text-yellow-300">!pack</code> command</strong> in chat to get a pack opened on stream for you.</li>
+          </ul>
+          <p className="mt-2">
+            Exactly how many packs each of these gives can change from season to season and stream to stream, so watch the channel (and its chat commands) for what is running right now.
+          </p>
         </Q>
         <Q q="Where can I see my cards?">
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
@@ -144,9 +154,9 @@ export default async function FaqPage() {
           Yes — the <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">Card dex</Link> lists every card in the season. On your own collection page, cards you haven&rsquo;t pulled yet show as a <strong className="text-white">?</strong>.
         </Q>
         <Q q="What are serial numbers?" id="serials" open>
-          Every copy of a card has its own number, counted per card <em>and</em> version: your Shiny Gouda Goat #3 is the third Shiny Gouda Goat ever made, whatever happens to the Regular ones. Open a card in your collection to see your
-          serials, and press one to see its page: who pulled it, who has held it since, and where it has been traded. Copies that existed before serials began were numbered afterwards, so their order is an estimate
-          (shown with a ~). When you upgrade, the spent copies are retired and the new copy remembers what it was made from.
+          Every copy of a card has its own ID number, counted per card and per version of that card. For example, your Shiny Gouda Goat #3 is the third Shiny Gouda Goat drawn. Open a card in your collection to see your serial numbers,
+          and press one to see its page: who pulled it, who has held it since, and where it has been traded. Copies that existed before serial numbers began were numbered afterwards, so their order is an estimate (shown with a ~).
+          When you upgrade, the spent copies are retired and the new copy remembers what it was made from.
         </Q>
       </Section>
 
@@ -203,9 +213,8 @@ export default async function FaqPage() {
           <p className="mt-2">When someone accepts, the swap happens instantly and both collections update. There are no fees and no randomness.</p>
         </Q>
         <Q q="What is escrow? Where do my cards go while an offer is open?">
-          When you send an offer, the cards you&rsquo;re giving leave your collection and are <strong className="text-white">held safely in escrow</strong>. That guarantees you really have them, so nobody can accept an offer
-          you can&rsquo;t honour. They come straight back to you if the offer is declined, cancelled, countered or runs out of time, and go to the other person if it&rsquo;s accepted. While they are in escrow they don&rsquo;t count
-          towards your points.
+          When you send an offer, the card you are trading leaves your collection and is <strong className="text-white">held safely in escrow</strong>. That guarantees you really have it, so nobody can accept an offer you can&rsquo;t
+          honour. It comes straight back to you if the offer is declined, cancelled, countered or runs out of time, and goes to the other person if the offer is accepted. While a card is in escrow it doesn&rsquo;t count towards your points.
         </Q>
         <Q q="How long do offers last, and what are the limits?">
           <p>
@@ -254,6 +263,12 @@ export default async function FaqPage() {
           Yes. On your own profile press <strong className="text-white">Customize profile</strong>: drag widgets to rearrange them, drag a widget&rsquo;s edge (or use the arrows) to resize it, remove the ones you do not want
           and add others from the list, then Save. You can show your best cards, rarity progress, latest numbered copies, awards, a Looking for list and more. In <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> you can also add a short bio.
         </Q>
+        <Q q="What are achievements?" id="achievements">
+          Goals for collecting. They show on your profile and are earned per season, for example <strong className="text-white">Completed Season 1</strong> (one of every card), <strong className="text-white">All Common</strong>,
+          <strong className="text-white"> All Rare</strong> and so on for each rarity, <strong className="text-white">All Reverse Holo</strong>, <strong className="text-white">All Full Art</strong>, <strong className="text-white">All Shiny</strong> and the
+          <strong className="text-white"> Master set</strong> (every card in every version). Your profile also shows how close you are to the next ones. Once you earn an achievement it is yours to keep, even if you later trade cards away.
+          They are different from <em>awards</em>, which are the prizes given for finishing high on a season&rsquo;s leaderboard.
+        </Q>
         <Q q="Can I share my cards as an image?">
           Yes: <em>Share my cards</em> on your profile, <em>Share my stats</em> on My Stats and <em>Share this card</em> on a card or copy page make a picture you can post or download.
         </Q>
@@ -263,6 +278,24 @@ export default async function FaqPage() {
         </Q>
         <Q q="What are the experimental features?">
           Early features you can switch on in Settings, such as keyboard shortcuts (press <kbd className="kbd">g</kbd> then a letter to jump between pages, or <kbd className="kbd">?</kbd> for the list) and a profile accent colour. They may change or go away.
+        </Q>
+      </Section>
+
+      {/* ── Showing off ── */}
+      <Section id="show" title="Showing off your cards" icon="image">
+        <Q q="How do I show off my cards?" open>
+          <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
+            <li><strong className="text-white">Share my cards</strong> on your profile makes a picture of your best cards, with their version and serial number, plus your rank and progress.</li>
+            <li><strong className="text-white">Share my stats</strong> on My Stats makes a picture of your score and top cards.</li>
+            <li><strong className="text-white">Share this card</strong> on a card in the Card Dex, or on a copy&rsquo;s own page, makes a picture of that one card. On a copy&rsquo;s page it carries its serial number.</li>
+            <li>The <strong className="text-white">Share</strong> button on your profile copies its link, so anyone can open it.</li>
+          </ul>
+        </Q>
+        <Q q="Can I download the pictures?">
+          Yes. On a phone the share button opens your share sheet; on a computer it downloads the picture as a PNG you can post anywhere.
+        </Q>
+        <Q q="Can I make my profile look the way I want?">
+          Yes, see <a href="#profile" className="text-yellow-400 hover:text-yellow-300">Your profile</a>: arrange the widgets, show your best cards, and add a bio.
         </Q>
       </Section>
 

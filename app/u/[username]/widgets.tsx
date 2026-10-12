@@ -13,6 +13,7 @@ import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { topCopies, type ProfileBase } from '@/lib/profile-data';
 import type { Copy } from '@/lib/serials-core';
+import { syncAchievements, type AchievementsView } from '@/lib/achievements-store';
 
 // The profile Overview's widgets (server components). Each returns its panel, or null for a visitor when there is nothing to show;
 // the owner always gets a panel (an empty-state hint) so they can see and arrange every widget.
@@ -26,6 +27,7 @@ export interface WidgetCtx {
   mine?: Record<number, number>;
   events: ActivityEvent[];
   trades: { completed: number; listings: number };
+  achievements?: AchievementsView;
 }
 
 const ago = (at: number) => {
@@ -52,15 +54,17 @@ function Box({ type, children, href, linkLabel }: { type: ProfileWidgetType; chi
 const Hint = ({ children }: { children: ReactNode }) => <p className="text-sm text-gray-500">{children}</p>;
 
 /** What the Overview needs loaded for these widgets (the costly reads only when a widget uses them). */
-export async function loadWidgetData(types: ProfileWidgetType[], b: ProfileBase): Promise<Pick<WidgetCtx, 'events' | 'trades'>> {
+export async function loadWidgetData(types: ProfileWidgetType[], b: ProfileBase): Promise<Pick<WidgetCtx, 'events' | 'trades' | 'achievements'>> {
   const has = (t: ProfileWidgetType) => types.includes(t);
   const [events, open, history] = await Promise.all([
     has('activity') && !b.hidden ? getActivity({ limit: 500 }).then(r => r.events).catch(() => [] as ActivityEvent[]) : Promise.resolve([] as ActivityEvent[]),
     has('trades') ? listOpenTrades().catch(() => []) : Promise.resolve([]),
     has('trades') ? tradeHistory().catch(() => []) : Promise.resolve([]),
   ]);
+  const achievements = has('achievements') ? await syncAchievements(b.lower).catch(() => undefined) : undefined;
   return {
     events,
+    achievements,
     trades: {
       completed: history.filter(t => t.status === 'accepted' && (t.from === b.lower || t.to === b.lower || t.resolvedBy === b.lower)).length,
       listings: open.filter(t => t.kind === 'listing' && t.from === b.lower && t.seasonId === b.season.id).length,
@@ -214,6 +218,41 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           {ctx.viewer && ctx.viewer !== b.lower && <Link href={`/trade/new?to=${encodeURIComponent(b.lower)}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-200 bg-purple-500/10 border border-purple-400/40 hover:bg-purple-500/20 rounded-full px-3 py-1.5"><Icon name="trade" />Offer {b.displayName} a trade</Link>}
         </Box>
       );
+
+    case 'achievements': {
+      const a = ctx.achievements;
+      if (!a || (a.earned.length === 0 && a.next.length === 0)) return none('Collection goals, like completing a season or owning every card of a rarity, show up here as you get close.');
+      return (
+        <Box type={type}>
+          {a.earned.length > 0 && (
+            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Earned achievements">
+              {a.earned.map(x => (
+                <li key={x.id} title={x.detail} className="flex items-center gap-2.5 rounded-xl border border-yellow-500/30 bg-yellow-500/[0.06] px-3 py-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-500/15 text-yellow-300"><Icon name={x.icon} /></span>
+                  <span className="min-w-0 text-sm">
+                    <span className="block font-semibold text-white truncate">{x.title}</span>
+                    <span className="block text-[11px] text-gray-500 truncate">{x.seasonName} · {new Date(x.earnedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {a.next.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-wider font-bold text-gray-500">{a.earned.length > 0 ? 'Next up' : 'In progress'}</p>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {a.next.slice(0, 4).map(x => (
+                  <li key={x.id} className="space-y-1">
+                    <div className="flex justify-between text-sm"><span className="text-gray-300 truncate">{x.title}</span><span className="tabular-nums text-gray-500">{x.have}/{x.need}</span></div>
+                    <div className="h-1.5 rounded-full bg-gray-950 border border-gray-800 overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-yellow-300 to-yellow-600" style={{ width: `${Math.round((x.have / x.need) * 100)}%` }} /></div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Box>
+      );
+    }
 
     case 'awards': {
       if (b.awards.length === 0) return none('Season awards you earn show up here.');
