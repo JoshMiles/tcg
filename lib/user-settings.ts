@@ -4,6 +4,7 @@
 export const BIO_MAX = 160;
 
 import { sanitizeProfileLayout, type ProfilePlacement } from './profile-widgets';
+import { UID_BASE } from './serials-core';
 
 export const WANTED_MAX = 6;
 /** Header colours for the Profile accent experiment. */
@@ -36,6 +37,8 @@ export interface UserSettings {
   accent: string;
   /** Card numbers they are looking for (the Looking for widget on their profile). */
   wanted: number[];
+  /** The unique number (Copy.uid) of the copy they pinned as their profile's Showcase copy, or null. Checked against the live owner whenever it is shown. */
+  pinned: number | null;
   /** The widgets of their profile Overview, in order (null = the default layout). */
   profileLayout: ProfilePlacement[] | null;
   /** Ids of switched-on experimental features (see EXPERIMENTS). */
@@ -53,6 +56,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   compactGrids: false,
   accent: '',
   wanted: [],
+  pinned: null,
   profileLayout: null,
   experiments: [],
 };
@@ -78,6 +82,7 @@ export function sanitizeUserSettings(input: unknown): UserSettings {
   if (o.motion === 'reduce' || o.motion === 'system') out.motion = o.motion;
   if (typeof o.accent === 'string' && ACCENTS.some(a => a.id === o.accent)) out.accent = o.accent;
   if (Array.isArray(o.wanted)) out.wanted = [...new Set(o.wanted.filter((n): n is number => Number.isInteger(n) && n >= 1 && n < 1_000_000))].slice(0, WANTED_MAX);
+  if (typeof o.pinned === 'number' && Number.isInteger(o.pinned) && o.pinned > UID_BASE && o.pinned < 1_000_000_000) out.pinned = o.pinned;
   if (Array.isArray(o.profileLayout)) out.profileLayout = sanitizeProfileLayout(o.profileLayout);
   if (Array.isArray(o.experiments)) out.experiments = [...new Set(o.experiments.filter((x): x is string => typeof x === 'string' && EXPERIMENT_IDS.has(x)))];
   return out;

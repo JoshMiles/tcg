@@ -4,7 +4,7 @@ import type { IconName } from '@/app/components/Icon';
 // layout + its sanitizer). The widgets themselves are in app/u/[username]/widgets.tsx, the editor in ProfileGrid.tsx, and the
 // owner's chosen layout lives in their settings (UserSettings.profileLayout).
 
-export const PROFILE_WIDGET_TYPES = ['stats', 'showcase', 'rarity', 'progress', 'rarest', 'recent', 'activity', 'trades', 'awards', 'achievements', 'wishlist', 'collection'] as const;
+export const PROFILE_WIDGET_TYPES = ['stats', 'showcase', 'pinned', 'rarity', 'progress', 'rarest', 'recent', 'activity', 'trades', 'awards', 'achievements', 'wishlist', 'collection'] as const;
 export type ProfileWidgetType = (typeof PROFILE_WIDGET_TYPES)[number];
 
 /** Column spans on a 12-column grid (everything stacks on phones; spans of 6 or less pair up on tablets). */
@@ -23,6 +23,7 @@ export interface ProfileWidgetDef {
 export const PROFILE_WIDGETS: Record<ProfileWidgetType, ProfileWidgetDef> = {
   stats: { type: 'stats', title: 'Score breakdown', icon: 'trend', description: 'Points from cards and bonuses, version mix and total copies.', defaultSpan: 4, spans: [4, 6, 8] },
   showcase: { type: 'showcase', title: 'Showcase', icon: 'gem', description: 'Your three most valuable cards, front and centre.', defaultSpan: 8, spans: [4, 6, 8, 12] },
+  pinned: { type: 'pinned', title: 'Showcase copy', icon: 'pin', description: 'One copy you picked, shown as a card you can flip over to see its engraved unique number. Pin it from the copy\'s own page.', defaultSpan: 4, spans: [3, 4, 6, 8] },
   rarity: { type: 'rarity', title: 'Rarity progress', icon: 'award', description: 'How much of each rarity you have collected.', defaultSpan: 12, spans: [6, 8, 12] },
   progress: { type: 'progress', title: 'Pack progress', icon: 'cards', description: 'How complete each pack is.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   rarest: { type: 'rarest', title: 'Rarest finds', icon: 'sparkles', description: 'The hardest-to-pull cards you own.', defaultSpan: 6, spans: [4, 6, 8, 12] },
@@ -74,3 +75,9 @@ export const PROFILE_SPAN_CLASS: Record<ProfileSpan, string> = {
   8: 'md:col-span-12 xl:col-span-8',
   12: 'md:col-span-12 xl:col-span-12',
 };
+
+/** The layout with the Showcase copy widget added at the top when it is missing (pinning a copy should make it show up). */
+export function withPinnedWidget(layout: ProfilePlacement[] | null): ProfilePlacement[] {
+  const current = sanitizeProfileLayout(layout);
+  return current.some(w => w.type === 'pinned') ? current : [{ type: 'pinned', span: PROFILE_WIDGETS.pinned.defaultSpan }, ...current];
+}

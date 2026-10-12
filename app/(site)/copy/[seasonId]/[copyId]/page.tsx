@@ -6,7 +6,11 @@ import { CardTile } from '@/app/components/CardTile';
 import { FlipCard } from '@/app/components/FlipCard';
 import { ProvenanceTimeline } from '@/app/components/ProvenanceTimeline';
 import { buildProvenance } from '@/lib/provenance';
-import { editionLine, engravedDate, madeLine } from '@/lib/flip-back';
+import { editionLine, engravedDate } from '@/lib/flip-back';
+import { copyShareSpec } from '@/lib/copy-share';
+import { PinCopyButton } from '@/app/components/PinCopyButton';
+import { getSession } from '@/lib/session';
+import { getUserSettings } from '@/lib/user-settings-store';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
@@ -67,6 +71,10 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
   const d = await load(decodeURIComponent(seasonId), copyId);
   if (!d) notFound();
   const { season, copy, pack, card } = d;
+  const session = await getSession();
+  // The holder can pin this copy to their profile.
+  const canPin = !!session && !!copy.uid && copy.owner === session.username;
+  const pinned = canPin ? (await getUserSettings(session!.username)).pinned === copy.uid : false;
   const [hidden, minted, holoFor, board] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName), getHoloResolver(), getSeasonLeaderboardCached(season).catch(() => null)]);
   // What this very copy is worth: its card's points times the bonus its number earns.
   const cv = board?.values.cards.get(copy.card);
@@ -153,22 +161,12 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
           </dl>
 
           <div className="flex flex-wrap gap-2">
+            {canPin && <PinCopyButton uid={copy.uid!} pinned={pinned} />}
             <ShareImageButton
-              spec={{
-                title: label,
-                subtitle: `${season.name} · ${pack.name}`,
-                stats: [VARIANT_LABELS[copy.variant], ...(mult > 1 ? [`Serial bonus ×${Math.round(mult * 100) / 100}`] : [])],
-                cards: [{ src: art, name: card.name, hex: rarity?.hex }],
-                plate: {
-                  number: `#${copy.uid ?? copy.n}`,
-                  edition: copy.uid ? editionLine(copy.n, total) : madeLine(copy.n, total) || `Edition #${copy.n}`,
-                  date: `${copy.est ? 'NUMBERED' : 'PULLED'} ${engravedDate(copy.at)}`,
-                  lines: [gone ? 'No longer exists' : copy.owner && isEscrow(copy.owner) ? 'In a trade offer' : hidden.has(copy.owner) ? 'Held by a private collector' : `Held by @${copy.owner}`],
-                  gold: mult > 1,
-                  qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
-                },
-                footer: copy.uid ? `${SITE_URL.replace(/^https?:\/\//, '')}/c/${copy.uid}` : SITE_URL.replace(/^https?:\/\//, ''),
-              }}
+              spec={copyShareSpec({
+                copy, cardName: card.name, seasonId: season.id, seasonName: season.name, packName: pack.name, total, mult, art, hex: rarity?.hex,
+                privateHolder: !!copy.owner && hidden.has(copy.owner), siteUrl: SITE_URL,
+              })}
               filename={`cheesy-tcg-${card.number}-${copy.variant}-${copy.n}.png`}
               label="Share this card"
             />

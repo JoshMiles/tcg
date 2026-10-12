@@ -14,6 +14,18 @@ import { VARIANT_LABELS } from '@/lib/variants';
 import { topCopies, type ProfileBase } from '@/lib/profile-data';
 import type { Copy } from '@/lib/serials-core';
 import { syncAchievements, type AchievementsView } from '@/lib/achievements-store';
+import { FlipCard } from '@/app/components/FlipCard';
+import { ShareImageButton } from '@/app/components/ShareImage';
+import { PinCopyButton } from '@/app/components/PinCopyButton';
+import { loadCopyByUid } from '@/lib/copy-view';
+import { mintedCounts } from '@/lib/serials';
+import { entryOf } from '@/lib/serials-core';
+import { serialMultiplier } from '@/lib/scoring-core';
+import { engravedDate } from '@/lib/flip-back';
+import { copyShareSpec } from '@/lib/copy-share';
+import { getHoloResolver } from '@/lib/holo';
+import { holoClass, holoVars } from '@/lib/holo-core';
+import { SITE_URL } from '@/lib/site';
 
 // The profile Overview's widgets (server components). Each returns its panel, or null for a visitor when there is nothing to show;
 // the owner always gets a panel (an empty-state hint) so they can see and arrange every widget.
@@ -111,6 +123,57 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
               </li>
             ))}
           </ul>
+        </Box>
+      );
+    }
+
+    case 'pinned': {
+      const uid = b.settings.pinned;
+      if (!uid) return none('Open one of your copies and press “Pin to my profile” to show it here.');
+      const found = await loadCopyByUid(uid).catch(() => null);
+      // Only the holder's own copy is shown: a copy that was traded away stops being their showcase.
+      if (!found || found.copy.owner !== b.lower) return none('The pinned copy is not in your collection any more. Pin another from its page.');
+      const { season, copy, pack, card } = found;
+      const [minted, holoFor] = await Promise.all([mintedCounts(season.collectionName), getHoloResolver()]);
+      const total = minted.get(entryOf(copy)) ?? copy.n;
+      const mult = serialMultiplier(copy.n, b.board.values.settings);
+      const art = (copy.variant === 'full' || copy.variant === 'shiny') && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl;
+      const rarity = getRarity(card.stars);
+      const holo = holoFor(pack, card.stars)[copy.variant];
+      const label = `${copy.variant === 'regular' ? '' : `${VARIANT_LABELS[copy.variant]} `}${card.name}`;
+      return (
+        <Box type={type}>
+          <div className="mx-auto w-full max-w-[220px]">
+            <FlipCard
+              back={{
+                n: copy.n, uid: copy.uid, total, variantLabel: VARIANT_LABELS[copy.variant], name: card.name, date: engravedDate(copy.at), est: copy.est,
+                bonus: mult > 1 ? Math.round(mult * 100) / 100 : undefined, hex: rarity?.hex, holder: `@${b.lower}`,
+                href: `/copy/${encodeURIComponent(season.id)}/${copy.id}`, qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
+              }}
+            >
+              <CardTile
+                imageUrl={art}
+                alt={label}
+                className={`relative aspect-[2/3] rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''} ${holoClass(holo, true)}`}
+                style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ...holoVars(holo) }}
+              />
+            </FlipCard>
+          </div>
+          <div className="text-center space-y-1">
+            <p className="font-bold text-white leading-tight">{label}</p>
+            <p className="text-sm text-yellow-300 tabular-nums">#{copy.uid ?? copy.n}<span className="text-gray-500"> · edition #{copy.n} of {total.toLocaleString()}</span></p>
+            <p className="text-xs">
+              <Link href={`/copy/${encodeURIComponent(season.id)}/${copy.id}`} className="text-yellow-500 hover:text-yellow-300">Full journey →</Link>
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <ShareImageButton
+              spec={copyShareSpec({ copy, cardName: card.name, seasonId: season.id, seasonName: season.name, packName: pack.name, total, mult, art, hex: rarity?.hex, privateHolder: false, siteUrl: SITE_URL })}
+              filename={`cheesy-tcg-${copy.uid ?? copy.id}.png`}
+              label="Share this copy"
+            />
+            {isOwner && <PinCopyButton uid={copy.uid!} pinned label="Pin" />}
+          </div>
         </Box>
       );
     }

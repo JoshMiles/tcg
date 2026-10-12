@@ -26,6 +26,20 @@ eq(sc.nextPublicKey({ pending: true, at: 0 }, 'c', 100, 'Bob').go, '/u/bob', 'g 
 eq(sc.nextPublicKey({ pending: true, at: 0 }, 'c', 100).go, undefined, 'g c does nothing when logged out');
 eq(sc.nextPublicKey({ pending: true, at: 0 }, 'l', 5000).go, undefined, 'a stale g is ignored');
 
+// ── pinned showcase copy ──
+ok(c.sanitizeUserSettings({ pinned: 1000042 }).pinned === 1000042, 'a unique copy number can be pinned');
+ok(c.sanitizeUserSettings({ pinned: 'x' }).pinned === null && c.sanitizeUserSettings({ pinned: 5 }).pinned === null && c.sanitizeUserSettings({ pinned: 1.5e9 }).pinned === null && c.sanitizeUserSettings({ pinned: 1000000.5 }).pinned === null, 'anything else is dropped');
+ok(c.sparse(c.DEFAULT_SETTINGS).pinned === undefined, 'nothing pinned stores nothing');
+const pw = await import('../lib/profile-widgets');
+ok(pw.withPinnedWidget(null)[0].type === 'pinned' && pw.withPinnedWidget(null).length === pw.DEFAULT_PROFILE_LAYOUT.length + 1, 'pinning adds the widget to the default layout');
+ok(pw.withPinnedWidget([{ type: 'stats', span: 4 }]).map(w => w.type).join() === 'pinned,stats', 'and to a custom one, at the top');
+ok(pw.withPinnedWidget([{ type: 'pinned', span: 6 }, { type: 'stats', span: 4 }]).map(w => w.span).join() === '6,4', 'but never twice, and it keeps the owner\'s size');
+const cs = await import('../lib/copy-share');
+const spec = cs.copyShareSpec({ copy: { id: '1.3.2', uid: 1000042, card: 1, variant: 'shiny', n: 2, owner: 'ann', at: Date.UTC(2026, 9, 12), origin: 'pull', ev: [] }, cardName: 'Gouda', seasonId: 's1', seasonName: 'Season 1', packName: 'Starter', total: 5, mult: 2.9, art: '/a.webp', privateHolder: false, siteUrl: 'https://cheesytcg.app' });
+ok(spec.plate?.number === '#1000042' && spec.plate.gold && spec.plate.edition === 'Edition #2 of 5 made' && spec.footer === 'cheesytcg.app/c/1000042', 'copy share spec: number, gold, edition, short link');
+ok(spec.plate?.lines?.[0] === 'Held by @ann' && spec.plate.qrUrl === 'https://cheesytcg.app/copy/s1/1.3.2' && spec.title === 'Shiny Full Art Gouda', 'holder, QR link and title');
+ok(cs.copyShareSpec({ copy: { id: '1.0.1', card: 1, variant: 'regular', n: 1, owner: 'ann', at: 0, origin: 'pull', ev: [] }, cardName: 'G', seasonId: 's', seasonName: 'S', packName: 'P', total: 1, mult: 1, art: '', privateHolder: true, siteUrl: 'https://x.y' }).plate?.lines?.[0] === 'Held by a private collector', 'private holders are not named');
+
 // ── stored behaviour ──
 if (!process.env.KV_REST_API_URL?.includes('localhost')) throw new Error('Refusing to run against a non-local KV');
 const store = await import('../lib/user-settings-store');
