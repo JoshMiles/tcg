@@ -13,6 +13,7 @@ import { PROFILE_TABS, pickProfileTab, profileHref } from '@/lib/profile-url';
 import { SiteMessage } from '@/app/components/site/SiteMessage';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileTabBar } from './ProfileTabBar';
+import { OverviewTab } from './OverviewTab';
 import { ActivityTab, CollectionTab, StatsTab, TradesTab } from './ProfileTabs';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,7 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const name = profile?.displayName || lower;
   const t = PROFILE_TABS.find(x => x.id === pickProfileTab(tab))!;
   return {
-    title: pickProfileTab(tab) === 'collection' ? `${name}'s collection` : `${name} · ${t.label}`,
+    title: pickProfileTab(tab) === 'overview' ? `${name}'s profile` : pickProfileTab(tab) === 'collection' ? `${name}'s collection` : `${name} · ${t.label}`,
     description: `${name}'s cards, rank and awards on The Cheesy TCG.`,
     alternates: { canonical: profileHref(lower) }, // the tabs are views of one profile
     // The share image (opengraph-image.tsx next to this file) carries their rank and progress.
@@ -55,13 +56,14 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
 
   const prefs = session ? await getUserSettings(session.username) : undefined;
   // For "Compare with me": the signed-in viewer's copies per card (the season's collection is already loaded).
-  const mine = session && !isOwner && tab === 'collection' ? Object.fromEntries(countPulls(b.collection[session.username] ?? [])) : undefined;
+  const mine = session && !isOwner && (tab === 'collection' || tab === 'overview') ? Object.fromEntries(countPulls(b.collection[session.username] ?? [])) : undefined;
   const copies = await getOwnerCopies(b.season.collectionName, lower);
   const grid = tab === 'collection' ? await buildGridCards(b, copies) : [];
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <ProfileHeader b={b} isOwner={isOwner} signedIn={!!session} shareSpec={buildShareSpec(b, copies, SITE_URL.replace(/^https?:\/\//, ''))} />
       <ProfileTabBar username={lower} active={tab} />
+      {tab === 'overview' && <OverviewTab b={b} copies={copies} isOwner={isOwner} viewer={session?.username} mine={mine} />}
       {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}
       {tab === 'stats' && <StatsTab b={b} />}
       {tab === 'trades' && <TradesTab b={b} viewer={session?.username} />}

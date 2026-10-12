@@ -68,6 +68,25 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
             placeholder="A line about your collection, favourite card, trading wishes..." className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-none" />
           <p className="text-xs text-gray-500 text-right tabular-nums">{s.bio.length}/{BIO_MAX}</p>
         </div>
+        <div className="py-3 space-y-2" id="looking-for">
+          <p className="text-sm font-semibold text-gray-100">Looking for</p>
+          <p className="text-xs text-gray-500">Up to 6 cards you want. They show in the Looking for widget on your profile, and collectors who own one get a one-click trade offer.</p>
+          <div className="flex flex-wrap gap-1.5">
+            {s.wanted.length === 0 && <span className="text-xs text-gray-600">Nothing listed yet.</span>}
+            {s.wanted.map(n => (
+              <button key={n} type="button" onClick={() => toggleWanted(n)} title="Remove" className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-1 text-xs font-bold text-yellow-200 hover:bg-yellow-500/20">{nameOf(n)} <Icon name="x" /></button>
+            ))}
+            <span className="text-xs text-gray-600 self-center">{s.wanted.length}/{WANTED_MAX}</span>
+          </div>
+          <input type="search" value={find} onChange={e => setFind(e.target.value)} placeholder="Search a card to add" aria-label="Search cards to add" className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
+          {matches.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5">
+              {matches.map(c => (
+                <li key={c.number}><button type="button" disabled={s.wanted.includes(c.number) || s.wanted.length >= WANTED_MAX} onClick={() => toggleWanted(c.number)} className="rounded-full border border-gray-700 px-2.5 py-1 text-xs text-gray-300 hover:text-white disabled:opacity-40">+ #{c.number} {c.name}</button></li>
+              ))}
+            </ul>
+          )}
+        </div>
         <Row id="private" label="Private profile" help="Leave me off the public leaderboard, card owner lists and recent pulls. My page still opens for anyone with the link, but it shows no activity." checked={s.privateProfile} onChange={flip('privateProfile')} />
       </Section>
 
@@ -83,7 +102,7 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
         <Row id="motion" label="Reduce motion" help="Calm the site's animations even if your device doesn't ask for it." checked={s.motion === 'reduce'} onChange={v => setS(p => ({ ...p, motion: v ? 'reduce' : 'system' }))} />
       </Section>
 
-      <Section icon="flask" title="Experimental" hint="Early features that may change or go away. Profile ones show on your own public page.">
+      <Section icon="flask" title="Experimental" hint="Early features that may change or go away.">
         {EXPERIMENTS.map(x => (
           <div key={x.id}>
             <Row id={`x-${x.id}`} label={x.label} help={x.description} checked={s.experiments.includes(x.id)} onChange={v => toggleExp(x.id, v)} />
@@ -95,25 +114,6 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
                     <span className="h-3 w-3 rounded-full" style={{ background: a.hex }} />{a.label}
                   </button>
                 ))}
-              </div>
-            )}
-            {x.id === 'wishlist' && s.experiments.includes('wishlist') && (
-              <div className="pb-3 space-y-2">
-                <div className="flex flex-wrap gap-1.5">
-                  {s.wanted.length === 0 && <span className="text-xs text-gray-600">Nothing listed yet.</span>}
-                  {s.wanted.map(n => (
-                    <button key={n} type="button" onClick={() => toggleWanted(n)} title="Remove" className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-1 text-xs font-bold text-yellow-200 hover:bg-yellow-500/20">{nameOf(n)} <Icon name="x" /></button>
-                  ))}
-                  <span className="text-xs text-gray-600 self-center">{s.wanted.length}/{WANTED_MAX}</span>
-                </div>
-                <input type="search" value={find} onChange={e => setFind(e.target.value)} placeholder="Search a card to add" aria-label="Search cards to add" className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
-                {matches.length > 0 && (
-                  <ul className="flex flex-wrap gap-1.5">
-                    {matches.map(c => (
-                      <li key={c.number}><button type="button" disabled={s.wanted.includes(c.number) || s.wanted.length >= WANTED_MAX} onClick={() => toggleWanted(c.number)} className="rounded-full border border-gray-700 px-2.5 py-1 text-xs text-gray-300 hover:text-white disabled:opacity-40">+ #{c.number} {c.name}</button></li>
-                    ))}
-                  </ul>
-                )}
               </div>
             )}
           </div>

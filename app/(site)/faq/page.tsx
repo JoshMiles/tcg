@@ -93,7 +93,7 @@ export default async function FaqPage() {
         <Q q="Where can I see my cards?">
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
             <li>On the website: <Link href="/collection" className="text-yellow-400 hover:text-yellow-300">Collections</Link>, then type any Twitch username. Collections are public.</li>
-            <li>Logged in, <strong className="text-white">My collection</strong> and <strong className="text-white">My stats</strong> are in the menu at the top right.</li>
+            <li>Logged in, <strong className="text-white">My profile</strong> and <strong className="text-white">My stats</strong> are in the menu at the top right.</li>
             <li>In Twitch, under the stream, with the extension (see <a href="#extension" className="text-yellow-400 hover:text-yellow-300">Twitch extension</a>).</li>
           </ul>
         </Q>

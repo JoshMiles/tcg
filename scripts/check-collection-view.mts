@@ -46,7 +46,7 @@ eq(v.compareCollections(cards, mine), { shared: 1, theyHave: 2, iHave: 1, both: 
 eq(s.sanitizeUserSettings({ accent: 'nope', wanted: 'x' }).accent, '', 'unknown accent dropped');
 eq(s.sanitizeUserSettings({ accent: 'grape' }).accent, 'grape', 'known accent kept');
 eq(s.sanitizeUserSettings({ wanted: [3, 3, 0, -1, 1.5, '4', 1_000_000, 7, 8, 9, 10, 11, 12] }).wanted, [3, 7, 8, 9, 10, 11], 'wanted: unique ints in range, capped at 6');
-ok(['showcase', 'accent', 'wishlist'].every(id => s.EXPERIMENTS.some(e => e.id === id)), 'profile experiments are registered');
+ok(s.EXPERIMENTS.some(e => e.id === 'accent') && !s.EXPERIMENTS.some(e => e.id === 'showcase' || e.id === 'wishlist'), 'accent is an experiment; showcase and wishlist became profile widgets');
 eq(s.sparse({ ...s.DEFAULT_SETTINGS, wanted: [2] }), { wanted: [2] }, 'wanted is stored sparsely');
 
 const info = (n: number) => ({ number: n, name: `c${n}`, imageUrl: '', stars: 1 });
@@ -55,3 +55,15 @@ const top = pd.topCopies([info(1), info(2), info(3), info(4)],
   new Map([[1, { values: vals }], [3, { values: vals }], [4, { values: vals }]]), 2);
 eq(top.map(t => [t.number, t.variant]), [[3, 'shiny'], [4, 'reverse']], 'showcase: best version per card, most valuable first, capped');
 console.log('collection view checks passed');
+
+// ── profile widgets ──
+const w = await import('../lib/profile-widgets');
+eq(w.sanitizeProfileLayout(undefined).map(x => x.type), w.DEFAULT_PROFILE_LAYOUT.map(x => x.type), 'no layout = the default');
+eq(w.sanitizeProfileLayout([]), [], 'an empty layout stays empty (an owner may clear everything)');
+eq(w.sanitizeProfileLayout([{ type: 'stats', span: 99 }, { type: 'stats', span: 4 }, { type: 'nope', span: 4 }, { type: 'wishlist', span: 3 }]), [{ type: 'stats', span: 4 }, { type: 'wishlist', span: 3 }], 'unknown / duplicate widgets dropped, bad spans snap to the default');
+ok(w.PROFILE_WIDGET_TYPES.every(t => w.PROFILE_WIDGETS[t].spans.includes(w.PROFILE_WIDGETS[t].defaultSpan)), 'every default span is an allowed span');
+ok(w.DEFAULT_PROFILE_LAYOUT.every(p => w.PROFILE_WIDGETS[p.type].spans.includes(p.span)), 'the default layout uses allowed spans');
+const withLayout = s.sanitizeUserSettings({ profileLayout: [{ type: 'rarity', span: 12 }, { type: 'bogus' }] });
+eq(withLayout.profileLayout, [{ type: 'rarity', span: 12 }], 'settings keep a cleaned layout');
+eq(s.sanitizeUserSettings({}).profileLayout, null, 'settings default to no custom layout');
+console.log('profile widget checks passed');
