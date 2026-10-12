@@ -10,6 +10,7 @@ import { UpgradeButton } from '@/app/components/UpgradeButton';
 import { CardMathsPanel } from '@/app/components/CardMathsPanel';
 import type { CardMaths } from '@/lib/card-maths';
 import type { UpgradeCosts, Variant } from '@/lib/types';
+import { DEFAULT_VIEW, SHOW_LABELS, SORT_LABELS, applyView, compareCollections, packProgress, type ShowFilter, type SortKey, type ViewState } from '@/lib/collection-view';
 
 /** Everything the grid and the card detail need, precomputed on the server. */
 export interface GridCard {
@@ -52,7 +53,7 @@ const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0)
 const artFor = (c: GridCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
 
-export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, defaultHide = true, compact = false }: { /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
+export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, defaultHide = true, compact = false, mine }: { /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
   // the server renders the default so there's no flash of ? tiles).
@@ -67,11 +68,19 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
   });
   const opener = useRef<HTMLElement | null>(null);
 
+  const [view, setView] = useState<ViewState>(DEFAULT_VIEW);
+  const patch = (p: Partial<ViewState>) => setView(v => ({ ...v, ...p }));
+  const filtering = view.show !== 'default' || view.q !== '' || view.stars !== 0 || view.pack !== '' || view.sort !== 'number' || view.dir !== 1;
+
   // Only collected cards open (uncollected ones stay a mystery).
   const ownedIdx = cards.map((c, i) => (totalCopies(c.counts) > 0 ? i : -1)).filter(i => i >= 0);
   const uncollected = cards.length - ownedIdx.length;
   // With nothing collected yet there's nothing to show, so the placeholders stay visible instead of an empty page.
   const hiding = hideUncollected && ownedIdx.length > 0;
+  const order = applyView(cards, view, { hideUncollected: hiding, mine });
+  const openable = order.filter(i => totalCopies(cards[i].counts) > 0);
+  const progress = packProgress(cards);
+  const cmp = mine ? compareCollections(cards, mine) : null;
 
   const open = (idx: number, el: HTMLElement | null) => { opener.current = el; setOpenIdx(idx); };
   const close = useCallback(() => {
@@ -80,16 +89,59 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
   }, []);
   const step = useCallback((delta: number) => {
     setOpenIdx(cur => {
-      if (cur === null || ownedIdx.length === 0) return cur;
-      const pos = ownedIdx.indexOf(cur);
-      return ownedIdx[(pos + delta + ownedIdx.length) % ownedIdx.length];
+      if (cur === null || openable.length === 0) return cur;
+      const pos = openable.indexOf(cur);
+      return openable[(pos + delta + openable.length) % openable.length];
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ownedIdx.join(',')]);
+  }, [openable.join(',')]);
 
   return (
     <>
-      {uncollected > 0 && ownedIdx.length > 0 && (
+      {progress.length > 1 && (
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Progress by pack">
+          {progress.map(p => (
+            <button key={p.pack} type="button" onClick={() => patch({ pack: view.pack === p.pack ? '' : p.pack })} aria-pressed={view.pack === p.pack}
+              className={`text-left rounded-xl border px-3 py-2 transition-colors ${view.pack === p.pack ? 'border-yellow-500 bg-yellow-500/10' : 'border-gray-800 bg-gray-900/40 hover:border-gray-600'}`}>
+              <span className="flex items-baseline justify-between gap-2 text-xs"><span className="font-bold text-gray-200 truncate">{p.pack}</span><span className="tabular-nums text-gray-400">{p.owned}/{p.total}</span></span>
+              <span className="mt-1.5 block h-1.5 rounded-full bg-gray-950 overflow-hidden"><span className="block h-full rounded-full bg-gradient-to-r from-yellow-300 to-yellow-600" style={{ width: `${p.pct}%` }} /></span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {cmp && cmp.both > 0 && (
+        <p className="text-xs text-gray-400 rounded-xl border border-purple-400/30 bg-purple-500/5 px-3 py-2">
+          <Icon name="trade" className="mr-1.5 text-purple-300" />
+          Compared with you: you both have <strong className="text-white">{cmp.shared}</strong> · {ownerName ?? 'they'} {ownerName ? 'has' : 'have'} <strong className="text-white">{cmp.theyHave}</strong> you lack · you have <strong className="text-white">{cmp.iHave}</strong> they lack.
+          {cmp.theyHave > 0 && <> Use the filter to see which.</>}
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter the collection">
+        <input type="search" value={view.q} onChange={e => patch({ q: e.target.value })} placeholder="Search name or #" aria-label="Search cards"
+          className="min-w-0 flex-1 basis-40 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
+        <select value={view.show} onChange={e => patch({ show: e.target.value as ShowFilter })} aria-label="Show" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
+          <option value="default">{hiding ? 'Collected' : 'Everything'}</option>
+          <option value="all">Everything</option>
+          <option value="owned">Collected only</option>
+          <option value="missing">{SHOW_LABELS.missing}</option>
+          <option value="dupes">{SHOW_LABELS.dupes}</option>
+          <option value="versions">{SHOW_LABELS.versions}</option>
+          {cmp && <><option value="theyHave">{SHOW_LABELS.theyHave}</option><option value="iHave">{SHOW_LABELS.iHave}</option><option value="shared">{SHOW_LABELS.shared}</option></>}
+        </select>
+        <select value={view.stars} onChange={e => patch({ stars: Number(e.target.value) })} aria-label="Rarity" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
+          <option value={0}>Any rarity</option>
+          {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{'★'.repeat(n)}</option>)}
+        </select>
+        <select value={view.sort} onChange={e => patch({ sort: e.target.value as SortKey })} aria-label="Sort by" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
+          {(Object.keys(SORT_LABELS) as SortKey[]).map(k => <option key={k} value={k}>Sort: {SORT_LABELS[k]}</option>)}
+        </select>
+        <button type="button" onClick={() => patch({ dir: view.dir === 1 ? -1 : 1 })} aria-label="Reverse the order" title="Reverse the order" className="rounded-xl border border-gray-700 px-2 py-1.5 text-gray-300 hover:text-white"><Icon name={view.dir === 1 ? 'arrowDown' : 'arrowUp'} /></button>
+        {filtering && <button type="button" onClick={() => setView(DEFAULT_VIEW)} className="text-xs text-yellow-400 hover:text-yellow-300">Clear</button>}
+      </div>
+
+      {uncollected > 0 && ownedIdx.length > 0 && view.show === 'default' && (
         <div className="flex items-center justify-between gap-3 pb-1">
           <p className="text-xs text-gray-500">
             {ownedIdx.length} collected · {uncollected} still to find
@@ -108,10 +160,10 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
       )}
 
       <div className={compact ? 'grid grid-cols-4 sm:grid-cols-7 md:grid-cols-10 gap-2' : 'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-3'}>
-        {cards.map((card, idx) => {
+        {order.map(idx => {
+          const card = cards[idx];
           const count = totalCopies(card.counts);
           const isOwned = count > 0;
-          if (hiding && !isOwned) return null;
           const rarity = getRarity(card.stars);
           const best = bestVariant(card.counts);
           const art = artFor(card, best);
@@ -166,6 +218,8 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           );
         })}
       </div>
+
+      {order.length === 0 && <p className="rind rounded-2xl p-6 text-center text-sm text-gray-400">No cards match. <button type="button" onClick={() => setView(DEFAULT_VIEW)} className="text-yellow-400 hover:text-yellow-300">Clear the filters</button></p>}
 
       {openIdx !== null && cards[openIdx] && (
         <CardDetail

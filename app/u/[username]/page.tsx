@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { getSession } from '@/lib/session';
 import { getUserSettings } from '@/lib/user-settings-store';
+import { countPulls } from '@/lib/collection';
 import { sweepTrades } from '@/lib/trades';
 import { getUserProfile } from '@/lib/kv';
 import { buildGridCards, loadProfileBase } from '@/lib/profile-data';
@@ -51,12 +52,14 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   }
 
   const prefs = session ? await getUserSettings(session.username) : undefined;
+  // For "Compare with me": the signed-in viewer's copies per card (the season's collection is already loaded).
+  const mine = session && !isOwner && tab === 'collection' ? Object.fromEntries(countPulls(b.collection[session.username] ?? [])) : undefined;
   const grid = tab === 'collection' ? await buildGridCards(b) : [];
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <ProfileHeader b={b} isOwner={isOwner} signedIn={!!session} />
       <ProfileTabBar username={lower} active={tab} />
-      {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} />}
+      {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}
       {tab === 'stats' && <StatsTab b={b} />}
       {tab === 'trades' && <TradesTab b={b} viewer={session?.username} />}
       {tab === 'activity' && <ActivityTab b={b} />}
