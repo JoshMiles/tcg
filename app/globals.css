@@ -299,3 +299,8 @@
   .dash-slide, .dash-pop, .dash-settle, .dash-leave { animation: none; }
   .dash-item { transition: none; }
 }
+
+/* Slide-in side panel (Live Activity event detail) */
+.dash-slide-x { animation: dashSlideX .25s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes dashSlideX { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dash-slide-x { animation: none; } }
