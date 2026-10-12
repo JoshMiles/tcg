@@ -1,389 +1,293 @@
 'use client';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
-import { useMemo, useState } from 'react';
-import Link from 'next/link';
-import type { AssetIssue, AssetKind, AssetLibrary, BlobProblem, LibraryAsset, UnusedBlob } from '@/lib/assets';
 import { CardTile } from '@/app/components/CardTile';
-import { ConfirmButton } from '../components/ConfirmButton';
-import { deleteUnusedAssets } from '../actions';
+import type { AssetKind, AssetLibrary, LibraryAsset } from '@/lib/assets';
+import { fixAssetAction } from '../asset-actions';
+import { AssetDetail } from './AssetDetail';
+import { AssetInsights } from './AssetInsights';
+import { UnusedPanel } from './UnusedPanel';
+import { IssueChips, KIND_LABEL, SizeBar, assetTitle, filename, formatBytes, isFixable } from './asset-ui';
+import { keyOf } from './replace-key';
+import { useReplace } from './useReplace';
 
-type Tab = AssetKind | 'unused';
+export type AssetTab = AssetKind | 'unused' | 'insights';
 type Sort = 'default' | 'size' | 'issues';
+type View = 'grid' | 'list' | 'compact';
+type FixNote = { ok: boolean; message: string };
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'card-art', label: 'Card art' },
-  { key: 'pack-cover', label: 'Pack covers' },
-  { key: 'sound', label: 'Sounds' },
-  { key: 'unused', label: 'Unused' },
+const VIEWS: { id: View; label: string; icon: 'grid' | 'list' | 'cards' }[] = [
+  { id: 'grid', label: 'Grid', icon: 'grid' }, { id: 'compact', label: 'Compact', icon: 'cards' }, { id: 'list', label: 'List', icon: 'list' },
 ];
-
-const ISSUE_TEXT: Record<AssetIssue, { label: string; hint: string; tone: 'red' | 'amber' }> = {
-  'legacy-gif': { label: 'GIF', hint: 'Still a GIF, which is huge. Re-upload it on its edit page to convert it to an optimized WebP.', tone: 'amber' },
-  missing: { label: 'File missing', hint: 'This URL no longer resolves, so viewers will see a broken image/sound.', tone: 'red' },
-  'no-thumbnail': { label: 'No thumbnail', hint: 'The static thumbnail next to this card art is missing, so grids will show a broken image. Re-upload it to regenerate.', tone: 'amber' },
-  heavy: { label: 'Very large', hint: 'Unusually large for its type; consider re-encoding it.', tone: 'amber' },
+const GRID: Record<View, string> = {
+  grid: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4',
+  compact: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2.5',
+  list: '',
 };
+const CHECKER = 'bg-[conic-gradient(#0b1020_25%,#111a30_0_50%,#0b1020_0_75%,#111a30_0)] bg-[length:14px_14px]';
 
-export function formatBytes(bytes: number | null): string {
-  if (bytes === null) return '—';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
-}
-
-function filename(url: string): string {
-  try {
-    return decodeURIComponent(new URL(url, 'http://x').pathname.split('/').pop() ?? '');
-  } catch {
-    return url.split('/').pop() ?? url;
-  }
-}
-
-export function AssetBrowser({ library }: { library: AssetLibrary }) {
+export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibrary; tab: AssetTab; issuesOnly?: boolean }) {
+  const router = useRouter();
   const { assets, unused, blobConnected, blobProblem } = library;
-  const [tab, setTab] = useState<Tab>('card-art');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<Sort>('default');
-  const [onlyIssues, setOnlyIssues] = useState(false);
+  const [onlyIssues, setOnlyIssues] = useState(!!issuesOnly);
+  const [view, setView] = useState<View>('grid');
   const [copied, setCopied] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [fixing, setFixing] = useState<{ current: string | null; done: number; total: number } | null>(null);
+  const [notes, setNotes] = useState<Record<string, FixNote>>({});
+  const [summary, setSummary] = useState<string | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const rep = useReplace();
+
+  useEffect(() => { try { const v = localStorage.getItem('tcg_assets_view'); if (v === 'grid' || v === 'list' || v === 'compact') setView(v); } catch { /* optional */ } }, []);
+  useEffect(() => setOnlyIssues(!!issuesOnly), [issuesOnly]);
+  useEffect(() => { setSelected(new Set()); setOpenId(null); }, [tab]);
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === '/' && !(e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))) { e.preventDefault(); searchRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, []);
+  const chooseView = (v: View) => { setView(v); try { localStorage.setItem('tcg_assets_view', v); } catch { /* optional */ } };
 
   const q = query.trim().toLowerCase();
-  const byKind = (kind: AssetKind) => assets.filter(a => a.kind === kind);
-  const issueCount = (list: LibraryAsset[]) => list.filter(a => a.issues.length > 0).length;
+  const kindTab = tab === 'unused' || tab === 'insights' ? null : tab;
 
-  const totals = useMemo(() => {
-    const inUse = assets.reduce((s, a) => s + (a.bytes ?? 0), 0);
-    return {
-      inUse,
-      attention: issueCount(assets),
-      unusedBytes: unused.reduce((s, u) => s + u.bytes, 0),
-    };
-  }, [assets, unused]);
-
-  const visibleAssets = useMemo(() => {
-    if (tab === 'unused') return [];
-    let list = byKind(tab).filter(a => {
+  const visible = useMemo(() => {
+    if (!kindTab) return [];
+    let list = assets.filter(a => {
+      if (a.kind !== kindTab) return false;
       if (onlyIssues && a.issues.length === 0) return false;
       if (!q) return true;
       const o = a.origin;
-      const hay = [filename(a.url), o.packName, o.kind === 'pack-cover' ? '' : o.cardName, o.kind === 'pack-cover' ? '' : `#${o.cardNumber}`].join(' ').toLowerCase();
-      return hay.includes(q);
+      return [filename(a.url), o.packName, o.kind === 'pack-cover' ? '' : o.cardName, o.kind === 'pack-cover' ? '' : `#${o.cardNumber}`].join(' ').toLowerCase().includes(q);
     });
     if (sort === 'size') list = [...list].sort((a, b) => (b.bytes ?? -1) - (a.bytes ?? -1));
     if (sort === 'issues') list = [...list].sort((a, b) => b.issues.length - a.issues.length);
     return list;
-  }, [assets, tab, q, sort, onlyIssues]);
+  }, [assets, kindTab, q, sort, onlyIssues]);
+  const visibleUnused = useMemo(() => unused.filter(u => !q || u.pathname.toLowerCase().includes(q)), [unused, q]);
+  const maxBytes = Math.max(1, ...visible.map(a => a.bytes ?? 0));
 
-  const visibleUnused = useMemo(
-    () => unused.filter(u => !q || u.pathname.toLowerCase().includes(q)),
-    [unused, q],
-  );
+  const byId = useMemo(() => new Map(assets.map(a => [a.id, a])), [assets]);
+  const open = openId ? byId.get(openId) ?? null : null;
+  const openIndex = open ? visible.findIndex(a => a.id === open.id) : -1;
+  const step = useCallback((d: -1 | 1) => {
+    if (visible.length === 0) return;
+    const i = openIndex < 0 ? 0 : (openIndex + d + visible.length) % visible.length;
+    setOpenId(visible[i].id);
+  }, [visible, openIndex]);
 
   function copy(url: string) {
-    // Local assets are stored as paths; copy something that works when pasted elsewhere.
-    const full = url.startsWith('/') ? window.location.origin + url : url;
-    navigator.clipboard.writeText(full).then(() => {
-      setCopied(url);
-      setTimeout(() => setCopied(c => (c === url ? null : c)), 1800);
-    });
+    const full = url.startsWith('/') ? window.location.origin + url : url; // local assets are stored as paths
+    navigator.clipboard.writeText(full).then(() => { setCopied(url); setTimeout(() => setCopied(c => (c === url ? null : c)), 1800); });
   }
+  const toggle = (id: string) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  /** Repairs files one at a time (each can take several seconds), showing progress; refreshes the page at the end. */
+  async function runFix(list: LibraryAsset[]) {
+    const todo = list.filter(isFixable);
+    if (todo.length === 0 || fixing) return;
+    setSummary(null);
+    let ok = 0; const done: Record<string, FixNote> = {};
+    for (let i = 0; i < todo.length; i++) {
+      setFixing({ current: todo[i].id, done: i, total: todo.length });
+      try {
+        const r = await fixAssetAction(keyOf(todo[i]));
+        done[todo[i].id] = { ok: r.ok, message: r.message };
+        if (r.ok) ok++;
+      } catch {
+        done[todo[i].id] = { ok: false, message: 'The request failed. Try again.' };
+      }
+      setNotes(n => ({ ...n, ...done }));
+    }
+    setFixing(null);
+    setSelected(new Set());
+    setSummary(`Fixed ${ok} of ${todo.length} file${todo.length === 1 ? '' : 's'}.${ok < todo.length ? ' Open a flagged file to see why the rest could not be fixed.' : ''}`);
+    router.refresh();
+  }
+
+  const flaggedFixable = assets.filter(isFixable);
+  const gifs = assets.filter(a => a.format === 'GIF' && isFixable(a));
+  const selectedAssets = [...selected].map(id => byId.get(id)).filter((a): a is LibraryAsset => !!a);
+  const selectedFixable = selectedAssets.filter(isFixable);
+  const showToolbar = kindTab !== null || tab === 'unused';
 
   return (
     <div className="space-y-5">
-      {/* Health summary */}
-      <div className="flex flex-wrap gap-3 text-sm">
-        <Stat label="Files in use" value={String(assets.length)} sub={`${formatBytes(totals.inUse)} total`} />
-        <Stat
-          label="Need attention"
-          value={String(totals.attention)}
-          sub={totals.attention === 0 ? 'all healthy' : 'see flagged files'}
-          tone={totals.attention > 0 ? 'amber' : 'green'}
-          onClick={totals.attention > 0 ? () => { setOnlyIssues(true); if (tab === 'unused') setTab('card-art'); } : undefined}
-        />
-        <Stat
-          label="Unused"
-          value={blobConnected ? String(unused.length) : '—'}
-          sub={blobConnected ? (unused.length ? `${formatBytes(totals.unusedBytes)} to reclaim` : 'nothing to clean up') : 'storage unavailable'}
-          tone={unused.length > 0 ? 'amber' : undefined}
-          onClick={blobConnected && unused.length > 0 ? () => setTab('unused') : undefined}
-        />
-      </div>
-
-      {/* Tabs + controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 tcg-panel rounded-xl p-1 w-fit">
-          {TABS.map(t => {
-            const count = t.key === 'unused' ? unused.length : byKind(t.key).length;
-            const flagged = t.key === 'unused' ? 0 : issueCount(byKind(t.key));
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
-                  tab === t.key ? 'bg-gray-800 text-white' : 'text-gray-500 hover:text-gray-300'
-                }`}
-              >
-                {t.label}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full tabular-nums ${tab === t.key ? 'bg-gray-700 text-gray-300' : 'bg-gray-800/60 text-gray-500'}`}>
-                  {t.key === 'unused' && !blobConnected ? '—' : count}
-                </span>
-                {flagged > 0 && <span title={`${flagged} need attention`} className="w-2 h-2 rounded-full bg-amber-400" />}
-              </button>
-            );
-          })}
+      {(summary || rep.error) && (
+        <div role="status" className={`rounded-xl border px-4 py-2.5 text-sm flex items-center gap-2 ${rep.error ? 'border-red-500/30 bg-red-950/30 text-red-300' : 'border-green-500/30 bg-green-950/30 text-green-300'}`}>
+          <Icon name={rep.error ? 'warning' : 'check'} />{rep.error ?? summary}
+          <button onClick={() => { setSummary(null); rep.clearError(); }} className="ml-auto text-xs opacity-70 hover:opacity-100">Dismiss</button>
         </div>
+      )}
+      {fixing && (
+        <div className="tcg-panel rounded-xl px-4 py-3 space-y-2" role="status">
+          <p className="text-sm text-gray-200"><Icon name="wrench" className="mr-1.5 text-yellow-400" />Fixing {fixing.done + 1} of {fixing.total}…<span className="text-gray-500"> large GIFs can take up to a minute each. Keep this page open.</span></p>
+          <SizeBar value={fixing.done + 0.5} max={fixing.total} />
+        </div>
+      )}
 
+      {showToolbar && (
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="search"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search name, pack or #…"
-            aria-label="Search assets"
-            className="bg-gray-950 border border-gray-700 rounded-xl px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 w-48"
-          />
-          {tab !== 'unused' && (
+          <div className="relative">
+            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input ref={searchRef} type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name, pack or #…  ( / )" aria-label="Search assets"
+              className="bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 w-64" />
+          </div>
+          {kindTab && (
             <>
-              <select
-                value={sort}
-                onChange={e => setSort(e.target.value as Sort)}
-                aria-label="Sort"
-                className="bg-gray-950 border border-gray-700 rounded-xl px-2 py-1.5 text-sm text-gray-300 focus:outline-none focus:border-yellow-500"
-              >
-                <option value="default">Default order</option>
-                <option value="size">Largest first</option>
-                <option value="issues">Flagged first</option>
+              <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-none focus:border-yellow-500">
+                <option value="default">Default order</option><option value="size">Largest first</option><option value="issues">Flagged first</option>
               </select>
-              <label className="flex items-center gap-1.5 text-sm text-gray-400 cursor-pointer select-none">
-                <input type="checkbox" checked={onlyIssues} onChange={e => setOnlyIssues(e.target.checked)} className="accent-yellow-500" />
-                Needs attention
-              </label>
+              <button onClick={() => setOnlyIssues(v => !v)} aria-pressed={onlyIssues} className={`px-3 py-2 text-sm font-semibold rounded-xl border transition-colors ${onlyIssues ? 'border-amber-400/50 bg-amber-500/10 text-amber-200' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>
+                <Icon name="warning" className="mr-1.5" />Needs attention
+              </button>
+              <button onClick={() => setSelected(new Set(visible.filter(a => a.issues.length > 0).map(a => a.id)))} className="px-3 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors">Select flagged</button>
+              <div className="ml-auto flex items-center gap-2">
+                {flaggedFixable.length > 0 && (
+                  <button onClick={() => runFix(flaggedFixable)} disabled={!!fixing} className="px-3 py-2 text-sm font-bold rounded-xl bg-yellow-500/10 border border-yellow-400/30 text-yellow-200 hover:bg-yellow-500/20 disabled:opacity-50 transition-colors">
+                    <Icon name="wrench" className="mr-1.5" />Fix all ({flaggedFixable.length})
+                  </button>
+                )}
+                <div className="flex tcg-panel rounded-xl p-0.5" role="group" aria-label="View">
+                  {VIEWS.map(v => (
+                    <button key={v.id} onClick={() => chooseView(v.id)} aria-pressed={view === v.id} title={v.label} className={`p-2 rounded-lg transition-colors ${view === v.id ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}><Icon name={v.icon} /></button>
+                  ))}
+                </div>
+              </div>
             </>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Content */}
-      {tab === 'unused' ? (
+      {tab === 'insights' ? (
+        <AssetInsights assets={assets} onOpen={a => { setOpenId(a.id); }} onFixGifs={() => runFix(gifs)} />
+      ) : tab === 'unused' ? (
         <UnusedPanel items={visibleUnused} all={unused} blobConnected={blobConnected} problem={blobProblem} copy={copy} copied={copied} />
-      ) : visibleAssets.length === 0 ? (
-        <div className="py-16 text-center text-sm text-gray-500">
-          {onlyIssues || q ? 'Nothing matches the current filters.' : 'No files here yet — they appear once packs and cards use them.'}
+      ) : visible.length === 0 ? (
+        <div className="py-16 text-center text-sm text-gray-500">{onlyIssues || q ? 'Nothing matches the current filters.' : 'No files here yet. They appear once packs and cards use them.'}</div>
+      ) : view === 'list' ? (
+        <div className="tcg-panel rounded-2xl overflow-hidden divide-y divide-gray-800/60">
+          {visible.map(a => (
+            <AssetRow key={a.id} asset={a} maxBytes={maxBytes} selected={selected.has(a.id)} onToggle={() => toggle(a.id)} onOpen={() => setOpenId(a.id)}
+              busy={fixing?.current === a.id || rep.busy === a.id} onDropFile={f => rep.replace(a, f)} />
+          ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
-          {visibleAssets.map((asset, i) => (
-            <AssetCard key={asset.url + i} asset={asset} copied={copied === asset.url} onCopy={() => copy(asset.url)} />
+        <div className={`grid ${GRID[view]}`}>
+          {visible.map(a => (
+            <AssetTile key={a.id} asset={a} compact={view === 'compact'} selected={selected.has(a.id)} onToggle={() => toggle(a.id)} onOpen={() => setOpenId(a.id)}
+              busy={fixing?.current === a.id || rep.busy === a.id} onDropFile={f => rep.replace(a, f)} />
           ))}
         </div>
       )}
-    </div>
-  );
-}
 
-function Stat({
-  label, value, sub, tone, onClick,
-}: { label: string; value: string; sub: string; tone?: 'amber' | 'green'; onClick?: () => void }) {
-  const color = tone === 'amber' ? 'text-amber-300' : tone === 'green' ? 'text-green-300' : 'text-white';
-  const body = (
-    <>
-      <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider">{label}</p>
-      <p className={`font-display text-2xl font-bold tabular-nums ${color}`}>{value}</p>
-      <p className="text-xs text-gray-500">{sub}</p>
-    </>
-  );
-  const cls = 'tcg-panel rounded-xl px-4 py-3 min-w-[9rem] text-left';
-  return onClick ? (
-    <button onClick={onClick} className={`${cls} hover:border-yellow-500/40 transition-colors`}>{body}</button>
-  ) : (
-    <div className={cls}>{body}</div>
-  );
-}
-
-function IssueChips({ asset }: { asset: LibraryAsset }) {
-  if (asset.issues.length === 0) {
-    return asset.optimized
-      ? <span className="text-[10px] font-extrabold uppercase tracking-wider text-green-300 bg-green-500/10 border border-green-400/30 rounded-full px-1.5 py-px"><Icon name="check" className="mr-0.5 w-3 h-3" />Optimized</span>
-      : null;
-  }
-  return (
-    <>
-      {asset.issues.map(issue => {
-        const info = ISSUE_TEXT[issue];
-        return (
-          <span
-            key={issue}
-            title={info.hint}
-            className={`text-[10px] font-extrabold uppercase tracking-wider rounded-full px-1.5 py-px border cursor-help ${
-              info.tone === 'red'
-                ? 'text-red-300 bg-red-500/10 border-red-400/30'
-                : 'text-amber-300 bg-amber-500/10 border-amber-400/30'
-            }`}
-          >
-            <Icon name="warning" className="mr-1 w-3.5 h-3.5" />{info.label}
-          </span>
-        );
-      })}
-    </>
-  );
-}
-
-function AssetCard({ asset, copied, onCopy }: { asset: LibraryAsset; copied: boolean; onCopy: () => void }) {
-  const { origin } = asset;
-  const isCover = origin.kind === 'pack-cover';
-  const title = isCover ? origin.packName : origin.cardName;
-  const sub = isCover ? 'Pack cover' : asset.kind === 'sound' ? `Card #${origin.cardNumber} · sound` : `Card #${origin.cardNumber}`;
-  const href = isCover ? `/admin/packs/${origin.packId}` : `/admin/packs/${origin.packId}/cards/${origin.cardId}`;
-  const broken = asset.issues.includes('missing');
-
-  return (
-    <div className="tcg-panel rounded-xl overflow-hidden flex flex-col">
-      {/* Preview */}
-      <div className="h-36 bg-gray-950/60 flex items-center justify-center overflow-hidden p-2">
-        {broken ? (
-          <span className="text-3xl opacity-60"><Icon name="ban" className="w-8 h-8" /></span>
-        ) : asset.kind === 'sound' ? (
-          <div className="w-full flex flex-col items-center gap-2">
-            <span className="text-3xl"><Icon name="music" className="w-8 h-8" /></span>
-            <audio controls preload="none" src={asset.url} className="w-full" style={{ height: 24 }} />
-          </div>
-        ) : asset.kind === 'card-art' ? (
-          // Static thumbnail; the animated file loads only on hover.
-          <CardTile
-            imageUrl={asset.url}
-            alt={title}
-            className="relative h-full aspect-[2/3] rounded-md overflow-hidden border border-gray-700 bg-gray-800"
-          />
-        ) : (
-          <img src={asset.url} alt={title} loading="lazy" className="max-h-full max-w-full object-contain rounded" />
-        )}
-      </div>
-
-      {/* Details */}
-      <div className="p-2.5 space-y-2 flex-1 flex flex-col">
-        <div className="space-y-0.5 flex-1 min-w-0">
-          <p className="text-sm font-bold text-white truncate" title={title}>{title}</p>
-          <p className="text-xs text-gray-500">{sub} · {origin.packName}</p>
-          <p className="text-[11px] text-gray-600 font-mono truncate" title={asset.url}>{filename(asset.url)}</p>
-          <div className="flex flex-wrap items-center gap-1 pt-1">
-            <span className="text-[10px] font-bold text-gray-300 bg-gray-800 rounded px-1.5 py-px">{asset.format}</span>
-            <span className="text-[10px] font-bold text-gray-300 bg-gray-800 rounded px-1.5 py-px tabular-nums">{formatBytes(asset.bytes)}</span>
-            <IssueChips asset={asset} />
-          </div>
-        </div>
-        <div className="flex gap-1.5">
-          <button
-            onClick={onCopy}
-            className="flex-1 text-xs py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg transition-colors"
-          >
-            {copied ? <><Icon name="check" className="mr-1" />Copied</> : 'Copy URL'}
-          </button>
-          <Link
-            href={href}
-            className="flex-1 text-center text-xs py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-300 rounded-lg transition-colors"
-            title={isCover ? 'Open this pack to replace its cover' : 'Open this card to replace its art or sound'}
-          >
-            {asset.issues.length > 0 ? 'Fix →' : 'Edit →'}
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function UnusedPanel({
-  items, all, blobConnected, problem, copy, copied,
-}: { items: UnusedBlob[]; all: UnusedBlob[]; blobConnected: boolean; problem?: BlobProblem; copy: (url: string) => void; copied: string | null }) {
-  if (!blobConnected) {
-    return (
-      <div className="tcg-panel rounded-xl p-6 text-sm text-gray-400 space-y-2">
-        {problem?.kind === 'error' ? (
-          <>
-            <p>
-              Blob storage is configured here, but reading it failed, so unused files can&apos;t be checked.
-            </p>
-            <p className="font-mono text-xs text-amber-300 break-words">{problem.message}</p>
-            <p className="text-xs text-gray-500">
-              Check the store is still linked to this project and not suspended (Vercel → Storage). Your cards and covers are unaffected.
-            </p>
-          </>
-        ) : (
-          <>
-            <p>
-              This environment has no <code className="text-gray-300">BLOB_READ_WRITE_TOKEN</code>, so unused files can&apos;t be checked here.
-            </p>
-            <p className="text-xs text-gray-500">
-              On Vercel, make sure the variable is enabled for this environment — a <strong className="text-gray-400">Preview</strong> deployment
-              doesn&apos;t get Production-only variables. If you&apos;re viewing production, check Settings → Environment Variables and redeploy.
-            </p>
-          </>
-        )}
-      </div>
-    );
-  }
-  if (all.length === 0) {
-    return <div className="py-16 text-center text-sm text-gray-500">Nothing to clean up — every file in storage is in use.</div>;
-  }
-
-  const totalBytes = all.reduce((s, u) => s + u.bytes, 0);
-
-  return (
-    <div className="space-y-4">
-      <div className="tcg-panel rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-400 max-w-xl">
-          These files are in Blob storage but no card or pack points at them (leftover originals, replaced art, abandoned uploads).
-          Files uploaded in the last 10 minutes are hidden in case they&apos;re still being processed.
-        </p>
-        <form action={deleteUnusedAssets}>
-          {all.map(u => <input key={u.url} type="hidden" name="url" value={u.url} />)}
-          <ConfirmButton
-            title="Delete all unused files?"
-            confirmLabel={`Delete ${all.length} file${all.length !== 1 ? 's' : ''}`}
-            message={<>Permanently delete <strong className="text-white">{all.length} unused file{all.length !== 1 ? 's' : ''}</strong> ({formatBytes(totalBytes)}) from storage? Anything still in use is skipped automatically. This can&apos;t be undone.</>}
-            className="px-4 py-2 text-sm font-bold bg-red-600/90 hover:bg-red-500 text-white rounded-xl transition-colors"
-          >
-            Delete all unused ({formatBytes(totalBytes)})
-          </ConfirmButton>
-        </form>
-      </div>
-
-      {items.length === 0 ? (
-        <div className="py-10 text-center text-sm text-gray-500">No unused files match your search.</div>
-      ) : (
-        <div className="tcg-panel rounded-xl overflow-hidden divide-y divide-gray-800/60">
-          {items.map(u => {
-            const isImage = ['WebP', 'PNG', 'JPEG', 'GIF'].includes(u.format);
-            const previewable = isImage && u.bytes <= 1.5 * 1024 * 1024; // never pull a 25MB original just to preview it
-            return (
-              <div key={u.url} className="flex items-center gap-3 px-4 py-2.5">
-                <div className="w-10 h-14 rounded bg-gray-800 flex items-center justify-center overflow-hidden shrink-0 text-lg">
-                  {previewable ? <img src={u.url} alt="" loading="lazy" className="w-full h-full object-cover" /> : (u.format === 'GIF' ? <Icon name="film" /> : isImage ? <Icon name="image" /> : <Icon name="music" />)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-white font-mono truncate" title={u.pathname}>{u.pathname}</p>
-                  <p className="text-xs text-gray-500">
-                    {u.format} · {formatBytes(u.bytes)} · uploaded {new Date(u.uploadedAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <button onClick={() => copy(u.url)} className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">
-                  {copied === u.url ? <><Icon name="check" className="mr-1" />Copied</> : 'Copy URL'}
-                </button>
-                <form action={deleteUnusedAssets}>
-                  <input type="hidden" name="url" value={u.url} />
-                  <ConfirmButton
-                    title="Delete this file?"
-                    confirmLabel="Delete"
-                    message={<>Permanently delete <strong className="text-white font-mono">{u.pathname}</strong> ({formatBytes(u.bytes)})? Nothing uses it. This can&apos;t be undone.</>}
-                    className="text-xs px-3 py-1.5 text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-lg transition-colors"
-                  >
-                    Delete
-                  </ConfirmButton>
-                </form>
-              </div>
-            );
-          })}
+      {selected.size > 0 && kindTab && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-2xl border border-gray-700 bg-gray-900/95 backdrop-blur px-4 py-2.5 shadow-2xl max-w-[calc(100vw-2rem)]">
+          <span className="text-sm text-gray-200 whitespace-nowrap"><strong>{selected.size}</strong> selected{selectedFixable.length !== selected.size && <span className="text-gray-500"> · {selectedFixable.length} fixable</span>}</span>
+          <button onClick={() => runFix(selectedFixable)} disabled={selectedFixable.length === 0 || !!fixing} className="tcg-btn px-3.5 py-1.5 text-sm rounded-xl whitespace-nowrap"><Icon name="wrench" className="mr-1.5" />Fix {selectedFixable.length || ''}</button>
+          <button onClick={() => setSelected(new Set())} className="text-sm text-gray-400 hover:text-white">Clear</button>
         </div>
       )}
+
+      {open && (
+        <AssetDetail
+          asset={open} index={Math.max(0, openIndex)} total={Math.max(1, visible.length)} onClose={() => setOpenId(null)} onStep={step}
+          onCopy={() => copy(open.url)} copied={copied === open.url}
+          onFix={() => runFix([open])} fixing={fixing?.current === open.id} fixNote={notes[open.id] ?? null}
+          onReplace={f => rep.replace(open, f)} replacing={rep.busy === open.id} replaceError={rep.error}
+        />
+      )}
+    </div>
+  );
+}
+
+function Preview({ asset, className }: { asset: LibraryAsset; className?: string }) {
+  const title = assetTitle(asset.origin);
+  if (asset.issues.includes('missing')) return <Icon name="ban" className="w-8 h-8 text-red-300/70" />;
+  if (asset.kind === 'sound') return <Icon name="music" className="w-8 h-8 text-gray-500" />;
+  if (asset.kind === 'card-art') return <CardTile imageUrl={asset.url} alt={title} className={`relative aspect-[2/3] rounded-md overflow-hidden ${className ?? 'h-full'}`} />;
+  return <img src={asset.url} alt={title} loading="lazy" className="max-h-full max-w-full object-contain rounded" />;
+}
+
+function useDrop(onDropFile: (f: File) => void) {
+  const [over, setOver] = useState(false);
+  return {
+    over,
+    props: {
+      onDragOver: (e: React.DragEvent) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setOver(true); } },
+      onDragLeave: () => setOver(false),
+      onDrop: (e: React.DragEvent) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) onDropFile(f); },
+    },
+  };
+}
+
+const Check = ({ on, onToggle, label, always }: { on: boolean; onToggle: () => void; label: string; always?: boolean }) => (
+  <button onClick={e => { e.stopPropagation(); onToggle(); }} aria-pressed={on} aria-label={label}
+    className={`w-6 h-6 rounded-md border flex items-center justify-center transition-all ${on ? 'bg-yellow-400 border-yellow-300 text-gray-950 opacity-100' : `bg-gray-950/80 border-gray-600 text-transparent focus-visible:opacity-100 ${always ? 'opacity-70 hover:opacity-100' : 'opacity-0 group-hover:opacity-100'}`}`}>
+    <Icon name="check" className="w-4 h-4" strokeWidth={3} />
+  </button>
+);
+
+function BusyOverlay({ over, busy }: { over: boolean; busy: boolean }) {
+  if (!over && !busy) return null;
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-950/75 backdrop-blur-[1px] text-sm font-bold text-yellow-200 text-center px-2">
+      {busy ? <span className="animate-pulse">Working…</span> : 'Drop to replace'}
+    </div>
+  );
+}
+
+function AssetTile({ asset, compact, selected, onToggle, onOpen, busy, onDropFile }: { asset: LibraryAsset; compact: boolean; selected: boolean; onToggle: () => void; onOpen: () => void; busy: boolean; onDropFile: (f: File) => void }) {
+  const drop = useDrop(onDropFile);
+  const flagged = asset.issues.length > 0;
+  const red = asset.issues.includes('missing');
+  return (
+    <div {...drop.props} className={`group relative tcg-panel rounded-2xl overflow-hidden flex flex-col transition-all hover:-translate-y-0.5 ${selected ? 'ring-2 ring-yellow-400' : flagged ? (red ? 'ring-1 ring-red-400/40' : 'ring-1 ring-amber-400/30') : ''}`}>
+      <BusyOverlay over={drop.over} busy={busy} />
+      <div className="absolute top-2 left-2 z-[5]"><Check on={selected} onToggle={onToggle} label={`Select ${assetTitle(asset.origin)}`} /></div>
+      {flagged && <span title={asset.issues.join(', ')} className={`absolute top-2.5 right-2.5 z-[5] w-2.5 h-2.5 rounded-full ${red ? 'bg-red-400' : 'bg-amber-400'} shadow`} />}
+      <button onClick={onOpen} aria-label={`Details for ${assetTitle(asset.origin)}`} className={`${CHECKER} ${compact ? 'h-24' : 'h-44'} flex items-center justify-center overflow-hidden p-2 focus-visible:outline-none focus-visible:ring-2 ring-inset ring-yellow-400/60`}>
+        <Preview asset={asset} />
+      </button>
+      <div className={`${compact ? 'p-2' : 'p-3'} space-y-1 flex-1 min-w-0`}>
+        <p className={`${compact ? 'text-xs' : 'text-sm'} font-bold text-white truncate`} title={assetTitle(asset.origin)}>{assetTitle(asset.origin)}</p>
+        {!compact && <p className="text-xs text-gray-500 truncate">{asset.origin.kind === 'pack-cover' ? 'Pack cover' : `Card #${asset.origin.cardNumber}`} · {asset.origin.packName}</p>}
+        <div className="flex flex-wrap items-center gap-1 pt-0.5">
+          <span className="text-[10px] font-bold text-gray-300 bg-gray-800 rounded px-1.5 py-px">{asset.format}</span>
+          <span className="text-[10px] font-bold text-gray-300 bg-gray-800 rounded px-1.5 py-px tabular-nums">{formatBytes(asset.bytes)}</span>
+          {!compact && <IssueChips asset={asset} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AssetRow({ asset, maxBytes, selected, onToggle, onOpen, busy, onDropFile }: { asset: LibraryAsset; maxBytes: number; selected: boolean; onToggle: () => void; onOpen: () => void; busy: boolean; onDropFile: (f: File) => void }) {
+  const drop = useDrop(onDropFile);
+  return (
+    <div {...drop.props} className={`group relative flex items-center gap-3 px-4 py-2 transition-colors ${selected ? 'bg-yellow-500/[0.06]' : 'hover:bg-white/[0.02]'}`}>
+      <BusyOverlay over={drop.over} busy={busy} />
+      <Check always on={selected} onToggle={onToggle} label={`Select ${assetTitle(asset.origin)}`} />
+      <button onClick={onOpen} className={`${CHECKER} w-10 h-14 rounded-md flex items-center justify-center overflow-hidden shrink-0`} aria-label={`Details for ${assetTitle(asset.origin)}`}>
+        <Preview asset={asset} className="h-full" />
+      </button>
+      <div className="min-w-0 flex-1">
+        <button onClick={onOpen} className="text-sm font-bold text-white truncate block max-w-full text-left hover:text-yellow-300">{assetTitle(asset.origin)}</button>
+        <p className="text-xs text-gray-500 truncate">{KIND_LABEL[asset.kind]} · {asset.origin.packName} · <span className="font-mono">{filename(asset.url)}</span></p>
+      </div>
+      <div className="hidden md:flex flex-wrap gap-1 justify-end max-w-[14rem]"><IssueChips asset={asset} /></div>
+      <div className="hidden sm:block w-32 shrink-0 space-y-1">
+        <p className="text-xs text-right text-gray-300 tabular-nums"><span className="text-gray-500 mr-1.5">{asset.format}</span>{formatBytes(asset.bytes)}</p>
+        <SizeBar value={asset.bytes ?? 0} max={maxBytes} tone={asset.issues.length ? 'amber' : 'yellow'} />
+      </div>
+      <button onClick={onOpen} className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-800 hover:bg-gray-700 text-yellow-300 shrink-0">{asset.issues.length > 0 ? 'Fix →' : 'Details'}</button>
     </div>
   );
 }

@@ -554,6 +554,7 @@ export async function deleteOverlayPresetAction(formData: FormData) {
 
 // Deletes Blob files that nothing references (urls come from the form, but are re-verified server-side).
 export async function deleteUnusedAssets(formData: FormData) {
+  await requireAdmin();
   const urls = formData.getAll('url').map(String);
   await deleteUnusedBlobs(urls);
   revalidatePath('/admin/assets');
