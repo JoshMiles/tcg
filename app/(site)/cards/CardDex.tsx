@@ -55,12 +55,12 @@ const maskFor = (url: string) => (cardThumbUrl(url) !== url ? `url("${cardThumbU
 type Mine = 'all' | 'collected' | 'missing';
 
 /** Every card in a season, with a rarity filter, name search, and click-through details with the top collectors. */
-export function CardDex({ cards, showMine = false }: { cards: DexCard[]; showMine?: boolean }) {
+export function CardDex({ cards, showMine = false, initialOpenId }: { cards: DexCard[]; showMine?: boolean; initialOpenId?: string }) {
   const [stars, setStars] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'number' | 'rarity' | 'value'>('number');
   const [mine, setMine] = useState<Mine>('all');
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(initialOpenId ?? null); // /cards?card=7 (from search) opens that card
   const opener = useRef<HTMLElement | null>(null);
 
   const shown = useMemo(() => {
