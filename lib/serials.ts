@@ -1,6 +1,6 @@
 import { kv } from './db';
 import {
-  buildSerialIndex, diffCounts, copyId, countEntries, entryOf, escrowOwner, isEscrow, newestFirst, sameCollection, withEvent,
+  buildSerialIndex, diffCounts, copyId, parseCopyId, countEntries, entryOf, escrowOwner, isEscrow, newestFirst, sameCollection, withEvent,
   type Copy, type CopyEvent, type Origin, type SerialIndex, type SerialPool,
 } from './serials-core';
 import { decodeEntry, encodeEntry } from './variants';
@@ -26,12 +26,20 @@ const key = {
 };
 
 /** A move that keeps a copy's identity: `to` / `from` is a viewer or an escrow owner. */
-export interface Move { from: string; to: string; entry: number; count: number }
+export interface Move {
+  from: string; to: string; entry: number; count: number;
+  /** Move exactly these copies (by id) instead of the newest `count`. Used by admin transfers. */
+  ids?: string[];
+  /** Added to each moved copy's history event (e.g. "admin transfer"). */
+  note?: string;
+}
 export interface SyncContext {
   /** Where newly added copies came from (default 'other'). */
   origin?: Origin;
   /** Copies that change hands in this save (trades, escrow, refunds). */
   moves?: Move[];
+  /** Retire exactly these copies of `owner` (an admin removing one specific copy), in place of retiring the newest. */
+  retire?: { owner: string; ids: string[]; who: string; note?: string };
   /** Copies spent and the one made from them. */
   upgrade?: { user: string; spent: number; count: number; made: number };
 }
@@ -86,6 +94,33 @@ export async function serialPool(c: string, owner: string): Promise<SerialPool> 
   return pool;
 }
 
+export interface CopyPage { made: number; copies: Copy[] }
+
+/**
+ * One page of the copies of a card in one version, by serial number (they are numbered 1..made with none skipped, so a page is just
+ * a range of ids). Live and retired copies both come back; `owner` is '' for a retired one. Newest first unless `oldestFirst`.
+ */
+export async function pageCopies(c: string, card: number, variant: Variant, page: number, size: number, oldestFirst = false): Promise<CopyPage> {
+  const made = (await mintedCounts(c)).get(entryOf({ card, variant })) ?? 0;
+  const from = Math.max(0, page) * size;
+  const ns = Array.from({ length: Math.max(0, Math.min(size, made - from)) }, (_, i) => (oldestFirst ? from + i + 1 : made - from - i));
+  const copies = (await Promise.all(ns.map(n => getCopy(c, copyId(card, variant, n))))).filter((x): x is Copy => !!x);
+  return { made, copies };
+}
+
+/** How many live copies (in collections or offers) exist of each card + version, by entry. */
+export async function liveCounts(c: string): Promise<Map<number, number>> {
+  const idx = (await kv.hgetall(key.idx(c)).catch(() => null)) as Record<string, string> | null;
+  const out = new Map<number, number>();
+  for (const id of Object.keys(idx ?? {})) {
+    const p = parseCopyId(id);
+    if (!p) continue;
+    const e = encodeEntry(p.card, p.variant);
+    out.set(e, (out.get(e) ?? 0) + 1);
+  }
+  return out;
+}
+
 /** Every live copy of one card + version (all owners, escrow included), for "who holds the other numbers". */
 export async function liveCopiesOfEntry(c: string, entry: number): Promise<{ id: string; owner: string }[]> {
   const idx = (await kv.hgetall(key.idx(c)).catch(() => null)) as Record<string, string> | null;
@@ -123,7 +158,7 @@ async function retire(c: string, owner: string, copies: Copy[], ev: Omit<CopyEve
 /** Hands copies from one owner to another, keeping their identity. Returns how many actually moved (the ledger may hold fewer). */
 async function move(c: string, m: Move): Promise<number> {
   const mine = (await readOwner(c, m.from)).filter(x => entryOf(x) === m.entry);
-  const picked = newestFirst(mine, m.count);
+  const picked = m.ids ? mine.filter(x => m.ids!.includes(x.id)) : newestFirst(mine, m.count);
   if (picked.length === 0) return 0;
   const now = Date.now();
   const moved = picked.map(x => {
@@ -132,7 +167,7 @@ async function move(c: string, m: Move): Promise<number> {
     const putBy = isEscrow(m.from) ? [...x.ev].reverse().find(e => e.type === 'escrowed')?.who : undefined;
     return putBy === m.to
       ? withEvent({ ...x, owner: m.to }, { t: now, type: 'returned', who: m.to })
-      : withEvent({ ...x, owner: m.to }, { t: now, type: 'traded', who: putBy ?? m.from, to: m.to });
+      : withEvent({ ...x, owner: m.to }, { t: now, type: 'traded', who: putBy ?? m.from, to: m.to, ...(m.note ? { note: m.note } : {}) });
   });
   await kv.hset(key.owner(c, m.to), Object.fromEntries(moved.map(x => [x.id, x])));
   await kv.hset(key.idx(c), Object.fromEntries(moved.map(x => [x.id, m.to])));
@@ -163,6 +198,13 @@ export async function syncAfterSave(c: string, before: Record<string, number[]>,
     for (const m of ctx.moves ?? []) {
       await move(c, m);
       for (const side of [m.from, m.to]) if (!isEscrow(side)) touched.add(side);
+    }
+
+    if (ctx.retire) {
+      const { owner, ids, who, note } = ctx.retire;
+      const doomed = (await readOwner(c, owner)).filter(x => ids.includes(x.id));
+      await retire(c, owner, doomed, { type: 'removed', who, ...(note ? { note } : {}) });
+      touched.add(owner);
     }
 
     if (ctx.upgrade) {

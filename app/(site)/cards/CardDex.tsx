@@ -259,6 +259,11 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
               {canStep && <button onClick={() => onStep(1)} aria-label="Next card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">›</button>}
             </div>
             {card.upgradable && <p className="text-[11px] text-gray-500">Showing: {VARIANT_LABELS[shown]}</p>}
+            <ShareImageButton
+              spec={{ title: card.name, subtitle: `${'★'.repeat(card.stars)} ${rarity?.label ?? ''} · ${oneIn(card.pullRate)} per pack`, stats: [`${card.copies.toLocaleString()} out there`, `${card.collectors} collector${card.collectors === 1 ? '' : 's'}`], cards: [{ src: art, name: card.name, hex: rarity?.hex }], footer: siteHost }}
+              filename={`cheesy-tcg-card-${card.number}.png`}
+              label="Share this card"
+            />
           </div>
 
           {/* Info */}
@@ -324,6 +329,9 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                   })}
                 </ul>
                 <p className="text-[11px] text-gray-600">A &ldquo;~&rdquo; means the copy existed before serial numbers and its order is an estimate.</p>
+                <Link href={`/cards/${card.number}/copies?season=${encodeURIComponent(seasonId)}`} className="flex items-center justify-between gap-2 rounded-xl border border-gray-800 bg-gray-950/40 px-3 py-2.5 text-sm font-bold text-gray-300 hover:text-white hover:border-yellow-500/40 transition-colors">
+                  <span><Icon name="cheese" className="mr-1.5" />Browse every copy</span><Icon name="chevronRight" className="text-gray-500" />
+                </Link>
               </div>
             )}
 
@@ -333,11 +341,6 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                   <Icon name="search" />{card.wanted ? 'On your Looking for list' : 'Add to Looking for'}
                 </button>
               )}
-              <ShareImageButton
-                spec={{ title: card.name, subtitle: `${'★'.repeat(card.stars)} ${rarity?.label ?? ''} · ${oneIn(card.pullRate)} per pack`, stats: [`${card.copies.toLocaleString()} out there`, `${card.collectors} collector${card.collectors === 1 ? '' : 's'}`], cards: [{ src: art, name: card.name, hex: rarity?.hex }], footer: siteHost }}
-                filename={`cheesy-tcg-card-${card.number}.png`}
-                label="Share this card"
-              />
             </div>
 
             {/* Top collectors */}

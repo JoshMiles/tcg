@@ -318,7 +318,7 @@ function Live({ d }: { d: DashboardData }) {
 
 const SHORTCUTS: [string, IconName, string][] = [
   ['/admin/packs/new', 'cards', 'New pack'], ['/admin/seasons/new', 'trophy', 'New season'], ['/admin/overlay', 'palette', 'Overlay editor'],
-  ['/admin/trades', 'trade', 'Trades'], ['/admin/sandbox', 'flask', 'Sandbox'], ['/admin/users', 'users', 'Users'], ['/admin/assets', 'image', 'Assets'], ['/admin/settings', 'settings', 'Settings'],
+  ['/admin/trades', 'trade', 'Trades'], ['/admin/serials', 'cheese', 'Serials'], ['/admin/sandbox', 'flask', 'Sandbox'], ['/admin/users', 'users', 'Users'], ['/admin/assets', 'image', 'Assets'], ['/admin/settings', 'settings', 'Settings'],
 ];
 function Shortcuts() {
   return (
