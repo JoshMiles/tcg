@@ -22,7 +22,7 @@ const Hi = ({ children }: { children: ReactNode }) => <strong className="text-ye
 
 /**
  * "Advanced information (for nerds)": a collapsed section for a card's detail view that shows the full working behind its
- * points: pull chance → rarity → scarcity → variant multiplier → value, plus the pull odds and what would move the number.
+ * points: pull chance → rarity → variant multiplier → value, plus the pull odds and what a low serial number adds.
  * Everything comes from `maths` (built by the same code that computes the points), so it always matches the figures above it.
  */
 export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths; variants: Variant[]; shown: Variant }) {
@@ -37,12 +37,10 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
   const wTotal = VARIANTS.reduce((s, x) => s + Math.max(0, m.weights[x]), 0) || 1;
   const variantRate = m.pullRate * (Math.max(0, m.weights[v]) / wTotal);
   const within = (packs: number, p: number) => 1 - Math.pow(1 - p, packs);
-  // What would one more / one fewer copy of this version do?
-  const k = m.scarcitySmoothing;
-  const clamp = (x: number) => Math.min(m.scarcityMax, Math.max(m.scarcityMin, x));
-  const base = m.baseScore * m.rarity * m.multiplier[v];
-  const valueAt = (copies: number) => Math.max(1, Math.round(base * clamp((m.avgCopies[v] + k) / (copies + k))));
-  const clamped = m.scarcityRaw[v] !== m.scarcity[v];
+  // What a copy's serial number adds on top: copy #1 gets the full bonus, fading in a straight line to nothing after the cutoff.
+  const bonusAt = (serial: number) => (serial >= 1 && serial <= m.serialBonusCutoff ? 1 + (m.serialBonusMax - 1) * (1 - (serial - 1) / m.serialBonusCutoff) : 1);
+  const pointsAt = (serial: number) => Math.max(1, Math.round(m.raw[v] * bonusAt(serial)));
+  const samples = [...new Set([1, 2, 5, 10, m.serialBonusCutoff, m.serialBonusCutoff + 1].filter(x => x >= 1))].sort((a, b) => a - b);
   // Regular copies needed to craft one (the cost chain)
   const craft = VARIANTS.slice(1, i + 1).reduce((c, x) => c * m.costs[x as Exclude<Variant, 'regular'>], 1);
 
@@ -65,8 +63,8 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
         )}
 
         <div className="rounded-lg bg-gray-900/70 border border-gray-800 p-3">
-          <Eq>points = max(1, round( <Hi>base</Hi> × <Hi>rarity</Hi> × <Hi>scarcity</Hi> × <Hi>version</Hi> ))</Eq>
-          <Eq>{label}: round( {n(m.baseScore, 4)} × {n(m.rarity, 4)} × {n(m.scarcity[v], 4)} × {n(m.multiplier[v], 4)} ) = round({n(m.raw[v], 3)}) = <Hi>{m.values[v].toLocaleString()} pts</Hi></Eq>
+          <Eq>points = max(1, round( <Hi>base</Hi> × <Hi>rarity</Hi> × <Hi>version</Hi> × <Hi>serial bonus</Hi> ))</Eq>
+          <Eq>{label}, no serial bonus: round( {n(m.baseScore, 4)} × {n(m.rarity, 4)} × {n(m.multiplier[v], 4)} ) = round({n(m.raw[v], 3)}) = <Hi>{m.values[v].toLocaleString()} pts</Hi></Eq>
         </div>
 
         <ol className="space-y-4">
@@ -82,13 +80,7 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
             <Note>1.0 is an average card; a card half as likely as average is worth twice as much (at strength 1).</Note>
           </Step>
 
-          <Step no={3} title={`Scarcity of ${label}`}>
-            <Eq>scarcity = clamp( (average copies of {label} per card + k) ÷ (copies of this card&rsquo;s {label} + k), {n(m.scarcityMin)}, {n(m.scarcityMax)} )</Eq>
-            <Eq>= clamp( ({n(m.avgCopies[v], 3)} + {n(k)}) ÷ ({m.copies[v].toLocaleString()} + {n(k)}) ) = clamp({n(m.scarcityRaw[v], 4)}) = <Hi>{n(m.scarcity[v], 4)}</Hi>{clamped ? ` (limited to ${n(m.scarcityMin)}–${n(m.scarcityMax)})` : ''}</Eq>
-            <Note>Each version is compared with the same version of other cards (a Shiny with other Shinies). k = {n(k)} is a smoothing term that stops early-season values from lurching. This is the only part that changes as cards are pulled, traded and upgraded.</Note>
-          </Step>
-
-          <Step no={4} title={`Version multiplier (${label})`}>
+          <Step no={3} title={`Version multiplier (${label})`}>
             {v === 'regular' || !prev ? (
               <Eq>Regular is the yardstick: multiplier = <Hi>1</Hi></Eq>
             ) : !m.upgradesEnabled ? (
@@ -104,11 +96,17 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
             )}
           </Step>
 
-          <Step no={5} title="What moves it">
-            <Eq>{label} copies out there now: {m.copies[v].toLocaleString()} → <Hi>{m.values[v]} pts</Hi></Eq>
-            {m.copies[v] > 0 && <Eq>one fewer ({(m.copies[v] - 1).toLocaleString()}) → {valueAt(m.copies[v] - 1)} pts</Eq>}
-            <Eq>one more ({(m.copies[v] + 1).toLocaleString()}) → {valueAt(m.copies[v] + 1)} pts</Eq>
-            <Note>Rarity and the version multiplier are fixed by the pack&rsquo;s setup; only the copy count moves with play. A score counts only the copies a collector owns, so a copy is worth more the fewer others there are.</Note>
+          <Step no={4} title="Serial bonus">
+            <Eq>bonus = 1 + (max − 1) × (1 − (serial − 1) ÷ cutoff), for serial 1 to cutoff; 1 after that</Eq>
+            <Eq>= 1 + ({n(m.serialBonusMax)} − 1) × (1 − (serial − 1) ÷ {m.serialBonusCutoff})</Eq>
+            {m.serialBonusCutoff > 0 && m.serialBonusMax > 1 ? (
+              <>
+                {samples.map(x => <Eq key={x}>{label} #{x}: ×{n(bonusAt(x), 3)} → <Hi>{pointsAt(x).toLocaleString()} pts</Hi></Eq>)}
+                <Note>The number is counted per card and version, from the first copy ever made, so a Shiny #1 is the first Shiny of this card. Only copies with a low number earn the bonus, and it stays with the copy when it is traded. {m.copies[v].toLocaleString()} {label} cop{m.copies[v] === 1 ? 'y exists' : 'ies exist'} now.</Note>
+              </>
+            ) : (
+              <Note>The serial bonus is switched off in the scoring settings, so every copy of a version is worth the same.</Note>
+            )}
           </Step>
         </ol>
 

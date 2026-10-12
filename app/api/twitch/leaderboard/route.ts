@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     me: mine >= 0 ? { rank: mine + 1, ...rows[mine] } : null,
     // Per-card point values, so the panel can show what each copy is worth.
     values: Object.fromEntries(
-      [...values.cards.values()].map(c => [c.number, { values: c.values, scarcity: Object.fromEntries(Object.entries(c.scarcity).map(([k, x]) => [k, Math.round(x * 100) / 100])) }])
+      [...values.cards.values()].map(c => [c.number, { values: c.values }])
     ),
   });
 }

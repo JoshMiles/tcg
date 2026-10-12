@@ -2,6 +2,9 @@ import type { Card, Pack, Season, Variant } from './types';
 import { getCollection, getPackCards, getPacksForSeason } from './kv';
 import { VARIANTS, decodeEntry, effectiveWeights, emptyCounts, encodeEntry, type VariantCounts } from './variants';
 import { DEFAULT_SCORING, getScoringSettings, type ScoringSettings } from './scoring';
+import { serialMultiplier } from './scoring-core';
+import { loadSerialIndex } from './serials';
+import type { SerialIndex } from './serials-core';
 import { currentSandboxId, kv } from './db';
 import { createTtlCache } from './ttl-cache';
 
@@ -14,7 +17,7 @@ async function getHiddenUsersSafe(): Promise<Set<string>> {
 }
 import type { CardMaths } from './card-maths';
 
-// Every tunable number (base score, scarcity range, upgrade margin, bonus sizes, ...) lives in ScoringSettings
+// Every tunable number (base score, serial bonus, upgrade margin, bonus sizes, ...) lives in ScoringSettings
 // (lib/scoring.ts), edited in Admin -> Settings -> Scoring. Functions here take them as a parameter and default to the
 // built-in defaults, so they stay pure and testable.
 
@@ -26,12 +29,7 @@ export interface CardValue {
   copies: number;
   /** The same, split by variant. */
   variantCopies: VariantCounts;
-  /**
-   * Per variant: >1 when that version of this card is scarcer than the average card's copies of that version,
-   * <1 when it's more common. A Shiny is compared with other Shinies, a Regular with other Regulars.
-   */
-  scarcity: Record<Variant, number>;
-  /** Points per copy, by variant. */
+  /** Points per copy, by variant, before any serial bonus (a copy with a low serial is worth more: see copyPoints). */
   values: Record<Variant, number>;
   /** The working behind `values`, for the card details' Advanced information panel. */
   maths: CardMaths;
@@ -41,8 +39,10 @@ export interface LeaderboardRow {
   username: string;
   /** Total: card points + completion bonus + complete-collection bonus. */
   score: number;
-  /** Value of every copy owned. */
+  /** Value of every copy owned, serial bonuses included. */
   cardPoints: number;
+  /** The part of `cardPoints` that came from low serial numbers. */
+  serialPoints: number;
   completionBonus: number;
   setBonus: number;
   /** Owns at least one of every card in the season. */
@@ -60,6 +60,8 @@ export interface SeasonValues {
   setValue: number;
   /** The scoring settings these values were computed with. */
   settings: ScoringSettings;
+  /** Who holds which serial numbers. Absent (or a viewer missing from it) = no serial bonus. */
+  serials?: SerialIndex | null;
 }
 
 export interface Bonuses {
@@ -81,6 +83,43 @@ export function collectionBonuses(values: Pick<SeasonValues, 'totalCards' | 'set
     fraction,
     complete,
   };
+}
+
+/** One copy's points: the card's value for that version, times the bonus its serial number earns (no serial = no bonus). */
+export function copyPoints(cv: CardValue, variant: Variant, serial: number | undefined, settings: ScoringSettings): number {
+  const mult = serialMultiplier(serial, settings);
+  return mult === 1 ? cv.values[variant] : Math.max(1, Math.round(cv.maths.raw[variant] * mult));
+}
+
+export interface HeldPoints {
+  /** Points of every copy, serial bonuses included. */
+  points: number;
+  /** The part of `points` that came from serial bonuses. */
+  serialPoints: number;
+  unique: Set<number>;
+  variants: VariantCounts;
+  copies: number;
+}
+
+/** What a viewer's copies are worth: each entry takes its serial numbers (lowest first) when the ledger knows them. */
+export function pointsFor(values: Pick<SeasonValues, 'cards' | 'settings' | 'serials'>, entries: number[], username?: string): HeldPoints {
+  const held = username !== undefined ? values.serials?.held.get(username) : undefined;
+  const seen = new Map<number, number>();
+  const out: HeldPoints = { points: 0, serialPoints: 0, unique: new Set(), variants: emptyCounts(), copies: 0 };
+  for (const entry of entries) {
+    const { cardNumber, variant } = decodeEntry(entry);
+    const cv = values.cards.get(cardNumber);
+    if (!cv) continue; // card since deleted from the season
+    const k = seen.get(entry) ?? 0;
+    seen.set(entry, k + 1);
+    const pts = copyPoints(cv, variant, held?.get(entry)?.[k], values.settings);
+    out.points += pts;
+    out.serialPoints += pts - cv.values[variant];
+    out.unique.add(cardNumber);
+    out.variants[variant]++;
+    out.copies++;
+  }
+  return out;
 }
 
 /**
@@ -117,24 +156,22 @@ export function variantMultipliers(
 
 /**
  * Per-card values for a season:
- *   value = SCORE_BASE × rarity × scarcity × variantMultiplier
+ *   value = SCORE_BASE × rarity × variantMultiplier
  * - rarity: how much rarer than an average card it is to roll (1 = average; from card probability and pack weight)
- * - scarcity: season-wide and **per variant** — how many copies of this exact version exist vs the average card's copies of
- *   that version; bounded 0.5×–2× so one hot week can't swamp the board. Spending copies in an upgrade therefore makes
- *   the version you spent scarcer (its remaining copies are worth more) and adds to the next version's count
  * - variantMultiplier: see variantMultipliers
+ * A copy's own points then get its serial bonus on top (copyPoints): the earliest copies ever made are worth more.
  */
 export function computeSeasonValues(
   packs: { pack: Pack; cards: Card[] }[],
   collection: Record<string, number[]>,
   settings: ScoringSettings = DEFAULT_SCORING,
+  serials: SerialIndex | null = null,
 ): SeasonValues {
   const active = packs.filter(p => p.cards.length > 0);
   const totalPackWeight = active.reduce((s, p) => s + (p.pack.weight || 1), 0);
   const totalCards = active.reduce((s, p) => s + p.cards.length, 0);
 
   const copiesByCard = new Map<number, VariantCounts>();
-  const totalByVariant = emptyCounts();
   let totalCopies = 0;
   for (const entries of Object.values(collection)) {
     for (const entry of entries) {
@@ -142,14 +179,9 @@ export function computeSeasonValues(
       const counts = copiesByCard.get(cardNumber) ?? emptyCounts();
       counts[variant]++;
       copiesByCard.set(cardNumber, counts);
-      totalByVariant[variant]++;
       totalCopies++;
     }
   }
-  // Average copies of each version per card in the season.
-  const avgByVariant = emptyCounts();
-  for (const v of VARIANTS) avgByVariant[v] = totalCards > 0 ? totalByVariant[v] / totalCards : 0;
-
   const cards = new Map<number, CardValue>();
   for (const { pack, cards: packCards } of active) {
     const totalProb = packCards.reduce((s, c) => s + c.probability, 0);
@@ -163,112 +195,95 @@ export function computeSeasonValues(
       const rarity = pullRate > 0 ? Math.pow(1 / (pullRate * totalCards), settings.rarityExponent) : 1;
       const variantCopies = copiesByCard.get(card.number) ?? emptyCounts();
       const copies = VARIANTS.reduce((s, v) => s + variantCopies[v], 0);
-      const scarcity = {} as Record<Variant, number>;
       const values = {} as Record<Variant, number>;
-      const scarcityRaw = {} as Record<Variant, number>;
       const raw = {} as Record<Variant, number>;
       for (const v of VARIANTS) {
-        // Smoothing keeps early-season values (when counts are tiny) from lurching around.
-        const k = settings.scarcitySmoothing;
-        scarcityRaw[v] = (avgByVariant[v] + k) / (variantCopies[v] + k);
-        scarcity[v] = Math.min(settings.scarcityMax, Math.max(settings.scarcityMin, scarcityRaw[v]));
-        raw[v] = settings.baseScore * rarity * scarcity[v] * mult[v];
+        raw[v] = settings.baseScore * rarity * mult[v];
         values[v] = Math.max(1, Math.round(raw[v]));
       }
       const maths: CardMaths = {
         baseScore: settings.baseScore, rarityExponent: settings.rarityExponent,
-        scarcityMin: settings.scarcityMin, scarcityMax: settings.scarcityMax, scarcitySmoothing: settings.scarcitySmoothing,
+        serialBonusMax: settings.serialBonusMax, serialBonusCutoff: settings.serialBonusCutoff,
         upgradeMargin: settings.upgradeMargin, completionBonusPct: settings.completionBonusPct, completeSetBonusPct: settings.completeSetBonusPct,
         packWeight: pack.weight || 1, totalPackWeight, cardProbability: card.probability, totalProbability: totalProb, pullRate,
         totalCards, rarityBase: pullRate > 0 ? 1 / (pullRate * totalCards) : 1, rarity,
         upgradesEnabled: !!pack.upgradesEnabled, weights: packWeights, costs: pack.upgradeCosts,
         byOdds: detail.byOdds, byCost: detail.byCost, multiplier: mult,
-        avgCopies: avgByVariant, copies: variantCopies, scarcityRaw, scarcity, raw, values,
+        copies: variantCopies, raw, values,
         setValue: 0, totalCopies,
       };
-      cards.set(card.number, { number: card.number, pullRate, copies, variantCopies, scarcity, values, maths });
+      cards.set(card.number, { number: card.number, pullRate, copies, variantCopies, values, maths });
     }
   }
   let setValue = 0;
   for (const cv of cards.values()) setValue += cv.values.regular;
   for (const cv of cards.values()) cv.maths.setValue = setValue;
-  return { cards, totalCards, totalCopies, setValue, settings };
+  return { cards, totalCards, totalCopies, setValue, settings, serials };
 }
 
 /** One viewer's total score: the value of every copy they hold, plus the collection bonuses. */
-export function scoreFor(values: SeasonValues, entries: number[]): number {
-  let score = 0;
-  const unique = new Set<number>();
-  for (const entry of entries) {
-    const { cardNumber, variant } = decodeEntry(entry);
-    const cv = values.cards.get(cardNumber);
-    if (!cv) continue; // card since deleted from the season
-    score += cv.values[variant];
-    unique.add(cardNumber);
-  }
-  const b = collectionBonuses(values, unique.size);
-  return score + b.completion + b.set;
+export function scoreFor(values: SeasonValues, entries: number[], username?: string): number {
+  const held = pointsFor(values, entries, username);
+  const b = collectionBonuses(values, held.unique.size);
+  return held.points + b.completion + b.set;
 }
 
 /**
- * What an upgrade would really do to a viewer's score: recompute every value with `cost` copies of `from` removed
- * and one `to` added (so scarcity moves too), and compare. Can be negative if scarcity shifts more than the variant gains.
+ * What an upgrade would really do to a viewer's score: `cost` copies of `from` go (the newest serials, as the ledger does) and one
+ * `to` copy arrives with the next free serial of that version. Nobody else's copies matter to a value any more, so this is just the
+ * viewer's own score before and after. Can be negative when the serial bonuses spent outweigh what the new version adds.
  */
 export function projectUpgradeGain(
-  packs: { pack: Pack; cards: Card[] }[],
-  collection: Record<string, number[]>,
+  values: SeasonValues,
+  owned: number[],
   username: string,
   cardNumber: number,
   from: Variant,
   to: Variant,
   cost: number,
-  settings: ScoringSettings = DEFAULT_SCORING,
 ): number | null {
-  const owned = collection[username];
-  if (!owned) return null;
   const fromEntry = encodeEntry(cardNumber, from);
+  const toEntry = encodeEntry(cardNumber, to);
   const after: number[] = [];
   let toRemove = cost;
-  for (const e of owned) {
-    if (e === fromEntry && toRemove > 0) toRemove--;
-    else after.push(e);
+  for (let i = owned.length - 1; i >= 0; i--) {
+    if (owned[i] === fromEntry && toRemove > 0) toRemove--;
+    else after.push(owned[i]);
   }
   if (toRemove > 0) return null; // doesn't have enough copies
-  after.push(encodeEntry(cardNumber, to));
+  after.push(toEntry);
 
-  const before = scoreFor(computeSeasonValues(packs, collection, settings), owned);
-  const next = scoreFor(computeSeasonValues(packs, { ...collection, [username]: after }, settings), after);
-  return next - before;
+  const idx = values.serials;
+  const held = idx?.held.get(username);
+  let afterValues = values;
+  if (idx && held) {
+    // The same serials after the upgrade: the `cost` highest of the spent version go, the next free one of the new version arrives.
+    const spent = held.get(fromEntry) ?? [];
+    const next = new Map(held);
+    next.set(fromEntry, spent.slice(0, Math.max(0, spent.length - cost)));
+    next.set(toEntry, [...(held.get(toEntry) ?? []), (idx.minted.get(toEntry) ?? 0) + 1].sort((a, b) => a - b));
+    afterValues = { ...values, serials: { minted: idx.minted, held: new Map(idx.held).set(username, next) } };
+  }
+  return scoreFor(afterValues, after, username) - scoreFor(values, owned, username);
 }
 
 export function buildLeaderboard(values: SeasonValues, collection: Record<string, number[]>): LeaderboardRow[] {
   const rows: LeaderboardRow[] = [];
   for (const [username, entries] of Object.entries(collection)) {
-    const variants = emptyCounts();
-    const unique = new Set<number>();
-    let score = 0;
-    let copies = 0;
-    for (const entry of entries) {
-      const { cardNumber, variant } = decodeEntry(entry);
-      const cv = values.cards.get(cardNumber);
-      if (!cv) continue; // card since deleted from the season
-      score += cv.values[variant];
-      variants[variant]++;
-      unique.add(cardNumber);
-      copies++;
-    }
-    if (copies > 0) {
-      const b = collectionBonuses(values, unique.size);
+    const held = pointsFor(values, entries, username);
+    if (held.copies > 0) {
+      const b = collectionBonuses(values, held.unique.size);
       rows.push({
         username: username.toLowerCase(),
-        score: score + b.completion + b.set,
-        cardPoints: score,
+        score: held.points + b.completion + b.set,
+        cardPoints: held.points,
+        serialPoints: held.serialPoints,
         completionBonus: b.completion,
         setBonus: b.set,
         complete: b.complete,
-        uniqueCards: unique.size,
-        copies,
-        variants,
+        uniqueCards: held.unique.size,
+        copies: held.copies,
+        variants: held.variants,
       });
     }
   }
@@ -281,14 +296,15 @@ export async function getSeasonLeaderboard(season: Season): Promise<{
   values: SeasonValues;
   packs: { pack: Pack; cards: Card[] }[];
 }> {
-  const [packList, collection, settings] = await Promise.all([
+  const [packList, collection, settings, serials] = await Promise.all([
     getPacksForSeason(season),
     getCollection(season.collectionName),
     getScoringSettings(),
+    loadSerialIndex(season.collectionName),
   ]);
   const packs = await Promise.all(packList.map(async pack => ({ pack, cards: await getPackCards(pack.id) })));
-  const values = computeSeasonValues(packs, collection, settings);
-  // Viewers an admin has hidden from public rankings are left out of the rows (their cards still count towards scarcity).
+  const values = computeSeasonValues(packs, collection, settings, serials);
+  // Viewers an admin has hidden from public rankings are left out of the rows (their cards still count in the season's copy totals).
   const hidden = await getHiddenUsersSafe();
   const rows = buildLeaderboard(values, collection).filter(r => !hidden.has(r.username));
   return { rows, values, packs };

@@ -10,7 +10,7 @@ export interface UpgradeOption {
   to: Variant;
   have: number;
   cost: number;
-  /** Projected change to the viewer's score if they did this upgrade now (recomputed with scarcity, so it can be negative). */
+  /** Projected change to the viewer's score if they did this upgrade now (the serial bonuses it spends count, so it can be negative). */
   gain: number;
 }
 
@@ -77,7 +77,7 @@ export function computeUserStats(
       if (counts[v] >= cost) {
         upgradable.push({
           card, from: v, to, have: counts[v], cost,
-          gain: projectUpgradeGain(packs, collection, username, card.number, v, to, cost, o.values.settings) ?? valueOf(card, to) - cost * valueOf(card, v),
+          gain: projectUpgradeGain(o.values, owned, username, card.number, v, to, cost) ?? valueOf(card, to) - cost * valueOf(card, v),
         });
       }
     }

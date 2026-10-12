@@ -230,7 +230,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                         </span>
                         <span
                           className={`text-xs font-bold tabular-nums shrink-0 ${u.gain >= 0 ? 'text-emerald-300' : 'text-red-300'}`}
-                          title="Projected change to your score, after scarcity moves"
+                          title="Projected change to your score, including the serial bonuses it spends"
                         >
                           {u.gain >= 0 ? '+' : '−'}{Math.abs(u.gain).toLocaleString()} pts
                         </span>
@@ -241,8 +241,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 </ul>
               )}
               <p className="text-xs text-gray-500 leading-relaxed">
-                Upgrades are permanent — the copies you spend are destroyed. That makes that version of the card scarcer, which can raise the value of the copies of it you keep, while the
-                new, higher version adds to its own count. The points shown are projected with those shifts included, so they can occasionally be negative.
+                Upgrades are permanent — the copies you spend are destroyed. The newest serial numbers are spent first, and the new copy gets the next free serial of its version. The points shown are projected with the serial bonuses included, so they can occasionally be negative.
               </p>
             </section>
           )}

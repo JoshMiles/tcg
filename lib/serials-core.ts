@@ -92,4 +92,27 @@ export const EVENT_LABELS: Record<CopyEventType, string> = {
 /** "Shiny Full Art #3" without the card name, for chips. */
 export const serialLabel = (c: { variant: Variant; n: number }, labels: Record<Variant, string>) => `${c.variant === 'regular' ? '' : `${labels[c.variant]} `}#${c.n}`;
 
+/**
+ * The serial numbers each viewer holds right now, for scoring: owner -> entry (card + version) -> serials, lowest first. Copies in an
+ * open trade offer (escrow) are left out, like they are everywhere in the score. `minted` is how many of each entry were ever made,
+ * so the next copy of it will be `minted + 1`.
+ */
+export interface SerialIndex { held: Map<string, Map<number, number[]>>; minted: Map<number, number> }
+
+/** Builds the scoring view from the ledger's id -> owner index and its minted counters. */
+export function buildSerialIndex(idx: Record<string, string>, minted: Map<number, number>): SerialIndex {
+  const held = new Map<string, Map<number, number[]>>();
+  for (const [id, owner] of Object.entries(idx)) {
+    if (isEscrow(owner)) continue;
+    const p = parseCopyId(id);
+    if (!p) continue;
+    const byEntry = held.get(owner) ?? new Map<number, number[]>();
+    const e = encodeEntry(p.card, p.variant);
+    byEntry.set(e, [...(byEntry.get(e) ?? []), p.n]);
+    held.set(owner, byEntry);
+  }
+  for (const byEntry of held.values()) for (const list of byEntry.values()) list.sort((a, b) => a - b);
+  return { held, minted };
+}
+
 export { decodeEntry };

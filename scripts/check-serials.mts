@@ -134,6 +134,13 @@ await db.runInSandbox(box.id, async () => {
   const spent = await ser.getCopy(c, made!.madeFrom![0]);
   ok(spent && spent.ev.at(-1)?.type === 'upgraded', 'a spent copy is retired as upgraded');
 
+  // The scoring view of the ledger: everyone's live serials (escrow left out) and the next free number per card + version.
+  const sidx = await ser.loadSerialIndex(c);
+  ok(sidx !== null, 'a tracked collection has a serial index');
+  const heldCount = [...sidx!.held.values()].reduce((n, m) => n + [...m.values()].reduce((k, l) => k + l.length, 0), 0);
+  ok(heldCount === (await live()) - [...Object.values((await db.kv.hgetall(`copies:${c}:idx`)) ?? {})].filter(o => String(o).startsWith('escrow:')).length, 'the index holds every live copy that is not in escrow');
+  for (const [entry, top] of sidx!.minted) for (const list of sidx!.held.values()) for (const n of list.get(entry) ?? []) ok(n >= 1 && n <= top, 'every held serial is within what was ever made');
+
   // Deleting the collection clears the ledger.
   await kvLib.deleteCollection(c);
   eq(await live(), 0, 'deleting a collection clears its ledger');
