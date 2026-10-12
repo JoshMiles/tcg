@@ -2,12 +2,15 @@
 import { Icon, type IconName } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import {
   PROPS, PROP_BY_KEY, PROP_GROUPS, REVEAL_STYLES, SECTION_ORDER, VARIANT_IDS, cleanValue, exportProps, importProps,
   type PropDef, type PropValue, type PropValues, type VariantId,
 } from '@/lib/overlay-props';
 import { DEFAULT_LAYOUT, DEFAULT_PLACEMENT, LAYOUT_PRESETS, sanitizeLayout, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { diffLayout, diffProps } from '@/lib/overlay-diff';
+import { PERF_LABEL, variantPerf, type PerfLevel } from '@/lib/overlay-perf';
+import { deleteOverlayVersionAction, refreshOverlayAction, setSeasonLookAction } from '../overlay-actions';
 
 // The Overlay Editor: one Photoshop-style workspace for where the overlay sits (Layout) and how it looks and moves. Everything is generated from the registry in
 // lib/overlay-props.ts. Layout: an options bar (scope, presets, import/export, save) over a fixed canvas (the real overlay
@@ -17,12 +20,19 @@ import { DEFAULT_LAYOUT, DEFAULT_PLACEMENT, LAYOUT_PRESETS, sanitizeLayout, type
 
 interface PackInfo { id: string; name: string }
 interface PresetInfo { id: string; name: string; props: PropValues; updatedAt: number }
+interface VersionInfo { id: string; at: number; note: string; layout: OverlayLayout; props: PropValues; packs: Record<string, PropValues> }
+interface SeasonInfo { id: string; name: string; active: boolean }
+interface CardInfo { number: number; name: string; stars: number }
+type Snap = { g: PropValues; p: Record<string, PropValues>; l: OverlayLayout };
+type Bg = 'checker' | 'dark' | 'light' | 'green' | 'image';
+const PERF_STYLE: Record<PerfLevel, string> = { light: 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10', medium: 'text-amber-300 border-amber-400/30 bg-amber-500/10', heavy: 'text-red-300 border-red-400/30 bg-red-500/10' };
 type Mode = 'pack' | 'collection';
 
 const VARIANT_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' };
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
+const snapKey = (x: Snap) => JSON.stringify([canon(x.g), Object.keys(x.p).sort().map(k => [k, canon(x.p[k])]), x.l]);
 const sectionRank = (s: string) => { const i = SECTION_ORDER.indexOf(s); return i < 0 ? 99 : i; };
 
 // Which other property switches a property's controls on or off (so the panel can grey out what has no effect).
@@ -51,7 +61,13 @@ type SidebarWindow = Window & { __tcgSidebarForce?: boolean };
 
 export function OverlayEditor({
   initialGlobal, initialPacks, packs, presets, initialLayout, initialScope, saveAction, savePresetAction, deletePresetAction,
+  versions, seasons, seasonLooks, packCards, initialAutoReload,
 }: {
+  versions: VersionInfo[];
+  seasons: SeasonInfo[];
+  seasonLooks: Record<string, string>;
+  packCards: Record<string, CardInfo[]>;
+  initialAutoReload: boolean;
   initialGlobal: PropValues;
   initialPacks: Record<string, PropValues>;
   packs: PackInfo[];
@@ -86,6 +102,25 @@ export function OverlayEditor({
   const boxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  // View tools, saved-version list, season looks, preview picker, save options.
+  const [zoom, setZoom] = useState(1);
+  const [showThirds, setShowThirds] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
+  const [showSafe, setShowSafe] = useState(false);
+  const [snapOn, setSnapOn] = useState(true);
+  const [bg, setBg] = useState<Bg>('checker');
+  const [bgImage, setBgImage] = useState<string | null>(null);
+  const [showSaved, setShowSaved] = useState(false);          // before / after: show the saved look instead of the edit
+  const [pickPack, setPickPack] = useState('');
+  const [pickCard, setPickCard] = useState(0);
+  const [versionList, setVersionList] = useState(versions);
+  const [looks, setLooks] = useState(seasonLooks);
+  const [note, setNote] = useState('');
+  const [autoReload, setAutoReload] = useState(initialAutoReload);
+  const [refreshing, startRefresh] = useTransition();
+  const [copyTargets, setCopyTargets] = useState<string[]>([]);
+  const [copyFrom, setCopyFrom] = useState('');
 
   const isPack = scope !== 'global';
   const current: PropValues = isPack ? packVals[scope] ?? {} : globalVals;
@@ -137,6 +172,48 @@ export function OverlayEditor({
     if (!isPack) setGlobalVals(next); else setPackVals(p => ({ ...p, [scope]: next }));
   };
 
+  // ── Undo / redo: every edit (a drag or a slider burst counts as one) is a step; Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y ──
+  const stateRef = useRef<Snap>({ g: globalVals, p: packVals, l: layoutVals });
+  stateRef.current = { g: globalVals, p: packVals, l: layoutVals };
+  const hist = useRef<{ list: Snap[]; i: number; timer: ReturnType<typeof setTimeout> | null; skip: boolean }>({
+    list: [{ g: initialGlobal, p: initialPacks, l: initialLayout }], i: 0, timer: null, skip: false,
+  });
+  const [, bump] = useState(0);
+  const commit = useCallback(() => {
+    const h = hist.current;
+    if (h.timer) { clearTimeout(h.timer); h.timer = null; }
+    const cur = stateRef.current;
+    if (snapKey(cur) === snapKey(h.list[h.i])) return;
+    h.list = [...h.list.slice(0, h.i + 1), cur].slice(-60);
+    h.i = h.list.length - 1;
+    bump(n => n + 1);
+  }, []);
+  useEffect(() => {
+    const h = hist.current;
+    if (h.skip) { h.skip = false; return; }
+    if (h.timer) clearTimeout(h.timer);
+    h.timer = setTimeout(commit, 500);
+  }, [globalVals, packVals, layoutVals, commit]);
+  const restoreSnap = (x: Snap) => { hist.current.skip = true; setGlobalVals(x.g); setPackVals(x.p); setLayoutVals(x.l); bump(n => n + 1); };
+  const undo = () => { commit(); const h = hist.current; if (h.i > 0) { h.i--; restoreSnap(h.list[h.i]); } };
+  const redo = () => { commit(); const h = hist.current; if (h.i < h.list.length - 1) { h.i++; restoreSnap(h.list[h.i]); } };
+  const undoRef = useRef(undo); undoRef.current = undo;
+  const redoRef = useRef(redo); redoRef.current = redo;
+  const canUndo = hist.current.i > 0 || snapKey(stateRef.current) !== snapKey(hist.current.list[hist.current.i]);
+  const canRedo = hist.current.i < hist.current.list.length - 1;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && ['text', 'search', 'number', 'url', ''].includes((t as HTMLInputElement).type)))) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undoRef.current(); }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redoRef.current(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // What the editor would save: only the scopes that changed.
   const changedGlobal = canon(globalVals) !== canon(initialGlobal);
   const changedPacks = Object.keys({ ...initialPacks, ...packVals }).filter(id => canon(packVals[id] ?? {}) !== canon(initialPacks[id] ?? {}));
@@ -148,9 +225,27 @@ export function OverlayEditor({
     packs: Object.fromEntries(changedPacks.map(id => [id, packVals[id] ?? {}])),
   });
   const revert = () => { setGlobalVals(initialGlobal); setPackVals(initialPacks); setLayoutVals(initialLayout); };
+  // Review changes: every setting that differs from what is saved.
+  const diffs = [
+    ...diffLayout(initialLayout, layout),
+    ...diffProps('Everything', initialGlobal, globalVals, k => PROP_BY_KEY[k]?.default),
+    ...changedPacks.flatMap(id => diffProps(`Pack: ${packs.find(x => x.id === id)?.name ?? id}`, initialPacks[id] ?? {}, packVals[id] ?? {}, () => '(follows global)')),
+  ];
+  useEffect(() => { if (!dirty) setShowSaved(false); }, [dirty]);
+  const shownLayout = showSaved ? initialLayout : layout;
+  const savedEffective: PropValues = isPack ? { ...initialGlobal, ...(initialPacks[scope] ?? {}) } : initialGlobal;
+  const versionDistance = (v: VersionInfo) =>
+    diffLayout(v.layout, layout).length +
+    diffProps('', v.props, globalVals, k => PROP_BY_KEY[k]?.default).length +
+    [...new Set([...Object.keys(v.packs), ...Object.keys(packVals)])].reduce((n, id) => n + diffProps('', v.packs[id] ?? {}, packVals[id] ?? {}, () => '(follows global)').length, 0);
+  const loadVersion = (v: VersionInfo) => {
+    setGlobalVals(v.props); setPackVals(v.packs); setLayoutVals(v.layout);
+    setNotice(`Loaded the version from ${new Date(v.at).toLocaleString()}. Review, then Save.`);
+  };
 
   // The values that apply at this scope, sparse: what the preview shows and what export/presets capture.
   const effectiveSparse: PropValues = useMemo(() => (isPack ? { ...globalVals, ...(packVals[scope] ?? {}) } : globalVals), [isPack, globalVals, packVals, scope]);
+  const shownProps = showSaved ? savedEffective : effectiveSparse;
 
   // ── What is listed ──
   const hiddenInScope = (d: PropDef) => isPack && d.group === 'collection'; // the collection view isn't per-pack
@@ -192,9 +287,13 @@ export function OverlayEditor({
   }, []);
 
   const previewVariant = version === 'regular' ? '' : version;
-  useEffect(() => { if (ready) post({ type: 'layout', layout }); }, [ready, loadedCount, layout, post]);
+  // Which pack / card the preview shows: the pack being edited, or the one picked in the preview bar.
+  const previewPackId = isPack ? scope : pickPack;
+  const previewCards = packCards[previewPackId || packs[0]?.id || ''] ?? [];
+  const previewCard = previewCards.some(c => c.number === pickCard) ? pickCard : 0;
+  useEffect(() => { if (ready) post({ type: 'layout', layout: shownLayout }); }, [ready, loadedCount, shownLayout, post]);
   useEffect(() => { if (ready) post({ type: 'variant', variant: previewVariant }); }, [ready, loadedCount, previewVariant, post]);
-  useEffect(() => { if (ready) post({ type: 'props', props: effectiveSparse, packId: isPack ? scope : '' }); }, [ready, loadedCount, effectiveSparse, isPack, scope, post]);
+  useEffect(() => { if (ready) post({ type: 'props', props: shownProps, packId: previewPackId, cardNumber: previewCard }); }, [ready, loadedCount, shownProps, previewPackId, previewCard, post]);
   useEffect(() => { if (ready) post({ type: 'static', mode }); }, [ready, loadedCount, mode, post]);
 
   useEffect(() => {
@@ -205,8 +304,9 @@ export function OverlayEditor({
   }, [dirty]);
 
   // Fit the whole stage into the canvas area, both ways, so the preview never needs to scroll.
-  const fit = box.w > 0 && box.h > 0 ? Math.min(box.w / layout.width, box.h / layout.height) : 0.3;
-  const frameW = layout.width * fit, frameH = layout.height * fit;
+  const fitBase = box.w > 0 && box.h > 0 ? Math.min(box.w / shownLayout.width, box.h / shownLayout.height) : 0.3;
+  const fit = fitBase * zoom;   // zoom > 1 scrolls the canvas; everything below works in this scale
+  const frameW = shownLayout.width * fit, frameH = shownLayout.height * fit;
 
   const play = () => {
     if (!ready || playing) return;
@@ -332,7 +432,15 @@ export function OverlayEditor({
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d) return;
-    setPlacement({ offsetX: Math.round(d.ox + (e.clientX - d.x) / fit), offsetY: Math.round(d.oy + (e.clientY - d.y) / fit) });
+    let nx = Math.round(d.ox + (e.clientX - d.x) / fit);
+    let ny = Math.round(d.oy + (e.clientY - d.y) / fit);
+    if (snapOn && !e.altKey) {
+      // Snap to the centre lines (within 8 screen pixels), else to a 10 px grid. Hold Alt to move freely.
+      const near = Math.max(2, Math.round(8 / fit));
+      nx = Math.abs(nx) <= near ? 0 : Math.round(nx / 10) * 10;
+      ny = Math.abs(ny) <= near ? 0 : Math.round(ny / 10) * 10;
+    }
+    setPlacement({ offsetX: nx, offsetY: ny });
   };
   const onPointerUp = () => { drag.current = null; };
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -428,6 +536,7 @@ export function OverlayEditor({
               <span className="block text-sm font-semibold text-white">{VARIANT_LABELS[v]}</span>
               <span className="block text-xs text-gray-500 truncate">{variantSummary(v)}</span>
             </span>
+            {(() => { const r = variantPerf(valueOf, v); return <span title={r.reasons.join(', ') || 'A rough guide to how hard this version works the overlay'} className={`text-[10px] font-bold rounded-full border px-1.5 shrink-0 ${PERF_STYLE[r.level]}`}>{PERF_LABEL[r.level]}</span>; })()}
             {version === v && <span className="text-[10px] uppercase tracking-wide text-yellow-400 font-bold shrink-0">Previewing</span>}
             {changed > 0 && <span className="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 rounded-full px-1.5 shrink-0">{changed}</span>}
             <span aria-hidden className="text-gray-500">›</span>
@@ -556,6 +665,59 @@ export function OverlayEditor({
               <PendingButton type="submit" disabled={!presetName.trim()} className={`${ghost} disabled:opacity-40`}>Save</PendingButton>
             </form>
             {dirty && <p className="text-xs text-yellow-500/80">Saving a preset reloads the page. Save your changes first.</p>}
+
+            {seasons.length > 0 && presets.length > 0 && (
+              <div className="border-t border-gray-800 pt-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-300">Season looks</p>
+                <p className="text-xs text-gray-500">Attach a preset to a season: while it is the active season its look is layered over the global values (a pack&apos;s own overrides still win). Applied immediately, no Save needed.</p>
+                {seasons.map(s => (
+                  <label key={s.id} className="flex items-center gap-2 text-xs text-gray-400">
+                    <span className="flex-1 truncate">{s.name}{s.active && <span className="ml-1 text-green-400">(active)</span>}</span>
+                    <select
+                      value={looks[s.id] ?? ''}
+                      onChange={async e => {
+                        const id = e.target.value || null;
+                        const r = await setSeasonLookAction(s.id, id);
+                        if (r.ok) setLooks(l => { const n = { ...l }; if (id) n[s.id] = id; else delete n[s.id]; return n; });
+                        setNotice(r.message);
+                      }}
+                      aria-label={`Look for ${s.name}`}
+                      className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-[9rem]"
+                    >
+                      <option value="">Global look</option>
+                      {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </Popover>
+
+        <Popover label="Versions" icon="history" badge={versionList.length || undefined}>
+          <div className="w-96 space-y-2 text-sm">
+            <p className="text-xs text-gray-500">Every save keeps a version (newest 20). Load one into the editor to compare, then Save to make it live.</p>
+            {versionList.length === 0 && <p className="text-xs text-gray-600">Nothing saved yet. Your first save starts the history.</p>}
+            <ul className="space-y-1 max-h-64 overflow-y-auto">
+              {versionList.map(v => {
+                const dist = versionDistance(v);
+                return (
+                  <li key={v.id} className="flex items-center gap-2 rounded-lg border border-gray-800 px-2 py-1.5">
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-gray-200 truncate">{v.note || 'Saved'}</span>
+                      <span className="block text-[11px] text-gray-500">{new Date(v.at).toLocaleString()} · {dist === 0 ? 'same as now' : `${dist} difference${dist === 1 ? '' : 's'} from your edit`}</span>
+                    </span>
+                    <button type="button" disabled={dist === 0} onClick={() => loadVersion(v)} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1 disabled:opacity-40`}>Load</button>
+                    <button
+                      type="button"
+                      aria-label="Delete version"
+                      onClick={async () => { const r = await deleteOverlayVersionAction(v.id); if (r.ok) setVersionList(l => l.filter(x => x.id !== v.id)); }}
+                      className="text-gray-600 hover:text-red-300 px-1"
+                    ><Icon name="trash" /></button>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         </Popover>
 
@@ -593,19 +755,105 @@ export function OverlayEditor({
           </div>
         </Popover>
 
+        {isPack && (
+          <Popover label="Pack tools" icon="copy">
+            <div className="w-96 space-y-4 text-sm">
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-gray-300">Copy this pack&apos;s look to other packs</p>
+                <p className="text-xs text-gray-500">Merges this pack&apos;s {Object.keys(packVals[scope] ?? {}).length} override{Object.keys(packVals[scope] ?? {}).length === 1 ? '' : 's'} into the packs you tick (their other overrides stay). Review, then Save.</p>
+                <ul className="max-h-32 overflow-y-auto space-y-1">
+                  {packs.filter(x => x.id !== scope).map(x => (
+                    <li key={x.id}><label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={copyTargets.includes(x.id)} onChange={e => setCopyTargets(t => (e.target.checked ? [...t, x.id] : t.filter(i => i !== x.id)))} className="accent-yellow-400" />{x.name}</label></li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  disabled={copyTargets.length === 0 || Object.keys(packVals[scope] ?? {}).length === 0}
+                  onClick={() => {
+                    const own = packVals[scope] ?? {};
+                    setPackVals(p => ({ ...p, ...Object.fromEntries(copyTargets.map(id => [id, { ...(p[id] ?? {}), ...own }])) }));
+                    setNotice(`Copied to ${copyTargets.length} pack${copyTargets.length === 1 ? '' : 's'}. Review, then Save.`);
+                    setCopyTargets([]);
+                  }}
+                  className={`${ghost} disabled:opacity-40`}
+                >Copy to {copyTargets.length || '…'}</button>
+              </div>
+              <div className="space-y-1.5 border-t border-gray-800 pt-3">
+                <p className="text-xs font-semibold text-gray-300">Use another pack&apos;s look here</p>
+                <div className="flex items-center gap-2">
+                  <select value={copyFrom} onChange={e => setCopyFrom(e.target.value)} aria-label="Copy overrides from" className="flex-1 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white">
+                    <option value="">Choose a pack…</option>
+                    {packs.filter(x => x.id !== scope).map(x => <option key={x.id} value={x.id}>{x.name} ({Object.keys(packVals[x.id] ?? {}).length})</option>)}
+                  </select>
+                  <button type="button" disabled={!copyFrom} onClick={() => { replaceCurrent({ ...(packVals[copyFrom] ?? {}) }); setNotice('Replaced this pack’s overrides. Review, then Save.'); setCopyFrom(''); }} className={`${ghost} disabled:opacity-40`}>Replace</button>
+                </div>
+              </div>
+              <div className="space-y-1.5 border-t border-gray-800 pt-3">
+                <p className="text-xs font-semibold text-gray-300">Differences from global</p>
+                {Object.keys(packVals[scope] ?? {}).length === 0 ? <p className="text-xs text-gray-600">This pack follows the global look exactly.</p> : (
+                  <ul className="max-h-40 overflow-y-auto space-y-0.5">
+                    {diffProps('', globalVals, { ...globalVals, ...(packVals[scope] ?? {}) }, k => PROP_BY_KEY[k]?.default).map((d, i) => (
+                      <li key={i} className="text-xs text-gray-400"><span className="text-gray-300">{d.label}</span> <span className="text-gray-600">{d.from} → </span><span className="text-yellow-300">{d.to}</span></li>
+                    ))}
+                  </ul>
+                )}
+                <button type="button" disabled={Object.keys(packVals[scope] ?? {}).length === 0} onClick={() => { replaceCurrent({}); setNotice('Cleared this pack’s overrides. Review, then Save.'); }} className={`${btn} text-gray-400 hover:text-red-300 px-0 disabled:opacity-40`}>Clear all overrides</button>
+              </div>
+            </div>
+          </Popover>
+        )}
+
+        <div className="flex items-center gap-1" role="group" aria-label="History">
+          <button type="button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Undo" className="p-2 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500 disabled:opacity-35"><Icon name="undo" /></button>
+          <button type="button" onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Shift+Z)" aria-label="Redo" className="p-2 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500 disabled:opacity-35"><Icon name="redo" /></button>
+        </div>
+
         <span role="status" className="flex-1 min-w-0 truncate text-xs text-green-300 px-2">{notice}</span>
 
         <span className="text-xs text-gray-500 hidden md:inline">
           {dirty
             ? <span className="text-yellow-500">Unsaved: {[changedLayout && 'layout', changedGlobal && 'look', ...changedPacks.map(id => packs.find(p => p.id === id)?.name ?? id)].filter(Boolean).join(', ')}</span>
-            : 'Saved. Refresh the OBS source to apply.'}
+            : 'Saved.'}
         </span>
+        <button
+          type="button"
+          disabled={refreshing}
+          onClick={() => startRefresh(async () => { const r = await refreshOverlayAction(); setNotice(r.message); })}
+          title="Ask every open overlay (OBS) to reload the saved look"
+          className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 disabled:opacity-50"
+        ><Icon name="refresh" className={`mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />Refresh overlay</button>
+
+        <Popover label={`Review${diffs.length ? ` (${diffs.length})` : ''}`} icon="list" align="right" disabled={!dirty}>
+          <div className="w-[26rem] max-w-[85vw] space-y-2 text-sm">
+            <p className="text-xs text-gray-500">Everything that differs from what is saved. Nothing goes live until you Save.</p>
+            <ul className="max-h-80 overflow-y-auto divide-y divide-gray-800/70">
+              {diffs.map((d, i) => (
+                <li key={i} className="py-1.5 text-xs">
+                  <span className="text-[10px] uppercase tracking-wide text-gray-600">{d.scope}</span>
+                  <span className="block text-gray-200">{d.label}</span>
+                  <span className="text-gray-500">{d.from}</span> <span className="text-gray-600">→</span> <span className="text-yellow-300">{d.to}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Popover>
+
         <form action={saveAction} className="flex items-center gap-2">
           <input type="hidden" name="payload" value={payload} />
           <input type="hidden" name="scope" value={scope} />
+          <input type="hidden" name="note" value={note} />
+          <input type="hidden" name="autoReload" value={autoReload ? 'on' : ''} />
           <button type="button" disabled={!dirty} onClick={revert} className={`${btn} text-gray-400 hover:text-white disabled:opacity-40`}>Revert</button>
           <PendingButton type="submit" disabled={!dirty} className={`${btn} bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}>Save</PendingButton>
         </form>
+        <Popover label="Save options" icon="settings" align="right">
+          <div className="w-72 space-y-3 text-sm">
+            <label className="block text-xs text-gray-400 space-y-1">Version note (optional)
+              <input value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="e.g. Brighter shiny glow" className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none" />
+            </label>
+            <label className="flex items-start gap-2 text-xs text-gray-300"><input type="checkbox" checked={autoReload} onChange={e => setAutoReload(e.target.checked)} className="mt-0.5 accent-yellow-400" /><span>Refresh open overlays after saving. They reload once nothing is animating, so a pack opening is never cut short.</span></label>
+          </div>
+        </Popover>
       </div>
 
       <div className="flex-1 min-h-0 grid gap-3 xl:grid-cols-[minmax(0,1fr)_26rem]">
@@ -613,18 +861,21 @@ export function OverlayEditor({
         <div className="min-h-0 min-w-0 flex flex-col gap-2">
           <div
             ref={boxRef}
-            className="relative flex-1 min-h-[16rem] h-[55vh] xl:h-auto rounded-xl border border-gray-800 bg-gray-950/70 overflow-hidden flex items-center justify-center"
+            className="relative flex-1 min-h-[16rem] h-[55vh] xl:h-auto rounded-xl border border-gray-800 bg-gray-950/70 overflow-auto flex"
           >
             <div
-              className="relative overflow-hidden rounded-md border border-gray-700 shrink-0 outline-none focus-visible:border-yellow-500"
+              className="relative overflow-hidden rounded-md border border-gray-700 shrink-0 m-auto outline-none focus-visible:border-yellow-500"
               tabIndex={dragging ? 0 : -1}
               onKeyDown={onKeyDown}
               style={{
                 width: frameW,
                 height: frameH,
-                backgroundColor: '#1a1d23',
-                backgroundImage: 'conic-gradient(#262a32 25%, transparent 0 50%, #262a32 0 75%, transparent 0)',
-                backgroundSize: '24px 24px',
+                ...(bg === 'image' && bgImage
+                  ? { backgroundColor: '#000', backgroundImage: `url(${bgImage})`, backgroundSize: '100% 100%' }
+                  : bg === 'dark' ? { backgroundColor: '#07080b' }
+                  : bg === 'light' ? { backgroundColor: '#e5e7eb' }
+                  : bg === 'green' ? { backgroundColor: '#00b140' }
+                  : { backgroundColor: '#1a1d23', backgroundImage: 'conic-gradient(#262a32 25%, transparent 0 50%, #262a32 0 75%, transparent 0)', backgroundSize: '24px 24px' }),
               }}
             >
               <iframe
@@ -633,8 +884,8 @@ export function OverlayEditor({
                 title="Overlay preview"
                 onLoad={() => { setReady(true); setLoadedCount(c => c + 1); }}
                 style={{
-                  width: layout.width,
-                  height: layout.height,
+                  width: shownLayout.width,
+                  height: shownLayout.height,
                   border: 0,
                   background: 'transparent',
                   colorScheme: 'light',
@@ -642,6 +893,23 @@ export function OverlayEditor({
                   transformOrigin: 'top left',
                 }}
               />
+              {/* Guides (never part of the overlay, only drawn over the preview) */}
+              {showGrid && <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, rgba(255,255,255,.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,.10) 1px, transparent 1px)', backgroundSize: '10% 10%' }} />}
+              {showThirds && (
+                <>
+                  <div aria-hidden className="absolute inset-y-0 left-1/3 w-px bg-sky-400/40 pointer-events-none" />
+                  <div aria-hidden className="absolute inset-y-0 left-2/3 w-px bg-sky-400/40 pointer-events-none" />
+                  <div aria-hidden className="absolute inset-x-0 top-1/3 h-px bg-sky-400/40 pointer-events-none" />
+                  <div aria-hidden className="absolute inset-x-0 top-2/3 h-px bg-sky-400/40 pointer-events-none" />
+                </>
+              )}
+              {showSafe && (
+                <>
+                  <div aria-hidden className="absolute inset-[5%] border border-dashed border-amber-300/50 pointer-events-none"><span className="absolute -top-0 left-1 text-[9px] text-amber-300/70">action safe</span></div>
+                  <div aria-hidden className="absolute inset-[10%] border border-dashed border-rose-300/50 pointer-events-none"><span className="absolute -top-0 left-1 text-[9px] text-rose-300/70">title safe</span></div>
+                </>
+              )}
+              {showSaved && <span className="absolute top-2 left-2 rounded-md bg-gray-950/85 border border-yellow-500/50 px-2 py-0.5 text-[11px] font-bold text-yellow-300 pointer-events-none">Showing the saved look</span>}
               {dragging && (
                 <>
                   {/* Centre guides: the middle of the browser source */}
@@ -680,7 +948,74 @@ export function OverlayEditor({
                 options={VARIANT_IDS.map(v => ({ id: v, label: VARIANT_LABELS[v] }))}
               />
             )}
-            <span className="hidden lg:inline text-xs text-gray-500">Click anything in the preview to edit it.</span>
+            {mode === 'pack' && (
+              <div className="flex items-center gap-1.5">
+                {!isPack && packs.length > 1 && (
+                  <select value={pickPack} onChange={e => { setPickPack(e.target.value); setPickCard(0); }} aria-label="Preview pack" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-[9rem]">
+                    <option value="">First pack</option>
+                    {packs.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  </select>
+                )}
+                {previewCards.length > 0 && (
+                  <select value={previewCard} onChange={e => setPickCard(Number(e.target.value))} aria-label="Preview card" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-[10rem]">
+                    <option value={0}>Rarest card</option>
+                    {previewCards.map(c => <option key={c.number} value={c.number}>#{c.number} {c.name}</option>)}
+                  </select>
+                )}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowSaved(v => !v)}
+              disabled={!dirty}
+              aria-pressed={showSaved}
+              title="Flip the preview between your edit and what is saved"
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold border disabled:opacity-35 ${showSaved ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}
+            ><Icon name="eye" className="mr-1" />Before / after</button>
+            <Popover label="Guides" icon="grid" up>
+              <div className="w-64 space-y-3 text-sm">
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={showThirds} onChange={e => setShowThirds(e.target.checked)} className="accent-yellow-400" />Rule of thirds</label>
+                  <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} className="accent-yellow-400" />10% grid</label>
+                  <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={showSafe} onChange={e => setShowSafe(e.target.checked)} className="accent-yellow-400" />Safe areas (5% and 10%)</label>
+                  <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={snapOn} onChange={e => setSnapOn(e.target.checked)} className="accent-yellow-400" />Snap to centre / 10 px when dragging <span className="text-gray-600">(Alt = free)</span></label>
+                </div>
+                <label className="block text-xs text-gray-400 space-y-1">Zoom
+                  <select value={zoom} onChange={e => setZoom(Number(e.target.value))} className="block w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white">
+                    <option value={1}>Fit to the space</option><option value={1.5}>150%</option><option value={2}>200%</option><option value={3}>300%</option>
+                  </select>
+                </label>
+                <div className="space-y-1.5">
+                  <p className="text-xs text-gray-400">Background</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(['checker', 'dark', 'light', 'green'] as Bg[]).map(b => (
+                      <button key={b} type="button" aria-pressed={bg === b} onClick={() => setBg(b)} className={`px-2 py-1 rounded-md text-xs font-semibold border ${bg === b ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}>{b === 'checker' ? 'Checker' : b[0].toUpperCase() + b.slice(1)}</button>
+                    ))}
+                    {bgImage && <button type="button" aria-pressed={bg === 'image'} onClick={() => setBg('image')} className={`px-2 py-1 rounded-md text-xs font-semibold border ${bg === 'image' ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}>Screenshot</button>}
+                  </div>
+                  <label className={`${ghost} cursor-pointer inline-block text-xs`}>
+                    Use a stream screenshot…
+                    <input type="file" accept="image/*" className="sr-only" onChange={e => {
+                      const f = e.target.files?.[0];
+                      e.target.value = '';
+                      if (!f) return;
+                      if (bgImage) URL.revokeObjectURL(bgImage);
+                      setBgImage(URL.createObjectURL(f));
+                      setBg('image');
+                    }} />
+                  </label>
+                  <p className="text-[11px] text-gray-600">Only shown in this editor, never saved or uploaded.</p>
+                </div>
+              </div>
+            </Popover>
+            {(() => {
+              const worst = VARIANT_IDS.map(v => ({ v, r: variantPerf(valueOf, v) })).sort((a, b) => b.r.score - a.r.score)[0];
+              return (
+                <span title={`${VARIANT_LABELS[worst.v]} is the heaviest version${worst.r.reasons.length ? ': ' + worst.r.reasons.join(', ') : ''}. A rough guide to how hard the overlay works in OBS.`} className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${PERF_STYLE[worst.r.level]}`}>
+                  Load: {PERF_LABEL[worst.r.level]}
+                </span>
+              );
+            })()}
             <button
               type="button"
               onClick={play}
@@ -747,6 +1082,15 @@ export function OverlayEditor({
                   <p className="text-xs text-gray-400 leading-snug rounded-md bg-yellow-500/10 border border-yellow-500/20 px-2 py-1.5">
                     Editing the <strong className="text-yellow-300">{VARIANT_LABELS[version]}</strong> card. The preview shows it.
                   </p>
+                  {(() => {
+                    const r = variantPerf(valueOf, version);
+                    if (r.level === 'light' && r.reasons.length === 0) return null;
+                    return (
+                      <p className={`text-xs leading-snug rounded-md border px-2 py-1.5 ${PERF_STYLE[r.level]}`}>
+                        <strong>{PERF_LABEL[r.level]} on OBS.</strong>{r.reasons.length > 0 ? ` ${r.reasons.join('; ')}. Consider turning these down if the overlay stutters.` : ' A fair amount of motion; fine for most setups.'}
+                      </p>
+                    );
+                  })()}
                   <label className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                     Copy the look of
                     <select
@@ -815,7 +1159,7 @@ export function OverlayEditor({
 // ── Small building blocks ─────────────────────────────────
 
 /** A button that opens a floating panel; closes on an outside click or Escape. */
-function Popover({ label, badge, children }: { label: string; badge?: number; children: React.ReactNode }) {
+function Popover({ label, badge, children, align = 'left', up = false, icon, disabled = false }: { label: string; badge?: number; children: React.ReactNode; align?: 'left' | 'right'; up?: boolean; icon?: IconName; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -831,13 +1175,14 @@ function Popover({ label, badge, children }: { label: string; badge?: number; ch
       <button
         type="button"
         aria-expanded={open}
+        disabled={disabled}
         onClick={() => setOpen(o => !o)}
-        className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${open ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-200 hover:border-gray-500'}`}
+        className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-40 ${open ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-200 hover:border-gray-500'}`}
       >
-        {label}{badge ? <span className="ml-1.5 text-xs text-gray-500">{badge}</span> : null} <span aria-hidden className="text-[10px] text-gray-500">▾</span>
+        {icon && <Icon name={icon} className="mr-1.5" />}{label}{badge ? <span className="ml-1.5 text-xs text-gray-500">{badge}</span> : null} <span aria-hidden className="text-[10px] text-gray-500">▾</span>
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-40 rounded-xl border border-gray-700 bg-gray-900 shadow-2xl p-3">
+        <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} ${up ? 'bottom-full mb-2' : 'top-full mt-2'} z-40 rounded-xl border border-gray-700 bg-gray-900 shadow-2xl p-3`}>
           {children}
         </div>
       )}

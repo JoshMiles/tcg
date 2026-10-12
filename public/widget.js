@@ -108,6 +108,7 @@ applyLayout();
 // the real animation on request. Messages from the editor: layout, static (which view to show), pack, collection.
 let previewMode = 'pack';
 let previewPackId = '';
+let previewCardNumber = 0;
 
 function clearStatic() {
   document.querySelectorAll('.static-preview').forEach(el => el.remove());
@@ -136,7 +137,7 @@ function showStatic(mode) {
   if (previewMode === 'pack') {
     // The settled moment of a pack opening: the revealed card, its label and the collection strip beneath it.
     const variant = PREVIEW_VARIANT || 'regular';
-    const card = [...chosen.cards].sort((x, y) => y.stars - x.stars)[0] || ALL_CARDS[0];
+    const card = chosen.cards.find(c => c.number === previewCardNumber) || [...chosen.cards].sort((x, y) => y.stars - x.stars)[0] || ALL_CARDS[0];
     wrapper.classList.add('is-pack', 'pack-fit');
     cardBox.style.animation = 'none';
     cardBox.style.opacity = '1';
@@ -192,6 +193,7 @@ if (PREVIEW) {
     else if (e.data.type === 'props') {
       PREVIEW_PROPS = e.data.props && typeof e.data.props === 'object' ? e.data.props : null;
       previewPackId = typeof e.data.packId === 'string' ? e.data.packId : '';
+      previewCardNumber = Number.isInteger(e.data.cardNumber) ? e.data.cardNumber : 0;
       if (activeDraws === 0) showStatic();
     }
     else if (e.data.type === 'variant') {
@@ -199,7 +201,7 @@ if (PREVIEW) {
       if (activeDraws === 0) showStatic();
     }
     else if (e.data.type === 'static') { if (activeDraws === 0) showStatic(e.data.mode); else previewMode = e.data.mode === 'collection' ? 'collection' : 'pack'; }
-    else if (e.data.type === 'pack') { clearStatic(); queueDraw('preview', { dry: true, packId: previewPackId || undefined, variant: PREVIEW_VARIANT || undefined }); }
+    else if (e.data.type === 'pack') { clearStatic(); queueDraw('preview', { dry: true, packId: previewPackId || undefined, cardNumber: previewCardNumber || undefined, variant: PREVIEW_VARIANT || undefined }); }
     else if (e.data.type === 'collection') { clearStatic(); queueCollection('preview', { dry: true }); }
   });
 }
@@ -1207,7 +1209,16 @@ async function sendHeartbeat() {
       obs: !!window.obsstudio || /OBS\//i.test(navigator.userAgent),
       dev: new URLSearchParams(window.location.search).has('dev'),
     }),
-  }).catch(() => {}); // never let a failed ping affect the overlay
+  }).then(r => (r.ok ? r.json() : null)).then(j => checkReload(j && j.reload)).catch(() => {}); // never let a failed ping affect the overlay
+}
+
+// The admin can ask every open overlay to refresh (Overlay Editor). The first heartbeat records the current token; a later
+// change reloads the page, but only while nothing is animating or queued, so a pack opening is never cut short.
+let reloadBaseline;
+function checkReload(token) {
+  if (typeof token !== 'number') return;
+  if (reloadBaseline === undefined) { reloadBaseline = token; return; }
+  if (token !== reloadBaseline && activeDraws === 0 && cardQueue.length === 0) window.location.reload();
 }
 
 function startHeartbeat() {

@@ -1,0 +1,51 @@
+import { PROP_BY_KEY, type PropDef, type PropValue, type PropValues } from './overlay-props';
+import type { OverlayLayout } from './overlay-layout';
+
+// Client-safe "what changed" helpers for the Overlay Editor: the Review changes list, and how far a saved version is from the current edit.
+
+export interface DiffLine { scope: string; label: string; from: string; to: string }
+
+const VARIANT_NAME: Record<string, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' };
+
+export function formatValue(def: PropDef | undefined, v: PropValue | undefined): string {
+  if (v === undefined) return '—';
+  if (typeof v === 'boolean') return v ? 'on' : 'off';
+  if (Array.isArray(v)) return v.join(', ');
+  if (typeof v === 'number') return `${v}${def && 'unit' in def && def.unit ? ` ${def.unit}` : ''}`;
+  if (def?.type === 'select' && 'options' in def && Array.isArray(def.options)) {
+    const o = def.options.find(x => x.value === v);
+    if (o) return o.label;
+  }
+  return String(v) === '' ? '(empty)' : String(v);
+}
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/** Differences between two sparse value sets. `missing` says what an absent key means (the default, or "inherits global"). */
+export function diffProps(scope: string, before: PropValues, after: PropValues, missing: (key: string) => PropValue | string | undefined): DiffLine[] {
+  const out: DiffLine[] = [];
+  for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
+    const def = PROP_BY_KEY[key];
+    if (!def) continue;
+    const b = before[key] ?? missing(key);
+    const a = after[key] ?? missing(key);
+    if (same(a, b)) continue;
+    const fmt = (x: PropValue | string | undefined) => (typeof x === 'string' && x.startsWith('(') ? x : formatValue(def, x as PropValue | undefined));
+    out.push({ scope, label: `${def.variant ? VARIANT_NAME[def.variant] + ' › ' : ''}${def.label}`, from: fmt(b), to: fmt(a) });
+  }
+  return out;
+}
+
+export function diffLayout(before: OverlayLayout, after: OverlayLayout): DiffLine[] {
+  const out: DiffLine[] = [];
+  const add = (label: string, a: unknown, b: unknown) => { if (!same(a, b)) out.push({ scope: 'Layout', label, from: String(a), to: String(b) }); };
+  add('Browser source width', before.width, after.width);
+  add('Browser source height', before.height, after.height);
+  for (const view of ['pack', 'collection'] as const) {
+    const name = view === 'pack' ? 'Pack opening' : 'Collection';
+    add(`${name} size`, `${Math.round(before[view].scale * 100)}%`, `${Math.round(after[view].scale * 100)}%`);
+    add(`${name} offset X`, before[view].offsetX, after[view].offsetX);
+    add(`${name} offset Y`, before[view].offsetY, after[view].offsetY);
+  }
+  return out;
+}

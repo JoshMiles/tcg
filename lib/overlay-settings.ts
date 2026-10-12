@@ -15,6 +15,8 @@ export interface OverlaySettings {
   layout: OverlayLayout;
   /** Look & animation properties, sparse: only values that differ from the defaults (see lib/overlay-props.ts). */
   props: PropValues;
+  /** After saving in the Overlay Editor, connected overlays reload themselves (when idle). */
+  autoReload: boolean;
 }
 
 export async function getOverlaySettings(): Promise<OverlaySettings> {
@@ -24,6 +26,7 @@ export async function getOverlaySettings(): Promise<OverlaySettings> {
     liveCollectionsOnly: !!stored?.liveCollectionsOnly,
     layout: sanitizeLayout(stored?.layout),
     props: sanitizePropValues(stored?.props),
+    autoReload: !!stored?.autoReload,
   };
 }
 
@@ -97,4 +100,40 @@ export async function liveGate(kind: 'pull' | 'collection'): Promise<string | nu
   } catch {
     return null;
   }
+}
+
+// ── Live refresh ──────────────────────────────────────────
+
+const RELOAD_KEY = 'overlay:reload';
+
+/** A token the overlay compares on every heartbeat; when it changes the overlay reloads itself (once it is idle). */
+export async function getReloadToken(): Promise<number> {
+  return Number(await kv.get(RELOAD_KEY).catch(() => 0)) || 0;
+}
+
+export async function bumpReloadToken(): Promise<void> {
+  await kv.set(RELOAD_KEY, Date.now());
+}
+
+// ── Seasonal looks: a preset layered over the global values while a season is active ──
+
+const SEASON_LOOK_KEY = 'overlay:seasonlooks';   // { [seasonId]: presetId }
+
+export async function getSeasonLooks(): Promise<Record<string, string>> {
+  const raw = await kv.get<Record<string, unknown>>(SEASON_LOOK_KEY).catch(() => null);
+  return Object.fromEntries(Object.entries(raw ?? {}).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
+}
+
+export async function setSeasonLook(seasonId: string, presetId: string | null): Promise<void> {
+  const all = await getSeasonLooks();
+  if (presetId) all[seasonId] = presetId; else delete all[seasonId];
+  await kv.set(SEASON_LOOK_KEY, all);
+}
+
+/** The preset applied for a season (by id), if it still exists. */
+export async function getSeasonLookPreset(seasonId: string | null | undefined): Promise<OverlayPreset | null> {
+  if (!seasonId) return null;
+  const id = (await getSeasonLooks())[seasonId];
+  if (!id) return null;
+  return (await listPresets()).find(p => p.id === id) ?? null;
 }
