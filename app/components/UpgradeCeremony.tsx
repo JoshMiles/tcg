@@ -1,10 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { AnimatedArt } from '@/app/components/AnimatedArt';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANT_LABELS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
+
+/** How many of the spiralling ingredient cards play the card's animation (the rest stay still: ten animated copies is wasted work at that size). */
+const ANIMATED_INGREDIENTS = 5;
 
 export interface CeremonyCard {
   name: string;
@@ -69,7 +73,7 @@ export function UpgradeCeremony({
         <div className="ug-ring" aria-hidden />
         {Array.from({ length: n }).map((_, i) => (
           <div key={i} className={`ug-ingredient ${fromFx}`} aria-hidden style={{ ['--a' as string]: `${(360 / n) * i}deg`, ['--d' as string]: `${i * 70}ms`, ['--art-mask' as string]: fromMask, ...holoVars(holo?.[from]) }}>
-            <img src={fromThumb} alt="" />
+            {i < ANIMATED_INGREDIENTS ? <AnimatedArt url={fromArtUrl} alt="" /> : <img src={fromThumb} alt="" />}
           </div>
         ))}
         <div className="ug-flash" aria-hidden />

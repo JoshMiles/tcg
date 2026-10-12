@@ -515,6 +515,14 @@ function playUpgradeCeremony(card, from, to, cost) {
     const img = document.createElement('img');
     img.src = fromArt.thumbUrl; img.alt = '';
     ing.appendChild(img);
+    // The first few spent copies play the card's animation too (it fades in over the still once loaded).
+    if (i < 5 && fromArt.thumbUrl !== fromArt.imageUrl && !reducedMotion) {
+      const anim = document.createElement('img');
+      anim.className = 'art-anim'; anim.alt = ''; anim.setAttribute('aria-hidden', 'true');
+      anim.addEventListener('load', () => anim.classList.add('art-anim-on'));
+      anim.src = fromArt.imageUrl;
+      ing.appendChild(anim);
+    }
   }
   add('ug-flash');
   const frame = add('ug-card');
