@@ -2,13 +2,21 @@ import { Icon, RankMedal } from '@/app/components/Icon';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, listSeasons } from '@/lib/kv';
-import { getSeasonLeaderboard } from '@/lib/leaderboard';
+import { getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { getSnapshot } from '@/lib/season-wrap';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { Avatar } from '@/app/components/Avatar';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: Promise<{ seasonId: string }> }): Promise<Metadata> {
+  const { seasonId } = await params;
+  const season = await getSeason(seasonId).catch(() => null);
+  if (!season || season.status === 'draft') return { title: 'Leaderboard' };
+  return { title: `${season.name} leaderboard`, description: `Who is collecting the most in ${season.name} on The Cheesy TCG.` };
+}
 
 const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny: 'SH' };
 
@@ -17,7 +25,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
   const [season, seasons] = await Promise.all([getSeason(seasonId), listSeasons()]);
   if (!season || season.status === 'draft') notFound();
 
-  const [{ rows, values }, snapshot] = await Promise.all([getSeasonLeaderboard(season), season.endedAt ? getSnapshot(season.id) : Promise.resolve(null)]);
+  const [{ rows, values }, snapshot] = await Promise.all([getSeasonLeaderboardCached(season), season.endedAt ? getSnapshot(season.id) : Promise.resolve(null)]);
   const top = rows.slice(0, values.settings.leaderboardSize);
   const avatars = await getAvatars(top.map(r => r.username));
 

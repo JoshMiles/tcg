@@ -1,6 +1,6 @@
 import type { Card, Pack, Season, Variant } from './types';
 import { getActive, listSeasons } from './site-seasons';
-import { getSeasonLeaderboard, type CardValue, type LeaderboardRow, type SeasonValues } from './leaderboard';
+import { getSeasonLeaderboard, getSeasonLeaderboardCached, type CardValue, type LeaderboardRow, type SeasonValues } from './leaderboard';
 import { getActivity, type ActivityEvent } from './activity';
 import { getHiddenUsers } from './user-admin';
 import { RARITIES } from './rarity';
@@ -30,7 +30,7 @@ export interface SeasonOverview {
 
 /** One season's cards (with their pack) and leaderboard — the shared input for home, stats and card dex. */
 export async function getSeasonOverview(season: Season): Promise<SeasonOverview> {
-  const { rows, values, packs } = await getSeasonLeaderboard(season);
+  const { rows, values, packs } = await getSeasonLeaderboardCached(season);
   const cards = packs.flatMap(({ pack, cards }) => cards.map(c => ({ ...c, packName: pack.name, pack })));
   return { season, rows, values, cards };
 }

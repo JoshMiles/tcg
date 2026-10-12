@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { notFound } from 'next/navigation';
@@ -19,6 +20,18 @@ import { Avatar } from '@/app/components/Avatar';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params;
+  const lower = decodeURIComponent(username).toLowerCase();
+  const profile = await getUserProfile(lower).catch(() => null);
+  const name = profile?.displayName || lower;
+  return {
+    title: `${name}'s collection`,
+    description: `${name}'s cards, rank and awards on The Cheesy TCG.`,
+    // The share image (opengraph-image.tsx next to this file) carries their rank and progress.
+  };
+}
 
 export default async function CollectionPage({
   params,

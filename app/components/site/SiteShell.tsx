@@ -21,9 +21,10 @@ export async function SiteShell({ children }: { children: ReactNode }) {
   return (
     <LiveProvider initial={live}>
     <div className="min-h-screen flex flex-col">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[90] focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       <SandboxPill />
       <SiteNav user={user} loginEnabled={loginConfigured()} />
-      <main className="flex-1">{children}</main>
+      <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>
       <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">
         <div className="max-w-6xl mx-auto px-4 py-8 grid gap-6 sm:grid-cols-[1fr_auto] items-start">
           <div className="space-y-2">

@@ -2,7 +2,7 @@ import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-export const metadata: Metadata = { title: 'Login problem' };
+export const metadata: Metadata = { title: 'Login problem', robots: { index: false, follow: false } };
 
 const MESSAGES: Record<string, { title: string; text: string }> = {
   denied: { title: 'Login cancelled', text: 'You chose not to share your Twitch profile, so we haven’t logged you in. You can still browse collections and the leaderboard.' },

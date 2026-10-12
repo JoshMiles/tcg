@@ -2,7 +2,8 @@ import type { Card, Pack, Season, Variant } from './types';
 import { getCollection, getPackCards, getPacksForSeason } from './kv';
 import { VARIANTS, decodeEntry, effectiveWeights, emptyCounts, encodeEntry, type VariantCounts } from './variants';
 import { DEFAULT_SCORING, getScoringSettings, type ScoringSettings } from './scoring';
-import { kv } from './db';
+import { currentSandboxId, kv } from './db';
+import { createTtlCache } from './ttl-cache';
 
 /** The set of hidden viewers (KV `users:hidden`, kept by lib/user-admin.ts); read here directly to avoid a circular import. */
 async function getHiddenUsersSafe(): Promise<Set<string>> {
@@ -288,4 +289,17 @@ export async function getSeasonLeaderboard(season: Season): Promise<{
   const hidden = await getHiddenUsersSafe();
   const rows = buildLeaderboard(values, collection).filter(r => !hidden.has(r.username));
   return { rows, values, packs };
+}
+
+type Board = Awaited<ReturnType<typeof getSeasonLeaderboard>>;
+const boardCache = createTtlCache<Board>(20_000);
+
+/**
+ * The same board, shared for ~20 seconds between everyone looking at the PUBLIC pages (home, leaderboard, stats, card dex), so a
+ * burst of visitors costs one computation. Never use it where a viewer has just changed their own cards (their collection, My Stats,
+ * upgrades, trades) or in the admin: those call getSeasonLeaderboard directly. The result is shared: treat it as read-only.
+ */
+export async function getSeasonLeaderboardCached(season: Season): Promise<Board> {
+  const box = await currentSandboxId().catch(() => null);
+  return boardCache.get(`${box ?? 'prod'}:${season.id}:${season.collectionName}`, () => getSeasonLeaderboard(season));
 }

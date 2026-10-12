@@ -3,7 +3,7 @@ import { LegalPage, Section, List } from '@/app/components/LegalPage';
 import { APP_NAME, CONTACT_EMAIL, GOVERNING_LAW, OPERATOR } from '@/lib/legal';
 import { CHANNEL_NAME } from '@/lib/site';
 
-export const metadata: Metadata = { title: `Terms of Use (EULA) · ${APP_NAME}` };
+export const metadata: Metadata = { title: 'Terms of Use (EULA)', description: 'The rules for using The Cheesy TCG and its Twitch extension.' };
 
 export default function TermsPage() {
   return (

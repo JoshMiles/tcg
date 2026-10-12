@@ -1,8 +1,10 @@
 import { Icon } from '@/app/components/Icon';
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getActiveSeason, listSeasons } from '@/lib/kv';
 
 export const dynamic = 'force-dynamic';
+export const metadata: Metadata = { title: 'Leaderboard', description: 'The top collectors this season, and how points are worked out.' };
 
 // /leaderboard → the active season's board (or the newest season if none is active).
 export default async function LeaderboardIndex() {

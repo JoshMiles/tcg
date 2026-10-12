@@ -13,7 +13,7 @@ import type { Variant } from '@/lib/types';
 import type { TradeItem } from '@/lib/trade-core';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'New trade offer' };
+export const metadata: Metadata = { title: 'New trade offer', robots: { index: false, follow: false } };
 
 export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ to?: string; counter?: string; season?: string; want?: string }> }) {
   const { to, counter, season: seasonParam, want } = await searchParams;
