@@ -1,7 +1,7 @@
 import { put } from '@vercel/blob';
 import { getPack, getPackCards, savePack, savePackCards } from './kv';
 import { storeOptimizedCard } from './card-upload';
-import { toThumb } from './card-image';
+import { toCover, toThumb } from './card-image';
 import { cardThumbUrl, isBlobUrl } from './card-art';
 import { HEAVY_BYTES, deleteUnusedBlobs, formatOf, type AssetKey } from './assets';
 
@@ -9,7 +9,7 @@ import { HEAVY_BYTES, deleteUnusedBlobs, formatOf, type AssetKey } from './asset
 // re-reads the current URL from the database and decides what is wrong for itself, so a stale or crafted request
 // can't point it at an arbitrary file.
 
-export interface FixResult { ok: boolean; message: string; newUrl?: string }
+export interface FixResult { ok: boolean; message: string; newUrl?: string; /** Bytes before / after, when a file was re-encoded. */ before?: number; after?: number }
 
 interface Ref { url: string | undefined; set(url: string): Promise<void> }
 
@@ -98,6 +98,39 @@ export async function fixAsset(key: AssetKey, origin: string): Promise<FixResult
     }
   }
   return fail('Nothing to fix.');
+}
+
+/** A cover must come out at least this much smaller to be worth replacing (re-encoding a WebP again just loses quality). */
+const COVER_MIN_SAVING = 0.1;
+
+/**
+ * Shrinks a pack cover: re-encodes it as a WebP at the standard width (see COVER_WIDTH) and points the pack at it. Works for covers
+ * in Blob and for bundled /assets files (the optimised copy goes to Blob). Leaves the cover alone when it is already small, so it
+ * is safe to run on everything. The old file is removed only if nothing else points at it.
+ */
+export async function optimizeCover(key: AssetKey, origin: string): Promise<FixResult> {
+  if (key.kind !== 'pack-cover') return fail('Only pack covers can be optimised here.');
+  const ref = await resolveRef(key);
+  if (!ref?.url) return fail('This pack has no cover.');
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.VERCEL_BLOB_RW_TOKEN) return fail('Blob storage is not connected here, so optimised files cannot be saved.');
+  const url = ref.url;
+  if (!isBlobUrl(url) && !url.startsWith('/')) return fail('This cover is hosted elsewhere, so it cannot be optimised.');
+
+  let res: Response;
+  try { res = await fetch(absolute(url, origin)); } catch { return fail('Could not reach the file.'); }
+  if (!res.ok) return fail('The file is missing. Replace it instead.');
+  const buf = Buffer.from(await res.arrayBuffer());
+
+  let out: Buffer;
+  try { out = await toCover(buf); } catch { return fail('Could not process the image. Is it a valid file?'); }
+  if (out.length > buf.length * (1 - COVER_MIN_SAVING)) {
+    return { ok: true, message: `Already small (${fmt(buf.length)}); left as it is.`, before: buf.length, after: buf.length };
+  }
+  const saved = await put(`covers/${crypto.randomUUID()}.webp`, out, { access: 'public', addRandomSuffix: false, contentType: 'image/webp', cacheControlMaxAge: 31536000 });
+  await ref.set(saved.url);
+  await deleteUnusedBlobs([url]);
+  const pct = Math.round((1 - out.length / buf.length) * 100);
+  return { ok: true, newUrl: saved.url, before: buf.length, after: out.length, message: `Optimised: ${fmt(buf.length)} → ${fmt(out.length)} (${pct}% smaller).` };
 }
 
 function fmt(b: number) { return b < 1048576 ? `${Math.round(b / 1024)} KB` : `${(b / 1048576).toFixed(1)} MB`; }

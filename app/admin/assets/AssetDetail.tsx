@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { cardThumbUrl, isBlobUrl } from '@/lib/card-art';
 import type { LibraryAsset } from '@/lib/assets';
+import { SoundOptimiser } from './SoundOptimiser';
+import type { OptNote } from './useOptimise';
 import { ISSUE_TEXT, IssueChips, KIND_LABEL, assetTitle, filename, formatBytes, isFixable, originHref, originLabel } from './asset-ui';
 
 const CHECKER = 'bg-[conic-gradient(#0b1020_25%,#111a30_0_50%,#0b1020_0_75%,#111a30_0)] bg-[length:16px_16px]';
@@ -26,10 +28,12 @@ export function DropZone({ kind, busy, onFile, compact }: { kind: LibraryAsset['
   );
 }
 
-export function AssetDetail({ asset, index, total, onClose, onStep, onCopy, copied, onFix, fixing, fixNote, onReplace, replacing, replaceError }: {
+export function AssetDetail({ asset, index, total, onClose, onStep, onCopy, copied, onFix, fixing, fixNote, onReplace, replacing, replaceError, onOptimiseCover, optimising, optNote }: {
   asset: LibraryAsset; index: number; total: number; onClose: () => void; onStep: (d: -1 | 1) => void;
   onCopy: () => void; copied: boolean; onFix: () => void; fixing: boolean; fixNote?: { ok: boolean; message: string } | null;
   onReplace: (f: File) => void; replacing: boolean; replaceError: string | null;
+  /** Shrink this pack cover on the server. */
+  onOptimiseCover: () => void; optimising: boolean; optNote?: OptNote | null;
 }) {
   const [dims, setDims] = useState<string | null>(null);
   useEffect(() => setDims(null), [asset.url]);
@@ -107,6 +111,21 @@ export function AssetDetail({ asset, index, total, onClose, onStep, onCopy, copi
                 </button>
               )}
               {fixNote && <p className={`text-sm ${fixNote.ok ? 'text-green-300' : 'text-red-300'}`}>{fixNote.message}</p>}
+            </div>
+          )}
+
+          {/* Optimise */}
+          {!broken && asset.kind === 'sound' && <SoundOptimiser asset={asset} onUse={onReplace} replacing={replacing} />}
+          {!broken && asset.kind === 'pack-cover' && (
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Optimise</p>
+              <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-3 space-y-2">
+                <p className="text-sm text-gray-300">Re-encodes the cover as a WebP at the size the overlay needs (640 px wide). Covers that are already small are left alone.</p>
+                <button type="button" onClick={onOptimiseCover} disabled={optimising} className="px-3 py-1.5 text-sm font-semibold rounded-lg border border-gray-600 text-gray-200 hover:border-yellow-500/60 disabled:opacity-50">
+                  <Icon name="zap" className="mr-1.5" />{optimising ? 'Optimising…' : 'Optimise cover'}
+                </button>
+                {optNote && <p className={`text-sm ${optNote.ok ? 'text-green-300' : 'text-red-300'}`}>{optNote.message}</p>}
+              </div>
             </div>
           )}
 

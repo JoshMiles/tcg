@@ -2,7 +2,7 @@
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
-import { fixAsset, replaceAsset, type FixResult } from '@/lib/asset-fix';
+import { fixAsset, optimizeCover, replaceAsset, type FixResult } from '@/lib/asset-fix';
 import type { AssetKey } from '@/lib/assets';
 
 // Server actions behind /admin/assets. Each re-checks the admin cookie (a server action can be invoked outside its page)
@@ -28,6 +28,17 @@ export async function fixAssetAction(key: AssetKey): Promise<FixResult> {
   if (!k) return { ok: false, message: 'Unknown file.' };
   const result = await fixAsset(k, await origin());
   revalidatePath('/admin/assets');
+  return result;
+}
+
+/** Shrinks one pack cover (the page calls this once per cover). Safe to run on a cover that is already small. */
+export async function optimizeCoverAction(key: AssetKey): Promise<FixResult> {
+  await requireAdmin();
+  const k = cleanKey(key);
+  if (!k) return { ok: false, message: 'Unknown file.' };
+  const result = await optimizeCover(k, await origin());
+  revalidatePath('/admin/assets');
+  revalidatePath(`/admin/packs/${k.packId}`);
   return result;
 }
 
