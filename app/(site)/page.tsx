@@ -1,4 +1,5 @@
 import { Icon, RankMedal } from '@/app/components/Icon';
+import { UserInput } from '@/app/components/UserInput';
 import { PendingButton } from '../admin/components/PendingButton';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -84,13 +85,13 @@ export default async function HomePage() {
 
             {!session && (
             <form action={goToCollection} className="flex gap-2 max-w-md">
-                <input
+                <UserInput
                   name="username"
                   type="text"
                   placeholder="Find a Twitch username…"
-                  autoComplete="off"
                   aria-label="Twitch username"
-                  className="flex-1 min-w-0 bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 text-sm"
+                  wrapperClassName="relative flex-1 min-w-0"
+                  className="w-full bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 text-sm"
                 />
                 <PendingButton type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">Go →</PendingButton>
               </form>

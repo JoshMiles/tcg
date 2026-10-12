@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { UserInput } from '@/app/components/UserInput';
 import { redirect } from 'next/navigation';
 import { SiteMessage } from './SiteMessage';
 
@@ -21,7 +22,7 @@ export function NotFoundBody({ title = "That page isn't here", note }: { title?:
     >
       <p>{note ?? 'The link may be old, or the page may have moved. Looking for someone\'s cards?'}</p>
       <form action={find} className="mt-4 flex gap-2 max-w-sm mx-auto">
-        <input name="username" placeholder="Find a Twitch username…" autoComplete="off" aria-label="Twitch username" className="flex-1 bg-gray-950 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
+        <UserInput name="username" placeholder="Find a Twitch username…" aria-label="Twitch username" wrapperClassName="relative flex-1" className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
         <button type="submit" className="tcg-btn px-4 py-2.5 text-sm rounded-xl shrink-0">Go</button>
       </form>
     </SiteMessage>

@@ -1,5 +1,6 @@
 'use client';
 import { useActionState, useState, useTransition } from 'react';
+import { UserInput } from '@/app/components/UserInput';
 import { Icon } from '@/app/components/Icon';
 import type { ActionResult } from '../action-types';
 import { quickAction } from '../actions';
@@ -51,7 +52,7 @@ export function OverlayTest() {
       {force && <input type="hidden" name="force" value="on" />}
       <div className="flex flex-wrap items-end gap-2">
         <label className="text-xs text-gray-500 space-y-1">Viewer to show
-          <input name="username" required placeholder="a viewer's username" className="block w-56 bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
+          <UserInput name="username" required placeholder="a viewer's username" wrapperClassName="relative block" className="block w-56 bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
         </label>
         <PendingButton pendingLabel="Sending…" disabled={pending} className="px-4 py-2 text-sm font-bold rounded-xl border border-gray-700 text-gray-100 hover:border-gray-500">
           <Icon name="send" className="mr-1.5" />Send a test to the overlay
