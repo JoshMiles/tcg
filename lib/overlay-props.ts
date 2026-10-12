@@ -197,6 +197,9 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.showInfoBar', group: 'pack', label: 'Name and stars bar', type: 'boolean', default: true, help: 'The card name and star rating at the bottom of the card.' },
   { key: 'reveal.showGotLine', group: 'pack', label: '"… got:" line', type: 'boolean', default: true },
   { key: 'reveal.gotText', group: 'pack', label: '"… got:" wording', type: 'text', default: '{user} got:', maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
+  { key: 'show.style', group: 'pack', label: 'Show-off animation', type: 'select', default: 'drop', options: REVEAL_STYLES.filter(s => ['simple', 'slide', 'flip', 'drop', 'spin', 'impact', 'deal'].includes(s.value)).map(s => ({ value: s.value, label: s.label })), help: 'How a card appears when a viewer shows one off from chat. Shown cards come from the viewer\'s collection, so there is no pack to open.' },
+  { key: 'show.hold', group: 'pack', label: 'Show-off time on screen', type: 'number', default: 6, min: 2, max: 30, step: 0.5, unit: 's', help: 'How long a shown-off card stays up after it has appeared.' },
+  { key: 'show.text', group: 'pack', label: 'Show-off wording', type: 'text', default: '{user} is showing off:', maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
   { key: 'reveal.stripPerRow', group: 'pack', label: 'Cards per row', type: 'number', default: 0, min: 0, max: 30, step: 1, help: '0 = fit as many as the width allows (the original). Otherwise each row holds exactly this many.' },
   { key: 'reveal.stripCardWidth', group: 'pack', label: 'Card size', type: 'number', default: 48, min: 24, max: 200, step: 2, unit: 'px', help: 'Width of each small card (the height follows).' },
   { key: 'reveal.stripGap', group: 'pack', label: 'Gap between cards', type: 'number', default: 13, min: 0, max: 60, step: 1, unit: 'px' },
@@ -259,6 +262,7 @@ function sectionFor(key: string): string {
     [/^reveal.(showLabel|labelSize|labelOwned|showSerial)$/, 'Label'],
     [/^reveal.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
     [/^reveal.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],
+    [/^show\./, 'Show a card (chat command)'],
     [/^reveal.(showMiniList|showUncollectedStrip|stripShowCounts|stripShowMarkers)$/, 'Cards under the card'],
     [/^reveal.(stripPerRow|stripCardWidth|stripGap|stripSort)$/, 'Strip layout'],
     [/^reveal.strip/, 'Strip card look'],
@@ -273,7 +277,7 @@ function sectionFor(key: string): string {
 /** The order sections appear in within a category (anything unlisted follows). */
 export const SECTION_ORDER = [
   'Animation', 'Card', 'Label', 'Name and stars bar', '"got:" line',
-  'Reveal animation', 'Holographic shimmer', 'Glow', 'Pop-in', '3D tilt', 'Rocking', 'Light burst', 'Sparkles', 'Time and sound',
+  'Show a card (chat command)', 'Reveal animation', 'Holographic shimmer', 'Glow', 'Pop-in', '3D tilt', 'Rocking', 'Light burst', 'Sparkles', 'Time and sound',
   'Cards under the card', 'Strip layout', 'Strip card look',
   'Layout', 'What to show', 'Timing', 'Card look',
 ];

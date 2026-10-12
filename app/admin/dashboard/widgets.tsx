@@ -168,7 +168,7 @@ function describe(e: ActivityEvent, d: DashboardData): { icon: IconName; text: s
     }
     case 'reset': return { icon: 'refresh', text: e.scope === 'everyone' ? 'All collections reset' : `${e.username}'s collection reset` };
     case 'delete': return { icon: 'x', text: `${e.username} deleted` };
-    case 'trigger': return { icon: 'zap', text: e.kind === 'pull' ? `Pack draw requested for ${e.username}` : `Collection view requested for ${e.username}` };
+    case 'trigger': return { icon: 'zap', text: e.kind === 'pull' ? `Pack draw requested for ${e.username}` : e.kind === 'card' ? `${e.username} showed off ${e.cardName ?? 'a card'}` : `Collection view requested for ${e.username}` };
     default: return { icon: 'book', text: `${e.username}'s collection shown` };
   }
 }

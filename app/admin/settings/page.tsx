@@ -121,7 +121,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <LiveGates packsOnly={overlay.livePacksOnly} collectionsOnly={overlay.liveCollectionsOnly} />
             </Panel>
             <Panel title="Bot / channel points" icon="chat" hint="Call these from your Twitch bot, or from the Browser Source's Custom JavaScript field in OBS.">
-              <CopyBlock label="Custom JavaScript" code={`// Draw a card for a viewer\nqueueDraw('username');\n\n// Show a viewer's collection\nqueueCollection('username');`} />
+              <CopyBlock label="Custom JavaScript" code={`// Draw a card for a viewer\nqueueDraw('username');\n\n// Show a viewer's collection\nqueueCollection('username');\n\n// Show off a card (skips the ownership check, so use it for testing only)\nqueueShowCard('username', { cardNumber: 5, variant: 'shiny', serial: 3 });`} />
+              <p className="text-xs text-gray-500 leading-relaxed pt-2">
+                <strong className="text-gray-300">Show off a card from chat.</strong> Point a chat command (e.g. <code className="text-gray-300">!show shiny gouda</code>) at{' '}
+                <code className="text-gray-300">POST /api/webhooks/show-card</code> with the JSON body <code className="text-gray-300">{'{ "secret": "…", "username": "viewer", "card": "shiny gouda" }'}</code>{' '}
+                (same secret as the other incoming webhooks). The server checks the viewer owns the card; <code className="text-gray-300">card</code> can be a name, a number, with a version word first (shiny, full art, reverse holo), or empty for their most valuable card.
+                The reply has a <code className="text-gray-300">message</code> your bot can say in chat. Each viewer can show off once every 15 seconds.
+              </p>
             </Panel>
           </div>
         </div>

@@ -44,7 +44,7 @@ export function plainText(e: ActivityEvent, cardName: CardNamer): string {
     }
     case 'reset': return e.scope === 'everyone' ? 'All collections reset' : `${e.username}'s collection reset${e.scope === 'all' ? ' (all seasons)' : ''}`;
     case 'delete': return `${e.username} deleted`;
-    case 'trigger': return e.source === 'admin' && e.kind === 'pull' ? `${(e.count ?? 1) > 1 ? `${e.count} packs` : 'A pack'} gifted to ${e.username}` : `${e.username} triggered a ${e.kind === 'pull' ? 'pack draw' : 'collection view'} (${e.source ?? 'webhook'})`;
+    case 'trigger': return e.source === 'admin' && e.kind === 'pull' ? `${(e.count ?? 1) > 1 ? `${e.count} packs` : 'A pack'} gifted to ${e.username}` : e.kind === 'card' ? `${e.username} showed off ${e.cardName ?? 'a card'}` : `${e.username} triggered a ${e.kind === 'pull' ? 'pack draw' : 'collection view'} (${e.source ?? 'webhook'})`;
     default: return `${e.username}'s collection shown on stream`;
   }
 }
