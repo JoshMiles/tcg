@@ -64,6 +64,11 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
             ))}
           </p>
         )}
+        {season.tradingFrozen && (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-sm text-amber-200">
+            Trading is closed for {season.name}. Open offers can still be cancelled to get your cards back.
+          </p>
+        )}
         {!settings.enabled && (
           <p className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-sm text-amber-200">
             Trading is paused right now. You can still cancel your own offers to get your cards back, but nothing can be accepted until it is switched back on.

@@ -38,6 +38,9 @@ export default async function NewSeasonPage({ searchParams }: { searchParams: Pr
             collectionName: season.collectionName,
             maxConcurrentPacks: season.maxConcurrentPacks,
             packIds: season.packIds,
+            startsAt: season.startsAt,
+            endsAt: season.endsAt,
+            autoStart: season.autoStart,
           },
         }}
       />

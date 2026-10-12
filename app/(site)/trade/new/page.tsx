@@ -32,6 +32,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
     </div>
   );
   if (!season) return wrap(<p className="rind rounded-2xl p-8 text-center text-gray-400">No season is running, so there is nothing to trade yet.</p>);
+  if (season.tradingFrozen) return wrap(<p className="rind rounded-2xl p-8 text-center text-amber-200">Trading is closed for {season.name}.</p>);
   if (!settings.enabled) return wrap(<p className="rind rounded-2xl p-8 text-center text-amber-200">Trading is paused right now. Check back soon.</p>);
   if (counter && (!original || original.status !== 'open' || original.kind !== 'direct' || original.to !== session.username)) {
     return wrap(<p className="rind rounded-2xl p-8 text-center text-gray-400">That offer is no longer open, so it can&rsquo;t be countered.</p>);
