@@ -8,6 +8,7 @@ import { AssetBrowser, type AssetTab } from './AssetBrowser';
 import { formatBytes } from './asset-ui';
 import { Tile, PageHeader } from '../components/ui';
 
+export const metadata = { title: 'Assets · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // the Fix action re-encodes a GIF per request (up to ~15s)
 

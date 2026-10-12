@@ -87,11 +87,12 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer }: { rows: B
                   <Link href={profileHref(r.username)} className="flex items-center gap-3 min-w-0 flex-1 group">
                     <Avatar src={avatars[r.username]} name={r.username} className="w-9 h-9 text-sm shrink-0" />
                     <span className="min-w-0">
-                      <span className="block font-semibold text-white truncate group-hover:text-yellow-200">
-                        {r.username}{mine && <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wider text-yellow-300">you</span>}
-                        {r.complete && <span className="ml-2 align-middle text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5" title="Owns every card in the season"><Icon name="cheese" className="mr-1" />Complete</span>}
+                      <span className="flex items-center gap-1.5 font-semibold text-white group-hover:text-yellow-200">
+                        <span className="truncate">{r.username}</span>
+                        {mine && <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-yellow-300">you</span>}
+                        {r.complete && <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5" title="Owns every card in the season"><Icon name="cheese" className="sm:mr-1" /><span className="hidden sm:inline">Complete</span><span className="sr-only sm:hidden">Complete</span></span>}
                       </span>
-                      <span className="block text-xs text-gray-500 truncate">
+                      <span className="block text-xs text-gray-500 sm:truncate">
                         {r.uniqueCards}/{totalCards} cards · {r.copies} cop{r.copies === 1 ? 'y' : 'ies'}
                         {(['reverse', 'full', 'shiny'] as const).filter(v => r.variants[v] > 0).map(v => <span key={v} className="ml-2 text-fuchsia-300" title={LABEL[v]}>{r.variants[v]}× {SHORT[v]}</span>)}
                       </span>

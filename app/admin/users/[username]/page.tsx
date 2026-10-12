@@ -24,6 +24,7 @@ import { PageTabs, pickTab } from '../../components/PageTabs';
 import { GrantPanel, ModerationPanel, TagsEditor, ToolsPanel, TradesPanel, type TradeLine } from './UserPanels';
 import { Panel, Tile } from '../../components/ui';
 
+export const metadata = { title: 'User · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 type SeasonEntry = {

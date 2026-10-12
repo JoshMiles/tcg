@@ -8,27 +8,28 @@ import { hasExperiment, type UserSettings } from './user-settings';
 import { countPulls } from './collection';
 import { RARITIES } from './rarity';
 import { serialMultiplier } from './scoring-core';
-import { VARIANTS, allowedVariants, countVariants, decodeEntry, effectiveWeights, emptyCounts, upgradeStep } from './variants';
+import { VARIANTS, allowedVariants, countVariants, decodeEntry, effectiveWeights, encodeEntry, emptyCounts, upgradeStep } from './variants';
 import { getHoloResolver } from './holo';
 import type { GridCard } from '@/app/u/[username]/CollectionGrid';
 import type { Card, Pack, Season, UserProfile, Variant } from './types';
 import type { VariantCounts } from './variants';
 import type { Copy } from './serials-core';
 import type { ShareSpec } from './share-image';
-import type { LeaderboardRow } from './leaderboard';
+import { copyPoints, type CardValue, type LeaderboardRow } from './leaderboard';
+import type { ScoringSettings } from './scoring-core';
 
 // Everything a profile page needs about one viewer in the active season, loaded once and shared by the tabs.
 
 export interface ShowcaseCard { number: number; name: string; imageUrl: string; fullArtImageUrl?: string; stars: number; variant: Variant; points: number }
 
-/** The viewer's `n` most valuable single copies, one per card. */
-export function topCopies(allCards: { number: number; name: string; imageUrl: string; fullArtImageUrl?: string; stars: number }[], variantMap: Map<number, VariantCounts>, values: Map<number, { values: Record<Variant, number> }>, n: number): ShowcaseCard[] {
+/** The viewer's `n` most valuable single copies, one per card (a copy with a low serial number is worth its serial bonus too). */
+export function topCopies(allCards: { number: number; name: string; imageUrl: string; fullArtImageUrl?: string; stars: number }[], variantMap: Map<number, VariantCounts>, values: Map<number, CardValue>, n: number, serial?: { held?: Map<number, number[]>; settings: ScoringSettings }): ShowcaseCard[] {
   const out: ShowcaseCard[] = [];
   for (const c of allCards) {
     const counts = variantMap.get(c.number);
     if (!counts) continue;
     let best: { variant: Variant; points: number } | null = null;
-    for (const v of VARIANTS) if (counts[v] > 0) { const pts = values.get(c.number)?.values[v] ?? 0; if (!best || pts > best.points) best = { variant: v, points: pts }; }
+    for (const v of VARIANTS) if (counts[v] > 0) { const cv = values.get(c.number); const pts = !cv ? 0 : serial ? copyPoints(cv, v, serial.held?.get(encodeEntry(c.number, v))?.[0], serial.settings) : cv.values[v]; if (!best || pts > best.points) best = { variant: v, points: pts }; }
     if (best) out.push({ number: c.number, name: c.name, imageUrl: c.imageUrl, fullArtImageUrl: c.fullArtImageUrl, stars: c.stars, ...best });
   }
   return out.sort((a, b) => b.points - a.points || a.number - b.number).slice(0, n);
@@ -36,7 +37,7 @@ export function topCopies(allCards: { number: number; name: string; imageUrl: st
 
 /** The "Share image" of a collector: their best cards with serials, rank and progress. */
 export function buildShareSpec(b: ProfileBase, copies: Copy[], siteHost: string): ShareSpec {
-  const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, 6);
+  const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, 6, { held: b.board.values.serials?.held.get(b.lower), settings: b.board.values.settings });
   const art = (c: ShowcaseCard) => ((c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
   return {
     title: b.displayName,

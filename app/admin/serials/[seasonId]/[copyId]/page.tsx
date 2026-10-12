@@ -13,6 +13,7 @@ import { PendingButton } from '../../../components/PendingButton';
 import { Chip, PageHeader, Panel } from '../../../components/ui';
 import { removeCopyAction, transferCopyAction } from '../../../serial-actions';
 
+export const metadata = { title: 'Serial copy · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const when = (t: number) => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });

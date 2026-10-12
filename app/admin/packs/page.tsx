@@ -16,6 +16,7 @@ import { StatusChip, DraftChip } from '../components/StatusChip';
 import { PackToolbar } from './PackToolbar';
 import { PageHeader, EmptyState } from '../components/ui';
 
+export const metadata = { title: 'Packs · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 type Status = 'live' | 'inactive' | 'draft' | 'archived';

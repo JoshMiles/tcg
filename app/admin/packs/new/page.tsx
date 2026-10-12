@@ -3,6 +3,7 @@ import { getPack, getPackCards } from '@/lib/kv';
 import { PackFlow } from './PackFlow';
 import type { PackInput } from '../../draft-actions';
 
+export const metadata = { title: 'New pack · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function NewPackPage({ searchParams }: { searchParams: Promise<{ draft?: string }> }) {

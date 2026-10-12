@@ -12,6 +12,7 @@ import { ConfirmButton } from '../components/ConfirmButton';
 import { UsersList, type UserRow } from './UsersList';
 import { Tile, EmptyState } from '../components/ui';
 
+export const metadata = { title: 'Users · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function UsersPage() {

@@ -299,9 +299,9 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                       className={`${card.upgradable ? 'cursor-pointer hover:bg-white/[0.03]' : ''} ${v === shown && card.upgradable ? 'bg-white/[0.04]' : ''}`}
                     >
                       <td className="py-2 px-3 text-gray-200">{VARIANT_LABELS[v]}</td>
-                      {card.upgradable && <td className="py-2 px-2 text-right tabular-nums text-gray-500 hidden sm:table-cell">{oneIn(card.variantOdds[v])}</td>}
-                      <td className="py-2 px-2 text-right tabular-nums text-gray-400">{card.variantCopies[v].toLocaleString()}</td>
-                      <td className="py-2 px-3 text-right tabular-nums font-semibold text-yellow-300">{card.values[VARIANTS.indexOf(v)].toLocaleString()} pts</td>
+                      {card.upgradable && <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-gray-500 hidden sm:table-cell">{oneIn(card.variantOdds[v])}</td>}
+                      <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-gray-400">{card.variantCopies[v].toLocaleString()}</td>
+                      <td className="py-2 px-3 text-right tabular-nums whitespace-nowrap font-semibold text-yellow-300">{card.values[VARIANTS.indexOf(v)].toLocaleString()} pts</td>
                     </tr>
                   ))}
                 </tbody>
@@ -391,9 +391,9 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
 function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3">
-      <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
-      <p className="font-display text-2xl font-bold text-white tabular-nums">{value}</p>
+    <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-2.5 sm:p-3 min-w-0">
+      <p className="text-[10px] sm:text-[11px] uppercase tracking-wide sm:tracking-wider text-gray-500 font-bold truncate">{label}</p>
+      <p className="font-display text-xl sm:text-2xl font-bold text-white tabular-nums whitespace-nowrap">{value}</p>
       <p className="text-[11px] text-gray-500">{sub}</p>
     </div>
   );

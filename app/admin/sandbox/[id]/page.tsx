@@ -22,6 +22,7 @@ import {
 } from '../actions';
 import { Tile, fieldClass } from '../../components/ui';
 
+export const metadata = { title: 'Sandbox · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const field = fieldClass;

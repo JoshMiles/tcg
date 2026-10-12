@@ -12,6 +12,7 @@ import { StatusChip, DraftChip } from '../components/StatusChip';
 import { seasonTiming } from './season-timing';
 import { PageHeader, EmptyState } from '../components/ui';
 
+export const metadata = { title: 'Seasons · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function SeasonsPage() {

@@ -20,6 +20,7 @@ import { SITE_URL } from '@/lib/site';
 import { Chip, Panel, Tile, PageHeader } from '../components/ui';
 import { SerialsPanel } from './SerialsPanel';
 
+export const metadata = { title: 'Settings · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const TABS: (PageTab & { hint: string })[] = [

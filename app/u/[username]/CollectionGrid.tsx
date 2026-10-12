@@ -362,9 +362,9 @@ function CardDetail({
                       >
                         <td className="py-2 px-3 text-gray-200">{VARIANT_LABELS[v]}</td>
                         <td className="py-2 px-2 text-right tabular-nums text-gray-300">{n > 0 ? `×${n}` : '—'}</td>
-                        {card.upgradable && <td className="py-2 px-2 text-right tabular-nums text-gray-500 hidden sm:table-cell">{oneIn(card.variantOdds[v])}</td>}
-                        <td className="py-2 px-2 text-right tabular-nums text-gray-500 hidden sm:table-cell">{card.variantCopies[v].toLocaleString()}</td>
-                        <td className="py-2 px-3 text-right tabular-nums font-semibold text-yellow-300">{card.values[v].toLocaleString()} pts</td>
+                        {card.upgradable && <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-gray-500 hidden sm:table-cell">{oneIn(card.variantOdds[v])}</td>}
+                        <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-gray-500 hidden sm:table-cell">{card.variantCopies[v].toLocaleString()}</td>
+                        <td className="py-2 px-3 text-right tabular-nums whitespace-nowrap font-semibold text-yellow-300">{card.values[v].toLocaleString()} pts</td>
                         {showUpgrades && (
                           <td className="py-2 px-3 text-right">
                             {card.steps[v] && n > 0 ? (

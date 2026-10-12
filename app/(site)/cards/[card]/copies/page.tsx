@@ -58,7 +58,7 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
     if (!name) return null;
     if (isEscrow(name)) return <span className="text-gray-400">in a trade offer</span>;
     if (hidden.has(name)) return <span className="text-gray-400">a private collector</span>;
-    return <Link href={profileHref(name)} className="text-yellow-300 hover:text-yellow-200 font-bold">@{name}</Link>;
+    return <Link href={profileHref(name)} className="relative z-10 text-yellow-300 hover:text-yellow-200 font-bold">@{name}</Link>;
   };
   const art = (variant === 'full' || variant === 'shiny') && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl;
   const rarity = getRarity(card.stars);
@@ -95,15 +95,16 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
               const ended = last?.type === 'upgraded' ? 'spent in an upgrade' : last?.type === 'removed' ? 'removed from the game' : 'no longer exists';
               const pulledBy = r.origin === 'pull' ? r.ev[0]?.who : undefined;
               return (
-                <li key={r.id}>
-                  <Link href={`/copy/${encodeURIComponent(season.id)}/${r.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-white/[0.04]">
-                    <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums w-16">#{r.n}{r.est ? '~' : ''}</span>
-                    <span className="flex-1 min-w-[10rem] text-sm text-gray-200">{r.owner ? who(r.owner) : <span className="text-gray-500">{ended}</span>}</span>
-                    <span className="text-xs text-gray-500">
+                <li key={r.id} className="relative flex items-center gap-4 px-4 py-3 hover:bg-white/[0.04]">
+                  {/* The number is the row's link (stretched over the whole row); the holder is its own link above it, so no link sits inside another. */}
+                  <Link href={`/copy/${encodeURIComponent(season.id)}/${r.id}`} aria-label={`Copy #${r.n}`} className="font-display text-2xl font-bold text-yellow-400 tabular-nums w-16 shrink-0 after:absolute after:inset-0">#{r.n}{r.est ? '~' : ''}</Link>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-200 truncate">{r.owner ? who(r.owner) : <span className="text-gray-500">{ended}</span>}</p>
+                    <p className="text-xs text-gray-500">
                       {ORIGIN_LABELS[r.origin]}{pulledBy && pulledBy !== r.owner ? <> · pulled by {hidden.has(pulledBy) ? 'a private collector' : `@${pulledBy}`}</> : null} · {new Date(r.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </span>
-                    <Icon name="chevronRight" className="text-gray-600" />
-                  </Link>
+                    </p>
+                  </div>
+                  <Icon name="chevronRight" className="text-gray-600 shrink-0" />
                 </li>
               );
             })}

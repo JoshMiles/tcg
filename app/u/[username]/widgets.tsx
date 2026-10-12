@@ -92,7 +92,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
     }
 
     case 'showcase': {
-      const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, 3);
+      const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, 3, { held: b.board.values.serials?.held.get(b.lower), settings: b.board.values.settings });
       if (top.length === 0) return none('Your three most valuable cards appear here once you have some.');
       return (
         <Box type={type}>

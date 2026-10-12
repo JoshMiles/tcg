@@ -11,6 +11,7 @@ import type { WidgetType } from '@/lib/dashboard';
 import { renderWidget } from './dashboard/widgets';
 import { DashboardGrid } from './dashboard/DashboardGrid';
 
+export const metadata = { title: 'Dashboard · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ gift?: string; season?: string; range?: string }> }) {
