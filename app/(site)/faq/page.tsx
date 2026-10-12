@@ -298,6 +298,9 @@ export default async function FaqPage() {
         <Q q="Can I download the pictures?">
           Yes. On a phone the share button opens your share sheet; on a computer it downloads the picture as a PNG you can post anywhere.
         </Q>
+        <Q q="Can I show off one special copy on my profile?">
+          Yes. Open one of your copies (click its number in your card details) and press <strong className="text-white">Pin to my profile</strong>. It appears as a card on your profile that visitors can flip over to see its engraved unique number, and you can share a picture of it. If you trade the copy away it stops being shown.
+        </Q>
         <Q q="Can I make my profile look the way I want?">
           Yes, see <a href="#profile" className="text-yellow-400 hover:text-yellow-300">Your profile</a>: arrange the widgets, show your best cards, and add a bio.
         </Q>
