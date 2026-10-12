@@ -22,7 +22,7 @@ export type ActivityDetail =
   | { type: 'reset'; scope: 'season' | 'all' | 'everyone' }
   | { type: 'delete' }
   // something asked the overlay to draw / show a collection: an incoming webhook, or an admin quick action
-  | { type: 'trigger'; kind: 'pull' | 'collection'; source?: 'webhook' | 'admin'; count?: number }
+  | { type: 'trigger'; kind: 'pull' | 'collection' | 'card'; source?: 'webhook' | 'admin'; count?: number; cardName?: string }
   | { type: 'collection_shown' };                      // overlay displayed a viewer's collection
 
 export type ActivityEvent = ActivityDetail & {

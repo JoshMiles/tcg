@@ -25,9 +25,14 @@ export interface WebhookSettings {
 
 export interface QueuedEvent {
   id: string;
-  type: 'pull' | 'collection';
+  type: 'pull' | 'collection' | 'card';
   username: string;
   queuedAt: number;
+  /** For `card` (show a card off): which card and version, and the serial of the viewer's copy. Already checked against their collection. */
+  cardNumber?: number;
+  variant?: 'regular' | 'reverse' | 'full' | 'shiny';
+  serial?: number;
+  serialMult?: number;
 }
 
 // ── KV helpers ────────────────────────────────────────────

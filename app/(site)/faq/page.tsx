@@ -291,6 +291,10 @@ export default async function FaqPage() {
             <li>The <strong className="text-white">Share</strong> button on your profile copies its link, so anyone can open it.</li>
           </ul>
         </Q>
+        <Q q="Can I show a card on stream?">
+          Yes, when {CHANNEL_NAME} is live you can use the show-off command in chat and your card appears on the stream with its version and serial number. Name the card (or its number) and, if you like, the version first,
+          for example <em>shiny gouda goat</em>; with nothing after the command it shows your most valuable card. You can only show cards you own, and once every few seconds. If the card has more than one match, be a little more specific.
+        </Q>
         <Q q="Can I download the pictures?">
           Yes. On a phone the share button opens your share sheet; on a computer it downloads the picture as a PNG you can post anywhere.
         </Q>

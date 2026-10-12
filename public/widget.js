@@ -683,6 +683,7 @@ function setAnim(el, spec, speed, delay) {
 }
 
 const gotText = (P, user) => String(pv(P, 'reveal.gotText', '{user} got:')).split('{user}').join(user || 'Someone');
+const showText = (P, user) => String(pv(P, 'show.text', '{user} is showing off:')).split('{user}').join(user || 'Someone');
 const headingText = (P, user) => String(pv(P, 'collection.headingText', "{user}'s collection:")).split('{user}').join(user || 'Someone');
 
 function holoOn(P, variant, card, cfg) {
@@ -834,7 +835,9 @@ function drawCard(username, opts) {
   const user = (username || 'someone').toLowerCase().trim();
   if (!Array.isArray(revealedCardsByUser[user])) revealedCardsByUser[user] = [];
 
-  const pick = pickPackAndCard(opts);
+  // Show-off (chat command): a card the viewer owns, pinned by the server. Nothing is rolled or saved.
+  const show = opts.show || null;
+  const pick = pickPackAndCard(show ? { cardNumber: show.cardNumber, variant: show.variant } : opts);
   if (!pick) {
     showAlert('No cards available — check your active season has packs with cards.');
     activeDraws--;
@@ -847,7 +850,8 @@ function drawCard(username, opts) {
   const S = Math.max(0.25, pv(P, 'reveal.speed', 1));
   // A variant can override the pack opening's style (e.g. Shiny always rips the pack).
   const variantStyle = pv(P, 'variant.' + variant + '.style', 'inherit');
-  const R = REVEALS[variantStyle !== 'inherit' ? variantStyle : pv(P, 'reveal.style', 'classic')] || REVEALS.classic;
+  let R = REVEALS[variantStyle !== 'inherit' ? variantStyle : pv(P, 'reveal.style', 'classic')] || REVEALS.classic;
+  if (show) { R = REVEALS[pv(P, 'show.style', 'drop')]; if (!R || R.pack) R = REVEALS.drop; }
   const D = pv(P, 'reveal.startDelay', 0);   // seconds to wait before anything happens
   const at = sec => (sec * 1000) / S + D * 1000;
   // Test panel "quick" mode shortens the on-screen time so many draws can be reviewed fast.
@@ -883,7 +887,7 @@ function drawCard(username, opts) {
   wrapper.classList.remove('hid', 'hidden');
   wrapper.classList.add('pack-fit', 'is-pack');
 
-  const owned = revealedCardsByUser[user].some(e => decodeEntry(e).cardNumber === card.number);
+  const owned = show ? true : revealedCardsByUser[user].some(e => decodeEntry(e).cardNumber === card.number);
   applyLook(theater, P, variant, card, cfg, owned);
   paintCard(theater, card, art, isFullArt ? card.fullArtThumb : card.thumb);
 
@@ -928,7 +932,7 @@ function drawCard(username, opts) {
   setTimeout(() => {
     cardInfo.style.opacity   = '1';
     cardInfo.style.transform = 'scale(1)';
-    userText.textContent     = gotText(P, username);
+    userText.textContent     = show ? showText(P, username) : gotText(P, username);
   }, at(R.info));
 
   if (holoOverlay) {
@@ -942,13 +946,19 @@ function drawCard(username, opts) {
     }
   }
 
-  buildMiniList(miniList, revealedCardsByUser[user], card.number, cfg, listOpts(P, true));
-  if (listOpts(P, true).perRow > 0) wrapper.style.maxWidth = 'none';
+  if (show) miniList.style.display = 'none';
+  else {
+    buildMiniList(miniList, revealedCardsByUser[user], card.number, cfg, listOpts(P, true));
+    if (listOpts(P, true).perRow > 0) wrapper.style.maxWidth = 'none';
+  }
 
   const entry = encodeEntry(card.number, variant);
   let saved = Promise.resolve(null);
   // Dry runs (test panel) show the draw but leave the collection, activity log and webhooks alone.
-  if (!opts.dry) {
+  if (show) {
+    // A shown card is never saved: the server already checked it and sent the serial of the viewer's copy.
+    saved = Promise.resolve(show.serial ? { serial: show.serial, serialMult: show.serialMult || 1 } : null);
+  } else if (!opts.dry) {
     revealedCardsByUser[user].push(entry);
     saved = saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName });
   } else if (!PREVIEW) {
@@ -958,7 +968,8 @@ function drawCard(username, opts) {
   }
 
   // Hide + cleanup
-  const showDuration = at(R.label) + 800 + cfg.cardTime * 1000 + pv(P, 'variant.' + variant + '.holdExtra', 0) * 1000;
+  const holdFor = show ? pv(P, 'show.hold', 6) * 1000 : cfg.cardTime * 1000;
+  const showDuration = at(R.label) + 800 + holdFor + pv(P, 'variant.' + variant + '.holdExtra', 0) * 1000;
   setTimeout(() => {
     radialContainer.style.opacity   = '0';
     radialContainer.style.animation = 'none';
@@ -1039,6 +1050,12 @@ function processCardQueue() {
 // ═══════════════════════════════════════════════════════
 function queueDraw(username, opts) {
   cardQueue.push(() => drawCard(username, opts));
+  processCardQueue();
+}
+
+/** Chat "show off a card": `ev` = { cardNumber, variant, serial?, serialMult? } already checked by the server. */
+function queueShowCard(username, ev) {
+  cardQueue.push(() => drawCard(username, { show: ev }));
   processCardQueue();
 }
 
@@ -1137,6 +1154,17 @@ function initDevPanel() {
     VARIANTS.forEach(v => queueDraw(user(), options({ cardNumber, variant: v })));
   }
 
+  // The chat "show off" plays: the picked card (random if none) in the picked version, with a sample serial.
+  function showOff() {
+    const source = packSel.value ? PACKS.filter(p => p.pack.id === packSel.value) : PACKS;
+    const cards = source.flatMap(p => p.cards);
+    if (!cards.length) return;
+    const cardNumber = cardSel.value ? Number(cardSel.value) : cards[Math.floor(Math.random() * cards.length)].number;
+    const n = 1 + Math.floor(Math.random() * 30);
+    queueShowCard(user(), { cardNumber, variant: variantSel.value || 'regular', serial: n, serialMult: n <= 20 ? 1 + 2 * (1 - (n - 1) / 20) : 1 });
+  }
+
+  $('btn-show-card').addEventListener('click', showOff);
   $('btn-draw').addEventListener('click', () => draw(Number(countInput.value)));
   $('btn-all-variants').addEventListener('click', drawAllVariants);
   $('btn-collection').addEventListener('click', () => queueCollection(user(), { dry: DEV.dry }));
@@ -1183,6 +1211,7 @@ function initDevPanel() {
     if (key === 'd') draw(Number(countInput.value));
     else if (key === 'a') drawAllVariants();
     else if (key === 'c') queueCollection(user(), { dry: DEV.dry });
+    else if (key === 'w') showOff();
     else if ({ r: 'reverse', f: 'full', s: 'shiny' }[key]) queueDraw(user(), options({ variant: { r: 'reverse', f: 'full', s: 'shiny' }[key] }));
   });
 }
@@ -1198,6 +1227,7 @@ async function pollWebhookQueue() {
     if (!event) return;
     if (event.type === 'pull')       queueDraw(event.username);
     else if (event.type === 'collection') queueCollection(event.username);
+    else if (event.type === 'card' && event.cardNumber != null) queueShowCard(event.username, event);
   } catch {
     // ignore — overlay keeps working if server is unreachable
   }

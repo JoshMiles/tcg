@@ -188,7 +188,7 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
     case 'trigger': {
       const gifted = e.source === 'admin' && e.kind === 'pull';
       return payload({ ...base, color: BLUE,
-        title: gifted ? '🎁 Packs gifted' : e.kind === 'pull' ? '⚡ Pack draw requested' : '📖 Collection view requested',
+        title: gifted ? '🎁 Packs gifted' : e.kind === 'pull' ? '⚡ Pack draw requested' : e.kind === 'card' ? '🃏 Card shown off' : '📖 Collection view requested',
         description: gifted
           ? `${(e.count ?? 1) > 1 ? `${e.count} packs` : 'A pack'} gifted to **${esc(e.username)}**`
           : `**${esc(e.username)}** — ${e.source === 'admin' ? 'by an admin' : 'via webhook'}` });
