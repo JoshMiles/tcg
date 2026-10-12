@@ -68,8 +68,9 @@ export async function renderShare(spec: ShareSpec): Promise<HTMLCanvasElement> {
       const fs = Math.max(20, Math.min(34, r.w / 7));
       ctx.font = `800 ${fs}px ${font}`;
       const tw = ctx.measureText(card.tag).width + 24;
-      ctx.fillStyle = 'rgba(7,11,29,0.88)'; roundRect(ctx, r.x + 12, r.y + r.h - fs - 30, tw, fs + 18, (fs + 18) / 2); ctx.fill();
-      ctx.fillStyle = '#fde047'; ctx.fillText(card.tag, r.x + 24, r.y + r.h - 20);
+      // Top right: the bottom of the art carries the card's own name plate.
+      ctx.fillStyle = 'rgba(7,11,29,0.9)'; roundRect(ctx, r.x + r.w - tw - 12, r.y + 12, tw, fs + 18, (fs + 18) / 2); ctx.fill();
+      ctx.fillStyle = '#fde047'; ctx.fillText(card.tag, r.x + r.w - tw, r.y + 12 + fs + 3);
     }
     ctx.restore();
     ctx.strokeStyle = card.hex ?? '#facc15'; ctx.lineWidth = 4; roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.stroke();

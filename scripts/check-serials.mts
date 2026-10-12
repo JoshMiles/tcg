@@ -24,6 +24,16 @@ const many = Array.from({ length: 60 }, (_, i) => ({ t: i, type: 'traded' as con
 const trimmed = many.reduce((c, e) => core.withEvent(c, e), { ...cp(1), ev: [{ t: -1, type: 'minted' as const }] });
 ok(trimmed.ev.length === core.EVENT_CAP && trimmed.ev[0].type === 'minted', 'history is capped but the creation event stays');
 
+// ── share image layout ──
+const sh = await import('../lib/share-image');
+const area = sh.cardArea();
+for (const n of [0, 1, 2, 3, 4, 5, 6, 9, 12]) {
+  const rs = sh.layoutCards(n, area);
+  ok(rs.length === Math.min(n, 9), `layout gives ${Math.min(n, 9)} rects for ${n}`);
+  ok(rs.every(r => r.x >= area.x - 0.5 && r.y >= area.y - 0.5 && r.x + r.w <= area.x + area.w + 0.5 && r.y + r.h <= area.y + area.h + 0.5), `${n} cards stay inside the area`);
+  ok(rs.every((r, i) => rs.every((q, j) => i === j || r.x + r.w <= q.x + 0.5 || q.x + q.w <= r.x + 0.5 || r.y + r.h <= q.y + 0.5 || q.y + q.h <= r.y + 0.5)), `${n} cards do not overlap`);
+}
+
 // ── engine, in an isolated sandbox ──
 const db = await import('../lib/db');
 const kvLib = await import('../lib/kv');
