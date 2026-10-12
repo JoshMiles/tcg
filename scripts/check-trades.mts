@@ -21,7 +21,7 @@ ok(core.cleanItems([{ cardNumber: 1, variant: 'regular', count: 0 }], 8) === nul
 ok(core.cleanItems([{ cardNumber: 1, variant: 'regular', count: -3 }], 8) === null, 'negative copies refused');
 ok(core.cleanItems([{ cardNumber: 1, variant: 'regular', count: 100 }], 8) === null, 'too many copies in a stack refused');
 ok(core.cleanItems([{ cardNumber: 1, variant: 'regular', count: 1 }, { cardNumber: 2, variant: 'regular', count: 1 }], 1) === null, 'too many stacks refused');
-eq(core.sanitizeTradeSettings({ expiryHours: 99999, maxOpenPerUser: 0, cooldownSeconds: -5, enabled: 'false' }), { enabled: false, expiryHours: 336, maxOpenPerUser: 1, cooldownSeconds: 0, maxStacksPerSide: 8 }, 'settings are clamped');
+eq(core.sanitizeTradeSettings({ expiryHours: 99999, maxOpenPerUser: 0, cooldownSeconds: -5, enabled: 'false' }), { enabled: false, expiryHours: 336, maxOpenPerUser: 1, cooldownSeconds: 0, maxStacksPerSide: 8, minAccountHours: 0 }, 'settings are clamped');
 
 const give = [{ cardNumber: 1, variant: 'regular' as const, count: 2 }];
 const get = [{ cardNumber: 9, variant: 'shiny' as const, count: 1 }];
@@ -41,6 +41,27 @@ ok(!lacking.ok && lacking.missing.cardNumber === 9, 'settlement refuses when the
 const esc = core.takeForEscrow([E(1), E(1), E(1), E(7)], give);
 ok(esc.ok && esc.rest.length === 2 && core.ownedCopies(esc.rest, 1, 'regular') === 1, 'escrow takes exactly the offered copies');
 ok(!core.takeForEscrow([E(1)], give).ok, 'escrow refuses when the viewer owns too few');
+
+
+// ── Insights (pure) ──
+const insights = await import('../lib/trade-insights');
+const T = (o: Partial<import('../lib/trade-core').Trade>): import('../lib/trade-core').Trade => ({ id: Math.random().toString(36).slice(2), seasonId: 's', kind: 'direct', from: 'a', to: 'b', give: [{ cardNumber: 1, variant: 'regular', count: 1 }], escrowed: false, get: [{ cardNumber: 2, variant: 'regular', count: 1 }], status: 'accepted', createdAt: 1_000_000, expiresAt: 9e12, resolvedAt: 1_060_000, ...o });
+const now0 = Date.now();
+const mk = (n: number, pts: [number, number], from = 'a', to = 'b') => Array.from({ length: n }, (_, i) => T({ from, to, createdAt: now0 - i * 60_000, resolvedAt: now0 - i * 60_000 + 30_000 }));
+const pointsOf = (t: import('../lib/trade-core').Trade, side: 'give' | 'get') => (side === 'give' ? 100 : 10);
+const fl = insights.flagTrades([T({})], { points: pointsOf, createdAt: () => undefined });
+ok([...fl.values()][0]?.some(f => f.kind === 'lopsided'), 'a 10× gap is flagged lopsided');
+const even = insights.flagTrades([T({})], { points: () => 100, createdAt: () => undefined });
+ok(even.size === 0, 'an even trade is not flagged');
+const rep = insights.flagTrades(mk(3, [1, 1]), { points: () => 100, createdAt: () => undefined });
+ok([...rep.values()].every(f => f.some(x => x.kind === 'repeat')) && rep.size === 3, 'three trades between one pair are flagged as repeats');
+const burst = insights.flagTrades(mk(5, [1, 1]).map(t => ({ ...t, status: 'open' as const })), { points: () => 100, createdAt: () => undefined });
+ok([...burst.values()].some(f => f.some(x => x.kind === 'burst')), 'five offers in minutes is a burst');
+const newb = insights.flagTrades([T({ createdAt: now0 })], { points: () => 100, createdAt: u => (u === 'a' ? now0 - 3_600_000 : undefined) });
+ok([...newb.values()][0]?.some(f => f.kind === 'newbie'), 'a viewer who joined an hour before is flagged new');
+const st = insights.computeTradeStats([], [T({ resolvedAt: 1_000_000 + 120_000 }), T({ status: 'declined' }), T({ status: 'expired' })], now0);
+ok(st.accepted === 1 && Math.abs((st.acceptRate ?? 0) - 1 / 3) < 1e-9 && st.medianAcceptMin === 2, 'stats: accept rate and median wait');
+ok(insights.tradesToCsv([]).startsWith('id,status'), 'csv has a header');
 
 // ── Engine, in an isolated sandbox namespace ──
 const db = await import('../lib/db');
@@ -190,6 +211,37 @@ await runInSandbox(box.id, async () => {
     ok(c.ok && (await trades.getTrade(f.trade.id))?.resolvedBy === 'admin', 'an admin can cancel while paused, and it refunds');
   }
   await trades.saveTradeSettings({ ...(await trades.getTradeSettings()), enabled: true });
+
+  // Admin bulk controls and the minimum account age.
+  {
+    const data = await kvLib.getCollection(coll);
+    const holders = Object.entries(data).filter(([, l]) => l.some(e => e < 1_000_000)).map(([u]) => u);
+    ok(holders.length >= 2, 'two viewers hold a regular copy');
+    const [u1, u2] = holders;
+    const reg = (u: string) => stack(data[u].find(e => e < 1_000_000)!);
+    const wanted = stack(25);
+    const before = await universe();
+    const o1 = await trades.createTrade({ seasonId: season.id, from: u1, kind: 'listing', give: [reg(u1)], get: [wanted] });
+    const o2 = await trades.createTrade({ seasonId: season.id, from: u2, kind: 'listing', give: [reg(u2)], get: [wanted] });
+    ok(o1.ok && o2.ok, 'two listings for the bulk checks');
+    const ex = o1.ok ? o1.trade.expiresAt : 0;
+    ok(await trades.extendOpenTrades([o1.ok ? o1.trade.id : ''], 10) === 1, 'extend touches only the named offer');
+    ok((await trades.getTrade(o1.ok ? o1.trade.id : ''))!.expiresAt === ex + 10 * 3_600_000, 'expiry moves by the hours given');
+    ok(await trades.cancelOpenTrades({ username: u1 }) === 1, 'cancel by viewer ends only their offers');
+    ok((await trades.getTrade(o2.ok ? o2.trade.id : ''))?.status === 'open', 'the other viewer offer is untouched');
+    ok(await trades.cancelOpenTrades({ seasonId: 'no-such-season' }) === 0, 'cancel by an unknown season matches nothing');
+    ok(await trades.cancelOpenTrades({}) >= 1, 'cancel everything ends the rest');
+    ok(await universe() === before, 'bulk cancel refunds every copy');
+
+    await trades.saveTradeSettings({ ...(await trades.getTradeSettings()), minAccountHours: 24 });
+    await kvLib.saveUserProfile({ username: u1, displayName: u1, createdAt: Date.now() });
+    ok(!(await trades.createTrade({ seasonId: season.id, from: u1, kind: 'listing', give: [reg(u1)], get: [wanted] })).ok, 'a brand-new profile cannot offer');
+    await kvLib.saveUserProfile({ username: u1, displayName: u1, createdAt: Date.now() - 48 * 3_600_000 });
+    const okOffer = await trades.createTrade({ seasonId: season.id, from: u1, kind: 'listing', give: [reg(u1)], get: [wanted] });
+    ok(okOffer.ok, 'an old enough profile can offer');
+    await trades.cancelOpenTrades({});
+    await trades.saveTradeSettings({ ...(await trades.getTradeSettings()), minAccountHours: 0 });
+  }
 
   // Whatever happened, no copy was created or destroyed beyond what the test itself added (dave + erin).
   const open = await trades.listOpenTrades();
