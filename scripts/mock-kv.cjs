@@ -36,6 +36,8 @@ function run(cmd) {
     case 'srem': return 1;
     case 'hset': { const h = store.get(key) || {}; for (let i = 0; i < rest.length; i += 2) h[rest[i]] = rest[i+1]; store.set(key, h); return rest.length / 2; }
     case 'hdel': { const h = store.get(key) || {}; let n = 0; rest.forEach(f => { if (f in h) { delete h[f]; n++; } }); store.set(key, h); return n; }
+    case 'hincrby': { const h = store.get(key) || {}; h[rest[0]] = Number(h[rest[0]] || 0) + Number(rest[1]); store.set(key, h); return h[rest[0]]; }
+    case 'scard': return (store.get(key) || []).length;
     case 'llen': return (store.get(key) || []).length;
     case 'hgetall': { const h = store.get(key); return h ? Object.entries(h).flat() : []; }
     case 'smembers': return store.get(key) || [];

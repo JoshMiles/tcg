@@ -1,6 +1,7 @@
 import { kv, inSandbox } from './db';
 import { after } from 'next/server';
 import { notifyDiscord } from './discord';
+import { recordStats } from './stats';
 import type { Variant } from './types';
 
 // Append-only activity log powering /admin/activity. Newest first in the KV list `activity:log`
@@ -40,6 +41,7 @@ export async function recordActivity(event: NewActivity): Promise<void> {
     const full: ActivityEvent = { ...event, username: event.username.toLowerCase(), seq, at: Date.now() };
     await kv.lpush(LOG_KEY, full);
     await kv.ltrim(LOG_KEY, 0, LOG_CAP - 1);
+    await recordStats(full as unknown as Parameters<typeof recordStats>[0], full.at);
     // A sandbox never posts to Discord (the post runs in after(), where the request's sandbox isn't visible, so decide here).
     if (!(await inSandbox())) forwardToDiscord(full);
   } catch {
