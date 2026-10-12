@@ -314,7 +314,9 @@ function EventRow({
             : e.by === 'admin' ? 'had an offer cancelled by an admin' : 'cancelled an offer'}
         </>
       );
-      sub = `${e.give.join(', ')} (≈${e.givePts.toLocaleString()} pts) ⇄ ${e.get.join(', ')} (≈${e.getPts.toLocaleString()} pts)`;
+      sub = e.givePts || e.getPts
+        ? `${e.give.join(', ')} (≈${e.givePts.toLocaleString()} pts) ⇄ ${e.get.join(', ')} (≈${e.getPts.toLocaleString()} pts)`
+        : `${e.give.join(', ')} ⇄ ${e.get.join(', ')}`;
       break;
     case 'reset':
       icon = '🔄';

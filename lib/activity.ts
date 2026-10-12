@@ -66,6 +66,17 @@ export async function getActivity({ after, limit = 100 }: { after?: number; limi
   const seq = (await kv.get<number>(SEQ_KEY)) ?? 0;
   if (after !== undefined && seq <= after) return { events: [], seq };
   const count = Math.min(after !== undefined ? seq - after : limit, limit);
-  const events = (await kv.lrange<ActivityEvent>(LOG_KEY, 0, count - 1)) ?? [];
+  const events = ((await kv.lrange<ActivityEvent>(LOG_KEY, 0, count - 1)) ?? []).map(normalizeEvent);
   return { events: after !== undefined ? events.filter(e => e.seq > after) : events, seq };
+}
+
+/**
+ * Trade events logged before offers could be answered were { partner, gave: number, got: number } (a completed trade, with copy
+ * counts). Everything that reads the log expects the current shape, so old entries are upgraded as they are read.
+ */
+function normalizeEvent(e: ActivityEvent): ActivityEvent {
+  if (e.type !== 'trade' || Array.isArray(e.give)) return e;
+  const legacy = e as unknown as { gave?: number; got?: number };
+  const lines = (n?: number) => [`${n ?? '?'} card${n === 1 ? '' : 's'}`];
+  return { ...e, action: e.action ?? 'accepted', kind: e.kind ?? 'direct', give: lines(legacy.gave), get: lines(legacy.got), givePts: 0, getPts: 0 };
 }
