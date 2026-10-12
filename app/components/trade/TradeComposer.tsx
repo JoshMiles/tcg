@@ -1,5 +1,6 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
+import { UserInput } from '@/app/components/UserInput';
 import { Spinner } from '../../admin/components/PendingButton';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -53,8 +54,8 @@ export function TradeComposer({
   const [error, setError] = useState('');
   const counter = !!initial.counterOf;
 
-  async function lookUp() {
-    const name = to.trim().toLowerCase().replace(/^@/, '');
+  async function lookUp(pick?: string) {
+    const name = (pick ?? to).trim().toLowerCase().replace(/^@/, '');
     if (!name) return;
     setLookingUp(true);
     setPartnerError('');
@@ -152,8 +153,8 @@ export function TradeComposer({
           {kind === 'direct' ? (
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-sm text-gray-400" htmlFor="trade-to">Offer to</label>
-              <input id="trade-to" value={to} onChange={e => { setTo(e.target.value); setPartner(null); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookUp(); } }} placeholder="their Twitch name" className={`${input} w-56`} />
-              <button type="button" onClick={lookUp} disabled={lookingUp || !to.trim()} className="px-4 py-2 rounded-lg border border-gray-600 text-sm font-semibold text-gray-200 hover:border-yellow-500/60 disabled:opacity-50">{lookingUp ? 'Looking…' : 'Find their cards'}</button>
+              <UserInput id="trade-to" value={to} onValueChange={v => { setTo(v); setPartner(null); }} onPick={name => lookUp(name)} onKeyDown={e => { if (e.key === 'Enter' && !e.defaultPrevented) { e.preventDefault(); lookUp(); } }} placeholder="their Twitch name" className={`${input} w-56`} />
+              <button type="button" onClick={() => lookUp()} disabled={lookingUp || !to.trim()} className="px-4 py-2 rounded-lg border border-gray-600 text-sm font-semibold text-gray-200 hover:border-yellow-500/60 disabled:opacity-50">{lookingUp ? 'Looking…' : 'Find their cards'}</button>
               {partner && <span className="text-xs text-emerald-300"><Icon name="check" className="mr-1" />found {to}</span>}
               {partnerError && <span role="alert" className="text-xs text-red-400">{partnerError}</span>}
             </div>

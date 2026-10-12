@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { UserInput } from '@/app/components/UserInput';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
@@ -172,7 +173,7 @@ export function ToolsPanel({ username, snapshots, collections }: { username: str
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-white">Compare with another viewer</h3>
         <form onSubmit={e => { e.preventDefault(); if (other.trim()) router.push(`/admin/users/${encodeURIComponent(username)}?tab=admin&compare=${encodeURIComponent(other.trim().replace(/^@/, '').toLowerCase())}#compare`); }} className="flex items-center gap-2">
-          <input value={other} onChange={e => setOther(e.target.value)} placeholder="their username" aria-label="Compare with" className={`${field} w-56`} />
+          <UserInput value={other} onValueChange={setOther} placeholder="their username" aria-label="Compare with" className={`${field} w-56`} />
           <button type="submit" disabled={!other.trim()} className={btn}>Compare</button>
         </form>
         <p className="text-xs text-gray-600">Shows what each has that the other lacks, and swaps that would complete both.</p>
@@ -197,7 +198,7 @@ export function ToolsPanel({ username, snapshots, collections }: { username: str
         <h3 className="text-sm font-semibold text-white">Merge into another account</h3>
         <p className="text-xs text-gray-500">For a viewer who changed their Twitch name: moves every card across all seasons into the account you name and removes this profile. Refused while either account has open trade offers.</p>
         <form onSubmit={e => { e.preventDefault(); merge(); }} className="flex items-center gap-2">
-          <input value={into} onChange={e => setInto(e.target.value)} placeholder="username to merge into" aria-label="Merge into" className={`${field} w-56`} />
+          <UserInput value={into} onValueChange={setInto} placeholder="username to merge into" aria-label="Merge into" className={`${field} w-56`} />
           <button type="submit" disabled={pending || !into.trim() || collections.cards + snapshots.length < 0} className={`${btn} hover:border-amber-400/60 hover:text-amber-200`}>{pending && <Spinner />}Merge…</button>
         </form>
       </div>

@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { UserInput } from '@/app/components/UserInput';
 import { useState, useTransition } from 'react';
 import { Spinner } from '../components/PendingButton';
 import { cancelOpenTradesAction, extendOpenTradesAction, setSeasonTradingAction, type TradeActionResult } from '../trade-actions';
@@ -62,7 +63,7 @@ export function TradeControls({ seasons, openTotal }: { seasons: ControlSeason[]
             {seasons.map(s => <option key={s.id} value={s.id}>In {s.name} ({s.open})</option>)}
             <option value="viewer">Involving a viewer…</option>
           </select>
-          {scope === 'viewer' && <input value={viewer} onChange={e => setViewer(e.target.value)} placeholder="username" aria-label="Viewer" className={`${field} w-44`} />}
+          {scope === 'viewer' && <UserInput value={viewer} onValueChange={setViewer} placeholder="username" aria-label="Viewer" className={`${field} w-44`} />}
           <button type="button" disabled={pending || (scopeCount === 0) || (scope === 'viewer' && !viewer.trim())} onClick={cancel} className={`${btn} hover:border-red-400/60 hover:text-red-200`}>{pending && <Spinner />}Cancel offers</button>
         </div>
       </div>
