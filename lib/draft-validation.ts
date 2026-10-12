@@ -34,7 +34,7 @@ export function validatePack(pack: PackFields, cards: CardFields[]): Issue[] {
 }
 
 export function validateSeason(
-  season: Pick<Season, 'name' | 'collectionName' | 'packIds'>,
+  season: Pick<Season, 'name' | 'collectionName' | 'packIds'> & Partial<Pick<Season, 'startsAt' | 'endsAt'>>,
   /** Collection names used by *other* seasons — sharing one would merge two seasons' collections. */
   otherCollectionNames: string[],
 ): Issue[] {
@@ -49,6 +49,7 @@ export function validateSeason(
       issues.push({ step: 'details', message: `Another season already uses "${key}" — viewers' cards would be shared between them.` });
     }
   }
+  if (season.startsAt !== undefined && season.endsAt !== undefined && season.endsAt <= season.startsAt) issues.push({ step: 'details', message: 'The end date must be after the start date.' });
   if (season.packIds.length === 0) issues.push({ step: 'packs', message: 'Attach at least one pack.' });
   return issues;
 }

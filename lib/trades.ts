@@ -188,6 +188,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
   const ctx = await seasonContext(input.seasonId);
   if (!ctx) return fail(404, 'That season isn\'t available for trading.');
   const { season, cardMap } = ctx;
+  if (season.tradingFrozen) return fail(403, 'Trading is closed for this season.');
 
   const give = cleanItems(input.give, settings.maxStacksPerSide);
   const get = cleanItems(input.get, settings.maxStacksPerSide);
@@ -292,6 +293,7 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
     if ((await blocked(taker)) || (await blocked(trade.from))) return fail(403, 'Trading isn\'t available for this trade.');
     const season = await getSeason(trade.seasonId);
     if (!season) return fail(404, 'That season no longer exists.');
+    if (season.tradingFrozen) return fail(403, 'Trading is closed for this season.');
 
     const result = await withCollectionLock(season.collectionName, async () => {
       const data = await getCollection(season.collectionName);

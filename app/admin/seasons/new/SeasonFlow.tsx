@@ -1,6 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { useMemo, useState } from 'react';
+import { DateTimeField } from '../../components/DateTimeField';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SaveIndicator, Stepper } from '../../components/Stepper';
@@ -171,6 +172,19 @@ export function SeasonFlow({
               />
               <p className="text-xs text-gray-600 mt-1">Pack openings shown at once on the overlay</p>
             </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <DateTimeField label="Starts (optional)" defaultValue={season.startsAt} onChange={ms => set('startsAt', ms)} help="Shown on the Seasons page; with the switch below it also turns the season on by itself." />
+              <DateTimeField label="Ends (optional)" defaultValue={season.endsAt} onChange={ms => set('endsAt', ms)} help="At this time an active season is wrapped up: final standings, awards, trading closed." />
+            </div>
+            {season.startsAt !== undefined && (
+              <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                <input type="checkbox" checked={!!season.autoStart} onChange={e => set('autoStart', e.target.checked)} className="w-4 h-4 accent-yellow-400" />
+                Switch this season on automatically at the start time
+              </label>
+            )}
+            {season.startsAt !== undefined && season.endsAt !== undefined && season.endsAt <= season.startsAt && (
+              <p className="text-xs text-red-400">The end must be after the start.</p>
+            )}
           </>
         )}
 

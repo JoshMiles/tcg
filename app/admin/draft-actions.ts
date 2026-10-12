@@ -1,5 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { activateWithWrapUp } from '@/lib/season-wrap';
 import {
   getPack, savePack, deletePack, getPackCards, savePackCards,
   getSeason, saveSeason, deleteSeason, listSeasons, setActiveSeason,
@@ -175,6 +176,10 @@ export interface SeasonInput {
   collectionName: string;
   maxConcurrentPacks: number;
   packIds: string[];
+  /** Optional schedule in ms since the epoch (undefined = none). */
+  startsAt?: number;
+  endsAt?: number;
+  autoStart?: boolean;
 }
 
 function cleanSeasonInput(i: SeasonInput): Omit<Season, 'id' | 'createdAt' | 'status' | 'active'> {
@@ -183,6 +188,9 @@ function cleanSeasonInput(i: SeasonInput): Omit<Season, 'id' | 'createdAt' | 'st
     collectionName: str(i.collectionName, 60).replace(/\s+/g, ''),
     maxConcurrentPacks: int(i.maxConcurrentPacks, 1),
     packIds: Array.isArray(i.packIds) ? [...new Set(i.packIds.filter(p => typeof p === 'string'))] : [],
+    startsAt: Number.isFinite(i.startsAt) && (i.startsAt as number) > 0 ? Math.floor(i.startsAt as number) : undefined,
+    endsAt: Number.isFinite(i.endsAt) && (i.endsAt as number) > 0 ? Math.floor(i.endsAt as number) : undefined,
+    autoStart: i.autoStart === true && Number.isFinite(i.startsAt) ? true : undefined,
   };
 }
 
@@ -208,7 +216,7 @@ export async function publishSeason(id: string, activate: boolean): Promise<{ ok
   if (issues.length > 0) return { ok: false, issues };
 
   await saveSeason({ ...season, status: 'published', active: false });
-  if (activate) await setActiveSeason(id);
+  if (activate) await activateWithWrapUp(id); // wraps up the season it replaces
   revalidatePath('/admin/seasons');
   revalidatePath(`/admin/seasons/${id}`);
   revalidatePath('/admin');

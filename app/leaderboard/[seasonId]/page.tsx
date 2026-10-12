@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, listSeasons } from '@/lib/kv';
 import { getSeasonLeaderboard } from '@/lib/leaderboard';
+import { getSnapshot } from '@/lib/season-wrap';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { Avatar } from '@/app/components/Avatar';
@@ -16,7 +17,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
   const [season, seasons] = await Promise.all([getSeason(seasonId), listSeasons()]);
   if (!season || season.status === 'draft') notFound();
 
-  const { rows, values } = await getSeasonLeaderboard(season);
+  const [{ rows, values }, snapshot] = await Promise.all([getSeasonLeaderboard(season), season.endedAt ? getSnapshot(season.id) : Promise.resolve(null)]);
   const top = rows.slice(0, values.settings.leaderboardSize);
   const avatars = await getAvatars(top.map(r => r.username));
 
@@ -58,13 +59,31 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
 
+        {season.endedAt && (
+          <section className="rounded-2xl border border-yellow-500/30 bg-yellow-500/[0.04] p-4 space-y-3">
+            <p className="text-sm font-bold text-yellow-300"><Icon name="trophy" className="mr-1.5" />Final standings · this season ended {new Date(season.endedAt).toLocaleDateString()}</p>
+            {snapshot && snapshot.awards.length > 0 && (
+              <ul className="grid gap-1.5 sm:grid-cols-2">
+                {snapshot.awards.slice(0, 12).map((a, i) => (
+                  <li key={`${a.id}-${a.username}-${i}`} className="flex items-center gap-2.5 rounded-lg bg-gray-900/70 border border-gray-800 px-3 py-2 text-sm">
+                    <Icon name={a.icon} className="text-yellow-400" />
+                    <span className="font-semibold text-gray-200">{a.title}</span>
+                    <Link href={`/collection/${a.username}`} className="text-gray-400 hover:text-white truncate">{a.username}</Link>
+                    <span className="ml-auto text-xs text-gray-500 shrink-0">{a.detail}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
         {/* The full explanation lives on the FAQ page */}
         <Link
           href="/faq#points"
           className="rind rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:brightness-125 transition"
         >
           <span className="flex items-center gap-2 text-sm font-semibold text-white">
-            <span aria-hidden>ℹ️</span> How are points worked out?
+            <Icon name="info" /> How are points worked out?
           </span>
           <span className="text-xs text-yellow-400 font-semibold shrink-0">Read the FAQ →</span>
         </Link>

@@ -21,6 +21,14 @@ export interface Season {
   createdAt: number;
   maxConcurrentPacks: number;
   packIds: string[];          // ordered list of pack IDs used by this season
+  /** Optional schedule (ms). With `autoStart` the season switches itself on at `startsAt`; at `endsAt` an active season is wrapped up. */
+  startsAt?: number;
+  endsAt?: number;
+  autoStart?: boolean;
+  /** Set when the season was wrapped up (final standings snapshot taken). */
+  endedAt?: number;
+  /** No new trades or acceptances for this season (set automatically at wrap-up). */
+  tradingFrozen?: boolean;
 }
 
 export interface Pack {

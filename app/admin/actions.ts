@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 import { requireAdmin } from '@/lib/admin-guard';
 import { recordAudit } from '@/lib/audit';
 import { takeUserSnapshot } from '@/lib/user-admin';
+import { activateWithWrapUp } from '@/lib/season-wrap';
 import {
   saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
   savePack, getPack, deletePack,
@@ -54,12 +55,19 @@ export async function createSeason(formData: FormData) {
   redirect(`/admin/seasons/${id}`);
 }
 
+/** A finite positive number from a form field (a date as milliseconds), or undefined. */
+const num = (v: FormDataEntryValue | null): number | undefined => {
+  const n = Number(v);
+  return v !== null && String(v).trim() !== '' && Number.isFinite(n) && n > 0 ? Math.floor(n) : undefined;
+};
+
 export async function updateSeason(id: string, formData: FormData) {
   const existing = await getSeason(id);
   if (!existing) return;
 
-  const willBeActive = formData.get('active') === 'true' && existing.status === 'published';
-  if (willBeActive && !existing.active) await setActiveSeason();
+  const wantsActive = formData.get('active') === 'true' && existing.status === 'published';
+  // Switching a different season on goes through activateWithWrapUp (below) so the one it replaces gets its final standings.
+  const willBeActive = wantsActive && existing.active;
 
   await saveSeason({
     ...existing,
@@ -67,7 +75,11 @@ export async function updateSeason(id: string, formData: FormData) {
     collectionName: (formData.get('collectionName') as string).replace(/\s+/g, ''),
     active: willBeActive,
     maxConcurrentPacks: Number(formData.get('maxConcurrentPacks')) || 1,
+    startsAt: num(formData.get('startsAt')),
+    endsAt: num(formData.get('endsAt')),
+    autoStart: formData.get('autoStart') === 'true' && num(formData.get('startsAt')) !== undefined ? true : undefined,
   });
+  if (wantsActive && !existing.active) await activateWithWrapUp(id);
 
   revalidatePath(`/admin/seasons/${id}`);
   revalidatePath('/admin/seasons');
@@ -75,9 +87,11 @@ export async function updateSeason(id: string, formData: FormData) {
 }
 
 export async function activateSeason(id: string) {
-  if ((await getSeason(id))?.status === 'draft') return; // publish it first
-  await setActiveSeason(id);
+  // Wraps up the season it replaces (final standings snapshot, ended, trading frozen) before switching.
+  await requireAdmin();
+  await activateWithWrapUp(id);
   revalidatePath('/admin/seasons');
+  revalidatePath(`/admin/seasons/${id}`);
   revalidatePath('/admin');
 }
 

@@ -16,6 +16,11 @@ function normalizeSeason(raw: unknown): Season {
     createdAt: (s.createdAt as number) ?? Date.now(),
     maxConcurrentPacks: (s.maxConcurrentPacks as number) ?? 1,
     packIds: (s.packIds as string[]) ?? [],
+    ...(typeof s.startsAt === 'number' ? { startsAt: s.startsAt } : {}),
+    ...(typeof s.endsAt === 'number' ? { endsAt: s.endsAt } : {}),
+    ...(s.autoStart === true ? { autoStart: true } : {}),
+    ...(typeof s.endedAt === 'number' ? { endedAt: s.endedAt } : {}),
+    ...(s.tradingFrozen === true ? { tradingFrozen: true } : {}),
   };
 }
 
@@ -70,8 +75,24 @@ export async function getSeason(id: string): Promise<Season | null> {
   return raw ? normalizeSeason(raw) : null;
 }
 
+/** True when a season's start or end time has passed and nothing has acted on it yet (see lib/season-wrap.ts applySeasonSchedule). */
+export function scheduleDue(seasons: Season[], now = Date.now()): boolean {
+  return seasons.some(s => s.status === 'published' && (
+    (!s.active && s.autoStart && !s.endedAt && s.startsAt !== undefined && s.startsAt <= now && (s.endsAt === undefined || s.endsAt > now)) ||
+    (s.active && !s.endedAt && s.endsAt !== undefined && s.endsAt <= now)
+  ));
+}
+
 export async function getActiveSeason(): Promise<Season | null> {
-  const seasons = await listSeasons();
+  let seasons = await listSeasons();
+  // There is no background job: a scheduled start / end is applied the first time anything asks for the active season after it is due.
+  if (scheduleDue(seasons)) {
+    try {
+      const { applySeasonSchedule } = await import('./season-wrap');
+      await applySeasonSchedule();
+      seasons = await listSeasons();
+    } catch { /* scheduling must never break a read */ }
+  }
   return seasons.find(s => s.active && s.status === 'published') ?? null;
 }
 
