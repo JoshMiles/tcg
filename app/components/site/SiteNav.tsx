@@ -145,6 +145,7 @@ export function SiteNav({ user, loginEnabled, rank }: { user: NavUser | null; lo
                   )}
                   <Link role="menuitem" href="/account" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats</Link>
                   <Link role="menuitem" href={`/u/${user.username}`} className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="cards" className="mr-1.5" />My collection</Link>
+                  <Link role="menuitem" href="/settings" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="settings" className="mr-1.5" />Settings</Link>
                   <form action="/auth/logout" method="post" className="contents">
                     <PendingButton role="menuitem" type="submit" className="text-left px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-red-950/40">Log out</PendingButton>
                   </form>
@@ -192,6 +193,7 @@ export function SiteNav({ user, loginEnabled, rank }: { user: NavUser | null; lo
             <>
               <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-yellow-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats ({user.displayName}){rank && <span className="ml-2 text-xs text-gray-400">#{rank.rank} · {rank.score.toLocaleString()} pts</span>}</Link>
               <Link href={`/u/${user.username}`} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="cards" className="mr-1.5" />My collection</Link>
+              <Link href="/settings" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="settings" className="mr-1.5" />Settings</Link>
               <form action="/auth/logout" method="post">
                 <PendingButton type="submit" className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-300 hover:bg-red-950/40">Log out</PendingButton>
               </form>

@@ -1,3 +1,4 @@
+import { getSelfHidden } from './user-settings-store';
 import { kv } from './db';
 import { getCollection, getUserProfile, listSeasons, saveCollection, saveUserProfile, withCollectionLock, deleteUserProfile } from './kv';
 import { recordAudit } from './audit';
@@ -33,11 +34,18 @@ const HIDDEN_KEY = 'users:hidden';
 
 /** Viewers hidden from public rankings. One small array, kept in step by saveFlags. */
 export async function getHiddenUsers(): Promise<Set<string>> {
+  const [admin, self] = await Promise.all([getAdminHidden(), getSelfHidden()]);
+  for (const u of self) admin.add(u);
+  return admin;
+}
+
+/** Only the ones an admin hid (viewers who chose a private profile are tracked separately). */
+async function getAdminHidden(): Promise<Set<string>> {
   try { return new Set((await kv.get<string[]>(HIDDEN_KEY)) ?? []); } catch { return new Set(); }
 }
 
 async function setHidden(username: string, hidden: boolean): Promise<void> {
-  const set = await getHiddenUsers();
+  const set = await getAdminHidden();
   if (hidden) set.add(username); else set.delete(username);
   await kv.set(HIDDEN_KEY, [...set]);
 }

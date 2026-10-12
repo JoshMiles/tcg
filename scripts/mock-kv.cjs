@@ -33,7 +33,7 @@ function run(cmd) {
     case 'lrange': { const l = store.get(key) || []; const [a, b] = rest.map(Number); return l.slice(Number(key === undefined ? 0 : a), b + 1); }
     case 'ltrim': return 'OK';
     case 'sadd': { const s = new Set(store.get(key) || []); rest.forEach(x => s.add(x)); store.set(key, [...s]); return 1; }
-    case 'srem': return 1;
+    case 'srem': { const s = new Set(store.get(key) || []); let n = 0; rest.forEach(x => { if (s.delete(x)) n++; }); store.set(key, [...s]); return n; }
     case 'hset': { const h = store.get(key) || {}; for (let i = 0; i < rest.length; i += 2) h[rest[i]] = rest[i+1]; store.set(key, h); return rest.length / 2; }
     case 'hdel': { const h = store.get(key) || {}; let n = 0; rest.forEach(f => { if (f in h) { delete h[f]; n++; } }); store.set(key, h); return n; }
     case 'hincrby': { const h = store.get(key) || {}; h[rest[0]] = Number(h[rest[0]] || 0) + Number(rest[1]); store.set(key, h); return h[rest[0]]; }

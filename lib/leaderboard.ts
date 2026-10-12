@@ -7,7 +7,10 @@ import { createTtlCache } from './ttl-cache';
 
 /** The set of hidden viewers (KV `users:hidden`, kept by lib/user-admin.ts); read here directly to avoid a circular import. */
 async function getHiddenUsersSafe(): Promise<Set<string>> {
-  try { return new Set((await kv.get<string[]>('users:hidden')) ?? []); } catch { return new Set(); }
+  try {
+    const [admin, self] = await Promise.all([kv.get<string[]>('users:hidden'), kv.smembers('users:hidden:self').catch(() => [] as string[])]);
+    return new Set([...(admin ?? []), ...(self as string[])]);
+  } catch { return new Set(); }
 }
 import type { CardMaths } from './card-maths';
 

@@ -23,6 +23,7 @@ export function ProfileHeader({ b, isOwner, signedIn }: { b: ProfileBase; isOwne
               )}
             </h1>
             <p className="text-sm text-gray-500">@{b.lower}{b.profile?.twitchId && b.profile.twitchId.toLowerCase() !== b.lower ? <span className="text-purple-400"> · Twitch: {b.profile.twitchId}</span> : null}</p>
+            {b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl break-words">{b.bio}</p>}
             {b.awards.length > 0 && (
               <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Season awards">
                 {b.awards.slice(0, 8).map((a, i) => (
@@ -64,6 +65,11 @@ export function ProfileHeader({ b, isOwner, signedIn }: { b: ProfileBase; isOwne
           {isOwner && (
             <Link href="/account" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
               <Icon name="trend" />My stats &amp; upgrades
+            </Link>
+          )}
+          {isOwner && (
+            <Link href="/settings" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
+              <Icon name="settings" />Edit profile &amp; settings
             </Link>
           )}
         </div>

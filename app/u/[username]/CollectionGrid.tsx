@@ -52,13 +52,13 @@ const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0)
 const artFor = (c: GridCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
 
-export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith }: { cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
+export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, defaultHide = true, compact = false }: { /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
   // the server renders the default so there's no flash of ? tiles).
-  const [hideUncollected, setHideUncollected] = useState(true);
+  const [hideUncollected, setHideUncollected] = useState(defaultHide);
   useEffect(() => {
-    try { if (localStorage.getItem('tcg_hide_uncollected') === '0') setHideUncollected(false); } catch { /* storage unavailable */ }
+    try { const v = localStorage.getItem('tcg_hide_uncollected'); if (v === '0') setHideUncollected(false); else if (v === '1') setHideUncollected(true); } catch { /* storage unavailable */ }
   }, []);
   const toggleHide = () => setHideUncollected(h => {
     const next = !h;
@@ -107,7 +107,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         </div>
       )}
 
-      <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-3">
+      <div className={compact ? 'grid grid-cols-4 sm:grid-cols-7 md:grid-cols-10 gap-2' : 'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-3'}>
         {cards.map((card, idx) => {
           const count = totalCopies(card.counts);
           const isOwned = count > 0;

@@ -116,6 +116,11 @@ export default function PrivacyPage() {
             <strong className="text-white">The home page shows recent pulls</strong> (username, card, and when), the top collectors, and season statistics that are built from everyone&rsquo;s collections.
           </li>
           <li>
+            <strong className="text-white">You can step back from the public boards.</strong> Signed in with Twitch, <em>Settings</em> lets you add a short public bio, make your profile private
+            (you are left off the leaderboard, owner lists and recent pulls; your page still opens by link), switch off trade notices or direct offers, and download everything we hold about you.
+            Those choices are stored with your username.
+          </li>
+          <li>
             Pack openings and collection displays are shown <strong className="text-white">live on the streamer&rsquo;s broadcast</strong> with your username, and may be
             saved in VODs and clips.
           </li>

@@ -9,6 +9,9 @@ import { getLiveStatus } from '@/lib/twitch-live';
 import { LiveProvider } from './Live';
 import { getSession, loginConfigured } from '@/lib/session';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+import { getUserSettings } from '@/lib/user-settings-store';
+import { DEFAULT_SETTINGS, hasExperiment } from '@/lib/user-settings';
+import { PublicKeyboard } from './PublicKeyboard';
 import { SandboxPill } from '@/app/components/SandboxPill';
 
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
@@ -17,6 +20,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
   const live = await getLiveStatus().catch(() => null); // cached, so this is normally one KV read
   let user: NavUser | null = null;
   let rank: NavRank | null = null;
+  const prefs = session ? await getUserSettings(session.username) : DEFAULT_SETTINGS;
   if (session) {
     const avatar = (await getAvatars([session.username]))[session.username];
     user = { username: session.username, displayName: session.displayName, avatarUrl: avatar && sizeTwitchAvatar(avatar, 70) };
@@ -33,7 +37,8 @@ export async function SiteShell({ children }: { children: ReactNode }) {
 
   return (
     <LiveProvider initial={live}>
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col" data-motion={prefs.motion}>
+      {hasExperiment(prefs, 'shortcuts') && <PublicKeyboard username={session?.username} />}
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[90] focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       <SandboxPill />
       <SiteNav user={user} loginEnabled={loginConfigured()} rank={rank} />

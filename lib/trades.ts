@@ -1,3 +1,4 @@
+import { getUserSettings } from './user-settings-store';
 import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserProfile, saveCollection, withCollectionLock, withLock } from './kv';
 import { announceTrade, type TradeAction } from './trade-notify';
@@ -193,6 +194,8 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
   // Moderation: a restricted viewer can't make offers, and can't be offered one.
   if (await blocked(from)) return fail(403, 'Trading isn\'t available on your account.');
   if (input.kind === 'direct' && input.to && (await blocked(String(input.to).toLowerCase()))) return fail(403, 'That viewer can\'t take part in trades.');
+  // A viewer can stop taking direct offers (the open board and counter-offers to their own offers still work).
+  if (input.kind === 'direct' && input.to && !counterOf && !(await getUserSettings(String(input.to))).allowOffers) return fail(403, 'That viewer isn\'t taking trade offers right now.');
   if (await tooNew(from, settings)) return fail(403, `Trading opens ${settings.minAccountHours} hours after you first play.`);
 
   const ctx = await seasonContext(input.seasonId);

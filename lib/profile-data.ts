@@ -3,6 +3,7 @@ import { getSeasonLeaderboard, getSeasonLeaderboardCached } from './leaderboard'
 import { getUserAwards } from './season-wrap';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { getHiddenUsers } from './user-admin';
+import { getUserSettings } from './user-settings-store';
 import { countPulls } from './collection';
 import { RARITIES } from './rarity';
 import { VARIANTS, allowedVariants, countVariants, effectiveWeights, emptyCounts, upgradeStep } from './variants';
@@ -29,6 +30,7 @@ export interface ProfileBase {
   rank: number | null;          // 1-based
   row: LeaderboardRow | null;
   awards: Awaited<ReturnType<typeof getUserAwards>>;
+  bio: string;                  // the line they wrote in Settings
   hidden: boolean;              // an admin hid them from public boards (their page still works, but no activity feed)
   uniqueOwned: number;
   total: number;
@@ -41,7 +43,7 @@ export interface ProfileBase {
  * immediately; everyone else gets the shared one.
  */
 export async function loadProfileBase(lower: string, fresh: boolean): Promise<ProfileBase | null> {
-  const [result, profile, hiddenSet] = await Promise.all([getActiveSeasonWithPacks(), getUserProfile(lower), getHiddenUsers().catch(() => new Set<string>())]);
+  const [result, profile, hiddenSet, theirs] = await Promise.all([getActiveSeasonWithPacks(), getUserProfile(lower), getHiddenUsers().catch(() => new Set<string>()), getUserSettings(lower)]);
   if (!result) return null;
   const { season, packs } = result;
   const [avatars, collection, board, awards] = await Promise.all([
@@ -59,7 +61,7 @@ export async function loadProfileBase(lower: string, fresh: boolean): Promise<Pr
   return {
     lower, displayName: profile?.displayName || lower, profile, avatarUrl: avatars[lower] ? sizeTwitchAvatar(avatars[lower], 150) : undefined,
     season, packs, allCards, collection, owned, countMap, variantMap: countVariants(owned), board,
-    rank: idx >= 0 ? idx + 1 : null, row: idx >= 0 ? board.rows[idx] : null, awards, hidden: hiddenSet.has(lower),
+    rank: idx >= 0 ? idx + 1 : null, row: idx >= 0 ? board.rows[idx] : null, awards, bio: theirs.bio, hidden: hiddenSet.has(lower),
     uniqueOwned, total, pct: total > 0 ? Math.round((uniqueOwned / total) * 100) : 0,
     rarity: RARITIES.map(r => {
       const cs = allCards.filter(c => c.stars === r.stars);
