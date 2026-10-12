@@ -170,7 +170,7 @@ export function AssetBrowser({ library }: { library: AssetLibrary }) {
           {onlyIssues || q ? 'Nothing matches the current filters.' : 'No files here yet — they appear once packs and cards use them.'}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
           {visibleAssets.map((asset, i) => (
             <AssetCard key={asset.url + i} asset={asset} copied={copied === asset.url} onCopy={() => copy(asset.url)} />
           ))}

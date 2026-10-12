@@ -38,7 +38,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
   const upgradePacks = (active?.packs ?? []).filter(p => p.pack.upgradesEnabled);
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8">
       <div className="space-y-2">
         <Link href="/admin/sandbox" className="text-sm text-gray-500 hover:text-white">← All sandboxes</Link>
         <div className="flex flex-wrap items-center justify-between gap-3">

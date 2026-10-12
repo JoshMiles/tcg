@@ -18,7 +18,7 @@ export default async function FakeTwitchPage({ params }: { params: Promise<{ id:
   const users = here ? (await listSandboxUsers(id)).map(u => u.username) : [];
 
   return (
-    <div className="space-y-5 max-w-6xl">
+    <div className="space-y-5">
       <div className="space-y-2">
         <Link href={`/admin/sandbox/${id}`} className="text-sm text-gray-500 hover:text-white">← {sandbox.name}</Link>
         <h1 className="text-3xl font-bold text-white">📺 Fake Twitch</h1>
