@@ -208,7 +208,7 @@ export async function updatePack(packId: string, formData: FormData) {
 // One-click Live / Inactive switch (the pack list and the pack page). Drafts can't be switched: they're never drawn.
 export async function setPackActive(packId: string, active: boolean) {
   const existing = await getPack(packId);
-  if (!existing || existing.status === 'draft') return;
+  if (!existing || existing.status === 'draft' || existing.archived) return;
   await savePack({ ...existing, active });
   revalidatePath('/admin/packs');
   revalidatePath(`/admin/packs/${packId}`);

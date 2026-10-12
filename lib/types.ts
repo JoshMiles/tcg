@@ -49,6 +49,9 @@ export interface Pack {
   variantWeights: VariantWeights;
   upgradeCosts: UpgradeCosts;
   disabledVariants?: OptionalVariant[];   // never rolled and skipped by upgrades in this pack
+  /** Retired: hidden from the library and never drawn, but its cards stay (viewer collections point at them). */
+  archived?: boolean;
+  archivedAt?: number;
 }
 
 export interface Card {
