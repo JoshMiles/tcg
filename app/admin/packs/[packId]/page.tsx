@@ -6,6 +6,10 @@ import { getPack, getPackCards, listSeasons } from '@/lib/kv';
 import { getPackOverrides } from '@/lib/overlay-settings';
 import { updatePack, deleteCard, setPackActive, deletePackAction } from '../../actions';
 import { unpublishPack } from '../../draft-actions';
+import { archivePackAction, duplicatePackAction, restorePackAction } from '../../pack-actions';
+import { packHealth } from '@/lib/pack-health';
+import { effectiveWeights } from '@/lib/variants';
+import { OddsPanel } from './OddsPanel';
 import { DraftChip, StatusChip } from '../../components/StatusChip';
 import { CardFilter } from './CardFilter';
 import { PackVariantsPanel, CardToggles, BulkBar } from './VariantControls';
@@ -32,6 +36,8 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
   const moveToDrafts = unpublishPack.bind(null, packId);
 
   const rarityBreakdown = rarityStats(cards);
+  const health = isDraft || pack.archived ? [] : packHealth(pack, cards, { inSeason: inSeasons.length > 0 });
+  const cardWeights = Object.fromEntries(cards.map(c => [c.id, effectiveWeights(pack, c)]));
 
   return (
     <div className="space-y-8">
@@ -47,7 +53,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-bold text-white truncate">{pack.name}</h1>
-                {isDraft ? <DraftChip /> : <StatusChip active={pack.active} />}
+                {pack.archived ? <span className="text-[11px] font-extrabold uppercase tracking-wider rounded-full border border-gray-600 text-gray-400 px-2.5 py-1">Archived</span> : isDraft ? <DraftChip /> : <StatusChip active={pack.active} />}
                 {pack.upgradesEnabled && <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-300 bg-purple-500/10 border border-purple-400/30 rounded-full px-2.5 py-0.5"><Icon name="sparkles" className="mr-1" />Upgrades</span>}
               </div>
               <p className="text-sm text-gray-500 mt-1">{cards.length} cards · Draw weight {pack.weight}×</p>
@@ -56,10 +62,22 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
 
           {/* Quick actions */}
           <div className="flex flex-wrap items-center gap-2">
-            {!isDraft && (
+            {!isDraft && !pack.archived && (
               <form action={setPackActive.bind(null, packId, !pack.active)}>
                 <PendingButton type="submit" className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 transition-colors">
                   {pack.active ? 'Deactivate' : 'Activate'}
+                </PendingButton>
+              </form>
+            )}
+            <form action={duplicatePackAction.bind(null, packId)}>
+              <PendingButton type="submit" pendingLabel="Duplicating…" className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 transition-colors" title="Copy this pack and its cards as a new draft">
+                <Icon name="copy" className="mr-1.5" />Duplicate
+              </PendingButton>
+            </form>
+            {!isDraft && (
+              <form action={(pack.archived ? restorePackAction : archivePackAction).bind(null, packId)}>
+                <PendingButton type="submit" className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 transition-colors" title={pack.archived ? 'Bring it back (inactive)' : 'Retire it: hidden from the library and never drawn; collections keep working'}>
+                  <Icon name={pack.archived ? 'undo' : 'inbox'} className="mr-1.5" />{pack.archived ? 'Restore' : 'Archive'}
                 </PendingButton>
               </form>
             )}
@@ -73,6 +91,12 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
           </div>
         </div>
       </div>
+
+      {pack.archived && (
+        <div className="rounded-xl border border-gray-600/40 bg-gray-800/40 px-5 py-4 text-sm text-gray-300">
+          This pack is <strong>archived</strong>: it is hidden from the library and never drawn. Its cards stay, so viewers&apos; collections keep working. Restore it to bring it back.
+        </div>
+      )}
 
       {isDraft && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
@@ -196,6 +220,26 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
         {/* ── Right: Pack settings ── */}
         <div className="space-y-6">
 
+          {/* Health */}
+          {!isDraft && !pack.archived && (
+            <div id="health" className="tcg-panel rounded-2xl p-5 space-y-3 scroll-mt-20">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                {health.length === 0 ? <Icon name="checkCircle" className="text-emerald-400" /> : <Icon name="warning" className="text-amber-400" />}Pack health
+              </h3>
+              {health.length === 0 ? <p className="text-sm text-gray-500">Nothing to fix: cards, odds and art all look complete.</p> : (
+                <ul className="space-y-2">
+                  {health.map(h => (
+                    <li key={h.id} className="flex items-start gap-2.5 text-sm">
+                      <Icon name={h.level === 'warn' ? 'warning' : 'info'} className={`w-4 h-4 mt-0.5 shrink-0 ${h.level === 'warn' ? 'text-amber-400' : 'text-sky-300'}`} />
+                      <span className="flex-1 text-gray-300 leading-snug">{h.text}</span>
+                      {h.href && <Link href={h.href} className="shrink-0 text-xs font-semibold text-yellow-400 hover:text-yellow-300">Fix →</Link>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           {/* Where it's used */}
           <div className="tcg-panel rounded-2xl p-5 space-y-3">
             <h3 className="text-sm font-semibold text-white">Used in</h3>
@@ -247,7 +291,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
           )}
 
           {/* Settings form */}
-          <div className="tcg-panel rounded-2xl overflow-hidden">
+          <div id="settings" className="tcg-panel rounded-2xl overflow-hidden scroll-mt-20">
             <div className="px-5 py-4 border-b border-gray-800">
               <h3 className="text-sm font-semibold text-white">Pack Settings</h3>
             </div>
@@ -276,6 +320,8 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
           </div>
         </div>
       </div>
+
+      {sorted.length > 0 && <OddsPanel packId={packId} cards={sorted.map(c => ({ id: c.id, number: c.number, name: c.name, stars: c.stars, imageUrl: c.imageUrl, probability: c.probability }))} upgrades={pack.upgradesEnabled} cardWeights={cardWeights} />}
     </div>
   );
 }
