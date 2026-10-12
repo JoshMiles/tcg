@@ -11,6 +11,9 @@ import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { CardMathsPanel } from '@/app/components/CardMathsPanel';
 import type { CardMaths } from '@/lib/card-maths';
+import { DEFAULT_DEX, SORT_LABELS, applyDex, dexProgress, type DexFilter, type DexShow, type DexSort } from '@/lib/dex-view';
+import { ShareImageButton } from '@/app/components/ShareImage';
+import { toggleWantedAction } from './actions';
 
 export interface DexOwner {
   username: string;
@@ -41,6 +44,8 @@ export interface DexCard {
   collectors: number;
   /** Whether the logged-in viewer owns it; undefined when nobody is logged in. */
   owned?: boolean;
+  /** Whether it is on the logged-in viewer's Looking for list. */
+  wanted?: boolean;
   /** The holographic shimmer per variant, from the Overlay Editor's settings for this card's pack. */
   holo: HoloSpecs;
   /** The working behind this card's points, for the Advanced information panel. */
@@ -52,31 +57,32 @@ const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()
 const artFor = (c: DexCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const maskFor = (url: string) => (cardThumbUrl(url) !== url ? `url("${cardThumbUrl(url)}")` : 'none');
 
-type Mine = 'all' | 'collected' | 'missing';
-
-/** Every card in a season, with a rarity filter, name search, and click-through details with the top collectors. */
-export function CardDex({ cards, showMine = false, initialOpenId }: { cards: DexCard[]; showMine?: boolean; initialOpenId?: string }) {
-  const [stars, setStars] = useState<number | null>(null);
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<'number' | 'rarity' | 'value'>('number');
-  const [mine, setMine] = useState<Mine>('all');
+/** Every card in a season, with filters (rarity, pack, collected / missing / wanted / undiscovered), sorting, search and click-through details. */
+export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDefault = false, showMine = false, initialOpenId }: { cards: DexCard[]; seasonId: string; siteHost: string; signedIn?: boolean; compactDefault?: boolean; showMine?: boolean; initialOpenId?: string }) {
+  const [f, setF] = useState<DexFilter>(DEFAULT_DEX);
+  const patch = (p: Partial<DexFilter>) => setF(x => ({ ...x, ...p }));
+  const [compact, setCompact] = useState(compactDefault);
+  const [wantedMap, setWantedMap] = useState<Record<number, boolean>>({});
+  const [wantedError, setWantedError] = useState('');
   const [openId, setOpenId] = useState<string | null>(initialOpenId ?? null); // /cards?card=7 (from search) opens that card
   const opener = useRef<HTMLElement | null>(null);
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = cards.filter(c =>
-      (stars === null || c.stars === stars) &&
-      (!q || c.name.toLowerCase().includes(q)) &&
-      (!showMine || mine === 'all' || (mine === 'collected' ? c.owned : !c.owned)));
-    return list.sort((a, b) =>
-      sort === 'rarity' ? a.pullRate - b.pullRate || a.number - b.number
-      : sort === 'value' ? b.values[0] - a.values[0] || a.number - b.number
-      : a.number - b.number);
-  }, [cards, stars, query, sort, mine, showMine]);
+  const rows = useMemo(() => cards.map(c => ({ ...c, value: c.values[0], wanted: wantedMap[c.number] ?? c.wanted })), [cards, wantedMap]);
+  const shown = useMemo(() => applyDex(rows, f), [rows, f]);
 
   const tiers = RARITIES.filter(r => cards.some(c => c.stars === r.stars));
-  const ownedCount = cards.filter(c => c.owned).length;
+  const packs = [...new Set(cards.map(c => c.packName))];
+  const progress = dexProgress(rows);
+  const wantedCount = rows.filter(c => c.wanted).length;
+  const filtering = f.q !== '' || f.stars !== null || f.pack !== '' || f.show !== 'all' || f.sort !== 'number' || f.dir !== 1;
+
+  async function toggleWanted(c: DexCard) {
+    const now = !(wantedMap[c.number] ?? c.wanted);
+    setWantedMap(m => ({ ...m, [c.number]: now })); // optimistic
+    setWantedError('');
+    const res = await toggleWantedAction(c.number);
+    if (!res.ok) { setWantedMap(m => ({ ...m, [c.number]: !now })); setWantedError(res.error); }
+  }
 
   const openIdx = openId ? shown.findIndex(c => c.id === openId) : -1;
   const close = useCallback(() => { setOpenId(null); opener.current?.focus(); }, []);
@@ -88,45 +94,61 @@ export function CardDex({ cards, showMine = false, initialOpenId }: { cards: Dex
     });
   }, [shown]);
 
+  const select = 'bg-gray-950/80 border border-gray-700 rounded-xl px-2 py-2 text-sm text-gray-200 focus:outline-none focus:border-yellow-500';
   return (
     <div className="space-y-5">
+      {showMine && (
+        <div className="rind rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-2" aria-label="Your progress">
+          <p className="text-sm text-gray-300"><strong className="text-white tabular-nums">{progress.owned}</strong> of <span className="tabular-nums">{progress.total}</span> collected</p>
+          <div className="h-2 w-48 max-w-full rounded-full bg-gray-950 border border-gray-800 overflow-hidden" role="progressbar" aria-valuenow={progress.pct} aria-valuemin={0} aria-valuemax={100}><div className="h-full bg-gradient-to-r from-yellow-300 to-yellow-600" style={{ width: `${progress.pct}%` }} /></div>
+          {wantedCount > 0 && <p className="text-xs text-gray-500">{wantedCount} on your <Link href="/settings#looking-for" className="text-yellow-400 hover:text-yellow-300">Looking for</Link> list</p>}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search cards…"
+          value={f.q}
+          onChange={e => patch({ q: e.target.value })}
+          placeholder="Search name or #"
           aria-label="Search cards"
           className="bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 w-56"
         />
         <div className="flex flex-wrap gap-1.5">
-          <Chip active={stars === null} onClick={() => setStars(null)}>All</Chip>
+          <Chip active={f.stars === null} onClick={() => patch({ stars: null })}>All</Chip>
           {tiers.map(r => (
-            <Chip key={r.stars} active={stars === r.stars} onClick={() => setStars(stars === r.stars ? null : r.stars)} color={r.hex}>
+            <Chip key={r.stars} active={f.stars === r.stars} onClick={() => patch({ stars: f.stars === r.stars ? null : r.stars })} color={r.hex}>
               {'★'.repeat(r.stars)}
             </Chip>
           ))}
         </div>
-        {showMine && (
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Show cards">
-            <Chip active={mine === 'all'} onClick={() => setMine('all')}>Everything</Chip>
-            <Chip active={mine === 'collected'} onClick={() => setMine(mine === 'collected' ? 'all' : 'collected')}>Collected ({ownedCount})</Chip>
-            <Chip active={mine === 'missing'} onClick={() => setMine(mine === 'missing' ? 'all' : 'missing')}>Missing ({cards.length - ownedCount})</Chip>
-          </div>
-        )}
-        <label className="ml-auto flex items-center gap-2 text-xs text-gray-500">
-          Sort
-          <select value={sort} onChange={e => setSort(e.target.value as typeof sort)} className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-200">
-            <option value="number">Card number</option>
-            <option value="rarity">Rarest first</option>
-            <option value="value">Most valuable</option>
+        {packs.length > 1 && (
+          <select value={f.pack} onChange={e => patch({ pack: e.target.value })} aria-label="Pack" className={select}>
+            <option value="">All packs</option>
+            {packs.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
-        </label>
+        )}
+        <select value={f.show} onChange={e => patch({ show: e.target.value as DexShow })} aria-label="Show" className={select}>
+          <option value="all">Everything</option>
+          {showMine && <option value="collected">Collected ({progress.owned})</option>}
+          {showMine && <option value="missing">Missing ({progress.total - progress.owned})</option>}
+          {signedIn && <option value="wanted">Looking for ({wantedCount})</option>}
+          <option value="undiscovered">Nobody has pulled it yet</option>
+        </select>
+        <div className="ml-auto flex items-center gap-2">
+          <select value={f.sort} onChange={e => patch({ sort: e.target.value as DexSort })} aria-label="Sort by" className={select}>
+            {(Object.keys(SORT_LABELS) as DexSort[]).filter(k => k !== 'missing' || showMine).map(k => <option key={k} value={k}>Sort: {SORT_LABELS[k]}</option>)}
+          </select>
+          <button type="button" onClick={() => patch({ dir: f.dir === 1 ? -1 : 1 })} aria-label="Reverse the order" title="Reverse the order" className="rounded-xl border border-gray-700 px-2 py-2 text-gray-300 hover:text-white"><Icon name={f.dir === 1 ? 'arrowDown' : 'arrowUp'} /></button>
+          <button type="button" onClick={() => setCompact(c => !c)} aria-pressed={compact} aria-label="Smaller cards" title="Smaller cards" className={`rounded-xl border px-2 py-2 ${compact ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-300 hover:text-white'}`}><Icon name="grid" /></button>
+          {filtering && <button type="button" onClick={() => setF(DEFAULT_DEX)} className="text-xs text-yellow-400 hover:text-yellow-300">Clear</button>}
+        </div>
       </div>
+      {wantedError && <p role="alert" className="text-sm text-red-400">{wantedError}</p>}
 
       {shown.length === 0 ? (
         <p className="text-center text-gray-500 py-12 text-sm">No cards match.</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className={compact ? 'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-3' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4'}>
           {shown.map(c => {
             const rarity = getRarity(c.stars);
             const tileClass = 'holo-hover relative aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 cursor-pointer transition-transform hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400';
@@ -134,6 +156,8 @@ export function CardDex({ cards, showMine = false, initialOpenId }: { cards: Dex
             const badges = (
               <>
                 <span className="absolute top-1 left-1 bg-gray-950/85 text-gray-300 text-[10px] font-bold px-1.5 rounded-full">#{c.number}</span>
+                {c.wanted && <span className="absolute bottom-1 left-1 bg-purple-500/90 text-white text-[10px] font-extrabold px-1.5 rounded-full" title="On your Looking for list"><Icon name="search" className="w-3 h-3" /></span>}
+                {c.copies === 0 && <span className="absolute bottom-1 right-1 bg-gray-950/85 text-amber-300 text-[10px] font-bold px-1.5 rounded-full" title="Nobody has pulled this yet">unpulled</span>}
                 {c.owned && <span className="absolute top-1 right-1 bg-emerald-500/90 text-gray-950 text-[10px] font-extrabold px-1.5 rounded-full" title="You own this card"><Icon name="check" className="w-3 h-3" /></span>}
               </>
             );
@@ -169,19 +193,33 @@ export function CardDex({ cards, showMine = false, initialOpenId }: { cards: Dex
         </div>
       )}
 
-      {openIdx >= 0 && <DexDetail card={shown[openIdx]} canStep={shown.length > 1} onClose={close} onStep={step} />}
+      {openIdx >= 0 && <DexDetail card={shown[openIdx]} seasonId={seasonId} siteHost={siteHost} signedIn={signedIn} onToggleWanted={toggleWanted} canStep={shown.length > 1} onClose={close} onStep={step} />}
     </div>
   );
 }
 
 // ── Detail dialog ─────────────────────────────────────────
 
-function DexDetail({ card, canStep, onClose, onStep }: { card: DexCard; canStep: boolean; onClose: () => void; onStep: (d: number) => void }) {
+interface FirstCopy { variant: Variant; made: number; id?: string; at?: number; est?: boolean; pulledBy?: string; holder?: string | null }
+
+function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep, onClose, onStep }: { card: DexCard; seasonId: string; siteHost: string; signedIn: boolean; onToggleWanted: (c: DexCard) => void; canStep: boolean; onClose: () => void; onStep: (d: number) => void }) {
   const rarity = getRarity(card.stars);
   const [shown, setShown] = useState<Variant>('regular');
   const closeBtn = useRef<HTMLButtonElement>(null);
 
   useEffect(() => { setShown('regular'); }, [card.id]);
+
+  // The first copy ever made of each version, from the serial ledger (only when the season's copies are tracked).
+  const [firsts, setFirsts] = useState<FirstCopy[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    setFirsts(null);
+    fetch(`/api/dex-card?season=${encodeURIComponent(seasonId)}&card=${card.number}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (live && d?.tracking) setFirsts(d.firsts); })
+      .catch(() => { /* the section just stays hidden */ });
+    return () => { live = false; };
+  }, [seasonId, card.number]);
 
   useEffect(() => {
     closeBtn.current?.focus();
@@ -266,6 +304,41 @@ function DexDetail({ card, canStep, onClose, onStep }: { card: DexCard; canStep:
             </div>
 
             {card.maths && <CardMathsPanel maths={card.maths} variants={rows} shown={shown} />}
+
+            {firsts && firsts.some(x => x.made > 0) && (
+              <div className="space-y-2">
+                <h3 className="font-display text-xl font-bold text-white">First copies</h3>
+                <ul className="divide-y divide-gray-800/70 rounded-xl border border-gray-800 overflow-hidden text-sm">
+                  {firsts.filter(x => x.made > 0).map(x => {
+                    const who = (u?: string | null) => (!u ? null : u === 'private' ? <span className="text-gray-400">a private collector</span> : u === 'offer' ? <span className="text-gray-400">a trade offer</span> : <span className="text-yellow-300 font-bold">@{u}</span>);  // plain text: the whole row is already a link to the copy
+                    return (
+                      <li key={x.variant} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2">
+                        <span className="text-gray-200">{VARIANT_LABELS[x.variant]} <span className="text-gray-500">· {x.made.toLocaleString()} made</span></span>
+                        {x.id ? (
+                          <Link href={`/copy/${encodeURIComponent(seasonId)}/${x.id}`} className="text-xs text-gray-400 hover:text-white">
+                            #1{x.est ? '~' : ''} {x.pulledBy && <>pulled by {who(x.pulledBy)} · </>}{x.at ? new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{x.holder === null ? ' · no longer exists' : x.holder ? <> · held by {who(x.holder)}</> : ''}
+                          </Link>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="text-[11px] text-gray-600">A &ldquo;~&rdquo; means the copy existed before serial numbers and its order is an estimate.</p>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              {signedIn && (
+                <button type="button" onClick={() => onToggleWanted(card)} aria-pressed={!!card.wanted} className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full border px-3 py-1.5 transition-colors ${card.wanted ? 'border-purple-400/60 bg-purple-500/20 text-purple-100' : 'border-white/10 bg-white/[0.06] text-gray-200 hover:bg-white/10'}`}>
+                  <Icon name="search" />{card.wanted ? 'On your Looking for list' : 'Add to Looking for'}
+                </button>
+              )}
+              <ShareImageButton
+                spec={{ title: card.name, subtitle: `${'★'.repeat(card.stars)} ${rarity?.label ?? ''} · ${oneIn(card.pullRate)} per pack`, stats: [`${card.copies.toLocaleString()} out there`, `${card.collectors} collector${card.collectors === 1 ? '' : 's'}`], cards: [{ src: art, name: card.name, hex: rarity?.hex }], footer: siteHost }}
+                filename={`cheesy-tcg-card-${card.number}.png`}
+                label="Share this card"
+              />
+            </div>
 
             {/* Top collectors */}
             <div className="space-y-2">

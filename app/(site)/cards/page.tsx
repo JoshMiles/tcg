@@ -8,6 +8,8 @@ import { getCollection } from '@/lib/kv';
 import { getSession } from '@/lib/session';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { VARIANTS, countVariants, effectiveWeights } from '@/lib/variants';
+import { SITE_URL } from '@/lib/site';
+import { getUserSettings } from '@/lib/user-settings-store';
 import { CardDex, type DexCard } from './CardDex';
 
 export const dynamic = 'force-dynamic';
@@ -46,6 +48,8 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
   // Cards the logged-in viewer owns (for the Collected / Missing filter). Only meaningful for the active season.
   const session = await getSession();
   const mine = session ? new Set(countVariants(collection[session.username] ?? []).keys()) : null;
+  const prefs = session ? await getUserSettings(session.username) : null;
+  const wanted = new Set(prefs?.wanted ?? []);
 
   const holoFor = await getHoloResolver();
   const cards: DexCard[] = overview.cards
@@ -68,6 +72,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
         collectors: owners.get(c.number)?.collectors ?? 0,
         owners: (owners.get(c.number)?.top ?? []).map(o => ({ ...o, avatar: avatars[o.username] ? sizeTwitchAvatar(avatars[o.username], 70) : undefined })),
         owned: mine ? mine.has(c.number) : undefined,
+        wanted: session ? wanted.has(c.number) : undefined,
         holo: holoFor(c.pack, c.stars),
         maths: v?.maths,
       };
@@ -102,7 +107,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
       {cards.length === 0 ? (
         <p className="text-gray-500 text-sm py-10 text-center">This season has no cards yet.</p>
       ) : (
-        <CardDex cards={cards} showMine={!!session && season.active} initialOpenId={cardParam ? cards.find(c => c.number === Number(cardParam))?.id : undefined} />
+        <CardDex cards={cards} seasonId={season.id} siteHost={SITE_URL.replace(/^https?:\/\//, '')} signedIn={!!session} compactDefault={prefs?.compactGrids ?? false} showMine={!!session && season.active} initialOpenId={cardParam ? cards.find(c => c.number === Number(cardParam))?.id : undefined} />
       )}
     </div>
   );
