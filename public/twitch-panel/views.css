@@ -148,3 +148,77 @@ body.view-video .lb-foot { display: none; }
   body.view-video .pack-tab { padding: 2px 8px; }
   body.view-video .panel-footer { padding: 2px 8px; }
 }
+
+/* ═════════════ Panel features in the other two views ═════════════ */
+
+/* Mobile: bigger touch targets for the new controls. */
+body.view-mobile .season-top { margin-bottom: 8px; }
+body.view-mobile .rank-chip { font-size: 12px; padding: 4px 11px; }
+body.view-mobile .grid-tools { padding: 8px 14px 0; }
+body.view-mobile .seg-btn { padding: 8px 0; font-size: 13px; }
+body.view-mobile .panel-banner { padding: 9px 14px; font-size: 13px; }
+body.view-mobile .banner-btn, body.view-mobile .retry-btn { padding: 6px 14px; font-size: 13px; }
+body.view-mobile .tab-dot { top: 10px; }
+body.view-mobile .stat-score-num { font-size: 38px; }
+body.view-mobile .stat-rank { padding: 7px 14px; font-size: 13px; }
+body.view-mobile .stat-rank strong { font-size: 22px; }
+body.view-mobile .stat-next, body.view-mobile .stat-muted { font-size: 13px; }
+body.view-mobile .stat-box { padding: 12px; }
+body.view-mobile .stat-title { font-size: 11px; }
+body.view-mobile .stat-row { font-size: 14px; padding: 7px 0; }
+body.view-mobile .stat-row.total dt, body.view-mobile .stat-row.total dd { font-size: 15px; }
+body.view-mobile .offers-banner { padding: 11px 12px; font-size: 14px; }
+body.view-mobile .ready-row { padding: 8px; }
+body.view-mobile .ready-thumb { width: 30px; }
+body.view-mobile .ready-name { font-size: 14px; }
+body.view-mobile .ready-sub { font-size: 12px; }
+body.view-mobile .serial-chip { font-size: 13px; padding: 3px 10px; }
+body.view-mobile .stat-link { padding: 8px 16px; font-size: 13px; }
+body.view-mobile .detail-facts { font-size: 12px; }
+body.view-mobile .detail-worth { font-size: 14px; }
+body.view-mobile .variant-pts { font-size: 12px; }
+body.view-mobile .serials { max-width: 340px; }
+body.view-mobile .serials-title { font-size: 11px; }
+body.view-mobile .toast { bottom: calc(66px + env(safe-area-inset-bottom)); font-size: 14px; }
+body.view-mobile .lb-rank.medal { width: 26px; height: 26px; line-height: 26px; font-size: 13px; margin: 0 2px; }
+
+/* Video component: keep the new bits small, and drop the secondary ones when space is tight. */
+body.view-video .season-top { margin-bottom: 3px; gap: 4px; }
+body.view-video .rank-chip { font-size: 9px; padding: 1px 6px; }
+body.view-video .grid-tools { padding: 3px 6px 0; }
+body.view-video .seg { border-radius: 6px; }
+body.view-video .seg-btn { padding: 2px 0; font-size: 10px; }
+body.view-video .panel-banner { padding: 3px 8px; font-size: 10px; }
+body.view-video .banner-btn, body.view-video .retry-btn { padding: 1px 8px; font-size: 10px; }
+body.view-video .tab-dot { top: 3px; width: 6px; height: 6px; }
+body.view-video .stat-hero { padding: 0; }
+body.view-video .stat-score-num { font-size: 20px; }
+body.view-video .stat-score-unit { font-size: 9px; }
+body.view-video .stat-rank { padding: 2px 8px; font-size: 10px; }
+body.view-video .stat-rank strong { font-size: 13px; }
+body.view-video .stat-box { padding: 6px; border-radius: 8px; }
+body.view-video .stat-title { font-size: 9px; margin-bottom: 3px; }
+body.view-video .stat-row { font-size: 10px; padding: 2px 0; }
+body.view-video .stat-row.total dt, body.view-video .stat-row.total dd { font-size: 11px; }
+body.view-video .stat-next, body.view-video .stat-muted, body.view-video .stat-links { display: none; }
+body.view-video .offers-banner { padding: 4px 8px; font-size: 10px; }
+body.view-video .ready-row { padding: 2px 4px; }
+body.view-video .ready-thumb { width: 16px; }
+body.view-video .ready-name { font-size: 10px; }
+body.view-video .ready-sub { display: none; }
+body.view-video .serial-chip { font-size: 9px; padding: 0 6px; }
+body.view-video .detail-facts, body.view-video .serials-note { display: none; }
+body.view-video .detail-worth { font-size: 10px; }
+body.view-video .variant-pts { display: none; }
+body.view-video .serials { max-width: 220px; }
+body.view-video .serials-title { font-size: 8px; }
+body.view-video .toast { bottom: 26px; font-size: 10px; padding: 3px 10px; }
+body.view-video .lb-rank.medal { width: 16px; height: 16px; line-height: 16px; font-size: 9px; margin: 0 3px; }
+body.view-video .lb-you { display: none; }
+@media (max-height: 300px) {
+  body.view-video .grid-tools { display: none; }
+  body.view-video .rank-chip { display: none; }
+}
+
+body.view-mobile .login-pitch { max-width: 280px; font-size: 13px; }
+body.view-video .login-pitch { display: none; }

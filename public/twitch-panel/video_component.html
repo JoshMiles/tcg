@@ -35,6 +35,7 @@
       <p class="login-eyebrow">Active Season</p>
       <p class="login-title" id="login-season-name">Card Collection</p>
       <p class="login-sub" id="login-card-count"></p>
+      <p class="login-pitch">See your cards, upgrade duplicates and climb the leaderboard. Only your Twitch name is used.</p>
       <button id="login-btn" class="login-btn">Login with Twitch</button>
       <p class="login-status hidden" id="login-status"></p>
       <p class="login-legal">By logging in you agree to the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
@@ -46,19 +47,27 @@
     <!-- Season header -->
     <div class="season-header" id="collection-season-header"></div>
 
-    <!-- View tabs: collection / leaderboard -->
-    <div class="view-tabs" id="view-tabs">
-      <button class="view-tab active" data-view="collection">Collection</button>
-      <button class="view-tab" data-view="leaderboard">Leaderboard</button>
+    <!-- View tabs: collection / stats / leaderboard -->
+    <div class="view-tabs" id="view-tabs" role="tablist" aria-label="Panel sections">
+      <button class="view-tab active" data-view="collection" role="tab" aria-selected="true">Collection</button>
+      <button class="view-tab" data-view="stats" role="tab" aria-selected="false">Stats<span class="tab-dot hidden" id="stats-dot" title="Trade offers are waiting"></span></button>
+      <button class="view-tab" data-view="leaderboard" role="tab" aria-selected="false">Board</button>
     </div>
 
-    <!-- Pack tabs -->
+    <!-- Problem banner (couldn't load your cards, etc.) -->
+    <div class="panel-banner hidden" id="panel-banner" role="alert"></div>
+
+    <!-- Pack tabs + Have / Missing filter -->
     <div class="pack-tabs" id="pack-tabs"></div>
+    <div class="grid-tools" id="grid-tools"></div>
 
     <!-- Card grid -->
     <div class="grid-area" id="collection-area">
       <div class="card-grid" id="card-grid"></div>
     </div>
+
+    <!-- Stats (built in panel.js) -->
+    <div class="grid-area hidden" id="stats-area"></div>
 
     <!-- Leaderboard (built in panel.js) -->
     <div class="grid-area hidden" id="leaderboard-area"></div>
@@ -86,6 +95,9 @@
       <div class="detail-info" id="detail-info"></div>
     </div>
   </div>
+
+  <!-- "New card" toast (built in panel.js) -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <script src="mock-twitch-ext.js"></script>
