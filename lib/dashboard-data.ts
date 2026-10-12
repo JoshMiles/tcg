@@ -1,5 +1,5 @@
 import { kv } from './db';
-import { getCollection } from './kv';
+import { getCollection, listAllPacks, listSeasons } from './kv';
 import type { Card, Pack, Season } from './types';
 import { DEFAULT_LAYOUT, sanitizeLayout, type DashboardLayout, type WidgetType } from './dashboard';
 import { uniqueCount } from './collection';
@@ -10,7 +10,12 @@ import { getSeasonLeaderboard, type LeaderboardRow, type SeasonValues } from './
 import { listOpenTrades, tradeHistory } from './trades';
 import type { Trade } from './trade-core';
 import { getLiveStatus, type LiveStatus } from './twitch-live';
-import { decodeEntry, emptyCounts, type VariantCounts } from './variants';
+import { allowedVariants, decodeEntry, emptyCounts, type VariantCounts } from './variants';
+import { getOverlayStatus, type OverlayStatus } from './overlay';
+import { getTradeSettings } from './trades';
+import { bucketsFor, getSeries, type Range, type Series } from './stats';
+import { twitchCredentials } from './twitch-helix';
+import { getOverlaySettings } from './overlay-settings';
 
 // Server side of the admin dashboard: where the layout and notes are stored, and the numbers the widgets show.
 // Only what the widgets in the saved layout need is computed (the leaderboard, activity log, trades and live status cost
@@ -44,6 +49,38 @@ export async function saveDashboardNotes(text: string): Promise<void> {
   await kv.set(NOTES_KEY, text.slice(0, 4000));
 }
 
+export interface AttentionItem {
+  id: string;
+  level: 'warn' | 'info';
+  text: string;
+  href?: string;
+  cta?: string;
+}
+
+/** Things worth a look, most urgent first: each is a plain check against data we already keep. */
+async function computeAttention(season: Season, packs: { pack: Pack; cards: Card[] }[], live: LiveStatus | null, overlay: OverlayStatus | null): Promise<AttentionItem[]> {
+  const items: AttentionItem[] = [];
+  const [allPacks, seasons, tradeSettings, open] = await Promise.all([
+    listAllPacks().catch(() => [] as Pack[]), listSeasons().catch(() => [] as Season[]),
+    getTradeSettings().catch(() => null), listOpenTrades().catch(() => [] as Trade[]),
+  ]);
+  if (live?.live && overlay && overlay.connected === 0) items.push({ id: 'overlay-live', level: 'warn', text: 'The channel is live but no overlay is connected, so gifts and pulls will not play.', href: '/admin/settings?tab=overlay', cta: 'Overlay settings' });
+  if (overlay && overlay.queued > 20) items.push({ id: 'queue', level: 'warn', text: `${overlay.queued} events are waiting in the overlay queue.`, href: '/admin#quick-actions', cta: 'Clear queue' });
+  if (packs.length === 0) items.push({ id: 'no-packs', level: 'warn', text: 'This season has no active pack with cards, so nothing can be drawn.', href: `/admin/seasons/${season.id}`, cta: 'Season settings' });
+  const inSeason = new Set(seasons.flatMap(s => s.packIds));
+  const orphans = allPacks.filter(p => p.status === 'published' && !inSeason.has(p.id));
+  if (orphans.length > 0) items.push({ id: 'orphans', level: 'warn', text: `${orphans.length} published pack${orphans.length === 1 ? ' is' : 's are'} not in any season, so can never be drawn: ${orphans.slice(0, 3).map(p => p.name).join(', ')}${orphans.length > 3 ? '…' : ''}`, href: '/admin/packs', cta: 'Packs' });
+  const noFullArt = packs.flatMap(({ pack, cards }) => (pack.upgradesEnabled ? cards.filter(c => !c.fullArtImageUrl && allowedVariants(pack, c).includes('full')) : []));
+  if (noFullArt.length > 0) items.push({ id: 'full-art', level: 'warn', text: `${noFullArt.length} card${noFullArt.length === 1 ? '' : 's'} can be pulled as Full Art / Shiny but ${noFullArt.length === 1 ? 'has' : 'have'} no full-art image (they reuse the normal art).`, href: '/admin/packs', cta: 'Fix in packs' });
+  if (tradeSettings && !tradeSettings.enabled) items.push({ id: 'trading-paused', level: 'info', text: 'Trading is paused: nothing new can be offered or accepted.', href: '/admin/trades', cta: 'Trades' });
+  const soon = open.filter(t => t.expiresAt - Date.now() < 6 * 3_600_000).length;
+  if (soon > 0) items.push({ id: 'expiring', level: 'info', text: `${soon} trade offer${soon === 1 ? '' : 's'} expire${soon === 1 ? 's' : ''} within 6 hours (the cards return to their owners).`, href: '/admin/trades', cta: 'Trades' });
+  const drafts = allPacks.filter(p => p.status === 'draft').length + seasons.filter(s => s.status === 'draft').length;
+  if (drafts > 0) items.push({ id: 'drafts', level: 'info', text: `${drafts} draft pack${drafts === 1 ? '' : 's'} or season${drafts === 1 ? '' : 's'} waiting to be published.`, href: '/admin/packs', cta: 'Review drafts' });
+  if (!twitchCredentials()) items.push({ id: 'twitch', level: 'info', text: 'Twitch credentials are not set, so avatars and the live indicator are switched off.', href: '/admin/settings?tab=viewers', cta: 'Viewer settings' });
+  return items;
+}
+
 export interface DashboardData {
   season: Season;
   packs: { pack: Pack; cards: Card[] }[];
@@ -63,9 +100,20 @@ export interface DashboardData {
   board: { rows: LeaderboardRow[]; values: SeasonValues } | null;
   live: LiveStatus | null;
   notes: string;
+  /** The dashboard's chosen time range, with this period's and the previous period's counters. */
+  range: Range['id'];
+  series: Series | null;
+  prevSeries: Series | null;
+  attention: AttentionItem[];
+  overlay: OverlayStatus | null;
+  /** Events an admin caused (grants, removals, resets, gifts, cancellations), newest first. */
+  adminActions: ActivityEvent[];
+  /** Distinct viewers per day for the last 7 days (oldest first), whatever the chosen range. */
+  dailyViewers: number[];
+  overlaySettings: { livePacksOnly: boolean; liveCollectionsOnly: boolean };
 }
 
-export async function loadDashboardData(season: Season, packs: { pack: Pack; cards: Card[] }[], needs: Set<WidgetType>): Promise<DashboardData> {
+export async function loadDashboardData(season: Season, packs: { pack: Pack; cards: Card[] }[], needs: Set<WidgetType>, range: Range['id'] = '7d'): Promise<DashboardData> {
   const allCards = packs.flatMap(p => p.cards);
   const collection = await getCollection(season.collectionName);
   const users = Object.entries(collection);
@@ -96,16 +144,30 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     .slice(0, 8);
   const cardStats = allCards.map(c => ({ ...c, ownedBy: freq[c.number] ?? 0 })).sort((a, b) => b.stars - a.stars || b.ownedBy - a.ownedBy);
 
-  const wantsActivity = needs.has('activity') || needs.has('pulse');
-  const [avatars, activity, openTrades, history, board, live, notes] = await Promise.all([
+  const wantsActivity = needs.has('activity') || needs.has('pulse') || needs.has('changes');
+  const wantsSeries = needs.has('pulls-chart') || needs.has('pulse') || needs.has('viewers') || needs.has('progress') || needs.has('economy');
+  const wantsLive = needs.has('live') || needs.has('attention');
+  const wantsOverlay = needs.has('attention') || needs.has('overlay-controls');
+  const { starts, step } = bucketsFor(range, season.createdAt);
+  const span = step === 'hour' ? 3_600_000 : 86_400_000;
+  const [avatars, activity, openTrades, history, board, live, notes, series, prevSeries, overlay] = await Promise.all([
     needs.has('top-collectors') || needs.has('leaderboard') ? getAvatars(topCollectors.map(c => c.username)) : Promise.resolve({}),
     wantsActivity ? getActivity({ limit: 500 }).then(r => r.events).catch(() => []) : Promise.resolve([] as ActivityEvent[]),
     needs.has('trades') ? listOpenTrades().catch(() => [] as Trade[]) : Promise.resolve(null),
     needs.has('trades') ? tradeHistory().catch(() => [] as Trade[]) : Promise.resolve(null),
     needs.has('leaderboard') || needs.has('valuable') ? getSeasonLeaderboard(season).catch(() => null) : Promise.resolve(null),
-    needs.has('live') ? getLiveStatus().catch(() => null) : Promise.resolve(null),
+    wantsLive ? getLiveStatus().catch(() => null) : Promise.resolve(null),
     needs.has('notes') ? getDashboardNotes() : Promise.resolve(''),
+    wantsSeries ? getSeries(season.collectionName, starts, step) : Promise.resolve(null),
+    wantsSeries ? getSeries(season.collectionName, starts.map(s => s - starts.length * span), step) : Promise.resolve(null),
+    wantsOverlay ? getOverlayStatus().catch(() => null) : Promise.resolve(null),
   ]);
+  const [dailySeries, overlaySettings] = await Promise.all([
+    needs.has('viewers') ? getSeries(season.collectionName, bucketsFor('7d', season.createdAt).starts, 'day') : Promise.resolve(null),
+    needs.has('overlay-controls') ? getOverlaySettings().catch(() => null) : Promise.resolve(null),
+  ]);
+  const attention = needs.has('attention') ? await computeAttention(season, packs, live, overlay) : [];
+  const adminActions = activity.filter(e => (e.type === 'grant' && e.source === 'admin') || e.type === 'remove' || e.type === 'reset' || e.type === 'delete' || (e.type === 'trigger' && e.source === 'admin') || (e.type === 'trade' && e.by === 'admin')).slice(0, 12);
 
   const trades = openTrades && history
     ? {
@@ -121,5 +183,31 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     avatars: avatars as Record<string, string | undefined>,
     rarityDist: rarityStats(allCards),
     variantCounts, activity, trades, board: board ? { rows: board.rows, values: board.values } : null, live, notes,
+    range, series, prevSeries, attention, overlay, adminActions,
+    dailyViewers: dailySeries?.viewers ?? [],
+    overlaySettings: { livePacksOnly: !!overlaySettings?.livePacksOnly, liveCollectionsOnly: !!overlaySettings?.liveCollectionsOnly },
   };
+}
+
+// ── Presets: named layouts the admin can switch between ──
+const PRESETS_KEY = 'admin:dashboard:presets';
+export interface DashboardPreset { name: string; layout: DashboardLayout }
+const PRESET_CAP = 12;
+
+export async function getDashboardPresets(): Promise<DashboardPreset[]> {
+  try {
+    const stored = await kv.get<DashboardPreset[]>(PRESETS_KEY);
+    return (stored ?? []).filter(p => p && typeof p.name === 'string').map(p => ({ name: p.name, layout: sanitizeLayout(p.layout) }));
+  } catch {
+    return [];
+  }
+}
+
+export async function saveDashboardPreset(name: string, layout: DashboardLayout): Promise<void> {
+  const rest = (await getDashboardPresets()).filter(p => p.name !== name);
+  await kv.set(PRESETS_KEY, [{ name, layout }, ...rest].slice(0, PRESET_CAP));
+}
+
+export async function deleteDashboardPreset(name: string): Promise<void> {
+  await kv.set(PRESETS_KEY, (await getDashboardPresets()).filter(p => p.name !== name));
 }
