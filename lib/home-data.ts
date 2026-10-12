@@ -40,3 +40,37 @@ export function seasonCountdown(endsAt: number | undefined, now = Date.now()): s
   const days = Math.ceil(hours / 24);
   return `Ends in ${days} day${days === 1 ? '' : 's'}`;
 }
+
+// ── recent pulls (the home feed) ──
+
+export interface PullItem {
+  seq: number;
+  username: string;
+  cardNumber: number;
+  cardName: string;
+  stars: number;
+  variant?: 'regular' | 'reverse' | 'full' | 'shiny';
+  at: number;
+  thumb?: string;
+  hex?: string;
+  /** A pull worth a second look: Shiny, Full Art or a 5-star card. */
+  notable: boolean;
+}
+
+/** Why a pull stands out (the chip text), or null for an ordinary one. */
+export function notableReason(p: { variant?: string; stars: number }): string | null {
+  if (p.variant === 'shiny') return 'Shiny';
+  if (p.variant === 'full') return 'Full Art';
+  if (p.stars >= 5) return '5★';
+  return null;
+}
+
+/** "just now", "3m ago", "2h ago", "4d ago". */
+export function agoShort(at: number, now = Date.now()): string {
+  const s = Math.max(0, Math.round((now - at) / 1000));
+  if (s < 45) return 'just now';
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
+}

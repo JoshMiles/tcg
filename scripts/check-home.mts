@@ -17,4 +17,7 @@ eq(h.seasonCountdown(now - 1, now), 'Ended', 'past end date');
 eq(h.seasonCountdown(now + 90 * 60_000, now), 'Ends in 2 hours', 'under a day is in hours');
 eq(h.seasonCountdown(now + 3_600_000, now), 'Ends in 1 hour', 'singular hour');
 eq(h.seasonCountdown(now + 49 * 3_600_000, now), 'Ends in 3 days', 'days round up');
+
+eq([h.notableReason({ variant: 'shiny', stars: 1 }), h.notableReason({ variant: 'full', stars: 1 }), h.notableReason({ variant: 'regular', stars: 5 }), h.notableReason({ variant: 'reverse', stars: 3 }), h.notableReason({ stars: 2 })], ['Shiny', 'Full Art', '5★', null, null], 'which pulls stand out');
+eq([h.agoShort(now, now), h.agoShort(now - 3 * 60_000, now), h.agoShort(now - 5 * 3_600_000, now), h.agoShort(now - 3 * 86_400_000, now)], ['just now', '3m ago', '5h ago', '3d ago'], 'short ago text');
 console.log('home checks passed');
