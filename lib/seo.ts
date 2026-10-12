@@ -19,7 +19,7 @@ export const INDEXED_PATHS: { path: string; priority: number; changeFrequency: '
 ];
 
 /** Pages that exist but must stay out of search (signed-in, admin, utility). Anything not here or in INDEXED_PATHS fails the check. */
-export const NOINDEX_PATHS = ['/account', '/trade', '/trade/new', '/auth/error', '/login', '/admin'];
+export const NOINDEX_PATHS = ['/account', '/settings', '/trade', '/trade/new', '/auth/error', '/login', '/admin'];
 
 export interface SitemapEntry { url: string; lastModified?: Date; changeFrequency: 'hourly' | 'daily' | 'weekly' | 'monthly'; priority: number }
 

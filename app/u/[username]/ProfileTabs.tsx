@@ -33,7 +33,7 @@ const Empty = ({ icon, title, children }: { icon: Parameters<typeof Icon>[0]['na
 );
 
 /** The card grid, with the rarity tiles above it. Click a collected card for its details. */
-export function CollectionTab({ b, grid, isOwner, tradeWith }: { b: ProfileBase; grid: GridCard[]; isOwner: boolean; tradeWith?: string }) {
+export function CollectionTab({ b, grid, isOwner, tradeWith, prefs }: { b: ProfileBase; grid: GridCard[]; isOwner: boolean; tradeWith?: string; prefs?: { hideUncollected: boolean; compactGrids: boolean } }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   if (b.allCards.length === 0) return <Empty icon="cards" title="No cards in this season yet">Check back once packs are added.</Empty>;
   return (
@@ -47,7 +47,7 @@ export function CollectionTab({ b, grid, isOwner, tradeWith }: { b: ProfileBase;
           </div>
         ))}
       </div>
-      <CollectionGrid cards={grid} totalScore={b.row?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} ownerName={b.displayName} tradeWith={tradeWith} />
+      <CollectionGrid cards={grid} totalScore={b.row?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} ownerName={b.displayName} tradeWith={tradeWith} defaultHide={prefs?.hideUncollected ?? true} compact={prefs?.compactGrids ?? false} />
     </div>
   );
 }

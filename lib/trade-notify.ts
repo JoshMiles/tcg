@@ -1,4 +1,6 @@
 import { kv } from './db';
+import { getUserSettings } from './user-settings-store';
+import { wantsNotice } from './user-settings';
 import { getSeason } from './kv';
 import { recordActivity } from './activity';
 import { getSeasonOverview } from './site-data';
@@ -21,6 +23,7 @@ export type TradeAction = 'offered' | 'countered' | 'accepted' | 'declined' | 'c
 export async function notify(username: string, notice: Omit<Notice, 'id' | 'at'>): Promise<void> {
   try {
     const user = username.toLowerCase();
+    if (!wantsNotice(await getUserSettings(user), notice.kind)) return; // the viewer switched this kind of notice off
     const full: Notice = { ...notice, id: Math.random().toString(36).slice(2, 10), at: Date.now() };
     await kv.lpush(noticesKey(user), full);
     await kv.ltrim(noticesKey(user), 0, NOTICE_CAP - 1);
