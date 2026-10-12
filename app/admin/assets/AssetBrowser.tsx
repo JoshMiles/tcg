@@ -11,6 +11,8 @@ import { UnusedPanel } from './UnusedPanel';
 import { IssueChips, KIND_LABEL, SizeBar, assetTitle, filename, formatBytes, isFixable } from './asset-ui';
 import { keyOf } from './replace-key';
 import { useReplace } from './useReplace';
+import { useOptimise } from './useOptimise';
+import { BITRATES, DEFAULT_MP3, type Mp3Options } from '@/lib/audio-encode';
 import { useSlashFocus } from '../components/use-slash-focus';
 
 export type AssetTab = AssetKind | 'unused' | 'insights';
@@ -43,6 +45,8 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
   const [summary, setSummary] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const rep = useReplace();
+  const opt = useOptimise();
+  const [mp3, setMp3] = useState<Mp3Options>(DEFAULT_MP3);
 
   useEffect(() => { try { const v = localStorage.getItem('tcg_assets_view'); if (v === 'grid' || v === 'list' || v === 'compact') setView(v); } catch { /* optional */ } }, []);
   useEffect(() => setOnlyIssues(!!issuesOnly), [issuesOnly]);
@@ -115,6 +119,18 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
 
   return (
     <div className="space-y-5">
+      {opt.summary && (
+        <div role="status" className="rounded-xl border border-green-500/30 bg-green-950/30 text-green-300 px-4 py-2.5 text-sm flex items-center gap-2">
+          <Icon name="check" />{opt.summary}
+          <button onClick={opt.clearSummary} className="ml-auto text-xs opacity-70 hover:opacity-100">Dismiss</button>
+        </div>
+      )}
+      {opt.progress && (
+        <div className="tcg-panel rounded-xl px-4 py-3 space-y-2" role="status">
+          <p className="text-sm text-gray-200"><Icon name="zap" className="mr-1.5 text-yellow-400" />Optimising {opt.progress.what} {opt.progress.done + 1} of {opt.progress.total}…<span className="text-gray-500"> keep this page open.</span></p>
+          <SizeBar value={opt.progress.done + 0.5} max={opt.progress.total} />
+        </div>
+      )}
       {(summary || rep.error) && (
         <div role="status" className={`rounded-xl border px-4 py-2.5 text-sm flex items-center gap-2 ${rep.error ? 'border-red-500/30 bg-red-950/30 text-red-300' : 'border-green-500/30 bg-green-950/30 text-green-300'}`}>
           <Icon name={rep.error ? 'warning' : 'check'} />{rep.error ?? summary}
@@ -145,6 +161,24 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
               </button>
               <button onClick={() => setSelected(new Set(visible.filter(a => a.issues.length > 0).map(a => a.id)))} className="px-3 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors">Select flagged</button>
               <div className="ml-auto flex items-center gap-2">
+                {kindTab === 'pack-cover' && visible.length > 0 && (
+                  <button onClick={() => opt.optimiseCovers(visible)} disabled={!!fixing || !!opt.progress} title="Re-encode every cover as a WebP at the standard width; covers that are already small are left alone"
+                    className="px-3 py-2 text-sm font-bold rounded-xl bg-yellow-500/10 border border-yellow-400/30 text-yellow-200 hover:bg-yellow-500/20 disabled:opacity-50 transition-colors">
+                    <Icon name="zap" className="mr-1.5" />Optimise covers ({visible.length})
+                  </button>
+                )}
+                {kindTab === 'sound' && visible.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <select value={mp3.kbps} onChange={e => setMp3({ ...mp3, kbps: Number(e.target.value) })} aria-label="Sound quality" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-none focus:border-yellow-500">
+                      {BITRATES.map(b => <option key={b} value={b}>{b} kbps</option>)}
+                    </select>
+                    <label className="flex items-center gap-1.5 text-sm text-gray-300"><input type="checkbox" checked={mp3.mono} onChange={e => setMp3({ ...mp3, mono: e.target.checked })} className="accent-yellow-500" />Mono</label>
+                    <button onClick={() => opt.optimiseSounds(visible, mp3)} disabled={!!fixing || !!opt.progress} title="Re-encode every sound as an MP3 in your browser; a sound is only replaced when the new file is at least 15% smaller"
+                      className="px-3 py-2 text-sm font-bold rounded-xl bg-yellow-500/10 border border-yellow-400/30 text-yellow-200 hover:bg-yellow-500/20 disabled:opacity-50 transition-colors">
+                      <Icon name="zap" className="mr-1.5" />Optimise sounds ({visible.length})
+                    </button>
+                  </div>
+                )}
                 {flaggedFixable.length > 0 && (
                   <button onClick={() => runFix(flaggedFixable)} disabled={!!fixing} className="px-3 py-2 text-sm font-bold rounded-xl bg-yellow-500/10 border border-yellow-400/30 text-yellow-200 hover:bg-yellow-500/20 disabled:opacity-50 transition-colors">
                     <Icon name="wrench" className="mr-1.5" />Fix all ({flaggedFixable.length})
@@ -171,14 +205,14 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
         <div className="tcg-panel rounded-2xl overflow-hidden divide-y divide-gray-800/60">
           {visible.map(a => (
             <AssetRow key={a.id} asset={a} maxBytes={maxBytes} selected={selected.has(a.id)} onToggle={() => toggle(a.id)} onOpen={() => setOpenId(a.id)}
-              busy={fixing?.current === a.id || rep.busy === a.id} onDropFile={f => rep.replace(a, f)} />
+              busy={fixing?.current === a.id || opt.progress?.current === a.id || rep.busy === a.id} onDropFile={f => rep.replace(a, f)} />
           ))}
         </div>
       ) : (
         <div className={`grid ${GRID[view]}`}>
           {visible.map(a => (
             <AssetTile key={a.id} asset={a} compact={view === 'compact'} selected={selected.has(a.id)} onToggle={() => toggle(a.id)} onOpen={() => setOpenId(a.id)}
-              busy={fixing?.current === a.id || rep.busy === a.id} onDropFile={f => rep.replace(a, f)} />
+              busy={fixing?.current === a.id || opt.progress?.current === a.id || rep.busy === a.id} onDropFile={f => rep.replace(a, f)} />
           ))}
         </div>
       )}
@@ -197,6 +231,7 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
           onCopy={() => copy(open.url)} copied={copied === open.url}
           onFix={() => runFix([open])} fixing={fixing?.current === open.id} fixNote={notes[open.id] ?? null}
           onReplace={f => rep.replace(open, f)} replacing={rep.busy === open.id} replaceError={rep.error}
+          onOptimiseCover={() => opt.optimiseCovers([open])} optimising={opt.progress?.current === open.id} optNote={opt.notes[open.id] ?? null}
         />
       )}
     </div>

@@ -24,3 +24,14 @@ export function toThumb(input: Input): Promise<Buffer> {
     .webp({ quality: THUMB_QUALITY, effort: 4 })
     .toBuffer();
 }
+
+export const COVER_WIDTH = 640;     // a pack cover is drawn ~290px wide (up to 3x per pack on the overlay); 640 covers retina
+export const COVER_QUALITY = 82;
+
+/** Pack cover → WebP at the standard width (animated covers stay animated; transparency is kept). */
+export function toCover(input: Input): Promise<Buffer> {
+  return sharp(input, { animated: true })
+    .resize({ width: COVER_WIDTH, withoutEnlargement: true })
+    .webp({ quality: COVER_QUALITY, effort: 5, smartSubsample: true })
+    .toBuffer();
+}
