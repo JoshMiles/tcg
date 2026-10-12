@@ -26,7 +26,7 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
   const escrowed = open.filter(t => t.escrowed).reduce((n, t) => n + t.give.reduce((m, i) => m + i.count, 0), 0);
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white">Trades</h1>
         <p className="text-sm text-gray-500 mt-0.5">Viewer-to-viewer card trading on the website. Offered cards are held in escrow until the offer ends.</p>

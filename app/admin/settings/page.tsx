@@ -47,7 +47,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const bonusAtFull = board ? collectionBonuses(board.values, board.values.totalCards) : null;
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-sm text-gray-500 mt-0.5">{TABS.find(t => t.id === tab)?.hint}</p>

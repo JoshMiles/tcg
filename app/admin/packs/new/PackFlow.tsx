@@ -143,7 +143,7 @@ export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput;
   const wide = step === 'cards' || step === 'review';
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>

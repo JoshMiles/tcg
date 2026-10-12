@@ -24,7 +24,7 @@ export default async function EditCardPage({
   const updateThisCard = updateCard.bind(null, packId, cardId);
 
   return (
-    <div className="max-w-lg space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Edit Card</h1>
         <Link href={`/admin/packs/${packId}`} className="text-sm text-gray-500 hover:text-white transition-colors">
@@ -32,7 +32,7 @@ export default async function EditCardPage({
         </Link>
       </div>
 
-      <form action={updateThisCard} className="tcg-panel rounded-xl p-6 space-y-4">
+      <form action={updateThisCard} className="tcg-panel rounded-xl p-6 grid gap-4 xl:grid-cols-2 items-start">
         <Field label="Card Number" name="number" type="number" defaultValue={String(card.number)} required />
         <Field label="Name" name="name" defaultValue={card.name} required />
         <ImageUploadField name="imageUrl" defaultValue={card.imageUrl} />
@@ -54,7 +54,7 @@ export default async function EditCardPage({
           <Field label="Stars (1–5)" name="stars" type="number" defaultValue={String(card.stars)} required />
           <Field label="Probability" name="probability" type="number" defaultValue={String(card.probability)} required />
         </div>
-        <div className="pt-2">
+        <div className="pt-2 xl:col-span-2">
           <PendingButton
             type="submit"
             className="px-5 py-2 tcg-btn rounded-lg text-sm transition-colors"

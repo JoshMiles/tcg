@@ -28,7 +28,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
   const addPack = addPackToSeason.bind(null, id);
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-8">
       {/* Season settings */}
       <div>
         <div className="flex items-center justify-between mb-4">

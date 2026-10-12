@@ -13,7 +13,7 @@ export default async function SandboxPage() {
   const active = sandboxes.find(s => s.id === activeId);
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white">🧪 Sandbox</h1>
         <p className="text-sm text-gray-500 mt-0.5">A private copy of the app to test upgrades, trades and anything risky, without touching production.</p>

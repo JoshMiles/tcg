@@ -17,7 +17,7 @@ export default async function ActivityPage() {
   );
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-white">Live Activity</h1>
         <p className="text-sm text-gray-500 mt-0.5">Pulls, grants, resets and stream triggers as they happen</p>
