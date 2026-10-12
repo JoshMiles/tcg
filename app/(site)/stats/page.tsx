@@ -1,7 +1,12 @@
 import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getActive, getSeasonOverview, computeStats } from '@/lib/site-data';
+import { getActive, getSeasonOverview, computeStats, ownersByCard } from '@/lib/site-data';
+import { getCollection } from '@/lib/kv';
+import { getHiddenUsers } from '@/lib/user-admin';
+import { bucketsFor, getSeries, sum } from '@/lib/stats';
+import { CardTable, type StatCard } from './CardTable';
+import { PullsChart } from './PullsChart';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { cardThumbUrl } from '@/lib/card-art';
 import { getRarity } from '@/lib/rarity';
@@ -27,6 +32,22 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const s = computeStats(overview);
   const maxRarityCopies = Math.max(1, ...s.rarity.map(r => r.copies));
 
+  // Per-card collectors (those an admin hid or who went private are left out, like everywhere public) and pulls per day.
+  const [collection, hidden] = await Promise.all([getCollection(season.collectionName), getHiddenUsers().catch(() => new Set<string>())]);
+  const owners = ownersByCard(collection, overview.values, 1, hidden);
+  const statCards: StatCard[] = overview.cards.map(c => ({
+    number: c.number, name: c.name, stars: c.stars, hex: getRarity(c.stars)?.hex ?? '#9ca3af', label: getRarity(c.stars)?.label ?? '',
+    thumb: c.imageUrl ? cardThumbUrl(c.imageUrl) : undefined, copies: overview.values.cards.get(c.number)?.copies ?? 0, collectors: owners.get(c.number)?.collectors ?? 0,
+  }));
+  // The whole season (at most 90 days), but never fewer than a week so a young season doesn't draw two giant bars.
+  const endAt = season.endedAt ?? Date.now();
+  const whole = bucketsFor('season', season.startsAt ?? season.createdAt, endAt);
+  const { starts, step } = whole.starts.length < 7 ? bucketsFor('7d', 0, endAt) : whole;
+  const series = await getSeries(season.collectionName, starts, step);
+  const pulls = series.data.pull;
+  const dayLabels = starts.map(t => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }));
+  const hasSeries = sum(pulls) > 0;
+
   const tiles = [
     { label: 'Collectors', value: s.collectors.toLocaleString(), sub: 'on the board' },
     { label: 'Cards out there', value: s.totalCopies.toLocaleString(), sub: 'total copies pulled' },
@@ -40,7 +61,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
     <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
       <div className="space-y-3">
         <h1 className="font-display text-4xl font-bold text-white"><Icon name="chart" className="mr-2 text-yellow-400" />Season stats</h1>
-        <p className="text-sm text-gray-400">{season.name}{season.active ? ' · live' : ''}</p>
+        <p className="text-sm text-gray-400">{season.name}{season.endedAt ? ' · ended' : season.active ? ' · in progress' : ''} · <Link href={`/leaderboard/${season.id}`} className="text-yellow-400 hover:text-yellow-300">Leaderboard →</Link></p>
         {seasons.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {seasons.map(x => (
@@ -105,36 +126,18 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
           )}
         </section>
 
-        <CardList title="Most pulled" items={s.mostPulled} />
-        <CardList title="Least pulled" items={s.leastPulled} />
+        {hasSeries && (
+          <section className="rind rounded-2xl p-5 space-y-3 lg:col-span-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-display text-xl font-bold text-white">Pulls per day</h2>
+              <p className="text-xs text-gray-500">{sum(pulls).toLocaleString()} pulls counted{series.since ? ` since ${new Date(series.since).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</p>
+            </div>
+            <PullsChart labels={dayLabels} values={pulls} />
+          </section>
+        )}
+
+        <CardTable cards={statCards} collectors={s.collectors} />
       </div>
     </div>
-  );
-}
-
-function CardList({ title, items }: { title: string; items: { card: { id: string; number: number; name: string; imageUrl: string; stars: number }; copies: number }[] }) {
-  return (
-    <section className="rind rounded-2xl p-5 space-y-3">
-      <h2 className="font-display text-xl font-bold text-white">{title}</h2>
-      {items.length === 0 ? <p className="text-sm text-gray-500">No cards yet.</p> : (
-        <ul className="divide-y divide-gray-800/70">
-          {items.map(({ card, copies }) => {
-            const rarity = getRarity(card.stars);
-            return (
-              <li key={card.id} className="py-2 flex items-center gap-3">
-                {card.imageUrl ? (
-                  <img src={cardThumbUrl(card.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} />
-                ) : <span className="w-8 h-11 rounded bg-gray-800" />}
-                <span className="flex-1 min-w-0">
-                  <span className="block text-sm font-semibold text-white truncate">{card.name}</span>
-                  <span className="block text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(card.stars)} {rarity?.label}</span>
-                </span>
-                <span className="text-sm text-gray-400 tabular-nums">{copies.toLocaleString()} cop{copies === 1 ? 'y' : 'ies'}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
   );
 }
