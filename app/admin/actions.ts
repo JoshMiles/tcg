@@ -456,6 +456,7 @@ export async function saveOutgoingWebhook(
   event: 'cardPulled' | 'collectionShown',
   formData: FormData,
 ) {
+  await requireAdmin();
   const settings = await getWebhookSettings();
   settings.outgoing[event] = {
     url:     (formData.get('url') as string) || '',
@@ -464,13 +465,16 @@ export async function saveOutgoingWebhook(
   };
   await saveWebhookSettings(settings);
   revalidatePath('/admin/settings');
+  redirect('/admin/settings?tab=webhooks&saved=webhook');
 }
 
 export async function regenerateWebhookSecret() {
+  await requireAdmin();
   const settings = await getWebhookSettings();
   settings.incomingSecret = randomBytes(16).toString('hex');
   await saveWebhookSettings(settings);
   revalidatePath('/admin/settings');
+  redirect('/admin/settings?tab=webhooks&saved=webhook-secret');
 }
 
 // ── Overlay settings ──────────────────────────────────────
@@ -479,6 +483,7 @@ export async function regenerateWebhookSecret() {
 
 /** Saves the scoring settings. Values are clamped to their allowed ranges (see lib/scoring.ts), never rejected. */
 export async function saveScoringSettingsAction(formData: FormData) {
+  await requireAdmin();
   const raw: Record<string, FormDataEntryValue | null> = {};
   for (const key of Object.keys(DEFAULT_SCORING)) raw[key] = formData.get(key);
   await saveScoringSettings(sanitizeScoring(raw));
@@ -489,6 +494,7 @@ export async function saveScoringSettingsAction(formData: FormData) {
 }
 
 export async function resetScoringSettingsAction() {
+  await requireAdmin();
   await resetScoringSettings();
   revalidatePath('/admin/settings');
   revalidatePath('/admin');
@@ -496,6 +502,7 @@ export async function resetScoringSettingsAction() {
 }
 
 export async function saveOverlaySettingsAction(formData: FormData) {
+  await requireAdmin();
   const current = await getOverlaySettings();
   await saveOverlaySettings({
     ...current,
