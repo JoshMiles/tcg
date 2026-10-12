@@ -11,7 +11,7 @@ import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Trade' };
+export const metadata: Metadata = { title: 'Trade', description: 'Swap cards with other collectors.', robots: { index: false, follow: true } };
 
 const user = (name: string) => (
   <Link href={`/collection/${name}`} className="text-yellow-300 hover:text-yellow-200 font-bold">@{name}</Link>

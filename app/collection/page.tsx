@@ -1,6 +1,9 @@
 import { PendingButton } from '../admin/components/PendingButton';
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { BrandMark } from '../admin/components/BrandMark';
+
+export const metadata: Metadata = { title: 'Collections', description: 'Look up any viewer\'s card collection on The Cheesy TCG.' };
 
 export default function CollectionLanding() {
   async function goToCollection(formData: FormData) {

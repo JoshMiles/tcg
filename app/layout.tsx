@@ -1,16 +1,25 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Fredoka, Nunito } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
+import { SITE_DESCRIPTION, SITE_NAME } from '@/lib/seo';
+import { SITE_URL } from '@/lib/site';
 
 const display = Fredoka({ subsets: ['latin'], variable: '--font-display', weight: ['500', '600', '700'] });
 const body = Nunito({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {
-  title: { default: 'The Cheesy TCG', template: '%s · The Cheesy TCG' },
-  description: 'A cheesy collectible card game played live on the Cheesygidds Twitch channel. Pull cards, collect every variant, climb the leaderboard.',
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  // Link previews (Discord, Twitter, iMessage...). Pages inherit these; the share image is app/opengraph-image.tsx.
+  openGraph: { type: 'website', siteName: SITE_NAME },
+  twitter: { card: 'summary_large_image' },
 };
+
+export const viewport: Viewport = { themeColor: '#0a0f1e', colorScheme: 'dark' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

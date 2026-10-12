@@ -3,7 +3,7 @@ import { LegalPage, Section, List } from '@/app/components/LegalPage';
 import { APP_NAME, CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
 import { CHANNEL_NAME } from '@/lib/site';
 
-export const metadata: Metadata = { title: `Privacy Policy · ${APP_NAME}` };
+export const metadata: Metadata = { title: 'Privacy Policy', description: 'What The Cheesy TCG collects, how it is used and your choices.' };
 
 export default function PrivacyPage() {
   return (
