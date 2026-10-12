@@ -27,7 +27,7 @@ export function UpgradeButton({
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
   const can = have >= cost;
-  const [ceremony, setCeremony] = useState<{ to: Variant; cost: number } | null>(null);
+  const [ceremony, setCeremony] = useState<{ to: Variant; cost: number; serial?: number; mult?: number } | null>(null);
 
   async function go(e: React.MouseEvent) {
     e.stopPropagation();
@@ -43,7 +43,7 @@ export function UpgradeButton({
       if (!res.ok) throw new Error(body.error || `Upgrade failed (${res.status})`);
       setState('done');
       // The server says where the upgrade really went (a switched-off variant is skipped) and what it cost.
-      if (card) setCeremony({ to: (body.to as Variant) ?? to, cost: typeof body.cost === 'number' ? body.cost : cost });
+      if (card) setCeremony({ to: (body.to as Variant) ?? to, cost: typeof body.cost === 'number' ? body.cost : cost, serial: typeof body.serial === 'number' ? body.serial : undefined, mult: typeof body.serialMult === 'number' ? body.serialMult : undefined });
       else router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upgrade failed');
@@ -72,6 +72,8 @@ export function UpgradeButton({
           from={from}
           to={ceremony.to}
           cost={ceremony.cost}
+          serial={ceremony.serial}
+          serialMult={ceremony.mult}
           gain={gain}
           holo={holo}
           // The page refreshes when the animation closes: the row being upgraded may disappear, which would cut it short.

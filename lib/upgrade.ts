@@ -1,10 +1,13 @@
 import { getSeason, getPacksForSeason, getPackCards, withCollectionLock, getCollection, saveCollection } from './kv';
+import { lastSerial } from './serials';
+import { getScoringSettings } from './scoring';
+import { serialMultiplier } from './scoring-core';
 import { recordActivity } from './activity';
 import type { Variant } from './types';
 import { VARIANT_LABELS, encodeEntry, removeEntries, upgradeStep, upgradesAllowed } from './variants';
 
 export type UpgradeResult =
-  | { ok: true; owned: number[]; cardName: string; from: Variant; to: Variant; cost: number }
+  | { ok: true; owned: number[]; cardName: string; from: Variant; to: Variant; cost: number; /** The serial the new copy got (null before the season's copies are numbered) and its points multiplier. */ serial: number | null; serialMult: number }
   | { ok: false; status: number; error: string };
 
 /**
@@ -57,7 +60,9 @@ export async function upgradeCard(opts: {
     const updated = [...remaining, encodeEntry(cardNumber, to)];
     data[username] = updated;
     await saveCollection(season.collectionName, data, { upgrade: { user: username, spent: fromEntry, count: cost, made: encodeEntry(cardNumber, to) } });
-    return { ok: true, owned: updated, cardName: card.name, from, to, cost };
+    const serial = await lastSerial(season.collectionName, encodeEntry(cardNumber, to));
+    const mult = serial ? serialMultiplier(serial, await getScoringSettings()) : 1;
+    return { ok: true, owned: updated, cardName: card.name, from, to, cost, serial, serialMult: Math.round(mult * 100) / 100 };
   });
 
   if (result.ok) {

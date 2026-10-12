@@ -8,6 +8,9 @@ import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
 import { EVENT_LABELS, ORIGIN_LABELS, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
 import { getHiddenUsers } from '@/lib/user-admin';
+import { copyPoints, getSeasonLeaderboardCached } from '@/lib/leaderboard';
+import { serialMultiplier } from '@/lib/scoring-core';
+import { SerialChip } from '@/app/components/SerialChip';
 import { getHoloResolver } from '@/lib/holo';
 import { holoClass, holoVars } from '@/lib/holo-core';
 import { getRarity } from '@/lib/rarity';
@@ -46,7 +49,11 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
   const d = await load(decodeURIComponent(seasonId), copyId);
   if (!d) notFound();
   const { season, copy, pack, card } = d;
-  const [hidden, minted, holoFor] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName), getHoloResolver()]);
+  const [hidden, minted, holoFor, board] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName), getHoloResolver(), getSeasonLeaderboardCached(season).catch(() => null)]);
+  // What this very copy is worth: its card's points times the bonus its number earns.
+  const cv = board?.values.cards.get(copy.card);
+  const mult = board ? serialMultiplier(copy.n, board.values.settings) : 1;
+  const worth = cv && board ? copyPoints(cv, copy.variant, copy.n, board.values.settings) : null;
 
   // Collectors who chose a private profile (or an admin hid) are not named here either.
   const who = (name?: string) => {
@@ -82,11 +89,19 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
             <p className="text-xs text-gray-500">#{card.number} · {pack.name} · {season.name}</p>
             <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">{label}</h1>
             <p className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="font-display text-4xl font-bold text-yellow-400 tabular-nums">#{copy.n}</span>
+              <span className="font-display text-5xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.n}</span>
               <span className="text-sm text-gray-400">of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span>
               {copy.est && <span title="This copy existed before serials. Numbers within a version were assigned afterwards, so the order is an estimate." className="text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}
             </p>
           </div>
+
+          {worth !== null && !gone && (
+            <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-4 gap-y-1 ${mult > 1 ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
+              <SerialChip n={copy.n} bonus={mult > 1 ? Math.round(mult * 100) / 100 : undefined} est={copy.est} className="text-sm !px-3 !py-1" />
+              <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{worth.toLocaleString()} pts</strong>{cv && worth !== cv.values[copy.variant] ? <span className="text-gray-500"> instead of {cv.values[copy.variant].toLocaleString()}</span> : null}</span>
+              <span className="text-xs text-gray-500">{mult > 1 ? `Its number earns a ×${Math.round(mult * 100) / 100} points bonus: the first copies ever made of a card are worth extra.` : 'No bonus: only the first copies ever made of a card earn one.'}</span>
+            </div>
+          )}
 
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3"><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{gone ? 'Status' : 'Held by'}</dt><dd className="mt-0.5 text-gray-200">{gone ? 'No longer exists' : who(copy.owner)}</dd></div>

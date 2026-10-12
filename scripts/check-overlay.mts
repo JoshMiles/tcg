@@ -72,6 +72,47 @@ await runInSandbox(box.id, async () => {
   await settings.setSeasonLook(season.id, preset.id);
   await settings.deletePreset(preset.id);
   ok((await settings.getSeasonLookPreset(season.id)) === null, 'a deleted preset resolves to nothing');
+
+  // ── Scenes: a preset with its own layout has its own overlay URL (?preset=<id>) ──
+  {
+    const { sceneLayout, isVertical } = await import('../lib/overlay-layout');
+    const vertical = sceneLayout('vertical');
+    ok(isVertical(vertical) && vertical.width === 1080 && vertical.height === 1920, 'a vertical scene starts from a 1080 x 1920 stage');
+    eq(sceneLayout('landscape', { ...DEFAULT_LAYOUT, width: 1920, height: 1080 }).width, 1920, 'a landscape scene copies the layout it is based on');
+
+    const id = (await settings.savePreset('Vertical', { 'collection.perRow': 4 }, vertical))!;
+    ok(!!id, 'a scene is saved and its id returned');
+    let scene = (await settings.getPreset(id))!;
+    eq(scene.layout, vertical, 'the scene keeps its own layout');
+    // Saving the same name again without a layout keeps the layout it had.
+    await settings.savePreset('Vertical', { 'collection.perRow': 3 });
+    scene = (await settings.getPreset(id))!;
+    ok(scene.layout?.height === 1920 && scene.props['collection.perRow'] === 3, 'saving a preset again keeps its layout');
+    // Editing the scene stores overrides even when they equal the default (they must beat a global value that is not the default).
+    await settings.saveOverlaySettings({ ...(await settings.getOverlaySettings()), props: { 'collection.cardWidth': 90 } });
+    await settings.updateScene(id, { props: { 'collection.cardWidth': 48 }, layout: { ...vertical, pack: { scale: 1.3, offsetX: 0, offsetY: -50 } } });
+    scene = (await settings.getPreset(id))!;
+    eq(scene.props['collection.cardWidth'], 48, 'a scene override equal to the default survives');
+    eq(scene.layout?.pack, { scale: 1.3, offsetX: 0, offsetY: -50 }, 'updateScene stores the new layout');
+    ok(!(await settings.updateScene('nope', { props: {} })), 'updating a scene that does not exist does nothing');
+
+    // The overlay's config: global by default, the scene's layout and values on top with ?preset=.
+    const { NextRequest } = await import('next/server');
+    const { GET } = await import('../app/api/overlay/config/route');
+    const cfg = async (q = '') => (await (await GET(new NextRequest('http://localhost/api/overlay/config' + q))).json()) as { layout: { width: number; height: number }; props: Record<string, unknown> };
+    const globalCfg = await cfg();
+    ok(globalCfg.layout.width === DEFAULT_LAYOUT.width && globalCfg.props['collection.cardWidth'] === 90, 'no preset: the global layout and look');
+    const sceneCfg = await cfg('?preset=' + id);
+    ok(sceneCfg.layout.width === 1080 && sceneCfg.layout.height === 1920, 'with ?preset: the scene layout');
+    ok(sceneCfg.props['collection.cardWidth'] === 48, "with ?preset: the scene's values win over the global ones");
+    eq((await cfg('?preset=unknown')).layout.width, DEFAULT_LAYOUT.width, 'an unknown preset id falls back to the global overlay');
+    // A preset without a layout uses the global layout.
+    const plain = (await settings.savePreset('Plain look', { 'collection.gap': 20 }))!;
+    eq((await cfg('?preset=' + plain)).layout.width, DEFAULT_LAYOUT.width, 'a preset without its own layout uses the global layout');
+    await settings.deletePreset(id); await settings.deletePreset(plain);
+    await settings.saveOverlaySettings({ ...(await settings.getOverlaySettings()), props: {} });
+  }
+
 });
 ok(JSON.stringify(await prodKv.get('overlay:versions')) === prodBefore, 'production versions untouched by the sandbox');
 await sbx.deleteSandbox(box.id);

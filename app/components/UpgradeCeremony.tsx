@@ -31,9 +31,9 @@ const artFor = (card: CeremonyCard, v: Variant) => ((v === 'full' || v === 'shin
  * Click, tap, Enter or Escape to continue (it also closes by itself). Reduced motion skips the movement and shows the result.
  */
 export function UpgradeCeremony({
-  card, from, to, cost, gain, holo, onClose,
+  card, from, to, cost, gain, holo, serial, serialMult, onClose,
 }: {
-  card: CeremonyCard; from: Variant; to: Variant; cost: number; gain?: number;
+  card: CeremonyCard; from: Variant; to: Variant; cost: number; gain?: number; /** The serial the new copy got, and its points multiplier. */ serial?: number; serialMult?: number;
   /** The card's holographic shimmer per variant, from the Overlay Editor settings (see lib/holo.ts). */
   holo?: HoloSpecs;
   onClose: () => void;
@@ -107,6 +107,7 @@ export function UpgradeCeremony({
           <p className="ug-title">Upgraded!</p>
           <p className="ug-card-name">{card.name}</p>
           <p className="ug-pill" style={{ background: PILL[to] }}>{VARIANT_LABELS[to]}</p>
+          {serial ? <p className={`ug-serial${(serialMult ?? 1) > 1 ? ' bonus' : ''}${serial === 1 ? ' first' : ''}`}>#{serial}{serial === 1 ? ' · the first ever' : (serialMult ?? 1) > 1 ? ` · ×${serialMult} points` : ''}</p> : null}
           <p className="ug-sub">{cost}× {VARIANT_LABELS[from]} → 1 {VARIANT_LABELS[to]}{typeof gain === 'number' && <span className={gain >= 0 ? 'ug-gain' : 'ug-loss'}> · {gain >= 0 ? '+' : '−'}{Math.abs(gain).toLocaleString()} pts</span>}</p>
           <p className="ug-hint">{canClose ? 'Tap anywhere to continue' : ' '}</p>
         </div>

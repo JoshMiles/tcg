@@ -333,6 +333,17 @@ function renderGrid() {
         cell.appendChild(mark);
       }
 
+      // The lowest serial number held of the version shown (gold when it earns a points bonus); needs /api/twitch/me.
+      if (ownedActive) {
+        const held = heldSerials(card.number, status.best);
+        if (held.length) {
+          const n = held[0];
+          const sm = el('div', 'serial-mark' + (serialMult(n) > 1 ? ' bonus' : '') + (n === 1 ? ' first' : ''), '#' + n);
+          sm.title = 'Serial #' + n + (serialMult(n) > 1 ? ' (x' + serialMult(n).toFixed(2) + ' points)' : '');
+          cell.appendChild(sm);
+        }
+      }
+
       // Season badge for past-season-only cards
       if (!ownedActive && ownedPast.length > 0) {
         const badge = document.createElement('div');
@@ -605,7 +616,7 @@ document.addEventListener('keydown', e => {
 // whether upgrades are on, whether the viewer has enough); this just reports the outcome.
 // The upgrade moment (mirrors app/components/UpgradeCeremony.tsx; styles are the .ug-* rules in panel.css): the spent copies
 // spiral into the middle, a flash, then the new variant is revealed with its holo / glow. Tap or Esc to continue.
-function playUpgradeCeremony(card, from, to, cost) {
+function playUpgradeCeremony(card, from, to, cost, serial, serialMult) {
   const artFor = v => ((v === 'full' || v === 'shiny') && card.fullArtImageUrl
     ? { imageUrl: card.fullArtImageUrl, thumbUrl: card.fullArtThumbUrl || card.fullArtImageUrl }
     : { imageUrl: card.imageUrl, thumbUrl: card.thumbUrl || card.imageUrl });
@@ -675,6 +686,7 @@ function playUpgradeCeremony(card, from, to, cost) {
   line('ug-card-name', card.name);
   const pill = line('ug-pill', VARIANT_LABELS[to]);
   pill.style.background = PILL[to] || PILL.reverse;
+  if (serial) line('ug-serial' + (serialMult > 1 ? ' bonus' : '') + (serial === 1 ? ' first' : ''), '#' + serial + (serial === 1 ? ' \u00b7 the first ever' : serialMult > 1 ? ' \u00b7 \u00d7' + serialMult + ' points' : ''));
   line('ug-sub', cost + '\u00d7 ' + VARIANT_LABELS[from] + ' \u2192 1 ' + VARIANT_LABELS[to]);
   const hint = line('ug-hint', '\u00a0');
 
@@ -712,7 +724,7 @@ async function upgrade(card, from, btn) {
       upgradeMsg = 'Upgraded to ' + VARIANT_LABELS[detailVariant] + '!';
       renderSeasonHeader('collection-season-header');
       renderGrid();
-      playUpgradeCeremony(card, from, detailVariant, body.cost || 0);
+      playUpgradeCeremony(card, from, detailVariant, body.cost || 0, body.serial || 0, body.serialMult || 1);
       loadMe(true); // the new copy has a serial and the score moved
     } else {
       upgradeMsg = body.error || 'Upgrade failed (' + res.status + ')';
@@ -992,6 +1004,7 @@ async function loadMe(fresh) {
   }
   document.getElementById('stats-dot').classList.toggle('hidden', !(me.offers > 0));
   renderSeasonHeader('collection-season-header');
+  renderGrid(); // the serial marks on the tiles
   if (currentView === 'stats') renderStats();
   if (detailIdx !== -1) renderDetail();
 }

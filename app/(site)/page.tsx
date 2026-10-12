@@ -177,60 +177,65 @@ export default async function HomePage() {
         )}
 
         {season && overview && (
-          <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8">
+          <div className="space-y-6">
+            <ul className="flex flex-wrap gap-2 text-xs" aria-label="Season snapshot">
+              <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.rows.length}</strong> collector{overview.rows.length === 1 ? '' : 's'}</li>
+              <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.rows.reduce((n, r) => n + r.copies, 0).toLocaleString()}</strong> cards pulled</li>
+              <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.values.totalCards}</strong> cards to find</li>
+              {countdown && !season.endedAt && <li className="rounded-full border border-yellow-500/30 bg-yellow-500/5 px-3 py-1 text-yellow-300">{countdown}</li>}
+            </ul>
+            <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8">
 
-            {/* ── Top 5 ── */}
-            <section className="space-y-4">
-              <ul className="flex flex-wrap gap-2 text-xs" aria-label="Season snapshot">
-                <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.rows.length}</strong> collector{overview.rows.length === 1 ? '' : 's'}</li>
-                <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.rows.reduce((n, r) => n + r.copies, 0).toLocaleString()}</strong> cards pulled</li>
-                <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.values.totalCards}</strong> cards to find</li>
-                {countdown && !season.endedAt && <li className="rounded-full border border-yellow-500/30 bg-yellow-500/5 px-3 py-1 text-yellow-300">{countdown}</li>}
-              </ul>
-              <div className="flex items-end justify-between">
-                <h2 className="font-display text-3xl font-bold text-white">Top collectors</h2>
-                <Link href={`/leaderboard/${season.id}`} className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold">Full leaderboard →</Link>
-              </div>
-              {top.length === 0 ? (
-                <p className="rind rounded-2xl p-6 text-sm text-gray-400">No one is on the board yet — be the first!</p>
-              ) : (
-                <ol className="space-y-2">
-                  {top.map((r, i) => (
-                    <li key={r.username}>
-                      <Link href={profileHref(r.username)} className={`rind rounded-xl px-4 py-3 flex items-center gap-4 hover:brightness-125 transition ${session?.username === r.username ? 'ring-2 ring-yellow-500/70' : ''}`}>
-                        <span className="w-8 text-center font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>
-                        <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
-                        <span className="flex-1 min-w-0">
-                          <span className="block font-semibold text-white truncate">{r.username}</span>
-                          <span className="block text-xs text-gray-500">{r.uniqueCards}/{overview.values.totalCards} cards</span>
-                        </span>
-                        <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums">{r.score.toLocaleString()}</span>
-                      </Link>
-                    </li>
-                  ))}
-                  {standing && standing.rank > top.length && (
-                    <li>
-                      <Link href={profileHref(session!.username)} className="rind rounded-xl px-4 py-3 flex items-center gap-4 ring-2 ring-yellow-500/70 hover:brightness-125 transition">
-                        <span className="w-8 text-center font-bold text-yellow-300 tabular-nums">#{standing.rank}</span>
-                        <Avatar src={avatars[session!.username] && sizeTwitchAvatar(avatars[session!.username], 70)} name={session!.displayName} className="w-9 h-9 text-sm" />
-                        <span className="flex-1 min-w-0"><span className="block font-semibold text-white truncate">You</span><span className="block text-xs text-gray-500">{standing.uniqueCards}/{standing.totalCards} cards</span></span>
-                        <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums">{standing.score.toLocaleString()}</span>
-                      </Link>
-                    </li>
-                  )}
-                </ol>
-              )}
-            </section>
+              {/* ── Top 5 ── */}
+              <section className="space-y-4">
+                <div className="flex items-end justify-between">
+                  <h2 className="font-display text-3xl font-bold text-white">Top collectors</h2>
+                  <Link href={`/leaderboard/${season.id}`} className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold">Full leaderboard →</Link>
+                </div>
+                {top.length === 0 ? (
+                  <p className="rind rounded-2xl p-6 text-sm text-gray-400">No one is on the board yet — be the first!</p>
+                ) : (
+                  <ol className="space-y-2">
+                    {top.map((r, i) => (
+                      <li key={r.username}>
+                        <Link href={profileHref(r.username)} className={`rind rounded-xl px-4 py-3 flex items-center gap-4 hover:brightness-125 transition ${session?.username === r.username ? 'ring-2 ring-yellow-500/70' : ''}`}>
+                          <span className="w-8 text-center font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>
+                          <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
+                          <span className="flex-1 min-w-0">
+                            <span className="block font-semibold text-white truncate">{r.username}</span>
+                            <span className="block text-xs text-gray-500">{r.uniqueCards}/{overview.values.totalCards} cards</span>
+                          </span>
+                          <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums">{r.score.toLocaleString()}</span>
+                        </Link>
+                      </li>
+                    ))}
+                    {standing && standing.rank > top.length && (
+                      <li>
+                        <Link href={profileHref(session!.username)} className="rind rounded-xl px-4 py-3 flex items-center gap-4 ring-2 ring-yellow-500/70 hover:brightness-125 transition">
+                          <span className="w-8 text-center font-bold text-yellow-300 tabular-nums">#{standing.rank}</span>
+                          <Avatar src={avatars[session!.username] && sizeTwitchAvatar(avatars[session!.username], 70)} name={session!.displayName} className="w-9 h-9 text-sm" />
+                          <span className="flex-1 min-w-0"><span className="block font-semibold text-white truncate">You</span><span className="block text-xs text-gray-500">{standing.uniqueCards}/{standing.totalCards} cards</span></span>
+                          <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums">{standing.score.toLocaleString()}</span>
+                        </Link>
+                      </li>
+                    )}
+                  </ol>
+                )}
+              </section>
 
-            {/* ── Recent pulls ── */}
-            <section className="space-y-4">
-              <h2 className="font-display text-3xl font-bold text-white">Recent pulls</h2>
-              <RecentPulls
-                initial={recent}
-                empty={<p className="rind rounded-2xl p-6 text-sm text-gray-400">Nothing pulled yet this season. Packs are opened live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 font-semibold">{CHANNEL_NAME}&rsquo;s stream</a>, and every pull shows up here.</p>}
-              />
-              <p className="text-[11px] text-gray-600">Pulls are shown live on stream, so they&rsquo;re public here too. See the <Link href="/privacy" className="underline hover:text-gray-400">Privacy Policy</Link>.</p>
-            </section>
+              {/* ── Recent pulls ── */}
+              <section className="space-y-4">
+                <div className="flex items-end justify-between">
+                  <h2 className="font-display text-3xl font-bold text-white">Recent pulls</h2>
+                  <Link href="/stats" className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold">Season stats →</Link>
+                </div>
+                <RecentPulls
+                  initial={recent}
+                  empty={<p className="rind rounded-2xl p-6 text-sm text-gray-400">Nothing pulled yet this season. Packs are opened live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 font-semibold">{CHANNEL_NAME}&rsquo;s stream</a>, and every pull shows up here.</p>}
+                />
+                <p className="text-[11px] text-gray-600">Pulls are shown live on stream, so they&rsquo;re public here too. See the <Link href="/privacy" className="underline hover:text-gray-400">Privacy Policy</Link>.</p>
+              </section>
+            </div>
           </div>
         )}
 

@@ -55,6 +55,9 @@ export interface PullItem {
   hex?: string;
   /** A pull worth a second look: Shiny, Full Art or a 5-star card. */
   notable: boolean;
+  /** The serial number the copy got, and its points multiplier when above 1. */
+  serial?: number;
+  bonus?: number;
 }
 
 /** Why a pull stands out (the chip text), or null for an ordinary one. */

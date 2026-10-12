@@ -3,6 +3,7 @@ import { getActiveSeason, getPackCards, listAllPacks, listSeasons } from '@/lib/
 import { getOverlaySettings, getPackOverrides, getSeasonLooks, listPresets } from '@/lib/overlay-settings';
 import { listVersions } from '@/lib/overlay-versions';
 import { saveOverlayEditorAction, saveOverlayPresetAction, deleteOverlayPresetAction } from '../actions';
+import { SITE_URL } from '@/lib/site';
 import { OverlayEditor } from './OverlayEditor';
 
 export const metadata = { title: 'Overlay Editor · Admin', robots: { index: false } };
@@ -12,6 +13,7 @@ const SAVED_MESSAGES: Record<string, string> = {
   saved: 'Overlay saved. Use Refresh overlay (or refresh the OBS source) to see it on stream.',
   'saved-reload': 'Overlay saved. Connected overlays are refreshing themselves.',
   preset: 'Preset saved.',
+  scene: 'Scene created. Set its size and position under Layout, then copy its URL from Scenes into the OBS browser source.',
   'preset-deleted': 'Preset deleted.',
 };
 
@@ -59,6 +61,7 @@ export default async function OverlayEditorPage({ searchParams }: { searchParams
           seasonLooks={seasonLooks}
           packCards={packCards}
           initialAutoReload={overlay.autoReload}
+          siteUrl={SITE_URL}
         />
       </div>
     </div>

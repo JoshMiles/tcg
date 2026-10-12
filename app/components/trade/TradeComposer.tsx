@@ -187,6 +187,7 @@ export function TradeComposer({
       <div className="grid gap-6 lg:grid-cols-2">
         <Side
           title="You give"
+          pool={minePool}
           hint="From your collection. These leave it (held in escrow) until the offer ends."
           cards={giveCards}
           items={give}
@@ -201,6 +202,7 @@ export function TradeComposer({
         />
         <Side
           title="You want"
+          pool={kind === 'direct' ? partnerPool : undefined}
           hint={kind === 'direct' ? (partner ? `Cards ${to} has.` : 'Find their cards first.') : 'Any card, in any version it can be.'}
           cards={getCards}
           items={get}
@@ -244,8 +246,10 @@ export function TradeComposer({
 
 /** One side of the offer: the selected stacks on top, a searchable card picker below. */
 function Side({
-  title, hint, cards, items, avail, byNumber, onAdd, onAdjust, points, maxStacks, empty, spareOf,
+  title, hint, cards, items, avail, byNumber, onAdd, onAdjust, points, maxStacks, empty, spareOf, pool,
 }: {
+  /** The serial numbers these stacks would come from (the newest move first), shown on each stack. */
+  pool?: SerialPool;
   title: string; hint: string; cards: TradeCardInfo[]; items: TradeItem[]; avail: (n: number, v: Variant) => number;
   byNumber: Record<number, TradeCardInfo>; onAdd: (n: number, v: Variant) => void; onAdjust: (item: TradeItem, delta: number) => void;
   points: number; maxStacks: number; empty: string;
@@ -267,7 +271,7 @@ function Side({
         <ul className="space-y-1.5">
           {items.map(item => (
             <li key={`${item.cardNumber}:${item.variant}`} className="flex items-center justify-between gap-2">
-              <TradeStacks items={[{ ...item, count: 1 }]} cards={byNumber} />
+              <TradeStacks items={[item]} cards={byNumber} pool={pool} hideCount />
               <span className="flex items-center gap-1.5 shrink-0">
                 <button type="button" aria-label="One fewer" onClick={() => onAdjust(item, -1)} className="w-7 h-7 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500">−</button>
                 <span className="w-6 text-center text-sm font-bold text-yellow-300 tabular-nums">{item.count}</span>

@@ -192,6 +192,7 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.gotColor', group: 'pack', label: '"got:" pill colour', type: 'color', default: '#f1bb06' },
   { key: 'reveal.gotTextColor', group: 'pack', label: '"got:" text colour', type: 'color', default: '#fffefe' },
   { key: 'reveal.showLabel', group: 'pack', label: 'Label above the card', type: 'boolean', default: true, help: 'The tag: "new", or the version name.' },
+  { key: 'reveal.showSerial', group: 'pack', label: 'Serial number on the card', type: 'boolean', default: true, help: 'The number this copy got ("#7": the 7th of that card and version ever made), with its points bonus when it is one of the first copies. Needs the season\'s copies to be numbered.' },
   { key: 'reveal.labelOwned', group: 'pack', label: 'Label for a card they already own', type: 'text', default: '', maxLength: 30, help: 'Regular pulls say "new" even when it is a duplicate. Put a word here (e.g. "again") to use it for cards the viewer already has. Empty keeps the normal label.' },
   { key: 'reveal.showInfoBar', group: 'pack', label: 'Name and stars bar', type: 'boolean', default: true, help: 'The card name and star rating at the bottom of the card.' },
   { key: 'reveal.showGotLine', group: 'pack', label: '"… got:" line', type: 'boolean', default: true },
@@ -255,7 +256,7 @@ function sectionFor(key: string): string {
   const r: [RegExp, string][] = [
     [/^reveal.(style|speed|startDelay|packScale|packSounds)$/, 'Animation'],
     [/^reveal.cardScale$/, 'Card'],
-    [/^reveal.(showLabel|labelSize|labelOwned)$/, 'Label'],
+    [/^reveal.(showLabel|labelSize|labelOwned|showSerial)$/, 'Label'],
     [/^reveal.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
     [/^reveal.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],
     [/^reveal.(showMiniList|showUncollectedStrip|stripShowCounts|stripShowMarkers)$/, 'Cards under the card'],

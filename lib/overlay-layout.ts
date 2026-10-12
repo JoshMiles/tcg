@@ -36,6 +36,25 @@ export const LAYOUT_PRESETS: { label: string; width: number; height: number }[] 
   { label: '1600 × 900', width: 1600, height: 900 },
 ];
 
+/** Portrait stages for vertical scenes (a phone-shaped OBS canvas, Shorts / TikTok style). */
+export const VERTICAL_LAYOUT_PRESETS: { label: string; width: number; height: number }[] = [
+  { label: '1080 × 1920', width: 1080, height: 1920 },
+  { label: '720 × 1280', width: 720, height: 1280 },
+  { label: '1080 × 1350', width: 1080, height: 1350 },
+];
+
+/** Taller than wide. */
+export const isVertical = (l: { width: number; height: number }) => l.height > l.width;
+
+/**
+ * A starting layout for a new scene. A vertical stage gets the cards shown a little smaller than the landscape default and
+ * centred in the taller frame (the admin fine-tunes with the Layout tools); landscape copies the layout it is based on.
+ */
+export function sceneLayout(kind: 'landscape' | 'vertical', base: OverlayLayout = DEFAULT_LAYOUT): OverlayLayout {
+  if (kind === 'landscape') return sanitizeLayout(base);
+  return sanitizeLayout({ width: 1080, height: 1920, pack: { scale: 1.15, offsetX: 0, offsetY: 0 }, collection: { scale: 1, offsetX: 0, offsetY: 0 } });
+}
+
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 const num = (v: unknown, fallback: number) => {
   const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;

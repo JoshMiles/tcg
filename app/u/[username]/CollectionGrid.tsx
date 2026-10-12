@@ -2,6 +2,7 @@
 import { Icon } from '@/app/components/Icon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
+import { SerialChip } from '@/app/components/SerialChip';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
@@ -44,7 +45,7 @@ export interface GridCard {
   /** The holographic shimmer per variant, from the Overlay Editor's settings for this card's pack. */
   holo: HoloSpecs;
   /** This viewer's numbered copies of the card (only when the season's copies are tracked). */
-  copies?: { id: string; variant: Variant; n: number; est?: boolean }[];
+  copies?: { id: string; variant: Variant; n: number; est?: boolean; /** Points multiplier when the number earns a bonus. */ m?: number; /** What this copy is worth. */ p?: number }[];
   /** The working behind this card's points, for the Advanced information panel. */
   maths?: CardMaths;
 }
@@ -170,6 +171,8 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           const rarity = getRarity(card.stars);
           const best = bestVariant(card.counts);
           const art = artFor(card, best);
+          // The lowest-numbered copy of the version shown on the tile.
+          const lowest = (card.copies ?? []).filter(c => c.variant === best).sort((a, b) => a.n - b.n)[0];
           const variantSummary = VARIANTS.filter(v => v !== 'regular' && card.counts[v] > 0)
             .map(v => `${VARIANT_LABELS[v]} ×${card.counts[v]}`).join(', ');
           const title = isOwned
@@ -195,6 +198,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
                   ×{count}
                 </div>
               )}
+              {isOwned && lowest && <SerialChip n={lowest.n} bonus={lowest.m} est={lowest.est} className="absolute bottom-1 left-1 bg-gray-950/85 !text-[9px] !px-1.5 !py-0 leading-tight" />}
             </>
           );
 
@@ -331,11 +335,12 @@ function CardDetail({
               </div>
             </div>
 
-            <p className={`text-xs ${card.serial.mult > 1 ? 'text-emerald-300' : 'text-gray-400'}`}>
-              {card.serial.mult > 1
-                ? <>Serial bonus: your #{card.serial.best} is worth ×{card.serial.mult.toFixed(2)}{card.serial.points > 0 ? <> (+{card.serial.points.toLocaleString()} pts in total)</> : null}. </>
-                : 'Low serial numbers earn a bonus; none of your copies of this card qualify. '}
-              <span className="text-gray-500">{outThere.toLocaleString()} cop{outThere === 1 ? 'y' : 'ies'} of {VARIANT_LABELS[shown]} out there</span>
+            {seasonId && card.copies && card.copies.length > 0 && <SerialList card={card} seasonId={seasonId} shown={shown} ownerName={ownerName} />}
+
+            <p className="text-xs text-gray-500">
+              {card.serial.points > 0 && <span className="text-emerald-300">Serial bonuses add +{card.serial.points.toLocaleString()} pts to this card. </span>}
+              {(!card.copies || card.copies.length === 0) && card.serial.mult <= 1 && 'Low serial numbers earn a bonus; none of these copies qualify. '}
+              {outThere.toLocaleString()} cop{outThere === 1 ? 'y' : 'ies'} of {VARIANT_LABELS[shown]} out there
             </p>
 
             {/* Per-variant table */}
@@ -379,22 +384,6 @@ function CardDetail({
               </table>
             </div>
 
-            {seasonId && card.copies && card.copies.length > 0 && (
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Serial numbers</p>
-                <ul className="flex flex-wrap gap-1.5">
-                  {[...card.copies].sort((a, b) => VARIANTS.indexOf(b.variant) - VARIANTS.indexOf(a.variant) || a.n - b.n).map(c => (
-                    <li key={c.id}>
-                      <a href={`/copy/${encodeURIComponent(seasonId)}/${c.id}`} title={c.est ? 'Numbered after the fact: the order within a version is an estimate' : 'Open this copy and its history'}
-                        className="inline-flex items-center gap-1 rounded-full border border-gray-700 hover:border-yellow-500/60 bg-gray-950/60 px-2.5 py-1 text-xs font-bold text-gray-200 hover:text-white tabular-nums">
-                        {c.variant !== 'regular' && <span className="text-fuchsia-300">{SHORT[c.variant]}</span>}#{c.n}{c.est && <span className="text-gray-500" aria-label="estimated">~</span>}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {tradeWith && (
               <a
                 href={`/trade/new?to=${encodeURIComponent(tradeWith)}&want=${card.number}.${shown}`}
@@ -431,5 +420,36 @@ function FullArt({ url }: { url: string }) {
       onLoad={() => setReady(true)}
       className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${ready ? 'opacity-100' : 'opacity-0'}`}
     />
+  );
+}
+
+/** The serial numbers of the copies shown in the dialog, right under the value summary: the number, its bonus and what that copy is worth, each opening the copy's page. The version on show comes first. */
+function SerialList({ card, seasonId, shown, ownerName }: { card: GridCard; seasonId: string; shown: Variant; ownerName?: string }) {
+  const [all, setAll] = useState(false);
+  const list = [...(card.copies ?? [])].sort((a, b) => Number(b.variant === shown) - Number(a.variant === shown) || VARIANTS.indexOf(b.variant) - VARIANTS.indexOf(a.variant) || a.n - b.n);
+  const visible = all ? list : list.slice(0, 5);
+  return (
+    <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3 space-y-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">{ownerName ? `${ownerName}\u2019s serial numbers` : 'Your serial numbers'}</p>
+        <p className="text-[11px] text-gray-500">{list.length} copy number{list.length === 1 ? '' : 's'}</p>
+      </div>
+      <ul className="grid gap-1.5">
+        {visible.map(c => (
+          <li key={c.id}>
+            <a href={`/copy/${encodeURIComponent(seasonId)}/${c.id}`} title={c.est ? 'Numbered after the fact: the order within a version is an estimate. Open this copy and its history' : 'Open this copy and its history'}
+              className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 hover:border-yellow-500/60 transition-colors ${c.variant === shown ? 'border-gray-700 bg-gray-900/70' : 'border-gray-800/80'}`}>
+              <SerialChip n={c.n} bonus={c.m} est={c.est} className="text-xs !px-2.5 !py-0.5" />
+              <span className="flex-1 min-w-0 truncate text-sm text-gray-200">{VARIANT_LABELS[c.variant]}</span>
+              {c.m ? <span className="text-xs font-bold text-yellow-300">×{c.m} bonus</span> : null}
+              {c.p ? <span className="text-xs tabular-nums text-gray-400">{c.p.toLocaleString()} pts</span> : null}
+              <span aria-hidden className="text-gray-600">›</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+      {list.length > 5 && <button type="button" onClick={() => setAll(v => !v)} className="text-xs text-yellow-400 hover:text-yellow-300">{all ? 'Show fewer' : `Show all ${list.length}`}</button>}
+      <p className="text-[11px] text-gray-600">The first copies ever made of a card are worth extra points; the number counts per card and version.</p>
+    </div>
   );
 }

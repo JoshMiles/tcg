@@ -13,5 +13,6 @@ export async function recentPullItems(season: Season, cards: { number: number; i
     thumb: byNumber.get(e.cardNumber)?.imageUrl ? cardThumbUrl(byNumber.get(e.cardNumber)!.imageUrl!) : undefined,
     hex: getRarity(e.stars)?.hex,
     notable: notableReason(e) !== null,
+    ...(e.serial ? { serial: e.serial, ...(e.bonus ? { bonus: e.bonus } : {}) } : {}),
   }));
 }
