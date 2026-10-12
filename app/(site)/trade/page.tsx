@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSession, loginConfigured } from '@/lib/session';
@@ -44,7 +45,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
       <header className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-4xl font-bold text-white">🔁 Trade</h1>
+            <h1 className="font-display text-4xl font-bold text-white"><Icon name="trade" className="mr-2 text-yellow-400" />Trade</h1>
             <p className="text-sm text-gray-400 mt-1 max-w-2xl">
               Swap cards with other collectors: offer to one person, or post on the open board for anyone to take.
               Cards you offer are <strong className="text-gray-300">held safely in escrow</strong> and come straight back if the offer is declined, cancelled or runs out
@@ -72,7 +73,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
 
       {session && incoming.length > 0 && (
         <section className={section}>
-          <h2 className={heading}>📬 Offers for you <span className="text-sm font-normal text-gray-500">({incoming.length})</span></h2>
+          <h2 className={heading}><Icon name="inbox" className="mr-2" />Offers for you <span className="text-sm font-normal text-gray-500">({incoming.length})</span></h2>
           {incoming.map(t => {
             const lack = firstMissing(owned, t.get);
             return (
@@ -90,7 +91,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
 
       {session && outgoing.length > 0 && (
         <section className={section}>
-          <h2 className={heading}>📤 Your open offers <span className="text-sm font-normal text-gray-500">({outgoing.length}/{settings.maxOpenPerUser})</span></h2>
+          <h2 className={heading}><Icon name="send" className="mr-2" />Your open offers <span className="text-sm font-normal text-gray-500">({outgoing.length}/{settings.maxOpenPerUser})</span></h2>
           {outgoing.map(t => (
             <TradeCard
               key={t.id}
@@ -105,7 +106,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
       )}
 
       <section className={section}>
-        <h2 className={heading}>📋 The board <span className="text-sm font-normal text-gray-500">({board.length})</span></h2>
+        <h2 className={heading}><Icon name="board" className="mr-2" />The board <span className="text-sm font-normal text-gray-500">({board.length})</span></h2>
         {board.length === 0 ? (
           <p className="rind rounded-2xl p-6 text-center text-sm text-gray-400">Nothing on the board right now. Post a listing and let others come to you.</p>
         ) : board.map(t => {
@@ -126,7 +127,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
 
       {session && recent.length > 0 && (
         <section className={section}>
-          <h2 className={heading}>🕘 Recent</h2>
+          <h2 className={heading}><Icon name="history" className="mr-2" />Recent</h2>
           {recent.slice(0, 8).map(t => (
             <TradeCard
               key={t.id}

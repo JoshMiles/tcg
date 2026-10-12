@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../admin/components/PendingButton';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -63,7 +64,7 @@ export function UpgradeButton({
           can ? 'bg-yellow-400 text-gray-950 hover:bg-yellow-300' : 'border border-gray-700 text-gray-500 cursor-default'
         } disabled:opacity-70 ${className}`}
       >
-        {state === 'working' ? <Spinner /> : state === 'done' ? '✓ Done' : can ? `Upgrade (${cost})` : `${have}/${cost}`}
+        {state === 'working' ? <Spinner /> : state === 'done' ? <><Icon name="check" className="mr-1" />Done</> : can ? `Upgrade (${cost})` : `${have}/${cost}`}
       </button>
       {ceremony && card && (
         <UpgradeCeremony

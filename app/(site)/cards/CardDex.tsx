@@ -1,4 +1,5 @@
 'use client';
+import { Icon, RankMedal } from '@/app/components/Icon';
 import Link from 'next/link';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -46,8 +47,7 @@ export interface DexCard {
   maths?: CardMaths;
 }
 
-const MEDALS = ['🥇', '🥈', '🥉'];
-const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: '✨' };
+const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
 const artFor = (c: DexCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const maskFor = (url: string) => (cardThumbUrl(url) !== url ? `url("${cardThumbUrl(url)}")` : 'none');
@@ -134,7 +134,7 @@ export function CardDex({ cards, showMine = false }: { cards: DexCard[]; showMin
             const badges = (
               <>
                 <span className="absolute top-1 left-1 bg-gray-950/85 text-gray-300 text-[10px] font-bold px-1.5 rounded-full">#{c.number}</span>
-                {c.owned && <span className="absolute top-1 right-1 bg-emerald-500/90 text-gray-950 text-[10px] font-extrabold px-1.5 rounded-full" title="You own this card">✓</span>}
+                {c.owned && <span className="absolute top-1 right-1 bg-emerald-500/90 text-gray-950 text-[10px] font-extrabold px-1.5 rounded-full" title="You own this card"><Icon name="check" className="w-3 h-3" /></span>}
               </>
             );
             return (
@@ -284,7 +284,7 @@ function DexDetail({ card, canStep, onClose, onStep }: { card: DexCard; canStep:
                     return (
                       <li key={o.username}>
                         <Link href={`/collection/${o.username}`} className="flex items-center gap-3 px-3 py-2 hover:bg-white/[0.04] transition-colors">
-                          <span className="w-7 text-center text-sm font-bold text-gray-500 tabular-nums">{MEDALS[i] ?? `#${i + 1}`}</span>
+                          <span className="w-7 text-center text-sm font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>
                           <Avatar src={o.avatar} name={o.username} className="w-8 h-8 text-xs" />
                           <span className="flex-1 min-w-0">
                             <span className="block text-sm font-semibold text-white truncate">{o.username}</span>

@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TradeCeremony } from '../TradeCeremony';
@@ -108,14 +109,14 @@ export function NotificationBell() {
             <ul className="divide-y divide-gray-800/70">
               {notices.map(n => (
                 <li key={n.id} className={`px-3 py-2.5 flex gap-2.5 ${n.at > seen ? 'bg-yellow-500/[0.06]' : ''}`}>
-                  <span className="text-lg leading-none mt-0.5" aria-hidden>{NOTICE_ICON[n.kind]}</span>
+                  <Icon name={NOTICE_ICON[n.kind]} className="w-5 h-5 mt-0.5 text-yellow-400/90" />
                   <div className="min-w-0 flex-1">
                     <p className="text-[13px] leading-snug text-gray-200 break-words">{n.text}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[11px] text-gray-500">
                       <span>{ago(n.at)}</span>
                       {(n.kind === 'offer' || n.kind === 'countered') && <Link href="/trade" onClick={() => setOpen(false)} className="font-semibold text-yellow-400 hover:text-yellow-300">View offer</Link>}
                       {n.kind === 'accepted' && n.swap && (
-                        <button type="button" onClick={() => { setOpen(false); showing.current = true; setSwap(n.swap!); }} className="font-semibold text-sky-300 hover:text-sky-200">▶ Replay</button>
+                        <button type="button" onClick={() => { setOpen(false); showing.current = true; setSwap(n.swap!); }} className="font-semibold text-sky-300 hover:text-sky-200"><Icon name="play" className="mr-1 w-3 h-3" />Replay</button>
                       )}
                     </p>
                   </div>

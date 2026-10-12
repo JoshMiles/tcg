@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { notFound } from 'next/navigation';
 import { getHoloResolver } from '@/lib/holo';
 import {
@@ -41,7 +42,7 @@ export default async function CollectionPage({
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center text-center p-8">
         <div className="space-y-3">
-          <div className="text-4xl">🃏</div>
+          <div className="text-4xl"><Icon name="cards" className="w-10 h-10 text-yellow-400" /></div>
           <h1 className="text-xl font-bold text-white">No active season</h1>
           <p className="text-gray-500 text-sm">Check back when a season is running!</p>
         </div>
@@ -126,7 +127,7 @@ export default async function CollectionPage({
                     className="ml-2 align-middle text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5"
                     title="Owns every card in the season"
                   >
-                    🧀 Complete collection
+                    <Icon name="cheese" className="mr-1" />Complete collection
                   </span>
                 )}
               </h1>
@@ -147,14 +148,14 @@ export default async function CollectionPage({
               href={leaderboardHref}
               className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/40 hover:bg-yellow-500/20 rounded-full px-3 py-1 transition-colors"
             >
-              🏆 {myRow ? `#${myRank + 1} · ${myRow.score.toLocaleString()} pts · ` : ''}Full leaderboard →
+              <Icon name="trophy" className="mr-1" />{myRow ? `#${myRank + 1} · ${myRow.score.toLocaleString()} pts · ` : ''}Full leaderboard →
             </a>
             {session && !isOwner && (
               <a
                 href={`/trade/new?to=${encodeURIComponent(lower)}`}
                 className="mt-2 ml-2 inline-flex items-center gap-1.5 text-xs font-bold text-purple-300 bg-purple-500/10 border border-purple-400/40 hover:bg-purple-500/20 rounded-full px-3 py-1 transition-colors"
               >
-                🔁 Trade with {displayName}
+                <Icon name="trade" className="mr-1" />Trade with {displayName}
               </a>
             )}
           </div>

@@ -1,6 +1,8 @@
+import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import type { IconName } from '@/app/components/Icon';
 import { getActive, getSeasonOverview } from '@/lib/site-data';
 import { collectionBonuses } from '@/lib/leaderboard';
 import { DEFAULT_SCORING } from '@/lib/scoring';
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
   description: 'How The Cheesy TCG works: packs, variants, upgrades, points and the leaderboard.',
 };
 
-const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny: '✨' };
+const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny: 'SH' };
 
 const SECTIONS = [
   { id: 'start', label: 'Getting started' },
@@ -75,7 +77,7 @@ export default async function FaqPage() {
       </header>
 
       {/* ── Getting started ── */}
-      <Section id="start" title="Getting started" icon="🧀">
+      <Section id="start" title="Getting started" icon="cheese">
         <Q q="What is The Cheesy TCG?" open>
           A collectible card game played live on {CHANNEL_NAME}&rsquo;s Twitch channel. Packs are opened on stream, the cards you pull go into your collection, and you can hunt for rare versions, upgrade your duplicates and climb
           the leaderboard. It&rsquo;s a fan-made community game and isn&rsquo;t affiliated with Twitch.
@@ -105,7 +107,7 @@ export default async function FaqPage() {
       </Section>
 
       {/* ── Cards & versions ── */}
-      <Section id="cards" title="Cards & versions" icon="🃏">
+      <Section id="cards" title="Cards & versions" icon="cards">
         <Q q="What do the stars mean?" open>
           Each card has a rarity from one to five stars:{' '}
           {[...RARITIES].reverse().map((r, i, arr) => (
@@ -143,7 +145,7 @@ export default async function FaqPage() {
       </Section>
 
       {/* ── Upgrading ── */}
-      <Section id="upgrades" title="Upgrading" icon="⬆️">
+      <Section id="upgrades" title="Upgrading" icon="arrowUp">
         {upgradesOn ? (
           <>
             <Q q="How do upgrades work?" open>
@@ -182,7 +184,7 @@ export default async function FaqPage() {
       </Section>
 
       {/* ── Trading ── */}
-      <Section id="trading" title="Trading" icon="🔁">
+      <Section id="trading" title="Trading" icon="trade">
         <Q q="How does trading work?" open>
           <p>
             Open the <Link href="/trade" className="text-yellow-400 hover:text-yellow-300">Trade</Link> page (you need to be logged in with Twitch) and make an offer: pick the cards you give and the cards you want back. Any copy of any version can be traded.
@@ -225,7 +227,7 @@ export default async function FaqPage() {
       </Section>
 
       {/* ── Points & leaderboard ── */}
-      <Section id="points" title="Points & leaderboard" icon="🏆">
+      <Section id="points" title="Points & leaderboard" icon="trophy">
         <Q q="How are points worked out?" open>
           <p>
             Your score is the value of <strong className="text-white">every card you own</strong>, duplicates included. Each copy is worth:
@@ -265,7 +267,7 @@ export default async function FaqPage() {
             <li>
               <strong className="text-white">Complete collection bonus</strong> — own at least one of <em>every</em> card in the season and you earn an extra{' '}
               <strong className="text-white">{scoring.completeSetBonusPct}%</strong> of the set value
-              {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.set.toLocaleString()}</strong> points)</> : null}, and a <strong className="text-white">🧀 Complete</strong> badge on the leaderboard.
+              {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.set.toLocaleString()}</strong> points)</> : null}, and a <strong className="text-white"><Icon name="cheese" className="mr-1" />Complete</strong> badge on the leaderboard.
             </li>
           </ul>
           <p className="mt-2">
@@ -276,7 +278,7 @@ export default async function FaqPage() {
         <Q q="Can I see the exact maths for a card?">
           <p>
             Yes. Click any card on the <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">card dex</Link> or in a collection to open its details, then open{' '}
-            <strong className="text-white">🤓 Advanced information (for nerds)</strong>. It shows every step with the real numbers filled in, for each version: the pull chance, rarity, scarcity, the version multiplier
+            <strong className="text-white"><Icon name="nerd" className="mr-1" />Advanced information (for nerds)</strong>. It shows every step with the real numbers filled in, for each version: the pull chance, rarity, scarcity, the version multiplier
             and the final rounding, plus the pull odds, how many packs you&rsquo;d expect to need, and what one more or one fewer copy would do to the value. In short:
           </p>
           <p className="font-mono text-[12px] text-gray-300 my-2 leading-relaxed">
@@ -342,13 +344,13 @@ export default async function FaqPage() {
                 </tbody>
               </table>
             </div>
-            {upgradesOn && <p className="text-[11px] text-gray-600 mt-2">RH = Reverse Holo · FA = Full Art · ✨ = Shiny Full Art.</p>}
+            {upgradesOn && <p className="text-[11px] text-gray-600 mt-2">RH = Reverse Holo · FA = Full Art · SH = Shiny Full Art.</p>}
           </Q>
         )}
       </Section>
 
       {/* ── Seasons ── */}
-      <Section id="seasons" title="Seasons" icon="📅">
+      <Section id="seasons" title="Seasons" icon="calendar">
         <Q q="What is a season?" open>
           The game runs in seasons. Each season has its own set of cards and packs, its own collections and its own leaderboard, so everyone starts fresh and the rules (like version odds and upgrade costs) can change between them.
           Your collection page shows the current season. Cards you collected in an earlier season stay with that season.
@@ -359,7 +361,7 @@ export default async function FaqPage() {
       </Section>
 
       {/* ── Extension ── */}
-      <Section id="extension" title="Twitch extension" icon="📺">
+      <Section id="extension" title="Twitch extension" icon="tv">
         <Q q="How do I use the extension?" open>
           Open {CHANNEL_NAME}&rsquo;s stream on Twitch and look under the video for the card collection panel (on mobile it&rsquo;s in the extensions tab, and on desktop it can also appear on the video). Press
           <strong className="text-white"> Login with Twitch</strong> and allow Twitch&rsquo;s &ldquo;share your identity&rdquo; prompt. Your collection appears, with the same cards as on the website.
@@ -370,7 +372,7 @@ export default async function FaqPage() {
       </Section>
 
       {/* ── Privacy ── */}
-      <Section id="privacy" title="Privacy & data" icon="🔒">
+      <Section id="privacy" title="Privacy & data" icon="lock">
         <Q q="What can other people see?" open>
           Collections, the leaderboard, season stats and recent pulls are public, and your username appears on stream when your cards are shown. The full details are in the{' '}
           <Link href="/privacy" className="text-yellow-400 hover:text-yellow-300">Privacy Policy</Link>; the rules of the game are in the <Link href="/terms" className="text-yellow-400 hover:text-yellow-300">Terms</Link>.
@@ -386,7 +388,7 @@ export default async function FaqPage() {
       </Section>
 
       {/* ── Help ── */}
-      <Section id="help" title="Something not working?" icon="🛠️">
+      <Section id="help" title="Something not working?" icon="wrench">
         <Q q="I can&rsquo;t log in on the website" open>
           Try again — the sign-in link only lasts a few minutes and must finish in the same browser. If you pressed <em>Cancel</em> on Twitch&rsquo;s page we can&rsquo;t log you in. Make sure cookies are allowed for this site.
         </Q>
@@ -398,11 +400,11 @@ export default async function FaqPage() {
   );
 }
 
-function Section({ id, title, icon, children }: { id: string; title: string; icon: string; children: ReactNode }) {
+function Section({ id, title, icon, children }: { id: string; title: string; icon: IconName; children: ReactNode }) {
   return (
     <section id={id} className="scroll-mt-20 space-y-3">
       <h2 className="font-display text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-        <span aria-hidden className="w-10 h-10 rounded-full bg-yellow-500/15 flex items-center justify-center text-xl">{icon}</span>
+        <span aria-hidden className="w-10 h-10 rounded-full bg-yellow-500/15 flex items-center justify-center text-xl"><Icon name={icon} className="w-5 h-5 text-yellow-400" /></span>
         {title}
       </h2>
       <div className="space-y-2">{children}</div>

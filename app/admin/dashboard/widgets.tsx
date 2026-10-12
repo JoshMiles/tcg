@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Avatar } from '@/app/components/Avatar';
@@ -9,16 +10,17 @@ import { timeAgo } from '@/lib/site-data';
 import type { ActivityEvent } from '@/lib/activity';
 import type { DashboardData } from '@/lib/dashboard-data';
 import type { WidgetType } from '@/lib/dashboard';
+import type { IconName } from '@/app/components/Icon';
 import { OverlayStatus } from '../components/OverlayStatus';
 import { QuickActions } from '../components/QuickActions';
 import { NotesWidget } from './NotesWidget';
 
 /** A widget's frame: a titled panel that fills its grid cell. */
-function Panel({ title, icon, action, children, flush = false }: { title: string; icon?: string; action?: ReactNode; children: ReactNode; flush?: boolean }) {
+function Panel({ title, icon, action, children, flush = false }: { title: string; icon?: IconName; action?: ReactNode; children: ReactNode; flush?: boolean }) {
   return (
     <section className="tcg-panel rounded-2xl overflow-hidden h-full flex flex-col">
       <header className="px-5 py-3.5 border-b border-gray-800 flex items-center justify-between gap-3 shrink-0">
-        <h2 className="font-semibold text-white flex items-center gap-2 min-w-0"><span aria-hidden>{icon}</span><span className="truncate">{title}</span></h2>
+        <h2 className="font-semibold text-white flex items-center gap-2 min-w-0">{icon && <Icon name={icon} className="text-yellow-500/90" />}<span className="truncate">{title}</span></h2>
         {action}
       </header>
       <div className={`min-h-0 flex-1 ${flush ? '' : 'px-5 py-4'}`}>{children}</div>
@@ -57,7 +59,7 @@ function Overview({ d }: { d: DashboardData }) {
 
 function TopCollectors({ d }: { d: DashboardData }) {
   return (
-    <Panel title="Top collectors" icon="🏅" flush action={<span className="flex items-center gap-4"><More href={`/leaderboard/${d.season.id}`} external>Full leaderboard ↗</More><More href="/admin/users">View all →</More></span>}>
+    <Panel title="Top collectors" icon="award" flush action={<span className="flex items-center gap-4"><More href={`/leaderboard/${d.season.id}`} external>Full leaderboard ↗</More><More href="/admin/users">View all →</More></span>}>
       {d.topCollectors.length === 0 ? <Empty>No players yet — share the overlay and start pulling cards!</Empty> : (
         <div className="divide-y divide-gray-800/60">
           {d.topCollectors.map(({ username, owned, pct }, i) => (
@@ -80,13 +82,13 @@ function TopCollectors({ d }: { d: DashboardData }) {
 function Leaderboard({ d }: { d: DashboardData }) {
   const rows = d.board?.rows.slice(0, 7) ?? [];
   return (
-    <Panel title="Leaderboard" icon="🏆" flush action={<More href={`/leaderboard/${d.season.id}`} external>Full ↗</More>}>
+    <Panel title="Leaderboard" icon="trophy" flush action={<More href={`/leaderboard/${d.season.id}`} external>Full ↗</More>}>
       {rows.length === 0 ? <Empty>No scores yet.</Empty> : (
         <ol className="divide-y divide-gray-800/60">
           {rows.map((r, i) => (
             <li key={r.username} className="px-5 py-2.5 flex items-center gap-3">
               <span className={`text-sm font-bold w-5 tabular-nums ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-700' : 'text-gray-700'}`}>{i + 1}</span>
-              <Link href={`/admin/users/${r.username}`} className="flex-1 min-w-0 text-sm font-mono text-gray-200 hover:text-white truncate">{r.username}{r.complete && <span title="Complete collection"> 🧀</span>}</Link>
+              <Link href={`/admin/users/${r.username}`} className="flex-1 min-w-0 text-sm font-mono text-gray-200 hover:text-white truncate">{r.username}{r.complete && <Icon name="cheese" className="ml-1 text-yellow-400" title="Complete collection" />}</Link>
               <span className="text-sm font-bold text-yellow-400 tabular-nums">{r.score.toLocaleString()}</span>
             </li>
           ))}
@@ -98,7 +100,7 @@ function Leaderboard({ d }: { d: DashboardData }) {
 
 function Rarity({ d }: { d: DashboardData }) {
   return (
-    <Panel title="Rarity mix" icon="💎">
+    <Panel title="Rarity mix" icon="gem">
       {d.rarityDist.length === 0 ? <p className="text-sm text-gray-600">No cards in active packs</p> : (
         <div className="space-y-3">
           {d.rarityDist.map(r => (
@@ -115,7 +117,7 @@ function Rarity({ d }: { d: DashboardData }) {
 
 function Packs({ d }: { d: DashboardData }) {
   return (
-    <Panel title="Active packs" icon="🎴" flush action={<More href="/admin/packs">Manage →</More>}>
+    <Panel title="Active packs" icon="cards" flush action={<More href="/admin/packs">Manage →</More>}>
       {d.packs.length === 0 ? <Empty>No active packs in this season</Empty> : (
         <div className="divide-y divide-gray-800/60">
           {d.packs.map(({ pack, cards }) => (
@@ -133,7 +135,7 @@ function Packs({ d }: { d: DashboardData }) {
 
 function CardOwnership({ d }: { d: DashboardData }) {
   return (
-    <Panel title="Card ownership" icon="🃏" flush action={<span className="text-xs text-gray-600">sorted by rarity</span>}>
+    <Panel title="Card ownership" icon="cards" flush action={<span className="text-xs text-gray-600">sorted by rarity</span>}>
       <div className="overflow-auto max-h-96">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-gray-900">
@@ -167,36 +169,36 @@ function CardOwnership({ d }: { d: DashboardData }) {
 }
 
 /** One activity event as a sentence (names are plain text: they come from unauthenticated endpoints). */
-function describe(e: ActivityEvent, d: DashboardData): { icon: string; text: string } {
+function describe(e: ActivityEvent, d: DashboardData): { icon: IconName; text: string } {
   const cardName = (n: number) => d.allCards.find(c => c.number === n)?.name ?? `#${n}`;
   const v = (x?: string) => (x && x !== 'regular' ? ` (${VARIANT_LABELS[x as keyof typeof VARIANT_LABELS] ?? x})` : '');
   switch (e.type) {
-    case 'pull': return { icon: '🎴', text: `${e.username} pulled ${e.cardName || cardName(e.cardNumber)}${v(e.variant)}${e.isNew ? ' — new!' : ''}` };
-    case 'grant': return { icon: '🎁', text: `${e.username} was granted ${cardName(e.cardNumber)}${v(e.variant)}` };
-    case 'remove': return { icon: '🗑️', text: `${cardName(e.cardNumber)} removed from ${e.username}` };
-    case 'upgrade': return { icon: '✨', text: `${e.username} upgraded ${e.cardName || cardName(e.cardNumber)} to ${VARIANT_LABELS[e.to]}` };
+    case 'pull': return { icon: 'cards', text: `${e.username} pulled ${e.cardName || cardName(e.cardNumber)}${v(e.variant)}${e.isNew ? ' — new!' : ''}` };
+    case 'grant': return { icon: 'gift', text: `${e.username} was granted ${cardName(e.cardNumber)}${v(e.variant)}` };
+    case 'remove': return { icon: 'trash', text: `${cardName(e.cardNumber)} removed from ${e.username}` };
+    case 'upgrade': return { icon: 'sparkles', text: `${e.username} upgraded ${e.cardName || cardName(e.cardNumber)} to ${VARIANT_LABELS[e.to]}` };
     case 'trade': {
       const w = { offered: 'offered a trade', countered: 'countered an offer', accepted: `traded with ${e.partner ?? '?'}`, declined: 'had an offer declined', cancelled: 'had an offer cancelled', expired: 'had an offer expire' }[e.action];
-      return { icon: '🔁', text: `${e.username} ${w}` };
+      return { icon: 'trade', text: `${e.username} ${w}` };
     }
-    case 'reset': return { icon: '🔄', text: e.scope === 'everyone' ? 'All collections reset' : `${e.username}'s collection reset` };
-    case 'delete': return { icon: '❌', text: `${e.username} deleted` };
-    case 'trigger': return { icon: '⚡', text: e.kind === 'pull' ? `Pack draw requested for ${e.username}` : `Collection view requested for ${e.username}` };
-    default: return { icon: '📖', text: `${e.username}'s collection shown` };
+    case 'reset': return { icon: 'refresh', text: e.scope === 'everyone' ? 'All collections reset' : `${e.username}'s collection reset` };
+    case 'delete': return { icon: 'x', text: `${e.username} deleted` };
+    case 'trigger': return { icon: 'zap', text: e.kind === 'pull' ? `Pack draw requested for ${e.username}` : `Collection view requested for ${e.username}` };
+    default: return { icon: 'book', text: `${e.username}'s collection shown` };
   }
 }
 
 function Activity({ d }: { d: DashboardData }) {
   const events = d.activity.slice(0, 9);
   return (
-    <Panel title="Recent activity" icon="📡" flush action={<More href="/admin/activity">Live feed →</More>}>
+    <Panel title="Recent activity" icon="radio" flush action={<More href="/admin/activity">Live feed →</More>}>
       {events.length === 0 ? <Empty>Nothing has happened yet.</Empty> : (
         <ul className="divide-y divide-gray-800/60">
           {events.map(e => {
             const { icon, text } = describe(e, d);
             return (
               <li key={e.seq} className="px-5 py-2 flex items-center gap-3 text-sm">
-                <span aria-hidden>{icon}</span>
+                <Icon name={icon} className="text-gray-500" />
                 <span className="flex-1 min-w-0 truncate text-gray-300">{text}</span>
                 <span className="text-xs text-gray-600 shrink-0">{timeAgo(e.at)}</span>
               </li>
@@ -214,7 +216,7 @@ function Trades({ d }: { d: DashboardData }) {
     <div className="rounded-xl bg-gray-950/50 border border-gray-800 px-3 py-2.5"><p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{label}</p><p className="font-display text-2xl font-bold text-white tabular-nums">{value}</p></div>
   );
   return (
-    <Panel title="Trading" icon="🔁" flush action={<More href="/admin/trades">Manage →</More>}>
+    <Panel title="Trading" icon="trade" flush action={<More href="/admin/trades">Manage →</More>}>
       {!t ? <Empty>No trade data.</Empty> : (
         <>
           <div className="grid grid-cols-3 gap-3 px-5 py-4">{tile('Open offers', t.open.length)}{tile('In escrow', t.escrowedCopies)}{tile('Done today', t.completed24h)}</div>
@@ -237,12 +239,12 @@ function Trades({ d }: { d: DashboardData }) {
 
 function Overlay() {
   return (
-    <Panel title="Overlay status" icon="🖥️">
+    <Panel title="Overlay status" icon="monitor">
       <div className="space-y-3">
         <OverlayStatus />
         <div className="flex flex-wrap gap-2">
-          <Link href="/admin/overlay" className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">🎨 Overlay editor</Link>
-          <Link href="/admin/settings?tab=overlay" className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">⚙️ Overlay settings</Link>
+          <Link href="/admin/overlay" className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"><Icon name="palette" className="mr-1.5" />Overlay editor</Link>
+          <Link href="/admin/settings?tab=overlay" className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"><Icon name="settings" className="mr-1.5" />Overlay settings</Link>
         </div>
       </div>
     </Panel>
@@ -254,7 +256,7 @@ function Pulse({ d }: { d: DashboardData }) {
   const pulls = d.activity.filter((e): e is Extract<ActivityEvent, { type: 'pull' }> => e.type === 'pull');
   const windows: [string, number][] = [['Last hour', 3_600_000], ['Last 24 hours', 86_400_000], ['Last 7 days', 7 * 86_400_000]];
   return (
-    <Panel title="Activity pulse" icon="📈">
+    <Panel title="Activity pulse" icon="trend">
       <div className="space-y-2.5">
         {windows.map(([label, ms]) => {
           const inWin = pulls.filter(e => e.at > now - ms);
@@ -276,7 +278,7 @@ const VARIANT_BAR: Record<string, string> = { regular: 'bg-gray-500', reverse: '
 function Variants({ d }: { d: DashboardData }) {
   const total = VARIANTS.reduce((s, v) => s + d.variantCounts[v], 0);
   return (
-    <Panel title="Variant mix" icon="✨">
+    <Panel title="Variant mix" icon="sparkles">
       {total === 0 ? <p className="text-sm text-gray-600">No copies yet.</p> : (
         <div className="space-y-3">
           {VARIANTS.map(v => {
@@ -298,7 +300,7 @@ function Variants({ d }: { d: DashboardData }) {
 function Valuable({ d }: { d: DashboardData }) {
   const cards = d.board ? [...d.board.values.cards.values()].sort((a, b) => b.values.regular - a.values.regular).slice(0, 6) : [];
   return (
-    <Panel title="Most valuable cards" icon="💰" flush action={<span className="text-xs text-gray-600">per Regular copy</span>}>
+    <Panel title="Most valuable cards" icon="coins" flush action={<span className="text-xs text-gray-600">per Regular copy</span>}>
       {cards.length === 0 ? <Empty>No values yet.</Empty> : (
         <ul className="divide-y divide-gray-800/60">
           {cards.map(cv => {
@@ -321,8 +323,8 @@ function Valuable({ d }: { d: DashboardData }) {
 function Unowned({ d }: { d: DashboardData }) {
   const missing = d.cardStats.filter(c => c.ownedBy === 0);
   return (
-    <Panel title="Cards nobody owns" icon="🕳️" flush>
-      {missing.length === 0 ? <Empty>Every card has been pulled by someone 🎉</Empty> : (
+    <Panel title="Cards nobody owns" icon="hole" flush>
+      {missing.length === 0 ? <Empty>Every card has been pulled by someone</Empty> : (
         <ul className="divide-y divide-gray-800/60 max-h-72 overflow-auto">
           {missing.map(c => (
             <li key={c.id} className="px-5 py-2 flex items-center gap-3 text-sm">
@@ -340,7 +342,7 @@ function Unowned({ d }: { d: DashboardData }) {
 function Live({ d }: { d: DashboardData }) {
   const l = d.live;
   return (
-    <Panel title="Stream status" icon="🔴">
+    <Panel title="Stream status" icon="radio">
       {!l ? <p className="text-sm text-gray-500">Twitch isn&rsquo;t configured or can&rsquo;t be reached, so the live status is unknown.</p> : l.live ? (
         <div className="space-y-1.5">
           <p className="inline-flex items-center gap-2 text-sm font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> LIVE{typeof l.viewers === 'number' ? ` · ${l.viewers.toLocaleString()} watching` : ''}</p>
@@ -352,16 +354,16 @@ function Live({ d }: { d: DashboardData }) {
   );
 }
 
-const SHORTCUTS: [string, string, string][] = [
-  ['/admin/packs/new', '🎴', 'New pack'], ['/admin/seasons/new', '🏆', 'New season'], ['/admin/overlay', '🎨', 'Overlay editor'],
-  ['/admin/trades', '🔁', 'Trades'], ['/admin/sandbox', '🧪', 'Sandbox'], ['/admin/users', '👥', 'Users'], ['/admin/assets', '🖼️', 'Assets'], ['/admin/settings', '⚙️', 'Settings'],
+const SHORTCUTS: [string, IconName, string][] = [
+  ['/admin/packs/new', 'cards', 'New pack'], ['/admin/seasons/new', 'trophy', 'New season'], ['/admin/overlay', 'palette', 'Overlay editor'],
+  ['/admin/trades', 'trade', 'Trades'], ['/admin/sandbox', 'flask', 'Sandbox'], ['/admin/users', 'users', 'Users'], ['/admin/assets', 'image', 'Assets'], ['/admin/settings', 'settings', 'Settings'],
 ];
 function Shortcuts() {
   return (
-    <Panel title="Shortcuts" icon="🧭">
+    <Panel title="Shortcuts" icon="compass">
       <div className="grid grid-cols-2 gap-2">
         {SHORTCUTS.map(([href, icon, label]) => (
-          <Link key={href} href={href} className="flex items-center gap-2 rounded-lg bg-gray-950/50 border border-gray-800 hover:border-yellow-500/40 px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors"><span aria-hidden>{icon}</span>{label}</Link>
+          <Link key={href} href={href} className="flex items-center gap-2 rounded-lg bg-gray-950/50 border border-gray-800 hover:border-yellow-500/40 px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors"><Icon name={icon} className="text-gray-500" />{label}</Link>
         ))}
       </div>
     </Panel>
@@ -388,6 +390,6 @@ export function renderWidget(type: WidgetType, d: DashboardData, opts: { gift?: 
     case 'unowned': return <Unowned d={d} />;
     case 'live': return <Live d={d} />;
     case 'shortcuts': return <Shortcuts />;
-    case 'notes': return <Panel title="Notes" icon="📝"><NotesWidget initial={d.notes} /></Panel>;
+    case 'notes': return <Panel title="Notes" icon="note"><NotesWidget initial={d.notes} /></Panel>;
   }
 }

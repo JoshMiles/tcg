@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../admin/components/PendingButton';
 import Link from 'next/link';
 import { currentSandboxId } from '@/lib/db';
@@ -13,7 +14,7 @@ export async function SandboxPill() {
   const sandbox = await getSandbox(id);
   return (
     <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-full border border-purple-400/50 bg-purple-950/90 backdrop-blur px-3.5 py-1.5 text-xs font-semibold text-purple-100 shadow-lg shadow-purple-950/50">
-      <span aria-hidden>🧪</span>
+      <Icon name="flask" />
       <span>Sandbox: {sandbox?.name ?? 'missing'}{!sandbox && ' (deleted)'}</span>
       <span className="text-purple-400/60" aria-hidden>·</span>
       {sandbox && <Link href={`/admin/sandbox/${sandbox.id}`} className="underline decoration-dotted hover:text-white">Tools</Link>}

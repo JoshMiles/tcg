@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../../components/PendingButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -47,7 +48,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-bold text-white truncate">{pack.name}</h1>
                 {isDraft ? <DraftChip /> : <StatusChip active={pack.active} />}
-                {pack.upgradesEnabled && <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-300 bg-purple-500/10 border border-purple-400/30 rounded-full px-2.5 py-0.5">✨ Upgrades</span>}
+                {pack.upgradesEnabled && <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-300 bg-purple-500/10 border border-purple-400/30 rounded-full px-2.5 py-0.5"><Icon name="sparkles" className="mr-1" />Upgrades</span>}
               </div>
               <p className="text-sm text-gray-500 mt-1">{cards.length} cards · Draw weight {pack.weight}×</p>
             </div>
@@ -67,7 +68,7 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
               className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-yellow-500/60 hover:text-yellow-300 transition-colors"
               title="Open the Overlay Editor with this pack's overrides"
             >
-              🎨 Overlay look{hasOverrides ? ' ●' : ''}
+              <Icon name="palette" className="mr-1.5" />Overlay look{hasOverrides ? ' ●' : ''}
             </Link>
           </div>
         </div>

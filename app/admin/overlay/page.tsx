@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { listAllPacks } from '@/lib/kv';
 import { getOverlaySettings, getPackOverrides, listPresets } from '@/lib/overlay-settings';
 import { saveOverlayEditorAction, saveOverlayPresetAction, deleteOverlayPresetAction } from '../actions';
@@ -26,7 +27,7 @@ export default async function OverlayEditorPage({ searchParams }: { searchParams
 
       {saved && SAVED_MESSAGES[saved] && (
         <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2 text-sm text-green-300 flex items-center gap-2">
-          <span aria-hidden>✓</span> {SAVED_MESSAGES[saved]}
+          <Icon name="check" /> {SAVED_MESSAGES[saved]}
         </div>
       )}
 

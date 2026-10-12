@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -62,15 +63,15 @@ export default async function AccountPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         {header}
         <div className="flex gap-2">
-          <Link href={`/collection/${session.username}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">🃏 My collection</Link>
-          <Link href={`/leaderboard/${season.id}`} className="px-4 py-2 text-sm rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold">🏆 Leaderboard</Link>
+          <Link href={`/collection/${session.username}`} className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="cards" className="mr-1.5" />My collection</Link>
+          <Link href={`/leaderboard/${season.id}`} className="px-4 py-2 text-sm rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold"><Icon name="trophy" className="mr-1.5" />Leaderboard</Link>
         </div>
       </div>
       <p className="text-sm text-gray-500 -mt-4">{season.name}{season.active ? ' · live' : ''}</p>
 
       {s.copies === 0 ? (
         <div className="rind rounded-2xl py-14 text-center space-y-2">
-          <p className="text-4xl">🧀</p>
+          <p className="text-4xl"><Icon name="cheese" className="w-10 h-10 text-yellow-400" /></p>
           <p className="font-display text-2xl font-bold text-white">Your collection is empty</p>
           <p className="text-sm text-gray-400">Watch the stream — cards are pulled live. They&rsquo;ll appear here as you collect them.</p>
         </div>
@@ -122,7 +123,7 @@ export default async function AccountPage() {
           {/* Upgrades you can afford */}
           {upgradesOn && (
             <section className="rind rounded-2xl p-5 space-y-3">
-              <h2 className="font-display text-xl font-bold text-white">⬆️ Ready to upgrade</h2>
+              <h2 className="font-display text-xl font-bold text-white"><Icon name="arrowUp" className="mr-2 text-yellow-400" />Ready to upgrade</h2>
               {s.upgradable.length === 0 ? (
                 <p className="text-sm text-gray-400">
                   Nothing yet. Collect duplicates of the same card and version — you&rsquo;ll see what you can upgrade here.

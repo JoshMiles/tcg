@@ -1,4 +1,5 @@
 'use client';
+import { Icon, type IconName } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,7 +19,7 @@ interface PackInfo { id: string; name: string }
 interface PresetInfo { id: string; name: string; props: PropValues; updatedAt: number }
 type Mode = 'pack' | 'collection';
 
-const VARIANT_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: '✨ Shiny' };
+const VARIANT_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' };
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
@@ -44,7 +45,7 @@ function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean 
 
 // "Layout" sits in the rail beside the registry's categories but isn't registry-driven: it edits the stage size and where each
 // view is placed. Layout is global (not per pack), so it is hidden while editing a pack.
-const LAYOUT_CAT = { id: 'layout', label: 'Layout', icon: '📐', description: 'Where the overlay sits on your OBS browser source.' };
+const LAYOUT_CAT: { id: string; label: string; icon: IconName; description: string } = { id: 'layout', label: 'Layout', icon: 'ruler', description: 'Where the overlay sits on your OBS browser source.' };
 
 type SidebarWindow = Window & { __tcgSidebarForce?: boolean };
 
@@ -291,7 +292,7 @@ export function OverlayEditor({
             aria-expanded={open}
             className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2.5 text-left hover:bg-white/5"
           >
-            <span aria-hidden className={`text-[10px] text-gray-500 transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
+            <span aria-hidden className={`text-[10px] text-gray-500 transition-transform ${open ? 'rotate-90' : ''}`}><Icon name="chevronRight" className="w-3 h-3" /></span>
             <span className="text-sm font-semibold text-gray-200 truncate">{name || 'Settings'}</span>
             {changed.length > 0 && <span className="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 rounded-full px-1.5">{changed.length}</span>}
           </button>
@@ -473,7 +474,7 @@ export function OverlayEditor({
           label="Placing"
           value={mode}
           onChange={v => setMode(v as Mode)}
-          options={[{ id: 'pack', label: '🎴 Pack opening', dot: moved(layout.pack) }, { id: 'collection', label: '📋 Collection', dot: moved(layout.collection) }]}
+          options={[{ id: 'pack', label: 'Pack opening', dot: moved(layout.pack) }, { id: 'collection', label: 'Collection', dot: moved(layout.collection) }]}
           wrap
         />
         <p className="text-xs text-gray-500 leading-relaxed">
@@ -562,7 +563,7 @@ export function OverlayEditor({
           <div className="w-80 space-y-2 text-sm">
             <p className="text-xs text-gray-500">Share or back up this look as JSON. Importing replaces the values at the current scope (you can still Revert).</p>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={download} className={ghost}>⬇ Download</button>
+              <button type="button" onClick={download} className={ghost}><Icon name="download" className="mr-1" />Download</button>
               <button type="button" onClick={copyJson} className={ghost}>Copy</button>
               <label className={`${ghost} cursor-pointer`}>
                 Import file…
@@ -668,7 +669,7 @@ export function OverlayEditor({
                 setMode(v as Mode);
                 if (!isPack && category !== 'layout') setCategory(v === 'collection' ? 'collection' : category === 'collection' ? 'pack' : category);
               }}
-              options={[{ id: 'pack', label: '🎴 Pack opening' }, { id: 'collection', label: '📋 Collection' }]}
+              options={[{ id: 'pack', label: 'Pack opening' }, { id: 'collection', label: 'Collection' }]}
               disabled={isPack ? ['collection'] : []}
             />
             {mode === 'pack' && (
@@ -686,7 +687,7 @@ export function OverlayEditor({
               disabled={!ready || playing}
               className={`${btn} ml-auto bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}
             >
-              {playing ? '… playing' : mode === 'pack' ? '▶ Play pack opening' : '▶ Play collection'}
+              {playing ? '… playing' : mode === 'pack' ? 'Play pack opening' : 'Play collection'}
             </button>
           </div>
         </div>
@@ -712,7 +713,7 @@ export function OverlayEditor({
                   title={g.description}
                   className={`relative mx-1.5 rounded-lg py-2 flex flex-col items-center gap-0.5 text-[11px] font-semibold transition-colors ${active ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
                 >
-                  <span className="text-lg leading-none" aria-hidden>{g.icon}</span>
+                  <Icon name={g.icon} className="w-[1.15rem] h-[1.15rem]" />
                   {g.label}
                   {n > 0 && <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-yellow-500 text-gray-950 text-[10px] font-bold leading-4 text-center">{n}</span>}
                 </button>
@@ -732,7 +733,7 @@ export function OverlayEditor({
               />
               {!searching && layoutCat && (
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-white text-sm">{LAYOUT_CAT.icon} {LAYOUT_CAT.label}</h3>
+                  <h3 className="font-semibold text-white text-sm"><Icon name={LAYOUT_CAT.icon} className="mr-1.5" />{LAYOUT_CAT.label}</h3>
                   <p className="text-xs text-gray-500 leading-snug">{LAYOUT_CAT.description}</p>
                 </div>
               )}
@@ -763,7 +764,7 @@ export function OverlayEditor({
               {!searching && !layoutCat && !variantPicker && !(cat.id === 'variants') && (
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-white text-sm">{cat.icon} {cat.label}</h3>
+                    <h3 className="font-semibold text-white text-sm"><Icon name={cat.icon} className="mr-1.5" />{cat.label}</h3>
                     <p className="text-xs text-gray-500 leading-snug">{cat.description}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
@@ -782,7 +783,7 @@ export function OverlayEditor({
               )}
               {!searching && !layoutCat && variantPicker && (
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-white text-sm">{cat.icon} {cat.label}</h3>
+                  <h3 className="font-semibold text-white text-sm"><Icon name={cat.icon} className="mr-1.5" />{cat.label}</h3>
                   <p className="text-xs text-gray-500 leading-snug">{cat.description}</p>
                 </div>
               )}

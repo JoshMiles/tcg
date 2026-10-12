@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { currentSandboxId } from '@/lib/db';
@@ -21,7 +22,7 @@ export default async function FakeTwitchPage({ params }: { params: Promise<{ id:
     <div className="space-y-5">
       <div className="space-y-2">
         <Link href={`/admin/sandbox/${id}`} className="text-sm text-gray-500 hover:text-white">← {sandbox.name}</Link>
-        <h1 className="text-3xl font-bold text-white">📺 Fake Twitch</h1>
+        <h1 className="text-3xl font-bold text-white"><Icon name="tv" className="mr-2 text-purple-300" />Fake Twitch</h1>
         <p className="text-sm text-gray-400 max-w-3xl">
           Test the Twitch extension without Twitch. This page stands in for a channel page and runs the <strong className="text-gray-200">real panel</strong> (panel, mobile and video-component views)
           with a pretend Twitch helper, against this sandbox only: log in, the share-identity prompt, upgrades with the animation, the leaderboard and logout all go through the real API routes.

@@ -1,3 +1,4 @@
+import { Icon, RankMedal } from '@/app/components/Icon';
 import { PendingButton } from '../admin/components/PendingButton';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -12,7 +13,6 @@ import { Avatar } from '@/app/components/Avatar';
 
 export const dynamic = 'force-dynamic';
 
-const MEDALS = ['🥇', '🥈', '🥉'];
 
 
 
@@ -68,10 +68,10 @@ export default async function HomePage() {
               <PendingButton type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">Go →</PendingButton>
             </form>
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-              <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300 font-semibold">🏆 Leaderboard</Link>
-              <Link href="/stats" className="text-yellow-400 hover:text-yellow-300 font-semibold">📊 Season stats</Link>
-              <Link href="/cards" className="text-yellow-400 hover:text-yellow-300 font-semibold">🃏 Card dex</Link>
-              <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 font-semibold">📺 Watch on Twitch ↗</a>
+              <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300 font-semibold"><Icon name="trophy" className="mr-1" />Leaderboard</Link>
+              <Link href="/stats" className="text-yellow-400 hover:text-yellow-300 font-semibold"><Icon name="chart" className="mr-1" />Season stats</Link>
+              <Link href="/cards" className="text-yellow-400 hover:text-yellow-300 font-semibold"><Icon name="cards" className="mr-1" />Card dex</Link>
+              <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 font-semibold"><Icon name="tv" className="mr-1" />Watch on Twitch ↗</a>
             </div>
           </div>
 
@@ -99,7 +99,7 @@ export default async function HomePage() {
 
         {!season || !overview ? (
           <section className="rind rounded-2xl py-14 text-center space-y-2">
-            <p className="text-4xl">🧀</p>
+            <p className="text-4xl"><Icon name="cheese" className="w-10 h-10 text-yellow-400" /></p>
             <p className="font-display text-2xl font-bold text-white">No season is running right now</p>
             <p className="text-sm text-gray-400">Check back soon — the next batch of cards is being prepared.</p>
           </section>
@@ -119,7 +119,7 @@ export default async function HomePage() {
                   {top.map((r, i) => (
                     <li key={r.username}>
                       <Link href={`/collection/${r.username}`} className="rind rounded-xl px-4 py-3 flex items-center gap-4 hover:brightness-125 transition">
-                        <span className="w-8 text-center font-bold text-gray-500 tabular-nums">{MEDALS[i] ?? `#${i + 1}`}</span>
+                        <span className="w-8 text-center font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>
                         <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
                         <span className="flex-1 min-w-0">
                           <span className="block font-semibold text-white truncate">{r.username}</span>

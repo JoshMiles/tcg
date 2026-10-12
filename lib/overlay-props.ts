@@ -1,3 +1,4 @@
+import type { IconName } from '@/app/components/Icon';
 // Every adjustable property of the OBS overlay, in one registry. Browser-safe (no KV) so the admin editor can import it.
 //
 // Design:
@@ -43,7 +44,7 @@ export interface PropDef {
 export interface PropGroup {
   id: string;
   label: string;
-  icon: string;
+  icon: IconName;
   description: string;
 }
 
@@ -77,9 +78,9 @@ export const VARIANT_IDS = ['regular', 'reverse', 'full', 'shiny'] as const;
 export type VariantId = (typeof VARIANT_IDS)[number];
 
 export const PROP_GROUPS: PropGroup[] = [
-  { id: 'pack', label: 'Pack opening', icon: '🎴', description: 'How a pulled card is revealed: the animation, the card, its label and details, the light burst, and the row of cards under it.' },
-  { id: 'variants', label: 'Variants', icon: '✨', description: 'Pick a card variant, then edit how it looks: label, holo shimmer, glow, motion and sound.' },
-  { id: 'collection', label: 'Collection', icon: '📋', description: "The \"show collection\" view: a viewer's whole card grid." },
+  { id: 'pack', label: 'Pack opening', icon: 'cards', description: 'How a pulled card is revealed: the animation, the card, its label and details, the light burst, and the row of cards under it.' },
+  { id: 'variants', label: 'Variants', icon: 'sparkles', description: 'Pick a card variant, then edit how it looks: label, holo shimmer, glow, motion and sound.' },
+  { id: 'collection', label: 'Collection', icon: 'board', description: "The \"show collection\" view: a viewer's whole card grid." },
 ];
 
 const GROUP_LABEL: Record<VariantId, string> = { regular: 'Regular cards', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny Full Art' };
@@ -204,7 +205,7 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.stripSort', group: 'pack', label: 'Order', type: 'select', default: 'number', options: [{ value: 'number', label: 'Card number' }, { value: 'owned', label: 'Collected first' }, { value: 'rarity', label: 'Rarest first' }], help: 'How the cards under the revealed card are arranged.' },
   { key: 'reveal.stripCardRadius', group: 'pack', label: 'Corner rounding', type: 'number', default: 2, min: 0, max: 14, step: 1, unit: 'px' },
   { key: 'reveal.stripShowCounts', group: 'pack', label: 'Show ×N counts', type: 'boolean', default: true, help: 'The duplicate-count badge.' },
-  { key: 'reveal.stripShowMarkers', group: 'pack', label: 'Show ✨ on upgraded cards', type: 'boolean', default: true },
+  { key: 'reveal.stripShowMarkers', group: 'pack', label: 'Show a sparkle on upgraded cards', type: 'boolean', default: true },
   { key: 'reveal.stripBorderColor', group: 'pack', label: 'Card border colour', type: 'color', default: '#ffffff', help: 'The outline around collected cards.' },
   { key: 'reveal.stripPlaceholderColor', group: 'pack', label: 'Placeholder colour', type: 'color', default: '#f1bb06', help: 'The fill of uncollected "?" cards.' },
 
@@ -220,7 +221,7 @@ export const PROPS: PropDef[] = [
   { key: 'collection.gap', group: 'collection', label: 'Gap between cards', type: 'number', default: 13, min: 0, max: 60, step: 1, unit: 'px' },
   { key: 'collection.showUncollected', group: 'collection', label: 'Show uncollected cards', type: 'boolean', default: true, help: 'Off: only the cards the viewer owns are shown (no "?" placeholders).' },
   { key: 'collection.showCounts', group: 'collection', label: 'Show ×N counts', type: 'boolean', default: true, help: 'The duplicate-count badge.' },
-  { key: 'collection.showVariantMarkers', group: 'collection', label: 'Show ✨ on upgraded cards', type: 'boolean', default: true },
+  { key: 'collection.showVariantMarkers', group: 'collection', label: 'Show a sparkle on upgraded cards', type: 'boolean', default: true },
   { key: 'collection.showHeading', group: 'collection', label: 'Show the heading', type: 'boolean', default: true, help: 'The "name\'s collection:" line.' },
   { key: 'collection.headingText', group: 'collection', label: 'Heading wording', type: 'text', default: "{user}'s collection:", maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
   { key: 'collection.hold', group: 'collection', label: 'Time on screen', type: 'number', default: 4, min: 1, max: 30, step: 0.5, unit: 's' },

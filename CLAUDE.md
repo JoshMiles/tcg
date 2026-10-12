@@ -175,6 +175,7 @@ The product is branded **The Cheesy TCG** (icon: `public/brand/icon.png`, also `
 The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMinStars, cardTime, cooldownTime, soundVolume, coverImageUrl) directly from the pack object. Card sounds come from `card.soundUrl` (e.g. `/assets/sounds/1.mp3`).
 
 ## Conventions
+- **No emoji in the UI — use icons.** `app/components/Icon.tsx` is the one icon set (Lucide, plus the custom `cheese` brand glyph): `<Icon name="trophy" />`, sized in `em` so it matches the surrounding text unless you give it `w-* h-*`; `<RankMedal rank={n} />` for podium places. Anything data-driven (nav items, the widget registry, notification kinds, overlay editor categories) stores an `IconName` string, never an emoji. Add a new icon by importing it from `lucide-react` and adding it to `ICONS`. Text glyphs such as ★ (rarity stars), ✓ in a `<option>` and the ✦ particles are fine; Discord messages keep emoji because Discord renders them. Shiny's short label is "SH" (Reverse Holo "RH", Full Art "FA"). The stream overlay's own look (e.g. the default `✨ Shiny Full Art` label and sparkle particles) is a design choice made in the Overlay Editor, not part of this rule.
 - `force-dynamic` on every admin page (KV reads must be fresh)
 - `revalidatePath` after every mutation in server actions
 - Server actions use `.bind(null, fixedArg)` to pre-fill arguments before passing to `<form action={}>`

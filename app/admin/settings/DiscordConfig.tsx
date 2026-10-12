@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import { useActionState, useState } from 'react';
 import { DISCORD_CATEGORIES, type DiscordSettings } from '@/lib/discord-config';
@@ -40,7 +41,7 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
       <div className="px-6 py-5 border-b border-gray-800 flex items-start justify-between gap-4">
         <div>
           <h2 className="font-semibold text-white flex items-center gap-2">
-            <span aria-hidden>💬</span> Discord activity feed
+            <Icon name="chat" /> Discord activity feed
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">Post pulls, grants and other activity to a Discord channel as it happens</p>
         </div>
@@ -150,7 +151,7 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
               state.ok ? 'text-green-300 bg-green-500/10 border-green-400/30' : 'text-amber-200 bg-amber-500/10 border-amber-400/30'
             }`}
           >
-            {state.ok ? '✓ ' : '⚠ '}{state.message}
+            {state.ok ? <Icon name="check" className="mr-1" /> : <Icon name="warning" className="mr-1" />}{state.message}
           </p>
         )}
       </form>

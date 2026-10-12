@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -69,7 +70,7 @@ export function AdminShell({
           aria-expanded={open}
           className="w-10 h-10 rounded-lg text-gray-300 hover:bg-white/10 flex items-center justify-center text-xl"
         >
-          ☰
+          <Icon name="menu" className="w-5 h-5" />
         </button>
         <span className="font-display text-yellow-400 font-bold tracking-tight">The Cheesy TCG</span>
       </header>
@@ -95,7 +96,7 @@ export function AdminShell({
             aria-label="Close menu"
             className="lg:hidden w-9 h-9 rounded-lg text-gray-400 hover:bg-white/10 text-lg"
           >
-            ✕
+            <Icon name="x" className="w-5 h-5" />
           </button>
         </div>
         <div className="holo-strip mx-4 rounded-full opacity-80" />

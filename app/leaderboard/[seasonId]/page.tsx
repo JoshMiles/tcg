@@ -1,3 +1,4 @@
+import { Icon, RankMedal } from '@/app/components/Icon';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, listSeasons } from '@/lib/kv';
@@ -8,8 +9,7 @@ import { Avatar } from '@/app/components/Avatar';
 
 export const dynamic = 'force-dynamic';
 
-const MEDALS = ['🥇', '🥈', '🥉'];
-const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny: '✨' };
+const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny: 'SH' };
 
 export default async function LeaderboardPage({ params }: { params: Promise<{ seasonId: string }> }) {
   const { seasonId } = await params;
@@ -26,7 +26,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
         <div className="holo-strip" />
         <div className="max-w-3xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold text-white leading-none">🏆 Leaderboard</h1>
+            <h1 className="font-display text-3xl font-bold text-white leading-none"><Icon name="trophy" className="mr-2 text-yellow-400" />Leaderboard</h1>
             <p className="text-xs text-gray-500 mt-1">
               {season.name} · {rows.length} collector{rows.length === 1 ? '' : 's'}
               {season.active && <span className="ml-2 text-green-400">Active</span>}
@@ -79,7 +79,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
                 href={`/collection/${r.username}`}
                 className={`tcg-panel rounded-xl px-4 py-3 flex items-center gap-4 hover:border-yellow-500/40 transition-colors ${i === 0 ? 'ring-1 ring-yellow-500/50' : ''}`}
               >
-                <span className="w-8 text-center font-bold text-gray-500 tabular-nums">{MEDALS[i] ?? `#${i + 1}`}</span>
+                <span className="w-8 text-center font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>
                 <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-white truncate">
@@ -89,7 +89,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
                         className="ml-2 align-middle text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5"
                         title="Owns every card in the season"
                       >
-                        🧀 Complete
+                        <Icon name="cheese" className="mr-1" />Complete
                       </span>
                     )}
                   </p>

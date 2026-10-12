@@ -4,7 +4,7 @@ import { getRarity } from '@/lib/rarity';
 import type { TradeItem } from '@/lib/trade-core';
 import type { TradeCardInfo } from '@/lib/trade-view-core';
 
-const SHORT: Record<string, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: '✨' };
+const SHORT: Record<string, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
 
 /** A row of card stacks: thumbnail, name, version badge and ×count. Plain markup, so it works in server and client components. */
 export function TradeStacks({ items, cards, className = '' }: { items: TradeItem[]; cards: Record<number, TradeCardInfo>; className?: string }) {

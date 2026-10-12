@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../../admin/components/PendingButton';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -92,8 +93,8 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
               </button>
               {menuOpen && (
                 <div role="menu" className="absolute right-0 mt-2 w-52 rounded-xl border border-gray-700 bg-gray-900 shadow-card p-1.5 grid gap-0.5">
-                  <Link role="menuitem" href="/account" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5">📈 My stats</Link>
-                  <Link role="menuitem" href={`/collection/${user.username}`} className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5">🃏 My collection</Link>
+                  <Link role="menuitem" href="/account" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats</Link>
+                  <Link role="menuitem" href={`/collection/${user.username}`} className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="cards" className="mr-1.5" />My collection</Link>
                   <form action="/auth/logout" method="post" className="contents">
                     <PendingButton role="menuitem" type="submit" className="text-left px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-red-950/40">Log out</PendingButton>
                   </form>
@@ -116,7 +117,7 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
             aria-label="Menu"
             className="md:hidden w-9 h-9 rounded-lg border border-gray-700 text-gray-300 hover:text-white flex items-center justify-center text-lg"
           >
-            {open ? '✕' : '☰'}
+            {open ? <Icon name="x" className="w-5 h-5" /> : <Icon name="menu" className="w-5 h-5" />}
           </button>
         </div>
       </div>
@@ -134,8 +135,8 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
           ))}
           {user ? (
             <>
-              <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-yellow-200 hover:bg-white/5">📈 My stats ({user.displayName})</Link>
-              <Link href={`/collection/${user.username}`} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5">🃏 My collection</Link>
+              <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-yellow-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats ({user.displayName})</Link>
+              <Link href={`/collection/${user.username}`} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="cards" className="mr-1.5" />My collection</Link>
               <form action="/auth/logout" method="post">
                 <PendingButton type="submit" className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-300 hover:bg-red-950/40">Log out</PendingButton>
               </form>

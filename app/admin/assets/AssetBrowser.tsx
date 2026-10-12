@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { AssetIssue, AssetKind, AssetLibrary, BlobProblem, LibraryAsset, UnusedBlob } from '@/lib/assets';
@@ -202,7 +203,7 @@ function Stat({
 function IssueChips({ asset }: { asset: LibraryAsset }) {
   if (asset.issues.length === 0) {
     return asset.optimized
-      ? <span className="text-[10px] font-extrabold uppercase tracking-wider text-green-300 bg-green-500/10 border border-green-400/30 rounded-full px-1.5 py-px">✓ Optimized</span>
+      ? <span className="text-[10px] font-extrabold uppercase tracking-wider text-green-300 bg-green-500/10 border border-green-400/30 rounded-full px-1.5 py-px"><Icon name="check" className="mr-0.5 w-3 h-3" />Optimized</span>
       : null;
   }
   return (
@@ -219,7 +220,7 @@ function IssueChips({ asset }: { asset: LibraryAsset }) {
                 : 'text-amber-300 bg-amber-500/10 border-amber-400/30'
             }`}
           >
-            ⚠ {info.label}
+            <Icon name="warning" className="mr-1 w-3.5 h-3.5" />{info.label}
           </span>
         );
       })}
@@ -240,10 +241,10 @@ function AssetCard({ asset, copied, onCopy }: { asset: LibraryAsset; copied: boo
       {/* Preview */}
       <div className="h-36 bg-gray-950/60 flex items-center justify-center overflow-hidden p-2">
         {broken ? (
-          <span className="text-3xl opacity-60" aria-hidden>🚫</span>
+          <span className="text-3xl opacity-60"><Icon name="ban" className="w-8 h-8" /></span>
         ) : asset.kind === 'sound' ? (
           <div className="w-full flex flex-col items-center gap-2">
-            <span className="text-3xl" aria-hidden>🎵</span>
+            <span className="text-3xl"><Icon name="music" className="w-8 h-8" /></span>
             <audio controls preload="none" src={asset.url} className="w-full" style={{ height: 24 }} />
           </div>
         ) : asset.kind === 'card-art' ? (
@@ -275,7 +276,7 @@ function AssetCard({ asset, copied, onCopy }: { asset: LibraryAsset; copied: boo
             onClick={onCopy}
             className="flex-1 text-xs py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg transition-colors"
           >
-            {copied ? '✓ Copied' : 'Copy URL'}
+            {copied ? <><Icon name="check" className="mr-1" />Copied</> : 'Copy URL'}
           </button>
           <Link
             href={href}
@@ -321,7 +322,7 @@ function UnusedPanel({
     );
   }
   if (all.length === 0) {
-    return <div className="py-16 text-center text-sm text-gray-500">Nothing to clean up — every file in storage is in use. 🎉</div>;
+    return <div className="py-16 text-center text-sm text-gray-500">Nothing to clean up — every file in storage is in use.</div>;
   }
 
   const totalBytes = all.reduce((s, u) => s + u.bytes, 0);
@@ -356,7 +357,7 @@ function UnusedPanel({
             return (
               <div key={u.url} className="flex items-center gap-3 px-4 py-2.5">
                 <div className="w-10 h-14 rounded bg-gray-800 flex items-center justify-center overflow-hidden shrink-0 text-lg">
-                  {previewable ? <img src={u.url} alt="" loading="lazy" className="w-full h-full object-cover" /> : <span aria-hidden>{u.format === 'GIF' ? '🎞️' : isImage ? '🖼️' : '🎵'}</span>}
+                  {previewable ? <img src={u.url} alt="" loading="lazy" className="w-full h-full object-cover" /> : (u.format === 'GIF' ? <Icon name="film" /> : isImage ? <Icon name="image" /> : <Icon name="music" />)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-white font-mono truncate" title={u.pathname}>{u.pathname}</p>
@@ -365,7 +366,7 @@ function UnusedPanel({
                   </p>
                 </div>
                 <button onClick={() => copy(u.url)} className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">
-                  {copied === u.url ? '✓ Copied' : 'Copy URL'}
+                  {copied === u.url ? <><Icon name="check" className="mr-1" />Copied</> : 'Copy URL'}
                 </button>
                 <form action={deleteUnusedAssets}>
                   <input type="hidden" name="url" value={u.url} />

@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from './PendingButton';
 import { useActionState, useEffect, useState } from 'react';
 import { quickAction, clearQueueAction } from '../actions';
@@ -24,7 +25,7 @@ function Result({ state }: { state: ActionResult | null }) {
           : 'text-amber-200 bg-amber-500/10 border-amber-400/30'
       }`}
     >
-      {state.ok ? '✓ ' : '⚠ '}{state.message}
+      {state.ok ? <Icon name="check" className="mr-1" /> : <Icon name="warning" className="mr-1" />}{state.message}
     </p>
   );
 }
@@ -69,7 +70,7 @@ export function QuickActions({
   return (
     <section id="quick-actions" className="tcg-panel rounded-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-bold text-white flex items-center gap-2"><span aria-hidden>⚡</span>Quick actions</h2>
+        <h2 className="font-display text-lg font-bold text-white flex items-center gap-2"><Icon name="zap" className="text-yellow-400" />Quick actions</h2>
         <div className="flex items-center gap-2 text-xs">
           <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-semibold ${status === null ? 'border-gray-700 text-gray-500' : offline ? 'border-amber-400/30 bg-amber-500/10 text-amber-200' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300'}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${status === null ? 'bg-gray-600' : offline ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
@@ -84,7 +85,7 @@ export function QuickActions({
       <form action={formAction} className="p-5 space-y-5">
         {/* Who */}
         <label className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-xl border border-gray-800 bg-gray-950/50 px-4 py-3 focus-within:border-yellow-500/60 transition-colors">
-          <span className="flex items-center gap-2 text-sm font-semibold text-gray-300 shrink-0"><span aria-hidden>🎯</span>Viewer to act on</span>
+          <span className="flex items-center gap-2 text-sm font-semibold text-gray-300 shrink-0"><Icon name="target" />Viewer to act on</span>
           <div className="relative flex-1 min-w-0">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 select-none" aria-hidden>@</span>
             <input
@@ -109,7 +110,7 @@ export function QuickActions({
           {/* Gift packs */}
           <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4 flex flex-col gap-3 hover:border-yellow-500/30 transition-colors">
             <div>
-              <p className="font-semibold text-white flex items-center gap-2"><span aria-hidden>🎁</span>Gift packs</p>
+              <p className="font-semibold text-white flex items-center gap-2"><Icon name="gift" className="text-yellow-400" />Gift packs</p>
               <p className="text-xs text-gray-500 mt-0.5">Opens packs for them on stream.</p>
             </div>
             <input type="hidden" name="count" value={count} />
@@ -127,26 +128,26 @@ export function QuickActions({
               ))}
             </div>
             <PendingButton type="submit" name="intent" value="gift" pendingLabel="Gifting…" disabled={pending} className="mt-auto px-4 py-2.5 tcg-btn rounded-xl text-sm">
-              🎁 Gift {count} pack{count !== '1' ? 's' : ''}
+              <Icon name="gift" className="mr-1.5" />Gift {count} pack{count !== '1' ? 's' : ''}
             </PendingButton>
           </div>
 
           {/* Show collection */}
           <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4 flex flex-col gap-3 hover:border-sky-400/30 transition-colors">
             <div>
-              <p className="font-semibold text-white flex items-center gap-2"><span aria-hidden>📖</span>Show collection</p>
+              <p className="font-semibold text-white flex items-center gap-2"><Icon name="book" className="text-sky-300" />Show collection</p>
               <p className="text-xs text-gray-500 mt-0.5">Puts their whole collection on the overlay.</p>
             </div>
             <div className="flex-1" />
             <PendingButton type="submit" name="intent" value="show" pendingLabel="Showing…" disabled={pending} className={`${secondaryBtn} py-2.5`}>
-              📖 Show on stream
+              <Icon name="book" className="mr-1.5" />Show on stream
             </PendingButton>
           </div>
 
           {/* Grant a specific card */}
           <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4 flex flex-col gap-3 hover:border-purple-400/30 transition-colors">
             <div>
-              <p className="font-semibold text-white flex items-center gap-2"><span aria-hidden>🃏</span>Grant a card</p>
+              <p className="font-semibold text-white flex items-center gap-2"><Icon name="cards" className="text-purple-300" />Grant a card</p>
               <p className="text-xs text-gray-500 mt-0.5">Adds one copy straight to their collection.</p>
             </div>
             <select name="cardNumber" value={cardNumber} onChange={e => setCardNumber(e.target.value)} aria-label="Card to grant" className={`${inputClass} w-full`}>
@@ -156,7 +157,7 @@ export function QuickActions({
               ))}
             </select>
             <PendingButton type="submit" name="intent" value="grant" pendingLabel="Granting…" disabled={pending} className={`${secondaryBtn} mt-auto py-2.5`}>
-              🃏 Grant card
+              <Icon name="cards" className="mr-1.5" />Grant card
             </PendingButton>
           </div>
         </div>
@@ -184,7 +185,7 @@ export function QuickActions({
           <span className="text-gray-600"> · draws and collection views</span>
         </p>
         <div className="flex items-center gap-3">
-          {clearState && <span className="text-xs text-green-300">✓ {clearState.message}</span>}
+          {clearState && <span className="text-xs text-green-300"><Icon name="check" className="mr-1" />{clearState.message}</span>}
           <ConfirmButton
             title="Clear the overlay queue?"
             confirmLabel="Clear queue"

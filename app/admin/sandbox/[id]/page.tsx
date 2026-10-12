@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../../components/PendingButton';
 import Link from 'next/link';
 import { headers } from 'next/headers';
@@ -43,7 +44,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         <Link href="/admin/sandbox" className="text-sm text-gray-500 hover:text-white">← All sandboxes</Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-white">🧪 {sandbox.name}</h1>
+            <h1 className="text-3xl font-bold text-white"><Icon name="flask" className="mr-2 text-purple-300" />{sandbox.name}</h1>
             <p className="text-xs text-gray-500 mt-1">{SOURCE_LABELS[sandbox.source]} · created {new Date(sandbox.createdAt).toLocaleString()}</p>
           </div>
           {here ? (
@@ -54,7 +55,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         </div>
       </div>
 
-      {msg && <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2.5 text-sm text-green-300">✓ {msg}</div>}
+      {msg && <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2.5 text-sm text-green-300"><Icon name="check" className="mr-1" />{msg}</div>}
       {err && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-2.5 text-sm text-red-300">{err}</div>}
       {!here && <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-4 py-2.5 text-sm text-amber-200">You are not in this sandbox, so the admin pages and website still show production. The tools below work on this sandbox regardless. <strong>Enter</strong> it to see its data everywhere.</div>}
       {!active && <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-4 py-2.5 text-sm text-amber-200">This sandbox has no active season, so pulls and grants have nothing to land in. Enter it and activate a season under Seasons.</div>}
@@ -67,7 +68,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
           <CopyableUrl url={`${origin}/overlay.html?sandbox=${id}`} />
         </div>
         <Link href={`/admin/sandbox/${id}/twitch`} className="flex items-center justify-between gap-3 rounded-xl border border-purple-400/40 bg-purple-500/10 hover:bg-purple-500/20 px-4 py-3 transition-colors">
-          <span className="text-sm font-bold text-purple-200">📺 Fake Twitch: test the extension panel here</span>
+          <span className="text-sm font-bold text-purple-200"><Icon name="tv" className="mr-2" />Fake Twitch: test the extension panel here</span>
           <span className="text-xs text-purple-300/80">panel, mobile and video views, login, upgrades →</span>
         </Link>
         <div className="flex flex-wrap gap-2 text-sm">
@@ -209,8 +210,8 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                     <th className="text-left py-2 pr-2">#</th>
                     <th className="text-left py-2 pr-2">Card</th>
                     <th className="text-right py-2 px-2">Pull odds</th>
-                    <th className="text-right py-2 px-2" title="Copies out there: Regular / Reverse / Full / Shiny">Copies R·RH·FA·✨</th>
-                    {VARIANTS.map(v => <th key={v} className="text-right py-2 px-2">{v === 'regular' ? 'Regular' : v === 'reverse' ? 'Reverse' : v === 'full' ? 'Full Art' : '✨ Shiny'} pts</th>)}
+                    <th className="text-right py-2 px-2" title="Copies out there: Regular / Reverse / Full / Shiny">Copies R·RH·FA·SH</th>
+                    {VARIANTS.map(v => <th key={v} className="text-right py-2 px-2">{v === 'regular' ? 'Regular' : v === 'reverse' ? 'Reverse' : v === 'full' ? 'Full Art' : 'Shiny'} pts</th>)}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800/50">

@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -395,7 +396,7 @@ function ReviewStep({
           </ul>
         </div>
       ) : (
-        <p className="rounded-xl border border-green-500/30 bg-green-950/20 p-4 text-sm text-green-300">✓ Everything looks good — this pack is ready to publish.</p>
+        <p className="rounded-xl border border-green-500/30 bg-green-950/20 p-4 text-sm text-green-300"><Icon name="check" className="mr-1" />Everything looks good — this pack is ready to publish.</p>
       )}
 
       <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">

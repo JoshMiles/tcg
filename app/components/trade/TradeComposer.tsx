@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../../admin/components/PendingButton';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -11,7 +12,7 @@ import { stackPoints, type TradeCardInfo } from '@/lib/trade-view-core';
 import { TradeStacks } from './TradeStacks';
 
 type Holdings = Record<number, Partial<Record<Variant, number>>>;
-const SHORT: Record<Variant, string> = { regular: 'Reg', reverse: 'RH', full: 'FA', shiny: '✨' };
+const SHORT: Record<Variant, string> = { regular: 'Reg', reverse: 'RH', full: 'FA', shiny: 'SH' };
 const MAX_COPIES = 99;
 
 /**
@@ -118,14 +119,14 @@ export function TradeComposer({
       {!counter && (
         <div className="rind rounded-2xl p-4 space-y-3">
           <div role="group" aria-label="Offer type" className="flex flex-wrap gap-2">
-            {([['direct', '🎯 To one person'], ['listing', '📋 On the open board']] as const).map(([k, label]) => (
+            {([['direct', 'To one person', 'target'], ['listing', 'On the open board', 'board']] as const).map(([k, label, icon]) => (
               <button
                 key={k}
                 type="button"
                 aria-pressed={kind === k}
                 onClick={() => { setKind(k); setGet([]); }}
                 className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${kind === k ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-300 hover:border-gray-500'}`}
-              >{label}</button>
+              ><Icon name={icon} className="mr-1.5" />{label}</button>
             ))}
           </div>
           {kind === 'direct' ? (
@@ -133,7 +134,7 @@ export function TradeComposer({
               <label className="text-sm text-gray-400" htmlFor="trade-to">Offer to</label>
               <input id="trade-to" value={to} onChange={e => { setTo(e.target.value); setPartner(null); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookUp(); } }} placeholder="their Twitch name" className={`${input} w-56`} />
               <button type="button" onClick={lookUp} disabled={lookingUp || !to.trim()} className="px-4 py-2 rounded-lg border border-gray-600 text-sm font-semibold text-gray-200 hover:border-yellow-500/60 disabled:opacity-50">{lookingUp ? 'Looking…' : 'Find their cards'}</button>
-              {partner && <span className="text-xs text-emerald-300">✓ found {to}</span>}
+              {partner && <span className="text-xs text-emerald-300"><Icon name="check" className="mr-1" />found {to}</span>}
               {partnerError && <span role="alert" className="text-xs text-red-400">{partnerError}</span>}
             </div>
           ) : (

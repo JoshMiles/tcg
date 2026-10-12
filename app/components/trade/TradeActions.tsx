@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../../admin/components/PendingButton';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -47,7 +48,7 @@ export function TradeActions({
   if (done) {
     return (
       <>
-        <span className="text-sm font-semibold text-emerald-300">✓ {done}</span>
+        <span className="text-sm font-semibold text-emerald-300"><Icon name="check" className="mr-1" />{done}</span>
         {swap && <TradeCeremony swap={swap} onClose={() => { setSwap(null); router.refresh(); }} />}
       </>
     );

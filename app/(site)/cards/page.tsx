@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import { getHoloResolver } from '@/lib/holo';
 import Link from 'next/link';
@@ -29,7 +30,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
   if (!season) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-20 text-center space-y-2">
-        <p className="text-4xl">🃏</p>
+        <p className="text-4xl"><Icon name="cards" className="w-10 h-10 text-yellow-400" /></p>
         <h1 className="font-display text-3xl font-bold text-white">No cards yet</h1>
         <p className="text-gray-400 text-sm">The card dex fills up once a season is running.</p>
       </div>
@@ -75,7 +76,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 space-y-6">
       <div className="space-y-3">
-        <h1 className="font-display text-4xl font-bold text-white">🃏 Card dex</h1>
+        <h1 className="font-display text-4xl font-bold text-white"><Icon name="cards" className="mr-2 text-yellow-400" />Card dex</h1>
         <p className="text-sm text-gray-400">
           Every card in {season.name}, with how rare it is and what it&rsquo;s worth. Values shift as more cards are pulled — see{' '}
           <Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how points are worked out</Link>.

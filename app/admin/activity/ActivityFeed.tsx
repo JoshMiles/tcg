@@ -1,4 +1,5 @@
 'use client';
+import { Icon, type IconName } from '@/app/components/Icon';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ActivityEvent } from '@/lib/activity';
@@ -146,7 +147,7 @@ export function ActivityFeed({
             onClick={() => setPaused(p => !p)}
             className="px-3 py-1.5 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
           >
-            {paused ? '▶ Resume' : '❚❚ Pause'}
+            {paused ? <><Icon name="play" className="mr-1" />Resume</> : <><Icon name="pause" className="mr-1" />Pause</>}
           </button>
         </div>
       </div>
@@ -232,7 +233,7 @@ function EventRow({
   cardIndex: (n: number, packName?: string) => CardInfo | undefined;
   totalCards: number;
 }) {
-  let icon: string;
+  let icon: IconName;
   let accent = 'border-l-transparent';
   let body: ReactNode;
   let sub: ReactNode = null;
@@ -241,7 +242,7 @@ function EventRow({
   switch (e.type) {
     case 'pull': {
       const card = cardIndex(e.cardNumber, e.packName);
-      icon = '🎴';
+      icon = 'cards';
       accent = e.isNew ? 'border-l-yellow-400' : 'border-l-gray-700';
       thumb = <CardThumb card={card} stars={e.stars} />;
       body = (
@@ -263,7 +264,7 @@ function EventRow({
     }
     case 'grant': {
       const card = cardIndex(e.cardNumber);
-      icon = '🎁';
+      icon = 'gift';
       accent = 'border-l-green-400';
       thumb = <CardThumb card={card} stars={card?.stars ?? 1} />;
       body = (
@@ -276,7 +277,7 @@ function EventRow({
     }
     case 'remove': {
       const card = cardIndex(e.cardNumber);
-      icon = '🗑️';
+      icon = 'trash';
       accent = 'border-l-red-400';
       thumb = <CardThumb card={card} stars={card?.stars ?? 1} />;
       body = (
@@ -289,7 +290,7 @@ function EventRow({
     }
     case 'upgrade': {
       const card = cardIndex(e.cardNumber);
-      icon = '✨';
+      icon = 'sparkles';
       accent = 'border-l-yellow-400';
       thumb = <CardThumb card={card} stars={card?.stars ?? 1} />;
       body = (
@@ -301,7 +302,7 @@ function EventRow({
       break;
     }
     case 'trade':
-      icon = '🔁';
+      icon = 'trade';
       accent = e.action === 'accepted' ? 'border-l-emerald-400' : e.action === 'offered' || e.action === 'countered' ? 'border-l-blue-400' : 'border-l-red-400';
       body = (
         <>
@@ -319,19 +320,19 @@ function EventRow({
         : `${e.give.join(', ')} ⇄ ${e.get.join(', ')}`;
       break;
     case 'reset':
-      icon = '🔄';
+      icon = 'refresh';
       accent = 'border-l-red-400';
       body = e.scope === 'everyone'
         ? <>All collections were reset</>
         : <><UserLink username={e.username} />&apos;s collection was reset{e.scope === 'all' ? ' across all seasons' : ''}</>;
       break;
     case 'delete':
-      icon = '❌';
+      icon = 'x';
       accent = 'border-l-red-400';
       body = <><UserLink username={e.username} /> was deleted</>;
       break;
     case 'trigger':
-      icon = e.kind === 'pull' ? (e.source === 'admin' ? '🎁' : '⚡') : '📖';
+      icon = e.kind === 'pull' ? (e.source === 'admin' ? 'gift' : 'zap') : 'book';
       accent = 'border-l-poke-blue-light';
       body = e.source === 'admin' && e.kind === 'pull' ? (
         <>{(e.count ?? 1) > 1 ? `${e.count} packs` : 'A pack'} gifted to <UserLink username={e.username} /></>
@@ -341,7 +342,7 @@ function EventRow({
       sub = e.source === 'admin' ? 'by admin' : 'via webhook';
       break;
     case 'collection_shown':
-      icon = '📺';
+      icon = 'tv';
       accent = 'border-l-poke-blue-light';
       body = <><UserLink username={e.username} />&apos;s collection was shown on stream</>;
       break;
@@ -352,11 +353,11 @@ function EventRow({
       {e.username ? (
         <Avatar src={avatar} name={e.username} className="w-9 h-9 text-sm" />
       ) : (
-        <div className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-base shrink-0">{icon}</div>
+        <div className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-base shrink-0 text-gray-300"><Icon name={icon} className="w-[1.1rem] h-[1.1rem]" /></div>
       )}
       <div className="min-w-0 flex-1">
         <p className="text-sm text-gray-300 leading-snug">
-          <span className="mr-1.5" aria-hidden>{icon}</span>
+          <Icon name={icon} className="mr-1.5 text-gray-400" />
           {body}
         </p>
         {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}

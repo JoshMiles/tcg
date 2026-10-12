@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import { redirect } from 'next/navigation';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
@@ -18,11 +19,11 @@ export const dynamic = 'force-dynamic';
 const BASE = 'https://tcg-khaki.vercel.app';
 
 const TABS = [
-  { id: 'overlay',  label: 'OBS Overlay',  icon: '📺', hint: 'Browser source, connection and bot triggers' },
-  { id: 'scoring',  label: 'Scoring',      icon: '🏆', hint: 'Card values, bonuses and the leaderboard' },
-  { id: 'webhooks', label: 'Webhooks', icon: '🔗', hint: 'Discord feed, MixItUp integration — incoming triggers and outgoing events' },
-  { id: 'viewers',  label: 'Viewers & Twitch', icon: '👥', hint: 'Collection page and the Twitch extension' },
-  { id: 'about',    label: 'About',        icon: 'ℹ️', hint: 'Build info and the active season' },
+  { id: 'overlay',  label: 'OBS Overlay',  icon: 'tv', hint: 'Browser source, connection and bot triggers' },
+  { id: 'scoring',  label: 'Scoring',      icon: 'trophy', hint: 'Card values, bonuses and the leaderboard' },
+  { id: 'webhooks', label: 'Webhooks', icon: 'link', hint: 'Discord feed, MixItUp integration — incoming triggers and outgoing events' },
+  { id: 'viewers',  label: 'Viewers & Twitch', icon: 'users', hint: 'Collection page and the Twitch extension' },
+  { id: 'about',    label: 'About',        icon: 'info', hint: 'Build info and the active season' },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
 
@@ -64,14 +65,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               t.id === tab ? 'border-yellow-500 text-yellow-300' : 'border-transparent text-gray-400 hover:text-white hover:border-gray-600'
             }`}
           >
-            <span aria-hidden>{t.icon}</span> {t.label}
+            <Icon name={t.icon} className="mr-1.5" />{t.label}
           </Link>
         ))}
       </nav>
 
       {saved && SAVED_MESSAGES[saved] && (
         <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2.5 text-sm text-green-300 flex items-center gap-2">
-          <span aria-hidden>✓</span> {SAVED_MESSAGES[saved]}
+          <Icon name="check" /> {SAVED_MESSAGES[saved]}
         </div>
       )}
 

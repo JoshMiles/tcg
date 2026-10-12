@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import { useState, type ReactNode } from 'react';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import type { CardMaths } from '@/lib/card-maths';
@@ -48,7 +49,7 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
   return (
     <details className="group rounded-xl border border-gray-800 bg-gray-950/40">
       <summary className="cursor-pointer select-none list-none flex items-center justify-between gap-2 px-3 py-2.5 text-sm font-bold text-gray-300 hover:text-white">
-        <span>🤓 Advanced information <span className="font-normal text-gray-500">(for nerds)</span></span>
+        <span><Icon name="nerd" className="mr-1.5" />Advanced information <span className="font-normal text-gray-500">(for nerds)</span></span>
         <span className="text-gray-500 transition-transform group-open:rotate-90" aria-hidden>›</span>
       </summary>
       <div className="px-3 pb-4 pt-1 space-y-4 border-t border-gray-800">

@@ -1,3 +1,4 @@
+import { Icon } from '@/app/components/Icon';
 import { redirect } from 'next/navigation';
 import { getActiveSeason, listSeasons } from '@/lib/kv';
 
@@ -10,7 +11,7 @@ export default async function LeaderboardIndex() {
     return (
       <div className="min-h-screen flex items-center justify-center text-center p-8">
         <div className="space-y-3">
-          <div className="text-4xl">🏆</div>
+          <div className="text-4xl"><Icon name="trophy" className="w-10 h-10 text-yellow-400" /></div>
           <h1 className="text-xl font-bold text-white">No seasons yet</h1>
           <p className="text-gray-500 text-sm">Check back when a season is running!</p>
         </div>

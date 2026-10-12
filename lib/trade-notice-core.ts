@@ -1,4 +1,6 @@
 import type { Variant } from './types';
+import type { IconName } from '@/app/components/Icon';
+
 import type { HoloSpecs } from './holo-core';
 
 // Client-safe shapes for trade notifications and the trade animation.
@@ -37,6 +39,6 @@ export interface Notice {
   swap?: Swap;
 }
 
-export const NOTICE_ICON: Record<NoticeKind, string> = {
-  offer: '📬', countered: '↩️', accepted: '🎉', declined: '🚫', cancelled: '✖️', expired: '⌛', admin: '🛡️',
+export const NOTICE_ICON: Record<NoticeKind, IconName> = {
+  offer: 'inbox', countered: 'undo', accepted: 'party', declined: 'ban', cancelled: 'x', expired: 'hourglass', admin: 'shield',
 };

@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 import type { SaveState } from './use-autosave';
 
 export interface StepDef { id: string; label: string }
@@ -36,7 +37,7 @@ export function Stepper({
                 : isCurrent ? 'bg-yellow-500/20 text-yellow-400 ring-1 ring-yellow-500/60'
                 : 'bg-gray-800 text-gray-600'
               }`}>
-                {done ? '✓' : i + 1}
+                {done ? <Icon name="check" className="w-3.5 h-3.5" /> : i + 1}
                 {issues > 0 && done && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-gray-950" title={`${issues} to fix`} />}
               </span>
               <span className={`text-sm font-medium transition-colors ${isCurrent ? 'text-white' : done ? 'text-gray-400 group-hover:text-white' : 'text-gray-600'}`}>
@@ -57,7 +58,7 @@ const SAVE_LABEL: Record<SaveState, { text: string; cls: string }> = {
   idle:   { text: 'Draft', cls: 'text-gray-500' },
   dirty:  { text: 'Unsaved changes…', cls: 'text-gray-400' },
   saving: { text: 'Saving…', cls: 'text-yellow-400' },
-  saved:  { text: '✓ Draft saved', cls: 'text-green-400' },
+  saved:  { text: 'Draft saved', cls: 'text-green-400' },
   error:  { text: 'Couldn\'t save', cls: 'text-red-400' },
 };
 
