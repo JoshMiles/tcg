@@ -969,7 +969,7 @@ html, body {
 .stat-links { display: flex; gap: 6px; justify-content: center; padding: 2px 0 6px; flex-wrap: wrap; }
 .stat-link { padding: 4px 12px; font-size: 11px; font-weight: 600; color: var(--muted); text-decoration: none; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; }
 .stat-link:hover { color: var(--text); border-color: var(--muted); }
-.offers-banner { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; font-size: 12px; font-weight: 600; color: #e9d5ff; text-decoration: none; background: rgba(145, 71, 255, .18); border: 1px solid rgba(167, 139, 250, .5); border-radius: 10px; }
+.offers-banner { width: 100%; font-family: inherit; text-align: left; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; font-size: 12px; font-weight: 600; color: #e9d5ff; text-decoration: none; background: rgba(145, 71, 255, .18); border: 1px solid rgba(167, 139, 250, .5); border-radius: 10px; }
 .offers-banner:hover { background: rgba(145, 71, 255, .28); }
 .offers-go, .ready-go { padding: 1px 10px; font-size: 11px; font-weight: 700; color: var(--bg); background: var(--accent); border-radius: 999px; flex-shrink: 0; }
 .ready-list { display: flex; flex-direction: column; gap: 4px; }
@@ -1008,3 +1008,47 @@ html, body {
 .serial-mark { position: absolute; bottom: 3px; left: 3px; padding: 0 4px; border-radius: 6px; font-size: 9px; font-weight: 800; line-height: 1.5; color: #e5e7eb; background: rgba(0, 0, 0, .7); border: 1px solid rgba(255, 255, 255, .3); pointer-events: none; z-index: 2; font-variant-numeric: tabular-nums; }
 .serial-mark.bonus { color: #fde68a; border-color: rgba(251, 191, 36, .7); }
 .serial-mark.first { color: #1a1205; background: linear-gradient(90deg, #fde68a, #f59e0b); border-color: #fff2b0; }
+
+/* Trades tab */
+.tr-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0 6px; }
+.tr-limits { font-size: 10px; color: var(--muted); }
+.tr-closed { margin: 0 0 6px; padding: 6px 10px; font-size: 11px; color: #fecaca; background: rgba(239, 68, 68, .12); border: 1px solid rgba(239, 68, 68, .4); border-radius: 8px; }
+.tr-foot { padding: 4px 8px 10px; font-size: 10px; color: var(--muted); text-align: center; line-height: 1.4; }
+.tr-row { display: flex; flex-direction: column; gap: 6px; padding: 8px; margin-top: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; }
+.tr-row:first-of-type { margin-top: 0; }
+.tr-head { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; }
+.tr-who { font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-time { color: var(--muted); flex-shrink: 0; }
+.tr-side { display: flex; flex-direction: column; gap: 3px; }
+.tr-label { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.tr-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.tr-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 2px 8px 2px 2px; font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; }
+.tr-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-thumb { width: 18px; aspect-ratio: 2 / 3; border-radius: 3px; overflow: hidden; background: var(--bg); flex-shrink: 0; display: inline-block; }
+.tr-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tr-note { margin: 0; font-size: 11px; font-style: italic; color: var(--muted); }
+.tr-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tr-hint { font-size: 10px; color: var(--muted); }
+.tr-error { margin: 4px 0 0; font-size: 11px; color: #fca5a5; }
+.tr-btn { padding: 5px 12px; font-family: inherit; font-size: 11px; font-weight: 700; color: var(--bg); background: var(--accent); border: 1px solid var(--accent); border-radius: 999px; cursor: pointer; }
+.tr-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.tr-btn:disabled { opacity: .45; cursor: not-allowed; }
+.tr-btn.ghost { color: var(--text); background: transparent; border-color: var(--border); }
+.tr-btn.armed { color: #fff; background: #dc2626; border-color: #dc2626; }
+.tr-btn.wide { width: 100%; padding: 8px; font-size: 12px; margin-top: 6px; }
+.tr-recent { padding: 3px 0; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); }
+.tr-recent:first-of-type { border-top: none; }
+.tr-recent-status { font-weight: 700; color: var(--text); }
+.tr-recent-status.accepted { color: #86efac; }
+.tr-list { display: flex; flex-direction: column; gap: 3px; max-height: 190px; overflow-y: auto; margin-top: 4px; }
+.tr-pick { display: flex; align-items: center; gap: 6px; padding: 3px 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; }
+.tr-pick.on { border-color: var(--accent); }
+.tr-pick-name { flex: 1; min-width: 0; font-size: 11px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-have { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+.tr-step { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.tr-step-btn { width: 20px; height: 20px; padding: 0; font-family: inherit; font-size: 13px; line-height: 1; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+.tr-step-btn:disabled { opacity: .35; cursor: not-allowed; }
+.tr-step-n { min-width: 18px; text-align: center; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tr-select { max-width: 86px; font-family: inherit; font-size: 10px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 2px; }
+.tr-input { width: 100%; margin-top: 4px; padding: 6px 8px; font-family: inherit; font-size: 11px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+.tr-input:focus-visible, .tr-btn:focus-visible, .tr-step-btn:focus-visible, .tr-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

@@ -50,7 +50,8 @@
     <!-- View tabs: collection / stats / leaderboard -->
     <div class="view-tabs" id="view-tabs" role="tablist" aria-label="Panel sections">
       <button class="view-tab active" data-view="collection" role="tab" aria-selected="true">Collection</button>
-      <button class="view-tab" data-view="stats" role="tab" aria-selected="false">Stats<span class="tab-dot hidden" id="stats-dot" title="Trade offers are waiting"></span></button>
+      <button class="view-tab" data-view="stats" role="tab" aria-selected="false">Stats</button>
+      <button class="view-tab" data-view="trades" role="tab" aria-selected="false">Trades<span class="tab-dot hidden" id="trades-dot" title="Trade offers are waiting"></span></button>
       <button class="view-tab" data-view="leaderboard" role="tab" aria-selected="false">Board</button>
     </div>
 
@@ -68,6 +69,9 @@
 
     <!-- Stats (built in panel.js) -->
     <div class="grid-area hidden" id="stats-area"></div>
+
+    <!-- Trades (built in trades.js) -->
+    <div class="grid-area hidden" id="trades-area"></div>
 
     <!-- Leaderboard (built in panel.js) -->
     <div class="grid-area hidden" id="leaderboard-area"></div>
@@ -102,5 +106,6 @@
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <script src="mock-twitch-ext.js"></script>
   <script src="panel.js"></script>
+  <script src="trades.js"></script>
 </body>
 </html>
