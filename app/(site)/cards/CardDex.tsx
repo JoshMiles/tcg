@@ -1,5 +1,6 @@
 'use client';
 import { Icon, RankMedal } from '@/app/components/Icon';
+import { CopyBrowser } from './CopyBrowser';
 import Link from 'next/link';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -324,6 +325,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                   })}
                 </ul>
                 <p className="text-[11px] text-gray-600">A &ldquo;~&rdquo; means the copy existed before serial numbers and its order is an estimate.</p>
+                <CopyBrowser seasonId={seasonId} card={card.number} versions={firsts.filter(x => x.made > 0).map(x => ({ variant: x.variant, made: x.made }))} />
               </div>
             )}
 

@@ -134,6 +134,41 @@ await db.runInSandbox(box.id, async () => {
   const spent = await ser.getCopy(c, made!.madeFrom![0]);
   ok(spent && spent.ev.at(-1)?.type === 'upgraded', 'a spent copy is retired as upgraded');
 
+  // Admin actions on one exact copy: give away a specific (low) copy rather than the newest, and remove a specific copy.
+  {
+    for (let i = 0; i < 3; i++) await kvLib.addCollectionEntry(c, 'alice', E(1), 'pull');
+    const regs = (await ser.getOwnerCopies(c, 'alice')).filter(x => x.card === 1 && x.variant === 'regular').sort((a, b) => a.n - b.n);
+    ok(regs.length >= 3, 'alice has several card 1 regulars to work with');
+    const [low, mid] = regs;
+    const dropOne = (data: Record<string, number[]>, who: string) => { const i = data[who].indexOf(E(1)); data[who] = [...data[who].slice(0, i), ...data[who].slice(i + 1)]; };
+    const d1 = await kvLib.getCollection(c);
+    dropOne(d1, 'alice');
+    d1.dave = [...(d1.dave ?? []), E(1)];
+    await kvLib.saveCollection(c, d1, { moves: [{ from: 'alice', to: 'dave', entry: E(1), count: 1, ids: [low.id], note: 'admin transfer' }] });
+    await consistent();
+    ok((await mine('dave')).includes(low.id) && !(await mine('alice')).includes(low.id), 'the exact copy (the lowest number) moved, not the newest');
+    const moved = (await ser.getCopy(c, low.id))!;
+    ok(moved.owner === 'dave' && moved.ev.at(-1)?.type === 'traded' && moved.ev.at(-1)?.note === 'admin transfer', 'its history records the admin transfer');
+
+    const d2 = await kvLib.getCollection(c);
+    dropOne(d2, 'alice');
+    await kvLib.saveCollection(c, d2, { retire: { owner: 'alice', ids: [mid.id], who: 'alice', note: 'removed by an admin' } });
+    await consistent();
+    const gone = (await ser.getCopy(c, mid.id))!;
+    ok(!gone.owner && gone.ev.at(-1)?.type === 'removed' && gone.ev.at(-1)?.note === 'removed by an admin', 'the chosen copy is retired with its history');
+    ok(!(await mine('alice')).includes(mid.id), 'and is no longer held');
+
+    // Browsing: pages by serial number, newest first, live and retired together.
+    const page = await ser.pageCopies(c, 1, 'regular', 0, 3);
+    ok(page.copies.length === 3 && page.copies[0].n === page.made && page.copies[1].n === page.made - 1, 'the first page is the newest numbers');
+    const oldest = await ser.pageCopies(c, 1, 'regular', 0, 2, true);
+    eq(oldest.copies.map(x => x.n), [1, 2], 'oldest first starts at #1');
+    ok((await ser.pageCopies(c, 1, 'regular', 0, 100)).copies.some(x => !x.owner), 'retired copies are listed too');
+    ok((await ser.pageCopies(c, 1, 'regular', 99, 3)).copies.length === 0, 'a page past the end is empty');
+    const lc = await ser.liveCounts(c);
+    ok((lc.get(E(1)) ?? 0) === (await ser.liveCopiesOfEntry(c, E(1))).length, 'live counts match the ledger');
+  }
+
   // The scoring view of the ledger: everyone's live serials (escrow left out) and the next free number per card + version.
   const sidx = await ser.loadSerialIndex(c);
   ok(sidx !== null, 'a tracked collection has a serial index');
