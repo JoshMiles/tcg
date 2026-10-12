@@ -63,10 +63,20 @@ export function OverlayStatus({ variant = 'full' }: { variant?: 'compact' | 'ful
   const title = [label, detail].filter(Boolean).join('\n');
 
   if (variant === 'compact') {
+    const live = status?.connected ? status.streaming === true : false;
+    const sub = !status ? (failed ? 'Unavailable' : 'Checking…')
+      : status.connected > 0 ? (status.streaming === true ? 'Live on stream' : status.streaming === false ? 'Not streaming' : 'Connected to OBS')
+      : status.queued > 0 ? `${status.queued} waiting` : 'Open it in OBS';
     return (
-      <div className="aside-item px-4 pb-3 flex items-center gap-2 text-[11px] font-semibold text-gray-400" title={title}>
-        <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
-        <span className="aside-label truncate">{status?.connected ? (status.streaming === true ? 'Overlay · LIVE' : 'Overlay connected') : label}</span>
+      <div className="aside-item aside-card flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2" title={title}>
+        <span className="relative flex w-2.5 h-2.5 shrink-0">
+          <span className={`absolute inset-0 rounded-full ${live ? 'bg-red-400' : status?.connected ? 'bg-green-400' : 'bg-gray-600'}`} />
+          {(live || status?.connected) && <span className={`absolute inset-0 rounded-full animate-ping opacity-60 ${live ? 'bg-red-400' : 'bg-green-400'}`} />}
+        </span>
+        <span className="aside-label min-w-0 leading-tight">
+          <span className="block text-xs font-bold text-gray-200 truncate">{status?.connected ? (status.connected === 1 ? 'Overlay' : `${status.connected} overlays`) : 'Overlay offline'}</span>
+          <span className={`block text-[11px] truncate ${live ? 'text-red-300 font-bold' : 'text-gray-500'}`}>{sub}</span>
+        </span>
       </div>
     );
   }

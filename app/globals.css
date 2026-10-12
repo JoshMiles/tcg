@@ -181,7 +181,11 @@
   .admin-aside[data-collapsed='true'] .aside-label { display: none; }
   .admin-aside[data-collapsed='true'] .aside-item { justify-content: center; padding-left: 0; padding-right: 0; }
   .admin-aside[data-collapsed='true'] .holo-strip { margin-left: 0.75rem; margin-right: 0.75rem; }
+  .admin-aside[data-collapsed='true'] .aside-stack { flex-direction: column; }
+  .admin-aside[data-collapsed='true'] .aside-card { padding-left: 0; padding-right: 0; }
+  .admin-aside[data-collapsed='true'] .aside-rule { display: block; }
 }
+.aside-rule { display: none; height: 1px; margin: 0.5rem 0.75rem; background: rgba(148, 163, 184, 0.14); }
 
 /* ── Upgrade ceremony (UpgradeCeremony.tsx): copies spiral in, a flash, the new variant is revealed ── */
 .ug-overlay {

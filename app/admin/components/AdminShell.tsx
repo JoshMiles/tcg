@@ -41,6 +41,9 @@ export function AdminShell({
   const [peek, setPeek] = useState(false);
   const expandedLook = !shownCollapsed || peek;
   const toggle = () => {
+    // The button keeps focus after a click, which would hold the hover-expanded look open; let go of it.
+    (document.activeElement as HTMLElement | null)?.blur();
+    setPeek(false);
     // Expanding while a page forced it collapsed just overrides that (not saved).
     if (forced && !collapsed) { setForced(false); return; }
     setCollapsed(c => {
@@ -88,7 +91,7 @@ export function AdminShell({
           fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}
           lg:z-40 lg:translate-x-0 lg:transition-[width] ${expandedLook ? 'lg:w-60' : 'lg:w-[4.5rem]'} ${shownCollapsed && peek ? 'lg:shadow-2xl' : ''}`}
       >
-        <div className="px-4 py-5 flex items-center gap-2">
+        <div className="px-4 pt-5 pb-4 flex items-center gap-2">
           <div className="flex-1 min-w-0">{brand}</div>
           <button
             type="button"
@@ -99,23 +102,23 @@ export function AdminShell({
             <Icon name="x" className="w-5 h-5" />
           </button>
         </div>
-        <div className="holo-strip mx-4 rounded-full opacity-80" />
-
+        
         {nav}
-        {status}
-        <div className="p-3 border-t border-poke-blue-light/10 space-y-0.5">
+        <div className="p-3 pt-2.5 border-t border-white/[0.06] space-y-2.5">
+          {status}
           {footer}
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label={shownCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={shownCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden lg:flex w-full items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:text-yellow-300 hover:bg-white/5 text-xs font-semibold transition-colors aside-item"
-          >
-            <span aria-hidden>{shownCollapsed ? '»' : '«'}</span>
-            <span className="aside-label">{shownCollapsed ? 'Keep open' : 'Collapse'}</span>
-          </button>
         </div>
+
+        {/* Collapse handle on the sidebar's edge (desktop) */}
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={shownCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={shownCollapsed ? 'Keep sidebar open' : 'Collapse sidebar'}
+          className="hidden lg:flex absolute -right-3 top-[4.6rem] z-10 w-6 h-6 items-center justify-center rounded-full bg-gray-900 border border-gray-700 text-gray-400 hover:text-yellow-300 hover:border-yellow-500/50 shadow transition-colors"
+        >
+          <Icon name={shownCollapsed ? 'chevronRight' : 'chevronLeft'} className="w-3.5 h-3.5" />
+        </button>
       </aside>
 
       <main className={`flex-1 min-w-0 overflow-auto px-4 pb-6 pt-20 sm:px-6 lg:p-8 lg:transition-[margin] ${shownCollapsed ? 'lg:ml-[4.5rem]' : 'lg:ml-60'}`}>

@@ -4,10 +4,10 @@ import { getBuildInfo, formatVersion, describeBuild } from '@/lib/version';
 export function BuildBadge() {
   const build = getBuildInfo();
   const label = formatVersion(build);
-  const className = 'font-mono text-[11px] text-gray-600 hover:text-yellow-300 transition-colors';
+  const className = 'font-mono text-[10px] text-gray-500 hover:text-yellow-300 transition-colors';
 
   return (
-    <div className="px-3 pt-2 pb-1 flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       {build.commitUrl ? (
         <a href={build.commitUrl} target="_blank" rel="noreferrer" title={describeBuild(build)} className={className}>
           {label}
