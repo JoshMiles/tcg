@@ -34,7 +34,7 @@ ok(make({ bonus: { max: 3, cutoff: 20 }, cards: {} }, VARIANTS, 1_000_000).entry
 const body = (html: string) => html.replace(/<meta name="viewport"[^>]*>\n/, '').replace(/ *<link rel="stylesheet" href="views.css">\n/, '').replace(/<body class="[^"]*">\n(\n  <!--[^\n]*-->\n)?/, '<body>\n');
 const base = body(read('panel.html'));
 for (const f of ['mobile.html', 'video_component.html']) ok(body(read(f)) === base, `${f} has the same markup as panel.html (keep the three in sync)`);
-for (const id of ['stats-area', 'leaderboard-area', 'collection-area', 'grid-tools', 'pack-tabs', 'panel-banner', 'toast', 'stats-dot', 'view-tabs']) {
+for (const id of ['stats-area', 'trades-area', 'leaderboard-area', 'collection-area', 'grid-tools', 'pack-tabs', 'panel-banner', 'toast', 'trades-dot', 'view-tabs']) {
   ok(base.includes(`id="${id}"`), `panel.html has #${id}`);
   ok(js.includes(id), `panel.js uses #${id}`);
 }

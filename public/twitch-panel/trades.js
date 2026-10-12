@@ -1,0 +1,327 @@
+// Trading inside the Twitch panel: offers for you, your open offers, the open board, recent results and a small composer.
+// A classic script loaded after panel.js, so it shares its globals (auth, season, collections, el, cardStatus, ...).
+// Everything goes through /api/twitch/trades (signed Extension JWT), which uses the same engine as the website.
+
+let tradesData = null;      // last GET /api/twitch/trades
+let tradesLoadedAt = 0;
+let tradesError = '';
+let composer = null;        // { to, note, give: {key: n}, get: {key: n}, wantVar: {number: variant}, filter, busy, msg } while composing
+const SHORT = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
+const tkey = (number, variant) => number + '|' + variant;
+
+function tradeCardMap() {
+  const m = new Map();
+  if (season) season.packs.forEach(pack => pack.cards.forEach(c => m.set(c.number, c)));
+  return m;
+}
+const timeLeftText = ms => {
+  const left = ms - Date.now();
+  if (left <= 0) return 'expired';
+  const h = Math.floor(left / 3600000);
+  return h >= 24 ? Math.floor(h / 24) + 'd left' : h >= 1 ? h + 'h left' : Math.max(1, Math.floor(left / 60000)) + 'm left';
+};
+
+function resetTrades() { tradesData = null; tradesLoadedAt = 0; tradesError = ''; composer = null; }
+
+async function loadTrades(force) {
+  if (!auth || !auth.token || !currentUsername) return;
+  if (!force && tradesData && Date.now() - tradesLoadedAt < 30000) { renderTrades(); return; }
+  try {
+    const res = await fetch('/api/twitch/trades', { headers: { Authorization: 'Bearer ' + auth.token } });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { tradesError = body.error || 'Could not load trades (' + res.status + ')'; }
+    else { tradesData = body; tradesError = ''; tradesLoadedAt = Date.now(); }
+  } catch {
+    tradesError = 'Could not reach the server';
+  }
+  const dot = document.getElementById('trades-dot');
+  if (dot && tradesData) dot.classList.toggle('hidden', tradesData.incoming.length === 0);
+  if (currentView === 'trades') renderTrades();
+}
+
+async function tradeRequest(payload) {
+  try {
+    const res = await fetch('/api/twitch/trades', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + auth.token },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json().catch(() => ({}));
+    return res.ok ? { ok: true, body } : { ok: false, error: body.error || 'That did not work (' + res.status + ')' };
+  } catch {
+    return { ok: false, error: 'Could not reach the server' };
+  }
+}
+
+// ── Pieces ────────────────────────────────────────────────
+function stackChips(items, cards) {
+  const wrap = el('div', 'tr-chips');
+  items.forEach(i => {
+    const card = cards.get(i.cardNumber);
+    const chip = el('span', 'tr-chip');
+    const thumb = el('span', 'tr-thumb');
+    if (card && (card.thumbUrl || card.imageUrl)) { const img = el('img'); img.src = card.thumbUrl || card.imageUrl; img.alt = ''; thumb.appendChild(img); }
+    chip.append(thumb, el('span', 'tr-chip-text', i.count + '× ' + (card ? card.name : '#' + i.cardNumber) + (SHORT[i.variant] ? ' (' + SHORT[i.variant] + ')' : '')));
+    wrap.appendChild(chip);
+  });
+  return wrap;
+}
+
+// A button that needs a second tap to go ahead (a trade cannot be undone).
+function confirmButton(label, className, run) {
+  const b = el('button', className, label);
+  b.type = 'button';
+  let armed = false, timer = null;
+  b.addEventListener('click', async () => {
+    if (!armed) {
+      armed = true; b.textContent = 'Sure?'; b.classList.add('armed');
+      timer = setTimeout(() => { armed = false; b.textContent = label; b.classList.remove('armed'); }, 3000);
+      return;
+    }
+    clearTimeout(timer);
+    b.disabled = true; b.textContent = '…';
+    await run();
+  });
+  return b;
+}
+
+async function answerTrade(action, id, doneText) {
+  const r = await tradeRequest({ action, id });
+  showToast(r.ok ? doneText : r.error);
+  await loadTrades(true);
+  if (r.ok && action !== 'decline') { skipNextToast = action === 'accept'; refreshData(false); loadMe(true); }
+}
+
+function tradeRow(t, mode, cards) {
+  const row = el('div', 'tr-row');
+  const head = el('div', 'tr-head');
+  const title = mode === 'incoming' ? '@' + t.from + (t.counter ? ' countered' : ' offers you')
+    : mode === 'board' ? 'Listing by @' + t.from
+    : t.kind === 'direct' ? 'Offer to @' + t.to : 'Your listing on the board';
+  head.append(el('span', 'tr-who', title), el('span', 'tr-time', timeLeftText(t.expiresAt)));
+  row.appendChild(head);
+
+  const mineOut = mode === 'outgoing';
+  const getItems = mineOut ? t.get : t.give;   // what the viewer receives
+  const giveItems = mineOut ? t.give : t.get;  // what the viewer hands over
+  const getPts = mineOut ? t.getPts : t.givePts, givePts = mineOut ? t.givePts : t.getPts;
+  const side = (label, items, pts) => {
+    const s = el('div', 'tr-side');
+    s.append(el('span', 'tr-label', label + ' · ' + fmtNum(pts) + ' pts'), stackChips(items, cards));
+    return s;
+  };
+  row.append(side('You get', getItems, getPts), side('You give', giveItems, givePts));
+  if (t.note) row.appendChild(el('p', 'tr-note', '“' + t.note + '”'));
+
+  const actions = el('div', 'tr-actions');
+  if (mode === 'outgoing') {
+    actions.appendChild(confirmButton('Cancel offer', 'tr-btn ghost', () => answerTrade('cancel', t.id, 'Offer cancelled. Your cards are back.')));
+  } else {
+    if (t.canTake && tradesData.enabled) {
+      actions.appendChild(confirmButton(mode === 'board' ? 'Take trade' : 'Accept', 'tr-btn', () => answerTrade('accept', t.id, 'Trade done! Check your collection.')));
+    } else {
+      actions.appendChild(el('span', 'tr-hint', !tradesData.enabled ? tradesData.closedReason : 'You do not have the cards asked for.'));
+    }
+    if (mode === 'incoming') actions.appendChild(confirmButton('Decline', 'tr-btn ghost', () => answerTrade('decline', t.id, 'Offer declined.')));
+  }
+  row.appendChild(actions);
+  return row;
+}
+
+const STATUS_TEXT = { accepted: 'Completed', declined: 'Declined', cancelled: 'Cancelled', expired: 'Expired', countered: 'Countered', failed: 'Failed' };
+function recentRow(t, cards) {
+  const me = currentUsername;
+  const other = t.from === me ? (t.to || t.resolvedBy || 'the board') : t.from;
+  const row = el('div', 'tr-recent');
+  const gave = t.from === me ? t.give : t.get;
+  const got = t.from === me ? t.get : t.give;
+  const sum = items => items.map(i => i.count + '× ' + (cards.get(i.cardNumber)?.name || '#' + i.cardNumber)).join(', ');
+  row.append(el('span', 'tr-recent-status ' + t.status, STATUS_TEXT[t.status] || t.status), el('span', 'tr-recent-text', ' @' + other + (t.status === 'accepted' ? ': got ' + sum(got) + ' for ' + sum(gave) : '')));
+  return row;
+}
+
+// ── The tab ───────────────────────────────────────────────
+function renderTrades() {
+  const area = document.getElementById('trades-area');
+  if (!area || !season) return;
+  if (composer) { renderComposer(area); return; }
+  area.innerHTML = '';
+  if (!tradesData) {
+    area.appendChild(tradesError ? retryNote(tradesError, () => loadTrades(true)) : skeletonRows(4));
+    return;
+  }
+  const cards = tradeCardMap();
+  const d = tradesData;
+
+  const top = el('div', 'tr-top');
+  const newBtn = el('button', 'tr-btn', '+ New offer');
+  newBtn.type = 'button';
+  newBtn.disabled = !d.enabled;
+  newBtn.addEventListener('click', () => { composer = { to: '', note: '', give: {}, get: {}, wantVar: {}, filter: '', busy: false, msg: '' }; renderTrades(); });
+  top.append(newBtn, el('span', 'tr-limits', d.outgoing.length + '/' + d.limits.maxOpen + ' open offers'));
+  area.appendChild(top);
+  if (!d.enabled) area.appendChild(el('p', 'tr-closed', d.closedReason));
+
+  const section = (title, count, ...children) => {
+    const box = el('section', 'stat-box');
+    box.appendChild(el('h3', 'stat-title', title + (count ? ' (' + count + ')' : '')));
+    children.forEach(c => c && box.appendChild(c));
+    area.appendChild(box);
+  };
+  if (d.incoming.length) section('Offers for you', d.incoming.length, ...d.incoming.map(t => tradeRow(t, 'incoming', cards)));
+  if (d.outgoing.length) section('Your open offers', d.outgoing.length, ...d.outgoing.map(t => tradeRow(t, 'outgoing', cards)));
+  section('The board', d.board.length, ...(d.board.length ? d.board.map(t => tradeRow(t, 'board', cards)) : [el('p', 'stat-muted', 'Nothing is listed right now. Post your own with New offer, and leave the name empty.')]));
+  if (d.recent.length) section('Recent', 0, ...d.recent.map(t => recentRow(t, cards)));
+  area.appendChild(el('div', 'tr-foot', 'Cards you offer are held safely until the offer is answered, cancelled or runs out (' + d.limits.expiryHours + 'h).'));
+}
+
+// ── Composer ──────────────────────────────────────────────
+function stepper(value, max, onChange) {
+  const box = el('span', 'tr-step');
+  const minus = el('button', 'tr-step-btn', '−'); minus.type = 'button'; minus.disabled = value <= 0;
+  const plus = el('button', 'tr-step-btn', '+'); plus.type = 'button'; plus.disabled = value >= max;
+  minus.setAttribute('aria-label', 'One fewer'); plus.setAttribute('aria-label', 'One more');
+  minus.addEventListener('click', () => onChange(value - 1));
+  plus.addEventListener('click', () => onChange(value + 1));
+  box.append(minus, el('span', 'tr-step-n', String(value)), plus);
+  return box;
+}
+const stackCount = obj => Object.keys(obj).filter(k => obj[k] > 0).length;
+const setCount = (obj, key, n) => { if (n > 0) obj[key] = n; else delete obj[key]; };
+
+function cardRowBase(card, nameSuffix) {
+  const row = el('div', 'tr-pick');
+  const thumb = el('span', 'tr-thumb');
+  if (card.thumbUrl || card.imageUrl) { const img = el('img'); img.src = card.thumbUrl || card.imageUrl; img.alt = ''; thumb.appendChild(img); }
+  const name = el('span', 'tr-pick-name', card.name + (nameSuffix || ''));
+  row.append(thumb, name);
+  return row;
+}
+
+function renderGive(box) {
+  box.innerHTML = '';
+  const rows = [];
+  cardsOfSeason().forEach(({ card }) => {
+    const st = cardStatus(card);
+    VARIANTS.forEach(v => { if (st.variants[v] > 0) rows.push({ card, v, have: st.variants[v] }); });
+  });
+  if (rows.length === 0) { box.appendChild(el('p', 'stat-muted', 'You have no cards to offer yet.')); return; }
+  rows.forEach(({ card, v, have }) => {
+    const k = tkey(card.number, v);
+    const n = composer.give[k] || 0;
+    const row = cardRowBase(card, SHORT[v] ? ' (' + SHORT[v] + ')' : '');
+    row.classList.toggle('on', n > 0);
+    row.appendChild(el('span', 'tr-have', 'have ' + have));
+    row.appendChild(stepper(n, have, nn => {
+      if (nn > 0 && n === 0 && stackCount(composer.give) >= tradesData.limits.maxStacks) { composer.msg = 'You can offer up to ' + tradesData.limits.maxStacks + ' different cards.'; renderSummary(); return; }
+      composer.msg = '';
+      setCount(composer.give, k, nn); renderGive(box); renderSummary();
+    }));
+    box.appendChild(row);
+  });
+}
+
+function renderWant(box) {
+  box.innerHTML = '';
+  const q = composer.filter.trim().toLowerCase();
+  let shown = 0;
+  cardsOfSeason().forEach(({ card }) => {
+    if (q && card.name.toLowerCase().indexOf(q) === -1 && String(card.number) !== q) return;
+    if (!q && shown >= 12) return;
+    shown++;
+    const variants = (card.variants && card.variants.length) ? card.variants : ['regular'];
+    const cur = variants.indexOf(composer.wantVar[card.number]) !== -1 ? composer.wantVar[card.number] : variants[0];
+    const k = tkey(card.number, cur);
+    const n = composer.get[k] || 0;
+    const row = cardRowBase(card);
+    row.classList.toggle('on', n > 0);
+    if (variants.length > 1) {
+      const sel = el('select', 'tr-select');
+      variants.forEach(v => { const o = el('option', null, VARIANT_LABELS[v]); o.value = v; if (v === cur) o.selected = true; sel.appendChild(o); });
+      sel.addEventListener('change', () => { composer.wantVar[card.number] = sel.value; renderWant(box); });
+      row.appendChild(sel);
+    }
+    row.appendChild(stepper(n, 20, nn => {
+      if (nn > 0 && n === 0 && stackCount(composer.get) >= tradesData.limits.maxStacks) { composer.msg = 'You can ask for up to ' + tradesData.limits.maxStacks + ' different cards.'; renderSummary(); return; }
+      composer.msg = '';
+      setCount(composer.get, k, nn); renderWant(box); renderSummary();
+    }));
+    box.appendChild(row);
+  });
+  if (!q && cardsOfSeason().length > 12) box.appendChild(el('p', 'stat-muted', 'Type a name to find other cards.'));
+  if (shown === 0) box.appendChild(el('p', 'stat-muted', 'No card matches that.'));
+}
+
+const itemsOf = obj => Object.keys(obj).filter(k => obj[k] > 0).map(k => { const [n, v] = k.split('|'); return { cardNumber: Number(n), variant: v, count: obj[k] }; });
+
+function renderSummary() {
+  const box = document.getElementById('tr-summary');
+  if (!box) return;
+  box.innerHTML = '';
+  const cards = tradeCardMap();
+  const give = itemsOf(composer.give), get = itemsOf(composer.get);
+  const line = (label, items) => {
+    const s = el('div', 'tr-side');
+    s.append(el('span', 'tr-label', label), items.length ? stackChips(items, cards) : el('span', 'tr-hint', 'nothing chosen yet'));
+    box.appendChild(s);
+  };
+  line('You give', give);
+  line('You want back', get);
+  if (composer.msg) box.appendChild(el('p', 'tr-error', composer.msg));
+  const send = document.getElementById('tr-send');
+  if (send) send.disabled = composer.busy || give.length === 0 || get.length === 0;
+}
+
+function renderComposer(area) {
+  area.innerHTML = '';
+  const head = el('div', 'tr-top');
+  const back = el('button', 'tr-btn ghost', '‹ Back');
+  back.type = 'button';
+  back.addEventListener('click', () => { composer = null; renderTrades(); });
+  head.append(back, el('span', 'tr-limits', 'New offer'));
+  area.appendChild(head);
+
+  const section = (title, hint, child) => {
+    const box = el('section', 'stat-box');
+    box.appendChild(el('h3', 'stat-title', title));
+    if (hint) box.appendChild(el('p', 'stat-muted', hint));
+    box.appendChild(child);
+    area.appendChild(box);
+  };
+  const giveBox = el('div', 'tr-list');
+  section('1. What you give', 'Tap + on the cards to hand over. They are held safely until someone answers.', giveBox);
+  renderGive(giveBox);
+
+  const wantWrap = el('div');
+  const search = el('input', 'tr-input');
+  search.type = 'search'; search.placeholder = 'Find a card...'; search.value = composer.filter; search.setAttribute('aria-label', 'Find a card');
+  const wantBox = el('div', 'tr-list');
+  search.addEventListener('input', () => { composer.filter = search.value; renderWant(wantBox); });
+  wantWrap.append(search, wantBox);
+  section('2. What you want back', null, wantWrap);
+  renderWant(wantBox);
+
+  const sendWrap = el('div');
+  const to = el('input', 'tr-input');
+  to.type = 'text'; to.placeholder = 'Twitch name (empty = post on the board)'; to.value = composer.to; to.maxLength = 40; to.setAttribute('aria-label', 'Who the offer is for');
+  to.addEventListener('input', () => { composer.to = to.value; });
+  const note = el('input', 'tr-input');
+  note.type = 'text'; note.placeholder = 'Add a note (optional)'; note.value = composer.note; note.maxLength = 140; note.setAttribute('aria-label', 'Note');
+  note.addEventListener('input', () => { composer.note = note.value; });
+  const summary = el('div'); summary.id = 'tr-summary';
+  const send = el('button', 'tr-btn wide', 'Send offer'); send.id = 'tr-send'; send.type = 'button';
+  send.addEventListener('click', async () => {
+    composer.busy = true; composer.msg = ''; renderSummary();
+    const target = composer.to.replace(/^@/, '').trim();
+    const r = await tradeRequest({ action: 'create', kind: target ? 'direct' : 'listing', to: target || undefined, give: itemsOf(composer.give), get: itemsOf(composer.get), note: composer.note });
+    composer.busy = false;
+    if (!r.ok) { composer.msg = r.error; renderSummary(); return; }
+    composer = null;
+    showToast(target ? 'Offer sent to @' + target + '.' : 'Listed on the board.');
+    await loadTrades(true);
+    refreshData(false); loadMe(true);
+  });
+  sendWrap.append(to, note, summary, send);
+  section('3. Send it', 'Name someone to offer it just to them, or leave the name empty to post it on the board for anyone.', sendWrap);
+  renderSummary();
+}

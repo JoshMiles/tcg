@@ -249,7 +249,7 @@ export default async function FaqPage() {
           Trading can be paused by the streamer, for example while something is being fixed. While it&rsquo;s paused nothing new can be offered or accepted, but you can still cancel your own offers to get your cards back.
         </Q>
         <Q q="Can I trade in the Twitch extension?">
-          Not yet — trading is on the website for now. Your collection is the same in both places.
+          Yes. The extension has a Trades tab where you can accept or decline offers, take listings from the open board, cancel your own offers and make new ones (name a viewer, or leave the name empty to post on the board). It works exactly like the website, so your offers and cards are the same in both places. The website also has extras such as matches and the full history.
         </Q>
       </Section>
 

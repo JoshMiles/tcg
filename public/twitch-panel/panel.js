@@ -751,8 +751,10 @@ function setView(view) {
   document.getElementById('grid-tools').classList.toggle('hidden', view !== 'collection');
   document.getElementById('collection-area').classList.toggle('hidden', view !== 'collection');
   document.getElementById('stats-area').classList.toggle('hidden', view !== 'stats');
+  document.getElementById('trades-area').classList.toggle('hidden', view !== 'trades');
   document.getElementById('leaderboard-area').classList.toggle('hidden', view !== 'leaderboard');
   if (view === 'stats') { renderStats(); if (!me) loadMe(); }
+  if (view === 'trades') { renderTrades(); loadTrades(false); }
   if (view === 'leaderboard') loadLeaderboard();
 }
 
@@ -903,10 +905,12 @@ function renderStats() {
   hero.append(score, rank);
   area.appendChild(hero);
 
-  // Trade offers waiting (trading happens on the website)
+  // Trade offers waiting: they are answered in the Trades tab
   if (me.offers > 0) {
-    const a = statLink(me.offers + ' trade offer' + (me.offers === 1 ? '' : 's') + ' waiting for you', '/trade', 'offers-banner');
+    const a = el('button', 'offers-banner', me.offers + ' trade offer' + (me.offers === 1 ? '' : 's') + ' waiting for you');
+    a.type = 'button';
     a.appendChild(el('span', 'offers-go', 'Open'));
+    a.addEventListener('click', () => setView('trades'));
     area.appendChild(a);
   }
 
@@ -988,7 +992,7 @@ function renderStats() {
 
   // Links out
   const links = el('div', 'stat-links');
-  links.append(statLink('Full stats', '/account'), statLink('My profile', '/u/' + encodeURIComponent(me.username)), statLink('Trade', '/trade'));
+  links.append(statLink('Full stats', '/account'), statLink('My profile', '/u/' + encodeURIComponent(me.username)), statLink('Trade on the site', '/trade'));
   area.appendChild(links);
 }
 
@@ -1002,7 +1006,7 @@ async function loadMe(fresh) {
   } catch {
     return;
   }
-  document.getElementById('stats-dot').classList.toggle('hidden', !(me.offers > 0));
+  document.getElementById('trades-dot').classList.toggle('hidden', !(me.offers > 0));
   renderSeasonHeader('collection-season-header');
   renderGrid(); // the serial marks on the tiles
   if (currentView === 'stats') renderStats();
@@ -1062,7 +1066,9 @@ function activeCounts() {
   if (c) for (const e of c.ownedNumbers) m.set(e, (m.get(e) || 0) + 1);
   return m;
 }
+let skipNextToast = false; // set after a trade, whose new cards are not "pulls"
 function announceNew(before) {
+  if (skipNextToast) { skipNextToast = false; return; }
   const names = [];
   const byNumber = new Map();
   season.packs.forEach(pack => pack.cards.forEach(card => byNumber.set(card.number, card)));
@@ -1130,6 +1136,7 @@ async function login(username) {
   setExplicitLogout(false);
   currentUsername = username;
   me = null;
+  resetTrades();
   collectionFilter = 'all';
   const loaded = await loadUserCollection(username);
   showState('collection');
@@ -1402,6 +1409,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
   currentUsername = null;
   collections = [];
   me = null;
+  resetTrades();
   hideBanner();
   showLoginScreen();
 });
