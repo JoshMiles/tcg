@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection, getSeason } from '@/lib/kv';
 import { decodeEntry } from '@/lib/variants';
+import { getUserSettings } from '@/lib/user-settings-store';
 import type { Variant } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -20,5 +21,7 @@ export async function GET(req: NextRequest) {
     const { cardNumber, variant } = decodeEntry(entry);
     holdings[cardNumber] = { ...holdings[cardNumber], [variant]: (holdings[cardNumber]?.[variant] ?? 0) + 1 };
   }
-  return NextResponse.json({ username, holdings });
+  // Their Looking for list is public on their profile, so the composer may suggest cards they want.
+  const wanted = (await getUserSettings(username)).wanted;
+  return NextResponse.json({ username, holdings, wanted });
 }
