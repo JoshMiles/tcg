@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { AnimatedArt } from '@/app/components/AnimatedArt';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { holoClass, holoVars } from '@/lib/holo-core';
@@ -31,7 +32,7 @@ function Side({ cards, caption, cls }: { cards: SwapCard[]; caption: string; cls
           return (
             <div key={`${c.number}:${c.variant}:${i}`} className="tr-card">
               <div className={`tr-art ${fx}`} style={{ ['--art-mask' as string]: thumb !== url ? `url("${thumb}")` : 'none', ...holoVars(c.holo?.[c.variant]) }}>
-                <img src={thumb} alt={c.name} />
+                <AnimatedArt url={url} alt={c.name} />
               </div>
               {c.count > 1 && <span className="tr-count">×{c.count}</span>}
               {c.variant !== 'regular' && <span className="tr-var" style={{ background: PILL[c.variant] }}>{VARIANT_LABELS[c.variant]}</span>}
