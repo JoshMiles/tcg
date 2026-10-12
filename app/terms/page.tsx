@@ -58,6 +58,10 @@ export default function TermsPage() {
             (such as trading with other viewers on the website, where offered cards are held in escrow until the offer ends; an offer can be declined, cancelled or expire, and trading can be paused or changed at any time).
           </li>
           <li>
+            Every copy of a card has a <strong className="text-white">serial number</strong> and a history that is shown publicly. Serial numbers are a bit of fun: a low or special number gives no extra
+            right, value or entitlement. Copies that existed before serial numbers were introduced were numbered afterwards, so their order is an estimate, and we may correct or renumber copies if something goes wrong.
+          </li>
+          <li>
             We may add, change, rebalance, rename or remove cards, packs, variants, odds, upgrade costs, point values, and seasons at any time, and may reset or retire collections and leaderboards
             (for example at the end of a season), with or without notice.
           </li>

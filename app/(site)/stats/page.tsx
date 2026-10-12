@@ -127,7 +127,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
         </section>
 
         {hasSeries && (
-          <section className="rind rounded-2xl p-5 space-y-3 lg:col-span-2">
+          <section className="rind rounded-2xl p-5 space-y-3 lg:col-span-2 min-w-0">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="font-display text-xl font-bold text-white">Pulls per day</h2>
               <p className="text-xs text-gray-500">{sum(pulls).toLocaleString()} pulls counted{series.since ? ` since ${new Date(series.since).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</p>
