@@ -24,8 +24,8 @@ function variantOdds(w: Record<(typeof VARIANTS)[number], number>, pullRate: num
   };
 }
 
-export default async function CardDexPage({ searchParams }: { searchParams: Promise<{ season?: string }> }) {
-  const { season: seasonParam } = await searchParams;
+export default async function CardDexPage({ searchParams }: { searchParams: Promise<{ season?: string; card?: string }> }) {
+  const { season: seasonParam, card: cardParam } = await searchParams;
   const { season, seasons } = await getActive(seasonParam);
 
   if (!season) {
@@ -102,7 +102,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
       {cards.length === 0 ? (
         <p className="text-gray-500 text-sm py-10 text-center">This season has no cards yet.</p>
       ) : (
-        <CardDex cards={cards} showMine={!!session && season.active} />
+        <CardDex cards={cards} showMine={!!session && season.active} initialOpenId={cardParam ? cards.find(c => c.number === Number(cardParam))?.id : undefined} />
       )}
     </div>
   );

@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { SiteNav, type NavUser } from './SiteNav';
+import { SiteNav, type NavRank, type NavUser } from './SiteNav';
+import { SiteSearch } from './SiteSearch';
+import { getActiveSeason } from '@/lib/kv';
+import { getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { getLiveStatus } from '@/lib/twitch-live';
 import { LiveProvider } from './Live';
@@ -13,9 +16,19 @@ export async function SiteShell({ children }: { children: ReactNode }) {
   const session = await getSession();
   const live = await getLiveStatus().catch(() => null); // cached, so this is normally one KV read
   let user: NavUser | null = null;
+  let rank: NavRank | null = null;
   if (session) {
     const avatar = (await getAvatars([session.username]))[session.username];
     user = { username: session.username, displayName: session.displayName, avatarUrl: avatar && sizeTwitchAvatar(avatar, 70) };
+    // Their place in the active season, from the shared (20 s) board: a nice-to-have, so a failure just hides the chip.
+    try {
+      const season = await getActiveSeason();
+      if (season) {
+        const board = await getSeasonLeaderboardCached(season);
+        const i = board.rows.findIndex(r => r.username === session.username);
+        if (i >= 0) rank = { rank: i + 1, score: Math.round(board.rows[i].score), total: board.rows.length, season: season.name };
+      }
+    } catch { /* leave the chip out */ }
   }
 
   return (
@@ -23,7 +36,8 @@ export async function SiteShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[90] focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       <SandboxPill />
-      <SiteNav user={user} loginEnabled={loginConfigured()} />
+      <SiteNav user={user} loginEnabled={loginConfigured()} rank={rank} />
+      <SiteSearch />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>
       <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">
         <div className="max-w-6xl mx-auto px-4 py-8 grid gap-6 sm:grid-cols-[1fr_auto] items-start">

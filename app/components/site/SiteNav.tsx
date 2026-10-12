@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '@/app/components/Avatar';
 import { LiveBadge } from './Live';
 import { NotificationBell } from './NotificationBell';
+import { OPEN_SEARCH_EVENT, SearchButton } from './SiteSearch';
+import { nextMenuIndex } from '@/lib/menu-nav';
 
 const LINKS = [
   { href: '/', label: 'Home', exact: true },
@@ -19,6 +21,14 @@ const LINKS = [
 ];
 
 export interface NavUser { username: string; displayName: string; avatarUrl?: string }
+/** The signed-in viewer's place in the active season (null when unranked or there is no season). */
+export interface NavRank { rank: number; score: number; total: number; season: string }
+
+const SEEN_KEY = 'tcg_rank_seen';
+/** What changed since the viewer last opened the account menu: positive = climbed. */
+function readSeen(username: string): { rank: number; score: number } | null {
+  try { const v = JSON.parse(localStorage.getItem(`${SEEN_KEY}:${username}`) || 'null'); return v && typeof v.rank === 'number' ? v : null; } catch { return null; }
+}
 
 const TwitchGlyph = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -27,21 +37,52 @@ const TwitchGlyph = () => (
 );
 
 /** Top bar for the public site. Collapses to a menu button on small screens. */
-export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEnabled: boolean }) {
+export function SiteNav({ user, loginEnabled, rank }: { user: NavUser | null; loginEnabled: boolean; rank?: NavRank | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // account dropdown
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const burgerRef = useRef<HTMLButtonElement>(null);
+  const [delta, setDelta] = useState(0); // places climbed (+) or lost (-) since the viewer last looked
 
-  // Close the account dropdown on outside click / Escape.
+  // The account menu behaves like a real menu: focus moves into it, arrows / Home / End move, Esc and Tab close it.
   useEffect(() => {
     if (!menuOpen) return;
+    const items = () => [...(menuRef.current?.querySelectorAll<HTMLElement>('[role=menuitem]') ?? [])];
+    items()[0]?.focus();
     const onDown = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); setMenuOpen(false); triggerRef.current?.focus(); return; }
+      if (e.key === 'Tab') { setMenuOpen(false); return; }
+      const list = items();
+      const next = nextMenuIndex(list.indexOf(document.activeElement as HTMLElement), e.key, list.length);
+      if (next !== null) { e.preventDefault(); list[next]?.focus(); }
+    };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [menuOpen]);
+
+  // The phone menu closes on Escape too (and gives focus back to its button).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); burgerRef.current?.focus(); } };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  // Rank movement since the last time they opened the menu (kept in this browser only).
+  useEffect(() => {
+    if (!user || !rank) { setDelta(0); return; }
+    const seen = readSeen(user.username);
+    setDelta(seen ? seen.rank - rank.rank : 0);
+  }, [user, rank]);
+  const markSeen = () => {
+    if (!user || !rank) return;
+    try { localStorage.setItem(`${SEEN_KEY}:${user.username}`, JSON.stringify({ rank: rank.rank, score: rank.score })); } catch { /* optional */ }
+    setDelta(0);
+  };
 
   const loginHref = `/auth/twitch?returnTo=${encodeURIComponent(pathname === '/' ? '/account' : pathname)}`;
 
@@ -77,22 +118,31 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          <SearchButton className="h-9 px-2.5" />
           <LiveBadge />
           {user && <NotificationBell />}
           {user ? (
             <div className="relative hidden sm:block" ref={menuRef}>
               <button
+                ref={triggerRef}
                 type="button"
-                onClick={() => setMenuOpen(o => !o)}
+                onClick={() => { setMenuOpen(o => !o); markSeen(); }}
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
                 className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10 transition-colors"
               >
                 <Avatar src={user.avatarUrl} name={user.displayName} className="w-7 h-7 text-xs" />
                 <span className="text-sm font-semibold text-yellow-100 max-w-[9rem] truncate">{user.displayName}</span>
+                {rank && <RankChip rank={rank} delta={delta} />}
               </button>
               {menuOpen && (
-                <div role="menu" className="absolute right-0 mt-2 w-52 rounded-xl border border-gray-700 bg-gray-900 shadow-card p-1.5 grid gap-0.5">
+                <div role="menu" className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-700 bg-gray-900 shadow-card p-1.5 grid gap-0.5">
+                  {rank && (
+                    <div className="px-3 py-2 mb-0.5 border-b border-gray-800 text-xs text-gray-400">
+                      <span className="block text-gray-500">{rank.season}</span>
+                      <span className="text-sm font-semibold text-gray-100">#{rank.rank} of {rank.total}</span> · <span className="text-yellow-300 font-semibold tabular-nums">{rank.score.toLocaleString()} pts</span>
+                    </div>
+                  )}
                   <Link role="menuitem" href="/account" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats</Link>
                   <Link role="menuitem" href={`/collection/${user.username}`} className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="cards" className="mr-1.5" />My collection</Link>
                   <form action="/auth/logout" method="post" className="contents">
@@ -110,6 +160,7 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
             </a>
           ) : null}
           <button
+            ref={burgerRef}
             type="button"
             onClick={() => setOpen(o => !o)}
             aria-expanded={open}
@@ -122,8 +173,12 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
         </div>
       </div>
 
+      {open && <div className="md:hidden fixed inset-0 top-14 z-[-1] bg-gray-950/60" onClick={() => setOpen(false)} aria-hidden />}
       {open && (
-        <nav id="site-menu" className="md:hidden border-t border-gray-800 px-4 py-3 grid gap-1" aria-label="Main">
+        <nav id="site-menu" className="md:hidden border-t border-gray-800 bg-gray-950 px-4 py-3 grid gap-1" aria-label="Main">
+          <button type="button" onClick={() => { setOpen(false); window.dispatchEvent(new Event(OPEN_SEARCH_EVENT)); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-gray-700 text-sm text-gray-400 text-left">
+            <Icon name="search" /> Search collectors, cards and pages…
+          </button>
           {LINKS.map(l => (
             <Link
               key={l.href}
@@ -135,7 +190,7 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
           ))}
           {user ? (
             <>
-              <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-yellow-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats ({user.displayName})</Link>
+              <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-yellow-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats ({user.displayName}){rank && <span className="ml-2 text-xs text-gray-400">#{rank.rank} · {rank.score.toLocaleString()} pts</span>}</Link>
               <Link href={`/collection/${user.username}`} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="cards" className="mr-1.5" />My collection</Link>
               <form action="/auth/logout" method="post">
                 <PendingButton type="submit" className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-300 hover:bg-red-950/40">Log out</PendingButton>
@@ -149,5 +204,18 @@ export function SiteNav({ user, loginEnabled }: { user: NavUser | null; loginEna
         </nav>
       )}
     </header>
+  );
+}
+
+/** "#2" beside the name, with a small green / red arrow when the viewer has moved since they last opened the menu. */
+function RankChip({ rank, delta }: { rank: NavRank; delta: number }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[11px] font-extrabold text-yellow-300 bg-yellow-500/10 border border-yellow-400/25 rounded-full px-1.5 py-px tabular-nums"
+      title={`#${rank.rank} of ${rank.total} in ${rank.season} · ${rank.score.toLocaleString()} points${delta ? (delta > 0 ? ` · up ${delta} since you last looked` : ` · down ${-delta} since you last looked`) : ''}`}
+    >
+      #{rank.rank}
+      {delta !== 0 && <span className={delta > 0 ? 'text-green-400' : 'text-red-400'}>{delta > 0 ? '▲' : '▼'}{Math.abs(delta)}</span>}
+    </span>
   );
 }
