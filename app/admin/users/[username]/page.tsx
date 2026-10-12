@@ -20,7 +20,8 @@ import { tradesForUser } from '@/lib/trades';
 import { describeItems } from '@/lib/trade-core';
 import { listUserSnapshots, SUGGESTED_TAGS } from '@/lib/user-admin';
 import { updateUserProfile, removeUserCard, resetUserSeason, resetUser, deleteUser } from '../../actions';
-import { GrantPanel, ModerationPanel, SectionNav, TagsEditor, ToolsPanel, TradesPanel, type TradeLine } from './UserPanels';
+import { PageTabs, pickTab } from '../../components/PageTabs';
+import { GrantPanel, ModerationPanel, TagsEditor, ToolsPanel, TradesPanel, type TradeLine } from './UserPanels';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,10 +61,10 @@ export default async function UserDetailPage({
   params, searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ compare?: string }>;
+  searchParams: Promise<{ compare?: string; tab?: string }>;
 }) {
   const { username: rawUsername } = await params;
-  const { compare: compareRaw } = await searchParams;
+  const { compare: compareRaw, tab: tabParam } = await searchParams;
   const username = rawUsername.toLowerCase();
   const compareWith = compareRaw?.toLowerCase().replace(/^@/, '').trim() || '';
 
@@ -157,6 +158,15 @@ export default async function UserDetailPage({
     compare = { name: compareWith, iLack: iLack.map(n => nameOf(n) ?? `#${n}`), theyLack: theyLack.map(n => nameOf(n) ?? `#${n}`), swaps };
   }
 
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: 'user' },
+    { id: 'collection', label: 'Collection', icon: 'cards', count: totalCards },
+    { id: 'trades', label: 'Trades', icon: 'trade', count: tradeLines.length || undefined },
+    { id: 'grant', label: 'Grant', icon: 'gift' },
+    { id: 'admin', label: 'Admin', icon: 'shield' },
+  ] as const;
+  const tab = pickTab(tabs, tabParam);
+
   const updateProfile = updateUserProfile.bind(null, username);
   const resetAll = resetUser.bind(null, username);
   const deleteThisUser = deleteUser.bind(null, username);
@@ -177,7 +187,7 @@ export default async function UserDetailPage({
             {flags?.hideFromBoard && <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-amber-900/40 text-amber-300 rounded-md"><Icon name="shield" className="w-3 h-3" />Hidden</span>}
             {myRow?.complete && <span className="text-xs px-1.5 py-0.5 bg-yellow-900/40 text-yellow-300 rounded-md">Complete</span>}
           </div>
-          <p className="text-sm text-gray-500 font-mono mt-0.5">{username}</p>
+          {displayName.toLowerCase() !== username && <p className="text-sm text-gray-500 font-mono mt-0.5">{username}</p>}
         </div>
         <div className="ml-auto shrink-0 flex gap-2">
           <a href={`/collection/${username}`} target="_blank" className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition-colors">↗ Public Collection</a>
@@ -194,12 +204,11 @@ export default async function UserDetailPage({
         <Tile label="Joined" value={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '—'} sub={`${tradeLines.filter(l => l.status === 'accepted').length} trades done`} />
       </div>
 
-      <SectionNav items={[
-        { id: 'overview', label: 'Profile' }, { id: 'activity', label: 'Timeline' }, { id: 'trades', label: 'Trades' },
-        { id: 'collection', label: 'Collection' }, { id: 'grant', label: 'Grant' }, { id: 'compare', label: 'Compare' },
-        { id: 'moderation', label: 'Moderation' }, { id: 'tools', label: 'Restore & merge' }, { id: 'audit', label: 'Audit trail' },
-      ]} />
+      <PageTabs tabs={tabs} active={tab} base={`/admin/users/${encodeURIComponent(username)}`} keep={{ compare: compareWith || undefined }} label="User sections" />
 
+
+      {tab === 'profile' && (
+        <>
       <Section id="overview" title="Profile" hint="Tags and notes are only visible to admins.">
         <TagsEditor username={username} initial={profile?.tags ?? []} suggestions={SUGGESTED_TAGS} />
         <form action={updateProfile} className="grid md:grid-cols-3 gap-4">
@@ -232,10 +241,20 @@ export default async function UserDetailPage({
         )}
       </Section>
 
+        </>
+      )}
+
+      {tab === 'trades' && (
+        <>
       <Section id="trades" title="Trades" hint="Open offers can be cancelled here; the escrowed cards go back to their owner.">
         <TradesPanel username={username} lines={tradeLines} />
       </Section>
 
+        </>
+      )}
+
+      {tab === 'collection' && (
+        <>
       {/* Collection per season */}
       <div id="collection" className="space-y-6 scroll-mt-16">
         {seasonEntries.filter(e => e.packs.length > 0).map(({ season, ownedNumbers, countMap, variantMap, packs }) => {
@@ -319,8 +338,30 @@ export default async function UserDetailPage({
         {!hasAnyCards && <div className="tcg-panel rounded-2xl py-16 text-center"><p className="text-gray-500 text-sm">No cards pulled yet</p></div>}
       </div>
 
+        </>
+      )}
+
+      {tab === 'grant' && (
+        <>
       <Section id="grant" title="Grant cards & packs" hint={activeSeason ? `Into ${activeSeason.name}. Pick several cards, choose a version and how many copies of each.` : 'There is no active season.'}>
         {activeSeason ? <GrantPanel username={username} cards={grantCards} upgrades={grantUpgrades} /> : <p className="text-sm text-gray-600">Activate a season first.</p>}
+      </Section>
+
+        </>
+      )}
+
+      {tab === 'admin' && (
+        <>
+      <Section id="moderation" title="Moderation" hint="Restrictions apply immediately across the website and the Twitch panel.">
+        <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at }} />
+      </Section>
+
+      <Section id="tools" title="Restore points, compare & merge">
+        <ToolsPanel
+          username={username}
+          snapshots={snaps.map(s => ({ id: s.id, at: s.at, reason: s.reason, cards: s.collections.reduce((n, c) => n + c.entries.length, 0), seasons: s.collections.map(c => c.seasonName).join(', ') }))}
+          collections={{ cards: totalPulls, seasons: activeSeasons }}
+        />
       </Section>
 
       <Section id="compare" title="Compare" hint="Cards missing on each side in the active season, and how many one-for-one duplicate swaps would help both.">
@@ -332,19 +373,7 @@ export default async function UserDetailPage({
               <div><p className="text-xs text-gray-500 mb-1">{username} has, {compare.name} lacks ({compare.theyLack.length})</p><p className="text-gray-300">{compare.theyLack.join(', ') || 'nothing'}</p></div>
             </div>
           </div>
-        ) : <p className="text-sm text-gray-600">Use “Compare with another viewer” under Restore &amp; merge.</p>}
-      </Section>
-
-      <Section id="moderation" title="Moderation" hint="Restrictions apply immediately across the website and the Twitch panel.">
-        <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at }} />
-      </Section>
-
-      <Section id="tools" title="Restore points, compare & merge">
-        <ToolsPanel
-          username={username}
-          snapshots={snaps.map(s => ({ id: s.id, at: s.at, reason: s.reason, cards: s.collections.reduce((n, c) => n + c.entries.length, 0), seasons: s.collections.map(c => c.seasonName).join(', ') }))}
-          collections={{ cards: totalPulls, seasons: activeSeasons }}
-        />
+        ) : <p className="text-sm text-gray-600">Use “Compare with another viewer” in the tools above.</p>}
       </Section>
 
       <Section id="audit" title="Audit trail" hint="What admins did to this account (newest first).">
@@ -387,6 +416,8 @@ export default async function UserDetailPage({
           </form>
         </div>
       </section>
+        </>
+      )}
     </div>
   );
 }

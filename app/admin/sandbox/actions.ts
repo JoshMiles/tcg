@@ -15,8 +15,8 @@ import type { Variant } from '@/lib/types';
 // Server actions behind /admin/sandbox. Each one re-checks the admin cookie (see lib/admin-guard.ts) and works on the sandbox
 // it is given, wherever the admin currently is. Results go back in the redirect URL (?msg=...) so the page is plain server HTML.
 
-const back = (id: string, msg: string, kind: 'ok' | 'error' = 'ok') =>
-  redirect(`/admin/sandbox/${id}?${kind === 'ok' ? 'msg' : 'err'}=${encodeURIComponent(msg)}`);
+const back = (id: string, msg: string, kind: 'ok' | 'error' = 'ok', tab = 'setup') =>
+  redirect(`/admin/sandbox/${id}?tab=${tab}&${kind === 'ok' ? 'msg' : 'err'}=${encodeURIComponent(msg)}`);
 
 const COOKIE_OPTS = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', maxAge: 60 * 60 * 24 * 30 };
 
@@ -51,7 +51,7 @@ export async function resetSandboxAction(id: string) {
   await requireAdmin();
   await resetSandbox(id);
   revalidatePath('/admin', 'layout');
-  back(id, 'Sandbox reset to a fresh copy of its source.');
+  back(id, 'Sandbox reset to a fresh copy of its source.', 'ok', 'reset');
 }
 
 export async function deleteSandboxAction(id: string) {
@@ -66,7 +66,7 @@ export async function deleteSandboxAction(id: string) {
 export async function resetTestDataAction(id: string) {
   await requireAdmin();
   const n = await resetTestData(id);
-  back(id, `Removed all viewer data (${n} records). The setup is untouched.`);
+  back(id, `Removed all viewer data (${n} records). The setup is untouched.`, 'ok', 'reset');
 }
 
 export async function simulatePullsAction(id: string, formData: FormData) {
@@ -75,10 +75,10 @@ export async function simulatePullsAction(id: string, formData: FormData) {
   try {
     const { pulls, byVariant } = await simulatePulls(id, username, Number(formData.get('count')));
     const bits = VARIANTS.filter(v => byVariant[v] > 0).map(v => `${byVariant[v]} ${v}`).join(', ');
-    back(id, `${cleanTestUsername(username)} pulled ${pulls} card${pulls === 1 ? '' : 's'} (${bits}).`);
+    back(id, `${cleanTestUsername(username)} pulled ${pulls} card${pulls === 1 ? '' : 's'} (${bits}).`, 'ok', 'drive');
   } catch (e) {
     if (isRedirect(e)) throw e;
-    back(id, e instanceof Error ? e.message : 'Could not simulate pulls.', 'error');
+    back(id, e instanceof Error ? e.message : 'Could not simulate pulls.', 'error', 'drive');
   }
 }
 
@@ -88,10 +88,10 @@ export async function seedUsersAction(id: string, formData: FormData) {
     const shape: SeedShape = formData.get('shape') === 'even' ? 'even' : 'realistic';
     const r = await seedUsers(id, { count: Number(formData.get('count')), minPulls: Number(formData.get('minPulls')), maxPulls: Number(formData.get('maxPulls')), shape });
     const bits = VARIANTS.filter(v => r.byVariant[v] > 0).map(v => `${r.byVariant[v].toLocaleString()} ${v}`).join(', ');
-    back(id, `Created ${r.users} test users with ${r.pulls.toLocaleString()} pulls between them (${bits}). The heaviest collector pulled ${r.heaviest}.`);
+    back(id, `Created ${r.users} test users with ${r.pulls.toLocaleString()} pulls between them (${bits}). The heaviest collector pulled ${r.heaviest}.`, 'ok', 'drive');
   } catch (e) {
     if (isRedirect(e)) throw e;
-    back(id, e instanceof Error ? e.message : 'Could not seed users.', 'error');
+    back(id, e instanceof Error ? e.message : 'Could not seed users.', 'error', 'drive');
   }
 }
 
@@ -101,10 +101,10 @@ export async function grantCopiesAction(id: string, formData: FormData) {
   const variant = String(formData.get('variant') ?? 'regular') as Variant;
   try {
     const n = await grantCopies(id, username, Number(formData.get('cardNumber')), variant, Number(formData.get('count')));
-    back(id, `Gave ${cleanTestUsername(username)} ${n} ${variant} cop${n === 1 ? 'y' : 'ies'} of card #${formData.get('cardNumber')}.`);
+    back(id, `Gave ${cleanTestUsername(username)} ${n} ${variant} cop${n === 1 ? 'y' : 'ies'} of card #${formData.get('cardNumber')}.`, 'ok', 'drive');
   } catch (e) {
     if (isRedirect(e)) throw e;
-    back(id, e instanceof Error ? e.message : 'Could not grant copies.', 'error');
+    back(id, e instanceof Error ? e.message : 'Could not grant copies.', 'error', 'drive');
   }
 }
 

@@ -9,6 +9,7 @@ import { listCardValues, listSandboxCards, listSandboxUsers } from '@/lib/sandbo
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { ConfirmButton } from '../../components/ConfirmButton';
+import { PageTabs, pickTab } from '../../components/PageTabs';
 import { UpgradePreview } from './UpgradePreview';
 import { CopyableUrl } from '../../components/copyable-url';
 import {
@@ -20,9 +21,9 @@ export const dynamic = 'force-dynamic';
 
 const field = 'block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-none';
 
-export default async function SandboxDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string; err?: string }> }) {
+export default async function SandboxDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string; err?: string; tab?: string }> }) {
   const { id } = await params;
-  const { msg, err } = await searchParams;
+  const { msg, err, tab: tabParam } = await searchParams;
   const sandbox = await getSandbox(id);
   if (!sandbox) notFound();
 
@@ -36,6 +37,13 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
   const here = activeId === id;
   const h = await headers();
   const origin = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;
+  const tabs = [
+    { id: 'setup', label: 'Setup', icon: 'link' },
+    { id: 'drive', label: 'Simulate', icon: 'zap' },
+    { id: 'values', label: 'Card values', icon: 'coins' },
+    { id: 'reset', label: 'Reset & delete', icon: 'refresh' },
+  ] as const;
+  const tab = pickTab(tabs, tabParam);
   const upgradePacks = (active?.packs ?? []).filter(p => p.pack.upgradesEnabled);
 
   return (
@@ -60,6 +68,10 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
       {!here && <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-4 py-2.5 text-sm text-amber-200">You are not in this sandbox, so the admin pages and website still show production. The tools below work on this sandbox regardless. <strong>Enter</strong> it to see its data everywhere.</div>}
       {!active && <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-4 py-2.5 text-sm text-amber-200">This sandbox has no active season, so pulls and grants have nothing to land in. Enter it and activate a season under Seasons.</div>}
 
+      <PageTabs tabs={tabs} active={tab} base={`/admin/sandbox/${id}`} label="Sandbox sections" />
+
+      {tab === 'setup' && (
+        <>
       {/* Links */}
       <section className="tcg-panel rounded-2xl p-5 space-y-3">
         <h2 className="font-semibold text-white">Open it</h2>
@@ -135,6 +147,11 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         <datalist id="sandbox-users">{users.map(u => <option key={u.username} value={u.username} />)}</datalist>
       </section>
 
+        </>
+      )}
+
+      {tab === 'drive' && (
+        <>
       {/* Drive it */}
       <div className="grid gap-6 md:grid-cols-2">
         <form action={simulatePullsAction.bind(null, id)} className="tcg-panel rounded-2xl p-5 space-y-3">
@@ -169,8 +186,6 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         </form>
       </div>
 
-      <UpgradePreview cards={cards} costs={upgradePacks[0]?.pack.upgradeCosts ?? { reverse: 5, full: 3, shiny: 3 }} />
-
       {/* Seed a whole season's worth of viewers */}
       <form action={seedUsersAction.bind(null, id)} className="tcg-panel rounded-2xl p-5 space-y-3">
         <h2 className="font-semibold text-white">Seed a crowd of test users</h2>
@@ -192,6 +207,12 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         <PendingButton pendingLabel="Seeding…" className="tcg-btn px-4 py-2 text-sm rounded-xl">Seed users</PendingButton>
       </form>
 
+        <UpgradePreview cards={cards} costs={upgradePacks[0]?.pack.upgradeCosts ?? { reverse: 5, full: 3, shiny: 3 }} />
+        </>
+      )}
+
+      {tab === 'values' && (
+        <>
       {/* How the points work out, card by card */}
       <details open className="tcg-panel rounded-2xl p-5 space-y-3">
         <summary className="cursor-pointer font-semibold text-white">Card values <span className="text-gray-600 font-normal text-sm">· what each copy is worth right now</span></summary>
@@ -239,6 +260,11 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         )}
       </details>
 
+        </>
+      )}
+
+      {tab === 'reset' && (
+        <>
       {/* Reset */}
       <section className="rounded-2xl border border-red-500/20 p-5 space-y-3">
         <h2 className="text-sm font-semibold text-red-300">Reset and delete</h2>
@@ -254,6 +280,8 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
           </form>
         </div>
       </section>
+        </>
+      )}
     </div>
   );
 }

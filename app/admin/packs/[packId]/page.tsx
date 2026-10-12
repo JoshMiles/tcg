@@ -14,6 +14,7 @@ import { DraftChip, StatusChip } from '../../components/StatusChip';
 import { CardFilter } from './CardFilter';
 import { PackVariantsPanel, CardToggles, BulkBar } from './VariantControls';
 import { PackFields } from '../../components/PackFields';
+import { PageTabs, pickTab } from '../../components/PageTabs';
 import { AddCardButton } from '../../components/AddCardButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { rarityStats, getRarity } from '@/lib/rarity';
@@ -21,8 +22,9 @@ import { cardThumbUrl } from '@/lib/card-art';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PackPage({ params }: { params: Promise<{ packId: string }> }) {
+export default async function PackPage({ params, searchParams }: { params: Promise<{ packId: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { packId } = await params;
+  const { tab: tabParam } = await searchParams;
   const [pack, cards, seasons, overrides] = await Promise.all([getPack(packId), getPackCards(packId), listSeasons(), getPackOverrides().catch((): Record<string, unknown> => ({}))]);
   if (!pack) notFound();
   const inSeasons = seasons.filter(s => s.packIds.includes(packId));
@@ -38,6 +40,14 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
   const rarityBreakdown = rarityStats(cards);
   const health = isDraft || pack.archived ? [] : packHealth(pack, cards, { inSeason: inSeasons.length > 0 });
   const cardWeights = Object.fromEntries(cards.map(c => [c.id, effectiveWeights(pack, c)]));
+
+  const tabs = [
+    { id: 'cards', label: 'Cards', icon: 'cards', count: cards.length },
+    { id: 'odds', label: 'Odds & simulator', icon: 'chart' },
+    { id: 'overview', label: 'Overview', icon: 'info', count: health.length > 0 ? health.length : undefined },
+    { id: 'settings', label: 'Settings', icon: 'settings' },
+  ] as const;
+  const tab = pickTab(tabs, tabParam);
 
   return (
     <div className="space-y-8">
@@ -107,11 +117,11 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <PageTabs tabs={tabs} active={tab} base={`/admin/packs/${packId}`} label="Pack sections" />
 
-        {/* ── Left: Cards table ── */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
+      {tab === 'cards' && (
+      <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-white">
               Cards <span className="text-gray-600 font-normal text-base ml-1">({sorted.length})</span>
             </h2>
@@ -216,10 +226,17 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             </table>
           </div>
         </div>
+      )}
 
-        {/* ── Right: Pack settings ── */}
-        <div className="space-y-6">
+      {tab === 'odds' && (
+        sorted.length > 0 ? (
+        <OddsPanel packId={packId} cards={sorted.map(c => ({ id: c.id, number: c.number, name: c.name, stars: c.stars, imageUrl: c.imageUrl, probability: c.probability }))} upgrades={pack.upgradesEnabled} cardWeights={cardWeights} />
+        ) : <p className="tcg-panel rounded-2xl px-5 py-12 text-center text-gray-500">Add some cards first, then tune their odds here.</p>
+      )}
 
+      {tab === 'overview' && (
+        <div className="grid xl:grid-cols-2 gap-6 items-start">
+          <div className="space-y-6">
           {/* Health */}
           {!isDraft && !pack.archived && (
             <div id="health" className="tcg-panel rounded-2xl p-5 space-y-3 scroll-mt-20">
@@ -262,6 +279,8 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             )}
           </div>
 
+          </div>
+          <div className="space-y-6">
           <PackVariantsPanel packId={packId} upgradesEnabled={pack.upgradesEnabled} disabled={pack.disabledVariants ?? []} weights={pack.variantWeights} />
 
           {/* Rarity breakdown */}
@@ -282,6 +301,13 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             </div>
           )}
 
+          </div>
+        </div>
+      )}
+
+      {tab === 'settings' && (
+        <div className="grid xl:grid-cols-2 gap-6 items-start">
+          <div className="space-y-6">
           {/* Draft / publish state */}
           {!isDraft && (
             <form action={moveToDrafts} className="tcg-panel rounded-2xl p-4 flex items-center justify-between gap-3">
@@ -303,6 +329,8 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
             </form>
           </div>
 
+          </div>
+          <div className="space-y-6">
           {/* Danger zone */}
           <div className="rounded-2xl border border-red-500/20 p-5 space-y-3">
             <h3 className="text-sm font-semibold text-red-300">Danger zone</h3>
@@ -318,10 +346,9 @@ export default async function PackPage({ params }: { params: Promise<{ packId: s
               </ConfirmButton>
             </form>
           </div>
+          </div>
         </div>
-      </div>
-
-      {sorted.length > 0 && <OddsPanel packId={packId} cards={sorted.map(c => ({ id: c.id, number: c.number, name: c.name, stars: c.stars, imageUrl: c.imageUrl, probability: c.probability }))} upgrades={pack.upgradesEnabled} cardWeights={cardWeights} />}
+      )}
     </div>
   );
 }

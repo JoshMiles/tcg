@@ -15,6 +15,7 @@ import { unpublishSeason } from '../../draft-actions';
 import { StackedBars } from '../../dashboard/charts';
 import { LineupEditor, type LineupPack } from './LineupEditor';
 import { seasonTiming } from '../season-timing';
+import { PageTabs, pickTab, type PageTab } from '../../components/PageTabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +28,9 @@ const Tile = ({ label, value, sub }: { label: string; value: string | number; su
   </div>
 );
 
-export default async function SeasonPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SeasonPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = await params;
+  const { tab: tabParam } = await searchParams;
   const season = await getSeason(id);
   if (!season) notFound();
 
@@ -49,6 +51,13 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
     archived: (p as { archived?: boolean }).archived === true,
   }));
   const timing = seasonTiming(season);
+  const tabs: PageTab[] = [
+    ...(isPublished ? [{ id: 'overview', label: 'Overview', icon: 'chart' } as PageTab] : []),
+    { id: 'packs', label: 'Pack lineup', icon: 'cards', count: lineup.length },
+    { id: 'settings', label: 'Settings', icon: 'settings' },
+    ...(isPublished ? [{ id: 'wrapup', label: 'Wrap-up', icon: 'trophy' } as PageTab] : []),
+  ];
+  const tab = pickTab(tabs, tabParam);
 
   const updateThisSeason = updateSeason.bind(null, id);
   const moveToDrafts = unpublishSeason.bind(null, id);
@@ -106,10 +115,11 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
+      <PageTabs tabs={tabs} active={tab} base={`/admin/seasons/${id}`} label="Season sections" />
+
       {/* ── Overview ── */}
-      {isPublished && stats && (
+      {tab === 'overview' && isPublished && stats && (
         <section className="space-y-4">
-          <h2 className="text-xl font-bold">Overview</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
             <Tile label="Viewers" value={stats.viewers} />
             <Tile label="Cards pulled" value={stats.copies.toLocaleString()} sub={stats.days > 0 ? `${Math.round(stats.copies / stats.days).toLocaleString()} per day` : undefined} />
@@ -158,11 +168,22 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
         </section>
       )}
 
-      {/* ── Settings + wrap-up ── */}
-      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr] items-start">
-        <div className="space-y-4">
+      {tab === 'settings' && (
+        <div className="grid gap-6 xl:grid-cols-2 items-start">
+          <form action={updateThisSeason} className="tcg-panel rounded-xl p-6 space-y-4 xl:col-start-1">
+            <h2 className="text-lg font-semibold text-white">Settings</h2>
+            <SeasonFields
+              defaults={{
+                name: season.name, collectionName: season.collectionName, maxConcurrentPacks: season.maxConcurrentPacks,
+                active: season.active, canActivate: isPublished, startsAt: season.startsAt, endsAt: season.endsAt, autoStart: season.autoStart,
+              }}
+            />
+            <div className="pt-2">
+              <PendingButton type="submit" className="px-5 py-2 tcg-btn rounded-lg text-sm transition-colors">Save Changes</PendingButton>
+            </div>
+          </form>
           {isPublished && (
-            <form action={moveToDrafts} className="tcg-panel rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+            <form action={moveToDrafts} className="xl:col-start-2 xl:row-start-1 tcg-panel rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-gray-500 max-w-xl leading-relaxed">
                 <strong className="text-gray-300">Published.</strong> Move it back to a draft to take it off the public site while you rework it. Viewers&apos; cards, the season&apos;s packs and its settings are all kept.
                 {season.active && <span className="text-amber-300"> This is the active season, so the overlay and Twitch panel will have no season until you activate another.</span>}
@@ -177,20 +198,11 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
               </ConfirmButton>
             </form>
           )}
-          <form action={updateThisSeason} className="tcg-panel rounded-xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white">Settings</h2>
-            <SeasonFields
-              defaults={{
-                name: season.name, collectionName: season.collectionName, maxConcurrentPacks: season.maxConcurrentPacks,
-                active: season.active, canActivate: isPublished, startsAt: season.startsAt, endsAt: season.endsAt, autoStart: season.autoStart,
-              }}
-            />
-            <div className="pt-2">
-              <PendingButton type="submit" className="px-5 py-2 tcg-btn rounded-lg text-sm transition-colors">Save Changes</PendingButton>
-            </div>
-          </form>
         </div>
+      )}
 
+      {tab === 'wrapup' && isPublished && (
+        <div className="grid gap-6 xl:grid-cols-2 items-start">
         {/* Wrap-up */}
         {isPublished && (
           <section className="tcg-panel rounded-xl p-6 space-y-4">
@@ -247,11 +259,13 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
             )}
           </section>
         )}
-      </div>
+        </div>
+      )}
 
       {/* ── Pack lineup ── */}
+      {tab === 'packs' && (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-bold">Pack lineup</h2>
             <p className="text-sm text-gray-500 mt-0.5">Packs are drawn randomly by weight while this season is active. Drag to reorder; edit weights in place.</p>
@@ -275,6 +289,7 @@ export default async function SeasonPage({ params }: { params: Promise<{ id: str
           <div className="text-center py-4"><Link href="/admin/packs/new" className="text-sm text-yellow-500 hover:text-yellow-400 transition-colors">Create a pack first →</Link></div>
         )}
       </div>
+      )}
     </div>
   );
 }
