@@ -1,4 +1,5 @@
-import { addCollectionEntry, ensureUserProfile, getActiveSeasonWithPacks, getAllCollectionUsers, getCollection, saveCollection, withCollectionLock } from './kv';
+import { addCollectionEntry, deleteUserProfile, ensureUserProfile, getActiveSeasonWithPacks, getAllCollectionUsers, getCollection, getUserProfile, listAllPacks, listSeasons, saveCollection, withCollectionLock } from './kv';
+import { listOpenTrades } from './trades';
 import { getSeasonLeaderboard } from './leaderboard';
 import { getHoloResolver, type HoloSpecs } from './holo';
 import { runInSandbox } from './db';
@@ -181,5 +182,60 @@ export function listCardValues(sandboxId: string): Promise<{
         };
       })
       .sort((a, b) => a.number - b.number);
+  });
+}
+
+// ── Overview, user table and removal ──────────────────────
+
+export interface SandboxStats { users: number; copies: number; unique: number; seasons: number; packs: number; activeSeason: string | null; openTrades: number }
+
+/** Headline numbers for a sandbox (viewers, copies, what is active). */
+export function getSandboxStats(sandboxId: string): Promise<SandboxStats> {
+  return runInSandbox(sandboxId, async () => {
+    const [users, seasons, packs, active, open] = await Promise.all([getAllCollectionUsers(), listSeasons(), listAllPacks(), getActiveSeasonWithPacks(), listOpenTrades().catch(() => [])]);
+    const all = users.flatMap(u => u.seasons.flatMap(s => s.cards));
+    return {
+      users: users.length, copies: all.length, unique: new Set(all.map(e => e % 1_000_000)).size,
+      seasons: seasons.length, packs: packs.length, activeSeason: active?.season.name ?? null, openTrades: open.length,
+    };
+  });
+}
+
+export interface SandboxUserRow { username: string; copies: number; unique: number; rank: number | null; score: number | null; complete: boolean; createdAt: number | null }
+
+/** Everyone in the sandbox with their standing in the active season (rank / score), for the Users tab. */
+export function listSandboxUserRows(sandboxId: string): Promise<SandboxUserRow[]> {
+  return runInSandbox(sandboxId, async () => {
+    const [users, active] = await Promise.all([getAllCollectionUsers(), getActiveSeasonWithPacks()]);
+    const board = active ? await getSeasonLeaderboard(active.season).catch(() => null) : null;
+    const standing = new Map((board?.rows ?? []).map((r, i) => [r.username, { rank: i + 1, score: r.score, complete: r.complete }]));
+    return Promise.all(users.map(async u => {
+      const all = u.seasons.flatMap(s => s.cards);
+      const st = standing.get(u.username);
+      return {
+        username: u.username, copies: all.length, unique: new Set(all.map(e => e % 1_000_000)).size,
+        rank: st?.rank ?? null, score: st ? Math.round(st.score) : null, complete: !!st?.complete,
+        createdAt: (await getUserProfile(u.username))?.createdAt ?? null,
+      };
+    }));
+  });
+}
+
+/** Empties these viewers' collections ('clear') or removes them entirely, profile included ('delete'). Returns how many had cards. */
+export function removeTestUsers(sandboxId: string, usernames: string[], mode: 'clear' | 'delete'): Promise<number> {
+  return runInSandbox(sandboxId, async () => {
+    const names = [...new Set(usernames.map(cleanTestUsername).filter(Boolean))];
+    if (names.length === 0) throw new Error('Pick at least one viewer.');
+    let touched = 0;
+    for (const season of await listSeasons()) {
+      await withCollectionLock(season.collectionName, async () => {
+        const data = await getCollection(season.collectionName);
+        let changed = false;
+        for (const n of names) if (n in data) { delete data[n]; changed = true; touched++; }
+        if (changed) await saveCollection(season.collectionName, data);
+      });
+    }
+    if (mode === 'delete') for (const n of names) await deleteUserProfile(n);
+    return touched;
   });
 }
