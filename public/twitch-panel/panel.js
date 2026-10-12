@@ -104,6 +104,45 @@ let collections            = [];     // [{ seasonId, seasonName, active, ownedNu
 let currentUsername        = null;
 let currentPackIdx         = 0;
 let identityRequestPending = false;  // true while waiting for requestIdShare() response
+let me                     = null;   // /api/twitch/me: rank, score breakdown, card values, serials, waiting offers (null until loaded)
+let collectionFilter       = 'all';  // 'all' | 'have' | 'missing' (Collection view)
+let lastLoadAt             = 0;      // when the collection was last fetched (refreshes when the panel comes back into view)
+
+// ── Serial numbers & points ───────────────────────────────
+// Every copy has a number (per card and version); the first copies ever made of a card are worth extra. Mirrors serialMultiplier()
+// in lib/scoring-core.ts: #1 gets bonus.max, fading in a straight line to nothing after bonus.cutoff. Values come from /api/twitch/me.
+const entryOf = (cardNumber, variant) => cardNumber + VARIANT_OFFSET * VARIANTS.indexOf(variant);
+const fmtNum = n => Math.round(n).toLocaleString();
+function serialMult(n) {
+  if (!me || !(n >= 1) || n > me.bonus.cutoff) return 1;
+  return 1 + (me.bonus.max - 1) * (1 - (n - 1) / me.bonus.cutoff);
+}
+function copyPts(cardNumber, variant, serial) {
+  const c = me && me.cards[cardNumber];
+  if (!c) return 0;
+  const i = VARIANTS.indexOf(variant), m = serialMult(serial);
+  return m === 1 ? c.values[i] : Math.max(1, Math.round(c.raw[i] * m));
+}
+// The viewer's serial numbers for one card in one version, lowest first (empty until the copies are numbered).
+const heldSerials = (cardNumber, variant) => (me && me.serials && me.serials[entryOf(cardNumber, variant)]) || [];
+// What the viewer's copies of a card are worth, serial bonuses included (null until /api/twitch/me has loaded).
+function cardWorth(card, variants) {
+  if (!me || !me.cards[card.number]) return null;
+  let total = 0;
+  for (const v of VARIANTS) {
+    const n = variants[v];
+    if (!n) continue;
+    const serials = heldSerials(card.number, v);
+    for (let k = 0; k < n; k++) total += copyPts(card.number, v, serials[k]);
+  }
+  return total;
+}
+function el(tag, className, text) {
+  const e = document.createElement(tag);
+  if (className) e.className = className;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
 
 // ── DOM refs ─────────────────────────────────────────────
 const STATES = {
@@ -122,8 +161,8 @@ function showState(name) {
 
 // ── Season header renderer (shared between states) ───────
 function renderSeasonHeader(containerId) {
-  const el = document.getElementById(containerId);
-  if (!el || !season) return;
+  const host = document.getElementById(containerId);
+  if (!host || !season) return;
 
   const totalCards = season.packs.reduce((s, p) => s + p.cards.length, 0);
   const activeColl = collections.find(c => c.active);
@@ -131,17 +170,13 @@ function renderSeasonHeader(containerId) {
   const totalPulls = activeColl ? activeColl.ownedNumbers.length : 0;
   const pct = totalCards > 0 ? Math.round(ownedCount / totalCards * 100) : 0;
 
-  el.innerHTML = '';
+  host.innerHTML = '';
 
-  const nameEl = document.createElement('div');
-  nameEl.className = 'season-name';
-  nameEl.textContent = 'Active Season';
-  el.appendChild(nameEl);
-
-  const titleEl = document.createElement('div');
-  titleEl.className = 'season-title';
-  titleEl.textContent = season.seasonName;
-  el.appendChild(titleEl);
+  // Season name on the left; rank and score (once loaded) on the right.
+  const top = el('div', 'season-top');
+  const titleEl = el('div', 'season-title', season.seasonName);
+  top.appendChild(titleEl);
+  host.appendChild(top);
 
   if (currentUsername) {
     const row = document.createElement('div');
@@ -162,7 +197,20 @@ function renderSeasonHeader(containerId) {
 
     row.appendChild(bar);
     row.appendChild(label);
-    el.appendChild(row);
+    host.appendChild(row);
+
+    // Rank and score once /api/twitch/me has loaded: one tap opens the Stats view.
+    if (me && me.row && me.rank) {
+      const chip = document.createElement('button');
+      chip.className = 'rank-chip';
+      chip.type = 'button';
+      chip.title = 'See how your points add up';
+      const rank = document.createElement('strong');
+      rank.textContent = '#' + me.rank;
+      chip.append(rank, ' of ' + me.players + ' \u00b7 ' + fmtNum(me.row.score) + ' pts');
+      chip.addEventListener('click', () => setView('stats'));
+      top.appendChild(chip);
+    }
   }
 }
 
@@ -171,6 +219,7 @@ function renderPackTabs() {
   const tabs = document.getElementById('pack-tabs');
   if (!tabs || !season) return;
   tabs.innerHTML = '';
+  tabs.classList.toggle('single', season.packs.length < 2); // one pack: its name adds nothing, so the row is dropped
 
   season.packs.forEach((pack, i) => {
     const btn = document.createElement('button');
@@ -210,19 +259,45 @@ function cardStatus(card) {
   return { activeCount, variants, best, past, owned: activeCount > 0 || past.length > 0 };
 }
 
+// Have / Missing filter above the grid, with how many cards fall in each (for the current pack).
+function renderGridTools() {
+  const host = document.getElementById('grid-tools');
+  const pack = season && season.packs[currentPackIdx];
+  if (!host || !pack) return;
+  host.innerHTML = '';
+  const have = pack.cards.filter(c => cardStatus(c).owned).length;
+  const counts = { all: pack.cards.length, have, missing: pack.cards.length - have };
+  const group = el('div', 'seg');
+  group.setAttribute('role', 'group');
+  group.setAttribute('aria-label', 'Show');
+  [['all', 'All'], ['have', 'Have'], ['missing', 'Missing']].forEach(([id, label]) => {
+    const b = el('button', 'seg-btn' + (collectionFilter === id ? ' active' : ''), label + ' ' + counts[id]);
+    b.type = 'button';
+    b.setAttribute('aria-pressed', collectionFilter === id ? 'true' : 'false');
+    b.addEventListener('click', () => { collectionFilter = id; renderGrid(); });
+    group.appendChild(b);
+  });
+  host.appendChild(group);
+}
+
 function renderGrid() {
   const grid = document.getElementById('card-grid');
   if (!grid || !season) return;
   grid.innerHTML = '';
+  renderGridTools();
 
   const pack = season.packs[currentPackIdx];
   if (!pack) return;
 
+  let shownCount = 0;
   pack.cards.forEach((card, idx) => {
     const status        = cardStatus(card);
     const ownedActive   = status.activeCount > 0;
     const ownedPast     = status.past;
     const isOwned       = status.owned;
+    if (collectionFilter === 'have' && !isOwned) return;
+    if (collectionFilter === 'missing' && isOwned) return;
+    shownCount++;
 
     const cell = document.createElement('div');
     cell.className = 'card-cell' + (isOwned ? ' owned' : '');
@@ -253,7 +328,7 @@ function renderGrid() {
         setArtMask(cell, variantArt(card, status.best));
         const mark = document.createElement('div');
         mark.className = 'variant-mark';
-        mark.textContent = status.best === 'reverse' ? 'RH' : status.best === 'full' ? 'FA' : '\u2728';
+        mark.textContent = status.best === 'reverse' ? 'RH' : status.best === 'full' ? 'FA' : 'SH';
         mark.title = VARIANT_LABELS[status.best];
         cell.appendChild(mark);
       }
@@ -295,6 +370,10 @@ function renderGrid() {
 
     grid.appendChild(cell);
   });
+  if (shownCount === 0) {
+    const msg = el('div', 'grid-empty', collectionFilter === 'missing' ? 'Nothing missing in this pack. Nice!' : 'No cards here yet. Pull some on stream!');
+    grid.appendChild(msg);
+  }
 }
 
 // ── Card detail view ──────────────────────────────────────
@@ -335,6 +414,18 @@ function stepDetail(delta) {
   detailVariant = null;
   upgradeMsg = '';
   renderDetail();
+}
+
+// The next version up that is switched on for this card, and what the step costs; skipping a switched-off version costs the
+// product of every step crossed. next is null at the top of the ladder.
+function upgradeStepFor(pack, card, v) {
+  const allowed = card.variants || VARIANTS;
+  let next = null, cost = 1;
+  for (let k = VARIANTS.indexOf(v) + 1; k < VARIANTS.length; k++) {
+    cost *= Math.max(1, (pack.upgradeCosts && pack.upgradeCosts[VARIANTS[k]]) || 1);
+    if (allowed.includes(VARIANTS[k])) { next = VARIANTS[k]; break; }
+  }
+  return next ? { next, cost } : { next: null, cost: 0 };
 }
 
 function detailLine(className, text) {
@@ -388,6 +479,11 @@ function renderDetail() {
     '★'.repeat(card.stars) + ' ' + (RARITY_LABEL[card.stars] || '')));
   info.appendChild(detailLine('detail-meta',
     '#' + card.number + ' · ' + pack.packName + ' · ' + (detailIdx + 1) + ' of ' + pack.cards.length));
+  // Odds and how many exist (from /api/twitch/me); undiscovered cards keep their secrecy.
+  const facts = me && me.cards[card.number];
+  if (facts && status.owned) {
+    info.appendChild(detailLine('detail-facts', '1 in ' + Math.round(1 / facts.pullRate).toLocaleString() + ' per pack · ' + facts.copies.toLocaleString() + ' out there'));
+  }
 
   // How many the viewer has
   const count = document.createElement('div');
@@ -408,6 +504,8 @@ function renderDetail() {
   }
   count.append(num, label);
   info.appendChild(count);
+  const worth = status.activeCount > 0 ? cardWorth(card, status.variants) : null;
+  if (worth !== null) info.appendChild(detailLine('detail-worth', 'Worth ' + fmtNum(worth) + ' pts'));
 
   // Variants & upgrades (only for cards in packs with upgrades on)
   if (card.upgradesEnabled && status.activeCount > 0) {
@@ -418,13 +516,7 @@ function renderDetail() {
       const n = status.variants[v];
       // A variant that is switched off for this card is hidden unless the viewer already owns one.
       if (n === 0 && !allowed.includes(v)) return;
-      // The next variant up that is on; skipping a switched-off one costs the product of the steps crossed.
-      let next = null, cost = 1;
-      for (let k = VARIANTS.indexOf(v) + 1; k < VARIANTS.length; k++) {
-        cost *= Math.max(1, pack.upgradeCosts?.[VARIANTS[k]] || 1);
-        if (allowed.includes(VARIANTS[k])) { next = VARIANTS[k]; break; }
-      }
-      if (!next) cost = 0;
+      const { next, cost } = upgradeStepFor(pack, card, v);
 
       const row = document.createElement('div');
       row.className = 'variant-row' + (n === 0 ? ' none' : '') + (v === shown ? ' active' : '');
@@ -437,6 +529,11 @@ function renderDetail() {
       cnt.className = 'variant-count';
       cnt.textContent = '\u00d7' + n;
       row.append(name, cnt);
+      if (me && me.cards[card.number]) {
+        const pts = el('span', 'variant-pts', fmtNum(me.cards[card.number].values[VARIANTS.indexOf(v)]) + ' pts');
+        pts.title = 'Points for one copy of this version (a low serial number is worth more)';
+        row.appendChild(pts);
+      }
 
       if (next && cost) {
         const btn = document.createElement('button');
@@ -454,6 +551,28 @@ function renderDetail() {
     });
     info.appendChild(list);
     if (upgradeMsg) info.appendChild(detailLine('upgrade-msg', upgradeMsg));
+  }
+
+  // Serial numbers of the copies the viewer holds in the version being shown; each opens that copy's page.
+  const serials = status.activeCount > 0 ? heldSerials(card.number, shown) : [];
+  if (serials.length > 0 && season) {
+    const wrap = el('div', 'serials');
+    wrap.appendChild(el('div', 'serials-title', 'Your ' + VARIANT_LABELS[shown] + ' serials'));
+    const chips = el('div', 'serial-chips');
+    serials.slice(0, 12).forEach(n => {
+      const a = el('a', 'serial-chip' + (serialMult(n) > 1 ? ' bonus' : ''));
+      a.href = new URL('/copy/' + encodeURIComponent(season.seasonId) + '/' + card.number + '.' + VARIANTS.indexOf(shown) + '.' + n, window.location.origin).href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      const m = serialMult(n);
+      a.title = m > 1 ? 'Serial bonus ×' + m.toFixed(2) + ': worth ' + fmtNum(copyPts(card.number, shown, n)) + ' pts. Open its page.' : 'Open this copy\'s page';
+      a.append('#' + n + (m > 1 ? ' ×' + m.toFixed(2) : ''));
+      chips.appendChild(a);
+    });
+    if (serials.length > 12) chips.appendChild(el('span', 'serial-more', '+' + (serials.length - 12) + ' more'));
+    wrap.appendChild(chips);
+    if (serials.some(n => serialMult(n) > 1)) wrap.appendChild(el('div', 'serials-note', 'Low serial numbers earn a points bonus.'));
+    info.appendChild(wrap);
   }
 
   // Past seasons
@@ -590,10 +709,11 @@ async function upgrade(card, from, btn) {
       if (active) active.ownedNumbers = body.owned;
       // The server says where the upgrade went (a switched-off variant is skipped) and what it cost.
       detailVariant = body.to || VARIANTS[VARIANTS.indexOf(from) + 1];
-      upgradeMsg = '\u2728 Upgraded to ' + VARIANT_LABELS[detailVariant] + '!';
+      upgradeMsg = 'Upgraded to ' + VARIANT_LABELS[detailVariant] + '!';
       renderSeasonHeader('collection-season-header');
       renderGrid();
       playUpgradeCeremony(card, from, detailVariant, body.cost || 0);
+      loadMe(true); // the new copy has a serial and the score moved
     } else {
       upgradeMsg = body.error || 'Upgrade failed (' + res.status + ')';
     }
@@ -603,51 +723,55 @@ async function upgrade(card, from, btn) {
   if (detailIdx !== -1) renderDetail();
 }
 
-// ── Leaderboard ───────────────────────────────────────────
+// ── Views: collection / stats / leaderboard ───────────────
 let currentView = 'collection';
 let leaderboardLoadedAt = 0;
 
 function setView(view) {
   currentView = view;
   closeDetail();
-  document.querySelectorAll('#view-tabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('#view-tabs .view-tab').forEach(b => {
+    const on = b.dataset.view === view;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
   document.getElementById('pack-tabs').classList.toggle('hidden', view !== 'collection');
+  document.getElementById('grid-tools').classList.toggle('hidden', view !== 'collection');
   document.getElementById('collection-area').classList.toggle('hidden', view !== 'collection');
+  document.getElementById('stats-area').classList.toggle('hidden', view !== 'stats');
   document.getElementById('leaderboard-area').classList.toggle('hidden', view !== 'leaderboard');
+  if (view === 'stats') { renderStats(); if (!me) loadMe(); }
   if (view === 'leaderboard') loadLeaderboard();
 }
 
-function boardRow(r, me) {
+const siteUrl = path => new URL(path, window.location.origin).href;
+
+// A rank badge: coloured discs for the podium, plain #N after that.
+function rankBadge(rank) {
+  const b = el('span', 'lb-rank' + (rank <= 3 ? ' medal m' + rank : ''), rank <= 3 ? String(rank) : '#' + rank);
+  return b;
+}
+
+function boardRow(r, myName) {
   const row = document.createElement('a');
-  row.className = 'lb-row' + (r.username === me ? ' me' : '') + (r.rank <= 3 ? ' top' + r.rank : '');
-  row.href = new URL('/u/' + encodeURIComponent(r.username), window.location.origin).href;
+  row.className = 'lb-row' + (r.username === myName ? ' me' : '') + (r.rank <= 3 ? ' top' + r.rank : '');
+  row.href = siteUrl('/u/' + encodeURIComponent(r.username));
   row.target = '_blank';
   row.rel = 'noopener noreferrer';
 
-  const rank = document.createElement('span');
-  rank.className = 'lb-rank';
-  rank.textContent = r.rank === 1 ? '\ud83e\udd47' : r.rank === 2 ? '\ud83e\udd48' : r.rank === 3 ? '\ud83e\udd49' : '#' + r.rank;
-
-  const who = document.createElement('span');
-  who.className = 'lb-who';
-  const name = document.createElement('span');
-  name.className = 'lb-name';
-  name.textContent = r.username;
-  const sub = document.createElement('span');
-  sub.className = 'lb-sub';
+  const who = el('span', 'lb-who');
+  const name = el('span', 'lb-name', r.username);
+  if (r.username === myName) name.appendChild(el('span', 'lb-you', 'you'));
+  const sub = el('span', 'lb-sub');
   const v = r.variants;
   const extras = [];
   if (v.reverse) extras.push(v.reverse + ' RH');
   if (v.full) extras.push(v.full + ' FA');
-  if (v.shiny) extras.push(v.shiny + ' \u2728');
+  if (v.shiny) extras.push(v.shiny + ' SH');
   sub.textContent = r.uniqueCards + ' cards' + (extras.length ? ' \u00b7 ' + extras.join(' \u00b7 ') : '');
   who.append(name, sub);
 
-  const score = document.createElement('span');
-  score.className = 'lb-score';
-  score.textContent = r.score.toLocaleString();
-
-  row.append(rank, who, score);
+  row.append(rankBadge(r.rank), who, el('span', 'lb-score', fmtNum(r.score)));
   return row;
 }
 
@@ -657,7 +781,7 @@ async function loadLeaderboard() {
   // Re-fetch at most every 30s while flipping between tabs
   if (Date.now() - leaderboardLoadedAt < 30000 && area.childElementCount > 0) return;
   area.innerHTML = '';
-  area.appendChild(detailLine('lb-note', 'Loading\u2026'));
+  area.appendChild(skeletonRows(6));
   try {
     const q = new URLSearchParams({ seasonId: season.seasonId });
     if (currentUsername) q.set('username', currentUsername.toLowerCase());
@@ -672,32 +796,302 @@ async function loadLeaderboard() {
       area.appendChild(detailLine('lb-note', 'No one is on the board yet.'));
       return;
     }
-    const me = currentUsername ? currentUsername.toLowerCase() : null;
-    data.rows.forEach(r => area.appendChild(boardRow(r, me)));
+    const myName = currentUsername ? currentUsername.toLowerCase() : null;
+    data.rows.forEach(r => area.appendChild(boardRow(r, myName)));
     if (data.me && data.me.rank > data.rows.length) {
       area.appendChild(detailLine('lb-note', '\u2026'));
-      area.appendChild(boardRow(data.me, me));
+      area.appendChild(boardRow(data.me, myName));
     }
-    area.appendChild(detailLine('lb-foot', 'Score = value of every card you own. Rarer cards, rarer variants and cards few people have are worth more.'));
+    const foot = el('div', 'lb-foot');
+    foot.append('Score = every copy you own (low serial numbers earn a bonus) plus collection bonuses. ');
+    const more = el('a', null, 'How points work');
+    more.href = siteUrl('/faq#points');
+    more.target = '_blank';
+    more.rel = 'noopener noreferrer';
+    foot.appendChild(more);
+    area.appendChild(foot);
   } catch {
     area.innerHTML = '';
-    area.appendChild(detailLine('lb-note', 'Could not load the leaderboard.'));
+    area.appendChild(retryNote('Could not load the leaderboard.', () => { leaderboardLoadedAt = 0; loadLeaderboard(); }));
   }
+}
+
+// Grey placeholder rows while something loads.
+function skeletonRows(n) {
+  const wrap = el('div', 'skeleton-list');
+  for (let i = 0; i < n; i++) wrap.appendChild(el('div', 'skeleton-row'));
+  return wrap;
+}
+// A message with a Try again button.
+function retryNote(text, onRetry) {
+  const box = el('div', 'retry-note');
+  box.appendChild(el('div', null, text));
+  const b = el('button', 'retry-btn', 'Try again');
+  b.type = 'button';
+  b.addEventListener('click', onRetry);
+  box.appendChild(b);
+  return box;
+}
+
+// ── Stats view ────────────────────────────────────────────
+// Rank, how the score adds up, what to do next (upgrades you can afford, who is just ahead), your best serials and waiting trade
+// offers. Everything comes from /api/twitch/me plus the collection already in memory.
+function cardsOfSeason() {
+  const out = [];
+  season.packs.forEach((pack, packIdx) => pack.cards.forEach((card, cardIdx) => out.push({ pack, packIdx, card, cardIdx })));
+  return out;
+}
+
+function statLink(text, path, className) {
+  const a = el('a', className || 'stat-link', text);
+  a.href = siteUrl(path);
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  return a;
+}
+
+// A titled section card.
+function statSection(title, ...children) {
+  const box = el('section', 'stat-box');
+  box.appendChild(el('h3', 'stat-title', title));
+  children.forEach(c => c && box.appendChild(c));
+  return box;
+}
+
+function openCardFromStats(packIdx, cardIdx) {
+  currentPackIdx = packIdx;
+  renderPackTabs();
+  renderGrid();
+  openDetail(cardIdx, null);
+}
+
+function renderStats() {
+  const area = document.getElementById('stats-area');
+  if (!area || !season) return;
+  area.innerHTML = '';
+  if (!me) {
+    area.appendChild(skeletonRows(4));
+    return;
+  }
+  if (!me.row) {
+    area.appendChild(statSection('No points yet', el('p', 'stat-muted', 'Pull a card on stream and you will show up here with a rank and a score.')));
+    return;
+  }
+  const r = me.row;
+
+  // Hero: score and rank
+  const hero = el('div', 'stat-hero');
+  const score = el('div', 'stat-score');
+  score.append(el('span', 'stat-score-num', fmtNum(r.score)), el('span', 'stat-score-unit', 'points'));
+  const rank = el('button', 'stat-rank');
+  rank.type = 'button';
+  rank.title = 'Open the leaderboard';
+  rank.append(el('strong', null, '#' + me.rank), ' of ' + me.players);
+  rank.addEventListener('click', () => setView('leaderboard'));
+  hero.append(score, rank);
+  area.appendChild(hero);
+
+  // Trade offers waiting (trading happens on the website)
+  if (me.offers > 0) {
+    const a = statLink(me.offers + ' trade offer' + (me.offers === 1 ? '' : 's') + ' waiting for you', '/trade', 'offers-banner');
+    a.appendChild(el('span', 'offers-go', 'Open'));
+    area.appendChild(a);
+  }
+
+  // Who is next
+  if (me.next && me.next.gap > 0) {
+    area.appendChild(el('p', 'stat-next', fmtNum(me.next.gap) + ' pts behind @' + me.next.username + '. One more good pull could pass them.'));
+  } else if (me.rank === 1) {
+    area.appendChild(el('p', 'stat-next', 'You are in first place. Hold on to it!'));
+  }
+
+  // How the score adds up
+  const rows = el('dl', 'stat-rows');
+  const addRow = (label, value, cls) => {
+    const d = el('div', 'stat-row' + (cls ? ' ' + cls : ''));
+    d.append(el('dt', null, label), el('dd', null, value));
+    rows.appendChild(d);
+  };
+  addRow('Your cards', fmtNum(r.cardPoints - r.serialPoints));
+  addRow('Serial number bonus', (r.serialPoints > 0 ? '+' : '') + fmtNum(r.serialPoints), r.serialPoints > 0 ? 'good' : 'dim');
+  addRow('Completion bonus', '+' + fmtNum(r.completionBonus) + ' / ' + fmtNum(me.maxCompletion), r.completionBonus > 0 ? 'good' : 'dim');
+  addRow('Complete collection', r.complete ? '+' + fmtNum(r.setBonus) : fmtNum(me.setBonusValue) + ' when complete', r.complete ? 'good' : 'dim');
+  addRow('Total', fmtNum(r.score), 'total');
+  area.appendChild(statSection('Where your points come from', rows));
+
+  // Ready to upgrade
+  const ready = [];
+  cardsOfSeason().forEach(({ pack, packIdx, card, cardIdx }) => {
+    if (!pack.upgradesEnabled || !card.upgradesEnabled) return;
+    const st = cardStatus(card);
+    VARIANTS.forEach(v => {
+      const n = st.variants[v];
+      if (!n) return;
+      const { next, cost } = upgradeStepFor(pack, card, v);
+      if (next && n >= cost) ready.push({ pack, packIdx, card, cardIdx, from: v, to: next, cost, have: n });
+    });
+  });
+  if (ready.length > 0) {
+    const list = el('div', 'ready-list');
+    ready.slice(0, 5).forEach(x => {
+      const b = el('button', 'ready-row');
+      b.type = 'button';
+      const thumb = el('span', 'ready-thumb');
+      if (x.card.thumbUrl || x.card.imageUrl) { const img = el('img'); img.src = x.card.thumbUrl || x.card.imageUrl; img.alt = ''; thumb.appendChild(img); }
+      const text = el('span', 'ready-text');
+      text.append(el('span', 'ready-name', x.card.name), el('span', 'ready-sub', x.cost + '\u00d7 ' + VARIANT_LABELS[x.from] + ' \u2192 ' + VARIANT_LABELS[x.to] + ' \u00b7 you have ' + x.have));
+      b.append(thumb, text, el('span', 'ready-go', 'Open'));
+      b.addEventListener('click', () => openCardFromStats(x.packIdx, x.cardIdx));
+      list.appendChild(b);
+    });
+    if (ready.length > 5) list.appendChild(el('p', 'stat-muted', '+' + (ready.length - 5) + ' more on the website'));
+    area.appendChild(statSection('Ready to upgrade', list));
+  }
+
+  // Best serials (copies that earn a bonus)
+  const best = [];
+  const byNumber = new Map();
+  season.packs.forEach(pack => pack.cards.forEach(c => byNumber.set(c.number, c)));
+  Object.keys(me.serials || {}).forEach(k => {
+    const d = decodeEntry(Number(k));
+    const card = byNumber.get(d.cardNumber);
+    if (!card) return;
+    me.serials[k].forEach(n => { const m = serialMult(n); if (m > 1) best.push({ card, variant: d.variant, n, m }); });
+  });
+  best.sort((a, b) => b.m - a.m || a.n - b.n);
+  if (best.length > 0) {
+    const chips = el('div', 'serial-chips');
+    best.slice(0, 6).forEach(x => {
+      const a = el('a', 'serial-chip bonus');
+      a.href = siteUrl('/copy/' + encodeURIComponent(season.seasonId) + '/' + x.card.number + '.' + VARIANTS.indexOf(x.variant) + '.' + x.n);
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.title = 'Worth ' + fmtNum(copyPts(x.card.number, x.variant, x.n)) + ' pts';
+      a.append('#' + x.n + ' ' + x.card.name + (x.variant === 'regular' ? '' : ' (' + (x.variant === 'reverse' ? 'RH' : x.variant === 'full' ? 'FA' : 'SH') + ')'));
+      chips.appendChild(a);
+    });
+    if (best.length > 6) chips.appendChild(el('span', 'serial-more', '+' + (best.length - 6) + ' more'));
+    area.appendChild(statSection('Your best serial numbers', chips, el('p', 'stat-muted', 'The first copies ever made of a card are worth extra points.')));
+  }
+
+  // Links out
+  const links = el('div', 'stat-links');
+  links.append(statLink('Full stats', '/account'), statLink('My profile', '/u/' + encodeURIComponent(me.username)), statLink('Trade', '/trade'));
+  area.appendChild(links);
+}
+
+// Rank, score, card values and serials from /api/twitch/me. Never blocks the collection: if it fails, those extras just stay hidden.
+async function loadMe(fresh) {
+  if (!auth || !auth.token || !currentUsername) return;
+  try {
+    const res = await fetch('/api/twitch/me' + (fresh ? '?fresh=1' : ''), { headers: { Authorization: 'Bearer ' + auth.token } });
+    if (!res.ok) return;
+    me = await res.json();
+  } catch {
+    return;
+  }
+  document.getElementById('stats-dot').classList.toggle('hidden', !(me.offers > 0));
+  renderSeasonHeader('collection-season-header');
+  if (currentView === 'stats') renderStats();
+  if (detailIdx !== -1) renderDetail();
 }
 
 document.querySelectorAll('#view-tabs .view-tab').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
 
 // ── Login flow ────────────────────────────────────────────
+// Returns whether it worked; on a failure the cards already on screen are kept (an empty grid would look like "you own nothing").
 async function loadUserCollection(username) {
   try {
     const res = await fetch(`/api/twitch/collection?username=${encodeURIComponent(username)}`);
-    if (!res.ok) return;
+    if (!res.ok) return false;
     const data = await res.json();
     collections = data.collections ?? [];
+    lastLoadAt = Date.now();
+    return true;
   } catch {
-    collections = [];
+    return false;
   }
 }
+
+// ── Banner, toast and refresh ─────────────────────────────
+function showBanner(text, onRetry) {
+  const b = document.getElementById('panel-banner');
+  if (!b) return;
+  b.innerHTML = '';
+  b.appendChild(el('span', null, text));
+  if (onRetry) {
+    const btn = el('button', 'banner-btn', 'Retry');
+    btn.type = 'button';
+    btn.addEventListener('click', onRetry);
+    b.appendChild(btn);
+  }
+  b.classList.remove('hidden');
+}
+function hideBanner() {
+  const b = document.getElementById('panel-banner');
+  if (b) b.classList.add('hidden');
+}
+
+let toastTimer = null;
+function showToast(text) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = text;
+  t.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 4500);
+}
+
+// Copies per entry in the active season (to notice new pulls after a refresh).
+function activeCounts() {
+  const m = new Map();
+  const c = collections.find(x => x.active);
+  if (c) for (const e of c.ownedNumbers) m.set(e, (m.get(e) || 0) + 1);
+  return m;
+}
+function announceNew(before) {
+  const names = [];
+  const byNumber = new Map();
+  season.packs.forEach(pack => pack.cards.forEach(card => byNumber.set(card.number, card)));
+  for (const [entry, n] of activeCounts()) {
+    if (n <= (before.get(entry) || 0)) continue;
+    const d = decodeEntry(entry);
+    const card = byNumber.get(d.cardNumber);
+    if (card) names.push(card.name + (d.variant === 'regular' ? '' : ' (' + VARIANT_LABELS[d.variant] + ')'));
+  }
+  if (names.length === 0) return;
+  showToast('New pull: ' + names.slice(0, 2).join(', ') + (names.length > 2 ? ' +' + (names.length - 2) + ' more' : ''));
+}
+
+// Reloads the viewer's cards, rank and values. `manual` = the refresh button (always shows the result).
+let refreshing = false;
+async function refreshData(manual) {
+  if (!currentUsername || refreshing) return;
+  refreshing = true;
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  const before = activeCounts();
+  const ok = await loadUserCollection(currentUsername);
+  if (ok) {
+    hideBanner();
+    renderSeasonHeader('collection-season-header');
+    renderGrid();
+    if (before.size > 0) announceNew(before);
+    leaderboardLoadedAt = 0;
+    if (currentView === 'leaderboard') loadLeaderboard();
+    if (detailIdx !== -1) renderDetail();
+    loadMe(manual);
+  } else {
+    showBanner('Could not refresh your cards.', () => refreshData(true));
+  }
+  btn.classList.remove('spinning');
+  refreshing = false;
+}
+
+// Coming back to the panel (e.g. after watching for a while) refreshes it, so new pulls show up without pressing anything.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && currentUsername && Date.now() - lastLoadAt > 45000) refreshData(false);
+});
 
 async function linkAndLogin(username) {
   // Persist the opaque ID → username mapping so next visit auto-logs in
@@ -722,13 +1116,18 @@ async function linkAndLogin(username) {
 async function login(username) {
   setExplicitLogout(false);
   currentUsername = username;
-  await loadUserCollection(username);
+  me = null;
+  collectionFilter = 'all';
+  const loaded = await loadUserCollection(username);
   showState('collection');
   leaderboardLoadedAt = 0;
   setView('collection');
   renderSeasonHeader('collection-season-header');
   renderPackTabs();
   renderGrid();
+  if (loaded) hideBanner();
+  else showBanner('Could not load your cards.', () => refreshData(true));
+  loadMe(); // rank, card values and serial numbers: fills in when it arrives
 
   // The username links to the viewer's public collection page (opens in a new tab; Twitch's
   // extension sandbox allows popups). Same origin as the API calls above.
@@ -989,20 +1388,12 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 
   currentUsername = null;
   collections = [];
+  me = null;
+  hideBanner();
   showLoginScreen();
 });
 
-document.getElementById('refresh-btn').addEventListener('click', async () => {
-  if (!currentUsername) return;
-  const btn = document.getElementById('refresh-btn');
-  btn.classList.add('spinning');
-  await loadUserCollection(currentUsername);
-  renderSeasonHeader('collection-season-header');
-  renderGrid();
-  leaderboardLoadedAt = 0;
-  if (currentView === 'leaderboard') await loadLeaderboard();
-  btn.classList.remove('spinning');
-});
+document.getElementById('refresh-btn').addEventListener('click', () => refreshData(true));
 
 // ── Twitch Extension Helper ───────────────────────────────
 if (typeof window.Twitch !== 'undefined' && window.Twitch.ext) {
