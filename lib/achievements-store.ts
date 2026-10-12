@@ -2,6 +2,8 @@ import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, listSeasons } from './kv';
 import { countVariants, allowedVariants } from './variants';
 import { evaluateSeason, sortAchievements, type AchCard, type Achievement } from './achievements';
+import { loadSerialIndex } from './serials';
+import { getScoringSettings } from './scoring';
 
 // The server side of achievements: works out every goal across the published seasons and remembers what has been earned
 // (KV hash `user:<u>:ach`, id -> the achievement as it was, plus when it was first seen earned) so a goal is never taken back.
@@ -31,6 +33,7 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
   const live: Achievement[] = [];
   try {
     const seasons = (await listSeasons()).filter(s => s.status !== 'draft');
+    const cutoff = (await getScoringSettings().catch(() => null))?.serialBonusCutoff ?? 0;
     await Promise.all(seasons.map(async season => {
       const [collection, packs] = await Promise.all([getCollection(season.collectionName), getPacksForSeason(season)]);
       const owned = collection[u];
@@ -41,7 +44,10 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
           cards.push({ number: c.number, stars: c.stars, variants: pack.upgradesEnabled && c.upgradesEnabled !== false ? allowedVariants(pack, c) : ['regular'] });
         }
       }
-      live.push(...evaluateSeason({ seasonId: season.id, seasonName: season.name, cards, counts: countVariants(owned) }));
+      // Edition numbers need the season's copies to be numbered; until then there are no serial milestones.
+      const idx = await loadSerialIndex(season.collectionName).catch(() => null);
+      const held = idx ? idx.held.get(u) ?? new Map<number, number[]>() : undefined;
+      live.push(...evaluateSeason({ seasonId: season.id, seasonName: season.name, cards, counts: countVariants(owned), held, bonusCutoff: cutoff }));
     }));
   } catch { /* keep what we have */ }
 

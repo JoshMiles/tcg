@@ -36,6 +36,24 @@ ok(by(full, 'master').earned && by(full, 'all-shiny').earned && by(full, 'all-fu
 const sorted = a.sortAchievements([{ earned: false, have: 1, need: 4 }, { earned: true, have: 2, need: 2, earnedAt: 5 }, { earned: true, have: 3, need: 3, earnedAt: 9 }, { earned: false, have: 3, need: 4 }]);
 eq(sorted.map(x => [x.earned, x.have]), [[true, 3], [true, 2], [false, 3], [false, 1]], 'earned first (newest first), then closest to done');
 
+// ── serial milestones (need numbered copies) ──
+{
+  const { encodeEntry } = await import('../lib/variants');
+  const withHeld = (held: [number, number[]][], cutoff = 20) => ({ ...season([]), held: new Map(held), bonusCutoff: cutoff });
+  ok(!a.evaluateSeason(season([])).some(x => x.id.includes('first-') || x.id.includes('early')), 'no serial goals until the copies are numbered');
+  const none2 = a.evaluateSeason(withHeld([[encodeEntry(1, 'regular'), [7, 9]]]));
+  ok(!by(none2, 'first-edition').earned && !by(none2, 'first-shiny').earned && !by(none2, 'five-firsts').earned, 'no edition #1 held: nothing earned');
+  ok(by(none2, 'early-bird').earned, 'edition #7 is inside the bonus cutoff of 20: Early bird');
+  ok(!by(a.evaluateSeason(withHeld([[encodeEntry(1, 'regular'), [21]]])), 'early-bird').earned, 'edition #21 is not');
+  ok(!a.evaluateSeason(withHeld([], 0)).some(x => x.id === 's1:early-bird'), 'no bonus cutoff, no Early bird goal');
+  const one = a.evaluateSeason(withHeld([[encodeEntry(2, 'regular'), [1, 4]]]));
+  ok(by(one, 'first-edition').earned && !by(one, 'first-shiny').earned, 'holding edition #1 of a Regular is a first edition, not a first shiny');
+  eq([by(one, 'five-firsts').have, by(one, 'five-firsts').need], [1, 4], 'five firsts is capped by the number of cards (4 here) and counts different cards');
+  const shiny = a.evaluateSeason(withHeld([[encodeEntry(3, 'shiny'), [1]], [encodeEntry(1, 'regular'), [1]], [encodeEntry(2, 'regular'), [1]], [encodeEntry(4, 'regular'), [1]]]));
+  ok(by(shiny, 'first-shiny').earned && by(shiny, 'five-firsts').earned && by(shiny, 'first-edition').earned, 'a #1 Shiny and four different firsts');
+  ok(a.evaluateSeason({ ...withHeld([[encodeEntry(1, 'regular'), [1]]]), cards: cards.map(c => ({ ...c, variants: ['regular' as const] })) }).every(x => x.id !== 's1:first-shiny'), 'no shiny goal in a season without shinies');
+}
+
 // ── the store: a goal, once earned, stays ──
 if (!process.env.KV_REST_API_URL?.includes('localhost')) throw new Error('Refusing to run against a non-local KV');
 const kvLib = await import('../lib/kv');
@@ -44,7 +62,10 @@ await kvLib.seedSeason1();
 const season1 = (await kvLib.listSeasons())[0];
 const nums = (await kvLib.getPackCards((await kvLib.getPacksForSeason(season1))[0].id)).map(c => c.number);
 await kvLib.saveCollection(season1.collectionName, { amy: [...nums], ben: [nums[0]] });
+const serials = await import('../lib/serials');
+await serials.backfillSerials(season1.collectionName, await kvLib.getCollection(season1.collectionName));
 const amy = await store.syncAchievements('amy', 1000);
+ok(amy.earned.some(x => x.id === `${season1.id}:first-edition`) || amy.earned.some(x => x.id === `${season1.id}:early-bird`), 'numbered copies earn serial milestones (first copies made are #1 / early numbers)');
 ok(amy.earned.some(x => x.id === `${season1.id}:complete`), 'owning every card earns the completion achievement');
 ok(amy.earned.every(x => x.earnedAt === 1000), 'the first time it is seen earned is remembered');
 const ben = await store.syncAchievements('ben');
@@ -54,5 +75,6 @@ await kvLib.saveCollection(season1.collectionName, { amy: [nums[0]], ben: [nums[
 const later = await store.syncAchievements('amy', 9000);
 const kept = later.earned.find(x => x.id === `${season1.id}:complete`);
 ok(kept && kept.earnedAt === 1000, 'a goal is never taken back, and keeps its date');
+ok(later.earned.some(x => x.id.endsWith(':first-edition')), 'a first edition stays earned after the copy is traded away');
 console.log('achievement checks passed');
 process.exit(0);

@@ -784,3 +784,15 @@
   25%      { rotate: 2deg; }
   75%      { rotate: -2deg; }
 }
+
+/* First-ever moment: the very first copy of a card in a version */
+.first-banner {
+  position: absolute; left: 50%; top: -76px; z-index: 40; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 22px 5px; white-space: nowrap;
+  color: #1a1205; background: linear-gradient(100deg, #ffe27a 0%, #f1bb06 45%, #fff2b0 55%, #f1bb06 100%); background-size: 220% 100%;
+  border: 2px solid #fff2b0; border-radius: 999px; box-shadow: 0 0 28px rgba(255, 220, 90, .95), 0 4px 6px rgba(0, 0, 0, .5);
+  transform: translateX(-50%) scale(.4); opacity: 0; transition: opacity .25s, transform .45s cubic-bezier(.2, 1.4, .3, 1);
+}
+.first-banner.on { opacity: 1; transform: translateX(-50%) scale(1); animation: firstShine 2.2s linear infinite; }
+.first-banner .first-main { font-weight: 900; font-size: 26px; letter-spacing: .08em; line-height: 1.1; }
+.first-banner .first-sub { font-weight: 800; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
+@keyframes firstShine { to { background-position: -220% 0; } }

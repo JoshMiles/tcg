@@ -136,7 +136,7 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
         ...thumb(card?.imageUrl),
         color: rarity ? hexToInt(rarity.hex) : GOLD,
         title: `${'★'.repeat(e.stars)} ${esc(e.cardName || card?.name || `#${e.cardNumber}`)}`,
-        description: `**${esc(e.username)}** pulled ${/^[aeiou]/i.test(rarity?.label ?? '') ? 'an' : 'a'} **${rarity?.label ?? 'card'}** card${e.variant && e.variant !== 'regular' ? ` — ✨ **${VARIANT_LABELS[e.variant]}**` : ''}${e.isNew ? ' — **NEW!**' : e.copies > 1 ? ` — ×${e.copies}` : ''}`,
+        description: `${e.serial === 1 ? '🥇 **FIRST EVER!** ' : ''}**${esc(e.username)}** pulled ${/^[aeiou]/i.test(rarity?.label ?? '') ? 'an' : 'a'} **${rarity?.label ?? 'card'}** card${e.variant && e.variant !== 'regular' ? ` — ✨ **${VARIANT_LABELS[e.variant]}**` : ''}${e.isNew ? ' — **NEW!**' : e.copies > 1 ? ` — ×${e.copies}` : ''}`,
         fields: [
           { name: 'Pack', value: esc(e.packName) || '—', inline: true },
           { name: 'Collected', value: totalCards ? `${e.uniqueOwned}/${totalCards}` : String(e.uniqueOwned), inline: true },

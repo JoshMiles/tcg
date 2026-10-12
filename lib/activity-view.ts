@@ -52,6 +52,7 @@ export function plainText(e: ActivityEvent, cardName: CardNamer): string {
 /** Why an event is worth a second look, or null. Used for highlighting, pinning and alerts. */
 export function notableReason(e: ActivityEvent, totalCards: number): string | null {
   if (e.type === 'pull') {
+    if (e.serial === 1) return 'First ever pull';
     if (e.variant === 'shiny') return 'Shiny pull';
     if (e.variant === 'full') return 'Full Art pull';
     if (e.stars >= 5) return '5-star pull';

@@ -434,6 +434,30 @@ function showSerial(theater, P, info) {
   requestAnimationFrame(() => el.classList.add('on'));
 }
 
+/** The very first copy ever made of a card in a version: a gold banner over the card, a burst of sparkles and a longer hold. */
+function firstEverMoment(theater, P, variant, S, extendHold) {
+  const { cardBox } = theater;
+  if (!cardBox || cardBox.querySelector('.first-banner')) return;
+  const banner = document.createElement('div');
+  banner.className = 'first-banner';
+  const main = document.createElement('span');
+  main.className = 'first-main';
+  main.textContent = String(pv(P, 'reveal.firstEverText', 'FIRST EVER!'));
+  const sub = document.createElement('span');
+  sub.className = 'first-sub';
+  sub.textContent = 'edition #1' + (variant === 'regular' ? '' : ' \u00b7 ' + VARIANT_LABELS[variant]);
+  banner.append(main, sub);
+  cardBox.appendChild(banner);
+  requestAnimationFrame(() => banner.classList.add('on'));
+  // Gold sparkles whatever the version's own sparkle settings are.
+  const gold = Object.assign({}, P);
+  gold['variant.' + variant + '.sparkleCount'] = 44;
+  gold['variant.' + variant + '.sparkleColor'] = '#ffe27a';
+  burstSparkles(cardBox, gold, variant, S);
+  setTimeout(() => burstSparkles(cardBox, gold, variant, S), 650 / S);
+  extendHold(Math.max(0, pv(P, 'reveal.firstEverHold', 2.5)) * 1000);
+}
+
 async function resetAllCollections() {
   revealedCardsByUser = {};
   await fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, { method: 'DELETE' }).catch(() => {});
@@ -925,7 +949,12 @@ function drawCard(username, opts) {
     cardLabel.style.opacity    = '1';
     cardLabel.style.visibility = 'visible';
     // The serial the server gave this copy (the reply is normally in long before the label shows).
-    saved.then(r => { if (r && r.serial) showSerial(theater, P, { n: r.serial, mult: r.serialMult || 1 }); });
+    saved.then(r => {
+      if (!r || !r.serial) return;
+      showSerial(theater, P, { n: r.serial, mult: r.serialMult || 1 });
+      // Edition #1 of a real pull (not a chat show-off): the very first copy ever made of this card in this version.
+      if (r.serial === 1 && !show && pv(P, 'reveal.firstEver', true)) firstEverMoment(theater, P, variant, S, extendHold);
+    });
   }, at(R.label));
 
   // User text
@@ -963,14 +992,17 @@ function drawCard(username, opts) {
     saved = saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName });
   } else if (!PREVIEW) {
     // Test panel (dry run): nothing is saved, so show a sample serial to see how the badge looks.
-    const n = 1 + Math.floor(Math.random() * 30);
+    const n = opts.sampleSerial || 1 + Math.floor(Math.random() * 30);
     saved = Promise.resolve({ serial: n, serialMult: n <= 20 ? 1 + 2 * (1 - (n - 1) / 20) : 1 });
   }
 
-  // Hide + cleanup
+  // Hide + cleanup. The hold can be extended (a first-ever pull stays up longer) until it has run out.
   const holdFor = show ? pv(P, 'show.hold', 6) * 1000 : cfg.cardTime * 1000;
   const showDuration = at(R.label) + 800 + holdFor + pv(P, 'variant.' + variant + '.holdExtra', 0) * 1000;
-  setTimeout(() => {
+  const startedAt = Date.now();
+  let hideAt = startedAt + showDuration;
+  let hideTimer = null;
+  const hide = () => {
     radialContainer.style.opacity   = '0';
     radialContainer.style.animation = 'none';
     wrapper.classList.add('hid');
@@ -979,7 +1011,14 @@ function drawCard(username, opts) {
       activeDraws--;
       setTimeout(processCardQueue, cfg.cooldownTime * 1000);
     }, 500);
-  }, showDuration);
+  };
+  hideTimer = setTimeout(hide, showDuration);
+  function extendHold(ms) {
+    if (!hideTimer || Date.now() >= hideAt) return;
+    clearTimeout(hideTimer);
+    hideAt += ms;
+    hideTimer = setTimeout(hide, Math.max(0, hideAt - Date.now()));
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1165,6 +1204,7 @@ function initDevPanel() {
   }
 
   $('btn-show-card').addEventListener('click', showOff);
+  $('btn-first-ever').addEventListener('click', () => queueDraw(user(), options({ sampleSerial: 1 })));
   $('btn-draw').addEventListener('click', () => draw(Number(countInput.value)));
   $('btn-all-variants').addEventListener('click', drawAllVariants);
   $('btn-collection').addEventListener('click', () => queueCollection(user(), { dry: DEV.dry }));
@@ -1212,6 +1252,7 @@ function initDevPanel() {
     else if (key === 'a') drawAllVariants();
     else if (key === 'c') queueCollection(user(), { dry: DEV.dry });
     else if (key === 'w') showOff();
+    else if (key === '1') queueDraw(user(), options({ sampleSerial: 1 }));
     else if ({ r: 'reverse', f: 'full', s: 'shiny' }[key]) queueDraw(user(), options({ variant: { r: 'reverse', f: 'full', s: 'shiny' }[key] }));
   });
 }
