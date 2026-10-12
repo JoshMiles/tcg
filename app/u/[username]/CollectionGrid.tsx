@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { SerialChip } from '@/app/components/SerialChip';
 import { FlipCard } from '@/app/components/FlipCard';
+import { Binder } from './Binder';
 import { engravedDate } from '@/lib/flip-back';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
@@ -74,6 +75,12 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
   });
   const opener = useRef<HTMLElement | null>(null);
 
+  // Grid or binder; remembered on this device (read after mount so the server render and first paint are the grid).
+  const [layout, setLayout] = useState<'grid' | 'binder'>('grid');
+  useEffect(() => { try { if (localStorage.getItem('tcg_collection_layout') === 'binder') setLayout('binder'); } catch { /* storage unavailable */ } }, []);
+  const chooseLayout = (l: 'grid' | 'binder') => { setLayout(l); try { localStorage.setItem('tcg_collection_layout', l); } catch { /* storage unavailable */ } };
+  const binder = layout === 'binder';
+
   const [view, setView] = useState<ViewState>(DEFAULT_VIEW);
   const patch = (p: Partial<ViewState>) => setView(v => ({ ...v, ...p }));
   const filtering = view.show !== 'default' || view.q !== '' || view.stars !== 0 || view.pack !== '' || view.sort !== 'number' || view.dir !== 1;
@@ -124,7 +131,20 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter the collection">
+      <div className="flex justify-end">
+        <div className="inline-flex rounded-full border border-gray-700 p-0.5 text-xs font-bold" role="group" aria-label="How to show the collection">
+          {(['grid', 'binder'] as const).map(l => (
+            <button key={l} type="button" aria-pressed={layout === l} onClick={() => chooseLayout(l)}
+              className={`rounded-full px-3 py-1 transition-colors ${layout === l ? 'bg-yellow-500 text-gray-950' : 'text-gray-300 hover:text-white'}`}>
+              <Icon name={l === 'grid' ? 'grid' : 'book'} className="mr-1" />{l === 'grid' ? 'Grid' : 'Binder'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {binder && <Binder cards={cards} ownerLabel={ownerName ? `${ownerName}\u2019s` : 'My'} onOpen={open} />}
+
+      {!binder && <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter the collection">
         <input type="search" value={view.q} onChange={e => patch({ q: e.target.value })} placeholder="Search name or #" aria-label="Search cards"
           className="min-w-0 flex-1 basis-40 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
         <select value={view.show} onChange={e => patch({ show: e.target.value as ShowFilter })} aria-label="Show" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
@@ -145,9 +165,9 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         </select>
         <button type="button" onClick={() => patch({ dir: view.dir === 1 ? -1 : 1 })} aria-label="Reverse the order" title="Reverse the order" className="rounded-xl border border-gray-700 px-2 py-1.5 text-gray-300 hover:text-white"><Icon name={view.dir === 1 ? 'arrowDown' : 'arrowUp'} /></button>
         {filtering && <button type="button" onClick={() => setView(DEFAULT_VIEW)} className="text-xs text-yellow-400 hover:text-yellow-300">Clear</button>}
-      </div>
+      </div>}
 
-      {uncollected > 0 && ownedIdx.length > 0 && view.show === 'default' && (
+      {!binder && uncollected > 0 && ownedIdx.length > 0 && view.show === 'default' && (
         <div className="flex items-center justify-between gap-3 pb-1">
           <p className="text-xs text-gray-500">
             {ownedIdx.length} collected · {uncollected} still to find
@@ -165,7 +185,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         </div>
       )}
 
-      <div className={compact ? 'grid grid-cols-4 sm:grid-cols-7 md:grid-cols-10 gap-2' : 'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-3'}>
+      {!binder && <div className={compact ? 'grid grid-cols-4 sm:grid-cols-7 md:grid-cols-10 gap-2' : 'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-3'}>
         {order.map(idx => {
           const card = cards[idx];
           const count = totalCopies(card.counts);
@@ -226,9 +246,9 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
             </div>
           );
         })}
-      </div>
+      </div>}
 
-      {order.length === 0 && <p className="rind rounded-2xl p-6 text-center text-sm text-gray-400">No cards match. <button type="button" onClick={() => setView(DEFAULT_VIEW)} className="text-yellow-400 hover:text-yellow-300">Clear the filters</button></p>}
+      {!binder && order.length === 0 && <p className="rind rounded-2xl p-6 text-center text-sm text-gray-400">No cards match. <button type="button" onClick={() => setView(DEFAULT_VIEW)} className="text-yellow-400 hover:text-yellow-300">Clear the filters</button></p>}
 
       {openIdx !== null && cards[openIdx] && (
         <CardDetail
