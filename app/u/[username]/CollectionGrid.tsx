@@ -42,6 +42,8 @@ export interface GridCard {
   steps: Record<Variant, { to: Variant; cost: number } | null>;
   /** The holographic shimmer per variant, from the Overlay Editor's settings for this card's pack. */
   holo: HoloSpecs;
+  /** This viewer's numbered copies of the card (only when the season's copies are tracked). */
+  copies?: { id: string; variant: Variant; n: number; est?: boolean }[];
   /** The working behind this card's points, for the Advanced information panel. */
   maths?: CardMaths;
 }
@@ -53,7 +55,7 @@ const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0)
 const artFor = (c: GridCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
 
-export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, defaultHide = true, compact = false, mine }: { /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
+export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, seasonId, defaultHide = true, compact = false, mine }: { /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** Needed for the serial links. */ seasonId?: string; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
   // the server renders the default so there's no flash of ? tiles).
@@ -229,6 +231,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           canUpgrade={canUpgrade}
           ownerName={canUpgrade ? undefined : ownerName}
           tradeWith={tradeWith}
+          seasonId={seasonId}
           canStep={ownedIdx.length > 1}
           onClose={close}
           onStep={step}
@@ -241,9 +244,9 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
 // ── Detail dialog ─────────────────────────────────────────
 
 function CardDetail({
-  card, totalScore, leaderboardHref, canUpgrade, ownerName, tradeWith, canStep, onClose, onStep,
+  card, totalScore, leaderboardHref, canUpgrade, ownerName, tradeWith, seasonId, canStep, onClose, onStep,
 }: {
-  card: GridCard; totalScore: number; leaderboardHref: string; canUpgrade: boolean; ownerName?: string; tradeWith?: string; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
+  card: GridCard; totalScore: number; leaderboardHref: string; canUpgrade: boolean; ownerName?: string; tradeWith?: string; seasonId?: string; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
 }) {
   const rarity = getRarity(card.stars);
   const [preview, setPreview] = useState<Variant | null>(null);
@@ -377,6 +380,22 @@ function CardDetail({
                 </tbody>
               </table>
             </div>
+
+            {seasonId && card.copies && card.copies.length > 0 && (
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Serial numbers</p>
+                <ul className="flex flex-wrap gap-1.5">
+                  {[...card.copies].sort((a, b) => VARIANTS.indexOf(b.variant) - VARIANTS.indexOf(a.variant) || a.n - b.n).map(c => (
+                    <li key={c.id}>
+                      <a href={`/copy/${encodeURIComponent(seasonId)}/${c.id}`} title={c.est ? 'Numbered after the fact: the order within a version is an estimate' : 'Open this copy and its history'}
+                        className="inline-flex items-center gap-1 rounded-full border border-gray-700 hover:border-yellow-500/60 bg-gray-950/60 px-2.5 py-1 text-xs font-bold text-gray-200 hover:text-white tabular-nums">
+                        {c.variant !== 'regular' && <span className="text-fuchsia-300">{SHORT[c.variant]}</span>}#{c.n}{c.est && <span className="text-gray-500" aria-label="estimated">~</span>}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {tradeWith && (
               <a

@@ -44,7 +44,7 @@ export function simulatePulls(sandboxId: string, username: string, count: number
     await ensureUserProfile(user);
     for (let i = 0; i < n; i++) {
       const { card, variant } = drawOne(packs);
-      await addCollectionEntry(active.season.collectionName, user, encodeEntry(card.number, variant));
+      await addCollectionEntry(active.season.collectionName, user, encodeEntry(card.number, variant), 'pull');
       byVariant[variant]++;
     }
     return { pulls: n, byVariant };
@@ -63,7 +63,7 @@ export function grantCopies(sandboxId: string, username: string, cardNumber: num
     if (!exists) throw new Error('That card is not in the active season.');
     const n = Math.max(1, Math.min(200, Math.floor(count) || 1));
     await ensureUserProfile(user);
-    for (let i = 0; i < n; i++) await addCollectionEntry(active.season.collectionName, user, encodeEntry(cardNumber, variant));
+    for (let i = 0; i < n; i++) await addCollectionEntry(active.season.collectionName, user, encodeEntry(cardNumber, variant), 'grant');
     return n;
   });
 }

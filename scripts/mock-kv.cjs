@@ -39,6 +39,8 @@ function run(cmd) {
     case 'hincrby': { const h = store.get(key) || {}; h[rest[0]] = Number(h[rest[0]] || 0) + Number(rest[1]); store.set(key, h); return h[rest[0]]; }
     case 'scard': return (store.get(key) || []).length;
     case 'llen': return (store.get(key) || []).length;
+    case 'hget': { const h = store.get(key) || {}; return rest[0] in h ? h[rest[0]] : null; }
+    case 'hlen': return Object.keys(store.get(key) || {}).length;
     case 'hgetall': { const h = store.get(key); return h ? Object.entries(h).flat() : []; }
     case 'smembers': return store.get(key) || [];
     default: return null;

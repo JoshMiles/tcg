@@ -1,3 +1,5 @@
+import { dropLedger, isTracking, syncAfterSave, type SyncContext } from './serials';
+import type { Origin } from './serials-core';
 import { kv } from './db';
 import type { Season, Pack, Card, UserProfile, UpgradeCosts, VariantWeights } from './types';
 import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, cleanDisabled } from './variants';
@@ -268,8 +270,15 @@ export async function getCollection(collectionName: string): Promise<Record<stri
   return (await kv.get<Record<string, number[]>>(`tcg_${collectionName}`)) ?? {};
 }
 
-export async function saveCollection(collectionName: string, data: Record<string, number[]>): Promise<void> {
+/**
+ * Writes a collection. When the collection's copies are being tracked (lib/serials.ts) the write is followed by a ledger sync, so
+ * every route that changes a collection keeps card serials correct without knowing about them. `ctx` says where new copies came
+ * from, or which copies a trade / upgrade moved, so their identity is kept.
+ */
+export async function saveCollection(collectionName: string, data: Record<string, number[]>, ctx?: SyncContext): Promise<void> {
+  const before = (await isTracking(collectionName)) ? await getCollection(collectionName) : null;
   await kv.set(`tcg_${collectionName}`, data);
+  if (before) await syncAfterSave(collectionName, before, data, ctx);
 }
 
 /**
@@ -304,18 +313,20 @@ export async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T
 }
 
 /** Appends one entry (card + variant, see lib/variants.ts) to a user's collection. Returns their new array. */
-export async function addCollectionEntry(collectionName: string, username: string, entry: number): Promise<number[]> {
+export async function addCollectionEntry(collectionName: string, username: string, entry: number, origin: Origin = 'other'): Promise<number[]> {
   const lower = username.toLowerCase();
   return withCollectionLock(collectionName, async () => {
     const data = await getCollection(collectionName);
     data[lower] = [...(data[lower] ?? []), entry];
-    await saveCollection(collectionName, data);
+    await saveCollection(collectionName, data, { origin });
     return data[lower];
   });
 }
 
 export async function deleteCollection(collectionName: string): Promise<void> {
+  const users = Object.keys(await getCollection(collectionName).catch(() => ({} as Record<string, number[]>)));
   await kv.del(`tcg_${collectionName}`);
+  await dropLedger(collectionName, users);
 }
 
 /** Removes a user's entry from one collection. Returns true if there was anything to remove. */

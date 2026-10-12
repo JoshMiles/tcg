@@ -4,9 +4,11 @@ import { Icon } from '@/app/components/Icon';
 import { getSession } from '@/lib/session';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { countPulls } from '@/lib/collection';
+import { getOwnerCopies } from '@/lib/serials';
 import { sweepTrades } from '@/lib/trades';
 import { getUserProfile } from '@/lib/kv';
-import { buildGridCards, loadProfileBase } from '@/lib/profile-data';
+import { SITE_URL } from '@/lib/site';
+import { buildGridCards, buildShareSpec, loadProfileBase } from '@/lib/profile-data';
 import { PROFILE_TABS, pickProfileTab, profileHref } from '@/lib/profile-url';
 import { SiteMessage } from '@/app/components/site/SiteMessage';
 import { ProfileHeader } from './ProfileHeader';
@@ -54,10 +56,11 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   const prefs = session ? await getUserSettings(session.username) : undefined;
   // For "Compare with me": the signed-in viewer's copies per card (the season's collection is already loaded).
   const mine = session && !isOwner && tab === 'collection' ? Object.fromEntries(countPulls(b.collection[session.username] ?? [])) : undefined;
-  const grid = tab === 'collection' ? await buildGridCards(b) : [];
+  const copies = await getOwnerCopies(b.season.collectionName, lower);
+  const grid = tab === 'collection' ? await buildGridCards(b, copies) : [];
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      <ProfileHeader b={b} isOwner={isOwner} signedIn={!!session} />
+      <ProfileHeader b={b} isOwner={isOwner} signedIn={!!session} shareSpec={buildShareSpec(b, copies, SITE_URL.replace(/^https?:\/\//, ''))} />
       <ProfileTabBar username={lower} active={tab} />
       {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}
       {tab === 'stats' && <StatsTab b={b} />}

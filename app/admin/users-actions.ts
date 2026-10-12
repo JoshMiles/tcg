@@ -45,7 +45,7 @@ export async function grantManyAction(username: string, cardNumbers: number[], v
   if (picks.length === 0) return { ok: false, message: 'Pick at least one card.' };
   const collectionName = active.season.collectionName;
   for (const cardNumber of picks) {
-    for (let i = 0; i < n; i++) await addCollectionEntry(collectionName, lower, encodeEntry(cardNumber, v));
+    for (let i = 0; i < n; i++) await addCollectionEntry(collectionName, lower, encodeEntry(cardNumber, v), 'grant');
     await recordActivity({ type: 'grant', source: 'admin', username: lower, cardNumber, variant: v, collectionName });
   }
   await ensureUserProfile(lower);

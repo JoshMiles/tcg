@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invalid pull' }, { status: 400 });
     }
     before = await getCollection(name);
-    owned = await addCollectionEntry(name, username, entry);
+    owned = await addCollectionEntry(name, username, entry, 'pull');
   } else {
     await saveCollection(name, data);
   }

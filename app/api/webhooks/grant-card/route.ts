@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No active season' }, { status: 404 });
   }
 
-  await addCollectionEntry(season.collectionName, username, encodeEntry(num, variant));
+  await addCollectionEntry(season.collectionName, username, encodeEntry(num, variant), 'grant');
   await recordActivity({ type: 'grant', source: 'webhook', username, cardNumber: num, variant, collectionName: season.collectionName });
 
   return NextResponse.json({ ok: true, username, cardNumber: num, variant });

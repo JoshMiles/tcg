@@ -6,9 +6,11 @@ import { ShareProfile } from './ShareProfile';
 import { CardTile } from '@/app/components/CardTile';
 import { accentHex, hasExperiment } from '@/lib/user-settings';
 import { VARIANT_LABELS } from '@/lib/variants';
+import { ShareImageButton } from '@/app/components/ShareImage';
+import type { ShareSpec } from '@/lib/share-image';
 
 /** Who this is: avatar, name, awards, rank and progress, and the main actions (trade, share, leaderboard). */
-export function ProfileHeader({ b, isOwner, signedIn }: { b: ProfileBase; isOwner: boolean; signedIn: boolean }) {
+export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   const accent = hasExperiment(b.settings, 'accent') ? accentHex(b.settings.accent) : undefined;
   return (
@@ -78,6 +80,7 @@ export function ProfileHeader({ b, isOwner, signedIn }: { b: ProfileBase; isOwne
             </Link>
           )}
           <ShareProfile name={b.displayName} />
+          {shareSpec && shareSpec.cards.length > 0 && <ShareImageButton spec={shareSpec} filename={`cheesy-tcg-${b.lower}.png`} label="Share my cards" />}
           <Link href={leaderboardHref} className="inline-flex items-center gap-1.5 text-xs font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/40 hover:bg-yellow-500/20 rounded-full px-3 py-1.5 transition-colors">
             <Icon name="trophy" />Leaderboard
           </Link>
