@@ -4,11 +4,13 @@ import { notFound } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { CardTile } from '@/app/components/CardTile';
 import { FlipCard } from '@/app/components/FlipCard';
+import { ProvenanceTimeline } from '@/app/components/ProvenanceTimeline';
+import { buildProvenance } from '@/lib/provenance';
 import { engravedDate } from '@/lib/flip-back';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
-import { EVENT_LABELS, ORIGIN_LABELS, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
+import { ORIGIN_LABELS, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { copyPoints, getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { serialMultiplier } from '@/lib/scoring-core';
@@ -85,6 +87,14 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
   const holo = holoFor(pack, card.stars)[copy.variant];
   const label = `${copy.variant === 'regular' ? '' : `${VARIANT_LABELS[copy.variant]} `}${card.name}`;
   const gone = !copy.owner;
+  // The journey, and the names of the copies this one was forged from or into.
+  const prov = buildProvenance(copy);
+  const refIds = [...new Set([...(copy.madeFrom ?? []), ...copy.ev.filter(e => e.type === 'upgraded' && e.note).map(e => e.note as string)])].slice(0, 12);
+  const refs: Record<string, { uid?: number; n: number }> = {};
+  for (const id of refIds) {
+    const c = await getCopy(season.collectionName, id).catch(() => null);
+    if (c) refs[id] = { uid: c.uid, n: c.n };
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -142,12 +152,6 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
             <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3"><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Created</dt><dd className="mt-0.5 text-gray-200">{when(copy.at)}</dd><dd className="text-xs text-gray-500">{ORIGIN_LABELS[copy.origin]}</dd></div>
           </dl>
 
-          {copy.madeFrom && copy.madeFrom.length > 0 && (
-            <p className="text-sm text-gray-400">Made by spending {copy.madeFrom.map((id, i) => (
-              <span key={id}>{i > 0 && ', '}<Link href={`/copy/${encodeURIComponent(season.id)}/${id}`} className="text-yellow-300 hover:text-yellow-200 tabular-nums">#{id.split('.')[2]}</Link></span>
-            ))}.</p>
-          )}
-
           <div className="flex flex-wrap gap-2">
             <ShareImageButton
               spec={{ title: label, subtitle: `Copy #${copy.n} of ${total.toLocaleString()}`, stats: [season.name], cards: [{ src: art, name: card.name, hex: rarity?.hex, tag: `#${copy.n}` }], footer: SITE_URL.replace(/^https?:\/\//, '') }}
@@ -159,25 +163,16 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
       </div>
 
       <section className="tcg-panel rounded-2xl p-5">
-        <h2 className="font-display text-xl font-bold text-white mb-3"><Icon name="history" className="mr-2 text-yellow-400" />History</h2>
-        <ol className="space-y-3 border-l border-gray-800 pl-5">
-          {copy.ev.map((e, i) => (
-            <li key={i} className="relative text-sm">
-              <span className="absolute -left-[26px] top-1.5 h-2 w-2 rounded-full bg-yellow-400" />
-              <p className="text-gray-200">
-                {e.type === 'minted' && <>Created{e.who ? <> for {who(e.who)}</> : null}</>}
-                {e.type === 'traded' && <>Traded from {who(e.who)} to {who(e.to)}</>}
-                {e.type === 'escrowed' && <>Put up in a trade offer by {who(e.who)}</>}
-                {e.type === 'returned' && <>Came back to {who(e.who)} from a trade offer</>}
-                {e.type === 'upgraded' && <>Spent by {who(e.who)} in an upgrade{e.note ? <> into <Link href={`/copy/${encodeURIComponent(season.id)}/${e.note}`} className="text-yellow-300 hover:text-yellow-200">a better copy</Link></> : null}</>}
-                {e.type === 'removed' && <>Removed from {who(e.who)}&rsquo;s collection</>}
-                {!['minted', 'traded', 'escrowed', 'returned', 'upgraded', 'removed'].includes(e.type) && EVENT_LABELS[e.type]}
-              </p>
-              <p className="text-xs text-gray-500">{when(e.t)}</p>
-            </li>
-          ))}
-        </ol>
-        {copy.ev.length >= 40 && <p className="mt-3 text-xs text-gray-600">Only the most recent events are kept.</p>}
+        <h2 className="font-display text-xl font-bold text-white mb-4"><Icon name="history" className="mr-2 text-yellow-400" />Journey</h2>
+        <ProvenanceTimeline
+          prov={prov}
+          who={name => who(name) ?? <span className="text-gray-400">somewhere</span>}
+          plain={name => (hidden.has(name) ? 'a private collector' : `@${name}`)}
+          seasonId={season.id}
+          refs={refs}
+          madeFrom={copy.madeFrom}
+        />
+        {copy.ev.length >= 40 && <p className="mt-4 text-xs text-gray-600">Only the first event and the most recent ones are kept, so the middle of a very busy copy&rsquo;s journey is not shown.</p>}
       </section>
     </div>
   );
