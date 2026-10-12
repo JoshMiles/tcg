@@ -62,6 +62,17 @@ await wh.fireOutgoing(hook, { username: 'x' });
 globalThis.fetch = realFetch;
 ok(calls === 1, 'outgoing webhooks still fire on production');
 
+// The fake Twitch page's tokens are honoured only inside the sandbox they were minted for, and never forge a real one.
+process.env.SESSION_SECRET = 'check-secret-0123456789';
+const jwt = await import('../lib/twitch-jwt');
+const mock = jwt.signMockTwitchJwt({ opaque_user_id: 'Umockalice', user_id: '123', channel_id: '1', role: 'viewer', sandbox: box.id, login: 'alice' })!;
+ok(!!mock, 'a fake token can be signed');
+ok((await jwt.verifyExtensionAuth(mock)) === null, 'a fake token is refused outside any sandbox (production)');
+ok((await runInSandbox(box.id, () => jwt.verifyExtensionAuth(mock)))?.login === 'alice', 'a fake token works inside its own sandbox');
+ok((await runInSandbox('some-other-box', () => jwt.verifyExtensionAuth(mock))) === null, 'a fake token is refused in a different sandbox');
+ok((await runInSandbox(box.id, () => jwt.verifyExtensionAuth(mock.slice(0, -2) + 'xx'))) === null, 'a tampered fake token is refused');
+ok(jwt.verifyTwitchJwt(mock) === null, 'a fake token is not a real Twitch token');
+
 // Clearing viewer data keeps the setup; reset restores production's copy; delete removes everything.
 await sbx.resetTestData(box.id);
 ok((await prodKv.get(`sbx:${box.id}:tcg_${coll}`)) === null, 'test data cleared');

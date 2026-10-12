@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTwitchOpaqueUser } from '@/lib/kv';
-import { verifyTwitchJwt, getBearerToken } from '@/lib/twitch-jwt';
+import { verifyExtensionAuth, getBearerToken } from '@/lib/twitch-jwt';
 import { upgradeCard } from '@/lib/upgrade';
 import { VARIANTS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const token = getBearerToken(req);
   if (!token) return NextResponse.json({ error: 'Missing authorization token' }, { status: 401 });
 
-  const payload = verifyTwitchJwt(token);
+  const payload = await verifyExtensionAuth(token);
   const devMode = !payload && !process.env.TWITCH_EXTENSION_SECRET;
   if (!payload && !devMode) return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveTwitchOpaqueUser, ensureUserProfile } from '@/lib/kv';
-import { verifyTwitchJwt, getBearerToken } from '@/lib/twitch-jwt';
+import { verifyExtensionAuth, getBearerToken } from '@/lib/twitch-jwt';
 
 const DEV_OPAQUE_ID = 'dev_mock_opaque';
 
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing authorization token' }, { status: 401 });
   }
 
-  const payload = verifyTwitchJwt(token);
+  const payload = await verifyExtensionAuth(token);
   // In dev mode (no TWITCH_EXTENSION_SECRET), allow with a mock opaque ID
   const devMode = !payload && !process.env.TWITCH_EXTENSION_SECRET;
   if (!payload && !devMode) {

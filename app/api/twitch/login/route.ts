@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveTwitchOpaqueUser, ensureUserProfile } from '@/lib/kv';
-import { verifyTwitchJwt, getBearerToken, getTwitchUserId } from '@/lib/twitch-jwt';
+import { verifyExtensionAuth, getBearerToken, getTwitchUserId } from '@/lib/twitch-jwt';
 import { resolveTwitchLogin, twitchCredentials } from '@/lib/twitch-helix';
 
 export const dynamic = 'force-dynamic';
@@ -13,12 +13,19 @@ export async function POST(req: NextRequest) {
   const token = getBearerToken(req);
   if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 401 });
 
-  const payload = verifyTwitchJwt(token);
+  const payload = await verifyExtensionAuth(token);
   if (!payload) return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
 
   const numericUserId = getTwitchUserId(payload);
   if (!numericUserId) {
     return NextResponse.json({ error: 'Identity not shared yet' }, { status: 403 });
+  }
+
+  // The fake Twitch page's token already names who is logging in (sandbox only), so there is no Helix lookup.
+  if (payload.mock && payload.login) {
+    await saveTwitchOpaqueUser(payload.opaque_user_id, payload.login);
+    await ensureUserProfile(payload.login, numericUserId);
+    return NextResponse.json({ username: payload.login });
   }
 
   if (!twitchCredentials()) {

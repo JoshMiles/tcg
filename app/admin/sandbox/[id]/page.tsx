@@ -66,6 +66,10 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
           <p className="text-xs text-gray-500">OBS overlay for this sandbox (add <code className="text-gray-400">&amp;dev</code> for the test panel):</p>
           <CopyableUrl url={`${origin}/overlay.html?sandbox=${id}`} />
         </div>
+        <Link href={`/admin/sandbox/${id}/twitch`} className="flex items-center justify-between gap-3 rounded-xl border border-purple-400/40 bg-purple-500/10 hover:bg-purple-500/20 px-4 py-3 transition-colors">
+          <span className="text-sm font-bold text-purple-200">📺 Fake Twitch: test the extension panel here</span>
+          <span className="text-xs text-purple-300/80">panel, mobile and video views, login, upgrades →</span>
+        </Link>
         <div className="flex flex-wrap gap-2 text-sm">
           {[['/', 'Home'], ['/leaderboard', 'Leaderboard'], ['/cards', 'Card dex'], ['/account', 'My stats'], ['/collection', 'Collections']].map(([href, label]) => (
             <a key={href} href={href} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white">{label} ↗</a>
