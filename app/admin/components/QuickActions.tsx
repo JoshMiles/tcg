@@ -64,64 +64,104 @@ export function QuickActions({
   const refusalIsStale = !!state?.needsForce && !offline;
   const shown = refusalIsStale ? null : state;
   const queued = status?.queued ?? 0;
+  const connected = status?.connected ?? 0;
 
   return (
     <section id="quick-actions" className="tcg-panel rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between gap-3">
-        <h2 className="font-display text-lg font-bold text-white">Quick actions</h2>
-        <p className="text-xs text-gray-500">Gifts and stream controls play through the OBS overlay</p>
+      <div className="px-5 py-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-lg font-bold text-white flex items-center gap-2"><span aria-hidden>⚡</span>Quick actions</h2>
+        <div className="flex items-center gap-2 text-xs">
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-semibold ${status === null ? 'border-gray-700 text-gray-500' : offline ? 'border-amber-400/30 bg-amber-500/10 text-amber-200' : 'border-emerald-400/30 bg-emerald-500/10 text-emerald-300'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${status === null ? 'bg-gray-600' : offline ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
+            {status === null ? 'Checking overlay…' : offline ? 'No overlay connected' : connected === 1 ? 'Overlay connected' : `${connected} overlays connected`}
+          </span>
+          <span className={`rounded-full border px-2.5 py-1 font-semibold tabular-nums ${queued > 0 ? 'border-amber-400/30 bg-amber-500/10 text-amber-200' : 'border-gray-700 text-gray-400'}`}>
+            {status ? `${queued} in queue` : 'queue …'}
+          </span>
+        </div>
       </div>
 
-      <form action={formAction} className="p-5 space-y-4">
+      <form action={formAction} className="p-5 space-y-5">
+        {/* Who */}
         <label className="block">
           <span className="block text-xs text-gray-500 font-bold uppercase tracking-wider mb-1.5">Viewer</span>
-          <input
-            name="username"
-            list="quick-usernames"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            placeholder="twitch_username"
-            autoComplete="off"
-            required
-            className={`${inputClass} w-full max-w-sm`}
-          />
+          <div className="relative max-w-md">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600 select-none" aria-hidden>@</span>
+            <input
+              name="username"
+              list="quick-usernames"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              placeholder="twitch_username"
+              autoComplete="off"
+              required
+              className={`${inputClass} w-full pl-8`}
+            />
+          </div>
           <datalist id="quick-usernames">
             {usernames.map(u => <option key={u} value={u} />)}
           </datalist>
         </label>
 
-        <div className="flex flex-wrap items-end gap-3">
+        {/* What */}
+        <div className="grid gap-4 lg:grid-cols-3">
           {/* Gift packs */}
-          <div className="flex items-center gap-2">
-            <PendingButton type="submit" name="intent" value="gift" disabled={pending} className="px-4 py-2 tcg-btn rounded-xl text-sm">
-              🎁 Gift
+          <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4 flex flex-col gap-3 hover:border-yellow-500/30 transition-colors">
+            <div>
+              <p className="font-semibold text-white flex items-center gap-2"><span aria-hidden>🎁</span>Gift packs</p>
+              <p className="text-xs text-gray-500 mt-0.5">Opens packs for them on stream.</p>
+            </div>
+            <input type="hidden" name="count" value={count} />
+            <div role="group" aria-label="Number of packs" className="flex flex-wrap gap-1.5">
+              {[1, 2, 3, 5, 10].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-pressed={count === String(n)}
+                  onClick={() => setCount(String(n))}
+                  className={`min-w-9 px-2.5 py-1.5 rounded-lg text-sm font-bold border transition-all ${count === String(n) ? 'border-yellow-500 bg-yellow-500/15 text-yellow-300 scale-105' : 'border-gray-700 text-gray-300 hover:border-gray-500'}`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <PendingButton type="submit" name="intent" value="gift" pendingLabel="Gifting…" disabled={pending} className="mt-auto px-4 py-2.5 tcg-btn rounded-xl text-sm">
+              🎁 Gift {count} pack{count !== '1' ? 's' : ''}
             </PendingButton>
-            <select name="count" value={count} onChange={e => setCount(e.target.value)} aria-label="Number of packs" className={`${inputClass} py-2 pr-7`}>
-              {[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n} pack{n !== 1 ? 's' : ''}</option>)}
-            </select>
           </div>
 
           {/* Show collection */}
-          <PendingButton type="submit" name="intent" value="show" disabled={pending} className={secondaryBtn}>
-            📖 Show collection
-          </PendingButton>
+          <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4 flex flex-col gap-3 hover:border-sky-400/30 transition-colors">
+            <div>
+              <p className="font-semibold text-white flex items-center gap-2"><span aria-hidden>📖</span>Show collection</p>
+              <p className="text-xs text-gray-500 mt-0.5">Puts their whole collection on the overlay.</p>
+            </div>
+            <div className="flex-1" />
+            <PendingButton type="submit" name="intent" value="show" pendingLabel="Showing…" disabled={pending} className={`${secondaryBtn} py-2.5`}>
+              📖 Show on stream
+            </PendingButton>
+          </div>
 
           {/* Grant a specific card */}
-          <div className="flex items-center gap-2">
-            <select name="cardNumber" value={cardNumber} onChange={e => setCardNumber(e.target.value)} aria-label="Card to grant" className={`${inputClass} max-w-[14rem]`}>
+          <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4 flex flex-col gap-3 hover:border-purple-400/30 transition-colors">
+            <div>
+              <p className="font-semibold text-white flex items-center gap-2"><span aria-hidden>🃏</span>Grant a card</p>
+              <p className="text-xs text-gray-500 mt-0.5">Adds one copy straight to their collection.</p>
+            </div>
+            <select name="cardNumber" value={cardNumber} onChange={e => setCardNumber(e.target.value)} aria-label="Card to grant" className={`${inputClass} w-full`}>
               <option value="" disabled>Choose a card…</option>
               {cards.map(c => (
                 <option key={c.number} value={c.number}>#{c.number} {c.name} {'★'.repeat(c.stars)}</option>
               ))}
             </select>
-            <PendingButton type="submit" name="intent" value="grant" disabled={pending} className={secondaryBtn}>
+            <PendingButton type="submit" name="intent" value="grant" pendingLabel="Granting…" disabled={pending} className={`${secondaryBtn} mt-auto py-2.5`}>
               🃏 Grant card
             </PendingButton>
           </div>
         </div>
 
         {shown?.needsForce && (
-          <label className="flex items-center gap-2 text-sm text-amber-200 cursor-pointer select-none">
+          <label className="flex items-center gap-2 text-sm text-amber-200 cursor-pointer select-none rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2">
             <input type="checkbox" name="force" className="accent-yellow-500" />
             Queue anyway (it will play the next time an overlay connects)
           </label>
@@ -137,13 +177,10 @@ export function QuickActions({
       </form>
 
       {/* Overlay queue */}
-      <form action={clearAction} className="px-5 py-3 border-t border-gray-800 flex flex-wrap items-center justify-between gap-3">
+      <form action={clearAction} className="px-5 py-3 border-t border-gray-800 bg-gray-950/30 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-gray-400">
-          Overlay queue:{' '}
-          <span className={`font-bold tabular-nums ${queued > 0 ? 'text-amber-300' : 'text-gray-300'}`}>
-            {status ? `${queued} waiting` : '…'}
-          </span>
-          <span className="text-gray-600"> · draws and collection views waiting for the overlay</span>
+          Waiting for the overlay: <span className={`font-bold tabular-nums ${queued > 0 ? 'text-amber-300' : 'text-gray-300'}`}>{status ? queued : '…'}</span>
+          <span className="text-gray-600"> · draws and collection views</span>
         </p>
         <div className="flex items-center gap-3">
           {clearState && <span className="text-xs text-green-300">✓ {clearState.message}</span>}
