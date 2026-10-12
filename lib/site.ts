@@ -5,4 +5,4 @@ export const CHANNEL_NAME = 'Cheesygidds';
 export const CHANNEL_LOGIN = 'cheesygidds';
 export const CHANNEL_URL = `https://www.twitch.tv/${CHANNEL_LOGIN}`;
 
-export const SITE_URL = (process.env.SITE_URL ?? 'https://tcg-khaki.vercel.app').replace(/\/$/, '');
+export const SITE_URL = (process.env.SITE_URL ?? 'https://cheesytcg.app').replace(/\/$/, '');

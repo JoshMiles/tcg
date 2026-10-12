@@ -2,7 +2,7 @@
 import { Icon } from '@/app/components/Icon';
 import { useState } from 'react';
 
-const OVERLAY_URL = 'https://tcg-khaki.vercel.app/overlay.html';
+const OVERLAY_URL = 'https://cheesytcg.app/overlay.html';
 
 /** Copies the OBS overlay URL. Sized to sit beside the Preview button in the sidebar. */
 export function CopyUrlButton() {
