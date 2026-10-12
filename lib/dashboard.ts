@@ -6,6 +6,7 @@ import type { IconName } from '@/app/components/Icon';
 export const WIDGET_TYPES = [
   'overview', 'quick-actions', 'top-collectors', 'leaderboard', 'rarity', 'packs', 'card-ownership', 'activity',
   'trades', 'overlay', 'pulse', 'variants', 'valuable', 'unowned', 'live', 'shortcuts', 'notes',
+  'attention', 'pulls-chart', 'economy', 'viewers', 'progress', 'changes', 'overlay-controls',
 ] as const;
 export type WidgetType = (typeof WIDGET_TYPES)[number];
 
@@ -40,6 +41,13 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   unowned: { type: 'unowned', title: 'Cards nobody owns', icon: 'hole', description: 'Cards no viewer has pulled yet.', defaultSpan: 4, spans: [3, 4, 6] },
   live: { type: 'live', title: 'Stream status', icon: 'radio', description: 'Whether the channel is live on Twitch, with the title and viewer count.', defaultSpan: 4, spans: [3, 4, 6] },
   shortcuts: { type: 'shortcuts', title: 'Shortcuts', icon: 'compass', description: 'Jump to creating a pack or season, the overlay editor, trades and the sandbox.', defaultSpan: 4, spans: [3, 4, 6, 8] },
+  attention: { type: 'attention', title: 'Needs attention', icon: 'alert', description: 'A to-do list: overlay offline while live, packs in no season, missing full art, expiring trades and more.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  'pulls-chart': { type: 'pulls-chart', title: 'Pulls over time', icon: 'chart', description: 'Pulls per hour or day for the chosen range, split by variant, with the change from the previous period.', defaultSpan: 8, spans: [6, 8, 12] },
+  economy: { type: 'economy', title: 'Economy health', icon: 'coins', description: 'Points in circulation, how evenly they are spread, and the scarcest and most common cards.', defaultSpan: 4, spans: [4, 6, 8] },
+  viewers: { type: 'viewers', title: 'Viewers', icon: 'users', description: 'Active, new and returning viewers over the chosen range.', defaultSpan: 4, spans: [3, 4, 6] },
+  progress: { type: 'progress', title: 'Season progress', icon: 'calendar', description: 'How long the season has run, pulls per day and how much of the card pool has been found.', defaultSpan: 4, spans: [3, 4, 6] },
+  changes: { type: 'changes', title: 'Admin actions', icon: 'shield', description: 'Recent grants, removals, resets, gifts and cancellations made by an admin.', defaultSpan: 4, spans: [4, 6, 8] },
+  'overlay-controls': { type: 'overlay-controls', title: 'Overlay controls', icon: 'monitor', description: 'Queue size, the "only when live" switches and clearing the queue, without leaving the dashboard.', defaultSpan: 4, spans: [3, 4, 6] },
   notes: { type: 'notes', title: 'Notes', icon: 'note', description: 'A scratchpad for reminders. Saved with the dashboard.', defaultSpan: 4, spans: [3, 4, 6, 8] },
 };
 
@@ -56,6 +64,8 @@ export interface DashboardLayout {
 export const DEFAULT_LAYOUT: DashboardLayout = {
   widgets: [
     { type: 'overview', span: 12 },
+    { type: 'attention', span: 4 },
+    { type: 'pulls-chart', span: 8 },
     { type: 'quick-actions', span: 12 },
     { type: 'top-collectors', span: 8 },
     { type: 'rarity', span: 4 },

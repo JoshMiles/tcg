@@ -14,23 +14,8 @@ import type { IconName } from '@/app/components/Icon';
 import { OverlayStatus } from '../components/OverlayStatus';
 import { QuickActions } from '../components/QuickActions';
 import { NotesWidget } from './NotesWidget';
-
-/** A widget's frame: a titled panel that fills its grid cell. */
-function Panel({ title, icon, action, children, flush = false }: { title: string; icon?: IconName; action?: ReactNode; children: ReactNode; flush?: boolean }) {
-  return (
-    <section className="tcg-panel rounded-2xl overflow-hidden h-full flex flex-col">
-      <header className="px-5 py-3.5 border-b border-gray-800 flex items-center justify-between gap-3 shrink-0">
-        <h2 className="font-semibold text-white flex items-center gap-2 min-w-0">{icon && <Icon name={icon} className="text-yellow-500/90" />}<span className="truncate">{title}</span></h2>
-        {action}
-      </header>
-      <div className={`min-h-0 flex-1 ${flush ? '' : 'px-5 py-4'}`}>{children}</div>
-    </section>
-  );
-}
-const More = ({ href, children, external }: { href: string; children: ReactNode; external?: boolean }) => (
-  <Link href={href} target={external ? '_blank' : undefined} className="text-xs text-yellow-500 hover:text-yellow-300 transition-colors shrink-0">{children}</Link>
-);
-const Empty = ({ children }: { children: ReactNode }) => <p className="px-5 py-8 text-center text-sm text-gray-600">{children}</p>;
+import { Empty, More, Panel } from './panel';
+import { Attention, Changes, Economy, OverlayControlsWidget, Progress, PulseWidget, PullsChart, Viewers } from './widgets-extra';
 
 // ── Widgets ──
 
@@ -251,29 +236,6 @@ function Overlay() {
   );
 }
 
-function Pulse({ d }: { d: DashboardData }) {
-  const now = Date.now();
-  const pulls = d.activity.filter((e): e is Extract<ActivityEvent, { type: 'pull' }> => e.type === 'pull');
-  const windows: [string, number][] = [['Last hour', 3_600_000], ['Last 24 hours', 86_400_000], ['Last 7 days', 7 * 86_400_000]];
-  return (
-    <Panel title="Activity pulse" icon="trend">
-      <div className="space-y-2.5">
-        {windows.map(([label, ms]) => {
-          const inWin = pulls.filter(e => e.at > now - ms);
-          const people = new Set(inWin.map(e => e.username)).size;
-          return (
-            <div key={label} className="flex items-baseline justify-between gap-3">
-              <span className="text-sm text-gray-400">{label}</span>
-              <span className="text-sm text-gray-200 tabular-nums"><strong className="text-white">{inWin.length}</strong> pulls · {people} viewer{people === 1 ? '' : 's'}</span>
-            </div>
-          );
-        })}
-        <p className="text-[11px] text-gray-600 pt-1">From the latest 500 events in the activity log, so a busy week may be cut short.</p>
-      </div>
-    </Panel>
-  );
-}
-
 const VARIANT_BAR: Record<string, string> = { regular: 'bg-gray-500', reverse: 'bg-violet-500', full: 'bg-sky-500', shiny: 'bg-amber-400' };
 function Variants({ d }: { d: DashboardData }) {
   const total = VARIANTS.reduce((s, v) => s + d.variantCounts[v], 0);
@@ -384,7 +346,14 @@ export function renderWidget(type: WidgetType, d: DashboardData, opts: { gift?: 
     case 'activity': return <Activity d={d} />;
     case 'trades': return <Trades d={d} />;
     case 'overlay': return <Overlay />;
-    case 'pulse': return <Pulse d={d} />;
+    case 'pulse': return <PulseWidget d={d} />;
+    case 'attention': return <Attention d={d} />;
+    case 'pulls-chart': return <PullsChart d={d} />;
+    case 'economy': return <Economy d={d} />;
+    case 'viewers': return <Viewers d={d} />;
+    case 'progress': return <Progress d={d} />;
+    case 'changes': return <Changes d={d} describe={describe} />;
+    case 'overlay-controls': return <OverlayControlsWidget d={d} />;
     case 'variants': return <Variants d={d} />;
     case 'valuable': return <Valuable d={d} />;
     case 'unowned': return <Unowned d={d} />;

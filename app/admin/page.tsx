@@ -2,18 +2,19 @@ import { Icon } from '@/app/components/Icon';
 import { PendingButton } from './components/PendingButton';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { getActiveSeasonWithPacks } from '@/lib/kv';
+import { getActiveSeasonWithPacks, getPackCards, getPacksForSeason, listSeasons } from '@/lib/kv';
 import { seedSeason1 } from './actions';
 import { OverlayStatus } from './components/OverlayStatus';
-import { getDashboardLayout, loadDashboardData } from '@/lib/dashboard-data';
+import { getDashboardLayout, getDashboardPresets, loadDashboardData } from '@/lib/dashboard-data';
+import { DashboardControls } from './dashboard/DashboardControls';
 import type { WidgetType } from '@/lib/dashboard';
 import { renderWidget } from './dashboard/widgets';
 import { DashboardGrid } from './dashboard/DashboardGrid';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ gift?: string }> }) {
-  const { gift } = await searchParams; // /admin?gift=username prefills the quick-actions viewer
+export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ gift?: string; season?: string; range?: string }> }) {
+  const { gift, season: seasonParam, range: rangeParam } = await searchParams; // /admin?gift=username prefills the quick-actions viewer
   const result = await getActiveSeasonWithPacks();
 
   if (!result) {
@@ -45,10 +46,18 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
     );
   }
 
-  const { season, packs } = result;
+  // The dashboard can look at any published season; it opens on the active one.
+  const seasons = (await listSeasons()).filter(s => s.status === 'published').sort((a, b) => Number(b.active) - Number(a.active) || b.createdAt - a.createdAt);
+  const chosen = seasons.find(s => s.id === seasonParam && s.id !== result.season.id);
+  const season = chosen ?? result.season;
+  const packs = chosen
+    ? await Promise.all((await getPacksForSeason(chosen)).filter(p => p.status === 'published').map(async pack => ({ pack, cards: await getPackCards(pack.id) })))
+    : result.packs;
+  const range = rangeParam === '24h' || rangeParam === 'season' ? rangeParam : '7d';
   const layout = await getDashboardLayout();
+  const presets = (await getDashboardPresets()).map(p => p.name);
   const needs = new Set<WidgetType>(layout.widgets.map(w => w.type));
-  const data = await loadDashboardData(season, packs, needs);
+  const data = await loadDashboardData(season, packs, needs, range);
   const nodes: Partial<Record<WidgetType, ReactNode>> = {};
   for (const w of layout.widgets) nodes[w.type] = renderWidget(w.type, data, { gift });
 
@@ -57,7 +66,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-xs text-yellow-500 font-bold uppercase tracking-widest mb-1">★ Active Season</p>
+          <p className="text-xs text-yellow-500 font-bold uppercase tracking-widest mb-1">{season.active ? '★ Active Season' : 'Past season'}</p>
           <h1 className="text-4xl font-bold text-white">{season.name}</h1>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
@@ -67,7 +76,9 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
         </div>
       </div>
 
-      <DashboardGrid layout={layout} nodes={nodes} />
+      <DashboardControls seasons={seasons.map(s => ({ id: s.id, name: s.name, active: s.active }))} seasonId={season.id} range={range} />
+
+      <DashboardGrid layout={layout} nodes={nodes} presets={presets} />
     </div>
   );
 }
