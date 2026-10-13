@@ -39,7 +39,7 @@ export async function loadTradeAdminData() {
       giveText: describeItems(t.give, nameOf), getText: describeItems(t.get, nameOf),
       givePts: pts(t, 'give'), getPts: pts(t, 'get'),
       cardNames: [...t.give, ...t.get].map(i => nameOf(i.cardNumber) ?? `#${i.cardNumber}`).join(' '),
-      note: t.note, reason: t.reason, resolvedBy: t.resolvedBy, counterOf: t.counterOf,
+      note: t.note, reason: t.reason, resolvedBy: t.resolvedBy, staff: t.staff, counterOf: t.counterOf,
       createdAt: t.createdAt, resolvedAt: t.resolvedAt, expiresAt: t.expiresAt,
       flags: flags.get(t.id) ?? [],
     };

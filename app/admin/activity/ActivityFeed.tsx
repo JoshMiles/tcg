@@ -606,6 +606,9 @@ function EventRow({
       break;
   }
 
+  // Admin-side events name the staff member who did them ("by admin" becomes "by sam").
+  if (e.staff) sub = sub === 'by admin' || sub === null ? <span className="text-yellow-300/80">by {e.staff}</span> : <>{sub} <span className="text-yellow-300/80">· by {e.staff}</span></>;
+
   return (
     <div
       role="button"

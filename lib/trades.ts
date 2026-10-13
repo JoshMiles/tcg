@@ -4,6 +4,7 @@ import { getUserSettings } from './user-settings-store';
 import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserProfile, saveCollection, withCollectionLock, withLock } from './kv';
 import { announceTrade, type EventPools, type TradeAction } from './trade-notify';
+import { currentStaffLogin } from './staff-actor';
 import { allowedVariants, encodeEntry } from './variants';
 import {
   DEFAULT_TRADE_SETTINGS, TRADE_LIMITS, cleanItems, itemEntries, sanitizeTradeSettings, settleTrade, takeForEscrow,
@@ -115,6 +116,7 @@ async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status:
   trade.resolvedAt = Date.now();
   if (by) trade.resolvedBy = by;
   if (reason) trade.reason = reason;
+  if (by === 'admin') { const staff = await currentStaffLogin(); if (staff) trade.staff = staff; }
   const i = open.findIndex(t => t.id === trade.id);
   if (i >= 0) open.splice(i, 1);
   history.unshift(trade);

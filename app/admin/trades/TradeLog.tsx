@@ -137,7 +137,7 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
             <dl className="text-sm space-y-1.5">
               <div className="flex justify-between gap-4"><dt className="text-gray-500">Offered</dt><dd className="text-gray-300">{when(selected.createdAt)}</dd></div>
               <div className="flex justify-between gap-4"><dt className="text-gray-500">{selected.open ? 'Expires' : 'Ended'}</dt><dd className="text-gray-300">{when(selected.open ? selected.expiresAt : selected.resolvedAt)}</dd></div>
-              {selected.resolvedBy && <div className="flex justify-between gap-4"><dt className="text-gray-500">Resolved by</dt><dd className="text-gray-300">{selected.resolvedBy}</dd></div>}
+              {selected.resolvedBy && <div className="flex justify-between gap-4"><dt className="text-gray-500">Resolved by</dt><dd className="text-gray-300">{selected.resolvedBy}{selected.staff ? ` (${selected.staff})` : ''}</dd></div>}
               {selected.reason && <div className="flex justify-between gap-4"><dt className="text-gray-500">Reason</dt><dd className="text-gray-300 text-right">{selected.reason}</dd></div>}
               {selected.note && <div className="flex justify-between gap-4"><dt className="text-gray-500">Note</dt><dd className="text-gray-300 text-right">&ldquo;{selected.note}&rdquo;</dd></div>}
               {selected.counterOf && <div className="flex justify-between gap-4"><dt className="text-gray-500">Counter to</dt><dd><button type="button" onClick={() => setOpenId(selected.counterOf!)} className="text-yellow-400 hover:text-yellow-300 text-xs">that offer</button></dd></div>}

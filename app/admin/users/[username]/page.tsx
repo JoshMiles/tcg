@@ -340,7 +340,7 @@ export default async function UserDetailPage({
       {tab === 'admin' && (
         <>
       <Panel id="moderation" title="Moderation" hint="Restrictions apply immediately across the website and the Twitch panel.">
-        <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at }} />
+        <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
       </Panel>
 
       <Panel id="tools" title="Restore points, compare & merge">

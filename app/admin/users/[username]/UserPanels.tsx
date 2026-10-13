@@ -47,7 +47,7 @@ export function TagsEditor({ username, initial, suggestions }: { username: strin
 }
 
 /** Moderation: stop this viewer trading and/or hide them from public rankings. Reason is admin-only. */
-export function ModerationPanel({ username, initial }: { username: string; initial: { noTrading: boolean; hideFromBoard: boolean; reason: string; at?: number } }) {
+export function ModerationPanel({ username, initial }: { username: string; initial: { noTrading: boolean; hideFromBoard: boolean; reason: string; at?: number; by?: string } }) {
   const [noTrading, setNoTrading] = useState(initial.noTrading);
   const [hide, setHide] = useState(initial.hideFromBoard);
   const [reason, setReason] = useState(initial.reason);
@@ -59,7 +59,7 @@ export function ModerationPanel({ username, initial }: { username: string; initi
       <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" checked={noTrading} onChange={e => setNoTrading(e.target.checked)} className="mt-1 accent-yellow-400" /><span><strong className="text-white">Block trading.</strong> They can&apos;t make or accept offers, and nobody can offer to them. Existing offers can still be cancelled.</span></label>
       <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" checked={hide} onChange={e => setHide(e.target.checked)} className="mt-1 accent-yellow-400" /><span><strong className="text-white">Hide from public boards.</strong> Left out of the leaderboard, the card owner lists and recent pulls. Their own collection page still works.</span></label>
       {(noTrading || hide) && <input value={reason} onChange={e => setReason(e.target.value)} maxLength={200} placeholder="Reason (only admins see this)" aria-label="Reason" className={`${field} w-full`} />}
-      {initial.at && (initial.noTrading || initial.hideFromBoard) && <p className="text-xs text-gray-600">Set {new Date(initial.at).toLocaleString()}</p>}
+      {initial.at && (initial.noTrading || initial.hideFromBoard) && <p className="text-xs text-gray-600">Set {new Date(initial.at).toLocaleString()}{initial.by ? ` by ${initial.by}` : ''}</p>}
       <div className="flex items-center gap-3">
         <button type="button" disabled={!dirty || pending} onClick={() => startTransition(async () => { setResult(await saveFlagsAction(username, { noTrading, hideFromBoard: hide, reason })); })} className={btn}>{pending && <Spinner />}Save restrictions</button>
       </div>

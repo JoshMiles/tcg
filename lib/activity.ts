@@ -2,6 +2,7 @@ import { kv, inSandbox } from './db';
 import { after } from 'next/server';
 import { notifyDiscord } from './discord';
 import { recordStats } from './stats';
+import { currentStaffLogin } from './staff-actor';
 import type { Variant } from './types';
 
 // Append-only activity log powering /admin/activity. Newest first in the KV list `activity:log`
@@ -30,15 +31,32 @@ export type ActivityEvent = ActivityDetail & {
   at: number;
   username: string;          // lowercase Twitch login; '' for events not about one user
   collectionName?: string;
+  /** The staff member (Twitch login) who did it, on events that staff cause: gifts, grants, removals, resets, deletes and admin cancels of offers. */
+  staff?: string;
 };
 
 export type NewActivity = ActivityDetail & { username: string; collectionName?: string };
+
+/**
+ * Is this the kind of event a staff member causes (so it should name them)? A viewer's own pull, upgrade or trade is not, even when
+ * the viewer happens to be staff: only the actions taken from the admin and mod panels.
+ */
+export function isStaffAction(e: NewActivity): boolean {
+  switch (e.type) {
+    case 'remove': case 'reset': case 'delete': return true;
+    case 'grant': return e.source === 'admin';
+    case 'trigger': return e.source === 'admin';
+    case 'trade': return e.by === 'admin';
+    default: return false;
+  }
+}
 
 /** Records an event. Never throws, activity logging must not break the action it describes. */
 export async function recordActivity(event: NewActivity): Promise<void> {
   try {
     const seq = await kv.incr(SEQ_KEY);
-    const full: ActivityEvent = { ...event, username: event.username.toLowerCase(), seq, at: Date.now() };
+    const staff = isStaffAction(event) ? await currentStaffLogin() : null;
+    const full: ActivityEvent = { ...event, username: event.username.toLowerCase(), seq, at: Date.now(), ...(staff ? { staff } : {}) };
     await kv.lpush(LOG_KEY, full);
     await kv.ltrim(LOG_KEY, 0, LOG_CAP - 1);
     await recordStats(full as unknown as Parameters<typeof recordStats>[0], full.at);

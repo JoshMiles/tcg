@@ -31,6 +31,11 @@ export type CardNamer = (number: number, packName?: string) => string | undefine
 
 /** One event as a plain sentence (used for search, the detail panel title and CSV export). */
 export function plainText(e: ActivityEvent, cardName: CardNamer): string {
+  const text = plainBase(e, cardName);
+  return e.staff ? `${text} (by ${e.staff})` : text;
+}
+
+function plainBase(e: ActivityEvent, cardName: CardNamer): string {
   const name = (n: number, pack?: string) => cardName(n, pack) ?? `Card #${n}`;
   const v = (x?: string) => (x && x !== 'regular' ? ` (${VARIANT_LABELS[x as keyof typeof VARIANT_LABELS] ?? x})` : '');
   switch (e.type) {

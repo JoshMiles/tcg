@@ -90,7 +90,7 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Panel title="Restrictions" icon="shield" hint="Stop them trading and/or hide them from the public rankings. The reason is only seen by staff.">
-          <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at }} />
+          <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
         </Panel>
         <Panel title="Tags" icon="note" hint="Labels only staff can see.">
           <TagsEditor username={username} initial={profile?.tags ?? []} suggestions={SUGGESTED_TAGS} />

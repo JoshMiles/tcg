@@ -76,5 +76,5 @@ export interface UserProfile {
   /** Admin-only labels (VIP, moderator, test account...). */
   tags?: string[];
   /** Moderation: blocks trading and/or hides the viewer from public rankings. */
-  flags?: { noTrading?: boolean; hideFromBoard?: boolean; reason?: string; at?: number };
+  flags?: { noTrading?: boolean; hideFromBoard?: boolean; reason?: string; at?: number; /** The staff member who set them. */ by?: string };
 }

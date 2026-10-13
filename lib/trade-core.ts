@@ -42,6 +42,8 @@ export interface Trade {
   resolvedBy?: string;
   /** Why it ended, for failed / admin-cancelled trades. */
   reason?: string;
+  /** The staff member (Twitch login) who cancelled it, when resolvedBy is 'admin'. */
+  staff?: string;
   /** Set on a counter-offer: the trade it answers. */
   counterOf?: string;
 }

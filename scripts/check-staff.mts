@@ -118,4 +118,22 @@ const log = await staff.getStaffLog(50);
 ok(log.some(l => l.action === 'added' && l.login === mod1 && l.by === 'ann') && log.some(l => l.action === 'removed' && l.login === adm1 && l.by === 'joshmiles') && log.some(l => l.action === 'role' && l.login === mod1), 'every change is logged with who made it');
 ok(staff.listSuperAdmins().some(s => s.login === 'joshmiles'), 'the super admin is shown');
 
+// ── what staff did is attributed ──
+{
+  const act = await import('../lib/activity');
+  const view = await import('../lib/activity-view');
+  const ev = (e: object) => e as import('../lib/activity').NewActivity;
+  ok(act.isStaffAction(ev({ type: 'grant', source: 'admin', username: 'a', cardNumber: 1 })), 'an admin grant is a staff action');
+  ok(!act.isStaffAction(ev({ type: 'grant', source: 'webhook', username: 'a', cardNumber: 1 })), 'a webhook grant is not');
+  ok(act.isStaffAction(ev({ type: 'remove', username: 'a', cardNumber: 1 })) && act.isStaffAction(ev({ type: 'reset', scope: 'season', username: 'a' })) && act.isStaffAction(ev({ type: 'delete', username: 'a' })), 'removals, resets and deletes are');
+  ok(act.isStaffAction(ev({ type: 'trigger', kind: 'pull', source: 'admin', username: 'a' })) && !act.isStaffAction(ev({ type: 'trigger', kind: 'pull', source: 'webhook', username: 'a' })), 'a gifted pack is, a webhook trigger is not');
+  ok(act.isStaffAction(ev({ type: 'trade', action: 'cancelled', by: 'admin', kind: 'direct', give: [], get: [], givePts: 0, getPts: 0, username: 'a' })), 'an admin cancel of an offer is');
+  ok(!act.isStaffAction(ev({ type: 'trade', action: 'cancelled', by: 'a', kind: 'direct', give: [], get: [], givePts: 0, getPts: 0, username: 'a' })), 'a viewer withdrawing their own offer is not');
+  ok(!act.isStaffAction(ev({ type: 'pull', username: 'a', cardNumber: 1, cardName: 'x', stars: 1, packName: 'p', isNew: true, copies: 1, uniqueOwned: 1 })) && !act.isStaffAction(ev({ type: 'upgrade', username: 'a', cardNumber: 1, cardName: 'x', from: 'regular', to: 'reverse', cost: 5 })), 'a viewer\'s own pull or upgrade never is, even if the viewer is staff');
+  const base = { seq: 1, at: 1, username: 'viewer1', type: 'remove', cardNumber: 7 };
+  const noStaff = view.plainText(base as never, () => 'Cheese');
+  const withStaff = view.plainText({ ...base, staff: 'sam' } as never, () => 'Cheese');
+  ok(!noStaff.includes('(by') && withStaff === `${noStaff} (by sam)`, 'the sentence names the staff member');
+}
+
 console.log('staff checks passed');
