@@ -12,6 +12,7 @@ import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { DEFAULT_SETTINGS, hasExperiment } from '@/lib/user-settings';
 import { PublicKeyboard } from './PublicKeyboard';
+import { CookieNotice, CookieSettingsLink } from './CookieNotice';
 import { SandboxPill } from '@/app/components/SandboxPill';
 
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
@@ -41,6 +42,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       {hasExperiment(prefs, 'shortcuts') && <PublicKeyboard username={session?.username} />}
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[90] focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       <SandboxPill />
+      <CookieNotice />
       <SiteNav user={user} loginEnabled={loginConfigured()} rank={rank} />
       <SiteSearch />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>
@@ -54,6 +56,9 @@ export async function SiteShell({ children }: { children: ReactNode }) {
             <p className="text-xs text-gray-500 max-w-md leading-relaxed">
               A cheesy collectible card game played live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-500 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a> — and nowhere else. Fan-made and not affiliated with or endorsed by Twitch.
             </p>
+            <p className="text-xs text-gray-500 max-w-md leading-relaxed">
+              Cards are virtual trading cards for fun — not NFTs, not crypto, and with no real-world value.
+            </p>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400" aria-label="Footer">
             <Link href="/collection" className="hover:text-white transition-colors">Collections</Link>
@@ -63,6 +68,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
             <Link href="/faq" className="hover:text-white transition-colors">FAQ</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <CookieSettingsLink />
           </nav>
         </div>
       </footer>
