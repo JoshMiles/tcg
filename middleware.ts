@@ -3,7 +3,7 @@ import { AUTH_COOKIE, isPasswordLoginEnabled, isValidAdminToken } from '@/lib/ad
 import { homePath, roleCan, type StaffRole } from '@/lib/staff-core';
 import { STAFF_COOKIE, verifyStaffToken } from '@/lib/staff-token';
 
-// The first gate for the admin (/admin) and mod (/mod) panels. It reads only the signed cookies (no database), so it can send
+// The first gate for the admin (/admin) and mod (/mod) panels (and, for the extension's endpoints, the CORS answers below). It reads only the signed cookies (no database), so it can send
 // the wrong person away early and keep the panels out of reach of anyone signed out. The real check is done again, against the
 // live staff list, by the panel layouts, every server action and every API route (lib/staff-guard.ts).
 //
@@ -12,8 +12,26 @@ import { STAFF_COOKIE, verifyStaffToken } from '@/lib/staff-token';
 //   no valid staff cookie but a viewer session exists            -> /auth/staff, which checks the staff list and issues the
 //        cookie (this is also how the hourly cookie is refreshed)
 //   neither                                                      -> /login
+// The hosted Twitch extension is served from Twitch's own domain (https://<client id>.ext-twitch.tv, or the developer rig), so its
+// calls to our API are cross-origin. Only the extension's own endpoints answer them, and only for those origins.
+const EXTENSION_ORIGIN = /^https:\/\/([a-z0-9]+\.ext-twitch\.tv|localhost\.rig\.twitch\.tv(:\d+)?)$/;
+const DEV_ORIGIN = /^http:\/\/localhost:\d+$/;
+
+function extensionCors(req: NextRequest): NextResponse {
+  const origin = req.headers.get('origin') ?? '';
+  const allowed = EXTENSION_ORIGIN.test(origin) || (process.env.NODE_ENV !== 'production' && DEV_ORIGIN.test(origin));
+  const headers: Record<string, string> = allowed
+    ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Max-Age': '86400', Vary: 'Origin' }
+    : { Vary: 'Origin' };
+  if (req.method === 'OPTIONS') return new NextResponse(null, { status: 204, headers });
+  const res = NextResponse.next();
+  for (const [k, v] of Object.entries(headers)) res.headers.set(k, v);
+  return res;
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
+  if (pathname.startsWith('/api/')) return extensionCors(req);
 
   let role: StaffRole | null = null;
   const staff = await verifyStaffToken(req.cookies.get(STAFF_COOKIE)?.value);
@@ -33,4 +51,4 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ['/admin/:path*', '/mod/:path*'] };
+export const config = { matcher: ['/admin/:path*', '/mod/:path*', '/api/twitch/:path*', '/api/version'] };
