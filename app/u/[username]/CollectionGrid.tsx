@@ -5,6 +5,8 @@ import { CardTile } from '@/app/components/CardTile';
 import { SerialChip } from '@/app/components/SerialChip';
 import { FlipCard } from '@/app/components/FlipCard';
 import { Binder } from './Binder';
+import { BinderEditor } from './BinderEditor';
+import { DEFAULT_BINDER, type BinderConfig } from '@/lib/binder-config';
 import { engravedDate } from '@/lib/flip-back';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
@@ -60,7 +62,7 @@ const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0)
 const artFor = (c: GridCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
 
-export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, seasonId, defaultHide = true, compact = false, mine }: { /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** Needed for the serial links. */ seasonId?: string; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
+export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, seasonId, defaultHide = true, compact = false, mine, binderConfig, siteHost }: { /** The owner's binder settings (their look and layout); null = the defaults. */ binderConfig?: BinderConfig | null; /** The site address for the binder page's share image. */ siteHost?: string; /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** Needed for the serial links. */ seasonId?: string; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
   // the server renders the default so there's no flash of ? tiles).
@@ -80,6 +82,9 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
   useEffect(() => { try { if (localStorage.getItem('tcg_collection_layout') === 'binder') setLayout('binder'); } catch { /* storage unavailable */ } }, []);
   const chooseLayout = (l: 'grid' | 'binder') => { setLayout(l); try { localStorage.setItem('tcg_collection_layout', l); } catch { /* storage unavailable */ } };
   const binder = layout === 'binder';
+  const [binderCfg, setBinderCfg] = useState<BinderConfig>(binderConfig ?? DEFAULT_BINDER);
+  const [customising, setCustomising] = useState(false);
+  const ownerLabel = ownerName ? `${ownerName}’s` : 'My';
 
   const [view, setView] = useState<ViewState>(DEFAULT_VIEW);
   const patch = (p: Partial<ViewState>) => setView(v => ({ ...v, ...p }));
@@ -131,7 +136,10 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         </p>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {binder && canUpgrade && seasonId && !customising && (
+          <button type="button" onClick={() => setCustomising(true)} className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 text-xs font-bold text-yellow-300 hover:bg-yellow-500/20"><Icon name="palette" />Customise binder</button>
+        )}
         <div className="inline-flex rounded-full border border-gray-700 p-0.5 text-xs font-bold" role="group" aria-label="How to show the collection">
           {(['grid', 'binder'] as const).map(l => (
             <button key={l} type="button" aria-pressed={layout === l} onClick={() => chooseLayout(l)}
@@ -142,7 +150,9 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         </div>
       </div>
 
-      {binder && <Binder cards={cards} ownerLabel={ownerName ? `${ownerName}\u2019s` : 'My'} onOpen={open} />}
+      {binder && (customising && canUpgrade && seasonId
+        ? <BinderEditor cards={cards} initial={binderCfg} seasonId={seasonId} ownerLabel={ownerLabel} onClose={saved => { if (saved) setBinderCfg(saved); setCustomising(false); }} />
+        : <Binder cards={cards} ownerLabel={ownerLabel} onOpen={open} config={binderCfg} seasonId={seasonId} shareFooter={siteHost} />)}
 
       {!binder && <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter the collection">
         <input type="search" value={view.q} onChange={e => patch({ q: e.target.value })} placeholder="Search name or #" aria-label="Search cards"

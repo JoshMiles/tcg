@@ -4,6 +4,7 @@
 export const BIO_MAX = 160;
 
 import { sanitizeProfileLayout, type ProfilePlacement } from './profile-widgets';
+import { sanitizeBinder, type BinderConfig } from './binder-config';
 import { UID_BASE } from './serials-core';
 import { VARIANTS } from './variants';
 import type { Variant } from './types';
@@ -50,6 +51,8 @@ export interface UserSettings {
   pinned: number | null;
   /** The widgets of their profile Overview, in order (null = the default layout). */
   profileLayout: ProfilePlacement[] | null;
+  /** How their collection binder looks and (optionally) which card is in which pocket; null = the default look and automatic layout. */
+  binder: BinderConfig | null;
   /** Ids of switched-on experimental features (see EXPERIMENTS). */
   experiments: string[];
 }
@@ -69,6 +72,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   watches: [],
   pinned: null,
   profileLayout: null,
+  binder: null,
   experiments: [],
 };
 
@@ -106,6 +110,7 @@ export function sanitizeUserSettings(input: unknown): UserSettings {
   }
   if (typeof o.pinned === 'number' && Number.isInteger(o.pinned) && o.pinned > UID_BASE && o.pinned < 1_000_000_000) out.pinned = o.pinned;
   if (Array.isArray(o.profileLayout)) out.profileLayout = sanitizeProfileLayout(o.profileLayout);
+  if (o.binder && typeof o.binder === 'object') out.binder = sanitizeBinder(o.binder);
   if (Array.isArray(o.experiments)) out.experiments = [...new Set(o.experiments.filter((x): x is string => typeof x === 'string' && EXPERIMENT_IDS.has(x)))];
   return out;
 }

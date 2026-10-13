@@ -313,6 +313,11 @@ export default async function FaqPage() {
         <Q q="Can I see my collection as a binder?">
           Yes. On your profile&rsquo;s Collection tab, switch from <strong className="text-white">Grid</strong> to <strong className="text-white">Binder</strong>. Your cards sit in pockets, a pack at a time, with an empty pocket for each card you still need. Turn the pages with the buttons or the arrow keys, and click a card to see its details.
         </Q>
+        <Q q="Can I customise my binder?" id="binder">
+          Yes. On your own Collection tab, switch to the binder and press <strong className="text-white">Customise binder</strong>. You can name the cover and pick its colour, material and emblem, choose the page colour, pocket style and how cards you don&rsquo;t have yet look, and set how many pockets are on a page (2 to 4 across, 1 to 4 down).
+          Pages can fill automatically (sorted by number, rarity or name, with or without a fresh page per pack, optionally leaving out cards you don&rsquo;t have) or you can set <strong className="text-white">Placed by hand</strong>: add, rename, reorder and delete pages, then tap a pocket and a card to fill it, or drag cards in. Each pocket can show a particular version, and a pocket can hold a card you don&rsquo;t own yet as a goal.
+          Everyone who visits your profile sees your binder the way you set it, and <strong className="text-white">Share this page</strong> makes a picture of the cards on the pages in view.
+        </Q>
         <Q q="Can I show off one special copy on my profile?">
           Yes. Open one of your copies (click its number in your card details) and press <strong className="text-white">Pin to my profile</strong>. It appears as a card on your profile that visitors can flip over to see its engraved unique number, and you can share a picture of it. If you trade the copy away it stops being shown.
         </Q>
