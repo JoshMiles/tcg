@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { SITE_DESCRIPTION, SITE_NAME } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
+import { ServiceWorker } from './components/ServiceWorker';
 
 const display = Fredoka({ subsets: ['latin'], variable: '--font-display', weight: ['500', '600', '700'] });
 const body = Nunito({ subsets: ['latin'], variable: '--font-body' });
@@ -17,6 +18,9 @@ export const metadata: Metadata = {
   // Link previews (Discord, Twitter, iMessage...). Pages inherit these; the share image is app/opengraph-image.tsx.
   openGraph: { type: 'website', siteName: SITE_NAME },
   twitter: { card: 'summary_large_image' },
+  // iOS: open without Safari's toolbars once added (the home-screen icon is app/apple-icon.png).
+  appleWebApp: { capable: true, title: 'Cheesy TCG', statusBarStyle: 'black' },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = { themeColor: '#0a0f1e', colorScheme: 'dark' };
@@ -26,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body className="font-sans text-white min-h-screen">
         {children}
+        <ServiceWorker />
         <Analytics />
         <SpeedInsights />
       </body>

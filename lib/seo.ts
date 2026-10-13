@@ -14,12 +14,13 @@ export const INDEXED_PATHS: { path: string; priority: number; changeFrequency: '
   { path: '/stats', priority: 0.7, changeFrequency: 'hourly' },
   { path: '/collection', priority: 0.6, changeFrequency: 'weekly' },
   { path: '/faq', priority: 0.7, changeFrequency: 'monthly' },
+  { path: '/install', priority: 0.4, changeFrequency: 'monthly' },
   { path: '/privacy', priority: 0.2, changeFrequency: 'monthly' },
   { path: '/terms', priority: 0.2, changeFrequency: 'monthly' },
 ];
 
 /** Pages that exist but must stay out of search (signed-in, admin, utility). Anything not here or in INDEXED_PATHS fails the check. */
-export const NOINDEX_PATHS = ['/account', '/settings', '/trade', '/trade/new', '/auth/error', '/login', '/admin'];
+export const NOINDEX_PATHS = ['/account', '/settings', '/trade', '/trade/new', '/auth/error', '/login', '/admin', '/offline'];
 
 export interface SitemapEntry { url: string; lastModified?: Date; changeFrequency: 'hourly' | 'daily' | 'weekly' | 'monthly'; priority: number }
 

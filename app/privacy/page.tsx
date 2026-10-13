@@ -91,7 +91,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="text-white">Cookie notice.</strong> We only use the essential cookies above, so there is nothing to opt in to. Once you dismiss the cookie notice we remember that in your browser&rsquo;s
-            local storage (&ldquo;tcg_cookie_notice&rdquo;); you can reopen it any time from &ldquo;Cookies&rdquo; in the footer.
+            local storage (&ldquo;tcg_cookie_notice&rdquo;); you can reopen it any time from &ldquo;Cookies&rdquo; in the footer. The same goes for dismissing the &ldquo;add to home screen&rdquo; hint
+            (&ldquo;tcg_install_hint&rdquo;). If you add the site to your home screen, a small service worker keeps one offline page so you see a friendly message instead of a browser error when you have no signal; it stores no personal data.
           </li>
           <li>
             <strong className="text-white">One item of local storage</strong> in the Extension (&ldquo;tcg_panel_loggedout&rdquo;) that remembers you chose to log out, so it

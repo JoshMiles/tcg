@@ -66,6 +66,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
             <Link href="/stats" className="hover:text-white transition-colors">Season Stats</Link>
             <Link href="/cards" className="hover:text-white transition-colors">Card Dex</Link>
             <Link href="/faq" className="hover:text-white transition-colors">FAQ</Link>
+            <Link href="/install" className="hover:text-white transition-colors">Get the app</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
             <CookieSettingsLink />
