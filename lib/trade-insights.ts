@@ -172,6 +172,8 @@ export interface TradeRow {
   note?: string;
   reason?: string;
   resolvedBy?: string;
+  /** Which staff member cancelled it, when an admin or mod did. */
+  staff?: string;
   counterOf?: string;
   createdAt: number;
   resolvedAt?: number;

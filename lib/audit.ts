@@ -1,4 +1,5 @@
 import { kv } from './db';
+import { currentStaffLogin } from './staff-actor';
 
 // A small audit trail of what an admin did to a viewer's account (grants, removals, resets, edits, restores, merges, flags). It is
 // best-effort (never throws), capped, and shown on the user's page. `audit:user:<name>` holds that viewer's newest entries and
@@ -9,6 +10,8 @@ export interface AuditEntry {
   username: string;
   action: string;
   detail?: string;
+  /** Who did it: the staff member's Twitch login (or "password" for the emergency login). Absent on older entries. */
+  by?: string;
 }
 
 const USER_CAP = 100;
@@ -16,7 +19,8 @@ const ALL_CAP = 500;
 
 export async function recordAudit(username: string, action: string, detail?: string): Promise<void> {
   try {
-    const entry: AuditEntry = { at: Date.now(), username: username.toLowerCase(), action, ...(detail ? { detail: detail.slice(0, 300) } : {}) };
+    const by = await currentStaffLogin();
+    const entry: AuditEntry = { at: Date.now(), username: username.toLowerCase(), action, ...(detail ? { detail: detail.slice(0, 300) } : {}), ...(by ? { by } : {}) };
     await kv.lpush(`audit:user:${entry.username}`, entry);
     await kv.ltrim(`audit:user:${entry.username}`, 0, USER_CAP - 1);
     await kv.lpush('audit:all', entry);

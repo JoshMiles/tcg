@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin-guard';
+import { requireStaff } from '@/lib/staff-guard';
 import { sanitizeTradeSettings } from '@/lib/trade-core';
 import { recordAudit } from '@/lib/audit';
 import { getSeason, getUserProfile, saveSeason } from '@/lib/kv';
@@ -64,20 +65,22 @@ export async function setSeasonTradingAction(seasonId: string, frozen: boolean):
 
 /** One-click "stop this viewer trading" from a flagged trade; their open offers are cancelled and refunded too. */
 export async function blockViewerTradingAction(username: string, reason: string): Promise<TradeActionResult> {
-  await requireAdmin();
+  await requireStaff('mod'); // mods moderate trades too
   const name = username.toLowerCase();
   const profile = await getUserProfile(name);
   await saveFlags(name, { noTrading: true, hideFromBoard: !!profile?.flags?.hideFromBoard, reason: reason.slice(0, 200) || 'Blocked from the Trades page' });
   const n = await cancelOpenTrades({ username: name }, 'Trading was turned off for a viewer in this offer');
   revalidatePath('/admin/trades');
+  revalidatePath('/mod/trades');
   revalidatePath(`/admin/users/${name}`);
   return { ok: true, message: `${name} can no longer trade${n ? `; ${n} open offer${n === 1 ? '' : 's'} cancelled` : ''}.` };
 }
 
 /** Cancels one open offer without redirecting (for the detail panel). */
 export async function cancelOneTradeAction(id: string): Promise<TradeActionResult> {
-  await requireAdmin();
-  const res = await cancelTrade(id, 'admin', { admin: true, reason: 'Cancelled by an admin' });
+  await requireStaff('mod'); // mods moderate trades too
+  const res = await cancelTrade(id, 'admin', { admin: true, reason: 'Cancelled by staff' });
   revalidatePath('/admin/trades');
+  revalidatePath('/mod/trades');
   return res.ok ? { ok: true, message: 'Offer cancelled and the cards returned.' } : { ok: false, message: res.error };
 }

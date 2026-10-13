@@ -1,10 +1,10 @@
-import { cookies } from 'next/headers';
-import { AUTH_COOKIE, isValidAdminToken } from './admin-token';
+import { requireStaff, type StaffContext } from './staff-guard';
 
 /**
- * For server actions that must never run for a non-admin. Middleware already protects /admin pages, but a server action can
- * be invoked by id from outside its page, so anything powerful checks the admin cookie itself.
+ * Throws unless the caller is an admin (or the super admin, or signed in with the emergency password). Server actions are public
+ * POST endpoints: Next.js lets one be invoked by id from outside its page, so anything powerful checks this itself.
+ * Returns who the caller is. Actions mods may also use call `requireStaff('mod')` instead.
  */
-export async function requireAdmin(): Promise<void> {
-  if (!isValidAdminToken((await cookies()).get(AUTH_COOKIE)?.value)) throw new Error('Not authorised.');
+export async function requireAdmin(): Promise<StaffContext> {
+  return requireStaff('admin');
 }

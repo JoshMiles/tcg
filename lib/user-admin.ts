@@ -2,6 +2,7 @@ import { getSelfHidden } from './user-settings-store';
 import { kv } from './db';
 import { getCollection, getUserProfile, listSeasons, saveCollection, saveUserProfile, withCollectionLock, deleteUserProfile } from './kv';
 import { recordAudit } from './audit';
+import { currentStaffLogin } from './staff-actor';
 import { listOpenTrades } from './trades';
 import type { UserProfile } from './types';
 
@@ -28,6 +29,8 @@ export interface UserFlags {
   /** Why (admins only). */
   reason?: string;
   at?: number;
+  /** The staff member who set them (Twitch login). */
+  by?: string;
 }
 
 const HIDDEN_KEY = 'users:hidden';
@@ -67,7 +70,8 @@ export async function saveFlags(username: string, flags: UserFlags): Promise<voi
   const name = username.toLowerCase();
   const profile = await ensureProfile(name);
   const any = !!(flags.noTrading || flags.hideFromBoard);
-  const next: UserFlags | undefined = any ? { noTrading: !!flags.noTrading, hideFromBoard: !!flags.hideFromBoard, reason: (flags.reason ?? '').slice(0, 200), at: Date.now() } : undefined;
+  const by = any ? await currentStaffLogin() : null;
+  const next: UserFlags | undefined = any ? { noTrading: !!flags.noTrading, hideFromBoard: !!flags.hideFromBoard, reason: (flags.reason ?? '').slice(0, 200), at: Date.now(), ...(by ? { by } : {}) } : undefined;
   await saveUserProfile({ ...profile, flags: next });
   await setHidden(name, !!flags.hideFromBoard);
   await recordAudit(name, any ? 'Restrictions set' : 'Restrictions cleared', any ? [flags.noTrading && 'no trading', flags.hideFromBoard && 'hidden from public boards', flags.reason].filter(Boolean).join(' · ') : undefined);

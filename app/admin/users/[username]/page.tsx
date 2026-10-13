@@ -340,7 +340,7 @@ export default async function UserDetailPage({
       {tab === 'admin' && (
         <>
       <Panel id="moderation" title="Moderation" hint="Restrictions apply immediately across the website and the Twitch panel.">
-        <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at }} />
+        <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
       </Panel>
 
       <Panel id="tools" title="Restore points, compare & merge">
@@ -369,6 +369,7 @@ export default async function UserDetailPage({
             {audit.map((a, i) => (
               <li key={i} className="px-4 py-2 flex flex-wrap items-center gap-x-4 text-sm">
                 <span className="text-gray-200 font-medium">{a.action}</span>
+                {a.by && <span className="text-xs text-gray-400">by {a.by}</span>}
                 {a.detail && <span className="text-xs text-gray-500">{a.detail}</span>}
                 <span className="ml-auto text-xs text-gray-600" title={new Date(a.at).toLocaleString()}>{ago(a.at, now)}</span>
               </li>

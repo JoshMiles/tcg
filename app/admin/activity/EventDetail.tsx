@@ -14,7 +14,7 @@ import type { CardInfo } from './ActivityFeed';
 type Outcome = { ok: boolean; message: string } | null;
 
 /** A side panel with one event in full, and actions that apply to it (gift, grant again, remove a copy, open the viewer). */
-export function EventDetail({ event: e, avatar, card, totalCards, cardName, onClose, onFilterViewer }: {
+export function EventDetail({ event: e, avatar, card, totalCards, cardName, onClose, onFilterViewer, mod = false }: {
   event: ActivityEvent;
   avatar?: string;
   card?: CardInfo;
@@ -22,6 +22,8 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
   cardName: CardNamer;
   onClose: () => void;
   onFilterViewer: (username: string) => void;
+  /** Read-only for mods: the gift, grant and remove buttons are left out and the viewer link opens the mod panel. */
+  mod?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [outcome, setOutcome] = useState<Outcome>(null);
@@ -117,9 +119,10 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">Actions</p>
             <div className="grid grid-cols-2 gap-2">
-              <Link href={`/admin/users/${encodeURIComponent(e.username)}`} className={act}><Icon name="user" />Open viewer</Link>
+              <Link href={`${mod ? '/mod' : '/admin'}/users/${encodeURIComponent(e.username)}`} className={act}><Icon name="user" />Open viewer</Link>
               <a href={`/collection/${encodeURIComponent(e.username)}`} target="_blank" rel="noreferrer" className={act}><Icon name="cards" />Their collection ↗</a>
             </div>
+            {!mod && (<>
             <div className="flex items-center gap-2">
               <select value={packs} onChange={ev => setPacks(ev.target.value)} aria-label="Packs to gift" className="rounded-lg bg-gray-950 border border-gray-700 px-2 py-2 text-sm text-white">
                 {[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n} pack{n === 1 ? '' : 's'}</option>)}
@@ -132,6 +135,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
                 <button type="button" onClick={removeCopy} disabled={pending || !e.collectionName} className={`${act} hover:border-red-400/60 hover:text-red-300`}><Icon name="trash" />Remove a copy</button>
               </div>
             )}
+            </>)}
             {pending && <p className="text-xs text-gray-500 flex items-center gap-2"><Spinner />Working…</p>}
             {outcome && <p role="status" className={`text-sm rounded-lg px-3 py-2 border ${outcome.ok ? 'text-green-300 bg-green-500/10 border-green-400/30' : 'text-amber-200 bg-amber-500/10 border-amber-400/30'}`}>{outcome.message}</p>}
           </div>

@@ -1,11 +1,12 @@
-import { cookies } from 'next/headers';
-import { AUTH_COOKIE, isValidAdminToken } from './admin-token';
+import { AUTH_COOKIE } from './admin-token';
+import { hasStaffCapability } from './staff-guard';
 
+/** Is the caller an admin? (Used by API routes; they answer 401 when it is false.) */
 export async function isAuthenticated(): Promise<boolean> {
-  const store = await cookies();
-  return isValidAdminToken(store.get(AUTH_COOKIE)?.value);
+  return hasStaffCapability('admin');
 }
 
+/** The cookie the emergency password login sets (it holds ADMIN_SECRET). */
 export function authCookieOptions() {
   return {
     name: AUTH_COOKIE,

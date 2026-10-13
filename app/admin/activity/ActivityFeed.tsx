@@ -2,7 +2,7 @@
 import { Icon, type IconName } from '@/app/components/Icon';
 import { SerialChip } from '@/app/components/SerialChip';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ActivityEvent } from '@/lib/activity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { getRarity } from '@/lib/rarity';
@@ -71,6 +71,9 @@ function chime() {
 }
 
 const chip = (on: boolean) => `px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${on ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300' : 'bg-gray-900/60 border-gray-700 text-gray-400 hover:text-white'}`;
+/** Where viewer links point: the admin's user page, or the mod panel's for mods. */
+const PanelBase = createContext('/admin');
+
 const toggle = <T,>(list: T[], v: T): T[] => (list.includes(v) ? list.filter(x => x !== v) : [...list, v]);
 
 export function ActivityFeed({
@@ -78,11 +81,14 @@ export function ActivityFeed({
   initialSeq,
   initialAvatars,
   cards,
+  mod = false,
 }: {
   initialEvents: ActivityEvent[];
   initialSeq: number;
   initialAvatars: Record<string, string>;
   cards: CardInfo[];
+  /** The mod panel's read-only version: no gifting, granting or removing, and viewer links go to the mod panel. */
+  mod?: boolean;
 }) {
   const [events, setEvents] = useState(initialEvents);
   const [avatars, setAvatars] = useState(initialAvatars);
@@ -236,6 +242,7 @@ export function ActivityFeed({
   const filterRare = () => setPrefs(p => ({ ...p, categories: ['pulls'], variants: ['full', 'shiny'], stars: [] }));
 
   return (
+    <PanelBase.Provider value={mod ? '/mod' : '/admin'}>
     <div className="space-y-4">
       <SummaryStrip rates={rates} onFilterRare={filterRare} />
 
@@ -383,9 +390,11 @@ export function ActivityFeed({
           cardName={cardName}
           onClose={() => setOpen(null)}
           onFilterViewer={setViewer}
+          mod={mod}
         />
       )}
     </div>
+    </PanelBase.Provider>
   );
 }
 
@@ -434,8 +443,9 @@ function StatusPill({ status }: { status: Status }) {
 }
 
 function UserLink({ username }: { username: string }) {
+  const base = useContext(PanelBase);
   return (
-    <Link href={`/admin/users/${encodeURIComponent(username)}`} onClick={e => e.stopPropagation()} className="font-bold text-white hover:text-yellow-300 transition-colors">
+    <Link href={`${base}/users/${encodeURIComponent(username)}`} onClick={e => e.stopPropagation()} className="font-bold text-white hover:text-yellow-300 transition-colors">
       {username}
     </Link>
   );
@@ -595,6 +605,9 @@ function EventRow({
       body = <><UserLink username={e.username} />&apos;s collection was shown on stream</>;
       break;
   }
+
+  // Admin-side events name the staff member who did them ("by admin" becomes "by sam").
+  if (e.staff) sub = sub === 'by admin' || sub === null ? <span className="text-yellow-300/80">by {e.staff}</span> : <>{sub} <span className="text-yellow-300/80">· by {e.staff}</span></>;
 
   return (
     <div

@@ -1,6 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
+import { requireStaff } from '@/lib/staff-guard';
 import { recordAudit } from '@/lib/audit';
 import { recordActivity } from '@/lib/activity';
 import { addCollectionEntry, ensureUserProfile, getActiveSeasonWithPacks, getUserProfile, saveUserProfile } from '@/lib/kv';
@@ -14,18 +15,20 @@ export interface UserActionResult { ok: boolean; message: string }
 
 const revalidate = (username?: string) => {
   revalidatePath('/admin/users');
-  if (username) revalidatePath(`/admin/users/${username.toLowerCase()}`);
+  revalidatePath('/mod/users');
+  if (username) { revalidatePath(`/admin/users/${username.toLowerCase()}`); revalidatePath(`/mod/users/${username.toLowerCase()}`); }
 };
 
+// Mods may use the three moderation actions (tags, restrictions, cancelling an offer); everything else here is admin only.
 export async function saveTagsAction(username: string, tags: string[]): Promise<string[]> {
-  await requireAdmin();
+  await requireStaff('mod');
   const clean = await saveTags(username, tags);
   revalidate(username);
   return clean;
 }
 
 export async function saveFlagsAction(username: string, flags: { noTrading: boolean; hideFromBoard: boolean; reason: string }): Promise<UserActionResult> {
-  await requireAdmin();
+  await requireStaff('mod');
   await saveFlags(username, flags);
   revalidate(username);
   revalidatePath('/leaderboard', 'layout');
@@ -84,10 +87,11 @@ export async function mergeUserAction(from: string, into: string): Promise<UserA
 
 /** Admin-cancels one of a viewer's open trade offers (the escrowed cards go back to their owner). */
 export async function cancelUserTradeAction(username: string, tradeId: string): Promise<UserActionResult> {
-  await requireAdmin();
-  const res = await cancelTrade(tradeId, 'admin', { admin: true, reason: 'Cancelled by an admin' });
+  await requireStaff('mod');
+  const res = await cancelTrade(tradeId, 'admin', { admin: true, reason: 'Cancelled by staff' });
   revalidate(username);
   revalidatePath('/admin/trades');
+  revalidatePath('/mod/trades');
   return res.ok ? { ok: true, message: 'Offer cancelled and the cards returned.' } : { ok: false, message: res.error };
 }
 

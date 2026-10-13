@@ -9,6 +9,8 @@ export interface EnvCheck extends EnvSpec { set: boolean; weak: boolean }
 
 export const ENV_SPECS: EnvSpec[] = [
   { name: 'ADMIN_SECRET', group: 'Admin', level: 'required', unlocks: 'The admin panel itself: with it unset nobody can log in.', minLength: 12 },
+  { name: 'ADMIN_PASSWORD_LOGIN', group: 'Admin', level: 'optional', unlocks: 'Set to off to switch off the emergency admin password login once staff sign in with Twitch. Left unset, the password still works as a break-glass full-admin login.' },
+  { name: 'SUPER_ADMIN_TWITCH_IDS', group: 'Admin', level: 'optional', unlocks: 'Extra super admins, as comma-separated numeric Twitch account IDs. joshmiles is always a super admin (fixed in the code).' },
   { name: 'ADMIN_PASSWORD', group: 'Admin', level: 'required', unlocks: 'The password you type on the admin login page.', minLength: 8 },
   { name: 'KV_REST_API_URL', group: 'Database', level: 'required', unlocks: 'All game data: seasons, packs, cards, collections.' },
   { name: 'KV_REST_API_TOKEN', group: 'Database', level: 'required', unlocks: 'Read and write access to that database.' },

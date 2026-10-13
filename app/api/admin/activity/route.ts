@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAuthenticated } from '@/lib/auth';
+import { hasStaffCapability } from '@/lib/staff-guard';
 import { getActivity } from '@/lib/activity';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 
@@ -7,9 +7,9 @@ export const dynamic = 'force-dynamic';
 
 // Polled by the live activity page: GET /api/admin/activity?after=<seq>
 // Returns events newer than `seq` (newest first), the current seq, and avatars for those users.
-// When nothing is new this is a single KV read. (/api/admin/* isn't covered by the /admin middleware.)
+// When nothing is new this is a single KV read. (/api/admin/* isn't covered by the panel middleware, so this checks for itself; mods may read it.)
 export async function GET(req: NextRequest) {
-  if (!(await isAuthenticated())) {
+  if (!(await hasStaffCapability('mod'))) { // mods watch the feed too
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

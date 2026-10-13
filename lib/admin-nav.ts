@@ -33,6 +33,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     { href: '/admin/serials', label: 'Serials', icon: 'cheese', key: 'n', keywords: ['copies', 'numbers', 'serial', 'history', 'holders'] },
   ] },
   { title: 'System', items: [
+    { href: '/admin/staff', label: 'Staff', icon: 'shield', key: 'f', keywords: ['admins', 'mods', 'moderators', 'roles', 'permissions', 'team'] },
     { href: '/admin/sandbox', label: 'Sandbox', icon: 'flask', key: 'b', keywords: ['test', 'testing'] },
     { href: '/admin/settings', label: 'Settings', icon: 'settings', key: 'c', keywords: ['scoring', 'webhooks', 'discord', 'environment', 'twitch', 'config'] },
   ] },
