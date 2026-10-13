@@ -25,7 +25,35 @@ the current requirements when you upload, so check them there and tell me if any
 The icon is the mascot with a cheese-wedge badge, the same artwork as the website's home-screen icon. No Twitch logo, Glitch or Twitch
 emotes are used anywhere in the assets (Twitch's branding rules).
 
-## 2. Form fields
+## 2. The version assets zip (Asset Hosting)
+
+Twitch hosts the extension's front end itself: you upload a zip under the extension version's **Asset Hosting**, and the files are then served from Twitch's domain (`https://<client id>.ext-twitch.tv`) under a strict Content Security Policy. Build the zip with:
+
+```bash
+node scripts/build-twitch-package.mjs        # twitch-extension/dist/cheesy-tcg-panel-v<version>.zip
+```
+
+It is generated (and gitignored), so rebuild it whenever the panel changes. What goes in it (all at the root of the zip, 8 files, about 40 KB):
+
+| File | What it is |
+|------|------------|
+| `panel.html`, `mobile.html`, `video_component.html` | The three views |
+| `config.js` | Holds the site address (`https://cheesytcg.app`): the API and the card art live there |
+| `panel.js`, `trades.js` | The panel's code |
+| `panel.css`, `views.css` | Styles |
+
+How it differs from what the site serves at `/twitch-panel/`:
+
+- No site analytics script and no fake Twitch helper (Twitch only allows its own helper script and the files in the zip).
+- No inline scripts or inline event handlers (Twitch's CSP blocks them), everything referenced by a relative path.
+- `config.js` points at the site, so every API call and card image goes to `https://cheesytcg.app` (cross-origin). The site answers those calls with CORS headers, but only for Twitch's extension domain (`middleware.ts`), so **this change must be deployed to production before the hosted version can load any data**.
+- The Terms and Privacy links are absolute.
+
+The build refuses to produce a zip that breaks these rules, and `npx tsx scripts/check-twitch-package.mts` covers them (it also proves the zip reads back correctly and that the CORS answers are right).
+
+**Using it:** upload the zip in the Developer Console (extension version, Asset Hosting), set the viewer paths to the file names `panel.html`, `mobile.html` and `video_component.html` (just the names, not URLs), and move the version to **Hosted Test** to try it on your channel. Make sure the allowlists in section 3 are filled in, because they only take effect on Twitch's servers and the hosted version cannot reach the API without them. Twitch caches hosted files, so after uploading a new zip give it a minute and hard-refresh.
+
+## 3. Form fields
 
 **Official extension name** (40 characters max, can't contain "extension" or "twitch")
 
@@ -66,11 +94,11 @@ A fan-made game for this channel, not affiliated with Twitch. Cards are virtual,
 
 **Views (viewer paths)**
 
-| View | Path |
-|------|------|
-| Panel | `https://cheesytcg.app/twitch-panel/panel.html` |
-| Mobile | `https://cheesytcg.app/twitch-panel/mobile.html` |
-| Video - Component | `https://cheesytcg.app/twitch-panel/video_component.html` |
+| View | Hosted version (the zip) | Testing Base URI (served by the site) |
+|------|--------------------------|---------------------------------------|
+| Panel | `panel.html` | `https://cheesytcg.app/twitch-panel/panel.html` |
+| Mobile | `mobile.html` | `https://cheesytcg.app/twitch-panel/mobile.html` |
+| Video - Component | `video_component.html` | `https://cheesytcg.app/twitch-panel/video_component.html` |
 
 Turn on the Mobile and Video - Component views on the Capabilities page before entering their paths.
 
@@ -112,18 +140,19 @@ the Extension JWT in the Authorization header and the server verifies it with th
 A fresh account has no cards because cards are pulled live on stream. A test account with cards is set up for review (see below), so every screen has content.
 ```
 
-## 3. Before you submit
+## 4. Before you submit
 
 - [ ] Production is deployed with the current `main` (the panel files are served from `https://cheesytcg.app`; Twitch caches the old JS for a short while after a deploy).
 - [ ] `TWITCH_EXTENSION_SECRET` is set in Vercel (Production), is the extension's base64 secret and was copied after the last rotation.
 - [ ] `LEGAL_OPERATOR_NAME`, `LEGAL_CONTACT_EMAIL` and `LEGAL_GOVERNING_LAW` are set in Vercel so the Privacy Policy and Terms name a real operator and a way to get in touch (Settings, Environment shows what is set). Redeploy after changing them.
 - [ ] Give the review account some cards so every screen has content: Admin, Users, the reviewer's Twitch name, Grant. If you don't know the reviewer's name, put a test Twitch account's login in the testing instructions and grant that account cards instead.
+- [ ] The CORS change (`middleware.ts`) is deployed to production, then build the zip, upload it under Asset Hosting and try the version in **Hosted Test** on your channel (log in, open a card, check the images load).
 - [ ] Upload the icon, the discovery image and the five screenshots from this folder, and paste the text above.
 - [ ] Check the Capabilities page: panel view on, Mobile and Video - Component enabled if you filled their paths, Request identity link on.
 - [ ] Open the three viewer paths in a normal browser tab. They should load (blank or a login prompt outside Twitch is fine; an error page is not).
 - [ ] The Terms and Privacy Policy mention the extension (they do, see `app/terms` and `app/privacy`).
 
-## 4. Making the assets again
+## 5. Making the assets again
 
 The icon and discovery image are generated:
 

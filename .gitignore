@@ -19,3 +19,6 @@ next-env.d.ts
 # os / editor
 .DS_Store
 Thumbs.db
+
+# Generated Twitch extension package (node scripts/build-twitch-package.mjs)
+/twitch-extension/dist/

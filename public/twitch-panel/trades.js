@@ -47,7 +47,7 @@ async function loadTrades(force) {
   if (!auth || !auth.token || !currentUsername) return;
   if (!force && tradesData && Date.now() - tradesLoadedAt < 30000) { renderTrades(); return; }
   try {
-    const res = await fetch('/api/twitch/trades', { headers: { Authorization: 'Bearer ' + auth.token } });
+    const res = await fetch(api('/api/twitch/trades'), { headers: { Authorization: 'Bearer ' + auth.token } });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) { tradesError = body.error || 'Could not load trades (' + res.status + ')'; }
     else { tradesData = body; tradesError = ''; tradesLoadedAt = Date.now(); }
@@ -59,7 +59,7 @@ async function loadTrades(force) {
 
 async function tradeRequest(payload) {
   try {
-    const res = await fetch('/api/twitch/trades', {
+    const res = await fetch(api('/api/twitch/trades'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + auth.token },
       body: JSON.stringify(payload),

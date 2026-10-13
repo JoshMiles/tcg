@@ -1,5 +1,23 @@
 'use strict';
 
+// ── Where the site lives ─────────────────────────────────
+// window.TCG_SITE (config.js) is '' when this panel is served by the site itself (local testing, or Twitch's Testing Base URI pointing at it):
+// the API and card art are then on the same origin. In the hosted package Twitch serves these files from its own domain, so config.js
+// holds the site's address and every API call and card image goes there (the site allows it with CORS, see middleware.ts).
+const SITE = String(window.TCG_SITE || '').replace(/\/$/, '');
+const api = path => SITE + path;
+const absUrl = u => (SITE && typeof u === 'string' && u.charAt(0) === '/' && u.charAt(1) !== '/' ? SITE + u : u);
+/** Makes the card art URLs in an API response absolute (they come back as /assets/... paths). */
+function absolutizeUrls(o) {
+  if (!SITE || !o || typeof o !== 'object') return o;
+  for (const k of Object.keys(o)) {
+    const v = o[k];
+    if (typeof v === 'string') { if (/(image|thumb)url$/i.test(k)) o[k] = absUrl(v); }
+    else if (v && typeof v === 'object') absolutizeUrls(v);
+  }
+  return o;
+}
+
 // ── Rarity colours matching the admin panel ──────────────
 const RARITY_COLOR = { 1: '#6b7280', 2: '#22c55e', 3: '#3b82f6', 4: '#a855f7', 5: '#f59e0b' };
 // Keep in sync with lib/rarity.ts
@@ -572,7 +590,7 @@ function renderDetail() {
     const chips = el('div', 'serial-chips');
     serials.slice(0, 12).forEach(n => {
       const a = el('a', 'serial-chip' + (serialMult(n) > 1 ? ' bonus' : ''));
-      a.href = new URL('/copy/' + encodeURIComponent(season.seasonId) + '/' + card.number + '.' + VARIANTS.indexOf(shown) + '.' + n, window.location.origin).href;
+      a.href = new URL('/copy/' + encodeURIComponent(season.seasonId) + '/' + card.number + '.' + VARIANTS.indexOf(shown) + '.' + n, (SITE || window.location.origin)).href;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       const m = serialMult(n);
@@ -710,7 +728,7 @@ async function upgrade(card, from, btn) {
   btn.disabled = true;
   btn.textContent = '\u2026';
   try {
-    const res = await fetch('/api/twitch/upgrade', {
+    const res = await fetch(api('/api/twitch/upgrade'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
       body: JSON.stringify({ seasonId: season.seasonId, cardNumber: card.number, from }),
@@ -758,7 +776,7 @@ function setView(view) {
   if (view === 'leaderboard') loadLeaderboard();
 }
 
-const siteUrl = path => new URL(path, window.location.origin).href;
+const siteUrl = path => new URL(path, (SITE || window.location.origin)).href;
 
 // A rank badge: coloured discs for the podium, plain #N after that.
 function rankBadge(rank) {
@@ -799,7 +817,7 @@ async function loadLeaderboard() {
   try {
     const q = new URLSearchParams({ seasonId: season.seasonId });
     if (currentUsername) q.set('username', currentUsername.toLowerCase());
-    const res = await fetch('/api/twitch/leaderboard?' + q);
+    const res = await fetch(api('/api/twitch/leaderboard?' + q));
     if (!res.ok) throw new Error('bad status');
     const data = await res.json();
     leaderboardLoadedAt = Date.now();
@@ -1000,7 +1018,7 @@ function renderStats() {
 async function loadMe(fresh) {
   if (!auth || !auth.token || !currentUsername) return;
   try {
-    const res = await fetch('/api/twitch/me' + (fresh ? '?fresh=1' : ''), { headers: { Authorization: 'Bearer ' + auth.token } });
+    const res = await fetch(api('/api/twitch/me' + (fresh ? '?fresh=1' : '')), { headers: { Authorization: 'Bearer ' + auth.token } });
     if (!res.ok) return;
     me = await res.json();
   } catch {
@@ -1020,7 +1038,7 @@ document.querySelectorAll('#view-tabs .view-tab').forEach(b => b.addEventListene
 // Returns whether it worked; on a failure the cards already on screen are kept (an empty grid would look like "you own nothing").
 async function loadUserCollection(username) {
   try {
-    const res = await fetch(`/api/twitch/collection?username=${encodeURIComponent(username)}`);
+    const res = await fetch(api(`/api/twitch/collection?username=${encodeURIComponent(username)}`));
     if (!res.ok) return false;
     const data = await res.json();
     collections = data.collections ?? [];
@@ -1117,7 +1135,7 @@ async function linkAndLogin(username) {
   // Persist the opaque ID → username mapping so next visit auto-logs in
   if (auth?.token) {
     try {
-      await fetch('/api/twitch/link', {
+      await fetch(api('/api/twitch/link'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1155,14 +1173,14 @@ async function login(username) {
   const footerName = document.getElementById('footer-username');
   if (footerName) {
     footerName.textContent = username;
-    footerName.href = new URL('/u/' + encodeURIComponent(username.toLowerCase()), window.location.origin).href;
+    footerName.href = new URL('/u/' + encodeURIComponent(username.toLowerCase()), (SITE || window.location.origin)).href;
   }
 }
 
 async function tryAutoLogin() {
   if (!auth?.userId) return false;
   try {
-    const res = await fetch(`/api/twitch/user?opaqueId=${encodeURIComponent(auth.userId)}`);
+    const res = await fetch(api(`/api/twitch/user?opaqueId=${encodeURIComponent(auth.userId)}`));
     const { username } = await res.json();
     if (username) {
       await login(username);
@@ -1183,7 +1201,7 @@ async function tryAutoLogin() {
 async function loginFromJwt() {
   if (!auth?.token) return { ok: false, status: 0, message: 'No Twitch token available' };
   try {
-    const res = await fetch('/api/twitch/login', {
+    const res = await fetch(api('/api/twitch/login'), {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + auth.token },
     });
@@ -1213,12 +1231,12 @@ function loginFailureMessage(result) {
 // ── Season load ───────────────────────────────────────────
 async function loadSeason() {
   try {
-    const res = await fetch('/api/twitch/season');
+    const res = await fetch(api('/api/twitch/season'));
     if (!res.ok) {
       showState('noSeason');
       return false;
     }
-    season = await res.json();
+    season = absolutizeUrls(await res.json());
     return true;
   } catch {
     showState('noSeason');
@@ -1336,7 +1354,7 @@ async function showVersion() {
   const el = document.getElementById('panel-version');
   if (!el) return;
   try {
-    const res = await fetch('/api/version', { cache: 'no-store' });
+    const res = await fetch(api('/api/version'), { cache: 'no-store' });
     if (!res.ok) return;
     const v = await res.json();
     el.textContent = 'v' + v.version + ' · ' + v.commit + (v.env && v.env !== 'production' ? ' · ' + v.env : '');
@@ -1401,7 +1419,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
 
   // Delete the server-side opaque→username mapping
   if (auth?.token) {
-    fetch('/api/twitch/unlink', {
+    fetch(api('/api/twitch/unlink'), {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + auth.token },
     }).catch(() => {});
