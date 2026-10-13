@@ -84,5 +84,5 @@ export const kv: Kv = new Proxy(prodKv, {
   },
 }) as Kv;
 
-/** The raw production client. Only the sandbox manager (lib/sandbox.ts) should use this: it clones into and wipes namespaces. */
+/** The raw production client. Only the sandbox manager (lib/sandbox.ts) and the staff list (lib/staff.ts, real account data that must not change with the sandbox) should use this. */
 export { prodKv };

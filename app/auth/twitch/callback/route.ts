@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { OAUTH_COOKIE, SESSION_COOKIE, loginConfigured, sessionCookieOptions, signSession } from '@/lib/session';
 import { profileFromCode, safeReturnTo } from '@/lib/twitch-oauth';
 import { ensureUserProfile, saveUserProfile, getUserProfile } from '@/lib/kv';
+import { STAFF_COOKIE } from '@/lib/staff-token';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,5 +56,7 @@ export async function GET(req: NextRequest) {
   const res = NextResponse.redirect(new URL(safeReturnTo(expected.returnTo), req.url));
   res.cookies.delete(OAUTH_COOKIE);
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
+  // A staff cookie belongs to whoever was signed in before; a fresh Twitch sign-in must earn its own (via /auth/staff).
+  res.cookies.delete(STAFF_COOKIE);
   return res;
 }

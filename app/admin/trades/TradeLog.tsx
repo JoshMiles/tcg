@@ -33,7 +33,7 @@ function left(expiresAt: number, now: number): string {
   return m < 2880 ? `${Math.floor(m / 60)}h left` : `${Math.floor(m / 1440)}d left`;
 }
 
-export function TradeLog({ rows, seasons, initialFlaggedOnly = false }: { rows: TradeRow[]; seasons: { id: string; name: string }[]; initialFlaggedOnly?: boolean }) {
+export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = false }: { rows: TradeRow[]; seasons: { id: string; name: string }[]; initialFlaggedOnly?: boolean; /** The mod panel's version: no Extend, and viewer links open the mod panel. */ mod?: boolean }) {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<Set<string>>(new Set());
@@ -145,14 +145,14 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false }: { rows: 
 
             <div className="flex flex-wrap gap-2 pt-1">
               {[selected.from, selected.to ?? selected.takenBy].filter((u): u is string => !!u).map(u => (
-                <Link key={u} href={`/admin/users/${encodeURIComponent(u)}`} className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white">Open {u}</Link>
+                <Link key={u} href={`${mod ? '/mod' : '/admin'}/users/${encodeURIComponent(u)}`} className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white">Open {u}</Link>
               ))}
             </div>
             <div className="flex flex-wrap gap-2 border-t border-gray-800 pt-4">
               {selected.open && (
                 <>
                   <button type="button" disabled={pending} onClick={() => run(async () => { const r = await cancelOneTradeAction(selected.id); setOpenId(null); return r; })} className="px-3 py-1.5 rounded-lg border border-red-500/40 text-red-300 text-xs font-semibold hover:bg-red-500/10 disabled:opacity-50">{pending && <Spinner />}Cancel &amp; refund</button>
-                  <button type="button" disabled={pending} onClick={() => run(() => extendOpenTradesAction(24, [selected.id]))} className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">Extend 24h</button>
+                  {!mod && <button type="button" disabled={pending} onClick={() => run(() => extendOpenTradesAction(24, [selected.id]))} className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">Extend 24h</button>}
                 </>
               )}
               <button

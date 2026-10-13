@@ -22,7 +22,7 @@ function walk(dir: string, out: string[] = []): string[] {
 const pages = walk(appDir)
   .map(file => ({ file, route: '/' + relative(appDir, file).split(sep).slice(0, -1).filter(s => !/^\(.*\)$/.test(s)).join('/') }))
   .map(p => ({ ...p, route: p.route === '/' ? '/' : p.route.replace(/\/$/, '') }))
-  .filter(p => !p.route.startsWith('/admin'));
+  .filter(p => !p.route.startsWith('/admin') && !p.route.startsWith('/mod'));
 
 const known = new Set([...seo.INDEXED_PATHS.map(p => p.path), ...seo.NOINDEX_PATHS]);
 const dynamicRoute = (r: string) => r.includes('[');
@@ -30,7 +30,7 @@ for (const p of pages) {
   if (dynamicRoute(p.route)) continue;
   ok(known.has(p.route), `public page ${p.route} is in neither INDEXED_PATHS nor NOINDEX_PATHS (lib/seo.ts)`);
 }
-for (const path of [...seo.INDEXED_PATHS.map(p => p.path), ...seo.NOINDEX_PATHS.filter(p => p !== '/admin')]) {
+for (const path of [...seo.INDEXED_PATHS.map(p => p.path), ...seo.NOINDEX_PATHS.filter(p => p !== '/admin' && p !== '/mod')]) {
   ok(pages.some(p => p.route === path), `lib/seo.ts lists ${path} but there is no such page`);
 }
 

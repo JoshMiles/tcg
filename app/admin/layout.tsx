@@ -9,8 +9,15 @@ import { OverlayStatusProvider } from './components/OverlayStatusContext';
 import { CopyUrlButton } from './components/copy-url-button';
 import { Icon } from '@/app/components/Icon';
 import { SandboxPill } from '@/app/components/SandboxPill';
+import { redirect } from 'next/navigation';
+import { getStaff } from '@/lib/staff-guard';
+import { ROLE_LABELS, roleCan } from '@/lib/staff-core';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  // The middleware already turned strangers away from the cookie alone; this re-checks the live staff list (a removed or demoted
+  // person with an unexpired cookie stops here).
+  const staff = await getStaff();
+  if (!staff || !roleCan(staff.role, 'admin')) redirect(staff ? '/mod' : '/login?error=not-staff');
   return (
     <OverlayStatusProvider>
       <AdminShell
@@ -42,8 +49,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div className="aside-item flex items-center gap-2.5 min-w-0 flex-1">
                 <span className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400/30 to-yellow-600/10 border border-yellow-400/30 text-yellow-200 flex items-center justify-center shrink-0" aria-hidden><Icon name="user" /></span>
                 <div className="aside-label min-w-0 leading-tight">
-                  <p className="text-xs font-bold text-gray-200 truncate">Admin</p>
-                  <p className="text-[10px] text-gray-500 truncate">Signed in</p>
+                  <p className="text-xs font-bold text-gray-200 truncate">{staff.displayName}</p>
+                  <p className="text-[10px] text-gray-500 truncate">{ROLE_LABELS[staff.role]}{staff.via === 'password' ? ' (password)' : ''}</p>
                 </div>
               </div>
               <form action="/api/auth/logout" method="POST" className="aside-label">

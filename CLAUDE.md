@@ -114,7 +114,15 @@ Every copy of a card has an identity: `<card>.<variant index>.<n>` (e.g. `7.3.12
 | `public/twitch-panel/panel.css` | Extension panel styles (Twitch dark theme) |
 | `public/twitch-panel/mobile.html`, `video_component.html`, `views.css` | The Extension's Mobile and Video - Component views: same markup + `panel.js`/`panel.css` as the panel, with a `view-mobile` / `view-video` body class and layout overrides in `views.css`. Keep the three HTML files' markup in sync |
 | `scripts/mock-kv.cjs`, `scripts/seed-dev.mts` | Dev-only fake KV server + Season 1 seeder (see Testing locally); `scripts/optimize-cards.mjs` converts card GIFs |
-| `middleware.ts` | Auth gate. Only covers `/admin/*`. The public site (`/u/*`, `/collection`) is open |
+| `middleware.ts` | First auth gate for `/admin/*` and `/mod/*` (reads the signed staff cookie; the real check is `lib/staff-guard.ts`, see "Staff"). The public site (`/u/*`, `/collection`) is open |
+
+## Staff: admin and mod panels (Twitch login)
+Staff sign in with **Log in with Twitch** (the same OAuth as viewers) and get a role from the staff list. **Roles** (`lib/staff-core.ts`, pure and edge-safe): `super` (the owner, hard-coded by Twitch ID in `SUPER_ADMINS` plus any IDs in `SUPER_ADMIN_TWITCH_IDS`; matched by ID, never by name; can't be removed or changed), `admin` (whole admin panel; can add / change / remove mods) and `mod` (the `/mod` panel only). Only the super admin can add or remove admins (`canManage`, `roleCan`). The staff list is the KV hash `staff:members` (login -> `StaffRecord`) with a capped log `staff:log`, stored with `prodKv` so it is the same inside a sandbox (`lib/staff.ts`: `addStaff` / `setStaffRole` / `removeStaff` / `touchStaffLogin`, all enforcing the rules and logging who did it). A record is bound to the account's Twitch ID the first time they sign in (or from their viewer profile when added) and then only that ID matches, so a renamed or re-claimed login can't inherit access.
+- **Sign-in flow**: login page (`/login`) -> `/auth/twitch?returnTo=/admin` -> middleware sees a viewer session but no staff cookie -> `/auth/staff` (`app/auth/staff/route.ts`) looks the account up and issues the one-hour signed `tcg_staff` cookie (`lib/staff-token.ts`, Web Crypto HMAC with `SESSION_SECRET`, edge-safe) -> the panel. The same route silently renews the cookie hourly while the role stays valid, and turns a removed person away (`/login?error=not-staff`). A fresh Twitch sign-in and website logout clear the staff cookie.
+- **Enforcement (defence in depth)**: `middleware.ts` (matcher `/admin`, `/mod`) reads only the signed cookies and sends admins/super to either panel, mods to `/mod` only, strangers to `/login`. The authoritative check is `getStaff()` / `requireStaff(cap)` in `lib/staff-guard.ts`, which re-reads the live staff list: both panel layouts, every server action (`requireAdmin()` = `requireStaff('admin')`) and every `/api/admin/*` route (`isAuthenticated()` / `hasStaffCapability`) call it, so removing someone stops their changes at once and their page views within the hour. Mods may use only: `saveTagsAction`, `saveFlagsAction`, `cancelUserTradeAction` (`app/admin/users-actions.ts`), `cancelOneTradeAction`, `blockViewerTradingAction` (`app/admin/trade-actions.ts`) and read `/api/admin/activity`; those call `requireStaff('mod')`. **A new admin action must call `requireAdmin()`; give it `requireStaff('mod')` only if mods should be able to use it.**
+- **Emergency password**: the old `ADMIN_PASSWORD` login still works as a break-glass super admin (shown as "(password)") unless `ADMIN_PASSWORD_LOGIN=off` (`isPasswordLoginEnabled` in `lib/admin-token.ts`; the middleware and `getStaff` both honour it).
+- **Staff page** (`/admin/staff`, nav key `f`; `app/admin/staff/` + `staff-actions.ts`): the fixed super admin(s), a table to add by Twitch name (autocompletes viewers), change role and remove, and the change log. The audit trail (`recordAudit`) now records who (`by`) made each change, shown on a viewer's audit panels.
+- **Mod panel** (`/mod`, `app/mod/`): its own slim layout (`ModNav`), Overview, **Activity** (the admin `ActivityFeed` with `mod` = read-only: no gift / grant / remove, viewer links go to `/mod/users/...`), **Viewers** (search, restricted-only filter, a viewer page with restrictions, tags, trades with cancel and refund, recent activity and the staff audit; reuses `ModerationPanel` / `TagsEditor` / `TradesPanel` from `app/admin/users/[username]/UserPanels.tsx`) and **Trades** (the admin `TradeLog` with `mod` = no Extend; data from the shared `loadTradeAdminData()` in `lib/trade-admin-data.ts`, which the admin Trades page uses too). `/mod` is noindex and disallowed in robots. `scripts/check-staff.mts` (mock KV) covers roles, the ID binding, the signed cookie and the staff list rules.
 
 ## Admin routes
 - `/admin`. The **widget dashboard** (see "Admin dashboard (widgets)"): stats, quick actions, top collectors, leaderboard, rarity mix, packs, card ownership, recent activity, trading, overlay status, activity pulse, variant mix, most valuable cards, cards nobody owns, stream status, shortcuts and notes, arranged by the admin
@@ -227,7 +235,7 @@ The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMin
 - `revalidatePath` after every mutation in server actions
 - Server actions use `.bind(null, fixedArg)` to pre-fill arguments before passing to `<form action={}>`
 - Image uploads go through `ImageUploadField` component → Vercel Blob
-- Auth: `ADMIN_SECRET` env var checked against `admin-auth` cookie in middleware
+- Auth: staff sign in with Twitch and have a role (super / admin / mod), see "Staff: admin and mod panels". `requireAdmin()` guards every admin server action; the old `ADMIN_SECRET` cookie is only the emergency password login
 - **Wizards, not modals, for multi-step creation.** Packs and seasons are created in full-page flows (`PackFlow`, `SeasonFlow`). See *Drafts & wizards*. Dialogs remain for small one-shot forms (add one card).
 - **Modal pattern**: pages stay as server components; a thin client wrapper component (e.g. `NewPackButton`) owns only the open/close boolean and renders the dialog. The dialog itself uses `<form action={serverAction}>`, redirects still work correctly.
 - **NEVER add `onClick` or other event handlers to JSX in server components**, Next.js will throw at runtime even if the element is inside a client component's children prop. This applies to `<a>`, `<button>`, or any element rendered directly in a server component file.
@@ -307,8 +315,10 @@ Files live in `public/twitch-panel/`, served as static files from Vercel.
 ## Environment variables
 | Variable | Purpose |
 |----------|---------|
-| `ADMIN_SECRET` | Admin panel auth cookie value (admin is locked out if unset) |
-| `ADMIN_PASSWORD` | Password checked by `/api/auth/login` |
+| `ADMIN_SECRET` | The emergency password login's cookie value (the password login does not work if unset). Staff sign-in uses `SESSION_SECRET` instead |
+| `ADMIN_PASSWORD` | Password checked by `/api/auth/login` (the emergency login) |
+| `ADMIN_PASSWORD_LOGIN` | Optional. `off` switches the emergency password login off |
+| `SUPER_ADMIN_TWITCH_IDS` | Optional. Extra super admins (comma-separated numeric Twitch IDs); joshmiles is hard-coded |
 | `KV_URL`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN` | Vercel KV credentials |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob credentials |
 | `TWITCH_EXTENSION_SECRET` | Base64 Extension Secret for JWT verification |

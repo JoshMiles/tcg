@@ -20,7 +20,7 @@ export const INDEXED_PATHS: { path: string; priority: number; changeFrequency: '
 ];
 
 /** Pages that exist but must stay out of search (signed-in, admin, utility). Anything not here or in INDEXED_PATHS fails the check. */
-export const NOINDEX_PATHS = ['/account', '/settings', '/trade', '/trade/new', '/auth/error', '/login', '/admin', '/offline'];
+export const NOINDEX_PATHS = ['/account', '/settings', '/trade', '/trade/new', '/auth/error', '/login', '/admin', '/mod', '/offline'];
 
 export interface SitemapEntry { url: string; lastModified?: Date; changeFrequency: 'hourly' | 'daily' | 'weekly' | 'monthly'; priority: number }
 
@@ -35,6 +35,6 @@ export function buildSitemap(base: string, seasons: { id: string; status?: strin
 }
 
 /** What crawlers may not visit. */
-export const DISALLOWED_PATHS = ['/admin', '/api/', '/auth/', '/login', '/account', '/trade', '/overlay.html', '/twitch-panel/'];
+export const DISALLOWED_PATHS = ['/admin', '/mod', '/api/', '/auth/', '/login', '/account', '/trade', '/overlay.html', '/twitch-panel/'];
 
 export const siteUrl = SITE_URL;
