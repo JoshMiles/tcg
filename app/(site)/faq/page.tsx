@@ -278,7 +278,7 @@ export default async function FaqPage() {
           They are different from <em>awards</em>, which are the prizes given for finishing high on a season&rsquo;s leaderboard.
         </Q>
         <Q q="Can I share my cards as an image?">
-          Yes: <em>Share my cards</em> on your profile, <em>Share my stats</em> on My Stats and <em>Share this card</em> on a card or copy page make a picture you can post or download.
+          Yes: the <em>Share</em> menu on a profile (and the <em>Share</em> tab on your own), <em>Share my stats</em> on My Stats and <em>Share this card</em> on a card or copy page make a picture you can post or download.
         </Q>
         <Q q="Can I hide my profile?">
           In Settings, <em>Private profile</em> leaves you off the leaderboard, card owner lists and recent pulls and hides your activity. Your page still opens for anyone who has the link, and your cards still appear on stream when
@@ -293,9 +293,9 @@ export default async function FaqPage() {
       <Section id="show" title="Showing off your cards" icon="image">
         <Q q="How do I show off my cards?" open>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
-            <li><strong className="text-white">Share my cards</strong> on your profile makes a picture of your best cards, with their version and serial number, plus your rank and progress.</li>
+            <li><strong className="text-white">Share</strong> on a profile has the link and a quick picture of that collector's best cards, with their version and serial number, plus rank and progress. On your own profile, the <strong className="text-white">Share</strong> tab lets you choose a theme, a post or story shape, a stats poster, and exactly which cards go in.</li>
             <li><strong className="text-white">Share my stats</strong> on My Stats makes a picture of your score and top cards.</li>
-            <li><strong className="text-white">Share this card</strong> on a card in the Card Dex, or on a copy&rsquo;s own page, makes a picture of that one card. On a copy&rsquo;s page it carries its serial number.</li>
+            <li><strong className="text-white">Share this card</strong> on a card in the Card Dex, or on a copy&rsquo;s own page, makes a picture of that one card. On a copy&rsquo;s page you can pick a theme and shape, and the picture carries a slim engraved plate with its unique number and a QR code.</li>
             <li>The <strong className="text-white">Share</strong> button on your profile copies its link, so anyone can open it.</li>
           </ul>
         </Q>

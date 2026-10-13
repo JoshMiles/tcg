@@ -8,12 +8,13 @@ import { getOwnerCopies } from '@/lib/serials';
 import { sweepTrades } from '@/lib/trades';
 import { getUserProfile } from '@/lib/kv';
 import { SITE_URL } from '@/lib/site';
-import { buildGridCards, buildShareSpec, loadProfileBase } from '@/lib/profile-data';
+import { buildBigStats, buildGridCards, buildShareBase, buildShareCandidates, buildShareSpec, loadProfileBase } from '@/lib/profile-data';
 import { PROFILE_TABS, pickProfileTab, profileHref } from '@/lib/profile-url';
 import { SiteMessage } from '@/app/components/site/SiteMessage';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileTabBar } from './ProfileTabBar';
 import { OverviewTab } from './OverviewTab';
+import { ShareTab } from './ShareTab';
 import { ActivityTab, CollectionTab, StatsTab, TradesTab } from './ProfileTabs';
 
 export const dynamic = 'force-dynamic';
@@ -36,9 +37,9 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
 export default async function ProfilePage({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ tab?: string }> }) {
   const [{ username }, { tab: tabParam }] = await Promise.all([params, searchParams]);
   const lower = decodeURIComponent(username).toLowerCase();
-  const tab = pickProfileTab(tabParam);
   const session = await getSession();
   const isOwner = session?.username === lower;
+  const tab = pickProfileTab(tabParam, isOwner);
   await sweepTrades(); // hand back copies from offers that have run out of time
 
   const b = await loadProfileBase(lower, isOwner);
@@ -57,17 +58,19 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   const prefs = session ? await getUserSettings(session.username) : undefined;
   // For "Compare with me": the signed-in viewer's copies per card (the season's collection is already loaded).
   const mine = session && !isOwner && (tab === 'collection' || tab === 'overview') ? Object.fromEntries(countPulls(b.collection[session.username] ?? [])) : undefined;
+  const SITE_SHORT = SITE_URL.replace(/^https?:\/\//, '');
   const copies = await getOwnerCopies(b.season.collectionName, lower);
   const grid = tab === 'collection' ? await buildGridCards(b, copies) : [];
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      <ProfileHeader b={b} isOwner={isOwner} signedIn={!!session} shareSpec={buildShareSpec(b, copies, SITE_URL.replace(/^https?:\/\//, ''))} />
-      <ProfileTabBar username={lower} active={tab} />
+      <ProfileHeader b={b} isOwner={isOwner} signedIn={!!session} shareSpec={buildShareSpec(b, copies, SITE_SHORT)} />
+      <ProfileTabBar username={lower} active={tab} isOwner={isOwner} />
       {tab === 'overview' && <OverviewTab b={b} copies={copies} isOwner={isOwner} viewer={session?.username} mine={mine} />}
       {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}
       {tab === 'stats' && <StatsTab b={b} />}
       {tab === 'trades' && <TradesTab b={b} viewer={session?.username} />}
       {tab === 'activity' && <ActivityTab b={b} />}
+      {tab === 'share' && isOwner && <ShareTab base={buildShareBase(b, SITE_SHORT)} candidates={buildShareCandidates(b, copies, 18)} bigStats={buildBigStats(b)} link={`${SITE_URL}${profileHref(lower)}`} username={lower} />}
       <p className="text-center text-xs text-gray-600 pt-2">
         Pull cards live on stream · <Link href="/collection" className="hover:text-gray-400"><Icon name="search" className="mr-1" />find another collector</Link>
       </p>
