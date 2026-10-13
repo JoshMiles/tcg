@@ -2,6 +2,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { AUTH_COOKIE, isPasswordLoginEnabled, isValidAdminToken } from './admin-token';
 import { getStaffRecord } from './staff';
+import type { Session } from './session';
 import { roleCan, resolveRole, type Capability, type StaffRole } from './staff-core';
 import { STAFF_COOKIE, verifyStaffToken } from './staff-token';
 
@@ -33,6 +34,20 @@ export const getStaff = cache(async (): Promise<StaffContext | null> => {
     return { login: 'password', displayName: 'Admin (password)', role: 'super', via: 'password' };
   }
   return null;
+});
+
+/**
+ * The panel link for the public site's top bar: where this visitor's staff role takes them, or null for everyone else. A signed-in
+ * viewer is looked up in the staff list (so staff see the button without having opened a panel yet; the link then signs them in
+ * through /auth/staff), and a password-only admin is recognised from their cookie. The link is only a convenience: the panels
+ * check access again themselves.
+ */
+export const staffPanelLink = cache(async (session: Session | null): Promise<{ href: string; label: string } | null> => {
+  let role: StaffRole | null = null;
+  if (session && !session.sandbox) role = resolveRole({ login: session.username, twitchId: session.twitchId }, await getStaffRecord(session.username));
+  if (!role) role = (await getStaff())?.role ?? null;
+  if (!role) return null;
+  return roleCan(role, 'admin') ? { href: '/admin', label: 'Admin panel' } : { href: '/mod', label: 'Mod panel' };
 });
 
 /** Throws unless the caller is staff with this capability. Returns who they are, for the audit trail. */

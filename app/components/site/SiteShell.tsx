@@ -8,6 +8,7 @@ import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { getLiveStatus } from '@/lib/twitch-live';
 import { LiveProvider } from './Live';
 import { getSession, loginConfigured } from '@/lib/session';
+import { staffPanelLink } from '@/lib/staff-guard';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { DEFAULT_SETTINGS, hasExperiment } from '@/lib/user-settings';
@@ -45,7 +46,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       <SandboxPill />
       <CookieNotice />
       <CaptchaHost />
-      <SiteNav user={user} loginEnabled={loginConfigured()} rank={rank} />
+      <SiteNav user={user} loginEnabled={loginConfigured()} rank={rank} staff={await staffPanelLink(session).catch(() => null)} />
       <SiteSearch />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>
       <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">
