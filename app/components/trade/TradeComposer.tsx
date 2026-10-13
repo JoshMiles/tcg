@@ -8,6 +8,7 @@ import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
 import type { Variant } from '@/lib/types';
+import { postJson } from '../captcha-client';
 import type { TradeItem } from '@/lib/trade-core';
 import { stackPoints, type TradeCardInfo } from '@/lib/trade-view-core';
 import { fairness } from '@/lib/trade-match';
@@ -121,8 +122,8 @@ export function TradeComposer({
     try {
       const payload = { give, get, note };
       const res = counter
-        ? await fetch(`/api/trades/${initial.counterOf}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'counter', ...payload }) })
-        : await fetch('/api/trades', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, seasonId, to: kind === 'direct' ? to : undefined, ...payload }) });
+        ? await postJson(`/api/trades/${initial.counterOf}`, { action: 'counter', ...payload })
+        : await postJson('/api/trades', { kind, seasonId, to: kind === 'direct' ? to : undefined, ...payload });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || `That didn't work (${res.status})`);
       router.push('/trade');

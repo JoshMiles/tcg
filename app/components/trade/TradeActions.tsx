@@ -4,6 +4,7 @@ import { Spinner } from '../../admin/components/PendingButton';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { postJson } from '../captcha-client';
 import { TradeCeremony } from '../TradeCeremony';
 import type { Swap } from '@/lib/trade-notice-core';
 
@@ -30,7 +31,7 @@ export function TradeActions({
     setBusy(action);
     setError('');
     try {
-      const res = await fetch(`/api/trades/${tradeId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+      const res = await postJson(`/api/trades/${tradeId}`, { action });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || `That didn't work (${res.status})`);
       setDone(action === 'accept' ? 'Trade complete!' : action === 'decline' ? 'Declined' : 'Cancelled');

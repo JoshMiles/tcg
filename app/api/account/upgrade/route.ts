@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason } from '@/lib/kv';
 import { getSession, isSameOrigin } from '@/lib/session';
 import { upgradeCard } from '@/lib/upgrade';
+import { captchaGate } from '@/lib/captcha-server';
 import { VARIANTS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
@@ -15,7 +16,9 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Log in with Twitch first.' }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as { cardNumber?: unknown; from?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { cardNumber?: unknown; from?: unknown; captchaToken?: unknown };
+  const blocked = await captchaGate(req, session.username, body);
+  if (blocked) return blocked;
   const cardNumber = Number(body.cardNumber);
   const from = String(body.from ?? '') as Variant;
   if (!Number.isInteger(cardNumber) || cardNumber < 1 || !VARIANTS.includes(from)) {

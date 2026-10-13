@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { acceptTrade, cancelTrade, counterTrade, declineTrade } from '@/lib/trades';
 import { requireViewer, respond } from '@/lib/trade-api';
 import { buildSwap } from '@/lib/trade-notify';
+import { captchaGate } from '@/lib/captcha-server';
 import { NextResponse as Res } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const { id } = await ctx.params;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const user = viewer.session.username;
+
+  // Taking or countering an offer moves cards, so it needs the check; declining and cancelling only give cards back.
+  if (body.action === 'accept' || body.action === 'counter') {
+    const blocked = await captchaGate(req, user, body);
+    if (blocked) return blocked;
+  }
 
   try {
     switch (body.action) {
