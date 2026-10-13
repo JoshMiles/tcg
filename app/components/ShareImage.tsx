@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { Icon } from './Icon';
 import {
-  SHARE_W, HEADER_H, BIG_STATS_H, cardArea, cardAreaWithPlate, cardAreaWithStats, plateRect, layoutCards, formatHeight, getShareTheme,
-  type ShareSpec, type ShareTheme,
+  SHARE_W, HEADER_H, BIG_STATS_H, cardArea, cardAreaWithPlate, cardAreaWithStats, plateRect, layoutCards, formatHeight, getShareTheme, binderLayout,
+  type BinderShare, type BinderShareSlot, type Rect, type ShareSpec, type ShareTheme,
 } from '@/lib/share-image';
 import { qrModules } from '@/lib/qr';
 
@@ -117,6 +117,179 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
   }
 }
 
+/** A rounded rectangle with a separate radius for each corner [top-left, top-right, bottom-right, bottom-left]. */
+function roundRectR(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: [number, number, number, number]) {
+  const [tl, tr, br, bl] = r;
+  ctx.beginPath();
+  ctx.moveTo(x + tl, y);
+  ctx.lineTo(x + w - tr, y); ctx.arcTo(x + w, y, x + w, y + tr, tr || 0.0001);
+  ctx.lineTo(x + w, y + h - br); ctx.arcTo(x + w, y + h, x + w - br, y + h, br || 0.0001);
+  ctx.lineTo(x + bl, y + h); ctx.arcTo(x, y + h, x, y + h - bl, bl || 0.0001);
+  ctx.lineTo(x, y + tl); ctx.arcTo(x, y, x + tl, y, tl || 0.0001);
+  ctx.closePath();
+}
+
+/** The binder's cover: its colour and material, a dashed stitch line and a soft shadow, like the website's. */
+function drawLeather(ctx: CanvasRenderingContext2D, r: Rect, b: BinderShare) {
+  const c = b.cover;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 18;
+  ctx.fillStyle = c.b; roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.fill();
+  ctx.restore();
+  ctx.save();
+  roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.clip();
+  if (b.material === 'metal') {
+    const g = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h * 0.45);
+    [[0, c.c], [0.22, c.a], [0.38, c.b], [0.56, c.a], [0.78, c.c], [1, c.b]].forEach(([o, col]) => g.addColorStop(o as number, col as string));
+    ctx.fillStyle = g; ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let x = r.x; x < r.x + r.w; x += 3) ctx.fillRect(x, r.y, 1, r.h);
+  } else if (b.material === 'holo') {
+    const g = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h * 0.3);
+    [[0, c.c], [0.17, c.a], [0.34, '#ff7ab8'], [0.5, '#7ad7ff'], [0.66, '#a6ff9a'], [0.83, c.a], [1, c.c]].forEach(([o, col]) => g.addColorStop(o as number, col as string));
+    ctx.fillStyle = g; ctx.fillRect(r.x, r.y, r.w, r.h);
+  } else {
+    const g = ctx.createRadialGradient(r.x + r.w * 0.2, r.y, 10, r.x + r.w * 0.2, r.y, Math.max(r.w, r.h) * 1.15);
+    g.addColorStop(0, c.a); g.addColorStop(0.55, c.b); g.addColorStop(1, c.c);
+    ctx.fillStyle = g; ctx.fillRect(r.x, r.y, r.w, r.h);
+    if (b.material === 'cloth') {
+      // A woven look: fine crossing diagonals.
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      for (let d = -r.h; d < r.w; d += 5) { ctx.beginPath(); ctx.moveTo(r.x + d, r.y + r.h); ctx.lineTo(r.x + d + r.h, r.y); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      for (let d = 0; d < r.w + r.h; d += 5) { ctx.beginPath(); ctx.moveTo(r.x + d, r.y + r.h); ctx.lineTo(r.x + d - r.h, r.y); ctx.stroke(); }
+    }
+  }
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1.5; roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.stroke();
+  ctx.save();
+  ctx.setLineDash([7, 6]); ctx.strokeStyle = 'rgba(255,214,150,0.35)'; ctx.lineWidth = 1.5;
+  roundRect(ctx, r.x + 6, r.y + 6, r.w - 12, r.h - 12, 13); ctx.stroke();
+  ctx.restore();
+}
+
+/** One pocket: the card in its rarity border (or the binder's look for a card they don't have yet). */
+function drawPocket(ctx: CanvasRenderingContext2D, r: Rect, slot: BinderShareSlot | null, img: HTMLImageElement | null, b: BinderShare, k: number, font: string) {
+  const dark = !b.page.light;
+  const emptyFill = dark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)';
+  const emptyLine = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.1)';
+  const radius = 8 * k;
+  if (!slot || (!slot.owned && b.missing === 'blank')) {
+    ctx.fillStyle = emptyFill; roundRect(ctx, r.x, r.y, r.w, r.h, radius); ctx.fill();
+    ctx.save(); ctx.setLineDash([5 * k, 4 * k]); ctx.strokeStyle = emptyLine; ctx.lineWidth = Math.max(1, k); roundRect(ctx, r.x, r.y, r.w, r.h, radius); ctx.stroke(); ctx.restore();
+    return;
+  }
+  if (!slot.owned) {
+    ctx.fillStyle = dark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'; roundRect(ctx, r.x, r.y, r.w, r.h, radius); ctx.fill();
+    if (b.missing === 'ghost' && img) {
+      ctx.save(); roundRect(ctx, r.x, r.y, r.w, r.h, radius); ctx.clip();
+      ctx.globalAlpha = 0.14;
+      if ('filter' in ctx) (ctx as CanvasRenderingContext2D & { filter: string }).filter = 'grayscale(1)';
+      ctx.drawImage(img, r.x, r.y, r.w, r.h);
+      ctx.restore();
+    }
+    ctx.save(); ctx.setLineDash([5 * k, 4 * k]); ctx.strokeStyle = dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.18)'; ctx.lineWidth = Math.max(1.2, 1.5 * k); roundRect(ctx, r.x, r.y, r.w, r.h, radius); ctx.stroke(); ctx.restore();
+    ctx.textAlign = 'center'; ctx.fillStyle = b.page.muted;
+    const mid = r.y + r.h / 2;
+    ctx.font = `800 ${18 * k}px ${font}`; ctx.fillText(`#${slot.number}`, r.x + r.w / 2, mid + (b.missing === 'name' ? 0 : 6 * k), r.w - 8 * k);
+    if (b.missing === 'name') { ctx.font = `600 ${10 * k}px ${font}`; ctx.fillText(slot.name, r.x + r.w / 2, mid + 16 * k, r.w - 8 * k); }
+    if (slot.label) { ctx.font = `600 ${10 * k}px ${font}`; ctx.fillText(slot.label, r.x + r.w / 2, mid + (b.missing === 'name' ? 29 : 18) * k, r.w - 8 * k); }
+    ctx.textAlign = 'left';
+    return;
+  }
+  const hex = slot.hex ?? '#facc15';
+  const frame = b.pocket === 'frame';
+  const rad = frame ? 10 * k : radius;
+  // The card, with a soft shadow that follows its own (transparent cornered) outline.
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 12 * k; ctx.shadowOffsetY = 5 * k;
+  if (img) ctx.drawImage(img, r.x, r.y, r.w, r.h);
+  else { ctx.fillStyle = '#1f2937'; roundRect(ctx, r.x, r.y, r.w, r.h, rad); ctx.fill(); }
+  ctx.restore();
+  if (!img) { ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center'; ctx.font = `700 ${12 * k}px ${font}`; ctx.fillText(slot.name, r.x + r.w / 2, r.y + r.h / 2, r.w - 8 * k); ctx.textAlign = 'left'; }
+  if (b.pocket !== 'flat') {
+    ctx.strokeStyle = hex; ctx.lineWidth = (frame ? 4 : 2) * k;
+    const inset = ctx.lineWidth / 2;
+    roundRect(ctx, r.x + inset, r.y + inset, r.w - 2 * inset, r.h - 2 * inset, rad); ctx.stroke();
+  }
+  if (b.pocket === 'sleeve') {
+    ctx.save(); roundRect(ctx, r.x, r.y, r.w, r.h, rad); ctx.clip();
+    const g = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h);
+    g.addColorStop(0, 'rgba(255,255,255,0.22)'); g.addColorStop(0.38, 'rgba(255,255,255,0)'); g.addColorStop(0.7, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,0.1)');
+    ctx.fillStyle = g; ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = Math.max(1, k); roundRect(ctx, r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1, rad); ctx.stroke();
+  }
+  if (b.badges) {
+    const pill = (text: string, x: number, y: number, size: number, fill: string, line: string, ink: string, rightAlign = false) => {
+      ctx.font = `800 ${size}px ${font}`;
+      const w = ctx.measureText(text).width + size * 1.1, h = size * 1.45;
+      const px = rightAlign ? x - w : x;
+      ctx.fillStyle = fill; roundRect(ctx, px, y, w, h, h / 2); ctx.fill();
+      ctx.strokeStyle = line; ctx.lineWidth = Math.max(1, k * 0.9); ctx.stroke();
+      ctx.fillStyle = ink; ctx.fillText(text, px + size * 0.55, y + size * 1.1);
+    };
+    if (slot.count > 1) pill(`×${slot.count}`, r.x + 4 * k, r.y + 4 * k, 10 * k, 'rgba(7,11,29,0.88)', 'rgba(234,179,8,0.5)', '#fde047');
+    if (slot.tag) pill(slot.tag, r.x + r.w - 4 * k, r.y + r.h - 4 * k - 9 * k * 1.45, 9 * k, 'rgba(7,11,29,0.88)', 'rgba(232,121,249,0.5)', '#f5d0fe', true);
+  }
+}
+
+/** Draws the binder pages (cover frame, page paper, headings and every pocket) where the card grid would normally go. */
+async function drawBinder(ctx: CanvasRenderingContext2D, b: BinderShare, H: number, font: string, preview: boolean) {
+  const L = binderLayout(b, H);
+  drawLeather(ctx, L.leather, b);
+  const two = L.pages.length === 2;
+
+  // Load every image the pages need (full art for the saved image, thumbnails for the live preview).
+  const jobs = L.pages.map((_, pi) => Promise.all(b.pages[pi].slots.map(s => {
+    if (!s || (!s.owned && b.missing !== 'ghost')) return Promise.resolve(null);
+    return loadImage(preview ? s.thumb ?? s.src : s.src);
+  })));
+  const imgs = await Promise.all(jobs);
+
+  L.pages.forEach((pg, pi) => {
+    const r = pg.rect;
+    const radii: [number, number, number, number] = two ? (pi === 0 ? [10, 0, 0, 10] : [0, 10, 10, 0]) : [10, 10, 10, 10];
+    ctx.save();
+    roundRectR(ctx, r.x, r.y, r.w, r.h, radii); ctx.clip();
+    const paper = ctx.createLinearGradient(0, r.y, 0, r.y + r.h);
+    paper.addColorStop(0, b.page.a); paper.addColorStop(1, b.page.b);
+    ctx.fillStyle = paper; ctx.fillRect(r.x, r.y, r.w, r.h);
+    if (two) {
+      // Shade towards the spine, so the two pages read as an open book.
+      const spineX = pi === 0 ? r.x + r.w : r.x;
+      const g = ctx.createLinearGradient(spineX, 0, spineX + (pi === 0 ? -26 : 26), 0);
+      g.addColorStop(0, 'rgba(0,0,0,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(r.x, r.y, r.w, r.h);
+    }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1; roundRectR(ctx, r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1, radii); ctx.stroke();
+
+    const title = b.pages[pi].title;
+    if (title) {
+      const fs = Math.min(16, Math.max(11, 12 * L.k));
+      ctx.font = `800 ${fs}px ${font}`; ctx.fillStyle = b.page.ink; ctx.textAlign = 'left'; spaced(ctx, 1.6);
+      ctx.fillText(title.toUpperCase(), pg.head.x, pg.head.y + fs, pg.head.w);
+      spaced(ctx, 0);
+    }
+    pg.pockets.forEach((pr, si) => drawPocket(ctx, pr, b.pages[pi].slots[si] ?? null, imgs[pi][si] ?? null, b, L.k, font));
+  });
+
+  if (two) {
+    // The three binder rings down the middle.
+    const L0 = L.leather; const cx = L.pages[1].rect.x;
+    [0.22, 0.5, 0.78].forEach(f => {
+      const cy = L0.y + L0.h * f;
+      const g = ctx.createRadialGradient(cx - 3, cy - 3, 1, cx, cy, 12);
+      g.addColorStop(0, '#f1f1f5'); g.addColorStop(0.6, '#8a8a96'); g.addColorStop(1, '#4b4b55');
+      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 2;
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 11, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+  }
+}
+
 /** Draws the image on a canvas. A card whose art can't be loaded (blocked or offline) is drawn as a plain tile, never skipped. */
 export async function renderShare(spec: ShareSpec, opts?: { preview?: boolean }): Promise<HTMLCanvasElement> {
   const H = formatHeight(spec.format);
@@ -166,7 +339,8 @@ export async function renderShare(spec: ShareSpec, opts?: { preview?: boolean })
     });
   }
 
-  const n = spec.cards.length;
+  if (spec.binder) await drawBinder(ctx, spec.binder, H, font, !!opts?.preview);
+  const n = spec.binder ? 0 : spec.cards.length;
   const area = spec.plate ? cardAreaWithPlate(H) : spec.bigStats?.length ? cardAreaWithStats(H) : cardArea(H);
   // A tall story fits two columns of 5-6 cards bigger than three thin ones.
   const cols = H > 1500 && n >= 5 && n <= 6 ? 2 : undefined;
