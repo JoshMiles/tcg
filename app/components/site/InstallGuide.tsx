@@ -3,8 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { detectInstallEnv, type InstallEnv, type InstallPlatform } from '@/lib/install-detect';
-
-interface InstallPromptEvent extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> }
+import { askToInstall, getInstallPrompt, isStandalone, subscribeInstall, wasInstalled } from './install-store';
 
 const TABS: { id: InstallPlatform; label: string }[] = [
   { id: 'ios', label: 'iPhone & iPad' },
@@ -30,27 +29,20 @@ export function InstallGuide() {
   const [env, setEnv] = useState<InstallEnv | null>(null);
   const [tab, setTab] = useState<InstallPlatform>('ios');
   const [installed, setInstalled] = useState(false);
-  const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
+  const [canPrompt, setCanPrompt] = useState(false);
   const [outcome, setOutcome] = useState<string | null>(null);
 
   useEffect(() => {
     const e = detectInstallEnv(navigator.userAgent, navigator.maxTouchPoints);
     setEnv(e); setTab(e.platform);
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    setInstalled(standalone);
-    const onPrompt = (ev: Event) => { ev.preventDefault(); setPrompt(ev as InstallPromptEvent); };
-    const onInstalled = () => { setInstalled(true); setPrompt(null); };
-    window.addEventListener('beforeinstallprompt', onPrompt);
-    window.addEventListener('appinstalled', onInstalled);
-    return () => { window.removeEventListener('beforeinstallprompt', onPrompt); window.removeEventListener('appinstalled', onInstalled); };
+    const sync = () => { setInstalled(isStandalone() || wasInstalled()); setCanPrompt(!!getInstallPrompt()); };
+    sync();
+    return subscribeInstall(sync);
   }, []);
 
   async function install() {
-    if (!prompt) return;
-    await prompt.prompt();
-    const r = await prompt.userChoice;
-    setOutcome(r.outcome === 'accepted' ? 'Installing…' : 'No problem, you can do it any time from the browser menu.');
-    setPrompt(null);
+    const accepted = await askToInstall();
+    setOutcome(accepted ? 'Installing…' : 'No problem, you can do it any time from the browser menu.');
   }
 
   const chip = (on: boolean) => `px-4 py-2 rounded-full text-sm font-bold border transition-colors ${on ? 'bg-yellow-400 text-gray-950 border-yellow-400' : 'bg-white/[0.04] text-gray-300 border-white/10 hover:bg-white/10'}`;
@@ -70,7 +62,7 @@ export function InstallGuide() {
         </div>
       )}
 
-      {prompt && !installed && (
+      {canPrompt && !installed && (
         <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-gray-200">Your browser can install it in one tap.</p>
           <button type="button" onClick={install} className="tcg-btn px-5 py-2.5 rounded-xl text-sm"><Icon name="download" className="mr-1.5" />Install the app</button>

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '@/app/components/Avatar';
 import { LiveBadge } from './Live';
+import { InstallButton } from './InstallButton';
 import { NotificationBell } from './NotificationBell';
 import { OPEN_SEARCH_EVENT, SearchButton } from './SiteSearch';
 import { nextMenuIndex } from '@/lib/menu-nav';
@@ -123,6 +124,7 @@ export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | n
         <div className="ml-auto flex items-center gap-2">
           <SearchButton className="h-9 px-2.5" />
           <LiveBadge />
+          <InstallButton />
           {staff && (
             <Link href={staff.href} prefetch={false} className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 whitespace-nowrap shrink-0 rounded-lg border border-purple-400/40 bg-purple-500/10 text-xs font-bold text-purple-200 hover:bg-purple-500/20 transition-colors">
               <Icon name="shield" />{staff.label}
