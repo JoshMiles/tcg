@@ -10,7 +10,7 @@ import { cookies, headers } from 'next/headers';
 //   1. an explicit override (`runInSandbox`, used to carry the choice into `after()` callbacks and scripts),
 //   2. the `x-tcg-sandbox` request header (the overlay sends it when its URL has ?sandbox=<id>),
 //   3. the `tcg_sandbox` cookie (set when an admin enters a sandbox in the browser).
-// A sandbox id that doesn't exist (deleted, or junk) maps to a dead namespace — never to production — so a stale cookie
+// A sandbox id that doesn't exist (deleted, or junk) maps to a dead namespace. Never to production, so a stale cookie
 // can't make a "sandbox" request quietly hit real data.
 
 export const SANDBOX_COOKIE = 'tcg_sandbox';

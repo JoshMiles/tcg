@@ -6,7 +6,7 @@ import type { IconName } from '@/app/components/Icon';
 //    number / boolean / string / string[]. A whole configuration is a flat map of key -> value.
 //  - Only values that DIFFER from the default are stored ("sparse"), so new properties and changed defaults flow through.
 //  - The same flat map is used for the global settings, per-pack overrides, named presets and JSON export/import, and
-//    the editor UI is generated from this registry — so adding a property is one entry here plus using it in widget.js.
+//    the editor UI is generated from this registry, so adding a property is one entry here plus using it in widget.js.
 //  - The defaults reproduce the overlay's original look exactly, so an untouched install is unchanged.
 
 export type PropValue = number | boolean | string | string[];
@@ -51,14 +51,14 @@ export interface PropGroup {
 // ── Reveal animation styles ───────────────────────────────
 
 export const REVEAL_STYLES: { value: string; label: string; experimental?: boolean; description: string }[] = [
-  { value: 'classic',  label: 'Classic — pack tears, card rises', description: 'The original: the pack tilts in, the tear strip flies off and the card rises.' },
-  { value: 'simple',   label: 'Simple — card zooms in', description: 'No pack. The card just zooms in. Quick, good for busy streams.' },
+  { value: 'classic',  label: 'Classic, pack tears, card rises', description: 'The original: the pack tilts in, the tear strip flies off and the card rises.' },
+  { value: 'simple',   label: 'Simple, card zooms in', description: 'No pack. The card just zooms in. Quick, good for busy streams.' },
   { value: 'slide',    label: 'Slide up', description: 'The card slides up from below with its info following.' },
   { value: 'flip',     label: 'Flip reveal', description: 'A card back flips over to reveal the art.' },
-  { value: 'rip-shake', label: 'Rip — shake & burst', experimental: true, description: 'The pack shakes harder and harder, the tear strip flies off and the card bursts out.' },
-  { value: 'rip-peel',  label: 'Rip — peel open', experimental: true, description: 'The tear strip peels back from one side like a wrapper, then the card rises.' },
-  { value: 'rip-slice', label: 'Rip — slice off', experimental: true, description: 'The tear strip slides straight off to the side like a clean cut, the pack drops away and the card rises.' },
-  { value: 'rip-explode', label: 'Rip — explode', experimental: true, description: 'The pack swells and flashes white, then bursts apart as the card slams out.' },
+  { value: 'rip-shake', label: 'Rip, shake & burst', experimental: true, description: 'The pack shakes harder and harder, the tear strip flies off and the card bursts out.' },
+  { value: 'rip-peel',  label: 'Rip, peel open', experimental: true, description: 'The tear strip peels back from one side like a wrapper, then the card rises.' },
+  { value: 'rip-slice', label: 'Rip, slice off', experimental: true, description: 'The tear strip slides straight off to the side like a clean cut, the pack drops away and the card rises.' },
+  { value: 'rip-explode', label: 'Rip, explode', experimental: true, description: 'The pack swells and flashes white, then bursts apart as the card slams out.' },
   { value: 'drop',     label: 'Drop in', description: 'No pack. The card drops from above and bounces into place.' },
   { value: 'spin',     label: 'Spin in', description: 'No pack. The card spins in from small, turning to face the camera.' },
   { value: 'impact',   label: 'Impact', description: 'No pack. The card slams in huge, then judders to rest, like a heavy hit.' },
@@ -290,7 +290,7 @@ for (const p of PROPS) p.section = sectionFor(p.key);
 
 export const PROP_BY_KEY: Record<string, PropDef> = Object.fromEntries(PROPS.map(p => [p.key, p]));
 
-/** Every key mapped to its default — the full configuration of an untouched install. */
+/** Every key mapped to its default. The full configuration of an untouched install. */
 export const DEFAULT_PROPS: PropValues = Object.fromEntries(PROPS.map(p => [p.key, Array.isArray(p.default) ? [...p.default] : p.default]));
 
 // ── Validation ────────────────────────────────────────────
@@ -333,7 +333,7 @@ const same = (a: PropValue, b: PropValue) => JSON.stringify(a) === JSON.stringif
 
 /**
  * Cleans an arbitrary object (stored data, an imported file, a form post) into a SPARSE map: unknown keys are dropped,
- * invalid values are dropped, and values equal to the default are not kept — unless `keepDefaults` (a pack override must
+ * invalid values are dropped, and values equal to the default are not kept, unless `keepDefaults` (a pack override must
  * keep a value equal to the default, because the global setting it overrides may not be the default).
  */
 export function sanitizePropValues(input: unknown, opts: { keepDefaults?: boolean } = {}): PropValues {

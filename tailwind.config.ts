@@ -5,7 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Deep navy scale — retints every existing gray-* class into the TCG theme.
+        // Deep navy scale, retints every existing gray-* class into the TCG theme.
         gray: {
           50: '#f4f6ff', 100: '#e6eafb', 200: '#cdd5f3', 300: '#a9b5e0', 400: '#8190bf',
           500: '#7885b5', 600: '#5f6c9c', 700: '#394472', 800: '#1f2848', 900: '#141b36', 950: '#0a0f21',

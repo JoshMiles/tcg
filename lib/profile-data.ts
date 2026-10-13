@@ -60,7 +60,7 @@ export function buildShareBase(b: ProfileBase, siteHost: string): Omit<ShareSpec
 /** The big stat tiles of the stats poster. */
 export function buildBigStats(b: ProfileBase): BigStat[] {
   return [
-    { label: 'Rank', value: b.rank ? `#${b.rank}` : '—' },
+    { label: 'Rank', value: b.rank ? `#${b.rank}` : '-' },
     { label: 'Points', value: b.row ? Math.round(b.row.score).toLocaleString() : '0' },
     { label: 'Cards', value: `${b.uniqueOwned}/${b.total}` },
   ];

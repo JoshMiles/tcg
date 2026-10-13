@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     try {
       return NextResponse.json(await storeOptimizedCard(Buffer.from(await file.arrayBuffer())));
     } catch {
-      return NextResponse.json({ error: 'Could not process image — is it a valid GIF?' }, { status: 422 });
+      return NextResponse.json({ error: 'Could not process image. Is it a valid GIF?' }, { status: 422 });
     }
   }
 

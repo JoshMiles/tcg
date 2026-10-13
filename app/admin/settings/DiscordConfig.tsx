@@ -77,7 +77,7 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
           </div>
           <p className="text-xs text-gray-600">
             In Discord: <strong className="text-gray-400">Channel settings → Integrations → Webhooks → New Webhook → Copy Webhook URL</strong>.
-            Treat it like a password — anyone with it can post to your channel.
+            Treat it like a password. Anyone with it can post to your channel.
           </p>
         </div>
 
@@ -128,7 +128,7 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
               Only cards the viewer didn&apos;t have yet
             </label>
           </div>
-          <p className="text-xs text-gray-600">Handy on a busy stream — e.g. 3★ and up, new cards only keeps the channel readable.</p>
+          <p className="text-xs text-gray-600">Handy on a busy stream, e.g. 3★ and up, new cards only keeps the channel readable.</p>
         </div>
 
         {/* Actions */}
@@ -136,7 +136,7 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
           <PendingButton type="submit" name="intent" value="save" disabled={pending} className="px-5 py-2 tcg-btn rounded-xl text-sm">
             Save
           </PendingButton>
-          <PendingButton type="submit" name="intent" value="test" disabled={pending} className={secondaryBtn} title="Posts a sample message using the URL above — nothing is saved">
+          <PendingButton type="submit" name="intent" value="test" disabled={pending} className={secondaryBtn} title="Posts a sample message using the URL above. Nothing is saved">
             Send test message
           </PendingButton>
           <PendingButton type="submit" name="intent" value="last" disabled={pending} className={secondaryBtn} title="Re-posts the most recent activity event using the URL above, regardless of your filters">

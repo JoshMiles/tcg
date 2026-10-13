@@ -31,7 +31,7 @@ export default function PrivacyPage() {
             viewer. We store it so the Extension can recognise you when you come back.
           </li>
           <li>
-            <strong className="text-white">Your Twitch user ID and username (login name) — only if you choose to share your identity.</strong>{' '}
+            <strong className="text-white">Your Twitch user ID and username (login name). Only if you choose to share your identity.</strong>{' '}
             The Extension shows the Twitch &ldquo;share your identity&rdquo; prompt when you press <em>Login with Twitch</em>. If you allow it, we use your
             Twitch user ID to look up your username through the Twitch API, and we store both so your cards can be tied to you. If you
             decline, the Extension still works for browsing but cannot show your collection. (If you are the channel owner, Twitch signs
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="text-white">When you use &ldquo;Log in with Twitch&rdquo; on the website</strong>, Twitch asks for your permission to share your basic public profile with us:
-            your Twitch user ID, login name, display name and profile picture. We request <em>no extra permissions</em> — we cannot see your email address, chat, follows or
+            your Twitch user ID, login name, display name and profile picture. We request <em>no extra permissions</em>: we cannot see your email address, chat, follows or
             subscriptions, and we cannot act on your Twitch account. We use the Twitch access token only once, to read that profile, and then revoke it; we never store it.
           </li>
           <li>
@@ -150,15 +150,15 @@ export default function PrivacyPage() {
       <Section title="4. Who we share it with">
         <p>We use a few service providers to run the Extension. They process data on our behalf:</p>
         <List>
-          <li><strong className="text-white">Twitch</strong> — the Extension runs inside Twitch, and we call the Twitch API to resolve usernames and profile pictures. Twitch&rsquo;s own privacy notice applies to what Twitch collects.</li>
-          <li><strong className="text-white">Vercel</strong> — hosting, logs, analytics and performance measurement, plus the database (Vercel KV, Redis) and file storage (Vercel Blob) where the data above is kept. These services may store data in the United States and other countries.</li>
+          <li><strong className="text-white">Twitch</strong>: the Extension runs inside Twitch, and we call the Twitch API to resolve usernames and profile pictures. Twitch&rsquo;s own privacy notice applies to what Twitch collects.</li>
+          <li><strong className="text-white">Vercel</strong>: hosting, logs, analytics and performance measurement, plus the database (Vercel KV, Redis) and file storage (Vercel Blob) where the data above is kept. These services may store data in the United States and other countries.</li>
           <li>
-            <strong className="text-white">Cloudflare Turnstile</strong> — when you trade or upgrade cards on the website we may ask you to pass a short bot check. Cloudflare loads a script in your browser and
+            <strong className="text-white">Cloudflare Turnstile</strong>: when you trade or upgrade cards on the website we may ask you to pass a short bot check. Cloudflare loads a script in your browser and
             receives your IP address and some browser and device signals to decide whether you are a person; we receive only the pass or fail result and remember your pass for about 15 minutes. It is not used for advertising.
             Cloudflare&rsquo;s own privacy notice applies. It is not used in the Twitch panel.
           </li>
           <li>
-            <strong className="text-white">Discord</strong> and <strong className="text-white">other streaming tools</strong> — <em>only if the streamer has connected them</em>. The streamer can
+            <strong className="text-white">Discord</strong> and <strong className="text-white">other streaming tools</strong>: <em>only if the streamer has connected them</em>. The streamer can
             have game events (for example &ldquo;{`<username>`} pulled a card&rdquo;) posted to their own Discord server, or sent to tools such as Mix It Up. Those messages
             contain your username and the card involved, and are then governed by those services&rsquo; policies and the streamer&rsquo;s settings.
           </li>

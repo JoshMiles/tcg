@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   }
 
   const payload = await verifyExtensionAuth(token);
-  // Dev mode (no TWITCH_EXTENSION_SECRET) — unlink the mock opaque ID
+  // Dev mode (no TWITCH_EXTENSION_SECRET), unlink the mock opaque ID
   if (!payload && process.env.TWITCH_EXTENSION_SECRET) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
   }

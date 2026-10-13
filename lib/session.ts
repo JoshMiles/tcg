@@ -4,7 +4,7 @@ import { currentSandboxId } from './db';
 
 // Website login session: a small signed cookie, no database. The payload is signed with SESSION_SECRET (HMAC-SHA256),
 // so it can be read but not forged or edited. Logging out clears the cookie; otherwise it expires after 30 days.
-// Never put anything secret in it — it is readable by the browser's owner.
+// Never put anything secret in it. It is readable by the browser's owner.
 
 export const SESSION_COOKIE = 'tcg_session';
 /** Short-lived cookie holding the OAuth `state` (+ return path) between leaving for Twitch and coming back. */
@@ -12,7 +12,7 @@ export const OAUTH_COOKIE = 'tcg_oauth';
 const MAX_AGE_S = 60 * 60 * 24 * 30;
 
 export interface Session {
-  /** Lowercase Twitch login — the key collections and profiles are stored under. */
+  /** Lowercase Twitch login. The key collections and profiles are stored under. */
   username: string;
   twitchId: string;
   displayName: string;

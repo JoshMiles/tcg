@@ -13,7 +13,7 @@ export function countPulls(owned: number[]): Map<number, number> {
   return counts;
 }
 
-/** Number of distinct cards owned — what completion % should be based on (duplicates and variants don't count). */
+/** Number of distinct cards owned, what completion % should be based on (duplicates and variants don't count). */
 export function uniqueCount(owned: number[]): number {
   return new Set(owned.map(e => decodeEntry(e).cardNumber)).size;
 }

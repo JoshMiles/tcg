@@ -8,7 +8,7 @@ export type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
  * - Saves are serialised: if the value changes mid-save, the latest value is saved right after.
  * - `signature` decides what counts as a change (default: JSON of the value), so server-assigned fields can
  *   be excluded and merged back without triggering another save.
- * - `flush()` saves immediately and resolves when nothing is pending — await it before navigating away.
+ * - `flush()` saves immediately and resolves when nothing is pending, await it before navigating away.
  */
 export function useAutosave<T>(
   value: T,

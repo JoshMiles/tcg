@@ -119,7 +119,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
                       const l = live.get(encodeEntry(x.number, v)) ?? 0;
                       return (
                         <td key={v} className="py-1.5 px-2 text-right tabular-nums">
-                          {m === 0 ? <span className="text-gray-700">—</span> : <Link href={link({ card: String(x.number), variant: v, holder: undefined })} className="text-yellow-300 hover:text-yellow-200">{m.toLocaleString()} <span className="text-gray-500">({l.toLocaleString()})</span></Link>}
+                          {m === 0 ? <span className="text-gray-700">-</span> : <Link href={link({ card: String(x.number), variant: v, holder: undefined })} className="text-yellow-300 hover:text-yellow-200">{m.toLocaleString()} <span className="text-gray-500">({l.toLocaleString()})</span></Link>}
                         </td>
                       );
                     })}

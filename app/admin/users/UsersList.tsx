@@ -40,7 +40,7 @@ const DAYS = { '24h': 1, '7d': 7, '30d': 30 } as const;
 const chip = (on: boolean) => `px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${on ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300' : 'bg-gray-900/60 border-gray-700 text-gray-400 hover:text-white'}`;
 
 function ago(at: number | null, now: number): string {
-  if (!at) return '—';
+  if (!at) return '-';
   const s = Math.max(0, Math.round((now - at) / 1000));
   if (s < 60) return 'just now';
   const m = Math.floor(s / 60);
@@ -217,11 +217,11 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
                       <div className="h-1.5 rounded-full bg-gray-800 overflow-hidden"><div className={`h-full rounded-full bg-gradient-to-r ${bar}`} style={{ width: `${pct}%` }} /></div>
                       <p className="mt-1 text-xs text-gray-400 truncate"><span className="font-bold text-white tabular-nums">{r.primary.owned}/{r.primary.total}</span><span className="tabular-nums"> · {pct}%</span><span className="text-gray-600"> · {r.primary.name}{r.otherSeasons > 0 ? ` +${r.otherSeasons}` : ''}</span></p>
                     </>
-                  ) : <span className="text-xs text-gray-600">—</span>}
+                  ) : <span className="text-xs text-gray-600">-</span>}
                 </div>
-                <span className="text-right tabular-nums text-sm text-yellow-400 font-semibold" title={r.scoreRank ? `Rank #${r.scoreRank}` : undefined}>{r.score !== null ? r.score.toLocaleString() : '—'}{r.scoreRank && <span className="block text-[10px] text-gray-600 font-normal">#{r.scoreRank}</span>}</span>
+                <span className="text-right tabular-nums text-sm text-yellow-400 font-semibold" title={r.scoreRank ? `Rank #${r.scoreRank}` : undefined}>{r.score !== null ? r.score.toLocaleString() : '-'}{r.scoreRank && <span className="block text-[10px] text-gray-600 font-normal">#{r.scoreRank}</span>}</span>
                 <span className="text-right tabular-nums text-sm text-gray-300" title={dupes > 0 ? `${r.unique} unique, ${dupes} duplicate${dupes === 1 ? '' : 's'}` : undefined}>{r.pulls}{dupes > 0 && <span className="block text-[10px] text-gray-600">{dupes} dupes</span>}</span>
-                <span className="text-right tabular-nums text-sm text-gray-400">{r.trades || '—'}</span>
+                <span className="text-right tabular-nums text-sm text-gray-400">{r.trades || '-'}</span>
                 <span className="text-right text-xs text-gray-500 tabular-nums" title={r.joined ? `Joined ${new Date(r.joined).toLocaleDateString()}` : undefined}>{ago(r.lastActive, now)}</span>
                 <div className="relative z-10 flex items-center justify-end gap-1">
                   <Link href={`/admin?gift=${encodeURIComponent(r.username)}#quick-actions`} title={`Gift ${r.displayName} a pack`} className="px-1.5 py-1 rounded-lg hover:bg-white/10 transition-colors"><Icon name="gift" /></Link>

@@ -183,12 +183,12 @@ export default async function UserDetailPage({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        <Tile label="Rank" value={myRow ? `#${rankIdx + 1}` : '—'} sub={activeSeason ? (myRow ? `of ${board?.rows.length} in ${activeSeason.name}` : 'not ranked') : 'no active season'} />
-        <Tile label="Score" value={myRow ? Math.round(myRow.score).toLocaleString() : '—'} sub={myRow ? `${Math.round(myRow.cardPoints).toLocaleString()} from cards` : undefined} />
+        <Tile label="Rank" value={myRow ? `#${rankIdx + 1}` : '-'} sub={activeSeason ? (myRow ? `of ${board?.rows.length} in ${activeSeason.name}` : 'not ranked') : 'no active season'} />
+        <Tile label="Score" value={myRow ? Math.round(myRow.score).toLocaleString() : '-'} sub={myRow ? `${Math.round(myRow.cardPoints).toLocaleString()} from cards` : undefined} />
         <Tile label="Unique cards" value={totalCards} sub={`${activeSeasons} season${activeSeasons === 1 ? '' : 's'}`} />
         <Tile label="Total pulls" value={totalPulls} />
         <Tile label="Last seen" value={ago(lastSeen, now)} />
-        <Tile label="Joined" value={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '—'} sub={`${tradeLines.filter(l => l.status === 'accepted').length} trades done`} />
+        <Tile label="Joined" value={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '-'} sub={`${tradeLines.filter(l => l.status === 'accepted').length} trades done`} />
       </div>
 
       <PageTabs tabs={tabs} active={tab} base={`/admin/users/${encodeURIComponent(username)}`} keep={{ compare: compareWith || undefined }} label="User sections" />

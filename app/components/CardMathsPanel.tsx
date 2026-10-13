@@ -114,7 +114,7 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
           <p className="text-xs font-bold text-yellow-300">Odds &amp; other numbers</p>
           <Eq>chance per pack of this card: {pct(m.pullRate)} · expected packs to see it: {n(1 / m.pullRate, 1)}</Eq>
           {m.upgradesEnabled && <Eq>chance per pack of a {label}: {pct(variantRate)} ({label} weight {n(m.weights[v])} of {n(wTotal)}) · expected packs: {variantRate > 0 ? n(1 / variantRate, 1) : '∞'}</Eq>}
-          <Eq>at least one {label} within 10 / 50 / 100 packs: {variantRate > 0 ? `${pct(within(10, variantRate))} / ${pct(within(50, variantRate))} / ${pct(within(100, variantRate))}` : '—'}</Eq>
+          <Eq>at least one {label} within 10 / 50 / 100 packs: {variantRate > 0 ? `${pct(within(10, variantRate))} / ${pct(within(50, variantRate))} / ${pct(within(100, variantRate))}` : '-'}</Eq>
           {m.upgradesEnabled && v !== 'regular' && <Eq>crafting a {label} from Regulars costs {craft} copies (each step&rsquo;s cost multiplied)</Eq>}
           <Eq>season: {m.totalCards} cards · {m.totalCopies.toLocaleString()} copies pulled · set value {m.setValue.toLocaleString()} pts (one Regular of every card)</Eq>
           <Note>Your score is the points of every copy you own, plus a completion bonus ({n(m.completionBonusPct, 1)}% of the set value × the share of cards you own) and a complete-set bonus ({n(m.completeSetBonusPct, 1)}% of the set value once you own every card). Values are live, so these numbers drift as the season goes on.</Note>

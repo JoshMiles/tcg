@@ -209,7 +209,7 @@ export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput;
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <TextField label="Accent colour" value={pack.accentColor} onChange={v => set('accentColor', v)} hint="Any CSS colour — glow and holo overlay" />
+                <TextField label="Accent colour" value={pack.accentColor} onChange={v => set('accentColor', v)} hint="Any CSS colour, glow and holo overlay" />
                 <TextField label="Tear border colour" value={pack.tearBorderColor} onChange={v => set('tearBorderColor', v)} />
               </div>
               <NumberField label="Holo min stars" value={pack.holoMinStars} min={1} max={5} onChange={v => set('holoMinStars', v)} hint="Cards with at least this many stars get the holographic effect" narrow />
@@ -330,7 +330,7 @@ function UpgradesStep({ pack, set }: { pack: PackInput; set: <K extends keyof Pa
         <div>
           <p className="text-sm font-medium text-gray-300 mb-2">Chance of each variant</p>
           <p className="text-xs text-gray-500 mb-3">
-            After a card is picked, its variant is rolled using these weights. Relative numbers — only the proportions matter.
+            After a card is picked, its variant is rolled using these weights. Relative numbers. Only the proportions matter.
           </p>
           <div className="grid grid-cols-4 gap-3">
             <VariantWeight label="Regular" value={w.regular} percent={pct(w.regular)} onChange={v => setW('regular', v)} />
@@ -397,19 +397,19 @@ function ReviewStep({
           </ul>
         </div>
       ) : (
-        <p className="rounded-xl border border-green-500/30 bg-green-950/20 p-4 text-sm text-green-300"><Icon name="check" className="mr-1" />Everything looks good — this pack is ready to publish.</p>
+        <p className="rounded-xl border border-green-500/30 bg-green-950/20 p-4 text-sm text-green-300"><Icon name="check" className="mr-1" />Everything looks good. This pack is ready to publish.</p>
       )}
 
       <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-        <Summary label="Name" value={pack.name || '—'} />
+        <Summary label="Name" value={pack.name || '-'} />
         <Summary label="Cards" value={String(cards.length)} />
-        <Summary label="Rarity mix" value={mix.length ? mix.map(r => `${r.count}× ${'★'.repeat(r.stars)}`).join('  ') : '—'} />
+        <Summary label="Rarity mix" value={mix.length ? mix.map(r => `${r.count}× ${'★'.repeat(r.stars)}`).join('  ') : '-'} />
         <Summary label="Draw weight" value={`${pack.weight}×`} />
         <Summary label="Card time / cooldown" value={`${pack.cardTime}s / ${pack.cooldownTime}s`} />
         <Summary
           label="Variants & upgrades"
           value={pack.upgradesEnabled
-            ? `On — costs ${pack.upgradeCosts.reverse} / ${pack.upgradeCosts.full} / ${pack.upgradeCosts.shiny}`
+            ? `On, costs ${pack.upgradeCosts.reverse} / ${pack.upgradeCosts.full} / ${pack.upgradeCosts.shiny}`
             : 'Off'}
         />
       </dl>

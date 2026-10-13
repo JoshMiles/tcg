@@ -48,7 +48,7 @@ export function LiveBadge() {
       href={CHANNEL_URL}
       target="_blank"
       rel="noopener noreferrer"
-      title={`${CHANNEL_NAME} is live${details ? ` — ${details}` : ''}`}
+      title={`${CHANNEL_NAME} is live${details ? `, ${details}` : ''}`}
       aria-label={`${CHANNEL_NAME} is live on Twitch`}
       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider text-white bg-red-600 hover:bg-red-500 transition-colors"
     >

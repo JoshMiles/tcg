@@ -1,7 +1,7 @@
 import { SITE_URL } from './site';
 
 // Details shown in the Privacy Policy and Terms (EULA). Set these in the deployment's environment so the
-// published documents name a real operator and a real way to get in touch — don't hard-code them here.
+// published documents name a real operator and a real way to get in touch. Don't hard-code them here.
 //   LEGAL_OPERATOR_NAME   who runs the extension (a person or business name), e.g. "Jane Doe"
 //   LEGAL_CONTACT_EMAIL   where privacy / data requests go
 //   LEGAL_GOVERNING_LAW   e.g. "the laws of England and Wales"

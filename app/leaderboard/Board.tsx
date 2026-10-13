@@ -108,7 +108,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer }: { rows: B
                   <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-gray-800/70 px-4 py-3 text-sm">
                     <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Cards</dt><dd className="tabular-nums text-white">{Math.round(r.cardPoints).toLocaleString()}</dd></div>
                     <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Completion bonus</dt><dd className="tabular-nums text-emerald-300">+{Math.round(r.completionBonus).toLocaleString()}</dd></div>
-                    <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Complete set bonus</dt><dd className="tabular-nums text-emerald-300">{r.setBonus ? `+${Math.round(r.setBonus).toLocaleString()}` : '—'}</dd></div>
+                    <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Complete set bonus</dt><dd className="tabular-nums text-emerald-300">{r.setBonus ? `+${Math.round(r.setBonus).toLocaleString()}` : '-'}</dd></div>
                     <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Total</dt><dd className="tabular-nums text-yellow-300 font-bold">{Math.round(r.score).toLocaleString()}</dd></div>
                   </dl>
                 )}

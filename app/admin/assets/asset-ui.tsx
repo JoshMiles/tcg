@@ -13,7 +13,7 @@ export const ISSUE_TEXT: Record<AssetIssue, { label: string; hint: string; tone:
 export const KIND_LABEL: Record<AssetKind, string> = { 'card-art': 'Card art', 'pack-cover': 'Pack cover', sound: 'Sound' };
 
 export function formatBytes(bytes: number | null): string {
-  if (bytes === null) return '—';
+  if (bytes === null) return '-';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;

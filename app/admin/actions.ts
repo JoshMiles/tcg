@@ -405,7 +405,7 @@ export async function resetUserSeason(username: string, collectionName: string) 
   revalidatePath('/admin/users');
 }
 
-// Fully delete a user — removes all cards and their profile, then redirects
+// Fully delete a user, removes all cards and their profile, then redirects
 export async function deleteUser(username: string) {
   await requireAdmin();
   const lower = username.toLowerCase();

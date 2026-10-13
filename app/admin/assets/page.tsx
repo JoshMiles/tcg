@@ -27,7 +27,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
     { id: 'card-art', label: 'Card art', icon: 'image', count: count('card-art') },
     { id: 'pack-cover', label: 'Pack covers', icon: 'cards', count: count('pack-cover') },
     { id: 'sound', label: 'Sounds', icon: 'music', count: count('sound') },
-    { id: 'unused', label: 'Unused', icon: 'trash', count: blobConnected ? unused.length : '—' },
+    { id: 'unused', label: 'Unused', icon: 'trash', count: blobConnected ? unused.length : '-' },
     { id: 'insights', label: 'Insights', icon: 'chart' },
   ];
   const tab = pickTab(tabs, sp.tab) as AssetTab;
@@ -45,7 +45,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <Tile label="Files in use" icon="image" value={String(assets.length)} sub={`${formatBytes(inUse)} in total`} href="?tab=insights" />
         <Tile label="Need attention" icon="warning" value={String(attention)} sub={attention === 0 ? 'all healthy' : 'GIFs, missing files, thumbnails'} tone={attention > 0 ? 'amber' : 'green'} href={attention > 0 && firstFlaggedKind ? `?tab=${firstFlaggedKind}&issues=1` : undefined} />
-        <Tile label="Unused" icon="trash" value={blobConnected ? String(unused.length) : '—'} sub={blobConnected ? (unused.length ? `${formatBytes(unusedBytes)} to reclaim` : 'nothing to clean up') : 'storage unavailable'} tone={unused.length > 0 ? 'amber' : undefined} href={blobConnected && unused.length > 0 ? '?tab=unused' : undefined} />
+        <Tile label="Unused" icon="trash" value={blobConnected ? String(unused.length) : '-'} sub={blobConnected ? (unused.length ? `${formatBytes(unusedBytes)} to reclaim` : 'nothing to clean up') : 'storage unavailable'} tone={unused.length > 0 ? 'amber' : undefined} href={blobConnected && unused.length > 0 ? '?tab=unused' : undefined} />
         <Tile label="Savings available" icon="zap" value={gifBytes > 0 ? `~${formatBytes(Math.round(gifBytes * GIF_SAVINGS))}` : '0 B'} sub={gifBytes > 0 ? 'by converting GIFs (estimate)' : 'no GIFs left'} href={gifBytes > 0 ? '?tab=insights' : undefined} />
       </div>
 

@@ -106,8 +106,8 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
 
         {e.type === 'trade' && (
           <div className="grid gap-2 text-sm">
-            <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{e.username} gives{e.givePts ? ` · ≈${e.givePts.toLocaleString()} pts` : ''}</p><p className="text-gray-200">{e.give.join(', ') || '—'}</p></div>
-            <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{e.partner ?? 'In return'} gives{e.getPts ? ` · ≈${e.getPts.toLocaleString()} pts` : ''}</p><p className="text-gray-200">{e.get.join(', ') || '—'}</p></div>
+            <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{e.username} gives{e.givePts ? ` · ≈${e.givePts.toLocaleString()} pts` : ''}</p><p className="text-gray-200">{e.give.join(', ') || '-'}</p></div>
+            <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{e.partner ?? 'In return'} gives{e.getPts ? ` · ≈${e.getPts.toLocaleString()} pts` : ''}</p><p className="text-gray-200">{e.get.join(', ') || '-'}</p></div>
             {e.note && <p className="text-xs text-gray-400 italic">“{e.note}”</p>}
           </div>
         )}

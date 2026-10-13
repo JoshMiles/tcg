@@ -610,7 +610,7 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg, opts) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  THEATER FACTORY  — each draw gets its own DOM clone
+//  THEATER FACTORY. Each draw gets its own DOM clone
 // ═══════════════════════════════════════════════════════
 function createTheater(cfg) {
   const tpl = document.getElementById('theater-tpl');
@@ -863,7 +863,7 @@ function drawCard(username, opts) {
   const show = opts.show || null;
   const pick = pickPackAndCard(show ? { cardNumber: show.cardNumber, variant: show.variant } : opts);
   if (!pick) {
-    showAlert('No cards available — check your active season has packs with cards.');
+    showAlert('No cards available. Check your active season has packs with cards.');
     activeDraws--;
     setTimeout(processCardQueue, 1000);
     return;
@@ -1153,7 +1153,7 @@ function initDevPanel() {
     const packs = packSel.value ? PACKS.filter(p => p.pack.id === packSel.value) : PACKS;
     const upg = packs.filter(p => p.pack.upgradesEnabled);
     if (variantSel.value) {
-      info.textContent = 'Forced ' + VARIANT_LABELS[variantSel.value] + (upg.length === 0 ? ' (this pack has upgrades off — shown anyway)' : '');
+      info.textContent = 'Forced ' + VARIANT_LABELS[variantSel.value] + (upg.length === 0 ? ' (this pack has upgrades off, shown anyway)' : '');
     } else if (upg.length === 0) {
       info.textContent = 'Upgrades off: always Regular';
     } else {
@@ -1270,7 +1270,7 @@ async function pollWebhookQueue() {
     else if (event.type === 'collection') queueCollection(event.username);
     else if (event.type === 'card' && event.cardNumber != null) queueShowCard(event.username, event);
   } catch {
-    // ignore — overlay keeps working if server is unreachable
+    // ignore, overlay keeps working if server is unreachable
   }
 }
 
@@ -1329,7 +1329,7 @@ function checkReload(token) {
 function startHeartbeat() {
   sendHeartbeat();
   setInterval(sendHeartbeat, 10000);
-  // OBS fires these when the stream/recording starts or stops — report the change straight away.
+  // OBS fires these when the stream/recording starts or stops, report the change straight away.
   ['obsStreamingStarted', 'obsStreamingStopped', 'obsRecordingStarted', 'obsRecordingStopped']
     .forEach(name => window.addEventListener(name, sendHeartbeat));
 }

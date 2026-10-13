@@ -77,8 +77,8 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
               <tr key={r.username} className={picked.has(r.username) ? 'bg-yellow-500/[0.05]' : 'hover:bg-white/[0.02]'}>
                 <td className="pl-4 py-2"><input type="checkbox" aria-label={`Select ${r.username}`} checked={picked.has(r.username)} onChange={() => toggle(r.username)} className="accent-yellow-400" /></td>
                 <td className="py-2 font-mono text-gray-100">{r.username}{r.complete && <Icon name="cheese" className="ml-1.5 text-yellow-400" />}</td>
-                <td className="py-2 text-right tabular-nums text-gray-400">{r.rank ? `#${r.rank}` : '—'}</td>
-                <td className="py-2 text-right tabular-nums text-yellow-300">{r.score !== null ? r.score.toLocaleString() : '—'}</td>
+                <td className="py-2 text-right tabular-nums text-gray-400">{r.rank ? `#${r.rank}` : '-'}</td>
+                <td className="py-2 text-right tabular-nums text-yellow-300">{r.score !== null ? r.score.toLocaleString() : '-'}</td>
                 <td className="py-2 text-right tabular-nums text-gray-300">{r.copies}</td>
                 <td className="py-2 text-right tabular-nums text-gray-400">{r.unique}</td>
                 <td className="pr-4 py-2">

@@ -76,7 +76,7 @@ export function AddCardDialog({
 
           <ImageUploadField name="imageUrl" />
           <AudioUploadField name="soundUrl" />
-          <ImageUploadField name="fullArtImageUrl" label="Full Art Image URL (optional — Full Art &amp; Shiny variants)" />
+          <ImageUploadField name="fullArtImageUrl" label="Full Art Image URL (optional, Full Art &amp; Shiny variants)" />
         </div>
 
         <div className="px-6 pb-6 flex items-center justify-between border-t border-gray-800 pt-4">

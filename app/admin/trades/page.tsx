@@ -82,8 +82,8 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <Tile label="Open offers" value={stats.openCount} sub={`${stats.escrowCards} cards in escrow`} />
         <Tile label="Completed" value={stats.accepted} sub={`of ${stats.ended} recent`} />
-        <Tile label="Accept rate" value={stats.acceptRate === null ? '—' : `${Math.round(stats.acceptRate * 100)}%`} sub="of offers that ended" />
-        <Tile label="Median time to accept" value={stats.medianAcceptMin === null ? '—' : stats.medianAcceptMin < 90 ? `${stats.medianAcceptMin}m` : `${(stats.medianAcceptMin / 60).toFixed(1)}h`} />
+        <Tile label="Accept rate" value={stats.acceptRate === null ? '-' : `${Math.round(stats.acceptRate * 100)}%`} sub="of offers that ended" />
+        <Tile label="Median time to accept" value={stats.medianAcceptMin === null ? '-' : stats.medianAcceptMin < 90 ? `${stats.medianAcceptMin}m` : `${(stats.medianAcceptMin / 60).toFixed(1)}h`} />
         <Tile label="Declined / cancelled" value={`${stats.declined} / ${stats.cancelled}`} sub={`${stats.expired} expired`} />
         <Tile label="Flagged" value={rows.filter(r => r.flags.length > 0).length} sub="in the kept history" />
       </div>

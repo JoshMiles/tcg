@@ -28,7 +28,7 @@ export interface SeasonOverview {
   cards: SeasonCard[];
 }
 
-/** One season's cards (with their pack) and leaderboard — the shared input for home, stats and card dex. */
+/** One season's cards (with their pack) and leaderboard. The shared input for home, stats and card dex. */
 export async function getSeasonOverview(season: Season): Promise<SeasonOverview> {
   const { rows, values, packs } = await getSeasonLeaderboardCached(season);
   const cards = packs.flatMap(({ pack, cards }) => cards.map(c => ({ ...c, packName: pack.name, pack })));

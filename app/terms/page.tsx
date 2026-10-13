@@ -24,7 +24,7 @@ export default function TermsPage() {
       <Section title="1. What the Service is">
         <p>
           {APP_NAME} is a digital collectible card game that runs only on the {CHANNEL_NAME} Twitch channel (and on this website, which shows and manages your collection). Cards are earned live on stream (for example when a pack is opened for you), can be viewed in a
-          collection, and — in seasons that enable it — can be upgraded into rarer variants. A leaderboard ranks collections for each season.
+          collection, and, in seasons that enable it. Can be upgraded into rarer variants. A leaderboard ranks collections for each season.
         </p>
         <p>
           It is a fan-made hobby project. It is not made, sponsored, or endorsed by Twitch Interactive, Inc. (&ldquo;Twitch&rdquo;), and Twitch has no responsibility for it. Your use of the
@@ -51,7 +51,7 @@ export default function TermsPage() {
         <List>
           <li>
             Cards, variants (such as Reverse Holo, Full Art and Shiny Full Art), and leaderboard scores are <strong className="text-white">virtual items for fun</strong>. They have no cash or
-            other monetary value, are not property or a financial asset, and can&rsquo;t be sold, bought, or exchanged for money, goods, or services — inside or outside the Service.
+            other monetary value, are not property or a financial asset, and can&rsquo;t be sold, bought, or exchanged for money, goods, or services, inside or outside the Service.
           </li>
           <li>
             The cards are <strong className="text-white">not NFTs</strong>, tokens, cryptocurrency or digital securities, and nothing about them is recorded on a blockchain. They are simply entries in

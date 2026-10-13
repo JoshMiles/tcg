@@ -187,7 +187,7 @@ export function OddsPanel({ packId, cards, upgrades, cardWeights }: { packId: st
                       <input type="number" min={0} step="any" value={odds[c.id]} onChange={e => set(c.id, e.target.value)} aria-label={`Weight for ${c.name}`} className={`w-24 rounded-lg bg-gray-950 border px-2 py-1 text-right text-sm tabular-nums focus:outline-none focus:border-yellow-500 ${changed ? 'border-yellow-500/60 text-yellow-200' : 'border-gray-700 text-white'}`} />
                     </td>
                     <td className="px-3 py-1.5 text-right tabular-nums text-gray-300">{p >= 10 ? p.toFixed(1) : p.toFixed(2)}%</td>
-                    <td className="pr-5 pl-3 py-1.5 text-right tabular-nums text-gray-600 hidden sm:table-cell">{p > 0 ? Math.round(100 / p).toLocaleString() : '—'}</td>
+                    <td className="pr-5 pl-3 py-1.5 text-right tabular-nums text-gray-600 hidden sm:table-cell">{p > 0 ? Math.round(100 / p).toLocaleString() : '-'}</td>
                   </tr>
                 );
               })}
@@ -244,7 +244,7 @@ export function OddsPanel({ packId, cards, upgrades, cardWeights }: { packId: st
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-gray-500">{sim.found} of {cards.filter(c => num(c.id) > 0).length} cards appeared in {sim.draws.toLocaleString()} packs. Most pulled: {(() => { const top = Object.entries(sim.perCard).sort((a, b) => b[1] - a[1])[0]; const c = cards.find(x => x.id === top?.[0]); return c ? `${c.name} (${top[1].toLocaleString()})` : '—'; })()}.</p>
+                <p className="text-xs text-gray-500">{sim.found} of {cards.filter(c => num(c.id) > 0).length} cards appeared in {sim.draws.toLocaleString()} packs. Most pulled: {(() => { const top = Object.entries(sim.perCard).sort((a, b) => b[1] - a[1])[0]; const c = cards.find(x => x.id === top?.[0]); return c ? `${c.name} (${top[1].toLocaleString()})` : '-'; })()}.</p>
               </div>
             )}
           </div>

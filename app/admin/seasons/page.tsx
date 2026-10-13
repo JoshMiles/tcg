@@ -89,7 +89,7 @@ export default async function SeasonsPage() {
                         {[
                           ['Viewers', stats.viewers],
                           ['Pulled', stats.copies.toLocaleString()],
-                          ['Found', stats.pool > 0 ? `${Math.round((stats.found / stats.pool) * 100)}%` : '—'],
+                          ['Found', stats.pool > 0 ? `${Math.round((stats.found / stats.pool) * 100)}%` : '-'],
                           ['Complete', stats.complete],
                         ].map(([label, value]) => (
                           <div key={label as string}>
@@ -100,7 +100,7 @@ export default async function SeasonsPage() {
                       </dl>
                     ) : (
                       <div className="text-center">
-                        <p className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-none">{packs.total === 0 ? '—' : `${packs.active}/${packs.total}`}</p>
+                        <p className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-none">{packs.total === 0 ? '-' : `${packs.active}/${packs.total}`}</p>
                         <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mt-1">Packs active</p>
                       </div>
                     )}

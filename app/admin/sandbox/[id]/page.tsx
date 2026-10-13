@@ -235,7 +235,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                     <tr key={c.number} className="hover:bg-white/[0.02]">
                       <td className="py-1.5 pr-2 text-gray-600 tabular-nums">{c.number}</td>
                       <td className="py-1.5 pr-2 text-gray-200">{c.name} <span className="text-yellow-500/80">{'★'.repeat(c.stars)}</span></td>
-                      <td className="py-1.5 px-2 text-right tabular-nums text-gray-400">{c.pullRate > 0 ? `${(c.pullRate * 100).toFixed(c.pullRate < 0.01 ? 2 : 1)}%` : '—'}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-gray-400">{c.pullRate > 0 ? `${(c.pullRate * 100).toFixed(c.pullRate < 0.01 ? 2 : 1)}%` : '-'}</td>
                       <td className="py-1.5 px-2 text-right tabular-nums text-gray-500">{c.copies.regular}·{c.copies.reverse}·{c.copies.full}·{c.copies.shiny}</td>
                       {VARIANTS.map(v => <td key={v} className={`py-1.5 px-2 text-right tabular-nums font-semibold ${v !== 'regular' && !c.upgrades ? 'text-gray-700' : 'text-yellow-300'}`}>{c.values[v].toLocaleString()}</td>)}
                     </tr>

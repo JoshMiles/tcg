@@ -97,9 +97,9 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
         <Box type={type} href={`/leaderboard/${b.season.id}`} linkLabel="Leaderboard">
           <dl className="text-sm divide-y divide-gray-800/70">
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Cards</dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
-            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Serial number bonus</dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '—'}</dd></div>
+            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Serial number bonus</dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Completion bonus</dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
-            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Complete set bonus</dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : '—'}</dd></div>
+            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Complete set bonus</dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
           </dl>
           <p className="text-xs text-gray-500">{s.copies} cop{s.copies === 1 ? 'y' : 'ies'} · {s.uniqueCards}/{s.totalCards} different cards</p>

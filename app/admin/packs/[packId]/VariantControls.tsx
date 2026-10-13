@@ -71,7 +71,7 @@ export function CardToggles({
   const [disabled, setDisabled] = useState<OptionalVariant[]>(initialDisabled);
   const [, start] = useTransition();
 
-  if (!packUpgrades) return <span className="text-xs text-gray-700">—</span>;
+  if (!packUpgrades) return <span className="text-xs text-gray-700">-</span>;
 
   const fullArtOn = !packDisabled.includes('full') && !disabled.includes('full') || !packDisabled.includes('shiny') && !disabled.includes('shiny');
   return (
