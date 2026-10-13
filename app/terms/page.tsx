@@ -54,6 +54,10 @@ export default function TermsPage() {
             other monetary value, are not property or a financial asset, and can&rsquo;t be sold, bought, or exchanged for money, goods, or services — inside or outside the Service.
           </li>
           <li>
+            The cards are <strong className="text-white">not NFTs</strong>, tokens, cryptocurrency or digital securities, and nothing about them is recorded on a blockchain. They are simply entries in
+            this game&rsquo;s own database, like points in an arcade game. Any offer to buy, sell or &ldquo;mint&rdquo; them as NFTs or for real money is not from us.
+          </li>
+          <li>
             You receive a licence to display and use the items you earn within the Service. You don&rsquo;t own them, and they are not transferable except by features we provide
             (such as trading with other viewers on the website, where offered cards are held in escrow until the offer ends; an offer can be declined, cancelled or expire, and trading can be paused or changed at any time).
           </li>

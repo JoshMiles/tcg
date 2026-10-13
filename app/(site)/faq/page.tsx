@@ -84,6 +84,11 @@ export default async function FaqPage() {
           A collectible card game played live on {CHANNEL_NAME}&rsquo;s Twitch channel. Packs are opened on stream, the cards you pull go into your collection, and you can hunt for rare versions, upgrade your duplicates and climb
           the leaderboard. It&rsquo;s a fan-made community game and isn&rsquo;t affiliated with Twitch.
         </Q>
+        <Q q="Are the cards NFTs or worth real money?" id="not-nfts">
+          No. The cards are <strong className="text-white">virtual trading cards for fun</strong>: entries in this game&rsquo;s own database, not NFTs, tokens, crypto or anything on a blockchain. They aren&rsquo;t assets or property, have no cash value,
+          and can&rsquo;t be bought, sold or cashed out, here or anywhere else. Serial numbers and rarities are just part of the game. If anyone offers to sell you our cards, or to &ldquo;mint&rdquo; them, it isn&rsquo;t us. See the{' '}
+          <Link href="/terms" className="text-yellow-400 hover:text-yellow-300">Terms</Link>.
+        </Q>
         <Q q="Where can I play?">
           Only on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a> — it doesn&rsquo;t run anywhere else. Packs are opened live there,
           and the Twitch extension is only available on that channel. This website just lets you look at your collection and, when you&rsquo;re logged in, upgrade your cards.
