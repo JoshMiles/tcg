@@ -48,7 +48,7 @@ export function QuickActions({
   const [clearState, clearAction, clearing] = useActionState<ActionResult | null, FormData>(clearQueueAction, null);
   const { status } = useOverlayStatus();
 
-  // Controlled so the values survive a submit — React resets uncontrolled fields after a form action,
+  // Controlled so the values survive a submit, React resets uncontrolled fields after a form action,
   // which would make you retype the viewer (e.g. when retrying with "queue anyway").
   const [username, setUsername] = useState(defaultUsername);
   const [count, setCount] = useState('1');
@@ -61,7 +61,7 @@ export function QuickActions({
   }, [state]);
 
   const offline = status !== null && status.connected === 0;
-  // A "no overlay connected" refusal is out of date as soon as an overlay connects — don't keep showing it.
+  // A "no overlay connected" refusal is out of date as soon as an overlay connects. Don't keep showing it.
   const refusalIsStale = !!state?.needsForce && !offline;
   const shown = refusalIsStale ? null : state;
   const queued = status?.queued ?? 0;

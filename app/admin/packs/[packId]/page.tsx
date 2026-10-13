@@ -112,7 +112,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
       {isDraft && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-amber-200">
-            This pack is a <strong>draft</strong> — it&apos;s never drawn on stream until you publish it.
+            This pack is a <strong>draft</strong>: it&apos;s never drawn on stream until you publish it.
           </p>
           <Link href={`/admin/packs/new?draft=${packId}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Continue setup →</Link>
         </div>
@@ -157,13 +157,13 @@ export default async function PackPage({ params, searchParams }: { params: Promi
                 {sorted.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-5 py-16 text-center text-gray-600">
-                      No cards yet — add your first card →
+                      No cards yet. Add your first card →
                     </td>
                   </tr>
                 )}
                 {sorted.map(card => {
                   const del = deleteCard.bind(null, packId, card.id);
-                  const pct = totalProb > 0 ? (card.probability / totalProb * 100).toFixed(1) : '—';
+                  const pct = totalProb > 0 ? (card.probability / totalProb * 100).toFixed(1) : '-';
                   const rarity = getRarity(card.stars);
                   return (
                     <tr key={card.id} data-card data-stars={card.stars} data-search={`${card.name} ${card.number}`.toLowerCase()} className="hover:bg-white/[0.02] transition-colors">

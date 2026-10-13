@@ -65,7 +65,7 @@ const SAVE_LABEL: Record<SaveState, { text: string; cls: string }> = {
 export function SaveIndicator({ state, error, hasDraft }: { state: SaveState; error?: string; hasDraft: boolean }) {
   if (!hasDraft) return <span className="text-xs text-gray-600">Not saved yet</span>;
   const { text, cls } = SAVE_LABEL[state];
-  return <span className={`text-xs font-semibold ${cls}`} title={error || undefined} role="status">{text}{state === 'error' && error ? ` — ${error}` : ''}</span>;
+  return <span className={`text-xs font-semibold ${cls}`} title={error || undefined} role="status">{text}{state === 'error' && error ? `, ${error}` : ''}</span>;
 }
 
 /** Combines two autosave states into the one shown to the user. */

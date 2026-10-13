@@ -13,7 +13,7 @@ export type AssetOrigin =
   | { kind: 'card-art' | 'sound'; packId: string; packName: string; cardId: string; cardName: string; cardNumber: number };
 
 export type AssetIssue =
-  | 'legacy-gif'        // still a (large) GIF — re-upload to get the optimized WebP
+  | 'legacy-gif'        // still a (large) GIF, re-upload to get the optimized WebP
   | 'missing'           // the URL doesn't resolve
   | 'no-thumbnail'      // card art whose static thumbnail is missing (grids would show a broken image)
   | 'heavy';            // unusually large for its type
@@ -110,7 +110,7 @@ async function listAllBlobs(): Promise<{
     let cursor: string | undefined;
     for (let page = 0; page < 10; page++) {            // up to 10,000 files
       // The SDK retries network failures with backoff and doesn't reliably honour an abort signal while
-      // doing so, so race it against a timer — a broken store must not hang the whole page.
+      // doing so, so race it against a timer. A broken store must not hang the whole page.
       const res = await withTimeout(list({ cursor, limit: 1000 }), 8000, 'Timed out reaching Vercel Blob');
       blobs.push(...res.blobs);
       if (!res.hasMore) break;
@@ -191,7 +191,7 @@ export function pickDeletable(requested: string[], inStore: Set<string>, referen
 }
 
 /**
- * Deletes Blob files that nothing references. Re-checks on the server — never trusts the form —
+ * Deletes Blob files that nothing references. Re-checks on the server. Never trusts the form, 
  * so a stale page can't delete something that has since been put back into use.
  * Returns how many files were deleted.
  */

@@ -6,7 +6,7 @@ import { DEFAULT_PROPS } from '@/lib/overlay-props';
 
 export const dynamic = 'force-dynamic';
 
-// Public (like the rest of the overlay's endpoints): how to draw the overlay — its size/position, the look & animation
+// Public (like the rest of the overlay's endpoints): how to draw the overlay. Its size/position, the look & animation
 // properties (sparse; the widget fills in defaults) and any per-pack overrides keyed by pack id. A season's look (a preset
 // attached to the active season) is layered over the global values; per-pack overrides still win over it.
 export async function GET(req: NextRequest) {

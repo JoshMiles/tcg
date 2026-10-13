@@ -101,7 +101,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
 
   const tiles = [
     { label: 'Score', value: s.score.toLocaleString(), sub: 'points' },
-    { label: 'Rank', value: s.rank ? `#${s.rank}` : '—', sub: s.rank ? `of ${s.players}` : 'not on the board yet' },
+    { label: 'Rank', value: s.rank ? `#${s.rank}` : '-', sub: s.rank ? `of ${s.players}` : 'not on the board yet' },
     { label: 'Cards', value: `${s.uniqueCards}/${s.totalCards}`, sub: `${s.completionPct}% complete` },
     { label: 'Copies', value: s.copies.toLocaleString(), sub: 'total owned' },
   ];
@@ -131,7 +131,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         <div className="rind rounded-2xl py-14 text-center space-y-2">
           <p className="text-4xl"><Icon name="cheese" className="w-10 h-10 text-yellow-400" /></p>
           <p className="font-display text-2xl font-bold text-white">Your collection is empty</p>
-          <p className="text-sm text-gray-400">Watch the stream — cards are pulled live. They&rsquo;ll appear here as you collect them.</p>
+          <p className="text-sm text-gray-400">Watch the stream, cards are pulled live. They&rsquo;ll appear here as you collect them.</p>
         </div>
       ) : (
         <>
@@ -214,7 +214,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
               <h2 className="font-display text-xl font-bold text-white"><Icon name="arrowUp" className="mr-2 text-yellow-400" />Ready to upgrade</h2>
               {s.upgradable.length === 0 ? (
                 <p className="text-sm text-gray-400">
-                  Nothing yet. Collect duplicates of the same card and version — you&rsquo;ll see what you can upgrade here.
+                  Nothing yet. Collect duplicates of the same card and version. You&rsquo;ll see what you can upgrade here.
                 </p>
               ) : (
                 <ul className="divide-y divide-gray-800/70">
@@ -245,7 +245,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 </ul>
               )}
               <p className="text-xs text-gray-500 leading-relaxed">
-                Upgrades are permanent — the copies you spend are destroyed. The newest serial numbers are spent first, and the new copy gets the next free serial of its version. The points shown are projected with the serial bonuses included, so they can occasionally be negative.
+                Upgrades are permanent. The copies you spend are destroyed. The newest serial numbers are spent first, and the new copy gets the next free serial of its version. The points shown are projected with the serial bonuses included, so they can occasionally be negative.
               </p>
             </section>
           )}
@@ -264,7 +264,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                       {m.imageUrl ? <img src={cardThumbUrl(m.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded opacity-70" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} /> : <span className="w-8 h-11 rounded bg-gray-800" />}
                       <Link href={`/cards?card=${m.number}`} className="flex-1 min-w-0 hover:text-yellow-200">
                         <span className="block text-sm font-semibold text-white truncate">{m.name}</span>
-                        <span className="block text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(m.stars)} {rarity?.label} · {m.pullRate > 0 ? `1 in ${Math.round(1 / m.pullRate).toLocaleString()}` : '—'}</span>
+                        <span className="block text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(m.stars)} {rarity?.label} · {m.pullRate > 0 ? `1 in ${Math.round(1 / m.pullRate).toLocaleString()}` : '-'}</span>
                       </Link>
                       <span className="text-xs font-bold text-emerald-300 tabular-nums shrink-0" title="Its points plus its share of the completion bonus">+{missingGain(m, s).toLocaleString()}</span>
                       <WantToggle number={m.number} initial={wanted.has(m.number)} />

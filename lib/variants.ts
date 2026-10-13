@@ -15,7 +15,7 @@ export const DEFAULT_UPGRADE_COSTS: UpgradeCosts = { reverse: 5, full: 3, shiny:
 /**
  * A collection entry is a plain number: `cardNumber + VARIANT_OFFSET * variantIndex`.
  * Regular entries are just the card number, so every pre-upgrade collection is already valid.
- * Mirrored in public/widget.js and public/twitch-panel/panel.js (no build step there) — keep in sync.
+ * Mirrored in public/widget.js and public/twitch-panel/panel.js (no build step there), keep in sync.
  * Card numbers must stay below VARIANT_OFFSET.
  */
 export const VARIANT_OFFSET = 1_000_000;

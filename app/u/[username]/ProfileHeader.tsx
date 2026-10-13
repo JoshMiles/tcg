@@ -43,8 +43,8 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileB
         </div>
 
         <dl className="grid grid-cols-3 gap-5 text-center sm:text-right shrink-0">
-          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Rank</dt><dd className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-tight">{b.rank ? `#${b.rank}` : '—'}</dd></div>
-          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Points</dt><dd className="font-display text-3xl font-bold text-white tabular-nums leading-tight">{b.row ? Math.round(b.row.score).toLocaleString() : '—'}</dd></div>
+          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Rank</dt><dd className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-tight">{b.rank ? `#${b.rank}` : '-'}</dd></div>
+          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Points</dt><dd className="font-display text-3xl font-bold text-white tabular-nums leading-tight">{b.row ? Math.round(b.row.score).toLocaleString() : '-'}</dd></div>
           <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Cards</dt><dd className="font-display text-3xl font-bold text-white tabular-nums leading-tight">{b.uniqueOwned}<span className="text-lg text-gray-500">/{b.total}</span></dd></div>
         </dl>
       </div>

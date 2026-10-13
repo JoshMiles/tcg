@@ -40,7 +40,7 @@ function applyHolo(el, card, variant, live) {
   for (const k in spec.style) el.style.setProperty(k, spec.style[k]);
 }
 
-// Reads a claim from the (unverified) Extension JWT. Only used for UX decisions — the server
+// Reads a claim from the (unverified) Extension JWT. Only used for UX decisions. The server
 // verifies the signature before trusting anything.
 function jwtClaim(token, name) {
   try {
@@ -318,7 +318,7 @@ function renderGrid() {
       const color = RARITY_COLOR[card.stars] || '#fbbf24';
       cell.style.setProperty('--rarity-color', color);
 
-      // dimmed — pulled in past season only
+      // dimmed, pulled in past season only
       addCardImage(cell, { ...card, ...variantArt(card, status.best) }, { alt: card.name, dimmed: !ownedActive && ownedPast.length > 0 });
 
       // Upgraded variants get a holo sheen / glow, and a marker
@@ -510,7 +510,7 @@ function renderDetail() {
     num.textContent = '×0';
     label.textContent = 'Not pulled this season';
   } else {
-    num.textContent = '—';
+    num.textContent = '-';
     label.textContent = 'Not collected yet';
   }
   count.append(num, label);
@@ -1126,7 +1126,7 @@ async function linkAndLogin(username) {
         body: JSON.stringify({ username }),
       });
     } catch {
-      // Non-fatal — still show collection
+      // Non-fatal, still show collection
     }
   }
 
@@ -1291,13 +1291,13 @@ function showLoginScreen(statusMsg) {
 // ── Entry point ───────────────────────────────────────────
 async function init(twitchAuth) {
   auth = twitchAuth;
-  console.log('[TCG] init() — userId:', auth.userId, '| identityRequestPending:', identityRequestPending);
+  console.log('[TCG] init(), userId:', auth.userId, '| identityRequestPending:', identityRequestPending);
 
   // Re-auth fired after user responded to the identity-share popup.
-  // JWT now contains user_id — send it to the server to resolve username.
+  // JWT now contains user_id, send it to the server to resolve username.
   if (identityRequestPending) {
     identityRequestPending = false;
-    console.log('[TCG] identity share response — trying JWT login');
+    console.log('[TCG] identity share response, trying JWT login');
     showState('loading');
     const result = await loginFromJwt();
     if (result.ok) return;
@@ -1310,28 +1310,28 @@ async function init(twitchAuth) {
   const ok = await loadSeason();
   if (!ok) return;
 
-  // Explicit logout — respect it, show login screen
+  // Explicit logout, respect it, show login screen
   if (isExplicitlyLoggedOut()) {
     showLoginScreen();
     return;
   }
 
-  // Returning user with saved opaque→username mapping — silent auto-login
+  // Returning user with saved opaque→username mapping, silent auto-login
   const autoLoggedIn = await tryAutoLogin();
   if (autoLoggedIn) return;
 
-  // JWT may already contain user_id from a previous grant — try silent login
+  // JWT may already contain user_id from a previous grant. Try silent login
   const result = await loginFromJwt();
   if (result.ok) return;
 
-  // 403 just means this viewer hasn't shared their identity yet — show a plain login screen.
+  // 403 just means this viewer hasn't shared their identity yet, show a plain login screen.
   // Anything else is a real failure; say so instead of silently looking logged out.
   showLoginScreen(result.status === 403 || result.status === 0 ? undefined : loginFailureMessage(result));
 }
 
 // ── Build version ─────────────────────────────────────────
 // Shows which deployment this panel is running (the page, script and API ship together on Vercel).
-// Purely informational — never blocks or breaks the panel.
+// Purely informational. Never blocks or breaks the panel.
 async function showVersion() {
   const el = document.getElementById('panel-version');
   if (!el) return;
@@ -1358,7 +1358,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   const btn = document.getElementById('login-btn');
   btn.disabled = true;
 
-  console.log('[TCG] login-btn clicked — userId:', auth?.userId, '| broadcaster:', isBroadcaster(), '| requestIdShare:', typeof window.Twitch?.ext?.actions?.requestIdShare);
+  console.log('[TCG] login-btn clicked, userId:', auth?.userId, '| broadcaster:', isBroadcaster(), '| requestIdShare:', typeof window.Twitch?.ext?.actions?.requestIdShare);
 
   // Channel owner: Twitch never shows the share prompt on your own channel, so don't wait for it.
   if (isBroadcaster()) {
@@ -1369,7 +1369,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   }
 
   if (window.Twitch?.ext?.actions?.requestIdShare) {
-    // Keep the login screen visible — just update the button and show a hint
+    // Keep the login screen visible, just update the button and show a hint
     btn.textContent = 'Waiting for Twitch...';
     const statusEl = document.getElementById('login-status');
     if (statusEl) {
@@ -1382,7 +1382,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
     window.Twitch.ext.actions.requestIdShare();
     setTimeout(() => {
       if (identityRequestPending) {
-        console.warn('[TCG] 20s timeout — onAuthorized never re-fired after requestIdShare');
+        console.warn('[TCG] 20s timeout, onAuthorized never re-fired after requestIdShare');
         identityRequestPending = false;
         showLoginScreen("Twitch didn't respond. If no prompt appeared, the extension may not have identity linking enabled. Try again, or reload the page.");
       }
@@ -1391,7 +1391,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
   }
 
   // Extension Helper unavailable
-  console.error('[TCG] requestIdShare not available — Twitch.ext.actions:', window.Twitch?.ext?.actions);
+  console.error('[TCG] requestIdShare not available, Twitch.ext.actions:', window.Twitch?.ext?.actions);
   showLoginScreen('Twitch identity sharing unavailable.');
 });
 
@@ -1422,6 +1422,6 @@ if (typeof window.Twitch !== 'undefined' && window.Twitch.ext) {
   window.Twitch.ext.onAuthorized(authObj => init(authObj));
   window.Twitch.ext.onError(err => console.error('[TCG Panel]', err));
 } else {
-  // Dev mode — run without the Twitch Extension environment
+  // Dev mode, run without the Twitch Extension environment
   init({ userId: 'dev_mock_opaque', token: null, channelId: 'dev' });
 }

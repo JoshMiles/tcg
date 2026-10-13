@@ -84,7 +84,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
       <div className="space-y-3">
         <h1 className="font-display text-4xl font-bold text-white"><Icon name="cards" className="mr-2 text-yellow-400" />Card dex</h1>
         <p className="text-sm text-gray-400">
-          Every card in {season.name}, with how rare it is and what it&rsquo;s worth. Values shift as more cards are pulled — see{' '}
+          Every card in {season.name}, with how rare it is and what it&rsquo;s worth. Values shift as more cards are pulled. See{' '}
           <Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how points are worked out</Link>.
         </p>
         {seasons.length > 1 && (

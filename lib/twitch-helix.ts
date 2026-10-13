@@ -15,7 +15,7 @@ export function twitchCredentials(): { clientId: string; clientSecret: string } 
 }
 
 export async function getAppAccessToken(clientId: string, clientSecret: string): Promise<string> {
-  // Module-scoped cache — survives across requests in the same serverless instance
+  // Module-scoped cache, survives across requests in the same serverless instance
   if (cachedToken && Date.now() < cachedToken.expires_at) return cachedToken.access_token;
   const res = await fetch(`${TWITCH_ID_URL}/oauth2/token`, {
     method: 'POST',

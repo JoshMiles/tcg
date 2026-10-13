@@ -6,7 +6,7 @@ import { signMockTwitchJwt } from '@/lib/twitch-jwt';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/admin/sandbox/ext-token — used by the fake Twitch page's pretend extension helper (public/twitch-panel/mock-twitch-ext.js).
+// POST /api/admin/sandbox/ext-token, used by the fake Twitch page's pretend extension helper (public/twitch-panel/mock-twitch-ext.js).
 // Mints a token that looks like what Twitch hands the panel, for a viewer of the sandbox you are in. Admin only, and the token
 // is only honoured inside that same sandbox (lib/twitch-jwt.ts verifyExtensionAuth).
 //   body: { as?: string (the viewer's login; empty = not logged in to Twitch), share?: boolean (shared their identity), role?: 'viewer' | 'broadcaster' }

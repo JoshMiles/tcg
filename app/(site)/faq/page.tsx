@@ -90,7 +90,7 @@ export default async function FaqPage() {
           <Link href="/terms" className="text-yellow-400 hover:text-yellow-300">Terms</Link>.
         </Q>
         <Q q="Where can I play?">
-          Only on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a> — it doesn&rsquo;t run anywhere else. Packs are opened live there,
+          Only on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a>. It doesn&rsquo;t run anywhere else. Packs are opened live there,
           and the Twitch extension is only available on that channel. This website just lets you look at your collection and, when you&rsquo;re logged in, upgrade your cards.
         </Q>
         <Q q="Is there an app?" id="app">
@@ -140,10 +140,10 @@ export default async function FaqPage() {
             <>
               <p>In seasons with variants, every card can be pulled in four versions. The art is the same card with more or less flair:</p>
               <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
-                <li><strong className="text-white">Regular</strong> — the standard card.</li>
-                <li><strong className="text-fuchsia-300">Reverse Holo</strong> — the regular art with a holographic shimmer.</li>
-                <li><strong className="text-sky-300">Full Art</strong> — a bolder full-art version of the card.</li>
-                <li><strong className="text-amber-300">Shiny Full Art</strong> — the full art with the holographic shimmer, and it gently rocks on screen. The rarest of all.</li>
+                <li><strong className="text-white">Regular</strong>: the standard card.</li>
+                <li><strong className="text-fuchsia-300">Reverse Holo</strong>: the regular art with a holographic shimmer.</li>
+                <li><strong className="text-sky-300">Full Art</strong>: a bolder full-art version of the card.</li>
+                <li><strong className="text-amber-300">Shiny Full Art</strong>: the full art with the holographic shimmer, and it gently rocks on screen. The rarest of all.</li>
               </ul>
             </>
           ) : (
@@ -160,7 +160,7 @@ export default async function FaqPage() {
           </Q>
         )}
         <Q q="Can I see cards I haven&rsquo;t found yet?">
-          Yes — the <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">Card dex</Link> lists every card in the season. On your own collection page, cards you haven&rsquo;t pulled yet show as a <strong className="text-white">?</strong>.
+          Yes. The <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">Card dex</Link> lists every card in the season. On your own collection page, cards you haven&rsquo;t pulled yet show as a <strong className="text-white">?</strong>.
         </Q>
         <Q q="What are serial numbers?" id="serials" open>
           Every copy of a card has two numbers. Its <strong className="text-white">unique copy number</strong> (like #1023381) is different for every copy in the whole game and is how you refer to it: type it in the search box or open <code className="text-yellow-300">/c/1023381</code>. Its <strong className="text-white">edition number</strong> is counted per card and per version of that card, and is the one that earns the points bonus. For example, your Shiny Gouda Goat edition #3 is the third Shiny Gouda Goat drawn. Open a card in your collection to see your serial numbers,
@@ -190,7 +190,7 @@ export default async function FaqPage() {
             </Q>
             <Q q="What are the rules?">
               <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
-                <li>Only one step at a time — no skipping from Regular straight to Shiny.</li>
+                <li>Only one step at a time. No skipping from Regular straight to Shiny.</li>
                 <li>Only copies of the <strong className="text-white">same card and the same version</strong> can be combined.</li>
                 <li>Upgrades are <strong className="text-white">permanent</strong>. The copies you spend are destroyed.</li>
                 <li>Only the current season can be upgraded.</li>
@@ -204,7 +204,7 @@ export default async function FaqPage() {
           </Q>
         )}
         <Q q="Can I trade cards with other people?">
-          Yes — see <a href="#trading" className="text-yellow-400 hover:text-yellow-300">Trading</a>. You can also trade duplicates for the version you&rsquo;re missing instead of upgrading them.
+          Yes. See <a href="#trading" className="text-yellow-400 hover:text-yellow-300">Trading</a>. You can also trade duplicates for the version you&rsquo;re missing instead of upgrading them.
         </Q>
       </Section>
 
@@ -216,8 +216,8 @@ export default async function FaqPage() {
             There are two kinds of offer:
           </p>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
-            <li><strong className="text-white">To one person</strong> — only they can accept, decline or counter it. You can start one from the &ldquo;Trade with…&rdquo; button on their profile.</li>
-            <li><strong className="text-white">On the open board</strong> — a listing anyone can take, as long as they own what you ask for.</li>
+            <li><strong className="text-white">To one person</strong>: only they can accept, decline or counter it. You can start one from the &ldquo;Trade with…&rdquo; button on their profile.</li>
+            <li><strong className="text-white">On the open board</strong>: a listing anyone can take, as long as they own what you ask for.</li>
           </ul>
           <p className="mt-2">When someone accepts, the swap happens instantly and both collections update. There are no fees and no randomness.</p>
         </Q>
@@ -251,7 +251,7 @@ export default async function FaqPage() {
           Trades move your <strong className="text-white">newest</strong> copies of a card first, so the low serial numbers you pulled earliest stay with you. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">serial numbers</a>.
         </Q>
         <Q q="Is a trade fair? How do I know what a card is worth?">
-          Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule — you can
+          Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule. You can
           trade anything for anything. Remember that a copy’s serial number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
         </Q>
         <Q q="Can I be told when a card I want is listed?">
@@ -335,17 +335,17 @@ export default async function FaqPage() {
           <p className="font-display text-xl font-bold text-yellow-300 my-2">{scoring.baseScore} × rarity{upgradesOn ? ' × version' : ''} × serial bonus</p>
           <ul className="space-y-2">
             <li>
-              <strong className="text-white">Rarity</strong> — how hard the card is to pull compared with an average card. A card that comes up half as often is worth twice as much.
+              <strong className="text-white">Rarity</strong>: how hard the card is to pull compared with an average card. A card that comes up half as often is worth twice as much.
             </li>
             <li>
-              <strong className="text-white">Serial bonus</strong> — {scoring.serialBonusCutoff > 0 ? (
+              <strong className="text-white">Serial bonus</strong>: {scoring.serialBonusCutoff > 0 ? (
                 <>every copy has a <a href="#serials" className="text-yellow-400 hover:text-yellow-300">serial number</a>, and the first copies ever made of a card (in each version) are worth extra. Copy #1 is worth{' '}
                 <strong className="text-white">{scoring.serialBonusMax}×</strong>, and the bonus fades in a straight line until it is gone after #{scoring.serialBonusCutoff}. The bonus belongs to the copy, so it moves with it if you trade it.</>
               ) : 'switched off in this game, so every copy of a version is worth the same.'}
             </li>
             {upgradesOn && (
               <li>
-                <strong className="text-white">Version</strong> — Reverse Holo, Full Art and Shiny Full Art copies are worth far more than a Regular. An upgraded card is normally worth more than the copies you spend to
+                <strong className="text-white">Version</strong>: Reverse Holo, Full Art and Shiny Full Art copies are worth far more than a Regular. An upgraded card is normally worth more than the copies you spend to
                 make it, though the serial bonus on the copies you spend can change that.
               </li>
             )}
@@ -357,23 +357,23 @@ export default async function FaqPage() {
         </Q>
         <Q q="What are the collection bonuses?">
           <p id="bonuses">
-            Collecting more of the set pays off, on top of what your individual cards are worth. There are two bonuses, both measured against the <strong className="text-white">set value</strong> — what one
+            Collecting more of the set pays off, on top of what your individual cards are worth. There are two bonuses, both measured against the <strong className="text-white">set value</strong>: what one
             Regular copy of every card in the season is worth right now{overview ? <> (currently <strong className="text-white">{overview.values.setValue.toLocaleString()}</strong> points)</> : null}:
           </p>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
             <li>
-              <strong className="text-white">Completion bonus</strong> — grows with the share of the set you own, up to{' '}
+              <strong className="text-white">Completion bonus</strong>: grows with the share of the set you own, up to{' '}
               <strong className="text-white">{scoring.completionBonusPct}%</strong> of the set value
               {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.completion.toLocaleString()}</strong> points at 100%)</> : null}. Every new card you find adds its own points <em>and</em> raises this.
             </li>
             <li>
-              <strong className="text-white">Complete collection bonus</strong> — own at least one of <em>every</em> card in the season and you earn an extra{' '}
+              <strong className="text-white">Complete collection bonus</strong>: own at least one of <em>every</em> card in the season and you earn an extra{' '}
               <strong className="text-white">{scoring.completeSetBonusPct}%</strong> of the set value
               {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.set.toLocaleString()}</strong> points)</> : null}, and a <strong className="text-white"><Icon name="cheese" className="mr-1" />Complete</strong> badge on the leaderboard.
             </li>
           </ul>
           <p className="mt-2">
-            Duplicates and rarer versions don&rsquo;t count towards completeness — only having at least one copy of each card does. The bonuses move with the set value, so they stay in proportion as card values shift. You can see your own
+            Duplicates and rarer versions don&rsquo;t count towards completeness. Only having at least one copy of each card does. The bonuses move with the set value, so they stay in proportion as card values shift. You can see your own
             breakdown on <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>.
           </p>
         </Q>
@@ -399,7 +399,7 @@ export default async function FaqPage() {
         <Q q="Does upgrading raise my score?">
           {upgradesOn ? (
             <>
-              Usually, yes — a higher version is worth much more. But upgrades <strong className="text-white">use cards up</strong>: the copies you spend are destroyed (the newest serial numbers go first, so your lowest numbers are the last to go), and the new copy gets the next free serial of its version, which is only worth a bonus while it is still early in that version’s count. <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>{' '}
+              Usually, yes. A higher version is worth much more. But upgrades <strong className="text-white">use cards up</strong>: the copies you spend are destroyed (the newest serial numbers go first, so your lowest numbers are the last to go), and the new copy gets the next free serial of its version, which is only worth a bonus while it is still early in that version’s count. <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>{' '}
               shows a projected change for each upgrade with all of this included, so occasionally it can be negative.
             </>
           ) : (
@@ -407,7 +407,7 @@ export default async function FaqPage() {
           )}
         </Q>
         <Q q="Is there a leaderboard for each season?">
-          Yes. Every season has its own leaderboard, and past seasons stay available — use the season buttons at the top of the <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300">leaderboard</Link>,{' '}
+          Yes. Every season has its own leaderboard, and past seasons stay available. Use the season buttons at the top of the <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300">leaderboard</Link>,{' '}
           <Link href="/stats" className="text-yellow-400 hover:text-yellow-300">stats</Link> and <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">card dex</Link> pages.
         </Q>
         {valueRows.length > 0 && (
@@ -437,7 +437,7 @@ export default async function FaqPage() {
                       <td className="py-1.5 px-2 text-right tabular-nums text-gray-500">{v!.copies}</td>
                       <td className="py-1.5 px-2 text-right tabular-nums">{v!.values.regular}</td>
                       {upgradesOn && VARIANTS.filter(x => x !== 'regular').map(x => (
-                        <td key={x} className="py-1.5 px-2 text-right tabular-nums text-gray-400">{upgradable ? v!.values[x] : '—'}</td>
+                        <td key={x} className="py-1.5 px-2 text-right tabular-nums text-gray-400">{upgradable ? v!.values[x] : '-'}</td>
                       ))}
                     </tr>
                   ))}
@@ -456,7 +456,7 @@ export default async function FaqPage() {
           Your collection page shows the current season. Cards you collected in an earlier season stay with that season.
         </Q>
         <Q q="Can I see old seasons?">
-          Yes — the leaderboard, season stats and card dex all have season buttons at the top so you can look back.
+          Yes. The leaderboard, season stats and card dex all have season buttons at the top so you can look back.
         </Q>
       </Section>
 
@@ -493,7 +493,7 @@ export default async function FaqPage() {
       {/* ── Help ── */}
       <Section id="help" title="Something not working?" icon="wrench">
         <Q q="I can&rsquo;t log in on the website" open>
-          Try again — the sign-in link only lasts a few minutes and must finish in the same browser. If you pressed <em>Cancel</em> on Twitch&rsquo;s page we can&rsquo;t log you in. Make sure cookies are allowed for this site.
+          Try again. The sign-in link only lasts a few minutes and must finish in the same browser. If you pressed <em>Cancel</em> on Twitch&rsquo;s page we can&rsquo;t log you in. Make sure cookies are allowed for this site.
         </Q>
         <Q q="Why am I asked for a &ldquo;quick check&rdquo; when I trade or upgrade?" id="captcha">
           To stop bots from spamming trades and upgrades. It&rsquo;s a short Cloudflare check that usually passes on its own; if it does ask you to tick a box, do that and your trade or upgrade carries on.

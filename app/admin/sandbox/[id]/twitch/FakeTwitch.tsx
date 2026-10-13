@@ -116,7 +116,7 @@ export function FakeTwitch({ sandboxId, users, channel }: { sandboxId: string; u
             <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-[#1f1147] via-[#2b1a63] to-[#0b3b4a]">
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white/30 select-none">
                 <span className="text-5xl"><Icon name="gamepad" className="w-12 h-12" /></span>
-                <span className="mt-2 text-sm font-semibold">{channel} — pretend stream</span>
+                <span className="mt-2 text-sm font-semibold">{channel}, pretend stream</span>
               </div>
               {showOverlay && <iframe title="Overlay" src={`/overlay.html?sandbox=${encodeURIComponent(sandboxId)}`} style={{ colorScheme: 'light' }} className="absolute inset-0 w-full h-full border-0" />}
               <span className="absolute top-2 left-2 bg-red-600 text-white text-[11px] font-black rounded px-1.5 py-0.5 tracking-wide">LIVE</span>

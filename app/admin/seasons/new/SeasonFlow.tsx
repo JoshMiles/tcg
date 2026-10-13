@@ -156,9 +156,9 @@ export function SeasonFlow({
                 placeholder="e.g. Season2Deck"
                 className={inputCls}
               />
-              <p className="text-xs text-gray-600 mt-1">Storage key for viewers&apos; cards — no spaces, and unique per season. Suggested from the name.</p>
+              <p className="text-xs text-gray-600 mt-1">Storage key for viewers&apos; cards. No spaces, and unique per season. Suggested from the name.</p>
               {season.collectionName && otherCollections.some(n => n.toLowerCase() === season.collectionName.toLowerCase()) && (
-                <p className="text-xs text-red-400 mt-1">Another season already uses this — its viewers&apos; cards would be shared.</p>
+                <p className="text-xs text-red-400 mt-1">Another season already uses this. Its viewers&apos; cards would be shared.</p>
               )}
             </div>
             <div>
@@ -237,7 +237,7 @@ export function SeasonFlow({
               </ul>
             )}
             <p className="text-xs text-gray-600">
-              Draw weight belongs to the pack (shared by every season using it) — change it in the pack&apos;s settings.{' '}
+              Draw weight belongs to the pack (shared by every season using it), change it in the pack&apos;s settings.{' '}
               <Link href="/admin/packs/new" target="_blank" className="text-yellow-500 hover:text-yellow-400">Create another pack ↗</Link>
             </p>
           </>
@@ -268,9 +268,9 @@ export function SeasonFlow({
               </p>
             )}
             <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <Summary label="Name" value={season.name || '—'} />
-              <Summary label="Collection name" value={season.collectionName || '—'} />
-              <Summary label="Packs" value={selected.length ? selected.map(p => p.name || 'Untitled').join(', ') : '—'} />
+              <Summary label="Name" value={season.name || '-'} />
+              <Summary label="Collection name" value={season.collectionName || '-'} />
+              <Summary label="Packs" value={selected.length ? selected.map(p => p.name || 'Untitled').join(', ') : '-'} />
               <Summary label="Concurrent packs" value={String(season.maxConcurrentPacks)} />
             </dl>
           </>

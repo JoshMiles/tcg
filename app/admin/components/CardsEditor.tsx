@@ -31,7 +31,7 @@ export function newRow(over: Partial<CardRow> = {}): CardRow {
   };
 }
 
-/** The fields autosave cares about — excludes server-assigned numbers and transient upload state. */
+/** The fields autosave cares about, excludes server-assigned numbers and transient upload state. */
 export function cardsSignature(rows: CardRow[]): string {
   return JSON.stringify(rows.map(({ number: _n, busy: _b, error: _e, ...rest }) => rest));
 }
@@ -131,7 +131,7 @@ export function CardsEditor({
       >
         <p className="text-white font-semibold">Drop card images here, or click to choose</p>
         <p className="text-xs text-gray-500 mt-1">
-          Each image becomes a card, named from its filename. PNG, JPG, WebP or GIF — GIFs are shrunk automatically.
+          Each image becomes a card, named from its filename. PNG, JPG, WebP or GIF, GIFs are shrunk automatically.
         </p>
         <input
           ref={fileInput}
@@ -177,7 +177,7 @@ export function CardsEditor({
 
       {/* Rows */}
       {cards.length === 0 ? (
-        <p className="text-center text-sm text-gray-600 py-6">No cards yet — drop some images above.</p>
+        <p className="text-center text-sm text-gray-600 py-6">No cards yet. Drop some images above.</p>
       ) : (
         <ul className="space-y-2">
           {cards.map((c, idx) => {
@@ -231,7 +231,7 @@ export function CardsEditor({
                         className={`${inputCls} w-20`}
                         aria-label="Probability weight"
                       />
-                      <span className="w-12 text-gray-400 tabular-nums">{pct > 0 ? `${pct.toFixed(1)}%` : '—'}</span>
+                      <span className="w-12 text-gray-400 tabular-nums">{pct > 0 ? `${pct.toFixed(1)}%` : '-'}</span>
                     </label>
                   </div>
 
@@ -268,7 +268,7 @@ export function CardsEditor({
                   </div>
                   {c.error && <p className="text-xs text-red-400">{c.error}</p>}
                   {upgradesEnabled && c.upgradesEnabled && !c.fullArtImageUrl && c.imageUrl && (
-                    <p className="text-[11px] text-gray-600">No full-art image — Full Art and Shiny will reuse the card art.</p>
+                    <p className="text-[11px] text-gray-600">No full-art image, Full Art and Shiny will reuse the card art.</p>
                   )}
                 </div>
 

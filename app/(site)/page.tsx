@@ -151,7 +151,7 @@ export default async function HomePage() {
           <section className="rind rounded-2xl py-14 text-center space-y-2">
             <p className="text-4xl"><Icon name="cheese" className="w-10 h-10 text-yellow-400" /></p>
             <p className="font-display text-2xl font-bold text-white">No season is running right now</p>
-            <p className="text-sm text-gray-400">Check back soon — the next batch of cards is being prepared.</p>
+            <p className="text-sm text-gray-400">Check back soon. The next batch of cards is being prepared.</p>
           </section>
         ) : null}
 
@@ -194,7 +194,7 @@ export default async function HomePage() {
                   <Link href={`/leaderboard/${season.id}`} className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold">Full leaderboard →</Link>
                 </div>
                 {top.length === 0 ? (
-                  <p className="rind rounded-2xl p-6 text-sm text-gray-400">No one is on the board yet — be the first!</p>
+                  <p className="rind rounded-2xl p-6 text-sm text-gray-400">No one is on the board yet. Be the first!</p>
                 ) : (
                   <ol className="space-y-2">
                     {top.map((r, i) => (

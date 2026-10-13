@@ -9,7 +9,7 @@ export function SeasonFields({ defaults }: { defaults?: { name?: string; collect
         name="collectionName"
         required
         defaultValue={defaults?.collectionName}
-        help="No spaces — used as the KV key prefix (e.g. CheesyStarterDeck)"
+        help="No spaces, used as the KV key prefix (e.g. CheesyStarterDeck)"
       />
       <Field
         label="Max Concurrent Packs"

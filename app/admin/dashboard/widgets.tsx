@@ -45,7 +45,7 @@ function Overview({ d }: { d: DashboardData }) {
 function TopCollectors({ d }: { d: DashboardData }) {
   return (
     <Panel title="Top collectors" icon="award" flush action={<span className="flex items-center gap-4"><More href={`/leaderboard/${d.season.id}`} external>Full leaderboard ↗</More><More href="/admin/users">View all →</More></span>}>
-      {d.topCollectors.length === 0 ? <Empty>No players yet — share the overlay and start pulling cards!</Empty> : (
+      {d.topCollectors.length === 0 ? <Empty>No players yet. Share the overlay and start pulling cards!</Empty> : (
         <div className="divide-y divide-gray-800/60">
           {d.topCollectors.map(({ username, owned, pct }, i) => (
             <div key={username} className="px-5 py-3 flex items-center gap-4 hover:bg-gray-800/30 transition-colors">
@@ -158,7 +158,7 @@ function describe(e: ActivityEvent, d: DashboardData): { icon: IconName; text: s
   const cardName = (n: number) => d.allCards.find(c => c.number === n)?.name ?? `#${n}`;
   const v = (x?: string) => (x && x !== 'regular' ? ` (${VARIANT_LABELS[x as keyof typeof VARIANT_LABELS] ?? x})` : '');
   switch (e.type) {
-    case 'pull': return { icon: 'cards', text: `${e.username} pulled ${e.cardName || cardName(e.cardNumber)}${v(e.variant)}${e.isNew ? ' — new!' : ''}` };
+    case 'pull': return { icon: 'cards', text: `${e.username} pulled ${e.cardName || cardName(e.cardNumber)}${v(e.variant)}${e.isNew ? ', new!' : ''}` };
     case 'grant': return { icon: 'gift', text: `${e.username} was granted ${cardName(e.cardNumber)}${v(e.variant)}` };
     case 'remove': return { icon: 'trash', text: `${cardName(e.cardNumber)} removed from ${e.username}` };
     case 'upgrade': return { icon: 'sparkles', text: `${e.username} upgraded ${e.cardName || cardName(e.cardNumber)} to ${VARIANT_LABELS[e.to]}` };

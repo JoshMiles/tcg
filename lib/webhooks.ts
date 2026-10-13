@@ -40,7 +40,7 @@ export interface QueuedEvent {
 export async function getWebhookSettings(): Promise<WebhookSettings> {
   const stored = await kv.get<WebhookSettings>('webhooks:settings');
   if (stored) return stored;
-  // First access — auto-generate a secret
+  // First access, auto-generate a secret
   const fresh: WebhookSettings = {
     incomingSecret: randomBytes(16).toString('hex'),
     outgoing: {

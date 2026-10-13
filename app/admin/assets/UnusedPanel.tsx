@@ -30,7 +30,7 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
         ) : (
           <>
             <p>This environment has no <code className="text-gray-300">BLOB_READ_WRITE_TOKEN</code>, so unused files can&apos;t be checked here.</p>
-            <p className="text-xs text-gray-500">On Vercel, make sure the variable is enabled for this environment — a <strong className="text-gray-400">Preview</strong> deployment doesn&apos;t get Production-only variables. If you&apos;re viewing production, check Settings → Environment Variables and redeploy.</p>
+            <p className="text-xs text-gray-500">On Vercel, make sure the variable is enabled for this environment. A <strong className="text-gray-400">Preview</strong> deployment doesn&apos;t get Production-only variables. If you&apos;re viewing production, check Settings → Environment Variables and redeploy.</p>
           </>
         )}
       </div>

@@ -104,7 +104,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
 
       {season.status === 'draft' && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-amber-200">This season is a <strong>draft</strong> — it can&apos;t be activated until you create it.</p>
+          <p className="text-sm text-amber-200">This season is a <strong>draft</strong>: it can&apos;t be activated until you create it.</p>
           <Link href={`/admin/seasons/new?draft=${id}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Continue setup →</Link>
         </div>
       )}

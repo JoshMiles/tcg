@@ -35,7 +35,7 @@ export async function saveDiscordSettings(s: DiscordSettings): Promise<void> {
 }
 
 /**
- * Only real Discord webhook URLs are accepted — the server POSTs to whatever is stored here, so an
+ * Only real Discord webhook URLs are accepted. The server POSTs to whatever is stored here, so an
  * arbitrary URL would let a typo (or a compromised session) aim requests at any host.
  * Outside production a plain http://localhost URL is also allowed so the feature can be tested
  * against a local stand-in.
@@ -136,9 +136,9 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
         ...thumb(card?.imageUrl),
         color: rarity ? hexToInt(rarity.hex) : GOLD,
         title: `${'★'.repeat(e.stars)} ${esc(e.cardName || card?.name || `#${e.cardNumber}`)}`,
-        description: `${e.serial === 1 ? '🥇 **FIRST EVER!** ' : ''}**${esc(e.username)}** pulled ${/^[aeiou]/i.test(rarity?.label ?? '') ? 'an' : 'a'} **${rarity?.label ?? 'card'}** card${e.variant && e.variant !== 'regular' ? ` — ✨ **${VARIANT_LABELS[e.variant]}**` : ''}${e.isNew ? ' — **NEW!**' : e.copies > 1 ? ` — ×${e.copies}` : ''}`,
+        description: `${e.serial === 1 ? '🥇 **FIRST EVER!** ' : ''}**${esc(e.username)}** pulled ${/^[aeiou]/i.test(rarity?.label ?? '') ? 'an' : 'a'} **${rarity?.label ?? 'card'}** card${e.variant && e.variant !== 'regular' ? `, ✨ **${VARIANT_LABELS[e.variant]}**` : ''}${e.isNew ? ', **NEW!**' : e.copies > 1 ? `, ×${e.copies}` : ''}`,
         fields: [
-          { name: 'Pack', value: esc(e.packName) || '—', inline: true },
+          { name: 'Pack', value: esc(e.packName) || '-', inline: true },
           { name: 'Collected', value: totalCards ? `${e.uniqueOwned}/${totalCards}` : String(e.uniqueOwned), inline: true },
           ...(e.serial ? [{ name: 'Serial', value: `**#${e.serial}**${e.serial === 1 ? ' (the first ever)' : ''}${e.bonus ? ` · ×${e.bonus} points` : ''}`, inline: true }] : []),
         ],
@@ -172,7 +172,7 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
         cancelled: { color: RED, title: adminCancel ? '🛡️ Trade cancelled by an admin' : '✖️ Trade cancelled', text: `**${who}**'s offer was cancelled` },
         expired: { color: RED, title: '⌛ Trade expired', text: `**${who}**'s offer ran out of time` },
       }[e.action];
-      const list = (lines: string[]) => (lines.join('\n') || '—').slice(0, 1000);
+      const list = (lines: string[]) => (lines.join('\n') || '-').slice(0, 1000);
       const fields: { name: string; value: string; inline?: boolean }[] = [
         { name: `${who} gives · ≈${e.givePts.toLocaleString()} pts`, value: list(e.give.map(esc)), inline: true },
         { name: `${e.action === 'accepted' && other ? other : e.kind === 'listing' ? 'In return' : other ?? 'In return'} gives · ≈${e.getPts.toLocaleString()} pts`, value: list(e.get.map(esc)), inline: true },
@@ -191,7 +191,7 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string } =
         title: gifted ? '🎁 Packs gifted' : e.kind === 'pull' ? '⚡ Pack draw requested' : e.kind === 'card' ? '🃏 Card shown off' : '📖 Collection view requested',
         description: gifted
           ? `${(e.count ?? 1) > 1 ? `${e.count} packs` : 'A pack'} gifted to **${esc(e.username)}**`
-          : `**${esc(e.username)}** — ${e.source === 'admin' ? 'by an admin' : 'via webhook'}` });
+          : `**${esc(e.username)}**, ${e.source === 'admin' ? 'by an admin' : 'via webhook'}` });
     }
     case 'collection_shown':
       return payload({ ...base, color: BLUE, title: '📺 Collection shown', description: `**${esc(e.username)}**'s collection was shown on stream` });

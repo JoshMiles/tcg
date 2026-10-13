@@ -124,7 +124,7 @@ export function pointsFor(values: Pick<SeasonValues, 'cards' | 'settings' | 'ser
 
 /**
  * How much a copy at each variant is worth relative to Regular. Starts from the variant odds (a 1-in-100
- * shiny is worth ~100 regulars), but never less than the cost of crafting it plus a margin — otherwise
+ * shiny is worth ~100 regulars), but never less than the cost of crafting it plus a margin, otherwise
  * upgrading could lower a viewer's score.
  */
 export function variantMultiplierDetail(

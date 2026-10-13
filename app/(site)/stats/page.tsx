@@ -54,7 +54,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
     { label: 'Discovered', value: `${s.cardsPulled}/${s.totalCards}`, sub: 'distinct cards pulled' },
     { label: 'Avg. completion', value: `${s.avgCompletionPct}%`, sub: 'of the set per collector' },
     { label: 'Points in play', value: s.totalScore.toLocaleString(), sub: 'across every collection' },
-    { label: 'Top score', value: s.topScore.toLocaleString(), sub: overview.rows[0] ? `by ${overview.rows[0].username}` : '—' },
+    { label: 'Top score', value: s.topScore.toLocaleString(), sub: overview.rows[0] ? `by ${overview.rows[0].username}` : '-' },
   ];
 
   return (
@@ -116,7 +116,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
                   <p className="text-xs text-gray-500">{VARIANT_LABELS[v]}</p>
                   <p className="font-display text-2xl font-bold text-white tabular-nums">{s.variantCopies[v].toLocaleString()}</p>
                   <p className="text-[11px] text-gray-600">
-                    {s.totalCopies > 0 ? `${((s.variantCopies[v] / s.totalCopies) * 100).toFixed(1)}% of all copies` : '—'}
+                    {s.totalCopies > 0 ? `${((s.variantCopies[v] / s.totalCopies) * 100).toFixed(1)}% of all copies` : '-'}
                   </p>
                 </div>
               ))}

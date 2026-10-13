@@ -34,7 +34,7 @@ export type ActivityEvent = ActivityDetail & {
 
 export type NewActivity = ActivityDetail & { username: string; collectionName?: string };
 
-/** Records an event. Never throws — activity logging must not break the action it describes. */
+/** Records an event. Never throws, activity logging must not break the action it describes. */
 export async function recordActivity(event: NewActivity): Promise<void> {
   try {
     const seq = await kv.incr(SEQ_KEY);

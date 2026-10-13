@@ -53,7 +53,7 @@ export interface DexCard {
 }
 
 const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
-const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '—');
+const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '-');
 const artFor = (c: DexCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const maskFor = (url: string) => (cardThumbUrl(url) !== url ? `url("${cardThumbUrl(url)}")` : 'none');
 
@@ -164,7 +164,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
             return (
               <div key={c.id} className={`space-y-2 ${showMine && c.owned === false ? 'opacity-80' : ''}`}>
                 {c.imageUrl ? (
-                  <CardTile imageUrl={c.imageUrl} alt={c.name} title={`${c.name} — click for details`} className={tileClass} style={style} onActivate={el => { opener.current = el; setOpenId(c.id); }}>
+                  <CardTile imageUrl={c.imageUrl} alt={c.name} title={`${c.name}. Click for details`} className={tileClass} style={style} onActivate={el => { opener.current = el; setOpenId(c.id); }}>
                     {badges}
                   </CardTile>
                 ) : (
@@ -351,7 +351,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
               </div>
               {card.owners.length === 0 ? (
                 <p className="rounded-xl bg-gray-950/50 border border-gray-800 px-4 py-5 text-sm text-gray-400 text-center">
-                  Nobody owns this card yet — be the first to pull it!
+                  Nobody owns this card yet. Be the first to pull it!
                 </p>
               ) : (
                 <ol className="divide-y divide-gray-800/70 rounded-xl border border-gray-800 overflow-hidden">

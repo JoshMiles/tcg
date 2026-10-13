@@ -18,7 +18,7 @@ const FRESH_MS = 45_000; // how long a lookup is reused, across every serverless
 /**
  * Whether the channel is live right now, from Twitch's `streams` endpoint with the app token. Results are cached in KV
  * for ~45 seconds so page views and polling never turn into Twitch API calls one-for-one. Returns null when Twitch
- * isn't configured or can't be reached and there's nothing cached — callers should simply show no indicator then.
+ * isn't configured or can't be reached and there's nothing cached, callers should simply show no indicator then.
  */
 export async function getLiveStatus(): Promise<LiveStatus | null> {
   const creds = twitchCredentials();

@@ -4,7 +4,7 @@ import { storeOptimizedCard, deleteBlobQuietly, isBlobUrl } from '@/lib/card-upl
 
 export const maxDuration = 60; // encoding a 50-frame GIF takes ~5–15s
 
-// POST { url } — url of a GIF already uploaded to Blob by the browser.
+// POST { url }, url of a GIF already uploaded to Blob by the browser.
 // Fetches it, stores an animated WebP + static thumbnail, deletes the original.
 export async function POST(req: NextRequest) {
   if (!(await isAuthenticated())) {
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { url } = (await req.json().catch(() => ({}))) as { url?: string };
-  // Only fetch our own Blob store — never an arbitrary URL.
+  // Only fetch our own Blob store. Never an arbitrary URL.
   if (!url || !isBlobUrl(url)) {
     return NextResponse.json({ error: 'url must be a Blob URL' }, { status: 400 });
   }
@@ -25,6 +25,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch {
     await deleteBlobQuietly(url);
-    return NextResponse.json({ error: 'Could not process image — is it a valid GIF?' }, { status: 422 });
+    return NextResponse.json({ error: 'Could not process image. Is it a valid GIF?' }, { status: 422 });
   }
 }

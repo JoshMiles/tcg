@@ -13,7 +13,7 @@ export function ImageUploadField({
   name?: string;
   defaultValue?: string;
   label?: string;
-  /** Called whenever the URL changes (typed or uploaded) — for forms that keep their own state. */
+  /** Called whenever the URL changes (typed or uploaded), for forms that keep their own state. */
   onUrlChange?: (url: string) => void;
 }) {
   const [url, setUrlState] = useState(defaultValue ?? '');
@@ -61,7 +61,7 @@ export function ImageUploadField({
         </label>
       </div>
       {status === 'optimizing' && (
-        <p className="text-xs text-gray-500 mt-1">Shrinking the GIF and creating a thumbnail — this can take up to a minute.</p>
+        <p className="text-xs text-gray-500 mt-1">Shrinking the GIF and creating a thumbnail. This can take up to a minute.</p>
       )}
       {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
       {url && <img src={url} alt="" className="mt-2 h-20 object-contain rounded border border-gray-700" />}

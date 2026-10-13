@@ -8,7 +8,7 @@ export interface DiffLine { scope: string; label: string; from: string; to: stri
 const VARIANT_NAME: Record<string, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' };
 
 export function formatValue(def: PropDef | undefined, v: PropValue | undefined): string {
-  if (v === undefined) return '—';
+  if (v === undefined) return '-';
   if (typeof v === 'boolean') return v ? 'on' : 'off';
   if (Array.isArray(v)) return v.join(', ');
   if (typeof v === 'number') return `${v}${def && 'unit' in def && def.unit ? ` ${def.unit}` : ''}`;

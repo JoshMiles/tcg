@@ -2,7 +2,7 @@ import { SITE_URL } from './site';
 
 // Twitch "Log in with Twitch" (OAuth authorization-code flow) for the website. We ask for NO scopes: that gives a
 // token that can read only the user's public profile, which is all we need (user ID, login, display name, picture).
-// The token is used once to read that profile and then revoked — it is never stored.
+// The token is used once to read that profile and then revoked. It is never stored.
 //
 // The Twitch URLs can be pointed at a local fake (scripts/mock-twitch.cjs) outside production, so the flow can be
 // tested without real Twitch credentials. In production they are always the real ones.

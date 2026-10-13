@@ -1,8 +1,8 @@
 import { kv } from './db';
 import { queueLength } from './webhooks';
 
-// Which OBS overlays (overlay.html browser sources) are currently open, and — when OBS lets the
-// page read it — whether OBS is streaming/recording. Each overlay instance sends a heartbeat every
+// Which OBS overlays (overlay.html browser sources) are currently open, and. When OBS lets the
+// page read it, whether OBS is streaming/recording. Each overlay instance sends a heartbeat every
 // ~10s with a random id; we keep them in one KV hash and treat a client as connected while its
 // last heartbeat is recent.
 const KEY = 'overlay:clients';

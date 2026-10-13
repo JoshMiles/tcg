@@ -35,7 +35,7 @@ export function validatePack(pack: PackFields, cards: CardFields[]): Issue[] {
 
 export function validateSeason(
   season: Pick<Season, 'name' | 'collectionName' | 'packIds'> & Partial<Pick<Season, 'startsAt' | 'endsAt'>>,
-  /** Collection names used by *other* seasons — sharing one would merge two seasons' collections. */
+  /** Collection names used by *other* seasons, sharing one would merge two seasons' collections. */
   otherCollectionNames: string[],
 ): Issue[] {
   const issues: Issue[] = [];
@@ -46,7 +46,7 @@ export function validateSeason(
   } else {
     if (/\s/.test(key)) issues.push({ step: 'details', message: 'The collection name can\'t contain spaces.' });
     if (otherCollectionNames.some(n => n.toLowerCase() === key.toLowerCase())) {
-      issues.push({ step: 'details', message: `Another season already uses "${key}" — viewers' cards would be shared between them.` });
+      issues.push({ step: 'details', message: `Another season already uses "${key}", viewers' cards would be shared between them.` });
     }
   }
   if (season.startsAt !== undefined && season.endsAt !== undefined && season.endsAt <= season.startsAt) issues.push({ step: 'details', message: 'The end date must be after the start date.' });
