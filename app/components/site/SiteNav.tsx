@@ -37,7 +37,10 @@ const TwitchGlyph = () => (
 );
 
 /** Top bar for the public site. Collapses to a menu button on small screens. */
-export function SiteNav({ user, loginEnabled, rank }: { user: NavUser | null; loginEnabled: boolean; rank?: NavRank | null }) {
+/** Where the signed-in staff member's panel is (admins and the super admin: the admin panel; mods: the mod panel). */
+export interface NavStaff { href: string; label: string }
+
+export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | null; loginEnabled: boolean; rank?: NavRank | null; staff?: NavStaff | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // account dropdown
@@ -120,6 +123,11 @@ export function SiteNav({ user, loginEnabled, rank }: { user: NavUser | null; lo
         <div className="ml-auto flex items-center gap-2">
           <SearchButton className="h-9 px-2.5" />
           <LiveBadge />
+          {staff && (
+            <Link href={staff.href} prefetch={false} className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 whitespace-nowrap shrink-0 rounded-lg border border-purple-400/40 bg-purple-500/10 text-xs font-bold text-purple-200 hover:bg-purple-500/20 transition-colors">
+              <Icon name="shield" />{staff.label}
+            </Link>
+          )}
           {user && <NotificationBell />}
           {user ? (
             <div className="relative hidden sm:block" ref={menuRef}>
@@ -146,6 +154,7 @@ export function SiteNav({ user, loginEnabled, rank }: { user: NavUser | null; lo
                   <Link role="menuitem" href="/account" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats</Link>
                   <Link role="menuitem" href={`/u/${user.username}`} className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="user" className="mr-1.5" />My profile</Link>
                   <Link role="menuitem" href="/settings" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="settings" className="mr-1.5" />Settings</Link>
+                  {staff && <Link role="menuitem" href={staff.href} prefetch={false} className="px-3 py-2 rounded-lg text-sm text-purple-200 hover:bg-purple-500/10"><Icon name="shield" className="mr-1.5" />{staff.label}</Link>}
                   <form action="/auth/logout" method="post" className="contents">
                     <PendingButton role="menuitem" type="submit" className="text-left px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-red-950/40">Log out</PendingButton>
                   </form>
@@ -189,6 +198,7 @@ export function SiteNav({ user, loginEnabled, rank }: { user: NavUser | null; lo
               {l.label}
             </Link>
           ))}
+          {staff && <Link href={staff.href} prefetch={false} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-purple-200 hover:bg-purple-500/10"><Icon name="shield" className="mr-1.5" />{staff.label}</Link>}
           {user ? (
             <>
               <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-yellow-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats ({user.displayName}){rank && <span className="ml-2 text-xs text-gray-400">#{rank.rank} · {rank.score.toLocaleString()} pts</span>}</Link>
