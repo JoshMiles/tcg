@@ -12,8 +12,8 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileB
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   const accent = hasExperiment(b.settings, 'accent') ? accentHex(b.settings.accent) : undefined;
   return (
-    <header className="rounded-3xl border border-yellow-500/20 bg-gradient-to-br from-gray-900/80 to-gray-950/80 overflow-hidden" style={accent ? { borderColor: `${accent}88`, boxShadow: `0 0 40px -16px ${accent}` } : undefined}>
-      <div className="holo-strip" style={accent ? { background: `linear-gradient(90deg, transparent, ${accent}, transparent)` } : undefined} />
+    <header className="rounded-3xl border border-yellow-500/20 bg-gradient-to-br from-gray-900/80 to-gray-950/80" style={accent ? { borderColor: `${accent}88`, boxShadow: `0 0 40px -16px ${accent}` } : undefined}>
+      <div className="holo-strip rounded-t-3xl" style={accent ? { background: `linear-gradient(90deg, transparent, ${accent}, transparent)` } : undefined} />
       <div className="p-5 sm:p-6 flex flex-wrap items-start justify-between gap-5">
         <div className="flex items-start gap-4 min-w-0">
           <Avatar src={b.avatarUrl} name={b.displayName} className="w-16 h-16 sm:w-20 sm:h-20 text-2xl ring-2 ring-yellow-500/60 shrink-0" />
