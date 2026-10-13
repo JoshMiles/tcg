@@ -9,6 +9,7 @@ import { getHiddenUsers } from '@/lib/user-admin';
 import { getSnapshot } from '@/lib/season-wrap';
 import { recentPullItems } from '@/lib/home-pulls';
 import { RecentPulls } from '@/app/components/site/RecentPulls';
+import { InstallHint } from '@/app/components/site/InstallHint';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
@@ -238,6 +239,8 @@ export default async function HomePage() {
             </div>
           </div>
         )}
+
+        <InstallHint />
 
         {/* ── New here? (the full explanation lives on the FAQ page) ── */}
         {!standing && (

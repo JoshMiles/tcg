@@ -93,6 +93,10 @@ export default async function FaqPage() {
           Only on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a> — it doesn&rsquo;t run anywhere else. Packs are opened live there,
           and the Twitch extension is only available on that channel. This website just lets you look at your collection and, when you&rsquo;re logged in, upgrade your cards.
         </Q>
+        <Q q="Is there an app?" id="app">
+          There&rsquo;s no app store version, but you can add the website to your home screen on iPhone, Android or a computer so it opens full screen from its own icon. Step-by-step instructions are on the{' '}
+          <Link href="/install" className="text-yellow-400 hover:text-yellow-300">Get the app</Link> page. On iPhone you&rsquo;ll need to log in with Twitch once inside the home-screen app.
+        </Q>
         <Q q="How do I get cards?">
           <p>
             Packs are opened live on {CHANNEL_NAME}&rsquo;s stream. When one is opened for you, your name appears on screen with the card you pulled, and it&rsquo;s added to your collection straight away.

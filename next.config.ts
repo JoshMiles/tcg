@@ -31,6 +31,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // The service worker must always be re-checked, or a fixed one would never reach people.
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
+      },
+      {
         source: "/assets/cards/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
       },
