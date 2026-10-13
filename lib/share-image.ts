@@ -128,6 +128,8 @@ export interface ShareSpec {
   theme?: string;
   /** Post (4:5, default) or story (9:16). */
   format?: ShareFormat;
+  /** Draw the owner's binder pages (cover, page and pocket styles, grid) in place of the card layout. */
+  binder?: BinderShare;
 }
 
 /** The header takes the top of the image; cards get the rest. */
@@ -148,3 +150,80 @@ export const PLATE_GAP = 30;
 export const cardAreaWithPlate = (h = SHARE_H): Rect => { const a = cardArea(h); return { ...a, h: a.h - PLATE_H - PLATE_GAP }; };
 /** Where the plate itself goes (same width as the card area, bottom aligned with it). */
 export const plateRect = (h = SHARE_H): Rect => { const a = cardArea(h); return { x: a.x, y: a.y + a.h - PLATE_H, w: a.w, h: PLATE_H }; };
+
+// ── a binder page as an image ──
+
+/** One pocket of a shared binder page. owned: false is a card the collector doesn't have yet (drawn in the binder's missing style). */
+export interface BinderShareSlot {
+  src: string;
+  thumb?: string;
+  name: string;
+  number: number;
+  hex?: string;
+  owned: boolean;
+  /** How many copies of the shown version (the ×N badge when above 1). */
+  count: number;
+  /** Version mark such as RH / FA / SH. */
+  tag?: string;
+  /** The pinned version's name, for a missing pocket. */
+  label?: string;
+}
+export interface BinderSharePage { title: string; slots: (BinderShareSlot | null)[] }
+export interface BinderShare {
+  cols: number;
+  rows: number;
+  cover: { a: string; b: string; c: string; ink: string };
+  material: 'leather' | 'cloth' | 'metal' | 'holo';
+  page: { a: string; b: string; ink: string; muted: string; /** A pale page: empty pockets are drawn dark instead of light. */ light: boolean };
+  pocket: 'plain' | 'sleeve' | 'frame' | 'flat';
+  missing: 'name' | 'number' | 'ghost' | 'blank';
+  badges: boolean;
+  /** The page, or the two pages of an open spread. */
+  pages: BinderSharePage[];
+}
+
+/** Space inside a page (14px padding and a 1px border), the heading row and its gap, between pockets: the same proportions as the website's pages. */
+export const BINDER_PAGE_PAD = 15;
+export const BINDER_HEAD_H = 16;
+export const BINDER_HEAD_GAP = 8;
+export const BINDER_GAP = 8;
+export const BINDER_LEATHER_PAD = 16;
+
+export interface BinderLayout {
+  leather: Rect;
+  /** Roughly one pocket's width relative to the website's 3x3 spread (to scale lettering and borders). */
+  k: number;
+  pages: { rect: Rect; head: Rect; pockets: Rect[] }[];
+}
+
+/**
+ * Where the binder, its pages and their pockets go in an image of height h: as wide as the card area allows (two pages share it),
+ * shrunk to fit the height when the grid is tall, and centred. Pockets are 2:3 like the card art.
+ */
+export function binderLayout(b: { cols: number; rows: number; pages: unknown[] }, h = SHARE_H): BinderLayout {
+  const area = cardArea(h);
+  const n = Math.max(1, Math.min(2, b.pages.length));
+  const inner = { w: area.w - 2 * BINDER_LEATHER_PAD, h: area.h - 2 * BINDER_LEATHER_PAD };
+  const chromeW = 2 * BINDER_PAGE_PAD, chromeH = 2 * BINDER_PAGE_PAD + BINDER_HEAD_H + BINDER_HEAD_GAP;
+  const pocketByWidth = (inner.w / n - chromeW - (b.cols - 1) * BINDER_GAP) / b.cols;
+  const pocketByHeight = (inner.h - chromeH - (b.rows - 1) * BINDER_GAP) / (b.rows * 1.5);
+  const pw = Math.max(8, Math.min(pocketByWidth, pocketByHeight));
+  const ph = pw * 1.5;
+  const pageW = b.cols * pw + (b.cols - 1) * BINDER_GAP + chromeW;
+  const pageH = b.rows * ph + (b.rows - 1) * BINDER_GAP + chromeH;
+  const leather: Rect = {
+    x: area.x + (area.w - (n * pageW + 2 * BINDER_LEATHER_PAD)) / 2,
+    y: area.y + (area.h - (pageH + 2 * BINDER_LEATHER_PAD)) / 2,
+    w: n * pageW + 2 * BINDER_LEATHER_PAD,
+    h: pageH + 2 * BINDER_LEATHER_PAD,
+  };
+  const pages = Array.from({ length: n }, (_, i) => {
+    const rect: Rect = { x: leather.x + BINDER_LEATHER_PAD + i * pageW, y: leather.y + BINDER_LEATHER_PAD, w: pageW, h: pageH };
+    const head: Rect = { x: rect.x + BINDER_PAGE_PAD, y: rect.y + BINDER_PAGE_PAD, w: pageW - chromeW, h: BINDER_HEAD_H };
+    const gx = rect.x + BINDER_PAGE_PAD, gy = head.y + BINDER_HEAD_H + BINDER_HEAD_GAP;
+    const pockets: Rect[] = [];
+    for (let r = 0; r < b.rows; r++) for (let c = 0; c < b.cols; c++) pockets.push({ x: gx + c * (pw + BINDER_GAP), y: gy + r * (ph + BINDER_GAP), w: pw, h: ph });
+    return { rect, head, pockets };
+  });
+  return { leather, k: pw / 137, pages };
+}

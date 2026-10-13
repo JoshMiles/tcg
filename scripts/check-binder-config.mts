@@ -85,4 +85,24 @@ const us = await import('../lib/user-settings');
 ok(us.sanitizeUserSettings({}).binder === null && us.sanitizeUserSettings({ binder: { cover: 'navy' } }).binder?.cover === 'navy', 'settings keep a binder');
 ok(!('binder' in us.sparse(us.sanitizeUserSettings({ binder: {} }))), 'a default binder is not stored');
 
+// The share image's binder layout: pages and pockets stay inside the leather, inside the image, for every grid size, one page or two.
+{
+  const sh = await import('../lib/share-image');
+  ok(c.isLightColour('#efe3c3') && c.isLightColour('#f4f6fb') && !c.isLightColour('#121a3a') && !c.isLightColour('nope'), 'pale and dark page colours are told apart');
+  for (const H of [sh.SHARE_H, sh.STORY_H]) for (const pages of [1, 2]) for (const [cols, rows] of [[2, 1], [2, 2], [3, 3], [4, 4], [4, 1], [2, 4]]) {
+    const L = sh.binderLayout({ cols, rows, pages: new Array(pages).fill(0) }, H);
+    const area = sh.cardArea(H);
+    const tag = `${cols}x${rows}, ${pages} page(s), height ${H}`;
+    ok(L.leather.x >= area.x - 0.5 && L.leather.x + L.leather.w <= area.x + area.w + 0.5 && L.leather.y >= area.y - 0.5 && L.leather.y + L.leather.h <= area.y + area.h + 0.5, `the binder fits the card area (${tag})`);
+    ok(L.pages.length === pages && L.pages.every(p => p.pockets.length === cols * rows), `every pocket is laid out (${tag})`);
+    for (const p of L.pages) {
+      ok(p.pockets.every(r => r.x >= p.rect.x && r.x + r.w <= p.rect.x + p.rect.w + 0.5 && r.y >= p.head.y + p.head.h && r.y + r.h <= p.rect.y + p.rect.h + 0.5), `pockets stay on their page (${tag})`);
+      ok(p.pockets.every(r => Math.abs(r.h / r.w - 1.5) < 0.001), `pockets are 2:3 (${tag})`);
+    }
+    ok(L.pages.length < 2 || Math.abs(L.pages[0].rect.x + L.pages[0].rect.w - L.pages[1].rect.x) < 0.5, `the two pages meet at the spine (${tag})`);
+  }
+  // A single page is much bigger than half of a spread.
+  ok(sh.binderLayout({ cols: 3, rows: 3, pages: [0] }).pages[0].pockets[0].w > sh.binderLayout({ cols: 3, rows: 3, pages: [0, 0] }).pages[0].pockets[0].w, 'one page gets bigger pockets than two');
+}
+
 console.log('binder customisation checks passed');

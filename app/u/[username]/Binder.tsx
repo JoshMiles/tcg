@@ -9,8 +9,8 @@ import { cardThumbUrl } from '@/lib/card-art';
 import { holoClass, holoVars } from '@/lib/holo-core';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import { buildBinderPages, buildCustomPages, buildSpreads, clampSpread, spreadOfPage, type BinderPage, type Spread } from '@/lib/binder';
-import { DEFAULT_BINDER, capacity, coverColour, pageColour, type BinderConfig } from '@/lib/binder-config';
-import type { ShareCard, ShareSpec } from '@/lib/share-image';
+import { DEFAULT_BINDER, capacity, coverColour, isLightColour, pageColour, type BinderConfig } from '@/lib/binder-config';
+import type { BinderShareSlot, BinderSharePage, ShareSpec } from '@/lib/share-image';
 import type { Variant } from '@/lib/types';
 import type { GridCard } from './CollectionGrid';
 
@@ -206,24 +206,31 @@ export function Binder({ cards, ownerLabel, onOpen, config = DEFAULT_BINDER, sea
     );
   }
 
-  // The image for "Share this page": what you have on the pages in view (up to nine cards).
+  // The image for "Share this page": the pages in view drawn the way they look here (cover colour and material, page colour,
+  // pocket style, grid size, how missing cards look), so it matches the customised binder.
   const shareSpec = useMemo<ShareSpec | null>(() => {
     if (!shareFooter || !sp) return null;
     const shown = [sp.left, sp.right].filter((p): p is BinderPage => !!p && p.kind === 'cards');
-    const items: ShareCard[] = [];
-    for (const p of shown) p.slots.forEach((idx, i) => {
-      if (idx === null) return;
-      const c = cards[idx];
-      const pin = p.pins?.[i] ?? null;
-      if (pin ? c.counts[pin] === 0 : total(c.counts) === 0) return;
-      const v = pin ?? bestOf(c.counts);
-      const src = artOf(c, v);
-      items.push({ src, thumb: cardThumbUrl(src), name: c.name, hex: getRarity(c.stars)?.hex, tag: SHORT[v] || undefined });
-    });
-    if (!items.length) return null;
-    const names = shown.map(p => (custom ? p.title : p.pack)).filter(Boolean);
-    return { title, subtitle: [...new Set(names)].join(' · ') || undefined, stats: [`${owned}/${cards.length} cards`], cards: items.slice(0, 9), footer: shareFooter, theme: cv.shareTheme };
-  }, [shareFooter, sp, cards, custom, title, owned, cv.shareTheme]);
+    if (!shown.length) return null;
+    const pages: BinderSharePage[] = shown.map(p => ({
+      title: custom ? p.title ?? '' : `${p.pack ?? ''}${(p.parts ?? 1) > 1 ? ` ${p.part}/${p.parts}` : ''}`,
+      slots: p.slots.map((idx, i): BinderShareSlot | null => {
+        if (idx === null) return null;
+        const c = cards[idx];
+        const pin = p.pins?.[i] ?? null;
+        const have = pin ? c.counts[pin] : total(c.counts);
+        const v: Variant = pin ?? bestOf(c.counts);
+        const src = artOf(c, v);
+        return { src, thumb: cardThumbUrl(src), name: c.name, number: c.number, hex: getRarity(c.stars)?.hex, owned: have > 0, count: have, tag: SHORT[v] || undefined, label: pin ? VARIANT_LABELS[pin] : undefined };
+      }),
+    }));
+    if (!pages.some(pp => pp.slots.some(x => x?.owned))) return null; // nothing to show off on these pages
+    const names = pages.map(pp => pp.title).filter(Boolean);
+    return {
+      title, subtitle: [...new Set(names)].join(' · ') || undefined, stats: [`${owned}/${cards.length} cards`], cards: [], footer: shareFooter, theme: cv.shareTheme,
+      binder: { cols: cfg.cols, rows: cfg.rows, cover: { a: cv.a, b: cv.b, c: cv.c, ink: cv.ink }, material: cfg.material, page: { a: pg.a, b: pg.b, ink: pg.ink, muted: pg.muted, light: isLightColour(pg.a) }, pocket: cfg.pocketStyle, missing: cfg.missing, badges: cfg.badges, pages },
+    };
+  }, [shareFooter, sp, cards, custom, title, owned, cv, pg, cfg.cols, cfg.rows, cfg.material, cfg.pocketStyle, cfg.missing, cfg.badges]);
 
   const leatherStyle = {
     '--cv-a': cv.a, '--cv-b': cv.b, '--cv-c': cv.c, '--cv-ink': cv.ink,
