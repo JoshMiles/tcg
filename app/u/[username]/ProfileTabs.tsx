@@ -13,6 +13,7 @@ import { PUBLIC_ACTIVITY_TYPES, profileHref } from '@/lib/profile-url';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
 import type { ProfileBase } from '@/lib/profile-data';
+import { SITE_URL } from '@/lib/site';
 import { CollectionGrid } from './CollectionGrid';
 import type { GridCard } from './CollectionGrid';
 
@@ -47,7 +48,7 @@ export function CollectionTab({ b, grid, isOwner, tradeWith, prefs, mine }: { b:
           </div>
         ))}
       </div>
-      <CollectionGrid cards={grid} totalScore={b.row?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} ownerName={b.displayName} tradeWith={tradeWith} defaultHide={prefs?.hideUncollected ?? true} compact={prefs?.compactGrids ?? false} mine={mine} seasonId={b.season.id} />
+      <CollectionGrid cards={grid} totalScore={b.row?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} ownerName={b.displayName} tradeWith={tradeWith} defaultHide={prefs?.hideUncollected ?? true} compact={prefs?.compactGrids ?? false} mine={mine} seasonId={b.season.id} binderConfig={b.settings.binder} siteHost={SITE_URL.replace(/^https?:\/\//, '')} />
     </div>
   );
 }
