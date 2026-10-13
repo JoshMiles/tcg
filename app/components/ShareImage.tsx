@@ -174,25 +174,35 @@ export async function renderShare(spec: ShareSpec, opts?: { preview?: boolean })
   const imgs = await Promise.all(spec.cards.slice(0, rects.length).map(c => loadImage(opts?.preview ? c.thumb ?? c.src : c.src)));
   rects.forEach((r, i) => {
     const card = spec.cards[i];
-    ctx.save();
-    ctx.shadowColor = card.hex ?? '#facc15'; ctx.shadowBlur = 30;
-    ctx.fillStyle = t.tile; roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.fill();
-    ctx.restore();
-    ctx.save();
-    roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.clip();
     const img = imgs[i];
-    if (img) ctx.drawImage(img, r.x, r.y, r.w, r.h);
-    else { ctx.fillStyle = '#1f2937'; ctx.fillRect(r.x, r.y, r.w, r.h); ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center'; ctx.font = `700 ${Math.max(18, r.w / 9)}px ${font}`; ctx.fillText(card.name, r.x + r.w / 2, r.y + r.h / 2, r.w - 20); ctx.textAlign = 'left'; }
+    const hex = card.hex ?? '#facc15';
+    if (img) {
+      // The art has transparent rounded corners: draw it as it is (no box behind or border around it) and let the glow follow
+      // its silhouette, since a canvas shadow is cast by the opaque pixels only.
+      ctx.save();
+      ctx.shadowColor = hex; ctx.shadowBlur = 30;
+      ctx.drawImage(img, r.x, r.y, r.w, r.h);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.shadowColor = hex; ctx.shadowBlur = 30;
+      ctx.fillStyle = t.tile; roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.fill();
+      ctx.restore();
+      ctx.save();
+      roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.clip();
+      ctx.fillStyle = '#1f2937'; ctx.fillRect(r.x, r.y, r.w, r.h); ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center'; ctx.font = `700 ${Math.max(18, r.w / 9)}px ${font}`; ctx.fillText(card.name, r.x + r.w / 2, r.y + r.h / 2, r.w - 20); ctx.textAlign = 'left';
+      ctx.restore();
+      ctx.strokeStyle = hex; ctx.lineWidth = 4; roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.stroke();
+    }
     if (card.tag) {
       const fs = Math.max(20, Math.min(34, r.w / 7));
       ctx.font = `800 ${fs}px ${font}`;
       const tw = ctx.measureText(card.tag).width + 24;
-      // Top right: the bottom of the art carries the card's own name plate.
-      ctx.fillStyle = 'rgba(7,11,29,0.9)'; roundRect(ctx, r.x + r.w - tw - 12, r.y + 12, tw, fs + 18, (fs + 18) / 2); ctx.fill();
-      ctx.fillStyle = '#fde047'; ctx.fillText(card.tag, r.x + r.w - tw, r.y + 12 + fs + 3);
+      // Top right, inset a little so it sits on the card rather than the rounded corner.
+      const tx = r.x + r.w - tw - 18, ty = r.y + 20;
+      ctx.fillStyle = 'rgba(7,11,29,0.9)'; roundRect(ctx, tx, ty, tw, fs + 18, (fs + 18) / 2); ctx.fill();
+      ctx.fillStyle = '#fde047'; ctx.fillText(card.tag, tx + 12, ty + fs + 3);
     }
-    ctx.restore();
-    ctx.strokeStyle = card.hex ?? '#facc15'; ctx.lineWidth = 4; roundRect(ctx, r.x, r.y, r.w, r.h, 18); ctx.stroke();
   });
 
   if (spec.plate) drawPlate(ctx, spec.plate, spec.cards[0]?.hex ?? '#facc15', font, t, H);
