@@ -401,15 +401,17 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
   box-shadow: 0 18px 40px -12px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.07);
 }
 .bn-leather::before { content: ''; position: absolute; inset: 6px; border-radius: 13px; border: 1.5px dashed rgba(255,214,150,.35); pointer-events: none; }
-.bn-book { position: relative; display: grid; grid-template-columns: 1fr; }
-.bn-double { grid-template-columns: 1fr 1fr; perspective: 2400px; }
+.bn-book { position: relative; display: grid; grid-template-columns: 1fr; container-type: inline-size; }
+.bn-single { --bn-pw: 100cqw; }
+.bn-double { grid-template-columns: 1fr 1fr; perspective: 2400px; --bn-pw: 50cqw; }
 .bn-book[data-fade="true"] { animation: bn-fade .28s ease both; }
 @keyframes bn-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .bn-page {
   position: relative; display: flex; flex-direction: column; gap: 8px; min-height: 100%; padding: 14px;
   background: linear-gradient(180deg, var(--pg-a, #121a3a) 0%, var(--pg-b, #0c1230) 100%); border: 1px solid rgba(255,255,255,.06);
 }
-.bn-page { border-radius: 10px; }
+/* Every page, the cover and the blank inside page included, is at least as tall as a page of pockets (14px padding + 1px border each side, the heading line and its gap, about 55px in all, and the pocket rows at 2:3), so closing the binder never makes it shorter. The 260px floor keeps a very small grid tall enough for the cover lettering. */
+.bn-page { border-radius: 10px; min-height: max(260px, calc(55px + var(--bn-rows, 3) * 1.5 * ((var(--bn-pw, 100cqw) - 30px - (var(--bn-cols, 3) - 1) * 8px) / var(--bn-cols, 3)) + (var(--bn-rows, 3) - 1) * 8px)); }
 .bn-double .bn-page[data-side="left"] { border-radius: 10px 0 0 10px; }
 .bn-double .bn-page[data-side="right"] { border-radius: 0 10px 10px 0; }
 .bn-double .bn-page[data-side="left"] { box-shadow: inset -22px 0 22px -18px rgba(0,0,0,.75); }
@@ -425,7 +427,7 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
 .bn-missing { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; text-align: center; border: 1.5px dashed rgba(255,255,255,.14); background: rgba(255,255,255,.03); }
 .bn-missing-no { font-family: var(--font-display, inherit); font-weight: 800; font-size: 18px; color: var(--pg-muted, rgba(255,255,255,.28)); }
 .bn-missing-name { font-size: 10px; line-height: 1.15; color: var(--pg-muted, rgba(255,255,255,.28)); overflow-wrap: anywhere; }
-.bn-cover { align-items: center; justify-content: center; text-align: center; gap: 10px; min-height: 360px; background: radial-gradient(90% 70% at 50% 35%, var(--cv-a, #6b3320) 0%, var(--cv-b, #3e1d12) 70%, var(--cv-c, #2a130c) 100%); }
+.bn-cover { align-items: center; justify-content: center; text-align: center; gap: 10px; background: radial-gradient(90% 70% at 50% 35%, var(--cv-a, #6b3320) 0%, var(--cv-b, #3e1d12) 70%, var(--cv-c, #2a130c) 100%); }
 .bn-cover-icon { font-size: 64px; color: var(--cv-ink, #f5c542); filter: drop-shadow(0 2px 0 rgba(0,0,0,.5)); }
 .bn-cover-title { font-family: var(--font-display, inherit); font-size: 28px; font-weight: 800; color: var(--cv-ink, #f8dc8a); text-shadow: 0 2px 0 rgba(0,0,0,.55); }
 .bn-cover-sub { font-size: 13px; color: var(--cv-ink, #e8c98e); opacity: .85; }

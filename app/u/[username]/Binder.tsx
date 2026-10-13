@@ -228,6 +228,7 @@ export function Binder({ cards, ownerLabel, onOpen, config = DEFAULT_BINDER, sea
   const leatherStyle = {
     '--cv-a': cv.a, '--cv-b': cv.b, '--cv-c': cv.c, '--cv-ink': cv.ink,
     '--pg-a': pg.a, '--pg-b': pg.b, '--pg-ink': pg.ink, '--pg-muted': pg.muted,
+    '--bn-cols': cfg.cols, '--bn-rows': cfg.rows,
   } as React.CSSProperties;
 
   return (
