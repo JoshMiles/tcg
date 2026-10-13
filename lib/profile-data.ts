@@ -15,6 +15,7 @@ import type { Card, Pack, Season, UserProfile, Variant } from './types';
 import type { VariantCounts } from './variants';
 import { ORIGIN_LABELS, entryOf, type Copy } from './serials-core';
 import { mintedCounts } from './serials';
+import { cardThumbUrl } from './card-art';
 import type { BigStat, ShareCard, ShareSpec } from './share-image';
 import { copyPoints, type CardValue, type LeaderboardRow } from './leaderboard';
 import type { ScoringSettings } from './scoring-core';
@@ -42,7 +43,7 @@ export function buildShareCandidates(b: ProfileBase, copies: Copy[], n = 18): Sh
   const art = (c: ShowcaseCard) => ((c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
   return top.map(c => {
     const lowest = copies.filter(x => x.card === c.number && x.variant === c.variant).sort((a, z) => a.n - z.n)[0];
-    return { src: art(c), name: c.name, hex: RARITIES.find(r => r.stars === c.stars)?.hex, tag: [c.variant === 'regular' ? '' : SHORT_VARIANT[c.variant], lowest ? `#${lowest.n}` : ''].filter(Boolean).join(' ') || undefined };
+    return { src: art(c), thumb: cardThumbUrl(art(c)), name: c.name, hex: RARITIES.find(r => r.stars === c.stars)?.hex, tag: [c.variant === 'regular' ? '' : SHORT_VARIANT[c.variant], lowest ? `#${lowest.n}` : ''].filter(Boolean).join(' ') || undefined };
   });
 }
 

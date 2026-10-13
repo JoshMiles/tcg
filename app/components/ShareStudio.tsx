@@ -42,7 +42,7 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
     const id = ++run.current;
     const timer = setTimeout(async () => {
       try {
-        const canvas = await renderShare(spec);
+        const canvas = await renderShare(spec, { preview: true });
         if (id === run.current) setPreview(canvas.toDataURL('image/jpeg', 0.85));
       } catch { if (id === run.current) setPreview(null); }
     }, 150);
@@ -123,7 +123,7 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
                   <li key={i}>
                     <button type="button" onClick={() => toggle(i)} aria-pressed={on} aria-label={`${c.name}${c.tag ? ` ${c.tag}` : ''}`} className={`relative block w-full rounded-lg overflow-hidden border-2 ${on ? 'border-yellow-400' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.src} alt="" loading="lazy" className="w-full aspect-[2/3] object-cover bg-gray-900" />
+                      <img src={c.thumb ?? c.src} alt="" loading="lazy" decoding="async" className="w-full aspect-[2/3] object-cover bg-gray-900" />
                       {on && <span className="absolute top-1 right-1 rounded-full bg-yellow-400 text-gray-950 w-5 h-5 grid place-items-center text-[11px]"><Icon name="check" /></span>}
                       {c.tag && <span className="absolute bottom-1 left-1 rounded bg-black/70 text-yellow-300 text-[10px] font-bold px-1">{c.tag}</span>}
                     </button>

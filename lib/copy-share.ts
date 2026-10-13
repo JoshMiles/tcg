@@ -1,3 +1,4 @@
+import { cardThumbUrl } from './card-art';
 import { editionLine, engravedDate, madeLine } from './flip-back';
 import { isEscrow, type Copy } from './serials-core';
 import type { ShareSpec } from './share-image';
@@ -32,7 +33,7 @@ export function copyShareSpec(i: CopyShareInput): ShareSpec {
     title: label,
     subtitle: `${i.seasonName} · ${i.packName}`,
     stats: [VARIANT_LABELS[copy.variant], ...(i.mult > 1 ? [`Serial bonus ×${Math.round(i.mult * 100) / 100}`] : [])],
-    cards: [{ src: i.art, name: i.cardName, hex: i.hex }],
+    cards: [{ src: i.art, thumb: cardThumbUrl(i.art), name: i.cardName, hex: i.hex }],
     plate: {
       number: `#${copy.uid ?? copy.n}`,
       edition: copy.uid ? editionLine(copy.n, i.total) : madeLine(copy.n, i.total) || `Edition #${copy.n}`,

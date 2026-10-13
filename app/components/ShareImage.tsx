@@ -7,14 +7,20 @@ import {
 } from '@/lib/share-image';
 import { qrModules } from '@/lib/qr';
 
+const imageCache = new Map<string, Promise<HTMLImageElement | null>>();
+/** Loads (and remembers) an image, so changing a theme doesn't fetch and decode the same art again. */
 function loadImage(src: string): Promise<HTMLImageElement | null> {
-  return new Promise(resolve => {
+  const hit = imageCache.get(src);
+  if (hit) return hit;
+  const p = new Promise<HTMLImageElement | null>(resolve => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    img.onerror = () => { imageCache.delete(src); resolve(null); };
     img.src = src;
   });
+  imageCache.set(src, p);
+  return p;
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -112,7 +118,7 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
 }
 
 /** Draws the image on a canvas. A card whose art can't be loaded (blocked or offline) is drawn as a plain tile, never skipped. */
-export async function renderShare(spec: ShareSpec): Promise<HTMLCanvasElement> {
+export async function renderShare(spec: ShareSpec, opts?: { preview?: boolean }): Promise<HTMLCanvasElement> {
   const H = formatHeight(spec.format);
   const t = getShareTheme(spec.theme);
   const canvas = document.createElement('canvas');
@@ -165,7 +171,7 @@ export async function renderShare(spec: ShareSpec): Promise<HTMLCanvasElement> {
   // A tall story fits two columns of 5-6 cards bigger than three thin ones.
   const cols = H > 1500 && n >= 5 && n <= 6 ? 2 : undefined;
   const rects = layoutCards(n, area, 28, cols);
-  const imgs = await Promise.all(spec.cards.slice(0, rects.length).map(c => loadImage(c.src)));
+  const imgs = await Promise.all(spec.cards.slice(0, rects.length).map(c => loadImage(opts?.preview ? c.thumb ?? c.src : c.src)));
   rects.forEach((r, i) => {
     const card = spec.cards[i];
     ctx.save();
