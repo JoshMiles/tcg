@@ -15,7 +15,7 @@ import type { Card, Pack, Season, UserProfile, Variant } from './types';
 import type { VariantCounts } from './variants';
 import { ORIGIN_LABELS, entryOf, type Copy } from './serials-core';
 import { mintedCounts } from './serials';
-import type { ShareSpec } from './share-image';
+import type { BigStat, ShareCard, ShareSpec } from './share-image';
 import { copyPoints, type CardValue, type LeaderboardRow } from './leaderboard';
 import type { ScoringSettings } from './scoring-core';
 
@@ -36,20 +36,38 @@ export function topCopies(allCards: { number: number; name: string; imageUrl: st
   return out.sort((a, b) => b.points - a.points || a.number - b.number).slice(0, n);
 }
 
-/** The "Share image" of a collector: their best cards with serials, rank and progress. */
-export function buildShareSpec(b: ProfileBase, copies: Copy[], siteHost: string): ShareSpec {
-  const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, 6, { held: b.board.values.serials?.held.get(b.lower), settings: b.board.values.settings });
+/** Everything a collector could put in a share image, best first: their strongest copy of each card with its lowest serial. */
+export function buildShareCandidates(b: ProfileBase, copies: Copy[], n = 18): ShareCard[] {
+  const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, n, { held: b.board.values.serials?.held.get(b.lower), settings: b.board.values.settings });
   const art = (c: ShowcaseCard) => ((c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
+  return top.map(c => {
+    const lowest = copies.filter(x => x.card === c.number && x.variant === c.variant).sort((a, z) => a.n - z.n)[0];
+    return { src: art(c), name: c.name, hex: RARITIES.find(r => r.stars === c.stars)?.hex, tag: [c.variant === 'regular' ? '' : SHORT_VARIANT[c.variant], lowest ? `#${lowest.n}` : ''].filter(Boolean).join(' ') || undefined };
+  });
+}
+
+/** The header, stats and footer of a collector's share image (the cards are chosen separately). */
+export function buildShareBase(b: ProfileBase, siteHost: string): Omit<ShareSpec, 'cards'> {
   return {
     title: b.displayName,
     subtitle: `@${b.lower} · ${b.season.name}`,
     stats: [b.rank ? `#${b.rank} rank` : 'Unranked', `${b.row ? Math.round(b.row.score).toLocaleString() : 0} pts`, `${b.uniqueOwned}/${b.total} cards`],
-    cards: top.map(c => {
-      const lowest = copies.filter(x => x.card === c.number && x.variant === c.variant).sort((a, z) => a.n - z.n)[0];
-      return { src: art(c), name: c.name, hex: RARITIES.find(r => r.stars === c.stars)?.hex, tag: [c.variant === 'regular' ? '' : SHORT_VARIANT[c.variant], lowest ? `#${lowest.n}` : ''].filter(Boolean).join(' ') || undefined };
-    }),
     footer: siteHost,
   };
+}
+
+/** The big stat tiles of the stats poster. */
+export function buildBigStats(b: ProfileBase): BigStat[] {
+  return [
+    { label: 'Rank', value: b.rank ? `#${b.rank}` : '—' },
+    { label: 'Points', value: b.row ? Math.round(b.row.score).toLocaleString() : '0' },
+    { label: 'Cards', value: `${b.uniqueOwned}/${b.total}` },
+  ];
+}
+
+/** The quick "Share image" of a collector: their best six cards with serials, rank and progress. */
+export function buildShareSpec(b: ProfileBase, copies: Copy[], siteHost: string): ShareSpec {
+  return { ...buildShareBase(b, siteHost), cards: buildShareCandidates(b, copies, 6) };
 }
 const SHORT_VARIANT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
 

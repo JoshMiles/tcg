@@ -42,6 +42,20 @@ for (const n of [0, 1, 2, 3, 4, 5, 6, 9, 12]) {
   ok(one.y + one.h <= pr.y && one.x >= ca.x - 0.5 && one.w > 400, 'the card stays big and clear of the plate');
 }
 
+// Themes, formats and the stats poster layout.
+{
+  ok(new Set(sh.SHARE_THEMES.map(t => t.id)).size === sh.SHARE_THEMES.length, 'share theme ids are unique');
+  ok(sh.getShareTheme('nope').id === 'classic' && sh.getShareTheme(undefined).id === 'classic', 'an unknown theme falls back to Classic');
+  ok(sh.formatHeight('story') === sh.STORY_H && sh.formatHeight() === sh.SHARE_H, 'formats map to heights');
+  const h = sh.STORY_H, ca = sh.cardAreaWithPlate(h), pr = sh.plateRect(h);
+  ok(ca.y + ca.h + sh.PLATE_GAP <= pr.y + 0.5 && pr.y + pr.h <= h - sh.FOOTER_H, 'the plate fits in a story too');
+  const sa = sh.cardAreaWithStats(), full = sh.cardArea();
+  ok(sa.y >= full.y + sh.BIG_STATS_H && sa.y + sa.h <= full.y + full.h + 0.5, 'the stat tiles leave the cards a clear area');
+  const six = sh.layoutCards(6, sh.cardArea(sh.STORY_H), 28, 2);
+  ok(six.length === 6 && six.every(r => r.x >= 70 - 0.5 && r.x + r.w <= sh.SHARE_W - 70 + 0.5), 'two columns of six cards stay inside the margins');
+  ok(sh.PLATE_H <= 220, 'the plate stays slim');
+}
+
 // ── engine, in an isolated sandbox ──
 const db = await import('../lib/db');
 const kvLib = await import('../lib/kv');

@@ -11,7 +11,7 @@ import { copyShareSpec } from '@/lib/copy-share';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { getSession } from '@/lib/session';
 import { getUserSettings } from '@/lib/user-settings-store';
-import { ShareImageButton } from '@/app/components/ShareImage';
+import { ShareStudio } from '@/app/components/ShareStudio';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
 import { ORIGIN_LABELS, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
@@ -162,15 +162,21 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
 
           <div className="flex flex-wrap gap-2">
             {canPin && <PinCopyButton uid={copy.uid!} pinned={pinned} />}
-            <ShareImageButton
-              spec={copyShareSpec({
+          </div>
+          <details className="group rounded-xl border border-gray-800 bg-gray-950/50 open:p-4 p-0">
+            <summary className="cursor-pointer list-none px-4 py-2.5 group-open:px-0 group-open:pt-0 group-open:pb-4 text-sm font-bold text-yellow-300 hover:text-yellow-200 inline-flex items-center gap-1.5 w-full">
+              <Icon name="share" />Share this card <span className="text-xs font-normal text-gray-500">pick a theme and shape</span>
+            </summary>
+            <ShareStudio
+              base={copyShareSpec({
                 copy, cardName: card.name, seasonId: season.id, seasonName: season.name, packName: pack.name, total, mult, art, hex: rarity?.hex,
                 privateHolder: !!copy.owner && hidden.has(copy.owner), siteUrl: SITE_URL,
               })}
+              link={`${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`}
+              shareText={`${label}${copy.uid ? ` #${copy.uid}` : ''} on The Cheesy TCG`}
               filename={`cheesy-tcg-${card.number}-${copy.variant}-${copy.n}.png`}
-              label="Share this card"
             />
-          </div>
+          </details>
         </div>
       </div>
 

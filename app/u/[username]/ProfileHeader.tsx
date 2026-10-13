@@ -4,8 +4,8 @@ import { Avatar } from '@/app/components/Avatar';
 import type { ProfileBase } from '@/lib/profile-data';
 import { ShareProfile } from './ShareProfile';
 import { accentHex, hasExperiment } from '@/lib/user-settings';
-import { ShareImageButton } from '@/app/components/ShareImage';
 import type { ShareSpec } from '@/lib/share-image';
+import { profileHref } from '@/lib/profile-url';
 
 /** Who this is: avatar, name, awards, rank and progress, and the main actions (trade, share, leaderboard). */
 export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec }) {
@@ -62,8 +62,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileB
               <Icon name="trade" />Trade with {b.displayName}
             </Link>
           )}
-          <ShareProfile name={b.displayName} />
-          {shareSpec && shareSpec.cards.length > 0 && <ShareImageButton spec={shareSpec} filename={`cheesy-tcg-${b.lower}.png`} label="Share my cards" />}
+          <ShareProfile name={b.displayName} username={b.lower} isOwner={isOwner} spec={shareSpec} customiseHref={isOwner ? profileHref(b.lower, 'share') : undefined} />
           <Link href={leaderboardHref} className="inline-flex items-center gap-1.5 text-xs font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/40 hover:bg-yellow-500/20 rounded-full px-3 py-1.5 transition-colors">
             <Icon name="trophy" />Leaderboard
           </Link>
