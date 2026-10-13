@@ -248,6 +248,8 @@ The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMin
 
 Files live in `public/twitch-panel/`, served as static files from Vercel.
 
+**Submission pack (`twitch-extension/`)**: everything for the review form. `SUBMISSION.md` has every text field (name, summary, details, allowlists, capabilities, change log, testing instructions, source-code note) with the limits checked, plus a pre-flight checklist and how to redo the assets. The images are `icon-100.png` (100x100, opaque), `discovery-300x200.png` (300x200, opaque) and five real 1024x768 panel screenshots in `screenshots/`. The app icon (home-screen icons, `app/apple-icon.png`, the Twitch icon and discovery art) is the mascot with a cheese-wedge badge from `scripts/lib/brand-icon.mjs`: `node scripts/make-pwa-icons.mjs` and `node scripts/make-twitch-assets.mjs` rebuild them. The screenshots come from a seeded sandbox (`scripts/seed-twitch-screenshots.mts`) and are captured as four tiles then joined (`scripts/stitch-screenshot-tiles.cjs`) because the browser pane only grabs 800x600. `scripts/check-twitch-assets.mts` verifies the sizes, opacity and text limits.
+
 **Extension dashboard setup (dev.twitch.tv):**
 1. Create extension → type: Panel
 2. Panel HTML file URL: `https://cheesytcg.app/twitch-panel/panel.html`
