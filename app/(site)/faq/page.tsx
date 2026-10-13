@@ -490,6 +490,10 @@ export default async function FaqPage() {
         <Q q="I can&rsquo;t log in on the website" open>
           Try again — the sign-in link only lasts a few minutes and must finish in the same browser. If you pressed <em>Cancel</em> on Twitch&rsquo;s page we can&rsquo;t log you in. Make sure cookies are allowed for this site.
         </Q>
+        <Q q="Why am I asked for a &ldquo;quick check&rdquo; when I trade or upgrade?" id="captcha">
+          To stop bots from spamming trades and upgrades. It&rsquo;s a short Cloudflare check that usually passes on its own; if it does ask you to tick a box, do that and your trade or upgrade carries on.
+          After you pass you won&rsquo;t be asked again for about 15 minutes. If it keeps failing, turn off any VPN or tracker-blocking extension for this site, or try another browser. The Twitch panel doesn&rsquo;t use it.
+        </Q>
         <Q q="How do I find things quickly?">
           Press <kbd className="kbd">/</kbd> (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, copies or shinies, and shows who moved up or down since you last looked.
         </Q>

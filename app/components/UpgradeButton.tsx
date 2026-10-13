@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { VARIANT_LABELS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
+import { postJson } from './captcha-client';
 import { UpgradeCeremony, type CeremonyCard } from './UpgradeCeremony';
 import type { HoloSpecs } from '@/lib/holo-core';
 
@@ -34,11 +35,7 @@ export function UpgradeButton({
     setState('working');
     setError('');
     try {
-      const res = await fetch('/api/account/upgrade', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cardNumber, from }),
-      });
+      const res = await postJson('/api/account/upgrade', { cardNumber, from });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || `Upgrade failed (${res.status})`);
       setState('done');

@@ -12,7 +12,8 @@ import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { DEFAULT_SETTINGS, hasExperiment } from '@/lib/user-settings';
 import { PublicKeyboard } from './PublicKeyboard';
-import { CookieNotice, CookieSettingsLink } from './CookieNotice';
+import { CaptchaHost } from '@/app/components/CaptchaHost';
+import { CookieNotice,CookieSettingsLink } from './CookieNotice';
 import { SandboxPill } from '@/app/components/SandboxPill';
 
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
@@ -43,6 +44,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[90] focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       <SandboxPill />
       <CookieNotice />
+      <CaptchaHost />
       <SiteNav user={user} loginEnabled={loginConfigured()} rank={rank} />
       <SiteSearch />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>

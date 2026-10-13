@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason } from '@/lib/kv';
 import { createTrade } from '@/lib/trades';
 import { requireViewer, respond } from '@/lib/trade-api';
+import { captchaGate } from '@/lib/captcha-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,8 @@ export async function POST(req: NextRequest) {
   if ('response' in viewer) return viewer.response;
 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const blocked = await captchaGate(req, viewer.session.username, body);
+  if (blocked) return blocked;
   const kind = body.kind === 'listing' ? 'listing' : body.kind === 'direct' ? 'direct' : null;
   if (!kind) return NextResponse.json({ error: 'kind must be "direct" or "listing"' }, { status: 400 });
   const seasonId = typeof body.seasonId === 'string' ? body.seasonId : (await getActiveSeason())?.id;
