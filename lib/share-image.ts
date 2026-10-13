@@ -30,7 +30,12 @@ export function layoutCards(n: number, area: Rect, gap = 28, colsOverride?: numb
   return out;
 }
 
-export interface ShareCard { src: string; name: string; tag?: string; hex?: string }
+export interface ShareCard {
+  src: string;
+  /** A small static still of the art, for previews and pickers (the full art is often an animated, multi-megabyte file). */
+  thumb?: string;
+  name: string; tag?: string; hex?: string;
+}
 /** The engraved plate under a single copy's card: its unique number, edition, date, who holds it and a QR code to its page. */
 export interface SharePlate {
   /** The unique copy number ("#1000342"); the edition is shown instead when a copy has none. */
