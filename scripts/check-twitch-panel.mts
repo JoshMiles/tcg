@@ -36,6 +36,6 @@ const base = body(read('panel.html'));
 for (const f of ['mobile.html', 'video_component.html']) ok(body(read(f)) === base, `${f} has the same markup as panel.html (keep the three in sync)`);
 for (const id of ['stats-area', 'trades-area', 'leaderboard-area', 'collection-area', 'grid-tools', 'pack-tabs', 'panel-banner', 'toast', 'trades-dot', 'view-tabs']) {
   ok(base.includes(`id="${id}"`), `panel.html has #${id}`);
-  ok(js.includes(id), `panel.js uses #${id}`);
+  ok((js + read('trades.js')).includes(id), `the panel scripts use #${id}`);
 }
 console.log('twitch panel checks passed');

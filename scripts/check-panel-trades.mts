@@ -72,6 +72,26 @@ await db.runInSandbox(box.id, async () => {
   ok(bad.status >= 400, 'offering cards you do not own is refused');
   const cx = await call(req('POST', { action: 'cancel', id: g.body.outgoing[0].id }));
   ok(cx.status === 200, 'cancel works');
+  // Listing alerts: a matching board listing is flagged and sorted first; a counter goes back to the offerer and closes the original.
+  for (let i = 0; i < 3; i++) await kvLib.addCollectionEntry(c, 'bob', encodeEntry(b.number, 'regular'), 'grant');
+  await kv.del('trade:cd:bob');
+  const bobList = await trades.createTrade({ seasonId: season.id, from: 'bob', kind: 'listing', give: [{ cardNumber: b.number, variant: 'regular', count: 1 }], get: [{ cardNumber: a.number, variant: 'regular', count: 1 }] });
+  ok(bobList.ok, 'bob lists a card');
+  g = await call(req('GET'));
+  ok(g.body.board.length >= 1 && g.body.board.every((t: { alert: boolean }) => t.alert === false), 'no alerts set: nothing is flagged');
+  const store = await import('../lib/user-settings-store');
+  await store.saveUserSettings('alice', { watches: [{ card: b.number, variant: 'regular' }] });
+  g = await call(req('GET'));
+  ok(g.body.board[0].alert === true && g.body.board[0].from === 'bob', 'a listing that gives a watched card is flagged and listed first');
+  await kv.del('trade:cd:bob');
+  const direct = await trades.createTrade({ seasonId: season.id, from: 'bob', kind: 'direct', to: 'alice', give: [{ cardNumber: b.number, variant: 'regular', count: 1 }], get: [{ cardNumber: a.number, variant: 'regular', count: 1 }] });
+  ok(direct.ok, 'bob makes a direct offer: ' + JSON.stringify(direct));
+  g = await call(req('GET'));
+  await kv.del('trade:cd:alice');
+  const counter = await call(req('POST', { action: 'counter', id: g.body.incoming[0].id, give: [{ cardNumber: a.number, variant: 'regular', count: 1 }], get: [{ cardNumber: b.number, variant: 'regular', count: 1 }], note: 'how about this' }));
+  ok(counter.status === 200, 'counter works: ' + JSON.stringify(counter.body));
+  g = await call(req('GET'));
+  ok(g.body.incoming.length === 0 && g.body.outgoing.some((t: { to: string; counter: boolean }) => t.to === 'bob' && t.counter), 'the original is closed and the counter is an open offer to bob');
   ok((await call(req('POST', { action: 'nope' }))).status === 400, 'an unknown action is refused');
 });
 await sbx.deleteSandbox(box.id);

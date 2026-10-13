@@ -245,11 +245,14 @@ export default async function FaqPage() {
           Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule — you can
           trade anything for anything. Remember that a copy’s serial number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
         </Q>
+        <Q q="Can I be told when a card I want is listed?">
+          Yes. Cards on your <strong className="text-white">Looking for</strong> list alert you for every version. For something more specific, add a <strong className="text-white">saved alert</strong> in <Link href="/settings#watches" className="text-yellow-400 hover:text-yellow-300">Settings</Link>, such as &ldquo;a Shiny Full Art Gouda&rdquo; (up to 10). When someone posts a matching card on the open board you get a notice in the bell, and in the Twitch extension the listing is tagged <em>On your list</em>. You can turn these notices off in Settings.
+        </Q>
         <Q q="Trading seems to be switched off">
           Trading can be paused by the streamer, for example while something is being fixed. While it&rsquo;s paused nothing new can be offered or accepted, but you can still cancel your own offers to get your cards back.
         </Q>
         <Q q="Can I trade in the Twitch extension?">
-          Yes. The extension has a Trades tab where you can accept or decline offers, take listings from the open board, cancel your own offers and make new ones (name a viewer, or leave the name empty to post on the board). It works exactly like the website, so your offers and cards are the same in both places. The website also has extras such as matches and the full history.
+          Yes. The extension has a Trades tab where you can accept, decline or <strong className="text-white">counter</strong> offers, take listings from the open board, cancel your own offers and make new ones (name a viewer, or leave the name empty to post on the board). Listings for cards on your Looking for list or saved alerts are tagged <em>On your list</em>, and the tab shows a dot when one appears. It works exactly like the website, so your offers and cards are the same in both places. The website also has extras such as matches and the full history.
         </Q>
       </Section>
 

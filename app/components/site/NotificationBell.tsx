@@ -114,6 +114,7 @@ export function NotificationBell() {
                     <p className="text-[13px] leading-snug text-gray-200 break-words">{n.text}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[11px] text-gray-500">
                       <span>{ago(n.at)}</span>
+                      {n.kind === 'watch' && <Link href="/trade?tab=board" onClick={() => setOpen(false)} className="font-semibold text-yellow-400 hover:text-yellow-300">See the listing</Link>}
                       {(n.kind === 'offer' || n.kind === 'countered') && <Link href="/trade" onClick={() => setOpen(false)} className="font-semibold text-yellow-400 hover:text-yellow-300">View offer</Link>}
                       {n.kind === 'accepted' && n.swap && (
                         <button type="button" onClick={() => { setOpen(false); showing.current = true; setSwap(n.swap!); }} className="font-semibold text-sky-300 hover:text-sky-200"><Icon name="play" className="mr-1 w-3 h-3" />Replay</button>

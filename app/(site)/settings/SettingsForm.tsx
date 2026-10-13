@@ -2,9 +2,12 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
-import { ACCENTS, BIO_MAX, EXPERIMENTS, WANTED_MAX, sanitizeUserSettings, type UserSettings } from '@/lib/user-settings';
+import { ACCENTS, BIO_MAX, EXPERIMENTS, WANTED_MAX, WATCH_MAX, sanitizeUserSettings, type UserSettings } from '@/lib/user-settings';
+import { watchLabel } from '@/lib/watch-core';
+import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
+import type { Variant } from '@/lib/types';
 
-type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'allowOffers' | 'hideUncollected' | 'compactGrids';
+type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatch' | 'allowOffers' | 'hideUncollected' | 'compactGrids';
 
 function Section({ icon, title, hint, children }: { icon: Parameters<typeof Icon>[0]['name']; title: string; hint?: string; children: ReactNode }) {
   return (
@@ -40,6 +43,12 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
   const matches = find.trim() ? cards.filter(c => c.name.toLowerCase().includes(find.trim().toLowerCase()) || String(c.number) === find.trim()).slice(0, 8) : [];
   const nameOf = (n: number) => cards.find(c => c.number === n)?.name ?? `#${n}`;
   const dirty = JSON.stringify(s) !== JSON.stringify(saved);
+  // Listing alerts: a card and a version (or any) to watch for on the board.
+  const [watchFind, setWatchFind] = useState('');
+  const [watchVariant, setWatchVariant] = useState<Variant | ''>('');
+  const watchMatches = watchFind.trim() ? cards.filter(c => c.name.toLowerCase().includes(watchFind.trim().toLowerCase()) || String(c.number) === watchFind.trim()).slice(0, 6) : [];
+  const addWatch = (card: number) => setS(p => (p.watches.length >= WATCH_MAX || p.watches.some(w => w.card === card && w.variant === (watchVariant || null))) ? p : { ...p, watches: [...p.watches, { card, variant: watchVariant || null }] });
+  const removeWatch = (i: number) => setS(p => ({ ...p, watches: p.watches.filter((_, j) => j !== i) }));
 
   const flip = (k: BoolKey) => (v: boolean) => setS(p => ({ ...p, [k]: v }));
   const toggleExp = (id: string, on: boolean) => setS(p => ({ ...p, experiments: on ? [...p.experiments, id] : p.experiments.filter(x => x !== id) }));
@@ -94,6 +103,34 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
         <Row id="allow" label="Accept direct offers" help="Turn off to stop other collectors offering you trades. The open board and counter-offers to your own offers still work." checked={s.allowOffers} onChange={flip('allowOffers')} />
         <Row id="n-offers" label="New offers and counters" help="A bell notice when someone offers you a trade or counters yours." checked={s.notifyOffers} onChange={flip('notifyOffers')} />
         <Row id="n-results" label="How my offers ended" help="A bell notice when an offer of yours is accepted, declined, withdrawn or runs out of time." checked={s.notifyResults} onChange={flip('notifyResults')} />
+        <Row id="n-watch" label="Listing alerts" help="A bell notice when someone posts a card on the open board that is on your Looking for list or one of your saved alerts below." checked={s.notifyWatch} onChange={flip('notifyWatch')} />
+      </Section>
+
+      <Section icon="search" title="Saved alerts" hint="Tell me when someone lists a card, in a version you choose. Cards on your Looking for list alert in every version automatically.">
+        <div className="space-y-2 pb-1" id="watches">
+          <div className="flex flex-wrap gap-1.5">
+            {s.watches.length === 0 && <span className="text-xs text-gray-600">No saved alerts yet.</span>}
+            {s.watches.map((w, i) => (
+              <button key={`${w.card}-${w.variant}`} type="button" onClick={() => removeWatch(i)} title="Remove" className="rounded-full border border-sky-400/40 bg-sky-500/10 px-2.5 py-1 text-xs font-bold text-sky-200 hover:bg-sky-500/20">{watchLabel(w, nameOf)} <Icon name="x" /></button>
+            ))}
+            <span className="text-xs text-gray-600 self-center">{s.watches.length}/{WATCH_MAX}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input type="search" value={watchFind} onChange={e => setWatchFind(e.target.value)} placeholder="Search a card to watch" aria-label="Search a card to watch"
+              className="min-w-0 flex-1 basis-44 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
+            <select value={watchVariant} onChange={e => setWatchVariant(e.target.value as Variant | '')} aria-label="Version to watch for" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
+              <option value="">Any version</option>
+              {VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}
+            </select>
+          </div>
+          {watchMatches.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5">
+              {watchMatches.map(c => (
+                <li key={c.number}><button type="button" disabled={s.watches.length >= WATCH_MAX} onClick={() => { addWatch(c.number); setWatchFind(''); }} className="rounded-full border border-gray-700 px-2.5 py-1 text-xs text-gray-300 hover:text-white disabled:opacity-40">+ #{c.number} {c.name}</button></li>
+              ))}
+            </ul>
+          )}
+        </div>
       </Section>
 
       <Section icon="eye" title="Display" hint="Saved to your account, so it follows you between devices.">

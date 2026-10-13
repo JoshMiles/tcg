@@ -1006,7 +1006,8 @@ async function loadMe(fresh) {
   } catch {
     return;
   }
-  document.getElementById('trades-dot').classList.toggle('hidden', !(me.offers > 0));
+  updateTradesDot();
+  if (!tradesData) loadTrades(false); // so listings for your Looking for list can light the dot
   renderSeasonHeader('collection-season-header');
   renderGrid(); // the serial marks on the tiles
   if (currentView === 'stats') renderStats();

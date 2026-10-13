@@ -47,7 +47,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
   // How each listing suits the viewer: used for the matches panel and the board's filters.
   const copies = new Map<number, number>();
   for (const e of owned) copies.set(e, (copies.get(e) ?? 0) + 1);
-  const viewer: MatchViewer = { copies, wanted: new Set(prefs?.wanted ?? []) };
+  const viewer: MatchViewer = { copies, wanted: new Set([...(prefs?.wanted ?? []), ...(prefs?.watches ?? []).map(w => w.card)]) };
   const pools = await getTradePools(season, [...board, ...incoming, ...outgoing, ...recent], me);
   const infoFor = new Map(board.map(t => [t.id, matchTrade(t, viewer, cards, pools)]));
   const matches = me ? bestMatches(board, viewer, cards, 4, pools) : [];

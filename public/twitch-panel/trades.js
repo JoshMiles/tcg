@@ -23,6 +23,26 @@ const timeLeftText = ms => {
 
 function resetTrades() { tradesData = null; tradesLoadedAt = 0; tradesError = ''; composer = null; }
 
+// Listings that match the viewer's Looking for list or saved alerts light the Trades dot until the tab has been opened (remembered per
+// device, only the newest ids). Offers waiting for them always count.
+const SEEN_KEY = 'tcg_panel_seen_alerts';
+function seenAlerts() { try { return JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); } catch { return []; } }
+function markAlertsSeen() {
+  if (!tradesData) return;
+  const ids = tradesData.board.filter(t => t.alert).map(t => t.id);
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(ids.slice(0, 60))); } catch { /* storage unavailable */ }
+  updateTradesDot();
+}
+function updateTradesDot() {
+  const dot = document.getElementById('trades-dot');
+  if (!dot) return;
+  const seen = seenAlerts();
+  const fresh = tradesData ? tradesData.board.filter(t => t.alert && seen.indexOf(t.id) === -1).length : 0;
+  const waiting = tradesData ? tradesData.incoming.length : (me && me.offers) || 0;
+  dot.classList.toggle('hidden', waiting + fresh === 0);
+  dot.title = fresh > 0 && waiting === 0 ? 'A card you are looking for was listed' : 'Trade offers are waiting';
+}
+
 async function loadTrades(force) {
   if (!auth || !auth.token || !currentUsername) return;
   if (!force && tradesData && Date.now() - tradesLoadedAt < 30000) { renderTrades(); return; }
@@ -34,9 +54,7 @@ async function loadTrades(force) {
   } catch {
     tradesError = 'Could not reach the server';
   }
-  const dot = document.getElementById('trades-dot');
-  if (dot && tradesData) dot.classList.toggle('hidden', tradesData.incoming.length === 0);
-  if (currentView === 'trades') renderTrades();
+  if (currentView === 'trades') { renderTrades(); markAlertsSeen(); } else updateTradesDot();
 }
 
 async function tradeRequest(payload) {
@@ -100,6 +118,7 @@ function tradeRow(t, mode, cards) {
     : t.kind === 'direct' ? 'Offer to @' + t.to : 'Your listing on the board';
   head.append(el('span', 'tr-who', title), el('span', 'tr-time', timeLeftText(t.expiresAt)));
   row.appendChild(head);
+  if (mode === 'board' && t.alert) row.appendChild(el('span', 'tr-alert', 'On your list'));
 
   const mineOut = mode === 'outgoing';
   const getItems = mineOut ? t.get : t.give;   // what the viewer receives
@@ -122,7 +141,13 @@ function tradeRow(t, mode, cards) {
     } else {
       actions.appendChild(el('span', 'tr-hint', !tradesData.enabled ? tradesData.closedReason : 'You do not have the cards asked for.'));
     }
-    if (mode === 'incoming') actions.appendChild(confirmButton('Decline', 'tr-btn ghost', () => answerTrade('decline', t.id, 'Offer declined.')));
+    if (mode === 'incoming') {
+      const counter = el('button', 'tr-btn ghost', 'Counter');
+      counter.type = 'button';
+      counter.disabled = !tradesData.enabled;
+      counter.addEventListener('click', () => startCounter(t));
+      actions.append(counter, confirmButton('Decline', 'tr-btn ghost', () => answerTrade('decline', t.id, 'Offer declined.')));
+    }
   }
   row.appendChild(actions);
   return row;
@@ -157,7 +182,7 @@ function renderTrades() {
   const newBtn = el('button', 'tr-btn', '+ New offer');
   newBtn.type = 'button';
   newBtn.disabled = !d.enabled;
-  newBtn.addEventListener('click', () => { composer = { to: '', note: '', give: {}, get: {}, wantVar: {}, filter: '', busy: false, msg: '' }; renderTrades(); });
+  newBtn.addEventListener('click', () => { composer = { to: '', note: '', give: {}, get: {}, wantVar: {}, filter: '', busy: false, msg: '', counterOf: null }; renderTrades(); });
   top.append(newBtn, el('span', 'tr-limits', d.outgoing.length + '/' + d.limits.maxOpen + ' open offers'));
   area.appendChild(top);
   if (!d.enabled) area.appendChild(el('p', 'tr-closed', d.closedReason));
@@ -176,6 +201,20 @@ function renderTrades() {
 }
 
 // ── Composer ──────────────────────────────────────────────
+// Answering an offer with different terms: it starts from the mirror of the offer (you give what they asked for, as far as you own it,
+// and want what they offered) and goes back to them as a new offer; the original is closed.
+function startCounter(t) {
+  const give = {}, get = {};
+  const cards = tradeCardMap();
+  t.get.forEach(i => {
+    const card = cards.get(i.cardNumber);
+    const have = card ? cardStatus(card).variants[i.variant] || 0 : 0;
+    if (have > 0) give[tkey(i.cardNumber, i.variant)] = Math.min(i.count, have);
+  });
+  t.give.forEach(i => { get[tkey(i.cardNumber, i.variant)] = i.count; });
+  composer = { to: t.from, note: '', give, get, wantVar: {}, filter: '', busy: false, msg: '', counterOf: t.id };
+  renderTrades();
+}
 function stepper(value, max, onChange) {
   const box = el('span', 'tr-step');
   const minus = el('button', 'tr-step-btn', '−'); minus.type = 'button'; minus.disabled = value <= 0;
@@ -278,7 +317,7 @@ function renderComposer(area) {
   const back = el('button', 'tr-btn ghost', '‹ Back');
   back.type = 'button';
   back.addEventListener('click', () => { composer = null; renderTrades(); });
-  head.append(back, el('span', 'tr-limits', 'New offer'));
+  head.append(back, el('span', 'tr-limits', composer.counterOf ? 'Counter-offer' : 'New offer'));
   area.appendChild(head);
 
   const section = (title, hint, child) => {
@@ -304,6 +343,7 @@ function renderComposer(area) {
   const sendWrap = el('div');
   const to = el('input', 'tr-input');
   to.type = 'text'; to.placeholder = 'Twitch name (empty = post on the board)'; to.value = composer.to; to.maxLength = 40; to.setAttribute('aria-label', 'Who the offer is for');
+  if (composer.counterOf) { to.readOnly = true; to.title = 'A counter-offer goes back to the person who made the offer'; }
   to.addEventListener('input', () => { composer.to = to.value; });
   const note = el('input', 'tr-input');
   note.type = 'text'; note.placeholder = 'Add a note (optional)'; note.value = composer.note; note.maxLength = 140; note.setAttribute('aria-label', 'Note');
@@ -313,15 +353,18 @@ function renderComposer(area) {
   send.addEventListener('click', async () => {
     composer.busy = true; composer.msg = ''; renderSummary();
     const target = composer.to.replace(/^@/, '').trim();
-    const r = await tradeRequest({ action: 'create', kind: target ? 'direct' : 'listing', to: target || undefined, give: itemsOf(composer.give), get: itemsOf(composer.get), note: composer.note });
+    const r = composer.counterOf
+      ? await tradeRequest({ action: 'counter', id: composer.counterOf, give: itemsOf(composer.give), get: itemsOf(composer.get), note: composer.note })
+      : await tradeRequest({ action: 'create', kind: target ? 'direct' : 'listing', to: target || undefined, give: itemsOf(composer.give), get: itemsOf(composer.get), note: composer.note });
     composer.busy = false;
     if (!r.ok) { composer.msg = r.error; renderSummary(); return; }
+    const counterSent = !!composer.counterOf;
     composer = null;
-    showToast(target ? 'Offer sent to @' + target + '.' : 'Listed on the board.');
+    showToast(counterSent ? 'Counter-offer sent to @' + target + '.' : target ? 'Offer sent to @' + target + '.' : 'Listed on the board.');
     await loadTrades(true);
     refreshData(false); loadMe(true);
   });
   sendWrap.append(to, note, summary, send);
-  section('3. Send it', 'Name someone to offer it just to them, or leave the name empty to post it on the board for anyone.', sendWrap);
+  section('3. Send it', composer.counterOf ? 'This goes back to ' + composer.to + ' as a new offer, and their original offer is closed.' : 'Name someone to offer it just to them, or leave the name empty to post it on the board for anyone.', sendWrap);
   renderSummary();
 }
