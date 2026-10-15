@@ -3,7 +3,8 @@ import { PendingButton } from '../../components/PendingButton';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { currentSandboxId, runInSandbox } from '@/lib/db';
+import { currentSandboxId, isPreview, runInSandbox } from '@/lib/db';
+import { PreviewOff } from '../PreviewOff';
 import { getSandbox, readProduction, readSandboxKey, SOURCE_LABELS } from '@/lib/sandbox';
 import { getSandboxStats, listCardValues, listSandboxCards, listSandboxUserRows } from '@/lib/sandbox-tools';
 import { getLog, getUndoLabel } from '@/lib/sandbox-log';
@@ -37,6 +38,7 @@ function ago(at: number, now: number): string {
 }
 
 export default async function SandboxDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string; err?: string; tab?: string; user?: string }> }) {
+  if (isPreview()) return <PreviewOff />;
   const { id } = await params;
   const { msg, err, tab: tabParam, user: userParam } = await searchParams;
   const sandbox = await getSandbox(id);

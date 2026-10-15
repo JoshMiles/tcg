@@ -12,12 +12,22 @@ import { cookies, headers } from 'next/headers';
 //   3. the `tcg_sandbox` cookie (set when an admin enters a sandbox in the browser).
 // A sandbox id that doesn't exist (deleted, or junk) maps to a dead namespace. Never to production, so a stale cookie
 // can't make a "sandbox" request quietly hit real data.
+//
+// Preview deployments (VERCEL_ENV=preview) share the production store, so they are forced into one reserved namespace,
+// `sbx:preview:*`: the sandbox choice from cookie / header / override is ignored, and so is "outside a request" (which
+// would otherwise mean production). The raw `prodKv` is fenced there too: it can still read production (the staff list,
+// the sandbox seeding), but any write to a key outside `sbx:preview:` throws.
 
 export const SANDBOX_COOKIE = 'tcg_sandbox';
 export const SANDBOX_HEADER = 'x-tcg-sandbox';
 export const SANDBOX_REGISTRY_KEY = 'sandbox:registry';   // lives in the production namespace, never prefixed
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,22}[a-z0-9]$/;
+export const PREVIEW_ID = 'preview';                        // reserved: the namespace every preview deployment is pinned to
+export const RESERVED_IDS: readonly string[] = [PREVIEW_ID];
 const DEAD = '__missing__';                                 // not matchable by ID_RE, so no real sandbox can collide with it
+
+/** True on a Vercel preview deployment. Read per call (not at load) so scripts can switch it. */
+export const isPreview = () => process.env.VERCEL_ENV === 'preview';
 
 const override = new AsyncLocalStorage<{ id: string | null }>();
 
@@ -39,6 +49,7 @@ export function forgetSandboxCache() { known = null; }
 
 /** The sandbox this request is in, or null for production. Never throws. */
 export async function currentSandboxId(): Promise<string | null> {
+  if (isPreview()) return PREVIEW_ID;
   const pinned = override.getStore();
   if (pinned) return pinned.id;
   let raw: string | undefined;
@@ -69,8 +80,34 @@ const prefixed = (id: string, key: unknown) => `sbx:${id}:${String(key)}`;
 
 type Kv = typeof prodKv;
 
+/** Commands that only read. On a preview any other command is treated as a write and must stay inside `sbx:preview:`. */
+const READ_ONLY = new Set(['get', 'mget', 'exists', 'ttl', 'type', 'strlen', 'hget', 'hgetall', 'hlen', 'hexists', 'hkeys', 'hvals', 'hmget',
+  'lrange', 'llen', 'lindex', 'smembers', 'sismember', 'scard', 'scan', 'zrange', 'zscore', 'zcard', 'dbsize']);
+const PREVIEW_PREFIX = `sbx:${PREVIEW_ID}:`;
+
+/**
+ * The raw client with the preview fence: on a preview deployment, writes outside `sbx:preview:` throw and pipelines are
+ * refused; everywhere else it is the plain client. Reads always pass through.
+ */
+const fenced: Kv = new Proxy(prodKv, {
+  get(target, prop) {
+    const orig = (target as unknown as Record<string | symbol, unknown>)[prop];
+    if (typeof orig !== 'function' || typeof prop !== 'string') return orig;
+    const name = prop.toLowerCase();
+    return (...args: unknown[]) => {
+      if (isPreview() && !READ_ONLY.has(name)) {
+        if (name === 'pipeline' || name === 'multi') return Promise.reject(new Error(`kv.${prop} is not available on a preview deployment`));
+        const keys = name === 'del' || name === 'unlink' ? args : [args[0]];
+        if (!keys.every(k => typeof k === 'string' && k.startsWith(PREVIEW_PREFIX)))
+          return Promise.reject(new Error(`Blocked: a preview deployment may not write outside ${PREVIEW_PREFIX}* (kv.${prop})`));
+      }
+      return (orig as (...a: unknown[]) => unknown).apply(target, args);
+    };
+  },
+}) as Kv;
+
 /** The KV client every module uses. Same API as @vercel/kv; keys are namespaced when the request is in a sandbox. */
-export const kv: Kv = new Proxy(prodKv, {
+export const kv: Kv = new Proxy(fenced, {
   get(target, prop) {
     const orig = (target as unknown as Record<string | symbol, unknown>)[prop];
     if (typeof orig !== 'function' || typeof prop !== 'string') return orig;
@@ -85,4 +122,4 @@ export const kv: Kv = new Proxy(prodKv, {
 }) as Kv;
 
 /** The raw production client. Only the sandbox manager (lib/sandbox.ts) and the staff list (lib/staff.ts, real account data that must not change with the sandbox) should use this. */
-export { prodKv };
+export { fenced as prodKv };

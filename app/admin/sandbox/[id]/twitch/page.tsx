@@ -1,7 +1,8 @@
 import { Icon } from '@/app/components/Icon';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { currentSandboxId } from '@/lib/db';
+import { currentSandboxId, isPreview } from '@/lib/db';
+import { PreviewOff } from '../../PreviewOff';
 import { getSandbox } from '@/lib/sandbox';
 import { listSandboxUsers } from '@/lib/sandbox-tools';
 import { CHANNEL_NAME } from '@/lib/site';
@@ -12,6 +13,7 @@ import { FakeTwitch } from './FakeTwitch';
 export const dynamic = 'force-dynamic';
 
 export default async function FakeTwitchPage({ params }: { params: Promise<{ id: string }> }) {
+  if (isPreview()) return <PreviewOff />;
   const { id } = await params;
   const sandbox = await getSandbox(id);
   if (!sandbox) notFound();

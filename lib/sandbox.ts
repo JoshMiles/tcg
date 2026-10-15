@@ -1,4 +1,4 @@
-import { prodKv, SANDBOX_REGISTRY_KEY, forgetSandboxCache } from './db';
+import { prodKv, SANDBOX_REGISTRY_KEY, RESERVED_IDS, PREVIEW_ID, forgetSandboxCache } from './db';
 
 // Sandboxes: isolated copies of the app's data for testing (upgrades, and later trading) without touching production.
 // A sandbox is a key namespace (`sbx:<id>:*`, see lib/db.ts) plus an entry in the registry below. This module is the only
@@ -33,7 +33,7 @@ export const SOURCE_LABELS: Record<SandboxSource, string> = {
 const ns = (id: string, key: string) => `sbx:${id}:${key}`;
 
 export async function listSandboxes(): Promise<Sandbox[]> {
-  const list = (await prodKv.get<Sandbox[]>(SANDBOX_REGISTRY_KEY)) ?? [];
+  const list = ((await prodKv.get<Sandbox[]>(SANDBOX_REGISTRY_KEY)) ?? []).filter(s => !RESERVED_IDS.includes(s.id));
   return [...list].sort((a, b) => b.createdAt - a.createdAt);
 }
 
@@ -47,7 +47,8 @@ async function saveRegistry(list: Sandbox[]) {
 }
 
 /** A URL-safe id from a name, unique among existing sandboxes. */
-export function makeId(name: string, taken: string[]): string {
+export function makeId(name: string, takenIds: string[]): string {
+  const taken = [...takenIds, ...RESERVED_IDS]; // a reserved id (the preview namespace) can never be handed out
   const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20).replace(/-+$/g, '') || 'sandbox';
   const padded = base.length < 3 ? `${base}-box` : base;
   if (!taken.includes(padded)) return padded;
@@ -61,8 +62,11 @@ async function copyKey(id: string, key: string): Promise<void> {
   if (value !== null && value !== undefined) await prodKv.set(ns(id, key), value);
 }
 
+/** Settings keys copied from production into a sandbox (or the preview namespace), on top of the seasons / packs / cards. One list for both. */
+export const SETUP_SETTINGS_KEYS = ['overlay:settings', 'overlay:packprops', 'overlay:presets', 'scoring:settings'] as const;
+
 /** Copies production's setup into the namespace. Never copies secrets or outside-world config (Discord, webhooks, sessions). */
-async function cloneFromProduction(id: string, withCollections: boolean): Promise<void> {
+export async function cloneFromProduction(id: string, withCollections: boolean): Promise<void> {
   const seasonIds = (await prodKv.get<string[]>('seasons:list')) ?? [];
   const packIds = (await prodKv.get<string[]>('packs:list')) ?? [];
   await copyKey(id, 'seasons:list');
@@ -79,7 +83,12 @@ async function cloneFromProduction(id: string, withCollections: boolean): Promis
     await copyKey(id, `pack:${pid}:cards`);
   }
   // Presentation and scoring settings, so the sandbox looks and scores like production.
-  for (const key of ['overlay:settings', 'overlay:packprops', 'overlay:presets', 'scoring:settings']) await copyKey(id, key);
+  for (const key of SETUP_SETTINGS_KEYS) await copyKey(id, key);
+}
+
+/** Copies production's setup into the preview namespace (preview deployments only; `prodKv` is fenced to that namespace there). */
+export async function seedPreviewFromProduction(withCollections: boolean): Promise<void> {
+  await cloneFromProduction(PREVIEW_ID, withCollections);
 }
 
 /** Deletes keys in a namespace matching `pattern` (default: all of them) using SCAN. Returns how many were removed. */
