@@ -47,7 +47,7 @@ export async function visit(p, path, errors) {
         h1: document.querySelectorAll('h1').length,
         title: document.title,
         noAlt: [...document.querySelectorAll('img:not([alt])')].length,
-        unnamed: [...document.querySelectorAll('button, a')].filter(e => !(e.textContent || '').trim() && !e.getAttribute('aria-label') && !e.getAttribute('title') && !e.querySelector('img[alt]:not([alt=""])')).length,
+        unnamed: [...document.querySelectorAll('button, a')].filter(e => !(e.textContent || '').trim() && !(e.labels && e.labels.length) && !e.getAttribute('aria-label') && !e.getAttribute('title') && !e.querySelector('img[alt]:not([alt=""])')).length,
       }));
     } catch { await p.waitForTimeout(1500); }
   }
