@@ -1,8 +1,9 @@
 // Dev-only fake of the Upstash REST API that @vercel/kv talks to, so the app can run locally without touching
-// the real database. Supports only the commands this app uses. Start: node scripts/mock-kv.cjs (port 4111).
+// the real database. Supports only the commands this app uses. Start: node scripts/mock-kv.cjs (port 4111, or MOCK_KV_PORT).
 // Point the app at it with KV_REST_API_URL=http://localhost:4111 (see CLAUDE.md → Testing locally).
 
 const http = require('http');
+const PORT = Number(process.env.MOCK_KV_PORT) || 4111;
 const store = new Map();
 function run(cmd) {
   if (!Array.isArray(cmd)) return null;
@@ -55,4 +56,4 @@ http.createServer((req, res) => {
     const out = req.url.includes('pipeline') ? j.map(c => wrap(run(c))) : wrap(run(j));
     res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(out));
   });
-}).listen(4111, () => console.log('mock kv on 4111'));
+}).listen(PORT, () => console.log('mock kv on ' + PORT));
