@@ -68,8 +68,8 @@ const DOCUMENTED_MOD_ACTIONS = ['saveTagsAction', 'saveFlagsAction', 'cancelUser
 ok(JSON.stringify([...modActions].sort()) === JSON.stringify(DOCUMENTED_MOD_ACTIONS), `the actions a mod may use are exactly the documented ones (found: ${[...modActions].sort().join(', ')})`);
 
 // ---- 2. viewer actions (public site) must read the session, never trust the body ----
-const viewerFiles = files.filter(f => /^app\/(\(site\)|u)\/.*actions\.ts$/.test(rel(f)) && /^['"]use server['"]/.test(readFileSync(f, 'utf8')));
-ok(viewerFiles.length >= 2, 'found the viewer action files');
+const viewerFiles = files.filter(f => /^app\/(\(site\)|\(entity\)|u)\/.*actions\.ts$/.test(rel(f)) && /^['"]use server['"]/.test(readFileSync(f, 'utf8')));
+ok(viewerFiles.length >= 3, 'found the viewer action files (profile, cards, copy)');
 for (const f of viewerFiles) {
   const segs = segments(readFileSync(f, 'utf8'));
   const helpers = guardHelpers(segs, VIEWER_GUARD);

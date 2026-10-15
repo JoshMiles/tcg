@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from './Icon';
-import { pinCopyAction } from '@/app/(site)/copy/actions';
+import { pinCopyAction } from '@/app/(entity)/copy/actions';
 
 /** Pin this copy as your profile's Showcase copy (or unpin it). Only shown to the copy's holder. */
 export function PinCopyButton({ uid, pinned, label = 'Pin to my profile' }: { uid: number; pinned: boolean; label?: string }) {
