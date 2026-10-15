@@ -6,6 +6,7 @@ import { backfillSerials, loadSerialIndex } from '@/lib/serials';
 import { getScoringSettings } from '@/lib/scoring';
 import { previewScoring, type ScoringPreview } from '@/lib/scoring-preview';
 import { getHiddenUsers } from '@/lib/user-admin';
+import { runBackup } from '@/lib/backup';
 import { PREVIEW_ID, isPreview } from '@/lib/db';
 import { seedPreviewFromProduction, wipeKeys } from '@/lib/sandbox';
 
@@ -49,4 +50,16 @@ export async function wipePreviewAction(): Promise<void> {
   if (!isPreview()) redirect('/admin/settings?tab=environment');
   await wipeKeys(PREVIEW_ID);
   redirect('/admin/settings?tab=environment&saved=preview-wiped');
+}
+
+/** Takes a backup now (production only; the nightly cron does the same). */
+export async function backupNowAction(): Promise<void> {
+  await requireAdmin();
+  let target = '/admin/settings?tab=environment&saved=backup';
+  try {
+    await runBackup();
+  } catch (e) {
+    target = `/admin/settings?tab=environment&backupError=${encodeURIComponent(e instanceof Error ? e.message : 'Backup failed.')}`;
+  }
+  redirect(target);
 }

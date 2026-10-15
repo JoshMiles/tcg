@@ -5,6 +5,7 @@
 const http = require('http');
 const PORT = Number(process.env.MOCK_KV_PORT) || 4111;
 const store = new Map();
+const types = new Map(); // key -> 'string' | 'hash' | 'list' | 'set' (the stored value alone can't tell a list from a set)
 function run(cmd) {
   if (!Array.isArray(cmd)) return null;
   const [op, key, ...rest] = cmd; const o = String(op).toLowerCase();
@@ -14,12 +15,14 @@ function run(cmd) {
       // SET key value [NX] [EX seconds]: NX only sets when the key is absent (what the app's locks rely on), EX expires it.
       const opts = rest.slice(1).map(x => String(x).toLowerCase());
       if (opts.includes('nx') && store.has(key)) return null;
-      store.set(key, rest[0]);
+      store.set(key, rest[0]); types.set(key, 'string');
       const ex = opts.indexOf('ex');
       if (ex >= 0) setTimeout(() => store.delete(key), Number(rest[1 + ex + 1]) * 1000).unref();
       return 'OK';
     }
-    case 'del': { let n = 0; for (const k of [key, ...rest]) if (store.delete(k)) n++; return n; }
+    case 'del': { let n = 0; for (const k of [key, ...rest]) if (store.delete(k)) { types.delete(k); n++; } return n; }
+    case 'type': return types.get(key) ?? 'none';
+    case 'exists': return store.has(key) ? 1 : 0;
     case 'scan': {
       // SCAN cursor MATCH pattern COUNT n: one pass over everything, cursor 0 means done.
       const mi = rest.findIndex(x => String(x).toLowerCase() === 'match');
@@ -28,16 +31,17 @@ function run(cmd) {
       const re = new RegExp('^' + esc + '$');
       return ['0', [...store.keys()].filter(k => re.test(k))];
     }
-    case 'lpush': { const l = store.get(key) || []; l.unshift(rest[0]); store.set(key, l); return l.length; }
+    case 'lpush': { const l = store.get(key) || []; l.unshift(rest[0]); store.set(key, l); types.set(key, 'list'); return l.length; }
+    case 'rpush': { const l = store.get(key) || []; l.push(...rest); store.set(key, l); types.set(key, 'list'); return l.length; }
     case 'rpop': { const l = store.get(key) || []; return l.pop() ?? null; }
     case 'incr': { const n = Number(store.get(key) || 0) + 1; store.set(key, String(n)); return n; }
-    case 'lrange': { const l = store.get(key) || []; const [a, b] = rest.map(Number); return l.slice(Number(key === undefined ? 0 : a), b + 1); }
+    case 'lrange': { const l = store.get(key) || []; const [a, b] = rest.map(Number); return l.slice(Number(key === undefined ? 0 : a), b < 0 ? l.length + b + 1 : b + 1); }
     case 'ltrim': return 'OK';
-    case 'sadd': { const s = new Set(store.get(key) || []); rest.forEach(x => s.add(x)); store.set(key, [...s]); return 1; }
+    case 'sadd': { const s = new Set(store.get(key) || []); rest.forEach(x => s.add(x)); store.set(key, [...s]); types.set(key, 'set'); return 1; }
     case 'srem': { const s = new Set(store.get(key) || []); let n = 0; rest.forEach(x => { if (s.delete(x)) n++; }); store.set(key, [...s]); return n; }
-    case 'hset': { const h = store.get(key) || {}; for (let i = 0; i < rest.length; i += 2) h[rest[i]] = rest[i+1]; store.set(key, h); return rest.length / 2; }
+    case 'hset': { const h = store.get(key) || {}; for (let i = 0; i < rest.length; i += 2) h[rest[i]] = rest[i+1]; store.set(key, h); types.set(key, 'hash'); return rest.length / 2; }
     case 'hdel': { const h = store.get(key) || {}; let n = 0; rest.forEach(f => { if (f in h) { delete h[f]; n++; } }); store.set(key, h); return n; }
-    case 'hincrby': { const h = store.get(key) || {}; h[rest[0]] = Number(h[rest[0]] || 0) + Number(rest[1]); store.set(key, h); return h[rest[0]]; }
+    case 'hincrby': { const h = store.get(key) || {}; h[rest[0]] = Number(h[rest[0]] || 0) + Number(rest[1]); store.set(key, h); types.set(key, 'hash'); return h[rest[0]]; }
     case 'scard': return (store.get(key) || []).length;
     case 'llen': return (store.get(key) || []).length;
     case 'hget': { const h = store.get(key) || {}; return rest[0] in h ? h[rest[0]] : null; }

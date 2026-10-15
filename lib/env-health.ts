@@ -15,6 +15,8 @@ export const ENV_SPECS: EnvSpec[] = [
   { name: 'KV_REST_API_URL', group: 'Database', level: 'required', unlocks: 'All game data: seasons, packs, cards, collections.' },
   { name: 'KV_REST_API_TOKEN', group: 'Database', level: 'required', unlocks: 'Read and write access to that database.' },
   { name: 'BLOB_READ_WRITE_TOKEN', group: 'Storage', level: 'recommended', unlocks: 'Uploading card art, covers and sounds, and the Assets cleanup tools.' },
+  { name: 'BACKUP_ENCRYPTION_KEY', group: 'Storage', level: 'recommended', unlocks: 'Nightly backups: the password the backup file is encrypted with (backups are public files in Blob, so none is written without it). Keep a copy somewhere safe: without it a backup cannot be read.', minLength: 16 },
+  { name: 'CRON_SECRET', group: 'Storage', level: 'recommended', unlocks: 'Nightly backups: Vercel sends it to the backup route, which refuses every other caller. Any long random string.', minLength: 16 },
   { name: 'TWITCH_EXTENSION_SECRET', group: 'Twitch Extension', level: 'required', unlocks: 'Verifying viewers in the Twitch panel, so they can log in and upgrade there.' },
   { name: 'TWITCH_CLIENT_ID', group: 'Twitch API', level: 'recommended', unlocks: 'Avatars, the LIVE indicator, and finding a viewer from their Twitch ID.' },
   { name: 'TWITCH_CLIENT_SECRET', group: 'Twitch API', level: 'recommended', unlocks: 'The same, and website login (it signs the code exchange).' },
