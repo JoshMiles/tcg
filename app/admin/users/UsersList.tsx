@@ -231,7 +231,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
                 <span className="text-right tabular-nums text-sm text-yellow-400 font-semibold" title={r.scoreRank ? `Rank #${r.scoreRank}` : undefined}>{r.score !== null ? r.score.toLocaleString() : '-'}{r.scoreRank && <span className="block text-[10px] text-gray-600 font-normal">#{r.scoreRank}</span>}</span>
                 <span className="text-right tabular-nums text-sm text-gray-300" title={dupes > 0 ? `${r.unique} unique, ${dupes} duplicate${dupes === 1 ? '' : 's'}` : undefined}>{r.pulls}{dupes > 0 && <span className="block text-[10px] text-gray-600">{dupes} dupes</span>}</span>
                 <span className="text-right tabular-nums text-sm text-gray-400">{r.trades || '-'}</span>
-                <span className="text-right text-xs text-gray-500 tabular-nums" title={r.joined ? `Joined ${new Date(r.joined).toLocaleDateString('en-GB')}` : undefined}>{ago(r.lastActive, now)}</span>
+                <span className="text-right text-xs text-gray-500 tabular-nums" title={r.joined ? `Joined ${new Date(r.joined).toLocaleDateString('en-GB', { timeZone: 'UTC' })}` : undefined}>{ago(r.lastActive, now)}</span>
                 <div className="relative z-10 flex items-center justify-end gap-1">
                   <Link href={`/admin?gift=${encodeURIComponent(r.username)}#quick-actions`} title={`Gift ${r.displayName} a pack`} className="px-1.5 py-1 rounded-lg hover:bg-white/10 transition-colors"><Icon name="gift" /></Link>
                 </div>

@@ -47,7 +47,7 @@ function timeAgo(at: number, now: number): string {
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
-  return new Date(at).toLocaleDateString('en-GB'); // a fixed locale: the server and the browser must print the same text
+  return new Date(at).toLocaleDateString('en-GB', { timeZone: 'UTC' }); // a fixed locale: the server and the browser must print the same text
 }
 
 /** A short two-note chime made with WebAudio, so there is no sound file to ship. */
@@ -637,7 +637,7 @@ function EventRow({
       {e.username && (
         <button type="button" onClick={ev => { ev.stopPropagation(); onFilterViewer(); }} title={`Show only ${e.username}`} aria-label={`Show only ${e.username}`} className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-7 h-7 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-yellow-300 hover:border-yellow-500/50 flex items-center justify-center transition-opacity"><Icon name="filter" className="w-3.5 h-3.5" /></button>
       )}
-      <time className="text-xs text-gray-500 tabular-nums shrink-0 w-16 text-right" dateTime={new Date(e.at).toISOString()} title={new Date(e.at).toLocaleString('en-GB')}>
+      <time className="text-xs text-gray-500 tabular-nums shrink-0 w-16 text-right" dateTime={new Date(e.at).toISOString()} title={new Date(e.at).toLocaleString('en-GB', { timeZone: 'UTC' })}>
         {timeAgo(e.at, now)}
       </time>
     </div>

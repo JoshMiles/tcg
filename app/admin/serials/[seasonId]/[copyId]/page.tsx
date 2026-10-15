@@ -13,10 +13,13 @@ import { PendingButton } from '../../../components/PendingButton';
 import { Chip, PageHeader, Panel } from '../../../components/ui';
 import { removeCopyAction, transferCopyAction } from '../../../serial-actions';
 
-export const metadata = { title: 'Serial copy · Admin', robots: { index: false } };
+// The tab names the copy (its id is card.version.serial), so several open copies can be told apart.
+export async function generateMetadata({ params }: { params: Promise<{ seasonId: string; copyId: string }> }) {
+  return { title: `Copy ${(await params).copyId} · Admin`, robots: { index: false } };
+}
 export const dynamic = 'force-dynamic';
 
-const when = (t: number) => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+const when = (t: number) => `${new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
 const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500';
 
 export default async function AdminCopyPage({ params, searchParams }: { params: Promise<{ seasonId: string; copyId: string }>; searchParams: Promise<{ done?: string; err?: string }> }) {
@@ -82,7 +85,15 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
                   <label className="text-xs text-gray-500 space-y-1">Give to another viewer
                     <UserInput name="to" required placeholder="their Twitch username" wrapperClassName="relative block" className={`${field} block w-56`} />
                   </label>
-                  <PendingButton pendingLabel="Giving…" className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-600 text-gray-100 hover:border-yellow-500/60"><Icon name="send" className="mr-1.5" />Give</PendingButton>
+                  <ConfirmButton
+                    title="Give this copy away?"
+                    confirmLabel="Give it"
+                    tone="primary"
+                    message={<>This moves the copy, with any serial bonus it earns, from <strong className="text-white">@{copy.owner}</strong> to the viewer you typed. It is logged as an admin transfer in the copy&rsquo;s history. If nobody has used that name yet, it becomes a new account, so check the spelling.</>}
+                    className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-600 text-gray-100 hover:border-yellow-500/60"
+                  >
+                    <Icon name="send" className="mr-1.5" />Give
+                  </ConfirmButton>
                 </form>
                 <form action={removeCopyAction.bind(null, season.id, copy.id)}>
                   <ConfirmButton

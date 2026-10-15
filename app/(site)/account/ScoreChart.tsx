@@ -11,7 +11,7 @@ export function ScoreChart({ samples }: { samples: ScoreSample[] }) {
   const pts = samples.map(s => [((s.at - t0) / tspan) * 100, 36 - ((s.score - min) / span) * 32] as const);
   const line = pts.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
   const gained = samples[samples.length - 1].score - samples[0].score;
-  const fmt = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const fmt = (t: number) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   return (
     <div className="space-y-2">
       <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-28" role="img" aria-label={`Your score from ${samples[0].score} to ${samples[samples.length - 1].score} between ${fmt(t0)} and ${fmt(t1)}`}>

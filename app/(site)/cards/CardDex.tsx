@@ -330,7 +330,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                         <span className="text-gray-200">{VARIANT_LABELS[x.variant]} <span className="text-gray-500">· {x.made.toLocaleString()} made</span></span>
                         {x.id ? (
                           <Link href={`/copy/${encodeURIComponent(seasonId)}/${x.id}`} className="text-xs text-gray-400 hover:text-white">
-                            #1{x.est ? '~' : ''} {x.pulledBy && <>{ORIGIN_BY[x.origin ?? 'pull']} {who(x.pulledBy)} · </>}{x.at ? new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{x.holder === null ? ' · no longer exists' : x.holder && x.holder === x.pulledBy ? ' · still holds it' : x.holder ? <> · held by {who(x.holder)}</> : ''}
+                            #1{x.est ? '~' : ''} {x.pulledBy && <>{ORIGIN_BY[x.origin ?? 'pull']} {who(x.pulledBy)} · </>}{x.at ? new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : ''}{x.holder === null ? ' · no longer exists' : x.holder && x.holder === x.pulledBy ? ' · still holds it' : x.holder ? <> · held by {who(x.holder)}</> : ''}
                           </Link>
                         ) : null}
                       </li>
