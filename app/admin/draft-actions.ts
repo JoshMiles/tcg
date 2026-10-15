@@ -1,5 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { requireAdmin } from '@/lib/admin-guard';
 import { activateWithWrapUp } from '@/lib/season-wrap';
 import {
   getPack, savePack, deletePack, getPackCards, savePackCards,
@@ -11,7 +12,7 @@ import { validatePack, validateSeason, type Issue } from '@/lib/draft-validation
 
 // Server actions behind the pack / season wizards. Unlike actions.ts they return data instead of
 // redirecting, because the wizards are client components that autosave as you go.
-// (Admin auth: these are POSTed to /admin/* pages, which the middleware already gates.)
+// Every action checks the caller itself (requireAdmin): a server action is a public POST endpoint, so the middleware on the page is not enough. scripts/check-staff-guards.mts fails if one is missing.
 
 // ── Packs ─────────────────────────────────────────────────
 
@@ -71,6 +72,7 @@ function cleanPackInput(i: PackInput): Omit<Pack, 'id' | 'createdAt' | 'status'>
 
 /** Creates the draft record the first time the wizard has something worth keeping. */
 export async function createDraftPack(input: PackInput): Promise<{ id: string }> {
+  await requireAdmin();
   const id = crypto.randomUUID();
   await savePack({ id, createdAt: Date.now(), status: 'draft', ...cleanPackInput(input) });
   // No revalidatePath here or in the autosave actions below: it would re-render the wizard page under the
@@ -80,6 +82,7 @@ export async function createDraftPack(input: PackInput): Promise<{ id: string }>
 
 /** Autosave target. Only touches drafts, so a stale wizard tab can't overwrite a live pack. */
 export async function saveDraftPack(id: string, input: PackInput): Promise<void> {
+  await requireAdmin();
   const existing = await getPack(id);
   if (!existing) throw new Error('This draft no longer exists.');
   if (existing.status !== 'draft') throw new Error('This pack has already been published.');
@@ -104,6 +107,7 @@ export interface CardInput {
  * editor can show the assigned numbers.
  */
 export async function saveCards(packId: string, rows: CardInput[]): Promise<Card[]> {
+  await requireAdmin();
   const pack = await getPack(packId);
   if (!pack) throw new Error('Pack not found.');
   const existing = await getPackCards(packId);
@@ -140,6 +144,7 @@ export async function saveCards(packId: string, rows: CardInput[]): Promise<Card
 
 /** Publishes a draft once it passes validation. `active` = include in draws straight away. */
 export async function publishPack(id: string, active: boolean): Promise<{ ok: true } | { ok: false; issues: Issue[] }> {
+  await requireAdmin();
   const pack = await getPack(id);
   if (!pack) return { ok: false, issues: [{ step: 'details', message: 'This draft no longer exists.' }] };
   const cards = await getPackCards(id);
@@ -154,6 +159,7 @@ export async function publishPack(id: string, active: boolean): Promise<{ ok: tr
 
 /** Turns a published pack back into a draft (it stops being drawn). */
 export async function unpublishPack(id: string): Promise<void> {
+  await requireAdmin();
   const pack = await getPack(id);
   if (!pack) return;
   await savePack({ ...pack, status: 'draft' });
@@ -163,6 +169,7 @@ export async function unpublishPack(id: string): Promise<void> {
 }
 
 export async function discardDraftPack(id: string): Promise<void> {
+  await requireAdmin();
   const pack = await getPack(id);
   if (!pack || pack.status !== 'draft') return;
   await deletePack(id);
@@ -195,12 +202,14 @@ function cleanSeasonInput(i: SeasonInput): Omit<Season, 'id' | 'createdAt' | 'st
 }
 
 export async function createDraftSeason(input: SeasonInput): Promise<{ id: string }> {
+  await requireAdmin();
   const id = crypto.randomUUID();
   await saveSeason({ id, createdAt: Date.now(), status: 'draft', active: false, ...cleanSeasonInput(input) });
   return { id };
 }
 
 export async function saveDraftSeason(id: string, input: SeasonInput): Promise<void> {
+  await requireAdmin();
   const existing = await getSeason(id);
   if (!existing) throw new Error('This draft no longer exists.');
   if (existing.status !== 'draft') throw new Error('This season has already been published.');
@@ -209,6 +218,7 @@ export async function saveDraftSeason(id: string, input: SeasonInput): Promise<v
 
 /** Publishes a draft season; `activate` also makes it the active one (deactivating the rest). */
 export async function publishSeason(id: string, activate: boolean): Promise<{ ok: true } | { ok: false; issues: Issue[] }> {
+  await requireAdmin();
   const season = await getSeason(id);
   if (!season) return { ok: false, issues: [{ step: 'details', message: 'This draft no longer exists.' }] };
   const others = (await listSeasons()).filter(s => s.id !== id).map(s => s.collectionName);
@@ -230,6 +240,7 @@ export async function publishSeason(id: string, activate: boolean): Promise<{ ok
  * /admin/seasons/new?draft=<id>.
  */
 export async function unpublishSeason(id: string): Promise<void> {
+  await requireAdmin();
   const season = await getSeason(id);
   if (!season || season.status === 'draft') return;
   await saveSeason({ ...season, status: 'draft', active: false });
@@ -239,6 +250,7 @@ export async function unpublishSeason(id: string): Promise<void> {
 }
 
 export async function discardDraftSeason(id: string): Promise<void> {
+  await requireAdmin();
   const season = await getSeason(id);
   if (!season || season.status !== 'draft') return;
   await deleteSeason(id);
