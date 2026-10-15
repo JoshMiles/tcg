@@ -27,28 +27,28 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
         <Field
           label="Holo Min Stars"
           name="holoMinStars"
-          type="number"
+          type="number" min={1} max={5} step={1}
           defaultValue={String(defaults?.holoMinStars ?? 5)}
           help="≥ this many stars = holo"
         />
         <Field
           label="Card Time (s)"
           name="cardTime"
-          type="number"
+          type="number" min={1}
           defaultValue={String(defaults?.cardTime ?? 3)}
           help="Seconds card is shown"
         />
         <Field
           label="Cooldown (s)"
           name="cooldownTime"
-          type="number"
+          type="number" min={0}
           defaultValue={String(defaults?.cooldownTime ?? 1)}
           help="Between queued draws"
         />
         <Field
           label="Weight"
           name="weight"
-          type="number"
+          type="number" min={0.01}
           defaultValue={String(defaults?.weight ?? 1)}
           help="Relative draw probability"
         />
@@ -57,7 +57,7 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
       <Field
         label="Sound Volume (0–1)"
         name="soundVolume"
-        type="number"
+        type="number" min={0} max={1}
         defaultValue={String(defaults?.soundVolume ?? 1.0)}
         help="Pack-open sound volume"
       />
@@ -106,10 +106,10 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
         <div>
           <p className="text-sm text-gray-400 mb-2">Variant weights</p>
           <div className="grid grid-cols-4 gap-3">
-            <Field label="Regular" name="weight_regular" type="number" defaultValue={String(defaults?.variantWeights?.regular ?? DEFAULT_VARIANT_WEIGHTS.regular)} />
-            <Field label="Reverse" name="weight_reverse" type="number" defaultValue={String(defaults?.variantWeights?.reverse ?? DEFAULT_VARIANT_WEIGHTS.reverse)} />
-            <Field label="Full Art" name="weight_full" type="number" defaultValue={String(defaults?.variantWeights?.full ?? DEFAULT_VARIANT_WEIGHTS.full)} />
-            <Field label="Shiny" name="weight_shiny" type="number" defaultValue={String(defaults?.variantWeights?.shiny ?? DEFAULT_VARIANT_WEIGHTS.shiny)} />
+            <Field label="Regular" name="weight_regular" type="number" min={0} defaultValue={String(defaults?.variantWeights?.regular ?? DEFAULT_VARIANT_WEIGHTS.regular)} />
+            <Field label="Reverse" name="weight_reverse" type="number" min={0} defaultValue={String(defaults?.variantWeights?.reverse ?? DEFAULT_VARIANT_WEIGHTS.reverse)} />
+            <Field label="Full Art" name="weight_full" type="number" min={0} defaultValue={String(defaults?.variantWeights?.full ?? DEFAULT_VARIANT_WEIGHTS.full)} />
+            <Field label="Shiny" name="weight_shiny" type="number" min={0} defaultValue={String(defaults?.variantWeights?.shiny ?? DEFAULT_VARIANT_WEIGHTS.shiny)} />
           </div>
           <p className="text-xs text-gray-600 mt-1">Relative odds, rolled after the card. 100 / 25 / 5 / 1 ≈ 77% / 19% / 4% / 1%.</p>
         </div>
@@ -117,9 +117,9 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
         <div>
           <p className="text-sm text-gray-400 mb-2">Upgrade cost (duplicates consumed)</p>
           <div className="grid grid-cols-3 gap-3">
-            <Field label="Regular → Reverse" name="cost_reverse" type="number" defaultValue={String(defaults?.upgradeCosts?.reverse ?? DEFAULT_UPGRADE_COSTS.reverse)} />
-            <Field label="Reverse → Full Art" name="cost_full" type="number" defaultValue={String(defaults?.upgradeCosts?.full ?? DEFAULT_UPGRADE_COSTS.full)} />
-            <Field label="Full Art → Shiny" name="cost_shiny" type="number" defaultValue={String(defaults?.upgradeCosts?.shiny ?? DEFAULT_UPGRADE_COSTS.shiny)} />
+            <Field label="Regular → Reverse" name="cost_reverse" type="number" min={1} step={1} defaultValue={String(defaults?.upgradeCosts?.reverse ?? DEFAULT_UPGRADE_COSTS.reverse)} />
+            <Field label="Reverse → Full Art" name="cost_full" type="number" min={1} step={1} defaultValue={String(defaults?.upgradeCosts?.full ?? DEFAULT_UPGRADE_COSTS.full)} />
+            <Field label="Full Art → Shiny" name="cost_shiny" type="number" min={1} step={1} defaultValue={String(defaults?.upgradeCosts?.shiny ?? DEFAULT_UPGRADE_COSTS.shiny)} />
           </div>
         </div>
       </div>
@@ -128,21 +128,24 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
 }
 
 function Field({
-  label, name, type = 'text', required, defaultValue, help,
+  label, name, type = 'text', required, defaultValue, help, min, max, step,
 }: {
-  label: string; name: string; type?: string; required?: boolean; defaultValue?: string; help?: string;
+  label: string; name: string; type?: string; required?: boolean; defaultValue?: string; help?: string; min?: number; max?: number; step?: number;
 }) {
   return (
     <div>
-      <label className="block text-sm text-gray-400 mb-1">
+      <label htmlFor={`pack-${name}`} className="block text-sm text-gray-400 mb-1">
         {label}{required && <span className="text-red-400 ml-1">*</span>}
       </label>
       <input
+        id={`pack-${name}`}
         type={type}
         name={name}
         required={required}
         defaultValue={defaultValue}
-        step={type === 'number' ? 'any' : undefined}
+        min={min}
+        max={max}
+        step={type === 'number' ? (step ?? 'any') : undefined}
         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
       />
       {help && <p className="text-xs text-gray-600 mt-1">{help}</p>}

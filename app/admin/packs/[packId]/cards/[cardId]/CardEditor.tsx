@@ -19,7 +19,7 @@ export interface OtherCard { id: string; number: number; name: string; stars: nu
 
 const input = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors';
 
-interface Check { id: string; level: 'warn' | 'info' | 'ok'; text: string }
+interface Check { id: string; level: 'warn' | 'info' | 'ok'; text: string; /** The server refuses to save while this is true. */ block?: boolean }
 
 /**
  * The card form with a live preview and real-time checks beside it. The preview shows the card as a viewer sees it (the
@@ -66,15 +66,18 @@ export function CardEditor({
   const checks = useMemo<Check[]>(() => {
     const out: Check[] = [];
     const num = Number(number);
-    if (!name.trim()) out.push({ id: 'name', level: 'warn', text: 'The card needs a name.' });
+    if (!name.trim()) out.push({ id: 'name', level: 'warn', block: true, text: 'The card needs a name.' });
     else if (others.some(c => c.name.trim().toLowerCase() === name.trim().toLowerCase())) out.push({ id: 'dup-name', level: 'info', text: 'Another card in this pack has the same name.' });
-    if (!Number.isInteger(num) || num < 1) out.push({ id: 'num', level: 'warn', text: 'The card number must be a whole number of 1 or more.' });
-    else if (others.some(c => c.number === num)) out.push({ id: 'dup-num', level: 'warn', text: `Card #${num} is already used in this pack. Viewer collections point at numbers, so they must be unique.` });
+    if (!Number.isInteger(num) || num < 1 || num > 999_999) out.push({ id: 'num', level: 'warn', block: true, text: 'The card number must be a whole number from 1 to 999,999.' });
+    else if (others.some(c => c.number === num)) out.push({ id: 'dup-num', level: 'warn', block: true, text: `Card #${num} is already used in this pack. Viewer collections point at numbers, so they must be unique.` });
+    const starsRaw = Number(stars);
+    if (!Number.isInteger(starsRaw) || starsRaw < 1 || starsRaw > 5) out.push({ id: 'stars', level: 'warn', block: true, text: 'Stars must be a whole number from 1 to 5.' });
     if (!image) out.push({ id: 'img', level: 'warn', text: 'No image yet.' });
     else if (/\.gif($|\?)/i.test(image)) out.push({ id: 'gif', level: 'info', text: 'This is an unoptimised GIF. Re-upload it to get a smaller WebP and a thumbnail.' });
     if (packUpgrades && upgrades && !fullArt && allowed.includes('full')) out.push({ id: 'fullart', level: 'warn', text: 'This card can be pulled as Full Art / Shiny but has no full-art image, so those versions reuse the normal art.' });
     if (packUpgrades && upgrades && allowed.length === 1) out.push({ id: 'novariants', level: 'info', text: 'Every optional variant is switched off for this card, so it is always Regular.' });
-    if (!(probN > 0)) out.push({ id: 'odds0', level: 'warn', text: 'With 0 odds this card can never be pulled.' });
+    if (!Number.isFinite(probN) || probN < 0) out.push({ id: 'oddsBad', level: 'warn', block: true, text: 'Odds must be a number, 0 or more.' });
+    else if (!(probN > 0)) out.push({ id: 'odds0', level: 'warn', text: 'With 0 odds this card can never be pulled.' });
     else if (avg > 0 && probN > avg * 4) out.push({ id: 'oddsHigh', level: 'info', text: `These odds are ${(probN / avg).toFixed(1)}× the average card's, so it will come up a lot.` });
     else if (avg > 0 && probN < avg / 8) out.push({ id: 'oddsLow', level: 'info', text: `These odds are ${(avg / probN).toFixed(0)}× lower than the average card's.` });
     const sameTier = others.filter(c => c.stars === starsN);
@@ -88,13 +91,14 @@ export function CardEditor({
       if (probN > tierAvg * 3) out.push({ id: 'tier', level: 'info', text: `More than 3× the average ${starsN}★ card in this pack.` });
     }
     return out;
-  }, [name, number, image, fullArt, upgrades, allowed, probN, avg, others, starsN, packUpgrades]);
+  }, [name, number, stars, image, fullArt, upgrades, allowed, probN, avg, others, starsN, packUpgrades]);
   const problems = checks.filter(c => c.level === 'warn').length;
+  const blocking = checks.filter(c => c.block).length;
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] items-start">
       <form action={action} className="tcg-panel rounded-xl p-6 grid gap-4 xl:grid-cols-2 items-start">
-        <Field label="Card Number" name="number" type="number" value={number} onChange={setNumber} required />
+        <Field label="Card Number" name="number" type="number" value={number} onChange={setNumber} required min={1} max={999999} step="1" />
         <Field label="Name" name="name" value={name} onChange={setName} required />
         <ImageUploadField name="imageUrl" defaultValue={initial.imageUrl} onUrlChange={setImage} />
         <AudioUploadField name="soundUrl" defaultValue={initial.soundUrl} />
@@ -123,11 +127,12 @@ export function CardEditor({
           </fieldset>
           <p className="text-xs text-gray-600">E.g. switch off Full Art and Shiny for a card with no full-art image. Variants already off for the whole pack are dimmed.</p>
         </div>
-        <Field label="Stars (1–5)" name="stars" type="number" value={stars} onChange={setStars} required />
-        <Field label="Probability" name="probability" type="number" value={probability} onChange={setProbability} required step="any" />
+        <Field label="Stars (1–5)" name="stars" type="number" value={stars} onChange={setStars} required min={1} max={5} step="1" />
+        <Field label="Probability" name="probability" type="number" value={probability} onChange={setProbability} required step="any" min={0} />
         <div className="pt-2 xl:col-span-2 flex items-center gap-3">
           <PendingButton type="submit" pendingLabel="Saving…" className="px-5 py-2 tcg-btn rounded-lg text-sm transition-colors">Save Card</PendingButton>
-          {problems > 0 && <span className="text-xs text-amber-300">{problems} thing{problems === 1 ? '' : 's'} to look at (you can still save)</span>}
+          {blocking > 0 ? <span className="text-xs text-red-300">{blocking} thing{blocking === 1 ? '' : 's'} to fix before this will save</span>
+            : problems > 0 && <span className="text-xs text-amber-300">{problems} thing{problems === 1 ? '' : 's'} to look at (you can still save)</span>}
         </div>
         <input type="hidden" name="cardId" value={cardId} />
       </form>
@@ -186,13 +191,13 @@ export function CardEditor({
   );
 }
 
-function Field({ label, name, type = 'text', required, value, onChange, step }: {
-  label: string; name: string; type?: string; required?: boolean; value: string; onChange: (v: string) => void; step?: string;
+function Field({ label, name, type = 'text', required, value, onChange, step, min, max }: {
+  label: string; name: string; type?: string; required?: boolean; value: string; onChange: (v: string) => void; step?: string; min?: number; max?: number;
 }) {
   return (
     <div>
-      <label className="block text-sm text-gray-400 mb-1">{label}{required && <span className="text-red-400 ml-1">*</span>}</label>
-      <input type={type} name={name} required={required} step={step} value={value} onChange={e => onChange(e.target.value)} className={input} />
+      <label htmlFor={`card-${name}`} className="block text-sm text-gray-400 mb-1">{label}{required && <span className="text-red-400 ml-1">*</span>}</label>
+      <input id={`card-${name}`} type={type} name={name} required={required} step={step} min={min} max={max} value={value} onChange={e => onChange(e.target.value)} className={input} />
     </div>
   );
 }

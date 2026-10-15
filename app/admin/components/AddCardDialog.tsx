@@ -31,10 +31,11 @@ export function AddCardDialog({
         <div className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label htmlFor="add-card-name" className="block text-sm font-medium text-gray-300 mb-1.5">
                 Card Name <span className="text-red-400">*</span>
               </label>
               <input
+                id="add-card-name"
                 name="name"
                 required
                 autoFocus
@@ -44,8 +45,9 @@ export function AddCardDialog({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Rarity</label>
+              <label htmlFor="add-card-stars" className="block text-sm font-medium text-gray-300 mb-1.5">Rarity</label>
               <select
+                id="add-card-stars"
                 name="stars"
                 defaultValue="1"
                 className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-yellow-500 transition-colors appearance-none"
@@ -59,10 +61,11 @@ export function AddCardDialog({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label htmlFor="add-card-probability" className="block text-sm font-medium text-gray-300 mb-1.5">
                 Probability <span className="text-red-400">*</span>
               </label>
               <input
+                id="add-card-probability"
                 name="probability"
                 type="number"
                 min="1"

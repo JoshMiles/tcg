@@ -7,8 +7,9 @@ import {
   getSeason, saveSeason, deleteSeason, listSeasons, setActiveSeason,
 } from '@/lib/kv';
 import type { Card, OptionalVariant, Pack, Season, UpgradeCosts, VariantWeights } from '@/lib/types';
-import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, cleanDisabled } from '@/lib/variants';
+import { cleanDisabled } from '@/lib/variants';
 import { validatePack, validateSeason, type Issue } from '@/lib/draft-validation';
+import { cleanPackInput, int, num, str, type PackInput } from '@/lib/pack-clean';
 
 // Server actions behind the pack / season wizards. Unlike actions.ts they return data instead of
 // redirecting, because the wizards are client components that autosave as you go.
@@ -16,59 +17,7 @@ import { validatePack, validateSeason, type Issue } from '@/lib/draft-validation
 
 // ── Packs ─────────────────────────────────────────────────
 
-export interface PackInput {
-  name: string;
-  coverImageUrl: string;
-  active: boolean;
-  weight: number;
-  accentColor: string;
-  tearBorderColor: string;
-  holoMinStars: number;
-  cardTime: number;
-  cooldownTime: number;
-  soundVolume: number;
-  upgradesEnabled: boolean;
-  variantWeights: VariantWeights;
-  upgradeCosts: UpgradeCosts;
-  disabledVariants?: OptionalVariant[];
-}
-
-const num = (v: unknown, fallback: number, min = 0, max = Infinity) => {
-  const n = Number(v);
-  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
-};
-const int = (v: unknown, fallback: number, min = 1) => Math.max(min, Math.floor(num(v, fallback)));
-const str = (v: unknown, max = 500) => (typeof v === 'string' ? v.slice(0, max) : '');
-
-function cleanPackInput(i: PackInput): Omit<Pack, 'id' | 'createdAt' | 'status'> {
-  const w = i.variantWeights ?? DEFAULT_VARIANT_WEIGHTS;
-  const c = i.upgradeCosts ?? DEFAULT_UPGRADE_COSTS;
-  return {
-    name: str(i.name, 80).trim(),
-    coverImageUrl: str(i.coverImageUrl),
-    active: !!i.active,
-    weight: num(i.weight, 1, 0.01),
-    accentColor: str(i.accentColor, 60) || 'rgb(241,187,6)',
-    tearBorderColor: str(i.tearBorderColor, 60) || 'rgb(218,163,18)',
-    holoMinStars: int(i.holoMinStars, 5),
-    cardTime: num(i.cardTime, 3, 1),
-    cooldownTime: num(i.cooldownTime, 1, 0),
-    soundVolume: num(i.soundVolume, 1, 0, 1),
-    upgradesEnabled: !!i.upgradesEnabled,
-    variantWeights: {
-      regular: num(w.regular, DEFAULT_VARIANT_WEIGHTS.regular),
-      reverse: num(w.reverse, DEFAULT_VARIANT_WEIGHTS.reverse),
-      full: num(w.full, DEFAULT_VARIANT_WEIGHTS.full),
-      shiny: num(w.shiny, DEFAULT_VARIANT_WEIGHTS.shiny),
-    },
-    upgradeCosts: {
-      reverse: int(c.reverse, DEFAULT_UPGRADE_COSTS.reverse),
-      full: int(c.full, DEFAULT_UPGRADE_COSTS.full),
-      shiny: int(c.shiny, DEFAULT_UPGRADE_COSTS.shiny),
-    },
-    disabledVariants: cleanDisabled(i.disabledVariants),
-  };
-}
+export type { PackInput };
 
 /** Creates the draft record the first time the wizard has something worth keeping. */
 export async function createDraftPack(input: PackInput): Promise<{ id: string }> {

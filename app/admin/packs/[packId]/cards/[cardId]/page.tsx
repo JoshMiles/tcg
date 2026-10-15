@@ -8,12 +8,21 @@ import { PageHeader } from '../../../../components/ui';
 
 export const dynamic = 'force-dynamic';
 
+export async function generateMetadata({ params }: { params: Promise<{ packId: string; cardId: string }> }) {
+  const { packId, cardId } = await params;
+  const card = (await getPackCards(packId)).find(c => c.id === cardId);
+  return { title: `${card?.name || 'Card'} · Admin`, robots: { index: false } };
+}
+
 export default async function EditCardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ packId: string; cardId: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { packId, cardId } = await params;
+  const { error } = await searchParams;
   const [pack, cards, holoFor] = await Promise.all([getPack(packId), getPackCards(packId), getHoloResolver()]);
   if (!pack) notFound();
 
@@ -27,6 +36,8 @@ export default async function EditCardPage({
   return (
     <div className="space-y-6 mx-auto w-full max-w-5xl">
       <PageHeader title="Edit card" subtitle={`${card.name} · #${card.number} in ${pack.name}`} back={{ href: `/admin/packs/${packId}`, label: pack.name }} />
+
+      {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-300">Not saved: {error}</p>}
 
       <CardEditor
         action={updateThisCard}
