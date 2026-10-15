@@ -78,8 +78,8 @@ export default async function SeasonsPage() {
                       </div>
                       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500 font-semibold">
                         <code className="bg-gray-950 border border-gray-800 px-2 py-1 rounded-md text-gray-400">{s.collectionName}</code>
-                        <span>Created {new Date(s.createdAt).toLocaleDateString()}</span>
-                        {s.endedAt && <span>Ended {new Date(s.endedAt).toLocaleDateString()}</span>}
+                        <span>Created {new Date(s.createdAt).toLocaleDateString('en-GB', { timeZone: 'UTC' })}</span>
+                        {s.endedAt && <span>Ended {new Date(s.endedAt).toLocaleDateString('en-GB', { timeZone: 'UTC' })}</span>}
                         {champion && <span className="inline-flex items-center gap-1 text-yellow-400"><Icon name="trophy" className="w-3.5 h-3.5" />{champion.username}</span>}
                       </div>
                     </div>
@@ -111,6 +111,7 @@ export default async function SeasonsPage() {
                           <ConfirmButton
                             title={`Activate ${s.name}?`}
                             confirmLabel="Activate"
+                            tone="primary"
                             message={
                               <div className="space-y-3">
                                 <p>Make <strong className="text-white">{s.name}</strong> the live season? The overlay and Twitch panel switch to it straight away.</p>

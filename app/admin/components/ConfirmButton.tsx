@@ -17,6 +17,7 @@ export function ConfirmButton({
   className,
   children,
   formId,
+  tone = 'danger',
 }: {
   message: ReactNode;
   title?: string;
@@ -24,6 +25,8 @@ export function ConfirmButton({
   className?: string;
   children: ReactNode;
   formId?: string;
+  /** The confirm button's colour: red for something destructive (default), yellow for a switch that is not (activating a season). */
+  tone?: 'danger' | 'primary';
 }) {
   const [open, setOpen] = useState(false);
   const { pending } = useFormStatus(); // the surrounding form is running its action
@@ -60,7 +63,7 @@ export function ConfirmButton({
                 <button
                   type="button"
                   onClick={confirm}
-                  className="px-4 py-2 text-sm font-bold bg-red-600 hover:bg-red-500 text-white rounded-xl transition-colors"
+                  className={`px-4 py-2 text-sm font-bold rounded-xl transition-colors ${tone === 'primary' ? 'bg-yellow-500 hover:bg-yellow-400 text-gray-950' : 'bg-red-600 hover:bg-red-500 text-white'}`}
                 >
                   {confirmLabel}
                 </button>

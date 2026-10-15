@@ -82,5 +82,15 @@ await db.runInSandbox(box.id, async () => {
   ok(none === null, 'a season past its end is wrapped up on the next read');
   ok(!!(await kvLib.getSeason('timed'))!.endedAt && (await kvLib.getSeason('timed'))!.tradingFrozen === true, 'the ended season has a freeze');
 });
+
+// ── The season actions validate on the server (a form can be posted without the browser's checks) ──
+{
+  const { readFileSync } = await import('node:fs');
+  const actions = readFileSync(new URL('../app/admin/actions.ts', import.meta.url), 'utf8');
+  const body = actions.slice(actions.indexOf('export async function updateSeason'), actions.indexOf('export async function activateSeason'));
+  ok(body.includes('validateSeason(') && body.includes('redirect('),'updateSeason runs validateSeason and sends the admin back with the reason');
+  ok(body.includes('Math.max(1, Math.floor('),'updateSeason keeps max concurrent packs a whole number of at least 1');
+  ok(!/export async function createSeason/.test(actions), 'there is no second, unvalidated way to create a season (the wizard is the only one)');
+}
 await sbx.deleteSandbox(box.id);
 console.log('season checks passed');
