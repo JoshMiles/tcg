@@ -158,7 +158,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         <input type="search" value={view.q} onChange={e => patch({ q: e.target.value })} placeholder="Search name or #" aria-label="Search cards"
           className="min-w-0 flex-1 basis-40 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
         <select value={view.show} onChange={e => patch({ show: e.target.value as ShowFilter })} aria-label="Show" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
-          <option value="default">{hiding ? 'Collected' : 'Everything'}</option>
+          <option value="default">{hiding ? 'Default (collected)' : 'Default (everything)'}</option>
           <option value="all">Everything</option>
           <option value="owned">Collected only</option>
           <option value="missing">{SHOW_LABELS.missing}</option>

@@ -49,7 +49,7 @@ All flag horizontal overflow, a missing or duplicate `h1`, images without `alt`,
 
 | Command | Covers |
 |---------|--------|
-| `node scripts/sweep-public.mjs [paths]` (`npm run review:public`) | the public site at 390 and 1280 px, signed in and out |
+| `node scripts/sweep-public.mjs [--as=login] [paths]` (`npm run review:public`) | the public site at 390, 768 and 1280 px, signed in (as `tester`, or the fake-Twitch viewer given by `--as`, e.g. an owner viewing their own profile) and out |
 | `node scripts/sweep-admin.mjs [paths] [--width=390]` (`npm run review:admin`) | every `/admin/*` page as an admin and every `/mod/*` page as a mod, at 390, 768 and 1280 px; also checks a mod visiting `/admin` is sent to `/mod` |
 | `node scripts/sweep-mod-access.mjs` (`npm run review:mod`) | the runtime half of the mod access test: as a stranger, a mod and an admin, every `/admin` page and `/api/admin` route; exits 1 if anything is reachable that should not be |
 

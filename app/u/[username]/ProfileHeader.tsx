@@ -26,7 +26,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileB
                 </span>
               )}
             </h1>
-            <p className="text-sm text-gray-500">@{b.lower}{b.profile?.twitchId && b.profile.twitchId.toLowerCase() !== b.lower ? <span className="text-purple-400"> · Twitch: {b.profile.twitchId}</span> : null}</p>
+            <p className="text-sm text-gray-500">@{b.lower}</p>
             {b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl break-words">{b.bio}</p>}
             {b.awards.length > 0 && (
               <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Season awards">

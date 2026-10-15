@@ -302,7 +302,9 @@ export async function getSeasonLeaderboard(season: Season): Promise<{
     getScoringSettings(),
     loadSerialIndex(season.collectionName),
   ]);
-  const packs = await Promise.all(packList.map(async pack => ({ pack, cards: await getPackCards(pack.id) })));
+  // A draft pack attached to a published season is never drawn, so nobody can own its cards: counting them would dilute every
+  // card's rarity and make a complete collection impossible. (An inactive published pack still counts: its cards can be held.)
+  const packs = await Promise.all(packList.filter(p => p.status !== 'draft').map(async pack => ({ pack, cards: await getPackCards(pack.id) })));
   const values = computeSeasonValues(packs, collection, settings, serials);
   // Viewers an admin has hidden from public rankings are left out of the rows (their cards still count in the season's copy totals).
   const hidden = await getHiddenUsersSafe();

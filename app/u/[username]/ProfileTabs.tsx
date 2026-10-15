@@ -39,7 +39,7 @@ export function CollectionTab({ b, grid, isOwner, tradeWith, prefs, mine }: { b:
   if (b.allCards.length === 0) return <Empty icon="cards" title="No cards in this season yet">Check back once packs are added.</Empty>;
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(7rem,1fr))]">
         {b.rarity.map(r => (
           <div key={r.stars} className="tcg-panel rounded-xl p-3 text-center">
             <p className="text-xs font-medium mb-1" style={{ color: r.hex }}>{'★'.repeat(r.stars)}</p>

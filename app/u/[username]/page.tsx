@@ -9,7 +9,7 @@ import { sweepTrades } from '@/lib/trades';
 import { getUserProfile } from '@/lib/kv';
 import { SITE_URL } from '@/lib/site';
 import { buildBigStats, buildGridCards, buildShareBase, buildShareCandidates, buildShareSpec, loadProfileBase } from '@/lib/profile-data';
-import { PROFILE_TABS, pickProfileTab, profileHref } from '@/lib/profile-url';
+import { pickProfileTab, profileHref, profileTitle } from '@/lib/profile-url';
 import { SiteMessage } from '@/app/components/site/SiteMessage';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileTabBar } from './ProfileTabBar';
@@ -19,15 +19,23 @@ import { ActivityTab, CollectionTab, StatsTab, TradesTab } from './ProfileTabs';
 
 export const dynamic = 'force-dynamic';
 
+/** A private profile (Settings, Private profile) opens only for its owner; everyone else sees a short "this profile is private" page. */
+async function canSee(lower: string): Promise<boolean> {
+  const session = await getSession();
+  if (session?.username === lower) return true;
+  return !(await getUserSettings(lower).catch(() => null))?.privateProfile;
+}
+
 export async function generateMetadata({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ tab?: string }> }): Promise<Metadata> {
   const { username } = await params;
   const { tab } = await searchParams;
   const lower = decodeURIComponent(username).toLowerCase();
   const profile = await getUserProfile(lower).catch(() => null);
   const name = profile?.displayName || lower;
-  const t = PROFILE_TABS.find(x => x.id === pickProfileTab(tab))!;
+  // A private profile tells a visitor nothing, not even in the tab title or the link preview.
+  if (!(await canSee(lower))) return { title: 'Private profile', description: 'This profile is private.', robots: { index: false, follow: false } };
   return {
-    title: pickProfileTab(tab) === 'overview' ? `${name}'s profile` : pickProfileTab(tab) === 'collection' ? `${name}'s collection` : `${name} · ${t.label}`,
+    title: profileTitle(name, pickProfileTab(tab)),
     description: `${name}'s cards, rank and awards on The Cheesy TCG.`,
     alternates: { canonical: profileHref(lower) }, // the tabs are views of one profile
     // The share image (opengraph-image.tsx next to this file) carries their rank and progress.
@@ -40,6 +48,13 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   const session = await getSession();
   const isOwner = session?.username === lower;
   const tab = pickProfileTab(tabParam, isOwner);
+  if (!isOwner && (await getUserSettings(lower).catch(() => null))?.privateProfile) {
+    return (
+      <SiteMessage icon="lock" title="This profile is private" actions={<Link href="/collection" className="tcg-btn px-4 py-2 text-sm rounded-xl">Find a collector</Link>}>
+        This collector keeps their profile to themselves, so there is nothing to show here. Their cards still appear on stream when they are shown.
+      </SiteMessage>
+    );
+  }
   await sweepTrades(); // hand back copies from offers that have run out of time
 
   const b = await loadProfileBase(lower, isOwner);

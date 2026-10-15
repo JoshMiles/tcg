@@ -4,6 +4,7 @@ import { getSeasonLeaderboard } from '@/lib/leaderboard';
 import { OG_BG, OG_SIZE, brandIconDataUri } from '@/lib/og';
 import { SITE_NAME } from '@/lib/seo';
 import { uniqueCount } from '@/lib/collection';
+import { getUserSettings } from '@/lib/user-settings-store';
 
 export const alt = 'A collection on The Cheesy TCG';
 export const size = OG_SIZE;
@@ -15,15 +16,16 @@ export default async function Image({ params }: { params: Promise<{ username: st
   const { username } = await params;
   const lower = decodeURIComponent(username).toLowerCase();
   const [icon, profile, season] = await Promise.all([brandIconDataUri(), getUserProfile(lower).catch(() => null), getActiveSeason().catch(() => null)]);
-  const name = profile?.displayName || lower;
+  const isPrivate = !!(await getUserSettings(lower).catch(() => null))?.privateProfile;
+  const name = isPrivate ? 'Private profile' : profile?.displayName || lower; // a private profile's preview shows no name, rank or progress
 
-  let line = 'Collector on The Cheesy TCG';
+  let line = isPrivate ? 'On The Cheesy TCG' : 'Collector on The Cheesy TCG';
   let big = '';
   let pct = 0;
-  if (season) {
+  if (season && !isPrivate) {
     try {
       const [board, collection, packs] = await Promise.all([getSeasonLeaderboard(season), getCollection(season.collectionName), getPacksForSeason(season)]);
-      const total = (await Promise.all(packs.map(async p => (await getPackCards(p.id)).length))).reduce((a, b) => a + b, 0);
+      const total = (await Promise.all(packs.filter(p => p.status !== 'draft').map(async p => (await getPackCards(p.id)).length))).reduce((a, b) => a + b, 0);
       const mine = collection[lower] ?? [];
       const unique = uniqueCount(mine);
       const idx = board.rows.findIndex(r => r.username === lower);
