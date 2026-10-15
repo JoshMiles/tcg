@@ -36,7 +36,7 @@ export default async function ModHomePage() {
     <div className="space-y-6">
       <PageHeader title={`Hi ${staff?.displayName ?? 'there'}`} subtitle="Keep an eye on the game and look after the community." />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Tile label="Events, last hour" value={lastHour} icon="activity" href="/mod/activity" />
+        <Tile label="Events, last hour" value={lastHour} sub="of the latest 200 events" icon="activity" href="/mod/activity" />
         <Tile label="Open trade offers" value={open.length} icon="trade" href="/mod/trades" />
         <Tile label="Hidden from boards" value={hidden.size} icon="eye" href="/mod/users?show=restricted" />
         <Tile label="Season" value={active?.season.name ?? 'none'} icon="trophy" />

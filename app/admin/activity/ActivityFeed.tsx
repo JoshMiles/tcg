@@ -47,7 +47,7 @@ function timeAgo(at: number, now: number): string {
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
-  return new Date(at).toLocaleDateString();
+  return new Date(at).toLocaleDateString('en-GB'); // a fixed locale: the server and the browser must print the same text
 }
 
 /** A short two-note chime made with WebAudio, so there is no sound file to ship. */
@@ -82,6 +82,7 @@ export function ActivityFeed({
   initialAvatars,
   cards,
   mod = false,
+  serverNow,
 }: {
   initialEvents: ActivityEvent[];
   initialSeq: number;
@@ -89,6 +90,8 @@ export function ActivityFeed({
   cards: CardInfo[];
   /** The mod panel's read-only version: no gifting, granting or removing, and viewer links go to the mod panel. */
   mod?: boolean;
+  /** The server's clock when the page was rendered. The first client render uses it too, so the relative times ("5m ago", the last-hour counts) match the server's HTML and hydration does not mismatch when a minute turns in between. */
+  serverNow?: number;
 }) {
   const [events, setEvents] = useState(initialEvents);
   const [avatars, setAvatars] = useState(initialAvatars);
@@ -102,7 +105,7 @@ export function ActivityFeed({
   const [showMore, setShowMore] = useState(false);
   const [open, setOpen] = useState<ActivityEvent | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => serverNow ?? Date.now());
   const seqRef = useRef(initialSeq);
   const seenRef = useRef(new Set(initialEvents.map(e => e.seq)));
   const prefsRef = useRef(prefs);
@@ -634,7 +637,7 @@ function EventRow({
       {e.username && (
         <button type="button" onClick={ev => { ev.stopPropagation(); onFilterViewer(); }} title={`Show only ${e.username}`} aria-label={`Show only ${e.username}`} className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-7 h-7 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-yellow-300 hover:border-yellow-500/50 flex items-center justify-center transition-opacity"><Icon name="filter" className="w-3.5 h-3.5" /></button>
       )}
-      <time className="text-xs text-gray-500 tabular-nums shrink-0 w-16 text-right" dateTime={new Date(e.at).toISOString()} title={new Date(e.at).toLocaleString()}>
+      <time className="text-xs text-gray-500 tabular-nums shrink-0 w-16 text-right" dateTime={new Date(e.at).toISOString()} title={new Date(e.at).toLocaleString('en-GB')}>
         {timeAgo(e.at, now)}
       </time>
     </div>

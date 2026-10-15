@@ -6,6 +6,7 @@ import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../components/PendingButton';
 import { FLAG_LABEL, tradesToCsv, type FlagKind, type TradeRow } from '@/lib/trade-insights';
 import { blockViewerTradingAction, cancelOneTradeAction, extendOpenTradesAction } from '../trade-actions';
+import { ArmedButton } from '../components/ArmedButton';
 
 const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white focus:outline-none focus:border-yellow-500';
 const STATUSES = ['open', 'accepted', 'declined', 'cancelled', 'expired', 'countered', 'failed'] as const;
@@ -25,7 +26,7 @@ const FLAG_STYLE: Record<FlagKind, string> = {
   newbie: 'text-cyan-300 border-cyan-400/30 bg-cyan-500/10',
 };
 
-const when = (t?: number) => (t ? new Date(t).toLocaleString() : '-');
+const when = (t?: number) => (t ? new Date(t).toLocaleString('en-GB') : '-');
 function left(expiresAt: number, now: number): string {
   const m = Math.ceil((expiresAt - now) / 60_000);
   if (m <= 0) return 'ended';
@@ -151,18 +152,20 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
             <div className="flex flex-wrap gap-2 border-t border-gray-800 pt-4">
               {selected.open && (
                 <>
-                  <button type="button" disabled={pending} onClick={() => run(async () => { const r = await cancelOneTradeAction(selected.id); setOpenId(null); return r; })} className="px-3 py-1.5 rounded-lg border border-red-500/40 text-red-300 text-xs font-semibold hover:bg-red-500/10 disabled:opacity-50">{pending && <Spinner />}Cancel &amp; refund</button>
+                  <ArmedButton disabled={pending} onConfirm={() => run(async () => { const r = await cancelOneTradeAction(selected.id); setOpenId(null); return r; })} className="px-3 py-1.5 rounded-lg border border-red-500/40 text-red-300 text-xs font-semibold hover:bg-red-500/10 disabled:opacity-50" armedClassName="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-500 disabled:opacity-50">{pending && <Spinner />}Cancel &amp; refund</ArmedButton>
                   {!mod && <button type="button" disabled={pending} onClick={() => run(() => extendOpenTradesAction(24, [selected.id]))} className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">Extend 24h</button>}
                 </>
               )}
-              <button
-                type="button"
+              <ArmedButton
                 disabled={pending}
-                onClick={() => { if (window.confirm(`Stop ${selected.from} trading? Their open offers are cancelled and the cards returned. You can lift this on their user page.`)) run(() => blockViewerTradingAction(selected.from, `Blocked from trade ${selected.id.slice(0, 8)}`)); }}
+                title={`Stops ${selected.from} trading: their open offers are cancelled and the cards returned. You can lift this on their user page.`}
+                onConfirm={() => run(() => blockViewerTradingAction(selected.from, `Blocked from trade ${selected.id.slice(0, 8)}`))}
                 className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-amber-200 hover:border-amber-400/50 disabled:opacity-50"
+                armedClassName="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-500 disabled:opacity-50"
+                armedLabel={`Sure? Block ${selected.from}`}
               >
                 <Icon name="ban" className="mr-1" />Block {selected.from} from trading
-              </button>
+              </ArmedButton>
             </div>
             {msg && <p role="status" className="text-xs text-green-300">{msg}</p>}
           </aside>

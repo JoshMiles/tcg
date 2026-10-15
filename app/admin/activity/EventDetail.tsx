@@ -69,7 +69,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">{e.type}{'action' in e ? ` · ${e.action}` : ''}</p>
             <h2 className="font-display text-xl font-bold text-white leading-snug mt-0.5">{plainText(e, cardName)}</h2>
-            <p className="text-xs text-gray-500 mt-1">{new Date(e.at).toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">{new Date(e.at).toLocaleString('en-GB')}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white flex items-center justify-center"><Icon name="x" className="w-4 h-4" /></button>
         </div>

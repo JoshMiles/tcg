@@ -21,7 +21,7 @@ export default async function ActivityPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Live Activity" subtitle="Pulls, grants, resets and stream triggers as they happen" />
-      <ActivityFeed initialEvents={events} initialSeq={seq} initialAvatars={avatars} cards={cards} />
+      <ActivityFeed initialEvents={events} initialSeq={seq} initialAvatars={avatars} cards={cards} serverNow={Date.now()} />
     </div>
   );
 }
