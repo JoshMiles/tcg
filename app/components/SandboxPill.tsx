@@ -1,7 +1,7 @@
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../admin/components/PendingButton';
 import Link from 'next/link';
-import { currentSandboxId } from '@/lib/db';
+import { currentSandboxId, isPreview } from '@/lib/db';
 import { getSandbox } from '@/lib/sandbox';
 
 /**
@@ -9,6 +9,19 @@ import { getSandbox } from '@/lib/sandbox';
  * what you see (and change) is test data. Renders nothing on production.
  */
 export async function SandboxPill() {
+  if (isPreview()) {
+    return (
+      <>
+      <div aria-hidden className="fixed top-0 inset-x-0 h-[3px] z-[70] bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 pointer-events-none" />
+      <div className="fixed bottom-3 lg:bottom-auto lg:top-2 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-950/90 backdrop-blur px-3.5 py-1.5 text-xs font-semibold text-amber-100 shadow-lg shadow-amber-950/50">
+        <Icon name="flask" />
+        <span>Preview deployment</span>
+        <span className="text-amber-400/60" aria-hidden>·</span>
+        <span className="font-normal text-amber-200/80">test data, not the live site</span>
+      </div>
+      </>
+    );
+  }
   const id = await currentSandboxId();
   if (!id) return null;
   const sandbox = await getSandbox(id);

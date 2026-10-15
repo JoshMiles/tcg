@@ -12,6 +12,7 @@ const wh = await import('../lib/webhooks');
 const act = await import('../lib/activity');
 
 const { prodKv, runInSandbox } = db;
+const SANDBOX_REGISTRY_FAKE = db.SANDBOX_REGISTRY_KEY;
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
 const snapshot = async (keys: string[]) => JSON.stringify(await Promise.all(keys.map(k => prodKv.get(k))));
 
@@ -82,5 +83,65 @@ ok(JSON.stringify(await prodKv.get(`sbx:${box.id}:tcg_${coll}`)) === JSON.string
 await sbx.deleteSandbox(box.id);
 ok((await sbx.listSandboxes()).length === 0, 'deleted from the registry');
 ok((await prodKv.scan(0, { match: `sbx:${box.id}:*`, count: 100 }) as [string, string[]])[1].length === 0, 'namespace wiped');
+// ---- Preview deployments (VERCEL_ENV=preview): pinned to sbx:preview:*, production can be read but never written. ----
+const staff = await import('../lib/staff');
+const staffCore = await import('../lib/staff-core');
+await prodKv.hset('staff:members', { 'preview_mod': { login: 'preview_mod', role: 'mod', addedBy: 'check', addedAt: 1 } });
+await prodKv.set(SANDBOX_REGISTRY_FAKE, [{ id: 'preview', name: 'Fake', createdAt: 1, source: 'empty' }]); // a registry entry for the reserved id must never be listed
+const prodKeys2 = [...prodKeys, 'staff:members', 'staff:log', SANDBOX_REGISTRY_FAKE];
+const before2 = await snapshot(prodKeys2);
+const rejects = async (p: Promise<unknown>) => { try { await p; return false; } catch { return true; } };
+
+process.env.VERCEL_ENV = 'preview';
+try {
+  // Pinned whatever the caller says, including outside a request (where it used to mean production) and under runInSandbox.
+  ok((await db.currentSandboxId()) === 'preview', 'preview: outside a request is the preview namespace, not production');
+  ok((await runInSandbox(null, () => db.currentSandboxId())) === 'preview', 'preview: runInSandbox(null) cannot reach production');
+  ok((await runInSandbox('some-box', () => db.currentSandboxId())) === 'preview', 'preview: runInSandbox(other) cannot move the namespace');
+  ok(await db.inSandbox(), 'preview counts as a sandbox (silences Discord, webhooks, Blob deletes)');
+
+  // Everything the app writes lands under sbx:preview:.
+  await kvLib.addCollectionEntry(coll, 'previewer', 9);
+  ok(JSON.stringify(await prodKv.get(`sbx:preview:tcg_${coll}`)).includes('previewer'), 'preview: a pull is written under sbx:preview:');
+  ok(!JSON.stringify(await prodKv.get(`tcg_${coll}`)).includes('previewer'), 'preview: the production collection is untouched');
+  await act.recordActivity({ type: 'grant', source: 'admin', cardNumber: 9, username: 'previewer' });
+  ok((await snapshot(prodKeys2)) === before2, 'PRODUCTION UNCHANGED after preview writes');
+
+  // The raw client is fenced: reads pass, writes outside the namespace are refused.
+  ok(JSON.stringify(await prodKv.get(`tcg_${coll}`)) === JSON.stringify({ realviewer: [1, 2, 3] }), 'preview: production can still be read');
+  ok(await rejects(prodKv.set('seasons:list', ['x'])), 'preview: prodKv.set on a production key is refused');
+  ok(await rejects(prodKv.hset('staff:members', { evil: { login: 'evil', role: 'admin' } })), 'preview: prodKv.hset on the staff list is refused');
+  ok(await rejects(prodKv.lpush('activity:log', 'x')), 'preview: prodKv.lpush on a production key is refused');
+  ok(await rejects(prodKv.del('sbx:preview:a', 'tcg_' + coll)), 'preview: a del that includes a production key is refused');
+  ok(await rejects(prodKv.set('sbx:other:thing', 1)), 'preview: another sandbox namespace is refused too');
+  ok(await rejects((prodKv as unknown as { pipeline: () => Promise<unknown> }).pipeline() as Promise<unknown>), 'preview: pipelines are refused');
+  await prodKv.set('sbx:preview:ok', 1);
+  ok((await prodKv.get('sbx:preview:ok')) === 1, 'preview: writes inside the namespace work');
+
+  // Staff: real roles can be read (so staff can sign in), nothing can be written.
+  ok((await staff.getStaffRecord('preview_mod'))?.role === 'mod', 'preview: the staff list can be read');
+  const actor = { login: staffCore.SUPER_ADMINS[0].login, role: 'super' as const };
+  ok(!(await staff.addStaff(actor, 'newperson', 'mod')).ok, 'preview: adding staff is refused');
+  ok(!(await staff.setStaffRole(actor, 'preview_mod', 'admin')).ok, 'preview: changing a role is refused');
+  ok(!(await staff.removeStaff(actor, 'preview_mod')).ok, 'preview: removing staff is refused');
+  await staff.touchStaffLogin('preview_mod', '555', 'Preview Mod'); // best effort: must not throw or write
+  ok((await staff.getStaffRecord('preview_mod'))?.twitchId === undefined, 'preview: a staff sign-in does not bind or stamp the record');
+
+  // Seeding copies the live setup in (read production, write the namespace) and wiping clears only the namespace.
+  await sbx.seedPreviewFromProduction(true);
+  ok(((await prodKv.get<string[]>('sbx:preview:seasons:list')) ?? []).length === 1, 'preview: setup is copied into the namespace');
+  ok(JSON.stringify(await prodKv.get(`sbx:preview:tcg_${coll}`)) === JSON.stringify({ realviewer: [1, 2, 3] }), 'preview: collections can be copied in');
+  ok((await sbx.countKeys('preview')) > 0, 'preview: the namespace is counted');
+  await sbx.wipeKeys('preview');
+  ok((await sbx.countKeys('preview')) === 0, 'preview: wipe empties the namespace');
+  ok((await snapshot(prodKeys2)) === before2, 'PRODUCTION UNCHANGED after preview seed and wipe');
+} finally {
+  delete process.env.VERCEL_ENV;
+}
+ok((await db.currentSandboxId()) === null, 'outside a preview, a script is production again');
+ok(await rejects(Promise.resolve().then(() => { if (sbx.makeId('Preview', []) === 'preview') throw new Error('x'); })) === false, 'the reserved id can never be handed out');
+ok((await sbx.listSandboxes()).length === 0, 'a registry entry for the reserved id is never listed');
+await prodKv.del(SANDBOX_REGISTRY_FAKE);
+
 ok((await snapshot(prodKeys)) === before, 'PRODUCTION UNCHANGED at the end');
 console.log('sandbox isolation checks passed');

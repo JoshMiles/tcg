@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin-guard';
-import { currentSandboxId } from '@/lib/db';
+import { currentSandboxId, isPreview } from '@/lib/db';
 import { cleanTestUsername } from '@/lib/sandbox-tools';
 import { signMockTwitchJwt } from '@/lib/twitch-jwt';
 
@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic';
 //   body: { as?: string (the viewer's login; empty = not logged in to Twitch), share?: boolean (shared their identity), role?: 'viewer' | 'broadcaster' }
 export async function POST(req: NextRequest) {
   try { await requireAdmin(); } catch { return NextResponse.json({ error: 'Admin only' }, { status: 401 }); }
+  if (isPreview()) return NextResponse.json({ error: 'Sandboxes are not available on preview deployments.' }, { status: 400 });
   const sandbox = await currentSandboxId();
   if (!sandbox) return NextResponse.json({ error: 'Enter a sandbox first (Admin → Sandbox).' }, { status: 400 });
 

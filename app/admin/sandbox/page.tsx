@@ -1,7 +1,8 @@
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
-import { currentSandboxId } from '@/lib/db';
+import { currentSandboxId, isPreview } from '@/lib/db';
+import { PreviewOff } from './PreviewOff';
 import { countKeys, listSandboxes, MAX_SANDBOXES, SOURCE_LABELS, sweepExpiredSandboxes, type SandboxSource } from '@/lib/sandbox';
 import { getSandboxStats } from '@/lib/sandbox-tools';
 import { createSandboxAction, enterSandboxAction, exitSandboxAction } from './actions';
@@ -23,6 +24,7 @@ function ago(at: number | undefined, now: number): string {
 }
 
 export default async function SandboxPage({ searchParams }: { searchParams: Promise<{ err?: string }> }) {
+  if (isPreview()) return <PreviewOff />;
   const sp = await searchParams;
   const swept = await sweepExpiredSandboxes(); // there is no background job: expired sandboxes go the next time anyone looks
   const [sandboxes, activeId] = await Promise.all([listSandboxes(), currentSandboxId()]);

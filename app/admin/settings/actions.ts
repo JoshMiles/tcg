@@ -6,6 +6,8 @@ import { backfillSerials, loadSerialIndex } from '@/lib/serials';
 import { getScoringSettings } from '@/lib/scoring';
 import { previewScoring, type ScoringPreview } from '@/lib/scoring-preview';
 import { getHiddenUsers } from '@/lib/user-admin';
+import { PREVIEW_ID, isPreview } from '@/lib/db';
+import { seedPreviewFromProduction, wipeKeys } from '@/lib/sandbox';
 
 /**
  * What the scoring numbers currently typed in the form would do to the active season, next to what is saved. Read-only:
@@ -31,4 +33,20 @@ export async function backfillSerialsAction(seasonId: string): Promise<void> {
     await backfillSerials(season.collectionName, await getCollection(season.collectionName));
   });
   redirect('/admin/settings?tab=viewers&saved=serials');
+}
+
+/** Preview deployments only: copies the live setup into the preview's own namespace (reads production, writes `sbx:preview:*`). */
+export async function seedPreviewAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  if (!isPreview()) redirect('/admin/settings?tab=environment');
+  await seedPreviewFromProduction(formData.get('withCollections') === 'on');
+  redirect('/admin/settings?tab=environment&saved=preview-seeded');
+}
+
+/** Preview deployments only: deletes everything in the preview's namespace. */
+export async function wipePreviewAction(): Promise<void> {
+  await requireAdmin();
+  if (!isPreview()) redirect('/admin/settings?tab=environment');
+  await wipeKeys(PREVIEW_ID);
+  redirect('/admin/settings?tab=environment&saved=preview-wiped');
 }

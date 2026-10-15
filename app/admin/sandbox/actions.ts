@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
-import { SANDBOX_COOKIE } from '@/lib/db';
+import { SANDBOX_COOKIE, isPreview } from '@/lib/db';
 import { createSandbox, deleteSandbox, getSandbox, resetSandbox, resetTestData, setSandboxExpiry, touchSandbox, type SandboxSource } from '@/lib/sandbox';
 import { logEvent, undoLast, withUndo } from '@/lib/sandbox-log';
 import { applyScenario, SCENARIOS, type ScenarioId } from '@/lib/sandbox-scenarios';
@@ -20,6 +20,12 @@ import type { Variant } from '@/lib/types';
 const back = (id: string, msg: string, kind: 'ok' | 'error' = 'ok', tab = 'overview') =>
   redirect(`/admin/sandbox/${id}?tab=${tab}&${kind === 'ok' ? 'msg' : 'err'}=${encodeURIComponent(msg)}`);
 
+/** Admin check, and sandboxes are switched off on preview deployments (one level of isolation is enough there). */
+async function admin() {
+  await requireAdmin();
+  if (isPreview()) redirect('/admin/sandbox');
+}
+
 const COOKIE_OPTS = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', maxAge: 60 * 60 * 24 * 30 };
 
 /**
@@ -27,7 +33,7 @@ const COOKIE_OPTS = { httpOnly: true, secure: process.env.NODE_ENV === 'producti
  * then report the outcome on the right tab. `fn` returns the message to show.
  */
 async function guarded(id: string, tab: string, fn: () => Promise<string>): Promise<never> {
-  await requireAdmin();
+  await admin();
   if (!(await getSandbox(id))) redirect('/admin/sandbox');
   let msg: string;
   try {
@@ -41,7 +47,7 @@ async function guarded(id: string, tab: string, fn: () => Promise<string>): Prom
 }
 
 export async function createSandboxAction(formData: FormData) {
-  await requireAdmin();
+  await admin();
   const source = (['config', 'collections', 'empty'].includes(String(formData.get('source'))) ? String(formData.get('source')) : 'config') as SandboxSource;
   let sandbox;
   try {
@@ -56,7 +62,7 @@ export async function createSandboxAction(formData: FormData) {
 }
 
 export async function enterSandboxAction(id: string) {
-  await requireAdmin();
+  await admin();
   if (!(await getSandbox(id))) return redirect('/admin/sandbox');
   (await cookies()).set(SANDBOX_COOKIE, id, COOKIE_OPTS);
   await touchSandbox(id);
@@ -65,7 +71,7 @@ export async function enterSandboxAction(id: string) {
 }
 
 export async function exitSandboxAction() {
-  await requireAdmin();
+  await admin();
   const jar = await cookies();
   jar.delete(SANDBOX_COOKIE);
   // A sandbox test login is meaningless outside its sandbox: drop it too so the public site doesn't look half-logged-in.
@@ -84,7 +90,7 @@ export async function resetSandboxAction(id: string) {
 }
 
 export async function deleteSandboxAction(id: string) {
-  await requireAdmin();
+  await admin();
   await deleteSandbox(id);
   const jar = await cookies();
   if (jar.get(SANDBOX_COOKIE)?.value === id) { jar.delete(SANDBOX_COOKIE); jar.delete(SESSION_COOKIE); }
@@ -179,7 +185,7 @@ export async function setExpiryAction(id: string, formData: FormData) {
 
 /** Logs the browser in as a test user, valid only inside this sandbox. No Twitch involved. */
 export async function loginAsAction(id: string, username: string) {
-  await requireAdmin();
+  await admin();
   if (!(await getSandbox(id))) redirect('/admin/sandbox');
   const user = cleanTestUsername(username);
   const token = signSession({ username: user, twitchId: `sandbox-${user}`, displayName: user, sandbox: id });

@@ -3,7 +3,7 @@
 // Staff are real accounts, not test data, so they live in the PRODUCTION namespace even while an admin is inside a sandbox
 // (`prodKv`, not the sandbox-aware `kv`). Otherwise entering a sandbox would make every staff member look like a stranger.
 
-import { prodKv, runInSandbox } from './db';
+import { isPreview, prodKv, runInSandbox } from './db';
 import { getUserProfile } from './kv';
 import {
   SUPER_ADMINS, canManage, cleanLogin, isSuperAdmin, isTwitchId, sanitizeStaffRecord,
@@ -16,6 +16,9 @@ const LOG_CAP = 200;
 
 export interface StaffActor { login: string; role: StaffRole }
 export interface StaffResult { ok: boolean; message: string }
+
+/** The staff list is real account data shared with production, so preview deployments (which are fenced from writing it) can't change it. */
+const PREVIEW_REFUSAL: StaffResult = { ok: false, message: 'Staff cannot be changed on a preview deployment. Do it on the live site.' };
 export interface StaffLogEntry { at: number; by: string; action: 'added' | 'role' | 'removed'; login: string; detail: string }
 
 export async function getStaffRecord(login: string): Promise<StaffRecord | null> {
@@ -57,6 +60,7 @@ async function knownTwitchId(login: string): Promise<{ id?: string; displayName?
 }
 
 export async function addStaff(actor: StaffActor, loginInput: unknown, role: AssignableRole): Promise<StaffResult> {
+  if (isPreview()) return PREVIEW_REFUSAL;
   const login = cleanLogin(loginInput);
   if (!login) return { ok: false, message: 'Enter a Twitch username (3 to 25 letters, numbers or underscores).' };
   if (role !== 'admin' && role !== 'mod') return { ok: false, message: 'Pick a role.' };
@@ -75,6 +79,7 @@ export async function addStaff(actor: StaffActor, loginInput: unknown, role: Ass
 }
 
 export async function setStaffRole(actor: StaffActor, loginInput: unknown, role: AssignableRole): Promise<StaffResult> {
+  if (isPreview()) return PREVIEW_REFUSAL;
   const login = cleanLogin(loginInput);
   const rec = login ? await getStaffRecord(login) : null;
   if (!login || !rec) return { ok: false, message: 'That person isn\'t on the staff list.' };
@@ -89,6 +94,7 @@ export async function setStaffRole(actor: StaffActor, loginInput: unknown, role:
 }
 
 export async function removeStaff(actor: StaffActor, loginInput: unknown): Promise<StaffResult> {
+  if (isPreview()) return PREVIEW_REFUSAL;
   const login = cleanLogin(loginInput);
   const rec = login ? await getStaffRecord(login) : null;
   if (!login || !rec) return { ok: false, message: 'That person isn\'t on the staff list.' };
@@ -100,6 +106,7 @@ export async function removeStaff(actor: StaffActor, loginInput: unknown): Promi
 
 /** Notes a sign-in: stamps the time, and binds the record to the account's Twitch ID the first time (never rebinds). */
 export async function touchStaffLogin(login: string, twitchId: string, displayName: string): Promise<void> {
+  if (isPreview()) return; // best effort, and a preview must not write the shared staff list
   try {
     const rec = await getStaffRecord(login);
     if (!rec) return;
