@@ -97,7 +97,7 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-white font-mono truncate" title={u.pathname}>{u.pathname}</p>
-                  <p className="text-xs text-gray-500">{u.format} · {formatBytes(u.bytes)} · uploaded {new Date(u.uploadedAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-500">{u.format} · {formatBytes(u.bytes)} · uploaded {new Date(u.uploadedAt).toLocaleDateString('en-GB')}</p>
                 </div>
                 <button onClick={() => copy(u.url)} className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors shrink-0">
                   {copied === u.url ? <><Icon name="check" className="mr-1" />Copied</> : 'Copy URL'}
