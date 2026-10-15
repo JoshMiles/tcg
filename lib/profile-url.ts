@@ -19,6 +19,12 @@ export function profileHref(username: string, tab?: ProfileTab): string {
   return tab && tab !== 'overview' ? `${base}?tab=${tab}` : base;
 }
 
+/** The browser-tab title for a profile page: "Alice's profile", "Alice's collection", "Alice's stats" ... one pattern for every tab. */
+export function profileTitle(name: string, tab: ProfileTab): string {
+  const t = PROFILE_TABS.find(x => x.id === tab);
+  return `${name}'s ${tab === 'overview' || !t ? 'profile' : t.label.toLowerCase()}`;
+}
+
 /** `?tab=` to a known tab, falling back to the overview. */
 export function pickProfileTab(raw: string | undefined, isOwner = false): ProfileTab {
   const t = PROFILE_TABS.find(x => x.id === raw);

@@ -134,7 +134,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="text-white">You can step back from the public boards.</strong> Signed in with Twitch, <em>Settings</em> lets you add a short public bio, make your profile private
-            (you are left off the leaderboard, owner lists and recent pulls; your page still opens by link), switch off trade notices or direct offers, and download everything we hold about you.
+            (you are left off the leaderboard, owner lists and recent pulls, and your profile page shows only that it is private to anyone but you), switch off trade notices or direct offers, and download everything we hold about you.
             Those choices are stored with your username.
           </li>
           <li>

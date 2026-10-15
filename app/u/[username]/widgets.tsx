@@ -181,7 +181,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
     case 'rarity':
       return (
         <Box type={type} href={profileHref(b.lower, 'collection')} linkLabel="Collection">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(7rem,1fr))]">
             {b.rarity.map(r => (
               <div key={r.stars} className="rounded-xl bg-gray-950/50 border border-gray-800 p-3 text-center">
                 <p className="text-xs font-medium mb-1" style={{ color: r.hex }}>{'★'.repeat(r.stars)}</p>

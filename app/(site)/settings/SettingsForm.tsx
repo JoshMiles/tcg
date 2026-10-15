@@ -96,7 +96,7 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
             </ul>
           )}
         </div>
-        <Row id="private" label="Private profile" help="Leave me off the public leaderboard, card owner lists and recent pulls. My page still opens for anyone with the link, but it shows no activity." checked={s.privateProfile} onChange={flip('privateProfile')} />
+        <Row id="private" label="Private profile" help="Hide my profile page and leave me off the public leaderboard, card owner lists and recent pulls. Anyone else who opens my page sees only that it is private; I still see it." checked={s.privateProfile} onChange={flip('privateProfile')} />
       </Section>
 
       <Section icon="bell" title="Trading and notifications" hint="Admin notices about your offers always come through.">

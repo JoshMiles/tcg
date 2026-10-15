@@ -285,7 +285,7 @@ export default async function FaqPage() {
           Yes: the <em>Share</em> menu on a profile (and the <em>Share</em> tab on your own), <em>Share my stats</em> on My Stats and <em>Share this card</em> on a card or copy page make a picture you can post or download.
         </Q>
         <Q q="Can I hide my profile?">
-          In Settings, <em>Private profile</em> leaves you off the leaderboard, card owner lists and recent pulls and hides your activity. Your page still opens for anyone who has the link, and your cards still appear on stream when
+          In Settings, <em>Private profile</em> leaves you off the leaderboard, card owner lists and recent pulls and hides your profile page: anyone else who opens it sees only that it is private (you still see your own). Your cards still appear on stream when
           they are shown there.
         </Q>
         <Q q="What are the experimental features?">
