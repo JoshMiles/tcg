@@ -14,6 +14,7 @@ import type { CardMaths } from '@/lib/card-maths';
 import { DEFAULT_DEX, SORT_LABELS, applyDex, dexProgress, type DexFilter, type DexShow, type DexSort } from '@/lib/dex-view';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { toggleWantedAction } from './actions';
+import { ORIGIN_BY, type Origin } from '@/lib/serials-core';
 
 export interface DexOwner {
   username: string;
@@ -200,7 +201,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
 
 // ── Detail dialog ─────────────────────────────────────────
 
-interface FirstCopy { variant: Variant; made: number; id?: string; at?: number; est?: boolean; pulledBy?: string; holder?: string | null }
+interface FirstCopy { variant: Variant; made: number; id?: string; at?: number; est?: boolean; origin?: Origin; pulledBy?: string; holder?: string | null }
 
 function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep, onClose, onStep }: { card: DexCard; seasonId: string; siteHost: string; signedIn: boolean; onToggleWanted: (c: DexCard) => void; canStep: boolean; onClose: () => void; onStep: (d: number) => void }) {
   const rarity = getRarity(card.stars);
@@ -321,7 +322,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                         <span className="text-gray-200">{VARIANT_LABELS[x.variant]} <span className="text-gray-500">· {x.made.toLocaleString()} made</span></span>
                         {x.id ? (
                           <Link href={`/copy/${encodeURIComponent(seasonId)}/${x.id}`} className="text-xs text-gray-400 hover:text-white">
-                            #1{x.est ? '~' : ''} {x.pulledBy && <>pulled by {who(x.pulledBy)} · </>}{x.at ? new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{x.holder === null ? ' · no longer exists' : x.holder ? <> · held by {who(x.holder)}</> : ''}
+                            #1{x.est ? '~' : ''} {x.pulledBy && <>{ORIGIN_BY[x.origin ?? 'pull']} {who(x.pulledBy)} · </>}{x.at ? new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{x.holder === null ? ' · no longer exists' : x.holder ? <> · held by {who(x.holder)}</> : ''}
                           </Link>
                         ) : null}
                       </li>
@@ -392,7 +393,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-2.5 sm:p-3 min-w-0">
-      <p className="text-[10px] sm:text-[11px] uppercase tracking-wide sm:tracking-wider text-gray-500 font-bold truncate">{label}</p>
+      <p className="text-[10px] sm:text-[11px] uppercase tracking-wide sm:tracking-wider text-gray-500 font-bold leading-tight">{label}</p>
       <p className="font-display text-xl sm:text-2xl font-bold text-white tabular-nums whitespace-nowrap">{value}</p>
       <p className="text-[11px] text-gray-500">{sub}</p>
     </div>

@@ -14,7 +14,7 @@ import { getUserSettings } from '@/lib/user-settings-store';
 import { ShareStudio } from '@/app/components/ShareStudio';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
-import { ORIGIN_LABELS, ORIGIN_VERB, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
+import { ORIGIN_BY, ORIGIN_LABELS, ORIGIN_VERB, entryOf, isEscrow, parseCopyId, type Origin } from '@/lib/serials-core';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { copyPoints, getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { serialMultiplier } from '@/lib/scoring-core';
@@ -51,10 +51,11 @@ export async function generateMetadata({ params }: { params: Promise<{ seasonId:
 }
 
 /** One short line of a copy's history for the engraved back (private collectors stay private). */
-function histText(e: { type: string; who?: string; to?: string }, hidden: Set<string>): string {
+function histText(e: { type: string; who?: string; to?: string }, hidden: Set<string>, origin: Origin): string {
   const name = (n?: string) => (!n ? '' : isEscrow(n) ? 'an offer' : hidden.has(n) ? 'a private collector' : `@${n}`);
   switch (e.type) {
-    case 'minted': return 'Created';
+    // How it began, by origin: "Pulled by @x", "Given to @x", "Forged by @x" (never just "Created").
+    case 'minted': { const by = ORIGIN_BY[origin]; const who = name(e.who); return who ? `${by[0].toUpperCase()}${by.slice(1)} ${who}` : ORIGIN_VERB[origin]; }
     case 'traded': return `Traded to ${name(e.to)}`;
     case 'escrowed': return 'Put up in a trade';
     case 'returned': return 'Back from a trade';
@@ -115,7 +116,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
               n: copy.n, uid: copy.uid, total, variantLabel: VARIANT_LABELS[copy.variant], name: card.name, date: engravedDate(copy.at), est: copy.est,
               bonus: mult > 1 ? Math.round(mult * 100) / 100 : undefined, hex: rarity?.hex, origin: ORIGIN_LABELS[copy.origin],
               holder: gone ? null : copy.owner && isEscrow(copy.owner) ? 'a trade offer' : hidden.has(copy.owner) ? 'a private collector' : `@${copy.owner}`,
-              history: copy.ev.slice(-3).map(e => ({ text: histText(e, hidden), date: engravedDate(e.t) })),
+              history: copy.ev.slice(-3).map(e => ({ text: histText(e, hidden, copy.origin), date: engravedDate(e.t) })),
               qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
             }}
           >

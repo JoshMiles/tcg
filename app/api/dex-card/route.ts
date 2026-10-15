@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const pulledBy = first.ev[0]?.who;
     const priv = (u?: string) => !!u && !u.startsWith('escrow:') && hidden.has(u);
     return {
-      variant, made: total, id: first.id, at: first.at, est: !!first.est,
+      variant, made: total, id: first.id, at: first.at, est: !!first.est, origin: first.origin,
       pulledBy: priv(pulledBy) ? 'private' : pulledBy,
       holder: !first.owner ? null : first.owner.startsWith('escrow:') ? 'offer' : priv(first.owner) ? 'private' : first.owner,
     };
