@@ -24,8 +24,9 @@ export function CardTable({ cards, collectors }: { cards: StatCard[]; collectors
   }, [cards, q, key, dir]);
 
   const head = (k: Key, label: string, right = false) => (
-    <th scope="col" aria-sort={key === k ? (dir === 1 ? 'ascending' : 'descending') : 'none'} className={`py-2 px-3 font-bold ${right ? 'text-right' : 'text-left'}`}>
-      <button type="button" onClick={() => { if (key === k) setDir(d => (d === 1 ? -1 : 1)); else { setKey(k); setDir(k === 'name' || k === 'number' ? 1 : -1); } }} className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-white">
+    <th scope="col" aria-sort={key === k ? (dir === 1 ? 'ascending' : 'descending') : 'none'} className={`p-0 font-bold ${right ? 'text-right' : 'text-left'}`}>
+      {/* The button fills the whole heading cell, so the whole cell sorts. */}
+      <button type="button" onClick={() => { if (key === k) setDir(d => (d === 1 ? -1 : 1)); else { setKey(k); setDir(k === 'name' || k === 'number' ? 1 : -1); } }} className={`flex w-full items-center gap-1 py-2 px-3 uppercase tracking-wider hover:text-white ${right ? 'justify-end' : 'justify-start'}`}>
         {label}{key === k && <Icon name={dir === 1 ? 'arrowUp' : 'arrowDown'} className="w-3 h-3" />}
       </button>
     </th>

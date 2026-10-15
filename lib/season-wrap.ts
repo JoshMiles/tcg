@@ -58,7 +58,11 @@ export async function getSeasonStats(season: Season): Promise<SeasonStats> {
 // ── Wrap-up snapshot ──
 
 export interface Award { id: string; title: string; icon: IconName; username: string; detail: string }
-export interface SnapshotRow { username: string; score: number; cardPoints: number; uniqueCards: number; copies: number; complete: boolean }
+export interface SnapshotRow {
+  username: string; score: number; cardPoints: number; uniqueCards: number; copies: number; complete: boolean;
+  /** The split of the bonuses and the copies per version, kept so the final board can show the same breakdown as the live one. Snapshots taken before these existed lack them. */
+  completionBonus?: number; setBonus?: number; variants?: { regular: number; reverse: number; full: number; shiny: number };
+}
 export interface SeasonSnapshot {
   at: number;
   seasonName: string;
@@ -103,7 +107,7 @@ export async function takeSnapshot(season: Season): Promise<SeasonSnapshot> {
     at: Date.now(),
     seasonName: season.name,
     stats: { viewers: stats.viewers, copies: stats.copies, pool: stats.pool, found: stats.found, complete: stats.complete },
-    standings: board.rows.slice(0, STANDINGS_CAP).map(r => ({ username: r.username, score: r.score, cardPoints: r.cardPoints, uniqueCards: r.uniqueCards, copies: r.copies, complete: r.complete })),
+    standings: board.rows.slice(0, STANDINGS_CAP).map(r => ({ username: r.username, score: r.score, cardPoints: r.cardPoints, uniqueCards: r.uniqueCards, copies: r.copies, complete: r.complete, completionBonus: r.completionBonus, setBonus: r.setBonus, variants: r.variants })),
     awards: buildAwards(board.rows),
   };
   await kv.set(snapKey(season.id), snapshot);

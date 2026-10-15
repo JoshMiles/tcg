@@ -15,6 +15,28 @@ export interface BoardRow {
   copies: number;
   /** Copies per version, Regular first (see VARIANTS). */
   variants: { regular: number; reverse: number; full: number; shiny: number };
+  /** The bonuses are one lump (completionBonus holds the total): an old final standing that did not record the split. */
+  bonusesTogether?: boolean;
+}
+
+/** The saved standings of an ended season as board rows. Collectors who have since been hidden or gone private are left out. */
+export function standingsToBoardRows(
+  standings: { username: string; score: number; cardPoints: number; uniqueCards: number; copies: number; complete: boolean; completionBonus?: number; setBonus?: number; variants?: BoardRow['variants'] }[],
+  hidden: ReadonlySet<string> = new Set(),
+): { rows: BoardRow[]; hasVariants: boolean } {
+  const kept = standings.filter(s => !hidden.has(s.username));
+  return {
+    hasVariants: kept.length > 0 && kept.every(s => !!s.variants),
+    rows: kept.map(s => {
+      const split = s.completionBonus !== undefined && s.setBonus !== undefined;
+      return {
+        username: s.username, score: s.score, cardPoints: s.cardPoints, complete: s.complete, uniqueCards: s.uniqueCards, copies: s.copies,
+        completionBonus: split ? s.completionBonus! : Math.max(0, s.score - s.cardPoints), setBonus: split ? s.setBonus! : 0,
+        variants: s.variants ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
+        ...(split ? {} : { bonusesTogether: true }),
+      };
+    }),
+  };
 }
 
 export const metricValue = (r: BoardRow, m: BoardMetric): number =>

@@ -57,6 +57,7 @@ await db.runInSandbox(box.id, async () => {
   ok((await kvLib.getSeason('next'))!.active, 'the new season is active');
   const snap = await wrap.getSnapshot(s1.id);
   ok(!!snap && snap.standings[0].username === 'ann' && snap.awards.some(a => a.id === 'champion' && a.username === 'ann'), 'the snapshot holds the final standings and awards');
+  ok(snap!.standings.every(r => typeof r.completionBonus === 'number' && typeof r.setBonus === 'number' && !!r.variants), 'each final standing keeps the bonus split and the version counts, so the final board shows the same breakdown');
   ok((await wrap.getUserAwards('ann')).some(a => a.award.id === 'champion'), 'a viewer\'s awards are found across seasons');
   ok(Object.keys(await kvLib.getCollection(s1.collectionName)).length === 2, 'the ended season keeps every collection');
 
