@@ -27,8 +27,8 @@ export function SearchButton({ className = '' }: { className?: string }) {
       className={`inline-flex items-center gap-2 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors ${className}`}
     >
       <Icon name="search" className="w-[1.05rem] h-[1.05rem]" />
-      <span className="hidden lg:inline text-sm">Search</span>
-      <kbd className="hidden lg:inline text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded px-1.5 py-px">/</kbd>
+      <span className="hidden 2xl:inline text-sm">Search</span>
+      <kbd className="hidden 2xl:inline text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded px-1.5 py-px">/</kbd>
     </button>
   );
 }

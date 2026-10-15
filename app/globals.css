@@ -138,7 +138,7 @@
   pointer-events: none;
 }
 .cheese-holes::before { width: 220px; height: 220px; top: -70px; right: 12%; }
-.cheese-holes::after  { width: 120px; height: 120px; bottom: -40px; left: 6%; }
+.cheese-holes::after  { width: 120px; height: 120px; bottom: -40px; left: 60%; } /* clear of the quick links on the left */
 
 /* Rind-style gradient border for feature cards. */
 .rind {

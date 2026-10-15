@@ -35,12 +35,19 @@ export async function getSeasonOverview(season: Season): Promise<SeasonOverview>
   return { season, rows, values, cards };
 }
 
-/** Most recent pulls in a season, newest first. */
-export async function getRecentPulls(collectionName: string, limit = 10): Promise<Extract<ActivityEvent, { type: 'pull' }>[]> {
-  const { events } = await getActivity({ limit: 150 });
+/** A card that arrived in a season's collection by a pull or as a grant (an admin gift or the grant webhook). */
+export type CardArrival = Extract<ActivityEvent, { type: 'pull' | 'grant' }>;
+
+/**
+ * The newest cards to arrive in a season, pulls and grants together, newest first; collectors an admin hid are left out. Reads the
+ * whole activity log (it is capped at 500): a stretch of triggers, collections shown and trades can fill a shorter window, which
+ * used to leave the home feed empty although pulls had happened.
+ */
+export async function getRecentCardArrivals(collectionName: string, limit = 10): Promise<CardArrival[]> {
+  const { events } = await getActivity({ limit: 500 });
   const hidden = await getHiddenUsers();
   return events
-    .filter((e): e is Extract<ActivityEvent, { type: 'pull' }> => e.type === 'pull' && e.collectionName === collectionName && !hidden.has(e.username))
+    .filter((e): e is CardArrival => (e.type === 'pull' || e.type === 'grant') && e.collectionName === collectionName && !hidden.has(e.username))
     .slice(0, limit);
 }
 

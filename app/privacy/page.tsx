@@ -126,7 +126,7 @@ export default function PrivacyPage() {
             the leaderboard lists usernames, profile pictures, scores and card counts for each season. They are not behind a login.
           </li>
           <li>
-            <strong className="text-white">The home page shows recent pulls</strong> (username, card, and when), the top collectors, and season statistics that are built from everyone&rsquo;s collections.
+            <strong className="text-white">The home page shows recent pulls and gifted cards</strong> (username, card, and when), the top collectors, and season statistics that are built from everyone&rsquo;s collections.
           </li>
           <li>
             <strong className="text-white">Every card copy has a public history.</strong> Each copy of a card has a serial number and a page showing when it was created and who has held it, traded it or spent it in an upgrade.

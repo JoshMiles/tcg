@@ -52,4 +52,10 @@ eq([m.nextMenuIndex(1, 'Home', 3), m.nextMenuIndex(1, 'End', 3)], [0, 2], 'Home 
 eq(m.nextMenuIndex(0, 'a', 3), null, 'other keys are not handled');
 eq(m.nextMenuIndex(0, 'ArrowDown', 0), null, 'an empty menu does nothing');
 
+// Scattered letters are not a match for collectors or cards either (typing "ali" must not offer the card "Goatlygidds").
+const scatter = s.buildEntityItems(['alice', 'malik'], new Set(), [{ number: 10, name: 'Goatlygidds', stars: 3 }, { number: 11, name: 'Alicorn', stars: 2 }]);
+eq(s.rankSearch(scatter, 'ali').map(i => i.id).sort(), ['card:11', 'player:alice', 'player:malik'].sort(), 'prefix, word-start and substring matches stay, scattered letters go');
+ok(!s.rankSearch(scatter, 'ali').some(i => i.id === 'card:10'), 'a card that only contains the letters in order is not suggested');
+ok(s.rankSearch(s.PUBLIC_PAGES, 'collectors').some(i => i.id === 'page:collection'), 'the Collectors page is found by that word');
+
 console.log('site search checks passed');

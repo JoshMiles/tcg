@@ -21,7 +21,7 @@ export interface SearchItem {
 export const PUBLIC_PAGES: SearchItem[] = [
   { id: 'page:home', kind: 'page', label: 'Home', href: '/', keywords: ['start', 'main'] },
   { id: 'page:leaderboard', kind: 'page', label: 'Leaderboard', href: '/leaderboard', keywords: ['ranking', 'top', 'points', 'score'] },
-  { id: 'page:collection', kind: 'page', label: 'Find a collector', href: '/collection', keywords: ['collections', 'players', 'search', 'viewer'] },
+  { id: 'page:collection', kind: 'page', label: 'Find a collector', href: '/collection', keywords: ['collections', 'collectors', 'players', 'search', 'viewer'] },
   { id: 'page:cards', kind: 'page', label: 'Card dex', href: '/cards', keywords: ['cards', 'rarity', 'odds'] },
   { id: 'page:stats', kind: 'page', label: 'Season stats', href: '/stats', keywords: ['numbers', 'charts'] },
   { id: 'page:trade', kind: 'page', label: 'Trade', href: '/trade', keywords: ['swap', 'offers', 'board'] },
@@ -60,8 +60,9 @@ export function rankSearch(items: SearchItem[], rawQuery: string, limit = 10): S
   if (!q) return [];
   const scored = items
     .map(it => ({ it, s: scoreItem(it, q) }))
-    // Loose letter-order matching is fine for names, but for pages it only produces noise ("alic" finding "Privacy policy").
-    .filter(x => x.s > 0 && (x.it.kind !== 'page' || x.s >= 25))
+    // Scattered-letter matching (a name that merely contains the letters in order) only produces noise ("ali" finding the card
+    // "Goatlygidds", "alic" finding "Privacy policy"): a result must start with, contain or be keyed by what was typed.
+    .filter(x => x.s >= 25)
     .sort((a, b) => b.s - a.s || a.it.label.localeCompare(b.it.label));
   const taken: Record<SearchKind, number> = { page: 0, player: 0, card: 0, copy: 0 };
   const out: SearchItem[] = [];
