@@ -75,7 +75,7 @@ export function planScenario(id: Exclude<ScenarioId, 'crowd'>, ctx: PlanContext)
 }
 
 /** Applies a scenario inside a sandbox. Returns what was set up and who to look at. */
-export function applyScenario(sandboxId: string, id: ScenarioId): Promise<{ note: string; users: string[] }> {
+export function applyScenario(sandboxId: string | null, id: ScenarioId): Promise<{ note: string; users: string[] }> {
   if (id === 'crowd') {
     return seedUsers(sandboxId, { count: 100, minPulls: 3, maxPulls: 150, shape: 'realistic' })
       .then(r => ({ note: `Created ${r.users} viewers with ${r.pulls.toLocaleString()} pulls between them.`, users: [] }));

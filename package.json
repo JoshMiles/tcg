@@ -7,7 +7,11 @@
     "start": "next start",
     "check": "node scripts/run-checks.mjs",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run check && node --check public/widget.js"
+    "verify": "npm run typecheck && npm run check && node --check public/widget.js",
+    "review:seed": "tsx scripts/seed-review.mts",
+    "review:public": "node scripts/sweep-public.mjs",
+    "review:admin": "node scripts/sweep-admin.mjs",
+    "review:mod": "node scripts/sweep-mod-access.mjs"
   },
   "dependencies": {
     "@breezystack/lamejs": "^1.2.7",

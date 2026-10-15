@@ -120,7 +120,7 @@ export type SeedShape = 'realistic' | 'even';
  * 'even' spreads pulls evenly between min and max. Everything is drawn in memory and written once, so 100 users is quick.
  */
 export function seedUsers(
-  sandboxId: string,
+  sandboxId: string | null,
   opts: { count: number; minPulls: number; maxPulls: number; shape: SeedShape },
 ): Promise<{ users: number; pulls: number; byVariant: VariantCounts; heaviest: number }> {
   return runInSandbox(sandboxId, async () => {
