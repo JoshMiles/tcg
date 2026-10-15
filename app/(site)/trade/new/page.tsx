@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
-import { getCollection } from '@/lib/kv';
+import { getCollection, getUserProfile } from '@/lib/kv';
 import { getActive } from '@/lib/site-seasons';
 import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
 import { getTradeCards } from '@/lib/trade-view';
@@ -34,11 +34,16 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
       {body}
     </div>
   );
-  if (!season) return wrap(<p className="rind rounded-2xl p-8 text-center text-gray-400">No season is running, so there is nothing to trade yet.</p>);
-  if (season.tradingFrozen) return wrap(<p className="rind rounded-2xl p-8 text-center text-amber-200">Trading is closed for {season.name}.</p>);
-  if (!settings.enabled) return wrap(<p className="rind rounded-2xl p-8 text-center text-amber-200">Trading is paused right now. Check back soon.</p>);
-  if (counter && (!original || original.status !== 'open' || original.kind !== 'direct' || original.to !== session.username)) {
-    return wrap(<p className="rind rounded-2xl p-8 text-center text-gray-400">That offer is no longer open, so it can&rsquo;t be countered.</p>);
+  // A message in place of the composer. It carries the page's heading too, so a page that only says "no" still has an h1.
+  const say = (tone: string, text: React.ReactNode) => wrap(<><h1 className="sr-only">New trade offer</h1><p className={`rind rounded-2xl p-8 text-center ${tone}`}>{text}</p></>);
+  if (!season) return say('text-gray-400', 'No season is running, so there is nothing to trade yet.');
+  if (season.tradingFrozen) return say('text-amber-200', <>Trading is closed for {season.name}.</>);
+  if (!settings.enabled) return say('text-amber-200', 'Trading is paused right now. Check back soon.');
+  // A viewer the streamer has switched trading off for would otherwise fill in a whole offer and only learn when sending it.
+  if ((await getUserProfile(session.username).catch(() => null))?.flags?.noTrading) return say('text-amber-200', 'Trading isn’t available on your account.');
+  if (counter) {
+    if (!original || original.status !== 'open') return say('text-gray-400', 'That offer is no longer open, so it can’t be countered.');
+    if (original.kind !== 'direct' || original.to !== session.username) return say('text-gray-400', 'That offer wasn’t made to you, so you can’t counter it.');
   }
 
   const [cards, collection, prefs] = await Promise.all([getTradeCards(season), getCollection(season.collectionName), getUserSettings(session.username)]);

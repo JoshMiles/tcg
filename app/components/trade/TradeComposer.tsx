@@ -76,9 +76,9 @@ export function TradeComposer({
       setLookingUp(false);
     }
   }
-  // A counter, or an offer started from a card, already knows who it is for: load their cards straight away.
+  // A link that names the other person (a counter, an offer started from a card or from their profile) already knows who it is for: load their cards straight away.
   useEffect(() => {
-    if (initial.to && (counter || initial.get.length > 0)) lookUp();
+    if (initial.to) lookUp();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
