@@ -1,0 +1,63 @@
+# Twitch Extension panel
+
+> Read this when you touch `public/twitch-panel/*`, `/api/twitch/*`, the hosted zip or the submission pack. The panel freeze in ROADMAP.md applies.
+
+## Twitch Extension Panel
+
+Files live in `public/twitch-panel/`, served as static files from Vercel.
+
+**Hosted version zip**: Twitch serves the extension's front end from its own domain (`https://<client id>.ext-twitch.tv`) under a CSP, so the version's Asset Hosting zip is built, not copied: `node scripts/build-twitch-package.mjs` writes `twitch-extension/dist/cheesy-tcg-panel-v<version>.zip` (gitignored; builder and rules in `scripts/lib/twitch-package.mjs`, a dependency-free zip writer in `scripts/lib/zip.mjs`). It ships the three views, `config.js`, `panel.js`, `trades.js` and the two stylesheets at the zip root, minus the site analytics script and the fake Twitch helper, with Terms / Privacy linked absolutely, and `config.js` set to the site address; the build refuses a package with inline scripts, external scripts, site-relative paths, CSS that loads files, or a fetch that skips `api()`. In `panel.js` every request goes through `api(path)` and card art URLs from the season response are made absolute (`absolutizeUrls`), both driven by `window.TCG_SITE` (empty in `public/twitch-panel/config.js`, which is right whenever the site serves the panel itself). The API answers the extension's cross-origin calls in `middleware.ts` (`/api/twitch/*` and `/api/version`: CORS only for `https://<id>.ext-twitch.tv` and the developer rig, plus `http://localhost:<port>` outside production). Add a new panel fetch with `api(...)` and a new image field named `...ImageUrl` / `...ThumbUrl`, or the package check fails or the art breaks when hosted. `scripts/check-twitch-package.mts` covers all of it.
+
+**Submission pack (`twitch-extension/`)**: everything for the review form. `SUBMISSION.md` has every text field (name, summary, details, allowlists, capabilities, change log, testing instructions, source-code note) with the limits checked, plus a pre-flight checklist and how to redo the assets. The images are `icon-100.png` (100x100, opaque), `discovery-300x200.png` (300x200, opaque) and five real 1024x768 panel screenshots in `screenshots/`. The app icon (home-screen icons, `app/apple-icon.png`, the Twitch icon and discovery art) is the mascot with a cheese-wedge badge from `scripts/lib/brand-icon.mjs`: `node scripts/make-pwa-icons.mjs` and `node scripts/make-twitch-assets.mjs` rebuild them. The screenshots come from a seeded sandbox (`scripts/seed-twitch-screenshots.mts`) and are captured as four tiles then joined (`scripts/stitch-screenshot-tiles.cjs`) because the browser pane only grabs 800x600. `scripts/check-twitch-assets.mts` verifies the sizes, opacity and text limits.
+
+**Extension dashboard setup (dev.twitch.tv):**
+1. Create extension → type: Panel
+2. Panel HTML file URL: `https://cheesytcg.app/twitch-panel/panel.html`
+   - Mobile view: `https://cheesytcg.app/twitch-panel/mobile.html`; Video - Component view: `https://cheesytcg.app/twitch-panel/video_component.html` (enable those view types on the extension's Capabilities / Views page in dev.twitch.tv)
+3. Allowlisted domains (for fetch): `https://cheesytcg.app`
+   - Privacy Policy URL: `https://cheesytcg.app/privacy`; EULA URL: `https://cheesytcg.app/terms`
+4. Copy the Extension Secret (base64 encoded) → set as `TWITCH_EXTENSION_SECRET` env var in Vercel
+
+**Critical: `auth.userId` is always an opaque ID. It never becomes a numeric ID on the client**, even after `requestIdShare()`. The real Twitch numeric user ID only appears in the JWT payload's `user_id` field (server-side). All login resolution goes through `POST /api/twitch/login` which reads it from there.
+
+**Twitch auth flow (current implementation):**
+1. Panel loads → `onAuthorized` fires → `init()` called
+2. If `identityRequestPending` flag is set (user just responded to Twitch identity popup) → call `loginFromJwt()` → on success: login; on fail: show the failure reason on the login screen
+3. Load season data; if none → show no-season state
+4. If `isExplicitlyLoggedOut()` (localStorage flag) → show login screen
+5. Try `tryAutoLogin()`, `GET /api/twitch/user?opaqueId=...`; if mapping exists, silent login
+6. Try `loginFromJwt()`, `POST /api/twitch/login` with current JWT; if JWT already contains `user_id` from a prior identity grant (or the viewer is the channel owner), silent login without any user interaction. A 403 ("identity not shared yet") shows a plain login screen; any other failure shows its reason on the login screen
+7. Otherwise → show login screen with teaser grid and "Login with Twitch" button
+8. Login button pressed → **if the JWT role is `broadcaster`, call `loginFromJwt()` directly** (Twitch's `requestIdShare()` is a documented no-op on your own channel, so waiting for it hangs forever); otherwise call `requestIdShare()`, show a status hint, set `identityRequestPending = true`, 20s timeout fallback
+9. Twitch re-fires `onAuthorized` after user responds → `init()` re-enters with `identityRequestPending = true` → `loginFromJwt()` resolves via `/api/twitch/login`
+10. Logout: set localStorage flag + `POST /api/twitch/unlink` → show login screen
+
+**Login screen design:**
+- Shows top 10 rarest cards as a 5-column teaser grid (top 3 revealed with image + gold border, rest as `?`)
+- Season name, card count, purple "Login with Twitch" button
+- No manual username form, Twitch identity only
+
+**Card details:**
+- Clicking (or Enter/Space on) a grid card opens an overlay (`#card-detail`, `openDetail()` in `panel.js`): large animated card, name, rarity, `#N · pack · position`, and how many the viewer has (`cardStatus()`, pulls this season, plus per-season counts for past seasons). Undiscovered cards open as a locked "???" view. Prev/next (and ←/→) browse the current pack, Esc/backdrop/× close it, and focus returns to the card. `showState()` closes it so it never survives a logout. The grid badges and the overlay both read `cardStatus()`, keep it that way so they can't disagree.
+
+**Panel features (panel.js + trades.js, same markup in all three HTML files; `scripts/check-twitch-panel.mts` keeps them in step and checks the serial maths against `lib/scoring-core.ts`):**
+- Four tabs: **Collection** (Have / Missing filter with counts; the pack row is dropped when there is only one pack), **Stats**, **Trades** (a red dot when offers are waiting; see below) and **Board**. The header carries a rank chip (`#2 of 30 · 70,584 pts`) that opens Stats.
+- **Stats view** (`renderStats`): score and rank, trade offers banner (links to the website's `/trade`; trading itself is website-only), how the points add up (cards, serial bonus, completion, complete set), **Ready to upgrade** (opens the card), best serial numbers, links to the full stats / profile. Built from `/api/twitch/me` (`loadMe`, never blocks the collection: if it fails those extras just stay hidden).
+- **Trades tab** (`public/twitch-panel/trades.js`, a classic script loaded after `panel.js` so it shares its globals; all three HTML files load it): sections Offers for you (Accept / Decline), Your open offers (Cancel), The board (Take trade), Recent, and a **New offer** composer (pick copies to give with steppers, search cards to want with a version select, an optional Twitch name = direct offer, empty = a listing on the board, optional note). Accept / decline / cancel need a second tap ("Sure?"). It talks only to `GET/POST /api/twitch/trades` (`app/api/twitch/trades/route.ts`): the viewer comes from the signed Extension JWT via `extensionViewer()` in `lib/twitch-viewer.ts` (never the body), the actions (`create | accept | decline | cancel`) call the SAME engine as the website (`createTrade`, `acceptTrade`, ... so escrow, locks, serials, notices, caps and the pause switch are identical), and GET returns the viewer's offers priced with serial bonuses (`stackPoints` / `poolsFor`) plus `canTake` (does the viewer own what the offer asks for). **Counter-offers** work in the panel too (a Counter button on offers for you: the composer starts from the mirror of the offer, the target is locked, `action: 'counter'` -> `counterTrade`). The tab also tags board listings that match the viewer's alerts (`alert` in `GET /api/twitch/trades`, matches listed first; the dot lights for waiting offers or an unseen match, remembered per device in `localStorage` `tcg_panel_seen_alerts`). After a trade the panel refreshes the collection (`skipNextToast` stops the "New pull" toast firing for traded cards). `scripts/check-panel-trades.mts` (mock KV) covers the routes.
+- **Card details** gain odds and copies out there, "Worth N pts" (serial bonuses included via `copyPts`), points per version, and the viewer's serial chips for the version shown (bonus ones highlighted, each opens `/copy/<season>/<card>.<variant>.<n>`). `serialMult` / `copyPts` mirror `serialMultiplier` / `copyPoints`; keep them in sync.
+- Refresh: the ↻ button, and coming back to the panel after 45 s (`visibilitychange`; no polling, the collection endpoint reads whole season blobs). A refresh that finds new copies shows a **toast** ("New pull: …"); a failed one keeps the cards on screen and shows a **banner with Retry** (an empty grid would look like owning nothing). The leaderboard shows skeleton rows and a retry. No emoji in the panel (podium discs, `SH` marker).
+
+**Collection link:**
+- The username in the collection-view footer is an `<a target="_blank">` to the viewer's public page, `/u/<username>` on the same origin as the API calls (set in `login()`). Twitch's extension sandbox allows popups, so it opens in a new tab. If Twitch blocks it, check the extension's URL/link allowlists in the developer console.
+
+**Logout persistence:**
+- `localStorage` key `tcg_panel_loggedout = '1'` survives panel refresh
+- Checked at the start of `init()` before any auto-login attempt
+- Cleared when `login()` succeeds
+
+**API credentials, two separate things:**
+- `TWITCH_EXTENSION_SECRET`, base64-encoded Extension Secret (dev.twitch.tv → Extension → Settings). Used by `lib/twitch-jwt.ts` to verify JWTs from the Extension Helper.
+- `TWITCH_CLIENT_ID` + `TWITCH_CLIENT_SECRET`, OAuth app credentials (dev.twitch.tv → Applications → your app). Used by `/api/twitch/resolve-username` for the `client_credentials` token flow and Helix API calls. These are NOT the same as the Extension Secret.
+
+**Key KV keys:**
+- `twitch_opaque:{opaqueId}` → username string
