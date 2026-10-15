@@ -20,7 +20,7 @@ export async function previewScoringAction(raw: Record<string, string>): Promise
   if (!season) return { ok: false, message: 'There is no active season to preview against.' };
   // The same packs and viewers the real leaderboard uses (getSeasonLeaderboard), so the "saved" side matches what viewers see.
   const [saved, collection, hidden, packList, serials] = await Promise.all([getScoringSettings(), getCollection(season.collectionName), getHiddenUsers().catch(() => new Set<string>()), getPacksForSeason(season), loadSerialIndex(season.collectionName)]);
-  const packs = await Promise.all(packList.map(async pack => ({ pack, cards: await getPackCards(pack.id) })));
+  const packs = await Promise.all(packList.filter(p => p.status !== 'draft').map(async pack => ({ pack, cards: await getPackCards(pack.id) }))); // drafts are never drawn, as in the leaderboard
   return { ok: true, season: season.name, preview: previewScoring(packs, collection, saved, raw, hidden, serials) };
 }
 

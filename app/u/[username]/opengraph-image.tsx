@@ -23,7 +23,7 @@ export default async function Image({ params }: { params: Promise<{ username: st
   if (season) {
     try {
       const [board, collection, packs] = await Promise.all([getSeasonLeaderboard(season), getCollection(season.collectionName), getPacksForSeason(season)]);
-      const total = (await Promise.all(packs.map(async p => (await getPackCards(p.id)).length))).reduce((a, b) => a + b, 0);
+      const total = (await Promise.all(packs.filter(p => p.status !== 'draft').map(async p => (await getPackCards(p.id)).length))).reduce((a, b) => a + b, 0);
       const mine = collection[lower] ?? [];
       const unique = uniqueCount(mine);
       const idx = board.rows.findIndex(r => r.username === lower);

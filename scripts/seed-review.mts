@@ -57,7 +57,7 @@ const packWheel: Pack = { ...base, id: 'pack-wheel', name: 'Cheese Wheel Pack', 
 const packDraft: Pack = { ...base, id: 'pack-draft', name: 'Work In Progress Pack', active: false, status: 'draft', upgradesEnabled: false, variantWeights: DEFAULT_VARIANT_WEIGHTS, upgradeCosts: DEFAULT_UPGRADE_COSTS };
 const packOld: Pack = { ...base, id: 'pack-old', name: 'Retired Promo Pack', active: false, status: 'published', archived: true, archivedAt: Date.now(), upgradesEnabled: false, variantWeights: DEFAULT_VARIANT_WEIGHTS, upgradeCosts: DEFAULT_UPGRADE_COSTS };
 const wheelCards: Card[] = SEED_CARDS.slice(0, 20).map(c => ({ ...c, id: `w${c.number}`, soundUrl: undefined, fullArtImageUrl: c.imageUrl }));
-const draftCards: Card[] = SEED_CARDS.slice(20, 25).map((c, i) => ({ ...c, id: `d${i + 1}`, number: i + 1, soundUrl: undefined }));
+const draftCards: Card[] = SEED_CARDS.slice(20, 25).map((c, i) => ({ ...c, id: `d${i + 1}`, number: 21 + i, soundUrl: undefined })); // numbers are unique across a season's packs, like the real wizards assign them
 const oldCards: Card[] = SEED_CARDS.slice(0, 5).map(c => ({ ...c, id: `o${c.number}`, soundUrl: undefined }));
 for (const [p, cards] of [[packWheel, wheelCards], [packDraft, draftCards], [packOld, oldCards]] as const) { await kvLib.savePack(p); await kvLib.savePackCards(p.id, [...cards]); }
 await kvLib.saveSeason({ id: 'season2', name: 'Aged Cheddar', collectionName: 'AgedCheddar', active: false, status: 'published', createdAt: Date.now(), maxConcurrentPacks: 1, packIds: [packWheel.id, packDraft.id] });

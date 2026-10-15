@@ -2,9 +2,11 @@
 // signed in and signed out: flags horizontal overflow, a missing / duplicate h1, images without alt, unnamed buttons and console
 // errors. Needs Playwright (npm i -D playwright, or the one pre-installed in the Claude cloud environment).
 // Run: node scripts/sweep-public.mjs                      (every public page)
+//      node scripts/sweep-public.mjs --as=alice /u/alice  (signed-in passes as that fake-Twitch viewer, e.g. to see an owner's own profile)
 //      node scripts/sweep-public.mjs /u/alice /trade      (only these paths: a review batch sweeps just its own pages)
 // Seed realistic data first with scripts/seed-review.mts (see docs/review.md).
-import { loadPlaywright } from './lib/sweep.mjs';
+import { loadPlaywright, loginTwitch } from './lib/sweep.mjs';
+const asUser = (process.argv.find(a => a.startsWith('--as=')) ?? '--as=tester').slice(5); // who the signed-in passes are (fake Twitch login)
 const b = await (await loadPlaywright()).launch();
 const defaultRoutes = ['/', '/faq', '/privacy', '/terms', '/collection', '/leaderboard', '/stats', '/cards', '/trade', '/trade?tab=board', '/trade?tab=history', '/trade/new', '/account', '/settings', '/u/alice', '/u/alice?tab=collection', '/u/alice?tab=stats', '/u/alice?tab=trades', '/u/alice?tab=activity', '/u/tester', '/copy/season1/1.0.1', '/auth/error?reason=denied', '/u/nobody_here', '/does-not-exist', '/u/hoarder', '/u/private_pat', '/u/hidden_hank', '/u/a_very_long_username_25c', '/leaderboard/season1'];
 const asked = process.argv.slice(2).filter(a => a.startsWith('/'));
@@ -15,7 +17,7 @@ async function sweep(label, viewport, login) {
   const errors = [];
   p.on('console', m => { if (m.type() === 'error' && !/TUNNEL|ERR_FAILED|Failed to load resource/.test(m.text())) errors.push(m.text().slice(0, 160)); });
   p.on('pageerror', e => errors.push('PAGEERROR ' + e.message.slice(0, 160)));
-  if (login) { await p.goto('http://localhost:3111/settings'); await p.waitForSelector('text=Settings', { timeout: 90000 }); }
+  if (login) { await loginTwitch(ctx, asUser, '/settings'); }
   for (const r of routes) {
     errors.length = 0;
     const res = await p.goto('http://localhost:3111' + r, { timeout: 90000, waitUntil: 'load' }).catch(e => null);
