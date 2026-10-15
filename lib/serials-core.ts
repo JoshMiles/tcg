@@ -87,6 +87,9 @@ export const ORIGIN_LABELS: Record<Origin, string> = {
   pull: 'Pulled live on stream', grant: 'Given as a gift', upgrade: 'Forged in an upgrade', estimated: 'Existed before serials (numbered later)', other: 'Added to the collection',
 };
 
+/** "pulled by", "given to", ...: how to say who a copy first belonged to, by how it came to exist (a numbered-later copy was not necessarily pulled). */
+export const ORIGIN_BY: Record<Origin, string> = { pull: 'pulled by', grant: 'given to', upgrade: 'forged by', estimated: 'first held by', other: 'added to' };
+
 /** The one-word label for when a copy came into being, by how it did ("Pulled", not "Created": a copy is pulled, given or forged). */
 export const ORIGIN_VERB: Record<Origin, string> = { pull: 'Pulled', grant: 'Given', upgrade: 'Forged', estimated: 'First recorded', other: 'Added' };
 

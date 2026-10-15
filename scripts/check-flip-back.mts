@@ -10,4 +10,11 @@ ok(editionLine(7, 12) === 'Edition #7 of 12 made' && editionLine(7) === 'Edition
 const core = await import('../lib/serials-core');
 ok(core.parseUid('#1023381') === 1023381 && core.parseUid(' 1023381 ') === 1023381, 'unique numbers parse with or without #');
 ok(core.parseUid('12') === null && core.parseUid('1000000') === null && core.parseUid('12345678901') === null && core.parseUid('abc') === null, 'short, base and huge numbers are not copy numbers');
+// A copy is never "created" or "made for" someone: every origin has a verb and a "by" phrase.
+for (const o of ['pull', 'grant', 'upgrade', 'estimated', 'other'] as const) {
+  ok(!!core.ORIGIN_VERB[o] && !!core.ORIGIN_BY[o] && !core.ORIGIN_VERB[o].includes('Creat') && !core.ORIGIN_BY[o].includes('made'), `origin ${o} has plain wording`);
+}
+ok(core.ORIGIN_BY.pull === 'pulled by' && core.ORIGIN_BY.grant === 'given to' && core.ORIGIN_BY.upgrade === 'forged by', 'the three real origins read pulled by / given to / forged by');
+ok(core.ORIGIN_BY.estimated === 'first held by', 'a numbered-later copy is not said to have been pulled');
+
 console.log('flip back checks passed');
