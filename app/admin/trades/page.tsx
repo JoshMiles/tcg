@@ -61,7 +61,7 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
             ))}
           </div>
           <div className="flex justify-between text-[10px] text-gray-600"><span>{stats.perDay[0]?.day.slice(5)}</span><span>{stats.perDay.at(-1)?.day.slice(5)}</span></div>
-          {stats.since && <p className="text-[11px] text-gray-600">Based on the last {stats.ended} ended trades (kept history), since {new Date(stats.since).toLocaleDateString()}.</p>}
+          {stats.since && <p className="text-[11px] text-gray-600">Based on the last {stats.ended} ended trades (kept history), since {new Date(stats.since).toLocaleDateString('en-GB', { timeZone: 'UTC' })}.</p>}
         </Panel>
         <Panel title="Most active traders" hint="Completed trades in the kept history.">
           {stats.topTraders.length === 0 ? <p className="text-sm text-gray-600">No completed trades yet.</p> : (

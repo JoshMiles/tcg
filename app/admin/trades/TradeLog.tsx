@@ -26,7 +26,7 @@ const FLAG_STYLE: Record<FlagKind, string> = {
   newbie: 'text-cyan-300 border-cyan-400/30 bg-cyan-500/10',
 };
 
-const when = (t?: number) => (t ? new Date(t).toLocaleString('en-GB') : '-');
+const when = (t?: number) => (t ? new Date(t).toLocaleString('en-GB', { timeZone: 'UTC' }) : '-');
 function left(expiresAt: number, now: number): string {
   const m = Math.ceil((expiresAt - now) / 60_000);
   if (m <= 0) return 'ended';

@@ -15,6 +15,8 @@ export function StaffManager({ staff, viewerRole, viewerLogin }: { staff: Row[];
   const [role, setRole] = useState<AssignableRole>('mod');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  // A role change waits for a second click: promoting to Admin hands over the whole panel, and a select is easy to bump.
+  const [changing, setChanging] = useState<{ login: string; role: AssignableRole } | null>(null);
   const canAddAdmin = canManage(viewerRole, 'admin');
 
   const run = (fn: () => Promise<{ ok: boolean; message: string }>, after?: () => void) =>
@@ -66,12 +68,18 @@ export function StaffManager({ staff, viewerRole, viewerLogin }: { staff: Row[];
                       {may ? (
                         <span className="inline-flex items-center gap-2 justify-end">
                           <select
-                            aria-label={`Role for ${s.login}`} value={s.role} disabled={pending} className={selectClass}
-                            onChange={e => run(() => setStaffRoleAction(s.login, e.target.value))}
+                            aria-label={`Role for ${s.login}`} value={changing?.login === s.login ? changing.role : s.role} disabled={pending} className={selectClass}
+                            onChange={e => { const role = e.target.value as AssignableRole; setChanging(role === s.role ? null : { login: s.login, role }); }}
                           >
                             <option value="mod">Mod</option>
                             <option value="admin" disabled={!canAddAdmin}>Admin</option>
                           </select>
+                          {changing?.login === s.login && (
+                            <>
+                              <button type="button" disabled={pending} onClick={() => run(() => setStaffRoleAction(s.login, changing.role), () => setChanging(null))} className="text-xs font-bold text-yellow-300 hover:text-yellow-200 px-2 py-1.5 rounded-lg hover:bg-yellow-500/10">{changing.role === 'admin' ? 'Make admin' : 'Make mod'}</button>
+                              <button type="button" disabled={pending} onClick={() => setChanging(null)} className="text-xs font-semibold text-gray-400 hover:text-white px-1.5 py-1.5">Cancel</button>
+                            </>
+                          )}
                           <ArmedButton
                             disabled={pending} armedLabel="Sure? Remove" title={`Remove ${s.displayName ?? s.login} from the staff`}
                             className="text-xs font-bold text-red-300 hover:text-red-200 px-2 py-1.5 rounded-lg hover:bg-red-500/10"

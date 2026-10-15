@@ -61,7 +61,7 @@ export function ModerationPanel({ username, initial }: { username: string; initi
       <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" checked={noTrading} onChange={e => setNoTrading(e.target.checked)} className="mt-1 accent-yellow-400" /><span><strong className="text-white">Block trading.</strong> They can&apos;t make or accept offers, and nobody can offer to them. Existing offers can still be cancelled.</span></label>
       <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" checked={hide} onChange={e => setHide(e.target.checked)} className="mt-1 accent-yellow-400" /><span><strong className="text-white">Hide from public boards.</strong> Left out of the leaderboard, the card owner lists and recent pulls. Their own collection page still works.</span></label>
       {(noTrading || hide) && <input value={reason} onChange={e => setReason(e.target.value)} maxLength={200} placeholder="Reason (only staff see this)" aria-label="Reason" className={`${field} w-full`} />}
-      {initial.at && (initial.noTrading || initial.hideFromBoard) && <p className="text-xs text-gray-600">Set {new Date(initial.at).toLocaleString('en-GB')}{initial.by ? ` by ${initial.by}` : ''}</p>}
+      {initial.at && (initial.noTrading || initial.hideFromBoard) && <p className="text-xs text-gray-600">Set {new Date(initial.at).toLocaleString('en-GB', { timeZone: 'UTC' })}{initial.by ? ` by ${initial.by}` : ''}</p>}
       <div className="flex items-center gap-3">
         <button type="button" disabled={!dirty || pending} onClick={() => startTransition(async () => { setResult(await saveFlagsAction(username, { noTrading, hideFromBoard: hide, reason })); })} className={btn}>{pending && <Spinner />}Save restrictions</button>
       </div>
@@ -139,7 +139,7 @@ export function TradesPanel({ username, lines }: { username: string; lines: Trad
       <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${l.status === 'accepted' ? 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10' : l.open ? 'text-sky-300 border-sky-400/30 bg-sky-500/10' : 'text-gray-400 border-gray-700'}`}>{l.open ? 'open' : l.status}</span>
       <span className="text-gray-300">{l.mine ? 'gives' : `${l.other ?? 'someone'} gives`} <strong className="text-white">{l.mine ? l.give : l.give}</strong> {l.mine ? 'for' : 'for'} <strong className="text-white">{l.get}</strong></span>
       <span className="text-xs text-gray-600">{l.kind === 'listing' ? 'board' : l.other ? (l.mine ? `to ${l.other}` : `with ${l.other}`) : ''} · {l.season}</span>
-      <span className="ml-auto flex items-center gap-3 text-xs text-gray-500">{l.open && l.expiresAt ? `expires ${new Date(l.expiresAt).toLocaleString('en-GB')}` : new Date(l.at).toLocaleDateString('en-GB')}
+      <span className="ml-auto flex items-center gap-3 text-xs text-gray-500">{l.open && l.expiresAt ? `expires ${new Date(l.expiresAt).toLocaleString('en-GB', { timeZone: 'UTC' })}` : new Date(l.at).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
         {l.open && l.mine && <ArmedButton disabled={pending} onConfirm={() => cancel(l.id)} className="text-red-300 hover:text-red-200 font-semibold" armedClassName="text-white bg-red-600 hover:bg-red-500 font-semibold rounded px-2 py-0.5">Cancel &amp; refund</ArmedButton>}</span>
     </li>
   );
@@ -188,7 +188,7 @@ export function ToolsPanel({ username, snapshots, collections }: { username: str
               <li key={s.id} className="px-4 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                 <span className="text-gray-200">{s.reason}</span>
                 <span className="text-xs text-gray-500">{s.cards} cards · {s.seasons || 'profile only'}</span>
-                <span className="ml-auto flex items-center gap-3 text-xs text-gray-500">{new Date(s.at).toLocaleString('en-GB')}
+                <span className="ml-auto flex items-center gap-3 text-xs text-gray-500">{new Date(s.at).toLocaleString('en-GB', { timeZone: 'UTC' })}
                   <form onSubmit={e => { e.preventDefault(); restore(s.id); }}>
                     <ConfirmButton
                       title="Restore this restore point?"

@@ -12,7 +12,7 @@ export const metadata = { title: 'Serials · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const PAGE = 25;
-const when = (t: number) => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+const when = (t: number) => `${new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
 const field = 'rounded-xl bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500';
 
 type SP = { season?: string; card?: string; variant?: string; holder?: string; page?: string };
@@ -25,7 +25,8 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
 
   const c = season.collectionName;
   const stats = await serialStats(c);
-  const packs = await getPacksForSeason(season);
+  // The cards the season can have copies of: draft packs are never drawn, so they are left out (as on the leaderboard).
+  const packs = (await getPacksForSeason(season)).filter(p => p.status !== 'draft');
   const cards = (await Promise.all(packs.map(async p => (await getPackCards(p.id)).map(card => ({ number: card.number, name: card.name, stars: card.stars, pack: p.name }))))).flat().sort((a, b) => a.number - b.number);
   const nameOf = (n: number) => cards.find(x => x.number === n)?.name ?? `#${n}`;
 

@@ -266,7 +266,7 @@ export function OverlayEditor({
     [...new Set([...Object.keys(v.packs), ...Object.keys(packVals)])].reduce((n, id) => n + diffProps('', v.packs[id] ?? {}, packVals[id] ?? {}, () => '(follows global)').length, 0);
   const loadVersion = (v: VersionInfo) => {
     setGlobalVals(v.props); setPackVals(m => ({ ...Object.fromEntries(Object.entries(m).filter(([k]) => k.startsWith('scene:'))), ...v.packs })); setLayoutMap(m => ({ ...m, global: v.layout }));
-    setNotice(`Loaded the version from ${new Date(v.at).toLocaleString('en-GB')}. Review, then Save.`);
+    setNotice(`Loaded the version from ${new Date(v.at).toLocaleString('en-GB', { timeZone: 'UTC' })}. Review, then Save.`);
   };
 
   // The values that apply at this scope, sparse: what the preview shows and what export/presets capture.
@@ -804,7 +804,7 @@ export function OverlayEditor({
                   <li key={v.id} className="flex items-center gap-2 rounded-lg border border-gray-800 px-2 py-1.5">
                     <span className="flex-1 min-w-0">
                       <span className="block text-gray-200 truncate">{v.note || 'Saved'}</span>
-                      <span className="block text-[11px] text-gray-500">{new Date(v.at).toLocaleString('en-GB')} · {dist === 0 ? 'same as now' : `${dist} difference${dist === 1 ? '' : 's'} from your edit`}</span>
+                      <span className="block text-[11px] text-gray-500">{new Date(v.at).toLocaleString('en-GB', { timeZone: 'UTC' })} · {dist === 0 ? 'same as now' : `${dist} difference${dist === 1 ? '' : 's'} from your edit`}</span>
                     </span>
                     <button type="button" disabled={dist === 0} onClick={() => loadVersion(v)} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1 disabled:opacity-40`}>Load</button>
                     <button

@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { UserInput } from '@/app/components/UserInput';
 import { useState, useTransition } from 'react';
 import { Spinner } from '../components/PendingButton';
+import { ConfirmButton } from '../components/ConfirmButton';
 import { cancelOpenTradesAction, extendOpenTradesAction, setSeasonTradingAction, type TradeActionResult } from '../trade-actions';
 
 const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500';
@@ -21,10 +22,9 @@ export function TradeControls({ seasons, openTotal }: { seasons: ControlSeason[]
   const run = (fn: () => Promise<TradeActionResult>) => startTransition(async () => { setResult(await fn()); router.refresh(); });
 
   const scopeCount = scope === 'all' ? openTotal : scope === 'viewer' ? null : seasons.find(s => s.id === scope)?.open ?? 0;
+  const label = scope === 'all' ? 'every open offer' : scope === 'viewer' ? `every open offer involving ${viewer || '…'}` : `every open offer in ${seasons.find(s => s.id === scope)?.name}`;
   const cancel = () => {
-    const label = scope === 'all' ? 'every open offer' : scope === 'viewer' ? `every open offer involving ${viewer || '…'}` : `every open offer in ${seasons.find(s => s.id === scope)?.name}`;
     if (scope === 'viewer' && !viewer.trim()) return;
-    if (!window.confirm(`Cancel ${label}${scopeCount !== null ? ` (${scopeCount})` : ''}? The escrowed cards go back to their owners and each offerer is notified.`)) return;
     run(() => cancelOpenTradesAction(scope === 'all' ? {} : scope === 'viewer' ? { username: viewer } : { seasonId: scope }));
   };
 
@@ -57,15 +57,24 @@ export function TradeControls({ seasons, openTotal }: { seasons: ControlSeason[]
 
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-white">Cancel &amp; refund</h3>
-        <div className="flex flex-wrap items-center gap-2">
+        <form className="flex flex-wrap items-center gap-2" onSubmit={e => { e.preventDefault(); cancel(); }}>
           <select value={scope} onChange={e => setScope(e.target.value)} aria-label="Scope" className={field}>
             <option value="all">Every open offer ({openTotal})</option>
             {seasons.map(s => <option key={s.id} value={s.id}>In {s.name} ({s.open})</option>)}
             <option value="viewer">Involving a viewer…</option>
           </select>
           {scope === 'viewer' && <UserInput value={viewer} onValueChange={setViewer} placeholder="username" aria-label="Viewer" className={`${field} w-44`} />}
-          <button type="button" disabled={pending || (scopeCount === 0) || (scope === 'viewer' && !viewer.trim())} onClick={cancel} className={`${btn} hover:border-red-400/60 hover:text-red-200`}>{pending && <Spinner />}Cancel offers</button>
-        </div>
+          <ConfirmButton
+            title="Cancel and refund these offers?"
+            confirmLabel="Cancel offers"
+            disabled={scopeCount === 0 || (scope === 'viewer' && !viewer.trim())}
+            message={<>Cancel <strong className="text-white">{label}{scopeCount !== null ? ` (${scopeCount})` : ''}</strong>? The escrowed cards go back to their owners and each offerer is notified.</>}
+            className={`${btn} hover:border-red-400/60 hover:text-red-200`}
+          >
+            Cancel offers
+          </ConfirmButton>
+          {pending && <Spinner />}
+        </form>
       </div>
       {result && <p role="status" className={`text-sm rounded-lg px-3 py-2 border ${result.ok ? 'text-green-300 bg-green-500/10 border-green-400/30' : 'text-amber-200 bg-amber-500/10 border-amber-400/30'}`}>{result.message}</p>}
     </div>

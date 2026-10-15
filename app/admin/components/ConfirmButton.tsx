@@ -19,6 +19,7 @@ export function ConfirmButton({
   formId,
   tone = 'danger',
   typeToConfirm,
+  disabled = false,
 }: {
   message: ReactNode;
   title?: string;
@@ -30,6 +31,8 @@ export function ConfirmButton({
   tone?: 'danger' | 'primary';
   /** For something that can't be undone and affects everyone: the confirm button stays off until this exact phrase is typed. */
   typeToConfirm?: string;
+  /** Keeps the opening button off (for a form whose own fields are not ready). */
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
@@ -49,7 +52,7 @@ export function ConfirmButton({
 
   return (
     <>
-      <button ref={buttonRef} type="button" form={formId} disabled={pending} aria-busy={pending} className={`${className} inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait`} onClick={() => { setTyped(''); setOpen(true); }}>
+      <button ref={buttonRef} type="button" form={formId} disabled={pending || disabled} aria-busy={pending} className={`${className} inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait`} onClick={() => { setTyped(''); setOpen(true); }}>
         {pending && <Spinner />}
         {children}
       </button>
