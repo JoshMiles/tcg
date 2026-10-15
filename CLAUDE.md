@@ -6,6 +6,18 @@
 
 A Twitch stream overlay + admin panel for a trading card game. Viewers pull cards live on stream via OBS browser source. An admin panel manages seasons, packs, and cards. A public collection viewer lets viewers see their cards. A Twitch Extension Panel lets viewers see their collection inside Twitch.
 
+**Where things stand (October 2026):** production at `https://cheesytcg.app` (Vercel, Next.js 15, KV + Blob). Shipped: the OBS overlay and Overlay Editor, the admin panel with a widget dashboard, sandboxes, the public site (profiles, binder, card dex, leaderboard, trading, share studio, install-as-app, cookie notice, Turnstile on trades / upgrades), staff roles with Twitch login (admin and mod panels), and the Twitch Extension panel plus its submission pack and hosted-version zip (`twitch-extension/`). Still outside the repo: the extension's review submission and Hosted Test on Twitch. The planned work lives in `ROADMAP.md` (owned by Opus, see below); read it before starting anything non-trivial.
+
+## Model Workflow Guidelines
+
+Work is split between two models. Follow your role.
+
+- **Claude Opus: planning only.** Use Opus for high-level planning, architectural design, trade-off analysis, and writing or updating the development roadmap (`ROADMAP.md`). Opus does not write feature code.
+- **Claude Sonnet: execution.** Use Sonnet for execution: writing functions, boilerplate generation, refactoring, running terminal commands, and executing tests. Sonnet does not make architectural decisions or edit the roadmap.
+- **Plan gate.** Before executing any code, Sonnet must verify that an active design plan, approved or written by Opus, covers the task (in `ROADMAP.md` or the current task's approved plan). If none exists, stop and ask for an Opus planning pass first. Do not invent the design.
+- **Escalate, don't improvise.** If execution uncovers a design question the plan does not answer (data model, API shape, a change to the architecture sections below), stop and hand it back to Opus instead of deciding it in code.
+- **Exempt: small fixes.** Typos, copy edits, one-line bug fixes and documentation updates do not need a plan.
+
 ## Tech stack
 - **Next.js 15** App Router, server components, server actions, dynamic routes
 - **Vercel KV** (Redis). All data persistence
