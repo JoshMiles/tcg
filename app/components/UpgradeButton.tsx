@@ -1,7 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../admin/components/PendingButton';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { VARIANT_LABELS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
@@ -28,10 +28,23 @@ export function UpgradeButton({
   const [state, setState] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
   const can = have >= cost;
+  // An upgrade is permanent (the copies spent are destroyed), so the first tap only arms the button ("Sure?") and the second does it,
+  // like the trade actions and the Twitch panel. The armed state relaxes after a few seconds.
+  const [armed, setArmed] = useState(false);
+  const armTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (armTimer.current) clearTimeout(armTimer.current); }, []);
   const [ceremony, setCeremony] = useState<{ to: Variant; cost: number; serial?: number; mult?: number } | null>(null);
 
   async function go(e: React.MouseEvent) {
     e.stopPropagation();
+    if (!armed) {
+      setArmed(true);
+      if (armTimer.current) clearTimeout(armTimer.current);
+      armTimer.current = setTimeout(() => setArmed(false), 4000);
+      return;
+    }
+    if (armTimer.current) clearTimeout(armTimer.current);
+    setArmed(false);
     setState('working');
     setError('');
     try {
@@ -61,7 +74,7 @@ export function UpgradeButton({
           can ? 'bg-yellow-400 text-gray-950 hover:bg-yellow-300' : 'border border-gray-700 text-gray-500 cursor-default'
         } disabled:opacity-70 ${className}`}
       >
-        {state === 'working' ? <Spinner /> : state === 'done' ? <><Icon name="check" className="mr-1" />Done</> : can ? `Upgrade (${cost})` : `${have}/${cost}`}
+        {state === 'working' ? <Spinner /> : state === 'done' ? <><Icon name="check" className="mr-1" />Done</> : can ? (armed ? 'Sure?' : `Upgrade (${cost})`) : `${have}/${cost}`}
       </button>
       {ceremony && card && (
         <UpgradeCeremony
@@ -77,6 +90,7 @@ export function UpgradeButton({
           onClose={() => { setCeremony(null); router.refresh(); }}
         />
       )}
+      {armed && state !== 'working' && <span role="status" className="text-[11px] text-gray-400 max-w-[14rem] text-right">Tap again to spend {cost} {VARIANT_LABELS[from]} for 1 {VARIANT_LABELS[to]}.</span>}
       {state === 'error' && <span className="text-[11px] text-red-400 max-w-[14rem] text-right">{error}</span>}
     </span>
   );

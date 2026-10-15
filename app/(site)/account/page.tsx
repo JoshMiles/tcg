@@ -130,8 +130,17 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
       {s.copies === 0 ? (
         <div className="rind rounded-2xl py-14 text-center space-y-2">
           <p className="text-4xl"><Icon name="cheese" className="w-10 h-10 text-yellow-400" /></p>
-          <p className="font-display text-2xl font-bold text-white">Your collection is empty</p>
-          <p className="text-sm text-gray-400">Watch the stream, cards are pulled live. They&rsquo;ll appear here as you collect them.</p>
+          {live ? (
+            <>
+              <p className="font-display text-2xl font-bold text-white">Your collection is empty</p>
+              <p className="text-sm text-gray-400">Watch the stream, cards are pulled live. They&rsquo;ll appear here as you collect them.</p>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-2xl font-bold text-white">You had no cards in {season.name}</p>
+              <p className="text-sm text-gray-400">{season.endedAt ? 'That season is over, so there is nothing to collect in it now.' : 'There is nothing to show for this season yet.'} Pick a season above to look at another one.</p>
+            </>
+          )}
         </div>
       ) : (
         <>
@@ -160,6 +169,13 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 })}
               </ul>
               <p className="text-xs text-gray-600">Suggestions use today&rsquo;s values, which move as more cards are pulled.</p>
+            </section>
+          )}
+
+          {samples.length < 2 && live && (
+            <section className="rind rounded-2xl p-5 space-y-2" aria-label="Score history">
+              <h2 className="font-display text-xl font-bold text-white">Your score over time</h2>
+              <p className="text-sm text-gray-400">A line appears here once your score or rank has changed between two visits to this page. Come back after your next pull or trade.</p>
             </section>
           )}
 

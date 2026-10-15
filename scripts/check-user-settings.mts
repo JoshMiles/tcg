@@ -25,6 +25,9 @@ eq(sc.nextPublicKey({ pending: true, at: 0 }, 'l', 100).go, '/leaderboard', 'g l
 eq(sc.nextPublicKey({ pending: true, at: 0 }, 'c', 100, 'Bob').go, '/u/bob', 'g c needs a login and goes to the profile');
 eq(sc.nextPublicKey({ pending: true, at: 0 }, 'c', 100).go, undefined, 'g c does nothing when logged out');
 eq(sc.nextPublicKey({ pending: true, at: 0 }, 'l', 5000).go, undefined, 'a stale g is ignored');
+// The Settings text for the shortcuts experiment names every key and every destination, so it cannot drift from the real list.
+const exp = c.EXPERIMENTS.find(e => e.id === 'shortcuts')!;
+for (const k of sc.PUBLIC_GO_KEYS) ok(exp.description.includes(k.label) && new RegExp(`\\b${k.key}\\b`).test(exp.description.split('to jump')[0]), `the shortcuts description mentions ${k.key} and "${k.label}"`);
 
 // ── pinned showcase copy ──
 ok(c.sanitizeUserSettings({ pinned: 1000042 }).pinned === 1000042, 'a unique copy number can be pinned');
