@@ -84,8 +84,11 @@ export function withEvent(c: Copy, e: CopyEvent): Copy {
 }
 
 export const ORIGIN_LABELS: Record<Origin, string> = {
-  pull: 'Pulled live on stream', grant: 'Given as a gift', upgrade: 'Made in an upgrade', estimated: 'Existed before serials (numbered later)', other: 'Added to the collection',
+  pull: 'Pulled live on stream', grant: 'Given as a gift', upgrade: 'Forged in an upgrade', estimated: 'Existed before serials (numbered later)', other: 'Added to the collection',
 };
+
+/** The one-word label for when a copy came into being, by how it did ("Pulled", not "Created": a copy is pulled, given or forged). */
+export const ORIGIN_VERB: Record<Origin, string> = { pull: 'Pulled', grant: 'Given', upgrade: 'Forged', estimated: 'First recorded', other: 'Added' };
 
 export const EVENT_LABELS: Record<CopyEventType, string> = {
   minted: 'Created', escrowed: 'Put up in a trade offer', returned: 'Came back from a trade offer', traded: 'Traded', upgraded: 'Spent in an upgrade', removed: 'Removed from the collection',

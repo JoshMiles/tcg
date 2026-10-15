@@ -42,7 +42,7 @@ export default async function HomePage() {
     : 0;
   const countdown = season ? seasonCountdown(season.endsAt) : null;
 
-  const top = overview?.rows.slice(0, 5) ?? [];
+  const top = overview?.rows.slice(0, 8) ?? [];
   const recent = season && overview ? await recentPullItems(season, overview.cards, 8) : [];
 
   // No season running (none, or the latest one is not active): show how the last finished one ended (its final standings were saved when it was wrapped up).

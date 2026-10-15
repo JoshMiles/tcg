@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { spanText, type ProvStep, type Provenance } from '@/lib/provenance';
+import type { Origin } from '@/lib/serials-core';
 
 // A copy's journey on its public page: how long it has existed, who has held it and for how long (a stacked bar), and every step as a
 // timeline. Server component. `who` and `plain` are given by the page so private collectors stay masked everywhere.
@@ -16,7 +17,18 @@ const STEP_TONE: Record<ProvStep['kind'], string> = {
 
 const when = (t: number) => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }) + ' UTC';
 
-export function ProvenanceTimeline({ prov, who, plain, seasonId, refs, madeFrom }: {
+/** The first step of a copy's journey, worded by how it came to exist: pulled by, given to, forged by (never "made for"). */
+function madeStep(origin: Origin | undefined, to: ReactNode | null): ReactNode {
+  switch (origin) {
+    case 'grant': return to ? <>Given to {to}</> : <>Given as a gift</>;
+    case 'upgrade': return to ? <>Forged by {to} in an upgrade</> : <>Forged in an upgrade</>;
+    case 'estimated': return to ? <>Already held by {to} when copies were first numbered</> : <>Existed before copies were numbered</>;
+    case 'other': return to ? <>Added to {to}&rsquo;s collection</> : <>Added to a collection</>;
+    default: return to ? <>Pulled by {to}</> : <>Pulled</>;
+  }
+}
+
+export function ProvenanceTimeline({ prov, who, plain, seasonId, refs, madeFrom, origin }: {
   prov: Provenance;
   /** A collector as a link (or masked text). */
   who: (name?: string) => ReactNode;
@@ -26,6 +38,8 @@ export function ProvenanceTimeline({ prov, who, plain, seasonId, refs, madeFrom 
   /** What the copies this one was forged from / into are called ("#1000042"). */
   refs: Record<string, { uid?: number; n: number }>;
   madeFrom?: string[];
+  /** How the copy came to exist, so its first step reads "Pulled by", "Given to" or "Forged by". */
+  origin?: Origin;
 }) {
   const colour = new Map<string, string>();
   prov.holders.forEach((h, i) => colour.set(h, PALETTE[i % PALETTE.length]));
@@ -82,7 +96,7 @@ export function ProvenanceTimeline({ prov, who, plain, seasonId, refs, madeFrom 
             {i < prov.steps.length - 1 && <span aria-hidden className="absolute left-[15px] top-8 bottom-[-16px] w-px bg-gray-800" />}
             <span className={`absolute left-0 top-0 grid place-items-center h-8 w-8 rounded-full ${STEP_TONE[s.kind]}`}><Icon name={STEP_ICON[s.kind]} /></span>
             <p className="text-sm text-gray-100">
-              {s.kind === 'made' && <>Made{s.to ? <> for {who(s.to)}</> : null}</>}
+              {s.kind === 'made' && madeStep(origin, s.to ? who(s.to) : null)}
               {s.kind === 'passed' && <>Traded from {who(s.from)} to {who(s.to)}</>}
               {s.kind === 'offered' && <>Put up in a trade offer by {who(s.from)}</>}
               {s.kind === 'returned' && <>Came back to {who(s.to)} from a trade offer</>}

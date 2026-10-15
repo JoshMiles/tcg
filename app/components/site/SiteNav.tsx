@@ -13,7 +13,7 @@ import { nextMenuIndex } from '@/lib/menu-nav';
 
 const LINKS = [
   { href: '/', label: 'Home', exact: true },
-  { href: '/collection', label: 'Collections' },
+  { href: '/collection', label: 'Collectors' },
   { href: '/leaderboard', label: 'Leaderboard' },
   { href: '/trade', label: 'Trade' },
   { href: '/stats', label: 'Season Stats' },

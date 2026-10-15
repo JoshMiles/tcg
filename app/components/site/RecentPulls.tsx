@@ -44,7 +44,7 @@ export function RecentPulls({ initial, empty }: { initial: PullItem[]; empty: Re
             )}
             <span className="flex-1 min-w-0 text-sm">
               <Link href={profileHref(e.username)} className="font-semibold text-white hover:text-yellow-300">{e.username}</Link>{' '}
-              <span className="text-gray-400">pulled</span>{' '}
+              <span className="text-gray-400">{e.kind === 'grant' ? 'was given' : 'pulled'}</span>{' '}
               <Link href={`/cards?card=${e.cardNumber}`} className="font-semibold hover:underline" style={{ color: e.hex }}>{e.cardName || `#${e.cardNumber}`}</Link>
               {e.variant && e.variant !== 'regular' && (
                 <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wider text-fuchsia-300 border border-fuchsia-500/40 rounded-full px-1.5 py-0.5">{VARIANT_LABELS[e.variant]}</span>

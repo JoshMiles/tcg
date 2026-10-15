@@ -14,7 +14,7 @@ import { getUserSettings } from '@/lib/user-settings-store';
 import { ShareStudio } from '@/app/components/ShareStudio';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
-import { ORIGIN_LABELS, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
+import { ORIGIN_LABELS, ORIGIN_VERB, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { copyPoints, getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { serialMultiplier } from '@/lib/scoring-core';
@@ -134,14 +134,14 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
             <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">{label}</h1>
             {copy.uid && (
               <p className="mt-2 flex flex-wrap items-baseline gap-2">
-                <span className="font-display text-5xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.uid}</span>
+                <span className="font-display text-xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.uid}</span>
                 <span className="text-xs uppercase tracking-wider text-gray-500 font-bold">Unique copy number</span>
               </p>
             )}
             <p className="mt-2 flex flex-wrap items-center gap-2">
               {copy.uid
                 ? <span className="text-sm text-gray-300">Edition <strong className="text-white tabular-nums">#{copy.n}</strong> of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span>
-                : <><span className="font-display text-5xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.n}</span>
+                : <><span className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.n}</span>
                   <span className="text-sm text-gray-400">of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span></>}
               {copy.est && <span title="This copy existed before serials. Numbers within a version were assigned afterwards, so the order is an estimate." className="text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}
             </p>
@@ -157,7 +157,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
 
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3"><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{gone ? 'Status' : 'Held by'}</dt><dd className="mt-0.5 text-gray-200">{gone ? 'No longer exists' : who(copy.owner)}</dd></div>
-            <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3"><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Created</dt><dd className="mt-0.5 text-gray-200">{when(copy.at)}</dd><dd className="text-xs text-gray-500">{ORIGIN_LABELS[copy.origin]}</dd></div>
+            <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3"><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{ORIGIN_VERB[copy.origin]}</dt><dd className="mt-0.5 text-gray-200">{when(copy.at)}</dd><dd className="text-xs text-gray-500">{ORIGIN_LABELS[copy.origin]}</dd></div>
           </dl>
 
           <div className="flex flex-wrap gap-2">
@@ -189,6 +189,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
           seasonId={season.id}
           refs={refs}
           madeFrom={copy.madeFrom}
+          origin={copy.origin}
         />
         {copy.ev.length >= 40 && <p className="mt-4 text-xs text-gray-600">Only the first event and the most recent ones are kept, so the middle of a very busy copy&rsquo;s journey is not shown.</p>}
       </section>

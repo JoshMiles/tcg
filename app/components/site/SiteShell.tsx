@@ -64,7 +64,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
             </p>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400" aria-label="Footer">
-            <Link href="/collection" className="hover:text-white transition-colors">Collections</Link>
+            <Link href="/collection" className="hover:text-white transition-colors">Collectors</Link>
             <Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link>
             <Link href="/stats" className="hover:text-white transition-colors">Season Stats</Link>
             <Link href="/cards" className="hover:text-white transition-colors">Card Dex</Link>

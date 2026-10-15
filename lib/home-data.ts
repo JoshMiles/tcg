@@ -53,6 +53,8 @@ export interface PullItem {
   at: number;
   thumb?: string;
   hex?: string;
+  /** How the card arrived: pulled in a pack (default) or granted (an admin gift or the grant webhook). */
+  kind?: 'pull' | 'grant';
   /** A pull worth a second look: Shiny, Full Art or a 5-star card. */
   notable: boolean;
   /** The serial number the copy got, and its points multiplier when above 1. */
