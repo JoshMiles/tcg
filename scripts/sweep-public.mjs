@@ -41,6 +41,7 @@ async function sweep(label, viewport, login) {
   await ctx.close();
 }
 await sweep('mobile', { width: 390, height: 844 }, true);
+await sweep('tablet', { width: 768, height: 1024 }, true);
 await sweep('desktop', { width: 1280, height: 900 }, true);
 await sweep('out-mobile', { width: 390, height: 844 }, false);
 await b.close();

@@ -45,11 +45,11 @@ export default async function HomePage() {
   const top = overview?.rows.slice(0, 5) ?? [];
   const recent = season && overview ? await recentPullItems(season, overview.cards, 8) : [];
 
-  // No season running: show how the last finished one ended (its final standings were saved when it was wrapped up).
+  // No season running (none, or the latest one is not active): show how the last finished one ended (its final standings were saved when it was wrapped up).
   // (The site keeps showing the latest season after it ends, so an ended season counts too.)
   const lastEnded = season?.endedAt
     ? season
-    : !season ? (await listSeasons().catch(() => [])).filter(s => s.status !== 'draft' && s.endedAt).sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0))[0] ?? null : null;
+    : !season?.active ? (await listSeasons().catch(() => [])).filter(s => s.status !== 'draft' && s.endedAt).sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0))[0] ?? null : null;
   const wrap = lastEnded ? await getSnapshot(lastEnded.id) : null;
   const podium = wrap?.standings.slice(0, 3) ?? [];
 

@@ -106,13 +106,13 @@ export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | n
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1 ml-4" aria-label="Main">
+        <nav className="hidden xl:flex items-center gap-1 ml-4" aria-label="Main">
           {LINKS.map(l => (
             <Link
               key={l.href}
               href={l.href}
               aria-current={isActive(l.href, l.exact) ? 'page' : undefined}
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
                 isActive(l.href, l.exact) ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -126,7 +126,7 @@ export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | n
           <LiveBadge />
           <InstallButton />
           {staff && (
-            <Link href={staff.href} prefetch={false} className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 whitespace-nowrap shrink-0 rounded-lg border border-purple-400/40 bg-purple-500/10 text-xs font-bold text-purple-200 hover:bg-purple-500/20 transition-colors">
+            <Link href={staff.href} prefetch={false} className="hidden 2xl:inline-flex items-center gap-1.5 h-9 px-3 whitespace-nowrap shrink-0 rounded-lg border border-purple-400/40 bg-purple-500/10 text-xs font-bold text-purple-200 hover:bg-purple-500/20 transition-colors">
               <Icon name="shield" />{staff.label}
             </Link>
           )}
@@ -139,10 +139,11 @@ export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | n
                 onClick={() => { setMenuOpen(o => !o); markSeen(); }}
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
+                aria-label={`Account menu, ${user.displayName}`}
                 className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10 transition-colors"
               >
                 <Avatar src={user.avatarUrl} name={user.displayName} className="w-7 h-7 text-xs" />
-                <span className="text-sm font-semibold text-yellow-100 max-w-[9rem] truncate">{user.displayName}</span>
+                <span className="hidden 2xl:inline text-sm font-semibold text-yellow-100 max-w-[9rem] truncate">{user.displayName}</span>
                 {rank && <RankChip rank={rank} delta={delta} />}
               </button>
               {menuOpen && (
@@ -166,7 +167,7 @@ export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | n
           ) : loginEnabled ? (
             <a
               href={loginHref}
-              className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-bold text-white bg-[#9146ff] hover:bg-[#a36bff] transition-colors"
+              className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap shrink-0 text-white bg-[#9146ff] hover:bg-[#a36bff] transition-colors"
             >
               <TwitchGlyph /> Log in with Twitch
             </a>
@@ -178,16 +179,16 @@ export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | n
             aria-expanded={open}
             aria-controls="site-menu"
             aria-label="Menu"
-            className="md:hidden w-9 h-9 rounded-lg border border-gray-700 text-gray-300 hover:text-white flex items-center justify-center text-lg"
+            className="xl:hidden w-9 h-9 rounded-lg border border-gray-700 text-gray-300 hover:text-white flex items-center justify-center text-lg"
           >
             {open ? <Icon name="x" className="w-5 h-5" /> : <Icon name="menu" className="w-5 h-5" />}
           </button>
         </div>
       </div>
 
-      {open && <div className="md:hidden fixed inset-0 top-14 z-[-1] bg-gray-950/60" onClick={() => setOpen(false)} aria-hidden />}
+      {open && <div className="xl:hidden fixed inset-0 top-14 z-[-1] bg-gray-950/60" onClick={() => setOpen(false)} aria-hidden />}
       {open && (
-        <nav id="site-menu" className="md:hidden border-t border-gray-800 bg-gray-950 px-4 py-3 grid gap-1" aria-label="Main">
+        <nav id="site-menu" className="xl:hidden border-t border-gray-800 bg-gray-950 px-4 py-3 grid gap-1" aria-label="Main">
           <button type="button" onClick={() => { setOpen(false); window.dispatchEvent(new Event(OPEN_SEARCH_EVENT)); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-gray-700 text-sm text-gray-400 text-left">
             <Icon name="search" /> Search collectors, cards and pages…
           </button>
