@@ -37,6 +37,7 @@ import { DEFAULT_SCORING, sanitizeScoring, saveScoringSettings, resetScoringSett
 // ── Seasons ───────────────────────────────────────────────
 
 export async function createSeason(formData: FormData) {
+  await requireAdmin();
   const id = crypto.randomUUID();
   const willBeActive = formData.get('active') === 'true';
 
@@ -63,6 +64,7 @@ const num = (v: FormDataEntryValue | null): number | undefined => {
 };
 
 export async function updateSeason(id: string, formData: FormData) {
+  await requireAdmin();
   const existing = await getSeason(id);
   if (!existing) return;
 
@@ -97,6 +99,7 @@ export async function activateSeason(id: string) {
 }
 
 export async function deleteSeasonAction(id: string) {
+  await requireAdmin();
   await deleteSeason(id);
   revalidatePath('/admin/seasons');
   redirect('/admin/seasons');
@@ -105,6 +108,7 @@ export async function deleteSeasonAction(id: string) {
 // ── Season ↔ Pack assignment ──────────────────────────────
 
 export async function addPackToSeason(seasonId: string, formData: FormData) {
+  await requireAdmin();
   const packId = formData.get('packId') as string;
   if (!packId) return;
   const season = await getSeason(seasonId);
@@ -114,6 +118,7 @@ export async function addPackToSeason(seasonId: string, formData: FormData) {
 }
 
 export async function removePackFromSeason(seasonId: string, packId: string) {
+  await requireAdmin();
   const season = await getSeason(seasonId);
   if (!season) return;
   await saveSeason({ ...season, packIds: season.packIds.filter(id => id !== packId) });
@@ -167,6 +172,7 @@ function upgradeSettings(formData: FormData) {
 // ── Packs (global) ────────────────────────────────────────
 
 export async function createPack(formData: FormData) {
+  await requireAdmin();
   const id = crypto.randomUUID();
   await savePack({
     id,
@@ -188,6 +194,7 @@ export async function createPack(formData: FormData) {
 }
 
 export async function updatePack(packId: string, formData: FormData) {
+  await requireAdmin();
   const existing = await getPack(packId);
   if (!existing) return;
   await savePack({
@@ -210,6 +217,7 @@ export async function updatePack(packId: string, formData: FormData) {
 
 // One-click Live / Inactive switch (the pack list and the pack page). Drafts can't be switched: they're never drawn.
 export async function setPackActive(packId: string, active: boolean) {
+  await requireAdmin();
   const existing = await getPack(packId);
   if (!existing || existing.status === 'draft' || existing.archived) return;
   await savePack({ ...existing, active });
@@ -218,6 +226,7 @@ export async function setPackActive(packId: string, active: boolean) {
 }
 
 export async function deletePackAction(packId: string) {
+  await requireAdmin();
   await deletePack(packId);
   revalidatePath('/admin/packs');
   redirect('/admin/packs');
@@ -226,6 +235,7 @@ export async function deletePackAction(packId: string) {
 // ── Cards ─────────────────────────────────────────────────
 
 export async function addCard(packId: string, formData: FormData) {
+  await requireAdmin();
   const cards = await getPackCards(packId);
   const maxNum = cards.reduce((m, c) => Math.max(m, c.number), 0);
   const soundUrl = (formData.get('soundUrl') as string) || undefined;
@@ -249,6 +259,7 @@ export async function addCard(packId: string, formData: FormData) {
 }
 
 export async function updateCard(packId: string, cardId: string, formData: FormData) {
+  await requireAdmin();
   const cards = await getPackCards(packId);
   const soundUrl = (formData.get('soundUrl') as string) || undefined;
   await savePackCards(
@@ -281,6 +292,7 @@ const withVariant = (list: OptionalVariant[] | undefined, v: OptionalVariant) =>
 
 /** Switches one variant on or off for a whole pack. Off = never rolled, and upgrades skip it. */
 export async function setPackVariant(packId: string, variant: OptionalVariant, enabled: boolean) {
+  await requireAdmin();
   if (!OPTIONAL.includes(variant)) return;
   const pack = await getPack(packId);
   if (!pack) return;
@@ -290,6 +302,7 @@ export async function setPackVariant(packId: string, variant: OptionalVariant, e
 }
 
 export async function setCardUpgrades(packId: string, cardId: string, enabled: boolean) {
+  await requireAdmin();
   const cards = await getPackCards(packId);
   await savePackCards(packId, cards.map(c => (c.id === cardId ? { ...c, upgradesEnabled: enabled } : c)));
   revalidatePath(`/admin/packs/${packId}`);
@@ -297,6 +310,7 @@ export async function setCardUpgrades(packId: string, cardId: string, enabled: b
 
 /** Switches one variant on or off for a single card (on top of the pack's own switches). */
 export async function setCardVariant(packId: string, cardId: string, variant: OptionalVariant, enabled: boolean) {
+  await requireAdmin();
   if (!OPTIONAL.includes(variant)) return;
   const cards = await getPackCards(packId);
   await savePackCards(packId, cards.map(c => {
@@ -311,6 +325,7 @@ export type BulkCardOp = 'upgrades-on' | 'upgrades-off' | 'fullart-off-without-a
 
 /** Bulk changes across every card in a pack. Returns how many cards actually changed. */
 export async function bulkCards(packId: string, op: BulkCardOp): Promise<{ changed: number }> {
+  await requireAdmin();
   const cards = await getPackCards(packId);
   let changed = 0;
   const next = cards.map(c => {
@@ -332,6 +347,7 @@ export async function bulkCards(packId: string, op: BulkCardOp): Promise<{ chang
 }
 
 export async function deleteCard(packId: string, cardId: string) {
+  await requireAdmin();
   const cards = await getPackCards(packId);
   await savePackCards(packId, cards.filter(c => c.id !== cardId));
   revalidatePath(`/admin/packs/${packId}`);
@@ -435,6 +451,7 @@ export async function resetUser(username: string) {
 
 // Reset all users across ALL seasons
 export async function resetAllUsers() {
+  await requireAdmin();
   const seasons = await listSeasons();
   await Promise.all(seasons.map(s => deleteCollection(s.collectionName)));
   await recordActivity({ type: 'reset', scope: 'everyone', username: '' });
@@ -444,6 +461,7 @@ export async function resetAllUsers() {
 // ── Seed ──────────────────────────────────────────────────
 
 export async function seedSeason1() {
+  await requireAdmin();
   await seedSeason1Data();
   revalidatePath('/admin');
   revalidatePath('/admin/packs');
@@ -632,6 +650,7 @@ async function showCollection(formData: FormData): Promise<ActionResult> {
 
 // One form, several submit buttons: the clicked button's name="intent" value picks the action.
 export async function quickAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
   switch (formData.get('intent')) {
     case 'gift': return giftPack(formData);
     case 'show': return showCollection(formData);
@@ -661,6 +680,7 @@ async function grantCard(formData: FormData): Promise<ActionResult> {
 }
 
 export async function clearQueueAction(): Promise<ActionResult> {
+  await requireAdmin();
   const n = await clearQueue();
   revalidatePath('/admin');
   return { ok: true, message: n > 0 ? `Cleared ${n} waiting event${n !== 1 ? 's' : ''}.` : 'The queue was already empty.' };
@@ -673,6 +693,7 @@ export async function clearQueueAction(): Promise<ActionResult> {
 const NOT_A_WEBHOOK = 'That doesn’t look like a Discord webhook URL. It should start with https://discord.com/api/webhooks/…';
 
 export async function discordAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
   const on = (name: string) => formData.get(name) === 'on';
   const url = String(formData.get('url') ?? '').trim();
   const intent = String(formData.get('intent') ?? 'save');
