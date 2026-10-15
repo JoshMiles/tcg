@@ -69,7 +69,7 @@ export default async function HomePage() {
     <div>
       {/* ── Hero ── */}
       <section className="cheese-hero cheese-holes border-b border-yellow-500/10">
-        <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 grid md:grid-cols-[1.6fr_1fr] gap-8 items-center relative">
+        <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8 items-center relative">
           <div className="space-y-4 sm:space-y-5">
             <LiveBanner />
             {season && (
@@ -185,7 +185,7 @@ export default async function HomePage() {
               <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.values.totalCards}</strong> cards to find</li>
               {countdown && !season.endedAt && <li className="rounded-full border border-yellow-500/30 bg-yellow-500/5 px-3 py-1 text-yellow-300">{countdown}</li>}
             </ul>
-            <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8">
 
               {/* ── Top 5 ── */}
               <section className="space-y-4">
