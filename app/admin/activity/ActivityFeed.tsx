@@ -47,7 +47,7 @@ function timeAgo(at: number, now: number): string {
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
-  return new Date(at).toLocaleDateString();
+  return new Date(at).toLocaleDateString('en-GB'); // a fixed locale: the server and the browser must print the same text
 }
 
 /** A short two-note chime made with WebAudio, so there is no sound file to ship. */
@@ -82,6 +82,7 @@ export function ActivityFeed({
   initialAvatars,
   cards,
   mod = false,
+  serverNow,
 }: {
   initialEvents: ActivityEvent[];
   initialSeq: number;
@@ -89,6 +90,8 @@ export function ActivityFeed({
   cards: CardInfo[];
   /** The mod panel's read-only version: no gifting, granting or removing, and viewer links go to the mod panel. */
   mod?: boolean;
+  /** The server's clock when the page was rendered. The first client render uses it too, so the relative times ("5m ago", the last-hour counts) match the server's HTML and hydration does not mismatch when a minute turns in between. */
+  serverNow?: number;
 }) {
   const [events, setEvents] = useState(initialEvents);
   const [avatars, setAvatars] = useState(initialAvatars);
@@ -102,7 +105,7 @@ export function ActivityFeed({
   const [showMore, setShowMore] = useState(false);
   const [open, setOpen] = useState<ActivityEvent | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => serverNow ?? Date.now());
   const seqRef = useRef(initialSeq);
   const seenRef = useRef(new Set(initialEvents.map(e => e.seq)));
   const prefsRef = useRef(prefs);

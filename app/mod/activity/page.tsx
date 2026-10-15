@@ -20,7 +20,7 @@ export default async function ModActivityPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Live Activity" subtitle="Pulls, upgrades and trades as they happen. Click a viewer to open their page." />
-      <ActivityFeed initialEvents={events} initialSeq={seq} initialAvatars={avatars} cards={cards} mod />
+      <ActivityFeed initialEvents={events} initialSeq={seq} initialAvatars={avatars} cards={cards} mod serverNow={Date.now()} />
     </div>
   );
 }

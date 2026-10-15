@@ -51,7 +51,7 @@ export function PageHeader({ title, subtitle, icon, back, actions }: { title: Re
       {back && <Link href={back.href} className="inline-block text-sm text-gray-500 hover:text-white transition-colors">← {back.label}</Link>}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-3xl font-bold text-white">{icon && <Icon name={icon} className="mr-2 text-yellow-400/90" />}{title}</h1>
+          <h1 className="text-3xl font-bold text-white break-words">{icon && <Icon name={icon} className="mr-2 text-yellow-400/90" />}{title}</h1>
           {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

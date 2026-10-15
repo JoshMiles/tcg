@@ -6,6 +6,7 @@ import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../components/PendingButton';
 import { FLAG_LABEL, tradesToCsv, type FlagKind, type TradeRow } from '@/lib/trade-insights';
 import { blockViewerTradingAction, cancelOneTradeAction, extendOpenTradesAction } from '../trade-actions';
+import { ArmedButton } from '../components/ArmedButton';
 
 const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white focus:outline-none focus:border-yellow-500';
 const STATUSES = ['open', 'accepted', 'declined', 'cancelled', 'expired', 'countered', 'failed'] as const;
@@ -151,7 +152,7 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
             <div className="flex flex-wrap gap-2 border-t border-gray-800 pt-4">
               {selected.open && (
                 <>
-                  <button type="button" disabled={pending} onClick={() => run(async () => { const r = await cancelOneTradeAction(selected.id); setOpenId(null); return r; })} className="px-3 py-1.5 rounded-lg border border-red-500/40 text-red-300 text-xs font-semibold hover:bg-red-500/10 disabled:opacity-50">{pending && <Spinner />}Cancel &amp; refund</button>
+                  <ArmedButton disabled={pending} onConfirm={() => run(async () => { const r = await cancelOneTradeAction(selected.id); setOpenId(null); return r; })} className="px-3 py-1.5 rounded-lg border border-red-500/40 text-red-300 text-xs font-semibold hover:bg-red-500/10 disabled:opacity-50" armedClassName="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-500 disabled:opacity-50">{pending && <Spinner />}Cancel &amp; refund</ArmedButton>
                   {!mod && <button type="button" disabled={pending} onClick={() => run(() => extendOpenTradesAction(24, [selected.id]))} className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">Extend 24h</button>}
                 </>
               )}

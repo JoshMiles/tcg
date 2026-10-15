@@ -66,7 +66,7 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
     <div className="space-y-6">
       <PageHeader
         title={displayName}
-        subtitle={`@${username}${profile?.createdAt ? ` · first seen ${new Date(profile.createdAt).toLocaleDateString()}` : ''}`}
+        subtitle={`@${username}${profile?.createdAt ? ` · first seen ${new Date(profile.createdAt).toLocaleDateString('en-GB')}` : ''}`}
         back={{ href: '/mod/users', label: 'All viewers' }}
         actions={<Link href={`/u/${encodeURIComponent(username)}`} target="_blank" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white"><Icon name="external" />Public profile</Link>}
       />
@@ -88,7 +88,7 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
         <Tile label="Trades done" value={lines.filter(l => l.status === 'accepted').length} />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Restrictions" icon="shield" hint="Stop them trading and/or hide them from the public rankings. The reason is only seen by staff.">
           <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
         </Panel>
@@ -101,14 +101,14 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
         <TradesPanel username={username} lines={lines} />
       </Panel>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Recent activity" icon="activity">
           {timeline.length === 0 ? <p className="text-sm text-gray-600">Nothing in the recent log.</p> : (
             <ul className="divide-y divide-gray-800/60 rounded-lg border border-gray-800 overflow-hidden">
               {timeline.map(e => (
                 <li key={e.seq} className="px-4 py-2 flex items-center gap-3 text-sm">
                   <span className="text-gray-300 truncate">{plainText(e, cardName)}</span>
-                  <span className="ml-auto text-xs text-gray-600 shrink-0" title={new Date(e.at).toLocaleString()}>{ago(e.at, now)}</span>
+                  <span className="ml-auto text-xs text-gray-600 shrink-0" title={new Date(e.at).toLocaleString('en-GB')}>{ago(e.at, now)}</span>
                 </li>
               ))}
             </ul>
@@ -122,7 +122,7 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
                   <span className="text-gray-200 font-medium">{a.action}</span>
                   {a.by && <span className="text-xs text-gray-400">by {a.by}</span>}
                   {a.detail && <span className="text-xs text-gray-500">{a.detail}</span>}
-                  <span className="ml-auto text-xs text-gray-600" title={new Date(a.at).toLocaleString()}>{ago(a.at, now)}</span>
+                  <span className="ml-auto text-xs text-gray-600" title={new Date(a.at).toLocaleString('en-GB')}>{ago(a.at, now)}</span>
                 </li>
               ))}
             </ul>
