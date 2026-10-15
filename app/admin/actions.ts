@@ -9,6 +9,7 @@ import { activateWithWrapUp } from '@/lib/season-wrap';
 import { validateSeason } from '@/lib/draft-validation';
 import { cardProblems, cleanPackInput } from '@/lib/pack-clean';
 import { heldCardNumbers } from '@/lib/card-held';
+import { checkWebhookUrl, cleanWebhookFields } from '@/lib/webhook-clean';
 import {
   saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
   savePack, getPack, deletePack, listAllPackIds,
@@ -468,11 +469,16 @@ export async function saveOutgoingWebhook(
   formData: FormData,
 ) {
   await requireAdmin();
+  // The server POSTs to this address, so it has to be a public http(s) one; the fields must be well-formed (a bad paste must not crash the page).
+  const target = checkWebhookUrl(String(formData.get('url') ?? ''));
+  if (!target.ok) redirect(`/admin/settings?tab=webhooks&error=${encodeURIComponent(target.error)}`);
+  let fields: unknown = [];
+  try { fields = JSON.parse(String(formData.get('fieldsJson') ?? '[]')); } catch { redirect(`/admin/settings?tab=webhooks&error=${encodeURIComponent('The fields are not valid JSON.')}`); }
   const settings = await getWebhookSettings();
   settings.outgoing[event] = {
-    url:     (formData.get('url') as string) || '',
-    enabled: formData.get('enabled') === 'true',
-    fields:  JSON.parse((formData.get('fieldsJson') as string) || '[]'),
+    url:     target.url,
+    enabled: formData.get('enabled') === 'true' && target.url !== '',
+    fields:  cleanWebhookFields(fields),
   };
   await saveWebhookSettings(settings);
   revalidatePath('/admin/settings');

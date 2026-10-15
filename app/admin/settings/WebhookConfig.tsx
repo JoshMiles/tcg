@@ -1,7 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { WebhookSettings, OutgoingWebhookConfig, WebhookField } from '@/lib/webhooks';
 import { saveOutgoingWebhook, regenerateWebhookSecret } from '../actions';
 import { ConfirmButton } from '../components/ConfirmButton';
@@ -203,6 +203,7 @@ function OutgoingEventForm({ eventKey, config, variables }: {
   config: OutgoingWebhookConfig;
   variables: string[];
 }) {
+  const urlId = useId();
   const [url, setUrl] = useState(config.url);
   const [enabled, setEnabled] = useState(config.enabled);
   const [fields, setFields] = useState<WebhookField[]>(config.fields);
@@ -229,8 +230,9 @@ function OutgoingEventForm({ eventKey, config, variables }: {
 
       {/* URL */}
       <div>
-        <label className="block text-sm text-gray-400 mb-1.5">Webhook URL</label>
+        <label htmlFor={urlId} className="block text-sm text-gray-400 mb-1.5">Webhook URL</label>
         <input
+          id={urlId}
           type="text"
           name="url"
           value={url}
@@ -243,6 +245,8 @@ function OutgoingEventForm({ eventKey, config, variables }: {
       {/* Enabled toggle */}
       <button
         type="button"
+        role="switch"
+        aria-checked={enabled}
         onClick={() => setEnabled(e => !e)}
         className="flex items-center gap-3 group"
       >
