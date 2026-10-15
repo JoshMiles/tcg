@@ -67,11 +67,12 @@ export function Narrow({ size = 'lg', children, className = '' }: { size?: 'md' 
 }
 
 /** What a list or tab shows when there is nothing in it yet. */
-export function EmptyState({ icon = 'inbox', title, children, action }: { icon?: IconName; title: string; children?: ReactNode; action?: ReactNode }) {
+export function EmptyState({ icon = 'inbox', title, children, action, asH1 = false }: { icon?: IconName; title: string; children?: ReactNode; action?: ReactNode; /** For a screen that is the whole page (not found): the title is the page's one heading. */ asH1?: boolean }) {
+  const Title = asH1 ? 'h1' : 'p';
   return (
     <div className="tcg-panel rounded-2xl px-6 py-14 text-center">
       <span className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] text-gray-500 flex items-center justify-center"><Icon name={icon} className="w-6 h-6" /></span>
-      <p className="font-semibold text-gray-200">{title}</p>
+      <Title className="font-semibold text-gray-200">{title}</Title>
       {children && <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto leading-relaxed">{children}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
