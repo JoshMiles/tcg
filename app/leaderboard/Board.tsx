@@ -93,7 +93,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer }: { rows: B
                         {r.complete && <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5" title="Owns every card in the season"><Icon name="cheese" className="sm:mr-1" /><span className="hidden sm:inline">Complete</span><span className="sr-only sm:hidden">Complete</span></span>}
                       </span>
                       <span className="block text-xs text-gray-500 sm:truncate">
-                        {r.uniqueCards}/{totalCards} cards · {r.copies} cop{r.copies === 1 ? 'y' : 'ies'}
+                        {r.uniqueCards}/{totalCards} cards · {r.copies.toLocaleString()} cop{r.copies === 1 ? 'y' : 'ies'}
                         {(['reverse', 'full', 'shiny'] as const).filter(v => r.variants[v] > 0).map(v => <span key={v} className="ml-2 text-fuchsia-300" title={LABEL[v]}>{r.variants[v]}× {SHORT[v]}</span>)}
                       </span>
                     </span>
