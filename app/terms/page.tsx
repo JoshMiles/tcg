@@ -24,7 +24,7 @@ export default function TermsPage() {
       <Section title="1. What the Service is">
         <p>
           {APP_NAME} is a digital collectible card game that runs only on the {CHANNEL_NAME} Twitch channel (and on this website, which shows and manages your collection). Cards are earned live on stream (for example when a pack is opened for you), can be viewed in a
-          collection, and, in seasons that enable it. Can be upgraded into rarer variants. A leaderboard ranks collections for each season.
+          collection, and, in seasons that enable it, can be upgraded into rarer variants. A leaderboard ranks collections for each season.
         </p>
         <p>
           It is a fan-made hobby project. It is not made, sponsored, or endorsed by Twitch Interactive, Inc. (&ldquo;Twitch&rdquo;), and Twitch has no responsibility for it. Your use of the
@@ -59,7 +59,7 @@ export default function TermsPage() {
           </li>
           <li>
             You receive a licence to display and use the items you earn within the Service. You don&rsquo;t own them, and they are not transferable except by features we provide
-            (such as trading with other viewers on the website, where offered cards are held in escrow until the offer ends; an offer can be declined, cancelled or expire, and trading can be paused or changed at any time).
+            (such as trading with other viewers on the website or in the Twitch Extension, where offered cards are held in escrow until the offer ends; an offer can be declined, cancelled or expire, and trading can be paused or changed at any time).
           </li>
           <li>
             Every copy of a card has a <strong className="text-white">serial number</strong> and a history that is shown publicly. Serial numbers are a bit of fun: a low or special number gives no extra

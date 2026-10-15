@@ -66,11 +66,10 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong className="text-white">Your settings and profile choices</strong> if you set any: a short bio, your Looking for list, display and notification
-            preferences, how you arranged your profile, and a few samples of your score and rank (taken when you open My Stats) for the history chart.
+            preferences, how you arranged your profile and binder, a card you pinned, the achievements you have earned, your newest bell notices (offers and how they ended), and a few samples of your score and rank (taken when you open My Stats) for the history chart.
           </li>
           <li>
-            <strong className="text-white">A profile record</strong> (username, display name, Twitch user ID, creation time, and an optional note the channel
-            owner may add).
+            <strong className="text-white">A profile record</strong> (username, display name, Twitch user ID, creation time, and an optional note, labels or restrictions, such as being left off the public boards or not trading, that the channel owner or a moderator may add).
           </li>
           <li>
             When a viewer&rsquo;s name is sent to us by the streamer&rsquo;s own tools (for example a channel-point redemption that opens a pack), we
@@ -97,6 +96,10 @@ export default function PrivacyPage() {
           <li>
             <strong className="text-white">One item of local storage</strong> in the Extension (&ldquo;tcg_panel_loggedout&rdquo;) that remembers you chose to log out, so it
             doesn&rsquo;t log you straight back in. It stays on your device.
+          </li>
+          <li>
+            <strong className="text-white">A few preferences and bits of state in your browser&rsquo;s local storage</strong> on the website (for example the collection layout you chose, the
+            leaderboard ranks used to show who moved, and which trade animations you have already seen). They hold no personal details and stay on your device.
           </li>
         </List>
         <p>
@@ -172,7 +175,8 @@ export default function PrivacyPage() {
       <Section title="5. How long we keep it">
         <List>
           <li>Collections, profiles and leaderboard data are kept until you ask us to delete them or the streamer removes them (for example when resetting a season).</li>
-          <li>The activity log keeps only the latest 500 events. Cached profile pictures refresh weekly.</li>
+          <li>The activity log keeps only the latest 500 events. Cached profile pictures refresh weekly. Bell notices keep only your newest 30, and score samples your newest 120 per season.</li>
+          <li>Before a moderator or the channel owner resets, merges or deletes a viewer&rsquo;s cards, a restore point of that viewer&rsquo;s collection is kept for 14 days so a mistake can be undone.</li>
           <li>An encrypted backup of the game data is made every night so it can be recovered after a mistake or an outage. Backups are kept for up to 14 days, so deleted data can remain in them for that long.</li>
           <li>Hosting logs and analytics are kept for the period set by our hosting provider.</li>
         </List>
@@ -180,7 +184,7 @@ export default function PrivacyPage() {
 
       <Section title="6. Security">
         <p>
-          Requests from the Extension are authenticated with Twitch-signed tokens, administration is behind a password, and data is stored with reputable
+          Requests from the Extension are authenticated with Twitch-signed tokens, administration is limited to staff who sign in with their Twitch account (with an emergency password as a fallback), and data is stored with reputable
           providers over encrypted connections. No system is perfectly secure, so we can&rsquo;t guarantee absolute security. The data we hold is limited by design: it is
           mostly game data plus Twitch usernames and IDs.
         </p>

@@ -12,6 +12,8 @@ import { cardThumbUrl } from '@/lib/card-art';
 import { CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { getTradeSettings } from '@/lib/trades';
+import { SHOWOFF_COOLDOWN_S } from '@/lib/showoff-prepare';
+import { OpenOnHash } from '@/app/components/site/OpenOnHash';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
@@ -64,6 +66,7 @@ export default async function FaqPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-10">
+      <OpenOnHash />
       <header className="space-y-3">
         <h1 className="font-display text-4xl sm:text-5xl font-bold text-white">Frequently asked questions</h1>
         <p className="text-gray-400 leading-relaxed max-w-2xl">
@@ -112,7 +115,7 @@ export default async function FaqPage() {
         </Q>
         <Q q="Where can I see my cards?">
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
-            <li>On the website: every collector has a public profile with their collection. Use <Link href="/collection" className="text-yellow-400 hover:text-yellow-300">Collections</Link> or the search box at the top (press <kbd className="kbd">/</kbd>) to find anyone.</li>
+            <li>On the website: every collector has a public profile with their collection. Use <Link href="/collection" className="text-yellow-400 hover:text-yellow-300">Collectors</Link> or the search box at the top (press <kbd className="kbd">/</kbd>) to find anyone.</li>
             <li>Logged in, <strong className="text-white">My profile</strong> and <strong className="text-white">My stats</strong> are in the menu at the top right.</li>
             <li>In Twitch, under the stream, with the extension (see <a href="#extension" className="text-yellow-400 hover:text-yellow-300">Twitch extension</a>).</li>
           </ul>
@@ -192,7 +195,7 @@ export default async function FaqPage() {
               <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
                 <li>Only one step at a time. No skipping from Regular straight to Shiny.</li>
                 <li>Only copies of the <strong className="text-white">same card and the same version</strong> can be combined.</li>
-                <li>Upgrades are <strong className="text-white">permanent</strong>. The copies you spend are destroyed.</li>
+                <li>Upgrades are <strong className="text-white">permanent</strong>. The copies you spend are destroyed, so the Upgrade button asks you to tap twice (the first tap says &ldquo;Sure?&rdquo;).</li>
                 <li>Only the current season can be upgraded.</li>
                 <li>Some cards or packs can have upgrades turned off.</li>
               </ul>
@@ -219,7 +222,7 @@ export default async function FaqPage() {
             <li><strong className="text-white">To one person</strong>: only they can accept, decline or counter it. You can start one from the &ldquo;Trade with…&rdquo; button on their profile.</li>
             <li><strong className="text-white">On the open board</strong>: a listing anyone can take, as long as they own what you ask for.</li>
           </ul>
-          <p className="mt-2">When someone accepts, the swap happens instantly and both collections update. There are no fees and no randomness.</p>
+          <p className="mt-2">When someone accepts, the swap happens instantly and both collections update. There are no fees and no randomness. Accept, Take this trade, Decline and Cancel each ask for a second tap (&ldquo;Sure?&rdquo;) before they do anything, so a stray tap can&rsquo;t swap your cards.</p>
         </Q>
         <Q q="What is escrow? Where do my cards go while an offer is open?">
           When you send an offer, the card you are trading leaves your collection and is <strong className="text-white">held safely in escrow</strong>. That guarantees you really have it, so nobody can accept an offer you can&rsquo;t
@@ -305,7 +308,7 @@ export default async function FaqPage() {
         </Q>
         <Q q="Can I show a card on stream?">
           Yes, when {CHANNEL_NAME} is live you can use the show-off command in chat and your card appears on the stream with its version and serial number. Name the card (or its number) and, if you like, the version first,
-          for example <em>shiny gouda goat</em>; with nothing after the command it shows your most valuable card. You can only show cards you own, and once every few seconds. If the card has more than one match, be a little more specific.
+          for example <em>shiny gouda goat</em>; with nothing after the command it shows your most valuable card. You can only show cards you own, and once every {SHOWOFF_COOLDOWN_S} seconds. If the card has more than one match, be a little more specific.
         </Q>
         <Q q="Can I download the pictures?">
           Yes. On a phone the share button opens your share sheet; on a computer it downloads the picture as a PNG you can post anywhere.
@@ -407,7 +410,7 @@ export default async function FaqPage() {
           )}
         </Q>
         <Q q="Is there a leaderboard for each season?">
-          Yes. Every season has its own leaderboard, and past seasons stay available. Use the season buttons at the top of the <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300">leaderboard</Link>,{' '}
+          Yes. Every season has its own leaderboard, and past seasons stay available. When a season ends, its leaderboard shows the final standings saved at that moment, with the season&rsquo;s awards. Use the season buttons at the top of the <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300">leaderboard</Link>,{' '}
           <Link href="/stats" className="text-yellow-400 hover:text-yellow-300">stats</Link> and <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">card dex</Link> pages.
         </Q>
         {valueRows.length > 0 && (
