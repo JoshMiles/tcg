@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, t
 import { useRouter } from 'next/navigation';
 import { DEFAULT_LAYOUT, SPAN_CLASS, WIDGETS, WIDGET_TYPES, type DashboardLayout, type Span, type WidgetPlacement, type WidgetType } from '@/lib/dashboard';
 import { Spinner } from '../components/PendingButton';
-import { applyDashboardPresetAction, deleteDashboardPresetAction, resetDashboardLayoutAction, saveDashboardLayoutAction, saveDashboardPresetAction } from './actions';
+import { applyDashboardPresetAction, deleteDashboardPresetAction, saveDashboardLayoutAction, saveDashboardPresetAction } from './actions';
 
 type DragSource = { type: WidgetType; fromLibrary: boolean };
 type DropAt = { type: WidgetType; after: boolean } | 'end' | null;
@@ -28,6 +28,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
   const [presets, setPresets] = useState(initialPresets);
   const [presetName, setPresetName] = useState('');
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [armed, setArmed] = useState<string | null>(null); // a preset waiting for its second click
   const [saved, setSaved] = useState(layout);
   const [draft, setDraft] = useState<WidgetPlacement[]>(layout.widgets);
   const [edit, setEdit] = useState(false);
@@ -142,23 +143,25 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
       }
     });
   }
-  function reset() {
-    setError('');
-    startTransition(async () => {
-      try {
-        await resetDashboardLayoutAction();
-        setSaved(DEFAULT_LAYOUT);
-        setDraft(DEFAULT_LAYOUT.widgets);
-        setEdit(false);
-        router.refresh();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Could not reset the dashboard');
-      }
-    });
-  }
+  // Only changes the draft: nothing is stored until Save, and Cancel brings the saved layout back.
+  function reset() { setError(''); setDraft(DEFAULT_LAYOUT.widgets); }
+  // Esc leaves edit mode like Cancel (nothing is saved).
+  useEffect(() => {
+    if (!edit) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented) cancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [edit, saved]);
   function cancel() { setDraft(saved.widgets); setEdit(false); setError(''); setDrag(null); setDrop(null); }
 
   // Presets: named layouts. Applying one makes it the saved layout straight away.
+  // Applying replaces the saved layout at once, so it takes a second click (relaxes after 4 seconds).
+  function askApply(name: string) {
+    if (armed !== name) { setArmed(name); setTimeout(() => setArmed(a => (a === name ? null : a)), 4000); return; }
+    setArmed(null);
+    applyPreset(name);
+  }
   function applyPreset(name: string) {
     setError('');
     startTransition(async () => {
@@ -239,7 +242,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
             <div role="group" aria-label="Dashboard presets" className="flex flex-wrap items-center gap-1.5 mr-auto">
               <span className="text-[11px] uppercase tracking-wider font-bold text-gray-600 mr-1">Layout</span>
               {presets.map(name => (
-                <button key={name} type="button" disabled={pending} onClick={() => applyPreset(name)} aria-pressed={activePreset === name} className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50 ${activePreset === name ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>{name}</button>
+                <button key={name} type="button" disabled={pending} onClick={() => askApply(name)} aria-pressed={activePreset === name} className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50 ${activePreset === name ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>{armed === name ? `Apply ${name}?` : name}</button>
               ))}
             </div>
           )}
@@ -253,7 +256,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
             <p className="text-xs text-gray-500">Drag widgets to rearrange, use the arrow buttons to resize and move, the cross to remove. Drag from the library to add.</p>
           </div>
           <button type="button" onClick={() => setLibraryOpen(o => !o)} className={ghost} aria-expanded={libraryOpen}><Icon name="puzzle" className="mr-1" />Widgets ({unused.length} to add)</button>
-          <button type="button" onClick={reset} disabled={pending} className={`${ghost} hover:border-red-400/60 hover:text-red-300`}>Reset to default</button>
+          <button type="button" onClick={reset} disabled={pending} title="Puts the default layout in the draft; nothing is saved until you press Save layout" className={ghost}>Reset to default</button>
           <button type="button" onClick={cancel} disabled={pending} className={ghost}>Cancel</button>
           <button type="button" onClick={save} disabled={pending || !dirty} className={`${btn} border-yellow-500 bg-yellow-500 text-gray-950 hover:bg-yellow-400`}>{pending && <Spinner />}Save layout</button>
         </div>
@@ -272,7 +275,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
             <ul className="flex flex-wrap items-center gap-1.5">
               {presets.map(name => (
                 <li key={name} className="flex items-center rounded-full border border-gray-700 overflow-hidden">
-                  <button type="button" disabled={pending} onClick={() => applyPreset(name)} className="px-2.5 py-1 text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5" title="Use this layout (replaces the saved one)">{name}</button>
+                  <button type="button" disabled={pending} onClick={() => askApply(name)} className="px-2.5 py-1 text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5" title="Use this layout (replaces the saved one)">{armed === name ? `Apply ${name}?` : name}</button>
                   <button type="button" disabled={pending} onClick={() => removePreset(name)} className="px-1.5 py-1 text-gray-500 hover:text-red-300 hover:bg-red-500/10" aria-label={`Delete preset ${name}`}><Icon name="x" className="w-3 h-3" /></button>
                 </li>
               ))}

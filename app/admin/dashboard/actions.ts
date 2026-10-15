@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { sanitizeLayout, type DashboardLayout } from '@/lib/dashboard';
-import { deleteDashboardPreset, getDashboardPresets, resetDashboardLayout, saveDashboardLayout, saveDashboardNotes, saveDashboardPreset } from '@/lib/dashboard-data';
+import { deleteDashboardPreset, getDashboardPresets, saveDashboardLayout, saveDashboardNotes, saveDashboardPreset } from '@/lib/dashboard-data';
 import { getOverlaySettings, saveOverlaySettings } from '@/lib/overlay-settings';
 
 /** Saves the widget layout (re-sanitised here: a server action can be called with anything). */
@@ -12,13 +12,6 @@ export async function saveDashboardLayoutAction(layout: DashboardLayout): Promis
   await saveDashboardLayout(clean);
   revalidatePath('/admin');
   return { ok: true, layout: clean };
-}
-
-/** Back to the default arrangement. */
-export async function resetDashboardLayoutAction(): Promise<void> {
-  await requireAdmin();
-  await resetDashboardLayout();
-  revalidatePath('/admin');
 }
 
 export async function saveDashboardNotesAction(text: string): Promise<void> {

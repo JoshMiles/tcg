@@ -45,6 +45,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <Icon name="external" /><span className="aside-label truncate">Preview</span>
               </a>
             </div>
+            <div className="aside-stack flex items-stretch gap-1.5">
+              <a
+                href="/"
+                title="Back to the public site"
+                className="aside-item flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.09] text-gray-300 hover:text-white text-xs font-semibold transition-colors"
+              >
+                <Icon name="home" /><span className="aside-label truncate">Public site</span>
+              </a>
+              <a
+                href="/mod"
+                title="Open the mod panel"
+                className="aside-item flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.09] text-gray-300 hover:text-white text-xs font-semibold transition-colors"
+              >
+                <Icon name="shield" /><span className="aside-label truncate">Mod view</span>
+              </a>
+            </div>
             <div className="aside-stack flex items-center gap-2 pt-2.5 border-t border-white/[0.06]">
               <div className="aside-item flex items-center gap-2.5 min-w-0 flex-1">
                 <span className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400/30 to-yellow-600/10 border border-yellow-400/30 text-yellow-200 flex items-center justify-center shrink-0" aria-hidden><Icon name="user" /></span>
