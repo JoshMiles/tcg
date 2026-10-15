@@ -1,11 +1,14 @@
 // Sweeps every public page on a running dev server (localhost:3111, mock KV seeded, fake Twitch login) at phone and desktop width,
 // signed in and signed out: flags horizontal overflow, a missing / duplicate h1, images without alt, unnamed buttons and console
 // errors. Needs Playwright (npm i -D playwright, or the one pre-installed in the Claude cloud environment).
-// Run: node scripts/sweep-public.mjs
-let chromium;
-try { ({ chromium } = await import('playwright')); } catch { ({ chromium } = await import('/opt/node-tools/node_modules/playwright/index.mjs')); }
-const b = await chromium.launch();
-const routes = ['/', '/faq', '/privacy', '/terms', '/collection', '/leaderboard', '/stats', '/cards', '/trade', '/trade?tab=board', '/trade?tab=history', '/trade/new', '/account', '/settings', '/u/alice', '/u/alice?tab=collection', '/u/alice?tab=stats', '/u/alice?tab=trades', '/u/alice?tab=activity', '/u/tester', '/copy/season1/1.0.1', '/auth/error?reason=denied', '/u/nobody_here', '/does-not-exist'];
+// Run: node scripts/sweep-public.mjs                      (every public page)
+//      node scripts/sweep-public.mjs /u/alice /trade      (only these paths: a review batch sweeps just its own pages)
+// Seed realistic data first with scripts/seed-review.mts (see docs/review.md).
+import { loadPlaywright } from './lib/sweep.mjs';
+const b = await (await loadPlaywright()).launch();
+const defaultRoutes = ['/', '/faq', '/privacy', '/terms', '/collection', '/leaderboard', '/stats', '/cards', '/trade', '/trade?tab=board', '/trade?tab=history', '/trade/new', '/account', '/settings', '/u/alice', '/u/alice?tab=collection', '/u/alice?tab=stats', '/u/alice?tab=trades', '/u/alice?tab=activity', '/u/tester', '/copy/season1/1.0.1', '/auth/error?reason=denied', '/u/nobody_here', '/does-not-exist', '/u/hoarder', '/u/private_pat', '/u/hidden_hank', '/u/a_very_long_username_25c', '/leaderboard/season1'];
+const asked = process.argv.slice(2).filter(a => a.startsWith('/'));
+const routes = asked.length ? asked : defaultRoutes;
 async function sweep(label, viewport, login) {
   const ctx = await b.newContext({ viewport });
   const p = await ctx.newPage();

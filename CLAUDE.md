@@ -42,6 +42,7 @@ The long area notes live in `docs/`. Read the one that matches what you are chan
 | [docs/sandbox.md](docs/sandbox.md) | `lib/db.ts`, sandboxes, preview deployments, the fake Twitch page |
 | [docs/staff.md](docs/staff.md) | staff roles, Twitch sign-in for the panels, the mod panel, who-did-it attribution |
 | [docs/hosting.md](docs/hosting.md) | deploys, environment variables, build stamp, backups, data health |
+| [docs/review.md](docs/review.md) | running a review batch: the seed data, the page sweeps, the mod access test |
 | [docs/reference.md](docs/reference.md) | which file does what (key files), the API routes |
 
 Planned work and the rules in force live in `ROADMAP.md`.
