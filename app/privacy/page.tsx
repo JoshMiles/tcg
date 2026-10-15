@@ -173,6 +173,7 @@ export default function PrivacyPage() {
         <List>
           <li>Collections, profiles and leaderboard data are kept until you ask us to delete them or the streamer removes them (for example when resetting a season).</li>
           <li>The activity log keeps only the latest 500 events. Cached profile pictures refresh weekly.</li>
+          <li>An encrypted backup of the game data is made every night so it can be recovered after a mistake or an outage. Backups are kept for up to 14 days, so deleted data can remain in them for that long.</li>
           <li>Hosting logs and analytics are kept for the period set by our hosting provider.</li>
         </List>
       </Section>

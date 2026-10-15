@@ -20,6 +20,7 @@ import { SITE_URL } from '@/lib/site';
 import { Chip, Panel, Tile, PageHeader } from '../components/ui';
 import { SerialsPanel } from './SerialsPanel';
 import { PreviewDataPanel } from './PreviewDataPanel';
+import { BackupsPanel } from './BackupsPanel';
 import { isPreview } from '@/lib/db';
 
 export const metadata = { title: 'Settings · Admin', robots: { index: false } };
@@ -40,6 +41,7 @@ const SAVED_MESSAGES: Record<string, string> = {
   serials: 'Done. Existing copies are numbered, and every copy has a unique number.',
   'preview-seeded': 'Copied the live setup into this preview.',
   'preview-wiped': 'Preview data wiped.',
+  backup: 'Backup finished.',
   webhook: 'Webhook saved.',
   'webhook-secret': 'Incoming webhook secret regenerated. Update the URL in MixItUp.',
 };
@@ -65,8 +67,8 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
   ] },
 ];
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string }> }) {
-  const { tab: tabParam, saved } = await searchParams;
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; backupError?: string }> }) {
+  const { tab: tabParam, saved, backupError } = await searchParams;
   // The overlay layout and look now live in the Overlay Editor (old links keep working).
   if (tabParam === 'layout' || tabParam === 'look') redirect('/admin/overlay');
   const tab = pickTab(TABS, tabParam);
@@ -97,6 +99,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       <PageTabs tabs={TABS} active={tab} base="/admin/settings" label="Settings sections" />
 
+      {backupError && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-2.5 text-sm text-red-300">Backup failed: {backupError}</div>}
       {saved && SAVED_MESSAGES[saved] && (
         <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2.5 text-sm text-green-300 flex items-center gap-2">
           <Icon name="check" /> {SAVED_MESSAGES[saved]}
@@ -202,6 +205,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {tab === 'environment' && (
         <div className="space-y-4">
           {isPreview() && <PreviewDataPanel />}
+          <BackupsPanel />
           <div className={`rounded-xl border px-4 py-3 text-sm flex items-start gap-3 ${envSummary.ready ? (envSummary.recommendedMissing > 0 || envSummary.weak > 0 ? 'border-amber-500/30 bg-amber-950/20 text-amber-200' : 'border-green-500/30 bg-green-950/20 text-green-300') : 'border-red-500/30 bg-red-950/20 text-red-300'}`}>
             <Icon name={envSummary.ready && envSummary.recommendedMissing === 0 && envSummary.weak === 0 ? 'checkCircle' : 'warning'} className="mt-0.5 shrink-0" />
             <p className="leading-relaxed">
