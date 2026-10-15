@@ -6,6 +6,11 @@ import { DraftChip } from '../../../components/StatusChip';
 
 export const dynamic = 'force-dynamic';
 
+export async function generateMetadata({ params }: { params: Promise<{ packId: string }> }) {
+  const pack = await getPack((await params).packId);
+  return { title: `Cards · ${pack?.name || 'Pack'} · Admin`, robots: { index: false } };
+}
+
 export default async function BulkCardsPage({ params }: { params: Promise<{ packId: string }> }) {
   const { packId } = await params;
   const [pack, cards] = await Promise.all([getPack(packId), getPackCards(packId)]);

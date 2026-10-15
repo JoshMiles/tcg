@@ -7,6 +7,8 @@ import { recordAudit } from '@/lib/audit';
 import { takeUserSnapshot } from '@/lib/user-admin';
 import { activateWithWrapUp } from '@/lib/season-wrap';
 import { validateSeason } from '@/lib/draft-validation';
+import { cardProblems, cleanPackInput } from '@/lib/pack-clean';
+import { heldCardNumbers } from '@/lib/card-held';
 import {
   saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
   savePack, getPack, deletePack,
@@ -162,46 +164,32 @@ function upgradeSettings(formData: FormData) {
 
 // ── Packs (global) ────────────────────────────────────────
 
-export async function createPack(formData: FormData) {
-  await requireAdmin();
-  const id = crypto.randomUUID();
-  await savePack({
-    id,
-    name: formData.get('name') as string,
-    coverImageUrl: (formData.get('coverImageUrl') as string) || '',
-    active: formData.get('active') === 'true',
-    status: 'published',
-    weight: Number(formData.get('weight')) || 1,
-    accentColor: (formData.get('accentColor') as string) || 'rgb(241,187,6)',
-    tearBorderColor: (formData.get('tearBorderColor') as string) || 'rgb(218,163,18)',
-    holoMinStars: Number(formData.get('holoMinStars')) || 5,
-    cardTime: Number(formData.get('cardTime')) || 3,
-    cooldownTime: Number(formData.get('cooldownTime')) || 1,
-    soundVolume: Number(formData.get('soundVolume')) || 1.0,
-    createdAt: Date.now(),
-    ...upgradeSettings(formData),
-  });
-  redirect(`/admin/packs/${id}`);
-}
-
 export async function updatePack(packId: string, formData: FormData) {
   await requireAdmin();
   const existing = await getPack(packId);
   if (!existing) return;
-  await savePack({
-    ...existing,
-    name: formData.get('name') as string,
-    coverImageUrl: (formData.get('coverImageUrl') as string) || existing.coverImageUrl,
+  // The same limits the wizard's autosave applies (cleanPackInput), again on the server: the form's own checks are not the only ones.
+  // A blank field keeps what is saved; a number outside its range is brought inside it (a volume of 0 is a real setting: mute).
+  const field = (key: string, fallback: number) => { const v = formData.get(key); return v === null || String(v).trim() === '' ? fallback : Number(v); };
+  const up = upgradeSettings(formData);
+  const clean = cleanPackInput({
+    name: String(formData.get('name') ?? ''),
+    coverImageUrl: String(formData.get('coverImageUrl') ?? '') || existing.coverImageUrl,
     active: formData.get('active') === 'true',
-    weight: Number(formData.get('weight')) || 1,
-    accentColor: formData.get('accentColor') as string,
-    tearBorderColor: formData.get('tearBorderColor') as string,
-    holoMinStars: Number(formData.get('holoMinStars')),
-    cardTime: Number(formData.get('cardTime')),
-    cooldownTime: Number(formData.get('cooldownTime')),
-    soundVolume: Number(formData.get('soundVolume')) || 1.0,
-    ...upgradeSettings(formData),
+    weight: field('weight', existing.weight),
+    accentColor: String(formData.get('accentColor') ?? ''),
+    tearBorderColor: String(formData.get('tearBorderColor') ?? ''),
+    holoMinStars: field('holoMinStars', existing.holoMinStars),
+    cardTime: field('cardTime', existing.cardTime),
+    cooldownTime: field('cooldownTime', existing.cooldownTime),
+    soundVolume: field('soundVolume', existing.soundVolume),
+    upgradesEnabled: up.upgradesEnabled,
+    variantWeights: up.variantWeights,
+    upgradeCosts: up.upgradeCosts,
+    disabledVariants: up.disabledVariants ?? existing.disabledVariants,
   });
+  if (!clean.name) redirect(`/admin/packs/${packId}?tab=settings&error=${encodeURIComponent('Give the pack a name.')}`);
+  await savePack({ ...existing, ...clean });
   revalidatePath(`/admin/packs/${packId}`);
   revalidatePath('/admin/packs');
 }
@@ -225,10 +213,24 @@ export async function deletePackAction(packId: string) {
 
 // ── Cards ─────────────────────────────────────────────────
 
+/** Reads a card form into clean fields, or says what is wrong. `otherNumbers` are the pack's other cards' numbers. */
+function cardFromForm(formData: FormData, otherNumbers: number[], fallbackNumber: number, useFormNumber = true) {
+  const numberRaw = useFormNumber ? formData.get('number') : null;
+  const fields = {
+    name: String(formData.get('name') ?? '').trim().slice(0, 80),
+    stars: Number(formData.get('stars')),
+    probability: Number(formData.get('probability')),
+    number: numberRaw === null || String(numberRaw).trim() === '' ? fallbackNumber : Number(numberRaw),
+  };
+  return { fields, problems: cardProblems(fields, otherNumbers) };
+}
+
 export async function addCard(packId: string, formData: FormData) {
   await requireAdmin();
   const cards = await getPackCards(packId);
   const maxNum = cards.reduce((m, c) => Math.max(m, c.number), 0);
+  const { fields, problems } = cardFromForm(formData, cards.map(c => c.number), maxNum + 1, false); // a new card always gets the next free number
+  if (problems.length > 0) redirect(`/admin/packs/${packId}?error=${encodeURIComponent(problems.join(' '))}`);
   const soundUrl = (formData.get('soundUrl') as string) || undefined;
   const fullArtImageUrl = (formData.get('fullArtImageUrl') as string) || undefined;
   await savePackCards(packId, [
@@ -236,14 +238,14 @@ export async function addCard(packId: string, formData: FormData) {
     {
       id: crypto.randomUUID(),
       number: maxNum + 1,
-      name: formData.get('name') as string,
+      name: fields.name,
       imageUrl: (formData.get('imageUrl') as string) || '',
       ...(soundUrl && { soundUrl }),
       ...(fullArtImageUrl && { fullArtImageUrl }),
       ...(disabledFromForm(formData).length > 0 && { disabledVariants: disabledFromForm(formData) }),
       upgradesEnabled: formData.get('upgradesEnabled') !== 'off',
-      probability: Number(formData.get('probability')),
-      stars: Number(formData.get('stars')),
+      probability: fields.probability,
+      stars: fields.stars,
     },
   ]);
   revalidatePath(`/admin/packs/${packId}`);
@@ -252,6 +254,12 @@ export async function addCard(packId: string, formData: FormData) {
 export async function updateCard(packId: string, cardId: string, formData: FormData) {
   await requireAdmin();
   const cards = await getPackCards(packId);
+  const current = cards.find(c => c.id === cardId);
+  if (!current) redirect(`/admin/packs/${packId}`);
+  const { fields, problems } = cardFromForm(formData, cards.filter(c => c.id !== cardId).map(c => c.number), current.number);
+  // Viewers' collections point at card numbers: once someone holds this card its number is fixed (renumbering would hand their copies to another card).
+  if (fields.number !== current.number && (await heldCardNumbers(packId)).has(current.number)) problems.push(`#${current.number} has been pulled by viewers, so its number can't change.`);
+  if (problems.length > 0) redirect(`/admin/packs/${packId}/cards/${cardId}?error=${encodeURIComponent(problems.join(' '))}`);
   const soundUrl = (formData.get('soundUrl') as string) || undefined;
   await savePackCards(
     packId,
@@ -259,15 +267,15 @@ export async function updateCard(packId: string, cardId: string, formData: FormD
       c.id === cardId
         ? {
             ...c,
-            name: formData.get('name') as string,
+            name: fields.name,
             imageUrl: (formData.get('imageUrl') as string) || c.imageUrl,
             soundUrl,
             fullArtImageUrl: (formData.get('fullArtImageUrl') as string) || undefined,
             upgradesEnabled: formData.get('upgradesEnabled') === 'on',
             disabledVariants: disabledFromForm(formData, c.disabledVariants ?? []),
-            probability: Number(formData.get('probability')),
-            stars: Number(formData.get('stars')),
-            number: Number(formData.get('number')),
+            probability: fields.probability,
+            stars: fields.stars,
+            number: fields.number,
           }
         : c
     )

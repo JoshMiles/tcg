@@ -1,6 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
+import { ArmedButton } from '../../components/ArmedButton';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ImageUploadField } from '../../components/image-upload';
@@ -135,8 +136,8 @@ export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput;
 
   async function discard() {
     if (!draftId) { router.push('/admin/packs'); return; }
-    if (!window.confirm('Discard this draft? The pack and its cards will be deleted.')) return;
     setBusy('discard');
+    await flushAll(); // let a pending autosave land first, or it would fire at the deleted draft and fail
     await discardDraftPack(draftId);
     router.push('/admin/packs');
   }
@@ -174,8 +175,9 @@ export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput;
             <>
               <StepTitle title="Name your pack" hint="You can change all of this later." />
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Pack name <span className="text-red-400">*</span></label>
+                <label htmlFor="pack-name" className="block text-sm font-medium text-gray-300 mb-1.5">Pack name <span className="text-red-400">*</span></label>
                 <input
+                  id="pack-name"
                   value={pack.name}
                   onChange={e => { set('name', e.target.value); setNameError(''); }}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void goNext(); } }}
@@ -258,11 +260,11 @@ export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput;
             <div className="flex items-center gap-1">
               {stepIdx > 0 ? (
                 <button type="button" onClick={goBack} className="px-4 py-2 text-sm text-gray-500 hover:text-white transition-colors">← Back</button>
-              ) : (
+              ) : !draftId && (
                 <button type="button" onClick={discard} disabled={!!busy} className="px-4 py-2 text-sm text-gray-500 hover:text-white transition-colors">Cancel</button>
               )}
               {draftId && (
-                <button type="button" onClick={discard} disabled={!!busy} className="px-3 py-2 text-xs text-red-500/80 hover:text-red-300 transition-colors">Discard draft</button>
+                <ArmedButton onConfirm={discard} disabled={!!busy} armedLabel="Sure? Delete the draft" title="Delete this draft pack and its cards" className="px-3 py-2 text-xs text-red-500/80 hover:text-red-300 transition-colors" armedClassName="px-3 py-2 text-xs font-bold text-red-300 bg-red-500/10 rounded-lg">Discard draft</ArmedButton>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -360,10 +362,11 @@ function UpgradesStep({ pack, set }: { pack: PackInput; set: <K extends keyof Pa
 }
 
 function VariantWeight({ label, value, percent, onChange }: { label: string; value: number; percent: string; onChange: (v: number) => void }) {
+  const id = useId();
   return (
     <div>
-      <label className="block text-xs text-gray-400 mb-1">{label}</label>
-      <input type="number" min="0" step="any" value={value} onChange={e => onChange(Number(e.target.value))} className={inputCls + ' !px-3'} />
+      <label htmlFor={id} className="block text-xs text-gray-400 mb-1">{label}</label>
+      <input id={id} type="number" min="0" step="any" value={value} onChange={e => onChange(Number(e.target.value))} className={inputCls + ' !px-3'} />
       <p className="text-xs text-gray-500 mt-1 tabular-nums">≈ {percent}% of pulls</p>
     </div>
   );
@@ -445,10 +448,11 @@ function StepTitle({ title, hint }: { title: string; hint?: string }) {
 }
 
 function TextField({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
+  const id = useId();
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-300 mb-1.5">{label}</label>
-      <input value={value} onChange={e => onChange(e.target.value)} className={inputCls} />
+      <label htmlFor={id} className="block text-sm font-medium text-gray-300 mb-1.5">{label}</label>
+      <input id={id} value={value} onChange={e => onChange(e.target.value)} className={inputCls} />
       {hint && <p className="text-xs text-gray-600 mt-1">{hint}</p>}
     </div>
   );
@@ -459,10 +463,12 @@ function NumberField({
 }: {
   label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; hint?: string; narrow?: boolean;
 }) {
+  const id = useId();
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-300 mb-1.5">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-gray-300 mb-1.5">{label}</label>
       <input
+        id={id}
         type="number"
         value={Number.isFinite(value) ? value : ''}
         min={min}

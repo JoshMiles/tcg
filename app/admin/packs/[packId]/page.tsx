@@ -20,12 +20,17 @@ import { ConfirmButton } from '../../components/ConfirmButton';
 import { rarityStats, getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 
-export const metadata = { title: 'Pack · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
-export default async function PackPage({ params, searchParams }: { params: Promise<{ packId: string }>; searchParams: Promise<{ tab?: string }> }) {
+// The tab names the pack, so several open packs can be told apart.
+export async function generateMetadata({ params }: { params: Promise<{ packId: string }> }) {
+  const pack = await getPack((await params).packId);
+  return { title: `${pack?.name || 'Pack'} · Admin`, robots: { index: false } };
+}
+
+export default async function PackPage({ params, searchParams }: { params: Promise<{ packId: string }>; searchParams: Promise<{ tab?: string; error?: string }> }) {
   const { packId } = await params;
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, error } = await searchParams;
   const [pack, cards, seasons, overrides] = await Promise.all([getPack(packId), getPackCards(packId), listSeasons(), getPackOverrides().catch((): Record<string, unknown> => ({}))]);
   if (!pack) notFound();
   const inSeasons = seasons.filter(s => s.packIds.includes(packId));
@@ -117,6 +122,8 @@ export default async function PackPage({ params, searchParams }: { params: Promi
           <Link href={`/admin/packs/new?draft=${packId}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Continue setup →</Link>
         </div>
       )}
+
+      {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-300">Not saved: {error}</p>}
 
       <PageTabs tabs={tabs} active={tab} base={`/admin/packs/${packId}`} label="Pack sections" />
 
@@ -313,7 +320,14 @@ export default async function PackPage({ params, searchParams }: { params: Promi
           {!isDraft && (
             <form action={moveToDrafts} className="tcg-panel rounded-2xl p-4 flex items-center justify-between gap-3">
               <p className="text-xs text-gray-500">Published. Move it back to drafts to stop it being drawn while you rework it.</p>
-              <PendingButton type="submit" className="shrink-0 px-3 py-1.5 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors">Move to drafts</PendingButton>
+              <ConfirmButton
+                title="Move pack to drafts?"
+                confirmLabel="Move to drafts"
+                message={<>Move <strong className="text-white">{pack.name}</strong> back to a draft?{pack.active && inSeasons.some(s => s.active) ? ' It is part of the active season, so it stops being drawn on stream straight away.' : ' It stops being drawn.'} Its cards and settings are kept, and you can publish it again from the pack wizard.</>}
+                className="shrink-0 px-3 py-1.5 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition-colors"
+              >
+                Move to drafts
+              </ConfirmButton>
             </form>
           )}
 
@@ -340,7 +354,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
               <ConfirmButton
                 title="Delete pack?"
                 confirmLabel="Delete pack"
-                message={<>Delete <strong className="text-white">{pack.name}</strong>? Its cards are deleted and it is removed from every season. This can&apos;t be undone.</>}
+                message={<>Delete <strong className="text-white">{pack.name}</strong>? Its cards are deleted and it is removed from every season.{inSeasons.length > 0 && <> It is used in <strong className="text-white">{inSeasons.map(s => s.name).join(', ')}</strong>: viewers who pulled its cards keep them in their data, but they stop showing anywhere and scores change.</>} This can&apos;t be undone.</>}
                 className="px-3.5 py-2 text-sm font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 border border-red-500/30 rounded-xl transition-colors"
               >
                 Delete this pack

@@ -1,6 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { ArmedButton } from './ArmedButton';
 import type { Card } from '@/lib/types';
 import type { CardInput } from '../draft-actions';
 import { RARITIES, getRarity, rarityStats } from '@/lib/rarity';
@@ -100,9 +101,10 @@ export function CardsEditor({
   }
 
   function remove(c: CardRow) {
-    if (confirmDelete && c.number && !window.confirm(`Delete "${c.name || 'this card'}" (#${c.number})? Viewers who already pulled it keep the entry, but the card will no longer show anywhere.`)) return;
     setCards(prev => prev.filter(x => x.id !== c.id));
   }
+  // A card that is already saved has been seen by viewers: its delete takes a second click ("Sure?"). A new, unsaved row goes at once.
+  const needsSure = (c: CardRow) => confirmDelete && !!c.number;
 
   const duplicate = (c: CardRow) =>
     setCards(prev => {
@@ -274,7 +276,9 @@ export function CardsEditor({
 
                 <div className="flex items-center gap-1 shrink-0">
                   <button type="button" onClick={() => duplicate(c)} title="Duplicate" className="px-2 py-1 text-xs text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">⧉</button>
-                  <button type="button" onClick={() => remove(c)} title="Delete" className="px-2 py-1 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"><Icon name="x" className="w-3.5 h-3.5" /></button>
+                  {needsSure(c)
+                    ? <ArmedButton onConfirm={() => remove(c)} armedLabel="Sure?" title={`Delete ${c.name || 'this card'} (#${c.number}). Viewers who already pulled it keep the entry, but the card will no longer show anywhere.`} className="px-2 py-1 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors" armedClassName="px-2 py-1 text-xs font-bold text-red-200 bg-red-500/20 rounded-lg"><Icon name="x" className="w-3.5 h-3.5" /><span className="sr-only">Delete {c.name || 'card'}</span></ArmedButton>
+                    : <button type="button" onClick={() => remove(c)} title="Delete" aria-label={`Delete ${c.name || 'card'}`} className="px-2 py-1 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-lg transition-colors"><Icon name="x" className="w-3.5 h-3.5" /></button>}
                 </div>
               </li>
             );

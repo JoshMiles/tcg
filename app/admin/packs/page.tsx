@@ -226,7 +226,7 @@ export default async function PacksPage() {
                         <ConfirmButton
                           title={isDraft ? 'Discard draft?' : 'Delete pack?'}
                           confirmLabel={isDraft ? 'Discard draft' : 'Delete pack'}
-                          message={<>{isDraft ? 'Discard' : 'Delete'} <strong className="text-white">{pack.name || 'Untitled pack'}</strong>? Its cards are deleted{isDraft ? '' : ' and it is removed from every season'}. This can&apos;t be undone.</>}
+                          message={<>{isDraft ? 'Discard' : 'Delete'} <strong className="text-white">{pack.name || 'Untitled pack'}</strong>? Its cards are deleted{isDraft ? '' : ' and it is removed from every season'}.{!isDraft && inSeasons.length > 0 && <> It is used in <strong className="text-white">{inSeasons.map(s => s.name).join(', ')}</strong>: viewers who pulled its cards keep them in their data, but they stop showing anywhere and scores change.</>} This can&apos;t be undone.</>}
                           className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
                         >
                           {isDraft ? 'Discard' : 'Delete'}
