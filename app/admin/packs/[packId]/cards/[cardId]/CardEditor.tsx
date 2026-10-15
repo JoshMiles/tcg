@@ -28,7 +28,7 @@ interface Check { id: string; level: 'warn' | 'info' | 'ok'; text: string; /** T
  * It is still a plain form: Save posts to the same server action.
  */
 export function CardEditor({
-  action, packName, packUpgrades, packDisabled, holoByStars, initial, others, cardId,
+  action, packName, packUpgrades, packDisabled, holoByStars, initial, others, cardId, numberLocked = false,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   packName: string;
@@ -38,6 +38,8 @@ export function CardEditor({
   initial: EditorCard;
   others: OtherCard[];
   cardId: string;
+  /** Some viewer holds this card, so its number is fixed. */
+  numberLocked?: boolean;
 }) {
   const [name, setName] = useState(initial.name);
   const [number, setNumber] = useState(String(initial.number));
@@ -98,7 +100,7 @@ export function CardEditor({
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] items-start">
       <form action={action} className="tcg-panel rounded-xl p-6 grid gap-4 xl:grid-cols-2 items-start">
-        <Field label="Card Number" name="number" type="number" value={number} onChange={setNumber} required min={1} max={999999} step="1" />
+        <Field label="Card Number" name="number" type="number" value={number} onChange={setNumber} required min={1} max={999999} step="1" readOnly={numberLocked} help={numberLocked ? 'Fixed: viewers hold this card, and their collections point at its number.' : undefined} />
         <Field label="Name" name="name" value={name} onChange={setName} required />
         <ImageUploadField name="imageUrl" defaultValue={initial.imageUrl} onUrlChange={setImage} />
         <AudioUploadField name="soundUrl" defaultValue={initial.soundUrl} />
@@ -191,13 +193,14 @@ export function CardEditor({
   );
 }
 
-function Field({ label, name, type = 'text', required, value, onChange, step, min, max }: {
-  label: string; name: string; type?: string; required?: boolean; value: string; onChange: (v: string) => void; step?: string; min?: number; max?: number;
+function Field({ label, name, type = 'text', required, value, onChange, step, min, max, readOnly, help }: {
+  label: string; name: string; type?: string; required?: boolean; value: string; onChange: (v: string) => void; step?: string; min?: number; max?: number; readOnly?: boolean; help?: string;
 }) {
   return (
     <div>
       <label htmlFor={`card-${name}`} className="block text-sm text-gray-400 mb-1">{label}{required && <span className="text-red-400 ml-1">*</span>}</label>
-      <input id={`card-${name}`} type={type} name={name} required={required} step={step} min={min} max={max} value={value} onChange={e => onChange(e.target.value)} className={input} />
+      <input id={`card-${name}`} type={type} name={name} required={required} step={step} min={min} max={max} readOnly={readOnly} aria-describedby={help ? `card-${name}-help` : undefined} value={value} onChange={e => onChange(e.target.value)} className={input + (readOnly ? ' opacity-60 cursor-not-allowed' : '')} />
+      {help && <p id={`card-${name}-help`} className="text-xs text-gray-500 mt-1">{help}</p>}
     </div>
   );
 }

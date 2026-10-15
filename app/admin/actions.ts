@@ -8,6 +8,7 @@ import { takeUserSnapshot } from '@/lib/user-admin';
 import { activateWithWrapUp } from '@/lib/season-wrap';
 import { validateSeason } from '@/lib/draft-validation';
 import { cardProblems, cleanPackInput } from '@/lib/pack-clean';
+import { heldCardNumbers } from '@/lib/card-held';
 import {
   saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
   savePack, getPack, deletePack,
@@ -256,6 +257,8 @@ export async function updateCard(packId: string, cardId: string, formData: FormD
   const current = cards.find(c => c.id === cardId);
   if (!current) redirect(`/admin/packs/${packId}`);
   const { fields, problems } = cardFromForm(formData, cards.filter(c => c.id !== cardId).map(c => c.number), current.number);
+  // Viewers' collections point at card numbers: once someone holds this card its number is fixed (renumbering would hand their copies to another card).
+  if (fields.number !== current.number && (await heldCardNumbers(packId)).has(current.number)) problems.push(`#${current.number} has been pulled by viewers, so its number can't change.`);
   if (problems.length > 0) redirect(`/admin/packs/${packId}/cards/${cardId}?error=${encodeURIComponent(problems.join(' '))}`);
   const soundUrl = (formData.get('soundUrl') as string) || undefined;
   await savePackCards(

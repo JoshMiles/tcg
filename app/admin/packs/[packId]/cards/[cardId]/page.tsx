@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPack, getPackCards } from '@/lib/kv';
 import { getHoloResolver } from '@/lib/holo';
+import { heldCardNumbers } from '@/lib/card-held';
 import { updateCard } from '../../../../actions';
 import { CardEditor } from './CardEditor';
 import { PageHeader } from '../../../../components/ui';
@@ -23,7 +24,7 @@ export default async function EditCardPage({
 }) {
   const { packId, cardId } = await params;
   const { error } = await searchParams;
-  const [pack, cards, holoFor] = await Promise.all([getPack(packId), getPackCards(packId), getHoloResolver()]);
+  const [pack, cards, holoFor, held] = await Promise.all([getPack(packId), getPackCards(packId), getHoloResolver(), heldCardNumbers(packId)]);
   if (!pack) notFound();
 
   const card = cards.find(c => c.id === cardId);
@@ -42,6 +43,7 @@ export default async function EditCardPage({
       <CardEditor
         action={updateThisCard}
         cardId={cardId}
+        numberLocked={held.has(card.number)}
         packName={pack.name}
         packUpgrades={pack.upgradesEnabled}
         packDisabled={pack.disabledVariants ?? []}
