@@ -80,7 +80,7 @@ export interface Experiment { id: string; label: string; description: string }
 
 /** Opt-in features that are still settling. The 'shortcuts' one changes only this viewer's browser; the profile ones change how their own public profile looks. */
 export const EXPERIMENTS: Experiment[] = [
-  { id: 'shortcuts', label: 'Keyboard shortcuts', description: 'Press g then h, c, l, s, d, t or a to jump to Home, Collection, Leaderboard, Stats, Card Dex, Trade or My stats. Press ? for the list. Off while you are typing.' },
+  { id: 'shortcuts', label: 'Keyboard shortcuts', description: 'Press g then h, c, l, s, d, t, a or e to jump to Home, My profile, Leaderboard, Season stats, Card Dex, Trade, My stats or Settings. Press ? for the list. Off while you are typing.' },
   { id: 'accent', label: 'Profile accent', description: 'Colour your public profile header. Pick the colour below once this is on.' },
 ];
 

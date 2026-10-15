@@ -130,8 +130,17 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
       {s.copies === 0 ? (
         <div className="rind rounded-2xl py-14 text-center space-y-2">
           <p className="text-4xl"><Icon name="cheese" className="w-10 h-10 text-yellow-400" /></p>
-          <p className="font-display text-2xl font-bold text-white">Your collection is empty</p>
-          <p className="text-sm text-gray-400">Watch the stream, cards are pulled live. They&rsquo;ll appear here as you collect them.</p>
+          {live ? (
+            <>
+              <p className="font-display text-2xl font-bold text-white">Your collection is empty</p>
+              <p className="text-sm text-gray-400">Watch the stream, cards are pulled live. They&rsquo;ll appear here as you collect them.</p>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-2xl font-bold text-white">You had no cards in {season.name}</p>
+              <p className="text-sm text-gray-400">{season.endedAt ? 'That season is over, so there is nothing to collect in it now.' : 'There is nothing to show for this season yet.'} Pick a season above to look at another one.</p>
+            </>
+          )}
         </div>
       ) : (
         <>
