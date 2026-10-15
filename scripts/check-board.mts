@@ -21,4 +21,20 @@ eq(b.filterBoard(ranked, {}).length, 4, 'no filter keeps everyone');
 const before = { amy: 1, ben: 3, cat: 1, old: 2 };
 eq(b.rankMovement(before, ranked), { ben: 2, amy: -2 }, 'movement: places gained are positive, new and unchanged names are left out');
 eq(b.rankSnapshot(ranked), { ben: 1, cat: 1, amy: 3, dan: 4 }, 'snapshot of ranks');
+// An ended season's board comes from its saved standings.
+const snapRow = (username: string, score: number, cardPoints: number, extra: object = {}) => ({ username, score, cardPoints, uniqueCards: 10, copies: 20, complete: false, ...extra });
+const full = b.standingsToBoardRows([
+  snapRow('amy', 120, 100, { completionBonus: 15, setBonus: 5, variants: { regular: 15, reverse: 3, full: 1, shiny: 1 } }),
+  snapRow('ben', 90, 90, { completionBonus: 0, setBonus: 0, variants: { regular: 20, reverse: 0, full: 0, shiny: 0 } }),
+]);
+ok(full.hasVariants && full.rows.length === 2 && !full.rows[0].bonusesTogether, 'a new final standing keeps the bonus split and the version counts');
+eq([full.rows[0].completionBonus, full.rows[0].setBonus, full.rows[0].variants.shiny], [15, 5, 1], 'the split is passed through');
+const old = b.standingsToBoardRows([snapRow('amy', 120, 100), snapRow('ben', 90, 90)]);
+ok(!old.hasVariants && old.rows[0].bonusesTogether === true, 'an old final standing (no split, no versions) is flagged');
+eq([old.rows[0].completionBonus, old.rows[0].setBonus, old.rows[1].completionBonus], [20, 0, 0], 'the unsplit bonuses are score minus card points, in one lump');
+eq(b.standingsToBoardRows([snapRow('amy', 120, 100), snapRow('ben', 90, 90)], new Set(['amy'])).rows.map(r => r.username), ['ben'], 'collectors hidden since the season ended are left out');
+eq(b.standingsToBoardRows([]).rows, [], 'no standings, no rows');
+const finalRanked = b.rankBoard(full.rows, 'points');
+eq(finalRanked.map(r => [r.row.username, r.rank]), [['amy', 1], ['ben', 2]], 'the final board ranks like any other');
+
 console.log('board checks passed');

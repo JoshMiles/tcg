@@ -7,7 +7,7 @@ import { METRIC_LABELS, filterBoard, rankBoard, rankMovement, rankSnapshot, type
 import { profileHref } from '@/lib/profile-url';
 
 const PAGE = 25;
-const METRICS = Object.keys(METRIC_LABELS) as BoardMetric[];
+const ALL_METRICS = Object.keys(METRIC_LABELS) as BoardMetric[];
 const SHORT = { reverse: 'RH', full: 'FA', shiny: 'SH' } as const;
 const LABEL = { reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' } as const;
 type Moves = Record<string, number>;
@@ -17,7 +17,8 @@ type Moves = Record<string, number>;
  * breakdown, and see who moved since you last looked (remembered in this browser). Ranks never change when you search, so
  * finding someone still shows their true place.
  */
-export function Board({ rows, avatars, totalCards, seasonId, viewer }: { rows: BoardRow[]; avatars: Record<string, string | undefined>; totalCards: number; seasonId: string; viewer?: string }) {
+export function Board({ rows, avatars, totalCards, seasonId, viewer, noVariants = false }: { rows: BoardRow[]; avatars: Record<string, string | undefined>; totalCards: number; seasonId: string; viewer?: string; /** Rows without per-version counts (an old final standing): no Shinies ranking. */ noVariants?: boolean }) {
+  const METRICS = noVariants ? ALL_METRICS.filter(m => m !== 'shiny') : ALL_METRICS;
   const [metric, setMetric] = useState<BoardMetric>('points');
   const [q, setQ] = useState('');
   const [completeOnly, setCompleteOnly] = useState(false);
@@ -93,7 +94,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer }: { rows: B
                         {r.complete && <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5" title="Owns every card in the season"><Icon name="cheese" className="sm:mr-1" /><span className="hidden sm:inline">Complete</span><span className="sr-only sm:hidden">Complete</span></span>}
                       </span>
                       <span className="block text-xs text-gray-500 sm:truncate">
-                        {r.uniqueCards}/{totalCards} cards · {r.copies} cop{r.copies === 1 ? 'y' : 'ies'}
+                        {r.uniqueCards}/{totalCards} cards · {r.copies.toLocaleString()} cop{r.copies === 1 ? 'y' : 'ies'}
                         {(['reverse', 'full', 'shiny'] as const).filter(v => r.variants[v] > 0).map(v => <span key={v} className="ml-2 text-fuchsia-300" title={LABEL[v]}>{r.variants[v]}× {SHORT[v]}</span>)}
                       </span>
                     </span>
@@ -107,8 +108,8 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer }: { rows: B
                 {isOpen && (
                   <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-gray-800/70 px-4 py-3 text-sm">
                     <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Cards</dt><dd className="tabular-nums text-white">{Math.round(r.cardPoints).toLocaleString()}</dd></div>
-                    <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Completion bonus</dt><dd className="tabular-nums text-emerald-300">+{Math.round(r.completionBonus).toLocaleString()}</dd></div>
-                    <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Complete set bonus</dt><dd className="tabular-nums text-emerald-300">{r.setBonus ? `+${Math.round(r.setBonus).toLocaleString()}` : '-'}</dd></div>
+                    <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{r.bonusesTogether ? 'Bonuses' : 'Completion bonus'}</dt><dd className="tabular-nums text-emerald-300">+{Math.round(r.completionBonus).toLocaleString()}</dd></div>
+                    {!r.bonusesTogether && <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Complete set bonus</dt><dd className="tabular-nums text-emerald-300">{r.setBonus ? `+${Math.round(r.setBonus).toLocaleString()}` : '-'}</dd></div>}
                     <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Total</dt><dd className="tabular-nums text-yellow-300 font-bold">{Math.round(r.score).toLocaleString()}</dd></div>
                   </dl>
                 )}
