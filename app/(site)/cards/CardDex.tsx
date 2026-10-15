@@ -86,7 +86,15 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
   }
 
   const openIdx = openId ? shown.findIndex(c => c.id === openId) : -1;
-  const close = useCallback(() => { setOpenId(null); opener.current?.focus(); }, []);
+  const close = useCallback(() => {
+    setOpenId(null);
+    opener.current?.focus();
+    // Opened from a link (/cards?card=7)? Drop the parameter, so a refresh or Back does not reopen the dialog.
+    try {
+      const u = new URL(window.location.href);
+      if (u.searchParams.has('card')) { u.searchParams.delete('card'); window.history.replaceState(null, '', u.pathname + u.search + u.hash); }
+    } catch { /* leave the address as it is */ }
+  }, []);
   const step = useCallback((d: number) => {
     setOpenId(cur => {
       if (!cur || shown.length === 0) return cur;
@@ -322,7 +330,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                         <span className="text-gray-200">{VARIANT_LABELS[x.variant]} <span className="text-gray-500">· {x.made.toLocaleString()} made</span></span>
                         {x.id ? (
                           <Link href={`/copy/${encodeURIComponent(seasonId)}/${x.id}`} className="text-xs text-gray-400 hover:text-white">
-                            #1{x.est ? '~' : ''} {x.pulledBy && <>{ORIGIN_BY[x.origin ?? 'pull']} {who(x.pulledBy)} · </>}{x.at ? new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{x.holder === null ? ' · no longer exists' : x.holder ? <> · held by {who(x.holder)}</> : ''}
+                            #1{x.est ? '~' : ''} {x.pulledBy && <>{ORIGIN_BY[x.origin ?? 'pull']} {who(x.pulledBy)} · </>}{x.at ? new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}{x.holder === null ? ' · no longer exists' : x.holder && x.holder === x.pulledBy ? ' · still holds it' : x.holder ? <> · held by {who(x.holder)}</> : ''}
                           </Link>
                         ) : null}
                       </li>
