@@ -16,6 +16,7 @@ import { getTradeSettings } from './trades';
 import { bucketsFor, getSeries, type Range, type Series } from './stats';
 import { twitchCredentials } from './twitch-helix';
 import { getOverlaySettings } from './overlay-settings';
+import { jsonBytes, sizeAttention } from './data-health';
 
 // Server side of the admin dashboard: where the layout and notes are stored, and the numbers the widgets show.
 // Only what the widgets in the saved layout need is computed (the leaderboard, activity log, trades and live status cost
@@ -58,8 +59,10 @@ export interface AttentionItem {
 }
 
 /** Things worth a look, most urgent first: each is a plain check against data we already keep. */
-async function computeAttention(season: Season, packs: { pack: Pack; cards: Card[] }[], live: LiveStatus | null, overlay: OverlayStatus | null): Promise<AttentionItem[]> {
+async function computeAttention(season: Season, packs: { pack: Pack; cards: Card[] }[], live: LiveStatus | null, overlay: OverlayStatus | null, collectionBytes: number): Promise<AttentionItem[]> {
   const items: AttentionItem[] = [];
+  const size = sizeAttention(season.name, collectionBytes);
+  if (size) items.push({ id: 'data-size', level: 'warn', text: size.text, href: '/admin/settings?tab=environment', cta: 'Data health' });
   const [allPacks, seasons, tradeSettings, open] = await Promise.all([
     listAllPacks().catch(() => [] as Pack[]), listSeasons().catch(() => [] as Season[]),
     getTradeSettings().catch(() => null), listOpenTrades().catch(() => [] as Trade[]),
@@ -166,7 +169,7 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     needs.has('viewers') ? getSeries(season.collectionName, bucketsFor('7d', season.createdAt).starts, 'day') : Promise.resolve(null),
     needs.has('overlay-controls') ? getOverlaySettings().catch(() => null) : Promise.resolve(null),
   ]);
-  const attention = needs.has('attention') ? await computeAttention(season, packs, live, overlay) : [];
+  const attention = needs.has('attention') ? await computeAttention(season, packs, live, overlay, needs.has('attention') ? jsonBytes(collection) : 0) : [];
   const adminActions = activity.filter(e => (e.type === 'grant' && e.source === 'admin') || e.type === 'remove' || e.type === 'reset' || e.type === 'delete' || (e.type === 'trigger' && e.source === 'admin') || (e.type === 'trade' && e.by === 'admin')).slice(0, 12);
 
   const trades = openTrades && history

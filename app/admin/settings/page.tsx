@@ -21,6 +21,7 @@ import { Chip, Panel, Tile, PageHeader } from '../components/ui';
 import { SerialsPanel } from './SerialsPanel';
 import { PreviewDataPanel } from './PreviewDataPanel';
 import { BackupsPanel } from './BackupsPanel';
+import { DataHealthPanel } from './DataHealthPanel';
 import { isPreview } from '@/lib/db';
 
 export const metadata = { title: 'Settings · Admin', robots: { index: false } };
@@ -206,6 +207,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div className="space-y-4">
           {isPreview() && <PreviewDataPanel />}
           <BackupsPanel />
+          <DataHealthPanel />
           <div className={`rounded-xl border px-4 py-3 text-sm flex items-start gap-3 ${envSummary.ready ? (envSummary.recommendedMissing > 0 || envSummary.weak > 0 ? 'border-amber-500/30 bg-amber-950/20 text-amber-200' : 'border-green-500/30 bg-green-950/20 text-green-300') : 'border-red-500/30 bg-red-950/20 text-red-300'}`}>
             <Icon name={envSummary.ready && envSummary.recommendedMissing === 0 && envSummary.weak === 0 ? 'checkCircle' : 'warning'} className="mt-0.5 shrink-0" />
             <p className="leading-relaxed">
