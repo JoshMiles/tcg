@@ -18,6 +18,7 @@ export function ConfirmButton({
   children,
   formId,
   tone = 'danger',
+  typeToConfirm,
 }: {
   message: ReactNode;
   title?: string;
@@ -27,13 +28,19 @@ export function ConfirmButton({
   formId?: string;
   /** The confirm button's colour: red for something destructive (default), yellow for a switch that is not (activating a season). */
   tone?: 'danger' | 'primary';
+  /** For something that can't be undone and affects everyone: the confirm button stays off until this exact phrase is typed. */
+  typeToConfirm?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+  const armed = !typeToConfirm || typed.trim().toLowerCase() === typeToConfirm.toLowerCase();
   const { pending } = useFormStatus(); // the surrounding form is running its action
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   function confirm() {
+    if (!armed) return;
     setOpen(false);
+    setTyped('');
     const form = formId
       ? (document.getElementById(formId) as HTMLFormElement | null)
       : buttonRef.current?.form;
@@ -42,7 +49,7 @@ export function ConfirmButton({
 
   return (
     <>
-      <button ref={buttonRef} type="button" form={formId} disabled={pending} aria-busy={pending} className={`${className} inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait`} onClick={() => setOpen(true)}>
+      <button ref={buttonRef} type="button" form={formId} disabled={pending} aria-busy={pending} className={`${className} inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait`} onClick={() => { setTyped(''); setOpen(true); }}>
         {pending && <Spinner />}
         {children}
       </button>
@@ -51,6 +58,18 @@ export function ConfirmButton({
           <Dialog open onClose={() => setOpen(false)} title={title} size="sm">
             <div className="p-6 space-y-5">
               <div className="text-sm text-gray-300 leading-relaxed">{message}</div>
+              {typeToConfirm && (
+                <label className="block text-xs text-gray-400">
+                  Type <strong className="text-white font-mono">{typeToConfirm}</strong> to confirm
+                  <input
+                    value={typed}
+                    onChange={e => setTyped(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); confirm(); } }}
+                    autoComplete="off"
+                    className="mt-1.5 w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-red-400"
+                  />
+                </label>
+              )}
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
@@ -63,7 +82,8 @@ export function ConfirmButton({
                 <button
                   type="button"
                   onClick={confirm}
-                  className={`px-4 py-2 text-sm font-bold rounded-xl transition-colors ${tone === 'primary' ? 'bg-yellow-500 hover:bg-yellow-400 text-gray-950' : 'bg-red-600 hover:bg-red-500 text-white'}`}
+                  disabled={!armed}
+                  className={`px-4 py-2 text-sm font-bold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${tone === 'primary' ? 'bg-yellow-500 hover:bg-yellow-400 text-gray-950' : 'bg-red-600 hover:bg-red-500 text-white'}`}
                 >
                   {confirmLabel}
                 </button>
