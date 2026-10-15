@@ -174,7 +174,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
         <section className={section}>
           <h2 className={heading}><Icon name="board" className="mr-2" />The board <span className="text-sm font-normal text-gray-500">({board.length})</span></h2>
           {board.length === 0 ? (
-            <p className="rind rounded-2xl p-6 text-center text-sm text-gray-400">Nothing on the board right now. Post a listing and let others come to you.</p>
+            <p className="rind rounded-2xl p-6 text-center text-sm text-gray-400">{session ? 'Nothing on the board right now. Post a listing and let others come to you.' : 'Nothing on the board right now. Log in with Twitch to post a listing, or check back soon.'}</p>
           ) : (
             <>
               <BoardToolbar total={board.length} signedIn={!!session} />
