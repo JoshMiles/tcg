@@ -18,13 +18,19 @@ import { seasonTiming } from '../season-timing';
 import { PageTabs, pickTab, type PageTab } from '../../components/PageTabs';
 import { Tile } from '../../components/ui';
 
-export const metadata = { title: 'Season · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
-const when = (ms: number) => new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-export default async function SeasonPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
+// The tab shows which season this is (the page is rendered on the server, so a fixed locale and zone keep it the same for everyone).
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const season = await getSeason((await params).id);
+  return { title: `${season?.name || 'Season'} · Admin`, robots: { index: false } };
+}
+
+/** Dates here are rendered on the server, so say which clock they are on: UTC, in a fixed format. */
+const when = (ms: number) => `${new Date(ms).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
+export default async function SeasonPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; error?: string }> }) {
   const { id } = await params;
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, error } = await searchParams;
   const season = await getSeason(id);
   if (!season) notFound();
 
@@ -56,7 +62,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
   const updateThisSeason = updateSeason.bind(null, id);
   const moveToDrafts = unpublishSeason.bind(null, id);
   const addPack = addPackToSeason.bind(null, id);
-  const dayLabels = series ? series.starts.map(s => new Date(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })) : [];
+  const dayLabels = series ? series.starts.map(s => new Date(s).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' })) : [];
   const sumArr = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
   return (
@@ -65,7 +71,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold">{season.name}</h1>
+            <h1 className="text-3xl font-bold text-white break-words">{season.name}</h1>
             {season.status === 'draft' && <DraftChip />}
             {season.active && <span className="text-xs px-2 py-1 bg-green-900/60 text-green-400 rounded-full">Active</span>}
             {season.endedAt && <span className="text-xs px-2 py-1 bg-gray-800 text-gray-300 rounded-full">Ended {when(season.endedAt)}</span>}
@@ -78,6 +84,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
                 <ConfirmButton
                   title={`Activate ${season.name}?`}
                   confirmLabel="Activate"
+                  tone="primary"
                   message={<ActivationMessage name={season.name} preview={preview} />}
                   className="px-3.5 py-2 text-sm font-bold bg-green-500/10 border border-green-400/30 hover:bg-green-500/20 text-green-300 rounded-xl transition-colors"
                 >
@@ -162,6 +169,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
         </section>
       )}
 
+      {tab === 'settings' && error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-300">Not saved: {error}</p>}
       {tab === 'settings' && (
         <div className="grid gap-6 xl:grid-cols-2 items-start">
           <form action={updateThisSeason} className="tcg-panel rounded-xl p-6 space-y-4 xl:col-start-1">

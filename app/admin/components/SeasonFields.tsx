@@ -9,7 +9,7 @@ export function SeasonFields({ defaults }: { defaults?: { name?: string; collect
         name="collectionName"
         required
         defaultValue={defaults?.collectionName}
-        help="No spaces, used as the KV key prefix (e.g. CheesyStarterDeck)"
+        help="No spaces, and no other season may use it. Viewers' cards are stored under this name, so changing it once the season has cards points it at an empty collection (the old cards stay under the old name)."
       />
       <Field
         label="Max Concurrent Packs"
@@ -54,15 +54,17 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm text-gray-400 mb-1">
+      <label htmlFor={`season-${name}`} className="block text-sm text-gray-400 mb-1">
         {label}{required && <span className="text-red-400 ml-1">*</span>}
       </label>
       <input
+        id={`season-${name}`}
         type={type}
         name={name}
         required={required}
         defaultValue={defaultValue}
-        step={type === 'number' ? 'any' : undefined}
+        min={type === 'number' ? 1 : undefined}
+        step={type === 'number' ? 1 : undefined}
         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
       />
       {help && <p className="text-xs text-gray-600 mt-1">{help}</p>}

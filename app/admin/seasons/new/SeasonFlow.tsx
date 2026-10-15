@@ -1,6 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { useMemo, useState } from 'react';
+import { ArmedButton } from '../../components/ArmedButton';
 import { DateTimeField } from '../../components/DateTimeField';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -45,6 +46,8 @@ export function SeasonFlow({
   const [step, setStep] = useState('details');
   const [busy, setBusy] = useState<'create' | 'publish' | 'exit' | 'discard' | null>(null);
   const [nameError, setNameError] = useState('');
+  // The box holds what is typed (it may be empty on the way to a new number); the season gets a whole number of at least 1.
+  const [maxText, setMaxText] = useState(String(initial?.season.maxConcurrentPacks ?? 1));
   const [publishIssues, setPublishIssues] = useState<Issue[]>([]);
 
   const set = <K extends keyof SeasonInput>(key: K, value: SeasonInput[K]) => setSeason(s => ({ ...s, [key]: value }));
@@ -103,8 +106,8 @@ export function SeasonFlow({
 
   async function discard() {
     if (!draftId) { router.push('/admin/seasons'); return; }
-    if (!window.confirm('Discard this draft season?')) return;
     setBusy('discard');
+    await save.flush(); // let a pending autosave land first, or it would fire at the deleted draft and fail
     await discardDraftSeason(draftId);
     router.push('/admin/seasons');
   }
@@ -119,7 +122,7 @@ export function SeasonFlow({
     <div className="space-y-6 mx-auto w-full max-w-3xl">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">{season.name.trim() || 'New season'}</h1>
+          <h1 className="text-3xl font-bold text-white break-words min-w-0">{season.name.trim() || 'New season'}</h1>
           <p className="text-sm text-gray-500 mt-0.5">Season setup · saved as a draft until you create it</p>
         </div>
         <div className="flex items-center gap-4">
@@ -137,8 +140,9 @@ export function SeasonFlow({
           <>
             <StepTitle title="Season details" hint="You can change these later, except that the collection name should stay fixed once viewers have cards." />
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Season name <span className="text-red-400">*</span></label>
+              <label htmlFor="season-name" className="block text-sm font-medium text-gray-300 mb-1.5">Season name <span className="text-red-400">*</span></label>
               <input
+                id="season-name"
                 value={season.name}
                 onChange={e => setName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void goNext(); } }}
@@ -149,8 +153,9 @@ export function SeasonFlow({
               {nameError && <p className="text-xs text-red-400 mt-1.5">{nameError}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Collection name</label>
+              <label htmlFor="season-collection" className="block text-sm font-medium text-gray-300 mb-1.5">Collection name</label>
               <input
+                id="season-collection"
                 value={season.collectionName}
                 onChange={e => { setKeyTouched(true); set('collectionName', e.target.value.replace(/\s+/g, '')); }}
                 placeholder="e.g. Season2Deck"
@@ -162,12 +167,15 @@ export function SeasonFlow({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Max concurrent packs</label>
+              <label htmlFor="season-max" className="block text-sm font-medium text-gray-300 mb-1.5">Max concurrent packs</label>
               <input
+                id="season-max"
                 type="number"
                 min={1}
-                value={season.maxConcurrentPacks}
-                onChange={e => set('maxConcurrentPacks', Math.max(1, Number(e.target.value) || 1))}
+                step={1}
+                value={maxText}
+                onChange={e => { setMaxText(e.target.value); const n = Math.floor(Number(e.target.value)); if (Number.isFinite(n) && n >= 1) set('maxConcurrentPacks', n); }}
+                onBlur={() => setMaxText(String(season.maxConcurrentPacks))}
                 className={inputCls + ' !w-28'}
               />
               <p className="text-xs text-gray-600 mt-1">Pack openings shown at once on the overlay</p>
@@ -281,10 +289,10 @@ export function SeasonFlow({
           <div className="flex items-center gap-1">
             {stepIdx > 0 ? (
               <button type="button" onClick={() => setStep(STEPS[stepIdx - 1].id)} className="px-4 py-2 text-sm text-gray-500 hover:text-white transition-colors">← Back</button>
-            ) : (
+            ) : !draftId && (
               <button type="button" onClick={discard} disabled={!!busy} className="px-4 py-2 text-sm text-gray-500 hover:text-white transition-colors">Cancel</button>
             )}
-            {draftId && <button type="button" onClick={discard} disabled={!!busy} className="px-3 py-2 text-xs text-red-500/80 hover:text-red-300 transition-colors">Discard draft</button>}
+            {draftId && <ArmedButton onConfirm={discard} disabled={!!busy} armedLabel="Sure? Discard it" title="Delete this draft season" className="px-3 py-2 text-xs text-red-500/80 hover:text-red-300 transition-colors" armedClassName="px-3 py-2 text-xs font-bold text-red-300 bg-red-500/10 rounded-lg">Discard draft</ArmedButton>}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {draftId && (

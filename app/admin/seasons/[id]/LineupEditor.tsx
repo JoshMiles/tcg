@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRef, useState, useTransition, type DragEvent } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../../components/PendingButton';
+import { ConfirmButton } from '../../components/ConfirmButton';
 import { removePackFromSeason } from '../../actions';
 import { reorderSeasonPacksAction, setPackWeightAction } from '../../season-actions';
 
@@ -41,7 +42,10 @@ export function LineupEditor({ seasonId, initial }: { seasonId: string; initial:
   const saveWeight = (id: string, raw: string) => {
     const p = packs.find(x => x.id === id);
     const value = Number(raw);
-    if (!p || !Number.isFinite(value) || value < 0 || value === p.weight) return;
+    if (!p) return;
+    // Anything that is not a weight (empty, negative) goes back to what is saved instead of staying in the box looking accepted.
+    if (!raw.trim() || !Number.isFinite(value) || value < 0) { setWeights(x => ({ ...x, [id]: String(p.weight) })); return; }
+    if (value === p.weight) return;
     startTransition(async () => {
       setError('');
       try { await setPackWeightAction(id, value); setPacks(list => list.map(x => (x.id === id ? { ...x, weight: value } : x))); } catch { setError('Could not save that weight.'); }
@@ -106,7 +110,14 @@ export function LineupEditor({ seasonId, initial }: { seasonId: string; initial:
               <button type="button" onClick={() => move(pack.id, i + 1)} disabled={i === packs.length - 1} aria-label={`Move ${pack.name} down`} className="w-7 h-7 rounded text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30"><Icon name="chevronDown" className="w-4 h-4" /></button>
               <Link href={`/admin/packs/${pack.id}`} className="px-2.5 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded transition-colors ml-1">Edit</Link>
               <form action={removePackFromSeason.bind(null, seasonId, pack.id)}>
-                <button type="submit" onClick={e => { if (!window.confirm(`Remove ${pack.name} from this season? The pack itself is kept and can be added back.`)) e.preventDefault(); }} className="px-2.5 py-1 text-xs bg-red-900/50 hover:bg-red-900 text-red-400 rounded transition-colors">Remove</button>
+                <ConfirmButton
+                  title="Remove pack from this season?"
+                  confirmLabel="Remove"
+                  message={<>Remove <strong className="text-white">{pack.name}</strong> from this season? The pack itself is kept and can be added back.</>}
+                  className="px-2.5 py-1 text-xs bg-red-900/50 hover:bg-red-900 text-red-400 rounded transition-colors"
+                >
+                  Remove
+                </ConfirmButton>
               </form>
             </div>
           </div>

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 /** "YYYY-MM-DDTHH:mm" in the browser's local time, which is what <input type="datetime-local"> wants. */
 function toLocalInput(ms?: number): string {
@@ -18,13 +18,15 @@ export function DateTimeField({ label, name, defaultValue, onChange, help }: {
   label: string; name?: string; defaultValue?: number; onChange?: (ms: number | undefined) => void; help?: string;
 }) {
   const [local, setLocal] = useState(toLocalInput(defaultValue));
+  const id = useId();
   const ms = local ? new Date(local).getTime() : undefined;
   const valid = ms !== undefined && Number.isFinite(ms);
   return (
     <div>
-      <label className="block text-sm text-gray-400 mb-1">{label}</label>
+      <label htmlFor={id} className="block text-sm text-gray-400 mb-1">{label}</label>
       <div className="flex items-center gap-2">
         <input
+          id={id}
           type="datetime-local"
           value={local}
           onChange={e => { setLocal(e.target.value); const v = e.target.value ? new Date(e.target.value).getTime() : undefined; onChange?.(v !== undefined && Number.isFinite(v) ? v : undefined); }}

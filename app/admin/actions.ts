@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { recordAudit } from '@/lib/audit';
 import { takeUserSnapshot } from '@/lib/user-admin';
 import { activateWithWrapUp } from '@/lib/season-wrap';
+import { validateSeason } from '@/lib/draft-validation';
 import {
   saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
   savePack, getPack, deletePack,
@@ -36,27 +37,6 @@ import { DEFAULT_SCORING, sanitizeScoring, saveScoringSettings, resetScoringSett
 
 // ── Seasons ───────────────────────────────────────────────
 
-export async function createSeason(formData: FormData) {
-  await requireAdmin();
-  const id = crypto.randomUUID();
-  const willBeActive = formData.get('active') === 'true';
-
-  if (willBeActive) await setActiveSeason();
-
-  await saveSeason({
-    id,
-    name: formData.get('name') as string,
-    collectionName: (formData.get('collectionName') as string).replace(/\s+/g, ''),
-    active: willBeActive,
-    status: 'published',
-    createdAt: Date.now(),
-    maxConcurrentPacks: Number(formData.get('maxConcurrentPacks')) || 1,
-    packIds: [],
-  });
-
-  redirect(`/admin/seasons/${id}`);
-}
-
 /** A finite positive number from a form field (a date as milliseconds), or undefined. */
 const num = (v: FormDataEntryValue | null): number | undefined => {
   const n = Number(v);
@@ -72,15 +52,26 @@ export async function updateSeason(id: string, formData: FormData) {
   // Switching a different season on goes through activateWithWrapUp (below) so the one it replaces gets its final standings.
   const willBeActive = wantsActive && existing.active;
 
+  // The same checks the wizard makes, again on the server (a form can be posted without the browser's own checks): a name, a
+  // collection name with no spaces that no other season uses (a clash would merge two seasons' viewer collections), a sane end date.
+  const name = String(formData.get('name') ?? '').trim();
+  const collectionName = String(formData.get('collectionName') ?? '').replace(/\s+/g, '');
+  const startsAt = num(formData.get('startsAt'));
+  const endsAt = num(formData.get('endsAt'));
+  const others = (await listSeasons()).filter(x => x.id !== id).map(x => x.collectionName);
+  const problems = validateSeason({ name, collectionName, packIds: existing.packIds, startsAt, endsAt }, others).filter(i => i.step !== 'packs');
+  if (problems.length > 0) redirect(`/admin/seasons/${id}?tab=settings&error=${encodeURIComponent(problems.map(p => p.message).join(' '))}`);
+  const maxConcurrentPacks = Math.max(1, Math.floor(Number(formData.get('maxConcurrentPacks'))) || 1);
+
   await saveSeason({
     ...existing,
-    name: formData.get('name') as string,
-    collectionName: (formData.get('collectionName') as string).replace(/\s+/g, ''),
+    name,
+    collectionName,
     active: willBeActive,
-    maxConcurrentPacks: Number(formData.get('maxConcurrentPacks')) || 1,
-    startsAt: num(formData.get('startsAt')),
-    endsAt: num(formData.get('endsAt')),
-    autoStart: formData.get('autoStart') === 'true' && num(formData.get('startsAt')) !== undefined ? true : undefined,
+    maxConcurrentPacks,
+    startsAt,
+    endsAt,
+    autoStart: formData.get('autoStart') === 'true' && startsAt !== undefined ? true : undefined,
   });
   if (wantsActive && !existing.active) await activateWithWrapUp(id);
 
