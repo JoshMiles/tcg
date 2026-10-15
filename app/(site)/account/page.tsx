@@ -172,6 +172,13 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
             </section>
           )}
 
+          {samples.length < 2 && live && (
+            <section className="rind rounded-2xl p-5 space-y-2" aria-label="Score history">
+              <h2 className="font-display text-xl font-bold text-white">Your score over time</h2>
+              <p className="text-sm text-gray-400">A line appears here once your score or rank has changed between two visits to this page. Come back after your next pull or trade.</p>
+            </section>
+          )}
+
           {samples.length >= 2 && (
             <section className="rind rounded-2xl p-5 space-y-3" aria-label="Score history">
               <h2 className="font-display text-xl font-bold text-white">Your score over time</h2>
