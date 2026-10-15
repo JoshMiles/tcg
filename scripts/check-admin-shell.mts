@@ -1,6 +1,6 @@
 // Checks the admin frame's shared logic: the nav list (every page exists, shortcut letters are unique), the shortcut sequence,
 // and the command palette's ranking. Pure (reads the app folder, no database). Run: npx tsx scripts/check-admin-shell.mts
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
@@ -75,5 +75,12 @@ ok(empty.length > 0 && empty.every(i => i.group === 'Pages' || i.group === 'Acti
 eq(empty[0].label, 'Dashboard', 'and the dashboard first');
 ok(pal.rankItems(all, 'e', 5).length <= 5, 'the limit is respected');
 ok(pal.scoreItem({ label: 'Packs' }, 'PACKS') === 100, 'matching ignores case');
+
+// The frame's accessibility rules: the closed drawer is inert (Tab and screen readers skip it), there is a skip link to the main area,
+// and the not-found screen has its own heading.
+const shell = readFileSync(join(process.cwd(), 'app/admin/components/AdminShell.tsx'), 'utf8');
+ok(/inert={!wide && !open}/.test(shell), 'the sidebar is inert while the phone drawer is closed');
+ok(shell.includes('href="#admin-main"') && shell.includes('id="admin-main"'), 'the frame has a skip link to the main area');
+ok(readFileSync(join(process.cwd(), 'app/admin/not-found.tsx'), 'utf8').includes('asH1'), 'the not-found screen has an h1');
 
 console.log('admin shell checks passed');

@@ -1,7 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const STORAGE_KEY = 'tcg_admin_sidebar';
@@ -28,6 +28,18 @@ export function AdminShell({
   // choice: it sets window.__tcgSidebarForce and fires a 'tcg:sidebar' event (the flag covers a child that mounts first).
   const [forced, setForced] = useState(false);
   const pathname = usePathname();
+  // Below lg the sidebar is an off-canvas drawer. While it is closed it must not be reachable (Tab would walk through invisible links and a
+  // screen reader would read them), so it is `inert` until it is opened. On a wide screen it is always on show.
+  const [wide, setWide] = useState(true);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     try { setCollapsed(localStorage.getItem(STORAGE_KEY) === 'collapsed'); } catch { /* private mode */ }
@@ -57,16 +69,19 @@ export function AdminShell({
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    closeButton.current?.focus(); // keyboard users land in the drawer, and go back to the menu button when it closes
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); menuButton.current?.focus(); } };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
   return (
     <div className="flex min-h-screen text-gray-100">
+      <a href="#admin-main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-lg focus:bg-yellow-500 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       {/* Mobile top bar */}
       <header className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center gap-3 px-3 bg-gray-950/95 backdrop-blur border-b border-poke-blue-light/15">
         <button
+          ref={menuButton}
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
@@ -82,6 +97,7 @@ export function AdminShell({
       {open && <div className="lg:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setOpen(false)} aria-hidden />}
 
       <aside
+        inert={!wide && !open}
         data-collapsed={!expandedLook}
         onMouseEnter={() => setPeek(true)}
         onMouseLeave={() => setPeek(false)}
@@ -94,8 +110,9 @@ export function AdminShell({
         <div className="px-4 pt-5 pb-4 flex items-center gap-2">
           <div className="flex-1 min-w-0">{brand}</div>
           <button
+            ref={closeButton}
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={() => { setOpen(false); menuButton.current?.focus(); }}
             aria-label="Close menu"
             className="lg:hidden w-9 h-9 rounded-lg text-gray-400 hover:bg-white/10 text-lg"
           >
@@ -121,7 +138,7 @@ export function AdminShell({
         </button>
       </aside>
 
-      <main className={`flex-1 min-w-0 overflow-auto px-4 pb-6 pt-20 sm:px-6 lg:p-8 lg:transition-[margin] ${shownCollapsed ? 'lg:ml-[4.5rem]' : 'lg:ml-60'}`}>
+      <main id="admin-main" tabIndex={-1} className={`flex-1 min-w-0 overflow-auto focus:outline-none px-4 pb-6 pt-20 sm:px-6 lg:p-8 lg:transition-[margin] ${shownCollapsed ? 'lg:ml-[4.5rem]' : 'lg:ml-60'}`}>
         {children}
       </main>
     </div>
