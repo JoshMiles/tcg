@@ -11,7 +11,7 @@ import { cardProblems, cleanPackInput } from '@/lib/pack-clean';
 import { heldCardNumbers } from '@/lib/card-held';
 import {
   saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
-  savePack, getPack, deletePack,
+  savePack, getPack, deletePack, listAllPackIds,
   getPackCards, savePackCards,
   getCollection, saveCollection, deleteCollection, removeUserFromCollection, addCollectionEntry, withCollectionLock,
   getUserProfile, saveUserProfile, deleteUserProfile,
@@ -542,7 +542,10 @@ export async function saveOverlayEditorAction(formData: FormData) {
     props: payload.global !== undefined ? sanitizePropValues(payload.global) : before.props,
     autoReload,
   });
+  // Per-pack overrides only for packs that exist (a crafted payload must not leave stray keys behind).
+  const knownPacks = new Set(await listAllPackIds());
   for (const [packId, values] of Object.entries(payload.packs ?? {})) {
+    if (!knownPacks.has(packId)) continue;
     await savePackOverrides(packId, sanitizePropValues(values, { keepDefaults: true }));
   }
   // Scenes (presets with their own overlay URL): each carries its own values and/or layout.
