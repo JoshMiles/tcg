@@ -1,5 +1,5 @@
 import { Icon } from '@/app/components/Icon';
-import { getAllCollectionUsers, getUserProfile, listSeasons, getPackCards } from '@/lib/kv';
+import { getAllCollectionUsers, getUserProfile, listSeasons, getPackCards, getPacksForSeason } from '@/lib/kv';
 import { uniqueCount } from '@/lib/collection';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { getActivity } from '@/lib/activity';
@@ -33,9 +33,11 @@ export default async function UsersPage() {
   const profileMap = Object.fromEntries(profiles.filter(Boolean).map(p => [p!.username, p!]));
   const scoreRows = new Map((board?.rows ?? []).map((r, i) => [r.username, { score: r.score, rank: i + 1 }]));
 
-  const seasonCardCounts: Record<string, number> = {};
+  // The cards a season can be completed with: the same set the leaderboard uses (draft packs are never drawn, so their cards don't count).
+  const seasonNumbers: Record<string, Set<number>> = {};
   await Promise.all(seasons.map(async s => {
-    seasonCardCounts[s.id] = (await Promise.all(s.packIds.map(id => getPackCards(id)))).reduce((n, cards) => n + cards.length, 0);
+    const packs = (await getPacksForSeason(s)).filter(p => p.status !== 'draft');
+    seasonNumbers[s.id] = new Set((await Promise.all(packs.map(p => getPackCards(p.id)))).flat().map(c => c.number));
   }));
 
   // Last seen: the viewer's last counted action, falling back to the latest 500 logged events.
@@ -49,8 +51,9 @@ export default async function UsersPage() {
     let shiny = 0, full = 0;
     for (const s of user.seasons) for (const e of s.cards) { const v = decodeEntry(e).variant; if (v === 'shiny') shiny++; else if (v === 'full') full++; }
     const withPct = user.seasons.map(us => {
-      const total = seasonCardCounts[us.id] ?? 0;
-      const owned = uniqueCount(us.cards);
+      const numbers = seasonNumbers[us.id] ?? new Set<number>();
+      const total = numbers.size;
+      const owned = new Set(us.cards.map(e => decodeEntry(e).cardNumber).filter(n => numbers.has(n))).size;
       return { id: us.id, name: us.name, owned, total, pct: total > 0 ? Math.round((owned / total) * 100) : 0 };
     });
     const primary = withPct.find(w => w.id === active?.id) ?? [...withPct].sort((a, b) => b.pct - a.pct)[0];
@@ -99,6 +102,7 @@ export default async function UsersPage() {
               <ConfirmButton
                 title="Reset ALL collections?"
                 confirmLabel="Reset everyone"
+                typeToConfirm="reset everyone"
                 message={<>This wipes <strong className="text-white">every viewer&apos;s cards in every season</strong> ({rows.length} collector{rows.length !== 1 ? 's' : ''}). There is no restore point for a reset of everyone, so this can&apos;t be undone.</>}
                 className="px-3 py-2 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-xl transition-colors"
               >

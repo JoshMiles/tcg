@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../../components/PendingButton';
 import { ArmedButton } from '../../components/ArmedButton';
+import { ConfirmButton } from '../../components/ConfirmButton';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import {
   cancelUserTradeAction, giftPacksAction, grantManyAction, mergeUserAction, restoreSnapshotAction, saveFlagsAction, saveTagsAction,
@@ -162,11 +163,10 @@ export function ToolsPanel({ username, snapshots, collections }: { username: str
   const [result, setResult] = useState<UserActionResult | null>(null);
   const [into, setInto] = useState('');
   const [other, setOther] = useState('');
-  const restore = (id: string) => { if (!window.confirm('Restore this restore point? The cards in it replace what the viewer has in those seasons now (the current state is saved as another restore point first).')) return; startTransition(async () => { setResult(await restoreSnapshotAction(username, id)); router.refresh(); }); };
+  const restore = (id: string) => startTransition(async () => { setResult(await restoreSnapshotAction(username, id)); router.refresh(); });
   const merge = () => {
     const target = into.trim().replace(/^@/, '').toLowerCase();
     if (!target) return;
-    if (!window.confirm(`Merge ${username} into ${target}? All ${collections.cards} of their cards (${collections.seasons} season${collections.seasons === 1 ? '' : 's'}) move to ${target}, their tags are combined, and the ${username} profile is removed. Restore points are kept for 14 days.`)) return;
     startTransition(async () => { const r = await mergeUserAction(username, target); setResult(r); if (r.ok) router.push(`/admin/users/${encodeURIComponent(target)}`); });
   };
   return (
@@ -188,7 +188,19 @@ export function ToolsPanel({ username, snapshots, collections }: { username: str
               <li key={s.id} className="px-4 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                 <span className="text-gray-200">{s.reason}</span>
                 <span className="text-xs text-gray-500">{s.cards} cards · {s.seasons || 'profile only'}</span>
-                <span className="ml-auto flex items-center gap-3 text-xs text-gray-500">{new Date(s.at).toLocaleString('en-GB')}<button type="button" disabled={pending} onClick={() => restore(s.id)} className="text-yellow-400 hover:text-yellow-300 font-semibold">Restore</button></span>
+                <span className="ml-auto flex items-center gap-3 text-xs text-gray-500">{new Date(s.at).toLocaleString('en-GB')}
+                  <form onSubmit={e => { e.preventDefault(); restore(s.id); }}>
+                    <ConfirmButton
+                      title="Restore this restore point?"
+                      confirmLabel="Restore"
+                      tone="primary"
+                      message={<>The cards in it ({s.cards}{s.seasons ? `, ${s.seasons}` : ''}) replace what <strong className="text-white">{username}</strong> has in those seasons now. The current state is saved as another restore point first.</>}
+                      className="text-yellow-400 hover:text-yellow-300 font-semibold"
+                    >
+                      Restore
+                    </ConfirmButton>
+                  </form>
+                </span>
               </li>
             ))}
           </ul>
@@ -200,7 +212,14 @@ export function ToolsPanel({ username, snapshots, collections }: { username: str
         <p className="text-xs text-gray-500">For a viewer who changed their Twitch name: moves every card across all seasons into the account you name and removes this profile. Refused while either account has open trade offers.</p>
         <form onSubmit={e => { e.preventDefault(); merge(); }} className="flex items-center gap-2">
           <UserInput value={into} onValueChange={setInto} placeholder="username to merge into" aria-label="Merge into" className={`${field} w-56`} />
-          <button type="submit" disabled={pending || !into.trim() || collections.cards + snapshots.length < 0} className={`${btn} hover:border-amber-400/60 hover:text-amber-200`}>{pending && <Spinner />}Merge…</button>
+          <ConfirmButton
+            title={`Merge ${username} into ${into.trim().replace(/^@/, '').toLowerCase() || 'another account'}?`}
+            confirmLabel="Merge"
+            message={<>All {collections.cards} of their cards ({collections.seasons} season{collections.seasons === 1 ? '' : 's'}) move to <strong className="text-white">{into.trim().replace(/^@/, '').toLowerCase() || '...'}</strong>, their tags are combined, and the {username} profile is removed. If nobody has used that name yet it becomes a new account, so check the spelling. Restore points are kept for 14 days.</>}
+            className={`${btn} hover:border-amber-400/60 hover:text-amber-200`}
+          >
+            {pending && <Spinner />}Merge…
+          </ConfirmButton>
         </form>
       </div>
       <Result r={result} />

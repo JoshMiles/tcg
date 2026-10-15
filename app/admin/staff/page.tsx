@@ -59,7 +59,7 @@ export default async function StaffPage() {
               <li key={i} className="px-4 py-2 flex flex-wrap items-center gap-x-3">
                 <span className="text-gray-200"><strong className="text-white">{l.by}</strong> {l.action === 'added' ? 'added' : l.action === 'removed' ? 'removed' : 'changed'} <strong className="text-white">{l.login}</strong></span>
                 <span className="text-xs text-gray-500">{l.detail}</span>
-                <span className="ml-auto text-xs text-gray-600" title={new Date(l.at).toLocaleString()}>{ago(l.at)}</span>
+                <span className="ml-auto text-xs text-gray-600" title={`${new Date(l.at).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC`}>{ago(l.at)}</span>
               </li>
             ))}
           </ul>

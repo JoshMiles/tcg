@@ -24,8 +24,13 @@ import { PageTabs, pickTab } from '../../components/PageTabs';
 import { GrantPanel, ModerationPanel, TagsEditor, ToolsPanel, TradesPanel, type TradeLine } from './UserPanels';
 import { Panel, Tile } from '../../components/ui';
 
-export const metadata = { title: 'User · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
+
+// The tab says whose page it is.
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
+  const name = decodeURIComponent((await params).username).toLowerCase();
+  return { title: `${name} · Admin`, robots: { index: false } };
+}
 
 type SeasonEntry = {
   season: Season;
@@ -188,7 +193,7 @@ export default async function UserDetailPage({
         <Tile label="Unique cards" value={totalCards} sub={`${activeSeasons} season${activeSeasons === 1 ? '' : 's'}`} />
         <Tile label="Total pulls" value={totalPulls} />
         <Tile label="Last seen" value={ago(lastSeen, now)} />
-        <Tile label="Joined" value={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '-'} sub={`${tradeLines.filter(l => l.status === 'accepted').length} trades done`} />
+        <Tile label="Joined" value={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-GB', { timeZone: 'UTC' }) : '-'} sub={`${tradeLines.filter(l => l.status === 'accepted').length} trades done`} />
       </div>
 
       <PageTabs tabs={tabs} active={tab} base={`/admin/users/${encodeURIComponent(username)}`} keep={{ compare: compareWith || undefined }} label="User sections" />
@@ -200,16 +205,16 @@ export default async function UserDetailPage({
         <TagsEditor username={username} initial={profile?.tags ?? []} suggestions={SUGGESTED_TAGS} />
         <form action={updateProfile} className="grid md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1.5">Display name</label>
-            <input name="displayName" defaultValue={profile?.displayName || username} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
+            <label htmlFor="profile-displayName" className="block text-xs text-gray-500 mb-1.5">Display name</label>
+            <input id="profile-displayName" name="displayName" maxLength={60} defaultValue={profile?.displayName || username} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1.5">Twitch username</label>
-            <input name="twitchId" defaultValue={profile?.twitchId || ''} placeholder="twitch_username" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors" />
+            <label htmlFor="profile-twitchId" className="block text-xs text-gray-500 mb-1.5">Twitch username</label>
+            <input id="profile-twitchId" name="twitchId" maxLength={60} defaultValue={profile?.twitchId || ''} placeholder="twitch_username" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors" />
           </div>
           <div className="md:col-span-3">
-            <label className="block text-xs text-gray-500 mb-1.5">Private notes</label>
-            <textarea name="notes" rows={3} defaultValue={profile?.notes || ''} placeholder="Anything worth remembering about this viewer" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
+            <label htmlFor="profile-notes" className="block text-xs text-gray-500 mb-1.5">Private notes</label>
+            <textarea id="profile-notes" name="notes" maxLength={2000} rows={3} defaultValue={profile?.notes || ''} placeholder="Anything worth remembering about this viewer" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
           </div>
           <div className="md:col-span-3"><PendingButton type="submit" className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors">Save Profile</PendingButton></div>
         </form>

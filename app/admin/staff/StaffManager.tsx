@@ -1,6 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { UserInput } from '@/app/components/UserInput';
+import { ArmedButton } from '../components/ArmedButton';
 import { Icon } from '@/app/components/Icon';
 import { Chip, Panel, fieldClass, selectClass } from '../components/ui';
 import { addStaffAction, removeStaffAction, setStaffRoleAction } from '../staff-actions';
@@ -71,10 +72,12 @@ export function StaffManager({ staff, viewerRole, viewerLogin }: { staff: Row[];
                             <option value="mod">Mod</option>
                             <option value="admin" disabled={!canAddAdmin}>Admin</option>
                           </select>
-                          <button
-                            type="button" disabled={pending} className="text-xs font-bold text-red-300 hover:text-red-200 px-2 py-1.5 rounded-lg hover:bg-red-500/10"
-                            onClick={() => { if (window.confirm(`Remove ${s.displayName ?? s.login} from the staff?`)) run(() => removeStaffAction(s.login)); }}
-                          >Remove</button>
+                          <ArmedButton
+                            disabled={pending} armedLabel="Sure? Remove" title={`Remove ${s.displayName ?? s.login} from the staff`}
+                            className="text-xs font-bold text-red-300 hover:text-red-200 px-2 py-1.5 rounded-lg hover:bg-red-500/10"
+                            armedClassName="text-xs font-bold text-red-100 bg-red-500/25 px-2 py-1.5 rounded-lg"
+                            onConfirm={() => run(() => removeStaffAction(s.login))}
+                          >Remove</ArmedButton>
                         </span>
                       ) : <span className="text-xs text-gray-600">Only the super admin</span>}
                     </td>

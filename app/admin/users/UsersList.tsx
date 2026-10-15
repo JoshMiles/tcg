@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { Avatar } from '@/app/components/Avatar';
 import { Spinner } from '../components/PendingButton';
+import { ConfirmButton } from '../components/ConfirmButton';
 import { bulkGiftAction, bulkTagAction } from '../users-actions';
 import { useSlashFocus } from '../components/use-slash-focus';
 
@@ -165,10 +166,18 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
       {chosen.length > 0 && (
         <div className="dash-slide px-6 py-3 border-b border-yellow-500/30 bg-yellow-500/[0.05] flex flex-wrap items-center gap-3 text-sm">
           <strong className="text-yellow-300">{chosen.length} selected</strong>
-          <span className="flex items-center gap-1.5">
+          <form className="flex items-center gap-1.5" onSubmit={e => { e.preventDefault(); run(() => bulkGiftAction(chosen, Number(giftCount))); }}>
             <select value={giftCount} onChange={e => setGiftCount(e.target.value)} aria-label="Packs" className={select}>{[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n} pack{n === 1 ? '' : 's'}</option>)}</select>
-            <button type="button" disabled={pending} onClick={() => run(() => bulkGiftAction(chosen, Number(giftCount)))} className={chip(false)}><Icon name="gift" className="mr-1" />Gift</button>
-          </span>
+            <ConfirmButton
+              title="Gift packs to everyone selected?"
+              confirmLabel="Gift packs"
+              tone="primary"
+              message={<>Queue <strong className="text-white">{giftCount} pack{Number(giftCount) === 1 ? '' : 's'}</strong> for each of <strong className="text-white">{chosen.length} viewer{chosen.length === 1 ? '' : 's'}</strong> ({Number(giftCount) * chosen.length} openings in all). They play on stream one after another, even if the overlay is not connected yet.</>}
+              className={chip(false)}
+            >
+              <Icon name="gift" className="mr-1" />Gift
+            </ConfirmButton>
+          </form>
           <form className="flex items-center gap-1.5" onSubmit={e => { e.preventDefault(); if (bulkTag.trim()) run(() => bulkTagAction(chosen, bulkTag, 'add')); }}>
             <input value={bulkTag} onChange={e => setBulkTag(e.target.value)} list="all-tags" placeholder="tag" aria-label="Tag" maxLength={20} className="w-28 rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-yellow-500" />
             <datalist id="all-tags">{allTags.map(t => <option key={t} value={t} />)}</datalist>
