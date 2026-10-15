@@ -1,5 +1,6 @@
 import { kv, inSandbox } from './db';
-import { randomBytes } from 'crypto';
+import { randomBytes, timingSafeEqual } from 'crypto';
+import { checkWebhookUrl, cleanWebhookFields } from './webhook-clean';
 import { NextResponse } from 'next/server';
 
 // ── Types ─────────────────────────────────────────────────
@@ -79,10 +80,13 @@ export async function fireOutgoing(
 ): Promise<void> {
   if (!config.enabled || !config.url) return;
   if (await inSandbox()) return; // sandboxes never call outside services
+  // Whatever was stored, only ever call a public http(s) address (the settings form checks this too).
+  const target = checkWebhookUrl(config.url);
+  if (!target.ok || !target.url) return;
   const payload = Object.fromEntries(
-    config.fields.map(f => [f.key, interpolate(f.value, vars)])
+    cleanWebhookFields(config.fields).map(f => [f.key, interpolate(f.value, vars)])
   );
-  fetch(config.url, {
+  fetch(target.url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -95,11 +99,18 @@ export type IncomingWebhook =
   | { ok: true; username: string; body: Record<string, unknown> }
   | { ok: false; response: NextResponse };
 
+/** Compares two secrets in constant time (a plain `===` leaks how many leading characters matched). */
+function sameSecret(given: string, expected: string): boolean {
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 /** Validates the shared secret and normalizes `username` for MixItUp-style incoming webhooks. */
 export async function parseIncomingWebhook(req: Request): Promise<IncomingWebhook> {
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const settings = await getWebhookSettings();
-  if (typeof body.secret !== 'string' || body.secret !== settings.incomingSecret) {
+  if (typeof body.secret !== 'string' || !sameSecret(body.secret, settings.incomingSecret)) {
     return { ok: false, response: NextResponse.json({ error: 'Invalid secret' }, { status: 401 }) };
   }
   const username = typeof body.username === 'string' ? body.username.toLowerCase().trim() : '';

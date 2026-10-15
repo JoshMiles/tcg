@@ -68,8 +68,8 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
   ] },
 ];
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; backupError?: string }> }) {
-  const { tab: tabParam, saved, backupError } = await searchParams;
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; backupError?: string; error?: string }> }) {
+  const { tab: tabParam, saved, backupError, error } = await searchParams;
   // The overlay layout and look now live in the Overlay Editor (old links keep working).
   if (tabParam === 'layout' || tabParam === 'look') redirect('/admin/overlay');
   const tab = pickTab(TABS, tabParam);
@@ -100,6 +100,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       <PageTabs tabs={TABS} active={tab} base="/admin/settings" label="Settings sections" />
 
+      {error && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-2.5 text-sm text-red-300">Not saved: {error}</div>}
       {backupError && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-2.5 text-sm text-red-300">Backup failed: {backupError}</div>}
       {saved && SAVED_MESSAGES[saved] && (
         <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2.5 text-sm text-green-300 flex items-center gap-2">

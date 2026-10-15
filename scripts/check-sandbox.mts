@@ -56,12 +56,15 @@ ok((await snapshot(prodKeys)) === before, 'PRODUCTION UNCHANGED after test tools
 let calls = 0;
 const realFetch = globalThis.fetch;
 globalThis.fetch = (async () => { calls++; return new Response('ok'); }) as typeof fetch;
-const hook = { enabled: true, url: 'http://localhost:9/hook', fields: [{ key: 'u', value: '{username}' }] };
+const hook = { enabled: true, url: 'https://hooks.example.com/hook', fields: [{ key: 'u', value: '{username}' }] };
 await runInSandbox(box.id, () => wh.fireOutgoing(hook, { username: 'x' }));
 ok(calls === 0, 'outgoing webhooks are not called from a sandbox');
 await wh.fireOutgoing(hook, { username: 'x' });
-globalThis.fetch = realFetch;
 ok(calls === 1, 'outgoing webhooks still fire on production');
+// ...but never at this machine or a private network, whatever was stored.
+await wh.fireOutgoing({ ...hook, url: 'http://localhost:9/hook' }, { username: 'x' });
+ok(calls === 1, 'an outgoing webhook at a private address is not called');
+globalThis.fetch = realFetch;
 
 // The fake Twitch page's tokens are honoured only inside the sandbox they were minted for, and never forge a real one.
 process.env.SESSION_SECRET = 'check-secret-0123456789';
