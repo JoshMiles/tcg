@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, t
 import { useRouter } from 'next/navigation';
 import { DEFAULT_LAYOUT, SPAN_CLASS, WIDGETS, WIDGET_TYPES, type DashboardLayout, type Span, type WidgetPlacement, type WidgetType } from '@/lib/dashboard';
 import { Spinner } from '../components/PendingButton';
-import { applyDashboardPresetAction, deleteDashboardPresetAction, resetDashboardLayoutAction, saveDashboardLayoutAction, saveDashboardPresetAction } from './actions';
+import { applyDashboardPresetAction, deleteDashboardPresetAction, saveDashboardLayoutAction, saveDashboardPresetAction } from './actions';
 
 type DragSource = { type: WidgetType; fromLibrary: boolean };
 type DropAt = { type: WidgetType; after: boolean } | 'end' | null;
@@ -142,20 +142,8 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
       }
     });
   }
-  function reset() {
-    setError('');
-    startTransition(async () => {
-      try {
-        await resetDashboardLayoutAction();
-        setSaved(DEFAULT_LAYOUT);
-        setDraft(DEFAULT_LAYOUT.widgets);
-        setEdit(false);
-        router.refresh();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Could not reset the dashboard');
-      }
-    });
-  }
+  // Only changes the draft: nothing is stored until Save, and Cancel brings the saved layout back.
+  function reset() { setError(''); setDraft(DEFAULT_LAYOUT.widgets); }
   function cancel() { setDraft(saved.widgets); setEdit(false); setError(''); setDrag(null); setDrop(null); }
 
   // Presets: named layouts. Applying one makes it the saved layout straight away.
@@ -253,7 +241,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
             <p className="text-xs text-gray-500">Drag widgets to rearrange, use the arrow buttons to resize and move, the cross to remove. Drag from the library to add.</p>
           </div>
           <button type="button" onClick={() => setLibraryOpen(o => !o)} className={ghost} aria-expanded={libraryOpen}><Icon name="puzzle" className="mr-1" />Widgets ({unused.length} to add)</button>
-          <button type="button" onClick={reset} disabled={pending} className={`${ghost} hover:border-red-400/60 hover:text-red-300`}>Reset to default</button>
+          <button type="button" onClick={reset} disabled={pending} title="Puts the default layout in the draft; nothing is saved until you press Save layout" className={ghost}>Reset to default</button>
           <button type="button" onClick={cancel} disabled={pending} className={ghost}>Cancel</button>
           <button type="button" onClick={save} disabled={pending || !dirty} className={`${btn} border-yellow-500 bg-yellow-500 text-gray-950 hover:bg-yellow-400`}>{pending && <Spinner />}Save layout</button>
         </div>
