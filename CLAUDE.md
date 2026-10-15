@@ -444,7 +444,7 @@ Settings live in KV `discord:settings` (edited in Settings → Webhooks). `recor
 - `Old/` and `olddata.txt` are pre-rewrite leftovers (original StreamElements overlay, Season 1 assets); ignore them.
 
 ## Testing locally
-There is **no automated test suite**. Verification is: `npx tsc --noEmit` (run `rm -rf .next` first if you switched branches, stale `.next/types` give false errors), `node --check public/widget.js` (syntax only! it does not catch undefined identifiers, actually load the overlay), `npm run build`, and exercising the app by hand.
+**`npm run verify`** runs the typecheck, every `scripts/check-*.mts` (`npm run check`, via `scripts/run-checks.mjs`: one fresh mock KV per file on a free port, `node scripts/run-checks.mjs trades serials` runs only matching files; a check that cannot run here prints `skipped: <reason>` and exits 0) and `node --check public/widget.js`. Run it before every PR. There is no browser test suite, so the rest of verification is: `npx tsc --noEmit` (run `rm -rf .next` first if you switched branches, stale `.next/types` give false errors), `node --check public/widget.js` (syntax only! it does not catch undefined identifiers, actually load the overlay), `npm run build`, and exercising the app by hand.
 
 **Run the app against a fake database (never develop against production KV):**
 1. `node scripts/mock-kv.cjs`, in-memory Upstash REST fake on `:4111`. Data is lost when it stops.
