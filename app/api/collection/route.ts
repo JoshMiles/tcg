@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
   // would silently undo that. The new array is returned so the overlay can resync.
   let owned: number[] = [];
   let serial: number | null = null;
+  let copyId: string | null = null;
+  let uid: number | null = null;
   let before: Record<string, number[]> | null = null;
   if (pull) {
     const username = String(pull.username ?? '').toLowerCase();
@@ -30,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invalid pull' }, { status: 400 });
     }
     before = await getCollection(name);
-    ({ owned, serial } = await addCollectionEntryWithSerial(name, username, entry, 'pull'));
+    ({ owned, serial, copyId, uid } = await addCollectionEntryWithSerial(name, username, entry, 'pull'));
   } else {
     await saveCollection(name, data);
   }
@@ -55,6 +57,8 @@ export async function POST(req: NextRequest) {
       copies: owned.filter(e => decodeEntry(e).cardNumber === cardNumber).length,
       uniqueOwned: new Set(owned.map(e => decodeEntry(e).cardNumber)).size,
       ...(serial ? { serial, ...(mult > 1 ? { bonus: Math.round(mult * 100) / 100 } : {}) } : {}),
+      ...(copyId ? { copyId } : {}),
+      ...(uid ? { uid } : {}),
     });
 
     getWebhookSettings().then(settings =>
@@ -69,7 +73,7 @@ export async function POST(req: NextRequest) {
     ).catch(() => {});
   }
 
-  return NextResponse.json({ ok: true, owned, serial, serialMult: Math.round(mult * 100) / 100 });
+  return NextResponse.json({ ok: true, owned, serial, uid, serialMult: Math.round(mult * 100) / 100 });
 }
 
 export async function DELETE(req: NextRequest) {

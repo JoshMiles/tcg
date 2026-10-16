@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseIncomingWebhook } from '@/lib/webhooks';
-import { getActiveSeason, addCollectionEntry } from '@/lib/kv';
+import { getActiveSeason, addCollectionEntryWithSerial } from '@/lib/kv';
 import { recordActivity } from '@/lib/activity';
 import { VARIANTS, encodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No active season' }, { status: 404 });
   }
 
-  await addCollectionEntry(season.collectionName, username, encodeEntry(num, variant), 'grant');
-  await recordActivity({ type: 'grant', source: 'webhook', username, cardNumber: num, variant, collectionName: season.collectionName });
+  const made = await addCollectionEntryWithSerial(season.collectionName, username, encodeEntry(num, variant), 'grant');
+  await recordActivity({ type: 'grant', source: 'webhook', username, cardNumber: num, variant, collectionName: season.collectionName, ...(made.copyId ? { copyId: made.copyId } : {}), ...(made.uid ? { uid: made.uid } : {}) });
 
   return NextResponse.json({ ok: true, username, cardNumber: num, variant });
 }

@@ -4,7 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { requireStaff } from '@/lib/staff-guard';
 import { recordAudit } from '@/lib/audit';
 import { recordActivity } from '@/lib/activity';
-import { addCollectionEntry, ensureUserProfile, getActiveSeasonWithPacks, getUserProfile, saveUserProfile } from '@/lib/kv';
+import { addCollectionEntryWithSerial, ensureUserProfile, getActiveSeasonWithPacks, getUserProfile, saveUserProfile } from '@/lib/kv';
 import { cancelTrade } from '@/lib/trades';
 import { cleanTags, mergeUsers, restoreUserSnapshot, saveFlags, saveTags } from '@/lib/user-admin';
 import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
@@ -48,8 +48,9 @@ export async function grantManyAction(username: string, cardNumbers: number[], v
   if (picks.length === 0) return { ok: false, message: 'Pick at least one card.' };
   const collectionName = active.season.collectionName;
   for (const cardNumber of picks) {
-    for (let i = 0; i < n; i++) await addCollectionEntry(collectionName, lower, encodeEntry(cardNumber, v), 'grant');
-    await recordActivity({ type: 'grant', source: 'admin', username: lower, cardNumber, variant: v, collectionName });
+    let made: Awaited<ReturnType<typeof addCollectionEntryWithSerial>> | null = null;
+    for (let i = 0; i < n; i++) made = await addCollectionEntryWithSerial(collectionName, lower, encodeEntry(cardNumber, v), 'grant');
+    await recordActivity({ type: 'grant', source: 'admin', username: lower, cardNumber, variant: v, collectionName, ...(made?.copyId ? { copyId: made.copyId } : {}), ...(made?.uid ? { uid: made.uid } : {}) });
   }
   await ensureUserProfile(lower);
   const label = `${picks.length} card${picks.length === 1 ? '' : 's'} × ${n}${v === 'regular' ? '' : ` (${VARIANT_LABELS[v]})`}`;
