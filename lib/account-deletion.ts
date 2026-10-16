@@ -1,3 +1,4 @@
+import { deleteTesterRecord } from './access';
 import { deleteUserPullLimit } from './pull-limit';
 import { kv } from './db';
 import { listSeasons, getUserProfile, deleteUserProfile, removeUserFromCollection } from './kv';
@@ -40,6 +41,7 @@ export async function deleteViewerAccount(username: string): Promise<DeletionRep
   await deleteUserProfile(user);
   await deleteUserPullLimit(user);
   await deleteUserSettings(user); // settings, pinned / favourites, watches and the watch index
+  await deleteTesterRecord(user);
   await deleteAllDevices(user);
   await kv.del(`notif:${user}`, `notif:${user}:seen`, `notif:${user}:v`, `user:${user}:ach`, ...seasons.map(s => `user:${user}:scorehist:${s.id}`));
   const hidden = (await kv.get<string[]>('users:hidden').catch(() => null)) ?? [];

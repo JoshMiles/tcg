@@ -1,6 +1,6 @@
 import type { ComponentType, SVGProps } from 'react';
 import {
-  Activity, Share2, Smartphone, Bell, BellOff, Filter, List, Pin, Heart, ArrowDown, ArrowUp, Award, Ban, BookOpen, Bomb, CalendarDays, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
+  Bug, Activity, Share2, Smartphone, Bell, BellOff, Filter, List, Pin, Heart, ArrowDown, ArrowUp, Award, Ban, BookOpen, Bomb, CalendarDays, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   CircleAlert, CircleCheck, CircleDashed, ClipboardList, Clock, Coins, Compass, Copy, Crown, Download, Film, FlaskConical, Gamepad2, Gem,
   Gift, GripVertical, Handshake, History, Hourglass, Image, Inbox, Info, Layers, Link, Lock, Medal, Menu, MessageSquare, Monitor, Music,
   Palette, PartyPopper, Pause, Pencil, Play, Puzzle, Radio, RefreshCw, Repeat, Ruler, Search, Send, Settings, Shield, Sigma, Sparkles,
@@ -34,7 +34,7 @@ export const ICONS = {
   sparkles: Sparkles, check: Check, checkCircle: CircleCheck, x: X, warning: TriangleAlert, alert: CircleAlert, info: Info, ban: Ban,
   trade: Repeat, handshake: Handshake, undo: Undo2, inbox: Inbox, send: Send, board: ClipboardList, history: History, hourglass: Hourglass,
   cards: Layers, gift: Gift, trash: Trash2, refresh: RefreshCw, zap: Zap, book: BookOpen, radio: Radio, users: Users, user: User,
-  image: Image, film: Film, music: Music, palette: Palette, flask: FlaskConical, settings: Settings, menu: Menu, volume: Volume2,
+  image: Image, film: Film, music: Music, palette: Palette, flask: FlaskConical, bug: Bug, settings: Settings, menu: Menu, volume: Volume2,
   target: Target, pencil: Pencil, puzzle: Puzzle, gem: Gem, monitor: Monitor, trend: TrendingUp, chart: ChartColumn, coins: Coins,
   hole: CircleDashed, party: PartyPopper, compass: Compass, note: StickyNote, ruler: Ruler, search: Search, gamepad: Gamepad2,
   chat: MessageSquare, link: Link, share: Share2, phone: Smartphone, shield: Shield, database: Database, home: House, stop: Square, bomb: Bomb, grip: GripVertical, download: Download, copy: Copy,

@@ -14,6 +14,8 @@ import { ConfirmButton } from '../components/ConfirmButton';
 import { regenerateOverlayKeyAction } from './overlay-key-actions';
 import { WebhookConfig } from './WebhookConfig';
 import { MixItUpConfig } from './MixItUpConfig';
+import { AccessConfig } from './AccessConfig';
+import { getAccessLog, getAccessSettings, listTesters } from '@/lib/access';
 import { getMixItUpLog, getMixItUpSettings } from '@/lib/mixitup';
 import { ScoringForm, type ScoringGroupConfig } from './ScoringForm';
 import { CopyBlock, LiveGates, OverlayTest } from './OverlayPanels';
@@ -37,6 +39,7 @@ const TABS: (PageTab & { hint: string })[] = [
   { id: 'scoring', label: 'Scoring', icon: 'trophy', hint: 'Card values, bonuses and the leaderboard, with a live preview' },
   { id: 'webhooks', label: 'Webhooks', icon: 'link', hint: 'Discord feed, MixItUp integration: incoming triggers and outgoing events' },
   { id: 'mixitup', label: 'Mix It Up', icon: 'coins', hint: 'Viewers pay Brie Bucks for packs: prices, limits and the message sent to Mix It Up' },
+  { id: 'access', label: 'Access', icon: 'lock', hint: 'Lock the site to testers during alpha / beta, label it, and manage the testers list' },
   { id: 'viewers', label: 'Twitch & viewers', icon: 'users', hint: 'The extension setup checklist and the collection page' },
   { id: 'environment', label: 'Environment', icon: 'shield', hint: 'Which secrets and keys are configured, and what each one unlocks' },
   { id: 'about', label: 'About', icon: 'info', hint: 'Build info and the active season' },
@@ -76,8 +79,8 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
   ] },
 ];
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; backupError?: string; error?: string; note?: string }> }) {
-  const { tab: tabParam, saved, backupError, error, note } = await searchParams;
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ q?: string; tab?: string; saved?: string; backupError?: string; error?: string; note?: string }> }) {
+  const { tab: tabParam, saved, backupError, error, note, q } = await searchParams;
   // The overlay layout and look now live in the Overlay Editor (old links keep working).
   if (tabParam === 'layout' || tabParam === 'look') redirect('/admin/overlay');
   const tab = pickTab(TABS, tabParam);
@@ -166,6 +169,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {/* Mix It Up paid pulls */}
       {tab === 'mixitup' && <MixItUpConfig settings={await getMixItUpSettings()} log={await getMixItUpLog()} />}
+      {tab === 'access' && <AccessConfig settings={await getAccessSettings()} testers={await listTesters()} log={await getAccessLog()} filter={q ?? ''} />}
 
       {/* Scoring */}
       {tab === 'scoring' && (

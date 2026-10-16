@@ -1,3 +1,4 @@
+import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isSameOrigin } from '@/lib/session';
 import { addDevice, listDevices, pushConfigured, pushPublicKey, removeDevice, sendTestPush } from '@/lib/push';
@@ -15,6 +16,8 @@ async function who(req: NextRequest | null) {
 }
 
 export async function GET() {
+  const closed = await siteClosedResponse();
+  if (closed) return closed;
   const w = await who(null);
   if (!w.user) return w.res;
   if (!pushConfigured()) return NextResponse.json({ enabled: false, devices: [] });
@@ -22,6 +25,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const closed = await siteClosedResponse();
+  if (closed) return closed;
   const w = await who(req);
   if (!w.user) return w.res;
   const body = (await req.json().catch(() => null)) as { subscription?: unknown; test?: unknown } | null;
@@ -40,6 +45,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const closed = await siteClosedResponse();
+  if (closed) return closed;
   const w = await who(req);
   if (!w.user) return w.res;
   const body = (await req.json().catch(() => null)) as { endpoint?: unknown; id?: unknown } | null;
