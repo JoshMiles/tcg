@@ -2,14 +2,12 @@
 import { Icon } from '@/app/components/Icon';
 import { useState } from 'react';
 
-const OVERLAY_URL = 'https://cheesytcg.app/overlay.html';
-
 /** Copies the OBS overlay URL. Sized to sit beside the Preview button in the sidebar. */
-export function CopyUrlButton() {
+export function CopyUrlButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
 
   function copy() {
-    navigator.clipboard.writeText(OVERLAY_URL).then(() => {
+    navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });

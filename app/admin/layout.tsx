@@ -13,12 +13,15 @@ import { redirect } from 'next/navigation';
 import { countNewFeedback } from '@/lib/feedback';
 import { getStaff } from '@/lib/staff-guard';
 import { ROLE_LABELS, roleCan } from '@/lib/staff-core';
+import { getOverlayKey, overlayUrl } from '@/lib/overlay-key';
+import { SITE_URL } from '@/lib/site';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // The middleware already turned strangers away from the cookie alone; this re-checks the live staff list (a removed or demoted
   // person with an unexpired cookie stops here).
   const staff = await getStaff();
   if (!staff || !roleCan(staff.role, 'admin')) redirect(staff ? '/mod' : '/login?error=not-staff');
+  const overlayKey = await getOverlayKey().catch(() => '');
   return (
     <OverlayStatusProvider>
       <AdminShell
@@ -36,7 +39,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         footer={
           <>
             <div className="aside-stack flex items-stretch gap-1.5">
-              <CopyUrlButton />
+              <CopyUrlButton url={overlayUrl(SITE_URL, overlayKey)} />
               <a
                 href="/overlay.html"
                 target="_blank"
@@ -81,7 +84,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         }
       >
         <SandboxPill />
-        <AdminKeyboard />
+        <AdminKeyboard overlayKey={overlayKey} />
         {children}
       </AdminShell>
     </OverlayStatusProvider>

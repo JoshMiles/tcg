@@ -61,10 +61,12 @@ type SidebarWindow = Window & { __tcgSidebarForce?: boolean };
 
 export function OverlayEditor({
   initialGlobal, initialPacks, packs, presets, initialLayout, initialScope, saveAction, savePresetAction, deletePresetAction,
-  versions, seasons, seasonLooks, packCards, initialAutoReload, siteUrl,
+  versions, seasons, seasonLooks, packCards, initialAutoReload, siteUrl, overlayKey,
 }: {
   /** Where the overlay is served from (a scene's OBS URL is this + /overlay.html?preset=<id>). */
   siteUrl: string;
+  /** The overlay key that goes in every OBS URL (lib/overlay-key.ts). */
+  overlayKey: string;
   versions: VersionInfo[];
   seasons: SeasonInfo[];
   seasonLooks: Record<string, string>;
@@ -757,7 +759,7 @@ export function OverlayEditor({
                 const l = x.layout;
                 return { id: x.id, name: x.name, size: l ? `${l.width} × ${l.height}${isVertical(l) ? ' · vertical' : ''}` : 'uses the global layout', own: !!l };
               })].map(row => {
-                const url = `${siteUrl}/overlay.html${row.id ? '?preset=' + row.id : ''}`;
+                const url = `${siteUrl}/overlay.html?${row.id ? 'preset=' + row.id + '&' : ''}key=${overlayKey}`;
                 const key = row.id ? 'scene:' + row.id : 'global';
                 return (
                   <li key={row.id || 'global'} className={`rounded-lg border px-2.5 py-2 space-y-1.5 ${scope === key ? 'border-yellow-500/60 bg-yellow-500/5' : 'border-gray-800'}`}>
