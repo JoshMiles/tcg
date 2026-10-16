@@ -245,13 +245,14 @@ When the channel goes offline (the live check in `lib/twitch-live.ts` already se
 
 ## Track 6: Community extras (picked 2026-10-16)
 
-The user picked all three "other ideas". Order: **6.1 and 6.2 in parallel**, then **6.3** (it uses both).
+The user picked all three "other ideas", then added 6.4. Order: **6.1 and 6.2 in parallel**, then **6.3** (uses both) and **6.4** (shares the trade page and board cards with 6.1) in parallel.
 
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 6.1 | "Wanted" counts on trade listings | Ready | S |
 | 6.2 | Print of the week (home page) | Ready | M |
 | 6.3 | Weekly digest in Discord | Ready (after 6.1, 6.2) | M |
+| 6.4 | Choose which print to trade | Ready (after 6.1) | M |
 
 ### 6.1 "Wanted" counts on trade listings (Ready)
 
@@ -291,9 +292,34 @@ A Sunday-evening summary post for the community channel.
 - Check: `scripts/check-weekly-digest.mts` (builder, first-run movers, the "at least" rule, the skip rule, once per week).
 - Owns: `lib/weekly-digest.ts`, the `digest` bits of `lib/discord*.ts`, the digest step in `/api/cron/weekly`, the dashboard widget.
 
+### 6.4 Choose which print to trade (Ready, after 6.1)
+
+Asked (2026-10-16): "should be able to select which print of a card when trading". Today a trade stack is `{ cardNumber, variant, count }` and the engine moves the **newest** prints of that entry (escrow, settle, refund). The ledger already supports moving exact prints (`SyncContext.moves[].ids`, used by the admin Give action).
+
+**Data:** `TradeItem` gains `ids?: string[]` (print ids `<card>.<v>.<n>`). When set, `ids.length === count`, all distinct, all of that entry. Absent = "any print" = today's newest-first. Old trades have no `ids` and behave exactly as before.
+
+**Engine (`lib/trades.ts`, `lib/trade-core.ts`):**
+- **Give side** (the offerer's own prints): `createInLock` checks each id is held by the offerer right now (`copies:<c>:idx`), not already in another offer's escrow, and matches the entry; escrow then moves exactly those (`moves[].ids`). Refunds and settlement move the same ids out of `escrow:<tradeId>`, so identity is exact end to end.
+- **Get side, direct offers**: the offerer may pick exact prints of the recipient (e.g. "your #1 Gouda"). Checked when offered (held by the recipient) and again at accept; if one has moved since, accept fails with "That offer asks for Print #1023381, which you no longer hold" and the offer stays open for a counter.
+- **Get side, listings and unpicked direct asks**: the **taker** chooses at accept time. `POST /api/trades/[id]` `accept` takes an optional `getIds: Record<entry, string[]>`; absent = newest-first as today (so the Twitch panel, which can't pick yet, keeps working unchanged).
+- **Counters** carry `ids` across like any other field.
+- Seasons whose prints are not numbered yet refuse `ids` (the composer hides the picker there).
+- Points and the fairness label use the chosen prints' real worth (their edition bonus), falling back to today's values when unpicked.
+
+**Website UI:**
+- `GET /api/trades/holdings` returns, per entry, the prints (id, edition, print number, bonus multiplier) for both sides; the composer (`TradeComposer`) gets a **Choose prints** toggle on a stack with more than `count` prints: a row of small chips (`SerialChip` + `Print #...`) to tick exactly `count`, default the newest (today's behaviour), with a warning badge on a print that earns an edition bonus or is an edition #1 ("You are giving away Edition #1").
+- The take / accept flow: when the taker holds more prints of an asked-for entry than needed, **Take this trade** / **Accept** first opens the same chip picker (default newest), then the existing second-tap confirm.
+- `TradeStacks` shows exact prints when `ids` are set ("Print #1023381 · Edition #7") and "any print" otherwise; `/trade/<id>` and the board listing card do the same. The print page's journey already records the trade.
+
+**Twitch panel (freeze):** no edits to `public/twitch-panel/*` or `/api/twitch/*`. The panel keeps sending trades without `ids` and accepting with newest-first, which stays valid. Known limitation until the next extension version: for a trade with chosen prints, the panel's serial preview may show different numbers than the ones that will move. Listed below.
+
+**Checks:** extend `scripts/check-trades.mts`: exact ids through escrow / settle / refund / counter, a picked print moved away before accept, ids on an untracked season refused, a print in another offer refused, unpicked accept still newest-first, conservation unchanged. Then `scripts/check-serials.mts` for identity, and a hand test of the composer and the taker picker against the mock KV.
+
+**Owns:** `lib/trade-core.ts` (`TradeItem`), `lib/trades.ts`, `app/api/trades/*`, `TradeComposer`, `TradeActions` (the picker step), `TradeStacks`, `lib/trade-view.ts` (pools honour `ids`), FAQ trading answer. Starts after 6.1 merges (6.1 edits the trade page and board cards).
+
 ## Later: next extension version (after the freeze lifts)
 
-Ship as one reviewed panel version: achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
+Ship as one reviewed panel version: choosing prints when trading (6.4: composer and accept picker, exact serial preview), achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
 
 ## Done (recent)
 
