@@ -225,6 +225,29 @@ ok(JSON.stringify(hits[0].body.allowed_mentions) === '{"parse":[]}', 'listing me
 const lc = d.normalize({ url: hook(1), enabled: true, categories: { pulls: true, cards: true, stream: false, resets: false } } as never).channels[0];
 ok(lc.categories.listings === false, 'an old channel does not start posting listings');
 
+// ── Feedback kind filter (15.5) ──
+{
+  const fc = (over: Record<string, unknown>) => ({ id: 'f', name: 'F', url: hook(1), enabled: true, categories: cats({ feedback: true }), minStars: 1, newOnly: false, ...over });
+  ok(d.normalize({ enabled: true, channels: [fc({})] } as never).channels[0].feedbackKinds === undefined, 'no list stays no list (everything)');
+  ok(JSON.stringify(d.normalize({ enabled: true, channels: [fc({ feedbackKinds: ['bug', 'nope', 'idea', 'bug'] })] } as never).channels[0].feedbackKinds) === '["idea","bug"]', 'the list keeps known kinds once each, in order');
+  ok(d.normalize({ enabled: true, channels: [fc({ feedbackKinds: ['idea', 'bug', 'deletion', 'report'] })] } as never).channels[0].feedbackKinds === undefined, 'all four kinds is stored as everything');
+  ok(JSON.stringify(d.normalize({ enabled: true, channels: [fc({ feedbackKinds: [] })] } as never).channels[0].feedbackKinds) === '[]', 'an empty list means no feedback');
+  ok(d.normalize({ enabled: true, channels: [fc({ feedbackKinds: 'idea' })] } as never).channels[0].feedbackKinds === undefined, 'a malformed list is ignored');
+  ok(d.wantsFeedbackKind({}, 'bug') && !d.wantsFeedbackKind({ feedbackKinds: ['idea'] }, 'bug') && d.wantsFeedbackKind({ feedbackKinds: ['deletion', 'report'] }, 'report'), 'wantsFeedbackKind');
+  const { presetChannel } = await import('../lib/discord-config');
+  ok(JSON.stringify(presetChannel('feedback').feedbackKinds) === '["idea","bug"]', 'the Feedback preset is ideas and problems');
+  ok(JSON.stringify(presetChannel('requests').feedbackKinds) === '["deletion","report"]' && presetChannel('requests').categories.feedback, 'the Requests and reports preset is deletions and reports');
+  ok(presetChannel('pulls').feedbackKinds === undefined, 'other presets have no feedback filter');
+  await d.saveDiscordSettings({ enabled: true, channels: [
+    fc({ id: 'all', url: hook(21) }), fc({ id: 'ideas', url: hook(22), feedbackKinds: ['idea'] }), fc({ id: 'req', url: hook(23), feedbackKinds: ['deletion', 'report'] }),
+  ] } as never);
+  const item = (kind: string) => ({ id: 'x', kind, user: 'alice', title: 'T', body: 'B', status: 'new', at: 1 }) as never;
+  const got = async (kind: string) => { hits.length = 0; await d.notifyFeedback(item(kind)); await wait(); return hits.map(h => /\/(\d+)\//.exec(h.path)?.[1]).sort().join(','); };
+  ok(await got('idea') === '21,22', 'a suggestion reaches the all-kinds channel and the ideas channel');
+  ok(await got('bug') === '21', 'a problem reaches only the all-kinds channel');
+  ok(await got('deletion') === '21,23', 'a deletion request reaches the all-kinds and the requests channel');
+}
+
 server.close();
 console.log('discord ok');
 process.exit(0);

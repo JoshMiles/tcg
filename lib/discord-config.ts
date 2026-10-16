@@ -1,6 +1,16 @@
 // Discord feed settings types + constants. Browser-safe (no server imports) so the admin UI can use
 // them; the server-side logic lives in ./discord.ts.
 
+/** The kinds of feedback post a channel can pick from. 'report' is the profile report of ROADMAP 17.2 (the inbox gains that kind then). */
+export type FeedbackFilterKind = 'idea' | 'bug' | 'deletion' | 'report';
+export const FEEDBACK_FILTER_KINDS: FeedbackFilterKind[] = ['idea', 'bug', 'deletion', 'report'];
+/** What the channel card offers as ticks. Reports stay hidden until 17.2 ships (add { key: 'report', label: 'Reports' } then). */
+export const FEEDBACK_FILTER_OPTIONS: { key: FeedbackFilterKind; label: string }[] = [
+  { key: 'idea', label: 'Suggestions' },
+  { key: 'bug', label: 'Problems' },
+  { key: 'deletion', label: 'Deletion requests' },
+];
+
 export type DiscordCategory = 'pulls' | 'cards' | 'upgrades' | 'trades' | 'listings' | 'recap' | 'digest' | 'feedback' | 'stream' | 'resets' | 'admin' | 'system';
 
 /** One webhook (one Discord channel) with its own switch and its own choice of what to post. */
@@ -12,6 +22,8 @@ export interface DiscordChannel {
   categories: Record<DiscordCategory, boolean>;
   minStars: number;     // pulls below this rarity are skipped
   newOnly: boolean;     // pulls: only announce cards the viewer didn't have yet
+  /** Feedback: which kinds of post this channel gets. Absent = all of them (so existing channels are unchanged). */
+  feedbackKinds?: FeedbackFilterKind[];
   /** Set when the channel was switched off automatically after repeated failed sends (cleared when it is switched on again). */
   offReason?: string;
 }
@@ -51,7 +63,7 @@ export const DISCORD_CATEGORIES: { key: DiscordCategory; label: string; hint: st
 const NONE: Record<DiscordCategory, boolean> = { pulls: false, cards: false, upgrades: false, trades: false, listings: false, recap: false, digest: false, feedback: false, stream: false, resets: false, admin: false, system: false };
 
 /** "Add channel" presets: a name and the boxes ticked for it. */
-export const DISCORD_PRESETS: { key: string; name: string; hint: string; categories: Partial<Record<DiscordCategory, boolean>> }[] = [
+export const DISCORD_PRESETS: { key: string; name: string; hint: string; categories: Partial<Record<DiscordCategory, boolean>>; feedbackKinds?: FeedbackFilterKind[] }[] = [
   { key: 'activity', name: 'Activity', hint: 'Pulls, grants, upgrades, trades and resets', categories: { pulls: true, cards: true, upgrades: true, trades: true, resets: true } },
   { key: 'pulls', name: 'Pulls', hint: 'Every card pulled on stream', categories: { pulls: true } },
   { key: 'upgrades', name: 'Upgrades', hint: 'Cards upgraded to a better version', categories: { upgrades: true } },
@@ -59,7 +71,8 @@ export const DISCORD_PRESETS: { key: string; name: string; hint: string; categor
   { key: 'listings', name: 'Trade listings', hint: 'New board listings, linked to the trade', categories: { listings: true } },
   { key: 'recap', name: 'Stream recap', hint: 'One summary when the stream ends', categories: { recap: true } },
   { key: 'digest', name: 'Weekly digest', hint: 'One summary every Sunday evening', categories: { digest: true } },
-  { key: 'feedback', name: 'Feedback', hint: 'New suggestions and problem reports', categories: { feedback: true } },
+  { key: 'feedback', name: 'Feedback', hint: 'New suggestions and problem reports', categories: { feedback: true }, feedbackKinds: ['idea', 'bug'] },
+  { key: 'requests', name: 'Requests and reports', hint: 'Deletion requests and user reports. Keep this channel private', categories: { feedback: true }, feedbackKinds: ['deletion', 'report'] },
   { key: 'admin', name: 'Admin log', hint: 'What staff did, by name (keep it private)', categories: { admin: true } },
   { key: 'system', name: 'System', hint: 'Backups, data health, sandboxes, live status', categories: { system: true } },
   { key: 'stream', name: 'Stream', hint: 'Draws requested and collections shown', categories: { stream: true } },
@@ -71,7 +84,7 @@ export function newChannelId(): string {
 
 export function presetChannel(key: string): DiscordChannel {
   const p = DISCORD_PRESETS.find(x => x.key === key) ?? DISCORD_PRESETS[0];
-  return { id: newChannelId(), name: p.name, url: '', enabled: false, categories: { ...NONE, ...p.categories }, minStars: 1, newOnly: false };
+  return { id: newChannelId(), name: p.name, url: '', enabled: false, categories: { ...NONE, ...p.categories }, minStars: 1, newOnly: false, ...(p.feedbackKinds ? { feedbackKinds: [...p.feedbackKinds] } : {}) };
 }
 
 /** Steps for the "Deploys & code" card: GitHub (and so Vercel) changes posted straight to Discord, no server code involved. */
