@@ -26,6 +26,13 @@ function requestToken(siteKey: string, retry: boolean): Promise<string | null> {
 
 /** POSTs JSON; if the server wants the check, shows it and retries (up to twice). Returns the final response. */
 export async function postJson(url: string, body: Record<string, unknown>): Promise<Response> {
+  const res = await postJsonOnce(url, body);
+  // A trade action can change what the bell shows (a counter, an accept): check at once instead of waiting for the next poll.
+  if (url.startsWith('/api/trades') && typeof window !== 'undefined') window.dispatchEvent(new Event('tcg:notices-check'));
+  return res;
+}
+
+async function postJsonOnce(url: string, body: Record<string, unknown>): Promise<Response> {
   const send = (extra?: Record<string, unknown>) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...extra }) });
   let res = await send();
   for (let attempt = 0; attempt < 2; attempt++) {

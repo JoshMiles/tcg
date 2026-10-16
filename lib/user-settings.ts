@@ -33,6 +33,8 @@ export interface UserSettings {
   notifyResults: boolean;
   /** Bell notices when someone lists a card on their Looking for list or one of their saved alerts. */
   notifyWatch: boolean;
+  /** A short sound when a new notice arrives while the site is open (off unless they switch it on). */
+  noticeSound: boolean;
   /** Accept direct trade offers from other viewers (the open board is unaffected). */
   allowOffers: boolean;
   /** 'reduce' calms the site's animations even when the device does not ask for it. */
@@ -63,6 +65,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   notifyOffers: true,
   notifyResults: true,
   notifyWatch: true,
+  noticeSound: false,
   allowOffers: true,
   motion: 'system',
   hideUncollected: true,
@@ -86,7 +89,7 @@ export const EXPERIMENTS: Experiment[] = [
 
 const EXPERIMENT_IDS = new Set(EXPERIMENTS.map(e => e.id));
 
-export const BOOLEAN_KEYS = ['privateProfile', 'notifyOffers', 'notifyResults', 'notifyWatch', 'allowOffers', 'hideUncollected', 'compactGrids'] as const;
+export const BOOLEAN_KEYS = ['privateProfile', 'notifyOffers', 'notifyResults', 'notifyWatch', 'noticeSound', 'allowOffers', 'hideUncollected', 'compactGrids'] as const;
 
 /** Anything → a complete, valid settings object. Unknown keys are dropped, bad values fall back to the default. */
 export function sanitizeUserSettings(input: unknown): UserSettings {

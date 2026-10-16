@@ -30,7 +30,7 @@ export default async function FindCollector() {
             <h2 className="font-display text-xl font-bold text-white">Top collectors{season ? <span className="text-sm font-normal text-gray-500"> · {season.name}</span> : null}</h2>
             <Link href="/leaderboard" className="text-sm text-yellow-500 hover:text-yellow-300">Full leaderboard →</Link>
           </div>
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {rows.map((r, i) => (
               <li key={r.username}>
                 <Link href={profileHref(r.username)} className="rind rounded-xl px-4 py-3 flex items-center gap-3 hover:brightness-110 transition">

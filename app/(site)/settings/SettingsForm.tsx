@@ -7,7 +7,7 @@ import { watchLabel } from '@/lib/watch-core';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
-type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatch' | 'allowOffers' | 'hideUncollected' | 'compactGrids';
+type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatch' | 'noticeSound' | 'allowOffers' | 'hideUncollected' | 'compactGrids';
 
 function Section({ icon, title, hint, children }: { icon: Parameters<typeof Icon>[0]['name']; title: string; hint?: string; children: ReactNode }) {
   return (
@@ -104,6 +104,7 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
         <Row id="n-offers" label="New offers and counters" help="A bell notice when someone offers you a trade or counters yours." checked={s.notifyOffers} onChange={flip('notifyOffers')} />
         <Row id="n-results" label="How my offers ended" help="A bell notice when an offer of yours is accepted, declined, withdrawn or runs out of time." checked={s.notifyResults} onChange={flip('notifyResults')} />
         <Row id="n-watch" label="Listing alerts" help="A bell notice when someone posts a card on the open board that is on your Looking for list or one of your saved alerts below." checked={s.notifyWatch} onChange={flip('notifyWatch')} />
+        <Row id="n-sound" label="Play a sound" help="A short chime when a new notice arrives while the site is open in your browser. Off by default." checked={s.noticeSound} onChange={flip('noticeSound')} />
       </Section>
 
       <Section icon="search" title="Saved alerts" hint="Tell me when someone lists a card, in a version you choose. Cards on your Looking for list alert in every version automatically.">
