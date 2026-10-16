@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-17',
+    title: 'Card backs with their own look',
+    tags: ['new'],
+    items: [
+      'Each pack can now have its own design for the back of a print: its own colours, pattern, logo and a custom line of text, with the print number and the rest in the size and place the pack wants.',
+      'You see it when you flip a print on its page, in your collection and binder, on the home page and in the share picture of a print. Packs without a new design look the same as before.',
+    ],
+  },
+  {
+    date: '2026-10-17',
     title: 'Report a collector',
     tags: ['new'],
     items: [

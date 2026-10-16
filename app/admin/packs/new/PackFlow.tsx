@@ -5,6 +5,8 @@ import { ArmedButton } from '../../components/ArmedButton';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ImageUploadField } from '../../components/image-upload';
+import { CardBackEditor } from '../../components/CardBackEditor';
+import type { CardBackStyle } from '@/lib/card-back';
 import { CardsEditor, cardsSignature, type CardRow } from '../../components/CardsEditor';
 import { VariantChips } from '../../components/VariantSwitches';
 import { PackPreview } from '../../components/PackPreview';
@@ -25,6 +27,7 @@ const STEPS = [
   { id: 'upgrades', label: 'Upgrades' },
   { id: 'timing',   label: 'Timing' },
   { id: 'cards',    label: 'Cards' },
+  { id: 'back',     label: 'Card back' },
   { id: 'review',   label: 'Review' },
 ];
 
@@ -56,7 +59,7 @@ const NEW_PACK: PackInput = {
 
 const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors disabled:opacity-40';
 
-export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput; cards: CardRow[] } }) {
+export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: PackInput; cards: CardRow[] }; /** The draft's saved card back and the other packs to copy one from (only known when resuming a draft). */ cardBack?: { initial: CardBackStyle | null; others: { id: string; name: string }[] } }) {
   const router = useRouter();
   const [draftId, setDraftId] = useState<string | null>(initial?.id ?? null);
   const [pack, setPack] = useState<PackInput>(initial?.pack ?? NEW_PACK);
@@ -239,6 +242,16 @@ export function PackFlow({ initial }: { initial?: { id: string; pack: PackInput;
             <>
               <StepTitle title="Add cards" hint="Drop all your card art at once, then fix names, rarity and odds below. Everything saves as you go." />
               <CardsEditor cards={cards} setCards={setCards} upgradesEnabled={pack.upgradesEnabled} packDisabled={pack.disabledVariants ?? []} />
+            </>
+          )}
+
+          {/* ── Card back (optional) ── */}
+          {step === 'back' && (
+            <>
+              <StepTitle title="Card back" hint="Optional. How the back of a print looks for this pack. Skip it to keep the classic engraved plate." />
+              {draftId
+                ? <CardBackEditor key={draftId} packId={draftId} packName={pack.name || 'This pack'} coverImageUrl={pack.coverImageUrl} initial={cardBack?.initial ?? null} sample={{ name: cards[0]?.name || 'Sample card', imageUrl: cards[0]?.imageUrl || pack.coverImageUrl }} others={cardBack?.others ?? []} />
+                : <p className="text-sm text-gray-500">Finish the first step so the draft exists, then come back here.</p>}
             </>
           )}
 

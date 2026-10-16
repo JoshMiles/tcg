@@ -1,3 +1,4 @@
+import { plateLook, type CardBackStyle } from './card-back';
 import { cardThumbUrl } from './card-art';
 import { editionLine, engravedDate, madeLine } from './flip-back';
 import { isEscrow, type Copy } from './serials-core';
@@ -21,6 +22,8 @@ export interface CopyShareInput {
   privateHolder: boolean;
   /** `https://host` without a trailing slash. */
   siteUrl: string;
+  /** The pack's designed back (`cardBackFor`), when it has one. */
+  back?: CardBackStyle;
 }
 
 /** The share image of one copy: its card above an engraved plate with the unique number, edition, date, holder and a QR code. */
@@ -41,6 +44,7 @@ export function copyShareSpec(i: CopyShareInput): ShareSpec {
       lines: [gone ? 'No longer exists' : isEscrow(copy.owner) ? 'In a trade offer' : i.privateHolder ? 'Held by a private collector' : `Held by @${copy.owner}`],
       gold: i.mult > 1,
       qrUrl: `${i.siteUrl}/copy/${encodeURIComponent(i.seasonId)}/${copy.id}`,
+      look: plateLook(i.back),
     },
     footer: copy.uid ? `${host}/c/${copy.uid}` : host,
   };

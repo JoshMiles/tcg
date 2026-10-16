@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { CardTile } from '@/app/components/CardTile';
 import { FlipCard } from '@/app/components/FlipCard';
+import { cardBackFor } from '@/lib/card-back-store';
 import { loadFeatured } from '@/lib/print-of-week-store';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { getHoloResolver } from '@/lib/holo';
@@ -21,7 +22,7 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
   const f = await loadFeatured().catch(() => null);
   if (!f) return null;
   const { pick, season, copy, card, pack } = f;
-  const [hidden, minted, holoFor] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName).catch(() => new Map<number, number>()), getHoloResolver()]);
+  const [hidden, minted, holoFor, backStyle] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName).catch(() => new Map<number, number>()), getHoloResolver(), cardBackFor(pack, season.name)]);
   const total = minted.get(entryOf(copy)) ?? copy.n;
   const mult = settings ? serialMultiplier(copy.n, settings) : 1;
   const rarity = getRarity(card.stars);
@@ -39,7 +40,7 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
           back={{
             n: copy.n, uid: copy.uid, total, variantLabel: VARIANT_LABELS[copy.variant], name: card.name, date: engravedDate(copy.at), est: copy.est,
             bonus: mult > 1 ? Math.round(mult * 100) / 100 : undefined, hex: rarity?.hex, origin: ORIGIN_LABELS[copy.origin], holder,
-            qrUrl: `${SITE_URL}${href}`,
+            qrUrl: `${SITE_URL}${href}`, style: backStyle,
           }}
         >
           <CardTile

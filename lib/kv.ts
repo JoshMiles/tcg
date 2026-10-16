@@ -151,7 +151,7 @@ export async function savePack(pack: Pack): Promise<void> {
 }
 
 export async function deletePack(id: string): Promise<void> {
-  await Promise.all([kv.del(`pack:${id}`), kv.del(`pack:${id}:cards`)]);
+  await Promise.all([kv.del(`pack:${id}`), kv.del(`pack:${id}:cards`), kv.del(`pack:${id}:cardback`)]);
   const ids = await listAllPackIds();
   await kv.set('packs:list', ids.filter(i => i !== id));
   // remove from any seasons that reference this pack
