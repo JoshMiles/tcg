@@ -353,6 +353,47 @@ export async function notifyDiscord(e: ActivityEvent): Promise<void> {
   }
 }
 
+export interface ListingNotice {
+  id: string;
+  from: string;
+  expiresAt: number;
+  /** Readable lines per side ("2× Cat (Shiny)"), the given side with its edition numbers. */
+  give: string[];
+  get: string[];
+  givePts: number;
+  getPts: number;
+  /** The first given card's art. */
+  imageUrl?: string;
+  note?: string;
+}
+
+/**
+ * A new board listing, for channels with Trade listings on: who listed it, what they give and want, the points, when it ends and the
+ * first given card's art, the title linking to the trade's page. Mentions stay empty (the channel's own notification settings do that
+ * job). The post is not edited when the listing is taken or ends; the trade page shows the outcome. Silent in a sandbox.
+ */
+export async function notifyListing(l: ListingNotice): Promise<void> {
+  try {
+    if (await inSandbox()) return;
+    const list = (lines: string[]) => (lines.join('\n') || '-').slice(0, 1000);
+    const body = payload({
+      color: BLUE,
+      title: `📋 ${esc(l.from)} listed a trade`,
+      url: `${SITE_URL}/trade/${encodeURIComponent(l.id)}`,
+      ...(l.imageUrl ? { thumbnail: { url: absolute(cardThumbUrl(l.imageUrl)) } } : {}),
+      fields: [
+        { name: `Gives · ≈${l.givePts.toLocaleString()} pts`, value: list(l.give.map(esc)), inline: true },
+        { name: `Wants · ≈${l.getPts.toLocaleString()} pts`, value: list(l.get.map(esc)), inline: true },
+        { name: 'Ends', value: `<t:${Math.floor(l.expiresAt / 1000)}:R>`, inline: true },
+        ...(l.note ? [{ name: 'Note', value: esc(l.note).slice(0, 200) }] : []),
+      ],
+      timestamp: new Date().toISOString(),
+      footer: { text: 'Open the title to take the trade' },
+    });
+    later(() => sendToCategory('listings', body));
+  } catch { /* never breaks the trade */ }
+}
+
 // ── Admin log and system notices ──────────────────────────
 
 /**
