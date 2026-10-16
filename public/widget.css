@@ -240,6 +240,9 @@
   opacity: 0; transform: translateY(6px) scale(.9); transition: opacity .45s ease, transform .45s cubic-bezier(.2, 1.5, .4, 1);
 }
 .serial-badge.on { opacity: 1; transform: none; }
+/* Format "both": the edition pill with the game-wide print number as a small line under it. */
+.serial-badge.has-print { display: inline-grid; grid-template-columns: auto auto; justify-content: start; align-items: baseline; border-radius: 22px; }
+.serial-badge .serial-print { grid-column: 1 / -1; font-size: .62em; font-weight: 700; letter-spacing: .06em; opacity: .85; line-height: 1.1; }
 .serial-badge .serial-num { font-size: 1.3em; letter-spacing: .02em; }
 .serial-badge .serial-note { font-size: .72em; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .9; }
 .serial-badge.bonus { color: #ffe27a; border-color: #f1bb06; box-shadow: 0 0 14px rgba(241, 187, 6, .65), 0 3px 4px rgba(0, 0, 0, .5); }

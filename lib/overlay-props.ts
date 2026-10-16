@@ -193,6 +193,7 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.gotTextColor', group: 'pack', label: '"got:" text colour', type: 'color', default: '#fffefe' },
   { key: 'reveal.showLabel', group: 'pack', label: 'Label above the card', type: 'boolean', default: true, help: 'The tag: "new", or the version name.' },
   { key: 'reveal.showSerial', group: 'pack', label: 'Edition number on the card', type: 'boolean', default: true, help: 'The edition this print got ("#7": the 7th of that card and version ever made), with its points bonus when it is one of the first prints. Needs the season\'s prints to be numbered.' },
+  { key: 'reveal.serialFormat', group: 'pack', label: 'Number shown on the card', type: 'select', default: 'edition', options: [{ value: 'edition', label: 'Edition (#7)' }, { value: 'uid', label: 'Print number (#1023381)' }, { value: 'both', label: 'Both (edition, with the print number under it)' }], help: 'Which number the pill shows: the edition (the 7th of that card and version) or the print\'s own game-wide number. Falls back to the edition when the print has no number yet. Needs the season\'s prints to be numbered.' },
   { key: 'reveal.firstEver', group: 'pack', label: 'First-ever moment', type: 'boolean', default: true, help: 'When a pull is edition #1 (the very first print ever made of that card in that version) the overlay adds a gold banner and a burst of sparkles, and keeps the card up a little longer. Needs the season\'s prints to be numbered.' },
   { key: 'reveal.firstEverText', group: 'pack', label: 'First-ever banner text', type: 'text', default: 'FIRST EVER!', maxLength: 30 },
   { key: 'reveal.firstEverHold', group: 'pack', label: 'First-ever extra time', type: 'number', default: 2.5, min: 0, max: 10, step: 0.5, unit: 's', help: 'How much longer the card stays up for a first-ever pull.' },
@@ -262,7 +263,7 @@ function sectionFor(key: string): string {
   const r: [RegExp, string][] = [
     [/^reveal.(style|speed|startDelay|packScale|packSounds)$/, 'Animation'],
     [/^reveal.cardScale$/, 'Card'],
-    [/^reveal.(showLabel|labelSize|labelOwned|showSerial)$/, 'Label'],
+    [/^reveal.(showLabel|labelSize|labelOwned|showSerial|serialFormat)$/, 'Label'],
     [/^reveal.firstEver/, 'First-ever moment'],
     [/^reveal.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
     [/^reveal.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],

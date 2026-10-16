@@ -150,7 +150,7 @@ function showStatic(mode) {
       applyLook(theater, P, variant, card, cfg, false);
       cardLabel.style.opacity = '1';
       cardLabel.style.visibility = 'visible';
-      showSerial(theater, P, { n: 3, mult: 2.8 });
+      showSerial(theater, P, { n: 3, mult: 2.8, uid: 1023381 });
       editable(theater.cardBox.querySelector('.serial-badge'), 'label', 'Click to edit the label and edition badge');
       const burst = burstSpec(P, variant);
       radialContainer.style.opacity = String(burst.opacity);
@@ -395,7 +395,7 @@ async function loadCollection() {
   }
 }
 
-// Returns a promise of the server's reply ({ owned, serial, serialMult } for a pull), or null.
+// Returns a promise of the server's reply ({ owned, serial, uid, serialMult } for a pull), or null.
 function saveCollection(pull) {
   if (PREVIEW || !SEASON_CFG.collectionName) return Promise.resolve(null);
   const body = { data: revealedCardsByUser };
@@ -422,13 +422,23 @@ function showSerial(theater, P, info) {
   el.className = 'serial-badge' + (info.mult > 1 ? ' bonus' : '') + (info.n === 1 ? ' first' : '');
   const num = document.createElement('span');
   num.className = 'serial-num';
-  num.textContent = '#' + info.n;
+  // Edition (#7, the default), the print number (#1023381) or both (the edition pill with a small "Print #..." line under it).
+  // Without a print number (older server, untracked ledger) the edition is shown whatever the format says.
+  const fmt = info.uid ? String(pv(P, 'reveal.serialFormat', 'edition')) : 'edition';
+  num.textContent = '#' + (fmt === 'uid' ? info.uid : info.n);
   el.appendChild(num);
   if (info.n === 1 || info.mult > 1) {
     const note = document.createElement('span');
     note.className = 'serial-note';
     note.textContent = info.n === 1 ? 'first ever' : '\u00d7' + (Math.round(info.mult * 10) / 10);
     el.appendChild(note);
+  }
+  if (fmt === 'both') {
+    el.classList.add('has-print');
+    const print = document.createElement('span');
+    print.className = 'serial-print';
+    print.textContent = 'Print #' + info.uid;
+    el.appendChild(print);
   }
   cardBox.appendChild(el);
   requestAnimationFrame(() => el.classList.add('on'));
@@ -951,7 +961,7 @@ function drawCard(username, opts) {
     // The serial the server gave this copy (the reply is normally in long before the label shows).
     saved.then(r => {
       if (!r || !r.serial) return;
-      showSerial(theater, P, { n: r.serial, mult: r.serialMult || 1 });
+      showSerial(theater, P, { n: r.serial, mult: r.serialMult || 1, uid: r.uid || 0 });
       // Edition #1 of a real pull (not a chat show-off): the very first copy ever made of this card in this version.
       if (r.serial === 1 && !show && pv(P, 'reveal.firstEver', true)) firstEverMoment(theater, P, variant, S, extendHold);
     });
@@ -986,14 +996,14 @@ function drawCard(username, opts) {
   // Dry runs (test panel) show the draw but leave the collection, activity log and webhooks alone.
   if (show) {
     // A shown card is never saved: the server already checked it and sent the serial of the viewer's copy.
-    saved = Promise.resolve(show.serial ? { serial: show.serial, serialMult: show.serialMult || 1 } : null);
+    saved = Promise.resolve(show.serial ? { serial: show.serial, serialMult: show.serialMult || 1, uid: show.uid || 0 } : null);
   } else if (!opts.dry) {
     revealedCardsByUser[user].push(entry);
     saved = saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName });
   } else if (!PREVIEW) {
     // Test panel (dry run): nothing is saved, so show a sample serial to see how the badge looks.
     const n = opts.sampleSerial || 1 + Math.floor(Math.random() * 30);
-    saved = Promise.resolve({ serial: n, serialMult: n <= 20 ? 1 + 2 * (1 - (n - 1) / 20) : 1 });
+    saved = Promise.resolve({ serial: n, serialMult: n <= 20 ? 1 + 2 * (1 - (n - 1) / 20) : 1, uid: 1000000 + 1 + Math.floor(Math.random() * 90000) });
   }
 
   // Hide + cleanup. The hold can be extended (a first-ever pull stays up longer) until it has run out.
@@ -1092,7 +1102,7 @@ function queueDraw(username, opts) {
   processCardQueue();
 }
 
-/** Chat "show off a card": `ev` = { cardNumber, variant, serial?, serialMult? } already checked by the server. */
+/** Chat "show off a card": `ev` = { cardNumber, variant, serial?, serialMult?, uid? } already checked by the server. */
 function queueShowCard(username, ev) {
   cardQueue.push(() => drawCard(username, { show: ev }));
   processCardQueue();
@@ -1200,7 +1210,7 @@ function initDevPanel() {
     if (!cards.length) return;
     const cardNumber = cardSel.value ? Number(cardSel.value) : cards[Math.floor(Math.random() * cards.length)].number;
     const n = 1 + Math.floor(Math.random() * 30);
-    queueShowCard(user(), { cardNumber, variant: variantSel.value || 'regular', serial: n, serialMult: n <= 20 ? 1 + 2 * (1 - (n - 1) / 20) : 1 });
+    queueShowCard(user(), { cardNumber, variant: variantSel.value || 'regular', serial: n, serialMult: n <= 20 ? 1 + 2 * (1 - (n - 1) / 20) : 1, uid: 1000000 + 1 + Math.floor(Math.random() * 90000) });
   }
 
   $('btn-show-card').addEventListener('click', showOff);

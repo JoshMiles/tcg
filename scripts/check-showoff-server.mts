@@ -29,6 +29,7 @@ await clear('ann'); await clear('nobody');
 let r = await prepareShowOff('Ann', a.name);
 ok(r.ok && r.plan.cardNumber === a.number && r.plan.variant === 'shiny', 'owned card, no version asked: the best owned version is shown');
 ok(r.ok && r.plan.serial === 1, 'the lowest serial of that version is sent');
+ok(r.ok && typeof r.plan.uid === 'number' && r.plan.uid === (await ser.getCopy(c, `${a.number}.3.1`))?.uid, 'the print number of that copy is sent too');
 await clear('ann');
 r = await prepareShowOff('ann', `regular ${a.name}`);
 ok(r.ok && r.plan.variant === 'regular', 'asking for regular shows the regular');

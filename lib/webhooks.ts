@@ -34,6 +34,8 @@ export interface QueuedEvent {
   variant?: 'regular' | 'reverse' | 'full' | 'shiny';
   serial?: number;
   serialMult?: number;
+  /** The print number of that copy. */
+  uid?: number;
 }
 
 // ── KV helpers ────────────────────────────────────────────
