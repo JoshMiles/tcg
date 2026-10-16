@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-16',
+    title: 'Send feedback, and delete your account yourself',
+    tags: ['new'],
+    items: [
+      'The new Feedback page lets you suggest something or report a problem. If we answer, you get a notice in the bell.',
+      'Find it in the footer, the bell menu and the FAQ, and on the error page as Report this.',
+      'At the bottom of Settings, Request deletion asks the team to delete your account and data. You can cancel the request until it is handled.',
+    ],
+  },
+  {
+    date: '2026-10-16',
     title: 'Print of the week, wanted counts and a weekly digest',
     tags: ['new'],
     items: [

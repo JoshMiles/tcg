@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 import { requireAdmin } from '@/lib/admin-guard';
 import { recordAudit } from '@/lib/audit';
 import { takeUserSnapshot } from '@/lib/user-admin';
+import { deleteViewerAccount } from '@/lib/account-deletion';
 import { activateWithWrapUp } from '@/lib/season-wrap';
 import { validateSeason } from '@/lib/draft-validation';
 import { cardProblems, cleanPackInput } from '@/lib/pack-clean';
@@ -432,14 +433,7 @@ export async function resetUserSeason(username: string, collectionName: string) 
 export async function deleteUser(username: string) {
   await requireAdmin();
   const lower = username.toLowerCase();
-  await takeUserSnapshot(lower, 'Before deleting the account');
-  await recordAudit(lower, 'Account deleted', 'cards and profile removed (a restore point is kept for 14 days)');
-  const seasons = await listSeasons();
-  await Promise.all([
-    ...seasons.map(s => removeUserFromCollection(s.collectionName, lower)),
-    deleteUserProfile(lower),
-  ]);
-  await recordActivity({ type: 'delete', username: lower });
+  await deleteViewerAccount(lower); // snapshot, cancel open offers, cards, profile, settings, notices, devices, feedback (lib/account-deletion.ts)
   revalidatePath('/admin/users');
   redirect('/admin/users');
 }

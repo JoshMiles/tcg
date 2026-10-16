@@ -1,13 +1,17 @@
 // Suggestions and problem reports, the client-safe half (pure): shapes, limits, validation, the Discord text and the retention rule.
 // The store lives in lib/feedback.ts. scripts/check-feedback.mts covers this file.
 
-export type FeedbackKind = 'idea' | 'bug';
+/** 'deletion' is an account deletion request (ROADMAP 11.3): it shares the inbox but has its own flow and is never sent from the feedback form. */
+export type FeedbackKind = 'idea' | 'bug' | 'deletion';
 export type FeedbackStatus = 'new' | 'planned' | 'done' | 'wontfix' | 'duplicate';
 
-export const FEEDBACK_KINDS: FeedbackKind[] = ['idea', 'bug'];
+export const FEEDBACK_KINDS: FeedbackKind[] = ['idea', 'bug', 'deletion'];
 export const FEEDBACK_STATUSES: FeedbackStatus[] = ['new', 'planned', 'done', 'wontfix', 'duplicate'];
-export const KIND_LABELS: Record<FeedbackKind, string> = { idea: 'Suggestion', bug: 'Problem report' };
+export const KIND_LABELS: Record<FeedbackKind, string> = { idea: 'Suggestion', bug: 'Problem report', deletion: 'Deletion request' };
 export const STATUS_LABELS: Record<FeedbackStatus, string> = { new: 'New', planned: 'Planned', done: 'Done', wontfix: "Won't do", duplicate: 'Duplicate' };
+
+/** A deletion request still waiting after this many days is overdue (people expect about a month). */
+export const DELETION_OVERDUE_DAYS = 30;
 
 export const FEEDBACK_LIMITS = {
   title: 100,
@@ -108,8 +112,9 @@ export function expired(item: Pick<FeedbackItem, 'status' | 'resolvedAt'>, now: 
 }
 
 /** What the sender hears when staff change an item. Null when there is nothing to say (nothing changed). */
-export function noticeText(item: Pick<FeedbackItem, 'title' | 'status' | 'reply'>, changed: { status: boolean; reply: boolean }): string | null {
+export function noticeText(item: Pick<FeedbackItem, 'title' | 'status' | 'reply'> & { kind?: FeedbackKind }, changed: { status: boolean; reply: boolean }): string | null {
   if (!changed.status && !changed.reply) return null;
+  if (item.kind === 'deletion') return item.status === 'wontfix' ? `We could not delete your account yet.${item.reply ? ` Reason: ${item.reply.slice(0, 200)}` : ''}` : null; // a finished deletion has no one left to tell
   const what = `"${item.title.slice(0, 60)}"`;
   const status = item.status === 'new' ? '' : item.status === 'wontfix' ? `We won't be doing ${what}.` : item.status === 'done' ? `${what} is done.` : item.status === 'planned' ? `${what} is planned.` : `${what} was marked as a duplicate of something we already track.`;
   if (changed.reply && item.reply) return `${changed.status && status ? status + ' ' : ''}A reply on ${what}: ${item.reply.slice(0, 200)}`.trim();

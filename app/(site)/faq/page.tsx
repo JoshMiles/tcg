@@ -499,7 +499,8 @@ export default async function FaqPage() {
           Yes: <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> has a <em>Download my data</em> button that gives you your profile, settings, collections, trade offers, notices and alert devices as a file.
         </Q>
         <Q q="How do I get my data deleted?">
-          Ask the person who runs the game:{' '}
+          Go to <Link href="/settings#delete-account" className="text-yellow-400 hover:text-yellow-300">Settings</Link> and press <em>Request deletion</em> at the bottom (you type your login name to confirm). The team deletes your account, usually within about a month: your collection, settings, notices and alert devices are removed, the prints you held are retired, and your open trade offers are cancelled. It cannot be undone. A restore point is kept for 14 days only so a mistake can be fixed. Until it is handled you can cancel the request there.
+          You can also ask the person who runs the game:{' '}
           {CONTACT_EMAIL ? <a href={`mailto:${CONTACT_EMAIL}`} className="text-yellow-400 hover:text-yellow-300 underline">{CONTACT_EMAIL}</a> : <>contact {OPERATOR} through the stream&rsquo;s Twitch channel</>}
           . Logging out only ends your session; it doesn&rsquo;t delete your collection.
         </Q>

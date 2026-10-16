@@ -20,7 +20,8 @@ import { bucketsFor, getSeries, type Range, type Series } from './stats';
 import { twitchCredentials } from './twitch-helix';
 import { getOverlaySettings } from './overlay-settings';
 import { jsonBytes, sizeAttention } from './data-health';
-import { countNewFeedback } from './feedback';
+import { countNewFeedback, listFeedback } from './feedback';
+import { DELETION_OVERDUE_DAYS } from './feedback-core';
 import { autoDisabledChannels } from './discord';
 
 // Server side of the admin dashboard: where the layout and notes are stored, and the numbers the widgets show.
@@ -96,6 +97,11 @@ async function computeAttention(season: Season, packs: { pack: Pack; cards: Card
   for (const c of await autoDisabledChannels()) items.push({ id: `discord-off-${c.id}`, level: 'warn', text: `The Discord channel "${c.name}": ${c.reason}.`, href: '/admin/settings?tab=webhooks', cta: 'Webhooks' });
   const drafts = allPacks.filter(p => p.status === 'draft').length + seasons.filter(s => s.status === 'draft').length;
   if (drafts > 0) items.push({ id: 'drafts', level: 'info', text: `${drafts} draft pack${drafts === 1 ? '' : 's'} or season${drafts === 1 ? '' : 's'} waiting to be published.`, href: '/admin/packs', cta: 'Review drafts' });
+  const deletions = (await listFeedback({ kind: 'deletion', status: 'new' }).catch(() => [])).sort((a, b) => a.at - b.at);
+  if (deletions.length > 0) {
+    const overdue = Date.now() - deletions[0].at > DELETION_OVERDUE_DAYS * 86_400_000;
+    items.push({ id: 'deletions', level: overdue ? 'warn' : 'info', text: `${deletions.length} account deletion request${deletions.length === 1 ? '' : 's'} waiting${overdue ? ', the oldest for more than a month (people expect it done within about a month)' : ''}.`, href: '/admin/feedback?kind=deletion', cta: 'Deletion requests' });
+  }
   const waiting = await countNewFeedback().catch(() => 0);
   if (waiting > 0) items.push({ id: 'feedback', level: 'info', text: `${waiting} new suggestion${waiting === 1 ? '' : 's'} or problem report${waiting === 1 ? '' : 's'} from viewers waiting for a look.`, href: '/admin/feedback', cta: 'Feedback' });
   if (!twitchCredentials()) items.push({ id: 'twitch', level: 'info', text: 'Twitch credentials are not set, so avatars and the live indicator are switched off.', href: '/admin/settings?tab=viewers', cta: 'Viewer settings' });
