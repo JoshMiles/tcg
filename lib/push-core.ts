@@ -47,7 +47,7 @@ export function deviceLabel(ua: string): string {
 export function pushGroup(kind: string): PushKind {
   if (kind === 'offer' || kind === 'countered') return 'offers';
   if (kind === 'watch') return 'watch';
-  return kind === 'admin' ? 'admin' : 'results';
+  return kind === 'admin' || kind === 'feedback' ? 'admin' : 'results';
 }
 
 export function allowsPush(pushKinds: readonly string[], kind: string): boolean {
@@ -56,14 +56,14 @@ export function allowsPush(pushKinds: readonly string[], kind: string): boolean 
 
 const TITLES: Record<string, string> = {
   offer: 'New trade offer', countered: 'Counter offer', accepted: 'Trade accepted', declined: 'Offer declined', cancelled: 'Offer cancelled',
-  expired: 'Offer expired', watch: 'Card listed', admin: 'Message from the admins',
+  expired: 'Offer expired', watch: 'Card listed', admin: 'Message from the admins', feedback: 'An answer to your feedback',
 };
 
 export function payloadFor(n: Pick<Notice, 'id' | 'kind' | 'text' | 'tradeId'>): PushPayload {
   return {
     title: TITLES[n.kind] ?? 'The Cheesy TCG',
     body: n.text.slice(0, 240),
-    url: n.kind === 'watch' ? '/trade?tab=board' : '/trade',
+    url: n.kind === 'watch' ? '/trade?tab=board' : n.kind === 'feedback' ? '/feedback' : '/trade',
     tag: n.tradeId ? `trade-${n.tradeId}` : `notice-${n.id}`,
     urgent: n.kind === 'offer' || n.kind === 'countered',
   };

@@ -39,6 +39,8 @@ export interface UserSettings {
   notifyResults: boolean;
   /** Bell notices when someone lists a card on their Looking for list or one of their saved alerts. */
   notifyWatch: boolean;
+  /** Bell notices when staff answer a suggestion or problem report they sent. */
+  notifyFeedback: boolean;
   /** A short sound when a new notice arrives while the site is open (off unless they switch it on). */
   noticeSound: boolean;
   /** Which kinds of notice also arrive as a push alert on their devices (the bell switches above still apply first). */
@@ -79,6 +81,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   notifyOffers: true,
   notifyResults: true,
   notifyWatch: true,
+  notifyFeedback: true,
   noticeSound: false,
   pushKinds: [...PUSH_KINDS],
   allowOffers: true,
@@ -105,7 +108,7 @@ export const EXPERIMENTS: Experiment[] = [
 
 const EXPERIMENT_IDS = new Set(EXPERIMENTS.map(e => e.id));
 
-export const BOOLEAN_KEYS = ['privateProfile', 'notifyOffers', 'notifyResults', 'notifyWatch', 'noticeSound', 'allowOffers', 'hideUncollected', 'compactGrids'] as const;
+export const BOOLEAN_KEYS = ['privateProfile', 'notifyOffers', 'notifyResults', 'notifyWatch', 'notifyFeedback', 'noticeSound', 'allowOffers', 'hideUncollected', 'compactGrids'] as const;
 
 /** Anything → a complete, valid settings object. Unknown keys are dropped, bad values fall back to the default. */
 export function sanitizeUserSettings(input: unknown): UserSettings {
@@ -146,11 +149,12 @@ export function sparse(s: UserSettings): Partial<UserSettings> {
 
 export const hasExperiment = (s: UserSettings, id: string) => s.experiments.includes(id);
 
-export type NoticeGroup = 'offers' | 'results' | 'watch';
+export type NoticeGroup = 'offers' | 'results' | 'watch' | 'feedback';
 /** Which settings switch governs a notice kind (admin notices are never silenced). */
 export function noticeGroup(kind: string): NoticeGroup | null {
   if (kind === 'offer' || kind === 'countered') return 'offers';
   if (kind === 'watch') return 'watch';
+  if (kind === 'feedback') return 'feedback';
   if (kind === 'accepted' || kind === 'declined' || kind === 'cancelled' || kind === 'expired') return 'results';
   return null;
 }
@@ -158,5 +162,5 @@ export function noticeGroup(kind: string): NoticeGroup | null {
 /** Should a notice of this kind reach this viewer? */
 export function wantsNotice(s: UserSettings, kind: string): boolean {
   const g = noticeGroup(kind);
-  return g === 'offers' ? s.notifyOffers : g === 'results' ? s.notifyResults : g === 'watch' ? s.notifyWatch : true;
+  return g === 'offers' ? s.notifyOffers : g === 'results' ? s.notifyResults : g === 'watch' ? s.notifyWatch : g === 'feedback' ? s.notifyFeedback : true;
 }

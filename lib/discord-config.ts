@@ -1,7 +1,7 @@
 // Discord feed settings types + constants. Browser-safe (no server imports) so the admin UI can use
 // them; the server-side logic lives in ./discord.ts.
 
-export type DiscordCategory = 'pulls' | 'cards' | 'upgrades' | 'trades' | 'listings' | 'recap' | 'digest' | 'stream' | 'resets' | 'admin' | 'system';
+export type DiscordCategory = 'pulls' | 'cards' | 'upgrades' | 'trades' | 'listings' | 'recap' | 'digest' | 'feedback' | 'stream' | 'resets' | 'admin' | 'system';
 
 /** One webhook (one Discord channel) with its own switch and its own choice of what to post. */
 export interface DiscordChannel {
@@ -29,7 +29,7 @@ export interface DiscordSettings {
 
 export const MAX_DISCORD_CHANNELS = 25;
 
-export const DEFAULT_CATEGORIES: Record<DiscordCategory, boolean> = { pulls: true, cards: true, upgrades: true, trades: true, listings: false, recap: false, digest: false, stream: false, resets: true, admin: false, system: false };
+export const DEFAULT_CATEGORIES: Record<DiscordCategory, boolean> = { pulls: true, cards: true, upgrades: true, trades: true, listings: false, recap: false, digest: false, feedback: false, stream: false, resets: true, admin: false, system: false };
 
 export const DEFAULT_DISCORD: DiscordSettings = { enabled: false, channels: [] };
 
@@ -41,13 +41,14 @@ export const DISCORD_CATEGORIES: { key: DiscordCategory; label: string; hint: st
   { key: 'listings', label: 'Trade listings', hint: 'New listings on the trade board, each with a link to its trade page' },
   { key: 'recap', label: 'Stream recap', hint: 'One summary after each stream: packs opened, new collectors, the rarest pull, the top puller and trades' },
   { key: 'digest', label: 'Weekly digest', hint: 'One post each Sunday evening: pulls, new collectors and trades, the top 3, movers, the most traded and most wanted cards and the print of the week' },
+  { key: 'feedback', label: 'Feedback', hint: 'Each new suggestion and problem report, with the sender’s login (the text is cut and Markdown-escaped)' },
   { key: 'stream', label: 'Stream triggers', hint: 'Pack draws / collection views requested, and collections shown' },
   { key: 'resets', label: 'Resets & deletions', hint: 'Collections reset or users deleted' },
   { key: 'admin', label: 'Admin log', hint: 'What staff did, with their names (grants, removals, resets, staff changes, seasons, packs, scoring, trading paused). Keep this channel private' },
   { key: 'system', label: 'System', hint: 'Backup results, data-health warnings, sandboxes, the stream going live or offline' },
 ];
 
-const NONE: Record<DiscordCategory, boolean> = { pulls: false, cards: false, upgrades: false, trades: false, listings: false, recap: false, digest: false, stream: false, resets: false, admin: false, system: false };
+const NONE: Record<DiscordCategory, boolean> = { pulls: false, cards: false, upgrades: false, trades: false, listings: false, recap: false, digest: false, feedback: false, stream: false, resets: false, admin: false, system: false };
 
 /** "Add channel" presets: a name and the boxes ticked for it. */
 export const DISCORD_PRESETS: { key: string; name: string; hint: string; categories: Partial<Record<DiscordCategory, boolean>> }[] = [
@@ -58,6 +59,7 @@ export const DISCORD_PRESETS: { key: string; name: string; hint: string; categor
   { key: 'listings', name: 'Trade listings', hint: 'New board listings, linked to the trade', categories: { listings: true } },
   { key: 'recap', name: 'Stream recap', hint: 'One summary when the stream ends', categories: { recap: true } },
   { key: 'digest', name: 'Weekly digest', hint: 'One summary every Sunday evening', categories: { digest: true } },
+  { key: 'feedback', name: 'Feedback', hint: 'New suggestions and problem reports', categories: { feedback: true } },
   { key: 'admin', name: 'Admin log', hint: 'What staff did, by name (keep it private)', categories: { admin: true } },
   { key: 'system', name: 'System', hint: 'Backups, data health, sandboxes, live status', categories: { system: true } },
   { key: 'stream', name: 'Stream', hint: 'Draws requested and collections shown', categories: { stream: true } },
