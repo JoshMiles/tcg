@@ -1,3 +1,4 @@
+import { getOverlayKey } from '@/lib/overlay-key';
 import { Icon } from '@/app/components/Icon';
 import { getActiveSeason, getPackCards, listAllPacks, listSeasons } from '@/lib/kv';
 import { getOverlaySettings, getPackOverrides, getSeasonLooks, listPresets } from '@/lib/overlay-settings';
@@ -62,6 +63,7 @@ export default async function OverlayEditorPage({ searchParams }: { searchParams
           packCards={packCards}
           initialAutoReload={overlay.autoReload}
           siteUrl={SITE_URL}
+          overlayKey={await getOverlayKey()}
         />
       </div>
     </div>

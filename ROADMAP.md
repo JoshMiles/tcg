@@ -360,8 +360,9 @@ Asked (2026-10-16): "should be able to select which print of a card when trading
 | 12.1 | Mix It Up settings tab (connection, price, message) | Done (#201) | M |
 | 12.2 | Paid pulls: balance check, deduct, revoke | Done (#201) | L |
 | 12.3 | Limits per stream per viewer | Done (#201) | S |
-| 12.4 | Pull limits stored per viewer, with temporary bonuses | Done (this PR) | S |
-| 13.1 | Lock down `/api/collection`: server-rolled pulls with one-use tickets | Done (this PR) | M |
+| 12.4 | Pull limits stored per viewer, with temporary bonuses | Done (#204) | S |
+| 13.1 | Lock down `/api/collection`: server-rolled pulls with one-use tickets | Done (#202) | M |
+| 13.2 | Overlay key for the queue, notify and heartbeat endpoints | Done (#203) | S |
 
 ### Tracks 7 to 11: order
 
@@ -671,7 +672,16 @@ Fix: **the server decides the pull, the overlay only plays it.** `lib/draw.ts`: 
 - `GET` stays public (the same data is on the profile pages).
 The Mix It Up reservation shares the ticket's id (12 h TTL, `releasePaidPull` returns it if a pull is never queued). `scripts/check-draw.mts` covers the odds, tickets and the route.
 
-**Still open (separate items):** `GET /api/webhooks/queue` is unauthenticated, so anyone can take a queued pull before the overlay does (the viewer's pull is lost; a paid one is not charged and its reservation expires); `POST /api/webhooks/notify` can be used to add "collection shown" activity and fire the outgoing webhook. Both need an overlay key. Pulls queued before this change have no ticket and are not saved when played.
+Pulls queued before this change have no ticket and are not saved when played.
+
+### 13.2 The overlay key (Done)
+
+`GET /api/webhooks/queue` (takes a queued pull), `POST /api/webhooks/notify` ("collection shown" activity and the outgoing webhook) and `POST /api/overlay/heartbeat` (the "overlay connected" status) were open to anyone. Now they need the **overlay key** (`lib/overlay-key.ts`, KV `overlay:key`, made on first use): the OBS address is `/overlay.html?key=<key>` (plus `&preset=...`, `&dev`), `widget.js` sends it as `x-overlay-key` on every request to the site, and the server accepts the right key, a staff session (the editor preview and test tabs need no key) or a sandbox (its own fake data). A refused overlay shows "Overlay key missing or changed" on screen.
+- **Where it shows:** Settings → OBS Overlay (the browser-source address, with a **Make a new key** button that locks out the old address), the Overlay Editor's scene addresses, the sidebar's Copy URL button and the command palette's Copy overlay URL.
+- **User step after deploy:** copy the new address from Settings → OBS Overlay into every OBS browser source (and each scene's address from the Overlay Editor) and refresh. Until then pulls will not play and the overlay says why.
+- `scripts/check-overlay-key.mts` covers the three endpoints, a wrong key, and rotating the key.
+
+---
 
 ---
 

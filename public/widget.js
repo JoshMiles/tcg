@@ -27,6 +27,20 @@ if (SANDBOX_ID) {
   });
 }
 
+// Overlay key: the OBS URL carries ?key=..., and the server only lets the overlay take queued pulls, report shown collections and
+// check in when that key (or a staff session) comes with the request (lib/overlay-key.ts). Sent on every request to this site.
+const OVERLAY_KEY = new URLSearchParams(window.location.search).get('key');
+if (OVERLAY_KEY) {
+  const keyedFetch = window.fetch.bind(window);
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (typeof input !== 'string' || !(url.startsWith('/') || url.startsWith(window.location.origin))) return keyedFetch(input, init);
+    const headers = new Headers((init && init.headers) || undefined);
+    headers.set('x-overlay-key', OVERLAY_KEY);
+    return keyedFetch(input, Object.assign({}, init, { headers }));
+  };
+}
+
 const PREVIEW = new URLSearchParams(window.location.search).has('preview');
 // The stage is the browser source's size; scale/offset are set separately for the pack opening and the collection
 // view (each theater wrapper gets .is-pack or .is-collection, which picks up its own --pack-* / --col-* variables).
@@ -1270,9 +1284,18 @@ function initDevPanel() {
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
+// The server refused the overlay: the browser source URL has no (or an old) key. Say so on the overlay itself, now and then.
+let keyWarnedAt = 0;
+function warnKey() {
+  if (Date.now() - keyWarnedAt < 60000) return;
+  keyWarnedAt = Date.now();
+  showAlert('Overlay key missing or changed: copy the new URL from Settings > OBS Overlay');
+}
+
 async function pollWebhookQueue() {
   try {
     const res = await fetch('/api/webhooks/queue');
+    if (res.status === 401) { warnKey(); return; }
     if (!res.ok) return;
     const event = await res.json();
     if (!event) return;
