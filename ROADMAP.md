@@ -357,9 +357,9 @@ Asked (2026-10-16): "should be able to select which print of a card when trading
 | 11.1 | Changelog page | Done (#177) | S |
 | 11.2 | Suggestions and feedback, report a problem (one inbox) | Done (#186) | M |
 | 11.3 | Request account deletion button | Done (#193) | S |
-| 12.1 | Mix It Up settings tab (connection, price, message) | Ready | M |
-| 12.2 | Paid pulls: balance check, deduct, revoke | Ready (with 12.1) | L |
-| 12.3 | Limits per stream per viewer | Ready (with 12.2) | S |
+| 12.1 | Mix It Up settings tab (connection, price, message) | Done (#201) | M |
+| 12.2 | Paid pulls: balance check, deduct, revoke | Done (#201) | L |
+| 12.3 | Limits per stream per viewer | Done (#201) | S |
 
 ### Tracks 7 to 11: order
 
@@ -628,13 +628,13 @@ Request: viewers pay Brie Bucks (the Mix It Up currency) for a pack; a limit per
 - Fail closed before the pull (no balance answer in 5 s = no pack), fail open nowhere. The streamer can switch the whole thing off in one click.
 - One pull costs one price (`cost`, default 100). The price, currency label, limit and message are settings, not code.
 
-### 12.1 The Mix It Up tab (Ready)
+### 12.1 The Mix It Up tab (Done, #201)
 
 Settings gets a tab **Mix It Up** (id `mixitup`, icon `coins`) with its own KV key `mixitup:settings` (`lib/mixitup-core.ts`: `MixItUpSettings`, `cleanMixItUpInput`, pure). Fields: **enabled**, **balance URL**, **deduct URL** (empty = reuse the balance URL, Mix It Up tells them apart by the `action` field), **shared secret** (sent as `secret` in every request so the command can check it), **currency name** (default "Brie Bucks"), **price per pack**, **limit per viewer per stream** (0 = none), **message** (the template below) and **balance field** (which JSON key holds the number, default `balance`). Both URLs must pass `checkWebhookUrl` (public http(s) only). Buttons: **Check a balance** (asks Mix It Up for a viewer's balance, nothing else) and **Send a test message** (a `test` request that deducts nothing). A short **recent requests** log (last 20, `mixitup:log`: when, viewer, what, result) sits under the form for debugging.
 
 **Message template.** Placeholders: `{username}`, `{amount}`, `{currency}`, `{cardName}`, `{variant}`, `{stars}`, `{packName}`, `{cardNumber}`, `{serial}`. Default: `{username} opened a pack and pulled {cardName} ({variant}, {stars} stars). {amount} {currency} spent.` Unknown placeholders are left out (`interpolate` from `lib/webhooks.ts`), the result is capped at 400 characters, and the form shows a live preview with sample values.
 
-### 12.2 The paid pull flow (Ready)
+### 12.2 The paid pull flow (Done, #201)
 
 1. `POST /api/webhooks/pull` (existing; secret and live gate unchanged). If Mix It Up is on: check the viewer's limit (12.3), then `POST balanceUrl` `{ action: 'balance', secret, username, currency }`. The reply must be 2xx JSON with a number at `balanceField`. Count what the viewer already has in flight (`mixitup:pending:<user>`) so ten fast requests cannot spend one balance ten times: the balance must cover `price x (pending + 1)`.
 2. Not enough, over the limit, or no answer: nothing is queued; the webhook answers `{ ok: true, ignored: true, reason, message }` where `reason` is `insufficient_balance | limit_reached | mixitup_unavailable | bad_balance` and `message` is a sentence Mix It Up can post to chat.
@@ -643,7 +643,7 @@ Settings gets a tab **Mix It Up** (id `mixitup`, icon `coins`) with its own KV k
 5. Applied: carry on as today (activity, outgoing Card Pulled webhook). Not applied: **revoke**: the print is removed and retired in the copy ledger (the same change as the admin "remove this print", reason "payment failed"), the stream count goes back down, no pull is recorded, and the reply is `{ ok: true, revoked: true, owned }` so the overlay resyncs. The log records it, and the system Discord channel gets a notice (`notifySystem`, tone `warn`).
 6. The reservation is single-use (`del` decides who owns it), so a repeated save cannot charge twice.
 
-### 12.3 Limits per stream per viewer (Ready)
+### 12.3 Limits per stream per viewer (Done, #201)
 
 `limit` paid pulls per viewer per stream. "Per stream" = the current Twitch stream (`getLiveStatus().startedAt`, the same marker the recap uses). While offline or when Twitch is not configured, the window is the UTC day, so test pulls off-stream are still bounded. Counter `mixitup:cnt:<streamKey>:<user>` (3 day TTL), raised when a pull is reserved and lowered when it is revoked. A viewer at the limit gets `limit_reached` and the message "X has used all N pulls for this stream." The dashboard is not changed.
 
