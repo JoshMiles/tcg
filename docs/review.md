@@ -45,7 +45,7 @@ Logins: admin = the emergency password (`ADMIN_PASSWORD`); mod / admin / viewers
 
 ## The sweeps
 
-All flag horizontal overflow, a missing or duplicate `h1`, images without `alt`, unnamed buttons and links, and console errors, and print one line per page. Pass paths to sweep only a batch's pages. `SWEEP_BASE` changes the server address.
+All flag horizontal overflow (also content pushed past the right edge while the page does not scroll, e.g. a grid column stretched by a wide child; `clipped` in `scripts/lib/sweep.mjs`), a missing or duplicate `h1`, images without `alt`, unnamed buttons and links, and console errors, and print one line per page. Pass paths to sweep only a batch's pages. `SWEEP_BASE` changes the server address.
 
 | Command | Covers |
 |---------|--------|
