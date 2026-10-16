@@ -357,6 +357,9 @@ Asked (2026-10-16): "should be able to select which print of a card when trading
 | 11.1 | Changelog page | Done (#177) | S |
 | 11.2 | Suggestions and feedback, report a problem (one inbox) | Done (#186) | M |
 | 11.3 | Request account deletion button | Done (#193) | S |
+| 12.1 | Mix It Up settings tab (connection, price, message) | Ready | M |
+| 12.2 | Paid pulls: balance check, deduct, revoke | Ready (with 12.1) | L |
+| 12.3 | Limits per stream per viewer | Ready (with 12.2) | S |
 
 ### Tracks 7 to 11: order
 
@@ -614,6 +617,41 @@ Today the FAQ says to email. Add a self-serve **request**; an admin still does t
 - If staff haven't handled it in 30 days, the Needs attention panel turns it red (legal expectation: about a month).
 - **Words:** FAQ "How do I get my data deleted?" points to the button (the email stays as a fallback); Privacy Policy and Terms describe the request and the 30-day snapshot. Bump `LEGAL_UPDATED`.
 - Check: extend the user-admin check (deletion removes every listed key, snapshot taken, trades cancelled, escrowed prints returned before the user's own prints are retired).
+
+## Track 12: Mix It Up paid pulls (added 2026-10-16, planned and built in one session at the owner's request)
+
+Request: viewers pay Brie Bucks (the Mix It Up currency) for a pack; a limit per viewer per stream; a Settings tab just for Mix It Up; the message sent to Mix It Up can be customised. 12.1 to 12.3 ship as **one PR** because they are one flow and share the pull webhook and `/api/collection`.
+
+**Decisions (defaults, change them here if wrong):**
+- Mix It Up answers **in the HTTP response** of its webhook command (a "Webhook Response" action), so each step is one request and one reply. We never wait for a call back. Two requests per pull: `balance` before, `deduct` after.
+- Off by default. While off, the pull webhook behaves exactly as today. Admin quick actions (gift packs) and the Twitch panel never charge and are never limited.
+- Fail closed before the pull (no balance answer in 5 s = no pack), fail open nowhere. The streamer can switch the whole thing off in one click.
+- One pull costs one price (`cost`, default 100). The price, currency label, limit and message are settings, not code.
+
+### 12.1 The Mix It Up tab (Ready)
+
+Settings gets a tab **Mix It Up** (id `mixitup`, icon `coins`) with its own KV key `mixitup:settings` (`lib/mixitup-core.ts`: `MixItUpSettings`, `cleanMixItUpInput`, pure). Fields: **enabled**, **balance URL**, **deduct URL** (empty = reuse the balance URL, Mix It Up tells them apart by the `action` field), **shared secret** (sent as `secret` in every request so the command can check it), **currency name** (default "Brie Bucks"), **price per pack**, **limit per viewer per stream** (0 = none), **message** (the template below) and **balance field** (which JSON key holds the number, default `balance`). Both URLs must pass `checkWebhookUrl` (public http(s) only). Buttons: **Check a balance** (asks Mix It Up for a viewer's balance, nothing else) and **Send a test message** (a `test` request that deducts nothing). A short **recent requests** log (last 20, `mixitup:log`: when, viewer, what, result) sits under the form for debugging.
+
+**Message template.** Placeholders: `{username}`, `{amount}`, `{currency}`, `{cardName}`, `{variant}`, `{stars}`, `{packName}`, `{cardNumber}`, `{serial}`. Default: `{username} opened a pack and pulled {cardName} ({variant}, {stars} stars). {amount} {currency} spent.` Unknown placeholders are left out (`interpolate` from `lib/webhooks.ts`), the result is capped at 400 characters, and the form shows a live preview with sample values.
+
+### 12.2 The paid pull flow (Ready)
+
+1. `POST /api/webhooks/pull` (existing; secret and live gate unchanged). If Mix It Up is on: check the viewer's limit (12.3), then `POST balanceUrl` `{ action: 'balance', secret, username, currency }`. The reply must be 2xx JSON with a number at `balanceField`. Count what the viewer already has in flight (`mixitup:pending:<user>`) so ten fast requests cannot spend one balance ten times: the balance must cover `price x (pending + 1)`.
+2. Not enough, over the limit, or no answer: nothing is queued; the webhook answers `{ ok: true, ignored: true, reason, message }` where `reason` is `insufficient_balance | limit_reached | mixitup_unavailable | bad_balance` and `message` is a sentence Mix It Up can post to chat.
+3. Enough: reserve (`mixitup:pay:<eventId>` = viewer, price, stream key, 1 h TTL; pending and stream count go up) and queue the pull with `paid: true` and the event id as before. The overlay passes that id (`payId`) back when it saves the pull.
+4. `POST /api/collection` (pull with a `payId`): adds the print, then `POST deductUrl` `{ action: 'deduct', secret, username, amount, currency, message, pullId }` and waits (5 s). Mix It Up's reply counts as applied when it is 2xx and has no `ok`, `success` or `applied` set to `false`.
+5. Applied: carry on as today (activity, outgoing Card Pulled webhook). Not applied: **revoke**: the print is removed and retired in the copy ledger (the same change as the admin "remove this print", reason "payment failed"), the stream count goes back down, no pull is recorded, and the reply is `{ ok: true, revoked: true, owned }` so the overlay resyncs. The log records it, and the system Discord channel gets a notice (`notifySystem`, tone `warn`).
+6. The reservation is single-use (`del` decides who owns it), so a repeated save cannot charge twice.
+
+### 12.3 Limits per stream per viewer (Ready)
+
+`limit` paid pulls per viewer per stream. "Per stream" = the current Twitch stream (`getLiveStatus().startedAt`, the same marker the recap uses). While offline or when Twitch is not configured, the window is the UTC day, so test pulls off-stream are still bounded. Counter `mixitup:cnt:<streamKey>:<user>` (3 day TTL), raised when a pull is reserved and lowered when it is revoked. A viewer at the limit gets `limit_reached` and the message "X has used all N pulls for this stream." The dashboard is not changed.
+
+**Files:** `lib/mixitup-core.ts` (settings, cleaning, template, reply parsing, stream key, decisions; pure), `lib/mixitup.ts` (KV, calls, reserve / settle / revoke, log), `app/admin/settings/MixItUpConfig.tsx` + actions in `app/admin/settings/mixitup-actions.ts`, hooks in `app/api/webhooks/pull/route.ts`, `app/api/collection/route.ts`, `public/widget.js` (pass `payId`), `scripts/check-mixitup.mts` (fake Mix It Up, mock KV: price, limit, pending, revoke, double settle), `docs/admin.md` + `docs/overlay.md` notes, changelog: none (staff-only).
+
+**Known limits:** `/api/collection` is open today (the overlay saves through it), so someone who finds the URL could already add prints; paid pulls do not make that worse but do not fix it. Closing it needs a signed save token from the queue (a separate item). A reply that is lost after Mix It Up applied the deduction would revoke a paid pull; the viewer can be refunded by hand from the log.
+
+---
 
 ## Later: next extension version (after the freeze lifts)
 

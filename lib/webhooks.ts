@@ -29,6 +29,8 @@ export interface QueuedEvent {
   type: 'pull' | 'collection' | 'card';
   username: string;
   queuedAt: number;
+  /** A paid pull (Mix It Up): the overlay sends `id` back as `payId` when it saves the card, and that is when it is charged. */
+  paid?: boolean;
   /** For `card` (show a card off): which card and version, and the serial of the viewer's copy. Already checked against their collection. */
   cardNumber?: number;
   variant?: 'regular' | 'reverse' | 'full' | 'shiny';

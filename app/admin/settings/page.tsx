@@ -10,6 +10,8 @@ import { saveScoringSettingsAction, resetScoringSettingsAction } from '../action
 import { getScoringSettings, DEFAULT_SCORING, type ScoringSettings } from '@/lib/scoring';
 import { DiscordConfig } from './DiscordConfig';
 import { WebhookConfig } from './WebhookConfig';
+import { MixItUpConfig } from './MixItUpConfig';
+import { getMixItUpLog, getMixItUpSettings } from '@/lib/mixitup';
 import { ScoringForm, type ScoringGroupConfig } from './ScoringForm';
 import { CopyBlock, LiveGates, OverlayTest } from './OverlayPanels';
 import { getWebhookSettings } from '@/lib/webhooks';
@@ -31,6 +33,7 @@ const TABS: (PageTab & { hint: string })[] = [
   { id: 'overlay', label: 'OBS Overlay', icon: 'tv', hint: 'Browser source, connection and bot triggers' },
   { id: 'scoring', label: 'Scoring', icon: 'trophy', hint: 'Card values, bonuses and the leaderboard, with a live preview' },
   { id: 'webhooks', label: 'Webhooks', icon: 'link', hint: 'Discord feed, MixItUp integration: incoming triggers and outgoing events' },
+  { id: 'mixitup', label: 'Mix It Up', icon: 'coins', hint: 'Viewers pay Brie Bucks for packs: prices, limits and the message sent to Mix It Up' },
   { id: 'viewers', label: 'Twitch & viewers', icon: 'users', hint: 'The extension setup checklist and the collection page' },
   { id: 'environment', label: 'Environment', icon: 'shield', hint: 'Which secrets and keys are configured, and what each one unlocks' },
   { id: 'about', label: 'About', icon: 'info', hint: 'Build info and the active season' },
@@ -44,6 +47,7 @@ const SAVED_MESSAGES: Record<string, string> = {
   'preview-wiped': 'Preview data wiped.',
   backup: 'Backup finished.',
   webhook: 'Webhook saved.',
+  mixitup: 'Mix It Up saved.',
   'webhook-secret': 'Incoming webhook secret regenerated. Update the URL in MixItUp.',
 };
 
@@ -68,8 +72,8 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
   ] },
 ];
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; backupError?: string; error?: string }> }) {
-  const { tab: tabParam, saved, backupError, error } = await searchParams;
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; backupError?: string; error?: string; note?: string }> }) {
+  const { tab: tabParam, saved, backupError, error, note } = await searchParams;
   // The overlay layout and look now live in the Overlay Editor (old links keep working).
   if (tabParam === 'layout' || tabParam === 'look') redirect('/admin/overlay');
   const tab = pickTab(TABS, tabParam);
@@ -103,6 +107,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {error && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-2.5 text-sm text-red-300">Not saved: {error}</div>}
       {backupError && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-2.5 text-sm text-red-300">Backup failed: {backupError}</div>}
+      {note && <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2.5 text-sm text-green-300">{note}</div>}
       {saved && SAVED_MESSAGES[saved] && (
         <div role="status" className="rounded-lg border border-green-500/30 bg-green-950/30 px-4 py-2.5 text-sm text-green-300 flex items-center gap-2">
           <Icon name="check" /> {SAVED_MESSAGES[saved]}
@@ -150,6 +155,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <WebhookConfig settings={webhookSettings} base={SITE_URL} />
         </div>
       )}
+
+      {/* Mix It Up paid pulls */}
+      {tab === 'mixitup' && <MixItUpConfig settings={await getMixItUpSettings()} log={await getMixItUpLog()} />}
 
       {/* Scoring */}
       {tab === 'scoring' && (

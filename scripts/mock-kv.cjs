@@ -35,6 +35,7 @@ function run(cmd) {
     case 'rpush': { const l = store.get(key) || []; l.push(...rest); store.set(key, l); types.set(key, 'list'); return l.length; }
     case 'rpop': { const l = store.get(key) || []; return l.pop() ?? null; }
     case 'incr': { const n = Number(store.get(key) || 0) + 1; store.set(key, String(n)); return n; }
+    case 'decr': { const n = Number(store.get(key) || 0) - 1; store.set(key, String(n)); return n; }
     case 'lrange': { const l = store.get(key) || []; const [a, b] = rest.map(Number); return l.slice(Number(key === undefined ? 0 : a), b < 0 ? l.length + b + 1 : b + 1); }
     case 'ltrim': return 'OK';
     case 'sadd': { const s = new Set(store.get(key) || []); rest.forEach(x => s.add(x)); store.set(key, [...s]); types.set(key, 'set'); return 1; }
