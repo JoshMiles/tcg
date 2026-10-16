@@ -1,5 +1,6 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
+import { InfoTip } from '@/app/components/InfoTip';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { SerialChip } from '@/app/components/SerialChip';
@@ -448,13 +449,13 @@ function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pi
         <div className="space-y-3 min-w-0">
           <div>
             <p className="font-display text-xl font-bold text-white">{VARIANT_LABELS[v]} {card.name}</p>
-            <p className="text-sm text-gray-300 mt-0.5">Edition <strong className="text-white tabular-nums">#{print.n}</strong>{print.made && print.made >= print.n ? <> of {print.made.toLocaleString()} made</> : null}{print.est && <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}</p>
-            {print.uid ? <p className="text-sm text-gray-400 tabular-nums">Print #{print.uid}</p> : null}
+            <p className="text-sm text-gray-300 mt-0.5">Edition<InfoTip term="edition" /> <strong className="text-white tabular-nums">#{print.n}</strong>{print.made && print.made >= print.n ? <> of {print.made.toLocaleString()} made</> : null}{print.est && <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}</p>
+            {print.uid ? <p className="text-sm text-gray-400 tabular-nums">Print #{print.uid}<InfoTip term="printNumber" /></p> : null}
           </div>
           <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-3 gap-y-1 ${print.m ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
             <SerialChip n={print.n} bonus={print.m} est={print.est} className="text-sm !px-3 !py-1" />
             <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{(print.p ?? card.values[v]).toLocaleString()} pts</strong></span>
-            <span className="text-xs text-gray-500">{print.m ? `Edition bonus ×${print.m}` : 'No edition bonus'}</span>
+            <span className="text-xs text-gray-500">{print.m ? `Edition bonus ×${print.m}` : 'No edition bonus'}<InfoTip term="editionBonus" /></span>
           </div>
           <div>
             <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Journey</p>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
+import { InfoTip } from '@/app/components/InfoTip';
 import { CardTile } from '@/app/components/CardTile';
 import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
@@ -68,9 +69,9 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
         <h2 className="font-display text-xl font-bold text-white">Where the points come from</h2>
         <dl className="text-sm divide-y divide-gray-800/70">
           <div className="flex justify-between py-2"><dt className="text-gray-300">Cards <span className="text-gray-600">· every print</span></dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
-          <div className="flex justify-between py-2"><dt className="text-gray-300">Edition bonus <span className="text-gray-600">· low numbers</span></dt><dd className={`tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{Math.round(s.serialPoints).toLocaleString()}</dd></div>
-          <div className="flex justify-between py-2"><dt className="text-gray-300">Progress bonus <span className="text-gray-600">· {s.completionPct}% of the set</span></dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
-          <div className="flex justify-between py-2"><dt className="text-gray-300">Full set bonus</dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : <span className="text-gray-600">{s.totalCards - s.uniqueCards} card{s.totalCards - s.uniqueCards === 1 ? '' : 's'} to go</span>}</dd></div>
+          <div className="flex justify-between py-2"><dt className="text-gray-300">Edition bonus<InfoTip term="editionBonus" /> <span className="text-gray-600">· low numbers</span></dt><dd className={`tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{Math.round(s.serialPoints).toLocaleString()}</dd></div>
+          <div className="flex justify-between py-2"><dt className="text-gray-300">Progress bonus<InfoTip term="progressBonus" /> <span className="text-gray-600">· {s.completionPct}% of the set</span></dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
+          <div className="flex justify-between py-2"><dt className="text-gray-300">Full set bonus<InfoTip term="fullSetBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : <span className="text-gray-600">{s.totalCards - s.uniqueCards} card{s.totalCards - s.uniqueCards === 1 ? '' : 's'} to go</span>}</dd></div>
           <div className="flex justify-between py-2 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
         </dl>
         <p className="text-xs text-gray-500"><Link href="/faq#points" className="text-yellow-500 hover:text-yellow-300">How points are worked out →</Link></p>

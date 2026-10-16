@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon, RankMedal } from '@/app/components/Icon';
+import { InfoTip } from '@/app/components/InfoTip';
 import { Avatar } from '@/app/components/Avatar';
 import { METRIC_LABELS, filterBoard, rankBoard, rankMovement, rankSnapshot, type BoardMetric, type BoardRow } from '@/lib/board-view';
 import { profileHref } from '@/lib/profile-url';
@@ -108,8 +109,8 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer, noVariants 
                 {isOpen && (
                   <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-gray-800/70 px-4 py-3 text-sm">
                     <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Cards</dt><dd className="tabular-nums text-white">{Math.round(r.cardPoints).toLocaleString()}</dd></div>
-                    <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{r.bonusesTogether ? 'Bonuses' : 'Progress bonus'}</dt><dd className="tabular-nums text-emerald-300">+{Math.round(r.completionBonus).toLocaleString()}</dd></div>
-                    {!r.bonusesTogether && <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Full set bonus</dt><dd className="tabular-nums text-emerald-300">{r.setBonus ? `+${Math.round(r.setBonus).toLocaleString()}` : '-'}</dd></div>}
+                    <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{r.bonusesTogether ? 'Bonuses' : <>Progress bonus<InfoTip term="progressBonus" /></>}</dt><dd className="tabular-nums text-emerald-300">+{Math.round(r.completionBonus).toLocaleString()}</dd></div>
+                    {!r.bonusesTogether && <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Full set bonus<InfoTip term="fullSetBonus" /></dt><dd className="tabular-nums text-emerald-300">{r.setBonus ? `+${Math.round(r.setBonus).toLocaleString()}` : '-'}</dd></div>}
                     <div><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Total</dt><dd className="tabular-nums text-yellow-300 font-bold">{Math.round(r.score).toLocaleString()}</dd></div>
                   </dl>
                 )}

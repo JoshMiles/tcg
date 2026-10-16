@@ -1,5 +1,7 @@
 'use client';
 import { Icon, RankMedal } from '@/app/components/Icon';
+import { InfoTip } from '@/app/components/InfoTip';
+import type { TermId } from '@/lib/glossary';
 import Link from 'next/link';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -55,6 +57,7 @@ export interface DexCard {
 }
 
 const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
+const VARIANT_TIPS: Partial<Record<Variant, TermId>> = { reverse: 'reverseHolo', full: 'fullArt', shiny: 'shiny' };
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '-');
 const artFor = (c: DexCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const maskFor = (c: DexCard, url: string) => (cardThumbUrl(url) !== url ? `url("${stillFor(c, url)}")` : 'none');
@@ -277,7 +280,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <Stat label="Pull chance" value={oneIn(card.pullRate)} sub="per pack" />
+              <Stat label="Pull chance" tip="pullChance" value={oneIn(card.pullRate)} sub="per pack" />
               <Stat label="Prints out there" value={card.copies.toLocaleString()} sub="across everyone" />
               <Stat label="Collectors" value={card.collectors.toLocaleString()} sub="own at least one" />
             </div>
@@ -300,7 +303,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                       onClick={() => card.upgradable && setShown(v)}
                       className={`${card.upgradable ? 'cursor-pointer hover:bg-white/[0.03]' : ''} ${v === shown && card.upgradable ? 'bg-white/[0.04]' : ''}`}
                     >
-                      <td className="py-2 px-3 text-gray-200">{VARIANT_LABELS[v]}</td>
+                      <td className="py-2 px-3 text-gray-200">{VARIANT_LABELS[v]}{VARIANT_TIPS[v] && <InfoTip term={VARIANT_TIPS[v]} />}</td>
                       {card.upgradable && <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-gray-500 hidden sm:table-cell">{oneIn(card.variantOdds[v])}</td>}
                       <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-gray-400">{card.variantCopies[v].toLocaleString()}</td>
                       <td className="py-2 px-3 text-right tabular-nums whitespace-nowrap font-semibold text-yellow-300">{card.values[VARIANTS.indexOf(v)].toLocaleString()} pts</td>
@@ -364,10 +367,10 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
+function Stat({ label, value, sub, tip }: { label: string; value: string; sub: string; tip?: TermId }) {
   return (
     <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-2.5 sm:p-3 min-w-0">
-      <p className="text-[10px] sm:text-[11px] uppercase tracking-wide sm:tracking-wider text-gray-500 font-bold leading-tight">{label}</p>
+      <p className="text-[10px] sm:text-[11px] uppercase tracking-wide sm:tracking-wider text-gray-500 font-bold leading-tight">{label}{tip && <InfoTip term={tip} />}</p>
       <p className="font-display text-xl sm:text-2xl font-bold text-white tabular-nums whitespace-nowrap">{value}</p>
       <p className="text-[11px] text-gray-500">{sub}</p>
     </div>
