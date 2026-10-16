@@ -2,6 +2,7 @@
 // Never used by the Twitch panel (freeze).
 import { cache } from 'react';
 import { staffBadgeFor, type StaffBadge } from './staff-badge-core';
+import { CHANNEL_LOGIN } from './site';
 import { listStaff, listSuperAdmins } from './staff';
 import { getUserSettings } from './user-settings-store';
 
@@ -12,7 +13,7 @@ export const getStaffBadges = cache(async (): Promise<Record<string, StaffBadge>
   try {
     const staff = await listStaff();
     const supers = listSuperAdmins().map(s => s.login).filter(l => !l.startsWith('Twitch ID'));
-    const logins = [...new Set([...staff.map(r => r.login), ...supers.map(s => s.toLowerCase())])];
+    const logins = [...new Set([...staff.map(r => r.login), ...supers.map(s => s.toLowerCase()), CHANNEL_LOGIN])];
     const out: Record<string, StaffBadge> = {};
     await Promise.all(logins.map(async l => {
       const badge = staffBadgeFor(l, staff, await getUserSettings(l).catch(() => null), supers);
