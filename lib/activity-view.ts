@@ -56,6 +56,16 @@ function plainBase(e: ActivityEvent, cardName: CardNamer): string {
   }
 }
 
+export type PullEvent = Extract<ActivityEvent, { type: 'pull' }>;
+
+/** A pull as a pull event: a pull itself, or a webhook grant (a reward) dressed as one with defaults for facts older events lack. Null for anything else. */
+export function asPullEvent(e: ActivityEvent): PullEvent | null {
+  if (e.type === 'pull') return e;
+  if (e.type !== 'grant' || e.source !== 'webhook') return null;
+  const { source: _source, ...rest } = e;
+  return { ...rest, type: 'pull', cardName: e.cardName ?? `Card #${e.cardNumber}`, stars: e.stars ?? 1, packName: e.packName ?? '', isNew: e.isNew === true, copies: e.copies ?? 1, uniqueOwned: e.uniqueOwned ?? 0 };
+}
+
 /** The facts of a pull, from a pull or from a webhook grant (a reward reads as a pull everywhere in the feed). Null for anything else. */
 export interface PullFacts { username: string; at: number; variant: string; stars: number; isNew: boolean; serial?: number; uniqueOwned?: number; packName?: string }
 export function pullFacts(e: ActivityEvent): PullFacts | null {
