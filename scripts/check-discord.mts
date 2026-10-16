@@ -60,7 +60,7 @@ const event = (over: Record<string, unknown> = {}) => ({
   type: 'pull', cardNumber: 1, cardName: 'Cheesy <@everyone> *Cat*', stars: 4, packName: 'Base', isNew: true, copies: 1, uniqueOwned: 1,
   seq: 1, at: Date.now(), username: 'alice', ...over,
 }) as never;
-const cats = (p: Record<string, boolean>) => ({ pulls: false, cards: false, upgrades: false, trades: false, stream: false, resets: false, admin: false, system: false, ...p });
+const cats = (p: Record<string, boolean>) => ({ pulls: false, cards: false, upgrades: false, trades: false, listings: false, stream: false, resets: false, admin: false, system: false, ...p });
 await d.saveDiscordSettings({
   enabled: true,
   channels: [
@@ -176,6 +176,22 @@ for (let i = 0; i < 25; i++) {
   await d.notifyDiscord(event());
 }
 ok((await d.getDiscordSettings()).channels[0].enabled, 'one success in the last 20 keeps a channel on');
+// ── Trade listings (3.4) ──
+await d.saveDiscordSettings({
+  enabled: true,
+  channels: [
+    { id: 'li', name: 'Li', url: hook(31), enabled: true, categories: cats({ listings: true }), minStars: 1, newOnly: false },
+    { id: 'tr2', name: 'Tr2', url: hook(32), enabled: true, categories: cats({ trades: true }), minStars: 1, newOnly: false },
+  ],
+});
+hits.length = 0;
+await d.notifyListing({ id: 'abc-123', from: 'al_ice', expiresAt: Date.now() + 3600_000, give: ['2× Cat (Shiny) · #7, #3'], get: ['1× Dog'], givePts: 120, getPts: 80, note: '@everyone hi' }); await wait();
+ok(only(31), 'a listing reaches only the Trade listings channel');
+const lj = JSON.stringify(hits[0].body);
+ok(lj.includes('/trade/abc-123') && lj.includes('#7, #3') && lj.includes('<t:') && lj.includes('Gives') && lj.includes('Wants'), 'the listing links to its trade page and shows both sides, editions and the end time');
+ok(JSON.stringify(hits[0].body.allowed_mentions) === '{"parse":[]}', 'listing mentions stay empty');
+const lc = d.normalize({ url: hook(1), enabled: true, categories: { pulls: true, cards: true, stream: false, resets: false } } as never).channels[0];
+ok(lc.categories.listings === false, 'an old channel does not start posting listings');
 
 server.close();
 console.log('discord ok');

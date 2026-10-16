@@ -13,6 +13,8 @@ import { getTradeCards } from './trade-view';
 import type { Notice, NoticeKind, Swap, SwapCard } from './trade-notice-core';
 import { watchersOf } from './watch-index';
 import { matchingAlerts } from './watch-core';
+import { notifyListing } from './discord';
+import { encodeEntry } from './variants';
 
 // Notifications and activity records for trade events. Everything here is best-effort: a failure must never undo or block
 // a trade, so every entry point swallows errors. (Called after the trade lock is released: see flushEvents in lib/trades.ts.)
@@ -69,6 +71,14 @@ export function stackLines(items: TradeItem[], cards: Record<number, TradeCardIn
   return items.map(i => `${i.count}× ${cards[i.cardNumber]?.name ?? `#${i.cardNumber}`}${i.variant === 'regular' ? '' : ` (${VARIANT_LABELS[i.variant]})`}`);
 }
 
+/** The stack lines with the edition numbers of the copies that move ("... · #7, #3"): the newest copies leave first, like on the trade page. */
+function withEditions(items: TradeItem[], lines: string[], pool?: SerialPool): string[] {
+  return lines.map((line, i) => {
+    const serials = [...(pool?.[encodeEntry(items[i].cardNumber, items[i].variant)] ?? [])].slice(-items[i].count).reverse();
+    return serials.length ? `${line} · ${serials.slice(0, 4).map(n => `#${n}`).join(', ')}${serials.length > 4 ? ` +${serials.length - 4}` : ''}` : line;
+  });
+}
+
 /** The cards of a swap with art and holo, for the trade animation. */
 export async function buildSwap(seasonId: string, gave: TradeItem[], got: TradeItem[], withUser: string): Promise<Swap | undefined> {
   try {
@@ -112,7 +122,13 @@ export async function announceTrade(trade: Trade, action: TradeAction, by?: stri
       case 'offered':
         if (trade.counterOf) await tell(trade.to, 'countered', `@${trade.from} countered your offer: they give ${sentence}.`);
         else if (trade.kind === 'direct') await tell(trade.to, 'offer', `@${trade.from} offered you a trade: they give ${sentence}.`);
-        else await notifyWatchers(trade, cards);
+        else {
+          await notifyWatchers(trade, cards);
+          await notifyListing({
+            id: trade.id, from: trade.from, expiresAt: trade.expiresAt, give: withEditions(trade.give, give, pools.give), get, givePts: stackPoints(trade.give, cards, pools.give),
+            getPts: stackPoints(trade.get, cards, pools.get), imageUrl: cards[trade.give[0]?.cardNumber]?.imageUrl, note: trade.note,
+          });
+        }
         break;
       case 'accepted': {
         const swap = await buildSwap(trade.seasonId, trade.give, trade.get, by ?? '');
