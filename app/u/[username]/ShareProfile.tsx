@@ -3,13 +3,15 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { exportShare } from '@/app/components/ShareImage';
+import { ReportDialog } from './ReportDialog';
 import type { ShareSpec } from '@/lib/share-image';
 
 /**
  * The profile's one Share button: a menu with the link and, when there are cards to show, a quick image of the cards.
  * It says "my cards" only on your own profile; the owner also gets a way into the Share tab to pick a look.
  */
-export function ShareProfile({ name, username, isOwner, spec, customiseHref }: {
+export function ShareProfile({ name, username, isOwner, spec, customiseHref, canReport = false }: {
+  canReport?: boolean;
   name: string;
   username: string;
   isOwner: boolean;
@@ -19,6 +21,7 @@ export function ShareProfile({ name, username, isOwner, spec, customiseHref }: {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
@@ -70,6 +73,11 @@ export function ShareProfile({ name, username, isOwner, spec, customiseHref }: {
               <Icon name="image" className="text-gray-400" />{isOwner ? 'Image of my top cards' : `Image of ${name}’s top cards`}
             </button>
           )}
+          {canReport && (
+            <button role="menuitem" type="button" onClick={() => { setOpen(false); setReporting(true); }} className={`${item} border-t border-gray-800`}>
+              <Icon name="flag" className="text-gray-400" />Report {name}
+            </button>
+          )}
           {isOwner && customiseHref && (
             <Link role="menuitem" href={customiseHref} onClick={() => setOpen(false)} className={`${item} border-t border-gray-800 text-yellow-300`}>
               <Icon name="palette" />Customise image…
@@ -77,6 +85,7 @@ export function ShareProfile({ name, username, isOwner, spec, customiseHref }: {
           )}
         </div>
       )}
+      {reporting && <ReportDialog target={username} name={name} onClose={() => setReporting(false)} />}
     </div>
   );
 }

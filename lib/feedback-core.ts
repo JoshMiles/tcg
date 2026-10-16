@@ -2,12 +2,12 @@
 // The store lives in lib/feedback.ts. scripts/check-feedback.mts covers this file.
 
 /** 'deletion' is an account deletion request (ROADMAP 11.3): it shares the inbox but has its own flow and is never sent from the feedback form. */
-export type FeedbackKind = 'idea' | 'bug' | 'deletion';
+export type FeedbackKind = 'idea' | 'bug' | 'deletion' | 'report';
 export type FeedbackStatus = 'new' | 'planned' | 'done' | 'wontfix' | 'duplicate';
 
-export const FEEDBACK_KINDS: FeedbackKind[] = ['idea', 'bug', 'deletion'];
+export const FEEDBACK_KINDS: FeedbackKind[] = ['idea', 'bug', 'deletion', 'report'];
 export const FEEDBACK_STATUSES: FeedbackStatus[] = ['new', 'planned', 'done', 'wontfix', 'duplicate'];
-export const KIND_LABELS: Record<FeedbackKind, string> = { idea: 'Suggestion', bug: 'Problem report', deletion: 'Deletion request' };
+export const KIND_LABELS: Record<FeedbackKind, string> = { idea: 'Suggestion', bug: 'Problem report', deletion: 'Deletion request', report: 'User report' };
 export const STATUS_LABELS: Record<FeedbackStatus, string> = { new: 'New', planned: 'Planned', done: 'Done', wontfix: "Won't do", duplicate: 'Duplicate' };
 
 /** A deletion request still waiting after this many days is overdue (people expect about a month). */
@@ -21,6 +21,10 @@ export const FEEDBACK_LIMITS = {
   reply: 1000,
   ua: 300,
   perDay: 5,
+  /** Reports one viewer may file per UTC day (counted apart from the feedback sends). */
+  reportsPerDay: 5,
+  reportDetails: 1000,
+  reportDetailsMin: 10,
   /** Newest items kept in the list. */
   listCap: 1000,
   /** Days a finished item is kept after it was resolved (answered, planned, done...). */
@@ -39,8 +43,11 @@ export interface FeedbackItem {
   body: string;
   /** Problem reports only: what they expected to happen. */
   expected?: string;
-  /** Problem reports only: the page it happened on (a path on this site). */
+  /** Problem reports only: the page it happened on (a path on this site). For a user report: the trade or print page they linked. */
   from?: string;
+  /** User reports only: the reported viewer's login, and why. Staff-only: never shown to the reported person. */
+  target?: string;
+  reason?: ReportReason;
   meta?: FeedbackMeta;
   at: number;
   status: FeedbackStatus;
@@ -114,6 +121,7 @@ export function expired(item: Pick<FeedbackItem, 'status' | 'resolvedAt'>, now: 
 /** What the sender hears when staff change an item. Null when there is nothing to say (nothing changed). */
 export function noticeText(item: Pick<FeedbackItem, 'title' | 'status' | 'reply'> & { kind?: FeedbackKind }, changed: { status: boolean; reply: boolean }): string | null {
   if (!changed.status && !changed.reply) return null;
+  if (item.kind === 'report') return changed.status ? (item.status === 'done' ? 'Thanks for your report. Staff have looked at it and dealt with it.' : item.status === 'wontfix' || item.status === 'duplicate' ? 'Thanks for your report. Staff have looked at it and no further action was needed.' : null) : null; // outcome only: never what was done to the other person, never the staff reply
   if (item.kind === 'deletion') return item.status === 'wontfix' ? `We could not delete your account yet.${item.reply ? ` Reason: ${item.reply.slice(0, 200)}` : ''}` : null; // a finished deletion has no one left to tell
   const what = `"${item.title.slice(0, 60)}"`;
   const status = item.status === 'new' ? '' : item.status === 'wontfix' ? `We won't be doing ${what}.` : item.status === 'done' ? `${what} is done.` : item.status === 'planned' ? `${what} is planned.` : `${what} was marked as a duplicate of something we already track.`;
@@ -124,4 +132,39 @@ export function noticeText(item: Pick<FeedbackItem, 'title' | 'status' | 'reply'
 /** Text for Discord: Markdown neutralised and cut, so a post cannot format itself, link or ping. */
 export function discordText(s: string, max: number = FEEDBACK_LIMITS.discordText): string {
   return s.replace(/([\\*_~`|>[\]()#:<])/g, '\\$1').replace(/@/g, '@\u200b').slice(0, max);
+}
+
+
+// ── User reports (ROADMAP 17.2) ──
+
+export type ReportReason = 'offensive' | 'cheating' | 'scam' | 'other';
+export const REPORT_REASONS: ReportReason[] = ['offensive', 'cheating', 'scam', 'other'];
+export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  offensive: 'Offensive name, bio or picture',
+  cheating: 'Cheating or abuse',
+  scam: 'Scam or unfair trade',
+  other: 'Something else',
+};
+
+/** A trade or print page on this site (`/trade/<id>`, `/copy/<season>/<copy>`), or ''. */
+export function cleanReportLink(v: unknown): string {
+  const s = cleanFrom(v);
+  return /^\/(trade|copy)\/[A-Za-z0-9_.:\-/]+$/.test(s) ? s : '';
+}
+
+export type ReportInput =
+  | { ok: true; value: { target: string; reason: ReportReason; details: string; link?: string } }
+  | { ok: false; error: string };
+
+/** What the report dialog sent → a clean report or a message for the reporter. */
+export function parseReportInput(raw: unknown): ReportInput {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const t = typeof o.target === 'string' ? o.target.trim().replace(/^@/, '').toLowerCase() : '';
+  if (!/^[a-z0-9_]{3,25}$/.test(t)) return { ok: false, error: 'Who are you reporting? Open the report from their profile.' };
+  const reason = (REPORT_REASONS as string[]).includes(o.reason as string) ? (o.reason as ReportReason) : null;
+  if (!reason) return { ok: false, error: 'Choose a reason.' };
+  const details = multiLine(o.details, FEEDBACK_LIMITS.reportDetails);
+  if (reason === 'other' && details.length < FEEDBACK_LIMITS.reportDetailsMin) return { ok: false, error: `Tell us a little more (at least ${FEEDBACK_LIMITS.reportDetailsMin} characters).` };
+  const link = cleanReportLink(o.link);
+  return { ok: true, value: { target: t, reason, details, ...(link ? { link } : {}) } };
 }

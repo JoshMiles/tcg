@@ -9,7 +9,7 @@ import { VARIANT_LABELS } from './variants';
 import type { Variant } from './types';
 import type { StreamRecap } from './stream-recap';
 import type { WeeklyDigest } from './weekly-digest';
-import { discordText, type FeedbackItem } from './feedback-core';
+import { REPORT_REASON_LABELS, discordText, type FeedbackItem } from './feedback-core';
 import { SITE_URL } from './site';
 import { copyHrefFor } from './copy-link';
 import { FEEDBACK_FILTER_KINDS, type FeedbackFilterKind, DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
@@ -565,6 +565,18 @@ export async function notifySystem(o: { title: string; text?: string; tone?: 'go
 export async function notifyFeedback(item: FeedbackItem): Promise<void> {
   try {
     if (await inSandbox()) return;
+    if (item.kind === 'report') {
+      // Names the target and the reason only: not the details, not the reporter. Only channels that ticked Reports get it.
+      const body = noticeEmbed({
+        color: RED,
+        title: `Report about ${esc(item.target ?? 'a viewer')}`,
+        url: `${SITE_URL}/u/${encodeURIComponent(item.target ?? '')}`,
+        text: discordText(item.reason ? REPORT_REASON_LABELS[item.reason] : 'User report', 100),
+        fields: [],
+      });
+      later(() => sendToCategory('feedback', body, 'report'));
+      return;
+    }
     const body = noticeEmbed({
       color: item.kind === 'bug' || item.kind === 'deletion' ? RED : GOLD,
       title: `${item.kind === 'bug' ? '🐞 Problem report' : item.kind === 'deletion' ? '🗑️ Deletion request' : '💡 Suggestion'} from ${esc(item.user)}`,

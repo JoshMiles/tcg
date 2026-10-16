@@ -1,10 +1,11 @@
 import { kv } from './db';
 import { notify } from './trade-notify';
 import { notifyFeedback } from './discord';
+import { getActiveSeasonWithPacks, getCollection, getUserProfile } from './kv';
 import { getBuildInfo, formatVersion } from './version';
 import {
-  FEEDBACK_LIMITS, cleanMeta, dayKey, expired, isStatus, noticeText, multiLine, oneLine,
-  type FeedbackInput, type FeedbackItem, type FeedbackKind, type FeedbackStatus,
+  FEEDBACK_LIMITS, REPORT_REASON_LABELS, cleanMeta, dayKey, expired, isStatus, noticeText, multiLine, oneLine,
+  type FeedbackInput, type FeedbackItem, type ReportInput, type FeedbackKind, type FeedbackStatus,
 } from './feedback-core';
 
 // Suggestions and problem reports: one inbox. `feedback:<id>` holds an item, `feedback:list` the ids newest first (capped), and
@@ -16,6 +17,7 @@ const NEW_SET = 'feedback:new';
 const rateKey = (user: string, at: number) => `feedback:rate:${user}:${dayKey(at)}`;
 
 type ParsedInput = Extract<FeedbackInput, { ok: true }>['value'];
+type ParsedReport = Extract<ReportInput, { ok: true }>['value'];
 
 export type SubmitResult = { ok: true; item: FeedbackItem } | { ok: false; status: number; error: string };
 
@@ -63,6 +65,46 @@ export async function listFeedback(filter: FeedbackFilter = {}): Promise<Feedbac
   const ids = (await kv.lrange<string>(LIST, 0, FEEDBACK_LIMITS.listCap - 1).catch(() => [] as string[])) ?? [];
   return (await loadMany(ids)).filter(i =>
     (!filter.kind || i.kind === filter.kind) && (!filter.status || i.status === filter.status) && (!filter.user || i.user === filter.user.toLowerCase()));
+}
+
+// ── User reports (ROADMAP 17.2) ──
+// A report is an inbox item of kind 'report' with `target` and `reason`. Own daily counter, one open report per reporter per target.
+
+const reportRateKey = (user: string, at: number) => `feedback:rate:report:${user}:${dayKey(at)}`;
+
+export async function reportsToday(user: string, now = Date.now()): Promise<number> {
+  return Number(await kv.get<number>(reportRateKey(user.toLowerCase(), now)).catch(() => 0)) || 0;
+}
+
+async function knownViewer(login: string): Promise<boolean> {
+  if (await getUserProfile(login).catch(() => null)) return true;
+  const active = await getActiveSeasonWithPacks().catch(() => null);
+  if (!active) return false;
+  return Object.keys(await getCollection(active.season.collectionName).catch(() => ({}))).some(u => u.toLowerCase() === login);
+}
+
+export async function submitReport(reporter: string, input: ParsedReport, now = Date.now()): Promise<SubmitResult> {
+  const me = reporter.toLowerCase();
+  if (input.target === me) return { ok: false, status: 400, error: "You can't report yourself." };
+  if (!(await knownViewer(input.target))) return { ok: false, status: 404, error: "We don't know that collector." };
+  if ((await feedbackOf(me)).some(i => i.kind === 'report' && i.target === input.target && i.status === 'new')) {
+    return { ok: false, status: 409, error: 'You already reported this person. Staff will look at it.' };
+  }
+  const used = await reportsToday(me, now);
+  if (used >= FEEDBACK_LIMITS.reportsPerDay) return { ok: false, status: 429, error: `You can send ${FEEDBACK_LIMITS.reportsPerDay} reports a day. Try again tomorrow.` };
+  await kv.set(reportRateKey(me, now), used + 1, { ex: 2 * 86_400 });
+  const item: FeedbackItem = {
+    id: Math.random().toString(36).slice(2, 10) + now.toString(36).slice(-4),
+    kind: 'report', user: me, title: `Report: @${input.target} (${REPORT_REASON_LABELS[input.reason]})`, body: input.details,
+    target: input.target, reason: input.reason, ...(input.link ? { from: input.link } : {}),
+    at: now, status: 'new',
+  };
+  await kv.set(itemKey(item.id), item);
+  await kv.lpush(LIST, item.id);
+  await kv.ltrim(LIST, 0, FEEDBACK_LIMITS.listCap - 1);
+  await kv.sadd(NEW_SET, item.id);
+  await notifyFeedback(item);
+  return { ok: true, item };
 }
 
 /** One viewer's own items, newest first. */

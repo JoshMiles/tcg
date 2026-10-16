@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-10-17',
+    title: 'Report a collector',
+    tags: ['new'],
+    items: [
+      'You can now report another collector from their profile: press Share, then Report. Choose a reason, add details and an optional link to a trade or print.',
+      'Only staff see reports, and the person you report is never told it was you. You get a notice when staff have looked at it.',
+    ],
+  },
+  {
     date: '2026-10-16',
     title: 'Staff badges',
     tags: ['new'],

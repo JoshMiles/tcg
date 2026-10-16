@@ -1,14 +1,15 @@
 // Discord feed settings types + constants. Browser-safe (no server imports) so the admin UI can use
 // them; the server-side logic lives in ./discord.ts.
 
-/** The kinds of feedback post a channel can pick from. 'report' is the profile report of ROADMAP 17.2 (the inbox gains that kind then). */
+/** The kinds of feedback post a channel can pick from. 'report' is the profile report of ROADMAP 17.2 (the profile menu files it). */
 export type FeedbackFilterKind = 'idea' | 'bug' | 'deletion' | 'report';
 export const FEEDBACK_FILTER_KINDS: FeedbackFilterKind[] = ['idea', 'bug', 'deletion', 'report'];
-/** What the channel card offers as ticks. Reports stay hidden until 17.2 ships (add { key: 'report', label: 'Reports' } then). */
+/** What the channel card offers as ticks. */
 export const FEEDBACK_FILTER_OPTIONS: { key: FeedbackFilterKind; label: string }[] = [
   { key: 'idea', label: 'Suggestions' },
   { key: 'bug', label: 'Problems' },
   { key: 'deletion', label: 'Deletion requests' },
+  { key: 'report', label: 'Reports' },
 ];
 
 export type DiscordCategory = 'pulls' | 'cards' | 'upgrades' | 'trades' | 'listings' | 'recap' | 'digest' | 'feedback' | 'stream' | 'resets' | 'admin' | 'system';

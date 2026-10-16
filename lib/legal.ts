@@ -7,7 +7,7 @@ import { SITE_URL } from './site';
 //   LEGAL_GOVERNING_LAW   e.g. "the laws of England and Wales"
 // Everything falls back to neutral wording when unset, so the pages always render.
 
-export const LEGAL_UPDATED = '16 October 2026';
+export const LEGAL_UPDATED = '17 October 2026';
 
 export const APP_NAME = 'The Cheesy TCG';
 
