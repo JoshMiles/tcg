@@ -59,9 +59,9 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
   { title: 'Upgrades', fields: [
     { name: 'upgradeMargin', label: 'Upgrade margin (×)', help: 'An upgraded print is worth at least this many times the prints spent to make it. 1.2 = 20% more.' },
   ] },
-  { title: 'Collection bonuses (% of the set value)', fields: [
-    { name: 'completionBonusPct', label: 'Completion bonus (%)', help: 'Earned in proportion to how much of the set you own; this is the amount at 100%. 25 = a quarter of the set value.' },
-    { name: 'completeSetBonusPct', label: 'Complete collection bonus (%)', help: 'Extra, for owning at least one of every card. 50 = half the set value.' },
+  { title: 'Set bonuses (% of the set value)', fields: [
+    { name: 'completionBonusPct', label: 'Progress bonus (%)', help: 'Earned in proportion to how much of the set you own; this is the amount at 100%. 25 = a quarter of the set value.' },
+    { name: 'completeSetBonusPct', label: 'Full set bonus (%)', help: 'Extra, for owning at least one of every card. 50 = half the set value.' },
   ] },
   { title: 'Leaderboard', fields: [
     { name: 'leaderboardSize', label: 'Collectors listed', help: 'How many collectors the leaderboard page and the Twitch panel show.' },

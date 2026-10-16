@@ -121,8 +121,8 @@ export function ScoringForm({ saved, groups, save, reset }: {
               <tbody className="divide-y divide-gray-800/60">
                 <Row label="Set value" a={preview.saved.setValue} b={preview.candidate.setValue} />
                 <Row label="Highest card value" a={preview.saved.maxCardValue} b={preview.candidate.maxCardValue} />
-                <Row label="Completion bonus (full set)" a={preview.saved.completionAtFull} b={preview.candidate.completionAtFull} />
-                <Row label="Complete-collection bonus" a={preview.saved.completeSetBonus} b={preview.candidate.completeSetBonus} />
+                <Row label="Progress bonus (at a full set)" a={preview.saved.completionAtFull} b={preview.candidate.completionAtFull} />
+                <Row label="Full set bonus" a={preview.saved.completeSetBonus} b={preview.candidate.completeSetBonus} />
                 <Row label="Top score" a={preview.saved.topScore} b={preview.candidate.topScore} />
               </tbody>
             </table>

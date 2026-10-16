@@ -376,12 +376,12 @@ export default async function FaqPage() {
           </p>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
             <li>
-              <strong className="text-white">Completion bonus</strong>: grows with the share of the set you own, up to{' '}
+              <strong className="text-white">Progress bonus</strong> (it used to be called the completion bonus): grows with the share of the set you own, up to{' '}
               <strong className="text-white">{scoring.completionBonusPct}%</strong> of the set value
               {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.completion.toLocaleString()}</strong> points at 100%)</> : null}. Every new card you find adds its own points <em>and</em> raises this.
             </li>
             <li>
-              <strong className="text-white">Complete collection bonus</strong>: own at least one of <em>every</em> card in the season and you earn an extra{' '}
+              <strong className="text-white">Full set bonus</strong> (it used to be called the complete collection bonus): own at least one of <em>every</em> card in the season and you earn an extra{' '}
               <strong className="text-white">{scoring.completeSetBonusPct}%</strong> of the set value
               {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.set.toLocaleString()}</strong> points)</> : null}, and a <strong className="text-white"><Icon name="cheese" className="mr-1" />Complete</strong> badge on the leaderboard.
             </li>
