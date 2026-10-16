@@ -8,6 +8,7 @@ import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
 import { describeItems, firstMissing, tradeVisibleTo, type Trade } from '@/lib/trade-core';
 import { getTradeCards, getTradePools, poolsFor, stackPoints } from '@/lib/trade-view';
 import { fairness } from '@/lib/trade-match';
+import { wantedForTrades } from '@/lib/watch-index';
 import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
 import { profileHref } from '@/lib/profile-url';
@@ -68,6 +69,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
     me ? getCollection(season.collectionName).then(c => c[me] ?? []) : Promise.resolve([] as number[]),
   ]);
   const pools = await getTradePools(season, [trade], me);
+  const wanted = (await wantedForTrades([trade]))[trade.id];
   const nameOf = (n: number) => cards[n]?.name;
   const open = trade.status === 'open';
   const isFrom = me === trade.from;
@@ -108,7 +110,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
       </header>
 
       {!open && <OutcomeNote trade={trade} />}
-      <TradeCard trade={trade} cards={cards} pools={pools} title={title} actions={actions} />
+      <TradeCard trade={trade} cards={cards} pools={pools} wanted={wanted} title={title} actions={actions} />
       {verdict && verdict !== 'Empty' && <p className="text-xs text-gray-500">For you: <strong className="text-gray-300">{verdict}</strong>, going by the points on each side.</p>}
     </Shell>
   );

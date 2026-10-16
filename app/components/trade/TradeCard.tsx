@@ -15,7 +15,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 /** One offer: who made it, what they give and what they want back, the points on each side, and (for open offers) the actions. */
 export function TradeCard({
-  trade, cards, title, actions, compact = false, pools, href,
+  trade, cards, title, actions, compact = false, pools, href, wanted,
 }: {
   trade: Trade;
   cards: Record<number, TradeCardInfo>;
@@ -26,6 +26,8 @@ export function TradeCard({
   pools?: TradePools;
   /** Where this offer has a page of its own (a board listing), shown as a link in the header. */
   href?: string;
+  /** Per card the given side has, how many viewers want it (open listings only). */
+  wanted?: Record<number, number>;
 }) {
   const p = poolsFor(trade, pools);
   const givePts = stackPoints(trade.give, cards, p.give);
@@ -44,7 +46,7 @@ export function TradeCard({
       <div className={`grid gap-3 ${compact ? '' : 'md:grid-cols-[1fr_auto_1fr]'} items-start`}>
         <div className="space-y-1.5">
           <p className="text-[11px] uppercase tracking-wide text-gray-500">{trade.from} gives <span className="normal-case text-gray-600">≈ {givePts.toLocaleString()} pts</span></p>
-          <TradeStacks items={trade.give} cards={cards} pool={p.give} />
+          <TradeStacks items={trade.give} cards={cards} pool={p.give} wanted={wanted} />
         </div>
         {!compact && <div className="hidden md:flex self-center text-xl text-gray-600" aria-hidden>⇄</div>}
         <div className="space-y-1.5">

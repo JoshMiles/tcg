@@ -14,7 +14,7 @@ const SHORT: Record<string, string> = { regular: '', reverse: 'RH', full: 'FA', 
  * With a `pool` (the serial numbers the copies would come from) each stack also lists the serial numbers that move in the trade: trades
  * move the newest copies first, so these are the highest numbers of the pool. A serial that earns a points bonus is gold.
  */
-export function TradeStacks({ items, cards, className = '', pool, hideCount = false }: { items: TradeItem[]; cards: Record<number, TradeCardInfo>; className?: string; pool?: SerialPool; hideCount?: boolean }) {
+export function TradeStacks({ items, cards, className = '', pool, hideCount = false, wanted }: { items: TradeItem[]; cards: Record<number, TradeCardInfo>; className?: string; pool?: SerialPool; hideCount?: boolean; wanted?: Record<number, number> }) {
   return (
     <ul className={`flex flex-wrap gap-2 ${className}`}>
       {items.map(i => {
@@ -31,6 +31,7 @@ export function TradeStacks({ items, cards, className = '', pool, hideCount = fa
             <span className="min-w-0 text-xs leading-tight">
               <span className="block font-semibold text-white truncate max-w-[9rem]">{c?.name ?? `#${i.cardNumber}`}</span>
               <span className="block text-gray-500">{VARIANT_LABELS[i.variant]}{!hideCount && i.count > 1 && <span className="text-yellow-400 font-bold"> ×{i.count}</span>}</span>
+              {wanted?.[i.cardNumber] ? <span className="mt-1 inline-block rounded-full border border-purple-400/30 bg-purple-500/10 px-1.5 text-[10px] font-bold text-purple-300">{wanted[i.cardNumber]} want this</span> : null}
               {serials.length > 0 && c && (
                 <span className="mt-1 flex flex-wrap gap-1">
                   {serials.slice(0, 4).map(n => {

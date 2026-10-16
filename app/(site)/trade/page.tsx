@@ -7,6 +7,7 @@ import { getActive } from '@/lib/site-seasons';
 import { getTradeSettings, sweepTrades, tradesForUser, listOpenTrades } from '@/lib/trades';
 import { describeItems, firstMissing } from '@/lib/trade-core';
 import { getTradeCards, getTradePools } from '@/lib/trade-view';
+import { wantedForTrades } from '@/lib/watch-index';
 import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
 import { getUserSettings } from '@/lib/user-settings-store';
@@ -49,6 +50,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
   for (const e of owned) copies.set(e, (copies.get(e) ?? 0) + 1);
   const viewer: MatchViewer = { copies, wanted: new Set([...(prefs?.wanted ?? []), ...(prefs?.watches ?? []).map(w => w.card)]) };
   const pools = await getTradePools(season, [...board, ...incoming, ...outgoing, ...recent], me);
+  const wantedBy = await wantedForTrades(board);
   const infoFor = new Map(board.map(t => [t.id, matchTrade(t, viewer, cards, pools)]));
   const matches = me ? bestMatches(board, viewer, cards, 4, pools) : [];
 
@@ -160,6 +162,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                   key={m.trade.id}
                   trade={m.trade}
                   href={`/trade/${m.trade.id}`}
+                  wanted={wantedBy[m.trade.id]}
                   pools={pools}
                   cards={cards}
                   title={<>{user(m.trade.from)}&rsquo;s listing <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons.join(' · ')}</span></>}
@@ -200,6 +203,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                       <TradeCard
                         trade={t}
                         href={`/trade/${t.id}`}
+                        wanted={wantedBy[t.id]}
                         pools={pools}
                         cards={cards}
                         title={<>{user(t.from)}&rsquo;s listing{session && m.reasons.length > 0 && <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons[0]}</span>}</>}
