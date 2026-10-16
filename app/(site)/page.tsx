@@ -11,7 +11,7 @@ import { recentPullItems } from '@/lib/home-pulls';
 import { RecentPulls } from '@/app/components/site/RecentPulls';
 import { InstallHint } from '@/app/components/site/InstallHint';
 import { getRarity } from '@/lib/rarity';
-import { cardThumbUrl } from '@/lib/card-art';
+import { CardTile } from '@/app/components/CardTile';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { LiveBanner } from '@/app/components/site/Live';
@@ -270,9 +270,11 @@ export default async function HomePage() {
                 const rarity = getRarity(card.stars);
                 return (
                   <Link key={card.id} href={`/cards?card=${card.number}`} className="block space-y-2 group">
-                    <div className="holo-hover aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900" style={{ borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` }}>
-                      {card.imageUrl && <img src={cardThumbUrl(card.imageUrl)} alt={card.name} loading="lazy" className="w-full h-full object-cover" />}
-                    </div>
+                    {card.imageUrl ? (
+                      <CardTile imageUrl={card.imageUrl} alt={card.name} className="holo-hover relative aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900" style={{ borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` }} />
+                    ) : (
+                      <div className="holo-hover aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900" style={{ borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` }} />
+                    )}
                     <div className="text-center">
                       <p className="text-sm font-semibold text-white truncate">{card.name}</p>
                       <p className="text-xs text-gray-500">1 in {Math.round(1 / v.pullRate).toLocaleString()} pulls</p>

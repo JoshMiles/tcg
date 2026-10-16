@@ -90,6 +90,7 @@ export function InstallGuide() {
             </Steps>
             <p className="text-sm text-gray-400 leading-relaxed">
               The app opens full screen from its own icon. iPhones keep a home-screen app separate from Safari, so you&rsquo;ll need to <B>log in with Twitch once</B> the first time you open it.
+              If you see a letter instead of the logo, remove the app and add it again.
             </p>
           </>
         )}
