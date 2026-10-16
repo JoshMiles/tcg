@@ -23,6 +23,8 @@ has(privacy, `latest ${fromCode('lib/activity.ts', /const LOG_CAP = (\d+)/)} eve
 has(privacy, `latest ${fromCode('lib/trades.ts', /const HISTORY_CAP = (\d+)/)} finished trades`, 'trade history size');
 has(privacy, `newest ${fromCode('lib/trade-notify.ts', /const NOTICE_CAP = (\d+)/)}`, 'bell notices kept');
 has(privacy, `newest ${fromCode('lib/score-history-core.ts', /export const HISTORY_CAP = (\d+)/)} per season`, 'score samples kept');
+ok(faq.includes('Request deletion') && privacy.includes('Request deletion') && terms.includes('Request deletion'), 'the FAQ, Privacy Policy and Terms all describe the Request deletion button');
+ok(faq.includes('14 days') && privacy.includes('restore point'), 'the 14-day restore point is stated');
 // The feedback wording reads its numbers from the limits themselves, so it cannot drift; check it still does.
 has(privacy, 'FEEDBACK_LIMITS.keepDaysAfterResolved} days after that, then deleted', 'feedback retention comes from the limit');
 has(privacy, 'You can send {FEEDBACK_LIMITS.perDay} a day', 'feedback daily limit comes from the limit');

@@ -7,6 +7,8 @@ import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { profileHref } from '@/lib/profile-url';
 import { SettingsForm } from './SettingsForm';
+import { DeleteAccount } from './DeleteAccount';
+import { deletionOf } from '@/lib/feedback';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Settings', robots: { index: false, follow: false } };
@@ -15,6 +17,7 @@ export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/auth/twitch?returnTo=/settings');
   const [settings, active] = await Promise.all([getUserSettings(session.username), getActiveSeasonWithPacks().catch(() => null)]);
+  const deletion = await deletionOf(session.username).catch(() => null);
   const cards = (active?.packs ?? []).flatMap(p => p.cards).map(c => ({ number: c.number, name: c.name, stars: c.stars })).sort((a, b) => a.number - b.number);
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
@@ -26,6 +29,7 @@ export default async function SettingsPage() {
         <Link href={profileHref(session.username)} className="text-sm text-yellow-400 hover:text-yellow-300">View my profile →</Link>
       </header>
       <SettingsForm initial={settings} username={session.username} cards={cards} />
+      <DeleteAccount username={session.username} initial={deletion ? { status: deletion.status, at: deletion.at, reply: deletion.reply } : null} />
     </div>
   );
 }

@@ -92,7 +92,7 @@ export default function TermsPage() {
       <Section title="5. Suspension and termination">
         <p>
           We may remove cards, adjust scores, restrict, suspend, or end your access at any time, especially if we think you have broken these Terms or the rules of the stream or Twitch. You can stop using
-          the Service whenever you like, and can ask us to delete your data (see the Privacy Policy). We may also change or discontinue the Service at any time. Sections that by their nature should
+          the Service whenever you like, and can ask us to delete your account and data with the <em>Request deletion</em> button in Settings (see the Privacy Policy; deleting is permanent and the prints you held are retired). We may also change or discontinue the Service at any time. Sections that by their nature should
           continue (including 3, 6, 7 and 8) will survive termination.
         </p>
       </Section>

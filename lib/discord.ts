@@ -540,8 +540,8 @@ export async function notifyFeedback(item: FeedbackItem): Promise<void> {
   try {
     if (await inSandbox()) return;
     const body = noticeEmbed({
-      color: item.kind === 'bug' ? RED : GOLD,
-      title: `${item.kind === 'bug' ? '🐞 Problem report' : '💡 Suggestion'} from ${esc(item.user)}`,
+      color: item.kind === 'bug' || item.kind === 'deletion' ? RED : GOLD,
+      title: `${item.kind === 'bug' ? '🐞 Problem report' : item.kind === 'deletion' ? '🗑️ Deletion request' : '💡 Suggestion'} from ${esc(item.user)}`,
       url: `${SITE_URL}/u/${encodeURIComponent(item.user)}`,
       text: [discordText(item.title, 100) && `**${discordText(item.title, 100)}**`, discordText(item.body)].filter(Boolean).join('\n'),
       fields: [

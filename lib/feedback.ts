@@ -120,3 +120,61 @@ export async function sweepFeedback(now = Date.now()): Promise<number> {
   if (keep.length) await kv.rpush(LIST, ...keep); // pushed in the same newest-first order, so the list keeps its order
   return deleted;
 }
+
+// ── Account deletion requests (ROADMAP 11.3) ──
+// A request is an inbox item of kind 'deletion', so it shares the list, the new count and the sweep. It is not counted against the
+// daily send limit. Handling it (deleting the viewer, or declining) is in app/admin/feedback-actions.ts and lib/account-deletion.ts.
+
+/** The viewer's latest deletion request (any status), newest first, or null. */
+export async function deletionOf(user: string): Promise<FeedbackItem | null> {
+  return (await feedbackOf(user)).find(i => i.kind === 'deletion') ?? null;
+}
+
+export type DeletionRequestResult = { ok: true; item: FeedbackItem } | { ok: false; error: string };
+
+export async function requestDeletion(user: string, now = Date.now()): Promise<DeletionRequestResult> {
+  const u = user.toLowerCase();
+  const existing = await deletionOf(u);
+  if (existing && existing.status === 'new') return { ok: false, error: 'You already asked for this. It is waiting for the team.' };
+  const item: FeedbackItem = {
+    id: Math.random().toString(36).slice(2, 10) + now.toString(36).slice(-4),
+    kind: 'deletion', user: u, title: 'Delete my account', body: `@${u} asked for their account and data to be deleted.`, at: now, status: 'new',
+  };
+  await kv.set(itemKey(item.id), item);
+  await kv.lpush(LIST, item.id);
+  await kv.ltrim(LIST, 0, FEEDBACK_LIMITS.listCap - 1);
+  await kv.sadd(NEW_SET, item.id);
+  await notifyFeedback(item);
+  return { ok: true, item };
+}
+
+/** Removes one item entirely (the list entry is dropped by the next sweep). */
+export async function removeFeedbackItem(id: string): Promise<void> {
+  await kv.del(itemKey(id));
+  await kv.srem(NEW_SET, id);
+}
+
+/** The sender takes their request back while it is still waiting. Returns whether one was cancelled. */
+export async function cancelDeletion(user: string): Promise<boolean> {
+  const item = await deletionOf(user);
+  if (!item || item.status !== 'new') return false;
+  await removeFeedbackItem(item.id);
+  await sweepFeedback().catch(() => 0);
+  return true;
+}
+
+/** Marks a request done without telling the sender (the account no longer exists to be told). */
+export async function closeDeletion(id: string, by: string | null, now = Date.now()): Promise<void> {
+  const item = await getFeedback(id);
+  if (!item) return;
+  await kv.set(itemKey(id), { ...item, status: 'done' as const, resolvedAt: now, ...(by ? { repliedBy: oneLine(by, 40) } : {}) });
+  await kv.srem(NEW_SET, id);
+}
+
+/** Deletes every inbox item of a viewer except the deletion request(s), which stay as the record of what was asked. */
+export async function deleteFeedbackOf(user: string): Promise<number> {
+  const mine = (await feedbackOf(user)).filter(i => i.kind !== 'deletion');
+  for (const i of mine) await removeFeedbackItem(i.id);
+  if (mine.length) await sweepFeedback().catch(() => 0);
+  return mine.length;
+}
