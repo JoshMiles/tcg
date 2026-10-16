@@ -20,6 +20,7 @@ import { matchingAlerts } from './watch-core';
 const NOTICE_CAP = 30;
 const noticesKey = (u: string) => `notif:${u}`;
 const seenKey = (u: string) => `notif:${u}:seen`;
+const versionKey = (u: string) => `notif:${u}:v`;
 
 /**
  * The serial numbers of the copies on each side, read BEFORE they moved (afterwards they have changed hands), so the points quoted in
@@ -36,6 +37,7 @@ export async function notify(username: string, notice: Omit<Notice, 'id' | 'at'>
     const full: Notice = { ...notice, id: Math.random().toString(36).slice(2, 10), at: Date.now() };
     await kv.lpush(noticesKey(user), full);
     await kv.ltrim(noticesKey(user), 0, NOTICE_CAP - 1);
+    await kv.incr(versionKey(user)); // the bell asks "has anything changed since version N?"
   } catch { /* best effort */ }
 }
 
@@ -49,8 +51,17 @@ export async function listNotices(username: string): Promise<{ notices: Notice[]
   return { notices: notices ?? [], seen: Number(seen) || 0 };
 }
 
+/** Bumped by every new notice and every mark-as-read, so a bell polling with its last version gets a cheap 204 when nothing changed. */
+export async function getNoticeVersion(username: string): Promise<number> {
+  return Number(await kv.get<number>(versionKey(username.toLowerCase())).catch(() => 0)) || 0;
+}
+
 export async function markNoticesSeen(username: string): Promise<void> {
-  try { await kv.set(seenKey(username.toLowerCase()), Date.now()); } catch { /* best effort */ }
+  try {
+    const user = username.toLowerCase();
+    await kv.set(seenKey(user), Date.now());
+    await kv.incr(versionKey(user));
+  } catch { /* best effort */ }
 }
 
 /** "2× Cheesy Cat (Shiny Full Art)" for each stack. */
