@@ -26,24 +26,34 @@ import { autoDisabledChannels } from './discord';
 // Only what the widgets in the saved layout need is computed (the leaderboard, activity log, trades and live status cost
 // extra reads), so a trimmed-down dashboard is a cheaper one.
 
-const LAYOUT_KEY = 'admin:dashboard';
+const LAYOUT_KEY = 'admin:dashboard'; // the shared layout: what everyone had before layouts were per person, and the emergency password login's
 const NOTES_KEY = 'admin:dashboard:notes';
 
-export async function getDashboardLayout(): Promise<DashboardLayout> {
+/**
+ * Where one person's layout lives. `login` is a staff member's Twitch login; null (the emergency password login) uses the shared key.
+ * The "user" segment keeps a login called "notes" or "presets" from landing on those keys.
+ */
+export function layoutKeyFor(login: string | null): string {
+  const clean = (login ?? '').trim().toLowerCase();
+  return clean ? `${LAYOUT_KEY}:user:${clean}` : LAYOUT_KEY;
+}
+
+/** This person's layout, else the shared one (so nobody loses what they had), else the default. */
+export async function getDashboardLayout(login: string | null = null): Promise<DashboardLayout> {
   try {
-    const stored = await kv.get<DashboardLayout>(LAYOUT_KEY);
+    const stored = (login ? await kv.get<DashboardLayout>(layoutKeyFor(login)) : null) ?? await kv.get<DashboardLayout>(LAYOUT_KEY);
     return stored ? sanitizeLayout(stored) : DEFAULT_LAYOUT;
   } catch {
     return DEFAULT_LAYOUT;
   }
 }
 
-export async function saveDashboardLayout(layout: DashboardLayout): Promise<void> {
-  await kv.set(LAYOUT_KEY, sanitizeLayout(layout));
+export async function saveDashboardLayout(layout: DashboardLayout, login: string | null = null): Promise<void> {
+  await kv.set(layoutKeyFor(login), sanitizeLayout(layout));
 }
 
-export async function resetDashboardLayout(): Promise<void> {
-  await kv.del(LAYOUT_KEY);
+export async function resetDashboardLayout(login: string | null = null): Promise<void> {
+  await kv.del(layoutKeyFor(login));
 }
 
 export async function getDashboardNotes(): Promise<string> {
@@ -203,21 +213,21 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
 
 // ── Presets: named layouts the admin can switch between ──
 const PRESETS_KEY = 'admin:dashboard:presets';
-export interface DashboardPreset { name: string; layout: DashboardLayout }
+export interface DashboardPreset { name: string; layout: DashboardLayout; /** Who saved it (a staff login), when known. */ by?: string }
 const PRESET_CAP = 12;
 
 export async function getDashboardPresets(): Promise<DashboardPreset[]> {
   try {
     const stored = await kv.get<DashboardPreset[]>(PRESETS_KEY);
-    return (stored ?? []).filter(p => p && typeof p.name === 'string').map(p => ({ name: p.name, layout: sanitizeLayout(p.layout) }));
+    return (stored ?? []).filter(p => p && typeof p.name === 'string').map(p => ({ name: p.name, layout: sanitizeLayout(p.layout), ...(typeof p.by === 'string' ? { by: p.by } : {}) }));
   } catch {
     return [];
   }
 }
 
-export async function saveDashboardPreset(name: string, layout: DashboardLayout): Promise<void> {
+export async function saveDashboardPreset(name: string, layout: DashboardLayout, by?: string): Promise<void> {
   const rest = (await getDashboardPresets()).filter(p => p.name !== name);
-  await kv.set(PRESETS_KEY, [{ name, layout }, ...rest].slice(0, PRESET_CAP));
+  await kv.set(PRESETS_KEY, [{ name, layout, ...(by ? { by } : {}) }, ...rest].slice(0, PRESET_CAP));
 }
 
 export async function deleteDashboardPreset(name: string): Promise<void> {
