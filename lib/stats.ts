@@ -27,7 +27,8 @@ export async function recordStats(e: StatEvent, at = Date.now()): Promise<void> 
   if (!coll) return;
   try {
     const bumps: Metric[] = [];
-    if (e.type === 'pull') {
+    // A card granted by webhook (a Mix It Up reward) counts as a pull everywhere the numbers are shown (the weekly digest, the dashboard charts).
+    if (e.type === 'pull' || (e.type === 'grant' && e.source === 'webhook')) {
       bumps.push('pull');
       if (e.isNew) bumps.push('newCard');
       if (e.copies === 1 && e.uniqueOwned === 1) bumps.push('newViewer');
@@ -36,7 +37,7 @@ export async function recordStats(e: StatEvent, at = Date.now()): Promise<void> 
       if (v === 'reverse' || v === 'full' || v === 'shiny') bumps.push(`v:${v}` as Metric);
     } else if (e.type === 'upgrade') bumps.push('upgrade');
     else if (e.type === 'trade' && e.action === 'accepted') bumps.push('trade');
-    else if (e.type === 'grant') bumps.push('grant');
+    else if (e.type === 'grant') bumps.push('grant'); // an admin grant
     if (bumps.length === 0) return;
 
     const key = `stats:h:${coll}`;

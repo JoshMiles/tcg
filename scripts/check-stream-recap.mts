@@ -45,6 +45,13 @@ const events: Ev[] = [
   pull('late', T0 + 3 * H, {}),                                                                    // after the stream
 ];
 const r = buildStreamRecap(events, T0, T0 + 2 * H);
+// A card granted by webhook (a reward) counts as a pack opened, a puller, a new collector, and can be the rarest.
+const wgrant = (username: string, at: number, over: Record<string, unknown> = {}) => ({ type: 'grant', source: 'webhook', seq: ++seq, at, username, cardNumber: 9, ...over }) as unknown as Ev;
+const rg = buildStreamRecap([...events, wgrant('dee', T0 + 7000, { stars: 5, cardName: 'Dragon', packName: 'Base', isNew: true, copies: 1, uniqueOwned: 1, serial: 1, variant: 'shiny' }), wgrant('ann', T0 + 8000), { type: 'grant', source: 'admin', seq: ++seq, at: T0 + 9000, username: 'zed', cardNumber: 2 } as unknown as Ev], T0, T0 + 2 * H);
+ok(rg.packs === 7 && rg.pullers === 4, 'webhook grants count as packs and pullers; an admin grant does not');
+ok(rg.rarest?.cardName === 'Dragon' && rg.rarest.variant === 'shiny', 'a rare webhook grant can be the rarest pull');
+ok(rg.newCollectors.includes('dee') && rg.firstEver.some(p => p.username === 'dee'), 'and a first-ever new collector');
+ok(rg.topPuller?.username === 'ann' && rg.topPuller.packs === 3, 'and counts towards the top puller (ann: 2 pulls and a grant)');
 ok(r.packs === 5 && r.pullers === 3, 'counts only the pulls inside the window');
 ok(r.distinctCards === 5, 'counts different cards');
 ok(JSON.stringify(r.newCollectors) === '["ann"]', 'a new collector is a first-ever card, not just a new card');
