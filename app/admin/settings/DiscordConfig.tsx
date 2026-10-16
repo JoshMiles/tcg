@@ -1,8 +1,12 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
-import { useActionState, useState } from 'react';
-import { DISCORD_CATEGORIES, type DiscordSettings } from '@/lib/discord-config';
+import { ArmedButton } from '../components/ArmedButton';
+import { useActionState, useId, useState } from 'react';
+import {
+  DEPLOY_STEPS, DISCORD_CATEGORIES, DISCORD_PRESETS, MAX_DISCORD_CHANNELS, presetChannel,
+  type DiscordChannel, type DiscordSettings,
+} from '@/lib/discord-config';
 import type { ActionResult } from '../action-types';
 import { discordAction } from '../actions';
 
@@ -20,30 +24,29 @@ const MIN_STARS = [
 ];
 
 /**
- * Settings for posting the live activity feed to a Discord channel. One form: Save stores the
- * settings, while "Send test" / "Send last activity" post using whatever is currently in the form
- * (so you can verify a webhook before saving it). Fields are controlled so they survive a submit.
+ * Settings for posting the live activity feed to Discord: any number of channels (one webhook each), every one with its own
+ * switch and its own choice of what to post. One form: Save stores everything, while a channel's "Send test" / "Send last
+ * activity" post using whatever is currently typed (so a webhook can be verified before saving). The whole settings object
+ * travels in one hidden JSON field, so the controlled state below is the single source of truth.
  */
 export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(discordAction, null);
-
-  const [url, setUrl] = useState(settings.url);
-  const [showUrl, setShowUrl] = useState(false);
   const [enabled, setEnabled] = useState(settings.enabled);
-  const [cats, setCats] = useState(settings.categories);
-  const [minStars, setMinStars] = useState(String(settings.minStars));
-  const [newOnly, setNewOnly] = useState(settings.newOnly);
+  const [channels, setChannels] = useState<DiscordChannel[]>(settings.channels);
+  const [showDeploys, setShowDeploys] = useState(false);
 
-  const live = settings.enabled && !!settings.url;
+  const patch = (id: string, p: Partial<DiscordChannel>) => setChannels(cs => cs.map(c => (c.id === id ? { ...c, ...p } : c)));
+  const live = settings.enabled && settings.channels.some(c => c.enabled && c.url);
+  const full = channels.length >= MAX_DISCORD_CHANNELS;
 
   return (
     <section className="tcg-panel rounded-2xl overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-800 flex items-start justify-between gap-4">
         <div>
           <h2 className="font-semibold text-white flex items-center gap-2">
-            <Icon name="chat" /> Discord activity feed
+            <Icon name="chat" /> Discord channels
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Post pulls, grants and other activity to a Discord channel as it happens</p>
+          <p className="text-xs text-gray-500 mt-0.5">Post pulls, grants and other activity to Discord as it happens, each channel with its own events</p>
         </div>
         <span
           className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider rounded-full px-2.5 py-0.5 border ${
@@ -56,91 +59,61 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
       </div>
 
       <form action={formAction} className="px-6 py-5 space-y-6">
-        {/* Webhook URL */}
-        <div className="space-y-1.5">
-          <label htmlFor="discord-url" className="block text-xs text-gray-500 font-bold uppercase tracking-wider">Webhook URL</label>
-          <div className="flex gap-2">
-            <input
-              id="discord-url"
-              name="url"
-              type={showUrl ? 'text' : 'password'}
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-              placeholder="https://discord.com/api/webhooks/…"
-              autoComplete="off"
-              spellCheck={false}
-              className={`${inputClass} flex-1 font-mono`}
-            />
-            <button type="button" onClick={() => setShowUrl(s => !s)} className={secondaryBtn}>
-              {showUrl ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          <p className="text-xs text-gray-600">
-            In Discord: <strong className="text-gray-400">Channel settings → Integrations → Webhooks → New Webhook → Copy Webhook URL</strong>.
-            Treat it like a password. Anyone with it can post to your channel.
-          </p>
-        </div>
+        <input type="hidden" name="settings" value={JSON.stringify({ enabled, channels })} />
 
-        {/* Master switch */}
         <label className="flex items-center gap-3 cursor-pointer select-none">
-          <input type="checkbox" name="enabled" checked={enabled} onChange={e => setEnabled(e.target.checked)} className="accent-yellow-500 w-4 h-4" />
-          <span className="text-sm text-white font-semibold">Post activity to Discord</span>
+          <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} className="accent-yellow-500 w-4 h-4" />
+          <span className="text-sm text-white font-semibold">Post to Discord <span className="text-gray-500 font-normal">(master switch for every channel)</span></span>
         </label>
 
-        {/* What to post */}
-        <fieldset className="space-y-2">
-          <legend className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">What to post</legend>
-          {DISCORD_CATEGORIES.map(c => (
-            <label key={c.key} className="flex items-start gap-3 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                name={`cat_${c.key}`}
-                checked={cats[c.key]}
-                onChange={e => setCats(prev => ({ ...prev, [c.key]: e.target.checked }))}
-                className="accent-yellow-500 w-4 h-4 mt-0.5"
-              />
-              <span>
-                <span className="text-sm text-gray-200 font-semibold">{c.label}</span>
-                <span className="block text-xs text-gray-600">{c.hint}</span>
-              </span>
-            </label>
-          ))}
-        </fieldset>
+        {channels.length === 0 && (
+          <p className="text-sm text-gray-500 rounded-xl border border-dashed border-gray-800 px-4 py-6 text-center">
+            No channels yet. Add one below, paste its webhook URL and choose what it should receive.
+          </p>
+        )}
 
-        {/* Pull filters */}
-        <div className={`rounded-xl border border-gray-800 bg-gray-950/50 p-4 space-y-3 ${cats.pulls ? '' : 'opacity-50'}`}>
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Pull filters</p>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <label className="flex items-center gap-2 text-sm text-gray-300">
-              Minimum rarity
-              <select
-                name="minStars"
-                value={minStars}
-                onChange={e => setMinStars(e.target.value)}
-                disabled={!cats.pulls}
-                className={`${inputClass} py-1.5`}
-              >
-                {MIN_STARS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-              </select>
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
-              <input type="checkbox" name="newOnly" checked={newOnly} onChange={e => setNewOnly(e.target.checked)} disabled={!cats.pulls} className="accent-yellow-500 w-4 h-4" />
-              Only cards the viewer didn&apos;t have yet
-            </label>
-          </div>
-          <p className="text-xs text-gray-600">Handy on a busy stream, e.g. 3★ and up, new cards only keeps the channel readable.</p>
+        <div className="space-y-4">
+          {channels.map(c => (
+            <ChannelCard
+              key={c.id}
+              channel={c}
+              pending={pending}
+              onChange={p => patch(c.id, p)}
+              onRemove={() => setChannels(cs => cs.filter(x => x.id !== c.id))}
+            />
+          ))}
         </div>
+
+        {/* Add channel */}
+        <div className="space-y-2">
+          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Add channel</p>
+          <div className="flex flex-wrap gap-2">
+            {DISCORD_PRESETS.map(p => (
+              <button key={p.key} type="button" disabled={full} title={p.hint} onClick={() => setChannels(cs => [...cs, presetChannel(p.key)])} className={secondaryBtn}>
+                + {p.name}
+              </button>
+            ))}
+            <button type="button" onClick={() => setShowDeploys(s => !s)} aria-expanded={showDeploys} className={secondaryBtn} title="GitHub and Vercel changes, posted by GitHub itself">
+              Deploys &amp; code
+            </button>
+          </div>
+          {full && <p className="text-xs text-gray-600">That is the most channels ({MAX_DISCORD_CHANNELS}).</p>}
+        </div>
+
+        {showDeploys && (
+          <div className="rounded-xl border border-gray-800 bg-gray-950/50 p-4 space-y-2">
+            <p className="text-sm font-semibold text-white">GitHub and Vercel changes in Discord</p>
+            <p className="text-xs text-gray-500">Nothing to set up here: GitHub posts these itself, using a webhook of its own. It needs no category boxes.</p>
+            <ol className="list-decimal pl-5 space-y-1 text-sm text-gray-300">
+              {DEPLOY_STEPS.map(t => <li key={t}>{t}</li>)}
+            </ol>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-3">
           <PendingButton type="submit" name="intent" value="save" disabled={pending} className="px-5 py-2 tcg-btn rounded-xl text-sm">
             Save
-          </PendingButton>
-          <PendingButton type="submit" name="intent" value="test" disabled={pending} className={secondaryBtn} title="Posts a sample message using the URL above. Nothing is saved">
-            Send test message
-          </PendingButton>
-          <PendingButton type="submit" name="intent" value="last" disabled={pending} className={secondaryBtn} title="Re-posts the most recent activity event using the URL above, regardless of your filters">
-            Send last activity
           </PendingButton>
         </div>
 
@@ -156,5 +129,95 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
         )}
       </form>
     </section>
+  );
+}
+
+function ChannelCard({ channel: c, pending, onChange, onRemove }: {
+  channel: DiscordChannel;
+  pending: boolean;
+  onChange: (p: Partial<DiscordChannel>) => void;
+  onRemove: () => void;
+}) {
+  const uid = useId();
+  const [showUrl, setShowUrl] = useState(false);
+  return (
+    <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4 space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <label htmlFor={`${uid}-name`} className="sr-only">Channel name</label>
+        <input id={`${uid}-name`} value={c.name} onChange={e => onChange({ name: e.target.value })} maxLength={40} className={`${inputClass} font-semibold w-48`} />
+        <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
+          <input type="checkbox" checked={c.enabled} onChange={e => onChange({ enabled: e.target.checked })} className="accent-yellow-500 w-4 h-4" />
+          On
+        </label>
+        <span className="flex-1" />
+        <ArmedButton onConfirm={onRemove} className="text-xs font-bold text-gray-500 hover:text-red-300 transition-colors" armedClassName="text-xs font-bold text-red-300">
+          <Icon name="trash" className="mr-1" />Remove
+        </ArmedButton>
+      </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor={`${uid}-url`} className="block text-xs text-gray-500 font-bold uppercase tracking-wider">Webhook URL</label>
+        <div className="flex gap-2">
+          <input
+            id={`${uid}-url`}
+            type={showUrl ? 'text' : 'password'}
+            value={c.url}
+            onChange={e => onChange({ url: e.target.value })}
+            placeholder="https://discord.com/api/webhooks/…"
+            autoComplete="off"
+            spellCheck={false}
+            className={`${inputClass} flex-1 min-w-0 font-mono`}
+          />
+          <button type="button" onClick={() => setShowUrl(s => !s)} className={secondaryBtn}>{showUrl ? 'Hide' : 'Show'}</button>
+        </div>
+        <p className="text-xs text-gray-600">
+          In Discord: <strong className="text-gray-400">Channel settings → Integrations → Webhooks → New Webhook → Copy Webhook URL</strong>.
+          Treat it like a password. Anyone with it can post to your channel.
+        </p>
+      </div>
+
+      <fieldset className="space-y-2">
+        <legend className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">What to post</legend>
+        {DISCORD_CATEGORIES.map(cat => (
+          <label key={cat.key} className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={c.categories[cat.key]}
+              onChange={e => onChange({ categories: { ...c.categories, [cat.key]: e.target.checked } })}
+              className="accent-yellow-500 w-4 h-4 mt-0.5"
+            />
+            <span>
+              <span className="text-sm text-gray-200 font-semibold">{cat.label}</span>
+              <span className="block text-xs text-gray-600">{cat.hint}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+
+      <div className={`rounded-xl border border-gray-800 bg-gray-950/50 p-4 space-y-3 ${c.categories.pulls ? '' : 'opacity-50'}`}>
+        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Pull filters</p>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <label className="flex items-center gap-2 text-sm text-gray-300">
+            Minimum rarity
+            <select value={String(c.minStars)} onChange={e => onChange({ minStars: Number(e.target.value) })} disabled={!c.categories.pulls} className={`${inputClass} py-1.5`}>
+              {MIN_STARS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
+            <input type="checkbox" checked={c.newOnly} onChange={e => onChange({ newOnly: e.target.checked })} disabled={!c.categories.pulls} className="accent-yellow-500 w-4 h-4" />
+            Only cards the viewer didn&apos;t have yet
+          </label>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <PendingButton type="submit" name="intent" value={`test:${c.id}`} disabled={pending} className={secondaryBtn} title="Posts a sample message using the URL above. Nothing is saved">
+          Send test message
+        </PendingButton>
+        <PendingButton type="submit" name="intent" value={`last:${c.id}`} disabled={pending} className={secondaryBtn} title="Re-posts the most recent activity event using the URL above, regardless of your filters">
+          Send last activity
+        </PendingButton>
+      </div>
+    </div>
   );
 }

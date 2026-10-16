@@ -27,8 +27,7 @@ import { deleteUnusedBlobs } from '@/lib/assets';
 import { getOverlayStatus } from '@/lib/overlay';
 import { getActivity } from '@/lib/activity';
 import {
-  saveDiscordSettings, isValidDiscordWebhookUrl, postToDiscord, buildMessage, buildTestMessage,
-  type DiscordSettings,
+  saveDiscordSettings, cleanDiscordInput, postToDiscord, buildMessage, buildTestMessage,
 } from '@/lib/discord';
 import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
@@ -689,46 +688,42 @@ export async function clearQueueAction(): Promise<ActionResult> {
 }
 
 // ── Discord activity feed ─────────────────────────────────
-// One form, three submit buttons (intent = save | test | last). Test and "last" use the URL currently
-// in the form, so a webhook can be verified before it is saved.
-
-const NOT_A_WEBHOOK = 'That doesn’t look like a Discord webhook URL. It should start with https://discord.com/api/webhooks/…';
+// One form: the whole settings object travels as JSON in the `settings` field, and the submit button's intent is
+// save | test:<channelId> | last:<channelId>. Test and "last" use the channel as currently typed, so a webhook can be
+// verified before it is saved.
 
 export async function discordAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   await requireAdmin();
-  const on = (name: string) => formData.get(name) === 'on';
-  const url = String(formData.get('url') ?? '').trim();
   const intent = String(formData.get('intent') ?? 'save');
+  let raw: unknown;
+  try { raw = JSON.parse(String(formData.get('settings') ?? '')); } catch { raw = null; }
+  const cleaned = cleanDiscordInput(raw);
+  if (!cleaned.ok) return { ok: false, message: cleaned.message };
+  const { settings } = cleaned;
 
   if (intent === 'save') {
-    const settings: DiscordSettings = {
-      url,
-      enabled: on('enabled'),
-      categories: { pulls: on('cat_pulls'), cards: on('cat_cards'), stream: on('cat_stream'), resets: on('cat_resets') },
-      minStars: Math.min(5, Math.max(1, parseInt(String(formData.get('minStars') ?? '1'), 10) || 1)),
-      newOnly: on('newOnly'),
-    };
-    if (url && !isValidDiscordWebhookUrl(url)) return { ok: false, message: NOT_A_WEBHOOK };
-    if (settings.enabled && !url) return { ok: false, message: 'Add a webhook URL before turning it on.' };
     await saveDiscordSettings(settings);
     revalidatePath('/admin/settings');
-    return { ok: true, message: settings.enabled ? 'Saved. Activity will be posted to Discord.' : 'Saved. Posting to Discord is off.' };
+    const live = settings.enabled && settings.channels.some(c => c.enabled && c.url);
+    return { ok: true, message: live ? 'Saved. Activity will be posted to Discord.' : 'Saved. Posting to Discord is off.' };
   }
 
-  if (!url) return { ok: false, message: 'Paste a webhook URL first.' };
-  if (!isValidDiscordWebhookUrl(url)) return { ok: false, message: NOT_A_WEBHOOK };
+  const [kind, id] = intent.split(':');
+  const channel = settings.channels.find(c => c.id === id);
+  if (!channel || (kind !== 'test' && kind !== 'last')) return { ok: false, message: 'That channel is not in the form any more.' };
+  if (!channel.url) return { ok: false, message: `${channel.name}: paste a webhook URL first.` };
 
   let result;
-  if (intent === 'test') {
-    result = await postToDiscord(url, buildTestMessage());
+  if (kind === 'test') {
+    result = await postToDiscord(channel.url, buildTestMessage());
   } else {
     const { events } = await getActivity({ limit: 1 });
     if (!events[0]) return { ok: false, message: 'There is no activity to send yet.' };
-    result = await postToDiscord(url, await buildMessage(events[0], { footer: 'Resent from admin' }));
+    result = await postToDiscord(channel.url, await buildMessage(events[0], { footer: 'Resent from admin' }));
   }
 
   if (!result.ok) {
-    return { ok: false, message: `Discord didn’t accept it: ${result.error}${result.status ? ` (HTTP ${result.status})` : ''}` };
+    return { ok: false, message: `${channel.name}: Discord didn’t accept it: ${result.error}${result.status ? ` (HTTP ${result.status})` : ''}` };
   }
-  return { ok: true, message: intent === 'test' ? 'Test message sent. Check your Discord channel.' : 'Sent the most recent activity to Discord.' };
+  return { ok: true, message: kind === 'test' ? `Test message sent to ${channel.name}. Check your Discord channel.` : `Sent the most recent activity to ${channel.name}.` };
 }
