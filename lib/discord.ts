@@ -6,6 +6,7 @@ import { cardThumbUrl } from './card-art';
 import { getRarity } from './rarity';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { VARIANT_LABELS } from './variants';
+import type { StreamRecap } from './stream-recap';
 import { SITE_URL } from './site';
 import { copyHrefFor } from './copy-link';
 import { DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
@@ -274,6 +275,34 @@ export async function buildMessage(e: ActivityEvent, opts: { footer?: string; sh
   return msg;
 }
 
+/** The end-of-stream recap embed. `footer` marks a test send. */
+export function buildRecapMessage(r: StreamRecap, opts: { footer?: string } = {}): DiscordPayload {
+  const rarity = r.rarest ? getRarity(r.rarest.stars) : null;
+  const mins = Math.max(1, Math.round((r.to - r.from) / 60000));
+  const length = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+  const printLine = (p: NonNullable<StreamRecap['rarest']>) => {
+    const name = `${'★'.repeat(p.stars)} ${esc(p.cardName)}${p.variant && p.variant !== 'regular' ? ` (${VARIANT_LABELS[p.variant]})` : ''}`;
+    return `${p.href ? `[${name}](${SITE_URL}${p.href})` : name}${p.serial ? `, Print #${p.serial}` : ''}
+pulled by **${esc(p.username)}**`;
+  };
+  const fields: { name: string; value: string; inline?: boolean }[] = [
+    { name: 'Packs opened', value: String(r.packs), inline: true },
+    { name: 'Different cards', value: String(r.distinctCards), inline: true },
+    { name: 'Collectors', value: String(r.pullers), inline: true },
+  ];
+  if (r.newCollectors.length) fields.push({ name: 'New collectors', value: String(r.newCollectors.length), inline: true });
+  if (r.firstEver.length) fields.push({ name: 'First-ever pulls', value: String(r.firstEver.length), inline: true });
+  if (r.tradesCompleted) fields.push({ name: 'Trades completed', value: String(r.tradesCompleted), inline: true });
+  if (r.rarest) fields.push({ name: 'Rarest pull', value: printLine(r.rarest) });
+  if (r.topPuller) fields.push({ name: 'Top puller', value: `**${esc(r.topPuller.username)}** with ${r.topPuller.packs} pack${r.topPuller.packs === 1 ? '' : 's'}` });
+  return payload({
+    color: rarity ? hexToInt(rarity.hex) : GOLD,
+    title: '📼 Stream recap',
+    description: `The stream ran for ${length}.${r.partial ? ' (The activity log no longer reaches the start, so these are minimums.)' : ''}`,
+    fields, timestamp: new Date(r.to).toISOString(), footer: { text: opts.footer ?? 'The Cheesy TCG' },
+  });
+}
+
 /** A short embed for the admin log and system channels. */
 function noticeEmbed(o: { title: string; text?: string; fields?: { name: string; value: string; inline?: boolean }[]; color: number; url?: string }): DiscordPayload {
   return payload({
@@ -469,5 +498,13 @@ export async function notifySystem(o: { title: string; text?: string; tone?: 'go
     if (await inSandbox()) return;
     const body = noticeEmbed({ color: o.tone === 'good' ? GREEN : o.tone === 'bad' ? RED : BLUE, title: o.title, text: o.text, fields: o.fields });
     later(() => sendToCategory('system', body));
+  } catch { /* never breaks the action */ }
+}
+
+/** The stream recap, for channels with Recap ticked. Silent in a sandbox and after the response when inside a request. */
+export async function notifyRecap(r: StreamRecap): Promise<void> {
+  try {
+    if (await inSandbox()) return;
+    later(() => sendToCategory('recap', buildRecapMessage(r)));
   } catch { /* never breaks the action */ }
 }
