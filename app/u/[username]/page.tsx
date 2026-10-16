@@ -12,6 +12,7 @@ import { SITE_URL } from '@/lib/site';
 import { buildBigStats, buildGridCards, buildShareBase, buildShareCandidates, buildShareSpec, loadProfileBase } from '@/lib/profile-data';
 import { pickProfileTab, profileHref, profileTitle } from '@/lib/profile-url';
 import { SiteMessage } from '@/app/components/site/SiteMessage';
+import { getStaffBadges } from '@/lib/staff-badge';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileTabBar } from './ProfileTabBar';
 import { OverviewTab } from './OverviewTab';
@@ -80,7 +81,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   const grid = tab === 'collection' ? await buildGridCards(b, copies) : [];
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      <ProfileHeader b={b} isOwner={isOwner} signedIn={!!session} pronouns={pronouns} shareSpec={buildShareSpec(b, copies, SITE_SHORT)} />
+      <ProfileHeader b={b} isOwner={isOwner} signedIn={!!session} pronouns={pronouns} staffBadge={(await getStaffBadges())[lower] ?? null} shareSpec={buildShareSpec(b, copies, SITE_SHORT)} />
       <ProfileTabBar username={lower} active={tab} isOwner={isOwner} />
       {tab === 'overview' && <OverviewTab b={b} copies={copies} isOwner={isOwner} viewer={session?.username} mine={mine} />}
       {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}

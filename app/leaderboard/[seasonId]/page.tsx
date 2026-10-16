@@ -1,4 +1,5 @@
 import { Icon } from '@/app/components/Icon';
+import { getStaffBadges } from '@/lib/staff-badge';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, listSeasons } from '@/lib/kv';
@@ -111,6 +112,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
           totalCards={values.totalCards}
           seasonId={season.id}
           viewer={session?.username}
+          badges={await getStaffBadges()}
           noVariants={!!final && !final.hasVariants}
         />
       </div>

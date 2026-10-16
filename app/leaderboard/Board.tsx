@@ -5,6 +5,8 @@ import { Icon, RankMedal } from '@/app/components/Icon';
 import { InfoTip } from '@/app/components/InfoTip';
 import { Avatar } from '@/app/components/Avatar';
 import { METRIC_LABELS, filterBoard, rankBoard, rankMovement, rankSnapshot, type BoardMetric, type BoardRow } from '@/lib/board-view';
+import { StaffBadge } from '@/app/components/StaffBadge';
+import type { StaffBadge as StaffBadgeKind } from '@/lib/staff-badge-core';
 import { profileHref } from '@/lib/profile-url';
 
 const PAGE = 25;
@@ -18,7 +20,7 @@ type Moves = Record<string, number>;
  * breakdown, and see who moved since you last looked (remembered in this browser). Ranks never change when you search, so
  * finding someone still shows their true place.
  */
-export function Board({ rows, avatars, totalCards, seasonId, viewer, noVariants = false }: { rows: BoardRow[]; avatars: Record<string, string | undefined>; totalCards: number; seasonId: string; viewer?: string; /** Rows without per-version counts (an old final standing): no Shinies ranking. */ noVariants?: boolean }) {
+export function Board({ rows, avatars, totalCards, seasonId, viewer, badges = {}, noVariants = false }: { rows: BoardRow[]; avatars: Record<string, string | undefined>; totalCards: number; seasonId: string; viewer?: string; /** Staff badges by login. */ badges?: Record<string, StaffBadgeKind>; /** Rows without per-version counts (an old final standing): no Shinies ranking. */ noVariants?: boolean }) {
   const METRICS = noVariants ? ALL_METRICS.filter(m => m !== 'shiny') : ALL_METRICS;
   const [metric, setMetric] = useState<BoardMetric>('points');
   const [q, setQ] = useState('');
@@ -91,6 +93,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer, noVariants 
                     <span className="min-w-0">
                       <span className="flex items-center gap-1.5 font-semibold text-white group-hover:text-yellow-200">
                         <span className="truncate">{r.username}</span>
+                        <StaffBadge badge={badges[r.username.toLowerCase()]} compact />
                         {mine && <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-yellow-300">you</span>}
                         {r.complete && <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5" title="Owns every card in the season"><Icon name="cheese" className="sm:mr-1" /><span className="hidden sm:inline">Complete</span><span className="sr-only sm:hidden">Complete</span></span>}
                       </span>

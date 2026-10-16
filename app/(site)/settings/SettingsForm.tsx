@@ -10,7 +10,7 @@ import { watchLabel } from '@/lib/watch-core';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
-type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatch' | 'notifyFeedback' | 'noticeSound' | 'allowOffers' | 'hideUncollected' | 'compactGrids';
+type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatch' | 'notifyFeedback' | 'noticeSound' | 'allowOffers' | 'hideStaffBadge' | 'hideUncollected' | 'compactGrids';
 
 function Section({ icon, title, hint, children }: { icon: Parameters<typeof Icon>[0]['name']; title: string; hint?: string; children: ReactNode }) {
   return (
@@ -36,7 +36,7 @@ function Row({ label, help, checked, onChange, id }: { label: string; help: stri
   );
 }
 
-export function SettingsForm({ initial, username, cards }: { initial: UserSettings; username: string; cards: { number: number; name: string; stars: number }[] }) {
+export function SettingsForm({ initial, username, cards, isStaff = false }: { initial: UserSettings; username: string; isStaff?: boolean; cards: { number: number; name: string; stars: number }[] }) {
   const router = useRouter();
   const [saved, setSaved] = useState(initial);
   const [s, setS] = useState(initial);
@@ -117,6 +117,7 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
             </ul>
           )}
         </div>
+        {isStaff && <Row id="staff-badge" label="Show my staff badge" help="Your Streamer, Admin or Mod badge appears next to your name on your profile, the leaderboard and trades. Turn off to play as a normal player." checked={!s.hideStaffBadge} onChange={v => flip('hideStaffBadge')(!v)} />}
         <Row id="private" label="Private profile" help="Hide my profile page and leave me off the public leaderboard, card owner lists and recent pulls. Anyone else who opens my page sees only that it is private; I still see it." checked={s.privateProfile} onChange={flip('privateProfile')} />
       </Section>
 
