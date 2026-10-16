@@ -22,6 +22,18 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     date: '2026-10-16',
+    title: 'The app icon only shows where it helps',
+    tags: ['improved'],
+    items: ['The install icon in the top bar now only appears on phones and tablets. On a computer you can still find the install guide in the footer and the site menu.'],
+  },
+  {
+    date: '2026-10-16',
+    title: 'The cheese is back in your browser tab',
+    tags: ['fixed'],
+    items: ['The site icon shows in the browser tab and in bookmarks again.'],
+  },
+  {
+    date: '2026-10-16',
     title: 'Little "i" buttons explain the terms',
     tags: ['new'],
     items: [
