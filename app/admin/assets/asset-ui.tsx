@@ -27,7 +27,7 @@ export function filename(url: string): string {
 export const isFixable = (a: LibraryAsset) => a.kind !== 'sound' && !a.issues.includes('missing') && a.issues.some(i => ISSUE_TEXT[i].fixable);
 
 export const assetTitle = (o: AssetOrigin) => (o.kind === 'pack-cover' ? o.packName : o.cardName);
-export const originHref = (o: AssetOrigin) => (o.kind === 'pack-cover' ? `/admin/packs/${o.packId}?tab=settings` : `/admin/packs/${o.packId}/cards/${o.cardId}`);
+export const originHref = (o: AssetOrigin) => (o.kind === 'pack-cover' ? `/admin/packs/${o.packId}?card=pack` : `/admin/packs/${o.packId}?card=${o.cardId}`);
 export const originLabel = (o: AssetOrigin) => (o.kind === 'pack-cover' ? `${o.packName} (cover)` : `${o.cardName} · #${o.cardNumber} · ${o.packName}`);
 
 export function IssueChips({ asset }: { asset: LibraryAsset }) {

@@ -24,6 +24,8 @@ export interface CardBackEditorProps {
   sample: { name: string; imageUrl: string; hex?: string };
   /** Other packs to copy a design from. */
   others: { id: string; name: string }[];
+  /** `stacked` puts the preview above the controls (for a narrow panel); `wide` puts it beside them. */
+  layout?: 'wide' | 'stacked';
 }
 
 const LABELS = { steel: 'Brushed steel', solid: 'One colour', gradient: 'Gradient', none: 'None', lines: 'Brushed lines', holes: 'Cheese holes', cover: 'Pack cover, faded', display: 'Display', body: 'Body', mono: 'Monospace', top: 'Top', middle: 'Middle', bottom: 'Bottom', url: 'Uploaded image' } as const;
@@ -52,7 +54,7 @@ function Swatch({ label, value, onChange }: { label: string; value: string; onCh
   );
 }
 
-export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, initial, sample, others }: CardBackEditorProps) {
+export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, initial, sample, others, layout = 'wide' }: CardBackEditorProps) {
   const [style, setStyle] = useState<CardBackStyle>(initial ?? sanitizeCardBack(DEFAULT_CARD_BACK));
   const [saved, setSaved] = useState<string>(JSON.stringify(initial ?? sanitizeCardBack(DEFAULT_CARD_BACK)));
   const [note, setNote] = useState('');
@@ -80,8 +82,8 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
         <h3 className="text-sm font-semibold text-white">Card back</h3>
         <p className="text-xs text-gray-500 mt-0.5">How the back of a print looks for cards from this pack. Until you save a design, it keeps the classic engraved plate.</p>
       </div>
-      <div className="p-5 grid lg:grid-cols-[1fr_240px] gap-6 items-start">
-        <div className="space-y-5 min-w-0 order-2 lg:order-1">
+      <div className={`p-5 grid gap-6 items-start ${layout === 'wide' ? 'lg:grid-cols-[1fr_240px]' : ''}`}>
+        <div className={`space-y-5 min-w-0 order-2 ${layout === 'wide' ? 'lg:order-1' : ''}`}>
           <div role="group" aria-label="Presets" className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs text-gray-400 mr-1">Start from</span>
             {PRESETS.map(p => <button key={p.id} type="button" onClick={() => set(p.style)} className="px-2.5 py-1 text-xs font-bold rounded-lg border bg-gray-800 border-gray-700 text-gray-300 hover:text-white">{p.label}</button>)}
@@ -170,7 +172,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
           </div>
         </div>
 
-        <div className="order-1 lg:order-2 mx-auto w-full max-w-[220px] lg:sticky lg:top-20">
+        <div className={`order-1 mx-auto w-full max-w-[220px] ${layout === 'wide' ? 'lg:order-2 lg:sticky lg:top-20' : ''}`}>
           <FlipCard
             key={`${style.pattern}-${style.logo}`}
             defaultFlipped
