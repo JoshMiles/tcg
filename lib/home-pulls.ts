@@ -1,6 +1,7 @@
 import { getRecentCardArrivals } from './site-data';
 import { cardThumbUrl } from './card-art';
 import { getRarity } from './rarity';
+import { copyHrefFor } from './copy-link';
 import { notableReason, type PullItem } from './home-data';
 import type { Season } from './types';
 
@@ -25,6 +26,8 @@ export async function recentPullItems(season: Season, cards: { number: number; n
       thumb: card?.imageUrl ? cardThumbUrl(card.imageUrl) : undefined,
       hex: getRarity(stars)?.hex,
       notable: notableReason({ variant: e.variant, stars, serial: e.type === 'pull' ? e.serial : undefined }) !== null,
+      href: copyHrefFor(e, season.id) ?? `/cards?card=${e.cardNumber}`,
+      ...(e.uid ? { uid: e.uid } : {}),
       ...(e.type === 'pull' && e.serial ? { serial: e.serial, ...(e.bonus ? { bonus: e.bonus } : {}) } : {}),
     });
     if (items.length >= limit) break;
