@@ -10,6 +10,7 @@ import { CopyUrlButton } from './components/copy-url-button';
 import { Icon } from '@/app/components/Icon';
 import { SandboxPill } from '@/app/components/SandboxPill';
 import { redirect } from 'next/navigation';
+import { countNewFeedback } from '@/lib/feedback';
 import { getStaff } from '@/lib/staff-guard';
 import { ROLE_LABELS, roleCan } from '@/lib/staff-core';
 
@@ -30,7 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </div>
           </div>
         }
-        nav={<><div className="px-3 pt-1"><PaletteButton /></div><AdminNav /></>}
+        nav={<><div className="px-3 pt-1"><PaletteButton /></div><AdminNav badges={{ '/admin/feedback': await countNewFeedback().catch(() => 0) }} /></>}
         status={<OverlayStatus variant="compact" />}
         footer={
           <>

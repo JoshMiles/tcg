@@ -29,6 +29,12 @@ eq(sc.nextPublicKey({ pending: true, at: 0 }, 'l', 5000).go, undefined, 'a stale
 const exp = c.EXPERIMENTS.find(e => e.id === 'shortcuts')!;
 for (const k of sc.PUBLIC_GO_KEYS) ok(exp.description.includes(k.label) && new RegExp(`\\b${k.key}\\b`).test(exp.description.split('to jump')[0]), `the shortcuts description mentions ${k.key} and "${k.label}"`);
 
+// ── collection view for visitors ──
+eq(c.DEFAULT_SETTINGS.collectionView, 'grid', 'visitors start on the grid by default');
+eq(c.sanitizeUserSettings({ collectionView: 'binder' }).collectionView, 'binder', 'binder accepted');
+eq(c.sanitizeUserSettings({ collectionView: 'carousel' }).collectionView, 'grid', 'anything else falls back to the grid');
+eq(c.sparse(c.sanitizeUserSettings({ collectionView: 'grid' })).collectionView, undefined, 'the default is not stored');
+
 // ── pinned showcase copy ──
 ok(c.sanitizeUserSettings({ pinned: 1000042 }).pinned === 1000042, 'a unique copy number can be pinned');
 ok(c.sanitizeUserSettings({ pinned: 'x' }).pinned === null && c.sanitizeUserSettings({ pinned: 5 }).pinned === null && c.sanitizeUserSettings({ pinned: 1.5e9 }).pinned === null && c.sanitizeUserSettings({ pinned: 1000000.5 }).pinned === null, 'anything else is dropped');
@@ -37,6 +43,10 @@ const pw = await import('../lib/profile-widgets');
 ok(pw.withPinnedWidget(null)[0].type === 'pinned' && pw.withPinnedWidget(null).length === pw.DEFAULT_PROFILE_LAYOUT.length + 1, 'pinning adds the widget to the default layout');
 ok(pw.withPinnedWidget([{ type: 'stats', span: 4 }]).map(w => w.type).join() === 'pinned,stats', 'and to a custom one, at the top');
 ok(pw.withPinnedWidget([{ type: 'pinned', span: 6 }, { type: 'stats', span: 4 }]).map(w => w.span).join() === '6,4', 'but never twice, and it keeps the owner\'s size');
+for (const p of pw.PROFILE_PRESETS) eq(pw.sanitizeProfileLayout(p.layout), p.layout, `preset ${p.id} sanitizes to itself`);
+eq(pw.PROFILE_PRESETS.map(p => p.id), ['collector', 'showcase', 'trader', 'minimal'], 'four presets');
+eq(pw.PROFILE_PRESETS[0].layout, pw.DEFAULT_PROFILE_LAYOUT, 'Collector is the default layout');
+ok(pw.PROFILE_PRESETS.every(p => p.layout.length > 0 && p.label && p.description), 'presets are named and not empty');
 const cs = await import('../lib/copy-share');
 const spec = cs.copyShareSpec({ copy: { id: '1.3.2', uid: 1000042, card: 1, variant: 'shiny', n: 2, owner: 'ann', at: Date.UTC(2026, 9, 12), origin: 'pull', ev: [] }, cardName: 'Gouda', seasonId: 's1', seasonName: 'Season 1', packName: 'Starter', total: 5, mult: 2.9, art: '/a.webp', privateHolder: false, siteUrl: 'https://cheesytcg.app' });
 ok(spec.plate?.number === '#1000042' && spec.plate.gold && spec.plate.edition === 'Edition #2 of 5 made' && spec.footer === 'cheesytcg.app/c/1000042', 'copy share spec: number, gold, edition, short link');

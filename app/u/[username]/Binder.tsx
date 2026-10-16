@@ -172,6 +172,8 @@ export function Binder({ cards, ownerLabel, onOpen, config = DEFAULT_BINDER, sea
     );
   };
 
+  // A closed binder (the cover showing, two-page mode) is drawn as one page, like a closed book; opening and closing animate between the two.
+  const state: 'open' | 'closed' | 'opening' | 'closing' = !double ? 'open' : turning ? (cur === 0 ? 'opening' : turning.to === 0 ? 'closing' : 'open') : cur === 0 ? 'closed' : 'open';
   const sp: Spread | undefined = spreads[cur];
   const next = turning ? spreads[turning.to] : undefined;
   let book: ReactNode;
@@ -251,11 +253,13 @@ export function Binder({ cards, ownerLabel, onOpen, config = DEFAULT_BINDER, sea
         </div>
       </div>
 
-      <div className="bn-cover-wrap" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { swipe.current = null; }} onClickCapture={swallowTap} tabIndex={0} role="group" aria-label={`${title}. Use the left and right arrow keys to turn pages.`}>
+      <div className="bn-drop" data-state={state}>
+      <div className="bn-cover-wrap" data-state={state} onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { swipe.current = null; }} onClickCapture={swallowTap} tabIndex={0} role="group" aria-label={`${title}. Use the left and right arrow keys to turn pages.`}>
         <div className="bn-leather" style={leatherStyle} data-material={cfg.material} data-pocket={cfg.pocketStyle} data-missing={cfg.missing}>
           {book}
           {double && <span aria-hidden className="bn-rings"><i /><i /><i /></span>}
         </div>
+      </div>
       </div>
 
       <div className="flex items-center justify-center gap-3">

@@ -50,6 +50,22 @@ export const DEFAULT_PROFILE_LAYOUT: ProfilePlacement[] = [
   { type: 'achievements', span: 12 },
 ];
 
+export interface ProfilePreset { id: string; label: string; description: string; layout: ProfilePlacement[] }
+
+/** Built-in starting points for the layout editor. Applying one replaces the draft layout; the owner still saves (or cancels). Each passes sanitizeProfileLayout unchanged. */
+export const PROFILE_PRESETS: ProfilePreset[] = [
+  { id: 'collector', label: 'Collector', description: 'The default: score, showcase, rarity, rarest prints, recent pulls, activity, awards and achievements.', layout: DEFAULT_PROFILE_LAYOUT },
+  { id: 'showcase', label: 'Showcase', description: 'Show off: your pinned print, your best cards, your rarest prints and achievements.', layout: [
+    { type: 'pinned', span: 4 }, { type: 'showcase', span: 8 }, { type: 'rarest', span: 6 }, { type: 'achievements', span: 6 },
+  ] },
+  { id: 'trader', label: 'Trader', description: 'For trading: what you are looking for, your trades, recent pulls and a strip of your collection.', layout: [
+    { type: 'wishlist', span: 4 }, { type: 'trades', span: 8 }, { type: 'recent', span: 6 }, { type: 'collection', span: 6 },
+  ] },
+  { id: 'minimal', label: 'Minimal', description: 'Just the score breakdown and the showcase.', layout: [
+    { type: 'stats', span: 4 }, { type: 'showcase', span: 8 },
+  ] },
+];
+
 const isType = (t: unknown): t is ProfileWidgetType => typeof t === 'string' && (PROFILE_WIDGET_TYPES as readonly string[]).includes(t);
 
 /** Known widgets only, each at most once, spans snapped to what the widget allows. Not an array: the default layout. */

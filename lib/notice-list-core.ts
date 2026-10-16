@@ -14,7 +14,7 @@ export function matchesFilter(n: Notice, filter: NoticeFilter, seen: number): bo
     case 'offers': return n.kind === 'offer' || n.kind === 'countered';
     case 'results': return n.kind === 'accepted' || n.kind === 'declined' || n.kind === 'cancelled' || n.kind === 'expired';
     case 'alerts': return n.kind === 'watch';
-    case 'admin': return n.kind === 'admin';
+    case 'admin': return n.kind === 'admin' || n.kind === 'feedback';
     default: return true;
   }
 }

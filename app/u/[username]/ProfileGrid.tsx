@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type DragEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
-import { PROFILE_SPAN_CLASS, PROFILE_WIDGETS, PROFILE_WIDGET_TYPES, type ProfilePlacement, type ProfileSpan, type ProfileWidgetType } from '@/lib/profile-widgets';
+import { PROFILE_PRESETS, PROFILE_SPAN_CLASS, PROFILE_WIDGETS, PROFILE_WIDGET_TYPES, type ProfilePlacement, type ProfileSpan, type ProfileWidgetType } from '@/lib/profile-widgets';
 import { resetProfileLayoutAction, saveProfileLayoutAction } from './actions';
 
 type DragSource = { type: ProfileWidgetType; fromLibrary: boolean };
@@ -41,6 +41,7 @@ export function ProfileGrid({ layout, nodes, isOwner }: { layout: ProfilePlaceme
     return next;
   });
   const insert = (type: ProfileWidgetType, at: number) => setDraft(d => (d.some(w => w.type === type) ? d : [...d.slice(0, at), { type, span: PROFILE_WIDGETS[type].defaultSpan }, ...d.slice(at)]));
+  const applyPreset = (id: string) => { const p = PROFILE_PRESETS.find(x => x.id === id); if (p) setDraft(p.layout.map(w => ({ ...w }))); };
   const remove = (type: ProfileWidgetType) => setDraft(d => d.filter(w => w.type !== type));
   const widen = (w: ProfilePlacement, dir: 1 | -1) => {
     const spans = PROFILE_WIDGETS[w.type].spans;
@@ -117,6 +118,10 @@ export function ProfileGrid({ layout, nodes, isOwner }: { layout: ProfilePlaceme
             <p className="text-sm font-bold text-yellow-300">Editing your profile</p>
             <p className="text-xs text-gray-500">Drag widgets to rearrange, drag a right edge or use the arrows to resize, the cross removes one. Add widgets from the list below.</p>
           </div>
+          <select value="" onChange={e => applyPreset(e.target.value)} disabled={pending} aria-label="Start from a preset layout" className={`${ghost} bg-gray-950`}>
+            <option value="">Start from a preset...</option>
+            {PROFILE_PRESETS.map(p => <option key={p.id} value={p.id} title={p.description}>{p.label}</option>)}
+          </select>
           <button type="button" onClick={reset} disabled={pending} className={`${ghost} hover:border-red-400/60 hover:text-red-300`}>Reset to default</button>
           <button type="button" onClick={cancel} disabled={pending} className={ghost}>Cancel</button>
           <button type="button" onClick={save} disabled={pending || !dirty} className={`${btn} border-yellow-500 bg-yellow-500 text-gray-950 hover:bg-yellow-400`}>{pending ? 'Saving…' : 'Save profile'}</button>

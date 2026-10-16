@@ -8,6 +8,7 @@ import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { VARIANT_LABELS } from './variants';
 import type { StreamRecap } from './stream-recap';
 import type { WeeklyDigest } from './weekly-digest';
+import { discordText, type FeedbackItem } from './feedback-core';
 import { SITE_URL } from './site';
 import { copyHrefFor } from './copy-link';
 import { DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
@@ -239,6 +240,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
         declined: { color: RED, title: '🚫 Trade declined', text: `**${other}** declined **${who}**'s offer` },
         cancelled: { color: RED, title: adminCancel ? '🛡️ Trade cancelled by an admin' : '✖️ Trade cancelled', text: `**${who}**'s offer was cancelled` },
         expired: { color: RED, title: '⌛ Trade expired', text: `**${who}**'s offer ran out of time` },
+        reversed: { color: RED, title: '🛡️ Trade reversed by staff', text: `**${who}**'s trade with **${other}** was reversed` },
       }[e.action];
       const list = (lines: string[]) => (lines.join('\n') || '-').slice(0, 1000);
       const fields: { name: string; value: string; inline?: boolean }[] = [
@@ -502,7 +504,7 @@ export async function notifyListing(l: ListingNotice): Promise<void> {
  * Audit entries that have an activity event of their own (a grant, a removal, a reset...): the admin channels already get those from
  * notifyDiscord, with the staff name, so the audit twin is skipped.
  */
-const AUDIT_WITH_EVENT = new Set(['Card removed', 'Season reset', 'All seasons reset', 'Account deleted', 'Cards granted', 'Packs gifted', 'Print removed']);
+const AUDIT_WITH_EVENT = new Set(['Card removed', 'Season reset', 'All seasons reset', 'Account deleted', 'Cards granted', 'Packs gifted', 'Print removed', 'Trade reversed']);
 
 export interface AdminLogEntry { action: string; subject?: string; detail?: string; /** The staff member's login ("password" for the emergency login). */ by?: string | null }
 
@@ -531,6 +533,24 @@ export async function notifySystem(o: { title: string; text?: string; tone?: 'go
     const body = noticeEmbed({ color: o.tone === 'good' ? GREEN : o.tone === 'bad' ? RED : BLUE, title: o.title, text: o.text, fields: o.fields });
     later(() => sendToCategory('system', body));
   } catch { /* never breaks the action */ }
+}
+
+/** A new suggestion or problem report, for channels with Feedback ticked. Text is Markdown-escaped and cut, mentions stay empty, no staff names. Silent in a sandbox. */
+export async function notifyFeedback(item: FeedbackItem): Promise<void> {
+  try {
+    if (await inSandbox()) return;
+    const body = noticeEmbed({
+      color: item.kind === 'bug' ? RED : GOLD,
+      title: `${item.kind === 'bug' ? '🐞 Problem report' : '💡 Suggestion'} from ${esc(item.user)}`,
+      url: `${SITE_URL}/u/${encodeURIComponent(item.user)}`,
+      text: [discordText(item.title, 100) && `**${discordText(item.title, 100)}**`, discordText(item.body)].filter(Boolean).join('\n'),
+      fields: [
+        ...(item.expected ? [{ name: 'Expected', value: discordText(item.expected, 300) }] : []),
+        ...(item.from ? [{ name: 'Page', value: discordText(item.from, 200), inline: true }] : []),
+      ],
+    });
+    later(() => sendToCategory('feedback', body));
+  } catch { /* never breaks the send */ }
 }
 
 /** The stream recap, for channels with Recap ticked. Silent in a sandbox and after the response when inside a request. */

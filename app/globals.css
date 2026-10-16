@@ -442,6 +442,19 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
 @keyframes bn-prev { from { transform: rotateY(0); } to { transform: rotateY(180deg); } }
 .bn-rings { position: absolute; left: 50%; top: 8%; bottom: 8%; z-index: 6; width: 0; display: flex; flex-direction: column; justify-content: space-around; pointer-events: none; }
 .bn-rings i { display: block; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f1f1f5, #8a8a96 60%, #4b4b55); box-shadow: 0 2px 4px rgba(0,0,0,.6); }
+/* Closed binder (two-page mode, cover showing): only the cover page, centred at single-page width. The leather is clipped to the middle half and the book slid left by a quarter; opening and closing animate both. */
+.bn-cover-wrap[data-state='closed'] { clip-path: inset(0 25% 0 25% round 18px); }
+.bn-cover-wrap[data-state='closed'] .bn-book { transform: translateX(-25%); }
+.bn-cover-wrap[data-state='closed'] .bn-page[data-side='left'], .bn-cover-wrap[data-state='closed'] .bn-rings { visibility: hidden; }
+.bn-cover-wrap[data-state='opening'] { animation: bn-wrap-open .7s ease-in-out both; }
+.bn-cover-wrap[data-state='opening'] .bn-book { animation: bn-book-open .7s ease-in-out both; }
+.bn-cover-wrap[data-state='closing'] { animation: bn-wrap-open .7s ease-in-out reverse both; }
+.bn-cover-wrap[data-state='closing'] .bn-book { animation: bn-book-open .7s ease-in-out reverse both; }
+.bn-drop:not([data-state='open']) { filter: drop-shadow(0 18px 22px rgba(0,0,0,.55)); }
+@keyframes bn-wrap-open { from { clip-path: inset(0 25% 0 25% round 18px); } to { clip-path: inset(0 0 0 0 round 18px); } }
+@keyframes bn-book-open { from { transform: translateX(-25%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bn-cover-wrap[data-state='opening'], .bn-cover-wrap[data-state='closing'], .bn-cover-wrap[data-state='opening'] .bn-book, .bn-cover-wrap[data-state='closing'] .bn-book { animation: none; } }
+[data-motion="reduce"] .bn-cover-wrap[data-state='opening'], [data-motion="reduce"] .bn-cover-wrap[data-state='closing'], [data-motion="reduce"] .bn-cover-wrap[data-state='opening'] .bn-book, [data-motion="reduce"] .bn-cover-wrap[data-state='closing'] .bn-book { animation: none; }
 .bn-chip { padding: 3px 12px; font-size: 11px; font-weight: 700; color: #d1d5db; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 999px; }
 .bn-chip:hover { color: #fff; border-color: rgba(251,191,36,.5); }
 .bn-nav { display: inline-flex; align-items: center; gap: 4px; padding: 6px 16px; font-size: 13px; font-weight: 700; color: #fbbf24; background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.35); border-radius: 999px; }

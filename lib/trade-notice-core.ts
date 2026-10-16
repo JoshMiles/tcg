@@ -25,7 +25,7 @@ export interface Swap {
   got: SwapCard[];
 }
 
-export type NoticeKind = 'offer' | 'countered' | 'accepted' | 'declined' | 'cancelled' | 'expired' | 'admin' | 'watch';
+export type NoticeKind = 'offer' | 'countered' | 'accepted' | 'declined' | 'cancelled' | 'expired' | 'admin' | 'watch' | 'feedback';
 
 /** One item in a viewer's notification bell. */
 export interface Notice {
@@ -35,10 +35,12 @@ export interface Notice {
   text: string;
   /** The offer it is about, so the bell can link to /trade. */
   tradeId?: string;
+  /** The suggestion or problem report it is about (kind 'feedback'), so the bell can link to /feedback. */
+  feedbackId?: string;
   /** Present on 'accepted': lets the site replay the trade animation. */
   swap?: Swap;
 }
 
 export const NOTICE_ICON: Record<NoticeKind, IconName> = {
-  offer: 'inbox', countered: 'undo', accepted: 'party', declined: 'ban', cancelled: 'x', expired: 'hourglass', admin: 'shield', watch: 'search',
+  offer: 'inbox', countered: 'undo', accepted: 'party', declined: 'ban', cancelled: 'x', expired: 'hourglass', admin: 'shield', watch: 'search', feedback: 'chat',
 };

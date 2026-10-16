@@ -1,10 +1,11 @@
 'use client';
+import { BUILTIN_PRESETS } from '@/lib/dashboard';
 import { Icon } from '@/app/components/Icon';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type DragEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_LAYOUT, SPAN_CLASS, WIDGETS, WIDGET_TYPES, type DashboardLayout, type Span, type WidgetPlacement, type WidgetType } from '@/lib/dashboard';
 import { Spinner } from '../components/PendingButton';
-import { applyDashboardPresetAction, deleteDashboardPresetAction, saveDashboardLayoutAction, saveDashboardPresetAction } from './actions';
+import { applyBuiltinPresetAction, applyDashboardPresetAction, deleteDashboardPresetAction, saveDashboardLayoutAction, saveDashboardPresetAction } from './actions';
 
 type DragSource = { type: WidgetType; fromLibrary: boolean };
 type DropAt = { type: WidgetType; after: boolean } | 'end' | null;
@@ -157,19 +158,21 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
 
   // Presets: named layouts. Applying one makes it the saved layout straight away.
   // Applying replaces the saved layout at once, so it takes a second click (relaxes after 4 seconds).
-  function askApply(name: string) {
-    if (armed !== name) { setArmed(name); setTimeout(() => setArmed(a => (a === name ? null : a)), 4000); return; }
+  // Built-in layouts are keyed "builtin:<name>" in the armed / active state so they never clash with a team layout of the same name.
+  function askApply(name: string, builtin = false) {
+    const key = builtin ? `builtin:${name}` : name;
+    if (armed !== key) { setArmed(key); setTimeout(() => setArmed(a => (a === key ? null : a)), 4000); return; }
     setArmed(null);
-    applyPreset(name);
+    applyPreset(name, builtin);
   }
-  function applyPreset(name: string) {
+  function applyPreset(name: string, builtin = false) {
     setError('');
     startTransition(async () => {
       try {
-        const next = await applyDashboardPresetAction(name);
+        const next = await (builtin ? applyBuiltinPresetAction(name) : applyDashboardPresetAction(name));
         setSaved({ widgets: next.widgets });
         setDraft(next.widgets);
-        setActivePreset(name);
+        setActivePreset(builtin ? `builtin:${name}` : name);
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not apply that preset');
@@ -238,8 +241,14 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
       {/* Toolbar */}
       {!edit ? (
         <div className="flex flex-wrap items-center justify-end gap-2">
+          <div role="group" aria-label="Built-in layouts" className="flex flex-wrap items-center gap-1.5 mr-auto">
+            <span className="text-[11px] uppercase tracking-wider font-bold text-gray-600 mr-1">Layouts</span>
+            {BUILTIN_PRESETS.map(({ name }) => (
+              <button key={name} type="button" disabled={pending} onClick={() => askApply(name, true)} aria-pressed={activePreset === `builtin:${name}`} title="Replaces your own layout" className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50 ${activePreset === `builtin:${name}` ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>{armed === `builtin:${name}` ? `Apply ${name}?` : name}</button>
+            ))}
+          </div>
           {presets.length > 0 && (
-            <div role="group" aria-label="Dashboard presets" className="flex flex-wrap items-center gap-1.5 mr-auto">
+            <div role="group" aria-label="Team layouts" className="flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] uppercase tracking-wider font-bold text-gray-600 mr-1">Team layouts</span>
               {presets.map(({ name, by }) => (
                 <button key={name} type="button" title={by ? `Saved by ${by}` : undefined} disabled={pending} onClick={() => askApply(name)} aria-pressed={activePreset === name} className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50 ${activePreset === name ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>{armed === name ? `Apply ${name}?` : name}</button>
@@ -266,6 +275,12 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
       {/* Presets */}
       {edit && (
         <div className="dash-slide rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3 flex flex-wrap items-center gap-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Built-in</span>
+          <ul className="flex flex-wrap items-center gap-1.5">
+            {BUILTIN_PRESETS.map(({ name }) => (
+              <li key={name}><button type="button" disabled={pending} onClick={() => askApply(name, true)} className="px-2.5 py-1 rounded-full border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5" title="Use this layout (replaces yours)">{armed === `builtin:${name}` ? `Apply ${name}?` : name}</button></li>
+            ))}
+          </ul>
           <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Team layouts</span>
           <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); savePreset(); }}>
             <input value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={30} placeholder="Name this layout (e.g. Stream day)" aria-label="Layout name" className="w-64 rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />

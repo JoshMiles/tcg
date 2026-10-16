@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../components/PendingButton';
 import { FLAG_LABEL, tradesToCsv, type FlagKind, type TradeRow } from '@/lib/trade-insights';
+import { ReverseTrade } from './ReverseTrade';
 import { blockViewerTradingAction, cancelOneTradeAction, extendOpenTradesAction } from '../trade-actions';
 import { ArmedButton } from '../components/ArmedButton';
 
@@ -96,7 +97,7 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
           {shown.slice(0, limit).map(r => (
             <li key={r.id}>
               <button type="button" onClick={() => setOpenId(r.id)} className={`w-full text-left px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm hover:bg-white/5 transition-colors ${openId === r.id ? 'bg-white/5' : ''}`}>
-                <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${STATUS_STYLE[r.status] ?? ''}`}>{r.status}</span>
+                <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${STATUS_STYLE[r.status] ?? ''}`}>{r.reversedAt ? 'reversed' : r.status}</span>
                 <span className="text-gray-200 font-medium">{r.from}</span>
                 <span className="text-gray-600">{r.to ? '→' : '→ board'}</span>
                 {(r.to || r.takenBy) && <span className="text-gray-200 font-medium">{r.to ?? r.takenBy}</span>}
@@ -139,6 +140,7 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
               <div className="flex justify-between gap-4"><dt className="text-gray-500">Offered</dt><dd className="text-gray-300">{when(selected.createdAt)}</dd></div>
               <div className="flex justify-between gap-4"><dt className="text-gray-500">{selected.open ? 'Expires' : 'Ended'}</dt><dd className="text-gray-300">{when(selected.open ? selected.expiresAt : selected.resolvedAt)}</dd></div>
               {selected.resolvedBy && <div className="flex justify-between gap-4"><dt className="text-gray-500">Resolved by</dt><dd className="text-gray-300">{selected.resolvedBy}{selected.staff ? ` (${selected.staff})` : ''}</dd></div>}
+              {selected.reversedAt && <div className="flex justify-between gap-4"><dt className="text-gray-500">Reversed</dt><dd className="text-gray-300 text-right">{when(selected.reversedAt)} by {selected.reversedBy}: {selected.reverseReason}</dd></div>}
               {selected.reason && <div className="flex justify-between gap-4"><dt className="text-gray-500">Reason</dt><dd className="text-gray-300 text-right">{selected.reason}</dd></div>}
               {selected.note && <div className="flex justify-between gap-4"><dt className="text-gray-500">Note</dt><dd className="text-gray-300 text-right">&ldquo;{selected.note}&rdquo;</dd></div>}
               {selected.counterOf && <div className="flex justify-between gap-4"><dt className="text-gray-500">Counter to</dt><dd><button type="button" onClick={() => setOpenId(selected.counterOf!)} className="text-yellow-400 hover:text-yellow-300 text-xs">that offer</button></dd></div>}
@@ -149,6 +151,9 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
                 <Link key={u} href={`${mod ? '/mod' : '/admin'}/users/${encodeURIComponent(u)}`} className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white">Open {u}</Link>
               ))}
             </div>
+            {selected.status === 'accepted' && !selected.reversedAt && (
+              <div className="border-t border-gray-800 pt-4"><ReverseTrade tradeId={selected.id} /></div>
+            )}
             <div className="flex flex-wrap gap-2 border-t border-gray-800 pt-4">
               {selected.open && (
                 <>

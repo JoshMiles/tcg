@@ -9,7 +9,7 @@ import { watchLabel } from '@/lib/watch-core';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
-type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatch' | 'noticeSound' | 'allowOffers' | 'hideUncollected' | 'compactGrids';
+type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatch' | 'notifyFeedback' | 'noticeSound' | 'allowOffers' | 'hideUncollected' | 'compactGrids';
 
 function Section({ icon, title, hint, children }: { icon: Parameters<typeof Icon>[0]['name']; title: string; hint?: string; children: ReactNode }) {
   return (
@@ -84,6 +84,14 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
           <AccentPicker id="settings-accent" value={s.accent} onChange={v => setS(p => ({ ...p, accent: v }))} />
           <p className="text-xs text-gray-500">You can also edit your bio and colour on your profile.</p>
         </div>
+        <div className="py-3 space-y-1.5">
+          <label htmlFor="collection-view" className="block text-sm font-semibold text-gray-100">Show visitors my collection as</label>
+          <select id="collection-view" value={s.collectionView} onChange={e => setS(p => ({ ...p, collectionView: e.target.value === 'binder' ? 'binder' : 'grid' }))} className="rounded-xl bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-gray-200">
+            <option value="grid">A card grid</option>
+            <option value="binder">My binder</option>
+          </select>
+          <p className="text-xs text-gray-500">Visitors can still switch views; their own choice wins.</p>
+        </div>
         <div className="py-3 space-y-2" id="looking-for">
           <p className="text-sm font-semibold text-gray-100">Looking for</p>
           <p className="text-xs text-gray-500">Up to 6 cards you want. They show in the Looking for widget on your profile, and collectors who own one get a one-click trade offer.</p>
@@ -111,6 +119,7 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
         <Row id="n-offers" label="New offers and counters" help="A bell notice when someone offers you a trade or counters yours." checked={s.notifyOffers} onChange={flip('notifyOffers')} />
         <Row id="n-results" label="How my offers ended" help="A bell notice when an offer of yours is accepted, declined, withdrawn or runs out of time." checked={s.notifyResults} onChange={flip('notifyResults')} />
         <Row id="n-watch" label="Listing alerts" help="A bell notice when someone posts a card on the open board that is on your Looking for list or one of your saved alerts below." checked={s.notifyWatch} onChange={flip('notifyWatch')} />
+        <Row id="n-feedback" label="Answers to my feedback" help="A bell notice when staff reply to a suggestion or problem report you sent, or change its status." checked={s.notifyFeedback} onChange={flip('notifyFeedback')} />
         <Row id="n-sound" label="Play a sound" help="A short chime when a new notice arrives while the site is open in your browser. Off by default." checked={s.noticeSound} onChange={flip('noticeSound')} />
         <PushAlerts kinds={s.pushKinds} onKinds={pushKinds => setS(p => ({ ...p, pushKinds }))} />
       </Section>

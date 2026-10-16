@@ -23,6 +23,10 @@ has(privacy, `latest ${fromCode('lib/activity.ts', /const LOG_CAP = (\d+)/)} eve
 has(privacy, `latest ${fromCode('lib/trades.ts', /const HISTORY_CAP = (\d+)/)} finished trades`, 'trade history size');
 has(privacy, `newest ${fromCode('lib/trade-notify.ts', /const NOTICE_CAP = (\d+)/)}`, 'bell notices kept');
 has(privacy, `newest ${fromCode('lib/score-history-core.ts', /export const HISTORY_CAP = (\d+)/)} per season`, 'score samples kept');
+// The feedback wording reads its numbers from the limits themselves, so it cannot drift; check it still does.
+has(privacy, 'FEEDBACK_LIMITS.keepDaysAfterResolved} days after that, then deleted', 'feedback retention comes from the limit');
+has(privacy, 'You can send {FEEDBACK_LIMITS.perDay} a day', 'feedback daily limit comes from the limit');
+has(faq, 'FEEDBACK_LIMITS.keepDaysAfterResolved} days after', 'the FAQ feedback retention comes from the limit');
 has(privacy, `kept for ${fromCode('lib/user-admin.ts', /const SNAP_TTL = (\d+) \* 24/)} days`, 'restore points');
 has(privacy, `up to ${fromCode('lib/avatars.ts', /const TTL_FOUND = (\d+) \* 24/)} days`, 'cached profile pictures');
 has(privacy, `up to ${fromCode('lib/session.ts', /const MAX_AGE_S = 60 \* 60 \* 24 \* (\d+)/)} days`, 'login cookie lifetime');
@@ -65,6 +69,11 @@ for (const file of userFacing) {
   const src = withoutComments(read(file));
   for (const [re, label] of banned) ok(!re.test(src), `${file} says "${label}": a card copy is a print (ROADMAP 2.6), so use "print number", "print page" or "Print #1023381"`);
 }
+// ---- the two set bonuses are the "progress bonus" and the "full set bonus" (ROADMAP 7.8); the FAQ alone may name the old words ("it used to be called") ----
+const oldBonusNames = /completion bonus|complete[- ](set|collection) bonus/i;
+for (const file of userFacing.filter(f => f !== 'app/(site)/faq/page.tsx')) ok(!oldBonusNames.test(withoutComments(read(file))), `${file} uses an old bonus name: say "progress bonus" or "full set bonus"`);
+ok(faq.includes('it used to be called the completion bonus'), 'the FAQ keeps the old progress bonus name findable');
+ok(faq.includes('it used to be called the complete collection bonus'), 'the FAQ keeps the old full set bonus name findable');
 ok(faq.includes('id="serials"') && faq.includes('id="prints"'), 'the FAQ keeps the #serials anchor and adds #prints');
 
 console.log('words checks passed');

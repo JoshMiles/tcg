@@ -3,17 +3,19 @@ import { getUserSettings } from './user-settings-store';
 import { listNotices } from './trade-notify';
 import { tradesForUser } from './trades';
 import { listDevices } from './push';
+import { feedbackOf } from './feedback';
 
 /** Everything stored about one viewer (their profile, settings, collections per season, trades and notices). Never other people's data. */
 export async function buildExport(username: string) {
   const u = username.toLowerCase();
-  const [profile, settings, seasons, notices, trades, pushDevices] = await Promise.all([
+  const [profile, settings, seasons, notices, trades, pushDevices, feedback] = await Promise.all([
     getUserProfile(u).catch(() => null),
     getUserSettings(u),
     listSeasons().catch(() => []),
     listNotices(u).catch(() => ({ notices: [], seen: 0 })),
     tradesForUser(u).catch(() => null),
     listDevices(u).catch(() => []),
+    feedbackOf(u).catch(() => []),
   ]);
   const collections = (await Promise.all(seasons.map(async s => {
     const owned = (await getCollection(s.collectionName).catch(() => ({} as Record<string, number[]>)))[u] ?? [];
@@ -27,6 +29,7 @@ export async function buildExport(username: string) {
     collections,
     notices: notices.notices,
     alertDevices: pushDevices,
+    feedback,
     trades: trades ? { incoming: trades.incoming, outgoing: trades.outgoing, recent: trades.recent } : null,
     note: 'Collection entries are card numbers; numbers of 1,000,000 and up are upgraded versions (number + 1,000,000 x version).',
   };
