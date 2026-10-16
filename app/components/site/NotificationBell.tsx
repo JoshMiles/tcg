@@ -231,6 +231,9 @@ export function NotificationBell() {
               ))}
             </ul>
           )}
+          <div className="border-t border-gray-800 px-3 py-2 text-center">
+            <Link href="/notifications" onClick={() => setOpen(false)} className="text-xs font-semibold text-yellow-400 hover:text-yellow-300">See all notifications</Link>
+          </div>
         </div>
       )}
       {mounted && createPortal(<div aria-live="polite" className="fixed z-[60] top-16 right-4 left-4 sm:left-auto sm:w-80 flex flex-col gap-2 pointer-events-none">

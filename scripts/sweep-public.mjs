@@ -8,7 +8,7 @@
 import { loadPlaywright, loginTwitch } from './lib/sweep.mjs';
 const asUser = (process.argv.find(a => a.startsWith('--as=')) ?? '--as=tester').slice(5); // who the signed-in passes are (fake Twitch login)
 const b = await (await loadPlaywright()).launch();
-const defaultRoutes = ['/', '/faq', '/privacy', '/terms', '/collection', '/leaderboard', '/stats', '/cards', '/trade', '/trade?tab=board', '/trade?tab=history', '/trade/new', '/account', '/settings', '/u/alice', '/u/alice?tab=collection', '/u/alice?tab=stats', '/u/alice?tab=trades', '/u/alice?tab=activity', '/u/tester', '/copy/season1/1.0.1', '/auth/error?reason=denied', '/u/nobody_here', '/does-not-exist', '/u/hoarder', '/u/private_pat', '/u/hidden_hank', '/u/a_very_long_username_25c', '/leaderboard/season1'];
+const defaultRoutes = ['/', '/faq', '/privacy', '/terms', '/collection', '/leaderboard', '/stats', '/cards', '/trade', '/trade?tab=board', '/trade?tab=history', '/trade/new', '/account', '/settings', '/notifications', '/u/alice', '/u/alice?tab=collection', '/u/alice?tab=stats', '/u/alice?tab=trades', '/u/alice?tab=activity', '/u/tester', '/copy/season1/1.0.1', '/auth/error?reason=denied', '/u/nobody_here', '/does-not-exist', '/u/hoarder', '/u/private_pat', '/u/hidden_hank', '/u/a_very_long_username_25c', '/leaderboard/season1'];
 const asked = process.argv.slice(2).filter(a => a.startsWith('/'));
 const routes = asked.length ? asked : defaultRoutes;
 async function sweep(label, viewport, login) {
