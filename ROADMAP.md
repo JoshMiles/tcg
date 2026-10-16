@@ -25,7 +25,7 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 2.3 | Profile "Recent pulls" with serials | Ready (after 2.1) | S |
 | 2.4 | Overlay shows the unique copy number | Ready (after 2.1) | S |
 | 2.5 | Card dialog: copies first, then one copy's details | Ready | M |
-| 2.6 | A new name for a card copy | **Needs a decision** | M |
+| 2.6 | A card copy is called a "print" | Ready (do before 2.2 to 2.5) | M |
 | 3.1 | Discord: several channels, each with its own events | Ready | M |
 | 3.2 | Discord: new event kinds (upgrades, trades, admin log, system) | Ready (after 3.1) | M |
 | 3.3 | Trade page per offer (`/trade/<id>`) | Ready | M |
@@ -34,11 +34,11 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 3.6 | Discord delivery log | Ready (after 3.1) | S |
 | 4.1 | Notices arrive fast and are hard to miss | Ready | M |
 | 4.2 | Notifications page (full history) | Ready | S |
-| 4.3 | Push notifications to phones and browsers | **Needs a decision** | L |
-| 4.4 | Link a Discord account for DMs | **Needs a decision** | L |
+| 4.3 | Push notifications to phones and browsers | Ready (after 4.1) | L |
+| 4.4 | Link a Discord account for DMs | Later (after 4.3) | L |
 | 5.1 | Stream recap posted to Discord | Ready (after 3.1) | M |
 
-Suggested order: Track 1 (quick wins, same day), 2.1 to 2.4, 3.1 to 3.6, 4.1 and 4.2, 2.5, then 2.6 / 4.3 / 4.4 once decided, 5.1 last.
+Suggested order: Track 1 (quick wins, same day), 2.6 (the print wording, so later items are written with it), 2.1 to 2.4, 3.1 to 3.6, 4.1 and 4.2, 4.3, 2.5, 5.1. 4.4 waits until push has been live for a while.
 
 ---
 
@@ -69,6 +69,8 @@ Suggested order: Track 1 (quick wins, same day), 2.1 to 2.4, 3.1 to 3.6, 4.1 and
 
 Background: `docs/serials.md`. A copy's id is `<card>.<variant index>.<n>` (so it can be **derived** from card + variant + edition), and its unique number `uid` (`#1023381`) resolves through `/c/<uid>`.
 
+**Wording:** user-facing text in 2.1 to 2.5 follows 2.6 (a copy is a **print**, the 7-digit number is the **print number**, `#7` is the **edition**). Below, "copy" and "unique number" are the code-level names (`Copy`, `uid`), not UI text.
+
 ### 2.1 Pull events carry the copy (Ready)
 
 - `addCollectionEntryWithSerial` (`lib/kv.ts`) returns `{ owned, serial, copyId, uid }` (read from the copy `mint()` just made, under the same lock). `null`s when the collection is not tracked yet.
@@ -78,7 +80,7 @@ Background: `docs/serials.md`. A copy's id is `<card>.<variant index>.<n>` (so i
 
 ### 2.2 Recent pulls open the copy (Ready, after 2.1)
 
-- Home **Recent pulls** (`RecentPulls`, `recentPullItems` in `lib/home-pulls.ts`): the card name links to `copyHrefFor(...)` (fallback `/cards?card=`). Show the unique number small after the edition chip (`#7 · ID #1023381`) when known.
+- Home **Recent pulls** (`RecentPulls`, `recentPullItems` in `lib/home-pulls.ts`): the card name links to `copyHrefFor(...)` (fallback `/cards?card=`). Show the unique number small after the edition chip (`Edition #7 · Print #1023381`) when known.
 - Same link in the admin / mod activity feed rows and event detail (admin links to `/admin/serials/<season>/<copyId>`), and in the Discord pull embed (the embed's title links to the copy page; the author line still links to the profile).
 - A copy that has since been traded or upgraded still opens: the copy page shows its whole journey. Private / hidden holders are masked by the copy page as today.
 
@@ -91,7 +93,7 @@ The `recent` profile widget today lists the newest copies the person **holds** (
 
 ### 2.4 Overlay shows the unique copy number (Ready, after 2.1)
 
-- `widget.js` `showSerial()` reads `uid` from the `POST /api/collection` response. New Overlay Editor property `reveal.serialFormat`: `edition` (today: `#7`, default so nothing changes on stream until chosen), `uid` (`#1023381`), `both` (`#7` pill plus a small `ID #1023381` line under it). Registry entry in the same section as `reveal.showSerial`; preview / dry runs use a sample uid.
+- `widget.js` `showSerial()` reads `uid` from the `POST /api/collection` response. New Overlay Editor property `reveal.serialFormat`: `edition` (today: `#7`, default so nothing changes on stream until chosen), `uid` (`#1023381`), `both` (`#7` pill plus a small `Print #1023381` line under it). Registry entry in the same section as `reveal.showSerial`; preview / dry runs use a sample uid.
 - Show-off (`!card` chat command): `prepareShowOff` sends the lowest copy's `uid` too, so the same format applies.
 - `node --check public/widget.js`, then load `/overlay.html?dev` against the mock KV and draw with "Don't save" off (mock only) to see a real uid. Not checkable locally: real OBS.
 
@@ -111,17 +113,22 @@ Checks: pure grouping / ordering in `lib/collection-view.ts` (`copiesForDialog`)
 
 Panel parity is a "next extension version" item.
 
-### 2.6 A new name for a card copy (Needs a decision)
+### 2.6 A card copy is called a "print" (Decided 2026-10-16, Ready)
 
-Asked: "different naming for a card copy". Today the site mixes **copy** (the thing), **serial** / **edition #7** (its number per card and version) and **unique copy number** / **ID #1023381** (game-wide). Proposal: one noun for the thing, keep "edition" for `#7`, and let the noun name the big number.
+Asked: "different naming for a card copy". Today the site mixes **copy** (the thing), **serial** / **edition #7** (its number per card and version) and **unique copy number** / **ID #1023381** (game-wide). Decided: the thing is a **print**, its game-wide number is the **print number**, and `#7` stays the **edition**.
 
-Candidates (the user picks one):
-- **Print**: "Print #1023381 · Edition #7 of 31". Real-TCG vocabulary, short, reads well on the plate.
-- **Wedge** (cheese): "Wedge #1023381". On-brand and memorable; slightly jokey on serious pages (journey, trades).
-- **Slice** (cheese): "Slice #1023381". Same idea, softer.
-- **Keep "copy"** and only tidy the numbers' wording.
+**Wording rules** (user-facing text only):
+- One owned card = a **print**. "3 prints of Gouda", "Your prints", "Browse every print", "Pin this print", "Share this print", "Print page".
+- The 7-digit number = the **print number**, written `Print #1023381`. Replaces "unique copy number", "unique number" and "ID #...".
+- `#7` = the **edition**: "Edition #7 of 31". "Serial" stays only where it names the points bonus ("serial bonus" becomes "edition bonus"; check the FAQ and the scoring settings labels together).
+- "Copies" as a count becomes "prints" (leaderboard "Copies" ranking, dex "copies out there", stats tables). "Pulls" stays "pulls": a pull is the event, a print is the result.
+- A print is never "printed for" someone either (the existing "made for" rule): the journey's first step still reads Pulled by / Given to / Forged by.
 
-Once chosen, the execution is a copy pass, not a data change: user-facing strings only (pages, FAQ `#serials`, share image plate, flip-card back, Discord embeds, overlay label, bell notices, admin labels), code identifiers and URLs stay (`/copy/...`, `/c/<uid>` keep working; optionally add `/print/...` style aliases that redirect). Add the chosen word list to `scripts/check-words.mts` so "unique copy number" can't creep back.
+**Scope:** pages, FAQ (`#serials` question titles and text; keep the anchor `#serials` and add `#prints` via `OpenOnHash` so old links work), Privacy / Terms where they describe it (bump `LEGAL_UPDATED`), share image plate, flip-card back (`lib/flip-back.ts`), Discord embeds, overlay labels and the Overlay Editor property names shown to the user (the property keys stay), bell notices, admin and mod labels, `aria-label`s and page titles. **Not changed:** code identifiers, KV keys, type names, URLs (`/copy/...`, `/c/<uid>`, `/cards/<card>/copies`). Optionally add `/p/<uid>` as an alias of `/c/<uid>` for share links ("p for print"); `/c/` keeps working forever.
+
+**Guard:** `scripts/check-words.mts` fails if user-facing source (`app/**/*.tsx` string literals and JSX text, `public/widget.js` labels, `lib/discord.ts`, `lib/flip-back.ts`, `lib/share-image.ts`) contains "unique copy number", "unique number", "copy page" or "ID #". Keep the list narrow so code comments and identifiers don't trip it.
+
+**Order:** land 2.6 **before** 2.2 to 2.5, or write those items' new strings with the print wording from the start, so nothing is renamed twice.
 
 ---
 
@@ -189,21 +196,34 @@ Background: `docs/trading.md` "Notifications". Notices live in `notif:<user>` (3
 
 `/notifications` (signed in, noindex): the full list of the 30 kept notices grouped by day, filter by kind (offers, results, listing alerts, admin), Mark all read. The bell's footer links to it. Consider raising the cap to 100 (check `scripts/check-words.mts` and the Privacy Policy number if so).
 
-### 4.3 Push notifications (Needs a decision)
+### 4.3 Push notifications (Decided 2026-10-16, Ready, after 4.1)
 
-Real "arrives when it happens", even with the site closed: **Web Push** to the installed app (iPhone / iPad from iOS 16.4 when added to the home screen, Android, desktop Chrome / Edge / Firefox / Safari).
-- Needs: VAPID key pair (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` env vars, added to `ENV_SPECS`), the `web-push` package, a `push` handler and `notificationclick` in `public/sw.js`, subscriptions stored per viewer (`push:<user>` hash, max 5 devices, removed when the push service says 404 / 410).
-- Flow: Settings → Notifications → **Turn on push for this device** (the browser asks permission; on iPhone the button only appears inside the installed app and otherwise explains how to install first). `notify()` sends the push after the KV write, through `after()`, respecting the same per-kind switches.
-- Privacy Policy + FAQ: what is stored (the push endpoint), how to turn it off.
-- **Decision for the user:** do it (recommended, it is the proper fix for "notifications should arrive when they happen") or stop at 4.1.
+Real "arrives when it happens", even with the site closed: **Web Push** to the installed app (iPhone / iPad from iOS 16.4 when added to the home screen, Android, desktop Chrome / Edge / Firefox / Safari). No third-party push service account is needed: browsers bring their own push service, we only sign messages.
 
-### 4.4 Link a Discord account for DMs (Needs a decision)
+**Setup (user step, once):** generate a VAPID key pair (`npx web-push generate-vapid-keys`) and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:` the legal contact address) in Vercel Production. Add the three to `ENV_SPECS` (recommended, not required: without them the push option is simply hidden).
+
+**Server:**
+- `web-push` package, used only from `lib/push.ts` (Node runtime; never imported by client code or the edge middleware).
+- Subscriptions: KV hash `push:<user>` (endpoint hash -> `{ endpoint, keys, ua, addedAt, lastOkAt }`), at most 5 devices per viewer (adding a 6th drops the oldest). `POST /api/account/push` (subscribe), `DELETE /api/account/push` (this device), viewer from the session, `isSameOrigin()`, body validated (https endpoint only, key lengths).
+- Sending: `notify()` in `lib/trade-notify.ts` (and the other notice writers) calls `sendPush(user, notice)` through `after()` once the KV write is done, only when the viewer's per-kind switch allows the notice (`wantsNotice`) **and** `UserSettings.pushKinds` allows it (default: offers, results, listing alerts, admin notices all on). Payload: `{ title, body, url, tag }`, no card art (keeps it small), `tag` per trade so a counter replaces the earlier offer notice. TTL 1 day, urgency `high` for offers, `normal` otherwise.
+- A 404 / 410 from the push service removes that subscription; other failures are logged and the next notice tries again. Nothing is sent from sandboxes or previews (`inSandbox()`), like Discord.
+
+**Browser:**
+- `public/sw.js`: `push` (show the notification, icon `/icons/icon-192.png`, badge, `data.url`; also `setAppBadge`) and `notificationclick` (focus an open tab on that URL or open one). Bump the cache name so every device picks up the new worker.
+- Settings → Notifications: **Turn on alerts for this device** (needs a tap, browsers refuse to ask otherwise), the per-kind push ticks, **Send me a test alert**, and the list of devices with Remove. On an iPhone that is not running the installed app, the button is replaced by "Install the app first" linking to `/install`. Denied permission: say how to re-enable it in the browser settings.
+- After the first trade offer a viewer sends or receives, the toast from 4.1 offers "Get alerts on this device" once (dismissal remembered in `localStorage`).
+
+**Words:** FAQ question "How do I get alerts on my phone?"; Privacy Policy: what is stored (the push address the browser gives us and which device type), that it is deleted when you turn alerts off, remove a device, or the browser says it is gone, and that it is in the data export. Bump `LEGAL_UPDATED`.
+
+**Checks:** `scripts/check-push.mts` (mock KV): subscription validation, the 5-device cap, kind gating, removal on 410, sandbox silence, using a tiny local fake push endpoint (like `mock-twitch.cjs`) that records what it received. Not checkable locally: delivery on a real iPhone / Android; the PR says so and lists what to try (install, turn on, send a test, receive an offer with the app closed).
+
+### 4.4 Link a Discord account for DMs (Later, after 4.3; Needs a decision when picked up)
 
 Possible, but it is more than a webhook: DMs need a **Discord bot**.
 - One-off user setup: create a Discord application, add a bot, invite it to the Cheesygidds server (it can only DM people who share a server with it and allow DMs from server members). Env: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN`.
 - Linking: Settings → Notifications → **Link Discord** runs Discord OAuth with the `identify` scope only (same shape as our Twitch login: code → token → read the user id → revoke, never stored). Saved as `user:<u>:discord` `{ id, username, linkedAt }` plus `discord:user:<discordId>` → login, so one Discord account links to one viewer. Unlink button; the export and Privacy Policy include it.
 - Sending: `notify()` → for kinds the viewer ticked for Discord, the REST calls "create DM channel" then "create message" with the bot token, in `after()`. Discord answers 50007 when DMs are closed: record it and show "We couldn't DM you, check your privacy settings for the server" in Settings. Respect Discord rate limits (one retry after `retry_after`).
-- **Decisions for the user:** is a bot acceptable (it shows in the member list, and the token is one more secret), and is it wanted alongside or instead of 4.3? Recommendation: 4.3 first (no bot, works for everyone with the app), 4.4 after if the community lives in Discord.
+- **Decided 2026-10-16:** push notifications (4.3) come first. Revisit this once 4.3 has been live for a while; the remaining question then is whether a bot in the server is acceptable (it shows in the member list, and its token is one more secret).
 
 ---
 
