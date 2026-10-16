@@ -1,3 +1,5 @@
+import { BetaBanner } from './BetaBanner';
+import { bannerText, getSiteLabel } from '@/lib/site-label';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { SiteNav, type NavRank, type NavUser } from './SiteNav';
@@ -22,6 +24,7 @@ import { SandboxPill } from '@/app/components/SandboxPill';
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
 export async function SiteShell({ children }: { children: ReactNode }) {
   const session = await getSession();
+  const siteLabel = await getSiteLabel();
   const live = await getLiveStatus().catch(() => null); // cached, so this is normally one KV read
   let user: NavUser | null = null;
   let rank: NavRank | null = null;
@@ -46,9 +49,10 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       {hasExperiment(prefs, 'shortcuts') && <PublicKeyboard username={session?.username} />}
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[90] focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       <SandboxPill />
+      {siteLabel.label && <BetaBanner text={bannerText(siteLabel)} />}
       <CookieNotice />
       <CaptchaHost />
-      <SiteNav user={user} loginEnabled={loginConfigured()} rank={rank} staff={await staffPanelLink(session).catch(() => null)} />
+      <SiteNav label={siteLabel.label} user={user} loginEnabled={loginConfigured()} rank={rank} staff={await staffPanelLink(session).catch(() => null)} />
       <SiteSearch />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>
       <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">
