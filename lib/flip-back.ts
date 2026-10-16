@@ -1,3 +1,4 @@
+import type { CardBackStyle } from './card-back';
 import { ORIGIN_BY, ORIGIN_VERB, isEscrow, type Origin } from './serials-core';
 
 // The engraved back of a flip card (client-safe, pure): what is printed on it and how dates and history lines are worded.
@@ -29,6 +30,8 @@ export interface FlipBack {
   /** The copy's public page, for the link and the QR code (absolute URL for the QR). */
   href?: string;
   qrUrl?: string;
+  /** The pack's designed back (lib/card-back.ts); absent = the classic engraved plate. */
+  style?: CardBackStyle;
 }
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];

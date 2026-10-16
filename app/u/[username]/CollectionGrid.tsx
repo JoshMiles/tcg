@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { SerialChip } from '@/app/components/SerialChip';
 import { FlipCard } from '@/app/components/FlipCard';
+import type { CardBackStyle } from '@/lib/card-back';
 import { Binder } from './Binder';
 import { BinderEditor } from './BinderEditor';
 import { DEFAULT_BINDER, type BinderConfig } from '@/lib/binder-config';
@@ -54,6 +55,8 @@ export interface GridCard {
   steps: Record<Variant, { to: Variant; cost: number } | null>;
   /** The holographic shimmer per variant, from the Overlay Editor's settings for this card's pack. */
   holo: HoloSpecs;
+  /** The designed back of this card's pack (absent = the classic plate), for the flip card in the dialog. */
+  back?: CardBackStyle;
   /** This viewer's numbered copies of the card (only when the season's copies are tracked). */
   copies?: { id: string; /** Its unique number across the game. */ uid?: number; variant: Variant; n: number; /** When it was made (ms), where it came from, and how many of its card and version exist: for the engraved back of the flip card. */ at?: number; origin?: string; made?: number; est?: boolean; /** Points multiplier when the number earns a bonus. */ m?: number; /** What this copy is worth. */ p?: number; /** What happened to it since it was made (the last two events, worded), for the journey summary. */ j?: string[] }[];
   /** The working behind this card's points, for the Advanced information panel. */
@@ -443,7 +446,7 @@ function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pi
       <div className="grid sm:grid-cols-[220px_1fr] gap-5">
         <div className="mx-auto w-full max-w-[220px]">
           {print.at
-            ? <FlipCard compact back={{ n: print.n, uid: print.uid, total: print.made, variantLabel: VARIANT_LABELS[v], name: card.name, date: engravedDate(print.at), est: print.est, bonus: print.m, hex: rarity?.hex, holder: ownerName ? `@${ownerName}` : 'you', href }}>{face}</FlipCard>
+            ? <FlipCard compact back={{ n: print.n, uid: print.uid, total: print.made, variantLabel: VARIANT_LABELS[v], name: card.name, date: engravedDate(print.at), est: print.est, bonus: print.m, hex: rarity?.hex, holder: ownerName ? `@${ownerName}` : 'you', href, style: card.back }}>{face}</FlipCard>
             : face}
         </div>
         <div className="space-y-3 min-w-0">

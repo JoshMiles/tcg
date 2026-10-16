@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import { getPack, getPackCards } from '@/lib/kv';
+import { getPack, getPackCards, listAllPacks } from '@/lib/kv';
+import { getCardBack } from '@/lib/card-back-store';
 import { PackFlow } from './PackFlow';
 import type { PackInput } from '../../draft-actions';
 
@@ -11,7 +12,7 @@ export default async function NewPackPage({ searchParams }: { searchParams: Prom
 
   // Resume a saved draft: ?draft=<id>
   if (draft) {
-    const [pack, cards] = await Promise.all([getPack(draft), getPackCards(draft)]);
+    const [pack, cards, cardBack, allPacks] = await Promise.all([getPack(draft), getPackCards(draft), getCardBack(draft), listAllPacks()]);
     if (!pack) redirect('/admin/packs/new');
     if (pack.status !== 'draft') redirect(`/admin/packs/${pack.id}`);
     const input: PackInput = {
@@ -34,6 +35,7 @@ export default async function NewPackPage({ searchParams }: { searchParams: Prom
       // No `key`: the client wizard creates its draft mid-session and rewrites the URL to ?draft=..., and a
       // changing key would remount it (losing the current step).
       <PackFlow
+        cardBack={{ initial: cardBack, others: allPacks.filter(p => p.id !== draft && p.status !== 'draft').map(p => ({ id: p.id, name: p.name })) }}
         initial={{
           id: pack.id,
           pack: input,
