@@ -4,7 +4,7 @@ import { AUTH_COOKIE, isPasswordLoginEnabled, isValidAdminToken } from './admin-
 import { getStaffRecord } from './staff';
 import type { Session } from './session';
 import { roleCan, resolveRole, type Capability, type StaffRole } from './staff-core';
-import { STAFF_COOKIE, verifyStaffToken } from './staff-token';
+import { STAFF_COOKIE, renewStaffToken, staffCookieOptions, verifyStaffToken } from './staff-token';
 
 // Who is making this request, as staff. The authoritative check (server actions, API routes and the panel layouts call this);
 // the middleware only does the coarse, database-free version from the signed cookie.
@@ -50,15 +50,34 @@ export const staffPanelLink = cache(async (session: Session | null): Promise<{ h
   return roleCan(role, 'admin') ? { href: '/admin', label: 'Admin panel' } : { href: '/mod', label: 'Mod panel' };
 });
 
+/**
+ * Slide the staff cookie forward: when it has under 30 minutes left (and the session is under 12 hours old), re-issue it with the
+ * live role, so an open activity feed keeps working. Only runs for a Twitch staff session that getStaff just re-checked, so a removed
+ * member is never renewed. Setting a cookie is only allowed in route handlers and actions; anywhere else (a page render) it is skipped.
+ */
+async function renewStaffCookie(s: StaffContext): Promise<void> {
+  if (s.via !== 'twitch') return;
+  try {
+    const jar = await cookies();
+    const token = await verifyStaffToken(jar.get(STAFF_COOKIE)?.value);
+    if (!token) return;
+    const fresh = await renewStaffToken(token, s.role);
+    if (fresh) jar.set(STAFF_COOKIE, fresh, staffCookieOptions());
+  } catch { /* cookies are read-only here; the next action or poll renews it */ }
+}
+
 /** Throws unless the caller is staff with this capability. Returns who they are, for the audit trail. */
 export async function requireStaff(cap: Capability = 'mod'): Promise<StaffContext> {
   const s = await getStaff();
   if (!s || !roleCan(s.role, cap)) throw new Error('Not authorised.');
+  await renewStaffCookie(s);
   return s;
 }
 
 /** True when the caller is staff with this capability (for API routes that answer 401 instead of throwing). */
 export async function hasStaffCapability(cap: Capability): Promise<boolean> {
   const s = await getStaff();
-  return !!s && roleCan(s.role, cap);
+  if (!s || !roleCan(s.role, cap)) return false;
+  await renewStaffCookie(s);
+  return true;
 }
