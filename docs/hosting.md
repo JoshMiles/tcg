@@ -36,3 +36,9 @@ The project's **first scheduled job**: Vercel Cron (`vercel.json`, 04:00 UTC) ca
 - Build: `next build` (Node, Next 15). `next.config.ts` stamps the build version/commit and sets cache headers for card art. Tailwind is pinned to **v3**, Dependabot's v4 bump fails the build (different config/CSS model); close those PRs. `@vercel/blob` is on 2.x (moved from 0.27 in October 2026, which also cleared the `undici` / `@fastify/busboy` advisories; the code needed no changes). Upload, optimise, replace and cleanup only run against a real Blob store, so after any further major bump test them on a Preview deployment first.
 - Static files in `public/` (overlay, widget, Twitch panel, card art, sounds) are served as-is by Vercel, no build step. The overlay/widget are cached by OBS, after a deploy, right-click the browser source → **Refresh cache of current page**.
 - **Twitch Extension** is configured at dev.twitch.tv (see "Twitch Extension Panel"); it loads the panel from the production URL, so panel changes only reach viewers after a production deploy, and Twitch's iframe can cache the old JS for a short while.
+
+## GitHub and Vercel changes in Discord
+No server code: GitHub posts these itself, and Vercel reports every deployment to GitHub as a deployment status, so one GitHub webhook covers both. The same steps show in Settings → Webhooks → "Deploys & code".
+1. In Discord make a webhook for the channel (Channel settings → Integrations → Webhooks → New Webhook → Copy Webhook URL).
+2. In the GitHub repository: Settings → Webhooks → Add webhook. Payload URL: the Discord webhook URL with `/github` added on the end. Content type: `application/json`.
+3. Choose individual events: Pushes, Pull requests, Releases and **Deployment statuses**.

@@ -6,24 +6,50 @@ import { getRarity } from './rarity';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { VARIANT_LABELS } from './variants';
 import { SITE_URL } from './site';
-import { DEFAULT_DISCORD, type DiscordCategory, type DiscordSettings } from './discord-config';
+import { DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordSettings } from './discord-config';
 
 export { DISCORD_CATEGORIES, DEFAULT_DISCORD } from './discord-config';
-export type { DiscordCategory, DiscordSettings } from './discord-config';
+export type { DiscordCategory, DiscordChannel, DiscordSettings } from './discord-config';
 
 // Posts the live activity feed to a Discord channel through an incoming webhook.
 // Settings live in KV (`discord:settings`); events arrive from recordActivity() in lib/activity.ts.
 
 const KEY = 'discord:settings';
 
-function normalize(s: Partial<DiscordSettings> | null): DiscordSettings {
+const clampStars = (n: unknown) => Math.min(5, Math.max(1, Number(n) || 1));
+
+function normalizeChannel(c: Partial<DiscordChannel> | null | undefined, fallbackId: string): DiscordChannel {
+  const id = typeof c?.id === 'string' ? c.id.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20) : '';
   return {
-    url: typeof s?.url === 'string' ? s.url : '',
-    enabled: !!s?.enabled,
-    categories: { ...DEFAULT_DISCORD.categories, ...(s?.categories ?? {}) },
-    minStars: Math.min(5, Math.max(1, Number(s?.minStars) || 1)),
-    newOnly: !!s?.newOnly,
+    id: id || fallbackId,
+    name: (typeof c?.name === 'string' ? c.name.trim() : '').slice(0, 40) || 'Channel',
+    url: typeof c?.url === 'string' ? c.url.trim() : '',
+    enabled: !!c?.enabled,
+    categories: { ...DEFAULT_CATEGORIES, ...(c?.categories ?? {}) },
+    minStars: clampStars(c?.minStars),
+    newOnly: !!c?.newOnly,
   };
+}
+
+/**
+ * Reads whatever is stored. The first version kept one webhook at the top level ({ url, enabled, categories, minStars, newOnly });
+ * that becomes one channel called "Activity" with the same settings, so nothing changes until an admin edits it.
+ */
+export function normalize(s: (Partial<DiscordSettings> & Partial<DiscordChannel>) | null | undefined): DiscordSettings {
+  if (!s) return { ...DEFAULT_DISCORD, channels: [] };
+  if (!Array.isArray(s.channels)) {
+    const url = typeof s.url === 'string' ? s.url.trim() : '';
+    if (!url) return { enabled: !!s.enabled, channels: [] };
+    return { enabled: !!s.enabled, channels: [normalizeChannel({ ...s, id: 'activity', name: 'Activity', enabled: true }, 'activity')] };
+  }
+  const seen = new Set<string>();
+  const channels = s.channels.slice(0, MAX_DISCORD_CHANNELS).map((c, i) => {
+    let ch = normalizeChannel(c, `channel${i + 1}`);
+    while (seen.has(ch.id)) ch = { ...ch, id: ch.id + 'x' };
+    seen.add(ch.id);
+    return ch;
+  });
+  return { enabled: !!s.enabled, channels };
 }
 
 export async function getDiscordSettings(): Promise<DiscordSettings> {
@@ -58,15 +84,29 @@ export function categoryOf(e: ActivityEvent): DiscordCategory {
   }
 }
 
-export function shouldSend(e: ActivityEvent, s: DiscordSettings): boolean {
-  if (!s.categories[categoryOf(e)]) return false;
+/** Does this channel want this event? (Whether the channel is switched on is checked by the caller.) */
+export function shouldSend(e: ActivityEvent, c: Pick<DiscordChannel, 'categories' | 'minStars' | 'newOnly'>): boolean {
+  if (!c.categories[categoryOf(e)]) return false;
   // Offers, counters, completed trades and admin cancels are worth a post; a viewer declining, withdrawing or letting one expire is noise.
   if (e.type === 'trade' && !(e.action === 'offered' || e.action === 'countered' || e.action === 'accepted' || e.by === 'admin')) return false;
   if (e.type === 'pull') {
-    if (e.stars < s.minStars) return false;
-    if (s.newOnly && !e.isNew) return false;
+    if (e.stars < c.minStars) return false;
+    if (c.newOnly && !e.isNew) return false;
   }
   return true;
+}
+
+/** Checks the settings form's submission. Returns the cleaned settings, or the first problem in words. */
+export function cleanDiscordInput(raw: unknown): { ok: true; settings: DiscordSettings } | { ok: false; message: string } {
+  const r = raw as Partial<DiscordSettings> | null;
+  if (!r || typeof r !== 'object' || !Array.isArray(r.channels)) return { ok: false, message: 'The settings could not be read. Reload the page and try again.' };
+  if (r.channels.length > MAX_DISCORD_CHANNELS) return { ok: false, message: `At most ${MAX_DISCORD_CHANNELS} channels.` };
+  const settings = normalize({ enabled: !!r.enabled, channels: r.channels });
+  for (const c of settings.channels) {
+    if (c.url && !isValidDiscordWebhookUrl(c.url)) return { ok: false, message: `${c.name}: that doesn’t look like a Discord webhook URL. It should start with https://discord.com/api/webhooks/…` };
+    if (c.enabled && !c.url) return { ok: false, message: `${c.name}: add a webhook URL before turning it on.` };
+  }
+  return { ok: true, settings };
 }
 
 // ── Message building ──────────────────────────────────────
@@ -241,12 +281,15 @@ export async function postToDiscord(url: string, body: DiscordPayload): Promise<
   return { ok: false, status: 429, error: 'Rate limited by Discord' };
 }
 
-/** Called for every recorded activity event; posts it if Discord is enabled and the event passes the filters. */
+/** Called for every recorded activity event; posts it to every channel that is on and wants it. One channel failing never affects another. */
 export async function notifyDiscord(e: ActivityEvent): Promise<void> {
   try {
     const settings = await getDiscordSettings();
-    if (!settings.enabled || !settings.url || !shouldSend(e, settings)) return;
-    await postToDiscord(settings.url, await buildMessage(e));
+    if (!settings.enabled) return;
+    const targets = settings.channels.filter(c => c.enabled && c.url && shouldSend(e, c));
+    if (targets.length === 0) return;
+    const body = await buildMessage(e);
+    await Promise.allSettled(targets.map(c => postToDiscord(c.url, body)));
   } catch {
     // Discord must never break the action that produced the event.
   }

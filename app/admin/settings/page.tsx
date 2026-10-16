@@ -83,7 +83,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   ]);
   const scoringChanged = (Object.keys(DEFAULT_SCORING) as (keyof ScoringSettings)[]).filter(k => scoring[k] !== DEFAULT_SCORING[k]).length;
   const outgoingOn = Object.values(webhookSettings.outgoing).filter(w => w.enabled && w.url).length;
-  const discordOn = discordSettings.enabled && !!discordSettings.url;
+  const discordOn = discordSettings.enabled && discordSettings.channels.some(c => c.enabled && !!c.url);
   const checklist = extensionChecklist(SITE_URL);
 
   return (
