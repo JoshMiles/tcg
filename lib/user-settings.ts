@@ -26,6 +26,7 @@ export const ACCENTS = [
 export const accentHex = (v: string) => ACCENTS.find(a => a.id === v)?.hex ?? clampAccent(v) ?? undefined;
 
 export type MotionPref = 'system' | 'reduce';
+export type CollectionView = 'grid' | 'binder';
 
 export interface UserSettings {
   /** A short line shown under their name on their profile. */
@@ -60,6 +61,8 @@ export interface UserSettings {
   pinned: number | null;
   /** Unique numbers (Copy.uid) of prints they marked as favourites: these can't be traded or spent in an upgrade. Checked against the live owner whenever used. */
   favourites: number[];
+  /** Which view their collection tab opens in for visitors who have not picked one themselves. */
+  collectionView: CollectionView;
   /** The widgets of their profile Overview, in order (null = the default layout). */
   profileLayout: ProfilePlacement[] | null;
   /** How their collection binder looks and (optionally) which card is in which pocket; null = the default look and automatic layout. */
@@ -83,6 +86,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   hideUncollected: true,
   compactGrids: false,
   accent: '',
+  collectionView: 'grid',
   wanted: [],
   watches: [],
   pinned: null,
@@ -111,6 +115,7 @@ export function sanitizeUserSettings(input: unknown): UserSettings {
   for (const k of BOOLEAN_KEYS) if (typeof o[k] === 'boolean') out[k] = o[k] as boolean;
   if (Array.isArray(o.pushKinds)) out.pushKinds = PUSH_KINDS.filter(k => (o.pushKinds as unknown[]).includes(k));
   if (o.motion === 'reduce' || o.motion === 'system') out.motion = o.motion;
+  if (o.collectionView === 'grid' || o.collectionView === 'binder') out.collectionView = o.collectionView;
   if (typeof o.accent === 'string') out.accent = ACCENTS.some(a => a.id === o.accent) ? o.accent : HEX_RE.test(o.accent) ? clampAccent(o.accent) ?? '' : '';
   if (Array.isArray(o.wanted)) out.wanted = [...new Set(o.wanted.filter((n): n is number => Number.isInteger(n) && n >= 1 && n < 1_000_000))].slice(0, WANTED_MAX);
   if (Array.isArray(o.watches)) {
