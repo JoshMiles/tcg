@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { sanitizeLayout, type DashboardLayout } from '@/lib/dashboard';
-import { loginForLayout } from '@/lib/dashboard';
+import { BUILTIN_PRESETS, loginForLayout } from '@/lib/dashboard';
 import { deleteDashboardPreset, getDashboardPresets, saveDashboardLayout, saveDashboardNotes, saveDashboardPreset } from '@/lib/dashboard-data';
 import { getOverlaySettings, saveOverlaySettings } from '@/lib/overlay-settings';
 
@@ -40,6 +40,16 @@ export async function applyDashboardPresetAction(name: string): Promise<Dashboar
   const who = await requireAdmin();
   const preset = (await getDashboardPresets()).find(p => p.name === name);
   if (!preset) throw new Error('That preset no longer exists.');
+  await saveDashboardLayout(preset.layout, loginForLayout(who));
+  revalidatePath('/admin');
+  return preset.layout;
+}
+
+/** Makes a built-in layout the caller's own layout. */
+export async function applyBuiltinPresetAction(name: string): Promise<DashboardLayout> {
+  const who = await requireAdmin();
+  const preset = BUILTIN_PRESETS.find(p => p.name === name);
+  if (!preset) throw new Error('That layout does not exist.');
   await saveDashboardLayout(preset.layout, loginForLayout(who));
   revalidatePath('/admin');
   return preset.layout;

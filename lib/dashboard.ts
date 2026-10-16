@@ -112,3 +112,21 @@ export const SPAN_CLASS: Record<Span, string> = {
 export function loginForLayout(who: { login: string; via: 'twitch' | 'password' } | null): string | null {
   return who && who.via === 'twitch' ? who.login : null;
 }
+
+/** Ready-made layouts every staff member can switch to (shown above the team layouts). Applying one replaces the person's own layout. */
+export const BUILTIN_PRESETS: { name: string; layout: DashboardLayout }[] = [
+  { name: 'Stream night', layout: { widgets: [
+    { type: 'live', span: 4 }, { type: 'overlay-controls', span: 4 }, { type: 'recap', span: 4 }, { type: 'quick-actions', span: 12 },
+    { type: 'activity', span: 6 }, { type: 'pulls-chart', span: 6 },
+  ] } },
+  { name: 'Season overview', layout: { widgets: [
+    { type: 'overview', span: 12 }, { type: 'pulls-chart', span: 8 }, { type: 'rarity', span: 4 },
+    { type: 'top-collectors', span: 6 }, { type: 'packs', span: 6 }, { type: 'card-ownership', span: 12 }, { type: 'digest', span: 6 },
+  ] } },
+  { name: 'Trading desk', layout: { widgets: [
+    { type: 'trades', span: 8 }, { type: 'attention', span: 4 }, { type: 'activity', span: 6 }, { type: 'leaderboard', span: 6 },
+  ] } },
+  { name: 'Minimal', layout: { widgets: [
+    { type: 'overview', span: 12 }, { type: 'attention', span: 4 }, { type: 'quick-actions', span: 8 },
+  ] } },
+];
