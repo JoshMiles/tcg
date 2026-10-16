@@ -29,7 +29,7 @@ export type ShowResult = { ok: true; plan: ShowPlan } | { ok: false; error: stri
  * running season and the viewer must really own it (in the version asked for), so the overlay can only ever be told to show a genuine
  * card of theirs. One show-off per viewer every few seconds, so a chat cannot flood the screen.
  */
-export async function prepareShowOff(username: string, text: unknown): Promise<ShowResult> {
+export async function prepareShowOff(username: string, text: unknown, opts: { dry?: boolean } = {}): Promise<ShowResult> {
   const user = username.toLowerCase();
   const active = await getActiveSeasonWithPacks();
   if (!active) return { ok: false, error: 'no-season', message: 'There is no season running right now.' };
@@ -73,7 +73,7 @@ export async function prepareShowOff(username: string, text: unknown): Promise<S
   const serialMult = serial && board ? serialMultiplier(serial, board.values.settings) : undefined;
 
   // Cooldown last, so a refused request (not their card, a typo) does not use up their turn.
-  const taken = await kv.set(`showoff:cd:${user}`, 1, { nx: true, ex: SHOWOFF_COOLDOWN_S }).catch(() => 'OK');
+  const taken = opts.dry ? 'OK' : await kv.set(`showoff:cd:${user}`, 1, { nx: true, ex: SHOWOFF_COOLDOWN_S }).catch(() => 'OK');
   if (taken === null) return { ok: false, error: 'cooldown', message: `Easy there, try again in a few seconds.`, retryAfter: SHOWOFF_COOLDOWN_S };
 
   const label = `${pick.variant === 'regular' ? '' : `${VARIANT_LABELS[pick.variant]} `}${card.name}${serial ? ` #${serial}` : ''}`;

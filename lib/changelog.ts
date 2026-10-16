@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-17',
+    title: 'Chat commands',
+    tags: ['new'],
+    items: [
+      'Type !stats and a card name in chat to see how rare it is, how many prints were made and how many collectors have it.',
+      'Type !showoff to put one of your cards on stream, as before. The FAQ lists every chat command that is switched on.',
+    ],
+  },
+  {
+    date: '2026-10-17',
     title: 'Report a collector',
     tags: ['new'],
     items: [

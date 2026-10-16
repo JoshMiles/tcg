@@ -2,6 +2,10 @@ import { Icon } from '@/app/components/Icon';
 import { PageTabs, pickTab, type PageTab } from '../components/PageTabs';
 import { PageHeader } from '../components/ui';
 import { getMixItUpLog, getMixItUpSettings } from '@/lib/mixitup';
+import { getCommandLog, getCommands, getCommandStats } from '@/lib/commands';
+import { getWebhookSettings } from '@/lib/webhooks';
+import { SITE_URL } from '@/lib/site';
+import { CommandsPanel } from './CommandsPanel';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
 
@@ -10,6 +14,7 @@ export const dynamic = 'force-dynamic';
 
 const TABS: (PageTab & { hint: string })[] = [
   { id: 'paid', label: 'Paid pulls', icon: 'coins', hint: 'Viewers pay Brie Bucks for packs: prices, limits and the message sent to Mix It Up' },
+  { id: 'commands', label: 'Commands', icon: 'chat', hint: 'Chat commands such as !showoff and !stats: one webhook, replies built from variables' },
   { id: 'log', label: 'Log', icon: 'list', hint: 'The last requests to and refusals for Mix It Up' },
 ];
 
@@ -30,7 +35,8 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       )}
 
       {tab === 'paid' && <MixItUpConfig settings={await getMixItUpSettings()} />}
-      {tab === 'log' && <MixItUpLog log={await getMixItUpLog()} />}
+      {tab === 'commands' && <CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
+      {tab === 'log' && <MixItUpLog log={[...await getMixItUpLog(), ...await getCommandLog()].sort((a, b) => b.at - a.at)} />}
     </div>
   );
 }

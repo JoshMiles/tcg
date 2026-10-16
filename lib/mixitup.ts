@@ -29,7 +29,7 @@ export async function saveMixItUpSettings(s: MixItUpSettings): Promise<void> {
 }
 
 // ── The request log (last 20) ──
-export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'test' | 'revoked' | 'refused'; ok: boolean; detail: string }
+export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'test' | 'revoked' | 'refused' | 'command'; ok: boolean; detail: string }
 export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>): Promise<void> {
   try { await kv.lpush(LOG, { ...e, at: Date.now() }); await kv.ltrim(LOG, 0, 19); } catch { /* the log never breaks a pull */ }
 }
