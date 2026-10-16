@@ -195,7 +195,7 @@ export default async function HomePage() {
                   <Link href={`/leaderboard/${season.id}`} className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold">Full leaderboard →</Link>
                 </div>
                 {top.length === 0 ? (
-                  <p className="rind rounded-2xl p-6 text-sm text-gray-400">No one is on the board yet. Be the first!</p>
+                  <p className="rind rounded-2xl p-6 text-sm text-gray-400 flex-1">No one is on the board yet. Be the first!</p>
                 ) : (
                   <ol className="flex-1 flex flex-col gap-2">
                     {top.map((r, i) => (
@@ -237,9 +237,9 @@ export default async function HomePage() {
                   empty={<p className="rind rounded-2xl p-6 text-sm text-gray-400">Nothing pulled yet this season. Packs are opened live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 font-semibold">{CHANNEL_NAME}&rsquo;s stream</a>, and every pull shows up here.</p>}
                 />
                 </div>
-                <p className="text-[11px] text-gray-600">Pulls are shown live on stream, so they&rsquo;re public here too. See the <Link href="/privacy" className="underline hover:text-gray-400">Privacy Policy</Link>.</p>
               </section>
             </div>
+            <p className="text-[11px] text-gray-600 -mt-2">Pulls are shown live on stream, so they&rsquo;re public here too. See the <Link href="/privacy" className="underline hover:text-gray-400">Privacy Policy</Link>.</p>
           </div>
         )}
 
