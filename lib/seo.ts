@@ -21,7 +21,7 @@ export const INDEXED_PATHS: { path: string; priority: number; changeFrequency: '
 ];
 
 /** The public pages that stay reachable (and listed) while the site is closed to testers. */
-export const OPEN_WHEN_CLOSED = ['/faq', '/privacy', '/terms'];
+export const OPEN_WHEN_CLOSED = ['/privacy', '/terms'];
 
 /** Pages that exist but must stay out of search (signed-in, admin, utility). Anything not here or in INDEXED_PATHS fails the check. */
 export const NOINDEX_PATHS = ['/account', '/settings', '/notifications', '/feedback', '/trade', '/trade/new', '/trade/[id]', '/auth/error', '/closed', '/login', '/admin', '/mod', '/offline'];
