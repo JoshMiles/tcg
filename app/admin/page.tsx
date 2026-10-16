@@ -56,7 +56,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
   const packs = chosen
     ? await Promise.all((await getPacksForSeason(chosen)).filter(p => p.status === 'published').map(async pack => ({ pack, cards: await getPackCards(pack.id) })))
     : result.packs;
-  const range = rangeParam === '24h' || rangeParam === 'season' ? rangeParam : '7d';
+  const range = rangeParam === '24h' || rangeParam === '7d' ? rangeParam : 'season';
   const staff = await getStaff();
   const layout = await getDashboardLayout(loginForLayout(staff));
   const presets = (await getDashboardPresets()).map(p => ({ name: p.name, by: p.by }));
