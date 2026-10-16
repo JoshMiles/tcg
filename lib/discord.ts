@@ -8,7 +8,7 @@ import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { VARIANT_LABELS } from './variants';
 import { SITE_URL } from './site';
 import { copyHrefFor } from './copy-link';
-import { DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordSettings } from './discord-config';
+import { DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
 
 export { DISCORD_CATEGORIES, DEFAULT_DISCORD } from './discord-config';
 export type { DiscordCategory, DiscordChannel, DiscordSettings } from './discord-config';
@@ -38,6 +38,7 @@ function normalizeChannel(c: Partial<DiscordChannel> | null | undefined, fallbac
     categories: normalizeCategories(c?.categories),
     minStars: clampStars(c?.minStars),
     newOnly: !!c?.newOnly,
+    ...(!c?.enabled && typeof c?.offReason === 'string' && c.offReason ? { offReason: c.offReason.slice(0, 300) } : {}),
   };
 }
 
@@ -324,6 +325,46 @@ export async function postToDiscord(url: string, body: DiscordPayload): Promise<
   return { ok: false, status: 429, error: 'Rate limited by Discord' };
 }
 
+// ── Delivery log ──────────────────────────────────────────
+
+const logKey = (channelId: string) => `discord:log:${channelId}`;
+
+/** A channel's last sends, newest first. */
+export async function getDiscordLog(channelId: string): Promise<DiscordLogEntry[]> {
+  try { return (await kv.lrange<DiscordLogEntry>(logKey(channelId), 0, DISCORD_LOG_CAP - 1)) ?? []; } catch { return []; }
+}
+
+/** Keeps the result in the channel's log; a channel whose last DISCORD_LOG_CAP sends all failed is switched off. Never throws. */
+async function recordDelivery(channel: DiscordChannel, kind: string, r: SendResult): Promise<void> {
+  try {
+    const entry: DiscordLogEntry = { at: Date.now(), kind, ok: r.ok, status: r.status, ...(r.error ? { error: r.error.slice(0, 200) } : {}) };
+    await kv.lpush(logKey(channel.id), entry);
+    await kv.ltrim(logKey(channel.id), 0, DISCORD_LOG_CAP - 1);
+    if (r.ok) return;
+    const log = await getDiscordLog(channel.id);
+    if (log.length < DISCORD_LOG_CAP || !log.every(e => !e.ok)) return;
+    const settings = await getDiscordSettings();
+    const stored = settings.channels.find(x => x.id === channel.id);
+    if (!stored?.enabled) return;
+    stored.enabled = false;
+    stored.offReason = `Switched off after ${DISCORD_LOG_CAP} failed sends in a row (last: ${r.error ?? `HTTP ${r.status}`})`.slice(0, 300);
+    await saveDiscordSettings(settings);
+    void notifyAdminLog({ action: 'Discord channel switched off', subject: stored.name, detail: stored.offReason });
+  } catch { /* the log is best effort */ }
+}
+
+/** Posts to a configured channel and logs the result. */
+export async function deliver(channel: DiscordChannel, body: DiscordPayload, kind: string): Promise<SendResult> {
+  const result = await postToDiscord(channel.url, body);
+  await recordDelivery(channel, kind, result);
+  return result;
+}
+
+/** Channels the system switched off, for the dashboard. */
+export async function autoDisabledChannels(): Promise<{ id: string; name: string; reason: string }[]> {
+  try { return (await getDiscordSettings()).channels.filter(c => !c.enabled && c.offReason).map(c => ({ id: c.id, name: c.name, reason: c.offReason! })); } catch { return []; }
+}
+
 /** Runs after the response has been sent when inside a request (so a slow Discord never slows the action), straight away otherwise. */
 function later(run: () => Promise<void>): void {
   try { after(run); } catch { void run(); }
@@ -334,7 +375,7 @@ async function sendToCategory(category: DiscordCategory, body: DiscordPayload): 
   try {
     const settings = await getDiscordSettings();
     if (!settings.enabled) return;
-    await Promise.allSettled(settings.channels.filter(c => c.enabled && c.url && c.categories[category]).map(c => postToDiscord(c.url, body)));
+    await Promise.allSettled(settings.channels.filter(c => c.enabled && c.url && c.categories[category]).map(c => deliver(c, body, category)));
   } catch { /* never breaks the action */ }
 }
 
@@ -347,7 +388,7 @@ export async function notifyDiscord(e: ActivityEvent): Promise<void> {
     if (targets.length === 0) return;
     const plain = await buildMessage(e);
     const named = e.staff && targets.some(c => c.categories.admin) ? await buildMessage(e, { showStaff: true }) : plain;
-    await Promise.allSettled(targets.map(c => postToDiscord(c.url, c.categories.admin && e.staff ? named : plain)));
+    await Promise.allSettled(targets.map(c => deliver(c, c.categories.admin && e.staff ? named : plain, e.type)));
   } catch {
     // Discord must never break the action that produced the event.
   }

@@ -17,6 +17,7 @@ import { bucketsFor, getSeries, type Range, type Series } from './stats';
 import { twitchCredentials } from './twitch-helix';
 import { getOverlaySettings } from './overlay-settings';
 import { jsonBytes, sizeAttention } from './data-health';
+import { autoDisabledChannels } from './discord';
 
 // Server side of the admin dashboard: where the layout and notes are stored, and the numbers the widgets show.
 // Only what the widgets in the saved layout need is computed (the leaderboard, activity log, trades and live status cost
@@ -78,6 +79,7 @@ async function computeAttention(season: Season, packs: { pack: Pack; cards: Card
   if (tradeSettings && !tradeSettings.enabled) items.push({ id: 'trading-paused', level: 'info', text: 'Trading is paused: nothing new can be offered or accepted.', href: '/admin/trades', cta: 'Trades' });
   const soon = open.filter(t => t.expiresAt - Date.now() < 6 * 3_600_000).length;
   if (soon > 0) items.push({ id: 'expiring', level: 'info', text: `${soon} trade offer${soon === 1 ? '' : 's'} expire${soon === 1 ? 's' : ''} within 6 hours (the cards return to their owners).`, href: '/admin/trades', cta: 'Trades' });
+  for (const c of await autoDisabledChannels()) items.push({ id: `discord-off-${c.id}`, level: 'warn', text: `The Discord channel "${c.name}": ${c.reason}.`, href: '/admin/settings?tab=webhooks', cta: 'Webhooks' });
   const drafts = allPacks.filter(p => p.status === 'draft').length + seasons.filter(s => s.status === 'draft').length;
   if (drafts > 0) items.push({ id: 'drafts', level: 'info', text: `${drafts} draft pack${drafts === 1 ? '' : 's'} or season${drafts === 1 ? '' : 's'} waiting to be published.`, href: '/admin/packs', cta: 'Review drafts' });
   if (!twitchCredentials()) items.push({ id: 'twitch', level: 'info', text: 'Twitch credentials are not set, so avatars and the live indicator are switched off.', href: '/admin/settings?tab=viewers', cta: 'Viewer settings' });

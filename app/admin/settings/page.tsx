@@ -13,7 +13,7 @@ import { WebhookConfig } from './WebhookConfig';
 import { ScoringForm, type ScoringGroupConfig } from './ScoringForm';
 import { CopyBlock, LiveGates, OverlayTest } from './OverlayPanels';
 import { getWebhookSettings } from '@/lib/webhooks';
-import { getDiscordSettings } from '@/lib/discord';
+import { getDiscordLog, getDiscordSettings } from '@/lib/discord';
 import { ENV_GROUPS, checkEnv, readEnv, summarizeEnv } from '@/lib/env-health';
 import { extensionChecklist } from '@/lib/twitch-setup';
 import { SITE_URL } from '@/lib/site';
@@ -81,6 +81,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const [overlay, scoring, webhookSettings, discordSettings, result] = await Promise.all([
     getOverlaySettings(), getScoringSettings(), getWebhookSettings(), getDiscordSettings(), getActiveSeasonWithPacks(),
   ]);
+  const discordLogs = Object.fromEntries(await Promise.all(discordSettings.channels.map(async c => [c.id, await getDiscordLog(c.id)] as const)));
   const scoringChanged = (Object.keys(DEFAULT_SCORING) as (keyof ScoringSettings)[]).filter(k => scoring[k] !== DEFAULT_SCORING[k]).length;
   const outgoingOn = Object.values(webhookSettings.outgoing).filter(w => w.enabled && w.url).length;
   const discordOn = discordSettings.enabled && discordSettings.channels.some(c => c.enabled && !!c.url);
@@ -145,7 +146,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {/* Webhooks & Discord */}
       {tab === 'webhooks' && (
         <div className="space-y-8">
-          <DiscordConfig settings={discordSettings} />
+          <DiscordConfig settings={discordSettings} logs={discordLogs} />
           <WebhookConfig settings={webhookSettings} base={SITE_URL} />
         </div>
       )}

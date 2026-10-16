@@ -147,6 +147,36 @@ await runInSandbox('some-sandbox', async () => { await d.notifySystem({ title: '
 await wait();
 ok(!hits.some(h => h.path.includes('/11/') || h.path.includes('/14/')) && !hits.some(h => JSON.stringify(h.body).includes('"y"')), 'system and admin notices are silent in a sandbox');
 
+// ── Delivery log (3.6) ──
+await d.saveDiscordSettings({
+  enabled: true,
+  channels: [
+    { id: 'dead', name: 'Dead', url: hook(999), enabled: true, categories: cats({ pulls: true }), minStars: 1, newOnly: false },
+    { id: 'alive', name: 'Alive', url: hook(51), enabled: true, categories: cats({ pulls: true }), minStars: 1, newOnly: false },
+  ],
+});
+hits.length = 0;
+for (let i = 0; i < 19; i++) await d.notifyDiscord(event());
+ok((await d.getDiscordSettings()).channels[0].enabled, 'a channel is not switched off before 20 failures in a row');
+const logged = await d.getDiscordLog('dead');
+ok(logged.length === 19 && logged.every(e => !e.ok && e.status === 404 && /Unknown Webhook/.test(e.error ?? '') && e.kind === 'pull'), 'each failed send is logged with its status and error text');
+await d.notifyDiscord(event());
+const after20 = (await d.getDiscordSettings()).channels;
+ok(!after20[0].enabled && /20 failed sends in a row/.test(after20[0].offReason ?? ''), 'the 20th failure in a row switches the channel off and says why');
+ok(after20[1].enabled && !after20[1].offReason, 'a healthy channel is untouched');
+ok((await d.getDiscordLog('dead')).length === 20 && (await d.getDiscordLog('alive')).length === 20 && (await d.getDiscordLog('alive')).every(e => e.ok), 'the log keeps the last 20 and records successes');
+ok((await d.autoDisabledChannels()).map(c => c.id).join() === 'dead', 'the dashboard can list the channel that was switched off');
+const back = d.normalize({ enabled: true, channels: [{ ...after20[0], enabled: true }] } as never).channels[0];
+ok(back.enabled && !back.offReason, 'switching it on again clears the reason');
+// a success in between keeps the streak from reaching 20
+await d.saveDiscordSettings({ enabled: true, channels: [{ id: 'flaky', name: 'Flaky', url: hook(999), enabled: true, categories: cats({ pulls: true }), minStars: 1, newOnly: false }] });
+for (let i = 0; i < 25; i++) {
+  if (i === 10) await d.saveDiscordSettings({ enabled: true, channels: [{ id: 'flaky', name: 'Flaky', url: hook(52), enabled: true, categories: cats({ pulls: true }), minStars: 1, newOnly: false }] });
+  if (i === 11) await d.saveDiscordSettings({ enabled: true, channels: [{ id: 'flaky', name: 'Flaky', url: hook(999), enabled: true, categories: cats({ pulls: true }), minStars: 1, newOnly: false }] });
+  await d.notifyDiscord(event());
+}
+ok((await d.getDiscordSettings()).channels[0].enabled, 'one success in the last 20 keeps a channel on');
+
 server.close();
 console.log('discord ok');
 process.exit(0);
