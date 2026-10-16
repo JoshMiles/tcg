@@ -28,7 +28,7 @@ import { deleteUnusedBlobs } from '@/lib/assets';
 import { getOverlayStatus } from '@/lib/overlay';
 import { getActivity } from '@/lib/activity';
 import {
-  saveDiscordSettings, cleanDiscordInput, notifyAdminLog, deliver, buildMessage, buildTestMessage, buildRecapMessage, buildDigestMessage,
+  saveDiscordSettings, cleanDiscordInput, notifyAdminLog, deliver, buildMessage, buildTestMessage, buildRecapMessage, buildDigestMessage, newestMatchingEvent,
 } from '@/lib/discord';
 import { currentStaffLogin } from '@/lib/staff-actor';
 import { getLatestRecap } from '@/lib/twitch-live';
@@ -730,13 +730,15 @@ export async function discordAction(_prev: ActionResult | null, formData: FormDa
   } else if (kind === 'digest') {
     result = await deliver(channel, buildDigestMessage(sampleDigest(), { footer: 'Test digest, made-up numbers' }), 'digest');
   } else {
-    const { events } = await getActivity({ limit: 1 });
+    const { events } = await getActivity({ limit: 200 });
     if (!events[0]) return { ok: false, message: 'There is no activity to send yet.' };
-    result = await deliver(channel, await buildMessage(events[0], { footer: 'Resent from admin' }), 'last');
+    const event = newestMatchingEvent(events, channel);
+    if (!event) return { ok: false, message: 'No recent activity matches this channel’s filters.' };
+    result = await deliver(channel, await buildMessage(event, { footer: 'Resent from admin' }), 'last');
   }
 
   if (!result.ok) {
     return { ok: false, message: `${channel.name}: Discord didn’t accept it: ${result.error}${result.status ? ` (HTTP ${result.status})` : ''}` };
   }
-  return { ok: true, message: kind === 'digest' ? `Test digest sent to ${channel.name}.` : kind === 'recap' ? `Test recap sent to ${channel.name}.` : kind === 'test' ? `Test message sent to ${channel.name}. Check your Discord channel.` : `Sent the most recent activity to ${channel.name}.` };
+  return { ok: true, message: kind === 'digest' ? `Test digest sent to ${channel.name}.` : kind === 'recap' ? `Test recap sent to ${channel.name}.` : kind === 'test' ? `Test message sent to ${channel.name}. Check your Discord channel.` : `Sent the most recent matching activity to ${channel.name}.` };
 }

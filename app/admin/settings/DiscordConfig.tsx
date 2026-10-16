@@ -269,7 +269,7 @@ function ChannelCard({ channel: c, log, pending, onChange, onRemove }: {
         <PendingButton type="submit" name="intent" value={`test:${c.id}`} disabled={pending} className={secondaryBtn} title="Posts a sample message using the URL above. Nothing is saved">
           Send test message
         </PendingButton>
-        <PendingButton type="submit" name="intent" value={`last:${c.id}`} disabled={pending} className={secondaryBtn} title="Re-posts the most recent activity event using the URL above, regardless of your filters">
+        <PendingButton type="submit" name="intent" value={`last:${c.id}`} disabled={pending} className={secondaryBtn} title="Re-posts the most recent activity event that matches this channel's categories and filters">
           Send last activity
         </PendingButton>
         {c.categories.digest && (
