@@ -4,6 +4,7 @@ import { getSession } from '@/lib/session';
 import { getUserSettings, saveUserSettings } from '@/lib/user-settings-store';
 import { sanitizeProfileLayout, type ProfilePlacement } from '@/lib/profile-widgets';
 import { sanitizeUserSettings, type CollectionView } from '@/lib/user-settings';
+import type { Pronouns } from '@/lib/pronouns';
 import { DEFAULT_BINDER, sanitizeBinder, type BinderConfig } from '@/lib/binder-config';
 
 /** Saves the signed-in viewer's own Overview layout. The viewer comes from the session, never the arguments. */
@@ -36,15 +37,15 @@ export async function saveBinderAction(config: unknown): Promise<BinderConfig> {
 }
 
 /** Saves the bio and accent colour from the owner's inline profile editor. The viewer comes from the session, never the arguments; everything goes through sanitizeUserSettings. */
-export async function saveProfileBasics(input: { bio: unknown; accent: unknown }): Promise<{ bio: string; accent: string }> {
+export async function saveProfileBasics(input: { bio: unknown; accent: unknown; pronouns?: unknown }): Promise<{ bio: string; accent: string; pronouns: Pronouns }> {
   const session = await getSession();
   if (!session) throw new Error('Log in to edit your profile.');
   const current = await getUserSettings(session.username);
-  const clean = sanitizeUserSettings({ ...current, bio: input?.bio, accent: input?.accent });
-  await saveUserSettings(session.username, { ...current, bio: clean.bio, accent: clean.accent });
+  const clean = sanitizeUserSettings({ ...current, bio: input?.bio, accent: input?.accent, pronouns: input?.pronouns === undefined ? current.pronouns : input.pronouns });
+  await saveUserSettings(session.username, { ...current, bio: clean.bio, accent: clean.accent, pronouns: clean.pronouns });
   revalidatePath(`/u/${session.username}`);
   revalidatePath('/settings');
-  return { bio: clean.bio, accent: clean.accent };
+  return { bio: clean.bio, accent: clean.accent, pronouns: clean.pronouns };
 }
 
 /** Which view (grid or binder) their collection opens in for visitors; a visitor's own choice still wins. */

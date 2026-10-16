@@ -10,6 +10,7 @@ import { VARIANTS } from './variants';
 import type { Variant } from './types';
 import { PUSH_KINDS, type PushKind } from './push-core';
 import { HEX_RE, clampAccent } from './accent';
+import { DEFAULT_PRONOUNS, sanitizePronouns, type Pronouns } from './pronouns';
 
 export const WANTED_MAX = 6;
 /** Saved listing alerts: tell me when someone lists this card (in this version, or any). */
@@ -63,6 +64,8 @@ export interface UserSettings {
   pinned: number | null;
   /** Unique numbers (Copy.uid) of prints they marked as favourites: these can't be traded or spent in an upgrade. Checked against the live owner whenever used. */
   favourites: number[];
+  /** Pronouns shown after their name: nothing until they choose (see lib/pronouns.ts). */
+  pronouns: Pronouns;
   /** Which view their collection tab opens in for visitors who have not picked one themselves. */
   collectionView: CollectionView;
   /** The widgets of their profile Overview, in order (null = the default layout). */
@@ -89,6 +92,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   hideUncollected: true,
   compactGrids: false,
   accent: '',
+  pronouns: DEFAULT_PRONOUNS,
   collectionView: 'grid',
   wanted: [],
   watches: [],
@@ -118,6 +122,7 @@ export function sanitizeUserSettings(input: unknown): UserSettings {
   for (const k of BOOLEAN_KEYS) if (typeof o[k] === 'boolean') out[k] = o[k] as boolean;
   if (Array.isArray(o.pushKinds)) out.pushKinds = PUSH_KINDS.filter(k => (o.pushKinds as unknown[]).includes(k));
   if (o.motion === 'reduce' || o.motion === 'system') out.motion = o.motion;
+  out.pronouns = sanitizePronouns(o.pronouns);
   if (o.collectionView === 'grid' || o.collectionView === 'binder') out.collectionView = o.collectionView;
   if (typeof o.accent === 'string') out.accent = ACCENTS.some(a => a.id === o.accent) ? o.accent : HEX_RE.test(o.accent) ? clampAccent(o.accent) ?? '' : '';
   if (Array.isArray(o.wanted)) out.wanted = [...new Set(o.wanted.filter((n): n is number => Number.isInteger(n) && n >= 1 && n < 1_000_000))].slice(0, WANTED_MAX);

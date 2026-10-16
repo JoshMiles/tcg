@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { PushAlerts } from '@/app/components/site/PushAlerts';
 import { AccentPicker } from '@/app/components/site/AccentPicker';
+import { PronounPicker } from '@/app/components/site/PronounPicker';
 import { BIO_MAX, EXPERIMENTS, WANTED_MAX, WATCH_MAX, sanitizeUserSettings, type UserSettings } from '@/lib/user-settings';
 import { watchLabel } from '@/lib/watch-core';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
@@ -82,7 +83,12 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
         <div className="py-3 space-y-2">
           <p className="text-sm font-semibold text-gray-100">Header colour</p>
           <AccentPicker id="settings-accent" value={s.accent} onChange={v => setS(p => ({ ...p, accent: v }))} />
-          <p className="text-xs text-gray-500">You can also edit your bio and colour on your profile.</p>
+          <p className="text-xs text-gray-500">You can also edit your bio, colour and pronouns on your profile.</p>
+        </div>
+        <div className="py-3 space-y-1.5">
+          <label htmlFor="settings-pronouns" className="block text-sm font-semibold text-gray-100">Pronouns</label>
+          <PronounPicker id="settings-pronouns" value={s.pronouns} onChange={v => setS(p => ({ ...p, pronouns: v }))} />
+          <p className="text-xs text-gray-500">Shown after your name on your profile. Off until you choose.</p>
         </div>
         <div className="py-3 space-y-1.5">
           <label htmlFor="collection-view" className="block text-sm font-semibold text-gray-100">Show visitors my collection as</label>
