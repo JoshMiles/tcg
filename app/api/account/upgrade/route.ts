@@ -1,3 +1,4 @@
+import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason } from '@/lib/kv';
 import { getSession, isSameOrigin } from '@/lib/session';
@@ -11,6 +12,8 @@ export const dynamic = 'force-dynamic';
 // Upgrade one of the logged-in viewer's own cards on the website. Who they are comes from the signed session cookie,
 // never from the request body, so nobody can upgrade someone else's cards.
 export async function POST(req: NextRequest) {
+  const closed = await siteClosedResponse();
+  if (closed) return closed;
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
 
   const session = await getSession();

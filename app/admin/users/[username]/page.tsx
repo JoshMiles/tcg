@@ -21,6 +21,8 @@ import { describeItems } from '@/lib/trade-core';
 import { listUserSnapshots, SUGGESTED_TAGS } from '@/lib/user-admin';
 import { updateUserProfile, removeUserCard, resetUserSeason, resetUser, deleteUser } from '../../actions';
 import { PageTabs, pickTab } from '../../components/PageTabs';
+import { UserTesterPicker } from '../../settings/TesterControls';
+import { getTester } from '@/lib/access';
 import { GrantPanel, ModerationPanel, PullLimitPanel, TagsEditor, ToolsPanel, TradesPanel, type TradeLine } from './UserPanels';
 import { Panel, Tile } from '../../components/ui';
 import { getUserPullLimit } from '@/lib/pull-limit';
@@ -351,6 +353,10 @@ export default async function UserDetailPage({
         <>
       <Panel id="moderation" title="Moderation" hint="Restrictions apply immediately across the website and the Twitch panel.">
         <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
+      </Panel>
+
+      <Panel id="tester" title="Closed alpha / beta tester" hint="Testers get in while the site is closed and keep a tester achievement. Set in Settings → Access too.">
+        <UserTesterPicker login={username} current={(await getTester(username))?.tier ?? 'none'} />
       </Panel>
 
       <Panel id="pull-limit" title="Pull limit" hint="Paid pulls per stream (Settings → Mix It Up). Set one for this viewer, or give a temporary bonus.">

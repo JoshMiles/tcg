@@ -76,6 +76,9 @@ export default function PrivacyPage() {
             preferences, how you arranged your profile and binder, a card you pinned, the achievements you have earned, your newest bell notices (offers and how they ended), and a few samples of your score and rank (taken when you open My Stats) for the history chart.
           </li>
           <li>
+            <strong className="text-white">The tester list</strong> while the website is in a closed alpha or beta: if you were invited as a tester, your Twitch login, whether you are an alpha or beta tester, who added you and when, and an optional short note. It is only used to decide who may open the website, and to give you the tester achievement. It is included in your data download.
+          </li>
+          <li>
             <strong className="text-white">Feedback you send</strong> through the Feedback page (a suggestion or problem report): your username, what you wrote, when you sent it, its status and any reply from staff. A problem report can also include your browser details, screen size and the site version, only if you leave that box ticked. It is included in your data download.
           </li>
           <li>
@@ -94,6 +97,7 @@ export default function PrivacyPage() {
             for the Extension and website. These do not use cookies and are not used to build a profile of you.
           </li>
           <li>
+            <strong className="text-white">An access cookie</strong> (&ldquo;tcg_access&rdquo;) while the website is closed to testers: a signed token that says you are a tester or staff, lasts an hour and is only used to let you in.{' '}
             <strong className="text-white">A login cookie</strong> (&ldquo;tcg_session&rdquo;) if you log in on the website. It is a signed token holding your Twitch login name, user ID and display name, so the site
             knows who you are when you view your stats or upgrade cards. It is strictly necessary for logging in, lasts up to 30 days, and is removed when you log out. A short-lived cookie
             (&ldquo;tcg_oauth&rdquo;, about 10 minutes) also protects the sign-in step itself.
@@ -188,6 +192,7 @@ export default function PrivacyPage() {
         <List>
           <li>Collections, profiles and leaderboard data are kept until you ask us to delete them or the streamer removes them (for example when resetting a season).</li>
           <li>The activity log keeps only the latest 500 events. Cached profile pictures refresh weekly. Bell notices keep only your newest 30, and score samples your newest 120 per season.</li>
+          <li>The tester list entry is kept until a tester is removed or deletes their account (the tester achievement on a profile stays unless the account is deleted).</li>
           <li>Feedback is kept until it has been dealt with and for {FEEDBACK_LIMITS.keepDaysAfterResolved} days after that, then deleted. You can send {FEEDBACK_LIMITS.perDay} a day.</li>
           <li>Before a moderator or the channel owner resets, merges or deletes a viewer&rsquo;s cards, a restore point of that viewer&rsquo;s collection is kept for 14 days so a mistake can be undone.</li>
           <li>An encrypted backup of the game data is made every night so it can be recovered after a mistake or an outage. Backups are kept for up to 14 days, so deleted data can remain in them for that long.</li>
