@@ -25,7 +25,7 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 2.3 | Profile "Recent pulls" with serials | Ready (after 2.1) | S |
 | 2.4 | Overlay shows the unique copy number | Ready (after 2.1) | S |
 | 2.5 | Card dialog: copies first, then one copy's details | Ready | M |
-| 2.6 | A card copy is called a "print" | Ready (do before 2.2 to 2.5) | M |
+| 2.6 | A card copy is called a "print" | Done (#146) | M |
 | 3.1 | Discord: several channels, each with its own events | Ready | M |
 | 3.2 | Discord: new event kinds (upgrades, trades, admin log, system) | Ready (after 3.1) | M |
 | 3.3 | Trade page per offer (`/trade/<id>`) | Ready | M |
@@ -38,7 +38,14 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 4.4 | Link a Discord account for DMs | Later (after 4.3) | L |
 | 5.1 | Stream recap posted to Discord | Ready (after 3.1) | M |
 
-Suggested order: Track 1 (done), 2.6 (the print wording, so later items are written with it), 2.1 to 2.4, 3.1 to 3.6, 4.1 and 4.2, 4.3, 2.5, 5.1. 4.4 waits until push has been live for a while.
+Suggested order: Track 1 (done), 2.6 (done), 2.1 to 2.4, 3.1 to 3.6, 4.1 and 4.2, 4.3, 2.5, 5.1. 4.4 waits until push has been live for a while.
+
+
+**Parallel work (from 2026-10-16).** Three streams can run at once, each in its own session and branch, because they own different files:
+- **Stream A, prints (2.1 to 2.4):** `lib/kv.ts` (`addCollectionEntryWithSerial`), `lib/activity.ts` (the new `copyId` / `uid` fields on `pull`, `grant` **and** `upgrade` events), `lib/copy-link.ts`, `RecentPulls` / `lib/home-pulls.ts`, the admin / mod activity feed, the profile `recent` widget and `DEFAULT_PROFILE_LAYOUT`, `public/widget.js` + the overlay registry, `lib/showoff-prepare.ts`. **Not** `lib/discord.ts`.
+- **Stream B, Discord (3.1, 3.2, 3.3, 3.4, 3.6, then 2.2's Discord link):** `lib/discord*.ts`, `DiscordConfig`, `recordAudit` / staff log hooks, the new `/trade/[id]` page, `lib/trade-core.ts` (`tradeVisibleTo`), the board listing links and the trade notice links in `lib/trade-notify.ts`. The pull embed's link to the print (from 2.2) is done here, after Stream A's 2.1 has merged.
+- **Stream C, notices (4.1, 4.2, then 4.3):** `NotificationBell`, `/api/notifications`, the version counter inside `notify()` (one line; Stream B only changes the link URLs in that file, so rebase before the PR), the toast, `/notifications`, `UserSettings.noticeSound`, then Web Push.
+- 2.5 (copies-first dialog) and 5.1 (stream recap) come after A and B land.
 
 ---
 
@@ -113,7 +120,7 @@ Checks: pure grouping / ordering in `lib/collection-view.ts` (`copiesForDialog`)
 
 Panel parity is a "next extension version" item.
 
-### 2.6 A card copy is called a "print" (Decided 2026-10-16, Ready)
+### 2.6 A card copy is called a "print" (Done, #146)
 
 Asked: "different naming for a card copy". Today the site mixes **copy** (the thing), **serial** / **edition #7** (its number per card and version) and **unique copy number** / **ID #1023381** (game-wide). Decided: the thing is a **print**, its game-wide number is the **print number**, and `#7` stays the **edition**.
 
@@ -244,6 +251,8 @@ When the channel goes offline (the live check in `lib/twitch-live.ts` already se
 Ship as one reviewed panel version: achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
 
 ## Done (recent)
+
+- 2.6 print wording: a copy is a print, `Print #1023381`, edition bonus (#146, 2026-10-16).
 
 - Track 1 quick fixes: opaque apple icons plus the root apple-touch names, rarest cards animate on hover (#144, 2026-10-16).
 
