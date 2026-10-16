@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import type { Trade } from '@/lib/trade-core';
 import { poolsFor, stackPoints, timeLeft, type TradeCardInfo, type TradePools } from '@/lib/trade-view-core';
 import { TradeStacks } from './TradeStacks';
@@ -14,7 +15,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 /** One offer: who made it, what they give and what they want back, the points on each side, and (for open offers) the actions. */
 export function TradeCard({
-  trade, cards, title, actions, compact = false, pools,
+  trade, cards, title, actions, compact = false, pools, href,
 }: {
   trade: Trade;
   cards: Record<number, TradeCardInfo>;
@@ -23,6 +24,8 @@ export function TradeCard({
   compact?: boolean;
   /** Serial numbers, so the points include the serial bonuses of the copies that would move. */
   pools?: TradePools;
+  /** Where this offer has a page of its own (a board listing), shown as a link in the header. */
+  href?: string;
 }) {
   const p = poolsFor(trade, pools);
   const givePts = stackPoints(trade.give, cards, p.give);
@@ -35,6 +38,7 @@ export function TradeCard({
         <span className="text-xs text-gray-500">
           {st ? <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${st.cls}`}>{st.label}</span> : <>expires {timeLeft(trade.expiresAt)}</>}
           {trade.kind === 'listing' && !st && <span className="ml-2 rounded-full border border-purple-400/30 bg-purple-500/10 px-2 py-0.5 text-[11px] font-bold text-purple-300">Board</span>}
+          {href && <Link href={href} className="ml-2 font-semibold text-yellow-400 hover:text-yellow-300">Open</Link>}
         </span>
       </header>
       <div className={`grid gap-3 ${compact ? '' : 'md:grid-cols-[1fr_auto_1fr]'} items-start`}>

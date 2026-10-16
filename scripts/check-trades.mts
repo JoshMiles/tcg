@@ -250,6 +250,16 @@ await runInSandbox(box.id, async () => {
   ok(finalUniverse === start + 2, `copies are conserved overall (${finalUniverse} vs ${start + 2})`);
 });
 
+{
+  // Who may see what is in a trade (the /trade/[id] page): a listing is public, a direct offer is for its two people.
+  const { tradeVisibleTo } = await import('../lib/trade-core');
+  const listing = { kind: 'listing' as const, from: 'alice' };
+  const direct = { kind: 'direct' as const, from: 'alice', to: 'bob' };
+  ok(tradeVisibleTo(listing, null) && tradeVisibleTo(listing, 'carol'), 'a listing is visible to everyone, signed in or not');
+  ok(tradeVisibleTo(direct, 'alice') && tradeVisibleTo(direct, 'Bob'), 'a direct offer is visible to both people in it');
+  ok(!tradeVisibleTo(direct, 'carol') && !tradeVisibleTo(direct, null) && !tradeVisibleTo(direct, ''), 'a direct offer is private from everyone else');
+}
+
 ok(JSON.stringify(await prodKv.get('trades:open')) === prodBefore, 'production trades untouched');
 await sbx.deleteSandbox(box.id);
 console.log('trade checks passed');

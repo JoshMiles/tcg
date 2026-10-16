@@ -48,6 +48,16 @@ export interface Trade {
   counterOf?: string;
 }
 
+/**
+ * May this viewer see what is in the trade? A board listing is public; a direct offer only to the two people in it (the viewer is a
+ * lowercase login, or none when signed out). Used by the trade page; staff look at offers in the admin and mod panels instead.
+ */
+export function tradeVisibleTo(trade: Pick<Trade, 'kind' | 'from' | 'to'>, viewer: string | null | undefined): boolean {
+  if (trade.kind === 'listing') return true;
+  const v = viewer?.toLowerCase();
+  return !!v && (v === trade.from || v === trade.to);
+}
+
 export interface TradeSettings {
   /** Master switch: off freezes trading (existing offers stay but can't be accepted). */
   enabled: boolean;
