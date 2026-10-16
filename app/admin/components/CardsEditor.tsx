@@ -6,6 +6,7 @@ import type { Card } from '@/lib/types';
 import type { CardInput } from '../draft-actions';
 import { RARITIES, getRarity, rarityStats } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
+import { FramePicker } from './FramePicker';
 import { uploadAudioFile, uploadImageFile } from './upload-client';
 import { VariantChips } from './VariantSwitches';
 import type { OptionalVariant } from '@/lib/types';
@@ -70,7 +71,9 @@ export function CardsEditor({
       const url = field === 'soundUrl'
         ? await uploadAudioFile(file)
         : await uploadImageFile(file, phase => patch(id, { busy: phase === 'optimizing' ? 'Optimizing GIF…' : 'Uploading…' }));
-      patch(id, { [field]: url, busy: undefined });
+      // A still belongs to one image, so a new image drops it.
+      const dropStill = field === 'imageUrl' ? { stillUrl: undefined } : field === 'fullArtImageUrl' ? { fullArtStillUrl: undefined } : {};
+      patch(id, { [field]: url, ...dropStill, busy: undefined });
     } catch (e) {
       patch(id, { busy: undefined, error: e instanceof Error ? e.message : 'Upload failed' });
     }
@@ -201,7 +204,7 @@ export function CardsEditor({
                   url={c.imageUrl}
                   busy={c.busy}
                   onFile={f => uploadInto(c.id, f, 'imageUrl')}
-                  onClear={() => patch(c.id, { imageUrl: '' })}
+                  onClear={() => patch(c.id, { imageUrl: '', stillUrl: undefined })}
                 />
 
                 <div className="flex-1 min-w-[220px] space-y-2">
@@ -246,7 +249,7 @@ export function CardsEditor({
                           compact
                           url={c.fullArtImageUrl ?? ''}
                           onFile={f => uploadInto(c.id, f, 'fullArtImageUrl')}
-                          onClear={() => patch(c.id, { fullArtImageUrl: undefined })}
+                          onClear={() => patch(c.id, { fullArtImageUrl: undefined, fullArtStillUrl: undefined })}
                         />
                         <label className="flex items-center gap-1.5 text-gray-400 cursor-pointer">
                           <input
@@ -267,6 +270,10 @@ export function CardsEditor({
                         )}
                       </>
                     )}
+                  </div>
+                  <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+                    <FramePicker compact artUrl={c.imageUrl} value={c.stillUrl ?? ''} onChange={u => patch(c.id, { stillUrl: u || undefined })} />
+                    {upgradesEnabled && c.fullArtImageUrl && <FramePicker compact artUrl={c.fullArtImageUrl} value={c.fullArtStillUrl ?? ''} onChange={u => patch(c.id, { fullArtStillUrl: u || undefined })} label="Choose full-art still frame" />}
                   </div>
                   {c.error && <p className="text-xs text-red-400">{c.error}</p>}
                   {upgradesEnabled && c.upgradesEnabled && !c.fullArtImageUrl && c.imageUrl && (

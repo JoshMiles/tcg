@@ -45,6 +45,9 @@ export interface CardInput {
   name: string;
   imageUrl: string;
   fullArtImageUrl?: string;
+  /** Chosen still frames (see cardStill()). */
+  stillUrl?: string;
+  fullArtStillUrl?: string;
   soundUrl?: string;
   stars: number;
   probability: number;
@@ -72,6 +75,8 @@ export async function saveCards(packId: string, rows: CardInput[]): Promise<Card
     seen.add(r.id);
     const prev = byId.get(r.id);
     const full = str(r.fullArtImageUrl) || undefined;
+    const still = str(r.stillUrl) || undefined;
+    const fullStill = full ? str(r.fullArtStillUrl) || undefined : undefined;
     const sound = str(r.soundUrl) || undefined;
     const off = cleanDisabled(r.disabledVariants);
     cards.push({
@@ -81,6 +86,8 @@ export async function saveCards(packId: string, rows: CardInput[]): Promise<Card
       imageUrl: str(r.imageUrl),
       ...(sound && { soundUrl: sound }),
       ...(full && { fullArtImageUrl: full }),
+      ...(still && { stillUrl: still }),
+      ...(fullStill && { fullArtStillUrl: fullStill }),
       ...(off.length > 0 && { disabledVariants: off }),
       upgradesEnabled: r.upgradesEnabled !== false,
       probability: num(r.probability, 1, 0),

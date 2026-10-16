@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { Avatar } from '@/app/components/Avatar';
 import { RARITIES, getRarity } from '@/lib/rarity';
-import { cardThumbUrl } from '@/lib/card-art';
+import { cardThumbUrl, stillFor } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { CardMathsPanel } from '@/app/components/CardMathsPanel';
@@ -29,6 +29,8 @@ export interface DexCard {
   name: string;
   imageUrl: string;
   fullArtImageUrl?: string;
+  stillUrl?: string;
+  fullArtStillUrl?: string;
   stars: number;
   packName: string;
   pullRate: number;
@@ -55,7 +57,7 @@ export interface DexCard {
 const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '-');
 const artFor = (c: DexCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
-const maskFor = (url: string) => (cardThumbUrl(url) !== url ? `url("${cardThumbUrl(url)}")` : 'none');
+const maskFor = (c: DexCard, url: string) => (cardThumbUrl(url) !== url ? `url("${stillFor(c, url)}")` : 'none');
 
 /** Every card in a season, with filters (rarity, pack, collected / missing / wanted / undiscovered), sorting, search and click-through details. */
 export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDefault = false, showMine = false, initialOpenId }: { cards: DexCard[]; seasonId: string; siteHost: string; signedIn?: boolean; compactDefault?: boolean; showMine?: boolean; initialOpenId?: string }) {
@@ -172,7 +174,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
             return (
               <div key={c.id} className={`space-y-2 ${showMine && c.owned === false ? 'opacity-80' : ''}`}>
                 {c.imageUrl ? (
-                  <CardTile imageUrl={c.imageUrl} alt={c.name} title={`${c.name}. Click for details`} className={tileClass} style={style} onActivate={el => { opener.current = el; setOpenId(c.id); }}>
+                  <CardTile imageUrl={c.imageUrl} still={c.stillUrl} alt={c.name} title={`${c.name}. Click for details`} className={tileClass} style={style} onActivate={el => { opener.current = el; setOpenId(c.id); }}>
                     {badges}
                   </CardTile>
                 ) : (
@@ -245,9 +247,9 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
               {canStep && <button onClick={() => onStep(-1)} aria-label="Previous card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">‹</button>}
               <div
                 className={`relative w-full max-w-[210px] aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown}` : ''} ${holoClass(card.holo[shown], true)}`}
-                style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ...holoVars(card.holo[shown]), ['--art-mask' as string]: maskFor(art) } as React.CSSProperties}
+                style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ...holoVars(card.holo[shown]), ['--art-mask' as string]: maskFor(card, art) } as React.CSSProperties}
               >
-                <img src={cardThumbUrl(art)} alt={card.name} className="w-full h-full object-cover" />
+                <img src={stillFor(card, art)} alt={card.name} className="w-full h-full object-cover" />
                 <FullArt url={art} />
               </div>
               {canStep && <button onClick={() => onStep(1)} aria-label="Next card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">›</button>}

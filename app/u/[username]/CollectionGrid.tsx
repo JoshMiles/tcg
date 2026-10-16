@@ -11,7 +11,7 @@ import { engravedDate } from '@/lib/flip-back';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
 import { getRarity } from '@/lib/rarity';
-import { cardThumbUrl } from '@/lib/card-art';
+import { cardThumbUrl, stillFor } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import { UpgradeButton } from '@/app/components/UpgradeButton';
@@ -27,6 +27,8 @@ export interface GridCard {
   name: string;
   imageUrl: string;
   fullArtImageUrl?: string;
+  stillUrl?: string;
+  fullArtStillUrl?: string;
   stars: number;
   packName: string;
   /** Whether this card can be pulled / upgraded as variants. */
@@ -238,7 +240,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
 
           if (isOwned && art) {
             return (
-              <CardTile key={card.id} imageUrl={art} alt={card.name} title={title} className={tileClass} style={tileStyle} onActivate={el => open(idx, el)}>
+              <CardTile key={card.id} imageUrl={art} still={stillFor(card, art)} alt={card.name} title={title} className={tileClass} style={tileStyle} onActivate={el => open(idx, el)}>
                 {overlays}
               </CardTile>
             );
@@ -356,7 +358,7 @@ function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCar
   const rarity = getRarity(card.stars);
   const tileStyle = (v: Variant) => ({ borderColor: rarity?.hex, ...holoVars(card.holo[v]) } as React.CSSProperties);
   const tileClass = (v: Variant) => `relative aspect-[2/3] w-full rounded-lg overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v} ` : ''}${holoClass(card.holo[v])}`;
-  const art = (v: Variant) => <img src={cardThumbUrl(artFor(card, v))} alt="" loading="lazy" className="w-full h-full object-cover" />;
+  const art = (v: Variant) => <img src={stillFor(card, artFor(card, v))} alt="" loading="lazy" className="w-full h-full object-cover" />;
   return (
     <div className="space-y-4">
       {dialog.groups.map(g => (
@@ -415,10 +417,10 @@ function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pi
       className={`relative w-full aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v}` : ''} ${holoClass(card.holo[v], true)}`}
       style={{
         borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ...holoVars(card.holo[v]),
-        ['--art-mask' as string]: cardThumbUrl(art) !== art ? `url("${cardThumbUrl(art)}")` : 'none',
+        ['--art-mask' as string]: cardThumbUrl(art) !== art ? `url("${stillFor(card, art)}")` : 'none',
       } as React.CSSProperties}
     >
-      <img src={cardThumbUrl(art)} alt={`${VARIANT_LABELS[v]} ${card.name}`} className="w-full h-full object-cover" />
+      <img src={stillFor(card, art)} alt={`${VARIANT_LABELS[v]} ${card.name}`} className="w-full h-full object-cover" />
       <FullArt url={art} />
     </div>
   );

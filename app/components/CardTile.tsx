@@ -10,6 +10,7 @@ import { cardThumbUrl } from '@/lib/card-art';
  */
 export function CardTile({
   imageUrl,
+  still,
   alt,
   className,
   style,
@@ -18,6 +19,8 @@ export function CardTile({
   children,
 }: {
   imageUrl: string;
+  /** A chosen still frame (card.stillUrl); without it the thumbnail (the first frame) is the still. */
+  still?: string;
   alt: string;
   className?: string;
   style?: CSSProperties;
@@ -26,8 +29,9 @@ export function CardTile({
   onActivate?: (el: HTMLElement) => void;
   children?: ReactNode;
 }) {
-  const thumb = cardThumbUrl(imageUrl);
-  const animates = thumb !== imageUrl;
+  const base = cardThumbUrl(imageUrl);
+  const animates = base !== imageUrl;
+  const thumb = still || base;
   const [hovered, setHovered] = useState(false);
   const [ready, setReady] = useState(false);
 
