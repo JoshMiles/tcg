@@ -54,7 +54,7 @@ export async function upgradeCard(opts: {
       return {
         ok: false,
         status: 400,
-        error: `You need ${cost} ${VARIANT_LABELS[from]} copies to upgrade; you have ${have}.`,
+        error: `You need ${cost} ${VARIANT_LABELS[from]} prints to upgrade; you have ${have}.`,
       };
     }
     const updated = [...remaining, encodeEntry(cardNumber, to)];

@@ -221,7 +221,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
 
   const give = cleanItems(input.give, settings.maxStacksPerSide);
   const get = cleanItems(input.get, settings.maxStacksPerSide);
-  if (!give) return fail(400, `Choose between 1 and ${settings.maxStacksPerSide} different cards to give (up to ${TRADE_LIMITS.copiesPerStack} copies of each).`);
+  if (!give) return fail(400, `Choose between 1 and ${settings.maxStacksPerSide} different cards to give (up to ${TRADE_LIMITS.copiesPerStack} prints of each).`);
   if (!get) return fail(400, `Choose between 1 and ${settings.maxStacksPerSide} different cards you want back.`);
   // Wanted cards must exist, and a wanted variant must be one the card can actually be in this pack.
   for (const item of get) {

@@ -89,7 +89,7 @@ export default async function FaqPage() {
         </Q>
         <Q q="Are the cards NFTs or worth real money?" id="not-nfts">
           No. The cards are <strong className="text-white">virtual trading cards for fun</strong>: entries in this game&rsquo;s own database, not NFTs, tokens, crypto or anything on a blockchain. They aren&rsquo;t assets or property, have no cash value,
-          and can&rsquo;t be bought, sold or cashed out, here or anywhere else. Serial numbers and rarities are just part of the game. If anyone offers to sell you our cards, or to &ldquo;mint&rdquo; them, it isn&rsquo;t us. See the{' '}
+          and can&rsquo;t be bought, sold or cashed out, here or anywhere else. Edition numbers and rarities are just part of the game. If anyone offers to sell you our cards, or to &ldquo;mint&rdquo; them, it isn&rsquo;t us. See the{' '}
           <Link href="/terms" className="text-yellow-400 hover:text-yellow-300">Terms</Link>.
         </Q>
         <Q q="Where can I play?">
@@ -165,10 +165,10 @@ export default async function FaqPage() {
         <Q q="Can I see cards I haven&rsquo;t found yet?">
           Yes. The <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">Card dex</Link> lists every card in the season. On your own collection page, cards you haven&rsquo;t pulled yet show as a <strong className="text-white">?</strong>.
         </Q>
-        <Q q="What are serial numbers?" id="serials" open>
-          Every copy of a card has two numbers. Its <strong className="text-white">unique copy number</strong> (like #1023381) is different for every copy in the whole game and is how you refer to it: type it in the search box or open <code className="text-yellow-300">/c/1023381</code>. Its <strong className="text-white">edition number</strong> is counted per card and per version of that card, and is the one that earns the points bonus. For example, your Shiny Gouda Goat edition #3 is the third Shiny Gouda Goat drawn. Open a card in your collection to see your serial numbers,
-          and press one to see its page and its journey: who pulled it, who has held it and for how long, and where it has been traded or forged in an upgrade. Copies that existed before serial numbers began were numbered afterwards, so their order is an estimate (shown with a ~). On a copy&rsquo;s page and in your card details the card can be turned over: move the pointer over it to tilt it, then tap it or press <em>Flip</em> to see the engraved back with the serial number and the date.
-          When you upgrade, the spent copies are retired and the new copy remembers what it was made from.
+        <Q q="What are prints, print numbers and editions?" id="serials" open>
+          <span id="prints" />Every card you own is a <strong className="text-white">print</strong>, and every print has two numbers. Its <strong className="text-white">print number</strong> (like Print #1023381) is different for every print in the whole game and is how you refer to it: type it in the search box or open <code className="text-yellow-300">/p/1023381</code>. Its <strong className="text-white">edition number</strong> is counted per card and per version of that card, and is the one that earns the points bonus. For example, your Shiny Gouda Goat edition #3 is the third Shiny Gouda Goat drawn. Open a card in your collection to see your prints,
+          and press one to see its page and its journey: who pulled it, who has held it and for how long, and where it has been traded or forged in an upgrade. Prints that existed before editions were numbered were numbered afterwards, so their order is an estimate (shown with a ~). On a print&rsquo;s page and in your card details the card can be turned over: move the pointer over it to tilt it, then tap it or press <em>Flip</em> to see the engraved back with the print number and the date.
+          When you upgrade, the spent prints are retired and the new print remembers what it was made from.
         </Q>
       </Section>
 
@@ -184,7 +184,7 @@ export default async function FaqPage() {
                 <li><strong className="text-white">{costs.shiny}</strong> Full Art → 1 <strong className="text-amber-300">Shiny Full Art</strong></li>
               </ul>
               <p className="mt-2">
-                That&rsquo;s {costs.reverse} Regulars for a Reverse Holo, {costs.reverse * costs.full} for a Full Art and {costs.reverse * costs.full * costs.shiny} for a Shiny, counted from Regular copies alone.
+                That&rsquo;s {costs.reverse} Regulars for a Reverse Holo, {costs.reverse * costs.full} for a Full Art and {costs.reverse * costs.full * costs.shiny} for a Shiny, counted from Regular prints alone.
               </p>
             </Q>
             <Q q="Where do I upgrade?">
@@ -194,8 +194,8 @@ export default async function FaqPage() {
             <Q q="What are the rules?">
               <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
                 <li>Only one step at a time. No skipping from Regular straight to Shiny.</li>
-                <li>Only copies of the <strong className="text-white">same card and the same version</strong> can be combined.</li>
-                <li>Upgrades are <strong className="text-white">permanent</strong>. The copies you spend are destroyed, so the Upgrade button asks you to tap twice (the first tap says &ldquo;Sure?&rdquo;).</li>
+                <li>Only prints of the <strong className="text-white">same card and the same version</strong> can be combined.</li>
+                <li>Upgrades are <strong className="text-white">permanent</strong>. The prints you spend are destroyed, so the Upgrade button asks you to tap twice (the first tap says &ldquo;Sure?&rdquo;).</li>
                 <li>Only the current season can be upgraded.</li>
                 <li>Some cards or packs can have upgrades turned off.</li>
               </ul>
@@ -215,7 +215,7 @@ export default async function FaqPage() {
       <Section id="trading" title="Trading" icon="trade">
         <Q q="How does trading work?" open>
           <p>
-            Open the <Link href="/trade" className="text-yellow-400 hover:text-yellow-300">Trade</Link> page (you need to be logged in with Twitch) and make an offer: pick the cards you give and the cards you want back. Any copy of any version can be traded.
+            Open the <Link href="/trade" className="text-yellow-400 hover:text-yellow-300">Trade</Link> page (you need to be logged in with Twitch) and make an offer: pick the cards you give and the cards you want back. Any print of any version can be traded.
             There are two kinds of offer:
           </p>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
@@ -243,19 +243,19 @@ export default async function FaqPage() {
         </Q>
         <Q q="How do I find a good trade?">
           The Trade page has three tabs: <em>Your trades</em>, <em>The board</em> and <em>History</em>. <strong className="text-white">Matches for you</strong> picks out board listings you can take that give a card you are
-          looking for or do not have yet, or that only ask for your spare copies. On the board you can search, filter (for example &ldquo;I can take&rdquo;) and sort by points. When you make an offer to someone, quick picks show
+          looking for or do not have yet, or that only ask for your spare prints. On the board you can search, filter (for example &ldquo;I can take&rdquo;) and sort by points. When you make an offer to someone, quick picks show
           the cards they are looking for that you own and the cards you want that they have. Add cards to your own <em>Looking for</em> list from the Card Dex, My Stats or Settings.
         </Q>
         <Q q="Can I stop getting offers or notifications?">
           Yes. In <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> you can stop other collectors sending you direct offers (the open board and counters to your own offers still work) and switch off
           bell notices for new offers or for how your offers ended. Notices from an admin always come through.
         </Q>
-        <Q q="Which of my copies get traded?">
-          Trades move your <strong className="text-white">newest</strong> copies of a card first, so the low serial numbers you pulled earliest stay with you. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">serial numbers</a>.
+        <Q q="Which of my prints get traded?">
+          Trades move your <strong className="text-white">newest</strong> prints of a card first, so the low edition numbers you pulled earliest stay with you. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">prints and editions</a>.
         </Q>
         <Q q="Is a trade fair? How do I know what a card is worth?">
           Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule. You can
-          trade anything for anything. Remember that a copy’s serial number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
+          trade anything for anything. Remember that a print’s edition number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
         </Q>
         <Q q="Can I be told when a card I want is listed?">
           Yes. Cards on your <strong className="text-white">Looking for</strong> list alert you for every version. For something more specific, add a <strong className="text-white">saved alert</strong> in <Link href="/settings#watches" className="text-yellow-400 hover:text-yellow-300">Settings</Link>, such as &ldquo;a Shiny Full Art Gouda&rdquo; (up to 10). When someone posts a matching card on the open board you get a notice in the bell, and in the Twitch extension the listing is tagged <em>On your list</em>. You can turn these notices off in Settings.
@@ -276,16 +276,16 @@ export default async function FaqPage() {
         </Q>
         <Q q="Can I change how my profile looks?">
           Yes. On your own profile press <strong className="text-white">Customize profile</strong>: drag widgets to rearrange them, drag a widget&rsquo;s edge (or use the arrows) to resize it, remove the ones you do not want
-          and add others from the list, then Save. You can show your best cards, rarity progress, latest numbered copies, awards, a Looking for list and more. In <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> you can also add a short bio.
+          and add others from the list, then Save. You can show your best cards, rarity progress, latest numbered prints, awards, a Looking for list and more. In <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> you can also add a short bio.
         </Q>
         <Q q="What are achievements?" id="achievements">
           Goals for collecting. They show on your profile and are earned per season, for example <strong className="text-white">Completed Season 1</strong> (one of every card), <strong className="text-white">All Common</strong>,
           <strong className="text-white"> All Rare</strong> and so on for each rarity, <strong className="text-white">All Reverse Holo</strong>, <strong className="text-white">All Full Art</strong>, <strong className="text-white">All Shiny</strong> and the
-          <strong className="text-white"> Master set</strong> (every card in every version). There are goals about edition numbers too: <strong className="text-white">First edition</strong> (hold edition #1 of any card), <strong className="text-white">First shiny edition</strong>, <strong className="text-white">Five firsts</strong> (edition #1 of five different cards) and <strong className="text-white">Early bird</strong> (a copy low enough to earn the serial bonus). Your profile also shows how close you are to the next ones. Once you earn an achievement it is yours to keep, even if you later trade cards away.
+          <strong className="text-white"> Master set</strong> (every card in every version). There are goals about edition numbers too: <strong className="text-white">First edition</strong> (hold edition #1 of any card), <strong className="text-white">First shiny edition</strong>, <strong className="text-white">Five firsts</strong> (edition #1 of five different cards) and <strong className="text-white">Early bird</strong> (a print low enough to earn the edition bonus). Your profile also shows how close you are to the next ones. Once you earn an achievement it is yours to keep, even if you later trade cards away.
           They are different from <em>awards</em>, which are the prizes given for finishing high on a season&rsquo;s leaderboard.
         </Q>
         <Q q="Can I share my cards as an image?">
-          Yes: the <em>Share</em> menu on a profile (and the <em>Share</em> tab on your own), <em>Share my stats</em> on My Stats and <em>Share this card</em> on a card or copy page make a picture you can post or download.
+          Yes: the <em>Share</em> menu on a profile (and the <em>Share</em> tab on your own), <em>Share my stats</em> on My Stats and <em>Share this card</em> on a card or print page make a picture you can post or download.
         </Q>
         <Q q="Can I hide my profile?">
           In Settings, <em>Private profile</em> leaves you off the leaderboard, card owner lists and recent pulls and hides your profile page: anyone else who opens it sees only that it is private (you still see your own). Your cards still appear on stream when
@@ -300,14 +300,14 @@ export default async function FaqPage() {
       <Section id="show" title="Showing off your cards" icon="image">
         <Q q="How do I show off my cards?" open>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
-            <li><strong className="text-white">Share</strong> on a profile has the link and a quick picture of that collector's best cards, with their version and serial number, plus rank and progress. On your own profile, the <strong className="text-white">Share</strong> tab lets you choose a theme, a post or story shape, a stats poster, and exactly which cards go in.</li>
+            <li><strong className="text-white">Share</strong> on a profile has the link and a quick picture of that collector's best cards, with their version and edition number, plus rank and progress. On your own profile, the <strong className="text-white">Share</strong> tab lets you choose a theme, a post or story shape, a stats poster, and exactly which cards go in.</li>
             <li><strong className="text-white">Share my stats</strong> on My Stats makes a picture of your score and top cards.</li>
-            <li><strong className="text-white">Share this card</strong> on a card in the Card Dex, or on a copy&rsquo;s own page, makes a picture of that one card. On a copy&rsquo;s page you can pick a theme and shape, and the picture carries a slim engraved plate with its unique number and a QR code.</li>
+            <li><strong className="text-white">Share this card</strong> on a card in the Card Dex, or on a print&rsquo;s own page, makes a picture of that one card. On a print&rsquo;s page you can pick a theme and shape, and the picture carries a slim engraved plate with its print number and a QR code.</li>
             <li>The <strong className="text-white">Share</strong> button on your profile copies its link, so anyone can open it.</li>
           </ul>
         </Q>
         <Q q="Can I show a card on stream?">
-          Yes, when {CHANNEL_NAME} is live you can use the show-off command in chat and your card appears on the stream with its version and serial number. Name the card (or its number) and, if you like, the version first,
+          Yes, when {CHANNEL_NAME} is live you can use the show-off command in chat and your card appears on the stream with its version and edition number. Name the card (or its number) and, if you like, the version first,
           for example <em>shiny gouda goat</em>; with nothing after the command it shows your most valuable card. You can only show cards you own, and once every {SHOWOFF_COOLDOWN_S} seconds. If the card has more than one match, be a little more specific.
         </Q>
         <Q q="Can I download the pictures?">
@@ -321,8 +321,8 @@ export default async function FaqPage() {
           Pages can fill automatically (sorted by number, rarity or name, with or without a fresh page per pack, optionally leaving out cards you don&rsquo;t have) or you can set <strong className="text-white">Placed by hand</strong>: add, rename, reorder and delete pages, then tap a pocket and a card to fill it, or drag cards in. Each pocket can show a particular version, and a pocket can hold a card you don&rsquo;t own yet as a goal.
           Everyone who visits your profile sees your binder the way you set it, and <strong className="text-white">Share this page</strong> makes a picture of the cards on the pages in view.
         </Q>
-        <Q q="Can I show off one special copy on my profile?">
-          Yes. Open one of your copies (click its number in your card details) and press <strong className="text-white">Pin to my profile</strong>. It appears as a card on your profile that visitors can flip over to see its engraved unique number, and you can share a picture of it. If you trade the copy away it stops being shown.
+        <Q q="Can I show off one special print on my profile?">
+          Yes. Open one of your prints (click its number in your card details) and press <strong className="text-white">Pin to my profile</strong>. It appears as a card on your profile that visitors can flip over to see its engraved print number, and you can share a picture of it. If you trade the print away it stops being shown.
         </Q>
         <Q q="Can I make my profile look the way I want?">
           Yes, see <a href="#profile" className="text-yellow-400 hover:text-yellow-300">Your profile</a>: arrange the widgets, show your best cards, and add a bio.
@@ -333,35 +333,35 @@ export default async function FaqPage() {
       <Section id="points" title="Points & leaderboard" icon="trophy">
         <Q q="How are points worked out?" open>
           <p>
-            Your score is the value of <strong className="text-white">every card you own</strong>, duplicates included. Each copy is worth:
+            Your score is the value of <strong className="text-white">every card you own</strong>, duplicates included. Each print is worth:
           </p>
-          <p className="font-display text-xl font-bold text-yellow-300 my-2">{scoring.baseScore} × rarity{upgradesOn ? ' × version' : ''} × serial bonus</p>
+          <p className="font-display text-xl font-bold text-yellow-300 my-2">{scoring.baseScore} × rarity{upgradesOn ? ' × version' : ''} × edition bonus</p>
           <ul className="space-y-2">
             <li>
               <strong className="text-white">Rarity</strong>: how hard the card is to pull compared with an average card. A card that comes up half as often is worth twice as much.
             </li>
             <li>
-              <strong className="text-white">Serial bonus</strong>: {scoring.serialBonusCutoff > 0 ? (
-                <>every copy has a <a href="#serials" className="text-yellow-400 hover:text-yellow-300">serial number</a>, and the first copies ever made of a card (in each version) are worth extra. Copy #1 is worth{' '}
-                <strong className="text-white">{scoring.serialBonusMax}×</strong>, and the bonus fades in a straight line until it is gone after #{scoring.serialBonusCutoff}. The bonus belongs to the copy, so it moves with it if you trade it.</>
-              ) : 'switched off in this game, so every copy of a version is worth the same.'}
+              <strong className="text-white">Edition bonus</strong>: {scoring.serialBonusCutoff > 0 ? (
+                <>every print has an <a href="#serials" className="text-yellow-400 hover:text-yellow-300">edition number</a>, and the first prints ever made of a card (in each version) are worth extra. Edition #1 is worth{' '}
+                <strong className="text-white">{scoring.serialBonusMax}×</strong>, and the bonus fades in a straight line until it is gone after #{scoring.serialBonusCutoff}. The bonus belongs to the print, so it moves with it if you trade it.</>
+              ) : 'switched off in this game, so every print of a version is worth the same.'}
             </li>
             {upgradesOn && (
               <li>
-                <strong className="text-white">Version</strong>: Reverse Holo, Full Art and Shiny Full Art copies are worth far more than a Regular. An upgraded card is normally worth more than the copies you spend to
-                make it, though the serial bonus on the copies you spend can change that.
+                <strong className="text-white">Version</strong>: Reverse Holo, Full Art and Shiny Full Art prints are worth far more than a Regular. An upgraded card is normally worth more than the prints you spend to
+                make it, though the edition bonus on the prints you spend can change that.
               </li>
             )}
           </ul>
           <p className="mt-2">
-            Add up all your copies, then add the <a href="#bonuses" className="text-yellow-400 hover:text-yellow-300">collection bonuses</a> below, and that&rsquo;s your score on the{' '}
+            Add up all your prints, then add the <a href="#bonuses" className="text-yellow-400 hover:text-yellow-300">collection bonuses</a> below, and that&rsquo;s your score on the{' '}
             <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300">leaderboard</Link>.
           </p>
         </Q>
         <Q q="What are the collection bonuses?">
           <p id="bonuses">
             Collecting more of the set pays off, on top of what your individual cards are worth. There are two bonuses, both measured against the <strong className="text-white">set value</strong>: what one
-            Regular copy of every card in the season is worth right now{overview ? <> (currently <strong className="text-white">{overview.values.setValue.toLocaleString()}</strong> points)</> : null}:
+            Regular print of every card in the season is worth right now{overview ? <> (currently <strong className="text-white">{overview.values.setValue.toLocaleString()}</strong> points)</> : null}:
           </p>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
             <li>
@@ -376,7 +376,7 @@ export default async function FaqPage() {
             </li>
           </ul>
           <p className="mt-2">
-            Duplicates and rarer versions don&rsquo;t count towards completeness. Only having at least one copy of each card does. The bonuses move with the set value, so they stay in proportion as card values shift. You can see your own
+            Duplicates and rarer versions don&rsquo;t count towards completeness. Only having at least one print of each card does. The bonuses move with the set value, so they stay in proportion as card values shift. You can see your own
             breakdown on <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>.
           </p>
         </Q>
@@ -384,25 +384,25 @@ export default async function FaqPage() {
           <p>
             Yes. Click any card on the <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">card dex</Link> or in a collection to open its details, then open{' '}
             <strong className="text-white"><Icon name="nerd" className="mr-1" />Advanced information (for nerds)</strong>. It shows every step with the real numbers filled in, for each version: the pull chance, rarity, the version multiplier
-            and the final rounding, plus the pull odds, how many packs you&rsquo;d expect to need, and what the serial bonus is worth at different numbers. In short:
+            and the final rounding, plus the pull odds, how many packs you&rsquo;d expect to need, and what the edition bonus is worth at different numbers. In short:
           </p>
           <p className="font-mono text-[12px] text-gray-300 my-2 leading-relaxed">
-            points = max(1, round( {scoring.baseScore} × rarity × version × serial bonus ))<br />
+            points = max(1, round( {scoring.baseScore} × rarity × version × edition bonus ))<br />
             rarity = (1 ÷ (pull chance × cards in the season)) ^ {scoring.rarityExponent}<br />
-            serial bonus = 1 + ({scoring.serialBonusMax} − 1) × (1 − (serial − 1) ÷ {scoring.serialBonusCutoff}) for serial 1 to {scoring.serialBonusCutoff}, otherwise 1<br />
+            edition bonus = 1 + ({scoring.serialBonusMax} − 1) × (1 − (edition − 1) ÷ {scoring.serialBonusCutoff}) for edition 1 to {scoring.serialBonusCutoff}, otherwise 1<br />
             version = max( Regular weight ÷ version weight, previous version × upgrade cost × {scoring.upgradeMargin} )
           </p>
           <p>
-            The {scoring.baseScore}, the limits and the margin are settings the streamer can change, so the numbers above are today&rsquo;s. Cards sitting in an open trade (escrow) aren&rsquo;t counted as copies in anyone&rsquo;s collection.
+            The {scoring.baseScore}, the limits and the margin are settings the streamer can change, so the numbers above are today&rsquo;s. Cards sitting in an open trade (escrow) aren&rsquo;t counted as prints in anyone&rsquo;s collection.
           </p>
         </Q>
         <Q q="Why did my points change?">
-          A copy’s own points only change if the streamer edits the scoring settings or the card’s pull odds change. What moves most is your rank, because other collectors keep pulling and the completion bonus is measured against the set value. A serial bonus never changes: it is fixed by the number on the copy.
+          A print’s own points only change if the streamer edits the scoring settings or the card’s pull odds change. What moves most is your rank, because other collectors keep pulling and the completion bonus is measured against the set value. An edition bonus never changes: it is fixed by the edition number on the print.
         </Q>
         <Q q="Does upgrading raise my score?">
           {upgradesOn ? (
             <>
-              Usually, yes. A higher version is worth much more. But upgrades <strong className="text-white">use cards up</strong>: the copies you spend are destroyed (the newest serial numbers go first, so your lowest numbers are the last to go), and the new copy gets the next free serial of its version, which is only worth a bonus while it is still early in that version’s count. <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>{' '}
+              Usually, yes. A higher version is worth much more. But upgrades <strong className="text-white">use cards up</strong>: the prints you spend are destroyed (the newest edition numbers go first, so your lowest numbers are the last to go), and the new print gets the next free edition of its version, which is only worth a bonus while it is still early in that version’s count. <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>{' '}
               shows a projected change for each upgrade with all of this included, so occasionally it can be negative.
             </>
           ) : (
@@ -415,13 +415,13 @@ export default async function FaqPage() {
         </Q>
         {valueRows.length > 0 && (
           <Q q={`What is each card worth right now? (${season?.name})`}>
-            <p className="mb-3">Points per copy at this moment. These update as cards are pulled and upgraded.</p>
+            <p className="mb-3">Points per print at this moment. These update as cards are pulled and upgraded.</p>
             <div className="overflow-x-auto rounded-lg border border-gray-800">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-gray-500 text-left bg-gray-950/50">
                     <th className="py-2 px-3 font-medium">Card</th>
-                    <th className="py-2 px-2 font-medium text-right">Copies</th>
+                    <th className="py-2 px-2 font-medium text-right">Prints</th>
                     <th className="py-2 px-2 font-medium text-right">Regular</th>
                     {upgradesOn && VARIANTS.filter(v => v !== 'regular').map(v => (
                       <th key={v} className="py-2 px-2 font-medium text-right" title={VARIANT_LABELS[v]}>{VARIANT_SHORT[v]}</th>
@@ -477,7 +477,7 @@ export default async function FaqPage() {
       {/* ── Privacy ── */}
       <Section id="privacy" title="Privacy & data" icon="lock">
         <Q q="What can other people see?" open>
-          Collections, the leaderboard, season stats, recent pulls and each card copy&rsquo;s history are public, and your username appears on stream when your cards are shown. A private profile hides you from the boards and feeds. The full details are in the{' '}
+          Collections, the leaderboard, season stats, recent pulls and each print&rsquo;s history are public, and your username appears on stream when your cards are shown. A private profile hides you from the boards and feeds. The full details are in the{' '}
           <Link href="/privacy" className="text-yellow-400 hover:text-yellow-300">Privacy Policy</Link>; the rules of the game are in the <Link href="/terms" className="text-yellow-400 hover:text-yellow-300">Terms</Link>.
         </Q>
         <Q q="What do you store about me?">
@@ -503,7 +503,7 @@ export default async function FaqPage() {
           After you pass you won&rsquo;t be asked again for about 15 minutes. If it keeps failing, turn off any VPN or tracker-blocking extension for this site, or try another browser. The Twitch panel doesn&rsquo;t use it.
         </Q>
         <Q q="How do I find things quickly?">
-          Press <kbd className="kbd">/</kbd> (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, copies or shinies, and shows who moved up or down since you last looked.
+          Press <kbd className="kbd">/</kbd> (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, prints or shinies, and shows who moved up or down since you last looked.
         </Q>
         <Q q="A card or my score looks wrong">
           Refresh first. Scores are recalculated whenever anyone pulls or upgrades, so they can move even when you haven&rsquo;t done anything. If something still looks wrong, tell the streamer in chat.

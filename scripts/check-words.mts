@@ -1,7 +1,7 @@
 // The Privacy Policy and the FAQ quote numbers (how many events or notices are kept, for how many days, how long a pass lasts...).
 // This reads the page source and the code constants and fails when they disagree, so a changed limit cannot leave the wording stale.
 // Pure (reads files, no database). Run: npx tsx scripts/check-words.mts
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = join(import.meta.dirname, '..');
@@ -42,5 +42,29 @@ for (const [name, text] of [['faq', faq], ['privacy', privacy], ['terms', terms]
 }
 ok(!/in seasons that enable it\. Can/.test(terms), 'the Terms sentence about upgrades is one sentence');
 ok(!faq.includes('>Collections</Link> or the search box'), 'the FAQ calls the page Collectors, as the nav does');
+
+// ---- a card copy is a "print" (ROADMAP 2.6): the old names must not come back into user-facing text ----
+// Narrow on purpose: code identifiers (copy, uid, Copy) and comments are fine, only phrases a viewer would read are banned.
+const walkSrc = (dir: string, re: RegExp, out: string[] = []): string[] => {
+  for (const f of readdirSync(join(root, dir))) {
+    const rel = dir + '/' + f;
+    if (statSync(join(root, rel)).isDirectory()) walkSrc(rel, re, out);
+    else if (re.test(f)) out.push(rel);
+  }
+  return out;
+};
+const withoutComments = (src: string) => src
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .split('\n')
+  .filter(l => !/^\s*(\/\/|\*)/.test(l))
+  .map(l => l.replace(/\s\/\/ .*$/, ''))
+  .join('\n');
+const userFacing = [...walkSrc('app', /\.tsx$/), 'public/widget.js', 'lib/discord.ts', 'lib/flip-back.ts', 'lib/share-image.ts'];
+const banned: [RegExp, string][] = [[/unique copy number/i, 'unique copy number'], [/unique number/i, 'unique number'], [/copy page/i, 'copy page'], [/ID #/, 'ID #']];
+for (const file of userFacing) {
+  const src = withoutComments(read(file));
+  for (const [re, label] of banned) ok(!re.test(src), `${file} says "${label}": a card copy is a print (ROADMAP 2.6), so use "print number", "print page" or "Print #1023381"`);
+}
+ok(faq.includes('id="serials"') && faq.includes('id="prints"'), 'the FAQ keeps the #serials anchor and adds #prints');
 
 console.log('words checks passed');

@@ -374,7 +374,7 @@ function CardDetail({
             {/* Value summary */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3">
-                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{ownerName ? `${ownerName}’s copies are worth` : 'Your copies are worth'}</p>
+                <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{ownerName ? `${ownerName}’s prints are worth` : 'Your prints are worth'}</p>
                 <p className="font-display text-3xl font-bold text-yellow-400 tabular-nums">{cardTotal.toLocaleString()}<span className="text-sm text-gray-500 ml-1">pts</span></p>
                 {share > 0 && <p className="text-xs text-gray-500">{share}% of {ownerName ? `${ownerName}’s` : 'your'} card points</p>}
               </div>
@@ -388,9 +388,9 @@ function CardDetail({
             {seasonId && card.copies && card.copies.length > 0 && <SerialList card={card} seasonId={seasonId} shown={shown} ownerName={ownerName} />}
 
             <p className="text-xs text-gray-500">
-              {card.serial.points > 0 && <span className="text-emerald-300">Serial bonuses add +{card.serial.points.toLocaleString()} pts to this card. </span>}
-              {(!card.copies || card.copies.length === 0) && card.serial.mult <= 1 && 'Low serial numbers earn a bonus; none of these copies qualify. '}
-              {outThere.toLocaleString()} cop{outThere === 1 ? 'y' : 'ies'} of {VARIANT_LABELS[shown]} out there
+              {card.serial.points > 0 && <span className="text-emerald-300">Edition bonuses add +{card.serial.points.toLocaleString()} pts to this card. </span>}
+              {(!card.copies || card.copies.length === 0) && card.serial.mult <= 1 && 'Low edition numbers earn a bonus; none of these prints qualify. '}
+              {outThere.toLocaleString()} print{outThere === 1 ? '' : 's'} of {VARIANT_LABELS[shown]} out there
             </p>
 
             {/* Per-variant table */}
@@ -447,7 +447,7 @@ function CardDetail({
             {card.maths && <CardMathsPanel maths={card.maths} variants={rows} shown={shown} />}
 
             <p className="text-xs text-gray-500">
-              {canUpgrade && card.upgradable ? 'Upgrades are permanent: the copies you spend are destroyed. The newest serial numbers go first, so a copy with a low number is safe. ' : ''}Card values change as the season goes on; serial bonuses never do.{' '}
+              {canUpgrade && card.upgradable ? 'Upgrades are permanent: the prints you spend are destroyed. The newest edition numbers go first, so a print with a low number is safe. ' : ''}Card values change as the season goes on; edition bonuses never do.{' '}
               <a href="/faq#points" className="text-yellow-500 hover:text-yellow-300">How are points worked out? →</a>
             </p>
           </div>
@@ -481,16 +481,16 @@ function SerialList({ card, seasonId, shown, ownerName }: { card: GridCard; seas
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-3 space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">{ownerName ? `${ownerName}\u2019s serial numbers` : 'Your serial numbers'}</p>
-        <p className="text-[11px] text-gray-500">{list.length} copy number{list.length === 1 ? '' : 's'}</p>
+        <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold">{ownerName ? `${ownerName}\u2019s prints` : 'Your prints'}</p>
+        <p className="text-[11px] text-gray-500">{list.length} print{list.length === 1 ? '' : 's'}</p>
       </div>
       <ul className="grid gap-1.5">
         {visible.map(c => (
           <li key={c.id}>
-            <a href={`/copy/${encodeURIComponent(seasonId)}/${c.id}`} title={c.est ? 'Numbered after the fact: the order within a version is an estimate. Open this copy and its history' : 'Open this copy and its history'}
+            <a href={`/copy/${encodeURIComponent(seasonId)}/${c.id}`} title={c.est ? 'Numbered after the fact: the order within a version is an estimate. Open this print and its history' : 'Open this print and its history'}
               className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 hover:border-yellow-500/60 transition-colors ${c.variant === shown ? 'border-gray-700 bg-gray-900/70' : 'border-gray-800/80'}`}>
               <SerialChip n={c.n} bonus={c.m} est={c.est} className="text-xs !px-2.5 !py-0.5" />
-              <span className="flex-1 min-w-0 truncate text-sm text-gray-200">{VARIANT_LABELS[c.variant]}{c.uid ? <span className="ml-2 text-[11px] text-gray-500 tabular-nums">ID #{c.uid}</span> : null}</span>
+              <span className="flex-1 min-w-0 truncate text-sm text-gray-200">{VARIANT_LABELS[c.variant]}{c.uid ? <span className="ml-2 text-[11px] text-gray-500 tabular-nums">Print #{c.uid}</span> : null}</span>
               {c.m ? <span className="text-xs font-bold text-yellow-300">×{c.m} bonus</span> : null}
               {c.p ? <span className="text-xs tabular-nums text-gray-400">{c.p.toLocaleString()} pts</span> : null}
               <span aria-hidden className="text-gray-600">›</span>
@@ -499,7 +499,7 @@ function SerialList({ card, seasonId, shown, ownerName }: { card: GridCard; seas
         ))}
       </ul>
       {list.length > 5 && <button type="button" onClick={() => setAll(v => !v)} className="text-xs text-yellow-400 hover:text-yellow-300">{all ? 'Show fewer' : `Show all ${list.length}`}</button>}
-      <p className="text-[11px] text-gray-600">The first copies ever made of a card are worth extra points; the number counts per card and version.</p>
+      <p className="text-[11px] text-gray-600">The first prints ever made of a card are worth extra points; the edition number counts per card and version.</p>
     </div>
   );
 }

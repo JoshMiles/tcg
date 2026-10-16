@@ -95,7 +95,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
                   </div>
                   <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-xs">
                     <div><dt className="text-gray-600 uppercase tracking-wider font-bold text-[10px]">Viewers</dt><dd className="text-gray-200 tabular-nums">{stats ? stats.users.toLocaleString() : '-'}</dd></div>
-                    <div><dt className="text-gray-600 uppercase tracking-wider font-bold text-[10px]">Copies</dt><dd className="text-gray-200 tabular-nums">{stats ? stats.copies.toLocaleString() : '-'}</dd></div>
+                    <div><dt className="text-gray-600 uppercase tracking-wider font-bold text-[10px]">Prints</dt><dd className="text-gray-200 tabular-nums">{stats ? stats.copies.toLocaleString() : '-'}</dd></div>
                     <div><dt className="text-gray-600 uppercase tracking-wider font-bold text-[10px]">Active season</dt><dd className="text-gray-200 truncate">{stats?.activeSeason ?? 'none'}</dd></div>
                     <div><dt className="text-gray-600 uppercase tracking-wider font-bold text-[10px]">Last used</dt><dd className="text-gray-200">{ago(s.lastUsedAt ?? s.createdAt, now)}</dd></div>
                   </dl>

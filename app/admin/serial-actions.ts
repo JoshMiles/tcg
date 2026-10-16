@@ -26,20 +26,20 @@ async function load(seasonId: string, copyId: string) {
 export async function transferCopyAction(seasonId: string, copyId: string, formData: FormData): Promise<void> {
   await requireAdmin();
   const ctx = await load(seasonId, copyId);
-  if (!ctx) return back(seasonId, copyId, 'That copy or season does not exist.', false);
+  if (!ctx) return back(seasonId, copyId, 'That print or season does not exist.', false);
   const to = String(formData.get('to') ?? '').trim().replace(/^@/, '').toLowerCase();
   if (!/^[a-z0-9_]{1,25}$/.test(to)) return back(seasonId, copyId, 'Enter a valid Twitch username to give it to.', false);
   const c = ctx.season.collectionName;
 
   const result = await withCollectionLock(c, async (): Promise<string | null> => {
     const copy = await getCopy(c, copyId);
-    if (!copy || !copy.owner) return 'That copy no longer exists.';
+    if (!copy || !copy.owner) return 'That print no longer exists.';
     if (isEscrow(copy.owner)) return 'It is held by an open trade offer. Cancel the offer first.';
     if (copy.owner === to) return 'They already have it.';
     const data = await getCollection(c);
     const entry = entryOf(copy);
     const i = data[copy.owner]?.indexOf(entry) ?? -1;
-    if (i < 0) return 'The collection does not match the ledger for this copy; nothing was changed.';
+    if (i < 0) return 'The collection does not match the ledger for this print; nothing was changed.';
     data[copy.owner] = [...data[copy.owner].slice(0, i), ...data[copy.owner].slice(i + 1)];
     if (data[copy.owner].length === 0) delete data[copy.owner];
     data[to] = [...(data[to] ?? []), entry];
@@ -49,8 +49,8 @@ export async function transferCopyAction(seasonId: string, copyId: string, formD
   if (result) return back(seasonId, copyId, result, false);
 
   await ensureUserProfile(to).catch(() => { /* a profile is a convenience */ });
-  const label = `${ctx.parsed.variant === 'regular' ? '' : `${VARIANT_LABELS[ctx.parsed.variant]} `}#${ctx.parsed.card} serial ${ctx.parsed.n}`;
-  await recordAudit(to, 'Copy received from an admin', label);
+  const label = `${ctx.parsed.variant === 'regular' ? '' : `${VARIANT_LABELS[ctx.parsed.variant]} `}#${ctx.parsed.card} edition ${ctx.parsed.n}`;
+  await recordAudit(to, 'Print received from an admin', label);
   revalidatePath('/admin/serials');
   return back(seasonId, copyId, `Given to @${to}.`);
 }
@@ -59,18 +59,18 @@ export async function transferCopyAction(seasonId: string, copyId: string, formD
 export async function removeCopyAction(seasonId: string, copyId: string): Promise<void> {
   await requireAdmin();
   const ctx = await load(seasonId, copyId);
-  if (!ctx) return back(seasonId, copyId, 'That copy or season does not exist.', false);
+  if (!ctx) return back(seasonId, copyId, 'That print or season does not exist.', false);
   const c = ctx.season.collectionName;
 
   let holder = '';
   const result = await withCollectionLock(c, async (): Promise<string | null> => {
     const copy = await getCopy(c, copyId);
-    if (!copy || !copy.owner) return 'That copy no longer exists.';
+    if (!copy || !copy.owner) return 'That print no longer exists.';
     if (isEscrow(copy.owner)) return 'It is held by an open trade offer. Cancel the offer first.';
     const data = await getCollection(c);
     const entry = entryOf(copy);
     const i = data[copy.owner]?.indexOf(entry) ?? -1;
-    if (i < 0) return 'The collection does not match the ledger for this copy; nothing was changed.';
+    if (i < 0) return 'The collection does not match the ledger for this print; nothing was changed.';
     holder = copy.owner;
     data[copy.owner] = [...data[copy.owner].slice(0, i), ...data[copy.owner].slice(i + 1)];
     if (data[copy.owner].length === 0) delete data[copy.owner];
@@ -80,7 +80,7 @@ export async function removeCopyAction(seasonId: string, copyId: string): Promis
   if (result) return back(seasonId, copyId, result, false);
 
   await recordActivity({ type: 'remove', username: holder, cardNumber: ctx.parsed.card, variant: ctx.parsed.variant, collectionName: c });
-  await recordAudit(holder, 'Copy removed', `#${ctx.parsed.card} ${VARIANT_LABELS[ctx.parsed.variant]} serial ${ctx.parsed.n}`);
+  await recordAudit(holder, 'Print removed', `#${ctx.parsed.card} ${VARIANT_LABELS[ctx.parsed.variant]} edition ${ctx.parsed.n}`);
   revalidatePath('/admin/serials');
   return back(seasonId, copyId, `Removed from @${holder}'s collection.`);
 }

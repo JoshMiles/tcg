@@ -97,12 +97,12 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
         <Box type={type} href={`/leaderboard/${b.season.id}`} linkLabel="Leaderboard">
           <dl className="text-sm divide-y divide-gray-800/70">
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Cards</dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
-            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Serial number bonus</dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '-'}</dd></div>
+            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Edition bonus</dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Completion bonus</dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Complete set bonus</dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
           </dl>
-          <p className="text-xs text-gray-500">{s.copies} cop{s.copies === 1 ? 'y' : 'ies'} · {s.uniqueCards}/{s.totalCards} different cards</p>
+          <p className="text-xs text-gray-500">{s.copies} print{s.copies === 1 ? '' : 's'} · {s.uniqueCards}/{s.totalCards} different cards</p>
         </Box>
       );
     }
@@ -129,10 +129,10 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
 
     case 'pinned': {
       const uid = b.settings.pinned;
-      if (!uid) return none('Open one of your copies and press “Pin to my profile” to show it here.');
+      if (!uid) return none('Open one of your prints and press “Pin to my profile” to show it here.');
       const found = await loadCopyByUid(uid).catch(() => null);
       // Only the holder's own copy is shown: a copy that was traded away stops being their showcase.
-      if (!found || found.copy.owner !== b.lower) return none('The pinned copy is not in your collection any more. Pin another from its page.');
+      if (!found || found.copy.owner !== b.lower) return none('The pinned print is not in your collection any more. Pin another from its page.');
       const { season, copy, pack, card } = found;
       const [minted, holoFor] = await Promise.all([mintedCounts(season.collectionName), getHoloResolver()]);
       const total = minted.get(entryOf(copy)) ?? copy.n;
@@ -170,7 +170,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
             <ShareImageButton
               spec={copyShareSpec({ copy, cardName: card.name, seasonId: season.id, seasonName: season.name, packName: pack.name, total, mult, art, hex: rarity?.hex, privateHolder: false, siteUrl: SITE_URL })}
               filename={`cheesy-tcg-${copy.uid ?? copy.id}.png`}
-              label="Share this copy"
+              label="Share this print"
             />
             {isOwner && <PinCopyButton uid={copy.uid!} pinned label="Pin" />}
           </div>
@@ -232,7 +232,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
 
     case 'recent': {
       const latest = [...ctx.copies].sort((x, y) => y.at - x.at || y.n - x.n).slice(0, 6);
-      if (latest.length === 0) return none('Numbered copies show up here once card serials are being tracked.');
+      if (latest.length === 0) return none('Numbered prints show up here once card prints are being tracked.');
       const names = new Map(b.allCards.map(c => [c.number, c.name]));
       return (
         <Box type={type}>

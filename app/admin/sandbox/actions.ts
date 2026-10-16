@@ -130,8 +130,8 @@ export async function grantCopiesAction(id: string, formData: FormData) {
   await guarded(id, 'drive', async () => {
     const user = cleanTestUsername(username);
     const card = Number(formData.get('cardNumber'));
-    const n = await withUndo(id, `Gave ${user} copies of card #${card}`, [user], () => grantCopies(id, username, card, variant, Number(formData.get('count'))), r => `${r} ${variant}`);
-    return `Gave ${user} ${n} ${variant} cop${n === 1 ? 'y' : 'ies'} of card #${card}.`;
+    const n = await withUndo(id, `Gave ${user} prints of card #${card}`, [user], () => grantCopies(id, username, card, variant, Number(formData.get('count'))), r => `${r} ${variant}`);
+    return `Gave ${user} ${n} ${variant} print${n === 1 ? '' : 's'} of card #${card}.`;
   });
 }
 
@@ -140,7 +140,7 @@ export async function addTestUserAction(id: string, formData: FormData) {
     const username = cleanTestUsername(String(formData.get('username') ?? ''));
     if (!username) throw new Error('Enter a username (letters, numbers and underscores).');
     await withUndo(id, `Added test user ${username}`, [username], () => runInSandbox(id, () => ensureUserProfile(username)));
-    return `Test user ${username} created. Give them pulls or copies to start testing.`;
+    return `Test user ${username} created. Give them pulls or prints to start testing.`;
   });
 }
 

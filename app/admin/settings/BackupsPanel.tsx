@@ -18,7 +18,7 @@ export async function BackupsPanel() {
   const s = await backupStatus(now);
   const production = process.env.VERCEL_ENV === 'production';
   return (
-    <Panel title="Backups" icon="shield" hint="Every night a copy of all game data (seasons, packs, collections, profiles, serials, trades, settings) is encrypted and stored. The newest 14 are kept. Sandboxes, caches, counters and the activity log are not included.">
+    <Panel title="Backups" icon="shield" hint="Every night a copy of all game data (seasons, packs, collections, profiles, prints, trades, settings) is encrypted and stored. The newest 14 are kept. Sandboxes, caches, counters and the activity log are not included.">
       <p className="text-sm text-gray-300 flex flex-wrap items-center gap-2">
         {s.lastAt === null ? <Chip tone="red">No backup</Chip> : s.stale ? <Chip tone="red">Overdue</Chip> : <Chip tone="green">Up to date</Chip>}
         {s.lastAt !== null && <span>Last backup {ago(s.lastAt, now)} ({new Date(s.lastAt).toISOString().replace('T', ' ').slice(0, 16)} UTC), {s.size !== null ? fmtSize(s.size) : 'unknown size'}, {s.count} kept.</span>}

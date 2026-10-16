@@ -103,7 +103,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
     { label: 'Score', value: s.score.toLocaleString(), sub: 'points' },
     { label: 'Rank', value: s.rank ? `#${s.rank}` : '-', sub: s.rank ? `of ${s.players}` : 'not on the board yet' },
     { label: 'Cards', value: `${s.uniqueCards}/${s.totalCards}`, sub: `${s.completionPct}% complete` },
-    { label: 'Copies', value: s.copies.toLocaleString(), sub: 'total owned' },
+    { label: 'Prints', value: s.copies.toLocaleString(), sub: 'total owned' },
   ];
 
   return (
@@ -192,11 +192,11 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
             <h2 className="font-display text-xl font-bold text-white">Where your points come from</h2>
             <dl className="divide-y divide-gray-800/70 text-sm">
               <div className="py-2.5 flex items-center justify-between gap-4">
-                <dt className="text-gray-300">Your cards <span className="text-gray-600">· every copy you own</span></dt>
+                <dt className="text-gray-300">Your cards <span className="text-gray-600">· every print you own</span></dt>
                 <dd className="font-semibold text-white tabular-nums">{(s.cardPoints - s.serialPoints).toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
-                <dt className="text-gray-300">Serial number bonus <span className="text-gray-600">· low-numbered copies are worth extra (<Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how it works</Link>)</span></dt>
+                <dt className="text-gray-300">Edition bonus <span className="text-gray-600">· low-numbered prints are worth extra (<Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how it works</Link>)</span></dt>
                 <dd className={`font-semibold tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{s.serialPoints.toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
@@ -250,7 +250,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                         </span>
                         <span
                           className={`text-xs font-bold tabular-nums shrink-0 ${u.gain >= 0 ? 'text-emerald-300' : 'text-red-300'}`}
-                          title="Projected change to your score, including the serial bonuses it spends"
+                          title="Projected change to your score, including the edition bonuses it spends"
                         >
                           {u.gain >= 0 ? '+' : '−'}{Math.abs(u.gain).toLocaleString()} pts
                         </span>
@@ -261,7 +261,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 </ul>
               )}
               <p className="text-xs text-gray-500 leading-relaxed">
-                Upgrades are permanent. The copies you spend are destroyed. The newest serial numbers are spent first, and the new copy gets the next free serial of its version. The points shown are projected with the serial bonuses included, so they can occasionally be negative.
+                Upgrades are permanent. The prints you spend are destroyed. The newest edition numbers are spent first, and the new print gets the next free edition of its version. The points shown are projected with the edition bonuses included, so they can occasionally be negative.
               </p>
             </section>
           )}
@@ -310,7 +310,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
             </section>
 
             <section className="rind rounded-2xl p-5 space-y-4">
-              <h2 className="font-display text-xl font-bold text-white">Most valuable copies</h2>
+              <h2 className="font-display text-xl font-bold text-white">Most valuable prints</h2>
               <ul className="divide-y divide-gray-800/70">
                 {s.topCopies.map(t => {
                   const rarity = getRarity(t.card.stars);
@@ -321,7 +321,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                       ) : <span className="w-8 h-11 rounded bg-gray-800" />}
                       <span className="flex-1 min-w-0">
                         <span className="block text-sm font-semibold text-white truncate">{t.card.name}</span>
-                        <span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? <span className="text-emerald-300"> · #{t.serial} (×{t.mult?.toFixed(2)} serial bonus)</span> : null}</span>
+                        <span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? <span className="text-emerald-300"> · #{t.serial} (×{t.mult?.toFixed(2)} edition bonus)</span> : null}</span>
                       </span>
                       <span className="font-display text-lg font-bold text-yellow-400 tabular-nums">{t.value.toLocaleString()}</span>
                     </li>

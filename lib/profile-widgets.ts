@@ -21,13 +21,13 @@ export interface ProfileWidgetDef {
 }
 
 export const PROFILE_WIDGETS: Record<ProfileWidgetType, ProfileWidgetDef> = {
-  stats: { type: 'stats', title: 'Score breakdown', icon: 'trend', description: 'Points from cards and bonuses, version mix and total copies.', defaultSpan: 4, spans: [4, 6, 8] },
+  stats: { type: 'stats', title: 'Score breakdown', icon: 'trend', description: 'Points from cards and bonuses, version mix and total prints.', defaultSpan: 4, spans: [4, 6, 8] },
   showcase: { type: 'showcase', title: 'Showcase', icon: 'gem', description: 'Your three most valuable cards, front and centre.', defaultSpan: 8, spans: [4, 6, 8, 12] },
-  pinned: { type: 'pinned', title: 'Showcase copy', icon: 'pin', description: 'One copy you picked, shown as a card you can flip over to see its engraved unique number. Pin it from the copy\'s own page.', defaultSpan: 4, spans: [3, 4, 6, 8] },
+  pinned: { type: 'pinned', title: 'Showcase print', icon: 'pin', description: 'One print you picked, shown as a card you can flip over to see its engraved print number. Pin it from the print\'s own page.', defaultSpan: 4, spans: [3, 4, 6, 8] },
   rarity: { type: 'rarity', title: 'Rarity progress', icon: 'award', description: 'How much of each rarity you have collected.', defaultSpan: 12, spans: [6, 8, 12] },
   progress: { type: 'progress', title: 'Pack progress', icon: 'cards', description: 'How complete each pack is.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   rarest: { type: 'rarest', title: 'Rarest finds', icon: 'sparkles', description: 'The hardest-to-pull cards you own.', defaultSpan: 6, spans: [4, 6, 8, 12] },
-  recent: { type: 'recent', title: 'Latest copies', icon: 'history', description: 'Your newest numbered cards, each linking to its history.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  recent: { type: 'recent', title: 'Latest prints', icon: 'history', description: 'Your newest numbered cards, each linking to its history.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   activity: { type: 'activity', title: 'Recent activity', icon: 'activity', description: 'Pulls, upgrades and trades as they happen.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   trades: { type: 'trades', title: 'Trading', icon: 'trade', description: 'Completed trades and your open board listings.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   awards: { type: 'awards', title: 'Awards', icon: 'trophy', description: 'Season awards you have earned.', defaultSpan: 6, spans: [4, 6, 8, 12] },

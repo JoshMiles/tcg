@@ -21,7 +21,7 @@ type SP = { season?: string; variant?: string; page?: string };
 
 export async function generateMetadata({ params }: { params: Promise<{ card: string }> }): Promise<Metadata> {
   const { card } = await params;
-  return { title: `Copies of card #${card}`, robots: { index: false, follow: true } };
+  return { title: `Prints of card #${card}`, robots: { index: false, follow: true } };
 }
 
 /**
@@ -71,13 +71,13 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
         <CardTile imageUrl={art} alt={card.name} className="relative w-24 shrink-0 aspect-[2/3] rounded-lg overflow-hidden border-2" style={{ borderColor: rarity?.hex }} />
         <div className="min-w-0">
           <p className="text-xs text-gray-500">#{number} · {card.packName} · {season.name}</p>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">{card.name}: every copy</h1>
-          <p className="text-sm text-gray-400 mt-1">{tracking ? `${total.toLocaleString()} ${VARIANT_LABELS[variant]} cop${total === 1 ? 'y' : 'ies'} made, newest first.` : 'Copies have not been numbered yet.'}</p>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">{card.name}: every print</h1>
+          <p className="text-sm text-gray-400 mt-1">{tracking ? `${total.toLocaleString()} ${VARIANT_LABELS[variant]} print${total === 1 ? '' : 's'} made, newest first.` : 'Prints have not been numbered yet.'}</p>
         </div>
       </header>
 
       {!tracking || versions.length === 0 ? (
-        <p className="rind rounded-2xl p-8 text-center text-gray-400">No numbered copies of this card exist yet.</p>
+        <p className="rind rounded-2xl p-8 text-center text-gray-400">No numbered prints of this card exist yet.</p>
       ) : (
         <>
           <nav aria-label="Version" className="flex flex-wrap gap-1.5">
@@ -97,7 +97,7 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
               return (
                 <li key={r.id} className="relative flex items-center gap-4 px-4 py-3 hover:bg-white/[0.04]">
                   {/* The number is the row's link (stretched over the whole row); the holder is its own link above it, so no link sits inside another. */}
-                  <Link href={`/copy/${encodeURIComponent(season.id)}/${r.id}`} aria-label={`Copy #${r.n}`} className="font-display text-2xl font-bold text-yellow-400 tabular-nums w-16 shrink-0 after:absolute after:inset-0">#{r.n}{r.est ? '~' : ''}</Link>
+                  <Link href={`/copy/${encodeURIComponent(season.id)}/${r.id}`} aria-label={`Edition #${r.n}`} className="font-display text-2xl font-bold text-yellow-400 tabular-nums w-16 shrink-0 after:absolute after:inset-0">#{r.n}{r.est ? '~' : ''}</Link>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-gray-200 truncate">{r.owner ? who(r.owner) : <span className="text-gray-500">{ended}</span>}</p>
                     <p className="text-xs text-gray-500">
@@ -119,7 +119,7 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
               </span>
             </div>
           )}
-          <p className="text-xs text-gray-600">A &ldquo;~&rdquo; means the copy existed before serial numbers and its order is an estimate.</p>
+          <p className="text-xs text-gray-600">A &ldquo;~&rdquo; means the print existed before editions were numbered and its order is an estimate.</p>
         </>
       )}
     </div>

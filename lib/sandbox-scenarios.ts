@@ -13,11 +13,11 @@ export type ScenarioId = 'upgrade-ready' | 'nearly-complete' | 'complete-set' | 
 export interface ScenarioInfo { id: ScenarioId; title: string; description: string; needsUpgrades: boolean; icon: 'sparkles' | 'target' | 'cheese' | 'trade' | 'gem' | 'users' }
 
 export const SCENARIOS: ScenarioInfo[] = [
-  { id: 'upgrade-ready', title: 'Ready to upgrade', description: 'upgrade_ready has exactly enough Regulars of three cards for a Reverse Holo upgrade; upgrade_one_short is one copy short.', needsUpgrades: true, icon: 'sparkles' },
+  { id: 'upgrade-ready', title: 'Ready to upgrade', description: 'upgrade_ready has exactly enough Regulars of three cards for a Reverse Holo upgrade; upgrade_one_short is one print short.', needsUpgrades: true, icon: 'sparkles' },
   { id: 'nearly-complete', title: 'One card short of a full set', description: 'one_card_short owns every card in the season except one. Pull it, or grant it, to see the complete-collection bonus appear.', needsUpgrades: false, icon: 'target' },
   { id: 'complete-set', title: 'Complete collection', description: 'completionist owns one of every card, for the Complete chip, the set bonus and the end-of-season awards.', needsUpgrades: false, icon: 'cheese' },
-  { id: 'trade-pair', title: 'Trade-ready pair', description: 'trader_a and trader_b each have spare copies of cards the other lacks, so a one-for-one trade helps both.', needsUpgrades: false, icon: 'trade' },
-  { id: 'shiny-showcase', title: 'Shiny showcase', description: 'shiny_hunter owns Full Art and Shiny copies of three cards, to look at the rarest versions and their points.', needsUpgrades: true, icon: 'gem' },
+  { id: 'trade-pair', title: 'Trade-ready pair', description: 'trader_a and trader_b each have spare prints of cards the other lacks, so a one-for-one trade helps both.', needsUpgrades: false, icon: 'trade' },
+  { id: 'shiny-showcase', title: 'Shiny showcase', description: 'shiny_hunter owns Full Art and Shiny prints of three cards, to look at the rarest versions and their points.', needsUpgrades: true, icon: 'gem' },
   { id: 'crowd', title: 'Busy leaderboard', description: '100 realistic viewers with a long tail of light collectors and a few heavy ones.', needsUpgrades: false, icon: 'users' },
 ];
 

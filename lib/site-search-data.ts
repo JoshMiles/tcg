@@ -18,7 +18,7 @@ export async function searchPublic(query: string, limit = 9): Promise<SearchItem
   const uid = parseUid(query);
   if (uid) {
     const hit = await findByUid(uid);
-    return hit ? [{ id: `copy:${uid}`, kind: 'copy', label: `Copy #${uid}`, href: `/c/${uid}`, hint: 'Card copy' }] : [];
+    return hit ? [{ id: `copy:${uid}`, kind: 'copy', label: `Print #${uid}`, href: `/c/${uid}`, hint: 'Card print' }] : [];
   }
   const box = (await currentSandboxId().catch(() => null)) ?? 'prod';
   const active = await getActiveSeasonWithPacks();

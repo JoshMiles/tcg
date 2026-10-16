@@ -62,15 +62,15 @@ export default function TermsPage() {
             (such as trading with other viewers on the website or in the Twitch Extension, where offered cards are held in escrow until the offer ends; an offer can be declined, cancelled or expire, and trading can be paused or changed at any time).
           </li>
           <li>
-            Every copy of a card has a <strong className="text-white">serial number</strong> and a history that is shown publicly. Serial numbers are a bit of fun: a low or special number gives no extra
-            right, value or entitlement. Copies that existed before serial numbers were introduced were numbered afterwards, so their order is an estimate, and we may correct or renumber copies if something goes wrong.
+            Every print of a card has a <strong className="text-white">print number</strong>, an <strong className="text-white">edition number</strong> and a history that is shown publicly. These numbers are a bit of fun: a low or special number gives no extra
+            right, value or entitlement. Prints that existed before edition numbers were introduced were numbered afterwards, so their order is an estimate, and we may correct or renumber prints if something goes wrong.
           </li>
           <li>
             We may add, change, rebalance, rename or remove cards, packs, variants, odds, upgrade costs, point values, and seasons at any time, and may reset or retire collections and leaderboards
             (for example at the end of a season), with or without notice.
           </li>
           <li>
-            <strong className="text-white">Upgrades are final.</strong> Upgrading spends copies of a card to create one of the next variant. It can&rsquo;t be undone, and we can&rsquo;t restore spent copies except at our discretion.
+            <strong className="text-white">Upgrades are final.</strong> Upgrading spends prints of a card to create one of the next variant. It can&rsquo;t be undone, and we can&rsquo;t restore spent prints except at our discretion.
           </li>
           <li>
             Pack contents are random. Odds are set by us, may differ between packs and seasons, and may change. There is no guarantee you will receive any particular card or variant.

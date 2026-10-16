@@ -10,7 +10,7 @@ import { getRarity } from '@/lib/rarity';
 export const OPEN_SEARCH_EVENT = 'tcg:site-search';
 
 const GROUPS: { kind: SearchKind; title: string; icon: IconName }[] = [
-  { kind: 'copy', title: 'Card copy', icon: 'cards' },
+  { kind: 'copy', title: 'Card print', icon: 'cards' },
   { kind: 'player', title: 'Collectors', icon: 'user' },
   { kind: 'card', title: 'Cards', icon: 'cards' },
   { kind: 'page', title: 'Pages', icon: 'compass' },

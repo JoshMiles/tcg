@@ -241,7 +241,7 @@ function Variants({ d }: { d: DashboardData }) {
   const total = VARIANTS.reduce((s, v) => s + d.variantCounts[v], 0);
   return (
     <Panel title="Variant mix" icon="sparkles">
-      {total === 0 ? <p className="text-sm text-gray-600">No copies yet.</p> : (
+      {total === 0 ? <p className="text-sm text-gray-600">No prints yet.</p> : (
         <div className="space-y-3">
           {VARIANTS.map(v => {
             const n = d.variantCounts[v];
@@ -262,7 +262,7 @@ function Variants({ d }: { d: DashboardData }) {
 function Valuable({ d }: { d: DashboardData }) {
   const cards = d.board ? [...d.board.values.cards.values()].sort((a, b) => b.values.regular - a.values.regular).slice(0, 6) : [];
   return (
-    <Panel title="Most valuable cards" icon="coins" flush action={<span className="text-xs text-gray-600">per Regular copy</span>}>
+    <Panel title="Most valuable cards" icon="coins" flush action={<span className="text-xs text-gray-600">per Regular print</span>}>
       {cards.length === 0 ? <Empty>No values yet.</Empty> : (
         <ul className="divide-y divide-gray-800/60">
           {cards.map(cv => {
@@ -318,7 +318,7 @@ function Live({ d }: { d: DashboardData }) {
 
 const SHORTCUTS: [string, IconName, string][] = [
   ['/admin/packs/new', 'cards', 'New pack'], ['/admin/seasons/new', 'trophy', 'New season'], ['/admin/overlay', 'palette', 'Overlay editor'],
-  ['/admin/trades', 'trade', 'Trades'], ['/admin/serials', 'cheese', 'Serials'], ['/admin/sandbox', 'flask', 'Sandbox'], ['/admin/users', 'users', 'Users'], ['/admin/assets', 'image', 'Assets'], ['/admin/settings', 'settings', 'Settings'],
+  ['/admin/trades', 'trade', 'Trades'], ['/admin/serials', 'cheese', 'Prints'], ['/admin/sandbox', 'flask', 'Sandbox'], ['/admin/users', 'users', 'Users'], ['/admin/assets', 'image', 'Assets'], ['/admin/settings', 'settings', 'Settings'],
 ];
 function Shortcuts() {
   return (

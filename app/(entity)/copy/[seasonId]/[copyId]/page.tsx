@@ -45,9 +45,9 @@ async function load(seasonId: string, copyId: string) {
 export async function generateMetadata({ params }: { params: Promise<{ seasonId: string; copyId: string }> }): Promise<Metadata> {
   const { seasonId, copyId } = await params;
   const d = await load(decodeURIComponent(seasonId), copyId).catch(() => null);
-  if (!d) return { title: 'Card copy', robots: { index: false } };
+  if (!d) return { title: 'Card print', robots: { index: false } };
   const v = d.copy.variant === 'regular' ? '' : `${VARIANT_LABELS[d.copy.variant]} `;
-  return { title: `${v}${d.card.name} ${d.copy.uid ? `#${d.copy.uid}` : `#${d.copy.n}`}`, description: `Copy #${d.copy.n} of ${d.card.name}: who has held it and where it has been.`, robots: { index: false, follow: true } };
+  return { title: `${v}${d.card.name} ${d.copy.uid ? `#${d.copy.uid}` : `#${d.copy.n}`}`, description: `Edition #${d.copy.n} of ${d.card.name}: who has held it and where it has been.`, robots: { index: false, follow: true } };
 }
 
 /** One short line of a copy's history for the engraved back (private collectors stay private). */
@@ -136,7 +136,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
             {copy.uid && (
               <p className="mt-2 flex flex-wrap items-baseline gap-2">
                 <span className="font-display text-xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.uid}</span>
-                <span className="text-xs uppercase tracking-wider text-gray-500 font-bold">Unique copy number</span>
+                <span className="text-xs uppercase tracking-wider text-gray-500 font-bold">Print number</span>
               </p>
             )}
             <p className="mt-2 flex flex-wrap items-center gap-2">
@@ -144,7 +144,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
                 ? <span className="text-sm text-gray-300">Edition <strong className="text-white tabular-nums">#{copy.n}</strong> of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span>
                 : <><span className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.n}</span>
                   <span className="text-sm text-gray-400">of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span></>}
-              {copy.est && <span title="This copy existed before serials. Numbers within a version were assigned afterwards, so the order is an estimate." className="text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}
+              {copy.est && <span title="This print existed before editions were numbered. Edition numbers within a version were assigned afterwards, so the order is an estimate." className="text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}
             </p>
           </div>
 
@@ -152,7 +152,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
             <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-4 gap-y-1 ${mult > 1 ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
               <SerialChip n={copy.n} bonus={mult > 1 ? Math.round(mult * 100) / 100 : undefined} est={copy.est} className="text-sm !px-3 !py-1" />
               <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{worth.toLocaleString()} pts</strong>{cv && worth !== cv.values[copy.variant] ? <span className="text-gray-500"> instead of {cv.values[copy.variant].toLocaleString()}</span> : null}</span>
-              <span className="text-xs text-gray-500">{mult > 1 ? `Its number earns a ×${Math.round(mult * 100) / 100} points bonus: the first copies ever made of a card are worth extra.` : 'No bonus: only the first copies ever made of a card earn one.'}</span>
+              <span className="text-xs text-gray-500">{mult > 1 ? `Its edition number earns a ×${Math.round(mult * 100) / 100} points bonus: the first prints ever made of a card are worth extra.` : 'No bonus: only the first prints ever made of a card earn one.'}</span>
             </div>
           )}
 
@@ -166,7 +166,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
           </div>
           <details className="group rounded-xl border border-gray-800 bg-gray-950/50 open:p-4 p-0">
             <summary className="cursor-pointer list-none px-4 py-2.5 group-open:px-0 group-open:pt-0 group-open:pb-4 text-sm font-bold text-yellow-300 hover:text-yellow-200 inline-flex items-center gap-1.5 w-full">
-              <Icon name="share" />Share this card <span className="text-xs font-normal text-gray-500">pick a theme and shape</span>
+              <Icon name="share" />Share this print <span className="text-xs font-normal text-gray-500">pick a theme and shape</span>
             </summary>
             <ShareStudio
               base={copyShareSpec({
@@ -192,7 +192,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
           madeFrom={copy.madeFrom}
           origin={copy.origin}
         />
-        {copy.ev.length >= 40 && <p className="mt-4 text-xs text-gray-600">Only the first event and the most recent ones are kept, so the middle of a very busy copy&rsquo;s journey is not shown.</p>}
+        {copy.ev.length >= 40 && <p className="mt-4 text-xs text-gray-600">Only the first event and the most recent ones are kept, so the middle of a very busy print&rsquo;s journey is not shown.</p>}
       </section>
     </div>
   );

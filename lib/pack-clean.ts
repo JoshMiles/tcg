@@ -78,6 +78,6 @@ export function cardProblems(c: CardFields, otherNumbers: number[]): string[] {
   if (!Number.isInteger(c.stars) || c.stars < 1 || c.stars > 5) out.push('Stars must be a whole number from 1 to 5.');
   if (!Number.isFinite(c.probability) || c.probability < 0) out.push('Odds must be a number, 0 or more.');
   if (!Number.isInteger(c.number) || c.number < 1 || c.number > MAX_CARD_NUMBER) out.push(`The card number must be a whole number from 1 to ${MAX_CARD_NUMBER.toLocaleString('en-GB')}.`);
-  else if (otherNumbers.includes(c.number)) out.push(`Another card in this pack is already #${c.number}, and viewers' copies would be shared between the two.`);
+  else if (otherNumbers.includes(c.number)) out.push(`Another card in this pack is already #${c.number}, and viewers' prints would be shared between the two.`);
   return out;
 }

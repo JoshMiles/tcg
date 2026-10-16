@@ -109,7 +109,7 @@ export function GrantPanel({ username, cards, upgrades }: { username: string; ca
             <select value={variant} onChange={e => setVariant(e.target.value)} className={`${field} block py-1.5`}>{VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}</select>
           </label>
         )}
-        <label className="text-xs text-gray-500 space-y-1 block">Copies of each
+        <label className="text-xs text-gray-500 space-y-1 block">Prints of each
           <input type="number" min={1} max={20} value={copies} onChange={e => setCopies(e.target.value)} className={`${field} block w-20 py-1.5`} />
         </label>
         <button type="button" disabled={pending || picked.length === 0} onClick={() => run(() => grantManyAction(username, picked, variant, Number(copies)))} className="tcg-btn px-4 py-2 rounded-lg text-sm disabled:opacity-50">{pending && <Spinner />}Grant {picked.length || ''} card{picked.length === 1 ? '' : 's'}</button>
