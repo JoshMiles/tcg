@@ -16,6 +16,8 @@ export interface ShowPlan {
   variant: Variant;
   serial?: number;
   serialMult?: number;
+  /** The print number of that copy. */
+  uid?: number;
   /** A sentence a bot can say back in chat. */
   message: string;
 }
@@ -59,9 +61,14 @@ export async function prepareShowOff(username: string, text: unknown): Promise<S
 
   // The viewer's own copy with the lowest serial number, when the season's copies are numbered.
   let serial: number | undefined;
+  let uid: number | undefined;
   try {
     const mine = (await getOwnerCopies(season.collectionName, user)).filter(c => c.card === card.number && c.variant === pick.variant);
-    if (mine.length > 0) serial = Math.min(...mine.map(c => c.n));
+    if (mine.length > 0) {
+      const lowest = mine.reduce((a, c) => (c.n < a.n ? c : a));
+      serial = lowest.n;
+      uid = lowest.uid;
+    }
   } catch { /* no serial shown */ }
   const serialMult = serial && board ? serialMultiplier(serial, board.values.settings) : undefined;
 
@@ -70,5 +77,5 @@ export async function prepareShowOff(username: string, text: unknown): Promise<S
   if (taken === null) return { ok: false, error: 'cooldown', message: `Easy there, try again in a few seconds.`, retryAfter: SHOWOFF_COOLDOWN_S };
 
   const label = `${pick.variant === 'regular' ? '' : `${VARIANT_LABELS[pick.variant]} `}${card.name}${serial ? ` #${serial}` : ''}`;
-  return { ok: true, plan: { username: user, cardNumber: card.number, cardName: card.name, variant: pick.variant, serial, serialMult, message: `Showing off your ${label}!` } };
+  return { ok: true, plan: { username: user, cardNumber: card.number, cardName: card.name, variant: pick.variant, serial, serialMult, uid, message: `Showing off your ${label}!` } };
 }

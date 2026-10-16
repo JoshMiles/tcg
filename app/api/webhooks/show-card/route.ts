@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const { plan } = result;
   await enqueueEvent({
     id: crypto.randomUUID(), type: 'card', username: plan.username, queuedAt: Date.now(),
-    cardNumber: plan.cardNumber, variant: plan.variant, serial: plan.serial, serialMult: plan.serialMult,
+    cardNumber: plan.cardNumber, variant: plan.variant, serial: plan.serial, serialMult: plan.serialMult, uid: plan.uid,
   });
   await recordActivity({ type: 'trigger', kind: 'card', username: plan.username, cardName: plan.cardName });
   return NextResponse.json({ ok: true, message: plan.message, card: plan.cardName, variant: plan.variant, serial: plan.serial ?? null });
