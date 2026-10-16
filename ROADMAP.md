@@ -40,9 +40,11 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 6.1 to 6.4 | Track 6: community extras | Done (#166 to #169) | |
 | 7.1 to 11.3 | Tracks 7 to 11: the second Discord list (30 items) | Done (#171 to #198, and #199) | |
 
-**Tracks 1 to 11 are done** (#144 to #199; the only open item is 4.4, which waits for a decision). The user steps below are still open.
+**Tracks 1 to 14 are done** (#144 to #206; the only open item is 4.4, which waits for a decision). The user steps below are still open.
 
 **User steps still open:**
+- [ ] **Overlay key (13.2), do this right after the deploy:** copy the new browser-source address (it ends `?key=...`) from Settings -> OBS Overlay into every OBS browser source, and each scene's address from the Overlay Editor, then refresh the sources. Until then pulls will not play and the overlay shows "Overlay key missing or changed". Clear the pull queue first (the dashboard's Clear queue): pulls queued before 13.1 have no ticket and are not saved.
+- [ ] **Mix It Up paid pulls (Track 12), only when you want them on:** in Mix It Up make a webhook command that answers `{ "balance": n }` for `action: "balance"` and takes the currency for `action: "deduct"` (answer with a Webhook Response; 2xx and not `ok: false`), then fill in Settings -> Mix It Up (addresses, price, default limit, message), press **Check balance** and **Send test message**, and switch it on. It is off until you do.
 - [ ] **Web Push keys:** set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:` the legal contact address) in Vercel Production, then redeploy. The Stream E session saved a generated pair to a file outside the repo; the push option stays hidden until they are set. Then try it on a real iPhone (app installed), Android and a desktop browser.
 - [ ] **GitHub webhook (3.5):** repo Settings -> Webhooks, Payload URL `<discord webhook URL>/github`, events: pushes, pull requests, releases, deployment statuses.
 - [ ] **Discord channels:** add the channels you want in Admin -> Settings -> Webhooks (Trade listings, Admin log, System, Recap) and press Test on each.
@@ -50,7 +52,7 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 - [ ] **Dependabot `braces` alert** (high, dev-only, through Tailwind 3's chokidar / micromatch): no patched release exists. Dismiss it as "no fix available" until upstream ships one; build-time only, not reachable at runtime.
 
 
-**Streams A to K are done** (2026-10-16, #144 to #199). Next: 4.4 (needs a decision) or the next extension version.
+**Streams A to K and Tracks 12 to 14 are done** (2026-10-16, #144 to #206). Next: 4.4 (needs a decision) or the next extension version.
 
 ---
 
@@ -363,6 +365,7 @@ Asked (2026-10-16): "should be able to select which print of a card when trading
 | 12.4 | Pull limits stored per viewer, with temporary bonuses | Done (#204) | S |
 | 13.1 | Lock down `/api/collection`: server-rolled pulls with one-use tickets | Done (#202) | M |
 | 13.2 | Overlay key for the queue, notify and heartbeat endpoints | Done (#203) | S |
+| 14.1 | Webhook grants (Mix It Up rewards) read, post and count as pulls | Done (#205, #206) | S |
 
 ### Tracks 7 to 11: order
 
@@ -685,11 +688,24 @@ Pulls queued before this change have no ticket and are not saved when played.
 
 ---
 
+## Track 14: Webhook grants count as pulls (added 2026-10-16, at the owner's request)
+
+### 14.1 Mix It Up rewards look like pulls (Done, #205, #206)
+
+A card from `POST /api/webhooks/grant-card` is recorded as `grant` with `source: 'webhook'` plus a pull's facts (name, stars, pack, new or not, copies, collected, edition). It then counts as a pull in: the Live Activity feed, filters, numbers and highlights; the dashboard's Recent activity; the Discord Pulls category (same embed as a pull plus a "Granted by webhook" line, with the star and new-only filters); the stream recap; and the stats counters behind the weekly digest and the dashboard charts (from the day it shipped; earlier grants are not back-filled). Admin grants are unchanged. See docs/admin.md, "Webhook grants look like pulls".
+
+---
+
 ## Later: next extension version (after the freeze lifts)
 
 Ship as one reviewed panel version: choosing prints when trading (6.4: composer and accept picker, exact serial preview), favourite prints (9.1: hearts and disabled picks), "Reversed by staff" on reversed trades (9.2), achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
 
 ## Done (recent)
+
+- Tracks 12 to 14, merged 2026-10-16:
+  - Track 12, Mix It Up paid pulls: settings tab, balance check, deduct and revoke, limits per stream (#201); limits and temporary bonuses stored per viewer for future buff cards (#204).
+  - Track 13, security: `/api/collection` writes need a server-issued one-use ticket, the server rolls each pull (#202); the overlay key guards the queue, notify and heartbeat endpoints (#203).
+  - Track 14: a card granted by webhook is recorded with a pull's facts and reads, posts and counts as a pull in the live feed, dashboard, Discord, stream recap, weekly digest and charts (#205, #206).
 
 - Tracks 7 to 11 (the second Discord list), all merged 2026-10-16:
   - Track 7: iPhone icon (#171), equal-height home widgets (#172, finished in #199), card dex dialog (#175), own listings on the trade board (#179), up to 25 Discord channels (#180), dashboard opens on Season (#181), admin Settings on phones (#184), new bonus names (#189), info tooltips with `lib/glossary.ts` (#198).
