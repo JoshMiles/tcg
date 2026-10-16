@@ -13,6 +13,7 @@ import { CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { getTradeSettings } from '@/lib/trades';
 import { SHOWOFF_COOLDOWN_S } from '@/lib/showoff-prepare';
+import { FEEDBACK_LIMITS } from '@/lib/feedback-core';
 import { OpenOnHash } from '@/app/components/site/OpenOnHash';
 
 export const dynamic = 'force-dynamic';
@@ -512,6 +513,9 @@ export default async function FaqPage() {
         </Q>
         <Q q="How do I find things quickly?">
           Press <kbd className="kbd">/</kbd> (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, prints or shinies, and shows who moved up or down since you last looked.
+        </Q>
+        <Q q="I have an idea, or something is broken. Where do I say?" id="feedback">
+          Use <Link href="/feedback" className="text-yellow-400 hover:text-yellow-300">Feedback</Link> (also in the footer and the bell). Choose <em>Suggest something</em> or <em>Report a problem</em>, log in with Twitch and send it. You can send {FEEDBACK_LIMITS.perDay} a day. If we answer, you get a notice in the bell, and you can see your sent items and our replies on the same page. Problem reports can include your browser, screen size and the site version, which you can untick. We keep an item until it is dealt with and for {FEEDBACK_LIMITS.keepDaysAfterResolved} days after, then delete it.
         </Q>
         <Q q="A card or my score looks wrong">
           Refresh first. Scores are recalculated whenever anyone pulls or upgrades, so they can move even when you haven&rsquo;t done anything. If something still looks wrong, tell the streamer in chat.

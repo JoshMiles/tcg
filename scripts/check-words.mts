@@ -23,6 +23,10 @@ has(privacy, `latest ${fromCode('lib/activity.ts', /const LOG_CAP = (\d+)/)} eve
 has(privacy, `latest ${fromCode('lib/trades.ts', /const HISTORY_CAP = (\d+)/)} finished trades`, 'trade history size');
 has(privacy, `newest ${fromCode('lib/trade-notify.ts', /const NOTICE_CAP = (\d+)/)}`, 'bell notices kept');
 has(privacy, `newest ${fromCode('lib/score-history-core.ts', /export const HISTORY_CAP = (\d+)/)} per season`, 'score samples kept');
+// The feedback wording reads its numbers from the limits themselves, so it cannot drift; check it still does.
+has(privacy, 'FEEDBACK_LIMITS.keepDaysAfterResolved} days after that, then deleted', 'feedback retention comes from the limit');
+has(privacy, 'You can send {FEEDBACK_LIMITS.perDay} a day', 'feedback daily limit comes from the limit');
+has(faq, 'FEEDBACK_LIMITS.keepDaysAfterResolved} days after', 'the FAQ feedback retention comes from the limit');
 has(privacy, `kept for ${fromCode('lib/user-admin.ts', /const SNAP_TTL = (\d+) \* 24/)} days`, 'restore points');
 has(privacy, `up to ${fromCode('lib/avatars.ts', /const TTL_FOUND = (\d+) \* 24/)} days`, 'cached profile pictures');
 has(privacy, `up to ${fromCode('lib/session.ts', /const MAX_AGE_S = 60 \* 60 \* 24 \* (\d+)/)} days`, 'login cookie lifetime');

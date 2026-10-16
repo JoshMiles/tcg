@@ -8,6 +8,7 @@ import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { VARIANT_LABELS } from './variants';
 import type { StreamRecap } from './stream-recap';
 import type { WeeklyDigest } from './weekly-digest';
+import { discordText, type FeedbackItem } from './feedback-core';
 import { SITE_URL } from './site';
 import { copyHrefFor } from './copy-link';
 import { DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
@@ -531,6 +532,24 @@ export async function notifySystem(o: { title: string; text?: string; tone?: 'go
     const body = noticeEmbed({ color: o.tone === 'good' ? GREEN : o.tone === 'bad' ? RED : BLUE, title: o.title, text: o.text, fields: o.fields });
     later(() => sendToCategory('system', body));
   } catch { /* never breaks the action */ }
+}
+
+/** A new suggestion or problem report, for channels with Feedback ticked. Text is Markdown-escaped and cut, mentions stay empty, no staff names. Silent in a sandbox. */
+export async function notifyFeedback(item: FeedbackItem): Promise<void> {
+  try {
+    if (await inSandbox()) return;
+    const body = noticeEmbed({
+      color: item.kind === 'bug' ? RED : GOLD,
+      title: `${item.kind === 'bug' ? '🐞 Problem report' : '💡 Suggestion'} from ${esc(item.user)}`,
+      url: `${SITE_URL}/u/${encodeURIComponent(item.user)}`,
+      text: [discordText(item.title, 100) && `**${discordText(item.title, 100)}**`, discordText(item.body)].filter(Boolean).join('\n'),
+      fields: [
+        ...(item.expected ? [{ name: 'Expected', value: discordText(item.expected, 300) }] : []),
+        ...(item.from ? [{ name: 'Page', value: discordText(item.from, 200), inline: true }] : []),
+      ],
+    });
+    later(() => sendToCategory('feedback', body));
+  } catch { /* never breaks the send */ }
 }
 
 /** The stream recap, for channels with Recap ticked. Silent in a sandbox and after the response when inside a request. */

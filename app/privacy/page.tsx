@@ -3,6 +3,8 @@ import { LegalPage, Section, List } from '@/app/components/LegalPage';
 import { APP_NAME, CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
 import { CHANNEL_NAME } from '@/lib/site';
 
+import { FEEDBACK_LIMITS } from '@/lib/feedback-core';
+
 export const metadata: Metadata = { title: 'Privacy Policy', description: 'What The Cheesy TCG collects, how it is used and your choices.' };
 
 export default function PrivacyPage() {
@@ -72,6 +74,9 @@ export default function PrivacyPage() {
           <li>
             <strong className="text-white">Your settings and profile choices</strong> if you set any: a short bio, your Looking for list, display and notification
             preferences, how you arranged your profile and binder, a card you pinned, the achievements you have earned, your newest bell notices (offers and how they ended), and a few samples of your score and rank (taken when you open My Stats) for the history chart.
+          </li>
+          <li>
+            <strong className="text-white">Feedback you send</strong> through the Feedback page (a suggestion or problem report): your username, what you wrote, when you sent it, its status and any reply from staff. A problem report can also include your browser details, screen size and the site version, only if you leave that box ticked. It is included in your data download.
           </li>
           <li>
             <strong className="text-white">A profile record</strong> (username, display name, Twitch user ID, creation time, and an optional note, labels or restrictions, such as being left off the public boards or not trading, that the channel owner or a moderator may add).
@@ -182,6 +187,7 @@ export default function PrivacyPage() {
         <List>
           <li>Collections, profiles and leaderboard data are kept until you ask us to delete them or the streamer removes them (for example when resetting a season).</li>
           <li>The activity log keeps only the latest 500 events. Cached profile pictures refresh weekly. Bell notices keep only your newest 30, and score samples your newest 120 per season.</li>
+          <li>Feedback is kept until it has been dealt with and for {FEEDBACK_LIMITS.keepDaysAfterResolved} days after that, then deleted. You can send {FEEDBACK_LIMITS.perDay} a day.</li>
           <li>Before a moderator or the channel owner resets, merges or deletes a viewer&rsquo;s cards, a restore point of that viewer&rsquo;s collection is kept for 14 days so a mistake can be undone.</li>
           <li>An encrypted backup of the game data is made every night so it can be recovered after a mistake or an outage. Backups are kept for up to 14 days, so deleted data can remain in them for that long.</li>
           <li>Hosting logs and analytics are kept for the period set by our hosting provider.</li>
