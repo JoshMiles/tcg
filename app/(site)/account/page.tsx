@@ -200,12 +200,12 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 <dd className={`font-semibold tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{s.serialPoints.toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
-                <dt className="text-gray-300">Completion bonus <span className="text-gray-600">· {s.completionPct}% of the set (up to {s.maxCompletionBonus.toLocaleString()})</span></dt>
+                <dt className="text-gray-300">Progress bonus <span className="text-gray-600">· {s.completionPct}% of the set (up to {s.maxCompletionBonus.toLocaleString()})</span></dt>
                 <dd className="font-semibold text-emerald-300 tabular-nums">+{s.completionBonus.toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
                 <dt className="text-gray-300">
-                  Complete collection bonus{' '}
+                  Full set bonus{' '}
                   <span className="text-gray-600">· {s.complete ? 'you own every card!' : `own every card to earn +${s.completeSetBonusValue.toLocaleString()}`}</span>
                 </dt>
                 <dd className={`font-semibold tabular-nums ${s.complete ? 'text-emerald-300' : 'text-gray-600'}`}>
@@ -219,7 +219,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
             </dl>
             {s.missing > 0 && (
               <p className="text-xs text-gray-500 leading-relaxed">
-                {s.missing} card{s.missing === 1 ? '' : 's'} to go for a complete collection. Each new card adds its own points <em>and</em> raises your completion bonus.
+                {s.missing} card{s.missing === 1 ? '' : 's'} to go for a complete collection. Each new card adds its own points <em>and</em> raises your progress bonus.
               </p>
             )}
           </section>
@@ -282,7 +282,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                         <span className="block text-sm font-semibold text-white truncate">{m.name}</span>
                         <span className="block text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(m.stars)} {rarity?.label} · {m.pullRate > 0 ? `1 in ${Math.round(1 / m.pullRate).toLocaleString()}` : '-'}</span>
                       </Link>
-                      <span className="text-xs font-bold text-emerald-300 tabular-nums shrink-0" title="Its points plus its share of the completion bonus">+{missingGain(m, s).toLocaleString()}</span>
+                      <span className="text-xs font-bold text-emerald-300 tabular-nums shrink-0" title="Its points plus its share of the progress bonus">+{missingGain(m, s).toLocaleString()}</span>
                       <WantToggle number={m.number} initial={wanted.has(m.number)} />
                     </li>
                   );

@@ -16,7 +16,7 @@ export interface ScoringSettings {
   serialBonusCutoff: number;
   /** An upgraded copy is guaranteed to be worth at least this many times the copies it consumes. */
   upgradeMargin: number;
-  /** Completion bonus at 100% of the set, as a percent of the set value (what one Regular of every card is worth). */
+  /** Progress bonus at 100% of the set, as a percent of the set value (what one Regular of every card is worth). */
   completionBonusPct: number;
   /** Extra bonus for owning at least one of every card, as a percent of the set value. */
   completeSetBonusPct: number;
