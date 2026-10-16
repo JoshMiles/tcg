@@ -14,6 +14,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-16',
+    title: 'Alpha and beta notice',
+    tags: ['new'],
+    items: [
+      'While the Cheesy TCG is in alpha or beta, a thin notice sits at the top of every page and the logo shows an ALPHA or BETA tag. The notice has a Report a problem link and can be closed for the rest of your visit.',
+    ],
+  },
+  {
+    date: '2026-10-16',
     title: 'Closed alpha and beta testing',
     tags: ['new'],
     items: [

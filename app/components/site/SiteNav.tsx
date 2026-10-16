@@ -43,7 +43,7 @@ const TwitchGlyph = () => (
 /** Where the signed-in staff member's panel is (admins and the super admin: the admin panel; mods: the mod panel). */
 export interface NavStaff { href: string; label: string }
 
-export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | null; loginEnabled: boolean; rank?: NavRank | null; staff?: NavStaff | null }) {
+export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'alpha' | 'beta' | null; user: NavUser | null; loginEnabled: boolean; rank?: NavRank | null; staff?: NavStaff | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // account dropdown
@@ -106,6 +106,7 @@ export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | n
             <span className="text-[11px] font-semibold text-yellow-500/80 block tracking-wider uppercase">The</span>
             Cheesy TCG
           </span>
+          {label && <span className="rounded-md border border-purple-400/50 bg-purple-500/15 px-1.5 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wider text-purple-200">{label}</span>}
         </Link>
 
         <nav className="hidden xl:flex items-center gap-1 ml-4" aria-label="Main">

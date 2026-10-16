@@ -15,6 +15,7 @@ import { getStaff } from '@/lib/staff-guard';
 import { ROLE_LABELS, roleCan } from '@/lib/staff-core';
 import { getOverlayKey, overlayUrl } from '@/lib/overlay-key';
 import { SITE_URL } from '@/lib/site';
+import { adminSiteText, getSiteLabel } from '@/lib/site-label';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // The middleware already turned strangers away from the cookie alone; this re-checks the live staff list (a removed or demoted
@@ -22,6 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const staff = await getStaff();
   if (!staff || !roleCan(staff.role, 'admin')) redirect(staff ? '/mod' : '/login?error=not-staff');
   const overlayKey = await getOverlayKey().catch(() => '');
+  const siteText = adminSiteText(await getSiteLabel());
   return (
     <OverlayStatusProvider>
       <AdminShell
@@ -84,6 +86,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         }
       >
         <SandboxPill />
+        {siteText && <p className="fixed bottom-2 right-3 z-30 rounded-full border border-purple-400/40 bg-purple-950/80 px-2.5 py-1 text-[11px] font-semibold text-purple-200" role="status">Site: {siteText}</p>}
         <AdminKeyboard overlayKey={overlayKey} />
         {children}
       </AdminShell>
