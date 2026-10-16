@@ -348,3 +348,17 @@ export async function printLabel(c: string, id: string): Promise<string> {
   const p = parseCopyId(id);
   return p ? `Edition #${p.n}` : 'that print';
 }
+
+/** The unique number most recently handed out, game-wide (null before any). */
+export async function lastUid(): Promise<number | null> {
+  try {
+    const n = Number(await kv.hget(key.uidSeq, 'n'));
+    return Number.isFinite(n) && n > 0 ? UID_BASE + n : null;
+  } catch { return null; }
+}
+
+/** How many prints sit in open trade offers right now (a live print whose holder is an escrow). */
+export async function inOfferCount(c: string): Promise<number> {
+  const idx = (await kv.hgetall(key.idx(c)).catch(() => null)) as Record<string, string> | null;
+  return Object.values(idx ?? {}).filter(o => typeof o === 'string' && isEscrow(o)).length;
+}
