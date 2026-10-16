@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Owned by the planning model (Opus, see "Model Workflow Guidelines" in `CLAUDE.md`). Execution picks up items marked **Ready**; anything marked **Needs design** or **Needs a decision** goes back to planning (or to the user) first. Last updated 2026-10-16 (after #158).
+Owned by the planning model (Opus, see "Model Workflow Guidelines" in `CLAUDE.md`). Execution picks up items marked **Ready**; anything marked **Needs design** or **Needs a decision** goes back to planning (or to the user) first. Last updated 2026-10-16 (after #163).
 
 **Status legend:** Ready (design below is enough to build) · Needs design (planning pass first) · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo) · Done.
 
@@ -24,7 +24,7 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 2.2 | Recent pulls open the copy | Done (#151) | S |
 | 2.3 | Profile "Recent pulls" with serials | Done (#154) | S |
 | 2.4 | Overlay shows the unique copy number | Done (#157) | S |
-| 2.5 | Card dialog: prints first, then one print's details | Ready | M |
+| 2.5 | Card dialog: prints first, then one print's details | Done (#161) | M |
 | 2.6 | A card copy is called a "print" | Done (#146) | M |
 | 3.1 | Discord: several channels, each with its own events | Done (#149) | M |
 | 3.2 | Discord: new event kinds (upgrades, trades, admin log, system) | Done (#152) | M |
@@ -34,20 +34,21 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 3.6 | Discord delivery log | Done (#156) | S |
 | 4.1 | Notices arrive fast and are hard to miss | Done (#153) | M |
 | 4.2 | Notifications page (full history) | Done (#158) | S |
-| 4.3 | Push notifications to phones and browsers | Ready | L |
+| 4.3 | Push notifications to phones and browsers | Done (#162) | L |
 | 4.4 | Link a Discord account for DMs | Later (after 4.3) | L |
-| 5.1 | Stream recap posted to Discord | Ready | M |
+| 5.1 | Stream recap posted to Discord | Done (#160) | M |
 
-Done so far: Tracks 1 to 3, 4.1 and 4.2. Next: 2.5, 4.3 and 5.1 in parallel (streams D, E, F below). 4.4 waits until push has been live for a while. User step still open from 3.5: add the GitHub repo webhook (`<discord webhook URL>/github`, see Settings -> Webhooks "Deploys & code").
+**Everything planned on 2026-10-16 is done** (#144 to #163). What is left is user-side, plus the items marked Later.
+
+**User steps still open:**
+- [ ] **Web Push keys:** set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:` the legal contact address) in Vercel Production, then redeploy. The Stream E session saved a generated pair to a file outside the repo; the push option stays hidden until they are set. Then try it on a real iPhone (app installed), Android and a desktop browser.
+- [ ] **GitHub webhook (3.5):** repo Settings -> Webhooks, Payload URL `<discord webhook URL>/github`, events: pushes, pull requests, releases, deployment statuses.
+- [ ] **Discord channels:** add the channels you want in Admin -> Settings -> Webhooks (Trade listings, Admin log, System, Recap) and press Test on each.
+- [ ] **iPhone icon (1.1):** remove the home-screen app and add it again; confirm the cheese logo shows.
+- [ ] **Dependabot `braces` alert** (high, dev-only, through Tailwind 3's chokidar / micromatch): no patched release exists. Dismiss it as "no fix available" until upstream ships one; build-time only, not reachable at runtime.
 
 
-**Streams A, B and C are done** (2026-10-16: #147, #149 to #158). The Discord pull and upgrade embeds link to the print (`copyHrefFor`), which finishes 2.2.
-
-**Next, three parallel streams (from 2026-10-16)**, each in its own session and branch, owning different files:
-- **Stream D, 2.5 prints-first card dialog:** `CollectionGrid.tsx`, `app/u/[username]/Binder.tsx` (only its `onOpen` wiring), `lib/collection-view.ts` (`copiesForDialog`), `buildGridCards` (`uid` on `GridCard.copies`), the dialog's share / pin / trade / upgrade buttons (existing components, reused).
-- **Stream E, 4.3 Web Push:** `lib/push.ts`, `/api/account/push`, `public/sw.js`, `ENV_SPECS`, the push send hook in `notify()` (`lib/trade-notify.ts`), `UserSettings.pushKinds`, Settings -> Notifications, the 4.1 toast's one-time "Get alerts on this device" offer, FAQ / Privacy (bump `LEGAL_UPDATED`), `scripts/mock-push.cjs` + `scripts/check-push.mts`.
-- **Stream F, 5.1 stream recap:** `lib/twitch-live.ts` (record the offline transition), `lib/stream-recap.ts` (pure `buildStreamRecap`) + check, the `recap` Discord category in `lib/discord*.ts`, a recap widget on the admin dashboard.
-- Overlaps to watch: E and F do not touch the same files; D touches none of theirs. Each rebases on `main` before its PR.
+**Streams A to F are done** (2026-10-16). Next work needs a new planning pass: pick from 4.4, "Other ideas" or the next extension version.
 
 ---
 
@@ -106,7 +107,7 @@ The `recent` profile widget today lists the newest copies the person **holds** (
 - Show-off (`!card` chat command): `prepareShowOff` sends the lowest copy's `uid` too, so the same format applies.
 - `node --check public/widget.js`, then load `/overlay.html?dev` against the mock KV and draw with "Don't save" off (mock only) to see a real uid. Not checkable locally: real OBS.
 
-### 2.5 Card dialog: copies first, then one copy's details (Ready)
+### 2.5 Card dialog: copies first, then one copy's details (Done, #161)
 
 Asked: "profile collection cards should expand to all owned serials of the card when clicked, then information given when a copy is clicked (same in binder)".
 
@@ -205,7 +206,7 @@ Background: `docs/trading.md` "Notifications". Notices live in `notif:<user>` (3
 
 `/notifications` (signed in, noindex): the full list of the 30 kept notices grouped by day, filter by kind (offers, results, listing alerts, admin), Mark all read. The bell's footer links to it. Consider raising the cap to 100 (check `scripts/check-words.mts` and the Privacy Policy number if so).
 
-### 4.3 Push notifications (Decided 2026-10-16, Ready, after 4.1)
+### 4.3 Push notifications (Done, #162)
 
 Real "arrives when it happens", even with the site closed: **Web Push** to the installed app (iPhone / iPad from iOS 16.4 when added to the home screen, Android, desktop Chrome / Edge / Firefox / Safari). No third-party push service account is needed: browsers bring their own push service, we only sign messages.
 
@@ -238,7 +239,7 @@ Possible, but it is more than a webhook: DMs need a **Discord bot**.
 
 ## Track 5: Additions (suggested)
 
-### 5.1 Stream recap posted to Discord (Ready, after 3.1)
+### 5.1 Stream recap posted to Discord (Done, #160)
 
 When the channel goes offline (the live check in `lib/twitch-live.ts` already sees the transition; record `twitch:live:since` on the way up and post on the way down, once, under a short KV lock so two instances don't both post), post a recap embed to channels with a new `recap` category: packs opened, cards pulled, new collectors, first-ever pulls, the rarest pull of the stream (with a link to the copy), top puller, trades completed, biggest rank climb. Built from the activity log between the two times (pure `buildStreamRecap(events, from, to)` + a check). If the transition is missed (nobody visited while live), skip; never post a recap for a stream with no pulls. Also show the latest recap on the admin dashboard as a widget.
 
@@ -253,6 +254,8 @@ When the channel goes offline (the live check in `lib/twitch-live.ts` already se
 Ship as one reviewed panel version: achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
 
 ## Done (recent)
+
+- Streams D to F: prints-first card dialog (#161), Web Push alerts (#162), stream recap to Discord (#160). Dependency alerts: postcss / postcss-selector-parser cleared with npm overrides (#163).
 
 - Stream A, prints: pull / grant / upgrade events carry the print (#147), Recent pulls open the print (#151), profile Recent pulls widget (#154), overlay print number (#157).
 - Stream B, Discord: several channels (#149, with the GitHub / Vercel setup for 3.5), new event kinds (#152), `/trade/<id>` (#150), Trade listings channel (#155), delivery log with auto switch-off (#156).
