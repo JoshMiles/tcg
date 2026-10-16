@@ -14,13 +14,16 @@ import { TradeActions } from '@/app/components/trade/TradeActions';
 import { pickPropsFor } from '@/lib/trade-view-core';
 import { profileHref } from '@/lib/profile-url';
 import { hasStaffCapability } from '@/lib/staff-guard';
+import { StaffBadge } from '@/app/components/StaffBadge';
+import { getStaffBadges } from '@/lib/staff-badge';
+import type { StaffBadge as StaffBadgeKind } from '@/lib/staff-badge-core';
 import { ReverseTrade } from '@/app/admin/trades/ReverseTrade';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Trade', description: 'A trade offer.', robots: { index: false, follow: true } };
 
-const user = (name: string) => (
-  <Link href={profileHref(name)} className="text-yellow-300 hover:text-yellow-200 font-bold">@{name}</Link>
+const userWith = (badges: Record<string, StaffBadgeKind>) => (name: string) => (
+  <><Link href={profileHref(name)} className="text-yellow-300 hover:text-yellow-200 font-bold">@{name}</Link>{badges[name.toLowerCase()] && <> <StaffBadge badge={badges[name.toLowerCase()]} /></>}</>
 );
 
 const OUTCOME: Record<string, string> = {
@@ -49,6 +52,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
   const season = await getSeason(trade.seasonId);
   if (!season) notFound();
 
+  const user = userWith(await getStaffBadges());
   const me = session?.username.toLowerCase() ?? null;
   const returnTo = `/trade/${encodeURIComponent(trade.id)}`;
   const login = !session && loginConfigured()
@@ -114,7 +118,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
         {open && season.tradingFrozen && <p className="text-sm text-amber-200">Trading is closed for {season.name}.</p>}
       </header>
 
-      {!open && <OutcomeNote trade={trade} />}
+      {!open && <OutcomeNote trade={trade} user={user} />}
       {staffCanReverse && <ReverseTrade tradeId={trade.id} />}
       <TradeCard trade={trade} cards={cards} pools={pools} wanted={wanted} title={title} actions={actions} />
       {verdict && verdict !== 'Empty' && <p className="text-xs text-gray-500">For you: <strong className="text-gray-300">{verdict}</strong>, going by the points on each side.</p>}
@@ -122,7 +126,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
   );
 }
 
-function OutcomeNote({ trade }: { trade: Trade }) {
+function OutcomeNote({ trade, user }: { trade: Trade; user: (name: string) => React.ReactNode }) {
   if (trade.reversedAt) {
     return (
       <p role="status" className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-200">

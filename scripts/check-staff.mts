@@ -150,4 +150,18 @@ ok(staff.listSuperAdmins().some(s => s.login === 'joshmiles'), 'the super admin 
   ok(!noStaff.includes('(by') && withStaff === `${noStaff} (by sam)`, 'the sentence names the staff member');
 }
 
+// ── staff badges (17.1) ──
+{
+  const b = await import('../lib/staff-badge-core');
+  const staff = [{ login: 'sam', role: 'mod' as const }, { login: 'Ann', role: 'admin' as const }];
+  ok(b.staffBadgeFor('joshmiles', staff, {}) === 'streamer', 'the super admin shows Streamer');
+  ok(b.staffBadgeFor('JoshMiles', staff, null) === 'streamer', 'case does not matter');
+  ok(b.staffBadgeFor('ann', staff, {}) === 'admin' && b.staffBadgeFor('SAM', staff, undefined) === 'mod', 'admin and mod badges');
+  ok(b.staffBadgeFor('viewer', staff, {}) === null, 'a viewer has none');
+  ok(b.staffBadgeFor('sam', staff, { hideStaffBadge: true }) === null && b.staffBadgeFor('joshmiles', staff, { hideStaffBadge: true }) === null, 'a hidden badge is not shown');
+  ok(b.staffBadgeFor('sam', [], {}) === null, 'a removed staff member loses the badge at once');
+  const us = await import('../lib/user-settings');
+  ok(us.sanitizeUserSettings({ hideStaffBadge: true }).hideStaffBadge === true && us.sanitizeUserSettings({ hideStaffBadge: 'x' }).hideStaffBadge === false && us.DEFAULT_SETTINGS.hideStaffBadge === false, 'the setting sanitizes and defaults to shown');
+}
+
 console.log('staff checks passed');

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { Avatar } from '@/app/components/Avatar';
 import type { ProfileBase } from '@/lib/profile-data';
+import { StaffBadge } from '@/app/components/StaffBadge';
+import type { StaffBadge as StaffBadgeKind } from '@/lib/staff-badge-core';
 import { ShareProfile } from './ShareProfile';
 import { accentHex } from '@/lib/user-settings';
 import { ProfileBasicsEditor } from './ProfileBasicsEditor';
@@ -9,7 +11,7 @@ import type { ShareSpec } from '@/lib/share-image';
 import { profileHref } from '@/lib/profile-url';
 
 /** Who this is: avatar, name, awards, rank and progress, and the main actions (trade, share, leaderboard). */
-export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns }: { b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec; /** What to show after the name (already resolved on the server), or null. */ pronouns?: string | null }) {
+export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staffBadge }: { /** Streamer / Admin / Mod, already resolved on the server (null when none or hidden). */ staffBadge?: StaffBadgeKind | null; b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec; /** What to show after the name (already resolved on the server), or null. */ pronouns?: string | null }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   const accent = accentHex(b.settings.accent);
   return (
@@ -22,6 +24,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns }: { b
             <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">
               {b.displayName}
               {pronouns && <span className="ml-2 align-middle text-sm font-medium text-gray-400">{pronouns}</span>}
+              {staffBadge && <span className="ml-2"><StaffBadge badge={staffBadge} /></span>}
               {b.row?.complete && (
                 <span className="ml-2 align-middle text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5" title="Owns every card in the season">
                   <Icon name="cheese" className="mr-1" />Complete

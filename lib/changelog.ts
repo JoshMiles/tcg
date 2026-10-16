@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-16',
+    title: 'Staff badges',
+    tags: ['new'],
+    items: [
+      'The streamer, admins and mods now have a purple Streamer, Admin or Mod badge next to their name on their profile, on the leaderboard and on trades, so you know who you are dealing with.',
+      'Staff who also play as a normal collector can hide their badge in Settings.',
+    ],
+  },
+  {
+    date: '2026-10-16',
     title: 'Alpha and beta notice',
     tags: ['new'],
     items: [

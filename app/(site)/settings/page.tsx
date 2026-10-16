@@ -9,6 +9,8 @@ import { profileHref } from '@/lib/profile-url';
 import { SettingsForm } from './SettingsForm';
 import { DeleteAccount } from './DeleteAccount';
 import { deletionOf } from '@/lib/feedback';
+import { getStaffRecord } from '@/lib/staff';
+import { isSuperAdmin } from '@/lib/staff-core';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Settings', robots: { index: false, follow: false } };
@@ -17,6 +19,7 @@ export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/auth/twitch?returnTo=/settings');
   const [settings, active] = await Promise.all([getUserSettings(session.username), getActiveSeasonWithPacks().catch(() => null)]);
+  const isStaff = !!(await getStaffRecord(session.username)) || isSuperAdmin({ twitchId: session.twitchId });
   const deletion = await deletionOf(session.username).catch(() => null);
   const cards = (active?.packs ?? []).flatMap(p => p.cards).map(c => ({ number: c.number, name: c.name, stars: c.stars })).sort((a, b) => a.number - b.number);
   return (
@@ -28,7 +31,7 @@ export default async function SettingsPage() {
         </div>
         <Link href={profileHref(session.username)} className="text-sm text-yellow-400 hover:text-yellow-300">View my profile →</Link>
       </header>
-      <SettingsForm initial={settings} username={session.username} cards={cards} />
+      <SettingsForm initial={settings} username={session.username} cards={cards} isStaff={isStaff} />
       <DeleteAccount username={session.username} initial={deletion ? { status: deletion.status, at: deletion.at, reply: deletion.reply } : null} />
     </div>
   );

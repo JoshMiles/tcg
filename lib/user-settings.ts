@@ -48,6 +48,8 @@ export interface UserSettings {
   pushKinds: PushKind[];
   /** Accept direct trade offers from other viewers (the open board is unaffected). */
   allowOffers: boolean;
+  /** Staff only: hide my Streamer / Admin / Mod badge (a personal account used as a normal player). */
+  hideStaffBadge: boolean;
   /** 'reduce' calms the site's animations even when the device does not ask for it. */
   motion: MotionPref;
   /** Start collection grids with uncollected cards hidden. */
@@ -88,6 +90,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   noticeSound: false,
   pushKinds: [...PUSH_KINDS],
   allowOffers: true,
+  hideStaffBadge: false,
   motion: 'system',
   hideUncollected: true,
   compactGrids: false,
@@ -112,7 +115,7 @@ export const EXPERIMENTS: Experiment[] = [
 
 const EXPERIMENT_IDS = new Set(EXPERIMENTS.map(e => e.id));
 
-export const BOOLEAN_KEYS = ['privateProfile', 'notifyOffers', 'notifyResults', 'notifyWatch', 'notifyFeedback', 'noticeSound', 'allowOffers', 'hideUncollected', 'compactGrids'] as const;
+export const BOOLEAN_KEYS = ['privateProfile', 'notifyOffers', 'notifyResults', 'notifyWatch', 'notifyFeedback', 'noticeSound', 'allowOffers', 'hideStaffBadge', 'hideUncollected', 'compactGrids'] as const;
 
 /** Anything → a complete, valid settings object. Unknown keys are dropped, bad values fall back to the default. */
 export function sanitizeUserSettings(input: unknown): UserSettings {
