@@ -310,7 +310,7 @@ export default async function FaqPage() {
         <Q q="How do I show off my cards?" open>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
             <li><strong className="text-white">Share</strong> on a profile has the link and a quick picture of that collector's best cards, with their version and edition number, plus rank and progress. On your own profile, the <strong className="text-white">Share</strong> tab lets you choose a theme, a post or story shape, a stats poster, and exactly which cards go in.</li>
-            <li><strong className="text-white">Share my stats</strong> on My Stats makes a picture of your score and top cards.</li>
+            <li><strong className="text-white">Share my stats</strong> on My Stats makes a picture of your rank and score, a few key figures (cards, prints, best edition, rarest print, trades) and your three most valuable prints.</li>
             <li><strong className="text-white">Share this card</strong> on a card in the Card Dex, or on a print&rsquo;s own page, makes a picture of that one card. On a print&rsquo;s page you can pick a theme and shape, and the picture carries a slim engraved plate with its print number and a QR code.</li>
             <li>The <strong className="text-white">Share</strong> button on your profile copies its link, so anyone can open it.</li>
           </ul>
