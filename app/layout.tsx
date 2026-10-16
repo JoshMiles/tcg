@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image' },
   // iOS: open without Safari's toolbars once added (the home-screen icon is app/apple-icon.png).
   appleWebApp: { capable: true, title: 'Cheesy TCG', statusBarStyle: 'black' },
+  // A plain, hash-free apple-touch link (the opaque PNG in public/); iOS has been seen to keep a stale icon behind a ?query.
+  icons: { apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }] },
   formatDetection: { telephone: false },
 };
 
