@@ -7,8 +7,9 @@ import { cardThumbUrl } from '@/lib/card-art';
  * over it once it has loaded. The parent must be positioned and clip its children (the overlay fills it). Skipped when the viewer prefers
  * reduced motion, or when the art has no separate thumbnail (then it is already the only image).
  */
-export function AnimatedArt({ url, alt, animate = true }: { url: string; alt: string; animate?: boolean }) {
-  const thumb = cardThumbUrl(url);
+export function AnimatedArt({ url, still, alt, animate = true }: { url: string; still?: string; alt: string; animate?: boolean }) {
+  const base = cardThumbUrl(url);
+  const thumb = still || base;
   const [ready, setReady] = useState(false);
   const [motionOk, setMotionOk] = useState(false);
   useEffect(() => {
@@ -17,7 +18,7 @@ export function AnimatedArt({ url, alt, animate = true }: { url: string; alt: st
   return (
     <>
       <img src={thumb} alt={alt} />
-      {animate && motionOk && thumb !== url && (
+      {animate && motionOk && base !== url && (
         <img src={url} alt="" aria-hidden onLoad={() => setReady(true)} className={`art-anim ${ready ? 'art-anim-on' : ''}`} />
       )}
     </>

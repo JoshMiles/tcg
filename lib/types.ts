@@ -64,6 +64,9 @@ export interface Card {
   stars: number;              // 1–5
   upgradesEnabled?: boolean;  // per-card opt-out; undefined = follow the pack
   fullArtImageUrl?: string;   // art for the Full Art / Shiny variants
+  /** A chosen still frame of animated art (a Blob webp). Without it the static image is the first frame. See cardStill(). */
+  stillUrl?: string;
+  fullArtStillUrl?: string;   // the same for the full-art image
   disabledVariants?: OptionalVariant[];   // variants this card can't be (on top of the pack's own switches)
 }
 

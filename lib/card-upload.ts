@@ -1,6 +1,6 @@
 import { put, del } from '@vercel/blob';
 import { toAnimatedCard, toThumb } from './card-image';
-import { optimizedCardPaths, isBlobUrl } from './card-art';
+import { optimizedCardPaths, isBlobUrl, stillBlobPath } from './card-art';
 
 export { isBlobUrl };
 
@@ -19,4 +19,10 @@ export async function storeOptimizedCard(gif: Buffer): Promise<{ url: string; th
 /** Best-effort removal of a temporary upload. */
 export async function deleteBlobQuietly(url: string): Promise<void> {
   try { await del(url); } catch { /* an orphaned temp blob is harmless */ }
+}
+
+/** Stores one rendered frame as a card's still (a new Blob name each time, so a CDN never serves an older still). */
+export async function storeStill(webp: Buffer, frame: number): Promise<string> {
+  const blob = await put(stillBlobPath(crypto.randomUUID(), frame), webp, { access: 'public', addRandomSuffix: false, contentType: 'image/webp', cacheControlMaxAge: 31536000 });
+  return blob.url;
 }
