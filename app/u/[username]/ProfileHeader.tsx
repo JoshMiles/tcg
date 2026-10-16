@@ -9,7 +9,7 @@ import type { ShareSpec } from '@/lib/share-image';
 import { profileHref } from '@/lib/profile-url';
 
 /** Who this is: avatar, name, awards, rank and progress, and the main actions (trade, share, leaderboard). */
-export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec }) {
+export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns }: { b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec; /** What to show after the name (already resolved on the server), or null. */ pronouns?: string | null }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   const accent = accentHex(b.settings.accent);
   return (
@@ -21,6 +21,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileB
           <div className="min-w-0">
             <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">
               {b.displayName}
+              {pronouns && <span className="ml-2 align-middle text-sm font-medium text-gray-400">{pronouns}</span>}
               {b.row?.complete && (
                 <span className="ml-2 align-middle text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5" title="Owns every card in the season">
                   <Icon name="cheese" className="mr-1" />Complete
@@ -28,7 +29,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileB
               )}
             </h1>
             <p className="text-sm text-gray-500">@{b.lower}</p>
-            {isOwner ? <ProfileBasicsEditor bio={b.settings.bio} accent={b.settings.accent} /> : b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl break-words">{b.bio}</p>}
+            {isOwner ? <ProfileBasicsEditor bio={b.settings.bio} accent={b.settings.accent} pronouns={b.settings.pronouns} /> : b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl break-words">{b.bio}</p>}
             {b.awards.length > 0 && (
               <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Season awards">
                 {b.awards.slice(0, 8).map((a, i) => (

@@ -3,22 +3,25 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { AccentPicker } from '@/app/components/site/AccentPicker';
+import { PronounPicker } from '@/app/components/site/PronounPicker';
+import type { Pronouns } from '@/lib/pronouns';
 import { BIO_MAX } from '@/lib/user-settings';
 import { saveProfileBasics } from './actions';
 
-/** The owner's inline editor in the profile header: the bio line now, and the accent colour. Visitors never get this component. */
-export function ProfileBasicsEditor({ bio, accent }: { bio: string; accent: string }) {
+/** The owner's inline editor in the profile header: the bio line, the header colour and pronouns. Visitors never get this component. */
+export function ProfileBasicsEditor({ bio, accent, pronouns }: { bio: string; accent: string; pronouns: Pronouns }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [draftBio, setDraftBio] = useState(bio);
   const [draftAccent, setDraftAccent] = useState(accent);
+  const [draftPronouns, setDraftPronouns] = useState(pronouns);
   const [error, setError] = useState('');
   const [pending, start] = useTransition();
 
-  const begin = () => { setDraftBio(bio); setDraftAccent(accent); setError(''); setOpen(true); };
+  const begin = () => { setDraftBio(bio); setDraftAccent(accent); setDraftPronouns(pronouns); setError(''); setOpen(true); };
   const save = () => start(async () => {
     try {
-      await saveProfileBasics({ bio: draftBio, accent: draftAccent });
+      await saveProfileBasics({ bio: draftBio, accent: draftAccent, pronouns: draftPronouns });
       setOpen(false);
       router.refresh();
     } catch (e) {
@@ -47,6 +50,10 @@ export function ProfileBasicsEditor({ bio, accent }: { bio: string; accent: stri
       <div className="space-y-1.5">
         <p className="text-sm font-semibold text-gray-100">Header colour</p>
         <AccentPicker id="profile-accent" value={draftAccent} onChange={setDraftAccent} />
+      </div>
+      <div className="space-y-1.5">
+        <p className="text-sm font-semibold text-gray-100">Pronouns</p>
+        <PronounPicker id="profile-pronouns" value={draftPronouns} onChange={setDraftPronouns} />
       </div>
       {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
       <div className="flex gap-2">
