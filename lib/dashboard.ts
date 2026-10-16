@@ -6,7 +6,7 @@ import type { IconName } from '@/app/components/Icon';
 export const WIDGET_TYPES = [
   'overview', 'quick-actions', 'top-collectors', 'leaderboard', 'rarity', 'packs', 'card-ownership', 'activity',
   'trades', 'overlay', 'pulse', 'variants', 'valuable', 'unowned', 'live', 'shortcuts', 'notes',
-  'attention', 'pulls-chart', 'economy', 'viewers', 'progress', 'changes', 'overlay-controls',
+  'attention', 'pulls-chart', 'economy', 'viewers', 'progress', 'changes', 'overlay-controls', 'recap',
 ] as const;
 export type WidgetType = (typeof WIDGET_TYPES)[number];
 
@@ -40,6 +40,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   valuable: { type: 'valuable', title: 'Most valuable cards', icon: 'coins', description: 'The cards worth the most points per print right now.', defaultSpan: 4, spans: [4, 6, 8] },
   unowned: { type: 'unowned', title: 'Cards nobody owns', icon: 'hole', description: 'Cards no viewer has pulled yet.', defaultSpan: 4, spans: [3, 4, 6] },
   live: { type: 'live', title: 'Stream status', icon: 'radio', description: 'Whether the channel is live on Twitch, with the title and viewer count.', defaultSpan: 4, spans: [3, 4, 6] },
+  recap: { type: 'recap', title: 'Last stream recap', icon: 'radio', description: 'The summary posted to Discord when the last stream ended: packs opened, new collectors, the rarest pull and the top puller.', defaultSpan: 4, spans: [4, 6, 8] },
   shortcuts: { type: 'shortcuts', title: 'Shortcuts', icon: 'compass', description: 'Jump to creating a pack or season, the overlay editor, trades and the sandbox.', defaultSpan: 4, spans: [3, 4, 6, 8] },
   attention: { type: 'attention', title: 'Needs attention', icon: 'alert', description: 'A to-do list: overlay offline while live, packs in no season, missing full art, expiring trades and more.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   'pulls-chart': { type: 'pulls-chart', title: 'Pulls over time', icon: 'chart', description: 'Pulls per hour or day for the chosen range, split by variant, with the change from the previous period.', defaultSpan: 8, spans: [6, 8, 12] },

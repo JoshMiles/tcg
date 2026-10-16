@@ -27,9 +27,11 @@ import { deleteUnusedBlobs } from '@/lib/assets';
 import { getOverlayStatus } from '@/lib/overlay';
 import { getActivity } from '@/lib/activity';
 import {
-  saveDiscordSettings, cleanDiscordInput, notifyAdminLog, deliver, buildMessage, buildTestMessage,
+  saveDiscordSettings, cleanDiscordInput, notifyAdminLog, deliver, buildMessage, buildTestMessage, buildRecapMessage,
 } from '@/lib/discord';
 import { currentStaffLogin } from '@/lib/staff-actor';
+import { getLatestRecap } from '@/lib/twitch-live';
+import { sampleRecap } from '@/lib/stream-recap';
 import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
 import { getOverlaySettings, saveOverlaySettings, savePackOverrides, savePreset, deletePreset, bumpReloadToken, updateScene } from '@/lib/overlay-settings';
@@ -714,7 +716,7 @@ export async function discordAction(_prev: ActionResult | null, formData: FormDa
 
   const [kind, id] = intent.split(':');
   const channel = settings.channels.find(c => c.id === id);
-  if (!channel || (kind !== 'test' && kind !== 'last')) return { ok: false, message: 'That channel is not in the form any more.' };
+  if (!channel || (kind !== 'test' && kind !== 'last' && kind !== 'recap')) return { ok: false, message: 'That channel is not in the form any more.' };
   if (!channel.url) return { ok: false, message: `${channel.name}: paste a webhook URL first.` };
 
   let result;
@@ -729,5 +731,5 @@ export async function discordAction(_prev: ActionResult | null, formData: FormDa
   if (!result.ok) {
     return { ok: false, message: `${channel.name}: Discord didn’t accept it: ${result.error}${result.status ? ` (HTTP ${result.status})` : ''}` };
   }
-  return { ok: true, message: kind === 'test' ? `Test message sent to ${channel.name}. Check your Discord channel.` : `Sent the most recent activity to ${channel.name}.` };
+  return { ok: true, message: kind === 'recap' ? `Test recap sent to ${channel.name}.` : kind === 'test' ? `Test message sent to ${channel.name}. Check your Discord channel.` : `Sent the most recent activity to ${channel.name}.` };
 }

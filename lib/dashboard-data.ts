@@ -9,7 +9,8 @@ import { getActivity, type ActivityEvent } from './activity';
 import { getSeasonLeaderboard, type LeaderboardRow, type SeasonValues } from './leaderboard';
 import { listOpenTrades, tradeHistory } from './trades';
 import type { Trade } from './trade-core';
-import { getLiveStatus, type LiveStatus } from './twitch-live';
+import { getLiveStatus, getLatestRecap, type LiveStatus } from './twitch-live';
+import type { StreamRecap } from './stream-recap';
 import { allowedVariants, decodeEntry, emptyCounts, type VariantCounts } from './variants';
 import { getOverlayStatus, type OverlayStatus } from './overlay';
 import { getTradeSettings } from './trades';
@@ -104,6 +105,7 @@ export interface DashboardData {
   trades: { open: Trade[]; recent: Trade[]; escrowedCopies: number; completed24h: number } | null;
   board: { rows: LeaderboardRow[]; values: SeasonValues } | null;
   live: LiveStatus | null;
+  recap: StreamRecap | null;
   notes: string;
   /** The dashboard's chosen time range, with this period's and the previous period's counters. */
   range: Range['id'];
@@ -151,11 +153,11 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
 
   const wantsActivity = needs.has('activity') || needs.has('pulse') || needs.has('changes');
   const wantsSeries = needs.has('pulls-chart') || needs.has('pulse') || needs.has('viewers') || needs.has('progress') || needs.has('economy');
-  const wantsLive = needs.has('live') || needs.has('attention');
+  const wantsLive = needs.has('live') || needs.has('attention') || needs.has('recap');
   const wantsOverlay = needs.has('attention') || needs.has('overlay-controls');
   const { starts, step } = bucketsFor(range, season.createdAt);
   const span = step === 'hour' ? 3_600_000 : 86_400_000;
-  const [avatars, activity, openTrades, history, board, live, notes, series, prevSeries, overlay] = await Promise.all([
+  const [avatars, activity, openTrades, history, board, live, notes, recap, series, prevSeries, overlay] = await Promise.all([
     needs.has('top-collectors') || needs.has('leaderboard') ? getAvatars(topCollectors.map(c => c.username)) : Promise.resolve({}),
     wantsActivity ? getActivity({ limit: 500 }).then(r => r.events).catch(() => []) : Promise.resolve([] as ActivityEvent[]),
     needs.has('trades') ? listOpenTrades().catch(() => [] as Trade[]) : Promise.resolve(null),
@@ -163,6 +165,7 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     needs.has('leaderboard') || needs.has('valuable') ? getSeasonLeaderboard(season).catch(() => null) : Promise.resolve(null),
     wantsLive ? getLiveStatus().catch(() => null) : Promise.resolve(null),
     needs.has('notes') ? getDashboardNotes() : Promise.resolve(''),
+    needs.has('recap') ? getLatestRecap() : Promise.resolve(null),
     wantsSeries ? getSeries(season.collectionName, starts, step) : Promise.resolve(null),
     wantsSeries ? getSeries(season.collectionName, starts.map(s => s - starts.length * span), step) : Promise.resolve(null),
     wantsOverlay ? getOverlayStatus().catch(() => null) : Promise.resolve(null),
@@ -187,7 +190,7 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     season, packs, allCards, users, totalUsers, totalOwned, totalUnique, avgCompletion, topCollectors, cardStats,
     avatars: avatars as Record<string, string | undefined>,
     rarityDist: rarityStats(allCards),
-    variantCounts, activity, trades, board: board ? { rows: board.rows, values: board.values } : null, live, notes,
+    variantCounts, activity, trades, board: board ? { rows: board.rows, values: board.values } : null, live, recap, notes,
     range, series, prevSeries, attention, overlay, adminActions,
     dailyViewers: dailySeries?.viewers ?? [],
     overlaySettings: { livePacksOnly: !!overlaySettings?.livePacksOnly, liveCollectionsOnly: !!overlaySettings?.liveCollectionsOnly },
