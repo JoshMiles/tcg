@@ -8,6 +8,8 @@ import { getCopy } from './serials';
 import { entryOf, isEscrow } from './serials-core';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
+import { getUserPullLimit } from './pull-limit';
+import { effectiveLimit } from './pull-limit-core';
 import {
   normalizeMixItUp, parseBalance, refusalMessage, renderMessage, replyApplied, streamKey, decide,
   type MixItUpSettings, type RefusalReason,
@@ -93,17 +95,19 @@ async function currentStream(): Promise<string> {
 export async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch): Promise<Reservation> {
   const user = username.toLowerCase();
   const stream = await currentStream();
+  // The viewer's own limit (and any bonuses they hold) wins over the default in Settings; 0 = no limit.
+  const limit = effectiveLimit(s.limit, await getUserPullLimit(user)).limit;
   const refuse = async (reason: RefusalReason, balance?: number, why?: string): Promise<Reservation> => {
     await logMixItUp({ username: user, what: 'refused', ok: false, detail: `${reason}${why ? `: ${why}` : ''}` });
-    return { ok: false, reason, message: refusalMessage(reason, s, user, balance), ...(balance !== undefined ? { balance } : {}) };
+    return { ok: false, reason, message: refusalMessage(reason, { ...s, limit }, user, balance), ...(balance !== undefined ? { balance } : {}) };
   };
 
   let counted = false;
-  if (s.limit > 0) {
+  if (limit > 0) {
     const used = await kv.incr(cntKey(stream, user));
     await kv.expire(cntKey(stream, user), COUNT_TTL_S);
     counted = true;
-    if (used > s.limit) { await kv.decr(cntKey(stream, user)); return refuse('limit_reached'); }
+    if (used > limit) { await kv.decr(cntKey(stream, user)); return refuse('limit_reached'); }
   }
   const undo = async () => { if (counted) await kv.decr(cntKey(stream, user)); };
 
@@ -119,6 +123,12 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
   }
   await kv.set(payKey(payId), { username: user, amount: s.cost, stream, at: Date.now() } satisfies PayRecord, { ex: PAY_TTL_S });
   return { ok: true };
+}
+
+/** How many paid pulls a viewer has used in the current stream window (for the admin's user page). */
+export async function pullsUsedThisStream(username: string): Promise<number> {
+  const n = Number(await kv.get(cntKey(await currentStream(), username.toLowerCase())).catch(() => 0));
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 // ── Claim, charge, revoke ──

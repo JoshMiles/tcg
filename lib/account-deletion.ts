@@ -1,3 +1,4 @@
+import { deleteUserPullLimit } from './pull-limit';
 import { kv } from './db';
 import { listSeasons, getUserProfile, deleteUserProfile, removeUserFromCollection } from './kv';
 import { takeUserSnapshot } from './user-admin';
@@ -37,6 +38,7 @@ export async function deleteViewerAccount(username: string): Promise<DeletionRep
   for (const s of seasons) await removeUserFromCollection(s.collectionName, user);
   const profile = await getUserProfile(user);
   await deleteUserProfile(user);
+  await deleteUserPullLimit(user);
   await deleteUserSettings(user); // settings, pinned / favourites, watches and the watch index
   await deleteAllDevices(user);
   await kv.del(`notif:${user}`, `notif:${user}:seen`, `notif:${user}:v`, `user:${user}:ach`, ...seasons.map(s => `user:${user}:scorehist:${s.id}`));

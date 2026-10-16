@@ -10,6 +10,7 @@ import { cleanTags, mergeUsers, restoreUserSnapshot, saveFlags, saveTags } from 
 import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { quickAction } from './actions';
+import { addUserPullBuff, removeUserPullBuff, setUserBaseLimit } from '@/lib/pull-limit';
 
 export interface UserActionResult { ok: boolean; message: string }
 
@@ -128,4 +129,33 @@ export async function bulkTagAction(usernames: string[], tag: string, mode: 'add
   }
   revalidate();
   return { ok: true, message: `${mode === 'add' ? 'Tagged' : 'Untagged'} ${names.length} viewer${names.length === 1 ? '' : 's'} “${clean}”.` };
+}
+
+// ── Pull limits per stream (ROADMAP 12.4) ──
+
+/** Sets this viewer's own paid pulls per stream (empty = follow the default in Settings, 0 = no limit). */
+export async function setPullLimitAction(username: string, value: string): Promise<UserActionResult> {
+  await requireAdmin();
+  const rec = await setUserBaseLimit(username, value.trim() === '' ? null : value);
+  await recordAudit(username, 'Pull limit changed', rec.limit === null ? 'back to the default' : rec.limit === 0 ? 'no limit' : `${rec.limit} per stream`);
+  revalidate(username);
+  return { ok: true, message: rec.limit === null ? 'Using the default from Settings.' : rec.limit === 0 ? 'No limit for this viewer.' : `Limit set to ${rec.limit} per stream.` };
+}
+
+/** Adds a temporary bonus: +amount pulls per stream for some hours (empty = until removed). */
+export async function addPullBuffAction(username: string, amount: string, hours: string, note: string): Promise<UserActionResult> {
+  await requireAdmin();
+  const rec = await addUserPullBuff(username, { amount, hours, source: 'admin', note });
+  if (!rec) return { ok: false, message: 'Enter a bonus of 1 or more (and hours as a whole number). A viewer can hold up to 20 bonuses.' };
+  await recordAudit(username, 'Pull bonus added', `+${Math.floor(Number(amount))} per stream${hours.trim() ? ` for ${Math.floor(Number(hours))} h` : ' until removed'}${note.trim() ? ` (${note.trim().slice(0, 60)})` : ''}`);
+  revalidate(username);
+  return { ok: true, message: 'Bonus added.' };
+}
+
+export async function removePullBuffAction(username: string, id: string): Promise<UserActionResult> {
+  await requireAdmin();
+  await removeUserPullBuff(username, id);
+  await recordAudit(username, 'Pull bonus removed');
+  revalidate(username);
+  return { ok: true, message: 'Bonus removed.' };
 }

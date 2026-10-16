@@ -360,6 +360,7 @@ Asked (2026-10-16): "should be able to select which print of a card when trading
 | 12.1 | Mix It Up settings tab (connection, price, message) | Done (#201) | M |
 | 12.2 | Paid pulls: balance check, deduct, revoke | Done (#201) | L |
 | 12.3 | Limits per stream per viewer | Done (#201) | S |
+| 12.4 | Pull limits stored per viewer, with temporary bonuses | Done (this PR) | S |
 | 13.1 | Lock down `/api/collection`: server-rolled pulls with one-use tickets | Done (this PR) | M |
 
 ### Tracks 7 to 11: order
@@ -647,6 +648,10 @@ Settings gets a tab **Mix It Up** (id `mixitup`, icon `coins`) with its own KV k
 ### 12.3 Limits per stream per viewer (Done, #201)
 
 `limit` paid pulls per viewer per stream. "Per stream" = the current Twitch stream (`getLiveStatus().startedAt`, the same marker the recap uses). While offline or when Twitch is not configured, the window is the UTC day, so test pulls off-stream are still bounded. Counter `mixitup:cnt:<streamKey>:<user>` (3 day TTL), raised when a pull is reserved and lowered when it is revoked. A viewer at the limit gets `limit_reached` and the message "X has used all N pulls for this stream." The dashboard is not changed.
+
+### 12.4 Pull limits stored with each viewer (Done)
+
+The per-stream limit is now data on the viewer, so buff cards can raise it later. KV `user:<name>:pulllimit` = `{ limit: number | null, buffs: [{ id, amount, until, source, note? }] }` (`lib/pull-limit-core.ts` pure, `lib/pull-limit.ts` KV). The Mix It Up tab's number is only the **default**. A viewer's effective limit = their own `limit` (else the default) + every buff still running; a base of 0 means no limit and buffs cannot change that. `reservePaidPull` reads it per pull. A buff records its `source` (`admin` now, `card:<id>` for a future buff card) and an end time (null = until removed); a future card only has to call `addUserPullBuff(username, { amount, hours, source })`. Admin: user page → Admin tab → **Pull limit** (own limit, bonuses with hours and a note, used this stream); every change is in the user's audit trail. The key is deleted with the account (`account-deletion`). `scripts/check-pull-limit.mts`.
 
 **Files:** `lib/mixitup-core.ts` (settings, cleaning, template, reply parsing, stream key, decisions; pure), `lib/mixitup.ts` (KV, calls, reserve / settle / revoke, log), `app/admin/settings/MixItUpConfig.tsx` + actions in `app/admin/settings/mixitup-actions.ts`, hooks in `app/api/webhooks/pull/route.ts`, `app/api/collection/route.ts`, `public/widget.js` (pass `payId`), `scripts/check-mixitup.mts` (fake Mix It Up, mock KV: price, limit, pending, revoke, double settle), `docs/admin.md` + `docs/overlay.md` notes, changelog: none (staff-only).
 
