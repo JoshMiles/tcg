@@ -127,3 +127,28 @@ export function copiesForDialog<T extends { variant: Variant; n: number }>(copie
   }
   return { tracked: true, groups, total: list.length, shown, more: list.length - shown, only: list.length === 1 ? list[0] : null };
 }
+
+export interface PrintLike { id: string; card: number; variant: Variant; n: number }
+
+/** The holder's best print of one card in one version: the lowest edition number (the biggest edition bonus). */
+export function bestPrintOf<T extends PrintLike>(copies: T[], card: number, variant: Variant): T | undefined {
+  let best: T | undefined;
+  for (const c of copies) if (c.card === card && c.variant === variant && (!best || c.n < best.n)) best = c;
+  return best;
+}
+
+/** The rarest prints a collector holds: one per card and version (their lowest edition of it), rarest first by `chance` (the odds of pulling
+ * that card in that version), ties to the lower edition number, then the lower card number. Prints with no known chance are left out. */
+export function rarestPrints<T extends PrintLike>(copies: T[], chance: (card: number, variant: Variant) => number, limit = 5): (T & { chance: number })[] {
+  const best = new Map<string, T>();
+  for (const c of copies) {
+    const k = `${c.card}.${c.variant}`;
+    const cur = best.get(k);
+    if (!cur || c.n < cur.n) best.set(k, c);
+  }
+  return [...best.values()]
+    .map(c => ({ ...c, chance: chance(c.card, c.variant) }))
+    .filter(c => c.chance > 0)
+    .sort((a, b) => a.chance - b.chance || a.n - b.n || a.card - b.card)
+    .slice(0, limit);
+}
