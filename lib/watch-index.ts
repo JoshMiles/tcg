@@ -1,7 +1,8 @@
 import { kv } from './db';
 import { getAllCollectionUsers } from './kv';
 import { getUserSettings } from './user-settings-store';
-import { alertCards } from './watch-core';
+import { alertCards, wantedCounts } from './watch-core';
+import type { Trade } from './trade-core';
 import type { UserSettings } from './user-settings';
 
 // Who wants to hear about which card: a KV set per card number (`watch:idx:<card>`) of the viewers whose Looking for list or saved
@@ -37,4 +38,27 @@ export async function watchersOf(cards: number[]): Promise<string[]> {
     for (const c of new Set(cards)) for (const u of ((await kv.smembers(setKey(c))) as string[]) ?? []) found.add(u);
     return [...found];
   } catch { return []; }
+}
+
+/** Who wants each of these cards, one read per distinct card. Empty on any failure. */
+export async function watchersByCard(cards: number[]): Promise<Record<number, string[]>> {
+  const out: Record<number, string[]> = {};
+  try {
+    await ensureIndex();
+    for (const c of new Set(cards)) out[c] = ((await kv.smembers(setKey(c))) as string[]) ?? [];
+  } catch { /* none */ }
+  return out;
+}
+
+/** Wanted counts for open board listings, keyed by trade id; one batch of reads for all of them (not per viewer, not per listing). */
+export async function wantedForTrades(trades: Trade[]): Promise<Record<string, Record<number, number>>> {
+  const listings = trades.filter(t => t.kind === 'listing' && t.status === 'open');
+  if (listings.length === 0) return {};
+  const by = await watchersByCard(listings.flatMap(t => t.give.map(i => i.cardNumber)));
+  const out: Record<string, Record<number, number>> = {};
+  for (const t of listings) {
+    const counts = wantedCounts(t.give, by, [t.from, ...(t.to ? [t.to] : [])]);
+    if (Object.keys(counts).length > 0) out[t.id] = counts;
+  }
+  return out;
 }

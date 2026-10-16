@@ -11,7 +11,7 @@ import { stackPoints, type TradeCardInfo } from './trade-view-core';
 import type { SerialPool } from './serials-core';
 import { getTradeCards } from './trade-view';
 import type { Notice, NoticeKind, Swap, SwapCard } from './trade-notice-core';
-import { watchersOf } from './watch-index';
+import { watchersOf, wantedForTrades } from './watch-index';
 import { matchingAlerts } from './watch-core';
 import { notifyListing } from './discord';
 import { encodeEntry } from './variants';
@@ -126,9 +126,15 @@ export async function announceTrade(trade: Trade, action: TradeAction, by?: stri
         else if (trade.kind === 'direct') await tell(trade.to, 'offer', `@${trade.from} offered you a trade: they give ${sentence}.`);
         else {
           await notifyWatchers(trade, cards);
+          const counts = (await wantedForTrades([trade]))[trade.id] ?? {};
+          const wanted = trade.give.filter(i => counts[i.cardNumber]).map(i => {
+            const n = counts[i.cardNumber];
+            const v = i.variant === 'regular' ? '' : ` (${VARIANT_LABELS[i.variant]})`;
+            return `${n} ${n === 1 ? 'collector is' : 'collectors are'} looking for ${cards[i.cardNumber]?.name ?? `#${i.cardNumber}`}${v}`;
+          });
           await notifyListing({
             id: trade.id, from: trade.from, expiresAt: trade.expiresAt, give: withEditions(trade.give, give, pools.give), get, givePts: stackPoints(trade.give, cards, pools.give),
-            getPts: stackPoints(trade.get, cards, pools.get), imageUrl: cards[trade.give[0]?.cardNumber]?.imageUrl, note: trade.note,
+            getPts: stackPoints(trade.get, cards, pools.get), imageUrl: cards[trade.give[0]?.cardNumber]?.imageUrl, note: trade.note, wanted,
           });
         }
         break;

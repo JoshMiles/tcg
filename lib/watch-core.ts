@@ -22,3 +22,17 @@ export function watchLabel(w: Watch, nameOf: (n: number) => string | undefined):
   const name = nameOf(w.card) ?? `#${w.card}`;
   return w.variant ? `${VARIANT_LABELS[w.variant]} ${name}` : `${name} (any version)`;
 }
+
+/**
+ * How many viewers want each card a listing gives: the people on that card's watch list, minus the `exclude` logins (the lister, and the
+ * trade's own recipient if it has one). Only cards with at least one are returned. Counts only, never names.
+ */
+export function wantedCounts(given: Pick<OfferedCard, 'cardNumber'>[], watchersByCard: Record<number, string[]>, exclude: string[] = []): Record<number, number> {
+  const skip = new Set(exclude.map(u => u.toLowerCase()));
+  const out: Record<number, number> = {};
+  for (const { cardNumber } of given) {
+    const n = new Set((watchersByCard[cardNumber] ?? []).map(u => u.toLowerCase()).filter(u => !skip.has(u))).size;
+    if (n > 0) out[cardNumber] = n;
+  }
+  return out;
+}

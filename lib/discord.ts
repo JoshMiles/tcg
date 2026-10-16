@@ -435,6 +435,8 @@ export interface ListingNotice {
   /** The first given card's art. */
   imageUrl?: string;
   note?: string;
+  /** Lines like "3 collectors are looking for Gouda (Shiny)", only for cards someone wants. */
+  wanted?: string[];
 }
 
 /**
@@ -454,6 +456,7 @@ export async function notifyListing(l: ListingNotice): Promise<void> {
       fields: [
         { name: `Gives · ≈${l.givePts.toLocaleString()} pts`, value: list(l.give.map(esc)), inline: true },
         { name: `Wants · ≈${l.getPts.toLocaleString()} pts`, value: list(l.get.map(esc)), inline: true },
+        ...(l.wanted?.length ? [{ name: 'Wanted', value: l.wanted.map(esc).join('\n').slice(0, 1000) }] : []),
         { name: 'Ends', value: `<t:${Math.floor(l.expiresAt / 1000)}:R>`, inline: true },
         ...(l.note ? [{ name: 'Note', value: esc(l.note).slice(0, 200) }] : []),
       ],

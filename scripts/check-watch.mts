@@ -18,6 +18,10 @@ ok(w.alertCards(s).sort().join() === '1,2,3,4', 'index keys: the Looking for car
 ok(!us.wantsNotice({ ...s, notifyWatch: false }, 'watch') && us.wantsNotice({ ...s, notifyWatch: false }, 'offer'), 'the watch switch only governs watch notices');
 ok(w.watchLabel({ card: 2, variant: 'shiny' }, () => 'Gouda') === 'Shiny Full Art Gouda' && w.watchLabel({ card: 2, variant: null }, () => 'Gouda') === 'Gouda (any version)', 'labels');
 
+const wc = w.wantedCounts([{ cardNumber: 1 }, { cardNumber: 2 }, { cardNumber: 2 }, { cardNumber: 3 }], { 1: ['alice', 'Bob', 'carol'], 2: ['alice', 'alice'], 3: ['bob'] }, ['bob']);
+ok(JSON.stringify(wc) === '{"1":2,"2":1}', `wanted counts drop the excluded, count a person once, and skip zeros: ${JSON.stringify(wc)}`);
+ok(Object.keys(w.wantedCounts([{ cardNumber: 9 }], {}, [])).length === 0, 'no watchers, no entry');
+
 // ── stored ──
 const kvLib = await import('../lib/kv');
 const { kv } = await import('../lib/db');
