@@ -178,6 +178,10 @@ export interface TradeRow {
   createdAt: number;
   resolvedAt?: number;
   expiresAt: number;
+  /** Staff reversed this completed trade (the prints went back). */
+  reversedAt?: number;
+  reversedBy?: string;
+  reverseReason?: string;
   flags: TradeFlag[];
 }
 

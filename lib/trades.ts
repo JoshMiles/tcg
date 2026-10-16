@@ -1,12 +1,12 @@
 import { protectFavourites } from './favourites';
-import { escrowOwner, isEscrow } from './serials-core';
-import { firstNotHeld, isTracking, printLabel, serialPool } from './serials';
+import { escrowOwner, isEscrow, entryOf, newestFirst, parseCopyId } from './serials-core';
+import { firstNotHeld, getCopy, getOwnerCopies, isTracking, liveCopiesOfEntry, printLabel, serialPool } from './serials';
 import { getUserSettings } from './user-settings-store';
 import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserProfile, saveCollection, withCollectionLock, withLock } from './kv';
 import { announceTrade, type EventPools, type TradeAction } from './trade-notify';
 import { currentStaffLogin } from './staff-actor';
-import { allowedVariants, encodeEntry } from './variants';
+import { allowedVariants, encodeEntry, removeEntries } from './variants';
 import {
   DEFAULT_TRADE_SETTINGS, TRADE_LIMITS, cleanItems, itemEntries, sanitizeTradeSettings, settleTrade, takeForEscrow,
   describeItems, hasPickedPrints, moveOf, withChosenPrints, type Trade, type TradeItem, type TradeSettings, type TradeStatus,
@@ -357,6 +357,7 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
 
     // Read the serials on both sides before the copies change hands (picked prints are priced from their own ids).
     const pools = await snapshotPools(trade.seasonId, { give: escrowOwner(trade.id), get: taker });
+    let moved: Trade['moved'];
     const result = await withCollectionLock(season.collectionName, async () => {
       const data = await getCollection(season.collectionName);
       // The taker's favourite prints stay put: picked ones are refused, unpicked stacks skip them. The offer stays open.
@@ -373,6 +374,7 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
         const pinned = trade.get.some(t => t.cardNumber === item.cardNumber && t.variant === item.variant && t.ids);
         return { ok: false as const, text: `${pinned ? 'That offer asks for' : 'You chose'} ${await printLabel(season.collectionName, gone.id)}, which you no longer hold.` };
       }
+      moved = await movedPrints(season.collectionName, escrowOwner(trade.id), trade.give, taker, get!);
       data[trade.from] = settled.offerer;
       data[taker] = settled.taker;
       // Identity follows the cards: the offer's copies leave escrow for the taker, the asked-for copies go to the offerer.
@@ -388,11 +390,22 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
     }
     // The escrow has been handed over, so close without refunding. The record keeps the exact prints that came back.
     trade.escrowed = false;
-    trade.get = get;
+    trade.get = get!;
+    if (moved) trade.moved = moved;
     await closeTrade(open, history, trade, 'accepted', taker, undefined, false, pools);
     await persist(open, history);
     return { ok: true, trade };
   });
+}
+
+/** The exact prints a settlement is about to move (read before they do): the escrow's for `give`, the taker's for `get`. Undefined when the season's prints are not numbered. */
+async function movedPrints(c: string, escrow: string, give: TradeItem[], taker: string, get: TradeItem[]): Promise<Trade['moved']> {
+  if (!(await isTracking(c))) return undefined;
+  const pick = async (owner: string, items: TradeItem[]) => {
+    const have = await getOwnerCopies(c, owner);
+    return items.flatMap(i => i.ids ?? newestFirst(have.filter(x => entryOf(x) === encodeEntry(i.cardNumber, i.variant)), i.count).map(x => x.id));
+  };
+  return { give: await pick(escrow, give), get: await pick(taker, get) };
 }
 
 /** The recipient says no: the offerer's copies are refunded. */
@@ -501,5 +514,119 @@ export async function extendOpenTrades(ids: string[] | null, hours: number): Pro
     }
     await persist(open, history);
     return n;
+  });
+}
+
+// ── reversing a completed trade (ROADMAP 9.2) ─────────────
+
+const REVERSE_WINDOW = { before: 10_000, after: 1_000 }; // the ledger stamps a move a moment before the trade record is closed
+
+/**
+ * The prints an older trade moved, rebuilt from the ledger: live copies of the traded cards with a 'traded' event between the two
+ * people at the time it settled. Returns null unless every stack is matched exactly (no more, no fewer), so a guess never moves anything.
+ */
+async function rebuildMoved(c: string, trade: Trade, taker: string): Promise<Trade['moved'] | null> {
+  if (!trade.resolvedAt || !(await isTracking(c))) return null;
+  const at = trade.resolvedAt;
+  const side = async (items: TradeItem[], by: string, to: string): Promise<string[] | null> => {
+    const out: string[] = [];
+    for (const i of items) {
+      const live = await liveCopiesOfEntry(c, encodeEntry(i.cardNumber, i.variant));
+      if (live.length > 3000) return null;
+      const hits: string[] = [];
+      for (const { id } of live) {
+        const copy = await getCopy(c, id);
+        if (copy?.ev.some(e => e.type === 'traded' && e.who === by && e.to === to && e.t >= at - REVERSE_WINDOW.before && e.t <= at + REVERSE_WINDOW.after)) hits.push(id);
+      }
+      if (hits.length !== i.count) return null;
+      out.push(...hits);
+    }
+    return out;
+  };
+  const give = await side(trade.give, trade.from, taker);
+  const get = give && (await side(trade.get, taker, trade.from));
+  return give && get ? { give, get } : null;
+}
+
+/** The first of these prints that is not with `holder` any more (or is in an open offer), in words; null when all are. */
+async function stillWithReceiver(c: string, holder: string, ids: string[]): Promise<string | null> {
+  const gone = await firstNotHeld(c, [holder], ids);
+  if (!gone) return null;
+  const label = await printLabel(c, gone.id);
+  if (!gone.holder) return `${label} no longer exists.`;
+  return isEscrow(gone.holder) ? `${label} is in an open offer.` : `${label} has since been traded to @${gone.holder}.`;
+}
+
+/** Can this completed trade be reversed automatically? (For the staff button: the reason it can't, or null.) */
+export async function reverseBlocker(trade: Trade): Promise<string | null> {
+  if (trade.status !== 'accepted') return 'Only a completed trade can be reversed.';
+  if (trade.reversedAt) return 'This trade was already reversed.';
+  if (trade.moved) return null;
+  const season = await getSeason(trade.seasonId);
+  if (!season || !trade.resolvedBy) return 'This trade is too old to reverse automatically.';
+  return (await rebuildMoved(season.collectionName, trade, trade.resolvedBy)) ? null : 'This trade is too old to reverse automatically.';
+}
+
+/**
+ * Staff put every print of a completed trade back where it started. All or nothing: each print must still be with the person who
+ * received it and not in an open offer, otherwise nothing moves and the print that has moved on is named. The trade keeps
+ * status 'accepted' and gains reversedAt / reversedBy / reverseReason; each print gets a 'reversed' event (who = staff, note = reason).
+ */
+export async function reverseTrade(id: string, staff: string, reason: string): Promise<TradeResult<{ trade: Trade }>> {
+  const why = reason.trim().slice(0, 300);
+  if (!why) return fail(400, 'Give a reason for reversing this trade.');
+  return locked(async () => {
+    const open = await readOpen();
+    const history = await readHistory();
+    const trade = history.find(t => t.id === id);
+    if (!trade) return fail(404, "That trade isn't in the history.");
+    if (trade.status !== 'accepted') return fail(400, 'Only a completed trade can be reversed.');
+    if (trade.reversedAt) return fail(400, 'This trade was already reversed.');
+    const taker = trade.resolvedBy;
+    const season = await getSeason(trade.seasonId);
+    if (!taker || !season) return fail(400, 'This trade is too old to reverse automatically.');
+    const c = season.collectionName;
+    const result = await withCollectionLock(c, async () => {
+      const moved = trade.moved ?? (await rebuildMoved(c, trade, taker));
+      if (!moved) return { ok: false as const, text: 'This trade is too old to reverse automatically. Use Give / Remove by hand.' };
+      // The offerer's give went to the taker; the taker's get went to the offerer.
+      const blockedBy = (await stillWithReceiver(c, taker, moved.give)) ?? (await stillWithReceiver(c, trade.from, moved.get));
+      if (blockedBy) return { ok: false as const, text: `Can't reverse: ${blockedBy}` };
+      const data = await getCollection(c);
+      const groups = (ids: string[]) => {
+        const m = new Map<number, string[]>();
+        for (const pid of ids) { const p = parseCopyId(pid); if (p) { const e = encodeEntry(p.card, p.variant); m.set(e, [...(m.get(e) ?? []), pid]); } }
+        return m;
+      };
+      const reversal = { who: staff, note: why };
+      const moves: { from: string; to: string; entry: number; count: number; ids: string[]; reversal: typeof reversal }[] = [];
+      let fromList = data[trade.from] ?? [];
+      let takerList = data[taker] ?? [];
+      const mismatch = { ok: false as const, text: "Can't reverse: the collections no longer match the trade." };
+      for (const [entry, ids] of groups(moved.give)) {
+        const rest = removeEntries(takerList, entry, ids.length);
+        if (!rest) return mismatch;
+        takerList = rest; fromList = [...fromList, ...Array<number>(ids.length).fill(entry)];
+        moves.push({ from: taker, to: trade.from, entry, count: ids.length, ids, reversal });
+      }
+      for (const [entry, ids] of groups(moved.get)) {
+        const rest = removeEntries(fromList, entry, ids.length);
+        if (!rest) return mismatch;
+        fromList = rest; takerList = [...takerList, ...Array<number>(ids.length).fill(entry)];
+        moves.push({ from: trade.from, to: taker, entry, count: ids.length, ids, reversal });
+      }
+      data[trade.from] = fromList;
+      data[taker] = takerList;
+      await saveCollection(c, data, { moves });
+      return { ok: true as const, moved };
+    });
+    if (!result.ok) return fail(400, result.text);
+    trade.moved = result.moved;
+    trade.reversedAt = Date.now();
+    trade.reversedBy = staff;
+    trade.reverseReason = why;
+    await persist(open, history);
+    queueEvent(trade, 'reversed', 'admin');
+    return { ok: true, trade };
   });
 }
