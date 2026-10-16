@@ -16,7 +16,7 @@ import {
 const KEY = 'mixitup:settings';
 const LOG = 'mixitup:log';
 const TIMEOUT_MS = 5000;
-const PAY_TTL_S = 3600;
+const PAY_TTL_S = 12 * 3600; // as long as a draw ticket (lib/draw.ts)
 const COUNT_TTL_S = 3 * 86400;
 
 export async function getMixItUpSettings(): Promise<MixItUpSettings> {
@@ -143,6 +143,14 @@ export async function chargePaidPull(s: MixItUpSettings, c: Claimed, d: PullDeta
   const applied = replyApplied(r.status, r.body);
   await logMixItUp({ username: c.username, what: 'deduct', ok: applied, detail: applied ? `${c.amount} ${s.currency}` : r.error ?? `HTTP ${r.status}, not applied` });
   return applied ? { applied } : { applied, error: r.error ?? `HTTP ${r.status}` };
+}
+
+/** Cancels a reservation whose pull never got queued: the viewer's allowance and in-flight count come back. */
+export async function releasePaidPull(payId: string): Promise<void> {
+  const rec = await kv.get<PayRecord>(payKey(payId)).catch(() => null);
+  if (!rec || (await kv.del(payKey(payId))) !== 1) return;
+  await kv.decr(pendKey(rec.username)).catch(() => {});
+  await releaseCount({ payId, username: rec.username, amount: rec.amount, stream: rec.stream });
 }
 
 /** A claimed pull that was not charged: give the viewer's pull allowance back. */

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { enqueueEvent, parseIncomingWebhook } from '@/lib/webhooks';
 import { recordActivity } from '@/lib/activity';
 import { liveGate } from '@/lib/overlay-settings';
-import { getMixItUpSettings, reservePaidPull } from '@/lib/mixitup';
+import { getMixItUpSettings, releasePaidPull, reservePaidPull } from '@/lib/mixitup';
 import { inSandbox } from '@/lib/db';
+import { dropDraw, issueDraw } from '@/lib/draw';
 
 export async function POST(req: NextRequest) {
   const parsed = await parseIncomingWebhook(req);
@@ -22,7 +23,18 @@ export async function POST(req: NextRequest) {
     if (!r.ok) return NextResponse.json({ ok: true, ignored: true, reason: r.reason, message: r.message, ...(r.balance !== undefined ? { balance: r.balance } : {}) });
   }
 
-  await enqueueEvent({ id, type: 'pull', username: parsed.username, queuedAt: Date.now(), ...(paid ? { paid: true } : {}) });
+  const draw = await issueDraw(id, parsed.username, paid);
+  if (!draw) {
+    if (paid) await releasePaidPull(id);
+    return NextResponse.json({ ok: true, ignored: true, reason: 'no_packs', message: 'There is no active season with packs to open.' });
+  }
+  try {
+    await enqueueEvent({ id, type: 'pull', username: parsed.username, queuedAt: Date.now(), draw, ...(paid ? { paid: true } : {}) });
+  } catch (e) {
+    await dropDraw(id);
+    if (paid) await releasePaidPull(id);
+    throw e;
+  }
   await recordActivity({ type: 'trigger', kind: 'pull', username: parsed.username });
   return NextResponse.json({ ok: true });
 }

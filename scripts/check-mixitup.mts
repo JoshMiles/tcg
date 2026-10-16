@@ -101,6 +101,14 @@ ok(left !== null && !left.includes(entry) && !(await kvLib.getCollection(coll)).
 ok((await m.revokePrint(coll, 'ann', entry, added.copyId)) === null, 'revoking twice changes nothing');
 await m.releaseCount(claim!);
 
+// ── Release: a reservation whose pull was never queued gives everything back ──
+const lim = c.normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 100, limit: 1 });
+ok((await m.reservePaidPull(lim, 'dan', 'x1', fake)).ok && !(await m.reservePaidPull(lim, 'dan', 'x2', fake)).ok, 'dan used his one pull');
+await m.releasePaidPull('x1');
+ok((await m.reservePaidPull(lim, 'dan', 'x3', fake)).ok, 'releasing the reservation gave the pull back');
+await m.releasePaidPull('x1');
+ok(!(await m.reservePaidPull(lim, 'dan', 'x4', fake)).ok, 'releasing twice does not give back more than was taken');
+
 // ── Log ──
 const log = await m.getMixItUpLog();
 ok(log.length > 0 && log.length <= 20 && log.some(e => e.what === 'refused') && log.some(e => e.what === 'deduct' && !e.ok), 'the log keeps the last 20, refusals and failed charges included');

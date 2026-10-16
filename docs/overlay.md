@@ -4,8 +4,8 @@
 
 ## OBS widget data flow
 1. Widget calls `GET /api/seasons/active` on load → returns `{ season, packs: [{ pack, cards }] }`
-2. Widget picks pack by weight, then card by probability
-3. Widget calls `POST /api/collection` to save card number to legacy collection (duplicates allowed, pull count). A queued pull with `paid: true` (Mix It Up, see docs/admin.md) is saved with its `payId`; the reply may be `{ ok: true, revoked: true, owned }` when the payment failed, and the widget just resyncs `owned`.
+2. A real pull is **rolled by the server** when it is queued (`lib/draw.ts`, `issueDraw`: pack by weight, card by probability, version by the pack's weights); the queue event carries `draw: { packId, cardNumber, variant }` and the event `id` is the pull's one-use **ticket** (KV `draw:<id>`, 12 h). The overlay plays exactly that draw (the pinned-draw path of `pickPackAndCard`); only the test panel and the editor preview roll in the browser.
+3. Widget calls `POST /api/collection` with `{ pull: { username, ticket, ... } }`. The server claims the ticket (viewer must match, once only) and saves **what the ticket says**, not what the request says: a request without a valid ticket gets 401 and saves nothing. If a Mix It Up payment is attached (`paid`) it is charged first (docs/admin.md); the reply may be `{ ok: true, revoked: true, owned }` when the payment failed, and the widget just resyncs `owned`. Replacing a collection (`data`) and `DELETE` need a staff session, so the test panel's Reset buttons and "Don't save" off only work from a browser signed in to the admin, never in OBS. Pulls queued before tickets existed have no `draw` and are not saved.
 4. Widget reads `GET /api/collection?name={collectionName}` to show mini-list with ×N badge for duplicates
 
 The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMinStars, cardTime, cooldownTime, soundVolume, coverImageUrl) directly from the pack object. Card sounds come from `card.soundUrl` (e.g. `/assets/sounds/1.mp3`).

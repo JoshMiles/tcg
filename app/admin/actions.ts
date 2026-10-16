@@ -36,6 +36,7 @@ import { sampleRecap } from '@/lib/stream-recap';
 import { sampleDigest } from '@/lib/weekly-digest';
 import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
+import { issueDraw } from '@/lib/draw';
 import { getOverlaySettings, saveOverlaySettings, savePackOverrides, savePreset, deletePreset, bumpReloadToken, updateScene } from '@/lib/overlay-settings';
 import { listVersions, recordVersion } from '@/lib/overlay-versions';
 import { sanitizePropValues } from '@/lib/overlay-props';
@@ -639,7 +640,11 @@ async function queueForOverlay(kind: 'pull' | 'collection', formData: FormData, 
   }
 
   for (let i = 0; i < count; i++) {
-    await enqueueEvent({ id: crypto.randomUUID(), type: kind, username, queuedAt: Date.now() });
+    const id = crypto.randomUUID();
+    // A pull is rolled here (lib/draw.ts) so the overlay can only save what was rolled. Gifts are never charged.
+    const draw = kind === 'pull' ? await issueDraw(id, username) : undefined;
+    if (kind === 'pull' && !draw) return { ok: false, message: 'The active season has no packs with cards to open.' };
+    await enqueueEvent({ id, type: kind, username, queuedAt: Date.now(), ...(draw ? { draw } : {}) });
   }
   await recordActivity({ type: 'trigger', kind, username, source: 'admin', count });
   revalidatePath('/admin');
