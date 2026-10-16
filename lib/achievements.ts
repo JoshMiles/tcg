@@ -84,13 +84,13 @@ export function serialGoals(s: AchSeason): Achievement[] {
     if (list.includes(1)) firsts.set(cardNumber, (firsts.get(cardNumber) ?? new Set()).add(variant));
     if ((s.bonusCutoff ?? 0) > 0 && list.some(n => n <= (s.bonusCutoff ?? 0))) early++;
   }
-  goals.push(mk('first-edition', 'First edition', `Hold edition #1 of any card in ${s.seasonName}: the very first copy ever made.`, 'gem', firsts.size > 0 ? 1 : 0, 1));
+  goals.push(mk('first-edition', 'First edition', `Hold edition #1 of any card in ${s.seasonName}: the very first print ever made.`, 'gem', firsts.size > 0 ? 1 : 0, 1));
   if (s.cards.some(c => c.variants.includes('shiny'))) {
     const shinyFirst = [...firsts.values()].some(v => v.has('shiny'));
     goals.push(mk('first-shiny', 'First shiny edition', `Hold edition #1 of a Shiny Full Art card in ${s.seasonName}.`, 'sparkles', shinyFirst ? 1 : 0, 1));
   }
   goals.push(mk('five-firsts', 'Five firsts', `Hold edition #1 of five different cards in ${s.seasonName}.`, 'award', firsts.size, Math.min(5, Math.max(1, s.cards.length))));
-  if ((s.bonusCutoff ?? 0) > 0) goals.push(mk('early-bird', 'Early bird', `Hold a copy with a low enough edition number (#${s.bonusCutoff} or lower) to earn the serial points bonus in ${s.seasonName}.`, 'zap', early > 0 ? 1 : 0, 1));
+  if ((s.bonusCutoff ?? 0) > 0) goals.push(mk('early-bird', 'Early bird', `Hold a print with a low enough edition number (#${s.bonusCutoff} or lower) to earn the edition points bonus in ${s.seasonName}.`, 'zap', early > 0 ? 1 : 0, 1));
   return goals;
 }
 

@@ -151,7 +151,7 @@ function showStatic(mode) {
       cardLabel.style.opacity = '1';
       cardLabel.style.visibility = 'visible';
       showSerial(theater, P, { n: 3, mult: 2.8 });
-      editable(theater.cardBox.querySelector('.serial-badge'), 'label', 'Click to edit the label and serial badge');
+      editable(theater.cardBox.querySelector('.serial-badge'), 'label', 'Click to edit the label and edition badge');
       const burst = burstSpec(P, variant);
       radialContainer.style.opacity = String(burst.opacity);
       if (!burst.on) radialContainer.style.display = 'none';

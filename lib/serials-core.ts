@@ -84,7 +84,7 @@ export function withEvent(c: Copy, e: CopyEvent): Copy {
 }
 
 export const ORIGIN_LABELS: Record<Origin, string> = {
-  pull: 'Pulled live on stream', grant: 'Given as a gift', upgrade: 'Forged in an upgrade', estimated: 'Existed before serials (numbered later)', other: 'Added to the collection',
+  pull: 'Pulled live on stream', grant: 'Given as a gift', upgrade: 'Forged in an upgrade', estimated: 'Existed before editions were numbered (numbered later)', other: 'Added to the collection',
 };
 
 /** "pulled by", "given to", ...: how to say who a copy first belonged to, by how it came to exist (a numbered-later copy was not necessarily pulled). */

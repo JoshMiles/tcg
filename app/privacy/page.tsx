@@ -61,7 +61,7 @@ export default function PrivacyPage() {
             <strong className="text-white">Trade offers</strong> you make or receive (who, which cards, any note you write, and when), kept in a log of the latest 400 finished trades. Open offers on the Trade page, including the board, are visible to logged-in viewers.
           </li>
           <li>
-            <strong className="text-white">A history for every card copy.</strong> Each copy of a card has a serial number and a record of when it was created and who
+            <strong className="text-white">A history for every print.</strong> Each print of a card has a print number, an edition number and a record of when it was created and who
             held, traded or spent it (kept with the usernames involved). It is shown on the card&rsquo;s public page.
           </li>
           <li>
@@ -132,7 +132,7 @@ export default function PrivacyPage() {
             <strong className="text-white">The home page shows recent pulls and gifted cards</strong> (username, card, and when), the top collectors, and season statistics that are built from everyone&rsquo;s collections.
           </li>
           <li>
-            <strong className="text-white">Every card copy has a public history.</strong> Each copy of a card has a serial number and a page showing when it was created and who has held it, traded it or spent it in an upgrade.
+            <strong className="text-white">Every print has a public history.</strong> Each print of a card has a print number, an edition number and a page showing when it was created and who has held it, traded it or spent it in an upgrade.
             Collectors with a private profile are shown as &ldquo;a private collector&rdquo; there.
           </li>
           <li>

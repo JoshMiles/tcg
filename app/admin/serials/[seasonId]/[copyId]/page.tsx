@@ -15,7 +15,7 @@ import { removeCopyAction, transferCopyAction } from '../../../serial-actions';
 
 // The tab names the copy (its id is card.version.serial), so several open copies can be told apart.
 export async function generateMetadata({ params }: { params: Promise<{ seasonId: string; copyId: string }> }) {
-  return { title: `Copy ${(await params).copyId} · Admin`, robots: { index: false } };
+  return { title: `Print ${(await params).copyId} · Admin`, robots: { index: false } };
 }
 export const dynamic = 'force-dynamic';
 
@@ -47,10 +47,10 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={<>{label} <span className="text-yellow-400 tabular-nums">#{copy.n}</span>{copy.uid ? <span className="ml-3 text-base text-gray-400 tabular-nums">ID #{copy.uid}</span> : null}</>}
+        title={<>{label} <span className="text-yellow-400 tabular-nums">#{copy.n}</span>{copy.uid ? <span className="ml-3 text-base text-gray-400 tabular-nums">Print #{copy.uid}</span> : null}</>}
         icon="cheese"
         subtitle={`${season.name}${pack ? ` · ${pack.name}` : ''} · ${made.toLocaleString()} ${VARIANT_LABELS[copy.variant]} made`}
-        back={{ href: `/admin/serials?season=${encodeURIComponent(season.id)}&card=${copy.card}&variant=${copy.variant}`, label: 'Serials' }}
+        back={{ href: `/admin/serials?season=${encodeURIComponent(season.id)}&card=${copy.card}&variant=${copy.variant}`, label: 'Prints' }}
         actions={<Link href={`/copy/${encodeURIComponent(season.id)}/${copy.id}`} className="px-3 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-300 hover:text-white">Public page ↗</Link>}
       />
 
@@ -64,7 +64,7 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
         <div className="space-y-6 min-w-0">
           <Panel title="Details" icon="info">
             <dl className="grid grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
-              <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Copy id</dt><dd className="font-mono text-gray-200">{copy.id}</dd></div>
+              <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Print id</dt><dd className="font-mono text-gray-200">{copy.id}</dd></div>
               <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{retired ? 'Status' : 'Held by'}</dt><dd className="text-gray-200">{retired ? <Chip tone="gray">retired</Chip> : user(copy.owner)}</dd></div>
               <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Created</dt><dd className="text-gray-200">{when(copy.at)}</dd></div>
               <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Origin</dt><dd className="text-gray-200">{ORIGIN_LABELS[copy.origin]}{copy.est && <> <Chip tone="amber">estimated number</Chip></>}</dd></div>
@@ -74,9 +74,9 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
             )}
           </Panel>
 
-          <Panel title="Actions" icon="wrench" hint="These change the holder's collection and this copy's history together. Neither works while the copy sits in an open trade offer.">
+          <Panel title="Actions" icon="wrench" hint="These change the holder's collection and this print's history together. Neither works while the print sits in an open trade offer.">
             {retired ? (
-              <p className="text-sm text-gray-500">This copy no longer exists, so there is nothing to do with it. Its history is below.</p>
+              <p className="text-sm text-gray-500">This print no longer exists, so there is nothing to do with it. Its history is below.</p>
             ) : inOffer ? (
               <p className="text-sm text-amber-200">It is held by an open trade offer. Cancel the offer from <Link href="/admin/trades" className="underline">Trades</Link> and it comes back to its owner, then you can act on it.</p>
             ) : (
@@ -86,10 +86,10 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
                     <UserInput name="to" required placeholder="their Twitch username" wrapperClassName="relative block" className={`${field} block w-56`} />
                   </label>
                   <ConfirmButton
-                    title="Give this copy away?"
+                    title="Give this print away?"
                     confirmLabel="Give it"
                     tone="primary"
-                    message={<>This moves the copy, with any serial bonus it earns, from <strong className="text-white">@{copy.owner}</strong> to the viewer you typed. It is logged as an admin transfer in the copy&rsquo;s history. If nobody has used that name yet, it becomes a new account, so check the spelling.</>}
+                    message={<>This moves the print, with any edition bonus it earns, from <strong className="text-white">@{copy.owner}</strong> to the viewer you typed. It is logged as an admin transfer in the print&rsquo;s history. If nobody has used that name yet, it becomes a new account, so check the spelling.</>}
                     className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-600 text-gray-100 hover:border-yellow-500/60"
                   >
                     <Icon name="send" className="mr-1.5" />Give
@@ -99,7 +99,7 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
                   <ConfirmButton
                     title={`Remove ${label} #${copy.n}?`}
                     confirmLabel="Remove it"
-                    message={<>This takes the copy out of <strong className="text-white">@{copy.owner}</strong>&rsquo;s collection for good. Its number is never reused, and its history stays here.</>}
+                    message={<>This takes the print out of <strong className="text-white">@{copy.owner}</strong>&rsquo;s collection for good. Its number is never reused, and its history stays here.</>}
                     className="px-4 py-2 text-sm font-bold rounded-lg border border-red-500/40 text-red-300 hover:bg-red-950/40"
                   >
                     <Icon name="trash" className="mr-1.5" />Remove from {copy.owner}&rsquo;s collection

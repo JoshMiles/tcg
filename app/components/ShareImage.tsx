@@ -83,7 +83,7 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
     spaced(ctx, 0);
   };
 
-  engrave('THE CHEESY TCG  ·  UNIQUE COPY', left, r.y + 46, 16, 800, pl.ink, textW, font, 3);
+  engrave('THE CHEESY TCG  ·  PRINT', left, r.y + 46, 16, 800, pl.ink, textW, font, 3);
   // A fine rule under the label.
   ctx.fillStyle = pl.lo; ctx.fillRect(left, r.y + 58, textW, 1);
   ctx.fillStyle = pl.hi; ctx.fillRect(left, r.y + 59, textW, 1);

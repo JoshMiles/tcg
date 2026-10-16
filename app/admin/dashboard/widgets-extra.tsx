@@ -161,7 +161,7 @@ export function Progress({ d }: { d: DashboardData }) {
           <div className="h-2 rounded-full bg-gray-800 overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-yellow-500 to-amber-300" style={{ width: `${pct}%` }} /></div>
         </div>
         {row('Running for', `${days} day${days === 1 ? '' : 's'}`)}
-        {row('Copies in collections', d.totalOwned.toLocaleString())}
+        {row('Prints in collections', d.totalOwned.toLocaleString())}
         {row('Average per day', Math.round(d.totalOwned / days).toLocaleString())}
         {row('Complete collections', complete.toLocaleString())}
       </div>

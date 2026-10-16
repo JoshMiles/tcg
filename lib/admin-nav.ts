@@ -30,7 +30,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   { title: 'Community', items: [
     { href: '/admin/users', label: 'Users', icon: 'users', key: 'u', keywords: ['viewers', 'collectors'] },
     { href: '/admin/trades', label: 'Trades', icon: 'trade', key: 't', keywords: ['offers', 'escrow'] },
-    { href: '/admin/serials', label: 'Serials', icon: 'cheese', key: 'n', keywords: ['copies', 'numbers', 'serial', 'history', 'holders'] },
+    { href: '/admin/serials', label: 'Prints', icon: 'cheese', key: 'n', keywords: ['prints', 'copies', 'numbers', 'serial', 'edition', 'history', 'holders'] },
   ] },
   { title: 'System', items: [
     { href: '/admin/staff', label: 'Staff', icon: 'shield', key: 'f', keywords: ['admins', 'mods', 'moderators', 'roles', 'permissions', 'team'] },

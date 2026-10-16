@@ -192,7 +192,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
                   <p className="text-sm font-semibold text-white truncate">{c.name}</p>
                   <p className="text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)} {rarity?.label}</p>
                   <p className="text-[11px] text-gray-500">1 in {Math.round(1 / c.pullRate).toLocaleString()} · {c.copies} out there</p>
-                  <p className="text-[11px] text-yellow-300/90 tabular-nums" title={c.upgradable ? 'Points per copy: Regular · Reverse Holo · Full Art · Shiny' : 'Points per copy'}>
+                  <p className="text-[11px] text-yellow-300/90 tabular-nums" title={c.upgradable ? 'Points per print: Regular · Reverse Holo · Full Art · Shiny' : 'Points per print'}>
                     {c.upgradable ? c.values.join(' · ') : c.values[0]} pts
                   </p>
                 </div>
@@ -285,7 +285,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
             <div className="grid grid-cols-3 gap-3">
               <Stat label="Pull chance" value={oneIn(card.pullRate)} sub="per pack" />
-              <Stat label="Copies out there" value={card.copies.toLocaleString()} sub="across everyone" />
+              <Stat label="Prints out there" value={card.copies.toLocaleString()} sub="across everyone" />
               <Stat label="Collectors" value={card.collectors.toLocaleString()} sub="own at least one" />
             </div>
 
@@ -321,7 +321,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
             {firsts && firsts.some(x => x.made > 0) && (
               <div className="space-y-2">
-                <h3 className="font-display text-xl font-bold text-white">First copies</h3>
+                <h3 className="font-display text-xl font-bold text-white">First prints</h3>
                 <ul className="divide-y divide-gray-800/70 rounded-xl border border-gray-800 overflow-hidden text-sm">
                   {firsts.filter(x => x.made > 0).map(x => {
                     const who = (u?: string | null) => (!u ? null : u === 'private' ? <span className="text-gray-400">a private collector</span> : u === 'offer' ? <span className="text-gray-400">a trade offer</span> : <span className="text-yellow-300 font-bold">@{u}</span>);  // plain text: the whole row is already a link to the copy
@@ -337,9 +337,9 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                     );
                   })}
                 </ul>
-                <p className="text-[11px] text-gray-600">A &ldquo;~&rdquo; means the copy existed before serial numbers and its order is an estimate.</p>
+                <p className="text-[11px] text-gray-600">A &ldquo;~&rdquo; means the print existed before editions were numbered and its order is an estimate.</p>
                 <Link href={`/cards/${card.number}/copies?season=${encodeURIComponent(seasonId)}`} className="flex items-center justify-between gap-2 rounded-xl border border-gray-800 bg-gray-950/40 px-3 py-2.5 text-sm font-bold text-gray-300 hover:text-white hover:border-yellow-500/40 transition-colors">
-                  <span><Icon name="cheese" className="mr-1.5" />Browse every copy</span><Icon name="chevronRight" className="text-gray-500" />
+                  <span><Icon name="cheese" className="mr-1.5" />Browse every print</span><Icon name="chevronRight" className="text-gray-500" />
                 </Link>
               </div>
             )}
@@ -389,7 +389,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                   })}
                 </ol>
               )}
-              <p className="text-[11px] text-gray-600">Ranked by how many copies of this card they own, across all versions.</p>
+              <p className="text-[11px] text-gray-600">Ranked by how many prints of this card they own, across all versions.</p>
             </div>
           </div>
         </div>

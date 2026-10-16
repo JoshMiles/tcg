@@ -286,7 +286,7 @@ function Side({
       <div className="border-t border-gray-800 pt-3 space-y-2">
         <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards…" aria-label={`Search ${title} cards`} className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
         {spareOf && cards.length > 0 && (
-          <button type="button" onClick={() => setSpares(x => !x)} aria-pressed={spares} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${spares ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-400 hover:text-white'}`}>Spares only (2+ copies)</button>
+          <button type="button" onClick={() => setSpares(x => !x)} aria-pressed={spares} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${spares ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-400 hover:text-white'}`}>Spares only (2+ prints)</button>
         )}
         {cards.length === 0 ? <p className="text-sm text-gray-500">{empty}</p> : (
           <ul className="max-h-72 overflow-y-auto space-y-1 pr-1">

@@ -39,7 +39,7 @@ const TABS: (PageTab & { hint: string })[] = [
 const SAVED_MESSAGES: Record<string, string> = {
   scoring: 'Scoring saved. The leaderboard and card values now use the new numbers.',
   'scoring-reset': 'Scoring reset to the defaults.',
-  serials: 'Done. Existing copies are numbered, and every copy has a unique number.',
+  serials: 'Done. Existing prints are numbered, and every print has a print number.',
   'preview-seeded': 'Copied the live setup into this preview.',
   'preview-wiped': 'Preview data wiped.',
   backup: 'Backup finished.',
@@ -49,15 +49,15 @@ const SAVED_MESSAGES: Record<string, string> = {
 
 const SCORING_GROUPS: ScoringGroupConfig[] = [
   { title: 'Card values', fields: [
-    { name: 'baseScore', label: 'Base score', help: 'Points one Regular copy of an average card is worth. Scales every card value (and the bonuses, which are measured against card values).' },
+    { name: 'baseScore', label: 'Base score', help: 'Points one Regular print of an average card is worth. Scales every card value (and the bonuses, which are measured against card values).' },
     { name: 'rarityExponent', label: 'Rarity strength', help: 'How strongly rarity counts. 1 = a card half as likely is worth twice as much; below 1 flattens the gap between common and rare, above 1 widens it.' },
   ] },
-  { title: 'Serial bonus (the first copies of a card are worth more)', fields: [
-    { name: 'serialBonusMax', label: 'Copy #1 multiplier (×)', help: 'What the very first copy ever made of a card (in each version) is worth compared with a normal copy. 3 = triple. 1 = no bonus.' },
-    { name: 'serialBonusCutoff', label: 'Serials that get a bonus', help: 'The bonus fades in a straight line from copy #1 down to nothing after this serial. 20 = copies #1 to #20 earn a bonus. 0 switches the bonus off.' },
+  { title: 'Edition bonus (the first prints of a card are worth more)', fields: [
+    { name: 'serialBonusMax', label: 'Edition #1 multiplier (×)', help: 'What the very first print ever made of a card (in each version) is worth compared with a normal print. 3 = triple. 1 = no bonus.' },
+    { name: 'serialBonusCutoff', label: 'Editions that get a bonus', help: 'The bonus fades in a straight line from edition #1 down to nothing after this edition. 20 = editions #1 to #20 earn a bonus. 0 switches the bonus off.' },
   ] },
   { title: 'Upgrades', fields: [
-    { name: 'upgradeMargin', label: 'Upgrade margin (×)', help: 'An upgraded copy is worth at least this many times the copies spent to make it. 1.2 = 20% more.' },
+    { name: 'upgradeMargin', label: 'Upgrade margin (×)', help: 'An upgraded print is worth at least this many times the prints spent to make it. 1.2 = 20% more.' },
   ] },
   { title: 'Collection bonuses (% of the set value)', fields: [
     { name: 'completionBonusPct', label: 'Completion bonus (%)', help: 'Earned in proportion to how much of the set you own; this is the amount at 100%. 25 = a quarter of the set value.' },

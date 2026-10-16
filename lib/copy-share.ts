@@ -32,7 +32,7 @@ export function copyShareSpec(i: CopyShareInput): ShareSpec {
   return {
     title: label,
     subtitle: `${i.seasonName} · ${i.packName}`,
-    stats: [VARIANT_LABELS[copy.variant], ...(i.mult > 1 ? [`Serial bonus ×${Math.round(i.mult * 100) / 100}`] : [])],
+    stats: [VARIANT_LABELS[copy.variant], ...(i.mult > 1 ? [`Edition bonus ×${Math.round(i.mult * 100) / 100}`] : [])],
     cards: [{ src: i.art, thumb: cardThumbUrl(i.art), name: i.cardName, hex: i.hex }],
     plate: {
       number: `#${copy.uid ?? copy.n}`,

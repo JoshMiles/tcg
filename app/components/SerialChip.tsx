@@ -12,7 +12,7 @@ export function SerialChip({ n, bonus, est = false, className = '', title }: { n
     : 'text-gray-300 border-gray-700 bg-gray-900/60';
   return (
     <span
-      title={title ?? (first ? 'The very first copy ever made' : gold ? `Serial #${n}: worth ×${bonus} points` : `Serial #${n}`)}
+      title={title ?? (first ? 'The very first print ever made' : gold ? `Edition #${n}: worth ×${bonus} points` : `Edition #${n}`)}
       className={`inline-flex items-center gap-1 shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-extrabold tabular-nums whitespace-nowrap ${tone} ${className}`}
     >
       {first && <Icon name="cheese" className="w-3 h-3" />}#{n}{est ? '~' : ''}{gold && !first && <span className="text-[10px] font-bold opacity-90">×{bonus}</span>}

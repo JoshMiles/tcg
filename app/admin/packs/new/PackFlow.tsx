@@ -351,7 +351,7 @@ function UpgradesStep({ pack, set }: { pack: PackInput; set: <K extends keyof Pa
             <NumberField label="Full Art → Shiny" value={c.shiny} min={1} onChange={v => setC('shiny', v)} />
           </div>
           <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-            From Regular copies alone that is <strong className="text-gray-300">{reverseCost}</strong> for a Reverse Holo,{' '}
+            From Regular prints alone that is <strong className="text-gray-300">{reverseCost}</strong> for a Reverse Holo,{' '}
             <strong className="text-gray-300">{fullCost}</strong> for a Full Art and{' '}
             <strong className="text-gray-300">{shinyCost}</strong> for a Shiny Full Art.
           </p>

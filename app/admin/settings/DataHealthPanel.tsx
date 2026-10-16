@@ -23,7 +23,7 @@ export async function DataHealthPanel() {
                 <th className="py-1.5 pr-3 font-bold text-right">Viewers</th>
                 <th className="py-1.5 pr-3 font-bold text-right">Entries</th>
                 <th className="py-1.5 pr-3 font-bold text-right">Largest viewer</th>
-                <th className="py-1.5 font-bold">Serial ledger</th>
+                <th className="py-1.5 font-bold">Print ledger</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/60">

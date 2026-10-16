@@ -8,7 +8,7 @@ import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { Chip, EmptyState, PageHeader, Panel, Tile, selectClass } from '../components/ui';
 
-export const metadata = { title: 'Serials · Admin', robots: { index: false } };
+export const metadata = { title: 'Prints · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 const PAGE = 25;
@@ -21,7 +21,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const seasons = (await listSeasons()).filter(s => s.status !== 'draft');
   const season = seasons.find(s => s.id === sp.season) ?? (await getActiveSeason()) ?? seasons[0];
-  if (!season) return <div className="space-y-6"><PageHeader title="Serials" icon="cheese" /><EmptyState icon="cheese" title="No published seasons yet">Serial numbers belong to a season&rsquo;s cards.</EmptyState></div>;
+  if (!season) return <div className="space-y-6"><PageHeader title="Prints" icon="cheese" /><EmptyState icon="cheese" title="No published seasons yet">Print numbers belong to a season&rsquo;s cards.</EmptyState></div>;
 
   const c = season.collectionName;
   const stats = await serialStats(c);
@@ -44,8 +44,8 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
   if (!stats.tracking) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Serials" icon="cheese" subtitle="Every copy of every card, with its number, holder and history." />
-        <EmptyState icon="cheese" title={`${season.name} has no serial numbers yet`}>Existing copies are numbered once, from Settings → Twitch &amp; viewers → Card serials. After that every new copy is numbered as it is made.</EmptyState>
+        <PageHeader title="Prints" icon="cheese" subtitle="Every print of every card, with its number, holder and history." />
+        <EmptyState icon="cheese" title={`${season.name} has no numbered prints yet`}>Existing prints are numbered once, from Settings → Twitch &amp; viewers → Card prints. After that every new print is numbered as it is made.</EmptyState>
         <p className="text-center"><Link href="/admin/settings?tab=viewers" className="tcg-btn px-4 py-2 rounded-xl text-sm">Open settings</Link></p>
       </div>
     );
@@ -71,10 +71,10 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Serials" icon="cheese" subtitle="Every copy of every card, with its number, holder and history. Open a copy to give it to someone or remove it." />
+      <PageHeader title="Prints" icon="cheese" subtitle="Every print of every card, with its number, holder and history. Open a print to give it to someone or remove it." />
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <Tile label="Copies made" icon="cheese" value={stats.minted.toLocaleString()} sub={season.name} />
+        <Tile label="Prints made" icon="cheese" value={stats.minted.toLocaleString()} sub={season.name} />
         <Tile label="Held now" icon="users" value={stats.live.toLocaleString()} sub="in collections or offers" />
         <Tile label="Retired" icon="trash" value={stats.retired.toLocaleString()} sub="spent, traded away for good or removed" />
         <Tile label="Cards" icon="cards" value={cards.length} sub="in this season" />
@@ -103,7 +103,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
       </form>
 
       {mode === 'overview' ? (
-        <Panel title="Every card" icon="cards" hint="Copies made of each version, with how many are held right now in brackets. Click one to list its copies by number.">
+        <Panel title="Every card" icon="cards" hint="Prints made of each version, with how many are held right now in brackets. Click one to list its prints by number.">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-[10px] uppercase tracking-wider text-gray-500 text-left border-b border-gray-800">
@@ -132,9 +132,9 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
         </Panel>
       ) : (
         <Panel
-          title={mode === 'holder' ? <>@{holder}&rsquo;s copies</> : <>{nameOf(card)}</>}
+          title={mode === 'holder' ? <>@{holder}&rsquo;s prints</> : <>{nameOf(card)}</>}
           icon="cheese"
-          hint={mode === 'holder' ? `${total.toLocaleString()} copies held` : `${total.toLocaleString()} ${VARIANT_LABELS[variant]} copies made`}
+          hint={mode === 'holder' ? `${total.toLocaleString()} prints held` : `${total.toLocaleString()} ${VARIANT_LABELS[variant]} prints made`}
           actions={mode === 'card' ? (
             <div className="flex gap-1">{VARIANTS.map(v => {
               const m = made.get(encodeEntry(card, v)) ?? 0;
@@ -143,12 +143,12 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
           ) : undefined}
         >
           {rows.length === 0 ? (
-            <p className="text-sm text-gray-500 py-6 text-center">{mode === 'holder' ? 'That viewer holds no numbered copies.' : 'No copies of this version have been made.'}</p>
+            <p className="text-sm text-gray-500 py-6 text-center">{mode === 'holder' ? 'That viewer holds no numbered prints.' : 'No prints of this version have been made.'}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-[10px] uppercase tracking-wider text-gray-500 text-left border-b border-gray-800">
-                  <th className="py-2 pr-3">Copy</th>{mode === 'holder' && <th className="py-2 pr-3">Card</th>}<th className="py-2 pr-3">Held by</th><th className="py-2 pr-3">Created</th><th className="py-2 pr-3">Origin</th><th className="py-2" />
+                  <th className="py-2 pr-3">Print</th>{mode === 'holder' && <th className="py-2 pr-3">Card</th>}<th className="py-2 pr-3">Held by</th><th className="py-2 pr-3">Created</th><th className="py-2 pr-3">Origin</th><th className="py-2" />
                 </tr></thead>
                 <tbody className="divide-y divide-gray-800/60">
                   {rows.map(r => {
@@ -179,7 +179,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
               </span>
             </div>
           )}
-          <p className="text-[11px] text-gray-600">{mode === 'card' ? 'Newest first. ' : ''}A “~” means the copy existed before serial numbers and its order is an estimate.</p>
+          <p className="text-[11px] text-gray-600">{mode === 'card' ? 'Newest first. ' : ''}A “~” means the print existed before editions were numbered and its order is an estimate.</p>
         </Panel>
       )}
     </div>

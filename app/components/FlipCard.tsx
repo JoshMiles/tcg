@@ -73,7 +73,7 @@ export function FlipCard({ children, back, compact = false, className = '' }: { 
               )}
               <div className="flip-foot">
                 {qr && (
-                  <svg className="flip-qr" viewBox={`-1 -1 ${qr.size + 2} ${qr.size + 2}`} role="img" aria-label="QR code for this copy's page" shapeRendering="crispEdges">
+                  <svg className="flip-qr" viewBox={`-1 -1 ${qr.size + 2} ${qr.size + 2}`} role="img" aria-label="QR code for this print's page" shapeRendering="crispEdges">
                     <rect x={-1} y={-1} width={qr.size + 2} height={qr.size + 2} fill="rgba(255,255,255,.88)" />
                     <path d={qr.d} fill="#1f1f24" />
                   </svg>
@@ -87,7 +87,7 @@ export function FlipCard({ children, back, compact = false, className = '' }: { 
         </div>
       </div>
       <button type="button" className="flip-btn" aria-pressed={flipped} onClick={flip}>
-        {flipped ? 'Show the front' : 'Flip to see the serial'}
+        {flipped ? 'Show the front' : 'Flip to see the print number'}
       </button>
     </div>
   );
