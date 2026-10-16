@@ -45,8 +45,16 @@ eq(v.compareCollections(cards, mine), { shared: 1, theyHave: 2, iHave: 1, both: 
 // ── profile experiments ──
 eq(s.sanitizeUserSettings({ accent: 'nope', wanted: 'x' }).accent, '', 'unknown accent dropped');
 eq(s.sanitizeUserSettings({ accent: 'grape' }).accent, 'grape', 'known accent kept');
+eq(s.sanitizeUserSettings({ accent: 'teal' }).accent, 'teal', 'new named accent kept');
+eq(s.ACCENTS.length, 12, 'twelve named accents');
+eq(s.sanitizeUserSettings({ accent: '#1A8CFF' }).accent, '#1a8cff', 'custom accent kept, lower-cased');
+eq(s.sanitizeUserSettings({ accent: '#000000' }).accent, '#595959', 'a too-dark custom colour is lightened');
+eq(s.sanitizeUserSettings({ accent: '#ffffff' }).accent, '#b3b3b3', 'a too-pale custom colour is darkened');
+eq(s.sanitizeUserSettings({ accent: '#fff' }).accent, '', 'short hex is not accepted');
+eq(s.sanitizeUserSettings({ accent: 'javascript:1' }).accent, '', 'junk dropped');
+eq([s.accentHex('grape'), s.accentHex('#1a8cff'), s.accentHex(''), s.accentHex('#000000')], ['#c084fc', '#1a8cff', undefined, '#595959'], 'accentHex for named, custom, empty and unclamped values');
 eq(s.sanitizeUserSettings({ wanted: [3, 3, 0, -1, 1.5, '4', 1_000_000, 7, 8, 9, 10, 11, 12] }).wanted, [3, 7, 8, 9, 10, 11], 'wanted: unique ints in range, capped at 6');
-ok(s.EXPERIMENTS.some(e => e.id === 'accent') && !s.EXPERIMENTS.some(e => e.id === 'showcase' || e.id === 'wishlist'), 'accent is an experiment; showcase and wishlist became profile widgets');
+ok(!s.EXPERIMENTS.some(e => e.id === 'accent' || e.id === 'showcase' || e.id === 'wishlist'), 'accent, showcase and wishlist are normal settings or widgets now');
 eq(s.sparse({ ...s.DEFAULT_SETTINGS, wanted: [2] }), { wanted: [2] }, 'wanted is stored sparsely');
 
 const info = (n: number) => ({ number: n, name: `c${n}`, imageUrl: '', stars: 1 });
