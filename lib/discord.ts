@@ -111,6 +111,11 @@ export function shouldSend(e: ActivityEvent, c: Pick<DiscordChannel, 'categories
   return true;
 }
 
+/** The newest event (the list is newest first) that this channel's filters would let through, or undefined. Backs "Send last activity". */
+export function newestMatchingEvent(events: ActivityEvent[], c: Pick<DiscordChannel, 'categories' | 'minStars' | 'newOnly'>): ActivityEvent | undefined {
+  return events.find(e => shouldSend(e, c));
+}
+
 /** Checks the settings form's submission. Returns the cleaned settings, or the first problem in words. */
 export function cleanDiscordInput(raw: unknown): { ok: true; settings: DiscordSettings } | { ok: false; message: string } {
   const r = raw as Partial<DiscordSettings> | null;

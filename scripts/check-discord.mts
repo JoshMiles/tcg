@@ -72,6 +72,15 @@ await d.saveDiscordSettings({
     { id: 'gone', name: 'Gone', url: hook(999), enabled: true, categories: cats({ pulls: true }), minStars: 1, newOnly: false },
   ],
 });
+// ── Send last activity: the newest event the channel's filters allow ──
+{
+  const evs = [event({ type: 'grant', seq: 3 }), event({ stars: 2, seq: 2 }), event({ stars: 4, seq: 1 })] as never[];
+  const pick = (c: Record<string, unknown>) => (d.newestMatchingEvent(evs as never, ch(c) as never) as { seq: number } | undefined)?.seq;
+  ok(pick({ categories: cats({ cards: true }) }) === 3, 'last activity: a Cards channel gets the newest grant');
+  ok(pick({ categories: cats({ pulls: true }), minStars: 1 }) === 2, 'last activity: a Pulls channel skips the grant');
+  ok(pick({ categories: cats({ pulls: true }), minStars: 3 }) === 1, 'last activity: the star filter skips the 2 star pull');
+  ok(pick({ categories: cats({ upgrades: true }) }) === undefined, 'last activity: nothing matching gives nothing');
+}
 await d.notifyDiscord(event());
 ok(hits.length === 1, `a 4 star pull reaches the Pulls channel (the deleted webhook answers 404 and affects nobody else; got ${hits.length})`);
 ok(hits.some(h => h.path.includes('/1/')), 'the Pulls channel got it');
