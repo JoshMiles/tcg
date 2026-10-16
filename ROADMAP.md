@@ -48,7 +48,7 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 - [ ] **Dependabot `braces` alert** (high, dev-only, through Tailwind 3's chokidar / micromatch): no patched release exists. Dismiss it as "no fix available" until upstream ships one; build-time only, not reachable at runtime.
 
 
-**Streams A to F are done** (2026-10-16). Next work needs a new planning pass: pick from 4.4, "Other ideas" or the next extension version.
+**Streams A to F are done** (2026-10-16). Next: Track 6 (community extras, picked 2026-10-16). After that: 4.4 or the next extension version.
 
 ---
 
@@ -243,15 +243,83 @@ Possible, but it is more than a webhook: DMs need a **Discord bot**.
 
 When the channel goes offline (the live check in `lib/twitch-live.ts` already sees the transition; record `twitch:live:since` on the way up and post on the way down, once, under a short KV lock so two instances don't both post), post a recap embed to channels with a new `recap` category: packs opened, cards pulled, new collectors, first-ever pulls, the rarest pull of the stream (with a link to the copy), top puller, trades completed, biggest rank climb. Built from the activity log between the two times (pure `buildStreamRecap(events, from, to)` + a check). If the transition is missed (nobody visited while live), skip; never post a recap for a stream with no pulls. Also show the latest recap on the admin dashboard as a widget.
 
-### Other ideas, not planned yet (user picks)
+## Track 6: Community extras (picked 2026-10-16)
 
-- **Weekly digest** in Discord: the week's leaderboard movers and most traded cards.
-- **"Wanted" pings in Discord**: when a card someone is looking for gets listed, the listing post mentions how many collectors want it ("3 collectors are looking for this").
-- **Copy of the week** on the home page: the copy with the most interesting journey (most holders, oldest, first edition traded the most).
+The user picked all three "other ideas", then added 6.4. Order: **6.1 and 6.2 in parallel**, then **6.3** (uses both) and **6.4** (shares the trade page and board cards with 6.1) in parallel.
+
+| # | Item | Status | Size |
+|---|------|--------|------|
+| 6.1 | "Wanted" counts on trade listings | Ready | S |
+| 6.2 | Print of the week (home page) | Ready | M |
+| 6.3 | Weekly digest in Discord | Ready (after 6.1, 6.2) | M |
+| 6.4 | Choose which print to trade | Ready (after 6.1) | M |
+
+### 6.1 "Wanted" counts on trade listings (Ready)
+
+When a board listing gives a card that collectors are looking for, say so.
+- Count: `watchersOf([card])` (`lib/watch-index.ts`, covers both the Looking for list and saved alerts), minus the lister and minus the people already notified as the trade's own recipient. Per given card, not summed (one person wanting two cards counts in both).
+- **Discord** (the Trade listings embed from 3.4): a line under Gives, "3 collectors are looking for Gouda (Shiny)". Only when the count is at least 1. Still no mentions.
+- **`/trade/<id>`** and the board listing card: a small purple chip "3 want this" on each given card that has watchers (the board reads counts in one batch for the visible listings; cache per request, never per viewer).
+- Names are never shown, only the count (people's lists are not public data beyond their own profile).
+- Check: a pure `wantedCounts(given, watchersByCard, exclude)` in `lib/watch-core.ts` + cases in `scripts/check-watch.mts`.
+- Owns: `lib/watch-core.ts`, the listing embed in `lib/discord.ts`, the trade page and board listing card. Not the weekly cron.
+
+### 6.2 Print of the week (Ready)
+
+A print with an interesting journey, featured on the home page for a week.
+- **Scoring** (pure `lib/print-of-week.ts`, `scorePrint(copy, now)` + `pickPrintOfWeek(candidates, recentUids)`): distinct holders x3, completed trades it went through x2, edition #1 +5, Shiny / Full Art +2, age in weeks (cap 8) x1, a print forged from others +2. Ties: older print wins. Skip prints picked in the last 8 weeks (`potw:history`, newest 20 uids) and prints currently in a trade offer. Candidates: live prints of the active season only. Uses `buildProvenance` for holders and trades, so the numbers match the print page.
+- **When**: a new weekly Vercel Cron `GET /api/cron/weekly` (`vercel.json`, Sunday 20:00 UTC, `Bearer CRON_SECRET` like the backup route, refuses in a sandbox or outside production). It scans the season's ledger owners (from the collection blob's viewer list; `HGETALL copies:<c>:o:<owner>` each, fine at today's sizes: say the measured time for the seeded data in the PR) and stores `potw:current` `{ uid, seasonId, copyId, score, reason, chosenAt, by: 'auto' }`. Idempotent per ISO week (`potw:week:<yyyy-ww>` NX). 6.3 will add the digest to this same route.
+- **Admin**: on `/admin/serials/<season>/<copy>` a **Feature as print of the week** button (`requireAdmin`, sets `by` to the staff login, logs an audit entry) and on the Serials page a "Print of the week" line with **Pick again now** and **Clear**.
+- **Home**: a "Print of the week" section after the live grid: the `FlipCard` of that print, card name + version, `Print #1023381`, "Edition #7 of 31", a reason line built from the score parts ("Held by 5 collectors, traded 4 times, 9 weeks old"), holder (masked if hidden or private, like the print page) and a **See its journey** link. Hidden when there is no pick or the print was spent since (an upgrade or removal): then it shows nothing until the next pick, never a broken card.
+- **Words**: FAQ line under prints ("How is the print of the week chosen?").
+- Check: `scripts/check-print-of-week.mts` (pure scoring and the skip rules; mock KV for the cron's once-a-week rule and sandbox refusal).
+- Owns: `lib/print-of-week.ts`, `app/api/cron/weekly/`, `vercel.json`, the home section, the admin buttons, FAQ.
+
+### 6.3 Weekly digest in Discord (Ready, after 6.1 and 6.2)
+
+A Sunday-evening summary post for the community channel.
+- New Discord category `digest` (off by default on existing channels, the normaliser rule from 3.1) and a preset "Weekly digest". Sent from `/api/cron/weekly` after the print of the week is picked, once per ISO week (`digest:week:<yyyy-ww>` NX), nothing from sandboxes or previews.
+- **Contents** (pure `lib/weekly-digest.ts`, `buildWeeklyDigest(...)` + `sampleDigest()` for the Test button):
+  - this week's pulls, new collectors, upgrades, trades completed: from the `stats:h:` counters (the activity log is capped at 500 events, too short for a week)
+  - the top 3 on the board right now
+  - **movers**: the biggest rank climbs and points gained since last week, from a snapshot `digest:ranks:<seasonId>` `{ user: [rank, points] }` saved by each run. The first run has no previous snapshot and says "Movers start next week". Admin-hidden and private collectors are left out
+  - **most traded cards**: card numbers counted across completed trades in `trades:history` during the week (it keeps 400; if the oldest kept trade is newer than the week start, say "at least")
+  - **most wanted card**: the card with the most watchers (`watch:idx:*` sizes for the season's cards)
+  - **print of the week** (from 6.2), linking to its print page
+  - a link to the leaderboard
+- Skip the post entirely when the week had no pulls and no trades (off-season).
+- The latest digest is kept in KV and shown on the admin dashboard as a widget, like the stream recap (5.1).
+- Check: `scripts/check-weekly-digest.mts` (builder, first-run movers, the "at least" rule, the skip rule, once per week).
+- Owns: `lib/weekly-digest.ts`, the `digest` bits of `lib/discord*.ts`, the digest step in `/api/cron/weekly`, the dashboard widget.
+
+### 6.4 Choose which print to trade (Ready, after 6.1)
+
+Asked (2026-10-16): "should be able to select which print of a card when trading". Today a trade stack is `{ cardNumber, variant, count }` and the engine moves the **newest** prints of that entry (escrow, settle, refund). The ledger already supports moving exact prints (`SyncContext.moves[].ids`, used by the admin Give action).
+
+**Data:** `TradeItem` gains `ids?: string[]` (print ids `<card>.<v>.<n>`). When set, `ids.length === count`, all distinct, all of that entry. Absent = "any print" = today's newest-first. Old trades have no `ids` and behave exactly as before.
+
+**Engine (`lib/trades.ts`, `lib/trade-core.ts`):**
+- **Give side** (the offerer's own prints): `createInLock` checks each id is held by the offerer right now (`copies:<c>:idx`), not already in another offer's escrow, and matches the entry; escrow then moves exactly those (`moves[].ids`). Refunds and settlement move the same ids out of `escrow:<tradeId>`, so identity is exact end to end.
+- **Get side, direct offers**: the offerer may pick exact prints of the recipient (e.g. "your #1 Gouda"). Checked when offered (held by the recipient) and again at accept; if one has moved since, accept fails with "That offer asks for Print #1023381, which you no longer hold" and the offer stays open for a counter.
+- **Get side, listings and unpicked direct asks**: the **taker** chooses at accept time. `POST /api/trades/[id]` `accept` takes an optional `getIds: Record<entry, string[]>`; absent = newest-first as today (so the Twitch panel, which can't pick yet, keeps working unchanged).
+- **Counters** carry `ids` across like any other field.
+- Seasons whose prints are not numbered yet refuse `ids` (the composer hides the picker there).
+- Points and the fairness label use the chosen prints' real worth (their edition bonus), falling back to today's values when unpicked.
+
+**Website UI:**
+- `GET /api/trades/holdings` returns, per entry, the prints (id, edition, print number, bonus multiplier) for both sides; the composer (`TradeComposer`) gets a **Choose prints** toggle on a stack with more than `count` prints: a row of small chips (`SerialChip` + `Print #...`) to tick exactly `count`, default the newest (today's behaviour), with a warning badge on a print that earns an edition bonus or is an edition #1 ("You are giving away Edition #1").
+- The take / accept flow: when the taker holds more prints of an asked-for entry than needed, **Take this trade** / **Accept** first opens the same chip picker (default newest), then the existing second-tap confirm.
+- `TradeStacks` shows exact prints when `ids` are set ("Print #1023381 · Edition #7") and "any print" otherwise; `/trade/<id>` and the board listing card do the same. The print page's journey already records the trade.
+
+**Twitch panel (freeze):** no edits to `public/twitch-panel/*` or `/api/twitch/*`. The panel keeps sending trades without `ids` and accepting with newest-first, which stays valid. Known limitation until the next extension version: for a trade with chosen prints, the panel's serial preview may show different numbers than the ones that will move. Listed below.
+
+**Checks:** extend `scripts/check-trades.mts`: exact ids through escrow / settle / refund / counter, a picked print moved away before accept, ids on an untracked season refused, a print in another offer refused, unpicked accept still newest-first, conservation unchanged. Then `scripts/check-serials.mts` for identity, and a hand test of the composer and the taker picker against the mock KV.
+
+**Owns:** `lib/trade-core.ts` (`TradeItem`), `lib/trades.ts`, `app/api/trades/*`, `TradeComposer`, `TradeActions` (the picker step), `TradeStacks`, `lib/trade-view.ts` (pools honour `ids`), FAQ trading answer. Starts after 6.1 merges (6.1 edits the trade page and board cards).
 
 ## Later: next extension version (after the freeze lifts)
 
-Ship as one reviewed panel version: achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
+Ship as one reviewed panel version: choosing prints when trading (6.4: composer and accept picker, exact serial preview), achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
 
 ## Done (recent)
 
