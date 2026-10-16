@@ -18,8 +18,8 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 
 | # | Item | Status | Size |
 |---|------|--------|------|
-| 1.1 | iOS home-screen icon | Ready | S |
-| 1.2 | Rarest cards animate on hover (home) | Ready | S |
+| 1.1 | iOS home-screen icon | Done (#144) | S |
+| 1.2 | Rarest cards animate on hover (home) | Done (#144) | S |
 | 2.1 | Pull events carry the copy (unique number) | Ready | S |
 | 2.2 | Recent pulls open the copy | Ready (after 2.1) | S |
 | 2.3 | Profile "Recent pulls" with serials | Ready (after 2.1) | S |
@@ -38,13 +38,13 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 4.4 | Link a Discord account for DMs | Later (after 4.3) | L |
 | 5.1 | Stream recap posted to Discord | Ready (after 3.1) | M |
 
-Suggested order: Track 1 (quick wins, same day), 2.6 (the print wording, so later items are written with it), 2.1 to 2.4, 3.1 to 3.6, 4.1 and 4.2, 4.3, 2.5, 5.1. 4.4 waits until push has been live for a while.
+Suggested order: Track 1 (done), 2.6 (the print wording, so later items are written with it), 2.1 to 2.4, 3.1 to 3.6, 4.1 and 4.2, 4.3, 2.5, 5.1. 4.4 waits until push has been live for a while.
 
 ---
 
 ## Track 1: Quick fixes
 
-### 1.1 iOS home-screen icon (Ready)
+### 1.1 iOS home-screen icon (Done, #144; real iPhone check left to the user)
 
 **Problem:** installed on iPhone, the icon is a plain capital "C" (iOS's fallback: first letter of the app title) instead of the cheese logo.
 
@@ -57,7 +57,7 @@ Suggested order: Track 1 (quick wins, same day), 2.6 (the print wording, so late
 - **User step after deploy:** delete the old home-screen icon and add it again (iOS caches the icon at install time; nothing we do updates an existing one). Say this in the PR and in the `/install` iPhone steps ("If you see a letter instead of the logo, remove it and add it again").
 - Not checkable locally: confirm on a real iPhone.
 
-### 1.2 Rarest cards animate on hover (Ready)
+### 1.2 Rarest cards animate on hover (Done, #144)
 
 **Problem:** the home page "The rarest cards" tiles render a plain `<img>` of the static thumbnail (`app/(site)/page.tsx`, the `rarest.map`), so the animated art never plays; everywhere else uses `CardTile`, which swaps in the animated file on hover.
 
@@ -244,5 +244,7 @@ When the channel goes offline (the live check in `lib/twitch-live.ts` already se
 Ship as one reviewed panel version: achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
 
 ## Done (recent)
+
+- Track 1 quick fixes: opaque apple icons plus the root apple-touch names, rarest cards animate on hover (#144, 2026-10-16).
 
 - Previous roadmap complete (2026-10-15): `npm run verify` and CI, preview isolation, nightly backups, data health, `CLAUDE.md` split into `docs/`, `@vercel/blob` 2.x, review batches P1 to P7, M1, A1 to A8.
