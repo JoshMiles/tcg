@@ -52,33 +52,50 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       <SiteSearch />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>
       <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">
-        <div className="max-w-6xl mx-auto px-4 py-8 grid gap-6 sm:grid-cols-[1fr_auto] items-start">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <img src="/brand/icon.png" alt="" width={28} height={28} className="rounded-md ring-1 ring-yellow-500/40" />
-              <span className="font-display font-bold text-yellow-300">The Cheesy TCG</span>
+        <div className="max-w-6xl mx-auto px-4 pt-8 pb-6">
+          <div className="grid gap-8 md:grid-cols-[minmax(0,20rem)_1fr] md:gap-10 items-start">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2.5">
+                <img src="/brand/icon.png" alt="" width={28} height={28} className="rounded-md ring-1 ring-yellow-500/40" />
+                <span className="font-display font-bold text-yellow-300 whitespace-nowrap">The Cheesy TCG</span>
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                A cheesy collectible card game played live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-500 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a>, and nowhere else. Fan-made and not affiliated with or endorsed by Twitch.
+              </p>
             </div>
-            <p className="text-xs text-gray-500 max-w-md leading-relaxed">
-              A cheesy collectible card game played live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-500 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a>, and nowhere else. Fan-made and not affiliated with or endorsed by Twitch.
-            </p>
-            <p className="text-xs text-gray-500 max-w-md leading-relaxed">
-              Cards are virtual trading cards for fun. Not NFTs, not crypto, and with no real-world value.
-            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+              <nav aria-label="Play">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-3">Play</h2>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li><Link href="/collection" className="hover:text-white transition-colors">Collectors</Link></li>
+                  <li><Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link></li>
+                  <li><Link href="/stats" className="hover:text-white transition-colors">Season Stats</Link></li>
+                  <li><Link href="/cards" className="hover:text-white transition-colors">Card Dex</Link></li>
+                </ul>
+              </nav>
+              <nav aria-label="Help">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-3">Help</h2>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li><Link href="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
+                  <li><Link href="/install" className="hover:text-white transition-colors">Get the app</Link></li>
+                  <li><ChangelogLink newest={newestChangelogDate()} className="hover:text-white transition-colors">What&rsquo;s new</ChangelogLink></li>
+                  <li><Link href="/feedback?kind=idea" className="hover:text-white transition-colors">Suggest something</Link></li>
+                  <li><Link href="/feedback?kind=bug" className="hover:text-white transition-colors">Report a problem</Link></li>
+                </ul>
+              </nav>
+              <nav aria-label="Legal">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-3">Legal</h2>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link></li>
+                  <li><Link href="/terms" className="hover:text-white transition-colors">Terms</Link></li>
+                  <li><CookieSettingsLink /></li>
+                </ul>
+              </nav>
+            </div>
           </div>
-          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-400" aria-label="Footer">
-            <Link href="/collection" className="hover:text-white transition-colors">Collectors</Link>
-            <Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link>
-            <Link href="/stats" className="hover:text-white transition-colors">Season Stats</Link>
-            <Link href="/cards" className="hover:text-white transition-colors">Card Dex</Link>
-            <Link href="/faq" className="hover:text-white transition-colors">FAQ</Link>
-            <Link href="/install" className="hover:text-white transition-colors">Get the app</Link>
-            <ChangelogLink newest={newestChangelogDate()} className="hover:text-white transition-colors">What&rsquo;s new</ChangelogLink>
-            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-            <Link href="/feedback?kind=idea" className="hover:text-white transition-colors">Suggest something</Link>
-            <Link href="/feedback?kind=bug" className="hover:text-white transition-colors">Report a problem</Link>
-            <CookieSettingsLink />
-          </nav>
+          <p className="border-t border-gray-800/60 mt-8 pt-4 text-xs text-gray-600 leading-relaxed">
+            Cards are virtual trading cards for fun. Not NFTs, not crypto, and with no real-world value.
+          </p>
         </div>
       </footer>
     </div>
