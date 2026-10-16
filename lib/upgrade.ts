@@ -1,5 +1,5 @@
 import { getSeason, getPacksForSeason, getPackCards, withCollectionLock, getCollection, saveCollection } from './kv';
-import { lastSerial } from './serials';
+import { lastCopy } from './serials';
 import { getScoringSettings } from './scoring';
 import { serialMultiplier } from './scoring-core';
 import { recordActivity } from './activity';
@@ -45,6 +45,7 @@ export async function upgradeCard(opts: {
   const { to, cost } = step;
   const fromEntry = encodeEntry(cardNumber, from);
 
+  let made: { copyId: string | null; uid: number | null } = { copyId: null, uid: null };
   const result = await withCollectionLock(season.collectionName, async (): Promise<UpgradeResult> => {
     const data = await getCollection(season.collectionName);
     const owned = data[username] ?? [];
@@ -60,7 +61,9 @@ export async function upgradeCard(opts: {
     const updated = [...remaining, encodeEntry(cardNumber, to)];
     data[username] = updated;
     await saveCollection(season.collectionName, data, { upgrade: { user: username, spent: fromEntry, count: cost, made: encodeEntry(cardNumber, to) } });
-    const serial = await lastSerial(season.collectionName, encodeEntry(cardNumber, to));
+    const last = await lastCopy(season.collectionName, encodeEntry(cardNumber, to));
+    const serial = last.serial;
+    made = last;
     const mult = serial ? serialMultiplier(serial, await getScoringSettings()) : 1;
     return { ok: true, owned: updated, cardName: card.name, from, to, cost, serial, serialMult: Math.round(mult * 100) / 100 };
   });
@@ -75,6 +78,8 @@ export async function upgradeCard(opts: {
       from,
       to,
       cost,
+      ...(made.copyId ? { copyId: made.copyId } : {}),
+      ...(made.uid ? { uid: made.uid } : {}),
     });
   }
   return result;

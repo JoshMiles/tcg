@@ -1,4 +1,4 @@
-import { dropLedger, isTracking, lastSerial, syncAfterSave, type SyncContext } from './serials';
+import { dropLedger, isTracking, lastCopy, syncAfterSave, type SyncContext } from './serials';
 import type { Origin } from './serials-core';
 import { kv } from './db';
 import type { Season, Pack, Card, UserProfile, UpgradeCosts, VariantWeights } from './types';
@@ -323,14 +323,14 @@ export async function addCollectionEntry(collectionName: string, username: strin
   });
 }
 
-/** Like addCollectionEntry, and also says which serial number the new copy got (null before the collection is numbered). */
-export async function addCollectionEntryWithSerial(collectionName: string, username: string, entry: number, origin: Origin = 'other'): Promise<{ owned: number[]; serial: number | null }> {
+/** Like addCollectionEntry, and also says which serial number, copy id and unique number the new copy got (nulls before the collection is numbered). */
+export async function addCollectionEntryWithSerial(collectionName: string, username: string, entry: number, origin: Origin = 'other'): Promise<{ owned: number[]; serial: number | null; copyId: string | null; uid: number | null }> {
   const lower = username.toLowerCase();
   return withCollectionLock(collectionName, async () => {
     const data = await getCollection(collectionName);
     data[lower] = [...(data[lower] ?? []), entry];
     await saveCollection(collectionName, data, { origin });
-    return { owned: data[lower], serial: await lastSerial(collectionName, entry) };
+    return { owned: data[lower], ...(await lastCopy(collectionName, entry)) };
   });
 }
 

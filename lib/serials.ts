@@ -134,6 +134,16 @@ export async function lastSerial(c: string, entry: number): Promise<number | nul
   } catch { return null; }
 }
 
+/** The copy most recently made of this card + version (id, unique number, serial), or nulls while the collection is not numbered. Read under the collection lock, it is the copy just made. */
+export async function lastCopy(c: string, entry: number): Promise<{ serial: number | null; copyId: string | null; uid: number | null }> {
+  const serial = await lastSerial(c, entry);
+  if (!serial) return { serial: null, copyId: null, uid: null };
+  const { cardNumber, variant } = decodeEntry(entry);
+  const id = copyId(cardNumber, variant, serial);
+  const copy = await getCopy(c, id).catch(() => null);
+  return { serial, copyId: id, uid: copy?.uid ?? null };
+}
+
 /** Every live copy of one card + version (all owners, escrow included), for "who holds the other numbers". */
 export async function liveCopiesOfEntry(c: string, entry: number): Promise<{ id: string; owner: string }[]> {
   const idx = (await kv.hgetall(key.idx(c)).catch(() => null)) as Record<string, string> | null;

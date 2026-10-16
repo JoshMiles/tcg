@@ -8,6 +8,7 @@ const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED:
 const eq = (a: unknown, b: unknown, msg: string) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
 
 const core = await import('../lib/serials-core');
+const copyLink = await import('../lib/copy-link');
 const { encodeEntry } = await import('../lib/variants');
 const E = (n: number, v: 'regular' | 'reverse' | 'full' | 'shiny' = 'regular') => encodeEntry(n, v);
 
@@ -222,10 +223,30 @@ await db.runInSandbox(box.id, async () => {
     const again = await kvLib.addCollectionEntryWithSerial(c, 'erin', E(7), 'pull');
     eq(again.serial, (got.serial ?? 0) + 1, 'the next pull of the same card and version gets the next number');
     ok((await ser.lastSerial('no-such-collection', E(7))) === null, 'a collection that is not numbered has no serial');
+    // ... and so are the copy's id and unique number, matching the ledger.
+    ok(got.copyId === core.copyId(7, 'regular', got.serial!), `a pull reports its copy id: ${got.copyId}`);
+    const gotCopy = await ser.getCopy(c, got.copyId!);
+    ok(!!gotCopy?.uid && gotCopy.uid === got.uid, 'the reported unique number matches the ledger');
+    ok((await ser.findByUid(got.uid!))?.copyId === got.copyId, 'the reported unique number resolves back to the copy');
+    ok(again.uid !== got.uid && again.copyId !== got.copyId, 'the next pull reports a different copy');
+    const untracked = await kvLib.addCollectionEntryWithSerial('no-such-collection', 'erin', E(7), 'pull');
+    ok(untracked.serial === null && untracked.copyId === null && untracked.uid === null, 'an untracked collection reports nulls');
+    await kvLib.deleteCollection('no-such-collection');
+    // copyHrefFor / adminCopyHrefFor
+    eq(copyLink.copyHrefFor({ type: 'pull', uid: 1023381, serial: 7 }, 's1'), '/c/1023381', 'a unique number links to /c/<uid>');
+    eq(copyLink.copyHrefFor({ type: 'pull', serial: 12, variant: 'shiny', cardNumber: 7 }, 's1'), '/copy/s1/7.3.12', 'an older pull derives the copy id');
+    eq(copyLink.copyHrefFor({ type: 'pull', serial: 12, cardNumber: 7 }, 's1'), '/copy/s1/7.0.12', 'no variant means regular');
+    eq(copyLink.copyHrefFor({ type: 'pull', cardNumber: 7 }, 's1'), null, 'no serial and no uid: no link');
+    eq(copyLink.copyHrefFor({ type: 'grant', serial: 4, cardNumber: 7 }, 's1'), null, 'a grant without a uid has no link');
+    eq(copyLink.adminCopyHrefFor({ type: 'grant', copyId: '7.1.2' }, 's1'), '/admin/serials/s1/7.1.2', 'admin link uses the event copy id');
+    eq(copyLink.adminCopyHrefFor({ type: 'pull', serial: 3, variant: 'full', cardNumber: 9 }, 's1'), '/admin/serials/s1/9.2.3', 'admin link derives for older pulls');
     const mintedBefore = (await ser.mintedCounts(c)).get(E(2, 'reverse')) ?? 0;
     for (let i = 0; i < 5; i++) await kvLib.addCollectionEntry(c, 'erin', E(2), 'pull');
     const up = await upgrade.upgradeCard({ seasonId: season.id, username: 'erin', cardNumber: 2, from: 'regular' });
     ok(up.ok && up.serial === mintedBefore + 1, `an upgrade reports the serial of the copy it made: ${up.ok ? up.serial : 'failed'} vs ${mintedBefore + 1}`);
+    const act = await (await import('../lib/activity')).getActivity({ limit: 20 });
+    const upEv = act.events.find(e => e.type === 'upgrade' && e.username === 'erin');
+    ok(upEv?.type === 'upgrade' && upEv.copyId === core.copyId(2, 'reverse', mintedBefore + 1) && !!(await ser.getCopy(c, upEv.copyId!))?.uid && upEv.uid === (await ser.getCopy(c, upEv.copyId!))!.uid, 'the upgrade event carries the new print id and number');
   }
 
   // Deleting the collection clears the ledger.

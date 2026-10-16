@@ -14,7 +14,7 @@ import {
   saveSeason, getSeason, deleteSeason, listSeasons, setActiveSeason,
   savePack, getPack, deletePack, listAllPackIds,
   getPackCards, savePackCards,
-  getCollection, saveCollection, deleteCollection, removeUserFromCollection, addCollectionEntry, withCollectionLock,
+  getCollection, saveCollection, deleteCollection, removeUserFromCollection, addCollectionEntryWithSerial, withCollectionLock,
   getUserProfile, saveUserProfile, deleteUserProfile,
   seedSeason1 as seedSeason1Data, getActiveSeasonWithPacks, ensureUserProfile,
 } from '@/lib/kv';
@@ -673,9 +673,9 @@ async function grantCard(formData: FormData): Promise<ActionResult> {
 
   const collectionName = active.season.collectionName;
   const variant = parseVariant(formData.get('variant'));
-  await addCollectionEntry(collectionName, username, encodeEntry(card.number, variant), 'grant');
+  const made = await addCollectionEntryWithSerial(collectionName, username, encodeEntry(card.number, variant), 'grant');
   await ensureUserProfile(username);
-  await recordActivity({ type: 'grant', source: 'admin', username, cardNumber: card.number, variant, collectionName });
+  await recordActivity({ type: 'grant', source: 'admin', username, cardNumber: card.number, variant, collectionName, ...(made.copyId ? { copyId: made.copyId } : {}), ...(made.uid ? { uid: made.uid } : {}) });
   revalidatePath('/admin');
   revalidatePath('/admin/users');
   return { ok: true, message: `Granted ${variant === 'regular' ? '' : VARIANT_LABELS[variant] + ' '}${card.name} (#${card.number}) to ${username}.` };
