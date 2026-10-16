@@ -8,6 +8,8 @@ import {
 } from '@/lib/kv';
 import type { Card, OptionalVariant, Pack, Season, UpgradeCosts, VariantWeights } from '@/lib/types';
 import { cleanDisabled } from '@/lib/variants';
+import { notifyAdminLog } from '@/lib/discord';
+import { currentStaffLogin } from '@/lib/staff-actor';
 import { validatePack, validateSeason, type Issue } from '@/lib/draft-validation';
 import { cleanPackInput, int, num, str, type PackInput } from '@/lib/pack-clean';
 
@@ -100,6 +102,7 @@ export async function publishPack(id: string, active: boolean): Promise<{ ok: tr
   const issues = validatePack(pack, cards);
   if (issues.length > 0) return { ok: false, issues };
   await savePack({ ...pack, status: 'published', active });
+  await notifyAdminLog({ action: 'Pack published', subject: pack.name, detail: active ? 'In draws straight away' : 'Not in draws yet', by: await currentStaffLogin() });
   revalidatePath('/admin/packs');
   revalidatePath(`/admin/packs/${id}`);
   revalidatePath('/admin');
@@ -176,6 +179,7 @@ export async function publishSeason(id: string, activate: boolean): Promise<{ ok
 
   await saveSeason({ ...season, status: 'published', active: false });
   if (activate) await activateWithWrapUp(id); // wraps up the season it replaces
+  await notifyAdminLog({ action: activate ? 'Season published and activated' : 'Season published', subject: season.name, by: await currentStaffLogin() });
   revalidatePath('/admin/seasons');
   revalidatePath(`/admin/seasons/${id}`);
   revalidatePath('/admin');

@@ -1,7 +1,7 @@
 // Discord feed settings types + constants. Browser-safe (no server imports) so the admin UI can use
 // them; the server-side logic lives in ./discord.ts.
 
-export type DiscordCategory = 'pulls' | 'cards' | 'stream' | 'resets';
+export type DiscordCategory = 'pulls' | 'cards' | 'upgrades' | 'trades' | 'stream' | 'resets' | 'admin' | 'system';
 
 /** One webhook (one Discord channel) with its own switch and its own choice of what to post. */
 export interface DiscordChannel {
@@ -22,24 +22,31 @@ export interface DiscordSettings {
 
 export const MAX_DISCORD_CHANNELS = 8;
 
-export const DEFAULT_CATEGORIES: Record<DiscordCategory, boolean> = { pulls: true, cards: true, stream: false, resets: true };
+export const DEFAULT_CATEGORIES: Record<DiscordCategory, boolean> = { pulls: true, cards: true, upgrades: true, trades: true, stream: false, resets: true, admin: false, system: false };
 
 export const DEFAULT_DISCORD: DiscordSettings = { enabled: false, channels: [] };
 
 export const DISCORD_CATEGORIES: { key: DiscordCategory; label: string; hint: string }[] = [
   { key: 'pulls', label: 'Card pulls', hint: 'Every pack opened on stream' },
   { key: 'cards', label: 'Grants & removals', hint: 'Cards given or taken away by an admin or webhook' },
+  { key: 'upgrades', label: 'Upgrades', hint: 'Cards upgraded to a better version, with a link to the new print' },
+  { key: 'trades', label: 'Trades', hint: 'Completed trades, counter-offers and admin cancels' },
   { key: 'stream', label: 'Stream triggers', hint: 'Pack draws / collection views requested, and collections shown' },
   { key: 'resets', label: 'Resets & deletions', hint: 'Collections reset or users deleted' },
+  { key: 'admin', label: 'Admin log', hint: 'What staff did, with their names (grants, removals, resets, staff changes, seasons, packs, scoring, trading paused). Keep this channel private' },
+  { key: 'system', label: 'System', hint: 'Backup results, data-health warnings, sandboxes, the stream going live or offline' },
 ];
 
-const NONE: Record<DiscordCategory, boolean> = { pulls: false, cards: false, stream: false, resets: false };
+const NONE: Record<DiscordCategory, boolean> = { pulls: false, cards: false, upgrades: false, trades: false, stream: false, resets: false, admin: false, system: false };
 
 /** "Add channel" presets: a name and the boxes ticked for it. */
 export const DISCORD_PRESETS: { key: string; name: string; hint: string; categories: Partial<Record<DiscordCategory, boolean>> }[] = [
-  { key: 'activity', name: 'Activity', hint: 'Pulls, grants, trades and resets', categories: { pulls: true, cards: true, resets: true } },
+  { key: 'activity', name: 'Activity', hint: 'Pulls, grants, upgrades, trades and resets', categories: { pulls: true, cards: true, upgrades: true, trades: true, resets: true } },
   { key: 'pulls', name: 'Pulls', hint: 'Every card pulled on stream', categories: { pulls: true } },
-  { key: 'cards', name: 'Cards', hint: 'Grants, removals, upgrades and trades', categories: { cards: true } },
+  { key: 'upgrades', name: 'Upgrades', hint: 'Cards upgraded to a better version', categories: { upgrades: true } },
+  { key: 'trades', name: 'Trades', hint: 'Completed trades and counter-offers', categories: { trades: true } },
+  { key: 'admin', name: 'Admin log', hint: 'What staff did, by name (keep it private)', categories: { admin: true } },
+  { key: 'system', name: 'System', hint: 'Backups, data health, sandboxes, live status', categories: { system: true } },
   { key: 'stream', name: 'Stream', hint: 'Draws requested and collections shown', categories: { stream: true } },
 ];
 

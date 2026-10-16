@@ -11,6 +11,7 @@ import { cleanTestUsername, grantCopies, removeTestUsers, seedUsers, simulatePul
 import { SESSION_COOKIE, sessionCookieOptions, signSession } from '@/lib/session';
 import { ensureUserProfile } from '@/lib/kv';
 import { runInSandbox } from '@/lib/db';
+import { escapeMd, notifySystem } from '@/lib/discord';
 import { VARIANTS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
@@ -56,6 +57,7 @@ export async function createSandboxAction(formData: FormData) {
     redirect(`/admin/sandbox?err=${encodeURIComponent(e instanceof Error ? e.message : 'Could not create the sandbox.')}`);
   }
   await logEvent(sandbox.id, 'Sandbox created', `From: ${source}`);
+  await runInSandbox(null, () => notifySystem({ title: '🧪 Sandbox created', text: `**${escapeMd(sandbox.name)}**, from ${source}`, tone: 'info' }));
   (await cookies()).set(SANDBOX_COOKIE, sandbox.id, COOKIE_OPTS); // creating one drops you straight into it
   revalidatePath('/admin', 'layout');
   redirect(`/admin/sandbox/${sandbox.id}?msg=${encodeURIComponent('Sandbox created. You are now in it: nothing you do here reaches production.')}`);
@@ -91,7 +93,9 @@ export async function resetSandboxAction(id: string) {
 
 export async function deleteSandboxAction(id: string) {
   await admin();
+  const gone = await getSandbox(id);
   await deleteSandbox(id);
+  if (gone) await runInSandbox(null, () => notifySystem({ title: '🧪 Sandbox deleted', text: `**${escapeMd(gone.name)}**`, tone: 'info' }));
   const jar = await cookies();
   if (jar.get(SANDBOX_COOKIE)?.value === id) { jar.delete(SANDBOX_COOKIE); jar.delete(SESSION_COOKIE); }
   revalidatePath('/admin', 'layout');

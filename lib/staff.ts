@@ -3,6 +3,7 @@
 // Staff are real accounts, not test data, so they live in the PRODUCTION namespace even while an admin is inside a sandbox
 // (`prodKv`, not the sandbox-aware `kv`). Otherwise entering a sandbox would make every staff member look like a stranger.
 
+import { notifyAdminLog } from './discord';
 import { isPreview, prodKv, runInSandbox } from './db';
 import { getUserProfile } from './kv';
 import {
@@ -41,6 +42,7 @@ export async function getStaffLog(limit = 40): Promise<StaffLogEntry[]> {
 }
 
 async function log(entry: Omit<StaffLogEntry, 'at'>) {
+  void notifyAdminLog({ action: `Staff ${entry.action}`, subject: entry.login, detail: entry.detail, by: entry.by });
   try { await prodKv.lpush(LOG, { at: Date.now(), ...entry }); await prodKv.ltrim(LOG, 0, LOG_CAP - 1); } catch { /* best effort */ }
 }
 

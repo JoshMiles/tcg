@@ -1,4 +1,5 @@
 import { kv } from './db';
+import { escapeMd, notifySystem } from './discord';
 import { getAppAccessToken, twitchCredentials, TWITCH_API_URL } from './twitch-helix';
 import { CHANNEL_LOGIN } from './site';
 
@@ -45,6 +46,9 @@ export async function getLiveStatus(): Promise<LiveStatus | null> {
       ? { live: true, title: s.title, game: s.game_name, viewers: s.viewer_count, startedAt: s.started_at, checkedAt: Date.now() }
       : { live: false, checkedAt: Date.now() };
     await kv.set(KEY, status, { ex: 300 }).catch(() => {});
+    if (cached && cached.live !== status.live) {
+      void notifySystem({ title: status.live ? '🔴 The stream went live' : '⚫ The stream went offline', ...(status.live && status.title ? { text: escapeMd(status.title.slice(0, 200)) } : {}), tone: 'info' });
+    }
     return status;
   } catch (e) {
     console.error('[live] lookup failed:', e instanceof Error ? e.message : e);

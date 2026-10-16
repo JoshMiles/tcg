@@ -7,6 +7,7 @@ import { getScoringSettings } from '@/lib/scoring';
 import { previewScoring, type ScoringPreview } from '@/lib/scoring-preview';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { runBackup } from '@/lib/backup';
+import { reportBackup } from '@/lib/system-notices';
 import { PREVIEW_ID, isPreview } from '@/lib/db';
 import { seedPreviewFromProduction, wipeKeys } from '@/lib/sandbox';
 
@@ -57,8 +58,9 @@ export async function backupNowAction(): Promise<void> {
   await requireAdmin();
   let target = '/admin/settings?tab=environment&saved=backup';
   try {
-    await runBackup();
+    await reportBackup(await runBackup());
   } catch (e) {
+    await reportBackup({ error: e instanceof Error ? e.message : 'Backup failed.' });
     target = `/admin/settings?tab=environment&backupError=${encodeURIComponent(e instanceof Error ? e.message : 'Backup failed.')}`;
   }
   redirect(target);

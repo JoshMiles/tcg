@@ -60,7 +60,7 @@ const event = (over: Record<string, unknown> = {}) => ({
   type: 'pull', cardNumber: 1, cardName: 'Cheesy <@everyone> *Cat*', stars: 4, packName: 'Base', isNew: true, copies: 1, uniqueOwned: 1,
   seq: 1, at: Date.now(), username: 'alice', ...over,
 }) as never;
-const cats = (p: Record<string, boolean>) => ({ pulls: false, cards: false, stream: false, resets: false, ...p });
+const cats = (p: Record<string, boolean>) => ({ pulls: false, cards: false, upgrades: false, trades: false, stream: false, resets: false, admin: false, system: false, ...p });
 await d.saveDiscordSettings({
   enabled: true,
   channels: [
@@ -93,6 +93,59 @@ hits.length = 0;
 await d.saveDiscordSettings({ ...(await d.getDiscordSettings()), enabled: false });
 await d.notifyDiscord(event());
 ok(hits.length === 0, 'the master switch silences every channel');
+
+// ── Upgrades, trades, admin log, system (3.2) ──
+{
+  const o = d.normalize({ url: hook(1), enabled: true, categories: { pulls: false, cards: true, stream: false, resets: false } } as never).channels[0];
+  ok(o.categories.upgrades && o.categories.trades && !o.categories.admin && !o.categories.system, 'an old channel with cards ticked gets upgrades and trades ticked');
+  const o2 = d.normalize({ url: hook(1), enabled: true, categories: { pulls: true, cards: false, stream: false, resets: false } } as never).channels[0];
+  ok(!o2.categories.upgrades && !o2.categories.trades, 'an old channel without cards stays without them');
+  const saved = d.normalize({ enabled: true, channels: [{ id: 'x', name: 'x', url: hook(1), enabled: true, categories: { ...cats({}), cards: true }, minStars: 1, newOnly: false }] } as never).channels[0];
+  ok(!saved.categories.upgrades, 'a channel saved with explicit boxes is left as it is');
+}
+ok(d.categoryOf(event({ type: 'upgrade' })) === 'upgrades' && d.categoryOf(event({ type: 'trade' })) === 'trades' && d.categoryOf(event({ type: 'grant' })) === 'cards', 'upgrades and trades have their own categories');
+await d.saveDiscordSettings({
+  enabled: true,
+  channels: [
+    { id: 'up', name: 'Up', url: hook(11), enabled: true, categories: cats({ upgrades: true }), minStars: 1, newOnly: false },
+    { id: 'tr', name: 'Tr', url: hook(12), enabled: true, categories: cats({ trades: true }), minStars: 1, newOnly: false },
+    { id: 'ad', name: 'Ad', url: hook(13), enabled: true, categories: cats({ admin: true }), minStars: 1, newOnly: false },
+    { id: 'sy', name: 'Sy', url: hook(14), enabled: true, categories: cats({ system: true }), minStars: 1, newOnly: false },
+    { id: 'ca', name: 'Ca', url: hook(15), enabled: true, categories: cats({ cards: true }), minStars: 1, newOnly: false },
+  ],
+});
+const wait = () => new Promise(r => setTimeout(r, 400));
+const only = (n: number) => hits.length === 1 && hits[0].path.includes(`/${n}/`);
+hits.length = 0;
+await d.notifyDiscord(event({ type: 'upgrade', cardName: 'Cat', from: 'regular', to: 'shiny', cost: 3, uid: 1023381, copyId: '1.3.1' }));
+ok(only(11), 'an upgrade reaches only the Upgrades channel');
+ok(JSON.stringify(hits[0].body).includes('Print #1023381') && JSON.stringify(hits[0].body).includes('/c/1023381'), 'the upgrade embed names and links the print');
+hits.length = 0;
+await d.notifyDiscord(event({ type: 'trade', action: 'accepted', partner: 'bob', kind: 'direct', give: ['a'], get: ['b'], givePts: 1, getPts: 1 }));
+ok(only(12), 'a completed trade reaches only the Trades channel');
+hits.length = 0;
+await d.notifyDiscord(event({ type: 'trade', action: 'declined', partner: 'bob', kind: 'direct', give: ['a'], get: ['b'], givePts: 1, getPts: 1 }));
+ok(hits.length === 0, 'a declined trade is still not posted');
+hits.length = 0;
+await d.notifyDiscord(event({ type: 'grant', source: 'admin', staff: 'melody' }));
+ok(hits.length === 2 && hits.some(h => h.path.includes('/13/')) && hits.some(h => h.path.includes('/15/')), 'a staff grant reaches Cards and the admin log');
+const withName = hits.find(h => h.path.includes('/13/'))!, without = hits.find(h => h.path.includes('/15/'))!;
+ok(JSON.stringify(withName.body).includes('melody'), 'the admin log names the staff member');
+ok(!JSON.stringify(without.body).includes('melody'), 'other channels never name staff');
+hits.length = 0;
+await d.notifyAdminLog({ action: 'Tag added', subject: 'alice', detail: 'vip', by: 'melody' }); await wait();
+ok(only(13) && JSON.stringify(hits[0].body).includes('melody'), 'an audit entry reaches only the admin log, with the name');
+hits.length = 0;
+await d.notifyAdminLog({ action: 'Card removed', subject: 'alice', by: 'melody' }); await wait();
+ok(hits.length === 0, 'an audit entry that has an activity event of its own is not posted twice');
+hits.length = 0;
+await d.notifySystem({ title: 'Backup saved', tone: 'good' }); await wait();
+ok(only(14), 'a system notice reaches only the System channel');
+hits.length = 0;
+const { runInSandbox } = await import('../lib/db');
+await runInSandbox('some-sandbox', async () => { await d.notifySystem({ title: 'x' }); await d.notifyAdminLog({ action: 'y' }); await d.notifyDiscord(event({ type: 'grant', source: 'admin', staff: 'a' })).catch(() => {}); });
+await wait();
+ok(!hits.some(h => h.path.includes('/11/') || h.path.includes('/14/')) && !hits.some(h => JSON.stringify(h.body).includes('"y"')), 'system and admin notices are silent in a sandbox');
 
 server.close();
 console.log('discord ok');

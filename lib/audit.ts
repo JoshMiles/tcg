@@ -1,5 +1,6 @@
 import { kv } from './db';
 import { currentStaffLogin } from './staff-actor';
+import { notifyAdminLog } from './discord';
 
 // A small audit trail of what an admin did to a viewer's account (grants, removals, resets, edits, restores, merges, flags). It is
 // best-effort (never throws), capped, and shown on the user's page. `audit:user:<name>` holds that viewer's newest entries and
@@ -25,6 +26,7 @@ export async function recordAudit(username: string, action: string, detail?: str
     await kv.ltrim(`audit:user:${entry.username}`, 0, USER_CAP - 1);
     await kv.lpush('audit:all', entry);
     await kv.ltrim('audit:all', 0, ALL_CAP - 1);
+    void notifyAdminLog({ action, subject: entry.username, detail: entry.detail, by });
   } catch { /* best effort */ }
 }
 
