@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { inSandbox } from '@/lib/db';
 import { pickOncePerWeek } from '@/lib/print-of-week-store';
+import { digestOncePerWeek } from '@/lib/weekly-digest-store';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -28,8 +29,9 @@ export async function GET(req: NextRequest) {
   try { steps.printOfTheWeek = await pickOncePerWeek(); }
   catch (e) { steps.printOfTheWeek = { status: 'error', error: e instanceof Error ? e.message : 'Pick failed.' }; console.error('print of the week failed:', e); }
 
-  // HOOK for ROADMAP 6.3 (weekly digest): run it here, after the print of the week is picked, once per ISO week
-  // (`digest:week:<yyyy-ww>` NX), and put its outcome in `steps.digest`. The pick above is what the digest links to.
+  // The digest links to the print picked above, so it runs second.
+  try { steps.digest = await digestOncePerWeek(); }
+  catch (e) { steps.digest = { status: 'error', error: e instanceof Error ? e.message : 'Digest failed.' }; console.error('weekly digest failed:', e); }
 
   return NextResponse.json({ ok: true, ms: Date.now() - started, steps });
 }

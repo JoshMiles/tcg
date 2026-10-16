@@ -7,6 +7,7 @@ import { getRarity } from './rarity';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { VARIANT_LABELS } from './variants';
 import type { StreamRecap } from './stream-recap';
+import type { WeeklyDigest } from './weekly-digest';
 import { SITE_URL } from './site';
 import { copyHrefFor } from './copy-link';
 import { DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
@@ -303,6 +304,34 @@ pulled by **${esc(p.username)}**`;
   });
 }
 
+/** The Sunday weekly digest embed. `footer` marks a test send. */
+export function buildDigestMessage(d: WeeklyDigest, opts: { footer?: string } = {}): DiscordPayload {
+  const n = (x: number) => x.toLocaleString('en-US');
+  const fields: { name: string; value: string; inline?: boolean }[] = [
+    { name: 'Packs opened', value: n(d.pulls), inline: true },
+    { name: 'New collectors', value: n(d.newCollectors), inline: true },
+    { name: 'Upgrades', value: n(d.upgrades), inline: true },
+    { name: 'Trades completed', value: n(d.trades), inline: true },
+  ];
+  const medals = ['🥇', '🥈', '🥉'];
+  if (d.top.length) fields.push({ name: 'Top 3 right now', value: d.top.map((t, i) => `${medals[i]} **${esc(t.username)}**, ${n(t.points)} pts`).join('\n') });
+  fields.push({
+    name: 'Movers',
+    value: d.movers === null ? 'Movers start next week.'
+      : d.movers.length === 0 ? 'No big moves this week.'
+      : d.movers.map(m => `**${esc(m.username)}**${m.climbed > 0 ? ` up ${m.climbed} to #${m.rank}` : ` #${m.rank}`}, +${n(m.gained)} pts`).join('\n'),
+  });
+  if (d.mostTraded.length) fields.push({ name: `Most traded cards${d.tradedAtLeast ? ' (at least)' : ''}`, value: d.mostTraded.map(c => `${esc(c.name)}, ${c.count}×`).join('\n'), inline: true });
+  if (d.mostWanted) fields.push({ name: 'Most wanted card', value: `${esc(d.mostWanted.name)}, ${d.mostWanted.watchers} collector${d.mostWanted.watchers === 1 ? '' : 's'} want it`, inline: true });
+  if (d.print) fields.push({ name: 'Print of the week', value: `[${esc(d.print.name)}${d.print.label ? ` (${esc(d.print.label)})` : ''}${d.print.uid ? `, Print #${d.print.uid}` : ''}](${SITE_URL}${d.print.href})\n${esc(d.print.reason)}` });
+  fields.push({ name: 'Leaderboard', value: `[See the full board](${SITE_URL}/leaderboard)` });
+  return payload({
+    color: GOLD, title: '🧀 The week in Cheesy TCG',
+    description: `${esc(d.seasonName)}, the last 7 days.`,
+    fields, timestamp: new Date(d.to).toISOString(), footer: { text: opts.footer ?? 'The Cheesy TCG' },
+  });
+}
+
 /** A short embed for the admin log and system channels. */
 function noticeEmbed(o: { title: string; text?: string; fields?: { name: string; value: string; inline?: boolean }[]; color: number; url?: string }): DiscordPayload {
   return payload({
@@ -510,4 +539,15 @@ export async function notifyRecap(r: StreamRecap): Promise<void> {
     if (await inSandbox()) return;
     later(() => sendToCategory('recap', buildRecapMessage(r)));
   } catch { /* never breaks the action */ }
+}
+
+/** Posts the weekly digest to every channel with Weekly digest ticked and waits for the sends (the cron calls this). Returns how many channels took it. */
+export async function postDigest(d: WeeklyDigest): Promise<number> {
+  try {
+    const settings = await getDiscordSettings();
+    if (!settings.enabled) return 0;
+    const targets = settings.channels.filter(c => c.enabled && c.url && c.categories.digest);
+    const results = await Promise.allSettled(targets.map(c => deliver(c, buildDigestMessage(d), 'digest')));
+    return results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
+  } catch { return 0; }
 }

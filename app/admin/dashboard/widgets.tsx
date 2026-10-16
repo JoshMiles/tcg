@@ -316,6 +316,29 @@ function Live({ d }: { d: DashboardData }) {
   );
 }
 
+function Digest({ d }: { d: DashboardData }) {
+  const g = d.digest;
+  return (
+    <Panel title="Weekly digest" icon="calendar">
+      {!g ? <p className="text-sm text-gray-500">No digest yet. One is posted to Discord on Sunday evening when the week had pulls or trades.</p> : (
+        <div className="space-y-2 text-sm">
+          <p className="text-xs text-gray-500">{g.weekKey}, up to {new Date(g.to).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</p>
+          <dl className="grid grid-cols-4 gap-2 text-center">
+            {([['Packs', g.pulls], ['New', g.newCollectors], ['Upgrades', g.upgrades], ['Trades', g.trades]] as const).map(([label, n]) => (
+              <div key={label} className="rounded-lg bg-gray-950/50 border border-gray-800 py-1.5"><dd className="font-bold text-white tabular-nums">{n}</dd><dt className="text-[11px] text-gray-500">{label}</dt></div>
+            ))}
+          </dl>
+          {g.top.length > 0 && <p className="text-gray-300">Top: {g.top.map(t => t.username).join(', ')}</p>}
+          <p className="text-gray-300">Movers: {g.movers === null ? <span className="text-gray-500">start next week</span> : g.movers.length ? g.movers.map(m => `${m.username} (+${m.gained})`).join(', ') : <span className="text-gray-500">none</span>}</p>
+          {g.mostTraded[0] && <p className="text-gray-300">Most traded{g.tradedAtLeast ? ' (at least)' : ''}: {g.mostTraded[0].name} <span className="text-gray-500">({g.mostTraded[0].count}×)</span></p>}
+          {g.mostWanted && <p className="text-gray-300">Most wanted: {g.mostWanted.name} <span className="text-gray-500">({g.mostWanted.watchers})</span></p>}
+          {g.print && <p className="text-gray-300">Print of the week: <Link href={g.print.href} className="text-yellow-400 hover:underline">{g.print.name}{g.print.uid ? `, Print #${g.print.uid}` : ''}</Link></p>}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 function Recap({ d }: { d: DashboardData }) {
   const r = d.recap;
   return (
@@ -382,6 +405,7 @@ export function renderWidget(type: WidgetType, d: DashboardData, opts: { gift?: 
     case 'unowned': return <Unowned d={d} />;
     case 'live': return <Live d={d} />;
     case 'recap': return <Recap d={d} />;
+    case 'digest': return <Digest d={d} />;
     case 'shortcuts': return <Shortcuts />;
     case 'notes': return <Panel title="Notes" icon="note"><NotesWidget initial={d.notes} /></Panel>;
   }
