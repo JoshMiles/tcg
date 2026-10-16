@@ -1,5 +1,6 @@
 import type { Variant } from './types';
 import { VARIANTS, VARIANT_LABELS, encodeEntry, removeEntries } from './variants';
+import { parseCopyId } from './serials-core';
 
 // The pure part of trading: types, validation of what a viewer sends, and the settlement maths. No database, so it is safe to
 // import in client components and easy to test (scripts/check-trades.mts). The rules that need data (limits, expiry, locks)
@@ -14,6 +15,11 @@ export interface TradeItem {
   cardNumber: number;
   variant: Variant;
   count: number;
+  /**
+   * The exact prints (copy ids `<card>.<variant index>.<n>`) when the viewer chose them, `ids.length === count`, all distinct and all of
+   * this card + version. Absent = any print: the newest move first (what trades always did).
+   */
+  ids?: string[];
 }
 
 export type TradeStatus = 'open' | 'accepted' | 'declined' | 'cancelled' | 'expired' | 'countered' | 'failed';
@@ -125,14 +131,54 @@ export function cleanItems(input: unknown, maxStacks: number): TradeItem[] | nul
     const count = Math.floor(Number(r.count));
     const variant = String(r.variant) as Variant;
     if (!Number.isInteger(cardNumber) || cardNumber < 1 || cardNumber >= 1_000_000 || !VARIANTS.includes(variant) || !Number.isFinite(count) || count < 1) return null;
+    let ids: string[] | undefined;
+    if (r.ids !== undefined && r.ids !== null) {
+      ids = cleanIds(r.ids, cardNumber, variant, count) ?? undefined;
+      if (!ids) return null;
+    }
     const key = `${cardNumber}:${variant}`;
     const prev = merged.get(key);
     const total = (prev?.count ?? 0) + count;
     if (total > TRADE_LIMITS.copiesPerStack) return null;
-    merged.set(key, { cardNumber, variant, count: total });
+    // Two lines for one card + version merge; picked prints only survive when both lines picked them (and never the same one twice).
+    if (prev && (!!prev.ids !== !!ids || (ids && prev.ids!.some(id => ids!.includes(id))))) return null;
+    merged.set(key, { cardNumber, variant, count: total, ...(ids ? { ids: [...(prev?.ids ?? []), ...ids] } : {}) });
   }
   const list = [...merged.values()];
   return list.length > maxStacks ? null : list;
+}
+
+/** Exact print ids for one stack: `count` distinct ids that all belong to this card + version. Null if anything is off. */
+export function cleanIds(input: unknown, cardNumber: number, variant: Variant, count: number): string[] | null {
+  if (!Array.isArray(input) || input.length !== count) return null;
+  const ids: string[] = [];
+  for (const id of input) {
+    if (typeof id !== 'string') return null;
+    const p = parseCopyId(id);
+    if (!p || p.card !== cardNumber || p.variant !== variant || p.n < 1 || ids.includes(id)) return null;
+    ids.push(id);
+  }
+  return ids;
+}
+
+/** Does any stack name exact prints? */
+export const hasPickedPrints = (items: TradeItem[]) => items.some(i => i.ids?.length);
+
+/** The ledger move for one stack: exact prints when chosen, otherwise the newest `count` (the ledger's default). */
+export const moveOf = (i: TradeItem) => ({ entry: encodeEntry(i.cardNumber, i.variant), count: i.count, ...(i.ids ? { ids: i.ids } : {}) });
+
+/** The stacks of a trade with the taker's own choices filled in (`chosen` by collection entry); stacks the offerer already pinned stay as they are. Null if a choice is malformed. */
+export function withChosenPrints(items: TradeItem[], chosen: Record<string, string[]> | undefined): TradeItem[] | null {
+  if (!chosen) return items;
+  const out: TradeItem[] = [];
+  for (const i of items) {
+    const picked = chosen[String(encodeEntry(i.cardNumber, i.variant))];
+    if (i.ids || picked === undefined) { out.push(i); continue; }
+    const ids = cleanIds(picked, i.cardNumber, i.variant, i.count);
+    if (!ids) return null;
+    out.push({ ...i, ids });
+  }
+  return out;
 }
 
 /** The collection entries a list of stacks stands for, one per copy. */

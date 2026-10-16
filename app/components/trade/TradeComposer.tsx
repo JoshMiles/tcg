@@ -5,15 +5,16 @@ import { Spinner } from '../../admin/components/PendingButton';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cardThumbUrl } from '@/lib/card-art';
-import { VARIANT_LABELS } from '@/lib/variants';
+import { VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
 import type { Variant } from '@/lib/types';
 import { postJson } from '../captcha-client';
 import type { TradeItem } from '@/lib/trade-core';
-import { stackPoints, type TradeCardInfo } from '@/lib/trade-view-core';
+import { newestIds, stackPoints, type PrintPool, type TradeCardInfo } from '@/lib/trade-view-core';
 import { fairness } from '@/lib/trade-match';
 import type { SerialPool } from '@/lib/serials-core';
 import { TradeStacks } from './TradeStacks';
+import { PrintPicker } from './PrintPicker';
 
 type Holdings = Record<number, Partial<Record<Variant, number>>>;
 const SHORT: Record<Variant, string> = { regular: 'Reg', reverse: 'RH', full: 'FA', shiny: 'SH' };
@@ -25,13 +26,15 @@ const MAX_COPIES = 99;
  * The server re-checks everything (ownership, limits, who the offer is for), so this only guides.
  */
 export function TradeComposer({
-  seasonId, cards, mine, minePool = {}, myWanted = [], maxStacks, expiryHours, initial,
+  seasonId, cards, mine, minePool = {}, minePrints = {}, myWanted = [], maxStacks, expiryHours, initial,
 }: {
   seasonId: string;
   cards: TradeCardInfo[];
   mine: Holdings;
   /** The serial numbers the viewer holds: trades move the newest first, so the offer is priced with those. */
   minePool?: SerialPool;
+  /** The exact prints the viewer holds (empty while the season's prints are not numbered: then there is nothing to choose). */
+  minePrints?: PrintPool;
   /** Cards on the viewer's own Looking for list. */
   myWanted?: number[];
   maxStacks: number;
@@ -45,6 +48,7 @@ export function TradeComposer({
   const [partner, setPartner] = useState<Holdings | null>(null);
   const [partnerWanted, setPartnerWanted] = useState<number[]>([]);
   const [partnerPool, setPartnerPool] = useState<SerialPool>({});
+  const [partnerPrints, setPartnerPrints] = useState<PrintPool>({});
   const [okLopsided, setOkLopsided] = useState(false);
   const [partnerError, setPartnerError] = useState('');
   const [lookingUp, setLookingUp] = useState(false);
@@ -62,6 +66,7 @@ export function TradeComposer({
     setPartnerError('');
     setPartner(null);
     setPartnerPool({});
+    setPartnerPrints({});
     try {
       const res = await fetch(`/api/trades/holdings?username=${encodeURIComponent(name)}&season=${encodeURIComponent(seasonId)}`);
       const body = await res.json().catch(() => ({}));
@@ -70,6 +75,7 @@ export function TradeComposer({
       setPartner(body.holdings as Holdings);
       setPartnerWanted(Array.isArray(body.wanted) ? body.wanted : []);
       setPartnerPool(body.pool && typeof body.pool === 'object' ? body.pool as SerialPool : {});
+      setPartnerPrints(body.prints && typeof body.prints === 'object' ? body.prints as PrintPool : {});
     } catch (e) {
       setPartnerError(e instanceof Error ? e.message : 'Could not find them');
     } finally {
@@ -92,17 +98,22 @@ export function TradeComposer({
   const giveCards = cards.filter(c => Object.values(mine[c.number] ?? {}).some(n => (n ?? 0) > 0));
   const getCards = kind === 'direct' ? cards.filter(c => Object.values(partner?.[c.number] ?? {}).some(n => (n ?? 0) > 0)) : cards;
 
-  const add = (list: TradeItem[], set: (l: TradeItem[]) => void, avail: (n: number, v: Variant) => number, n: number, v: Variant) => {
+  const add = (list: TradeItem[], set: (l: TradeItem[]) => void, avail: (n: number, v: Variant) => number, n: number, v: Variant, prints?: PrintPool) => {
     if (avail(n, v) < 1) return;
     const existing = list.find(i => i.cardNumber === n && i.variant === v);
-    if (existing) set(list.map(i => (i === existing ? { ...i, count: i.count + 1 } : i)));
+    if (existing) set(list.map(i => (i === existing ? resized(i, i.count + 1, prints) : i)));
     else if (list.length < maxStacks) set([...list, { cardNumber: n, variant: v, count: 1 }]);
   };
-  const adjust = (list: TradeItem[], set: (l: TradeItem[]) => void, avail: (n: number, v: Variant) => number, item: TradeItem, delta: number) => {
+  const adjust = (list: TradeItem[], set: (l: TradeItem[]) => void, avail: (n: number, v: Variant) => number, item: TradeItem, delta: number, prints?: PrintPool) => {
     if (delta > 0 && avail(item.cardNumber, item.variant) < 1) return;
     const count = item.count + delta;
-    set(count < 1 ? list.filter(i => i !== item) : list.map(i => (i === item ? { ...i, count } : i)));
+    set(count < 1 ? list.filter(i => i !== item) : list.map(i => (i === item ? resized(i, count, prints) : i)));
   };
+  // Choose the exact prints of a stack (or go back to "any print" with undefined).
+  const setIds = (list: TradeItem[], set: (l: TradeItem[]) => void, item: TradeItem, ids: string[] | undefined) => {
+    set(list.map(i => (i === item ? withIds(i, ids) : i)));
+  };
+  const getPrints = kind === 'direct' ? partnerPrints : undefined;
 
   // Your copies leave newest first, so a low serial number stays with you unless you give up every copy of that version.
   const givePts = stackPoints(give, byNumber, minePool);
@@ -171,14 +182,14 @@ export function TradeComposer({
           {theyWantAndYouHave.length > 0 && (
             <p className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
               <span className="text-gray-400">{to} is looking for:</span>
-              {theyWantAndYouHave.map(n => { const v = bestOwned(n)!; return <button key={n} type="button" onClick={() => add(give, setGive, giveAvail, n, v)} className="rounded-full border border-purple-400/40 bg-purple-500/10 px-2.5 py-1 text-xs font-bold text-purple-200 hover:bg-purple-500/20">+ {byNumber[n].name}{v === 'regular' ? '' : ` (${SHORT[v]})`}</button>; })}
+              {theyWantAndYouHave.map(n => { const v = bestOwned(n)!; return <button key={n} type="button" onClick={() => add(give, setGive, giveAvail, n, v, minePrints)} className="rounded-full border border-purple-400/40 bg-purple-500/10 px-2.5 py-1 text-xs font-bold text-purple-200 hover:bg-purple-500/20">+ {byNumber[n].name}{v === 'regular' ? '' : ` (${SHORT[v]})`}</button>; })}
               <span className="text-xs text-gray-600">you have these</span>
             </p>
           )}
           {youWantAndTheyHave.length > 0 && (
             <p className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
               <span className="text-gray-400">You are looking for:</span>
-              {youWantAndTheyHave.map(n => { const v = bestTheirs(n)!; return <button key={n} type="button" onClick={() => add(get, setGet, getAvail, n, v)} className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-1 text-xs font-bold text-yellow-200 hover:bg-yellow-500/20">+ {byNumber[n].name}{v === 'regular' ? '' : ` (${SHORT[v]})`}</button>; })}
+              {youWantAndTheyHave.map(n => { const v = bestTheirs(n)!; return <button key={n} type="button" onClick={() => add(get, setGet, getAvail, n, v, getPrints)} className="rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2.5 py-1 text-xs font-bold text-yellow-200 hover:bg-yellow-500/20">+ {byNumber[n].name}{v === 'regular' ? '' : ` (${SHORT[v]})`}</button>; })}
               <span className="text-xs text-gray-600">{to} has these</span>
             </p>
           )}
@@ -189,13 +200,16 @@ export function TradeComposer({
         <Side
           title="You give"
           pool={minePool}
+          prints={minePrints}
+          giving
+          onIds={(item, ids) => setIds(give, setGive, item, ids)}
           hint="From your collection. These leave it (held in escrow) until the offer ends."
           cards={giveCards}
           items={give}
           avail={giveAvail}
           byNumber={byNumber}
-          onAdd={(n, v) => add(give, setGive, giveAvail, n, v)}
-          onAdjust={(item, d) => adjust(give, setGive, giveAvail, item, d)}
+          onAdd={(n, v) => add(give, setGive, giveAvail, n, v, minePrints)}
+          onAdjust={(item, d) => adjust(give, setGive, giveAvail, item, d, minePrints)}
           points={givePts}
           maxStacks={maxStacks}
           empty="You don't own any cards to offer yet."
@@ -204,13 +218,15 @@ export function TradeComposer({
         <Side
           title="You want"
           pool={kind === 'direct' ? partnerPool : undefined}
+          prints={getPrints}
+          onIds={(item, ids) => setIds(get, setGet, item, ids)}
           hint={kind === 'direct' ? (partner ? `Cards ${to} has.` : 'Find their cards first.') : 'Any card, in any version it can be.'}
           cards={getCards}
           items={get}
           avail={getAvail}
           byNumber={byNumber}
-          onAdd={(n, v) => add(get, setGet, getAvail, n, v)}
-          onAdjust={(item, d) => adjust(get, setGet, getAvail, item, d)}
+          onAdd={(n, v) => add(get, setGet, getAvail, n, v, getPrints)}
+          onAdjust={(item, d) => adjust(get, setGet, getAvail, item, d, getPrints)}
           points={getPts}
           maxStacks={maxStacks}
           empty={kind === 'direct' ? 'Look the person up to see what they have.' : 'No cards.'}
@@ -247,8 +263,13 @@ export function TradeComposer({
 
 /** One side of the offer: the selected stacks on top, a searchable card picker below. */
 function Side({
-  title, hint, cards, items, avail, byNumber, onAdd, onAdjust, points, maxStacks, empty, spareOf, pool,
+  title, hint, cards, items, avail, byNumber, onAdd, onAdjust, points, maxStacks, empty, spareOf, pool, prints, onIds, giving = false,
 }: {
+  /** The prints that could be ticked for each stack (absent or empty: nothing to choose). */
+  prints?: PrintPool;
+  onIds?: (item: TradeItem, ids: string[] | undefined) => void;
+  /** These prints leave the viewer (warn about prints worth keeping). */
+  giving?: boolean;
   /** The serial numbers these stacks would come from (the newest move first), shown on each stack. */
   pool?: SerialPool;
   title: string; hint: string; cards: TradeCardInfo[]; items: TradeItem[]; avail: (n: number, v: Variant) => number;
@@ -271,13 +292,25 @@ function Side({
       {items.length > 0 ? (
         <ul className="space-y-1.5">
           {items.map(item => (
-            <li key={`${item.cardNumber}:${item.variant}`} className="flex items-center justify-between gap-2">
+            <li key={`${item.cardNumber}:${item.variant}`} className="flex flex-wrap items-center justify-between gap-2">
               <TradeStacks items={[item]} cards={byNumber} pool={pool} hideCount />
               <span className="flex items-center gap-1.5 shrink-0">
                 <button type="button" aria-label="One fewer" onClick={() => onAdjust(item, -1)} className="w-7 h-7 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500">−</button>
                 <span className="w-6 text-center text-sm font-bold text-yellow-300 tabular-nums">{item.count}</span>
                 <button type="button" aria-label="One more" disabled={avail(item.cardNumber, item.variant) < 1} onClick={() => onAdjust(item, 1)} className="w-7 h-7 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500 disabled:opacity-30">+</button>
               </span>
+              {(() => {
+                const list = prints?.[encodeEntry(item.cardNumber, item.variant)] ?? [];
+                if (!onIds || list.length === 0 || (list.length <= item.count && !item.ids)) return null;
+                return item.ids ? (
+                  <div className="w-full space-y-1">
+                    <PrintPicker prints={list} count={item.count} selected={item.ids} onChange={ids => onIds(item, ids)} card={byNumber[item.cardNumber]} giving={giving} />
+                    <button type="button" onClick={() => onIds(item, undefined)} className="text-[11px] font-semibold text-gray-400 hover:text-white">Any print (the newest)</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => onIds(item, newestIds(list, item.count))} className="text-[11px] font-semibold text-yellow-400 hover:text-yellow-300">Choose prints ({list.length} to pick from)</button>
+                );
+              })()}
             </li>
           ))}
         </ul>
@@ -319,4 +352,19 @@ function Side({
       </div>
     </section>
   );
+}
+
+/** The stack with exactly these prints (or none: any print). */
+function withIds(item: TradeItem, ids: string[] | undefined): TradeItem {
+  const { ids: _drop, ...rest } = item;
+  void _drop;
+  return ids ? { ...rest, ids } : rest;
+}
+
+/** The stack at a new count. Chosen prints follow it: one more takes the newest print not ticked yet, one fewer drops the last tick. */
+function resized(item: TradeItem, count: number, prints?: PrintPool): TradeItem {
+  if (!item.ids) return { ...item, count };
+  if (count <= item.ids.length) return { ...item, count, ids: item.ids.slice(0, count) };
+  const extra = [...(prints?.[encodeEntry(item.cardNumber, item.variant)] ?? [])].sort((a, b) => b.n - a.n).filter(p => !item.ids!.includes(p.id)).slice(0, count - item.ids.length).map(p => p.id);
+  return extra.length === count - item.ids.length ? { ...item, count, ids: [...item.ids, ...extra] } : withIds({ ...item, count }, undefined);
 }

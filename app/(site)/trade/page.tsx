@@ -10,6 +10,7 @@ import { getTradeCards, getTradePools } from '@/lib/trade-view';
 import { wantedForTrades } from '@/lib/watch-index';
 import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
+import { pickPropsFor } from '@/lib/trade-view-core';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { bestMatches, matchTrade, type MatchViewer } from '@/lib/trade-match';
 import { profileHref } from '@/lib/profile-url';
@@ -129,7 +130,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                     pools={pools}
                     cards={cards}
                     title={<>{user(t.from)} offered you a trade</>}
-                    actions={<TradeActions tradeId={t.id} mode="incoming" canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />}
+                    actions={<TradeActions tradeId={t.id} mode="incoming" pick={pickPropsFor(t, me, cards)} canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />}
                   />
                 );
               })}
@@ -166,7 +167,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                   pools={pools}
                   cards={cards}
                   title={<>{user(m.trade.from)}&rsquo;s listing <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons.join(' · ')}</span></>}
-                  actions={<TradeActions tradeId={m.trade.id} mode="board" canAccept={settings.enabled} />}
+                  actions={<TradeActions tradeId={m.trade.id} mode="board" pick={pickPropsFor(m.trade, me, cards)} canAccept={settings.enabled} />}
                 />
               ))}
             </section>
@@ -208,7 +209,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                         cards={cards}
                         title={<>{user(t.from)}&rsquo;s listing{session && m.reasons.length > 0 && <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons[0]}</span>}</>}
                         actions={session
-                          ? <TradeActions tradeId={t.id} mode="board" canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />
+                          ? <TradeActions tradeId={t.id} mode="board" pick={pickPropsFor(t, me, cards)} canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />
                           : <span className="text-xs text-gray-500">Log in to take a trade</span>}
                       />
                     </div>

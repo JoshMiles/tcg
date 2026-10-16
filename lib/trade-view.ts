@@ -1,9 +1,9 @@
 import type { Season } from './types';
 import { VARIANTS, allowedVariants } from './variants';
 import { getSeasonOverview } from './site-data';
-import type { TradeCardInfo, TradePools } from './trade-view-core';
+import { printPoolOf, type PrintPool, type TradeCardInfo, type TradePools } from './trade-view-core';
 import type { Trade } from './trade-core';
-import { loadSerialIndex } from './serials';
+import { getCopy, getOwnerCopies, isTracking, loadSerialIndex } from './serials';
 import { poolOf, type SerialPool } from './serials-core';
 
 
@@ -35,5 +35,15 @@ export async function getTradePools(season: Season, trades: Trade[], viewer?: st
   const idx = await loadSerialIndex(season.collectionName);
   const give: Record<string, SerialPool> = {};
   for (const t of trades) if (t.seasonId === season.id && t.escrowed) give[t.id] = poolOf(idx?.escrow.get(t.id));
-  return { viewer: viewer ?? null, give, mine: poolOf(viewer ? idx?.held.get(viewer) : undefined) };
+  // Exact prints named by the trades shown: their unique numbers, for "Print #1023381".
+  const uids: Record<string, number> = {};
+  const picked = trades.filter(t => t.seasonId === season.id).flatMap(t => [...t.give, ...t.get]).flatMap(i => i.ids ?? []);
+  await Promise.all([...new Set(picked)].slice(0, 120).map(async id => { const u = (await getCopy(season.collectionName, id).catch(() => null))?.uid; if (u) uids[id] = u; }));
+  return { viewer: viewer ?? null, give, mine: poolOf(viewer ? idx?.held.get(viewer) : undefined), uids };
+}
+
+/** The prints one viewer holds right now, by entry, for the print pickers ({} while the season's prints are not numbered). */
+export async function getPrintPool(season: Season, owner: string): Promise<PrintPool> {
+  if (!(await isTracking(season.collectionName))) return {};
+  return printPoolOf(await getOwnerCopies(season.collectionName, owner));
 }

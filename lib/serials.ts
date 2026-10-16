@@ -331,3 +331,20 @@ export async function dropLedger(c: string, users: string[]): Promise<void> {
 
 export { escrowOwner, encodeEntry };
 export type { Variant };
+
+/** The first of these copies that is not held by `owners` right now (null when all are). `holder` says where it is instead: another viewer, an offer's escrow, or '' when it no longer exists. */
+export async function firstNotHeld(c: string, owners: string[], ids: string[]): Promise<{ id: string; holder: string } | null> {
+  for (const id of ids) {
+    const holder = (await kv.hget<string>(key.idx(c), id).catch(() => null)) ?? '';
+    if (!owners.includes(holder)) return { id, holder };
+  }
+  return null;
+}
+
+/** "Print #1023381" for a copy id (the edition when the copy has no unique number yet). */
+export async function printLabel(c: string, id: string): Promise<string> {
+  const copy = await getCopy(c, id);
+  if (copy?.uid) return `Print #${copy.uid}`;
+  const p = parseCopyId(id);
+  return p ? `Edition #${p.n}` : 'that print';
+}

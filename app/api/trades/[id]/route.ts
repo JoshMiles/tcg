@@ -24,7 +24,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   try {
     switch (body.action) {
       case 'accept': {
-        const result = await acceptTrade(id, user);
+        // Optional: the prints the taker picked for what the offer asks, { <collection entry>: [print ids] }. Absent = newest first.
+        let getIds: Record<string, string[]> | undefined;
+        if (body.getIds !== undefined && body.getIds !== null) {
+          const g = body.getIds as unknown;
+          const okShape = typeof g === 'object' && !Array.isArray(g) && Object.values(g as object).every(v => Array.isArray(v) && v.every(x => typeof x === 'string'));
+          if (!okShape) return NextResponse.json({ error: 'getIds must map each card to a list of print ids' }, { status: 400 });
+          getIds = g as Record<string, string[]>;
+        }
+        const result = await acceptTrade(id, user, getIds);
         if (!result.ok) return respond(result);
         // What changed hands from the accepter's side, for the trade animation.
         const swap = await buildSwap(result.trade.seasonId, result.trade.get, result.trade.give, result.trade.from);

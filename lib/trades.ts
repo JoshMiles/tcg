@@ -1,5 +1,5 @@
-import { escrowOwner } from './serials-core';
-import { serialPool } from './serials';
+import { escrowOwner, isEscrow } from './serials-core';
+import { firstNotHeld, isTracking, printLabel, serialPool } from './serials';
 import { getUserSettings } from './user-settings-store';
 import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserProfile, saveCollection, withCollectionLock, withLock } from './kv';
@@ -8,7 +8,7 @@ import { currentStaffLogin } from './staff-actor';
 import { allowedVariants, encodeEntry } from './variants';
 import {
   DEFAULT_TRADE_SETTINGS, TRADE_LIMITS, cleanItems, itemEntries, sanitizeTradeSettings, settleTrade, takeForEscrow,
-  describeItems, type Trade, type TradeItem, type TradeSettings, type TradeStatus,
+  describeItems, hasPickedPrints, moveOf, withChosenPrints, type Trade, type TradeItem, type TradeSettings, type TradeStatus,
 } from './trade-core';
 import type { Card, Pack } from './types';
 
@@ -100,7 +100,7 @@ async function returnToCollection(seasonId: string, username: string, items: Tra
     const data = await getCollection(season.collectionName);
     data[username] = [...(data[username] ?? []), ...itemEntries(items)];
     // The copies come back out of escrow with their identity (serials) intact.
-    await saveCollection(season.collectionName, data, tradeId ? { moves: items.map(i => ({ from: escrowOwner(tradeId), to: username, entry: encodeEntry(i.cardNumber, i.variant), count: i.count })) } : undefined);
+    await saveCollection(season.collectionName, data, tradeId ? { moves: items.map(i => ({ from: escrowOwner(tradeId), to: username, ...moveOf(i) })) } : undefined);
   });
 }
 
@@ -232,6 +232,12 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     }
   }
 
+  // Exact prints need a numbered ledger, and only a direct offer can ask for the other person's exact prints (a listing is taken by a stranger who picks at accept).
+  if (hasPickedPrints(give) || hasPickedPrints(get)) {
+    if (!(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered yet, so you can\'t choose which ones to trade.');
+    if (input.kind === 'listing' && hasPickedPrints(get)) return fail(400, 'A listing can\'t ask for exact prints: whoever takes it chooses theirs.');
+  }
+
   if (open.filter(t => t.from === from).length >= settings.maxOpenPerUser) {
     return fail(429, `You already have ${settings.maxOpenPerUser} open offers. Cancel one or wait for it to be answered.`);
   }
@@ -241,6 +247,12 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
   if (input.kind === 'direct' && to) {
     const data = await getCollection(season.collectionName);
     if (!(to in data) && !(await getUserProfile(to))) return fail(404, `Nobody called ${to} has played yet.`);
+    // Asked-for prints must be the recipient's right now (a counter may ask for prints still sitting in the offer it answers).
+    for (const item of get) {
+      if (!item.ids) continue;
+      const gone = await firstNotHeld(season.collectionName, counterOf ? [to, escrowOwner(counterOf)] : [to], item.ids);
+      if (gone) return fail(400, `${to} doesn't hold ${await printLabel(season.collectionName, gone.id)} any more.`);
+    }
   }
 
   // Escrow: take the offered copies out of the offerer's collection, then record the offer. If recording fails, put them back.
@@ -263,10 +275,17 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     const data = await getCollection(season.collectionName);
     const res = takeForEscrow(data[from] ?? [], give);
     if (!res.ok) return res;
+    // Picked prints must be this viewer's own, right now: not sold, forged or already put up in another offer.
+    for (const item of give) {
+      if (!item.ids) continue;
+      const gone = await firstNotHeld(season.collectionName, [from], item.ids);
+      if (gone) return { ok: false as const, text: `${await printLabel(season.collectionName, gone.id)} ${isEscrow(gone.holder) ? 'is already in another trade offer.' : 'isn\'t yours any more.'}` };
+    }
     data[from] = res.rest;
-    await saveCollection(season.collectionName, data, { moves: give.map(i => ({ from, to: escrowOwner(trade.id), entry: encodeEntry(i.cardNumber, i.variant), count: i.count })) });
+    await saveCollection(season.collectionName, data, { moves: give.map(i => ({ from, to: escrowOwner(trade.id), ...moveOf(i) })) });
     return res;
   });
+  if (!taken.ok && 'text' in taken) return fail(400, taken.text);
   if (!taken.ok) {
     const card = cardMap.get(taken.missing.cardNumber)?.card.name ?? `#${taken.missing.cardNumber}`;
     return fail(400, `You don't have ${taken.missing.count}× ${card} (${taken.missing.variant}) to offer.`);
@@ -309,7 +328,7 @@ async function findOpen(id: string): Promise<{ open: Trade[]; history: Trade[]; 
 }
 
 /** Accept: the taker hands over what the offerer wanted and receives the escrowed copies. */
-export async function acceptTrade(id: string, username: string): Promise<TradeResult<{ trade: Trade }>> {
+export async function acceptTrade(id: string, username: string, getIds?: Record<string, string[]>): Promise<TradeResult<{ trade: Trade }>> {
   const taker = username.toLowerCase();
   const settings = await getTradeSettings();
   if (!settings.enabled) return fail(403, 'Trading is paused right now.');
@@ -325,26 +344,41 @@ export async function acceptTrade(id: string, username: string): Promise<TradeRe
     if (!season) return fail(404, 'That season no longer exists.');
     if (season.tradingFrozen) return fail(403, 'Trading is closed for this season.');
 
-    // Read the serials on both sides before the copies change hands.
+    // Prints the taker chose for what the offer asks (the offerer may have pinned some already).
+    const get = withChosenPrints(trade.get, getIds);
+    if (!get) return fail(400, 'Those prints don\'t match what the offer asks for.');
+    if (hasPickedPrints(get) && !(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered yet, so they can\'t be chosen.');
+
+    // Read the serials on both sides before the copies change hands (picked prints are priced from their own ids).
     const pools = await snapshotPools(trade.seasonId, { give: escrowOwner(trade.id), get: taker });
     const result = await withCollectionLock(season.collectionName, async () => {
       const data = await getCollection(season.collectionName);
-      const settled = settleTrade(data[trade.from] ?? [], data[taker] ?? [], trade.give, trade.get);
+      const settled = settleTrade(data[trade.from] ?? [], data[taker] ?? [], trade.give, get);
       if (!settled.ok) return settled;
+      // Exact prints must still be the taker's: if one moved since the offer was made, the offer stays open for a counter.
+      for (const item of get) {
+        if (!item.ids) continue;
+        const gone = await firstNotHeld(season.collectionName, [taker], item.ids);
+        if (!gone) continue;
+        const pinned = trade.get.some(t => t.cardNumber === item.cardNumber && t.variant === item.variant && t.ids);
+        return { ok: false as const, text: `${pinned ? 'That offer asks for' : 'You chose'} ${await printLabel(season.collectionName, gone.id)}, which you no longer hold.` };
+      }
       data[trade.from] = settled.offerer;
       data[taker] = settled.taker;
       // Identity follows the cards: the offer's copies leave escrow for the taker, the asked-for copies go to the offerer.
       await saveCollection(season.collectionName, data, { moves: [
-        ...trade.give.map(i => ({ from: escrowOwner(trade.id), to: taker, entry: encodeEntry(i.cardNumber, i.variant), count: i.count })),
-        ...trade.get.map(i => ({ from: taker, to: trade.from, entry: encodeEntry(i.cardNumber, i.variant), count: i.count })),
+        ...trade.give.map(i => ({ from: escrowOwner(trade.id), to: taker, ...moveOf(i) })),
+        ...get.map(i => ({ from: taker, to: trade.from, ...moveOf(i) })),
       ] });
       return settled;
     });
+    if (!result.ok && 'text' in result) return fail(400, result.text);
     if (!result.ok) {
       return fail(400, `You don't have ${result.missing.count}× card #${result.missing.cardNumber} (${result.missing.variant}) that this offer asks for.`);
     }
-    // The escrow has been handed over, so close without refunding.
+    // The escrow has been handed over, so close without refunding. The record keeps the exact prints that came back.
     trade.escrowed = false;
+    trade.get = get;
     await closeTrade(open, history, trade, 'accepted', taker, undefined, false, pools);
     await persist(open, history);
     return { ok: true, trade };

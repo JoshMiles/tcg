@@ -11,6 +11,7 @@ import { fairness } from '@/lib/trade-match';
 import { wantedForTrades } from '@/lib/watch-index';
 import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
+import { pickPropsFor } from '@/lib/trade-view-core';
 import { profileHref } from '@/lib/profile-url';
 
 export const dynamic = 'force-dynamic';
@@ -88,6 +89,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
         <TradeActions
           tradeId={trade.id}
           mode={isTo ? 'incoming' : 'board'}
+          pick={pickPropsFor(trade, me, cards)}
           canAccept={!lack && settings.enabled && !season.tradingFrozen}
           blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined}
         />

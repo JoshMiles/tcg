@@ -3,6 +3,7 @@ import { Icon } from '@/app/components/Icon';
 import { CardTile } from '@/app/components/CardTile';
 import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
+import { pickPropsFor } from '@/lib/trade-view-core';
 import { getActivity } from '@/lib/activity';
 import { getSeasonOverview } from '@/lib/site-data';
 import { computeUserStats } from '@/lib/user-stats';
@@ -124,7 +125,7 @@ export async function TradesTab({ b, viewer }: { b: ProfileBase; viewer?: string
             key={t.id} trade={t} cards={cards} pools={pools}
             title={<>{b.displayName}&rsquo;s listing</>}
             actions={viewer && viewer !== b.lower
-              ? <TradeActions tradeId={t.id} mode="board" canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />
+              ? <TradeActions tradeId={t.id} mode="board" pick={pickPropsFor(t, viewer, cards)} canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />
               : !viewer ? <span className="text-xs text-gray-500">Log in to take a trade</span> : undefined}
           />
         );

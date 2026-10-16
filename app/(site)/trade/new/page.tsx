@@ -6,12 +6,12 @@ import { getSession } from '@/lib/session';
 import { getCollection, getUserProfile } from '@/lib/kv';
 import { getActive } from '@/lib/site-seasons';
 import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
-import { getTradeCards } from '@/lib/trade-view';
+import { getPrintPool, getTradeCards } from '@/lib/trade-view';
 import { loadSerialIndex } from '@/lib/serials';
 import { poolOf } from '@/lib/serials-core';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { TradeComposer } from '@/app/components/trade/TradeComposer';
-import { VARIANTS, decodeEntry } from '@/lib/variants';
+import { VARIANTS, decodeEntry, encodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import type { TradeItem } from '@/lib/trade-core';
 
@@ -54,12 +54,19 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
   }
 
   // A counter starts from the mirror of the offer: you give what they wanted (as far as you own it), and want what they offered.
+  const minePrints = await getPrintPool(season, session.username);
   const startGive: TradeItem[] = original
-    ? original.get.map(i => ({ ...i, count: Math.min(i.count, mine[i.cardNumber]?.[i.variant] ?? 0) })).filter(i => i.count > 0)
+    ? original.get.map(i => {
+        const count = Math.min(i.count, mine[i.cardNumber]?.[i.variant] ?? 0);
+        // The prints they asked of you stay ticked when you still hold them all; otherwise it is back to any print.
+        const held = new Set((minePrints[encodeEntry(i.cardNumber, i.variant)] ?? []).map(p => p.id));
+        const { ids, ...rest } = i;
+        return { ...rest, count, ...(ids && count === i.count && ids.every(id => held.has(id)) ? { ids } : {}) };
+      }).filter(i => i.count > 0)
     : [];
   // ?want=<card>.<variant> (from the "Offer a trade" button on a card) pre-selects the card you are asking for.
   const wanted = /^(\d{1,6})\.(regular|reverse|full|shiny)$/.exec(want ?? '');
-  const startGet: TradeItem[] = original ? original.give : wanted && VARIANTS.includes(wanted[2] as Variant) ? [{ cardNumber: Number(wanted[1]), variant: wanted[2] as Variant, count: 1 }] : [];
+  const startGet: TradeItem[] = original ? original.give.map(({ ids: _ids, ...i }) => i) : wanted && VARIANTS.includes(wanted[2] as Variant) ? [{ cardNumber: Number(wanted[1]), variant: wanted[2] as Variant, count: 1 }] : [];
 
   return wrap(
     <>
@@ -72,6 +79,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
         cards={Object.values(cards).sort((a, b) => a.number - b.number)}
         mine={mine}
         minePool={poolOf((await loadSerialIndex(season.collectionName))?.held.get(session.username))}
+        minePrints={minePrints}
         myWanted={prefs.wanted}
         maxStacks={settings.maxStacksPerSide}
         expiryHours={settings.expiryHours}
