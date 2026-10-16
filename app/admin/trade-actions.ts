@@ -7,12 +7,15 @@ import { sanitizeTradeSettings } from '@/lib/trade-core';
 import { recordAudit } from '@/lib/audit';
 import { getSeason, getUserProfile, saveSeason } from '@/lib/kv';
 import { saveFlags } from '@/lib/user-admin';
-import { cancelOpenTrades, cancelTrade, extendOpenTrades, saveTradeSettings } from '@/lib/trades';
+import { cancelOpenTrades, cancelTrade, extendOpenTrades, getTradeSettings, saveTradeSettings } from '@/lib/trades';
+import { notifyAdminLog } from '@/lib/discord';
+import { currentStaffLogin } from '@/lib/staff-actor';
 
 export interface TradeActionResult { ok: boolean; message: string }
 
 export async function saveTradeSettingsAction(formData: FormData) {
   await requireAdmin();
+  const was = (await getTradeSettings()).enabled;
   await saveTradeSettings(sanitizeTradeSettings({
     enabled: formData.get('enabled') === 'on',
     expiryHours: Number(formData.get('expiryHours')),
@@ -21,6 +24,8 @@ export async function saveTradeSettingsAction(formData: FormData) {
     maxStacksPerSide: Number(formData.get('maxStacksPerSide')),
     minAccountHours: Number(formData.get('minAccountHours')),
   }));
+  const now = formData.get('enabled') === 'on';
+  if (now !== was) await notifyAdminLog({ action: now ? 'Trading resumed' : 'Trading paused', by: await currentStaffLogin() });
   revalidatePath('/admin/trades');
   redirect('/admin/trades?tab=settings&saved=1');
 }
@@ -57,6 +62,7 @@ export async function setSeasonTradingAction(seasonId: string, frozen: boolean):
   const season = await getSeason(seasonId);
   if (!season) return { ok: false, message: 'That season no longer exists.' };
   await saveSeason({ ...season, tradingFrozen: frozen ? true : undefined });
+  await notifyAdminLog({ action: frozen ? 'Trading closed for a season' : 'Trading reopened for a season', subject: season.name, by: await currentStaffLogin() });
   revalidatePath('/admin/trades');
   revalidatePath(`/admin/seasons/${seasonId}`);
   revalidatePath('/trade', 'layout');

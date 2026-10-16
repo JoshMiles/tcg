@@ -248,7 +248,7 @@ export default async function FaqPage() {
         </Q>
         <Q q="Can I stop getting offers or notifications?">
           Yes. In <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> you can stop other collectors sending you direct offers (the open board and counters to your own offers still work) and switch off
-          bell notices for new offers or for how your offers ended. Notices from an admin always come through.
+          bell notices for new offers or for how your offers ended. Notices from an admin always come through. New notices appear within about ten seconds while the site is open, with a small pop-up, a count in the tab title, and an optional sound (off unless you switch it on in Settings).
         </Q>
         <Q q="Which of my prints get traded?">
           Trades move your <strong className="text-white">newest</strong> prints of a card first, so the low edition numbers you pulled earliest stay with you. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">prints and editions</a>.

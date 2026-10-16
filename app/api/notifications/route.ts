@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isSameOrigin } from '@/lib/session';
-import { listNotices, markNoticesSeen } from '@/lib/trade-notify';
+import { getNoticeVersion, listNotices, markNoticesSeen } from '@/lib/trade-notify';
+import { getUserSettings } from '@/lib/user-settings-store';
+import { isUnchanged, parseSince } from '@/lib/notice-poll-core';
 
 export const dynamic = 'force-dynamic';
+const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // The logged-in viewer's notifications (trade offers and outcomes). The viewer always comes from the session.
-export async function GET() {
+// `?since=<v>` is the version the caller already has: 204 when nothing has changed since.
+export async function GET(req: NextRequest) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ notices: [], seen: 0, unread: 0 }, { headers: { 'Cache-Control': 'no-store' } });
-  const { notices, seen } = await listNotices(session.username);
-  return NextResponse.json({ notices, seen, unread: notices.filter(n => n.at > seen).length }, { headers: { 'Cache-Control': 'no-store' } });
+  if (!session) return NextResponse.json({ notices: [], seen: 0, unread: 0, v: 0, sound: false }, { headers: NO_STORE });
+  // Read the version first: a notice that lands while we read the list then shows as a newer version on the next poll.
+  const v = await getNoticeVersion(session.username);
+  if (isUnchanged(parseSince(req.nextUrl.searchParams.get('since')), v)) return new NextResponse(null, { status: 204, headers: NO_STORE });
+  const [{ notices, seen }, settings] = await Promise.all([listNotices(session.username), getUserSettings(session.username.toLowerCase()).catch(() => null)]);
+  return NextResponse.json({ notices, seen, unread: notices.filter(n => n.at > seen).length, v, sound: !!settings?.noticeSound }, { headers: NO_STORE });
 }
 
 /** Marks everything as read. */

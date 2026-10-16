@@ -60,6 +60,9 @@ export interface PullItem {
   /** The serial number the copy got, and its points multiplier when above 1. */
   serial?: number;
   bonus?: number;
+  /** The print's unique number, and where its page is (the card's dex page when the event has no print to point at). */
+  uid?: number;
+  href?: string;
 }
 
 /** Why a pull stands out (the chip text), or null for an ordinary one. */
