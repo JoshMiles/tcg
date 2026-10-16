@@ -40,7 +40,7 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 6.1 to 6.4 | Track 6: community extras | Done (#166 to #169) | |
 | 7.1 to 11.3 | Tracks 7 to 11: the second Discord list (30 items) | Done (#171 to #198, and #199) | |
 | 12.1 to 14.1 | Tracks 12 to 14: Mix It Up paid pulls, collection API lock-down, webhook grants | Done (#201 to #206) | |
-| 15.1 to 22.1 | Tracks 15 to 22: the third Discord list (18 items) | See their own table | |
+| 15.1 to 22.1 | Tracks 15 to 22: the third Discord list (23 items) | See their own table | |
 
 **Tracks 1 to 14 are done** (#144 to #206; the only open item is 4.4, which waits for a decision). The user steps below are still open.
 
@@ -54,7 +54,7 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 - [ ] **Dependabot `braces` alert** (high, dev-only, through Tailwind 3's chokidar / micromatch): no patched release exists. Dismiss it as "no fix available" until upstream ships one; build-time only, not reachable at runtime.
 
 
-**Streams A to K and Tracks 12 to 14 are done** (2026-10-16, #144 to #206). Next: Tracks 15 to 22 (the third Discord list, 2026-10-16), in the streams set out under "Tracks 15 to 22: order". 20.2 needs a planning pass and 22.1 a decision first. After that: 4.4 or the next extension version.
+**Streams A to K and Tracks 12 to 14 are done** (2026-10-16, #144 to #206). Next: Tracks 15 to 22 (the third Discord list, 2026-10-16), in the streams set out under "Tracks 15 to 22: order". After that: 4.4 or the next extension version.
 
 ---
 
@@ -712,7 +712,7 @@ A card from `POST /api/webhooks/grant-card` is recorded as `grant` with `source:
 | 15.3 | Home: the live banner spans the full width | Ready | S |
 | 15.4 | Most valuable prints open the print (or the card) | Ready | S |
 | 15.5 | Feedback channel filter per kind (ideas, problems, deletions, reports) | Ready | S |
-| 16.1 | Closed alpha / beta: only listed Twitch users get in | Ready (defaults below) | L |
+| 16.1 | Closed alpha / beta: only listed Twitch users get in | Ready (defaults confirmed 2026-10-16) | L |
 | 16.2 | Testers list and the tester achievement | Ready (with 16.1) | M |
 | 16.3 | Alpha / beta banner and badge | Ready (after 16.1) | S |
 | 17.1 | Staff badges on profiles | Ready | S |
@@ -722,9 +722,14 @@ A card from `POST /api/webhooks/grant-card` is recorded as `grant` with `source:
 | 19.1 | Mix It Up moves to its own admin page | Ready | S |
 | 19.2 | Chat commands: one webhook, a command builder, `!showoff` and `!stats` | Ready (after 19.1) | L |
 | 20.1 | Card back designed per pack | Ready | M |
-| 20.2 | A fuller card and pack editor | Needs design | L |
-| 21.1 | Changelog built from PRs on every build | Ready (defaults below) | M |
-| 22.1 | Email notifications | Needs a decision | L |
+| 20.2a | Pack workspace: shell, card and pack panels, saving | Ready (planned 2026-10-16) | L |
+| 20.2b | Pack workspace: live preview (front, back, on stream, sizes) | Ready (after 20.2a) | M |
+| 20.2c | Pack workspace: grid view and bulk edits | Ready (after 20.2a) | M |
+| 20.2d | Pack workspace: odds view | Ready (after 20.2a) | S |
+| 20.2e | Pack workspace: import a folder of art | Ready (after 20.2c) | M |
+| 20.2f | One flow for new packs; the wizard goes | Ready (last) | M |
+| 21.1 | Changelog built from PRs on every build | Ready (decided 2026-10-16) | M |
+| 22.1 | Email notifications (Resend) | Ready (decided 2026-10-16) | L |
 
 ### Tracks 15 to 22: order
 
@@ -734,9 +739,9 @@ Parallel streams, chosen so no two running PRs edit the same files:
 - **Stream N (profiles):** 17.1, then 17.2 (both edit `ProfileHeader.tsx`; 17.2 also waits for 15.5, which changes the feedback category).
 - **Stream O (overlay):** 18.1, then 18.2 (both edit `lib/overlay-props.ts`, `widget.js` and the editor).
 - **Stream P (Mix It Up):** 19.1, then 19.2. 19.2 also touches the show-off code: start it after 18.2 merges, or agree that 19.2 only calls `prepareShowOff` and never edits `widget.js`.
-- **Stream Q (cards):** 20.1. 20.2 waits for a planning pass.
+- **Stream Q (cards):** 20.1, then 20.2a, then 20.2b / 20.2c / 20.2d, then 20.2e, then 20.2f (order set out in 20.2).
 - **Stream R (changelog):** 21.1.
-- 22.1 waits for the user's decision.
+- **Stream S (email):** 22.1. It edits `notify()` and Settings -> Notifications, like 17.2's feedback notice: start it after 17.2 merges, or keep 17.2 to the existing `feedback` notice kind.
 
 **Twitch panel freeze:** nothing here edits `public/twitch-panel/*`, `/api/twitch/*` or the CORS rules. 16.1 is the edge case: it widens the middleware matcher, so it must leave `/api/twitch/*` (and the extension's CORS answers) exactly as they are, and keep `/privacy` and `/terms` reachable for the Twitch reviewers. Staff badges, tester badges and the card back in the panel wait for the next extension version.
 
@@ -777,12 +782,12 @@ The Discord `feedback` category posts ideas, problem reports and deletion reques
 
 Asked: lock the website to permitted Twitch users while in alpha / beta, a way to add alpha and beta users (with an achievement for being a tester), and a banner that says the site is in alpha / beta.
 
-**Defaults (change them here if wrong):**
+**Decided 2026-10-16 (the owner confirmed these defaults):**
 - Three modes, set by an admin: **Open** (today), **Beta** (alpha and beta testers plus staff get in), **Alpha** (alpha testers plus staff only). Default after deploy: **Open**, so nothing locks until the owner switches it.
 - What stays reachable for everyone in every mode: the Twitch panel and its API, the OBS overlay and every webhook / cron / overlay / collection API, `/login` and `/auth/*`, `/admin` and `/mod` (they have their own staff gate), `/privacy`, `/terms` (the Twitch extension listing links them), `/faq`, the closed-site page itself, and static files (icons, manifest, service worker, `/assets`, `/brand`, `/_next`, `robots.txt`).
 - Everything else on the public site (pages and the public site's own APIs) needs a tester or staff sign-in.
 
-### 16.1 The gate (Ready, with 16.2)
+### 16.1 The gate (Ready, with 16.2; defaults confirmed)
 
 **Settings:** KV `access:settings` `{ mode: 'open' | 'beta' | 'alpha'; label: 'none' | 'alpha' | 'beta'; message?: string; v: number }` (`lib/access-core.ts` pure: types, cleaning, `canEnter(mode, tier, isStaff)`; `lib/access.ts` KV). `label` is separate from `mode` so a public beta can show the banner without locking anything. `v` goes up on every change. A new Settings tab **Access** (icon `lock`, admins only): mode, label, the message shown on the closed page, and the testers list (16.2). Every change is audited and posted to the Discord admin category.
 
@@ -841,7 +846,7 @@ Background: `docs/overlay.md` ("Overlay properties", "Show off a card"). Everyth
 
 ### 18.1 Special moments (Ready)
 
-"Overlay editor also allows modification for first card pulls." Read as: the moments that happen when a pull is a "first" get a section of their own with real controls. New group **Special moments** in `PROP_GROUPS` (icon `sparkles`), three sections, in priority order (only one moment plays per pull; the highest wins):
+"Overlay editor also allows modification for first card pulls." The owner confirmed (2026-10-16) it means both a first-ever print and a viewer's first pull, so: the moments that happen when a pull is a "first" get a section of their own with real controls. New group **Special moments** in `PROP_GROUPS` (icon `sparkles`), three sections, in priority order (only one moment plays per pull; the highest wins):
 1. **First-ever print** (edition #1 of that card and version): move `reveal.firstEver`, `reveal.firstEverText`, `reveal.firstEverHold` here, and add banner colour / text colour / text size / position (top, middle, bottom of the card), sparkle count, an optional sound (an asset URL, played over the card sound), and a reveal style override (`inherit` default).
 2. **A viewer's first pull** (their very first card in this season), new keys `moment.firstPull.*`: on/off (**default off**), banner text with placeholders (`{username}`, default "Welcome, {username}!"), the same look controls, extra hold, sound, style override.
 3. **A new card for them** (first time they get this card; today `isNew` already drives the "NEW" label), `moment.newCard.*`: the existing new-card label look moves here if it has settings, plus on/off for an extra effect (default off).
@@ -907,21 +912,102 @@ The back of a print (`FlipCard`, `lib/flip-back.ts`: print number, edition line,
 - **Not changed:** the overlay's flip reveal (its back is the pack cover; a later option could use this design). The Twitch panel (freeze).
 - Checks: `sanitizeCardBack` (unknown keys dropped, colours validated, template cap) and "no key = today's look" in a new `scripts/check-card-back.mts`; the public sweep with one pack styled.
 
-### 20.2 A fuller card and pack editor (Needs design)
+### 20.2 The pack workspace: one editor for packs and cards (Ready, planned with the owner 2026-10-16; six PRs, 20.2a to 20.2f)
 
-"There should also be a more comprehensive and user-friendly card and pack editor in place." This is a redesign of the admin pack pages, so it needs a planning pass with the owner first. Proposed direction, to agree before building: the pack page becomes a workspace like the Overlay Editor: a card list on the left (drag to reorder, multi-select for bulk edits of stars, chance, sound, versions allowed), a live preview in the middle (front with each version's holo, the back from 20.1, the card as it looks on the overlay), and a docked properties panel on the right (art and still frame, sound with a play button, odds with the pack's total shown live, upgrade costs). Pack-level settings (cover, weight, versions and odds, card back) in the same panel when no card is selected. Undo, unsaved-changes guard, keyboard navigation. Questions for the owner: which edits today are the most painful; whether the wizard (`PackFlow`) and the edit page should become the same screen; whether bulk import (CSV / a folder of images) is wanted. 20.1 is built so this can reuse its section unchanged.
+"There should also be a more comprehensive and user-friendly card and pack editor in place."
+
+**Today** a pack is edited in five places: the wizard (`PackFlow`, drafts only), the pack page tabs (Cards table, Odds & simulator, Overview, Settings), the bulk card page (`/cards`, `BulkCards`), the single card page (`/cards/[cardId]`, `CardEditor` with `FramePicker`) and the Add card dialog. The overlay look per pack lives in the Overlay Editor and art files in Assets.
+
+**Owner's answers (2026-10-16):**
+- **One workspace.** Creating a pack opens the same editor as editing one; the wizard goes. A draft shows a short publish checklist instead of wizard steps.
+- **Every pain point counts:** editing many cards, art and sounds per card, not seeing the result while editing, and balancing odds.
+- **Bulk import by dropping a folder of art** (one card per image, named from the file name; stars and odds filled in afterwards in the grid).
+
+#### The layout
+
+`/admin/packs/[packId]` becomes the workspace (full width, like the Overlay Editor: it auto-collapses the sidebar and fits the viewport at `xl`, stacks below it).
+- **Top bar:** pack name, status chip (Draft / Live / Inactive / Archived), the seasons it is in, the save state, **Undo / Redo**, **Review changes**, **Save** (or **Publish** for a draft), and a menu with Duplicate / Archive / Move to drafts / Delete (today's actions, same guards).
+- **Left: the card list.** Thumb, number, name, stars, chance ("1 in 40"), small marks for missing art, no full art, no sound, 0 odds, versions switched off; search (`/`), rarity filter, sort (number, name, stars, chance, problems first). Multi-select with checkboxes, Shift-click ranges and Ctrl/Cmd-A. A **Pack** row pinned at the top selects the pack itself. **Add card** and **Import art** (20.2e) at the bottom. `j` / `k` (or arrows) move through cards.
+- **Centre: the preview** (20.2b). What is selected, as players and the stream see it.
+- **Right: the properties panel.** One card selected: its fields. Several selected: the bulk fields (20.2c). The Pack row: the pack's settings. Sections collapse; each shows a dot when it has unsaved changes or a problem.
+- **View switch** above the centre: **Edit** (list + preview + panel, the default), **Grid** (20.2c), **Odds** (20.2d), **Overview** (today's Overview tab: usage, health, who holds what).
+- URL state: `?card=<id>`, `?view=edit|grid|odds|overview`, `?sel=<ids>` is not kept (selection is local). Old URLs redirect: `/admin/packs/[id]/cards` -> `?view=grid`, `/admin/packs/[id]/cards/[cardId]` -> `?card=<cardId>`, `?tab=odds` -> `?view=odds`, `?tab=overview#health` -> `?view=overview#health`, `/admin/packs/new?draft=<id>` -> `/admin/packs/<id>`.
+- **Phones:** the list is the page; tapping a card opens a full-screen sheet with the preview on top and the fields under it; the pack settings are a sheet too. Grid and Odds views scroll sideways inside their own box.
+
+#### Card fields (right panel)
+
+- **Basics:** number (locked once anyone holds the card, as today, with the same reason shown), name, stars (five clickable stars, not a number box), chance (weight plus live "1 in N" and its share of the pack, recomputed as you type).
+- **Art:** the image drop zone (drop, paste from the clipboard, or pick; uploads through the existing `uploadImageFile` -> Blob -> `storeOptimizedCard` path), the full art drop zone, and each one's still frame (`FramePicker`, 10.4) inline under it. **Replace** keeps the old file for the Assets page's Unused list, as today.
+- **Sound:** drop / pick an audio file (the existing `uploadAudioFile` path and the in-browser optimiser from the Assets page, offered as "Make it smaller" when the file is over 300 KB), a **Play** button, and "Use the default sound" (`/assets/sounds/<n>.mp3`) when there is one.
+- **Versions:** the four version switches (pack switches shown as locked-off), the per-card upgrades opt-out.
+- **Problems:** the card's `pack-health` / `cardProblems` issues, each with a "Fix" jump to the field.
+
+#### Pack fields (the Pack row)
+
+Details (name, cover with drop zone and the cover optimiser, accent and tear colours, draw weight with its share of draws in each season), Versions and odds of each version, upgrade costs, Timing and sound (card time, cooldown, volume), **Card back** (20.1's section, moved here unchanged), **Overlay look** (a link to the Overlay Editor in this pack's scope, plus a count of its overrides), Seasons (the "Used in" list with links), Danger zone. All of today's pack form fields, cleaned by `cleanPackInput` as now.
+
+#### Saving
+
+- **Published packs: explicit Save**, because a change goes live on stream at once. Edits build a local **change set** (cards added / changed / removed, pack fields changed). **Review changes** lists it as "old -> new" per field (like the Overlay Editor's Review), and Save sends it in one server action `savePackChanges(packId, rev, changes)`. The navigation guard warns about unsaved changes.
+- **Drafts: autosave** (`useAutosave`, ~0.9 s, as the wizard does today), because nothing is live.
+- **Undo / Redo** (Ctrl+Z / Ctrl+Shift+Z): snapshots of the change set, 60 deep, slider bursts coalesced (the Overlay Editor's approach). Undo covers unsaved edits only; file uploads are not deleted by undo (the old file stays referenced until Save).
+- **Two staff editing one pack:** the pack gets a revision counter `pack:<id>:rev`, raised by every write to the pack or its cards (all existing writers too: `saveCards`, `updatePack`, odds saves, still frames). `savePackChanges` refuses with "Someone else saved this pack since you opened it" when `rev` doesn't match, and the workspace offers **Load their version** (your unsaved change set is kept and re-applied where it doesn't clash; clashing fields are listed).
+- **Server rules don't change:** `cardProblems` / `cleanPackInput` on every card and the pack, numbers kept for existing cards and new numbers assigned by the server (returned to the client, as `saveCards` does), deleting a card that viewers hold needs the existing stronger confirmation, `requireAdmin`, audit entries per change, `revalidatePath` for the pack, the public dex and card pages.
+- **Pure core:** `lib/pack-editor-core.ts` (client-safe): `applyChanges(pack, cards, changes)`, `diffChanges` for Review, `bulkApply(cards, ids, op)`, `parseArtFileName` (20.2e), `problemsFor(card, pack)`. The server runs the same `applyChanges` so the preview and the saved result can't differ.
+
+#### 20.2a Workspace shell, card and pack panels (M to L)
+
+The layout, list, Edit view with the right panel (card fields and pack fields), explicit save with Review, autosave for drafts, undo / redo, the `rev` check, the redirects for the single card page and the Settings tab. The centre shows a simple static preview (art, name, stars) until 20.2b. Removes `CardEditor`'s page and the Settings tab; the Cards table and Add card dialog are replaced by the list. Check: `scripts/check-pack-editor.mts` (mock KV): change sets applied the same on both sides, numbers kept, `rev` conflict, a held card's number can't change, audit entries.
+
+#### 20.2b Live preview (M)
+
+The centre canvas, with tabs:
+- **Card:** the front exactly as the site draws it (`CardTile` with the holo for the chosen version; a version switcher Regular / RH / FA / SH; animated art plays, with a still / animated toggle that shows the chosen still frame), plus the rarity border and glow.
+- **Back:** the `FlipCard` back from 20.1 with a sample print of this card.
+- **On stream:** the overlay in preview mode (`/overlay.html?preview`, as the Overlay Editor embeds it) with this pack and card pinned through `postMessage` (`packId`, `cardNumber`, `variant`, the unsaved card fields so a new name or star count shows before saving), and a **Play** button for the reveal with sound.
+- **Sizes:** the same card as a dex tile, a binder slot and a profile showcase tile, side by side, to catch art that crops badly.
+- Several cards selected: a contact sheet of their fronts.
+The preview reads the unsaved state, never only what is saved.
+
+#### 20.2c Grid view and bulk edits (M)
+
+- **Grid:** a spreadsheet-style table of every card: number, thumb, name, stars, weight, chance, versions (four small toggles), sound (play / missing), full art (yes / missing), problems. Click a cell to edit; Enter / Tab move like a spreadsheet; **Fill down** for the selected cells; paste a column of values from a spreadsheet into the selected cells (names, stars or weights, one per line). Edits go into the same change set as the Edit view.
+- **Bulk panel** (several cards selected in either view): set stars, set weight, multiply weights (e.g. x0.5), switch a version on / off, use the default sound / clear sound, upgrades opt-out on / off, delete (only cards nobody holds; held ones are listed and skipped).
+- Replaces `/admin/packs/[id]/cards` (`BulkCards`), which then redirects.
+
+#### 20.2d Odds view (S)
+
+Moves today's `OddsPanel` (weights table, Normalize to 100, Balance by rarity, share-by-rarity chart, draw simulator) into the workspace as the Odds view, reading and writing the same change set (so a balance done here shows in the list and is saved with everything else). The Edit view's chance field shows the live share and "1 in N" from the same maths (`lib/card-maths.ts`). The simulator runs on the unsaved weights.
+
+#### 20.2e Import a folder of art (M)
+
+- **Import art** button, or drop files / a folder anywhere on the list. Up to 100 images and their sounds per drop.
+- **Names from file names** (`parseArtFileName`, pure, with cases): `012 Gouda Goat.webp`, `12-gouda-goat.gif` and `gouda_goat.png` all become "Gouda Goat"; a leading number becomes the card number when it is free in the pack (else the next free one); a `-fa` / `_fullart` / ` full art` suffix makes it the **full art** of the card with the same base name; an audio file (`.mp3`, `.wav`, `.ogg`) with the same base name becomes that card's sound.
+- **A review table before anything is created:** each row shows the image, the parsed number and name (editable), what it matched (new card, full art for card X, sound for card X), and problems (a duplicate name, a number already used, a file too big). Untick rows to skip them. **Import** then uploads one file at a time with a progress bar (the existing upload and optimise path; GIFs become animated WebP), creates the cards in the change set with stars 1 and weight 1 (marked "set stars and odds" in the list), and switches to the Grid view filtered to the new cards so stars and odds can be filled in at once.
+- A failed upload leaves that row in the table to retry; nothing half-made is saved (the change set only gets cards whose art uploaded).
+
+#### 20.2f One flow for new packs; the wizard goes (M)
+
+- **New pack** (the library's button and the command palette) asks only for a name, creates the draft (`createDraftPack`) and opens the workspace on it.
+- A draft shows a **Publish checklist** in the top bar (replacing the wizard's Review step, from `validatePack` and `packHealth`): has a name and cover, at least one card, every card has art, a name and odds above 0, stars set on imported cards, Full Art cards have full art where the versions need it, in at least one season (or "publish without a season" with the warning). **Publish** stays disabled until the blocking items pass; warnings can be accepted.
+- `PackFlow` and the wizard routes are removed; `/admin/packs/new?draft=<id>` redirects to the workspace. The season wizard (`SeasonFlow`) is unchanged.
+- Update `docs/admin.md` ("Drafts & wizards", the pack routes, admin UX conventions: the pack workspace is the second full-width workspace after the Overlay Editor) and `CLAUDE.md`'s "Wizards, not modals" convention (packs now use the workspace; seasons keep the wizard).
+
+**Order:** 20.1 first (its Card back section is built as a standalone component so 20.2a moves it unchanged). Then **20.2a**. Then 20.2b, 20.2c and 20.2d, one at a time or in parallel if each keeps to its own view component and touches the shell only to register itself. Then 20.2e (it lands in the grid from 20.2c). **20.2f last** (the wizard goes only once the workspace can do everything it did).
+**Not changed:** card and pack data shapes (apart from `pack:<id>:rev`), KV keys, the public site, the overlay, the Twitch panel (freeze). **Checks for every part:** `npm run verify`, the new check script grown per PR, and a hand pass against the mock KV at 1280px and 390px (an admin sweep run as in 7.7). Not checkable locally: Blob uploads (the mock has none; say so in each PR and test uploads on a preview deployment).
 
 ---
 
 ## Track 21: Changelog
 
-### 21.1 Changelog built from PRs on every build (Ready, defaults below)
+### 21.1 Changelog built from PRs on every build (Ready, decided 2026-10-16)
 
 Asked: an auto-updating changelog generated on every build from PR / commit messages. Today `/changelog` reads hand-written entries in `lib/changelog.ts` (11.1).
 
-**Defaults:**
+**Decided (2026-10-16):**
 - Source = **merged PRs into `main`**, not raw commits (commit messages are written for developers, and merge commits carry no detail). Each PR body gets a `## Changelog` section written for players (bullets; "none" or no section = left out, for staff-only and internal changes). The repo is private, so the build reads PRs through the GitHub API with a read-only token.
 - The hand-written entries stay as the history before this ships.
+- **Claude is never mentioned in the changelog** (the owner's rule). PR bodies end with a "Generated with Claude Code" line and commits carry a `Co-Authored-By: Claude` line, so the parser: stops the section at the next heading, a horizontal rule (`---`) or the first line starting with the robot emoji or "Generated with"; never reads commit messages; drops any line or title that matches `/claude|anthropic|co-authored-by|generated with/i`; and the check fails if a generated entry still contains "Claude". The PR template puts the Changelog section **above** everything else in the body, and `docs/review.md` says to write it for players with no tool or author credits.
 
 **Build step:** `scripts/build-changelog.mjs`, run before `next build` (`"build": "node scripts/build-changelog.mjs && next build"`). It lists merged PRs into `main` (`GET /repos/{owner}/{repo}/pulls?state=closed&base=main`, paged, stop at the ship date), takes each PR's `## Changelog` section (until the next heading), turns it into `{ date: merged_at day, title: the first line if it starts "Title:", else the PR title without the "(ROADMAP x.y)" suffix, items, tags from PR labels new / improved / fixed, pr: number }`, and writes `.next-changelog.json` (gitignored). Owner and repo from `VERCEL_GIT_REPO_OWNER` / `VERCEL_GIT_REPO_SLUG`, token from `GITHUB_CHANGELOG_TOKEN` (fine-grained, this repo only, Pull requests: read; added to `ENV_SPECS` as recommended). No token, no network, or an API error: the script writes `[]`, prints a warning and the build continues (never fails a deploy).
 - `lib/changelog.ts` merges the generated entries with the hand ones (generated first, newest first; same-day entries stay separate, one per PR). The page, the "new" dot and `check-words` work as today; `check-words` also scans the generated file in the build (a PR whose changelog has an em dash fails the build step's lint, printed, entry dropped).
@@ -933,11 +1019,11 @@ Asked: an auto-updating changelog generated on every build from PR / commit mess
 
 ## Track 22: Email notifications
 
-### 22.1 Email notifications (Needs a decision)
+### 22.1 Email notifications (Ready, decided 2026-10-16)
 
-Asked: a viewer can enter their email for notifications. Sending email needs an email service and DNS records on the domain, and it adds personal data the site doesn't hold today (it only knows Twitch logins), so the owner decides first.
+Asked: a viewer can enter their email for notifications. It adds personal data the site doesn't hold today (it only knows Twitch logins), hence the opt-in rules below.
 
-**Recommended default:** **Resend** (free tier 3,000 emails a month, 100 a day; one API key; React-free plain HTML templates), sending from `alerts@cheesytcg.app`.
+**Decided:** **Resend** (free tier 3,000 emails a month, 100 a day; one API key; React-free plain HTML templates), sending from `alerts@cheesytcg.app`.
 - **User steps:** create the Resend account, add the domain and its DNS records (SPF, DKIM, and a DMARC record) at the registrar, set `RESEND_API_KEY` and `EMAIL_FROM` in Vercel.
 - **Data:** `user:<u>:email` `{ address, verifiedAt?, kinds, addedAt }`, one address per viewer, never shown publicly, in the export, deleted with the account.
 - **Double opt-in:** Settings -> Notifications -> Email: enter the address, we send a confirmation link (signed token, 24 h); nothing else is sent until it is confirmed. Changing the address starts again.
@@ -946,7 +1032,7 @@ Asked: a viewer can enter their email for notifications. Sending email needs an 
 - **Never from sandboxes or previews** (`inSandbox()`), like Discord and push.
 - **Words:** Privacy Policy (what is stored, the processor, how to remove it), Terms, FAQ. Bump `LEGAL_UPDATED`.
 - **Checks:** `scripts/check-email.mts` with a tiny fake Resend (like `mock-twitch.cjs`): opt-in, batching window, kind gating, unsubscribe token, bounce switch-off, sandbox silence.
-- **Questions for the owner:** Resend or another provider (Postmark, Amazon SES); whether email is worth it next to push (4.3), which already reaches phones with the app installed.
+- Built behind the env vars: without `RESEND_API_KEY` the Email section is hidden, like push without VAPID keys. `lib/email.ts` calls Resend's REST API with `fetch` (no SDK needed), Node runtime only.
 
 ---
 
