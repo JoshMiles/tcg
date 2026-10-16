@@ -1,3 +1,5 @@
+import { ORIGIN_BY, ORIGIN_VERB, isEscrow, type Origin } from './serials-core';
+
 // The engraved back of a flip card (client-safe, pure): what is printed on it and how dates and history lines are worded.
 
 export interface FlipBack {
@@ -46,4 +48,19 @@ export function madeLine(n: number, total?: number): string {
 export function editionLine(n: number, total?: number): string {
   const made = madeLine(n, total);
   return `Edition #${n}${made ? ` ${made}` : ''}`;
+}
+
+/** One short line of a print's history ("Traded to @bob"), for the engraved back and the card dialog. Private collectors stay private. */
+export function histText(e: { type: string; who?: string; to?: string }, hidden: Set<string>, origin: Origin): string {
+  const name = (n?: string) => (!n ? '' : isEscrow(n) ? 'an offer' : hidden.has(n) ? 'a private collector' : `@${n}`);
+  switch (e.type) {
+    // How it began, by origin: "Pulled by @x", "Given to @x", "Forged by @x" (never just "Created").
+    case 'minted': { const by = ORIGIN_BY[origin]; const who = name(e.who); return who ? `${by[0].toUpperCase()}${by.slice(1)} ${who}` : ORIGIN_VERB[origin]; }
+    case 'traded': return `Traded to ${name(e.to)}`;
+    case 'escrowed': return 'Put up in a trade';
+    case 'returned': return 'Back from a trade';
+    case 'upgraded': return 'Spent in an upgrade';
+    case 'removed': return 'Removed';
+    default: return e.type;
+  }
 }

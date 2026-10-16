@@ -6,7 +6,7 @@ import { CardTile } from '@/app/components/CardTile';
 import { FlipCard } from '@/app/components/FlipCard';
 import { ProvenanceTimeline } from '@/app/components/ProvenanceTimeline';
 import { buildProvenance } from '@/lib/provenance';
-import { editionLine, engravedDate } from '@/lib/flip-back';
+import { editionLine, engravedDate, histText } from '@/lib/flip-back';
 import { copyShareSpec } from '@/lib/copy-share';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { getSession } from '@/lib/session';
@@ -14,7 +14,7 @@ import { getUserSettings } from '@/lib/user-settings-store';
 import { ShareStudio } from '@/app/components/ShareStudio';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
-import { ORIGIN_BY, ORIGIN_LABELS, ORIGIN_VERB, entryOf, isEscrow, parseCopyId, type Origin } from '@/lib/serials-core';
+import { ORIGIN_LABELS, ORIGIN_VERB, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { copyPoints, getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { serialMultiplier } from '@/lib/scoring-core';
@@ -48,21 +48,6 @@ export async function generateMetadata({ params }: { params: Promise<{ seasonId:
   if (!d) return { title: 'Card print', robots: { index: false } };
   const v = d.copy.variant === 'regular' ? '' : `${VARIANT_LABELS[d.copy.variant]} `;
   return { title: `${v}${d.card.name} ${d.copy.uid ? `#${d.copy.uid}` : `#${d.copy.n}`}`, description: `Edition #${d.copy.n} of ${d.card.name}: who has held it and where it has been.`, robots: { index: false, follow: true } };
-}
-
-/** One short line of a copy's history for the engraved back (private collectors stay private). */
-function histText(e: { type: string; who?: string; to?: string }, hidden: Set<string>, origin: Origin): string {
-  const name = (n?: string) => (!n ? '' : isEscrow(n) ? 'an offer' : hidden.has(n) ? 'a private collector' : `@${n}`);
-  switch (e.type) {
-    // How it began, by origin: "Pulled by @x", "Given to @x", "Forged by @x" (never just "Created").
-    case 'minted': { const by = ORIGIN_BY[origin]; const who = name(e.who); return who ? `${by[0].toUpperCase()}${by.slice(1)} ${who}` : ORIGIN_VERB[origin]; }
-    case 'traded': return `Traded to ${name(e.to)}`;
-    case 'escrowed': return 'Put up in a trade';
-    case 'returned': return 'Back from a trade';
-    case 'upgraded': return 'Spent in an upgrade';
-    case 'removed': return 'Removed';
-    default: return e.type;
-  }
 }
 
 const when = (t: number) => new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });

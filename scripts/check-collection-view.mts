@@ -67,3 +67,24 @@ const withLayout = s.sanitizeUserSettings({ profileLayout: [{ type: 'rarity', sp
 eq(withLayout.profileLayout, [{ type: 'rarity', span: 12 }], 'settings keep a cleaned layout');
 eq(s.sanitizeUserSettings({}).profileLayout, null, 'settings default to no custom layout');
 console.log('profile widget checks passed');
+
+// ── The card dialog's print tiles ──
+{
+  const counts = { regular: 3, reverse: 0, full: 1, shiny: 0 };
+  const cp = (variant: 'regular' | 'reverse' | 'full' | 'shiny', n: number) => ({ variant, n, id: `${variant}.${n}` });
+  const list = [cp('full', 2), cp('regular', 9), cp('regular', 1), cp('regular', 4)];
+  const d = v.copiesForDialog(list, counts);
+  ok(d.tracked, 'tracked when copies exist');
+  eq(d.groups.map(g => g.variant), ['regular', 'full'], 'groups in version order, owned only');
+  eq(d.groups[0].copies.map(c => c.n), [1, 4, 9], 'edition ascending, newest last');
+  eq([d.total, d.shown, d.more, d.only], [4, 4, 0, null], 'totals');
+  const capped = v.copiesForDialog(list, counts, 2);
+  eq(capped.groups.map(g => [g.variant, g.count, g.copies.length]), [['regular', 3, 2]], 'cap cuts across groups, counts stay whole');
+  eq([capped.shown, capped.more], [2, 2], 'cap reports what is left');
+  eq(v.copiesForDialog(list, counts, Infinity).more, 0, 'Show all lifts the cap');
+  eq(v.copiesForDialog([cp('shiny', 5)], { ...none, shiny: 1 }).only?.n, 5, 'one print opens straight on it');
+  const u = v.copiesForDialog(undefined, counts);
+  eq([u.tracked, u.total, u.only], [false, 4, null], 'untracked season');
+  eq(u.groups.map(g => [g.variant, g.count, g.copies.length]), [['regular', 3, 0], ['full', 1, 0]], 'untracked: one tile per version with a count');
+}
+console.log('copiesForDialog ok');

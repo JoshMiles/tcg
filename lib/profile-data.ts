@@ -15,6 +15,7 @@ import type { Card, Pack, Season, UserProfile, Variant } from './types';
 import type { VariantCounts } from './variants';
 import { ORIGIN_LABELS, entryOf, type Copy } from './serials-core';
 import { mintedCounts } from './serials';
+import { histText } from './flip-back';
 import { cardThumbUrl } from './card-art';
 import type { BigStat, ShareCard, ShareSpec } from './share-image';
 import { copyPoints, type CardValue, type LeaderboardRow } from './leaderboard';
@@ -143,13 +144,14 @@ function serialFor(b: ProfileBase, cardNumber: number): GridCard['serial'] {
 export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promise<GridCard[]> {
   const copiesByCard = new Map<number, GridCard['copies']>();
   const { settings } = b.board.values;
+  const hidden = copies.length ? await getHiddenUsers().catch(() => new Set<string>()) : new Set<string>();
   const minted = copies.length ? await mintedCounts(b.season.collectionName).catch(() => null) : null;
   for (const c of copies) {
     const m = serialMultiplier(c.n, settings);
     const cv = b.board.values.cards.get(c.card);
     // m = the points multiplier when above 1; p = what this very copy is worth.
     copiesByCard.set(c.card, [...(copiesByCard.get(c.card) ?? []), {
-      id: c.id, ...(c.uid ? { uid: c.uid } : {}), variant: c.variant, n: c.n, at: c.at, origin: ORIGIN_LABELS[c.origin], ...(minted?.get(entryOf(c)) ? { made: minted.get(entryOf(c)) } : {}), ...(c.est ? { est: true } : {}), ...(m > 1 ? { m: Math.round(m * 100) / 100 } : {}), ...(cv ? { p: copyPoints(cv, c.variant, c.n, settings) } : {}),
+      id: c.id, ...(c.uid ? { uid: c.uid } : {}), variant: c.variant, n: c.n, at: c.at, origin: ORIGIN_LABELS[c.origin], ...(minted?.get(entryOf(c)) ? { made: minted.get(entryOf(c)) } : {}), ...(c.est ? { est: true } : {}), ...(m > 1 ? { m: Math.round(m * 100) / 100 } : {}), ...(c.ev.length > 1 ? { j: c.ev.slice(1).slice(-2).map(e => histText(e, hidden, c.origin)) } : {}), ...(cv ? { p: copyPoints(cv, c.variant, c.n, settings) } : {}),
     }]);
   }
   const holoFor = await getHoloResolver();
