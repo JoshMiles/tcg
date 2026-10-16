@@ -44,7 +44,7 @@ function plainBase(e: ActivityEvent, cardName: CardNamer): string {
     case 'remove': return `${name(e.cardNumber)}${v(e.variant)} removed from ${e.username}`;
     case 'upgrade': return `${e.username} upgraded ${e.cardName || name(e.cardNumber)} to ${VARIANT_LABELS[e.to]} (${e.cost}x ${VARIANT_LABELS[e.from]})`;
     case 'trade': {
-      const what = { offered: e.kind === 'listing' ? 'posted a listing' : `offered ${e.partner ?? '?'} a trade`, countered: `countered ${e.partner ?? '?'}'s offer`, accepted: `traded with ${e.partner ?? '?'}`, declined: 'had an offer declined', cancelled: e.by === 'admin' ? 'had an offer cancelled by an admin' : 'cancelled an offer', expired: 'had an offer expire' }[e.action];
+      const what = { offered: e.kind === 'listing' ? 'posted a listing' : `offered ${e.partner ?? '?'} a trade`, countered: `countered ${e.partner ?? '?'}'s offer`, accepted: `traded with ${e.partner ?? '?'}`, declined: 'had an offer declined', cancelled: e.by === 'admin' ? 'had an offer cancelled by an admin' : 'cancelled an offer', expired: 'had an offer expire', reversed: `had a trade with ${e.partner ?? '?'} reversed by staff` }[e.action];
       return `${e.username} ${what}: ${e.give.join(', ')} for ${e.get.join(', ')}`;
     }
     case 'reset': return e.scope === 'everyone' ? 'All collections reset' : `${e.username}'s collection reset${e.scope === 'all' ? ' (all seasons)' : ''}`;

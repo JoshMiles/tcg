@@ -7,7 +7,7 @@ import { sanitizeTradeSettings } from '@/lib/trade-core';
 import { recordAudit } from '@/lib/audit';
 import { getSeason, getUserProfile, saveSeason } from '@/lib/kv';
 import { saveFlags } from '@/lib/user-admin';
-import { cancelOpenTrades, cancelTrade, extendOpenTrades, getTradeSettings, saveTradeSettings } from '@/lib/trades';
+import { cancelOpenTrades, cancelTrade, extendOpenTrades, reverseTrade, getTradeSettings, saveTradeSettings } from '@/lib/trades';
 import { notifyAdminLog } from '@/lib/discord';
 import { currentStaffLogin } from '@/lib/staff-actor';
 
@@ -89,4 +89,18 @@ export async function cancelOneTradeAction(id: string): Promise<TradeActionResul
   revalidatePath('/admin/trades');
   revalidatePath('/mod/trades');
   return res.ok ? { ok: true, message: 'Offer cancelled and the cards returned.' } : { ok: false, message: res.error };
+}
+
+/** Staff put every print of a completed trade back where it started (all or nothing). A reason is required; both people are told. */
+export async function reverseTradeAction(id: string, reason: string): Promise<TradeActionResult> {
+  await requireStaff('mod'); // mods moderate trades too
+  const staff = (await currentStaffLogin()) ?? 'password';
+  const res = await reverseTrade(id, staff, reason);
+  if (!res.ok) return { ok: false, message: res.error };
+  const t = res.trade;
+  for (const u of [t.from, t.resolvedBy]) if (u) await recordAudit(u, 'Trade reversed', `${t.id.slice(0, 8)} with ${u === t.from ? t.resolvedBy : t.from}: ${t.reverseReason}`);
+  revalidatePath('/admin/trades');
+  revalidatePath('/mod/trades');
+  revalidatePath(`/trade/${id}`);
+  return { ok: true, message: 'Trade reversed: every print went back where it started.' };
 }
