@@ -31,7 +31,7 @@ const KeyCap = ({ k }: { k: string }) => <kbd className="min-w-[1.5rem] whitespa
  * Admin-wide keyboard layer, mounted once: Ctrl/⌘+K opens the command palette, "g" then a letter jumps to a page, "?" lists the
  * shortcuts. Everything except Ctrl/⌘+K and Esc is ignored while typing in a field or holding a modifier.
  */
-export function AdminKeyboard() {
+export function AdminKeyboard({ overlayKey }: { overlayKey?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [help, setHelp] = useState(false);
@@ -82,7 +82,7 @@ export function AdminKeyboard() {
     close();
     if (item.href) { router.push(item.href); return; }
     switch (item.action) {
-      case 'copy-overlay': navigator.clipboard?.writeText(`${window.location.origin}/overlay.html`).catch(() => {}); break;
+      case 'copy-overlay': navigator.clipboard?.writeText(`${window.location.origin}/overlay.html${overlayKey ? `?key=${overlayKey}` : ''}`).catch(() => {}); break;
       case 'open-preview': window.open('/overlay.html', '_blank'); break;
       case 'exit-sandbox': postForm('/api/sandbox/exit?to=/admin/sandbox'); break;
       case 'logout': postForm('/api/auth/logout'); break;

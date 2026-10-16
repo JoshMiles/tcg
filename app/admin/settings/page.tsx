@@ -9,6 +9,9 @@ import { getOverlaySettings } from '@/lib/overlay-settings';
 import { saveScoringSettingsAction, resetScoringSettingsAction } from '../actions';
 import { getScoringSettings, DEFAULT_SCORING, type ScoringSettings } from '@/lib/scoring';
 import { DiscordConfig } from './DiscordConfig';
+import { getOverlayKey, overlayUrl } from '@/lib/overlay-key';
+import { ConfirmButton } from '../components/ConfirmButton';
+import { regenerateOverlayKeyAction } from './overlay-key-actions';
 import { WebhookConfig } from './WebhookConfig';
 import { MixItUpConfig } from './MixItUpConfig';
 import { getMixItUpLog, getMixItUpSettings } from '@/lib/mixitup';
@@ -48,6 +51,7 @@ const SAVED_MESSAGES: Record<string, string> = {
   backup: 'Backup finished.',
   webhook: 'Webhook saved.',
   mixitup: 'Mix It Up saved.',
+  'overlay-key': 'New overlay key made. Paste the new address into every OBS browser source.',
   'webhook-secret': 'Incoming webhook secret regenerated. Update the URL in MixItUp.',
 };
 
@@ -82,6 +86,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const env = checkEnv(readEnv());
   const envSummary = summarizeEnv(env);
   const envSet = (name: string) => env.find(e => e.name === name)?.set ?? false;
+  const overlayKey = await getOverlayKey();
   const [overlay, scoring, webhookSettings, discordSettings, result] = await Promise.all([
     getOverlaySettings(), getScoringSettings(), getWebhookSettings(), getDiscordSettings(), getActiveSeasonWithPacks(),
   ]);
@@ -119,8 +124,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start [&>*]:min-w-0">
           <div className="space-y-6">
             <Panel title="Browser source" icon="tv" hint={`Add this as a Browser Source in OBS, sized as recommended in the Overlay Editor (${overlay.layout.width} × ${overlay.layout.height}).`}>
-              <CopyableUrl url={`${SITE_URL}/overlay.html`} />
-              <p className="text-xs text-gray-600">Append <code className="text-gray-500">?dev</code> to show the on-screen test panel. After a deploy, right-click the source in OBS and choose Refresh cache of current page.</p>
+              <CopyableUrl url={overlayUrl(SITE_URL, overlayKey)} />
+              <p className="text-xs text-gray-600">The <code className="text-gray-500">key</code> in the address is what lets the overlay take pulls from the queue, so keep this address private. Append <code className="text-gray-500">&amp;dev</code> to show the on-screen test panel. After a deploy, right-click the source in OBS and choose Refresh cache of current page.</p>
+              <form action={regenerateOverlayKeyAction} className="pt-1">
+                <ConfirmButton title="Make a new overlay key?" message="The old address stops working at once. Paste the new address into every OBS browser source (and each scene's address from the Overlay Editor), or pulls will not play." confirmLabel="Make a new key" className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:border-gray-500">Make a new key</ConfirmButton>
+              </form>
             </Panel>
             <Panel title="Connection" icon="radio" hint="The overlay checks in every 10 seconds, so this and the sidebar show whether it is open.">
               <OverlayStatus />
