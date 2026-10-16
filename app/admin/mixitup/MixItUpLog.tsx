@@ -6,7 +6,7 @@ export function MixItUpLog({ log }: { log: MixItUpLogEntry[] }) {
   <section className="tcg-panel rounded-2xl overflow-hidden">
     <div className="px-6 py-5 border-b border-gray-800">
       <h2 className="font-semibold text-white">Recent requests</h2>
-      <p className="text-xs text-gray-500 mt-0.5">The last 20 calls to and refusals for Mix It Up. A <em>revoked</em> line is a pull taken back; refund that viewer by hand if Mix It Up did take the currency.</p>
+      <p className="text-xs text-gray-500 mt-0.5">The last 20 calls to and refusals for Mix It Up, and the last 20 chat commands. A <em>revoked</em> line is a pull taken back; refund that viewer by hand if Mix It Up did take the currency.</p>
     </div>
     {log.length === 0 ? <p className="px-6 py-5 text-sm text-gray-500">Nothing yet.</p> : (
       <ul className="divide-y divide-gray-800/70 text-sm">

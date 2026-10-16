@@ -14,6 +14,8 @@ import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { getTradeSettings } from '@/lib/trades';
 import { SHOWOFF_COOLDOWN_S } from '@/lib/showoff-prepare';
 import { FEEDBACK_LIMITS } from '@/lib/feedback-core';
+import { getCommands } from '@/lib/commands';
+import { FAQ_LINES } from '@/lib/commands-core';
 import { OpenOnHash } from '@/app/components/site/OpenOnHash';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +33,7 @@ const SECTIONS = [
   { id: 'trading', label: 'Trading' },
   { id: 'profile', label: 'Your profile' },
   { id: 'show', label: 'Showing off' },
+  { id: 'commands', label: 'Chat commands' },
   { id: 'points', label: 'Points & leaderboard' },
   { id: 'seasons', label: 'Seasons' },
   { id: 'extension', label: 'Twitch extension' },
@@ -42,6 +45,7 @@ export default async function FaqPage() {
   const { season } = await getActive();
   const overview = season ? await getSeasonOverview(season) : null;
   const trade = await getTradeSettings();
+  const chatCommands = (await getCommands()).filter(c => c.enabled);
 
   // Live numbers from the current season where we have them; sensible defaults otherwise.
   const upgradePack = overview?.cards.find(c => c.pack.upgradesEnabled)?.pack ?? null;
@@ -309,6 +313,21 @@ export default async function FaqPage() {
       </Section>
 
       {/* ── Showing off ── */}
+      <Section id="commands" title="Chat commands" icon="chat">
+        <Q q="Which commands can I type in chat?">
+          {chatCommands.length === 0 ? <>There are no chat commands right now.</> : (
+            <>
+              <p>These work in {CHANNEL_NAME}&rsquo;s chat while the stream is on:</p>
+              <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
+                {chatCommands.map(c => (
+                  <li key={c.id}><strong className="text-white">!{c.name}</strong>{c.aliases.length > 0 && <> (or {c.aliases.map(a => `!${a}`).join(', ')})</>} {FAQ_LINES[c.action]}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Q>
+      </Section>
+
       <Section id="show" title="Showing off your cards" icon="image">
         <Q q="How do I show off my cards?" open>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
