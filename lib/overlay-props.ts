@@ -80,6 +80,7 @@ export type VariantId = (typeof VARIANT_IDS)[number];
 export const PROP_GROUPS: PropGroup[] = [
   { id: 'pack', label: 'Pack opening', icon: 'cards', description: 'How a pulled card is revealed: the animation, the card, its label and details, the light burst, and the row of cards under it.' },
   { id: 'variants', label: 'Variants', icon: 'sparkles', description: 'Pick a card variant, then edit how it looks: label, holo shimmer, glow, motion and sound.' },
+  { id: 'showoff', label: 'Show off', icon: 'star', description: 'A card a viewer shows off from chat: its entrance, label, print number, size, effects and sound.' },
   { id: 'moments', label: 'Special moments', icon: 'sparkles', description: "Banners for the pulls worth a cheer: the first print ever made of a card, a viewer's very first pull, and a card that is new to them. One plays per pull, the highest first." },
   { id: 'collection', label: 'Collection', icon: 'board', description: "The \"show collection\" view: a viewer's whole card grid." },
 ];
@@ -213,6 +214,30 @@ function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
   ];
 }
 
+
+// ── Show off (the chat command): every key is `show.*`; the defaults are the look it always had ──
+const SHOW_STYLE_OPTIONS = REVEAL_STYLES.filter(s => ['simple', 'slide', 'flip', 'drop', 'spin', 'impact', 'deal'].includes(s.value)).map(s => ({ value: s.value, label: s.label }));
+const SHOW_PROPS: PropDef[] = [
+  { key: 'show.style', label: 'Entrance', type: 'select', default: 'drop', options: SHOW_STYLE_OPTIONS, help: 'How a card appears when a viewer shows one off from chat. Shown cards come from the viewer\'s collection, so there is no pack to open.' },
+  { key: 'show.hold', label: 'Time on screen', type: 'number', default: 6, min: 2, max: 30, step: 0.5, unit: 's', help: 'How long a shown-off card stays up after it has appeared.' },
+  { key: 'show.showLabel', label: 'Label line', type: 'boolean', default: true, help: 'The pill under the card that says who is showing it off.' },
+  { key: 'show.text', label: 'Label wording', type: 'text', default: '{user} is showing off:', maxLength: 60, help: 'Use {user} (or {username}) for the viewer, {cardName} for the card and {variant} for its version.' },
+  { key: 'show.ownLabelLook', label: 'Own label colours', type: 'boolean', default: false, help: 'Off: the label uses the "got:" pill colours from Pack opening. On: pick its colours here.' },
+  { key: 'show.labelColor', label: 'Label colour', type: 'color', default: '#f1bb06' },
+  { key: 'show.labelTextColor', label: 'Label text colour', type: 'color', default: '#fffefe' },
+  { key: 'show.labelSize', label: 'Label text size', type: 'number', default: 14, min: 10, max: 40, step: 1, unit: 'px' },
+  { key: 'show.labelX', label: 'Label nudge across', type: 'number', default: 0, min: -300, max: 300, step: 2, unit: 'px', help: 'Moves the label sideways from where it sits.' },
+  { key: 'show.labelY', label: 'Label nudge up / down', type: 'number', default: 0, min: -400, max: 300, step: 2, unit: 'px', help: 'Moves the label down (positive) or up (negative), for example over the card.' },
+  { key: 'show.showPrint', label: 'Print number pill', type: 'boolean', default: true, help: 'The print\'s number on the card. Also needs "Edition number on the card" in Pack opening to be on, and the season\'s prints to be numbered.' },
+  { key: 'show.printFormat', label: 'Number shown', type: 'select', default: 'inherit', options: [{ value: 'inherit', label: 'Same as the pack opening' }, { value: 'edition', label: 'Edition (#7)' }, { value: 'uid', label: 'Print number (#1023381)' }, { value: 'both', label: 'Both' }] },
+  { key: 'show.cardScale', label: 'Card size', type: 'number', default: 1, min: 0.5, max: 1.5, step: 0.05, unit: '×', help: 'Multiplies the pack opening\'s revealed card size.' },
+  { key: 'show.glow', label: 'Glow', type: 'select', default: 'inherit', options: [{ value: 'inherit', label: "Same as the card's version" }, { value: 'off', label: 'Off' }] },
+  { key: 'show.sparkles', label: 'Sparkles', type: 'select', default: 'inherit', options: [{ value: 'inherit', label: "Same as the card's version" }, { value: 'off', label: 'Off' }] },
+  { key: 'show.sound', label: 'Card sound', type: 'select', default: 'on', options: [{ value: 'on', label: "The card's own sound" }, { value: 'off', label: 'Silent' }, { value: 'custom', label: 'A sound of your own' }] },
+  { key: 'show.soundUrl', label: 'Sound address', type: 'text', default: '', maxLength: 300, help: 'An audio file address (for example from the Assets page), played instead of the card\'s sound.' },
+  { key: 'show.volume', label: 'Sound volume', type: 'number', default: 1, min: 0, max: 1, step: 0.05, unit: '×', help: 'Multiplies the pack\'s volume for this sound.' },
+].map(p => ({ ...p, group: 'showoff' }) as PropDef);
+
 export const PROPS: PropDef[] = [
   // ── Pack opening ──
   { key: 'reveal.style', group: 'pack', label: 'Reveal animation', type: 'select', default: 'classic', options: REVEAL_STYLES.map(s => ({ value: s.value, label: s.label + (s.experimental ? ' (experimental)' : '') })), help: 'How the pulled card appears.' },
@@ -234,9 +259,6 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.showInfoBar', group: 'pack', label: 'Name and stars bar', type: 'boolean', default: true, help: 'The card name and star rating at the bottom of the card.' },
   { key: 'reveal.showGotLine', group: 'pack', label: '"… got:" line', type: 'boolean', default: true },
   { key: 'reveal.gotText', group: 'pack', label: '"… got:" wording', type: 'text', default: '{user} got:', maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
-  { key: 'show.style', group: 'pack', label: 'Show-off animation', type: 'select', default: 'drop', options: REVEAL_STYLES.filter(s => ['simple', 'slide', 'flip', 'drop', 'spin', 'impact', 'deal'].includes(s.value)).map(s => ({ value: s.value, label: s.label })), help: 'How a card appears when a viewer shows one off from chat. Shown cards come from the viewer\'s collection, so there is no pack to open.' },
-  { key: 'show.hold', group: 'pack', label: 'Show-off time on screen', type: 'number', default: 6, min: 2, max: 30, step: 0.5, unit: 's', help: 'How long a shown-off card stays up after it has appeared.' },
-  { key: 'show.text', group: 'pack', label: 'Show-off wording', type: 'text', default: '{user} is showing off:', maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
   { key: 'reveal.stripPerRow', group: 'pack', label: 'Cards per row', type: 'number', default: 0, min: 0, max: 30, step: 1, help: '0 = fit as many as the width allows (the original). Otherwise each row holds exactly this many.' },
   { key: 'reveal.stripCardWidth', group: 'pack', label: 'Card size', type: 'number', default: 48, min: 24, max: 200, step: 2, unit: 'px', help: 'Width of each small card (the height follows).' },
   { key: 'reveal.stripGap', group: 'pack', label: 'Gap between cards', type: 'number', default: 13, min: 0, max: 60, step: 1, unit: 'px' },
@@ -249,6 +271,9 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.stripShowMarkers', group: 'pack', label: 'Show a sparkle on upgraded cards', type: 'boolean', default: true },
   { key: 'reveal.stripBorderColor', group: 'pack', label: 'Card border colour', type: 'color', default: '#ffffff', help: 'The outline around collected cards.' },
   { key: 'reveal.stripPlaceholderColor', group: 'pack', label: 'Placeholder colour', type: 'color', default: '#f1bb06', help: 'The fill of uncollected "?" cards.' },
+
+  // ── Show off ──
+  ...SHOW_PROPS,
 
   // ── Special moments ──
   ...momentProps('firstEver'),
@@ -307,7 +332,11 @@ function sectionFor(key: string): string {
     [/^moment\.newCard\./, 'A new card for them'],
     [/^reveal.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
     [/^reveal.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],
-    [/^show\./, 'Show a card (chat command)'],
+    [/^show\.(style|hold)$/, 'Entrance and timing'],
+    [/^show\.(showLabel|text|ownLabelLook|label.*)$/, 'Label'],
+    [/^show\.(showPrint|printFormat)$/, 'Print number'],
+    [/^show\.(cardScale|glow|sparkles)$/, 'Card and effects'],
+    [/^show\./, 'Sound'],
     [/^reveal.(showMiniList|showUncollectedStrip|stripShowCounts|stripShowMarkers)$/, 'Cards under the card'],
     [/^reveal.(stripPerRow|stripCardWidth|stripGap|stripSort)$/, 'Strip layout'],
     [/^reveal.strip/, 'Strip card look'],
@@ -322,7 +351,7 @@ function sectionFor(key: string): string {
 /** The order sections appear in within a category (anything unlisted follows). */
 export const SECTION_ORDER = [
   'Animation', 'Card', 'Label', 'Name and stars bar', '"got:" line',
-  'Show a card (chat command)', 'Reveal animation', 'Holographic shimmer', 'Glow', 'Pop-in', '3D tilt', 'Rocking', 'Light burst', 'Sparkles', 'Time and sound',
+  'Entrance and timing', 'Print number', 'Card and effects', 'Sound', 'Reveal animation', 'Holographic shimmer', 'Glow', 'Pop-in', '3D tilt', 'Rocking', 'Light burst', 'Sparkles', 'Time and sound',
   'Cards under the card', 'Strip layout', 'Strip card look',
   'First-ever print', "A viewer's first pull", 'A new card for them',
   'Layout', 'What to show', 'Timing', 'Card look',

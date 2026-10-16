@@ -125,6 +125,7 @@ applyLayout();
 let previewMode = 'pack';
 let previewPackId = '';
 let previewCardNumber = 0;
+let previewShowOff = false;   // the editor's "Show off" view: the still and Play use the show-off settings
 
 function clearStatic() {
   document.querySelectorAll('.static-preview').forEach(el => el.remove());
@@ -153,6 +154,7 @@ function showStatic(mode) {
   if (previewMode === 'pack') {
     // The settled moment of a pack opening: the revealed card, its label and the collection strip beneath it.
     const variant = PREVIEW_VARIANT || 'regular';
+    const PS = previewShowOff ? showOffProps(P, variant) : P;
     const card = chosen.cards.find(c => c.number === previewCardNumber) || [...chosen.cards].sort((x, y) => y.stars - x.stars)[0] || ALL_CARDS[0];
     wrapper.classList.add('is-pack', 'pack-fit');
     cardBox.style.animation = 'none';
@@ -161,25 +163,32 @@ function showStatic(mode) {
     cardInfo.style.opacity = '1';
     cardInfo.style.transform = 'scale(1)';
     if (card) {
-      applyLook(theater, P, variant, card, cfg, false);
+      applyLook(theater, PS, variant, card, cfg, false);
       cardLabel.style.opacity = '1';
       cardLabel.style.visibility = 'visible';
-      showSerial(theater, P, { n: 3, mult: 2.8, uid: 1023381 });
+      showSerial(theater, PS, { n: 3, mult: 2.8, uid: 1023381 });
       editable(theater.cardBox.querySelector('.serial-badge'), 'label', 'Click to edit the label and edition badge');
-      const burst = burstSpec(P, variant);
+      const burst = burstSpec(PS, variant);
       radialContainer.style.opacity = String(burst.opacity);
       if (!burst.on) radialContainer.style.display = 'none';
-      userText.textContent = gotText(P, 'Preview');
-      editable(userText, 'got', 'Click to edit the "got:" line');
-      editable(miniList, 'strip', 'Click to edit the cards under the card');
+      if (previewShowOff) {
+        userText.textContent = showText(PS, 'Preview', { cardName: card.name, variant });
+        styleShowLabel(userText, PS);
+        editable(userText, 'showlabel', 'Click to edit the show-off label');
+        miniList.style.display = 'none';
+      } else {
+        userText.textContent = gotText(PS, 'Preview');
+        editable(userText, 'got', 'Click to edit the "got:" line');
+        editable(miniList, 'strip', 'Click to edit the cards under the card');
+      }
       const art = (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArt : card.image;
       paintCard(theater, card, art, (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArtThumb : card.thumb);
-      const fx = mainCardAnimation(P, variant, 1, 0, true);
+      const fx = mainCardAnimation(PS, variant, 1, 0, true);
       mainCard.style.animation = fx.anim;
       wrapper.style.setProperty('--fx-start', '0s');
-      cardBox.style.animation = tiltAnimation(P, variant, 1, 0) || 'none';
-      buildMiniList(miniList, revealedCardsByUser.preview || [], card.number, cfg, listOpts(P, true));
-      if (holoOn(P, variant, card, cfg)) holoOverlay.classList.add('holographic-animate');
+      cardBox.style.animation = tiltAnimation(PS, variant, 1, 0) || 'none';
+      buildMiniList(miniList, revealedCardsByUser.preview || [], card.number, cfg, listOpts(PS, true));
+      if (holoOn(PS, variant, card, cfg)) holoOverlay.classList.add('holographic-animate');
     }
   } else {
     // The collection view: just the name and the card grid.
@@ -218,7 +227,13 @@ if (PREVIEW) {
       PREVIEW_VARIANT = ['reverse', 'full', 'shiny'].includes(e.data.variant) ? e.data.variant : '';
       if (activeDraws === 0) showStatic();
     }
-    else if (e.data.type === 'static') { if (activeDraws === 0) showStatic(e.data.mode); else previewMode = e.data.mode === 'collection' ? 'collection' : 'pack'; }
+    else if (e.data.type === 'static') { previewShowOff = !!e.data.showoff && e.data.mode !== 'collection'; if (activeDraws === 0) showStatic(e.data.mode); else previewMode = e.data.mode === 'collection' ? 'collection' : 'pack'; }
+    else if (e.data.type === 'showoff') {
+      clearStatic();
+      const chosen = PACKS.find(p => p.pack.id === previewPackId) || PACKS[0];
+      const c = chosen && (chosen.cards.find(x => x.number === previewCardNumber) || [...chosen.cards].sort((x, y) => y.stars - x.stars)[0]);
+      if (c) queueShowCard('preview', { cardNumber: c.number, variant: PREVIEW_VARIANT || 'regular', serial: 3, serialMult: 2.8, uid: 1023381 });
+    }
     else if (e.data.type === 'pack') { clearStatic(); queueDraw('preview', { dry: true, packId: previewPackId || undefined, cardNumber: previewCardNumber || undefined, variant: PREVIEW_VARIANT || undefined, moment: MOMENT_IDS.includes(e.data.moment) ? e.data.moment : undefined }); }
     else if (e.data.type === 'collection') { clearStatic(); queueCollection('preview', { dry: true }); }
   });
@@ -785,7 +800,32 @@ function setAnim(el, spec, speed, delay) {
 }
 
 const gotText = (P, user) => String(pv(P, 'reveal.gotText', '{user} got:')).split('{user}').join(user || 'Someone');
-const showText = (P, user) => String(pv(P, 'show.text', '{user} is showing off:')).split('{user}').join(user || 'Someone');
+const showText = (P, user, ctx) => String(pv(P, 'show.text', '{user} is showing off:')).split('{user}').join(user || 'Someone')
+  .split('{username}').join(user || 'Someone').split('{cardName}').join(ctx && ctx.cardName ? ctx.cardName : '').split('{variant}').join(ctx && ctx.variant ? VARIANT_LABELS[ctx.variant] || ctx.variant : '');
+
+// Show off (Overlay Editor -> Show off): the show-off settings folded into the properties the shared drawing code already reads,
+// so the card, effects and print pill need no show-off branches of their own. At the defaults nothing changes.
+function showOffProps(P, variant) {
+  const O = Object.assign({}, P);
+  O['reveal.cardScale'] = pv(P, 'reveal.cardScale', 1) * pv(P, 'show.cardScale', 1);
+  if (pv(P, 'show.glow', 'inherit') === 'off') O['variant.' + variant + '.glow'] = false;
+  if (pv(P, 'show.sparkles', 'inherit') === 'off') O['variant.' + variant + '.sparkles'] = false;
+  if (!pv(P, 'show.showPrint', true)) O['reveal.showSerial'] = false;
+  const fmt = pv(P, 'show.printFormat', 'inherit');
+  if (fmt !== 'inherit') O['reveal.serialFormat'] = fmt;
+  return O;
+}
+// The label pill's own wording is set by the caller; this applies its on/off, colours, size and nudge.
+function styleShowLabel(el, P) {
+  if (!pv(P, 'show.showLabel', true)) { el.style.display = 'none'; return; }
+  if (pv(P, 'show.ownLabelLook', false)) {
+    el.style.background = pv(P, 'show.labelColor', '#f1bb06');
+    el.style.color = pv(P, 'show.labelTextColor', '#fffefe');
+  }
+  el.style.fontSize = pv(P, 'show.labelSize', 14) + 'px';
+  const x = pv(P, 'show.labelX', 0), y = pv(P, 'show.labelY', 0);
+  if (x || y) el.style.translate = x + 'px ' + y + 'px';
+}
 const headingText = (P, user) => String(pv(P, 'collection.headingText', "{user}'s collection:")).split('{user}').join(user || 'Someone');
 
 function holoOn(P, variant, card, cfg) {
@@ -948,7 +988,7 @@ function drawCard(username, opts) {
   }
 
   const { card, variant, packName, packId } = pick;
-  const P = effectiveProps(packId);
+  const P = show ? showOffProps(effectiveProps(packId), variant) : effectiveProps(packId);
   const S = Math.max(0.25, pv(P, 'reveal.speed', 1));
 
   // A first-ever moment with its own entrance style has to know the print number before the reveal starts, so that pull
@@ -1039,7 +1079,9 @@ function drawCard(username, opts) {
 
   // Card reveal sound + radial burst
   setTimeout(() => {
-    playAudio(card.soundUrl || `assets/sounds/${card.number}.mp3`, cardVol);
+    const so = show ? pv(P, 'show.sound', 'on') : 'on';
+    if (so === 'custom') { const u = String(pv(P, 'show.soundUrl', '')); if (u) playAudio(u, Math.min(1, vol * pv(P, 'show.volume', 1))); }
+    else if (so !== 'off') playAudio(card.soundUrl || `assets/sounds/${card.number}.mp3`, show ? Math.min(1, cardVol * pv(P, 'show.volume', 1)) : cardVol);
     if (pv(P, 'variant.' + variant + '.sparkles', false)) burstSparkles(cardBox, P, variant, S);
     const burst = burstSpec(P, variant);
     if (burst.on) {
@@ -1072,7 +1114,8 @@ function drawCard(username, opts) {
   setTimeout(() => {
     cardInfo.style.opacity   = '1';
     cardInfo.style.transform = 'scale(1)';
-    userText.textContent     = show ? showText(P, username) : gotText(P, username);
+    userText.textContent     = show ? showText(P, username, { cardName: card.name, variant }) : gotText(P, username);
+    if (show) styleShowLabel(userText, P);
   }, at(R.info));
 
   if (holoOverlay) {

@@ -4,7 +4,7 @@ import {
   CircleAlert, CircleCheck, CircleDashed, ClipboardList, Clock, Coins, Compass, Copy, Crown, Download, Film, FlaskConical, Gamepad2, Gem,
   Gift, GripVertical, Handshake, History, Hourglass, Image, Inbox, Info, Layers, Link, Lock, Medal, Menu, MessageSquare, Monitor, Music,
   Palette, PartyPopper, Pause, Pencil, Play, Puzzle, Radio, RefreshCw, Repeat, Ruler, Search, Send, Settings, Shield, Sigma, Sparkles,
-  Square, StickyNote, Database, House, LogOut, PanelLeftClose, PanelLeftOpen, ExternalLink, Redo2, Eye, Grid3x3, Target, Trash2, TrendingUp, Trophy, Tv, TriangleAlert, Undo2, User, Users, Volume2, Wrench, X, Zap,
+  Square, Star, StickyNote, Database, House, LogOut, PanelLeftClose, PanelLeftOpen, ExternalLink, Redo2, Eye, Grid3x3, Target, Trash2, TrendingUp, Trophy, Tv, TriangleAlert, Undo2, User, Users, Volume2, Wrench, X, Zap,
 } from 'lucide-react';
 
 /**
@@ -31,7 +31,7 @@ function CheeseGlyph(props: SVGProps<SVGSVGElement> & { size?: number | string; 
 export const ICONS = {
   trophy: Trophy, medal: Medal, award: Award, crown: Crown,
   arrowUp: ArrowUp, arrowDown: ArrowDown, chevronUp: ChevronUp, chevronDown: ChevronDown, chevronLeft: ChevronLeft, chevronRight: ChevronRight,
-  sparkles: Sparkles, check: Check, checkCircle: CircleCheck, x: X, warning: TriangleAlert, alert: CircleAlert, info: Info, ban: Ban,
+  star: Star, sparkles: Sparkles, check: Check, checkCircle: CircleCheck, x: X, warning: TriangleAlert, alert: CircleAlert, info: Info, ban: Ban,
   trade: Repeat, handshake: Handshake, undo: Undo2, inbox: Inbox, send: Send, board: ClipboardList, history: History, hourglass: Hourglass,
   cards: Layers, gift: Gift, trash: Trash2, refresh: RefreshCw, zap: Zap, book: BookOpen, radio: Radio, users: Users, user: User,
   image: Image, film: Film, music: Music, palette: Palette, flask: FlaskConical, bug: Bug, settings: Settings, menu: Menu, volume: Volume2,

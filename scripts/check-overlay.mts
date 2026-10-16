@@ -53,6 +53,18 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   ok(MOMENT_IDS.every(id => w.includes("'" + id + "'")), 'widget knows every moment id');
 }
 
+// ── Pure: Show off group (ROADMAP 18.2) ──
+{
+  const { PROPS } = await import('../lib/overlay-props');
+  ok(DEFAULT_PROPS['show.style'] === 'drop' && DEFAULT_PROPS['show.hold'] === 6 && DEFAULT_PROPS['show.text'] === '{user} is showing off:', 'show-off keeps its old defaults');
+  ok(DEFAULT_PROPS['show.showLabel'] === true && DEFAULT_PROPS['show.ownLabelLook'] === false && DEFAULT_PROPS['show.labelSize'] === 14 && DEFAULT_PROPS['show.labelX'] === 0 && DEFAULT_PROPS['show.labelY'] === 0, 'label defaults follow the "got:" pill');
+  ok(DEFAULT_PROPS['show.showPrint'] === true && DEFAULT_PROPS['show.printFormat'] === 'inherit' && DEFAULT_PROPS['show.cardScale'] === 1 && DEFAULT_PROPS['show.glow'] === 'inherit' && DEFAULT_PROPS['show.sparkles'] === 'inherit', 'print, size and effects follow the pack opening');
+  ok(DEFAULT_PROPS['show.sound'] === 'on' && DEFAULT_PROPS['show.soundUrl'] === '' && DEFAULT_PROPS['show.volume'] === 1, 'the card sound plays as before');
+  ok(PROPS.filter(d => d.key.startsWith('show.')).every(d => d.group === 'showoff'), 'every show.* key is in the Show off group');
+  eq([...new Set(PROPS.filter(d => d.group === 'showoff').map(d => d.section))], ['Entrance and timing', 'Label', 'Print number', 'Card and effects', 'Sound'], 'five sections');
+  ok(PROP_BY_KEY['show.style'].options!.every(o => !['classic', 'rip-shake', 'rip-peel', 'rip-slice', 'rip-explode'].includes(o.value)), 'entrances are the pack-less styles only');
+}
+
 // ── Pure: perf ──
 const base = (over: Record<string, unknown> = {}) => (k: string) => (over[k] !== undefined ? over[k] : DEFAULT_PROPS[k]) as never;
 const light = perf.variantPerf(base({ 'variant.regular.glow': false, 'variant.regular.rock': false, 'variant.regular.pop': false, 'variant.regular.holoMode': 'off', 'variant.regular.burst': false }), 'regular');
