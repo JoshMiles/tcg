@@ -6,6 +6,9 @@ import { getOwnerCopies, liveCounts, mintedCounts, pageCopies, serialStats } fro
 import { ORIGIN_LABELS, isEscrow, serialLabel, type Copy } from '@/lib/serials-core';
 import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
+import { clearPotwAction, pickPotwAgainAction } from '../serial-actions';
+import { PendingButton } from '../components/PendingButton';
+import { getPotw } from '@/lib/print-of-week-store';
 import { Chip, EmptyState, PageHeader, Panel, Tile, selectClass } from '../components/ui';
 
 export const metadata = { title: 'Prints · Admin', robots: { index: false } };
@@ -15,7 +18,7 @@ const PAGE = 25;
 const when = (t: number) => `${new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
 const field = 'rounded-xl bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500';
 
-type SP = { season?: string; card?: string; variant?: string; holder?: string; page?: string };
+type SP = { done?: string; err?: string; season?: string; card?: string; variant?: string; holder?: string; page?: string };
 
 export default async function SerialsPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -25,6 +28,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
 
   const c = season.collectionName;
   const stats = await serialStats(c);
+  const potw = await getPotw();
   // The cards the season can have copies of: draft packs are never drawn, so they are left out (as on the leaderboard).
   const packs = (await getPacksForSeason(season)).filter(p => p.status !== 'draft');
   const cards = (await Promise.all(packs.map(async p => (await getPackCards(p.id)).map(card => ({ number: card.number, name: card.name, stars: card.stars, pack: p.name }))))).flat().sort((a, b) => a.number - b.number);
@@ -72,6 +76,21 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-6">
       <PageHeader title="Prints" icon="cheese" subtitle="Every print of every card, with its number, holder and history. Open a print to give it to someone or remove it." />
+
+      {sp.done && <p role="status" className="rounded-xl border border-green-500/30 bg-green-950/30 text-green-300 px-4 py-2.5 text-sm"><Icon name="check" className="mr-1.5" />{sp.done}</p>}
+      {sp.err && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-950/30 text-red-300 px-4 py-2.5 text-sm"><Icon name="warning" className="mr-1.5" />{sp.err}</p>}
+
+      <Panel title="Print of the week" icon="sparkles" hint="Shown on the home page. Picked every Sunday evening from the active season; you can pick again or clear it.">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-gray-300 min-w-0 flex-1 basis-64">
+            {potw
+              ? <><Link href={`/admin/serials/${encodeURIComponent(potw.seasonId)}/${potw.copyId}`} className="font-bold text-yellow-300 hover:text-yellow-200 tabular-nums">Print #{potw.uid}</Link> · {potw.reason} · score {potw.score} · chosen {when(potw.chosenAt)} by {potw.by === 'auto' ? 'the weekly job' : ['password', 'admin'].includes(potw.by) ? 'an admin' : `@${potw.by}`}</>
+              : <span className="text-gray-500">Nothing is featured. The home page shows no print of the week.</span>}
+          </p>
+          <form action={pickPotwAgainAction}><PendingButton type="submit" className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-600 text-gray-100 hover:border-yellow-500/60"><Icon name="refresh" className="mr-1.5" />Pick again now</PendingButton></form>
+          {potw && <form action={clearPotwAction}><PendingButton type="submit" className="px-4 py-2 text-sm font-bold rounded-lg border border-red-500/40 text-red-300 hover:bg-red-950/40"><Icon name="trash" className="mr-1.5" />Clear</PendingButton></form>}
+        </div>
+      </Panel>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <Tile label="Prints made" icon="cheese" value={stats.minted.toLocaleString()} sub={season.name} />

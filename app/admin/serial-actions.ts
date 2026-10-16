@@ -8,6 +8,8 @@ import { entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
 import { recordActivity } from '@/lib/activity';
 import { recordAudit } from '@/lib/audit';
 import { VARIANT_LABELS } from '@/lib/variants';
+import { currentStaffLogin } from '@/lib/staff-actor';
+import { clearPotw, featureCopy, pickNow } from '@/lib/print-of-week-store';
 
 // Admin actions on ONE specific copy (by id). Each re-checks the admin cookie and re-reads the copy, so a stale page can't act on
 // a copy that has since moved. The collection and the copy ledger are changed together under the collection lock.
@@ -83,4 +85,44 @@ export async function removeCopyAction(seasonId: string, copyId: string): Promis
   await recordAudit(holder, 'Print removed', `#${ctx.parsed.card} ${VARIANT_LABELS[ctx.parsed.variant]} edition ${ctx.parsed.n}`);
   revalidatePath('/admin/serials');
   return back(seasonId, copyId, `Removed from @${holder}'s collection.`);
+}
+
+// ── Print of the week (ROADMAP 6.2) ──
+
+const potwBack = (msg: string, ok = true): never => redirect(`/admin/serials?${ok ? 'done' : 'err'}=${encodeURIComponent(msg)}`);
+
+/** Features one exact print on the home page (replaces the current pick). The staff login is kept as `by`; an audit entry names the holder. */
+export async function featurePrintAction(seasonId: string, copyId: string): Promise<void> {
+  await requireAdmin();
+  const ctx = await load(seasonId, copyId);
+  if (!ctx) return back(seasonId, copyId, 'That print or season does not exist.', false);
+  const copy = await getCopy(ctx.season.collectionName, copyId);
+  if (!copy) return back(seasonId, copyId, 'That print no longer exists.', false);
+  const refused = await featureCopy(ctx.season, copy, (await currentStaffLogin()) ?? 'admin');
+  if (refused) return back(seasonId, copyId, refused, false);
+  await recordAudit(copy.owner, 'Print featured as print of the week', `Print #${copy.uid}`);
+  revalidatePath('/');
+  revalidatePath('/admin/serials');
+  return back(seasonId, copyId, 'Featured as the print of the week. It is on the home page now.');
+}
+
+/** Scans the active season and picks again right now (skips prints picked in the last 8 weeks). */
+export async function pickPotwAgainAction(): Promise<void> {
+  await requireAdmin();
+  const out = await pickNow((await currentStaffLogin()) ?? 'admin');
+  if (!out.ok) return potwBack(out.reason, false);
+  const picked = await getSeason(out.pick.seasonId).then(se => (se ? getCopy(se.collectionName, out.pick.copyId) : null)).catch(() => null);
+  await recordAudit(picked?.owner || 'unknown', 'Print of the week picked again', `Print #${out.pick.uid}, ${out.pick.reason}`);
+  revalidatePath('/');
+  revalidatePath('/admin/serials');
+  return potwBack(`Picked Print #${out.pick.uid} (scanned ${out.scan.prints.toLocaleString()} prints in ${out.scan.ms} ms).`);
+}
+
+/** Takes the print of the week off the home page until the next pick. */
+export async function clearPotwAction(): Promise<void> {
+  await requireAdmin();
+  await clearPotw();
+  revalidatePath('/');
+  revalidatePath('/admin/serials');
+  return potwBack('Print of the week cleared.');
 }
