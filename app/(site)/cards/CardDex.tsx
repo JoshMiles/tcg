@@ -14,7 +14,6 @@ import type { CardMaths } from '@/lib/card-maths';
 import { DEFAULT_DEX, SORT_LABELS, applyDex, dexProgress, type DexFilter, type DexShow, type DexSort } from '@/lib/dex-view';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { toggleWantedAction } from './actions';
-import { ORIGIN_BY, type Origin } from '@/lib/serials-core';
 
 export interface DexOwner {
   username: string;
@@ -209,26 +208,12 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
 
 // ── Detail dialog ─────────────────────────────────────────
 
-interface FirstCopy { variant: Variant; made: number; id?: string; at?: number; est?: boolean; origin?: Origin; pulledBy?: string; holder?: string | null }
-
 function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep, onClose, onStep }: { card: DexCard; seasonId: string; siteHost: string; signedIn: boolean; onToggleWanted: (c: DexCard) => void; canStep: boolean; onClose: () => void; onStep: (d: number) => void }) {
   const rarity = getRarity(card.stars);
   const [shown, setShown] = useState<Variant>('regular');
   const closeBtn = useRef<HTMLButtonElement>(null);
 
   useEffect(() => { setShown('regular'); }, [card.id]);
-
-  // The first copy ever made of each version, from the serial ledger (only when the season's copies are tracked).
-  const [firsts, setFirsts] = useState<FirstCopy[] | null>(null);
-  useEffect(() => {
-    let live = true;
-    setFirsts(null);
-    fetch(`/api/dex-card?season=${encodeURIComponent(seasonId)}&card=${card.number}`)
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (live && d?.tracking) setFirsts(d.firsts); })
-      .catch(() => { /* the section just stays hidden */ });
-    return () => { live = false; };
-  }, [seasonId, card.number]);
 
   useEffect(() => {
     closeBtn.current?.focus();
@@ -272,7 +257,13 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
               spec={{ title: card.name, subtitle: `${'★'.repeat(card.stars)} ${rarity?.label ?? ''} · ${oneIn(card.pullRate)} per pack`, stats: [`${card.copies.toLocaleString()} out there`, `${card.collectors} collector${card.collectors === 1 ? '' : 's'}`], cards: [{ src: art, name: card.name, hex: rarity?.hex }], footer: siteHost }}
               filename={`cheesy-tcg-card-${card.number}.png`}
               label="Share this card"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors disabled:opacity-60 w-full max-w-[210px]"
             />
+            {signedIn && (
+              <button type="button" onClick={() => onToggleWanted(card)} aria-pressed={!!card.wanted} className={`inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-full border px-3 py-1.5 transition-colors w-full max-w-[210px] ${card.wanted ? 'border-purple-400/60 bg-purple-500/20 text-purple-100' : 'border-white/10 bg-white/[0.06] text-gray-200 hover:bg-white/10'}`}>
+                <Icon name="search" />{card.wanted ? 'On your Looking for list' : 'Add to Looking for'}
+              </button>
+            )}
           </div>
 
           {/* Info */}
@@ -319,38 +310,11 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
             {card.maths && <CardMathsPanel maths={card.maths} variants={rows} shown={shown} />}
 
-            {firsts && firsts.some(x => x.made > 0) && (
-              <div className="space-y-2">
-                <h3 className="font-display text-xl font-bold text-white">First prints</h3>
-                <ul className="divide-y divide-gray-800/70 rounded-xl border border-gray-800 overflow-hidden text-sm">
-                  {firsts.filter(x => x.made > 0).map(x => {
-                    const who = (u?: string | null) => (!u ? null : u === 'private' ? <span className="text-gray-400">a private collector</span> : u === 'offer' ? <span className="text-gray-400">a trade offer</span> : <span className="text-yellow-300 font-bold">@{u}</span>);  // plain text: the whole row is already a link to the copy
-                    return (
-                      <li key={x.variant} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2">
-                        <span className="text-gray-200">{VARIANT_LABELS[x.variant]} <span className="text-gray-500">· {x.made.toLocaleString()} made</span></span>
-                        {x.id ? (
-                          <Link href={`/copy/${encodeURIComponent(seasonId)}/${x.id}`} className="text-xs text-gray-400 hover:text-white">
-                            #1{x.est ? '~' : ''} {x.pulledBy && <>{ORIGIN_BY[x.origin ?? 'pull']} {who(x.pulledBy)} · </>}{x.at ? new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : ''}{x.holder === null ? ' · no longer exists' : x.holder && x.holder === x.pulledBy ? ' · still holds it' : x.holder ? <> · held by {who(x.holder)}</> : ''}
-                          </Link>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="text-[11px] text-gray-600">A &ldquo;~&rdquo; means the print existed before editions were numbered and its order is an estimate.</p>
-                <Link href={`/cards/${card.number}/copies?season=${encodeURIComponent(seasonId)}`} className="flex items-center justify-between gap-2 rounded-xl border border-gray-800 bg-gray-950/40 px-3 py-2.5 text-sm font-bold text-gray-300 hover:text-white hover:border-yellow-500/40 transition-colors">
-                  <span><Icon name="cheese" className="mr-1.5" />Browse every print</span><Icon name="chevronRight" className="text-gray-500" />
-                </Link>
-              </div>
+            {card.copies > 0 && (
+              <Link href={`/cards/${card.number}/copies?season=${encodeURIComponent(seasonId)}`} className="flex items-center justify-between gap-2 rounded-xl border border-gray-800 bg-gray-950/40 px-3 py-2.5 text-sm font-bold text-gray-300 hover:text-white hover:border-yellow-500/40 transition-colors">
+                <span><Icon name="cheese" className="mr-1.5" />Browse every print</span><Icon name="chevronRight" className="text-gray-500" />
+              </Link>
             )}
-
-            <div className="flex flex-wrap gap-2">
-              {signedIn && (
-                <button type="button" onClick={() => onToggleWanted(card)} aria-pressed={!!card.wanted} className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full border px-3 py-1.5 transition-colors ${card.wanted ? 'border-purple-400/60 bg-purple-500/20 text-purple-100' : 'border-white/10 bg-white/[0.06] text-gray-200 hover:bg-white/10'}`}>
-                  <Icon name="search" />{card.wanted ? 'On your Looking for list' : 'Add to Looking for'}
-                </button>
-              )}
-            </div>
 
             {/* Top collectors */}
             <div className="space-y-2">
