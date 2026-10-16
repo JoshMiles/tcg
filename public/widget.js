@@ -219,7 +219,7 @@ if (PREVIEW) {
       if (activeDraws === 0) showStatic();
     }
     else if (e.data.type === 'static') { if (activeDraws === 0) showStatic(e.data.mode); else previewMode = e.data.mode === 'collection' ? 'collection' : 'pack'; }
-    else if (e.data.type === 'pack') { clearStatic(); queueDraw('preview', { dry: true, packId: previewPackId || undefined, cardNumber: previewCardNumber || undefined, variant: PREVIEW_VARIANT || undefined }); }
+    else if (e.data.type === 'pack') { clearStatic(); queueDraw('preview', { dry: true, packId: previewPackId || undefined, cardNumber: previewCardNumber || undefined, variant: PREVIEW_VARIANT || undefined, moment: MOMENT_IDS.includes(e.data.moment) ? e.data.moment : undefined }); }
     else if (e.data.type === 'collection') { clearStatic(); queueCollection('preview', { dry: true }); }
   });
 }
@@ -458,28 +458,82 @@ function showSerial(theater, P, info) {
   requestAnimationFrame(() => el.classList.add('on'));
 }
 
-/** The very first copy ever made of a card in a version: a gold banner over the card, a burst of sparkles and a longer hold. */
-function firstEverMoment(theater, P, variant, S, extendHold) {
+// ── Special moments (Overlay Editor -> Special moments) ──
+// One moment plays per pull and the highest wins: first-ever print, a viewer's first pull, a new card for them.
+// pickMoment mirrors lib/overlay-moments.ts (scripts/check-overlay.mts runs both).
+const MOMENT_IDS = ['firstEver', 'firstPull', 'newCard'];
+const MOMENT_DEFAULT_BG = ['#ffe27a', '#f1bb06', '#fff2b0', '#f1bb06'];
+const momentKey = (id, name) => {
+  if (id === 'firstEver') { if (name === 'on') return 'reveal.firstEver'; if (name === 'text') return 'reveal.firstEverText'; if (name === 'hold') return 'reveal.firstEverHold'; }
+  return 'moment.' + id + '.' + name;
+};
+function momentEnabled(P) {
+  return { firstEver: !!pv(P, momentKey('firstEver', 'on'), true), firstPull: !!pv(P, momentKey('firstPull', 'on'), false), newCard: !!pv(P, momentKey('newCard', 'on'), false) };
+}
+function pickMoment(facts, enabled) {
+  if (facts.firstEver && enabled.firstEver) return 'firstEver';
+  if (facts.firstForViewer && enabled.firstPull) return 'firstPull';
+  if (facts.isNew && enabled.newCard) return 'newCard';
+  return null;
+}
+function momentFill(text, ctx) {
+  return String(text).replace(/\{username\}/g, ctx.username).replace(/\{cardName\}/g, ctx.cardName);
+}
+/** Everything one moment's banner needs, read from the effective properties. */
+function momentSpec(P, id, ctx) {
+  const g = (name, d) => pv(P, momentKey(id, name), d);
+  const auto = id === 'firstEver' ? 'edition #1' + (ctx.variant === 'regular' ? '' : ' · ' + VARIANT_LABELS[ctx.variant]) : id === 'firstPull' ? 'their first card' : 'new to their collection';
+  const sub = String(g('subText', ''));
+  return {
+    id,
+    text: momentFill(g('text', id === 'firstEver' ? 'FIRST EVER!' : id === 'firstPull' ? 'Welcome, {username}!' : 'NEW CARD!'), ctx),
+    sub: sub ? momentFill(sub, ctx) : auto,
+    bg: g('bgColors', id === 'firstEver' ? MOMENT_DEFAULT_BG : ['#8b5cf6', '#ec4899']),
+    textColor: g('textColor', id === 'firstEver' ? '#1a1205' : '#ffffff'),
+    textSize: g('textSize', 26),
+    position: g('position', 'top'),
+    sparkles: Math.round(g('sparkles', id === 'firstEver' ? 44 : 0)),
+    sparkleColor: g('sparkleColor', '#ffe27a'),
+    sound: String(g('sound', '')),
+    volume: g('volume', 1),
+    hold: Math.max(0, g('hold', id === 'firstEver' ? 2.5 : id === 'firstPull' ? 2 : 1)),
+    vol: ctx.vol,
+    variant: ctx.variant,
+  };
+}
+/** A banner over the card, optional sparkles and sound, and a longer hold. One shared by every moment. */
+function momentBanner(theater, P, spec, S, extendHold) {
   const { cardBox } = theater;
   if (!cardBox || cardBox.querySelector('.first-banner')) return;
   const banner = document.createElement('div');
-  banner.className = 'first-banner';
+  banner.className = 'first-banner moment-' + spec.id + (spec.position === 'middle' ? ' pos-middle' : spec.position === 'bottom' ? ' pos-bottom' : '');
   const main = document.createElement('span');
   main.className = 'first-main';
-  main.textContent = String(pv(P, 'reveal.firstEverText', 'FIRST EVER!'));
+  main.textContent = spec.text;
   const sub = document.createElement('span');
   sub.className = 'first-sub';
-  sub.textContent = 'edition #1' + (variant === 'regular' ? '' : ' \u00b7 ' + VARIANT_LABELS[variant]);
+  sub.textContent = spec.sub;
   banner.append(main, sub);
+  // The stylesheet is the first-ever look; only what differs from it is written inline.
+  const defaultBg = JSON.stringify(spec.bg) === JSON.stringify(MOMENT_DEFAULT_BG);
+  if (!defaultBg) {
+    banner.style.background = spec.bg.length > 1 ? 'linear-gradient(100deg, ' + spec.bg.join(', ') + ')' : spec.bg[0];
+    banner.style.backgroundSize = '220% 100%';
+    banner.style.borderColor = spec.bg[0];
+  }
+  banner.style.color = spec.textColor;
+  main.style.fontSize = spec.textSize + 'px';
   cardBox.appendChild(banner);
   requestAnimationFrame(() => banner.classList.add('on'));
-  // Gold sparkles whatever the version's own sparkle settings are.
-  const gold = Object.assign({}, P);
-  gold['variant.' + variant + '.sparkleCount'] = 44;
-  gold['variant.' + variant + '.sparkleColor'] = '#ffe27a';
-  burstSparkles(cardBox, gold, variant, S);
-  setTimeout(() => burstSparkles(cardBox, gold, variant, S), 650 / S);
-  extendHold(Math.max(0, pv(P, 'reveal.firstEverHold', 2.5)) * 1000);
+  if (spec.sparkles > 0) {
+    const fx = Object.assign({}, P);
+    fx['variant.' + spec.variant + '.sparkleCount'] = spec.sparkles;
+    fx['variant.' + spec.variant + '.sparkleColor'] = spec.sparkleColor;
+    burstSparkles(cardBox, fx, spec.variant, S);
+    setTimeout(() => burstSparkles(cardBox, fx, spec.variant, S), 650 / S);
+  }
+  if (spec.sound) playAudio(spec.sound, Math.min(1, spec.vol * spec.volume));
+  extendHold(spec.hold * 1000);
 }
 
 async function resetAllCollections() {
@@ -896,9 +950,35 @@ function drawCard(username, opts) {
   const { card, variant, packName, packId } = pick;
   const P = effectiveProps(packId);
   const S = Math.max(0.25, pv(P, 'reveal.speed', 1));
+
+  // A first-ever moment with its own entrance style has to know the print number before the reveal starts, so that pull
+  // is saved first and played when the server has answered (a fraction of a second; nothing changes while the style is "inherit").
+  if (!show && !opts.dry && opts.ticket && !opts._pre && !PREVIEW && !opts.moment
+      && pv(P, 'reveal.firstEver', true) && pv(P, 'moment.firstEver.style', 'inherit') !== 'inherit') {
+    const prior = revealedCardsByUser[user].slice();
+    const entry0 = encodeEntry(card.number, variant);
+    revealedCardsByUser[user].push(entry0);
+    saveCollection({ username: user, cardNumber: card.number, entry: entry0, variant, cardName: card.name, stars: card.stars, packName, ticket: opts.ticket })
+      .then(r => drawCard(username, Object.assign({}, opts, { _pre: { r: r || null, prior } })));
+    return;
+  }
+  const pre = opts._pre || null;
+  const prior = pre ? pre.prior : revealedCardsByUser[user];
+
+  // Which special moment (if any) this pull plays. A forced one (editor preview, test panel) plays whatever its switch says.
+  const forcedMoment = MOMENT_IDS.indexOf(opts.moment) !== -1 ? opts.moment : null;
+  const momentOn = momentEnabled(P);
+  const earlyFacts = {
+    firstEver: !!(pre && pre.r && pre.r.serial === 1) || (!!opts.dry && opts.sampleSerial === 1),
+    firstForViewer: prior.length === 0,
+    isNew: !show && !prior.some(e => decodeEntry(e).cardNumber === card.number),
+  };
+  const earlyMoment = show ? null : (forcedMoment || pickMoment(earlyFacts, momentOn));
+  const momentStyle = earlyMoment ? pv(P, momentKey(earlyMoment, 'style'), 'inherit') : 'inherit';
   // A variant can override the pack opening's style (e.g. Shiny always rips the pack).
   const variantStyle = pv(P, 'variant.' + variant + '.style', 'inherit');
   let R = REVEALS[variantStyle !== 'inherit' ? variantStyle : pv(P, 'reveal.style', 'classic')] || REVEALS.classic;
+  if (momentStyle !== 'inherit' && REVEALS[momentStyle]) R = REVEALS[momentStyle];
   if (show) { R = REVEALS[pv(P, 'show.style', 'drop')]; if (!R || R.pack) R = REVEALS.drop; }
   const D = pv(P, 'reveal.startDelay', 0);   // seconds to wait before anything happens
   const at = sec => (sec * 1000) / S + D * 1000;
@@ -935,7 +1015,7 @@ function drawCard(username, opts) {
   wrapper.classList.remove('hid', 'hidden');
   wrapper.classList.add('pack-fit', 'is-pack');
 
-  const owned = show ? true : revealedCardsByUser[user].some(e => decodeEntry(e).cardNumber === card.number);
+  const owned = show ? true : prior.some(e => decodeEntry(e).cardNumber === card.number);
   applyLook(theater, P, variant, card, cfg, owned);
   paintCard(theater, card, art, isFullArt ? card.fullArtThumb : card.thumb);
 
@@ -974,10 +1054,17 @@ function drawCard(username, opts) {
     cardLabel.style.visibility = 'visible';
     // The serial the server gave this copy (the reply is normally in long before the label shows).
     saved.then(r => {
-      if (!r || !r.serial) return;
-      showSerial(theater, P, { n: r.serial, mult: r.serialMult || 1, uid: r.uid || 0 });
-      // Edition #1 of a real pull (not a chat show-off): the very first copy ever made of this card in this version.
-      if (r.serial === 1 && !show && pv(P, 'reveal.firstEver', true)) firstEverMoment(theater, P, variant, S, extendHold);
+      if (r && r.serial) showSerial(theater, P, { n: r.serial, mult: r.serialMult || 1, uid: r.uid || 0 });
+      if (show) return;
+      // A real pull the server did not confirm plays no moment (nothing was recorded); dry runs and the preview use what they know.
+      if (!r && !opts.dry && !forcedMoment) return;
+      const facts = {
+        firstEver: !!(r && r.serial === 1),
+        firstForViewer: r && r.firstForViewer !== undefined ? !!r.firstForViewer : earlyFacts.firstForViewer,
+        isNew: r && r.isNew !== undefined ? !!r.isNew : earlyFacts.isNew,
+      };
+      const id = forcedMoment || pickMoment(facts, momentOn);
+      if (id) momentBanner(theater, P, momentSpec(P, id, { username: user, cardName: card.name, variant, vol: cfg.soundVolume }), S, extendHold);
     });
   }, at(R.label));
 
@@ -1001,7 +1088,7 @@ function drawCard(username, opts) {
 
   if (show) miniList.style.display = 'none';
   else {
-    buildMiniList(miniList, revealedCardsByUser[user], card.number, cfg, listOpts(P, true));
+    buildMiniList(miniList, prior, card.number, cfg, listOpts(P, true));
     if (listOpts(P, true).perRow > 0) wrapper.style.maxWidth = 'none';
   }
 
@@ -1011,6 +1098,8 @@ function drawCard(username, opts) {
   if (show) {
     // A shown card is never saved: the server already checked it and sent the serial of the viewer's copy.
     saved = Promise.resolve(show.serial ? { serial: show.serial, serialMult: show.serialMult || 1, uid: show.uid || 0 } : null);
+  } else if (pre) {
+    saved = Promise.resolve(pre.r);   // already saved before the reveal (see the first-ever style above)
   } else if (!opts.dry) {
     revealedCardsByUser[user].push(entry);
     saved = saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName, ...(opts.ticket ? { ticket: opts.ticket } : {}) });
@@ -1144,6 +1233,7 @@ function initDevPanel() {
   const packSel = $('dev-pack');
   const cardSel = $('dev-card');
   const variantSel = $('dev-variant');
+  const momentSel = $('dev-moment');
   const countInput = $('dev-count');
   const user = () => usernameInput.value.trim() || 'testuser';
 
@@ -1197,6 +1287,7 @@ function initDevPanel() {
     packId: packSel.value || null,
     cardNumber: cardSel.value ? Number(cardSel.value) : null,
     variant: variantSel.value || null,
+    moment: momentSel && momentSel.value ? momentSel.value : null,
     dry: DEV.dry,
   }, over);
 

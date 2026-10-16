@@ -796,6 +796,9 @@
   transform: translateX(-50%) scale(.4); opacity: 0; transition: opacity .25s, transform .45s cubic-bezier(.2, 1.4, .3, 1);
 }
 .first-banner.on { opacity: 1; transform: translateX(-50%) scale(1); animation: firstShine 2.2s linear infinite; }
+.first-banner.pos-middle { top: 50%; transform: translate(-50%, -50%) scale(.4); }
+.first-banner.pos-middle.on { transform: translate(-50%, -50%) scale(1); }
+.first-banner.pos-bottom { top: auto; bottom: -76px; }
 .first-banner .first-main { font-weight: 900; font-size: 26px; letter-spacing: .08em; line-height: 1.1; }
 .first-banner .first-sub { font-weight: 800; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
 @keyframes firstShine { to { background-position: -220% 0; } }
