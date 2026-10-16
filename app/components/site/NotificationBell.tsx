@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TradeCeremony } from '../TradeCeremony';
 import { NOTICE_ICON, type Notice, type Swap } from '@/lib/trade-notice-core';
+import { currentSubscription, enablePush, pushSupport } from '@/lib/push-client';
 import { IDLE_AFTER_MS, freshNotices, pollDelay, titleWithCount } from '@/lib/notice-poll-core';
 
 const PLAYED_KEY = 'tcg_trade_played';
@@ -21,6 +22,20 @@ const ago = (at: number) => {
 };
 const readPlayed = (): string[] => { try { return JSON.parse(localStorage.getItem(PLAYED_KEY) || '[]'); } catch { return []; } };
 const writePlayed = (ids: string[]) => { try { localStorage.setItem(PLAYED_KEY, JSON.stringify(ids.slice(-50))); } catch { /* storage unavailable */ } };
+
+const OFFER_KEY = 'tcg_push_offered';
+
+/** Whether to suggest phone alerts: the server has them, this browser can, nobody has been asked here yet and it is not on already. Asks once. */
+async function shouldOfferPush(): Promise<string | null> {
+  try {
+    if (localStorage.getItem(OFFER_KEY) || pushSupport() !== 'ok' || Notification.permission !== 'default') return null;
+    const r = await fetch('/api/account/push', { cache: 'no-store' });
+    const info = r.ok ? await r.json() : null;
+    if (!info?.enabled || await currentSubscription()) return null;
+    localStorage.setItem(OFFER_KEY, '1');
+    return info.publicKey as string;
+  } catch { return null; }
+}
 
 /** A short two-note chime (no audio file). Browsers refuse it until the viewer has interacted with the page; that is fine. */
 function chime() {
@@ -61,6 +76,7 @@ export function NotificationBell() {
   const [toasts, setToasts] = useState<Notice[]>([]);
   const [mounted, setMounted] = useState(false); // the toasts live on <body>: the sticky nav would otherwise be their positioning box
   useEffect(() => setMounted(true), []);
+  const [offerPush, setOfferPush] = useState<string | null>(null); // the VAPID key while the one-off "Get alerts on this device" card under the toasts
   const [alertN, setAlertN] = useState(0); // bumps on each new notice to restart the shake and pulse
   const ref = useRef<HTMLDivElement>(null);
   const showing = useRef(false);
@@ -97,6 +113,7 @@ export function NotificationBell() {
             const shown = [...fresh].sort((x, y) => x.at - y.at);
             setToasts(t => [...t, ...shown].slice(-TOAST_MAX));
             shown.forEach(n => setTimeout(() => dismiss(n.id), TOAST_MS));
+            if (shown.some(n => n.kind === 'offer' || n.kind === 'countered')) void shouldOfferPush().then(key => { if (key) setOfferPush(key); });
           }
           if (body.sound) chime();
         }
@@ -244,6 +261,17 @@ export function NotificationBell() {
             <button type="button" onClick={() => dismiss(n.id)} aria-label="Dismiss" className="shrink-0 self-start text-gray-500 hover:text-white"><Icon name="x" className="w-4 h-4" /></button>
           </div>
         ))}
+        {offerPush && (
+          <div className="notice-toast pointer-events-auto flex gap-2.5 rounded-xl border border-yellow-500/40 bg-gray-900 px-3 py-2.5 shadow-card">
+            <Icon name="bell" className="w-5 h-5 mt-0.5 shrink-0 text-yellow-400" />
+            <div className="min-w-0 flex-1 text-[13px] leading-snug text-gray-100">
+              <p>Want to hear about offers when the site is closed?</p>
+              <button type="button" onClick={() => { setOfferPush(null); void enablePush(offerPush).catch(() => {}); }}
+                className="mt-1 font-semibold text-yellow-400 hover:text-yellow-300">Get alerts on this device</button>
+            </div>
+            <button type="button" onClick={() => setOfferPush(null)} aria-label="Dismiss" className="shrink-0 self-start text-gray-500 hover:text-white"><Icon name="x" className="w-4 h-4" /></button>
+          </div>
+        )}
       </div>, document.body)}
       {swap && <TradeCeremony swap={swap} onClose={() => { showing.current = false; setSwap(null); }} />}
     </div>

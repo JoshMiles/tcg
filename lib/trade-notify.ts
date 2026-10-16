@@ -15,6 +15,7 @@ import { watchersOf } from './watch-index';
 import { matchingAlerts } from './watch-core';
 import { notifyListing } from './discord';
 import { encodeEntry } from './variants';
+import { pushNotice } from './push';
 
 // Notifications and activity records for trade events. Everything here is best-effort: a failure must never undo or block
 // a trade, so every entry point swallows errors. (Called after the trade lock is released: see flushEvents in lib/trades.ts.)
@@ -40,6 +41,7 @@ export async function notify(username: string, notice: Omit<Notice, 'id' | 'at'>
     await kv.lpush(noticesKey(user), full);
     await kv.ltrim(noticesKey(user), 0, NOTICE_CAP - 1);
     await kv.incr(versionKey(user)); // the bell asks "has anything changed since version N?"
+    await pushNotice(user, full); // and, if they turned alerts on, their phone or browser hears about it too
   } catch { /* best effort */ }
 }
 

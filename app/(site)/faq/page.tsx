@@ -250,6 +250,11 @@ export default async function FaqPage() {
           Yes. In <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> you can stop other collectors sending you direct offers (the open board and counters to your own offers still work) and switch off
           bell notices for new offers or for how your offers ended. Notices from an admin always come through. New notices appear within about ten seconds while the site is open, with a small pop-up, a count in the tab title, and an optional sound (off unless you switch it on in Settings).
         </Q>
+        <Q q="How do I get alerts on my phone?">
+          In <Link href="/settings#push" className="text-yellow-400 hover:text-yellow-300">Settings</Link>, under notifications, tap <em>Turn on alerts for this device</em> and allow notifications when your phone or browser asks. Then an offer, a counter or the result of your offer reaches you
+          even when the site is closed. On an iPhone or iPad you first need to <Link href="/install" className="text-yellow-400 hover:text-yellow-300">add the app to your Home Screen</Link> and open it from there (iOS 16.4 or newer). You can choose which kinds of alert you want, send yourself a test, and remove a device
+          at any time. If you blocked notifications by mistake, allow them again in your browser or phone settings for this site. The option only shows once the site has alerts set up.
+        </Q>
         <Q q="Which of my prints get traded?">
           Trades move your <strong className="text-white">newest</strong> prints of a card first, so the low edition numbers you pulled earliest stay with you. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">prints and editions</a>.
         </Q>
@@ -484,7 +489,7 @@ export default async function FaqPage() {
           Your Twitch username and ID, your cards and score, and a short log of recent game events. Logging in on the website uses a login cookie; the Twitch access token isn&rsquo;t kept.
         </Q>
         <Q q="Can I download my data?">
-          Yes: <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> has a <em>Download my data</em> button that gives you your profile, settings, collections, trade offers and notices as a file.
+          Yes: <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> has a <em>Download my data</em> button that gives you your profile, settings, collections, trade offers, notices and alert devices as a file.
         </Q>
         <Q q="How do I get my data deleted?">
           Ask the person who runs the game:{' '}
