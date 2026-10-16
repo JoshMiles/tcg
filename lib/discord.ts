@@ -239,6 +239,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
         declined: { color: RED, title: '🚫 Trade declined', text: `**${other}** declined **${who}**'s offer` },
         cancelled: { color: RED, title: adminCancel ? '🛡️ Trade cancelled by an admin' : '✖️ Trade cancelled', text: `**${who}**'s offer was cancelled` },
         expired: { color: RED, title: '⌛ Trade expired', text: `**${who}**'s offer ran out of time` },
+        reversed: { color: RED, title: '🛡️ Trade reversed by staff', text: `**${who}**'s trade with **${other}** was reversed` },
       }[e.action];
       const list = (lines: string[]) => (lines.join('\n') || '-').slice(0, 1000);
       const fields: { name: string; value: string; inline?: boolean }[] = [
@@ -502,7 +503,7 @@ export async function notifyListing(l: ListingNotice): Promise<void> {
  * Audit entries that have an activity event of their own (a grant, a removal, a reset...): the admin channels already get those from
  * notifyDiscord, with the staff name, so the audit twin is skipped.
  */
-const AUDIT_WITH_EVENT = new Set(['Card removed', 'Season reset', 'All seasons reset', 'Account deleted', 'Cards granted', 'Packs gifted', 'Print removed']);
+const AUDIT_WITH_EVENT = new Set(['Card removed', 'Season reset', 'All seasons reset', 'Account deleted', 'Cards granted', 'Packs gifted', 'Print removed', 'Trade reversed']);
 
 export interface AdminLogEntry { action: string; subject?: string; detail?: string; /** The staff member's login ("password" for the emergency login). */ by?: string | null }
 

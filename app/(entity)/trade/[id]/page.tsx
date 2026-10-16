@@ -13,6 +13,8 @@ import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
 import { pickPropsFor } from '@/lib/trade-view-core';
 import { profileHref } from '@/lib/profile-url';
+import { hasStaffCapability } from '@/lib/staff-guard';
+import { ReverseTrade } from '@/app/admin/trades/ReverseTrade';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Trade', description: 'A trade offer.', robots: { index: false, follow: true } };
@@ -73,6 +75,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
   const wanted = (await wantedForTrades([trade]))[trade.id];
   const nameOf = (n: number) => cards[n]?.name;
   const open = trade.status === 'open';
+  const staffCanReverse = trade.status === 'accepted' && !trade.reversedAt && (await hasStaffCapability('mod'));
   const isFrom = me === trade.from;
   const isTo = !!me && me === trade.to;
   const title = trade.kind === 'listing'
@@ -112,6 +115,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
       </header>
 
       {!open && <OutcomeNote trade={trade} />}
+      {staffCanReverse && <ReverseTrade tradeId={trade.id} />}
       <TradeCard trade={trade} cards={cards} pools={pools} wanted={wanted} title={title} actions={actions} />
       {verdict && verdict !== 'Empty' && <p className="text-xs text-gray-500">For you: <strong className="text-gray-300">{verdict}</strong>, going by the points on each side.</p>}
     </Shell>
@@ -119,6 +123,13 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
 }
 
 function OutcomeNote({ trade }: { trade: Trade }) {
+  if (trade.reversedAt) {
+    return (
+      <p role="status" className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-200">
+        <Icon name="shield" className="mr-1" />Reversed by staff: every print in this trade went back to where it started.{trade.reverseReason ? <> Reason: {trade.reverseReason}</> : null}
+      </p>
+    );
+  }
   const by = trade.status === 'accepted' && trade.resolvedBy && trade.resolvedBy !== 'admin' ? user(trade.resolvedBy) : null;
   return (
     <p role="status" className="rounded-xl border border-gray-700 bg-gray-900/70 px-4 py-3 text-sm text-gray-200">

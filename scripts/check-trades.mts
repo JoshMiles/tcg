@@ -454,6 +454,83 @@ await runInSandbox(box3.id, async () => {
 });
 await sbx.deleteSandbox(box3.id);
 
+// ── Staff reverse a completed trade (ROADMAP 9.2) ──
+const box4 = await sbx.createSandbox({ name: 'Trade reversal check', source: 'config' });
+await runInSandbox(box4.id, async () => {
+  const serials = await import('../lib/serials');
+  const { kv: sbKv } = await import('../lib/db');
+  const season = (await kvLib.listSeasons())[0];
+  const coll = season.collectionName;
+  const sk = (cardNumber: number, count = 1) => ({ cardNumber, variant: 'regular' as const, count });
+  const holds = async (u: string) => (await serials.getOwnerCopies(coll, u)).map(c => c.id).sort();
+  const sum = async () => Object.values(await kvLib.getCollection(coll)).reduce((n, l) => n + l.length, 0) + (await trades.listOpenTrades()).reduce((n, t) => n + (t.escrowed ? core.itemCopies(t.give) : 0), 0);
+  await trades.saveTradeSettings({ ...core.DEFAULT_TRADE_SETTINGS, cooldownSeconds: 0, maxOpenPerUser: 20 });
+  await kvLib.saveCollection(coll, { ha: [E(3), E(3), E(1)], hb: [E(4), E(4)], hc: [E(7)], oa: [E(5)], ob: [E(6)] });
+  await serials.backfillSerials(coll, await kvLib.getCollection(coll));
+  const start = await sum();
+  const swap = async (a: string, b: string, g: number, w: number) => {
+    const o = await trades.createTrade({ seasonId: season.id, from: a, kind: 'direct', to: b, give: [sk(g)], get: [sk(w)] });
+    if (!o.ok) throw new Error('offer failed: ' + o.error);
+    const acc = await trades.acceptTrade(o.trade.id, b);
+    if (!acc.ok) throw new Error('accept failed: ' + acc.error);
+    return acc.trade;
+  };
+
+  // Settlement now records the exact prints.
+  const t1 = await swap('ha', 'hb', 3, 4);
+  eq([t1.moved?.give.length, t1.moved?.get.length], [1, 1], 'the accepted trade records the prints that moved');
+  ok((await trades.reverseTrade(t1.id, 'staff1', '  ')).ok === false, 'a reason is required');
+  ok(await sum() === start, 'nothing moved by the refused attempt');
+
+  // A print that sits in an open offer, then one that has moved on: refused, nothing changes.
+  const movedPrint = t1.moved!.give[0];
+  const esc = await trades.createTrade({ seasonId: season.id, from: 'hb', kind: 'listing', give: [{ cardNumber: 3, variant: 'regular' as const, count: 1, ids: [movedPrint] }], get: [sk(7)] });
+  ok(esc.ok, 'hb lists the print they received');
+  const inOffer = await trades.reverseTrade(t1.id, 'staff1', 'mistake');
+  ok(!inOffer.ok && /open offer/.test(inOffer.error), 'a print in an open offer blocks the reversal: ' + (inOffer.ok ? '' : inOffer.error));
+  ok((await trades.listOpenTrades()).some(t => t.id === (esc.ok ? esc.trade.id : '') && t.escrowed), 'the escrow was left alone');
+  if (esc.ok) {
+    ok((await trades.acceptTrade(esc.trade.id, 'hc')).ok, 'hc takes the listing');
+    const gone = await trades.reverseTrade(t1.id, 'staff1', 'mistake');
+    ok(!gone.ok && /traded to @hc/.test(gone.error), 'a print that moved on blocks the reversal: ' + (gone.ok ? '' : gone.error));
+    ok((await holds('hc')).includes(movedPrint), 'the print stays with its new holder');
+    // Put it back by hand so the next steps are clean: hc swaps it for the original card.
+    const back = await trades.createTrade({ seasonId: season.id, from: 'hc', kind: 'direct', to: 'hb', give: [{ cardNumber: 3, variant: 'regular' as const, count: 1, ids: [movedPrint] }], get: [sk(7)] });
+    ok(back.ok && (await trades.acceptTrade(back.trade.id, 'hb')).ok, 'hc hands it back to hb');
+  }
+
+  // Happy path on a fresh trade: every print returns, with a 'reversed' event naming the staff member.
+  const t2 = await swap('oa', 'ob', 5, 6);
+  const rev = await trades.reverseTrade(t2.id, 'staff1', 'wrong person');
+  ok(rev.ok, 'the trade is reversed: ' + (rev.ok ? '' : rev.error));
+  ok((await holds('oa')).includes(t2.moved!.get[0]) === false && (await holds('oa')).includes(t2.moved!.give[0]), 'oa has their own print back, not the one they got');
+  ok((await holds('ob')).includes(t2.moved!.get[0]), 'ob has their own print back');
+  const ev = (await serials.getCopy(coll, t2.moved!.give[0]))!.ev.at(-1)!;
+  ok(ev.type === 'reversed' && ev.who === 'staff1' && ev.note === 'wrong person', 'the print history records the reversal');
+  ok(await sum() === start, 'copies are conserved through trade and reversal');
+  const again = await trades.reverseTrade(t2.id, 'staff1', 'again');
+  ok(!again.ok && /already reversed/.test(again.error), 'a trade cannot be reversed twice');
+  const rec = await trades.getTrade(t2.id);
+  ok(rec?.status === 'accepted' && rec.reversedBy === 'staff1' && rec.reverseReason === 'wrong person' && !!rec.reversedAt, 'the record keeps its status and gains the reversal');
+
+  // An older trade (no recorded prints) is rebuilt from the ledger.
+  const t4 = await swap('oa', 'ob', 5, 6);
+  const hist = (await sbKv.get<import('../lib/trade-core').Trade[]>('trades:history')) ?? [];
+  for (const h of hist) if (h.id === t4.id) delete h.moved;
+  await sbKv.set('trades:history', hist);
+  const old = await trades.reverseTrade(t4.id, 'staff2', 'old one');
+  ok(old.ok && old.trade.moved?.give.length === 1, 'an older trade is rebuilt from the ledger and reversed: ' + (old.ok ? '' : old.error));
+  // ...and one that cannot be rebuilt is refused.
+  const t5 = await swap('oa', 'ob', 5, 6);
+  const hist2 = (await sbKv.get<import('../lib/trade-core').Trade[]>('trades:history')) ?? [];
+  for (const h of hist2) if (h.id === t5.id) { delete h.moved; h.resolvedAt = 1_000; }
+  await sbKv.set('trades:history', hist2);
+  const stale = await trades.reverseTrade(t5.id, 'staff2', 'too old');
+  ok(!stale.ok && /too old/.test(stale.error), 'a trade that cannot be rebuilt with certainty is refused');
+  ok((await trades.listOpenTrades()).every(t => t.escrowed), 'every open offer still holds its escrow');
+});
+await sbx.deleteSandbox(box4.id);
+
 ok(JSON.stringify(await prodKv.get('trades:open')) === prodBefore, 'production trades untouched');
 await sbx.deleteSandbox(box.id);
 console.log('trade checks passed');

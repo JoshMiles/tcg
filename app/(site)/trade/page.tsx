@@ -236,7 +236,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
               pools={pools}
               cards={cards}
               compact
-              title={<>{user(t.from)}{t.to ? <> → {user(t.to)}</> : ' (board)'}{t.status === 'accepted' && t.resolvedBy && t.kind === 'listing' && <> · taken by {user(t.resolvedBy)}</>}</>}
+              title={<>{user(t.from)}{t.to ? <> → {user(t.to)}</> : ' (board)'}{t.status === 'accepted' && t.resolvedBy && t.kind === 'listing' && <> · taken by {user(t.resolvedBy)}</>}{t.reversedAt && <> · reversed by staff</>}</>}
             />
           ))}
         </section>

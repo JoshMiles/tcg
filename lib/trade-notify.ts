@@ -31,7 +31,7 @@ const versionKey = (u: string) => `notif:${u}:v`;
  */
 export interface EventPools { give?: SerialPool; get?: SerialPool }
 
-export type TradeAction = 'offered' | 'countered' | 'accepted' | 'declined' | 'cancelled' | 'expired';
+export type TradeAction = 'offered' | 'countered' | 'accepted' | 'declined' | 'cancelled' | 'expired' | 'reversed';
 
 export async function notify(username: string, notice: Omit<Notice, 'id' | 'at'>): Promise<void> {
   try {
@@ -110,7 +110,7 @@ export async function announceTrade(trade: Trade, action: TradeAction, by?: stri
     const give = stackLines(trade.give, cards);
     const get = stackLines(trade.get, cards);
     const sentence = `${give.join(', ')} for ${get.join(', ')}`;
-    const partner = action === 'accepted' ? by : trade.to;
+    const partner = action === 'accepted' ? by : action === 'reversed' ? trade.resolvedBy : trade.to;
 
     await recordActivity({
       type: 'trade', action: trade.counterOf && action === 'offered' ? 'countered' : action, username: trade.from, partner, by, kind: trade.kind, give, get,
@@ -153,6 +153,12 @@ export async function announceTrade(trade: Trade, action: TradeAction, by?: stri
           await tell(trade.to, 'cancelled', `The offer from @${trade.from} was cancelled.`);
         } else await tell(trade.to, 'cancelled', `@${trade.from} withdrew their offer to you.`);
         break;
+      case 'reversed': {
+        const text = (other: string) => `A trade between you and @${other} was reversed by staff: ${trade.reverseReason ?? 'no reason given'}. The prints went back to where they started.`;
+        await tell(trade.from, 'admin', text(trade.resolvedBy ?? '?'));
+        await tell(trade.resolvedBy, 'admin', text(trade.from));
+        break;
+      }
       case 'expired':
         await tell(trade.from, 'expired', 'Your offer ran out of time. Your cards are back in your collection.');
         await tell(trade.to, 'expired', `The offer from @${trade.from} expired.`);

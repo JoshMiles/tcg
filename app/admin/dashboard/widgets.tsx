@@ -163,7 +163,7 @@ function describe(e: ActivityEvent, d: DashboardData): { icon: IconName; text: s
     case 'remove': return { icon: 'trash', text: `${cardName(e.cardNumber)} removed from ${e.username}` };
     case 'upgrade': return { icon: 'sparkles', text: `${e.username} upgraded ${e.cardName || cardName(e.cardNumber)} to ${VARIANT_LABELS[e.to]}` };
     case 'trade': {
-      const w = { offered: 'offered a trade', countered: 'countered an offer', accepted: `traded with ${e.partner ?? '?'}`, declined: 'had an offer declined', cancelled: 'had an offer cancelled', expired: 'had an offer expire' }[e.action];
+      const w = { offered: 'offered a trade', countered: 'countered an offer', accepted: `traded with ${e.partner ?? '?'}`, declined: 'had an offer declined', cancelled: 'had an offer cancelled', expired: 'had an offer expire', reversed: 'had a trade reversed by staff' }[e.action];
       return { icon: 'trade', text: `${e.username} ${w}` };
     }
     case 'reset': return { icon: 'refresh', text: e.scope === 'everyone' ? 'All collections reset' : `${e.username}'s collection reset` };
