@@ -54,6 +54,8 @@ export interface UserSettings {
   watches: Watch[];
   /** The unique number (Copy.uid) of the copy they pinned as their profile's Showcase copy, or null. Checked against the live owner whenever it is shown. */
   pinned: number | null;
+  /** Unique numbers (Copy.uid) of prints they marked as favourites: these can't be traded or spent in an upgrade. Checked against the live owner whenever used. */
+  favourites: number[];
   /** The widgets of their profile Overview, in order (null = the default layout). */
   profileLayout: ProfilePlacement[] | null;
   /** How their collection binder looks and (optionally) which card is in which pocket; null = the default look and automatic layout. */
@@ -61,6 +63,8 @@ export interface UserSettings {
   /** Ids of switched-on experimental features (see EXPERIMENTS). */
   experiments: string[];
 }
+
+export const FAVOURITES_MAX = 50;
 
 export const DEFAULT_SETTINGS: UserSettings = {
   bio: '',
@@ -78,6 +82,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   wanted: [],
   watches: [],
   pinned: null,
+  favourites: [],
   profileLayout: null,
   binder: null,
   experiments: [],
@@ -98,7 +103,7 @@ export const BOOLEAN_KEYS = ['privateProfile', 'notifyOffers', 'notifyResults', 
 /** Anything → a complete, valid settings object. Unknown keys are dropped, bad values fall back to the default. */
 export function sanitizeUserSettings(input: unknown): UserSettings {
   const o = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
-  const out: UserSettings = { ...DEFAULT_SETTINGS, experiments: [], watches: [] };
+  const out: UserSettings = { ...DEFAULT_SETTINGS, experiments: [], watches: [], favourites: [] };
   if (typeof o.bio === 'string') out.bio = o.bio.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, BIO_MAX);
   for (const k of BOOLEAN_KEYS) if (typeof o[k] === 'boolean') out[k] = o[k] as boolean;
   if (Array.isArray(o.pushKinds)) out.pushKinds = PUSH_KINDS.filter(k => (o.pushKinds as unknown[]).includes(k));
@@ -117,6 +122,7 @@ export function sanitizeUserSettings(input: unknown): UserSettings {
     }
   }
   if (typeof o.pinned === 'number' && Number.isInteger(o.pinned) && o.pinned > UID_BASE && o.pinned < 1_000_000_000) out.pinned = o.pinned;
+  if (Array.isArray(o.favourites)) out.favourites = [...new Set(o.favourites.filter((n): n is number => Number.isInteger(n) && n > UID_BASE && n < 1_000_000_000))].slice(0, FAVOURITES_MAX);
   if (Array.isArray(o.profileLayout)) out.profileLayout = sanitizeProfileLayout(o.profileLayout);
   if (o.binder && typeof o.binder === 'object') out.binder = sanitizeBinder(o.binder);
   if (Array.isArray(o.experiments)) out.experiments = [...new Set(o.experiments.filter((x): x is string => typeof x === 'string' && EXPERIMENT_IDS.has(x)))];

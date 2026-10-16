@@ -377,6 +377,83 @@ await runInSandbox(box2.id, async () => {
 });
 await sbx.deleteSandbox(box2.id);
 
+// ── Favourite prints (ROADMAP 9.1) ──
+const box3 = await sbx.createSandbox({ name: 'Trade favourites check', source: 'config' });
+await runInSandbox(box3.id, async () => {
+  const serials = await import('../lib/serials');
+  const { saveUserSettings } = await import('../lib/user-settings-store');
+  const season = (await kvLib.listSeasons())[0];
+  const coll = season.collectionName;
+  const sk = (cardNumber: number, count = 1, ids?: string[]) => ({ cardNumber, variant: 'regular' as const, count, ...(ids ? { ids } : {}) });
+  const holds = async (u: string) => (await serials.getOwnerCopies(coll, u)).map(c => c.id).sort();
+  const uidOf = async (u: string, id: string) => (await serials.getOwnerCopies(coll, u)).find(c => c.id === id)!.uid!;
+  await trades.saveTradeSettings({ ...core.DEFAULT_TRADE_SETTINGS, cooldownSeconds: 0, maxOpenPerUser: 20 });
+  await kvLib.saveCollection(coll, { fa: [E(1), E(1), E(1), E(2)], fb: [E(9), E(9), E(9)] });
+  await serials.backfillSerials(coll, await kvLib.getCollection(coll));
+  const fav = async (u: string, ids: string[]) => { const uids: number[] = []; for (const id of ids) uids.push(await uidOf(u, id)); await saveUserSettings(u, { favourites: uids }); };
+
+  // A picked favourite is refused; nothing leaves the collection.
+  await fav('fa', ['1.0.3']);
+  const pickedFav = await trades.createTrade({ seasonId: season.id, from: 'fa', kind: 'direct', to: 'fb', give: [sk(1, 1, ['1.0.3'])], get: [sk(9)] });
+  ok(!pickedFav.ok && /one of your favourites/.test(pickedFav.error), 'a picked favourite is refused');
+  eq(await holds('fa'), ['1.0.1', '1.0.2', '1.0.3', '2.0.1'], 'a refused favourite takes nothing');
+
+  // Unpicked: newest-first skips the favourite (1.0.3 is the newest) and the offer pins the others.
+  const skip = await trades.createTrade({ seasonId: season.id, from: 'fa', kind: 'direct', to: 'fb', give: [sk(1, 2)], get: [sk(9)] });
+  ok(skip.ok, 'an unpicked offer is made around the favourite');
+  if (skip.ok) {
+    eq([...skip.trade.give[0].ids!].sort(), ['1.0.1', '1.0.2'], 'the favourite is skipped');
+    ok((await holds('fa')).includes('1.0.3'), 'the favourite stays with its owner');
+    ok((await trades.cancelTrade(skip.trade.id, 'fa')).ok, 'fa cancels');
+  }
+
+  // Not enough non-favourites left.
+  const tooMany = await trades.createTrade({ seasonId: season.id, from: 'fa', kind: 'listing', give: [sk(1, 3)], get: [sk(9)] });
+  ok(!tooMany.ok && /favourite/.test(tooMany.error), 'three prints with one favourite is refused');
+  await fav('fa', ['1.0.1', '1.0.2', '1.0.3']);
+  const allFav = await trades.createTrade({ seasonId: season.id, from: 'fa', kind: 'listing', give: [sk(1, 1)], get: [sk(9)] });
+  ok(!allFav.ok && /only have favourites/.test(allFav.error), 'only favourites left is refused');
+
+  // The taker side: a favourite set after the offer stops the accept, and the offer stays open.
+  await fav('fa', []);
+  const direct = await trades.createTrade({ seasonId: season.id, from: 'fa', kind: 'direct', to: 'fb', give: [sk(1, 1)], get: [sk(9, 1, ['9.0.1'])] });
+  ok(direct.ok, 'a direct offer pinning a print of fb');
+  await fav('fb', ['9.0.1']);
+  if (direct.ok) {
+    const late = await trades.acceptTrade(direct.trade.id, 'fb');
+    ok(!late.ok && /one of your favourites/.test(late.error), 'a pinned print that became a favourite fails at accept');
+    ok((await trades.listOpenTrades()).some(t => t.id === direct.trade.id), 'the offer stays open');
+    ok((await trades.cancelTrade(direct.trade.id, 'fa')).ok, 'fa cancels');
+  }
+  // A listing asking for a card: the taker's newest-first would be 9.0.3; favourite it and the accept uses 9.0.1/9.0.2 instead.
+  await fav('fb', ['9.0.3']);
+  const listing = await trades.createTrade({ seasonId: season.id, from: 'fa', kind: 'listing', give: [sk(1, 1)], get: [sk(9, 2)] });
+  ok(listing.ok, 'a listing asking for two of card 9');
+  if (listing.ok) {
+    const taken = await trades.acceptTrade(listing.trade.id, 'fb');
+    ok(taken.ok, 'fb takes the listing: ' + (taken.ok ? '' : taken.error));
+    if (taken.ok) {
+      eq([...taken.trade.get[0].ids!].sort(), ['9.0.1', '9.0.2'], 'the taker favourite is skipped');
+      ok((await holds('fb')).includes('9.0.3'), 'the favourite stays with the taker');
+    }
+  }
+  // Upgrades skip favourites too.
+  const { upgradeCard } = await import('../lib/upgrade');
+  const { DEFAULT_UPGRADE_COSTS } = await import('../lib/variants');
+  const cost = DEFAULT_UPGRADE_COSTS.reverse;
+  await kvLib.saveCollection(coll, { ...(await kvLib.getCollection(coll)), fu: Array(cost + 1).fill(E(1)) });
+  await serials.backfillSerials(coll, await kvLib.getCollection(coll));
+  const newest = `1.0.${(await serials.getOwnerCopies(coll, 'fu')).length}`;
+  await fav('fu', [newest]);
+  const up1 = await upgradeCard({ seasonId: season.id, username: 'fu', cardNumber: 1, from: 'regular' });
+  ok(up1.ok, 'an upgrade is paid from the non-favourites: ' + (up1.ok ? '' : up1.error));
+  ok((await holds('fu')).includes(newest), 'the favourite was not spent');
+  ok(core.ownedCopies((await kvLib.getCollection(coll)).fu, 1, 'regular') === 1, 'only the favourite regular is left');
+  const up2 = await upgradeCard({ seasonId: season.id, username: 'fu', cardNumber: 1, from: 'regular' });
+  ok(!up2.ok, 'a second upgrade is refused');
+});
+await sbx.deleteSandbox(box3.id);
+
 ok(JSON.stringify(await prodKv.get('trades:open')) === prodBefore, 'production trades untouched');
 await sbx.deleteSandbox(box.id);
 console.log('trade checks passed');

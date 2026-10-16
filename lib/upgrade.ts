@@ -1,5 +1,6 @@
 import { getSeason, getPacksForSeason, getPackCards, withCollectionLock, getCollection, saveCollection } from './kv';
-import { lastCopy } from './serials';
+import { lastCopy, isTracking } from './serials';
+import { favouriteIdsOf, spendablePrints } from './favourites';
 import { getScoringSettings } from './scoring';
 import { serialMultiplier } from './scoring-core';
 import { recordActivity } from './activity';
@@ -58,9 +59,16 @@ export async function upgradeCard(opts: {
         error: `You need ${cost} ${VARIANT_LABELS[from]} prints to upgrade; you have ${have}.`,
       };
     }
+    // Favourite prints are never spent: the cost is paid from the newest prints that are not favourites.
+    let spend: string[] | undefined;
+    if (await isTracking(season.collectionName)) {
+      const r = await spendablePrints(season.collectionName, username, fromEntry, cost, undefined, await favouriteIdsOf(season.collectionName, username), 'spend');
+      if (!r.ok) return { ok: false, status: 400, error: r.text };
+      spend = r.ids ?? undefined;
+    }
     const updated = [...remaining, encodeEntry(cardNumber, to)];
     data[username] = updated;
-    await saveCollection(season.collectionName, data, { upgrade: { user: username, spent: fromEntry, count: cost, made: encodeEntry(cardNumber, to) } });
+    await saveCollection(season.collectionName, data, { upgrade: { user: username, spent: fromEntry, count: cost, made: encodeEntry(cardNumber, to), ...(spend ? { ids: spend } : {}) } });
     const last = await lastCopy(season.collectionName, encodeEntry(cardNumber, to));
     const serial = last.serial;
     made = last;

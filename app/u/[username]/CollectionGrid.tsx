@@ -9,6 +9,7 @@ import { BinderEditor } from './BinderEditor';
 import { DEFAULT_BINDER, type BinderConfig } from '@/lib/binder-config';
 import { engravedDate } from '@/lib/flip-back';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
+import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
@@ -63,7 +64,7 @@ const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0)
 const artFor = (c: GridCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '-');
 
-export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, seasonId, defaultHide = true, compact = false, mine, binderConfig, siteHost, pinnedUid }: { /** The print the owner has pinned to their profile (for the Pin button). */ pinnedUid?: number; /** The owner's binder settings (their look and layout); null = the defaults. */ binderConfig?: BinderConfig | null; /** The site address for the binder page's share image. */ siteHost?: string; /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** Needed for the serial links. */ seasonId?: string; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
+export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, seasonId, defaultHide = true, compact = false, mine, binderConfig, siteHost, pinnedUid, favouriteUids }: { /** Unique numbers of the owner's favourite prints (for the Favourite button and heart). */ favouriteUids?: number[]; /** The print the owner has pinned to their profile (for the Pin button). */ pinnedUid?: number; /** The owner's binder settings (their look and layout); null = the defaults. */ binderConfig?: BinderConfig | null; /** The site address for the binder page's share image. */ siteHost?: string; /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** Needed for the serial links. */ seasonId?: string; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
   // the server renders the default so there's no flash of ? tiles).
@@ -269,7 +270,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           ownerName={canUpgrade ? undefined : ownerName}
           tradeWith={tradeWith}
           seasonId={seasonId}
-          pinnedUid={pinnedUid}
+          pinnedUid={pinnedUid} favouriteUids={favouriteUids}
           canStep={ownedIdx.length > 1}
           onClose={close}
           onStep={step}
@@ -286,9 +287,9 @@ const printHref = (seasonId: string, c: DialogCopy) => `/copy/${encodeURICompone
 
 /** The dialog for one card: first its prints (one tile each), then one print's details. A card with a single print opens on that print. */
 function CardDetail({
-  card, totalScore, canUpgrade, ownerName, tradeWith, seasonId, pinnedUid, canStep, onClose, onStep,
+  card, totalScore, canUpgrade, ownerName, tradeWith, seasonId, pinnedUid, favouriteUids, canStep, onClose, onStep,
 }: {
-  card: GridCard; totalScore: number; canUpgrade: boolean; ownerName?: string; tradeWith?: string; seasonId?: string; pinnedUid?: number; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
+  card: GridCard; totalScore: number; canUpgrade: boolean; ownerName?: string; tradeWith?: string; seasonId?: string; pinnedUid?: number; favouriteUids?: number[]; canStep: boolean; onClose: () => void; onStep: (d: number) => void;
 }) {
   const rarity = getRarity(card.stars);
   const closeBtn = useRef<HTMLButtonElement>(null);
@@ -340,7 +341,7 @@ function CardDetail({
           </div>
 
           {print && seasonId
-            ? <PrintView card={card} print={print} seasonId={seasonId} ownerName={ownerName} canUpgrade={canUpgrade} tradeWith={tradeWith} pinnedUid={pinnedUid} onBack={dialog.only ? undefined : () => setPrintId(null)} />
+            ? <PrintView card={card} print={print} seasonId={seasonId} ownerName={ownerName} canUpgrade={canUpgrade} tradeWith={tradeWith} pinnedUid={pinnedUid} favouriteUids={favouriteUids} onBack={dialog.only ? undefined : () => setPrintId(null)} />
             : <PrintsView card={card} dialog={dialog} seasonId={seasonId} onPick={setPrintId} showAll={() => setShowAll(true)} />}
 
           <CardInfo card={card} totalScore={totalScore} canUpgrade={canUpgrade} ownerName={ownerName} tradeWith={print ? undefined : tradeWith} shown={print?.variant ?? best} />
@@ -395,7 +396,7 @@ function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCar
 const pill = 'inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border text-gray-200 bg-white/[0.06] border-white/10 hover:bg-white/10';
 
 /** Step 2: one print, turned over on the flip card, with what it is worth and where it has been. */
-function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pinnedUid, onBack }: { card: GridCard; print: DialogCopy; seasonId: string; ownerName?: string; canUpgrade: boolean; tradeWith?: string; pinnedUid?: number; onBack?: () => void }) {
+function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pinnedUid, favouriteUids, onBack }: { card: GridCard; print: DialogCopy; seasonId: string; ownerName?: string; canUpgrade: boolean; tradeWith?: string; pinnedUid?: number; favouriteUids?: number[]; onBack?: () => void }) {
   const rarity = getRarity(card.stars);
   const v = print.variant;
   const href = printHref(seasonId, print);
@@ -453,6 +454,7 @@ function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pi
             <a href={href} className={pill}>Open print page</a>
             <button type="button" onClick={share} className={pill}><Icon name="share" />{copied ? 'Link copied' : 'Share this print'}</button>
             {canUpgrade && print.uid ? <PinCopyButton uid={print.uid} pinned={pinnedUid === print.uid} /> : null}
+            {canUpgrade && print.uid ? <FavouriteCopyButton uid={print.uid} favourite={!!favouriteUids?.includes(print.uid)} /> : null}
             {tradeWith && <a href={`/trade/new?to=${encodeURIComponent(tradeWith)}&want=${card.number}.${v}`} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border border-purple-400/40 bg-purple-500/10 text-purple-200 hover:bg-purple-500/20"><Icon name="trade" />Offer a trade</a>}
           </div>
           {showUpgrade && (

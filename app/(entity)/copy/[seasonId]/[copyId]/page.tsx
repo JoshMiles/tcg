@@ -9,6 +9,7 @@ import { buildProvenance } from '@/lib/provenance';
 import { editionLine, engravedDate, histText } from '@/lib/flip-back';
 import { copyShareSpec } from '@/lib/copy-share';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
+import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
 import { getSession } from '@/lib/session';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { ShareStudio } from '@/app/components/ShareStudio';
@@ -60,7 +61,9 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
   const session = await getSession();
   // The holder can pin this copy to their profile.
   const canPin = !!session && !!copy.uid && copy.owner === session.username;
-  const pinned = canPin ? (await getUserSettings(session!.username)).pinned === copy.uid : false;
+  const mySettings = canPin ? await getUserSettings(session!.username) : null;
+  const pinned = mySettings?.pinned === copy.uid;
+  const favourite = !!copy.uid && !!mySettings?.favourites.includes(copy.uid);
   const [hidden, minted, holoFor, board] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName), getHoloResolver(), getSeasonLeaderboardCached(season).catch(() => null)]);
   // What this very copy is worth: its card's points times the bonus its number earns.
   const cv = board?.values.cards.get(copy.card);
@@ -148,6 +151,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
 
           <div className="flex flex-wrap gap-2">
             {canPin && <PinCopyButton uid={copy.uid!} pinned={pinned} />}
+            {canPin && <FavouriteCopyButton uid={copy.uid!} favourite={favourite} />}
           </div>
           <details className="group rounded-xl border border-gray-800 bg-gray-950/50 open:p-4 p-0">
             <summary className="cursor-pointer list-none px-4 py-2.5 group-open:px-0 group-open:pt-0 group-open:pb-4 text-sm font-bold text-yellow-300 hover:text-yellow-200 inline-flex items-center gap-1.5 w-full">

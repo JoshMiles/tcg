@@ -1,3 +1,4 @@
+import { protectFavourites } from './favourites';
 import { escrowOwner, isEscrow } from './serials-core';
 import { firstNotHeld, isTracking, printLabel, serialPool } from './serials';
 import { getUserSettings } from './user-settings-store';
@@ -219,7 +220,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
   const { season, cardMap } = ctx;
   if (season.tradingFrozen) return fail(403, 'Trading is closed for this season.');
 
-  const give = cleanItems(input.give, settings.maxStacksPerSide);
+  let give = cleanItems(input.give, settings.maxStacksPerSide);
   const get = cleanItems(input.get, settings.maxStacksPerSide);
   if (!give) return fail(400, `Choose between 1 and ${settings.maxStacksPerSide} different cards to give (up to ${TRADE_LIMITS.copiesPerStack} prints of each).`);
   if (!get) return fail(400, `Choose between 1 and ${settings.maxStacksPerSide} different cards you want back.`);
@@ -273,6 +274,11 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
   };
   const taken = await withCollectionLock(season.collectionName, async () => {
     const data = await getCollection(season.collectionName);
+    // Favourite prints never go into an offer: unpicked stacks are pinned to the newest prints that are not favourites.
+    const safe = await protectFavourites(season.collectionName, from, give!);
+    if (!safe.ok) return { ok: false as const, text: safe.text };
+    give = safe.items;
+    trade.give = give;
     const res = takeForEscrow(data[from] ?? [], give);
     if (!res.ok) return res;
     // Picked prints must be this viewer's own, right now: not sold, forged or already put up in another offer.
@@ -345,7 +351,7 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
     if (season.tradingFrozen) return fail(403, 'Trading is closed for this season.');
 
     // Prints the taker chose for what the offer asks (the offerer may have pinned some already).
-    const get = withChosenPrints(trade.get, getIds);
+    let get = withChosenPrints(trade.get, getIds);
     if (!get) return fail(400, 'Those prints don\'t match what the offer asks for.');
     if (hasPickedPrints(get) && !(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered yet, so they can\'t be chosen.');
 
@@ -353,6 +359,10 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
     const pools = await snapshotPools(trade.seasonId, { give: escrowOwner(trade.id), get: taker });
     const result = await withCollectionLock(season.collectionName, async () => {
       const data = await getCollection(season.collectionName);
+      // The taker's favourite prints stay put: picked ones are refused, unpicked stacks skip them. The offer stays open.
+      const safe = await protectFavourites(season.collectionName, taker, get!);
+      if (!safe.ok) return { ok: false as const, text: safe.text };
+      get = safe.items;
       const settled = settleTrade(data[trade.from] ?? [], data[taker] ?? [], trade.give, get);
       if (!settled.ok) return settled;
       // Exact prints must still be the taker's: if one moved since the offer was made, the offer stays open for a counter.

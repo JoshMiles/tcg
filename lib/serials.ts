@@ -45,7 +45,7 @@ export interface SyncContext {
   /** Retire exactly these copies of `owner` (an admin removing one specific copy), in place of retiring the newest. */
   retire?: { owner: string; ids: string[]; who: string; note?: string };
   /** Copies spent and the one made from them. */
-  upgrade?: { user: string; spent: number; count: number; made: number };
+  upgrade?: { user: string; spent: number; count: number; made: number; /** Spend exactly these prints (the newest that are not favourites) instead of the newest `count`. */ ids?: string[] };
 }
 
 const parse = (v: unknown): Copy | null => {
@@ -243,9 +243,9 @@ export async function syncAfterSave(c: string, before: Record<string, number[]>,
     }
 
     if (ctx.upgrade) {
-      const { user, spent, count, made } = ctx.upgrade;
+      const { user, spent, count, made, ids } = ctx.upgrade;
       const mine = (await readOwner(c, user)).filter(x => entryOf(x) === spent);
-      const used = newestFirst(mine, count);
+      const used = ids ? mine.filter(x => ids.includes(x.id)) : newestFirst(mine, count);
       const [fresh] = await mint(c, user, made, 1, 'upgrade', { madeFrom: used.map(x => x.id) });
       await retire(c, user, used, { type: 'upgraded', who: user, ...(fresh ? { note: fresh.id } : {}) });
       touched.add(user);
