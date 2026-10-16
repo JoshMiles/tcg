@@ -55,6 +55,11 @@ function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean 
   if (/^reveal\.firstEver(Text|Hold)$/.test(key)) return { key: 'reveal.firstEver', when: v => v === true };
   const fe = key.match(/^moment\.firstEver\.(.+)$/);
   if (fe) return { key: 'reveal.firstEver', when: v => v === true };
+  if (/^show\.(labelColor|labelTextColor)$/.test(key)) return { key: 'show.ownLabelLook', when: v => v === true };
+  if (/^show\.(text|ownLabelLook|labelSize|labelX|labelY)$/.test(key)) return { key: 'show.showLabel', when: v => v === true };
+  if (key === 'show.printFormat') return { key: 'show.showPrint', when: v => v === true };
+  if (key === 'show.soundUrl') return { key: 'show.sound', when: v => v === 'custom' };
+  if (key === 'show.volume') return { key: 'show.sound', when: v => v !== 'off' };
   if (key === 'reveal.gotText') return { key: 'reveal.showGotLine', when: v => v === true };
   if (key === 'collection.headingText') return { key: 'collection.showHeading', when: v => v === true };
   return null;
@@ -109,6 +114,7 @@ export function OverlayEditor({
   const [category, setCategory] = useState('pack');
   const [version, setVersion] = useState<VariantId>('regular');   // the variant being edited AND previewed
   const [moment, setMoment] = useState<MomentPick>('');            // which special moment the preview plays
+  const [showOff, setShowOff] = useState(false);                     // the canvas shows a chat show-off (placed like the pack opening)
   const [mode, setMode] = useState<Mode>('pack');                  // which view the canvas shows
   const [variantOpen, setVariantOpen] = useState(false);          // Variants: false = the variant picker, true = editing `version`
   const [focusKey, setFocusKey] = useState('');                    // a section to scroll into view after a click on the preview
@@ -330,7 +336,7 @@ export function OverlayEditor({
   useEffect(() => { if (ready) post({ type: 'layout', layout: shownLayout }); }, [ready, loadedCount, shownLayout, post]);
   useEffect(() => { if (ready) post({ type: 'variant', variant: previewVariant }); }, [ready, loadedCount, previewVariant, post]);
   useEffect(() => { if (ready) post({ type: 'props', props: shownProps, packId: previewPackId, cardNumber: previewCard }); }, [ready, loadedCount, shownProps, previewPackId, previewCard, post]);
-  useEffect(() => { if (ready) post({ type: 'static', mode }); }, [ready, loadedCount, mode, post]);
+  useEffect(() => { if (ready) post({ type: 'static', mode, showoff: showOff }); }, [ready, loadedCount, mode, showOff, post]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -347,7 +353,7 @@ export function OverlayEditor({
   const play = () => {
     if (!ready || playing) return;
     setPlaying(true);
-    post({ type: mode, moment: mode === 'pack' ? moment : undefined });
+    post(showOff && mode === 'pack' ? { type: 'showoff' } : { type: mode, moment: mode === 'pack' ? moment : undefined });
     setTimeout(() => setPlaying(false), mode === 'pack' ? 13000 : 9000);
   };
 
@@ -500,6 +506,7 @@ export function OverlayEditor({
         setCategory(c);
         setQuery('');
         setMode(c === 'collection' ? 'collection' : 'pack');
+        setShowOff(c === 'showoff');
         if (c === 'variants') setVariantOpen(true);
         if (section) {
           const k = `${c}${c === 'variants' ? '.' + version : ''}/${section}`;
@@ -512,6 +519,7 @@ export function OverlayEditor({
         case 'label': go('variants', 'Label'); break;
         case 'bar': go('pack', 'Name and stars bar'); break;
         case 'got': go('pack', '"got:" line'); break;
+        case 'showlabel': go('showoff', 'Label'); break;
         case 'strip': go('pack', 'Cards under the card'); break;
         case 'heading': if (!isPack) go('collection', 'What to show'); break;
         case 'collection': if (!isPack) go('collection', 'Layout'); break;
@@ -1041,12 +1049,14 @@ export function OverlayEditor({
           <div className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-2">
             <Segmented
               label="View"
-              value={mode}
+              value={showOff && mode === 'pack' ? 'showoff' : mode}
               onChange={v => {
-                setMode(v as Mode);
-                if (!isPack && category !== 'layout') setCategory(v === 'collection' ? 'collection' : category === 'collection' ? 'pack' : category);
+                setShowOff(v === 'showoff');
+                setMode(v === 'collection' ? 'collection' : 'pack');
+                if (v === 'showoff') setCategory('showoff');
+                else if (!isPack && category !== 'layout') setCategory(v === 'collection' ? 'collection' : category === 'collection' || category === 'showoff' ? 'pack' : category);
               }}
-              options={[{ id: 'pack', label: 'Pack opening' }, { id: 'collection', label: 'Collection' }]}
+              options={[{ id: 'pack', label: 'Pack opening' }, { id: 'showoff', label: 'Show off' }, { id: 'collection', label: 'Collection' }]}
               disabled={isPack ? ['collection'] : []}
             />
             {mode === 'pack' && (
@@ -1057,7 +1067,7 @@ export function OverlayEditor({
                 options={VARIANT_IDS.map(v => ({ id: v, label: VARIANT_LABELS[v] }))}
               />
             )}
-            {mode === 'pack' && (
+            {mode === 'pack' && !showOff && (
               <Segmented
                 label="Moment"
                 value={moment}
@@ -1139,7 +1149,7 @@ export function OverlayEditor({
               disabled={!ready || playing}
               className={`${btn} ml-auto bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}
             >
-              {playing ? '… playing' : mode === 'pack' ? 'Play pack opening' : 'Play collection'}
+              {playing ? '… playing' : mode === 'collection' ? 'Play collection' : showOff ? 'Play show off' : 'Play pack opening'}
             </button>
           </div>
         </div>
@@ -1157,7 +1167,8 @@ export function OverlayEditor({
                   onClick={() => {
                     setCategory(g.id);
                     setQuery('');
-                    if (g.id === 'pack' || g.id === 'variants' || g.id === 'moments') setMode('pack');
+                    if (g.id === 'pack' || g.id === 'variants' || g.id === 'moments' || g.id === 'showoff') setMode('pack');
+                    setShowOff(g.id === 'showoff');
                     if (g.id === 'collection') setMode('collection');
                     if (g.id === 'variants') setVariantOpen(false);
                   }}
