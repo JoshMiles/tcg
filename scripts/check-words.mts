@@ -59,7 +59,7 @@ const withoutComments = (src: string) => src
   .filter(l => !/^\s*(\/\/|\*)/.test(l))
   .map(l => l.replace(/\s\/\/ .*$/, ''))
   .join('\n');
-const userFacing = [...walkSrc('app', /\.tsx$/), 'public/widget.js', 'lib/discord.ts', 'lib/flip-back.ts', 'lib/share-image.ts'];
+const userFacing = [...walkSrc('app', /\.tsx$/), 'public/widget.js', 'lib/discord.ts', 'lib/flip-back.ts', 'lib/share-image.ts', 'lib/changelog.ts'];
 const banned: [RegExp, string][] = [[/unique copy number/i, 'unique copy number'], [/unique number/i, 'unique number'], [/copy page/i, 'copy page'], [/ID #/, 'ID #']];
 for (const file of userFacing) {
   const src = withoutComments(read(file));

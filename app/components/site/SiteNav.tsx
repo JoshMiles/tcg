@@ -9,6 +9,8 @@ import { LiveBadge } from './Live';
 import { InstallButton } from './InstallButton';
 import { NotificationBell } from './NotificationBell';
 import { OPEN_SEARCH_EVENT, SearchButton } from './SiteSearch';
+import { ChangelogLink } from './ChangelogLink';
+import { newestChangelogDate } from '@/lib/changelog';
 import { nextMenuIndex } from '@/lib/menu-nav';
 
 const LINKS = [
@@ -201,6 +203,7 @@ export function SiteNav({ user, loginEnabled, rank, staff }: { user: NavUser | n
               {l.label}
             </Link>
           ))}
+          <ChangelogLink newest={newestChangelogDate()} className={`px-3 py-2.5 rounded-lg text-sm font-semibold ${isActive('/changelog') ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-300 hover:bg-white/5'}`}>What&rsquo;s new</ChangelogLink>
           {staff && <Link href={staff.href} prefetch={false} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-purple-200 hover:bg-purple-500/10"><Icon name="shield" className="mr-1.5" />{staff.label}</Link>}
           {user ? (
             <>
