@@ -14,6 +14,7 @@ export const INDEXED_PATHS: { path: string; priority: number; changeFrequency: '
   { path: '/stats', priority: 0.7, changeFrequency: 'hourly' },
   { path: '/collection', priority: 0.6, changeFrequency: 'weekly' },
   { path: '/faq', priority: 0.7, changeFrequency: 'monthly' },
+  { path: '/changelog', priority: 0.4, changeFrequency: 'weekly' },
   { path: '/install', priority: 0.4, changeFrequency: 'monthly' },
   { path: '/privacy', priority: 0.2, changeFrequency: 'monthly' },
   { path: '/terms', priority: 0.2, changeFrequency: 'monthly' },
