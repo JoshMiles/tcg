@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Owned by the planning model (Opus, see "Model Workflow Guidelines" in `CLAUDE.md`). Execution picks up items marked **Ready**; anything marked **Needs design** or **Needs a decision** goes back to planning (or to the user) first. Last updated 2026-10-16.
+Owned by the planning model (Opus, see "Model Workflow Guidelines" in `CLAUDE.md`). Execution picks up items marked **Ready**; anything marked **Needs design** or **Needs a decision** goes back to planning (or to the user) first. Last updated 2026-10-16 (after #158).
 
 **Status legend:** Ready (design below is enough to build) · Needs design (planning pass first) · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo) · Done.
 
@@ -20,32 +20,34 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 |---|------|--------|------|
 | 1.1 | iOS home-screen icon | Done (#144) | S |
 | 1.2 | Rarest cards animate on hover (home) | Done (#144) | S |
-| 2.1 | Pull events carry the copy (unique number) | Ready | S |
-| 2.2 | Recent pulls open the copy | Ready (after 2.1) | S |
-| 2.3 | Profile "Recent pulls" with serials | Ready (after 2.1) | S |
-| 2.4 | Overlay shows the unique copy number | Ready (after 2.1) | S |
-| 2.5 | Card dialog: copies first, then one copy's details | Ready | M |
+| 2.1 | Pull events carry the copy (unique number) | Done (#147) | S |
+| 2.2 | Recent pulls open the copy | Done (#151) | S |
+| 2.3 | Profile "Recent pulls" with serials | Done (#154) | S |
+| 2.4 | Overlay shows the unique copy number | Done (#157) | S |
+| 2.5 | Card dialog: prints first, then one print's details | Ready | M |
 | 2.6 | A card copy is called a "print" | Done (#146) | M |
-| 3.1 | Discord: several channels, each with its own events | Ready | M |
-| 3.2 | Discord: new event kinds (upgrades, trades, admin log, system) | Ready (after 3.1) | M |
-| 3.3 | Trade page per offer (`/trade/<id>`) | Ready | M |
-| 3.4 | Discord: "listed for trade" channel | Ready (after 3.1, 3.3) | S |
-| 3.5 | GitHub and Vercel changes in Discord | Ready (user setup, no code) | S |
-| 3.6 | Discord delivery log | Ready (after 3.1) | S |
-| 4.1 | Notices arrive fast and are hard to miss | Ready | M |
-| 4.2 | Notifications page (full history) | Ready | S |
-| 4.3 | Push notifications to phones and browsers | Ready (after 4.1) | L |
+| 3.1 | Discord: several channels, each with its own events | Done (#149) | M |
+| 3.2 | Discord: new event kinds (upgrades, trades, admin log, system) | Done (#152) | M |
+| 3.3 | Trade page per offer (`/trade/<id>`) | Done (#150) | M |
+| 3.4 | Discord: "listed for trade" channel | Done (#155) | S |
+| 3.5 | GitHub and Vercel changes in Discord | Done (#149) | S |
+| 3.6 | Discord delivery log | Done (#156) | S |
+| 4.1 | Notices arrive fast and are hard to miss | Done (#153) | M |
+| 4.2 | Notifications page (full history) | Done (#158) | S |
+| 4.3 | Push notifications to phones and browsers | Ready | L |
 | 4.4 | Link a Discord account for DMs | Later (after 4.3) | L |
-| 5.1 | Stream recap posted to Discord | Ready (after 3.1) | M |
+| 5.1 | Stream recap posted to Discord | Ready | M |
 
-Suggested order: Track 1 (done), 2.6 (done), 2.1 to 2.4, 3.1 to 3.6, 4.1 and 4.2, 4.3, 2.5, 5.1. 4.4 waits until push has been live for a while.
+Done so far: Tracks 1 to 3, 4.1 and 4.2. Next: 2.5, 4.3 and 5.1 in parallel (streams D, E, F below). 4.4 waits until push has been live for a while. User step still open from 3.5: add the GitHub repo webhook (`<discord webhook URL>/github`, see Settings -> Webhooks "Deploys & code").
 
 
-**Parallel work (from 2026-10-16).** Three streams can run at once, each in its own session and branch, because they own different files:
-- **Stream A, prints (2.1 to 2.4):** `lib/kv.ts` (`addCollectionEntryWithSerial`), `lib/activity.ts` (the new `copyId` / `uid` fields on `pull`, `grant` **and** `upgrade` events), `lib/copy-link.ts`, `RecentPulls` / `lib/home-pulls.ts`, the admin / mod activity feed, the profile `recent` widget and `DEFAULT_PROFILE_LAYOUT`, `public/widget.js` + the overlay registry, `lib/showoff-prepare.ts`. **Not** `lib/discord.ts`.
-- **Stream B, Discord (3.1, 3.2, 3.3, 3.4, 3.6, then 2.2's Discord link):** `lib/discord*.ts`, `DiscordConfig`, `recordAudit` / staff log hooks, the new `/trade/[id]` page, `lib/trade-core.ts` (`tradeVisibleTo`), the board listing links and the trade notice links in `lib/trade-notify.ts`. The pull embed's link to the print (from 2.2) is done here, after Stream A's 2.1 has merged.
-- **Stream C, notices (4.1, 4.2, then 4.3):** `NotificationBell`, `/api/notifications`, the version counter inside `notify()` (one line; Stream B only changes the link URLs in that file, so rebase before the PR), the toast, `/notifications`, `UserSettings.noticeSound`, then Web Push.
-- 2.5 (copies-first dialog) and 5.1 (stream recap) come after A and B land.
+**Streams A, B and C are done** (2026-10-16: #147, #149 to #158). The Discord pull and upgrade embeds link to the print (`copyHrefFor`), which finishes 2.2.
+
+**Next, three parallel streams (from 2026-10-16)**, each in its own session and branch, owning different files:
+- **Stream D, 2.5 prints-first card dialog:** `CollectionGrid.tsx`, `app/u/[username]/Binder.tsx` (only its `onOpen` wiring), `lib/collection-view.ts` (`copiesForDialog`), `buildGridCards` (`uid` on `GridCard.copies`), the dialog's share / pin / trade / upgrade buttons (existing components, reused).
+- **Stream E, 4.3 Web Push:** `lib/push.ts`, `/api/account/push`, `public/sw.js`, `ENV_SPECS`, the push send hook in `notify()` (`lib/trade-notify.ts`), `UserSettings.pushKinds`, Settings -> Notifications, the 4.1 toast's one-time "Get alerts on this device" offer, FAQ / Privacy (bump `LEGAL_UPDATED`), `scripts/mock-push.cjs` + `scripts/check-push.mts`.
+- **Stream F, 5.1 stream recap:** `lib/twitch-live.ts` (record the offline transition), `lib/stream-recap.ts` (pure `buildStreamRecap`) + check, the `recap` Discord category in `lib/discord*.ts`, a recap widget on the admin dashboard.
+- Overlaps to watch: E and F do not touch the same files; D touches none of theirs. Each rebases on `main` before its PR.
 
 ---
 
@@ -78,27 +80,27 @@ Background: `docs/serials.md`. A copy's id is `<card>.<variant index>.<n>` (so i
 
 **Wording:** user-facing text in 2.1 to 2.5 follows 2.6 (a copy is a **print**, the 7-digit number is the **print number**, `#7` is the **edition**). Below, "copy" and "unique number" are the code-level names (`Copy`, `uid`), not UI text.
 
-### 2.1 Pull events carry the copy (Ready)
+### 2.1 Pull events carry the copy (Done, #147)
 
 - `addCollectionEntryWithSerial` (`lib/kv.ts`) returns `{ owned, serial, copyId, uid }` (read from the copy `mint()` just made, under the same lock). `null`s when the collection is not tracked yet.
 - The `pull` `ActivityDetail` gains optional `copyId?: string; uid?: number`. `POST /api/collection` sets them on the event and returns `uid` beside `serial` / `serialMult` (additive, old overlay builds ignore it). Grants: `addCollectionEntry` with origin `'grant'` does the same for the `grant` event.
 - Helper `copyHrefFor(e: ActivityEvent, seasonId)` in a client-safe module (`lib/copy-link.ts`): `/c/<uid>` when `uid` is set; otherwise, for older events that have `serial`, the derived `/copy/<season>/<card>.<variantIndex>.<serial>`; otherwise `null` (caller falls back to the card dex link). The season id comes from the collection name the same way `recentPullItems` already resolves it.
 - Check: extend `scripts/check-serials.mts` (the returned uid / copyId match the ledger) and add pure cases for `copyHrefFor`.
 
-### 2.2 Recent pulls open the copy (Ready, after 2.1)
+### 2.2 Recent pulls open the copy (Done, #151)
 
 - Home **Recent pulls** (`RecentPulls`, `recentPullItems` in `lib/home-pulls.ts`): the card name links to `copyHrefFor(...)` (fallback `/cards?card=`). Show the unique number small after the edition chip (`Edition #7 · Print #1023381`) when known.
 - Same link in the admin / mod activity feed rows and event detail (admin links to `/admin/serials/<season>/<copyId>`), and in the Discord pull embed (the embed's title links to the copy page; the author line still links to the profile).
 - A copy that has since been traded or upgraded still opens: the copy page shows its whole journey. Private / hidden holders are masked by the copy page as today.
 
-### 2.3 Profile "Recent pulls" with serials (Ready, after 2.1)
+### 2.3 Profile "Recent pulls" with serials (Done, #154)
 
 The `recent` profile widget today lists the newest copies the person **holds** (any origin, including ones traded in). Change it to what was asked:
 - Rename it **Recent pulls** and list the owner's latest copies whose `origin` is `pull` (from the ledger, live and retired, so a pull later traded away still shows, marked "traded" / "forged" with the current state from `provenance`), 8 rows: card name + version, edition chip (`SerialChip`), unique number, when; each row opens the copy page.
 - Add it to `DEFAULT_PROFILE_LAYOUT` (span 6, after `rarest`). Existing saved layouts are untouched (the widget id stays `recent`).
 - Before tracking (collection not backfilled): the widget falls back to the viewer's `pull` events from the activity log (no serials), or hides for visitors.
 
-### 2.4 Overlay shows the unique copy number (Ready, after 2.1)
+### 2.4 Overlay shows the unique copy number (Done, #157)
 
 - `widget.js` `showSerial()` reads `uid` from the `POST /api/collection` response. New Overlay Editor property `reveal.serialFormat`: `edition` (today: `#7`, default so nothing changes on stream until chosen), `uid` (`#1023381`), `both` (`#7` pill plus a small `Print #1023381` line under it). Registry entry in the same section as `reveal.showSerial`; preview / dry runs use a sample uid.
 - Show-off (`!card` chat command): `prepareShowOff` sends the lowest copy's `uid` too, so the same format applies.
@@ -143,14 +145,14 @@ Asked: "different naming for a card copy". Today the site mixes **copy** (the th
 
 Background: `docs/admin.md` "Discord activity feed". Today there is **one** webhook URL (`DiscordSettings.url`) with four category toggles, fed by `recordActivity()` through `after()`.
 
-### 3.1 Several channels, each with its own events (Ready)
+### 3.1 Several channels, each with its own events (Done, #149)
 
 - `DiscordSettings` becomes `{ enabled: boolean; channels: DiscordChannel[] }` with `DiscordChannel = { id: string; name: string; url: string; enabled: boolean; categories: Record<DiscordCategory, boolean>; minStars: number; newOnly: boolean }` (max 8 channels). The normalizer in `lib/discord.ts` turns the old shape into one channel called "Activity" with the same settings, so nothing changes until an admin edits it (no migration script).
 - `notifyDiscord(e)` sends to **every** enabled channel whose filters pass (`shouldSend(e, channel)`), in parallel, each failure isolated. `buildMessage` is built once per event.
 - Settings → Webhooks: `DiscordConfig` lists channels as cards (name, URL, toggles, Test / Send last activity per channel, Remove behind `ArmedButton`), plus **Add channel** with presets that pre-tick categories: *Activity*, *Pulls*, *Upgrades*, *Trades*, *Trade listings*, *Admin log*, *System*, *Deploys & code* (the last one just shows the 3.5 instructions, no categories).
 - Same rules as today: only real discord.com webhook URLs, empty `allowed_mentions`, Markdown-escaped names, nothing sent from sandboxes / previews. Check: extend the existing Discord check with the old-shape normalizer, multi-channel fan-out and per-channel filters.
 
-### 3.2 New event kinds (Ready, after 3.1)
+### 3.2 New event kinds (Done, #152)
 
 New `DiscordCategory` values (old ones kept):
 - Today `categoryOf` files `upgrade` and `trade` under `cards` (with grants and removals). Split them out; the normalizer ticks the new `upgrades` / `trades` boxes wherever `cards` was ticked, so existing channels keep posting the same things.
@@ -161,7 +163,7 @@ New `DiscordCategory` values (old ones kept):
 - `system`: nightly backup result (success with size, or failure), the data-health threshold being crossed, a sandbox created / deleted, the Twitch live gate flipping. Sent from the places that already detect them.
 - Embeds stay compact: title, one or two fields, a link, the rarity colour where there is a card.
 
-### 3.3 Trade page per offer (Ready)
+### 3.3 Trade page per offer (Done, #150)
 
 The Discord listing post needs a "direct link to the trade". There is no per-trade page today (`/trade` has tabs only).
 - `/trade/[id]` in the `(entity)` route group (real 404, no `loading.tsx`), `noindex`. Reads the open trade, or the history entry if it is closed.
@@ -169,18 +171,18 @@ The Discord listing post needs a "direct link to the trade". There is no per-tra
 - `sweepTrades()` on load (like the other trade pages). Board listing cards and bell notices link here instead of `/trade?tab=board`.
 - Add to `NOINDEX_PATHS`, `PUBLIC_PAGES` not needed (not searchable). Check: `scripts/check-trades.mts` gains a small case for the page's visibility rule (pure helper `tradeVisibleTo(trade, viewer)` in `lib/trade-core.ts`).
 
-### 3.4 "Listed for trade" channel (Ready, after 3.1 and 3.3)
+### 3.4 "Listed for trade" channel (Done, #155)
 
 When a **board listing** is created (`announceTrade`, the same hook that drives listing alerts): post to channels with `listings` on. Embed: "<lister> listed a trade", **Gives** / **Wants** fields (card names, versions, edition numbers), points each side, expiry, the first given card's thumbnail, and the title linking to `${SITE_URL}/trade/<id>`. Optional per-channel role mention? **No**: `allowed_mentions` stays empty (anyone could trigger it); the channel's own notification settings do the job. When the listing is taken, cancelled or expires, the post is **not** edited (webhook edits need the message id; keep it simple). The trade page shows the outcome.
 
-### 3.5 GitHub and Vercel changes in Discord (Ready, user setup, no code)
+### 3.5 GitHub and Vercel changes in Discord (Done, #149)
 
 Neither needs our server:
 - **GitHub**: Discord webhooks accept GitHub's format if `/github` is added to the URL. In the repo: Settings → Webhooks → Add webhook, Payload URL `<discord webhook URL>/github`, content type `application/json`, events: pushes, pull requests, releases, **deployment statuses**.
 - **Vercel**: Vercel reports every deployment to GitHub as a deployment status, so the GitHub webhook above already posts "deployed to Production / Preview" with the link. (If more is wanted later, Vercel's own webhooks could feed a small `/api/vercel-hook` route; not needed now.)
 - Put these steps in the Settings → Webhooks "Deploys & code" preset card and in `docs/hosting.md`.
 
-### 3.6 Discord delivery log (Ready, after 3.1)
+### 3.6 Discord delivery log (Done, #156)
 
 Each channel keeps its last 20 send results (time, event kind, HTTP status, Discord's error text) in KV `discord:log:<channelId>` (list, capped). Shown under each channel card with a red dot when the last send failed (a deleted webhook answers 404). A channel failing 20 times in a row is switched off automatically and the dashboard's Needs attention panel says so.
 
@@ -190,7 +192,7 @@ Each channel keeps its last 20 send results (time, event kind, HTTP status, Disc
 
 Background: `docs/trading.md` "Notifications". Notices live in `notif:<user>` (30 newest); the bell polls `GET /api/notifications` every 45 s and on tab focus. That is why they feel late, and a new notice only changes a small badge.
 
-### 4.1 Arrive fast, hard to miss (Ready)
+### 4.1 Arrive fast, hard to miss (Done, #153)
 
 - **Cheap version check.** Every `notify()` also `INCR`s `notif:<user>:v`. New `GET /api/notifications?since=<v>` answers `204` (no body) when nothing changed, so polling is cheap.
 - **Poll faster while visible**: every 10 s while the tab is visible, back off to 60 s after 5 minutes without input, stop while hidden (resume and check at once on focus). Also check right after the viewer does something that may cause a reply (sending an offer).
@@ -199,7 +201,7 @@ Background: `docs/trading.md` "Notifications". Notices live in `notif:<user>` (3
 - **Optional sound**: a short chime, off by default, `UserSettings.noticeSound` in Settings → Notifications.
 - Checks: the version / 204 logic in a pure helper + the existing notification check.
 
-### 4.2 Notifications page (Ready)
+### 4.2 Notifications page (Done, #158)
 
 `/notifications` (signed in, noindex): the full list of the 30 kept notices grouped by day, filter by kind (offers, results, listing alerts, admin), Mark all read. The bell's footer links to it. Consider raising the cap to 100 (check `scripts/check-words.mts` and the Privacy Policy number if so).
 
@@ -251,6 +253,10 @@ When the channel goes offline (the live check in `lib/twitch-live.ts` already se
 Ship as one reviewed panel version: achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
 
 ## Done (recent)
+
+- Stream A, prints: pull / grant / upgrade events carry the print (#147), Recent pulls open the print (#151), profile Recent pulls widget (#154), overlay print number (#157).
+- Stream B, Discord: several channels (#149, with the GitHub / Vercel setup for 3.5), new event kinds (#152), `/trade/<id>` (#150), Trade listings channel (#155), delivery log with auto switch-off (#156).
+- Stream C, notices: fast polling with toasts, title count and app badge (#153), `/notifications` page (#158).
 
 - 2.6 print wording: a copy is a print, `Print #1023381`, edition bonus (#146, 2026-10-16).
 
