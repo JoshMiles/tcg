@@ -1,5 +1,5 @@
 import { getRecentCardArrivals } from './site-data';
-import { cardThumbUrl } from './card-art';
+import { stillFor } from './card-art';
 import { getRarity } from './rarity';
 import { copyHrefFor } from './copy-link';
 import { notableReason, type PullItem } from './home-data';
@@ -23,7 +23,7 @@ export async function recentPullItems(season: Season, cards: { number: number; n
     items.push({
       seq: e.seq, username: e.username, cardNumber: e.cardNumber, cardName, stars, variant: e.variant, at: e.at,
       kind: grant ? 'grant' : 'pull',
-      thumb: card?.imageUrl ? cardThumbUrl(card.imageUrl) : undefined,
+      thumb: card?.imageUrl ? stillFor(card, card.imageUrl) : undefined,
       hex: getRarity(stars)?.hex,
       notable: notableReason({ variant: e.variant, stars, serial: e.type === 'pull' ? e.serial : undefined }) !== null,
       href: copyHrefFor(e, season.id) ?? `/cards?card=${e.cardNumber}`,

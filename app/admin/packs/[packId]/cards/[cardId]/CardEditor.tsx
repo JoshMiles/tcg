@@ -5,6 +5,7 @@ import { PendingButton } from '../../../../components/PendingButton';
 import { ImageUploadField } from '../../../../components/image-upload';
 import { AudioUploadField } from '../../../../components/audio-upload';
 import { cardThumbUrl } from '@/lib/card-art';
+import { FramePicker } from '../../../../components/FramePicker';
 import { getRarity } from '@/lib/rarity';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import { VARIANTS, VARIANT_LABELS, allowedVariants } from '@/lib/variants';
@@ -12,7 +13,7 @@ import { OPTIONAL_VARIANTS } from '../../../../components/VariantSwitches';
 import type { OptionalVariant, Variant } from '@/lib/types';
 
 export interface EditorCard {
-  number: number; name: string; imageUrl: string; fullArtImageUrl: string; soundUrl: string;
+  number: number; name: string; imageUrl: string; fullArtImageUrl: string; stillUrl: string; fullArtStillUrl: string; soundUrl: string;
   stars: number; probability: number; upgradesEnabled: boolean; disabledVariants: OptionalVariant[];
 }
 export interface OtherCard { id: string; number: number; name: string; stars: number; probability: number }
@@ -47,6 +48,9 @@ export function CardEditor({
   const [probability, setProbability] = useState(String(initial.probability));
   const [image, setImage] = useState(initial.imageUrl);
   const [fullArt, setFullArt] = useState(initial.fullArtImageUrl);
+  // A chosen still belongs to one image: changing the image drops it (the first frame is used until a new one is chosen).
+  const [still, setStill] = useState(initial.stillUrl);
+  const [fullArtStill, setFullArtStill] = useState(initial.fullArtStillUrl);
   const [upgrades, setUpgrades] = useState(initial.upgradesEnabled);
   const [disabled, setDisabled] = useState<OptionalVariant[]>(initial.disabledVariants);
   const [shown, setShown] = useState<Variant>('regular');
@@ -55,7 +59,7 @@ export function CardEditor({
   const allowed = useMemo(() => (packUpgrades && upgrades ? allowedVariants({ disabledVariants: packDisabled }, { disabledVariants: disabled }) : (['regular'] as Variant[])), [packUpgrades, upgrades, packDisabled, disabled]);
   const variant: Variant = allowed.includes(shown) ? shown : 'regular';
   const art = (variant === 'full' || variant === 'shiny') && fullArt ? fullArt : image;
-  const thumb = art ? cardThumbUrl(art) : '';
+  const thumb = art ? (art === image ? (still || cardThumbUrl(art)) : (fullArtStill || cardThumbUrl(art))) : '';
   const spec = holoByStars[starsN]?.[variant];
   const rarity = getRarity(starsN);
 
@@ -102,9 +106,17 @@ export function CardEditor({
       <form action={action} className="tcg-panel rounded-xl p-6 grid gap-4 xl:grid-cols-2 items-start">
         <Field label="Card Number" name="number" type="number" value={number} onChange={setNumber} required min={1} max={999999} step="1" readOnly={numberLocked} help={numberLocked ? 'Fixed: viewers hold this card, and their collections point at its number.' : undefined} />
         <Field label="Name" name="name" value={name} onChange={setName} required />
-        <ImageUploadField name="imageUrl" defaultValue={initial.imageUrl} onUrlChange={setImage} />
+        <div className="space-y-2">
+          <ImageUploadField name="imageUrl" defaultValue={initial.imageUrl} onUrlChange={u => { if (u !== image) setStill(''); setImage(u); }} />
+          <FramePicker artUrl={image} value={still} onChange={setStill} />
+          <input type="hidden" name="stillUrl" value={still} />
+        </div>
         <AudioUploadField name="soundUrl" defaultValue={initial.soundUrl} />
-        <ImageUploadField name="fullArtImageUrl" defaultValue={initial.fullArtImageUrl} onUrlChange={setFullArt} label="Full Art Image URL (Full Art &amp; Shiny variants)" />
+        <div className="space-y-2">
+          <ImageUploadField name="fullArtImageUrl" defaultValue={initial.fullArtImageUrl} onUrlChange={u => { if (u !== fullArt) setFullArtStill(''); setFullArt(u); }} label="Full Art Image URL (Full Art &amp; Shiny variants)" />
+          <FramePicker artUrl={fullArt} value={fullArtStill} onChange={setFullArtStill} label="Choose full-art still frame" />
+          <input type="hidden" name="fullArtStillUrl" value={fullArtStill} />
+        </div>
         <div className="flex items-center gap-3 self-center">
           <input type="checkbox" id="card-upgrades" name="upgradesEnabled" checked={upgrades} onChange={e => setUpgrades(e.target.checked)} className="w-4 h-4 accent-yellow-400" />
           <label htmlFor="card-upgrades" className="text-sm text-gray-300">

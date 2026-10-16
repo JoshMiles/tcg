@@ -1,7 +1,7 @@
 import { currentSandboxId } from './db';
 import { getActiveSeasonWithPacks, getCollection } from './kv';
 import { getHiddenUsers } from './user-admin';
-import { cardThumbUrl } from './card-art';
+import { stillFor } from './card-art';
 import { createTtlCache } from './ttl-cache';
 import { buildEntityItems, rankSearch, type SearchItem } from './site-search';
 import { findByUid } from './serials';
@@ -25,7 +25,7 @@ export async function searchPublic(query: string, limit = 9): Promise<SearchItem
   if (!active) return [];
   const [usernames, cards, hidden] = await Promise.all([
     viewerCache.get(`${box}:${active.season.id}`, async () => Object.keys(await getCollection(active.season.collectionName))),
-    cardCache.get(`${box}:${active.season.id}`, async () => active.packs.flatMap(p => p.cards.map(c => ({ number: c.number, name: c.name, stars: c.stars, thumb: cardThumbUrl(c.imageUrl) })))),
+    cardCache.get(`${box}:${active.season.id}`, async () => active.packs.flatMap(p => p.cards.map(c => ({ number: c.number, name: c.name, stars: c.stars, thumb: stillFor(c, c.imageUrl) })))),
     getHiddenUsers().catch(() => new Set<string>()),
   ]);
   return rankSearch(buildEntityItems(usernames, hidden, cards), query, limit);

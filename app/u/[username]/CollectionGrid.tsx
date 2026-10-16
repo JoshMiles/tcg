@@ -11,7 +11,7 @@ import { engravedDate } from '@/lib/flip-back';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
 import { getRarity } from '@/lib/rarity';
-import { cardThumbUrl } from '@/lib/card-art';
+import { cardThumbUrl, stillFor } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import { UpgradeButton } from '@/app/components/UpgradeButton';
@@ -27,6 +27,8 @@ export interface GridCard {
   name: string;
   imageUrl: string;
   fullArtImageUrl?: string;
+  stillUrl?: string;
+  fullArtStillUrl?: string;
   stars: number;
   packName: string;
   /** Whether this card can be pulled / upgraded as variants. */
@@ -64,7 +66,7 @@ const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0)
 const artFor = (c: GridCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '-');
 
-export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, seasonId, defaultHide = true, compact = false, mine, binderConfig, siteHost, pinnedUid, favouriteUids }: { /** Unique numbers of the owner's favourite prints (for the Favourite button and heart). */ favouriteUids?: number[]; /** The print the owner has pinned to their profile (for the Pin button). */ pinnedUid?: number; /** The owner's binder settings (their look and layout); null = the defaults. */ binderConfig?: BinderConfig | null; /** The site address for the binder page's share image. */ siteHost?: string; /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** Needed for the serial links. */ seasonId?: string; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
+export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, seasonId, defaultHide = true, compact = false, mine, binderConfig, siteHost, pinnedUid, favouriteUids, defaultLayout = 'grid' }: { /** The owner's choice of view for visitors who have not picked one. */ defaultLayout?: 'grid' | 'binder'; /** Unique numbers of the owner's favourite prints (for the Favourite button and heart). */ favouriteUids?: number[]; /** The print the owner has pinned to their profile (for the Pin button). */ pinnedUid?: number; /** The owner's binder settings (their look and layout); null = the defaults. */ binderConfig?: BinderConfig | null; /** The site address for the binder page's share image. */ siteHost?: string; /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** Needed for the serial links. */ seasonId?: string; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   // Uncollected cards are hidden by default. Choosing "Show uncollected" is remembered on this device (read after mount;
   // the server renders the default so there's no flash of ? tiles).
@@ -80,8 +82,16 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
   const opener = useRef<HTMLElement | null>(null);
 
   // Grid or binder; remembered on this device (read after mount so the server render and first paint are the grid).
-  const [layout, setLayout] = useState<'grid' | 'binder'>('grid');
-  useEffect(() => { try { if (localStorage.getItem('tcg_collection_layout') === 'binder') setLayout('binder'); } catch { /* storage unavailable */ } }, []);
+  // The owner picks the view visitors start in; a visitor's own earlier choice, or ?view=grid / ?view=binder, wins.
+  const [layout, setLayout] = useState<'grid' | 'binder'>(defaultLayout);
+  useEffect(() => {
+    try {
+      const asked = new URLSearchParams(window.location.search).get('view');
+      const stored = localStorage.getItem('tcg_collection_layout');
+      const pick = asked === 'grid' || asked === 'binder' ? asked : stored === 'grid' || stored === 'binder' ? stored : null;
+      if (pick) setLayout(pick);
+    } catch { /* storage unavailable */ }
+  }, []);
   const chooseLayout = (l: 'grid' | 'binder') => { setLayout(l); try { localStorage.setItem('tcg_collection_layout', l); } catch { /* storage unavailable */ } };
   const binder = layout === 'binder';
   const [binderCfg, setBinderCfg] = useState<BinderConfig>(binderConfig ?? DEFAULT_BINDER);
@@ -153,7 +163,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
       </div>
 
       {binder && (customising && canUpgrade && seasonId
-        ? <BinderEditor cards={cards} initial={binderCfg} seasonId={seasonId} ownerLabel={ownerLabel} onClose={saved => { if (saved) setBinderCfg(saved); setCustomising(false); }} />
+        ? <BinderEditor visitorsBinder={defaultLayout === 'binder'} cards={cards} initial={binderCfg} seasonId={seasonId} ownerLabel={ownerLabel} onClose={saved => { if (saved) setBinderCfg(saved); setCustomising(false); }} />
         : <Binder cards={cards} ownerLabel={ownerLabel} onOpen={open} config={binderCfg} seasonId={seasonId} shareFooter={siteHost} />)}
 
       {!binder && <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter the collection">
@@ -238,7 +248,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
 
           if (isOwned && art) {
             return (
-              <CardTile key={card.id} imageUrl={art} alt={card.name} title={title} className={tileClass} style={tileStyle} onActivate={el => open(idx, el)}>
+              <CardTile key={card.id} imageUrl={art} still={stillFor(card, art)} alt={card.name} title={title} className={tileClass} style={tileStyle} onActivate={el => open(idx, el)}>
                 {overlays}
               </CardTile>
             );
@@ -356,7 +366,7 @@ function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCar
   const rarity = getRarity(card.stars);
   const tileStyle = (v: Variant) => ({ borderColor: rarity?.hex, ...holoVars(card.holo[v]) } as React.CSSProperties);
   const tileClass = (v: Variant) => `relative aspect-[2/3] w-full rounded-lg overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v} ` : ''}${holoClass(card.holo[v])}`;
-  const art = (v: Variant) => <img src={cardThumbUrl(artFor(card, v))} alt="" loading="lazy" className="w-full h-full object-cover" />;
+  const art = (v: Variant) => <img src={stillFor(card, artFor(card, v))} alt="" loading="lazy" className="w-full h-full object-cover" />;
   return (
     <div className="space-y-4">
       {dialog.groups.map(g => (
@@ -415,10 +425,10 @@ function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pi
       className={`relative w-full aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v}` : ''} ${holoClass(card.holo[v], true)}`}
       style={{
         borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ...holoVars(card.holo[v]),
-        ['--art-mask' as string]: cardThumbUrl(art) !== art ? `url("${cardThumbUrl(art)}")` : 'none',
+        ['--art-mask' as string]: cardThumbUrl(art) !== art ? `url("${stillFor(card, art)}")` : 'none',
       } as React.CSSProperties}
     >
-      <img src={cardThumbUrl(art)} alt={`${VARIANT_LABELS[v]} ${card.name}`} className="w-full h-full object-cover" />
+      <img src={stillFor(card, art)} alt={`${VARIANT_LABELS[v]} ${card.name}`} className="w-full h-full object-cover" />
       <FullArt url={art} />
     </div>
   );

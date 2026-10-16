@@ -14,7 +14,18 @@ export async function DataHealthPanel() {
   return (
     <Panel title="Data health" icon="database" hint={`Each season's collection is one stored value that is read and rewritten in full on every pull, trade and upgrade. It is flagged at ${formatBytes(BLOB_WARN_BYTES)} and again at ${formatBytes(BLOB_HIGH_BYTES)}. Trades and the activity log are capped, so they stay small. Measured just now; check your database plan's limit on the size of one request.`}>
       {h.seasons.length === 0 ? <p className="text-sm text-gray-500">No published seasons yet.</p> : (
-        <div className="overflow-x-auto">
+        <>
+        <ul className="sm:hidden space-y-2">
+          {h.seasons.map(s => (
+            <li key={s.id} className="rounded-lg border border-gray-800 bg-gray-950/40 p-3 space-y-1 text-sm">
+              <p className="text-white font-semibold">{s.name} {s.active && <Chip tone="green">Active</Chip>}</p>
+              <p className="text-gray-300 tabular-nums">{formatBytes(s.collection.bytes)} <Chip tone={TONE[s.level]}>{LABEL[s.level]}</Chip></p>
+              <p className="text-xs text-gray-400">{n(s.collection.viewers)} viewers, {n(s.collection.entries)} entries{s.collection.largest ? `, largest ${n(s.collection.largest.entries)} (${s.collection.largest.username})` : ''}</p>
+              <p className="text-xs text-gray-500 break-words">{s.ledger.tracking ? `Print ledger: ${n(s.ledger.live)} live, ${n(s.ledger.retired)} retired, ${n(s.ledger.editions)} editions` : 'Print ledger: not numbered yet'}</p>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
@@ -44,14 +55,15 @@ export async function DataHealthPanel() {
             </tbody>
           </table>
         </div>
+        </>
       )}
-      <dl className="grid grid-cols-[10rem_1fr] gap-y-1 text-sm">
+      <dl className="grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-y-0.5 sm:gap-y-1 text-sm">
         <dt className="text-gray-500">Open trade offers</dt>
-        <dd className="text-gray-300 tabular-nums">{n(h.trades.openCount)} ({formatBytes(h.trades.openBytes)})</dd>
+        <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.trades.openCount)} ({formatBytes(h.trades.openBytes)})</dd>
         <dt className="text-gray-500">Trade history</dt>
-        <dd className="text-gray-300 tabular-nums">{n(h.trades.historyCount)} kept ({formatBytes(h.trades.historyBytes)}), capped at 400</dd>
+        <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.trades.historyCount)} kept ({formatBytes(h.trades.historyBytes)}), capped at 400</dd>
         <dt className="text-gray-500">Activity log</dt>
-        <dd className="text-gray-300 tabular-nums">{n(h.activityEvents)} events, capped at 500</dd>
+        <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.activityEvents)} events, capped at 500</dd>
       </dl>
     </Panel>
   );

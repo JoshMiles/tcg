@@ -5,7 +5,7 @@ import { Icon, type IconName } from '@/app/components/Icon';
 import { CardTile } from '@/app/components/CardTile';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { getRarity } from '@/lib/rarity';
-import { cardThumbUrl } from '@/lib/card-art';
+import { stillFor } from '@/lib/card-art';
 import { holoClass, holoVars } from '@/lib/holo-core';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import { buildBinderPages, buildCustomPages, buildSpreads, clampSpread, spreadOfPage, type BinderPage, type Spread } from '@/lib/binder';
@@ -172,6 +172,8 @@ export function Binder({ cards, ownerLabel, onOpen, config = DEFAULT_BINDER, sea
     );
   };
 
+  // A closed binder (the cover showing, two-page mode) is drawn as one page, like a closed book; opening and closing animate between the two.
+  const state: 'open' | 'closed' | 'opening' | 'closing' = !double ? 'open' : turning ? (cur === 0 ? 'opening' : turning.to === 0 ? 'closing' : 'open') : cur === 0 ? 'closed' : 'open';
   const sp: Spread | undefined = spreads[cur];
   const next = turning ? spreads[turning.to] : undefined;
   let book: ReactNode;
@@ -221,7 +223,7 @@ export function Binder({ cards, ownerLabel, onOpen, config = DEFAULT_BINDER, sea
         const have = pin ? c.counts[pin] : total(c.counts);
         const v: Variant = pin ?? bestOf(c.counts);
         const src = artOf(c, v);
-        return { src, thumb: cardThumbUrl(src), name: c.name, number: c.number, hex: getRarity(c.stars)?.hex, owned: have > 0, count: have, tag: SHORT[v] || undefined, label: pin ? VARIANT_LABELS[pin] : undefined };
+        return { src, thumb: stillFor(c, src), name: c.name, number: c.number, hex: getRarity(c.stars)?.hex, owned: have > 0, count: have, tag: SHORT[v] || undefined, label: pin ? VARIANT_LABELS[pin] : undefined };
       }),
     }));
     if (!pages.some(pp => pp.slots.some(x => x?.owned))) return null; // nothing to show off on these pages
@@ -251,11 +253,13 @@ export function Binder({ cards, ownerLabel, onOpen, config = DEFAULT_BINDER, sea
         </div>
       </div>
 
-      <div className="bn-cover-wrap" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { swipe.current = null; }} onClickCapture={swallowTap} tabIndex={0} role="group" aria-label={`${title}. Use the left and right arrow keys to turn pages.`}>
+      <div className="bn-drop" data-state={state}>
+      <div className="bn-cover-wrap" data-state={state} onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { swipe.current = null; }} onClickCapture={swallowTap} tabIndex={0} role="group" aria-label={`${title}. Use the left and right arrow keys to turn pages.`}>
         <div className="bn-leather" style={leatherStyle} data-material={cfg.material} data-pocket={cfg.pocketStyle} data-missing={cfg.missing}>
           {book}
           {double && <span aria-hidden className="bn-rings"><i /><i /><i /></span>}
         </div>
+      </div>
       </div>
 
       <div className="flex items-center justify-center gap-3">
@@ -277,7 +281,7 @@ function Pocket({ card, pin, cfg, onOpen }: { card: GridCard; pin: Variant | nul
       return (
         <div className="bn-pocket bn-missing bn-ghost" title={hint}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={cardThumbUrl(artOf(card, pin ?? 'regular'))} alt="" loading="lazy" decoding="async" />
+          <img src={stillFor(card, artOf(card, pin ?? 'regular'))} alt="" loading="lazy" decoding="async" />
           <span className="bn-missing-no">#{card.number}</span>
         </div>
       );
@@ -302,6 +306,6 @@ function Pocket({ card, pin, cfg, onOpen }: { card: GridCard; pin: Variant | nul
   ) : null;
   const title = `#${card.number} ${card.name}${best !== 'regular' ? ` · ${VARIANT_LABELS[best]}` : ''}${have > 1 ? ` · ×${have}` : ''}`;
   return art
-    ? <CardTile imageUrl={art} alt={card.name} title={title} className={className} style={style} onActivate={onOpen}>{badges}</CardTile>
+    ? <CardTile imageUrl={art} still={stillFor(card, art)} alt={card.name} title={title} className={className} style={style} onActivate={onOpen}>{badges}</CardTile>
     : <div className={className} style={style} title={title} role="button" tabIndex={0} onClick={e => onOpen(e.currentTarget)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(e.currentTarget); } }}>{badges}</div>;
 }

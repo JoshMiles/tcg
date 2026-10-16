@@ -84,6 +84,14 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
           <AccentPicker id="settings-accent" value={s.accent} onChange={v => setS(p => ({ ...p, accent: v }))} />
           <p className="text-xs text-gray-500">You can also edit your bio and colour on your profile.</p>
         </div>
+        <div className="py-3 space-y-1.5">
+          <label htmlFor="collection-view" className="block text-sm font-semibold text-gray-100">Show visitors my collection as</label>
+          <select id="collection-view" value={s.collectionView} onChange={e => setS(p => ({ ...p, collectionView: e.target.value === 'binder' ? 'binder' : 'grid' }))} className="rounded-xl bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-gray-200">
+            <option value="grid">A card grid</option>
+            <option value="binder">My binder</option>
+          </select>
+          <p className="text-xs text-gray-500">Visitors can still switch views; their own choice wins.</p>
+        </div>
         <div className="py-3 space-y-2" id="looking-for">
           <p className="text-sm font-semibold text-gray-100">Looking for</p>
           <p className="text-xs text-gray-500">Up to 6 cards you want. They show in the Looking for widget on your profile, and collectors who own one get a one-click trade offer.</p>

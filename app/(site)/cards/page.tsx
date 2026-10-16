@@ -67,6 +67,8 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
         upgradable: c.pack.upgradesEnabled && c.upgradesEnabled !== false,
         values: [v?.values.regular ?? 0, v?.values.reverse ?? 0, v?.values.full ?? 0, v?.values.shiny ?? 0] as DexCard['values'],
         fullArtImageUrl: c.fullArtImageUrl,
+        stillUrl: c.stillUrl,
+        fullArtStillUrl: c.fullArtStillUrl,
         variantCopies: v?.variantCopies ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
         variantOdds: variantOdds(effectiveWeights(c.pack, c), v?.pullRate ?? 0),
         collectors: owners.get(c.number)?.collectors ?? 0,
