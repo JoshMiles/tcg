@@ -9,17 +9,21 @@ import { UID_BASE } from './serials-core';
 import { VARIANTS } from './variants';
 import type { Variant } from './types';
 import { PUSH_KINDS, type PushKind } from './push-core';
+import { HEX_RE, clampAccent } from './accent';
 
 export const WANTED_MAX = 6;
 /** Saved listing alerts: tell me when someone lists this card (in this version, or any). */
 export const WATCH_MAX = 10;
 export interface Watch { card: number; variant: Variant | null }
-/** Header colours for the Profile accent experiment. */
+/** Named header colours for the profile accent (a custom colour is stored as a clamped #rrggbb instead). */
 export const ACCENTS = [
   { id: 'cheddar', label: 'Cheddar', hex: '#facc15' }, { id: 'ember', label: 'Ember', hex: '#fb923c' }, { id: 'rose', label: 'Rose', hex: '#fb7185' },
   { id: 'grape', label: 'Grape', hex: '#c084fc' }, { id: 'ocean', label: 'Ocean', hex: '#38bdf8' }, { id: 'mint', label: 'Mint', hex: '#34d399' },
+  { id: 'lime', label: 'Lime', hex: '#a3e635' }, { id: 'teal', label: 'Teal', hex: '#2dd4bf' }, { id: 'sky', label: 'Sky', hex: '#60a5fa' },
+  { id: 'indigo', label: 'Indigo', hex: '#818cf8' }, { id: 'magenta', label: 'Magenta', hex: '#e879f9' }, { id: 'slate', label: 'Slate', hex: '#94a3b8' },
 ] as const;
-export const accentHex = (id: string) => ACCENTS.find(a => a.id === id)?.hex;
+/** The colour of a stored accent: a named swatch's hex, or a custom #rrggbb (clamped again here, so a hand-edited value can't escape the limits). */
+export const accentHex = (v: string) => ACCENTS.find(a => a.id === v)?.hex ?? clampAccent(v) ?? undefined;
 
 export type MotionPref = 'system' | 'reduce';
 
@@ -46,7 +50,7 @@ export interface UserSettings {
   hideUncollected: boolean;
   /** Smaller card tiles in grids. */
   compactGrids: boolean;
-  /** Header colour (an ACCENTS id) shown on their own profile while the 'accent' experiment is on. */
+  /** Profile header colour: an ACCENTS id, or a custom '#rrggbb' (lightness-clamped on the way in). Empty = the default gold. */
   accent: string;
   /** Card numbers they are looking for (the Looking for widget on their profile). */
   wanted: number[];
@@ -85,10 +89,9 @@ export const DEFAULT_SETTINGS: UserSettings = {
 
 export interface Experiment { id: string; label: string; description: string }
 
-/** Opt-in features that are still settling. The 'shortcuts' one changes only this viewer's browser; the profile ones change how their own public profile looks. */
+/** Opt-in features that are still settling. The 'shortcuts' one changes only this viewer's browser; an experiment that changes how their own public profile looks would go here too. */
 export const EXPERIMENTS: Experiment[] = [
   { id: 'shortcuts', label: 'Keyboard shortcuts', description: 'Press g then h, c, l, s, d, t, a or e to jump to Home, My profile, Leaderboard, Season stats, Card Dex, Trade, My stats or Settings. Press ? for the list. Off while you are typing.' },
-  { id: 'accent', label: 'Profile accent', description: 'Colour your public profile header. Pick the colour below once this is on.' },
 ];
 
 const EXPERIMENT_IDS = new Set(EXPERIMENTS.map(e => e.id));
@@ -103,7 +106,7 @@ export function sanitizeUserSettings(input: unknown): UserSettings {
   for (const k of BOOLEAN_KEYS) if (typeof o[k] === 'boolean') out[k] = o[k] as boolean;
   if (Array.isArray(o.pushKinds)) out.pushKinds = PUSH_KINDS.filter(k => (o.pushKinds as unknown[]).includes(k));
   if (o.motion === 'reduce' || o.motion === 'system') out.motion = o.motion;
-  if (typeof o.accent === 'string' && ACCENTS.some(a => a.id === o.accent)) out.accent = o.accent;
+  if (typeof o.accent === 'string') out.accent = ACCENTS.some(a => a.id === o.accent) ? o.accent : HEX_RE.test(o.accent) ? clampAccent(o.accent) ?? '' : '';
   if (Array.isArray(o.wanted)) out.wanted = [...new Set(o.wanted.filter((n): n is number => Number.isInteger(n) && n >= 1 && n < 1_000_000))].slice(0, WANTED_MAX);
   if (Array.isArray(o.watches)) {
     const seen = new Set<string>();
