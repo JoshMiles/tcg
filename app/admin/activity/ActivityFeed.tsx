@@ -538,6 +538,27 @@ function EventRow({
     }
     case 'grant': {
       const card = cardIndex(e.cardNumber);
+      if (e.source === 'webhook') {
+        // A webhook reward reads like a pull, with a badge saying it was granted.
+        const stars = e.stars ?? card?.stars ?? 1;
+        icon = 'cards';
+        accent = e.isNew ? 'border-l-yellow-400' : 'border-l-gray-700';
+        thumb = <CardThumb card={card} stars={stars} />;
+        body = (
+          <>
+            <UserLink username={e.username} /> pulled <PrintLink event={e} mod={base === '/mod'}>{e.cardName || card?.name || `Card #${e.cardNumber}`}</PrintLink>{' '}
+            <Stars n={stars} />
+            {e.variant && e.variant !== 'regular' && (
+              <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-fuchsia-300 border border-fuchsia-500/50 rounded-full px-2 py-0.5">{VARIANT_LABELS[e.variant]}</span>
+            )}
+            {e.serial ? <span className="ml-2 align-middle"><SerialChip n={e.serial} bonus={e.bonus} /></span> : null}
+            {e.isNew ? <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5">New</span> : e.copies && e.copies > 1 ? <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-yellow-300 border border-yellow-500/50 rounded-full px-2 py-0.5">×{e.copies}</span> : null}
+            <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-green-300 border border-green-500/40 rounded-full px-2 py-0.5">Granted by webhook</span>
+          </>
+        );
+        sub = `${e.packName ?? ''}${e.packName && e.uniqueOwned !== undefined && totalCards > 0 ? ' · ' : ''}${e.uniqueOwned !== undefined && totalCards > 0 ? `${e.uniqueOwned}/${totalCards} collected` : ''}` || 'via webhook';
+        break;
+      }
       icon = 'gift';
       accent = 'border-l-green-400';
       thumb = <CardThumb card={card} stars={card?.stars ?? 1} />;
@@ -546,7 +567,7 @@ function EventRow({
           <PrintLink event={e} mod={base === '/mod'}>{card?.name ?? `Card #${e.cardNumber}`}</PrintLink> granted to <UserLink username={e.username} />
         </>
       );
-      sub = e.source === 'webhook' ? 'via webhook' : 'by admin';
+      sub = 'by admin';
       break;
     }
     case 'remove': {

@@ -6,6 +6,7 @@ import { cardThumbUrl, stillFor, type StillFields } from './card-art';
 import { getRarity } from './rarity';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { VARIANT_LABELS } from './variants';
+import type { Variant } from './types';
 import type { StreamRecap } from './stream-recap';
 import type { WeeklyDigest } from './weekly-digest';
 import { discordText, type FeedbackItem } from './feedback-core';
@@ -88,7 +89,7 @@ export function isValidDiscordWebhookUrl(url: string): boolean {
 export function categoryOf(e: ActivityEvent): DiscordCategory {
   switch (e.type) {
     case 'pull': return 'pulls';
-    case 'grant':
+    case 'grant': return e.source === 'webhook' ? 'pulls' : 'cards'; // a webhook reward posts like a pull
     case 'remove': return 'cards';
     case 'upgrade': return 'upgrades';
     case 'trade': return 'trades';
@@ -104,9 +105,10 @@ export function shouldSend(e: ActivityEvent, c: Pick<DiscordChannel, 'categories
   if (!c.categories[categoryOf(e)] && !(e.staff && c.categories.admin)) return false;
   // Offers, counters, completed trades and admin cancels are worth a post; a viewer declining, withdrawing or letting one expire is noise.
   if (e.type === 'trade' && !(e.action === 'offered' || e.action === 'countered' || e.action === 'accepted' || e.by === 'admin')) return false;
-  if (e.type === 'pull') {
-    if (e.stars < c.minStars) return false;
-    if (c.newOnly && !e.isNew) return false;
+  // A webhook grant counts as a pull for the star and new-only filters (when it carries the facts; older ones pass).
+  if (e.type === 'pull' || (e.type === 'grant' && e.source === 'webhook')) {
+    if (e.stars !== undefined && e.stars < c.minStars) return false;
+    if (c.newOnly && e.isNew === false) return false;
   }
   return true;
 }
@@ -194,28 +196,36 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
   const thumb = (imageUrl?: string, card?: Partial<StillFields>): Pick<Embed, 'thumbnail'> =>
     imageUrl ? { thumbnail: { url: absolute(stillFor(card ?? {}, imageUrl)) } } : {};
 
+  // A pull, and a webhook grant (a reward), share one look; a grant adds a line saying it was granted by webhook.
+  type PullFacts = { username: string; cardNumber: number; cardName?: string; stars?: number; packName?: string; variant?: Variant; isNew?: boolean; copies?: number; uniqueOwned?: number; serial?: number; bonus?: number; copyId?: string; uid?: number; via?: 'webhook' };
+  const pullEmbed = (e: PullFacts): DiscordPayload => {
+    const card = cardFor(e.cardNumber, e.packName);
+    const stars = e.stars ?? card?.stars ?? 1;
+    const packName = e.packName ?? card?.packName ?? '';
+    const rarity = getRarity(stars);
+    const copies = e.copies ?? 1;
+    return payload({
+      ...base,
+      ...thumb(card?.imageUrl, card),
+      ...printUrl(),
+      color: rarity ? hexToInt(rarity.hex) : GOLD,
+      title: `${'★'.repeat(stars)} ${esc(e.cardName || card?.name || `#${e.cardNumber}`)}`,
+      description: `${e.serial === 1 ? '🥇 **FIRST EVER!** ' : ''}**${esc(e.username)}** pulled ${/^[aeiou]/i.test(rarity?.label ?? '') ? 'an' : 'a'} **${rarity?.label ?? 'card'}** card${e.variant && e.variant !== 'regular' ? `, ✨ **${VARIANT_LABELS[e.variant]}**` : ''}${e.isNew ? ', **NEW!**' : copies > 1 ? `, ×${copies}` : ''}${e.via === 'webhook' ? '\n🎁 *Granted by webhook*' : ''}`,
+      fields: [
+        { name: 'Pack', value: esc(packName) || '-', inline: true },
+        ...(e.uniqueOwned !== undefined ? [{ name: 'Collected', value: totalCards ? `${e.uniqueOwned}/${totalCards}` : String(e.uniqueOwned), inline: true }] : []),
+        ...(e.serial ? [{ name: 'Edition', value: `**#${e.serial}**${e.serial === 1 ? ' (the first ever)' : ''}${e.bonus ? ` · ×${e.bonus} points` : ''}`, inline: true }] : []),
+      ],
+    });
+  };
+
   switch (e.type) {
-    case 'pull': {
-      const card = cardFor(e.cardNumber, e.packName);
-      const rarity = getRarity(e.stars);
-      return payload({
-        ...base,
-        ...thumb(card?.imageUrl, card),
-        ...printUrl(),
-        color: rarity ? hexToInt(rarity.hex) : GOLD,
-        title: `${'★'.repeat(e.stars)} ${esc(e.cardName || card?.name || `#${e.cardNumber}`)}`,
-        description: `${e.serial === 1 ? '🥇 **FIRST EVER!** ' : ''}**${esc(e.username)}** pulled ${/^[aeiou]/i.test(rarity?.label ?? '') ? 'an' : 'a'} **${rarity?.label ?? 'card'}** card${e.variant && e.variant !== 'regular' ? `, ✨ **${VARIANT_LABELS[e.variant]}**` : ''}${e.isNew ? ', **NEW!**' : e.copies > 1 ? `, ×${e.copies}` : ''}`,
-        fields: [
-          { name: 'Pack', value: esc(e.packName) || '-', inline: true },
-          { name: 'Collected', value: totalCards ? `${e.uniqueOwned}/${totalCards}` : String(e.uniqueOwned), inline: true },
-          ...(e.serial ? [{ name: 'Edition', value: `**#${e.serial}**${e.serial === 1 ? ' (the first ever)' : ''}${e.bonus ? ` · ×${e.bonus} points` : ''}`, inline: true }] : []),
-        ],
-      });
-    }
+    case 'pull': return pullEmbed(e);
     case 'grant': {
+      if (e.source === 'webhook') return pullEmbed({ ...e, via: 'webhook' });
       const card = cardFor(e.cardNumber);
       return payload({ ...base, ...thumb(card?.imageUrl, card), color: GREEN, title: '🎁 Card granted',
-        description: `**${esc(card?.name ?? `Card #${e.cardNumber}`)}** → **${esc(e.username)}**\n${e.source === 'webhook' ? 'via webhook' : 'by an admin'}` });
+        description: `**${esc(card?.name ?? `Card #${e.cardNumber}`)}** → **${esc(e.username)}**\nby an admin` });
     }
     case 'remove': {
       const card = cardFor(e.cardNumber);

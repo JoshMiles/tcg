@@ -17,7 +17,7 @@ export function categoryOf(e: ActivityEvent): Category {
   switch (e.type) {
     case 'pull': return 'pulls';
     case 'upgrade': return 'upgrades';
-    case 'grant':
+    case 'grant': return e.source === 'webhook' ? 'pulls' : 'grants'; // a webhook reward reads as a pull
     case 'remove': return 'grants';
     case 'trade': return 'trades';
     case 'trigger':
@@ -40,7 +40,9 @@ function plainBase(e: ActivityEvent, cardName: CardNamer): string {
   const v = (x?: string) => (x && x !== 'regular' ? ` (${VARIANT_LABELS[x as keyof typeof VARIANT_LABELS] ?? x})` : '');
   switch (e.type) {
     case 'pull': return `${e.username} pulled ${e.cardName || name(e.cardNumber, e.packName)}${v(e.variant)}${e.serial ? ` #${e.serial}` : ''}${e.isNew ? ' (new)' : ` (x${e.copies})`}`;
-    case 'grant': return `${name(e.cardNumber)}${v(e.variant)} granted to ${e.username} (${e.source})`;
+    case 'grant': return e.source === 'webhook'
+      ? `${e.username} pulled ${e.cardName || name(e.cardNumber)}${v(e.variant)}${e.serial ? ` #${e.serial}` : ''} (granted by webhook)`
+      : `${name(e.cardNumber)}${v(e.variant)} granted to ${e.username} (${e.source})`;
     case 'remove': return `${name(e.cardNumber)}${v(e.variant)} removed from ${e.username}`;
     case 'upgrade': return `${e.username} upgraded ${e.cardName || name(e.cardNumber)} to ${VARIANT_LABELS[e.to]} (${e.cost}x ${VARIANT_LABELS[e.from]})`;
     case 'trade': {
