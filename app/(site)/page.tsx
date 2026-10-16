@@ -70,9 +70,10 @@ export default async function HomePage() {
     <div>
       {/* ── Hero ── */}
       <section className="cheese-hero cheese-holes border-b border-yellow-500/10">
-        <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8 items-center relative">
+        <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 relative">
+        <LiveBanner />
+        <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1fr] gap-8 items-center">
           <div className="space-y-4 sm:space-y-5">
-            <LiveBanner />
             {season && (
               <p className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-yellow-300 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> {season.name}{season.endedAt ? ' · ended' : countdown ? ` · ${countdown}` : season.active ? ' · in progress' : ''}
@@ -114,6 +115,7 @@ export default async function HomePage() {
           <div className="hidden md:flex justify-center">
             <img src="/brand/icon.png" alt="The Cheesy TCG mascot sipping a hot drink" width={190} height={190} className="cheese-float rounded-[2rem] ring-2 ring-yellow-500/50 shadow-glow" />
           </div>
+        </div>
         </div>
       </section>
 

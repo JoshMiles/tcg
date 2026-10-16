@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
 
+const DESKTOP_CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const { detectInstallEnv } = await import('../lib/install-detect');
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1';
 const IPHONE_CHROME = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/123.0 Mobile/15E148 Safari/604.1';
@@ -40,5 +41,11 @@ ok(existsSync(join(process.cwd(), 'app', 'apple-icon.png')), 'the iOS home-scree
 const sw = readFileSync(join(process.cwd(), 'public', 'sw.js'), 'utf8');
 ok(sw.includes("req.mode !== 'navigate'") && /admin\|api\|auth/.test(sw), 'service worker only handles public page loads');
 ok(sw.includes('/offline') && existsSync(join(process.cwd(), 'app', 'offline', 'page.tsx')), 'the offline page exists');
+
+// The nav's install icon is for phones and tablets only: a desktop browser hides it before the install prompt is even considered (15.2).
+const btn = readFileSync(join(process.cwd(), 'app', 'components', 'site', 'InstallButton.tsx'), 'utf8');
+const deskAt = btn.indexOf("env.platform === 'desktop'"), promptAt = btn.indexOf('getInstallPrompt()');
+ok(deskAt > 0 && promptAt > deskAt, 'InstallButton hides on desktop before it checks the install prompt');
+ok(!detectInstallEnv(DESKTOP_CHROME_UA, 0).inApp && detectInstallEnv(DESKTOP_CHROME_UA, 0).platform === 'desktop', 'desktop Chrome counts as desktop');
 
 console.log('install checks passed');

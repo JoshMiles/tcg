@@ -8,6 +8,7 @@ import { pickPropsFor } from '@/lib/trade-view-core';
 import { getActivity } from '@/lib/activity';
 import { getSeasonOverview } from '@/lib/site-data';
 import { computeUserStats } from '@/lib/user-stats';
+import { topPrintLinks } from '@/lib/top-prints';
 import { getTradeSettings, listOpenTrades, tradeHistory } from '@/lib/trades';
 import { describeItems, firstMissing } from '@/lib/trade-core';
 import { getTradeCards, getTradePools } from '@/lib/trade-view';
@@ -61,6 +62,7 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
   // No upgrade projections here (they're only shown on My Stats, and they are the costly part).
   const s = computeUserStats(overview, b.lower, b.owned, b.collection, { upgrades: false });
   if (s.copies === 0) return <Empty icon="cheese" title="Nothing collected yet">{b.displayName} hasn&apos;t pulled a card this season.</Empty>;
+  const printLinks = await topPrintLinks(b.season, s.topCopies.slice(0, 5));
   const mix = (['regular', 'reverse', 'full', 'shiny'] as const).map(v => ({ v, n: s.variants[v] }));
   const maxMix = Math.max(1, ...mix.map(m => m.n));
   return (
@@ -93,11 +95,13 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
       <section className="tcg-panel rounded-2xl p-5 space-y-3">
         <h2 className="font-display text-xl font-bold text-white">Most valuable prints</h2>
         <ul className="divide-y divide-gray-800/70">
-          {s.topCopies.slice(0, 5).map(t => (
-            <li key={`${t.card.number}-${t.variant}-${t.serial ?? 'all'}`} className="flex items-center gap-3 py-2">
+          {s.topCopies.slice(0, 5).map((t, i) => (
+            <li key={`${t.card.number}-${t.variant}-${t.serial ?? 'all'}`}>
+              <Link href={printLinks[i] ?? `/cards?card=${t.card.number}`} className="flex items-center gap-3 py-2 -mx-2 px-2 rounded-lg hover:bg-gray-800/60 focus-visible:bg-gray-800/60 transition-colors">
               <span className="w-8 h-11 rounded overflow-hidden bg-gray-800 shrink-0"><CardTile imageUrl={t.card.imageUrl} alt="" className="relative w-full h-full" /></span>
               <span className="min-w-0 flex-1"><span className="block text-sm text-white truncate">{t.card.name}</span><span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? ` · #${t.serial}` : ''} <span className={getRarity(t.card.stars)?.text}>{'★'.repeat(t.card.stars)}</span></span></span>
               <span className="font-display font-bold text-yellow-400 tabular-nums">{t.value.toLocaleString()}</span>
+              </Link>
             </li>
           ))}
         </ul>

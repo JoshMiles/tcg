@@ -24,3 +24,16 @@ export function adminCopyHrefFor(e: EventLike, seasonId: string): string | null 
   const id = e.copyId ?? (e.type === 'pull' && e.serial && e.cardNumber ? `${e.cardNumber}.${Math.max(0, VARIANTS.indexOf(e.variant ?? 'regular'))}.${e.serial}` : null);
   return id && seasonId ? `/admin/serials/${encodeURIComponent(seasonId)}/${id}` : null;
 }
+
+/**
+ * Where a "Most valuable prints" row goes (15.4): one numbered print opens its print page (`/c/<uid>`, or the derived `/copy/...` link
+ * when the print has no unique number yet); a row that groups several prints of a card and version opens the card dex dialog.
+ */
+export function topPrintHref(row: { card: { number: number }; variant: Variant; serial?: number }, seasonId: string, uid?: number | null): string {
+  if (row.serial) {
+    if (uid) return `/c/${uid}`;
+    const v = VARIANTS.indexOf(row.variant);
+    if (v >= 0 && seasonId) return `/copy/${encodeURIComponent(seasonId)}/${row.card.number}.${v}.${row.serial}`;
+  }
+  return `/cards?card=${row.card.number}`;
+}
