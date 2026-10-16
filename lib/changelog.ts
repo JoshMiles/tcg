@@ -20,6 +20,12 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     date: '2026-10-16',
+    title: 'The cheese is back in your browser tab',
+    tags: ['fixed'],
+    items: ['The site icon shows in the browser tab and in bookmarks again.'],
+  },
+  {
+    date: '2026-10-16',
     title: 'Little "i" buttons explain the terms',
     tags: ['new'],
     items: [

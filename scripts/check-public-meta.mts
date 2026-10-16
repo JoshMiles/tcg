@@ -104,4 +104,13 @@ for (const f of ['app/apple-icon.png', 'public/apple-touch-icon.png', 'public/ap
 }
 eq(readFileSync('public/apple-touch-icon.png').equals(readFileSync('app/apple-icon.png')), true, 'apple-touch-icon.png matches app/apple-icon.png');
 
+// ── favicon: layout lists a rel=icon (metadata.icons replaces a file-based app/icon.png), and the files exist ──
+const layoutSrc = readFileSync('app/layout.tsx', 'utf8');
+const iconUrls = [...(layoutSrc.match(/icon: \[([\s\S]*?)\],/)?.[1] ?? '').matchAll(/url: '([^']+)'/g)].map(m => m[1]);
+ok(iconUrls.length > 0, 'layout metadata.icons has an icon entry');
+for (const u of iconUrls) ok(existsSync('public' + u), `public${u} exists for the icon link`);
+const ico = readFileSync('public/favicon.ico');
+eq([...ico.subarray(0, 4)], [0, 0, 1, 0], 'favicon.ico starts with the ICO header');
+eq(ico.readUInt16LE(4), 3, 'favicon.ico holds 16, 32 and 48 px images');
+
 console.log('public meta checks passed');
