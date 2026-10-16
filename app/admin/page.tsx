@@ -5,6 +5,8 @@ import type { ReactNode } from 'react';
 import { getActiveSeasonWithPacks, getPackCards, getPacksForSeason, listSeasons } from '@/lib/kv';
 import { seedSeason1 } from './actions';
 import { OverlayStatus } from './components/OverlayStatus';
+import { getStaff } from '@/lib/staff-guard';
+import { loginForLayout } from '@/lib/dashboard';
 import { getDashboardLayout, getDashboardPresets, loadDashboardData } from '@/lib/dashboard-data';
 import { DashboardControls } from './dashboard/DashboardControls';
 import type { WidgetType } from '@/lib/dashboard';
@@ -54,9 +56,10 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
   const packs = chosen
     ? await Promise.all((await getPacksForSeason(chosen)).filter(p => p.status === 'published').map(async pack => ({ pack, cards: await getPackCards(pack.id) })))
     : result.packs;
-  const range = rangeParam === '24h' || rangeParam === 'season' ? rangeParam : '7d';
-  const layout = await getDashboardLayout();
-  const presets = (await getDashboardPresets()).map(p => p.name);
+  const range = rangeParam === '24h' || rangeParam === '7d' ? rangeParam : 'season';
+  const staff = await getStaff();
+  const layout = await getDashboardLayout(loginForLayout(staff));
+  const presets = (await getDashboardPresets()).map(p => ({ name: p.name, by: p.by }));
   const needs = new Set<WidgetType>(layout.widgets.map(w => w.type));
   const data = await loadDashboardData(season, packs, needs, range);
   const nodes: Partial<Record<WidgetType, ReactNode>> = {};

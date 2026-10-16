@@ -59,6 +59,20 @@ ok(t && t.split('.').length === 2, 'a token is signed');
 const back = await tok.verifyStaffToken(t!, 1_000_000_000_000 + 1000);
 ok(back?.u === 'sam' && back.id === '5' && back.role === 'mod', 'it verifies and carries the identity');
 ok(await tok.verifyStaffToken(t!, 1_000_000_000_000 + (tok.STAFF_TTL_S + 5) * 1000) === null, 'it expires after an hour');
+// sliding renewal and the 12-hour cap
+const T0 = 1_000_000_000_000;
+ok(back?.iat === Math.floor(T0 / 1000), 'a token records when it was first issued');
+ok(!tok.shouldRenewStaffToken(back!, T0 + 10 * 60_000), 'not renewed with 50 minutes left');
+ok(tok.shouldRenewStaffToken(back!, T0 + 31 * 60_000), 'renewed with under 30 minutes left');
+const renewed = await tok.renewStaffToken(back!, 'admin', T0 + 40 * 60_000);
+const rb = await tok.verifyStaffToken(renewed!, T0 + 40 * 60_000);
+ok(rb?.role === 'admin' && rb.iat === back!.iat && rb.exp > back!.exp, 'a renewal takes the live role, keeps iat and extends exp');
+ok(await tok.renewStaffToken(back!, 'mod', T0 + 5 * 60_000) === null, 'no renewal when not due');
+const issuedAt = T0 + 11 * 3600_000; // first issued at T0, last renewed an hour before the cap
+const late = await tok.signStaffToken({ u: 'sam', id: '5', dn: 'Sam', role: 'mod', iat: Math.floor(T0 / 1000) }, issuedAt);
+const lateT = await tok.verifyStaffToken(late!, issuedAt);
+ok(lateT && tok.shouldRenewStaffToken(lateT, issuedAt + 40 * 60_000), 'still renewed just inside 12 hours');
+ok(!tok.shouldRenewStaffToken(lateT!, T0 + 12 * 3600_000 + 1000), 'never renewed after 12 hours since the first issue');
 const [payload, sig] = t!.split('.');
 const forged = Buffer.from(JSON.stringify({ u: 'sam', id: '5', dn: 'Sam', role: 'super', exp: 9_999_999_999 })).toString('base64url');
 ok(await tok.verifyStaffToken(`${forged}.${sig}`, 1_000_000_000_000) === null, 'a forged role is rejected');

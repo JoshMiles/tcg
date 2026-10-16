@@ -161,7 +161,7 @@ export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promi
     const wTotal = VARIANTS.reduce((s, k) => s + Math.max(0, w[k]), 0) || 1;
     const pullRate = v?.pullRate ?? 0;
     return {
-      id: c.id, number: c.number, name: c.name, imageUrl: c.imageUrl, fullArtImageUrl: c.fullArtImageUrl, stars: c.stars, packName: c.packName,
+      id: c.id, number: c.number, name: c.name, imageUrl: c.imageUrl, fullArtImageUrl: c.fullArtImageUrl, stillUrl: c.stillUrl, fullArtStillUrl: c.fullArtStillUrl, stars: c.stars, packName: c.packName,
       upgradable: c.pack.upgradesEnabled && c.upgradesEnabled !== false,
       pullRate,
       variantOdds: {

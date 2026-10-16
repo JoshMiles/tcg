@@ -49,7 +49,7 @@ export function CollectionTab({ b, grid, isOwner, tradeWith, prefs, mine }: { b:
           </div>
         ))}
       </div>
-      <CollectionGrid cards={grid} totalScore={b.row?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} ownerName={b.displayName} tradeWith={tradeWith} defaultHide={prefs?.hideUncollected ?? true} compact={prefs?.compactGrids ?? false} mine={mine} pinnedUid={isOwner ? b.settings.pinned ?? undefined : undefined} seasonId={b.season.id} binderConfig={b.settings.binder} siteHost={SITE_URL.replace(/^https?:\/\//, '')} />
+      <CollectionGrid cards={grid} totalScore={b.row?.cardPoints ?? 0} leaderboardHref={leaderboardHref} canUpgrade={isOwner} ownerName={b.displayName} tradeWith={tradeWith} defaultHide={prefs?.hideUncollected ?? true} compact={prefs?.compactGrids ?? false} mine={mine} pinnedUid={isOwner ? b.settings.pinned ?? undefined : undefined} favouriteUids={isOwner ? b.settings.favourites : undefined} seasonId={b.season.id} binderConfig={b.settings.binder} defaultLayout={b.settings.collectionView} siteHost={SITE_URL.replace(/^https?:\/\//, '')} />
     </div>
   );
 }
@@ -69,8 +69,8 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
         <dl className="text-sm divide-y divide-gray-800/70">
           <div className="flex justify-between py-2"><dt className="text-gray-300">Cards <span className="text-gray-600">· every print</span></dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
           <div className="flex justify-between py-2"><dt className="text-gray-300">Edition bonus <span className="text-gray-600">· low numbers</span></dt><dd className={`tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{Math.round(s.serialPoints).toLocaleString()}</dd></div>
-          <div className="flex justify-between py-2"><dt className="text-gray-300">Completion bonus <span className="text-gray-600">· {s.completionPct}% of the set</span></dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
-          <div className="flex justify-between py-2"><dt className="text-gray-300">Complete collection bonus</dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : <span className="text-gray-600">{s.totalCards - s.uniqueCards} card{s.totalCards - s.uniqueCards === 1 ? '' : 's'} to go</span>}</dd></div>
+          <div className="flex justify-between py-2"><dt className="text-gray-300">Progress bonus <span className="text-gray-600">· {s.completionPct}% of the set</span></dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
+          <div className="flex justify-between py-2"><dt className="text-gray-300">Full set bonus</dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : <span className="text-gray-600">{s.totalCards - s.uniqueCards} card{s.totalCards - s.uniqueCards === 1 ? '' : 's'} to go</span>}</dd></div>
           <div className="flex justify-between py-2 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
         </dl>
         <p className="text-xs text-gray-500"><Link href="/faq#points" className="text-yellow-500 hover:text-yellow-300">How points are worked out →</Link></p>

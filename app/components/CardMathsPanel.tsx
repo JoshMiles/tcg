@@ -117,7 +117,7 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
           <Eq>at least one {label} within 10 / 50 / 100 packs: {variantRate > 0 ? `${pct(within(10, variantRate))} / ${pct(within(50, variantRate))} / ${pct(within(100, variantRate))}` : '-'}</Eq>
           {m.upgradesEnabled && v !== 'regular' && <Eq>crafting a {label} from Regulars costs {craft} prints (each step&rsquo;s cost multiplied)</Eq>}
           <Eq>season: {m.totalCards} cards · {m.totalCopies.toLocaleString()} prints pulled · set value {m.setValue.toLocaleString()} pts (one Regular of every card)</Eq>
-          <Note>Your score is the points of every print you own, plus a completion bonus ({n(m.completionBonusPct, 1)}% of the set value × the share of cards you own) and a complete-set bonus ({n(m.completeSetBonusPct, 1)}% of the set value once you own every card). Values are live, so these numbers drift as the season goes on.</Note>
+          <Note>Your score is the points of every print you own, plus a progress bonus ({n(m.completionBonusPct, 1)}% of the set value × the share of cards you own) and a full set bonus ({n(m.completeSetBonusPct, 1)}% of the set value once you own every card). Values are live, so these numbers drift as the season goes on.</Note>
         </div>
       </div>
     </details>

@@ -45,7 +45,7 @@ Logins: admin = the emergency password (`ADMIN_PASSWORD`); mod / admin / viewers
 
 ## The sweeps
 
-All flag horizontal overflow, a missing or duplicate `h1`, images without `alt`, unnamed buttons and links, and console errors, and print one line per page. Pass paths to sweep only a batch's pages. `SWEEP_BASE` changes the server address.
+All flag horizontal overflow (also content pushed past the right edge while the page does not scroll, e.g. a grid column stretched by a wide child; `clipped` in `scripts/lib/sweep.mjs`), a missing or duplicate `h1`, images without `alt`, unnamed buttons and links, and console errors, and print one line per page. Pass paths to sweep only a batch's pages. `SWEEP_BASE` changes the server address.
 
 | Command | Covers |
 |---------|--------|
@@ -54,6 +54,11 @@ All flag horizontal overflow, a missing or duplicate `h1`, images without `alt`,
 | `node scripts/sweep-mod-access.mjs` (`npm run review:mod`) | the runtime half of the mod access test: as a stranger, a mod and an admin, every `/admin` page and `/api/admin` route; exits 1 if anything is reachable that should not be |
 
 The static half of the access test is `scripts/check-staff-guards.mts` (part of `npm run check`): it fails when an admin server action, viewer action or admin API route has no caller check, or when the set a mod may use changes.
+
+## Pull request checklist
+
+- A player-facing change adds or extends an entry in `lib/changelog.ts` (the `/changelog` page) in the same PR.
+- FAQ, Privacy and Terms kept in step (`LEGAL_UPDATED` bumped), `npm run verify` green, and the public sweep run for any new public page.
 
 ## What a sweep cannot check
 

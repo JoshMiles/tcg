@@ -8,7 +8,7 @@ const base = { uniqueCards: 10, totalCards: 25, complete: false, maxCompletionBo
 const miss = (number: number, name: string, value: number, pullRate: number) => ({ number, name, stars: 1, pullRate, value });
 
 eq(a.buildAdvice(base), [], 'nothing to suggest');
-eq(a.missingGain(miss(1, 'x', 40, 0.1), base), 44, 'a card is worth its points plus its share of the completion bonus');
+eq(a.missingGain(miss(1, 'x', 40, 0.1), base), 44, 'a card is worth its points plus its share of the progress bonus');
 const adv = a.buildAdvice({
   ...base, bestUpgrade: { cardName: 'Cat', fromLabel: 'Regular', toLabel: 'Reverse Holo', gain: 12.4, cost: 5 },
   missing: [miss(2, 'Brie', 10, 0.2), miss(3, 'Gouda', 90, 0.01)], nextRank: { username: 'amy', gap: 7 },

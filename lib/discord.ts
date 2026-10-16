@@ -2,7 +2,7 @@ import { kv, inSandbox } from './db';
 import { after } from 'next/server';
 import type { ActivityEvent } from './activity';
 import { getActiveSeasonWithPacks } from './kv';
-import { cardThumbUrl } from './card-art';
+import { cardThumbUrl, stillFor, type StillFields } from './card-art';
 import { getRarity } from './rarity';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { VARIANT_LABELS } from './variants';
@@ -186,8 +186,8 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
     const href = 'uid' in e || 'serial' in e ? copyHrefFor(e, active?.season.id ?? '') : null;
     return href ? { url: SITE_URL + href } : {};
   };
-  const thumb = (imageUrl?: string): Pick<Embed, 'thumbnail'> =>
-    imageUrl ? { thumbnail: { url: absolute(cardThumbUrl(imageUrl)) } } : {};
+  const thumb = (imageUrl?: string, card?: Partial<StillFields>): Pick<Embed, 'thumbnail'> =>
+    imageUrl ? { thumbnail: { url: absolute(stillFor(card ?? {}, imageUrl)) } } : {};
 
   switch (e.type) {
     case 'pull': {
@@ -195,7 +195,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
       const rarity = getRarity(e.stars);
       return payload({
         ...base,
-        ...thumb(card?.imageUrl),
+        ...thumb(card?.imageUrl, card),
         ...printUrl(),
         color: rarity ? hexToInt(rarity.hex) : GOLD,
         title: `${'★'.repeat(e.stars)} ${esc(e.cardName || card?.name || `#${e.cardNumber}`)}`,
@@ -209,17 +209,17 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
     }
     case 'grant': {
       const card = cardFor(e.cardNumber);
-      return payload({ ...base, ...thumb(card?.imageUrl), color: GREEN, title: '🎁 Card granted',
+      return payload({ ...base, ...thumb(card?.imageUrl, card), color: GREEN, title: '🎁 Card granted',
         description: `**${esc(card?.name ?? `Card #${e.cardNumber}`)}** → **${esc(e.username)}**\n${e.source === 'webhook' ? 'via webhook' : 'by an admin'}` });
     }
     case 'remove': {
       const card = cardFor(e.cardNumber);
-      return payload({ ...base, ...thumb(card?.imageUrl), color: RED, title: '🗑️ Card removed',
+      return payload({ ...base, ...thumb(card?.imageUrl, card), color: RED, title: '🗑️ Card removed',
         description: `**${esc(card?.name ?? `Card #${e.cardNumber}`)}** removed from **${esc(e.username)}**` });
     }
     case 'upgrade': {
       const card = cardFor(e.cardNumber);
-      return payload({ ...base, ...thumb(card?.imageUrl), ...printUrl(), color: GOLD, title: '✨ Card upgraded',
+      return payload({ ...base, ...thumb(card?.imageUrl, card), ...printUrl(), color: GOLD, title: '✨ Card upgraded',
         description: `**${esc(e.username)}** upgraded **${esc(e.cardName || card?.name || `#${e.cardNumber}`)}** to **${VARIANT_LABELS[e.to]}** (${e.cost}× ${VARIANT_LABELS[e.from]})`,
         fields: [
           { name: 'From', value: VARIANT_LABELS[e.from], inline: true },
@@ -247,7 +247,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
         { name: `${e.action === 'accepted' && other ? other : e.kind === 'listing' ? 'In return' : other ?? 'In return'} gives · ≈${e.getPts.toLocaleString()} pts`, value: list(e.get.map(esc)), inline: true },
       ];
       if (e.note) fields.push({ name: 'Note', value: esc(e.note).slice(0, 200) });
-      return payload({ ...base, ...thumb(card?.imageUrl), color: head.color, title: head.title, description: head.text, fields });
+      return payload({ ...base, ...thumb(card?.imageUrl, card), color: head.color, title: head.title, description: head.text, fields });
     }
     case 'reset':
       return payload({ ...base, color: RED, title: '🔄 Collection reset',

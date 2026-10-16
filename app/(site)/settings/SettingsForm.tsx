@@ -3,7 +3,8 @@ import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { PushAlerts } from '@/app/components/site/PushAlerts';
-import { ACCENTS, BIO_MAX, EXPERIMENTS, WANTED_MAX, WATCH_MAX, sanitizeUserSettings, type UserSettings } from '@/lib/user-settings';
+import { AccentPicker } from '@/app/components/site/AccentPicker';
+import { BIO_MAX, EXPERIMENTS, WANTED_MAX, WATCH_MAX, sanitizeUserSettings, type UserSettings } from '@/lib/user-settings';
 import { watchLabel } from '@/lib/watch-core';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
@@ -78,6 +79,19 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
             placeholder="A line about your collection, favourite card, trading wishes..." className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-none" />
           <p className="text-xs text-gray-500 text-right tabular-nums">{s.bio.length}/{BIO_MAX}</p>
         </div>
+        <div className="py-3 space-y-2">
+          <p className="text-sm font-semibold text-gray-100">Header colour</p>
+          <AccentPicker id="settings-accent" value={s.accent} onChange={v => setS(p => ({ ...p, accent: v }))} />
+          <p className="text-xs text-gray-500">You can also edit your bio and colour on your profile.</p>
+        </div>
+        <div className="py-3 space-y-1.5">
+          <label htmlFor="collection-view" className="block text-sm font-semibold text-gray-100">Show visitors my collection as</label>
+          <select id="collection-view" value={s.collectionView} onChange={e => setS(p => ({ ...p, collectionView: e.target.value === 'binder' ? 'binder' : 'grid' }))} className="rounded-xl bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-gray-200">
+            <option value="grid">A card grid</option>
+            <option value="binder">My binder</option>
+          </select>
+          <p className="text-xs text-gray-500">Visitors can still switch views; their own choice wins.</p>
+        </div>
         <div className="py-3 space-y-2" id="looking-for">
           <p className="text-sm font-semibold text-gray-100">Looking for</p>
           <p className="text-xs text-gray-500">Up to 6 cards you want. They show in the Looking for widget on your profile, and collectors who own one get a one-click trade offer.</p>
@@ -147,16 +161,6 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
         {EXPERIMENTS.map(x => (
           <div key={x.id}>
             <Row id={`x-${x.id}`} label={x.label} help={x.description} checked={s.experiments.includes(x.id)} onChange={v => toggleExp(x.id, v)} />
-            {x.id === 'accent' && s.experiments.includes('accent') && (
-              <div className="pb-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Profile accent colour">
-                {ACCENTS.map(a => (
-                  <button key={a.id} type="button" role="radio" aria-checked={s.accent === a.id} onClick={() => setS(p => ({ ...p, accent: p.accent === a.id ? '' : a.id }))}
-                    className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${s.accent === a.id ? 'border-white text-white' : 'border-gray-700 text-gray-400 hover:text-white'}`}>
-                    <span className="h-3 w-3 rounded-full" style={{ background: a.hex }} />{a.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         ))}
       </Section>

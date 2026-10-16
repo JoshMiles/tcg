@@ -82,6 +82,10 @@ export async function collectReferenced() {
     referenced.add(r.url);
     if (r.kind === 'card-art') referenced.add(cardThumbUrl(r.url)); // companion thumbnail
   }
+  for (const list of cardLists) for (const c of list) {
+    if (c.stillUrl) referenced.add(c.stillUrl); // chosen still frames are separate files
+    if (c.fullArtStillUrl) referenced.add(c.fullArtStillUrl);
+  }
   return { refs, referenced };
 }
 

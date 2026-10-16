@@ -29,6 +29,12 @@ eq(sc.nextPublicKey({ pending: true, at: 0 }, 'l', 5000).go, undefined, 'a stale
 const exp = c.EXPERIMENTS.find(e => e.id === 'shortcuts')!;
 for (const k of sc.PUBLIC_GO_KEYS) ok(exp.description.includes(k.label) && new RegExp(`\\b${k.key}\\b`).test(exp.description.split('to jump')[0]), `the shortcuts description mentions ${k.key} and "${k.label}"`);
 
+// ── collection view for visitors ──
+eq(c.DEFAULT_SETTINGS.collectionView, 'grid', 'visitors start on the grid by default');
+eq(c.sanitizeUserSettings({ collectionView: 'binder' }).collectionView, 'binder', 'binder accepted');
+eq(c.sanitizeUserSettings({ collectionView: 'carousel' }).collectionView, 'grid', 'anything else falls back to the grid');
+eq(c.sparse(c.sanitizeUserSettings({ collectionView: 'grid' })).collectionView, undefined, 'the default is not stored');
+
 // ── pinned showcase copy ──
 ok(c.sanitizeUserSettings({ pinned: 1000042 }).pinned === 1000042, 'a unique copy number can be pinned');
 ok(c.sanitizeUserSettings({ pinned: 'x' }).pinned === null && c.sanitizeUserSettings({ pinned: 5 }).pinned === null && c.sanitizeUserSettings({ pinned: 1.5e9 }).pinned === null && c.sanitizeUserSettings({ pinned: 1000000.5 }).pinned === null, 'anything else is dropped');

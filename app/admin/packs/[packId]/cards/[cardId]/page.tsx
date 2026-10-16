@@ -53,6 +53,8 @@ export default async function EditCardPage({
           name: card.name,
           imageUrl: card.imageUrl,
           fullArtImageUrl: card.fullArtImageUrl ?? '',
+          stillUrl: card.stillUrl ?? '',
+          fullArtStillUrl: card.fullArtStillUrl ?? '',
           soundUrl: card.soundUrl ?? '',
           stars: card.stars,
           probability: card.probability,

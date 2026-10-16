@@ -35,3 +35,18 @@ export function toCover(input: Input): Promise<Buffer> {
     .webp({ quality: COVER_QUALITY, effort: 5, smartSubsample: true })
     .toBuffer();
 }
+
+/** How many frames an image has and the average delay between them (a still image: one frame). */
+export async function frameInfo(input: Input): Promise<{ frames: number; delayMs: number }> {
+  const m = await sharp(input, { animated: true }).metadata();
+  const delays = (m.delay ?? []).filter(d => d > 0);
+  return { frames: Math.max(1, m.pages ?? 1), delayMs: delays.length > 0 ? Math.round(delays.reduce((a, b) => a + b, 0) / delays.length) : 100 };
+}
+
+/** One frame as a small static WebP, at thumbnail size by default (the size cardThumbUrl() serves). */
+export function renderFrame(input: Input, frame: number, width = THUMB_WIDTH): Promise<Buffer> {
+  return sharp(input, { page: Math.max(0, Math.floor(frame)) })
+    .resize({ width, withoutEnlargement: true })
+    .webp({ quality: THUMB_QUALITY, effort: 4 })
+    .toBuffer();
+}

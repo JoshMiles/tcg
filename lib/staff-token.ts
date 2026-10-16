@@ -1,6 +1,7 @@
 // The signed staff cookie (edge-safe: Web Crypto only, so the middleware can verify it without a database).
 //
-// It says "this Twitch account was a <role> when it was issued" and lasts one hour. The middleware uses it for coarse gating
+// It says "this Twitch account was a <role> when it was issued" and lasts one hour; staff guard calls slide it forward (renewStaffToken)
+// until 12 hours after the first issue (`iat`), after which only a real sign-in through /auth/staff gives a new one. The middleware uses it for coarse gating
 // (which panel); every action and API route still re-checks the live staff list (lib/staff-guard.ts), so removing someone
 // stops their changes at once and their page views within the hour. Signed with SESSION_SECRET (the same secret as the
 // viewer session), so it can be read but not forged.
@@ -9,8 +10,12 @@ import type { StaffRole } from './staff-core';
 
 export const STAFF_COOKIE = 'tcg_staff';
 export const STAFF_TTL_S = 60 * 60;
+/** Renew when less than this is left. */
+export const STAFF_RENEW_BELOW_S = 30 * 60;
+/** A session cannot be renewed past this long after its first issue. */
+export const STAFF_MAX_SESSION_S = 12 * 60 * 60;
 
-export interface StaffToken { u: string; id: string; dn: string; role: StaffRole; exp: number }
+export interface StaffToken { u: string; id: string; dn: string; role: StaffRole; exp: number; iat?: number }
 
 const enc = new TextEncoder();
 const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -28,10 +33,11 @@ async function hmac(payload: string, key: string): Promise<Uint8Array> {
 
 const same = (a: Uint8Array, b: Uint8Array) => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a[i] ^ b[i]; return d === 0; };
 
-export async function signStaffToken(data: Omit<StaffToken, 'exp'>, now = Date.now(), env?: Record<string, string | undefined>): Promise<string | null> {
+export async function signStaffToken(data: Omit<StaffToken, 'exp' | 'iat'> & { iat?: number }, now = Date.now(), env?: Record<string, string | undefined>): Promise<string | null> {
   const key = secret(env);
   if (!key) return null;
-  const token: StaffToken = { ...data, exp: Math.floor(now / 1000) + STAFF_TTL_S };
+  const nowS = Math.floor(now / 1000);
+  const token: StaffToken = { ...data, iat: data.iat ?? nowS, exp: nowS + STAFF_TTL_S };
   const payload = b64url(enc.encode(JSON.stringify(token)));
   return `${payload}.${b64url(await hmac(payload, key))}`;
 }
@@ -51,6 +57,19 @@ export async function verifyStaffToken(raw: string | undefined, now = Date.now()
   } catch {
     return null;
   }
+}
+
+/** True when this token should be re-issued now: under 30 minutes left and still inside the 12-hour cap (older tokens without `iat` count their first issue as exp minus one hour). */
+export function shouldRenewStaffToken(t: StaffToken, now = Date.now()): boolean {
+  const nowS = now / 1000;
+  const iat = typeof t.iat === 'number' ? t.iat : t.exp - STAFF_TTL_S;
+  return t.exp - nowS < STAFF_RENEW_BELOW_S && nowS - iat < STAFF_MAX_SESSION_S;
+}
+
+/** A fresh cookie value for a token that is due for renewal (same first-issue time, the live role), else null. */
+export async function renewStaffToken(t: StaffToken, role: StaffRole, now = Date.now(), env?: Record<string, string | undefined>): Promise<string | null> {
+  if (!shouldRenewStaffToken(t, now)) return null;
+  return signStaffToken({ u: t.u, id: t.id, dn: t.dn, role, iat: typeof t.iat === 'number' ? t.iat : t.exp - STAFF_TTL_S }, now, env);
 }
 
 export function staffCookieOptions(maxAge = STAFF_TTL_S) {

@@ -37,7 +37,7 @@ export interface CardValue {
 
 export interface LeaderboardRow {
   username: string;
-  /** Total: card points + completion bonus + complete-collection bonus. */
+  /** Total: card points + progress bonus + full set bonus. */
   score: number;
   /** Value of every copy owned, serial bonuses included. */
   cardPoints: number;

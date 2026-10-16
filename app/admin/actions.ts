@@ -266,6 +266,14 @@ export async function updateCard(packId: string, cardId: string, formData: FormD
   if (fields.number !== current.number && (await heldCardNumbers(packId)).has(current.number)) problems.push(`#${current.number} has been pulled by viewers, so its number can't change.`);
   if (problems.length > 0) redirect(`/admin/packs/${packId}/cards/${cardId}?error=${encodeURIComponent(problems.join(' '))}`);
   const soundUrl = (formData.get('soundUrl') as string) || undefined;
+  // The chosen still frames ride along in the form; a still only stays while it belongs to the same image (the picker clears it on a new upload).
+  const nextImage = (formData.get('imageUrl') as string) || current.imageUrl;
+  const nextFull = (formData.get('fullArtImageUrl') as string) || undefined;
+  const stillUrl = nextImage === current.imageUrl || (formData.get('stillUrl') as string) !== (current.stillUrl ?? '') ? (formData.get('stillUrl') as string) || undefined : undefined;
+  const fullArtStillUrl = nextFull && (nextFull === current.fullArtImageUrl || (formData.get('fullArtStillUrl') as string) !== (current.fullArtStillUrl ?? '')) ? (formData.get('fullArtStillUrl') as string) || undefined : undefined;
+  if (stillUrl !== current.stillUrl || fullArtStillUrl !== current.fullArtStillUrl) {
+    await notifyAdminLog({ action: stillUrl || fullArtStillUrl ? 'Card still frame chosen' : 'Card still frame reset', subject: current.name, by: await currentStaffLogin() });
+  }
   await savePackCards(
     packId,
     cards.map(c =>
@@ -273,9 +281,11 @@ export async function updateCard(packId: string, cardId: string, formData: FormD
         ? {
             ...c,
             name: fields.name,
-            imageUrl: (formData.get('imageUrl') as string) || c.imageUrl,
+            imageUrl: nextImage,
             soundUrl,
-            fullArtImageUrl: (formData.get('fullArtImageUrl') as string) || undefined,
+            fullArtImageUrl: nextFull,
+            stillUrl,
+            fullArtStillUrl,
             upgradesEnabled: formData.get('upgradesEnabled') === 'on',
             disabledVariants: disabledFromForm(formData, c.disabledVariants ?? []),
             probability: fields.probability,

@@ -49,7 +49,8 @@ ok((await d.getDiscordSettings()).channels[0].name === 'Activity', 'the stored o
 // ── Validation of the form ──
 const ch = (over: Record<string, unknown>) => ({ id: 'a', name: 'A', url: hook(1), enabled: true, categories: {}, minStars: 1, newOnly: false, ...over });
 ok(!d.cleanDiscordInput('nope').ok, 'junk is refused');
-ok(!d.cleanDiscordInput({ enabled: true, channels: Array.from({ length: 9 }, (_, i) => ch({ id: 'c' + i })) }).ok, 'more than 8 channels is refused');
+ok(d.cleanDiscordInput({ enabled: true, channels: Array.from({ length: 25 }, (_, i) => ch({ id: 'c' + i })) }).ok, '25 channels are accepted');
+ok(!d.cleanDiscordInput({ enabled: true, channels: Array.from({ length: 26 }, (_, i) => ch({ id: 'c' + i })) }).ok, 'more than 25 channels is refused');
 ok(!d.cleanDiscordInput({ enabled: true, channels: [ch({ url: 'https://evil.example/x' })] }).ok, 'a bad address is refused');
 ok(!d.cleanDiscordInput({ enabled: true, channels: [ch({ url: '' })] }).ok, 'an enabled channel needs an address');
 const dup = d.cleanDiscordInput({ enabled: true, channels: [ch({ id: 'a' }), ch({ id: 'a', name: '  ' })] });

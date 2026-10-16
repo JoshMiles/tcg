@@ -259,6 +259,9 @@ export default async function FaqPage() {
         <Q q="Which of my prints get traded?">
           Unless you choose, trades move your <strong className="text-white">newest</strong> prints of a card first, so the low edition numbers you pulled earliest stay with you. If you hold more prints of a card than the trade needs, <strong className="text-white">Choose prints</strong> in the offer lets you tick exactly which ones to give (a warning appears for Edition #1 and prints that earn an edition bonus). You can ask for a specific print of someone&rsquo;s when you offer them a trade directly, and when you take a listing or accept an offer that asks for a card you have spares of, you pick which of yours to hand over before the final tap. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">prints and editions</a>.
         </Q>
+        <Q q="Can I protect a print from being traded?">
+          Yes. Press <strong className="text-white">Favourite</strong> on a print&rsquo;s page, or in the card details on your collection, to mark it (up to 50 prints). A favourite print can&rsquo;t be put in an offer, can&rsquo;t be taken when someone accepts your offer or takes your listing, and isn&rsquo;t spent when you upgrade duplicates. When a trade or an upgrade picks prints for you it skips your favourites, and if only favourites are left it stops and says so. Remove the mark whenever you want to trade it. Prints in an open offer can&rsquo;t be favourited until the offer ends.
+        </Q>
         <Q q="Is a trade fair? How do I know what a card is worth?">
           Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule. You can
           trade anything for anything. Remember that a print’s edition number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
@@ -374,12 +377,12 @@ export default async function FaqPage() {
           </p>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
             <li>
-              <strong className="text-white">Completion bonus</strong>: grows with the share of the set you own, up to{' '}
+              <strong className="text-white">Progress bonus</strong> (it used to be called the completion bonus): grows with the share of the set you own, up to{' '}
               <strong className="text-white">{scoring.completionBonusPct}%</strong> of the set value
               {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.completion.toLocaleString()}</strong> points at 100%)</> : null}. Every new card you find adds its own points <em>and</em> raises this.
             </li>
             <li>
-              <strong className="text-white">Complete collection bonus</strong>: own at least one of <em>every</em> card in the season and you earn an extra{' '}
+              <strong className="text-white">Full set bonus</strong> (it used to be called the complete collection bonus): own at least one of <em>every</em> card in the season and you earn an extra{' '}
               <strong className="text-white">{scoring.completeSetBonusPct}%</strong> of the set value
               {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.set.toLocaleString()}</strong> points)</> : null}, and a <strong className="text-white"><Icon name="cheese" className="mr-1" />Complete</strong> badge on the leaderboard.
             </li>

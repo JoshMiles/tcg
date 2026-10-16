@@ -63,12 +63,17 @@ const withoutComments = (src: string) => src
   .filter(l => !/^\s*(\/\/|\*)/.test(l))
   .map(l => l.replace(/\s\/\/ .*$/, ''))
   .join('\n');
-const userFacing = [...walkSrc('app', /\.tsx$/), 'public/widget.js', 'lib/discord.ts', 'lib/flip-back.ts', 'lib/share-image.ts'];
+const userFacing = [...walkSrc('app', /\.tsx$/), 'public/widget.js', 'lib/discord.ts', 'lib/flip-back.ts', 'lib/share-image.ts', 'lib/changelog.ts'];
 const banned: [RegExp, string][] = [[/unique copy number/i, 'unique copy number'], [/unique number/i, 'unique number'], [/copy page/i, 'copy page'], [/ID #/, 'ID #']];
 for (const file of userFacing) {
   const src = withoutComments(read(file));
   for (const [re, label] of banned) ok(!re.test(src), `${file} says "${label}": a card copy is a print (ROADMAP 2.6), so use "print number", "print page" or "Print #1023381"`);
 }
+// ---- the two set bonuses are the "progress bonus" and the "full set bonus" (ROADMAP 7.8); the FAQ alone may name the old words ("it used to be called") ----
+const oldBonusNames = /completion bonus|complete[- ](set|collection) bonus/i;
+for (const file of userFacing.filter(f => f !== 'app/(site)/faq/page.tsx')) ok(!oldBonusNames.test(withoutComments(read(file))), `${file} uses an old bonus name: say "progress bonus" or "full set bonus"`);
+ok(faq.includes('it used to be called the completion bonus'), 'the FAQ keeps the old progress bonus name findable');
+ok(faq.includes('it used to be called the complete collection bonus'), 'the FAQ keeps the old full set bonus name findable');
 ok(faq.includes('id="serials"') && faq.includes('id="prints"'), 'the FAQ keeps the #serials anchor and adds #prints');
 
 console.log('words checks passed');

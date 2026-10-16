@@ -27,7 +27,7 @@ export interface DiscordSettings {
   channels: DiscordChannel[];
 }
 
-export const MAX_DISCORD_CHANNELS = 8;
+export const MAX_DISCORD_CHANNELS = 25;
 
 export const DEFAULT_CATEGORIES: Record<DiscordCategory, boolean> = { pulls: true, cards: true, upgrades: true, trades: true, listings: false, recap: false, digest: false, feedback: false, stream: false, resets: true, admin: false, system: false };
 

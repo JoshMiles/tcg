@@ -45,8 +45,16 @@ eq(v.compareCollections(cards, mine), { shared: 1, theyHave: 2, iHave: 1, both: 
 // ── profile experiments ──
 eq(s.sanitizeUserSettings({ accent: 'nope', wanted: 'x' }).accent, '', 'unknown accent dropped');
 eq(s.sanitizeUserSettings({ accent: 'grape' }).accent, 'grape', 'known accent kept');
+eq(s.sanitizeUserSettings({ accent: 'teal' }).accent, 'teal', 'new named accent kept');
+eq(s.ACCENTS.length, 12, 'twelve named accents');
+eq(s.sanitizeUserSettings({ accent: '#1A8CFF' }).accent, '#1a8cff', 'custom accent kept, lower-cased');
+eq(s.sanitizeUserSettings({ accent: '#000000' }).accent, '#595959', 'a too-dark custom colour is lightened');
+eq(s.sanitizeUserSettings({ accent: '#ffffff' }).accent, '#b3b3b3', 'a too-pale custom colour is darkened');
+eq(s.sanitizeUserSettings({ accent: '#fff' }).accent, '', 'short hex is not accepted');
+eq(s.sanitizeUserSettings({ accent: 'javascript:1' }).accent, '', 'junk dropped');
+eq([s.accentHex('grape'), s.accentHex('#1a8cff'), s.accentHex(''), s.accentHex('#000000')], ['#c084fc', '#1a8cff', undefined, '#595959'], 'accentHex for named, custom, empty and unclamped values');
 eq(s.sanitizeUserSettings({ wanted: [3, 3, 0, -1, 1.5, '4', 1_000_000, 7, 8, 9, 10, 11, 12] }).wanted, [3, 7, 8, 9, 10, 11], 'wanted: unique ints in range, capped at 6');
-ok(s.EXPERIMENTS.some(e => e.id === 'accent') && !s.EXPERIMENTS.some(e => e.id === 'showcase' || e.id === 'wishlist'), 'accent is an experiment; showcase and wishlist became profile widgets');
+ok(!s.EXPERIMENTS.some(e => e.id === 'accent' || e.id === 'showcase' || e.id === 'wishlist'), 'accent, showcase and wishlist are normal settings or widgets now');
 eq(s.sparse({ ...s.DEFAULT_SETTINGS, wanted: [2] }), { wanted: [2] }, 'wanted is stored sparsely');
 
 const info = (n: number) => ({ number: n, name: `c${n}`, imageUrl: '', stars: 1 });
@@ -88,3 +96,17 @@ console.log('profile widget checks passed');
   eq(u.groups.map(g => [g.variant, g.count, g.copies.length]), [['regular', 3, 0], ['full', 1, 0]], 'untracked: one tile per version with a count');
 }
 console.log('copiesForDialog ok');
+
+// ── rarestPrints / bestPrintOf ──
+{
+  const cp = (card: number, variant: 'regular' | 'reverse' | 'full' | 'shiny', n: number) => ({ id: `${card}.${variant}.${n}`, card, variant, n });
+  const list = [cp(1, 'regular', 9), cp(1, 'regular', 3), cp(2, 'shiny', 40), cp(3, 'regular', 1), cp(4, 'full', 2), cp(4, 'full', 2)];
+  const chance = (card: number, variant: string) => ({ '1.regular': 0.05, '2.shiny': 0.0001, '3.regular': 0.05, '4.full': 0 } as Record<string, number>)[`${card}.${variant}`] ?? 0;
+  const r = v.rarestPrints(list, chance);
+  eq(r.map(c => c.id), ['2.shiny.40', '3.regular.1', '1.regular.3'], 'rarest first, one per card and version (lowest edition), ties to the lower edition, no-odds left out');
+  eq(v.rarestPrints(list, chance, 1).length, 1, 'limit');
+  eq(v.rarestPrints([], chance), [], 'nothing held');
+  eq(v.bestPrintOf(list, 1, 'regular')?.n, 3, 'best print is the lowest edition');
+  eq(v.bestPrintOf(list, 1, 'shiny'), undefined, 'none of that version');
+}
+console.log('rarestPrints ok');

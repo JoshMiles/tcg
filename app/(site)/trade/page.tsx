@@ -40,7 +40,8 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
   const owned = me ? (await getCollection(season.collectionName))[me] ?? [] : [];
   const prefs = me ? await getUserSettings(me) : null;
   const here = <T extends { seasonId: string }>(list: T[]) => list.filter(t => t.seasonId === season.id);
-  const board = here((await listOpenTrades()).filter(t => t.kind === 'listing' && t.from !== me));
+  const board = here((await listOpenTrades()).filter(t => t.kind === 'listing'));
+  const others = board.filter(t => t.from !== me); // matches and wanted counts leave your own listings out
   const incoming = mine ? here(mine.incoming) : [];
   const outgoing = mine ? here(mine.outgoing) : [];
   const recent = mine ? here(mine.recent) : [];
@@ -51,9 +52,9 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
   for (const e of owned) copies.set(e, (copies.get(e) ?? 0) + 1);
   const viewer: MatchViewer = { copies, wanted: new Set([...(prefs?.wanted ?? []), ...(prefs?.watches ?? []).map(w => w.card)]) };
   const pools = await getTradePools(season, [...board, ...incoming, ...outgoing, ...recent], me);
-  const wantedBy = await wantedForTrades(board);
+  const wantedBy = await wantedForTrades(others);
   const infoFor = new Map(board.map(t => [t.id, matchTrade(t, viewer, cards, pools)]));
-  const matches = me ? bestMatches(board, viewer, cards, 4, pools) : [];
+  const matches = me ? bestMatches(others, viewer, cards, 4, pools) : [];
 
   const tab: TabId = (['mine', 'board', 'history'] as const).find(t => t === tabParam) ?? (me && (incoming.length > 0 || outgoing.length > 0) ? 'mine' : 'board');
   const tabs: { id: TabId; label: string; icon: Parameters<typeof Icon>[0]['name']; count?: number; hidden?: boolean }[] = [
@@ -193,7 +194,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                       key={t.id}
                       data-board
                       data-search={search}
-                      data-take={session && m.canTake ? '1' : '0'}
+                      data-take={session && t.from !== me && m.canTake ? '1' : '0'}
                       data-wanted={m.offersWanted.length > 0 ? '1' : '0'}
                       data-new={m.offersNew.length > 0 ? '1' : '0'}
                       data-spare={m.asksOnlySpares ? '1' : '0'}
@@ -207,8 +208,10 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                         wanted={wantedBy[t.id]}
                         pools={pools}
                         cards={cards}
-                        title={<>{user(t.from)}&rsquo;s listing{session && m.reasons.length > 0 && <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons[0]}</span>}</>}
-                        actions={session
+                        title={<>{user(t.from)}&rsquo;s listing{t.from === me && <span className="ml-2 text-[11px] font-bold uppercase tracking-wider text-yellow-300 border border-yellow-500/40 rounded-full px-2 py-0.5 align-middle">Your listing</span>}{session && t.from !== me && m.reasons.length > 0 && <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons[0]}</span>}</>}
+                        actions={t.from === me
+                          ? <TradeActions tradeId={t.id} mode="own" />
+                          : session
                           ? <TradeActions tradeId={t.id} mode="board" pick={pickPropsFor(t, me, cards)} canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />
                           : <span className="text-xs text-gray-500">Log in to take a trade</span>}
                       />
