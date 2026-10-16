@@ -2,6 +2,7 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
+import { PushAlerts } from '@/app/components/site/PushAlerts';
 import { ACCENTS, BIO_MAX, EXPERIMENTS, WANTED_MAX, WATCH_MAX, sanitizeUserSettings, type UserSettings } from '@/lib/user-settings';
 import { watchLabel } from '@/lib/watch-core';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
@@ -105,6 +106,7 @@ export function SettingsForm({ initial, username, cards }: { initial: UserSettin
         <Row id="n-results" label="How my offers ended" help="A bell notice when an offer of yours is accepted, declined, withdrawn or runs out of time." checked={s.notifyResults} onChange={flip('notifyResults')} />
         <Row id="n-watch" label="Listing alerts" help="A bell notice when someone posts a card on the open board that is on your Looking for list or one of your saved alerts below." checked={s.notifyWatch} onChange={flip('notifyWatch')} />
         <Row id="n-sound" label="Play a sound" help="A short chime when a new notice arrives while the site is open in your browser. Off by default." checked={s.noticeSound} onChange={flip('noticeSound')} />
+        <PushAlerts kinds={s.pushKinds} onKinds={pushKinds => setS(p => ({ ...p, pushKinds }))} />
       </Section>
 
       <Section icon="search" title="Saved alerts" hint="Tell me when someone lists a card, in a version you choose. Cards on your Looking for list alert in every version automatically.">

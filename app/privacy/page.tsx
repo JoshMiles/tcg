@@ -65,6 +65,11 @@ export default function PrivacyPage() {
             held, traded or spent it (kept with the usernames involved). It is shown on the card&rsquo;s public page.
           </li>
           <li>
+            <strong className="text-white">Alert devices</strong> if you turn on alerts (push notifications): for each device up to five, the push address your browser gives us (a web address that lets
+            us send that browser an alert, together with its encryption keys), a short device label such as &ldquo;Chrome on Android&rdquo;, and when it was added and last used. We delete it when you turn alerts off,
+            remove the device in Settings, or the browser tells us the address no longer exists. It is included in your data download.
+          </li>
+          <li>
             <strong className="text-white">Your settings and profile choices</strong> if you set any: a short bio, your Looking for list, display and notification
             preferences, how you arranged your profile and binder, a card you pinned, the achievements you have earned, your newest bell notices (offers and how they ended), and a few samples of your score and rank (taken when you open My Stats) for the history chart.
           </li>
@@ -154,6 +159,7 @@ export default function PrivacyPage() {
         <p>We use a few service providers to run the Extension. They process data on our behalf:</p>
         <List>
           <li><strong className="text-white">Twitch</strong>: the Extension runs inside Twitch, and we call the Twitch API to resolve usernames and profile pictures. Twitch&rsquo;s own privacy notice applies to what Twitch collects.</li>
+          <li><strong className="text-white">Your browser&rsquo;s push service</strong> (for example Google, Apple or Mozilla), only if you turn on alerts: it carries the alert from our server to your device. The alert contains the short notice text (such as &ldquo;@name offered you a trade&rdquo;). That service&rsquo;s own privacy notice applies.</li>
           <li><strong className="text-white">Vercel</strong>: hosting, logs, analytics and performance measurement, plus the database (Vercel KV, Redis) and file storage (Vercel Blob) where the data above is kept. These services may store data in the United States and other countries.</li>
           <li>
             <strong className="text-white">Cloudflare Turnstile</strong>: when you trade or upgrade cards on the website we may ask you to pass a short bot check. Cloudflare loads a script in your browser and

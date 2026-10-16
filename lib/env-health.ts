@@ -2,7 +2,7 @@
 // never values (they are secrets). Shown on Admin -> Settings -> Environment.
 
 export type EnvLevel = 'required' | 'recommended' | 'optional';
-export type EnvGroup = 'Admin' | 'Database' | 'Storage' | 'Twitch Extension' | 'Twitch API' | 'Website login' | 'Bot protection' | 'Legal pages';
+export type EnvGroup = 'Admin' | 'Database' | 'Storage' | 'Twitch Extension' | 'Twitch API' | 'Website login' | 'Bot protection' | 'Legal pages' | 'Notifications';
 
 export interface EnvSpec { name: string; group: EnvGroup; level: EnvLevel; unlocks: string; minLength?: number }
 export interface EnvCheck extends EnvSpec { set: boolean; weak: boolean }
@@ -18,6 +18,9 @@ export const ENV_SPECS: EnvSpec[] = [
   { name: 'BACKUP_ENCRYPTION_KEY', group: 'Storage', level: 'recommended', unlocks: 'Nightly backups: the password the backup file is encrypted with (backups are public files in Blob, so none is written without it). Keep a copy somewhere safe: without it a backup cannot be read.', minLength: 16 },
   { name: 'CRON_SECRET', group: 'Storage', level: 'recommended', unlocks: 'Nightly backups: Vercel sends it to the backup route, which refuses every other caller. Any long random string.', minLength: 16 },
   { name: 'TWITCH_EXTENSION_SECRET', group: 'Twitch Extension', level: 'required', unlocks: 'Verifying viewers in the Twitch panel, so they can log in and upgrade there.' },
+  { name: 'VAPID_PUBLIC_KEY', group: 'Notifications', level: 'recommended', unlocks: 'Push alerts on phones and browsers (Settings, Notifications). Generate the pair with: npx web-push generate-vapid-keys. Without the keys the option stays hidden.' },
+  { name: 'VAPID_PRIVATE_KEY', group: 'Notifications', level: 'recommended', unlocks: 'The matching private key, which signs the alerts. Keep it secret.' },
+  { name: 'VAPID_SUBJECT', group: 'Notifications', level: 'recommended', unlocks: 'Who the push services can contact about the alerts: mailto: and the legal contact address.' },
   { name: 'TWITCH_CLIENT_ID', group: 'Twitch API', level: 'recommended', unlocks: 'Avatars, the LIVE indicator, and finding a viewer from their Twitch ID.' },
   { name: 'TWITCH_CLIENT_SECRET', group: 'Twitch API', level: 'recommended', unlocks: 'The same, and website login (it signs the code exchange).' },
   { name: 'SESSION_SECRET', group: 'Website login', level: 'recommended', unlocks: '"Log in with Twitch" on the website: My Stats, upgrading and trading.', minLength: 16 },
@@ -29,7 +32,7 @@ export const ENV_SPECS: EnvSpec[] = [
   { name: 'LEGAL_GOVERNING_LAW', group: 'Legal pages', level: 'optional', unlocks: 'The governing-law line in the Terms.' },
 ];
 
-export const ENV_GROUPS: EnvGroup[] = ['Admin', 'Database', 'Storage', 'Twitch Extension', 'Twitch API', 'Website login', 'Bot protection', 'Legal pages'];
+export const ENV_GROUPS: EnvGroup[] = ['Admin', 'Database', 'Storage', 'Twitch Extension', 'Twitch API', 'Website login', 'Bot protection', 'Legal pages', 'Notifications'];
 
 /** Presence of each variable; a value that is set but shorter than its minimum is flagged weak (its length is the only thing inspected). */
 export function checkEnv(env: Record<string, string | undefined>, specs: EnvSpec[] = ENV_SPECS): EnvCheck[] {

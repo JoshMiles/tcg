@@ -8,6 +8,7 @@ import { sanitizeBinder, type BinderConfig } from './binder-config';
 import { UID_BASE } from './serials-core';
 import { VARIANTS } from './variants';
 import type { Variant } from './types';
+import { PUSH_KINDS, type PushKind } from './push-core';
 
 export const WANTED_MAX = 6;
 /** Saved listing alerts: tell me when someone lists this card (in this version, or any). */
@@ -35,6 +36,8 @@ export interface UserSettings {
   notifyWatch: boolean;
   /** A short sound when a new notice arrives while the site is open (off unless they switch it on). */
   noticeSound: boolean;
+  /** Which kinds of notice also arrive as a push alert on their devices (the bell switches above still apply first). */
+  pushKinds: PushKind[];
   /** Accept direct trade offers from other viewers (the open board is unaffected). */
   allowOffers: boolean;
   /** 'reduce' calms the site's animations even when the device does not ask for it. */
@@ -66,6 +69,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   notifyResults: true,
   notifyWatch: true,
   noticeSound: false,
+  pushKinds: [...PUSH_KINDS],
   allowOffers: true,
   motion: 'system',
   hideUncollected: true,
@@ -97,6 +101,7 @@ export function sanitizeUserSettings(input: unknown): UserSettings {
   const out: UserSettings = { ...DEFAULT_SETTINGS, experiments: [], watches: [] };
   if (typeof o.bio === 'string') out.bio = o.bio.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, BIO_MAX);
   for (const k of BOOLEAN_KEYS) if (typeof o[k] === 'boolean') out[k] = o[k] as boolean;
+  if (Array.isArray(o.pushKinds)) out.pushKinds = PUSH_KINDS.filter(k => (o.pushKinds as unknown[]).includes(k));
   if (o.motion === 'reduce' || o.motion === 'system') out.motion = o.motion;
   if (typeof o.accent === 'string' && ACCENTS.some(a => a.id === o.accent)) out.accent = o.accent;
   if (Array.isArray(o.wanted)) out.wanted = [...new Set(o.wanted.filter((n): n is number => Number.isInteger(n) && n >= 1 && n < 1_000_000))].slice(0, WANTED_MAX);
