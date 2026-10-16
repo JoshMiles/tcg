@@ -155,8 +155,13 @@ export function ActivityFeed({
 
   const poll = useCallback(async (retried = false): Promise<void> => {
     try {
-      const res = await fetch(`/api/admin/activity?after=${seqRef.current}`, { cache: 'no-store' });
-      if (res.status === 401) { setStatus('signed-out'); return; }
+      let res = await fetch(`/api/admin/activity?after=${seqRef.current}`, { cache: 'no-store' });
+      if (res.status === 401) {
+        // The staff cookie ran out: renew it from the viewer session and retry once before giving up.
+        const renewed = await fetch('/auth/staff?silent=1', { cache: 'no-store' }).then(r => r.ok).catch(() => false);
+        if (renewed) res = await fetch(`/api/admin/activity?after=${seqRef.current}`, { cache: 'no-store' });
+        if (!renewed || res.status === 401) { setStatus('signed-out'); return; }
+      }
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json() as { events: ActivityEvent[]; seq: number; avatars: Record<string, string> };
 
@@ -333,7 +338,8 @@ export function ActivityFeed({
 
       {status === 'signed-out' && (
         <div className="tcg-panel rounded-xl p-4 text-sm text-red-300 border-red-500/30">
-          Your session expired, so the feed stopped updating. <a href="/login" className="underline">Log in again</a>.
+          Signed out, so the feed stopped updating.{' '}
+          <a href="/auth/staff?returnTo=/admin/activity" className="inline-block rounded-md bg-red-500/20 px-2.5 py-1 font-semibold underline">Sign in again</a>
         </div>
       )}
 
