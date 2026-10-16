@@ -5,7 +5,7 @@
 ## OBS widget data flow
 1. Widget calls `GET /api/seasons/active` on load → returns `{ season, packs: [{ pack, cards }] }`
 2. Widget picks pack by weight, then card by probability
-3. Widget calls `POST /api/collection` to save card number to legacy collection (duplicates allowed, pull count)
+3. Widget calls `POST /api/collection` to save card number to legacy collection (duplicates allowed, pull count). A queued pull with `paid: true` (Mix It Up, see docs/admin.md) is saved with its `payId`; the reply may be `{ ok: true, revoked: true, owned }` when the payment failed, and the widget just resyncs `owned`.
 4. Widget reads `GET /api/collection?name={collectionName}` to show mini-list with ×N badge for duplicates
 
 The widget reads per-pack visual settings (accentColor, tearBorderColor, holoMinStars, cardTime, cooldownTime, soundVolume, coverImageUrl) directly from the pack object. Card sounds come from `card.soundUrl` (e.g. `/assets/sounds/1.mp3`).
