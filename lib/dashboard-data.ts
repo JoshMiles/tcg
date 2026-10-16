@@ -11,6 +11,8 @@ import { listOpenTrades, tradeHistory } from './trades';
 import type { Trade } from './trade-core';
 import { getLiveStatus, getLatestRecap, type LiveStatus } from './twitch-live';
 import type { StreamRecap } from './stream-recap';
+import { getLatestDigest } from './weekly-digest-store';
+import type { WeeklyDigest } from './weekly-digest';
 import { allowedVariants, decodeEntry, emptyCounts, type VariantCounts } from './variants';
 import { getOverlayStatus, type OverlayStatus } from './overlay';
 import { getTradeSettings } from './trades';
@@ -106,6 +108,7 @@ export interface DashboardData {
   board: { rows: LeaderboardRow[]; values: SeasonValues } | null;
   live: LiveStatus | null;
   recap: StreamRecap | null;
+  digest: WeeklyDigest | null;
   notes: string;
   /** The dashboard's chosen time range, with this period's and the previous period's counters. */
   range: Range['id'];
@@ -157,7 +160,7 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
   const wantsOverlay = needs.has('attention') || needs.has('overlay-controls');
   const { starts, step } = bucketsFor(range, season.createdAt);
   const span = step === 'hour' ? 3_600_000 : 86_400_000;
-  const [avatars, activity, openTrades, history, board, live, notes, recap, series, prevSeries, overlay] = await Promise.all([
+  const [avatars, activity, openTrades, history, board, live, notes, recap, digest, series, prevSeries, overlay] = await Promise.all([
     needs.has('top-collectors') || needs.has('leaderboard') ? getAvatars(topCollectors.map(c => c.username)) : Promise.resolve({}),
     wantsActivity ? getActivity({ limit: 500 }).then(r => r.events).catch(() => []) : Promise.resolve([] as ActivityEvent[]),
     needs.has('trades') ? listOpenTrades().catch(() => [] as Trade[]) : Promise.resolve(null),
@@ -166,6 +169,7 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     wantsLive ? getLiveStatus().catch(() => null) : Promise.resolve(null),
     needs.has('notes') ? getDashboardNotes() : Promise.resolve(''),
     needs.has('recap') ? getLatestRecap() : Promise.resolve(null),
+    needs.has('digest') ? getLatestDigest() : Promise.resolve(null),
     wantsSeries ? getSeries(season.collectionName, starts, step) : Promise.resolve(null),
     wantsSeries ? getSeries(season.collectionName, starts.map(s => s - starts.length * span), step) : Promise.resolve(null),
     wantsOverlay ? getOverlayStatus().catch(() => null) : Promise.resolve(null),
@@ -190,7 +194,7 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     season, packs, allCards, users, totalUsers, totalOwned, totalUnique, avgCompletion, topCollectors, cardStats,
     avatars: avatars as Record<string, string | undefined>,
     rarityDist: rarityStats(allCards),
-    variantCounts, activity, trades, board: board ? { rows: board.rows, values: board.values } : null, live, recap, notes,
+    variantCounts, activity, trades, board: board ? { rows: board.rows, values: board.values } : null, live, recap, digest, notes,
     range, series, prevSeries, attention, overlay, adminActions,
     dailyViewers: dailySeries?.viewers ?? [],
     overlaySettings: { livePacksOnly: !!overlaySettings?.livePacksOnly, liveCollectionsOnly: !!overlaySettings?.liveCollectionsOnly },

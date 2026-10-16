@@ -40,6 +40,16 @@ export async function watchersOf(cards: number[]): Promise<string[]> {
   } catch { return []; }
 }
 
+/** How many viewers want each of these cards (set sizes only, names are not read). Cards nobody wants are left out. Empty on any failure. */
+export async function watcherCounts(cards: number[]): Promise<Record<number, number>> {
+  const out: Record<number, number> = {};
+  try {
+    await ensureIndex();
+    for (const c of new Set(cards)) { const n = Number(await kv.scard(setKey(c))) || 0; if (n > 0) out[c] = n; }
+  } catch { /* none */ }
+  return out;
+}
+
 /** Who wants each of these cards, one read per distinct card. Empty on any failure. */
 export async function watchersByCard(cards: number[]): Promise<Record<number, string[]>> {
   const out: Record<number, string[]> = {};
