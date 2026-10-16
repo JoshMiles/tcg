@@ -96,7 +96,7 @@ ok(cache.size() <= 3, 'the cache stays within its size limit');
 cache.clear(); eq(cache.size(), 0, 'clear empties it');
 
 // ── apple icons: opaque PNGs (colour type 2, no alpha), or iOS falls back to a letter ──
-for (const f of ['app/apple-icon.png', 'public/apple-touch-icon.png', 'public/apple-touch-icon-precomposed.png', 'public/icons/maskable-192.png', 'public/icons/maskable-512.png']) {
+for (const f of ['app/apple-icon.png', 'public/apple-touch-icon.png', 'public/apple-touch-icon-precomposed.png', 'public/icons/icon-192.png', 'public/icons/icon-512.png', 'public/icons/maskable-192.png', 'public/icons/maskable-512.png']) {
   ok(existsSync(f), `${f} exists`);
   const png = readFileSync(f);
   ok(png.subarray(1, 4).toString() === 'PNG', `${f} is a PNG`);
