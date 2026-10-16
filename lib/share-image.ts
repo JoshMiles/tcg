@@ -1,6 +1,8 @@
 // Layout for the shareable card images (pure, client-safe). The drawing itself is in app/components/ShareImage.tsx; keeping the
 // arithmetic here means it can be checked without a browser.
 
+import type { PlateLook } from './card-back';
+
 export const SHARE_W = 1080;
 export const SHARE_H = 1350;
 export const STORY_H = 1920;
@@ -50,6 +52,8 @@ export interface SharePlate {
   gold?: boolean;
   /** Absolute link for the QR code. */
   qrUrl?: string;
+  /** The pack's designed back (colours and which parts show); absent = the theme's own plate. */
+  look?: PlateLook;
 }
 
 /** Image shapes: a feed post, or a full-screen story. */

@@ -36,9 +36,11 @@ function spaced(ctx: CanvasRenderingContext2D, px: number) {
 const NUMBER_FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
 /** The engraved metal plate under a single copy's card: a slim bevelled plate, small spaced lettering cut into it, rivets and a QR code. */
-function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plate']>, edge: string, font: string, t: ShareTheme, h: number) {
+function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plate']>, rarityEdge: string, font: string, t: ShareTheme, h: number) {
   const r = plateRect(h);
-  const pl = t.plate;
+  const look = p.look;
+  const pl = look ? { ...t.plate, ...(look.stops ? { stops: look.stops, dark: !!look.dark } : {}), ...(look.ink ? { ink: look.ink } : {}) } : t.plate;
+  const edge = look?.edge ?? rarityEdge;
   ctx.save();
   ctx.shadowColor = edge; ctx.shadowBlur = 24;
   const metal = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h);
@@ -69,7 +71,8 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
   }
 
   const padL = 62;
-  const qr = p.qrUrl ? qrModules(p.qrUrl) : null;
+  const show = look?.show;
+  const qr = p.qrUrl && (!show || show.qr) ? qrModules(p.qrUrl) : null;
   const qrSize = 132;
   const textW = r.w - padL - 40 - (qr ? qrSize + 70 : 0);
   const left = r.x + padL;
@@ -89,9 +92,10 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
   ctx.fillStyle = pl.hi; ctx.fillRect(left, r.y + 59, textW, 1);
 
   // The number: small "No." and the digits in a tabular face, much quieter than before.
-  engrave('No.', left, r.y + 110, 20, 800, pl.ink, 60, font, 2);
-  const nx = left + 50;
   const digits = p.number.replace(/^#/, '');
+  const nx = left + 50;
+  if (!show || show.number) engrave('No.', left, r.y + 110, 20, 800, pl.ink, 60, font, 2);
+  if (show && !show.number) { /* number left off this pack's back */ } else {
   ctx.font = `700 52px ${NUMBER_FONT}`; spaced(ctx, 3);
   if (p.gold) {
     const g = ctx.createLinearGradient(0, r.y + 66, 0, r.y + 114);
@@ -104,8 +108,9 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
     spaced(ctx, 0);
     engrave(digits, nx, r.y + 110, 52, 700, pl.ink, textW - 50, NUMBER_FONT, 3);
   }
-  engrave(p.edition, left, r.y + 146, 23, 700, pl.ink, textW);
-  const bits = [p.date, ...(p.lines ?? [])].filter(Boolean) as string[];
+  }
+  if (!show || show.edition) engrave(p.edition, left, r.y + 146, 23, 700, pl.ink, textW);
+  const bits = [(!show || show.date) ? p.date : undefined, ...((!show || show.origin) ? p.lines ?? [] : [])].filter(Boolean) as string[];
   if (bits.length) engrave(bits.slice(0, 2).join('   ·   '), left, r.y + 176, 17, 700, pl.ink, textW, font, 1);
 
   if (qr) {

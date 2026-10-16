@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { CardTile } from '@/app/components/CardTile';
 import { FlipCard } from '@/app/components/FlipCard';
+import { cardBackFor } from '@/lib/card-back-store';
 import { ProvenanceTimeline } from '@/app/components/ProvenanceTimeline';
 import { buildProvenance } from '@/lib/provenance';
 import { editionLine, engravedDate, histText } from '@/lib/flip-back';
@@ -65,7 +66,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
   const mySettings = canPin ? await getUserSettings(session!.username) : null;
   const pinned = mySettings?.pinned === copy.uid;
   const favourite = !!copy.uid && !!mySettings?.favourites.includes(copy.uid);
-  const [hidden, minted, holoFor, board] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName), getHoloResolver(), getSeasonLeaderboardCached(season).catch(() => null)]);
+  const [hidden, minted, holoFor, board, backStyle] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName), getHoloResolver(), getSeasonLeaderboardCached(season).catch(() => null), cardBackFor(pack, season.name)]);
   // What this very copy is worth: its card's points times the bonus its number earns.
   const cv = board?.values.cards.get(copy.card);
   const mult = board ? serialMultiplier(copy.n, board.values.settings) : 1;
@@ -106,7 +107,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
               bonus: mult > 1 ? Math.round(mult * 100) / 100 : undefined, hex: rarity?.hex, origin: ORIGIN_LABELS[copy.origin],
               holder: gone ? null : copy.owner && isEscrow(copy.owner) ? 'a trade offer' : hidden.has(copy.owner) ? 'a private collector' : `@${copy.owner}`,
               history: copy.ev.slice(-3).map(e => ({ text: histText(e, hidden, copy.origin), date: engravedDate(e.t) })),
-              qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
+              qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`, style: backStyle,
             }}
           >
             <CardTile
@@ -161,7 +162,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
             <ShareStudio
               base={copyShareSpec({
                 copy, cardName: card.name, seasonId: season.id, seasonName: season.name, packName: pack.name, total, mult, art, hex: rarity?.hex,
-                privateHolder: !!copy.owner && hidden.has(copy.owner), siteUrl: SITE_URL,
+                privateHolder: !!copy.owner && hidden.has(copy.owner), siteUrl: SITE_URL, back: backStyle,
               })}
               link={`${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`}
               shareText={`${label}${copy.uid ? ` #${copy.uid}` : ''} on The Cheesy TCG`}

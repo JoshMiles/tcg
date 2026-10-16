@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin-guard';
 import { getPack, getPackCards, savePack, savePackCards } from '@/lib/kv';
+import { getCardBack, saveCardBack } from '@/lib/card-back-store';
 import type { Pack } from '@/lib/types';
 
 /**
@@ -20,6 +21,8 @@ export async function duplicatePackAction(packId: string) {
   const copy: Pack = { ...rest, id, name: `${source.name} (copy)`.slice(0, 80), status: 'draft', active: false, createdAt: Date.now() };
   await savePack(copy);
   await savePackCards(id, cards.map(c => ({ ...c, id: crypto.randomUUID() })));
+  const back = await getCardBack(packId);
+  if (back) await saveCardBack(id, back);
   revalidatePath('/admin/packs');
   redirect(`/admin/packs/new?draft=${id}`);
 }

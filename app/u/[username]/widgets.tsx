@@ -17,6 +17,7 @@ import { bestPrintOf, rarestPrints } from '@/lib/collection-view';
 import type { Copy } from '@/lib/serials-core';
 import { syncAchievements, type AchievementsView } from '@/lib/achievements-store';
 import { FlipCard } from '@/app/components/FlipCard';
+import { cardBackFor } from '@/lib/card-back-store';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { loadCopyByUid } from '@/lib/copy-view';
@@ -146,7 +147,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
       // Only the holder's own copy is shown: a copy that was traded away stops being their showcase.
       if (!found || found.copy.owner !== b.lower) return none('The pinned print is not in your collection any more. Pin another from its page.');
       const { season, copy, pack, card } = found;
-      const [minted, holoFor] = await Promise.all([mintedCounts(season.collectionName), getHoloResolver()]);
+      const [minted, holoFor, backStyle] = await Promise.all([mintedCounts(season.collectionName), getHoloResolver(), cardBackFor(pack, season.name)]);
       const total = minted.get(entryOf(copy)) ?? copy.n;
       const mult = serialMultiplier(copy.n, b.board.values.settings);
       const art = (copy.variant === 'full' || copy.variant === 'shiny') && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl;
@@ -160,7 +161,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
               back={{
                 n: copy.n, uid: copy.uid, total, variantLabel: VARIANT_LABELS[copy.variant], name: card.name, date: engravedDate(copy.at), est: copy.est,
                 bonus: mult > 1 ? Math.round(mult * 100) / 100 : undefined, hex: rarity?.hex, holder: `@${b.lower}`,
-                href: `/copy/${encodeURIComponent(season.id)}/${copy.id}`, qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
+                href: `/copy/${encodeURIComponent(season.id)}/${copy.id}`, qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`, style: backStyle,
               }}
             >
               <CardTile
@@ -180,7 +181,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <ShareImageButton
-              spec={copyShareSpec({ copy, cardName: card.name, seasonId: season.id, seasonName: season.name, packName: pack.name, total, mult, art, hex: rarity?.hex, privateHolder: false, siteUrl: SITE_URL })}
+              spec={copyShareSpec({ copy, cardName: card.name, seasonId: season.id, seasonName: season.name, packName: pack.name, total, mult, art, hex: rarity?.hex, privateHolder: false, siteUrl: SITE_URL, back: backStyle })}
               filename={`cheesy-tcg-${copy.uid ?? copy.id}.png`}
               label="Share this print"
             />

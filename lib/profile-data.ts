@@ -16,6 +16,7 @@ import type { VariantCounts } from './variants';
 import { ORIGIN_LABELS, entryOf, type Copy } from './serials-core';
 import { mintedCounts } from './serials';
 import { histText } from './flip-back';
+import { cardBackFor } from './card-back-store';
 import { cardThumbUrl } from './card-art';
 import type { BigStat, ShareCard, ShareSpec } from './share-image';
 import { copyPoints, type CardValue, type LeaderboardRow } from './leaderboard';
@@ -155,6 +156,7 @@ export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promi
     }]);
   }
   const holoFor = await getHoloResolver();
+  const backs = new Map(await Promise.all(b.packs.map(async ({ pack }) => [pack.id, await cardBackFor(pack, b.season.name)] as const)));
   return b.allCards.map(c => {
     const v = b.board.values.cards.get(c.number);
     const w = effectiveWeights(c.pack, c);
@@ -175,6 +177,7 @@ export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promi
       costs: c.pack.upgradeCosts,
       variants: allowedVariants(c.pack, c),
       holo: holoFor(c.pack, c.stars),
+      back: backs.get(c.pack.id),
       maths: v?.maths,
       copies: copiesByCard.get(c.number),
       steps: Object.fromEntries(VARIANTS.map(x => [x, upgradeStep(c.pack, c, x)])) as GridCard['steps'],

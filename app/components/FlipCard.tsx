@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { qrPath } from '@/lib/qr';
 import { editionLine, madeLine, type FlipBack } from '@/lib/flip-back';
+import { cardBackVars } from '@/lib/card-back';
 
 const MAX_TILT = 12;
 
@@ -12,12 +13,14 @@ const MAX_TILT = 12;
  * 3D, a tap or the Flip button turns it over. Reduced motion (the device setting or the site's Settings → Motion) swaps the turn for a
  * fade and drops the tilt.
  */
-export function FlipCard({ children, back, compact = false, className = '' }: { children: ReactNode; back: FlipBack; compact?: boolean; className?: string }) {
-  const [flipped, setFlipped] = useState(false);
+export function FlipCard({ children, back, compact = false, className = '', defaultFlipped = false }: { children: ReactNode; back: FlipBack; compact?: boolean; className?: string; defaultFlipped?: boolean }) {
+  const [flipped, setFlipped] = useState(defaultFlipped);
   const [tilting, setTilting] = useState(false);
   const inner = useRef<HTMLDivElement>(null);
   const busyUntil = useRef(0);
-  const qr = useMemo(() => (!compact && back.qrUrl ? qrPath(back.qrUrl) : null), [compact, back.qrUrl]);
+  const st = back.style;
+  const on = (e: keyof NonNullable<typeof st>['show']) => !st || st.show[e];
+  const qr = useMemo(() => (!compact && back.qrUrl && (!st || st.show.qr) ? qrPath(back.qrUrl) : null), [compact, back.qrUrl, st]);
 
   function move(e: React.PointerEvent<HTMLDivElement>) {
     if (Date.now() < busyUntil.current) return;
@@ -45,6 +48,8 @@ export function FlipCard({ children, back, compact = false, className = '' }: { 
   const made = madeLine(back.n, back.total);
   const gold = !!back.bonus && back.bonus > 1;
   const hex = back.hex ?? '#9ca3af';
+  const vars = st ? cardBackVars(st, hex) : { '--edge': hex };
+  const logoSrc = st ? (st.logo === 'cover' ? st.cover : st.logo === 'url' ? st.logoUrl : undefined) : undefined;
 
   return (
     <div className={`flip-wrap ${className}`}>
@@ -54,17 +59,19 @@ export function FlipCard({ children, back, compact = false, className = '' }: { 
             {children}
             <span className="flip-glare" aria-hidden />
           </div>
-          <div className="flip-face flip-back" aria-hidden={!flipped} style={{ ['--edge' as string]: hex }}>
-            <div className="flip-plate">
+          <div className="flip-face flip-back" aria-hidden={!flipped}>
+            <div className="flip-plate" style={vars as React.CSSProperties}>
+              {logoSrc && <img src={logoSrc} alt="" className="flip-logo" />}
               <p className="flip-brand">The Cheesy TCG</p>
-              <p className={`flip-serial ${gold ? 'gold' : ''} ${back.uid ? 'long' : ''}`}>#{back.uid ?? back.n}</p>
-              {back.uid ? <p className="flip-line">{editionLine(back.n, back.total)}</p> : made && <p className="flip-line">{made}</p>}
-              <p className="flip-line strong">{back.variantLabel} · {back.name}</p>
-              {back.date && <p className="flip-date">{back.est ? 'NUMBERED' : 'PULLED'} {back.date}</p>}
+              {on('number') && <p className={`flip-serial ${gold ? 'gold' : ''} ${back.uid ? 'long' : ''}`}>#{back.uid ?? back.n}</p>}
+              {on('edition') && (back.uid ? <p className="flip-line">{editionLine(back.n, back.total)}</p> : made && <p className="flip-line">{made}</p>)}
+              {on('name') && <p className="flip-line strong">{back.variantLabel} · {back.name}</p>}
+              {st?.lineText && <p className="flip-custom">{st.lineText}</p>}
+              {on('date') && back.date && <p className="flip-date">{back.est ? 'NUMBERED' : 'PULLED'} {back.date}</p>}
               {!compact && (
                 <>
-                  {(back.origin || back.holder) && <p className="flip-line small">{[back.origin, back.holder ? `Held by ${back.holder}` : null].filter(Boolean).join(' · ')}</p>}
-                  {back.history && back.history.length > 0 && (
+                  {on('origin') && (back.origin || back.holder) && <p className="flip-line small">{[back.origin, back.holder ? `Held by ${back.holder}` : null].filter(Boolean).join(' · ')}</p>}
+                  {on('history') && back.history && back.history.length > 0 && (
                     <ul className="flip-hist">
                       {back.history.map((h, i) => <li key={i}><span>{h.text}</span><span>{h.date}</span></li>)}
                     </ul>

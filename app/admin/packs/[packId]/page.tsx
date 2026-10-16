@@ -2,7 +2,9 @@ import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../../components/PendingButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getPack, getPackCards, listSeasons } from '@/lib/kv';
+import { getPack, getPackCards, listAllPacks, listSeasons } from '@/lib/kv';
+import { getCardBack } from '@/lib/card-back-store';
+import { CardBackEditor } from '../../components/CardBackEditor';
 import { getPackOverrides } from '@/lib/overlay-settings';
 import { updatePack, deleteCard, setPackActive, deletePackAction } from '../../actions';
 import { unpublishPack } from '../../draft-actions';
@@ -31,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ packId: s
 export default async function PackPage({ params, searchParams }: { params: Promise<{ packId: string }>; searchParams: Promise<{ tab?: string; error?: string }> }) {
   const { packId } = await params;
   const { tab: tabParam, error } = await searchParams;
-  const [pack, cards, seasons, overrides] = await Promise.all([getPack(packId), getPackCards(packId), listSeasons(), getPackOverrides().catch((): Record<string, unknown> => ({}))]);
+  const [pack, cards, seasons, overrides, cardBack, allPacks] = await Promise.all([getPack(packId), getPackCards(packId), listSeasons(), getPackOverrides().catch((): Record<string, unknown> => ({})), getCardBack(packId), listAllPacks()]);
   if (!pack) notFound();
   const inSeasons = seasons.filter(s => s.packIds.includes(packId));
   const hasOverrides = Object.keys(overrides[packId] ?? {}).length > 0;
@@ -346,6 +348,15 @@ export default async function PackPage({ params, searchParams }: { params: Promi
 
           </div>
           <div className="space-y-6">
+          <CardBackEditor
+            packId={packId}
+            packName={pack.name}
+            seasonName={inSeasons[0]?.name}
+            coverImageUrl={pack.coverImageUrl}
+            initial={cardBack}
+            sample={{ name: sorted[0]?.name ?? 'Sample card', imageUrl: sorted[0]?.imageUrl ?? pack.coverImageUrl, hex: sorted[0] ? getRarity(sorted[0].stars)?.hex : undefined }}
+            others={allPacks.filter(p => p.id !== packId && p.status !== 'draft').map(p => ({ id: p.id, name: p.name }))}
+          />
           {/* Danger zone */}
           <div className="rounded-2xl border border-red-500/20 p-5 space-y-3">
             <h3 className="text-sm font-semibold text-red-300">Danger zone</h3>
