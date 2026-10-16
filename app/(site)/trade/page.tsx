@@ -159,6 +159,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                 <TradeCard
                   key={m.trade.id}
                   trade={m.trade}
+                  href={`/trade/${m.trade.id}`}
                   pools={pools}
                   cards={cards}
                   title={<>{user(m.trade.from)}&rsquo;s listing <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons.join(' · ')}</span></>}
@@ -198,6 +199,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
                     >
                       <TradeCard
                         trade={t}
+                        href={`/trade/${t.id}`}
                         pools={pools}
                         cards={cards}
                         title={<>{user(t.from)}&rsquo;s listing{session && m.reasons.length > 0 && <span className="ml-2 text-xs font-normal text-emerald-300">{m.reasons[0]}</span>}</>}
