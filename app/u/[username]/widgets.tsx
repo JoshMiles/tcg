@@ -18,7 +18,11 @@ import { FlipCard } from '@/app/components/FlipCard';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { loadCopyByUid } from '@/lib/copy-view';
-import { mintedCounts } from '@/lib/serials';
+import { getCopy, isTracking, mintedCounts } from '@/lib/serials';
+import { pickRecentPulls, type PullFate } from '@/lib/recent-pulls-core';
+import { copyHrefFor } from '@/lib/copy-link';
+import { copyId as makeCopyId } from '@/lib/serials-core';
+import { SerialChip } from '@/app/components/SerialChip';
 import { entryOf } from '@/lib/serials-core';
 import { serialMultiplier } from '@/lib/scoring-core';
 import { engravedDate } from '@/lib/flip-back';
@@ -69,7 +73,7 @@ const Hint = ({ children }: { children: ReactNode }) => <p className="text-sm te
 export async function loadWidgetData(types: ProfileWidgetType[], b: ProfileBase): Promise<Pick<WidgetCtx, 'events' | 'trades' | 'achievements'>> {
   const has = (t: ProfileWidgetType) => types.includes(t);
   const [events, open, history] = await Promise.all([
-    has('activity') && !b.hidden ? getActivity({ limit: 500 }).then(r => r.events).catch(() => [] as ActivityEvent[]) : Promise.resolve([] as ActivityEvent[]),
+    (has('activity') || has('recent')) && !b.hidden ? getActivity({ limit: 500 }).then(r => r.events).catch(() => [] as ActivityEvent[]) : Promise.resolve([] as ActivityEvent[]),
     has('trades') ? listOpenTrades().catch(() => []) : Promise.resolve([]),
     has('trades') ? tradeHistory().catch(() => []) : Promise.resolve([]),
   ]);
@@ -231,18 +235,46 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
     }
 
     case 'recent': {
-      const latest = [...ctx.copies].sort((x, y) => y.at - x.at || y.n - x.n).slice(0, 6);
-      if (latest.length === 0) return none('Numbered prints show up here once card prints are being tracked.');
-      const names = new Map(b.allCards.map(c => [c.number, c.name]));
+      const c = b.season.collectionName;
+      const tracked = await isTracking(c);
+      const FATE: Record<PullFate, string> = { held: '', offer: 'in a trade offer', traded: 'traded', forged: 'upgraded', removed: 'removed' };
+      const names = new Map(b.allCards.map(card => [card.number, card.name]));
+      const mine = ctx.events.filter((e): e is Extract<ActivityEvent, { type: 'pull' }> => e.type === 'pull' && e.username === b.lower && e.collectionName === c);
+      if (tracked) {
+        // The prints they hold now plus the ones their pull events name (a pull later traded away or upgraded is no longer in their hands).
+        const ids = [...new Set(mine.map(e => e.copyId ?? (e.serial ? makeCopyId(e.cardNumber, e.variant ?? 'regular', e.serial) : '')).filter(Boolean))].slice(0, 24);
+        const gone = (await Promise.all(ids.map(id => getCopy(c, id).catch(() => null)))).filter((x): x is Copy => !!x);
+        const latest = pickRecentPulls([...ctx.copies, ...gone], b.lower, 8);
+        if (latest.length > 0) {
+          return (
+            <Box type={type}>
+              <ul className="divide-y divide-gray-800/70">
+                {latest.map(p => (
+                  <li key={p.id}>
+                    <Link href={copyHrefFor({ type: 'pull', uid: p.uid, serial: p.n, variant: p.variant, cardNumber: p.card }, b.season.id) ?? `/copy/${encodeURIComponent(b.season.id)}/${p.id}`} className="flex items-center gap-2 py-2 text-sm hover:text-white text-gray-300">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{p.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[p.variant]}</span>}{names.get(p.card) ?? `Card #${p.card}`}</span>
+                        <span className="block text-xs text-gray-500 tabular-nums truncate">{p.uid ? `Print #${p.uid}` : 'Print'}{FATE[p.fate] ? ` · ${FATE[p.fate]}` : ''}</span>
+                      </span>
+                      <SerialChip n={p.n} est={p.est} />
+                      <span className="text-xs text-gray-600 tabular-nums whitespace-nowrap w-14 text-right">{ago(p.at)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Box>
+          );
+        }
+      }
+      // Before prints are tracked (or nothing pulled yet): the owner sees their pull events, which carry no print numbers.
+      if (!isOwner || mine.length === 0) return none('Your latest pulls appear here as you open packs.');
       return (
         <Box type={type}>
           <ul className="divide-y divide-gray-800/70">
-            {latest.map(c => (
-              <li key={c.id}>
-                <Link href={`/copy/${encodeURIComponent(b.season.id)}/${c.id}`} className="flex items-center justify-between gap-3 py-2 text-sm hover:text-white text-gray-300">
-                  <span className="truncate">{c.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[c.variant]}</span>}{names.get(c.card) ?? `Card #${c.card}`}</span>
-                  <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap"><span className="text-yellow-300 font-bold">#{c.n}</span>{c.est ? '~' : ''} · {ago(c.at)}</span>
-                </Link>
+            {mine.slice(0, 8).map(e => (
+              <li key={e.seq} className="flex items-center gap-2 py-2 text-sm text-gray-300">
+                <span className="flex-1 min-w-0 truncate">{e.variant && e.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[e.variant]}</span>}{e.cardName || names.get(e.cardNumber) || `Card #${e.cardNumber}`}</span>
+                <span className="text-xs text-gray-600 shrink-0">{ago(e.at)}</span>
               </li>
             ))}
           </ul>

@@ -27,7 +27,7 @@ export const PROFILE_WIDGETS: Record<ProfileWidgetType, ProfileWidgetDef> = {
   rarity: { type: 'rarity', title: 'Rarity progress', icon: 'award', description: 'How much of each rarity you have collected.', defaultSpan: 12, spans: [6, 8, 12] },
   progress: { type: 'progress', title: 'Pack progress', icon: 'cards', description: 'How complete each pack is.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   rarest: { type: 'rarest', title: 'Rarest finds', icon: 'sparkles', description: 'The hardest-to-pull cards you own.', defaultSpan: 6, spans: [4, 6, 8, 12] },
-  recent: { type: 'recent', title: 'Latest prints', icon: 'history', description: 'Your newest numbered cards, each linking to its history.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  recent: { type: 'recent', title: 'Recent pulls', icon: 'history', description: 'The prints you pulled most recently, with their edition and print number, each opening its page. A print you traded away or upgraded still shows.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   activity: { type: 'activity', title: 'Recent activity', icon: 'activity', description: 'Pulls, upgrades and trades as they happen.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   trades: { type: 'trades', title: 'Trading', icon: 'trade', description: 'Completed trades and your open board listings.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   awards: { type: 'awards', title: 'Awards', icon: 'trophy', description: 'Season awards you have earned.', defaultSpan: 6, spans: [4, 6, 8, 12] },
