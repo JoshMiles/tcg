@@ -12,6 +12,7 @@ import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { topCopies, type ProfileBase } from '@/lib/profile-data';
+import { bestPrintOf, rarestPrints } from '@/lib/collection-view';
 import type { Copy } from '@/lib/serials-core';
 import { syncAchievements, type AchievementsView } from '@/lib/achievements-store';
 import { FlipCard } from '@/app/components/FlipCard';
@@ -117,15 +118,21 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
       return (
         <Box type={type}>
           <ul className="flex flex-wrap gap-4">
-            {top.map(c => (
-              <li key={c.number} className="w-24 sm:w-28">
-                <Link href={`/cards?card=${c.number}`} title={`${c.name}${c.variant === 'regular' ? '' : ` (${VARIANT_LABELS[c.variant]})`}`}>
-                  <CardTile imageUrl={(c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl} alt={c.name} className="relative aspect-[2/3] rounded-lg overflow-hidden border-2" style={{ borderColor: getRarity(c.stars)?.hex }} />
-                </Link>
-                <p className="mt-1 text-xs text-gray-200 truncate">{c.name}</p>
-                <p className="text-[11px] text-yellow-400 tabular-nums">{Math.round(c.points).toLocaleString()} pts{c.variant !== 'regular' ? ` · ${VARIANT_LABELS[c.variant]}` : ''}</p>
-              </li>
-            ))}
+            {top.map(c => {
+              // The print that earned the place: their best edition of it (untracked seasons have no prints, so the tile opens the dex).
+              const print = bestPrintOf(ctx.copies.filter(x => x.owner === b.lower), c.number, c.variant);
+              const href = print?.uid ? `/c/${print.uid}` : print ? `/copy/${encodeURIComponent(b.season.id)}/${print.id}` : `/cards?card=${c.number}`;
+              return (
+                <li key={c.number} className="w-24 sm:w-28">
+                  <Link href={href} title={`${c.name}${c.variant === 'regular' ? '' : ` (${VARIANT_LABELS[c.variant]})`}`}>
+                    <CardTile imageUrl={(c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl} alt={c.name} className="relative aspect-[2/3] rounded-lg overflow-hidden border-2" style={{ borderColor: getRarity(c.stars)?.hex }} />
+                  </Link>
+                  <p className="mt-1 text-xs text-gray-200 truncate">{c.name}</p>
+                  <p className="text-[11px] text-yellow-400 tabular-nums">{Math.round(c.points).toLocaleString()} pts{c.variant !== 'regular' ? ` · ${VARIANT_LABELS[c.variant]}` : ''}</p>
+                  {print && <p className="text-[11px] text-gray-500 tabular-nums truncate">{print.uid ? `Print #${print.uid}` : `Edition #${print.n}`}</p>}
+                </li>
+              );
+            })}
           </ul>
         </Box>
       );
@@ -215,10 +222,52 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
     }
 
     case 'rarest': {
+      const held = ctx.copies.filter(x => x.owner === b.lower);
+      if (held.length > 0) {
+        // Prints, not cards: the chance of that card in that version (card pull chance x the version's share of the pack's roll weights).
+        const byNumber = new Map(b.allCards.map(card => [card.number, card]));
+        const chanceOf = (card: number, variant: Copy['variant']) => {
+          const cv = b.board.values.cards.get(card);
+          if (!cv) return 0;
+          const w = cv.maths.weights;
+          const total = w.regular + w.reverse + w.full + w.shiny;
+          return total > 0 ? cv.pullRate * (w[variant] / total) : 0;
+        };
+        const rows = rarestPrints(held, chanceOf, 5).filter(p => byNumber.has(p.card));
+        if (rows.length > 0) {
+          const holoFor = await getHoloResolver();
+          return (
+            <Box type={type}>
+              <ul className="divide-y divide-gray-800/70">
+                {rows.map(p => {
+                  const c = byNumber.get(p.card)!;
+                  const rarity = getRarity(c.stars);
+                  const holo = holoFor(c.pack, c.stars)[p.variant];
+                  const art = (p.variant === 'full' || p.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl;
+                  return (
+                    <li key={p.id}>
+                      <Link href={p.uid ? `/c/${p.uid}` : `/copy/${encodeURIComponent(b.season.id)}/${p.id}`} className="flex items-center gap-3 py-2 hover:text-white text-gray-300">
+                        <span className={`w-8 h-11 rounded overflow-hidden bg-gray-800 shrink-0 ${p.variant !== 'regular' ? `vfx-${p.variant}` : ''} ${holoClass(holo, true)}`} style={holoVars(holo)}><CardTile imageUrl={art} alt="" className="relative w-full h-full" /></span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm text-white truncate">{p.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[p.variant]}</span>}{c.name}</span>
+                          <span className="block text-xs text-gray-500 tabular-nums truncate"><span style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)}</span> {p.uid ? `Print #${p.uid}` : 'Print'}</span>
+                        </span>
+                        <SerialChip n={p.n} est={p.est} />
+                        <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">1 in {Math.round(1 / p.chance).toLocaleString()}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Box>
+          );
+        }
+      }
+      // Prints are not tracked for this season: the card-level list.
       const owned = b.allCards.filter(c => b.countMap.has(c.number))
         .map(c => ({ c, rate: b.board.values.cards.get(c.number)?.pullRate ?? 1 }))
         .sort((x, y) => x.rate - y.rate || y.c.stars - x.c.stars).slice(0, 5);
-      if (owned.length === 0) return none('Your rarest cards appear here.');
+      if (owned.length === 0) return none('Your rarest prints appear here.');
       return (
         <Box type={type}>
           <ul className="divide-y divide-gray-800/70">
@@ -239,10 +288,10 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
       const tracked = await isTracking(c);
       const FATE: Record<PullFate, string> = { held: '', offer: 'in a trade offer', traded: 'traded', forged: 'upgraded', removed: 'removed' };
       const names = new Map(b.allCards.map(card => [card.number, card.name]));
-      const mine = ctx.events.filter((e): e is Extract<ActivityEvent, { type: 'pull' }> => e.type === 'pull' && e.username === b.lower && e.collectionName === c);
+      const mine = ctx.events.filter((e): e is Extract<ActivityEvent, { type: 'pull' | 'grant' }> => (e.type === 'pull' || e.type === 'grant') && e.username === b.lower && e.collectionName === c);
       if (tracked) {
         // The prints they hold now plus the ones their pull events name (a pull later traded away or upgraded is no longer in their hands).
-        const ids = [...new Set(mine.map(e => e.copyId ?? (e.serial ? makeCopyId(e.cardNumber, e.variant ?? 'regular', e.serial) : '')).filter(Boolean))].slice(0, 24);
+        const ids = [...new Set(mine.map(e => e.copyId ?? (e.type === 'pull' && e.serial ? makeCopyId(e.cardNumber, e.variant ?? 'regular', e.serial) : '')).filter(Boolean))].slice(0, 24);
         const gone = (await Promise.all(ids.map(id => getCopy(c, id).catch(() => null)))).filter((x): x is Copy => !!x);
         const latest = pickRecentPulls([...ctx.copies, ...gone], b.lower, 8);
         if (latest.length > 0) {
@@ -254,7 +303,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                     <Link href={copyHrefFor({ type: 'pull', uid: p.uid, serial: p.n, variant: p.variant, cardNumber: p.card }, b.season.id) ?? `/copy/${encodeURIComponent(b.season.id)}/${p.id}`} className="flex items-center gap-2 py-2 text-sm hover:text-white text-gray-300">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{p.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[p.variant]}</span>}{names.get(p.card) ?? `Card #${p.card}`}</span>
-                        <span className="block text-xs text-gray-500 tabular-nums truncate">{p.uid ? `Print #${p.uid}` : 'Print'}{FATE[p.fate] ? ` · ${FATE[p.fate]}` : ''}</span>
+                        <span className="block text-xs text-gray-500 tabular-nums truncate">{p.uid ? `Print #${p.uid}` : 'Print'}{p.origin === 'grant' && p.fate === 'held' ? ' · Granted' : FATE[p.fate] ? ` · ${p.origin === 'grant' ? 'Granted, ' : ''}${FATE[p.fate]}` : ''}</span>
                       </span>
                       <SerialChip n={p.n} est={p.est} />
                       <span className="text-xs text-gray-600 tabular-nums whitespace-nowrap w-14 text-right">{ago(p.at)}</span>
@@ -273,7 +322,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           <ul className="divide-y divide-gray-800/70">
             {mine.slice(0, 8).map(e => (
               <li key={e.seq} className="flex items-center gap-2 py-2 text-sm text-gray-300">
-                <span className="flex-1 min-w-0 truncate">{e.variant && e.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[e.variant]}</span>}{e.cardName || names.get(e.cardNumber) || `Card #${e.cardNumber}`}</span>
+                <span className="flex-1 min-w-0 truncate">{e.variant && e.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[e.variant]}</span>}{(e.type === 'pull' ? e.cardName : '') || names.get(e.cardNumber) || `Card #${e.cardNumber}`}</span>
                 <span className="text-xs text-gray-600 shrink-0">{ago(e.at)}</span>
               </li>
             ))}

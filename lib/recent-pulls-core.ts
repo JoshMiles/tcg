@@ -13,11 +13,11 @@ export function pullFate(c: Pick<Copy, 'owner' | 'ev'>, user: string): PullFate 
   return [...c.ev].reverse().find(e => e.type === 'upgraded' || e.type === 'removed')?.type === 'upgraded' ? 'forged' : 'removed';
 }
 
-/** Prints `user` pulled from a pack (the minted event names them), newest first, each once. Held, traded away and retired prints all count. */
+/** Prints `user` pulled from a pack or was granted (a webhook reward or an admin gift; the minted event names them), newest first, each once. Held, traded away and retired prints all count. */
 export function pickRecentPulls(candidates: Copy[], user: string, limit = 8): (Copy & { fate: PullFate })[] {
   const seen = new Set<string>();
   return candidates
-    .filter(c => c.origin === 'pull' && (c.ev[0]?.who ?? c.owner) === user && !seen.has(c.id) && !!seen.add(c.id))
+    .filter(c => (c.origin === 'pull' || c.origin === 'grant') && (c.ev[0]?.who ?? c.owner) === user && !seen.has(c.id) && !!seen.add(c.id))
     .sort((x, y) => y.at - x.at || y.n - x.n)
     .slice(0, limit)
     .map(c => ({ ...c, fate: pullFate(c, user) }));
