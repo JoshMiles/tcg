@@ -38,19 +38,19 @@ This roadmap is the request list from the Cheesygidds Discord (2026-10-16) plus 
 | 4.4 | Link a Discord account for DMs | Later (after 4.3) | L |
 | 5.1 | Stream recap posted to Discord | Done (#160) | M |
 | 6.1 to 6.4 | Track 6: community extras | Done (#166 to #169) | |
-| 7.1 to 11.3 | Tracks 7 to 11: the second Discord list (30 items) | See their own table | |
+| 7.1 to 11.3 | Tracks 7 to 11: the second Discord list (30 items) | Done (#171 to #198, and #199) | |
 
-**Tracks 1 to 6 are done** (#144 to #169). Tracks 7 to 11 (added 2026-10-16) are next; the user steps below are still open.
+**Tracks 1 to 11 are done** (#144 to #199; the only open item is 4.4, which waits for a decision). The user steps below are still open.
 
 **User steps still open:**
 - [ ] **Web Push keys:** set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (`mailto:` the legal contact address) in Vercel Production, then redeploy. The Stream E session saved a generated pair to a file outside the repo; the push option stays hidden until they are set. Then try it on a real iPhone (app installed), Android and a desktop browser.
 - [ ] **GitHub webhook (3.5):** repo Settings -> Webhooks, Payload URL `<discord webhook URL>/github`, events: pushes, pull requests, releases, deployment statuses.
 - [ ] **Discord channels:** add the channels you want in Admin -> Settings -> Webhooks (Trade listings, Admin log, System, Recap) and press Test on each.
-- [ ] **iPhone icon (1.1):** remove the home-screen app and add it again; confirm the cheese logo shows.
+- [ ] **iPhone icon (1.1, 7.1):** the code is fixed (opaque icons, plain apple-touch link), but iOS keeps the icon from install time. Remove the home-screen app, delete `cheesytcg.app` under Settings > Apps > Safari > Advanced > Website Data, then add it again from Safari (not Discord's in-app browser); confirm the cheese logo shows.
 - [ ] **Dependabot `braces` alert** (high, dev-only, through Tailwind 3's chokidar / micromatch): no patched release exists. Dismiss it as "no fix available" until upstream ships one; build-time only, not reachable at runtime.
 
 
-**Streams A to F and Track 6 are done** (2026-10-16, #144 to #169). Next: Tracks 7 to 11 (the second Discord list, 2026-10-16), in the streams set out under "Tracks 7 to 11: order". After that: 4.4 or the next extension version.
+**Streams A to K are done** (2026-10-16, #144 to #199). Next: 4.4 (needs a decision) or the next extension version.
 
 ---
 
@@ -327,36 +327,36 @@ Asked (2026-10-16): "should be able to select which print of a card when trading
 
 | # | Item | Status | Size |
 |---|------|--------|------|
-| 7.1 | iPhone home-screen icon still shows "C" | Ready (investigate first) | S |
-| 7.2 | Home: Top collectors and Recent pulls the same height | Ready | S |
-| 7.3 | Card dex dialog: "First prints" goes; buttons move | Ready | S |
-| 7.4 | Trade board shows your own listings (Take greyed out) | Ready | S |
-| 7.5 | More than 8 Discord channels | Ready | S |
-| 7.6 | Admin dashboard opens on "Season" | Ready | S |
-| 7.7 | Admin Settings tabs on phones (overflow, alignment, empty space) | Ready | S |
-| 7.8 | New names for the two set bonuses | Needs a decision (default below) | S |
-| 7.9 | Info tooltips (bonuses and other terms) | Ready (after 7.8) | M |
-| 8.1 | Rarest finds widget shows rarest **prints** | Ready | S |
-| 8.2 | Showcase widget links to the print | Ready | S |
-| 8.3 | Recent pulls widget includes webhook grants | Ready | S |
-| 8.4 | Edit bio and accent on the profile itself | Ready | M |
-| 8.5 | Accent: more colours and a colour picker | Ready (with 8.4) | S |
-| 8.6 | Pronouns (own pick, or from pr.alejo.io) | Needs a decision (default below) | M |
-| 8.7 | Profile layout presets | Ready | S |
-| 8.8 | Closed binder shows only its front cover | Ready | S |
-| 8.9 | Owner picks binder or grid as the visitors' default | Ready | S |
-| 8.10 | "Share my stats" image shows stats | Ready | M |
-| 8.11 | More obvious "turn on alerts" prompt on phones | Ready | S |
-| 9.1 | Favourite prints can't be traded | Ready | M |
-| 9.2 | Staff can reverse a completed trade | Ready | M |
-| 10.1 | Staff stay signed in while the activity feed is open | Ready | S |
-| 10.2 | Dashboard layout per staff member | Ready | S |
-| 10.3 | Built-in dashboard layout presets | Ready (after 10.2) | S |
-| 10.4 | Pick the still frame of an animated card | Ready | M |
-| 10.5 | Redesign the admin Prints screen | Needs a decision (proposal below) | M |
-| 11.1 | Changelog page | Ready | S |
-| 11.2 | Suggestions and feedback, report a problem (one inbox) | Ready | M |
-| 11.3 | Request account deletion button | Ready (after 11.2) | S |
+| 7.1 | iPhone home-screen icon still shows "C" | Done (#171) | S |
+| 7.2 | Home: Top collectors and Recent pulls the same height | Done (#172, #199) | S |
+| 7.3 | Card dex dialog: "First prints" goes; buttons move | Done (#175) | S |
+| 7.4 | Trade board shows your own listings (Take greyed out) | Done (#179) | S |
+| 7.5 | More than 8 Discord channels | Done (#180) | S |
+| 7.6 | Admin dashboard opens on "Season" | Done (#181) | S |
+| 7.7 | Admin Settings tabs on phones (overflow, alignment, empty space) | Done (#184) | S |
+| 7.8 | New names for the two set bonuses | Done (#189) | S |
+| 7.9 | Info tooltips (bonuses and other terms) | Done (#198) | M |
+| 8.1 | Rarest finds widget shows rarest **prints** | Done (#176) | S |
+| 8.2 | Showcase widget links to the print | Done (#176) | S |
+| 8.3 | Recent pulls widget includes webhook grants | Done (#176) | S |
+| 8.4 | Edit bio and accent on the profile itself | Done (#182) | M |
+| 8.5 | Accent: more colours and a colour picker | Done (#182) | S |
+| 8.6 | Pronouns (own pick, or from pr.alejo.io) | Done (#196) | M |
+| 8.7 | Profile layout presets | Done (#183) | S |
+| 8.8 | Closed binder shows only its front cover | Done (#187) | S |
+| 8.9 | Owner picks binder or grid as the visitors' default | Done (#187) | S |
+| 8.10 | "Share my stats" image shows stats | Done (#192) | M |
+| 8.11 | More obvious "turn on alerts" prompt on phones | Done (#194) | S |
+| 9.1 | Favourite prints can't be traded | Done (#174) | M |
+| 9.2 | Staff can reverse a completed trade | Done (#188) | M |
+| 10.1 | Staff stay signed in while the activity feed is open | Done (#173) | S |
+| 10.2 | Dashboard layout per staff member | Done (#178) | S |
+| 10.3 | Built-in dashboard layout presets | Done (#191) | S |
+| 10.4 | Pick the still frame of an animated card | Done (#185) | M |
+| 10.5 | Redesign the admin Prints screen | Done (#190) | M |
+| 11.1 | Changelog page | Done (#177) | S |
+| 11.2 | Suggestions and feedback, report a problem (one inbox) | Done (#186) | M |
+| 11.3 | Request account deletion button | Done (#193) | S |
 
 ### Tracks 7 to 11: order
 
@@ -375,7 +375,7 @@ Overlaps to watch: 7.9 adds tooltips to pages that 8.x and 7.3 also edit, so sta
 
 ## Track 7: Quick fixes and wording
 
-### 7.1 iPhone home-screen icon still shows "C" (Ready, investigate first)
+### 7.1 iPhone home-screen icon still shows "C" (Done, #171)
 
 1.1 (#144) made `app/apple-icon.png`, `public/apple-touch-icon.png` and the maskable icons opaque, and production serves them (checked 2026-10-16: the `<link rel="apple-touch-icon">` answers 200, `image/png`, colour type 2). The iPhone still shows a letter, so something else is going on. Likely causes, in order:
 1. **iOS cached the old icon.** It keeps the icon from install time, and Safari's website data can hold an old one too. User step: remove the home-screen app, then Settings > Apps > Safari > Advanced > Website Data, delete `cheesytcg.app`, then add it to the home screen again from Safari (not from Discord's in-app browser).
@@ -384,11 +384,11 @@ Overlaps to watch: 7.9 adds tooltips to pages that 8.x and 7.3 also edit, so sta
 
 Do 2 and 3 in one PR, then list step 1 for the user. Not checkable locally: a real iPhone.
 
-### 7.2 Home: Top collectors and Recent pulls the same height (Ready)
+### 7.2 Home: Top collectors and Recent pulls the same height (Done, #172, #199)
 
 On the home page the two cards sit side by side at different heights. Make both grid items stretch (`items-stretch`, each card `h-full flex flex-col`). The longer list scrolls inside its card (`overflow-y-auto min-h-0` on the list), or the shorter one pads with its "see all" footer pinned to the bottom. Pick whichever looks right at 1280px. At phone width they stack and keep their natural height. Run `scripts/sweep-public.mjs`.
 
-### 7.3 Card dex dialog: "First prints" goes, buttons move (Ready)
+### 7.3 Card dex dialog: "First prints" goes, buttons move (Done, #175)
 
 In `app/(site)/cards/CardDex.tsx`:
 - Remove the **First prints** block (the per-version #1 rows and the "~" note). The print pages and `/cards/<n>/copies` already show the same information.
@@ -396,7 +396,7 @@ In `app/(site)/cards/CardDex.tsx`:
 - Move **Add to Looking for** into the art column, directly under **Share this card**, and give it the same width and button style as Share.
 - Remove the `firsts` data from the dex payload if nothing else reads it (check `lib/dex-view.ts` and `/api/dex-card`).
 
-### 7.4 Trade board shows your own listings (Ready)
+### 7.4 Trade board shows your own listings (Done, #179)
 
 `app/(site)/trade/page.tsx` filters out the viewer's own listings (`t.from !== me`). Keep them on the board, in their usual place in the order, with:
 - a "Your listing" chip next to the title;
@@ -404,15 +404,15 @@ In `app/(site)/cards/CardDex.tsx`:
 - the board count, the filters and the search all including them. Matches (`bestMatches`) and the wanted counts still leave them out.
 Same treatment on `/trade/<id>` when the lister views their own listing (it may already do this; check). Extend `scripts/sweep-public.mjs` coverage if the board has no signed-in own-listing case in the seed.
 
-### 7.5 More than 8 Discord channels (Ready)
+### 7.5 More than 8 Discord channels (Done, #180)
 
 `MAX_DISCORD_CHANNELS` (`lib/discord-config.ts`) goes from 8 to **25**. Fan-out is already parallel with each failure kept separate, and every webhook has its own Discord rate limit, so the only cost is the settings JSON size (about 1 KB per channel, fine). In `DiscordConfig.tsx`, show more than 8 channel cards as a collapsed list (name, enabled dot, category summary, last-send status) that expands one card at a time. Extend the Discord check for the new cap.
 
-### 7.6 Admin dashboard opens on "Season" (Ready)
+### 7.6 Admin dashboard opens on "Season" (Done, #181)
 
 `app/admin/page.tsx`: when no `range` is in the URL, the default range is `season` instead of `7d`. `DashboardControls` marks it as selected. Check that every range-aware widget copes with a long season (the pulls chart already buckets by day; check the viewers widget, which is hard-wired to `7d` today, and label it "last 7 days" if it stays that way).
 
-### 7.7 Admin Settings tabs on phones (Ready)
+### 7.7 Admin Settings tabs on phones (Done, #184)
 
 On `/admin/settings` at 390px, panels overflow, panel edges don't line up, and some tabs leave empty space (the Environment tab is the example given). Pass over every tab:
 - `PageTabs` scroll sideways inside their own row instead of widening the page;
@@ -421,14 +421,14 @@ On `/admin/settings` at 390px, panels overflow, panel edges don't line up, and s
 - panels share one width and gap (`space-y-6`, full width), with no half-empty two-column rows at phone width.
 Add an admin pass to the sweep: either `scripts/sweep-admin.mjs` (password login against the mock KV, every Settings tab and the dashboard at 390px and 1280px, the same overflow / h1 / name rules as the public sweep), or a flag on `sweep-public.mjs`. Prefer the new script. Mention it in `docs/admin.md` and `docs/review.md`.
 
-### 7.8 New names for the two set bonuses (Needs a decision; default below)
+### 7.8 New names for the two set bonuses (Done, #189)
 
 "Completion bonus" and "Complete set bonus" sound alike. **Default:**
 - **Progress bonus**: grows with the share of the set you own (today's completion bonus).
 - **Full set bonus**: paid once you own every card (today's complete set bonus).
 Labels only: code identifiers, settings keys (`completionBonusPct`, `completeSetBonusPct`) and stored data stay the same. Change every user-facing place: account page, profile Score breakdown widget and ProfileTabs, leaderboard detail, `CardMathsPanel`, the FAQ (keep the old wording findable: "Progress bonus (it used to be called the completion bonus)" for a month), admin Scoring labels and help, share image text, Discord digest / recap if they name them. Add both old names to `scripts/check-words.mts` so they don't come back.
 
-### 7.9 Info tooltips (Ready, after 7.8)
+### 7.9 Info tooltips (Done, #198)
 
 A shared `InfoTip` client component in `app/components/InfoTip.tsx`: a small `info` icon button next to a term. It opens a short popover on hover, on keyboard focus and on tap (touch has no hover), closes on Esc / outside tap, uses `aria-describedby`, and stays inside the viewport at 390px. Text is plain strings from one map, `lib/glossary.ts` (`GLOSSARY: Record<TermId, { title, body, faq?: string }>`), with a "More in the FAQ" link when `faq` is set. That way the FAQ and the tooltips can't drift apart, and `check-words` can scan the file.
 First terms: progress bonus, full set bonus, edition bonus, edition, print number, points / worth, pull chance, score, rank, fairness label (trade), escrow ("held for this offer"), Reverse Holo / Full Art / Shiny, upgrade. Place them where each term is shown: score breakdowns (account, profile, leaderboard), card dex stats, print page, trade composer and stacks. Not in the Twitch panel (freeze).
@@ -437,7 +437,7 @@ First terms: progress bonus, full set bonus, edition bonus, edition, print numbe
 
 ## Track 8: Profiles
 
-### 8.1 Rarest finds shows rarest prints (Ready)
+### 8.1 Rarest finds shows rarest prints (Done, #176)
 
 The `rarest` widget (`app/u/[username]/widgets.tsx`) lists cards by pull chance. Make it list **prints**, and rename the widget **Rarest prints** (the id stays `rarest`; update `PROFILE_WIDGETS` title and description):
 - Rarity of a print = the pull chance of that card **in that version** (card pull rate x version odds, from the board values the widget already has). Ties go to the lower edition number, then the edition bonus.
@@ -445,11 +445,11 @@ The `rarest` widget (`app/u/[username]/widgets.tsx`) lists cards by pull chance.
 - Untracked season (no ledger): keep today's card-level list.
 Pure ordering helper in `lib/collection-view.ts` (`rarestPrints`) with cases in `scripts/check-collection-view.mts`.
 
-### 8.2 Showcase links to the print (Ready)
+### 8.2 Showcase links to the print (Done, #176)
 
 The `showcase` widget links each of its 3 tiles to `/cards?card=`. Link each tile to the actual print that earned its place (`topCopies` picks card + version; take the holder's most valuable print of it from the ledger, i.e. the best edition bonus, then the lowest edition), via `/c/<uid>`. Show `Print #...` under the points. Untracked season: keep the dex link.
 
-### 8.3 Recent pulls includes webhook grants (Ready)
+### 8.3 Recent pulls includes webhook grants (Done, #176)
 
 Cards granted through `/api/webhooks/grant-card` (channel points and the like) get `origin: 'grant'` and are left out by `pickRecentPulls` (`lib/recent-pulls-core.ts`), which keeps only `origin === 'pull'`. Change:
 - Accept `origin === 'grant'` as well. Show those rows with a small "Granted" label in place of the fate text when still held.
@@ -457,18 +457,18 @@ Cards granted through `/api/webhooks/grant-card` (channel points and the like) g
 - The activity-log fallback (untracked seasons) reads `grant` events as well as `pull`.
 - Update the widget description ("pulled or granted") and the FAQ if it describes the widget. Extend `scripts/check-recent-pulls*` (or the serials check) with a grant case.
 
-### 8.4 Edit bio and accent on the profile itself (Ready)
+### 8.4 Edit bio and accent on the profile itself (Done, #182)
 
 The owner sees an **Edit profile** button in `ProfileHeader` (owner only, which the page already knows). It turns the header into an inline editor: bio textarea (same `BIO_MAX`, live count), the accent picker (8.5), pronouns (8.6, when built), **Save** / **Cancel**. A client component `ProfileHeaderEditor` posts to a server action `saveProfileBasics({ bio, accent })` in `app/u/[username]/actions.ts`. The viewer comes from the session, never from the form. It writes through `sanitizeUserSettings`, then `revalidatePath` for the profile. Settings keeps the same fields with a note "You can also edit these on your profile".
 - The accent no longer needs the `accent` experiment: move it out of `EXPERIMENTS` (keep reading the stored `experiments` value harmlessly). It was experimental only because there were 6 colours; with 8.5 it is a normal setting. If the user would rather keep it experimental, the editor shows the accent control only when the experiment is on.
 
-### 8.5 Accent: more colours and a colour picker (Ready, with 8.4)
+### 8.5 Accent: more colours and a colour picker (Done, #182)
 
 - `ACCENTS` grows to 12 named swatches (add e.g. Lime, Teal, Sky, Indigo, Magenta, Slate).
 - **Custom colour:** `<input type="color">` plus a hex field. Stored as `accent: '#rrggbb'` (the sanitizer accepts a named id or a 7-char hex). `accentHex()` returns the hex for either.
 - **Readability guard:** the header text sits on the accent, so a custom colour is clamped in lightness on save (in `lib/palette.ts`, pure, e.g. HSL lightness 35% to 70%), and the editor previews the clamped result. Add cases to an existing palette check.
 
-### 8.6 Pronouns (Needs a decision; default below)
+### 8.6 Pronouns (Done, #196)
 
 `UserSettings.pronouns: { mode: 'none' | 'set' | 'alejo'; value?: string }`, shown after the display name on the profile header and the leaderboard detail (small, gray). **Default (recommended): mode `none` for everyone until they choose.** The alternative is `alejo` for everyone, which shows pronouns people set for Twitch chat without asking them; that is why it isn't the default.
 - **Pick:** a fixed list matching pr.alejo.io's set (he/him, she/her, they/them, he/they, she/they, they/he, they/she, any, it/its, ask me, other / none). No free text, so no moderation is needed.
@@ -476,7 +476,7 @@ The owner sees an **Edit profile** button in `ProfileHeader` (owner only, which 
 - Editable in Settings and in the 8.4 editor. Privacy Policy: the login is sent to pr.alejo.io only when the viewer picks that mode, and the answer is cached for a day. Bump `LEGAL_UPDATED`; add an FAQ line. Data export includes the setting.
 - Not in the Twitch panel (freeze).
 
-### 8.7 Profile layout presets (Ready)
+### 8.7 Profile layout presets (Done, #183)
 
 In the profile layout editor (`ProfileGrid.tsx`), a **Start from a preset** menu with 4 built-in layouts defined in `lib/profile-widgets.ts` (`PROFILE_PRESETS`, each a `ProfilePlacement[]` that passes `sanitizeProfileLayout`):
 - **Collector** (today's default),
@@ -485,15 +485,15 @@ In the profile layout editor (`ProfileGrid.tsx`), a **Start from a preset** menu
 - **Minimal** (score breakdown, showcase).
 Applying a preset replaces the draft layout (the owner still presses Save, and Cancel restores it). Add a pure check that every preset sanitizes to itself.
 
-### 8.8 Closed binder shows only its front cover (Ready)
+### 8.8 Closed binder shows only its front cover (Done, #187)
 
 `Binder.tsx`: in two-page mode the closed binder (the `cover` spread) draws a blank left page next to the cover. When the cover is showing, render only the right-hand cover page, centred, at single-page width, like a closed book. Opening animates it to the full spread (the cover swings left as the first turn does today); closing (going back to the cover) reverses it. Phone / single-page mode doesn't change. Check the share-image path (`Share this page` on the cover renders the cover alone) and `prefers-reduced-motion`.
 
-### 8.9 Owner picks binder or grid as the visitors' default (Ready)
+### 8.9 Owner picks binder or grid as the visitors' default (Done, #187)
 
 `UserSettings.collectionView: 'grid' | 'binder'` (default `grid`, today's behaviour). The collection tab opens in that view for visitors who haven't picked one. A visitor's own toggle still wins for that visit (URL `?view=`). Set it in the binder editor ("Show visitors the binder first") and in Settings. Sanitizer, settings check and export include it.
 
-### 8.10 "Share my stats" shows stats (Ready)
+### 8.10 "Share my stats" shows stats (Done, #192)
 
 The account page's **Share my stats** image (`shareSpec` in `app/(site)/account/page.tsx`) is mostly 6 card thumbnails. Make it a stats card. New `stats` layout in `lib/share-image.ts` (alongside the existing card layouts):
 - name, `@login`, season; big rank and score;
@@ -502,7 +502,7 @@ The account page's **Share my stats** image (`shareSpec` in `app/(site)/account/
 - the rarity colour of their rarest print as the accent, and the site footer as today.
 Keep the profile Share menu's own images unchanged. The ShareStudio preview shows the new layout. Add a share-image spec check case if one exists.
 
-### 8.11 More obvious "turn on alerts" prompt on phones (Ready)
+### 8.11 More obvious "turn on alerts" prompt on phones (Done, #194)
 
 Today the only prompt is a one-off toast after the first trade offer (`NotificationBell.tsx`, `tcg_push_offered`). Add a banner component `PushPrompt` shown to a signed-in viewer on a phone or installed app when push is supported, the permission is `default`, and this device has no subscription:
 - where: the top of `/account` and `/trade`, and the notifications page;
@@ -516,7 +516,7 @@ Pure "should show" helper in `lib/push-client.ts` (or a new `push-prompt-core.ts
 
 ## Track 9: Trading rules
 
-### 9.1 Favourite prints can't be traded (Ready)
+### 9.1 Favourite prints can't be traded (Done, #174)
 
 - **Data:** `UserSettings.favourites: number[]`, print numbers (`Copy.uid`), at most 50. Prints without a uid can't be favourited (button hidden, "Number existing copies" fixes it). A favourite is checked against the live owner whenever it is used, like `pinned`: a favourite that has left them (an admin move) simply stops counting.
 - **Marking:** a heart toggle **Favourite** on the print page (owner only), in the 2.5 print view of the card dialog, and on the profile Showcase print. Server action, viewer from the session. The pinned print is **not** automatically a favourite.
@@ -531,7 +531,7 @@ Pure "should show" helper in `lib/push-client.ts` (or a new `push-prompt-core.ts
 - Words: FAQ under trading ("Can I protect a print from being traded?"), and the export includes favourites.
 - Checks: extend `scripts/check-trades.mts` (picked favourite refused, newest-first skips favourites, only-favourites refusal, taker side, favourite set after offering) and the upgrade check.
 
-### 9.2 Staff can reverse a completed trade (Ready)
+### 9.2 Staff can reverse a completed trade (Done, #188)
 
 For mistakes and abuse: a staff action that puts every print in a completed trade back where it started.
 - **Who:** admins and mods (`roleCan(role, 'mod')`). A reason is required. It is logged with the staff name (audit + `ActivityEvent.staff`) and sent to the Discord **admin** category.
@@ -545,7 +545,7 @@ For mistakes and abuse: a staff action that puts every print in a completed trad
 
 ## Track 10: Staff and admin
 
-### 10.1 Staff stay signed in while the activity feed is open (Ready)
+### 10.1 Staff stay signed in while the activity feed is open (Done, #173)
 
 The staff cookie (`lib/staff-token.ts`) lasts a fixed hour. Page loads get a fresh one through `/auth/staff` (the viewer session lasts 30 days), but the activity feed only polls `/api/admin/activity`, so after an hour the polls fail and the feed stops.
 - **Sliding renewal:** `requireStaff` in `lib/staff-guard.ts`, which already re-checks the live staff list on every call, re-issues the staff cookie when it has less than 30 minutes left, with the current role from the staff list. That means any API call or action renews it, and a removed staff member is never renewed. Add `iat` (first issue) to the token and stop renewing after 12 hours, so a session can't run forever without a real sign-in through `/auth/staff`. No change to `middleware.ts` (its CORS rules are frozen; the coarse gate works as before).
@@ -553,11 +553,11 @@ The staff cookie (`lib/staff-token.ts`) lasts a fixed hour. Page loads get a fre
 - Same 401 handling for the dashboard's polling widgets, if any poll.
 - Check: token renewal window and the 12-hour cap as pure cases in the staff check.
 
-### 10.2 Dashboard layout per staff member (Ready)
+### 10.2 Dashboard layout per staff member (Done, #178)
 
 `lib/dashboard-data.ts` stores one layout (`admin:dashboard`). Make it per person: `admin:dashboard:<login>`. On read, fall back to the shared `admin:dashboard` (today's saved layout, so nobody loses theirs), then `DEFAULT_LAYOUT`. On save, write the person's key. The emergency password login (no Twitch login) keeps using the shared key. Saved presets (`admin:dashboard:presets`) stay shared, labelled **Team layouts** with who saved each. Notes (`admin:dashboard:notes`) stay shared on purpose (a team scratchpad); the widget says "Shared with all staff".
 
-### 10.3 Built-in dashboard layout presets (Ready, after 10.2)
+### 10.3 Built-in dashboard layout presets (Done, #191)
 
 Four built-in layouts in `lib/dashboard.ts` (`BUILTIN_PRESETS`, each passing `sanitizeLayout`), listed above the team layouts in the preset menu:
 - **Stream night**: live status, overlay controls, activity, pulls chart (24h), quick actions, stream recap.
@@ -566,7 +566,7 @@ Four built-in layouts in `lib/dashboard.ts` (`BUILTIN_PRESETS`, each passing `sa
 - **Minimal**: overview, attention, quick actions.
 Applying one replaces the person's own layout (with the existing undo / cancel, if the editor has one; otherwise a confirm). A pure check that each sanitizes to itself.
 
-### 10.4 Pick the still frame of an animated card (Ready)
+### 10.4 Pick the still frame of an animated card (Done, #185)
 
 The static thumbnail of an animated upload is always the first frame (`toThumb` in the upload path), and that frame is sometimes blank or mid-transition.
 - **Data:** `Card.stillUrl?: string`, a chosen still. A helper `cardStill(card)` returns `stillUrl ?? cardThumbUrl(card.imageUrl)` (and the same for `fullArtImageUrl` with `fullArtStillUrl?`). Replace the direct `cardThumbUrl(card.imageUrl)` calls that render a card's static art (grep; share images, OG images, the dex, the profile, Discord embeds), so the choice shows everywhere. The normalizer leaves old cards unchanged.
@@ -575,7 +575,7 @@ The static thumbnail of an animated upload is always the first frame (`toThumb` 
 - Draft packs (wizard) store it on the draft card too.
 - Check: a small check for the URL guard and `cardStill` fallback. Not checkable locally: Blob writes (mock the put in the check, test the UI against the mock KV with a bundled card, whose still upload will fail without Blob; say so in the PR).
 
-### 10.5 Redesign the admin Prints screen (Needs a decision; proposal below)
+### 10.5 Redesign the admin Prints screen (Done, #190)
 
 The request only says "redesign". **Proposed** (the user confirms or says what bothers them today):
 - **Top:** summary tiles (prints made this season, held / in offers / retired, last numbered, numbering status with the "Number existing copies" action) and one search box that takes a print number (`#1023381` or `1023381`), a login or a card name.
@@ -588,14 +588,14 @@ Status changes to Ready once the user agrees (or adjusts).
 
 ## Track 11: Help and feedback
 
-### 11.1 Changelog page (Ready)
+### 11.1 Changelog page (Done, #177)
 
 `/changelog` (public, indexable, in `PUBLIC_PAGES` and the sitemap): "What's new", newest first. Entries are hand-written in `lib/changelog.ts` (`{ date: 'YYYY-MM-DD', title, items: string[], tags?: ('new' | 'improved' | 'fixed')[] }`), written for players, not developers. Seed it with the player-facing work from #144 to #169 grouped into a handful of entries.
 - Link from the footer and the site menu. A small dot on the menu link when the newest entry is newer than the viewer's last visit to `/changelog` (`localStorage`, try/catch).
 - **Rule for later PRs** (add to `CLAUDE.md` Conventions and the PR checklist in `docs/review.md`): a player-facing change adds or extends a changelog entry in the same PR.
 - `check-words` scans the file (no em dashes, print wording).
 
-### 11.2 Suggestions, feedback and problem reports (Ready)
+### 11.2 Suggestions, feedback and problem reports (Done, #186)
 
 One inbox for both, since they share everything but the form:
 - **Page:** `/feedback` (noindex) with two tabs: **Suggest something** (title, details) and **Report a problem** (what happened, what you expected, page URL prefilled from `?from=`, and a tickbox, on by default, "include my device and app version": user agent, build stamp, screen size). Signed in only ("Log in with Twitch to send feedback"), Turnstile like trades, 5 sends per viewer per day, length caps.
@@ -606,7 +606,7 @@ One inbox for both, since they share everything but the form:
 - **Words:** FAQ entry; Privacy Policy (what is stored, how long: kept until resolved plus 90 days, then deleted by a sweep on the admin page load, and the device details only when ticked). Bump `LEGAL_UPDATED`. The data export includes the viewer's own feedback.
 - Check: `scripts/check-feedback.mts` (validation, rate limit, status change notice, Discord gating, sandbox silence).
 
-### 11.3 Request account deletion (Ready, after 11.2)
+### 11.3 Request account deletion (Done, #193)
 
 Today the FAQ says to email. Add a self-serve **request**; an admin still does the deleting, because a deletion retires prints other people's journeys point to.
 - **Settings** → bottom, "Delete my account": explains what happens (collection, prints, trades, settings and notices removed; prints they hold are retired and show "a removed collector" in journeys; open offers cancelled; it can't be undone), then a typed confirmation of their login and **Request deletion**. Turnstile. The request goes into the 11.2 inbox as kind `deletion` (its own filter and its own red count), and the viewer sees "Requested on <date>. Cancel request" until it's handled.
@@ -620,6 +620,14 @@ Today the FAQ says to email. Add a self-serve **request**; an admin still does t
 Ship as one reviewed panel version: choosing prints when trading (6.4: composer and accept picker, exact serial preview), favourite prints (9.1: hearts and disabled picks), "Reversed by staff" on reversed trades (9.2), achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
 
 ## Done (recent)
+
+- Tracks 7 to 11 (the second Discord list), all merged 2026-10-16:
+  - Track 7: iPhone icon (#171), equal-height home widgets (#172, finished in #199), card dex dialog (#175), own listings on the trade board (#179), up to 25 Discord channels (#180), dashboard opens on Season (#181), admin Settings on phones (#184), new bonus names (#189), info tooltips with `lib/glossary.ts` (#198).
+  - Track 8: rarest prints, showcase links and granted cards (#176), inline profile editor with more accents and a picker (#182), layout presets (#183), binder cover and visitors' default view (#187), share-my-stats image (#192), turn-on-alerts banner (#194), pronouns (#196).
+  - Track 9: favourite prints (#174), staff reverse a completed trade (#188).
+  - Track 10: staff stay signed in on the feed (#173), dashboard layout per staff member (#178) and presets (#191), still frame of animated cards (#185), Prints screen redesign (#190).
+  - Track 11: changelog page (#177), feedback inbox (#186), account deletion request (#193).
+  - Also: Discord "Send last activity" now respects the channel's filters (#197), footer link columns (#195).
 
 - Track 6: wanted counts on listings (#166), print of the week (#167), choose which print to trade (#168), weekly digest in Discord (#169).
 
