@@ -8,7 +8,7 @@ import { cardThumbUrl } from '@/lib/card-art';
 import { getRarity } from '@/lib/rarity';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { Avatar } from '@/app/components/Avatar';
-import { CATEGORIES, cardNumberOf, categoryOf, groupEvents, notableReason, plainText, rateStats, toCsv, type Category, type Group } from '@/lib/activity-view';
+import { CATEGORIES, cardNumberOf, categoryOf, groupEvents, notableReason, plainText, pullFacts, rateStats, toCsv, type Category, type Group } from '@/lib/activity-view';
 import { EventDetail } from './EventDetail';
 import { PrintLink, PrintSeasons } from './PrintLink';
 import { SummaryStrip } from './SummaryStrip';
@@ -207,17 +207,17 @@ export function ActivityFeed({
   const matches = useCallback((e: ActivityEvent) => {
     if (prefs.categories.length > 0 && !prefs.categories.includes(categoryOf(e))) return false;
     if (viewer && e.username !== viewer) return false;
-    if (prefs.newOnly && !(e.type === 'pull' && e.isNew)) return false;
+    if (prefs.newOnly && !pullFacts(e)?.isNew) return false;
     if (prefs.variants.length > 0) {
-      const v = e.type === 'pull' ? e.variant ?? 'regular' : e.type === 'upgrade' ? e.to : null;
+      const v = pullFacts(e)?.variant ?? (e.type === 'upgrade' ? e.to : null);
       if (!v || !prefs.variants.includes(v)) return false;
     }
     if (prefs.stars.length > 0) {
-      const stars = e.type === 'pull' ? e.stars : cardNumberOf(e) !== undefined ? cardIndex(cardNumberOf(e)!)?.stars : undefined;
+      const stars = e.type === 'pull' ? e.stars : e.type === 'grant' && e.stars !== undefined ? e.stars : cardNumberOf(e) !== undefined ? cardIndex(cardNumberOf(e)!)?.stars : undefined;
       if (stars === undefined || !prefs.stars.includes(stars)) return false;
     }
     if (prefs.pack) {
-      const pack = e.type === 'pull' ? e.packName : cardNumberOf(e) !== undefined ? cardIndex(cardNumberOf(e)!)?.packName : undefined;
+      const pack = e.type === 'pull' ? e.packName : e.type === 'grant' && e.packName ? e.packName : cardNumberOf(e) !== undefined ? cardIndex(cardNumberOf(e)!)?.packName : undefined;
       if (pack !== prefs.pack) return false;
     }
     if (needle && !plainText(e, cardName).toLowerCase().includes(needle)) return false;
