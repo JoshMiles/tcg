@@ -159,7 +159,9 @@ function describe(e: ActivityEvent, d: DashboardData): { icon: IconName; text: s
   const v = (x?: string) => (x && x !== 'regular' ? ` (${VARIANT_LABELS[x as keyof typeof VARIANT_LABELS] ?? x})` : '');
   switch (e.type) {
     case 'pull': return { icon: 'cards', text: `${e.username} pulled ${e.cardName || cardName(e.cardNumber)}${v(e.variant)}${e.isNew ? ', new!' : ''}` };
-    case 'grant': return { icon: 'gift', text: `${e.username} was granted ${cardName(e.cardNumber)}${v(e.variant)}` };
+    case 'grant': return e.source === 'webhook'
+      ? { icon: 'cards', text: `${e.username} pulled ${e.cardName || cardName(e.cardNumber)}${v(e.variant)}${e.isNew ? ', new!' : ''} (webhook)` }
+      : { icon: 'gift', text: `${e.username} was granted ${cardName(e.cardNumber)}${v(e.variant)}` };
     case 'remove': return { icon: 'trash', text: `${cardName(e.cardNumber)} removed from ${e.username}` };
     case 'upgrade': return { icon: 'sparkles', text: `${e.username} upgraded ${e.cardName || cardName(e.cardNumber)} to ${VARIANT_LABELS[e.to]}` };
     case 'trade': {

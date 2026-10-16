@@ -186,6 +186,28 @@ for (let i = 0; i < 25; i++) {
   await d.notifyDiscord(event());
 }
 ok((await d.getDiscordSettings()).channels[0].enabled, 'one success in the last 20 keeps a channel on');
+// ── Webhook grants read and post like pulls ──
+await d.saveDiscordSettings({ enabled: true, channels: [
+  { id: 'wp', name: 'Pulls', url: hook(61), enabled: true, categories: cats({ pulls: true }), minStars: 3, newOnly: false },
+  { id: 'wc', name: 'Cards', url: hook(62), enabled: true, categories: cats({ cards: true }), minStars: 1, newOnly: false },
+] });
+hits.length = 0;
+const wg = (over: Record<string, unknown> = {}) => ({ type: 'grant', source: 'webhook', username: 'alice', cardNumber: 1, variant: 'shiny', cardName: 'Gouda Goat', stars: 4, packName: 'Base', isNew: true, copies: 1, uniqueOwned: 5, serial: 1, seq: 9, at: Date.now(), ...over }) as never;
+await d.notifyDiscord(wg());
+ok(hits.length === 1 && hits[0].path.includes('/61/'), 'a webhook grant goes to the Pulls channel, not the Cards channel');
+const emb = hits[0].body.embeds[0] as { title?: string; description?: string; fields?: { name: string }[] };
+ok(/★★★★ Gouda Goat/.test(emb.title ?? '') && /pulled/.test(emb.description ?? '') && /FIRST EVER/.test(emb.description ?? '') && /NEW!/.test(emb.description ?? ''), 'it looks like a pull: stars, pulled, first ever, new');
+ok(/Granted by webhook/.test(emb.description ?? ''), 'and says it was granted by webhook');
+ok(['Pack', 'Collected', 'Edition'].every(n => emb.fields?.some(f => f.name === n)), 'with the same Pack, Collected and Edition fields');
+hits.length = 0;
+await d.notifyDiscord(wg({ stars: 2 }));
+ok(hits.length === 0, 'the Pulls channel star filter applies to it');
+hits.length = 0;
+await d.notifyDiscord(wg({ source: 'admin' }));
+ok(hits.length === 1 && hits[0].path.includes('/62/') && /Card granted/.test(hits[0].body.embeds[0].title ?? ''), 'an admin grant still goes to the Cards channel as before');
+hits.length = 0;
+await d.notifyDiscord(wg({ stars: undefined, packName: undefined, cardName: undefined, uniqueOwned: undefined, isNew: undefined, copies: undefined, serial: undefined }));
+ok(hits.length === 1 && /Granted by webhook/.test(hits[0].body.embeds[0].description ?? ''), 'an older webhook grant without the extra facts still posts');
 // ── Trade listings (3.4) ──
 await d.saveDiscordSettings({
   enabled: true,
