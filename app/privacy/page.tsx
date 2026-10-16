@@ -193,7 +193,7 @@ export default function PrivacyPage() {
           <li>Collections, profiles and leaderboard data are kept until you ask us to delete them or the streamer removes them (for example when resetting a season).</li>
           <li>The activity log keeps only the latest 500 events. Cached profile pictures refresh weekly. Bell notices keep only your newest 30, and score samples your newest 120 per season.</li>
           <li>The tester list entry is kept until a tester is removed or deletes their account (the tester achievement on a profile stays unless the account is deleted).</li>
-          <li>Feedback and user reports are kept until they have been dealt with and for {FEEDBACK_LIMITS.keepDaysAfterResolved} days after that, then deleted. You can send {FEEDBACK_LIMITS.perDay} feedback messages and {FEEDBACK_LIMITS.reportsPerDay} reports a day.</li>
+          <li>Feedback and user reports are kept until they have been dealt with and for {FEEDBACK_LIMITS.keepDaysAfterResolved} days after that, then deleted. You can send {FEEDBACK_LIMITS.perDay} a day, and up to {FEEDBACK_LIMITS.reportsPerDay} reports a day.</li>
           <li>Before a moderator or the channel owner resets, merges or deletes a viewer&rsquo;s cards, a restore point of that viewer&rsquo;s collection is kept for 14 days so a mistake can be undone.</li>
           <li>An encrypted backup of the game data is made every night so it can be recovered after a mistake or an outage. Backups are kept for up to 14 days, so deleted data can remain in them for that long.</li>
           <li>Hosting logs and analytics are kept for the period set by our hosting provider.</li>
