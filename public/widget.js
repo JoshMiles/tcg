@@ -999,7 +999,7 @@ function drawCard(username, opts) {
     saved = Promise.resolve(show.serial ? { serial: show.serial, serialMult: show.serialMult || 1, uid: show.uid || 0 } : null);
   } else if (!opts.dry) {
     revealedCardsByUser[user].push(entry);
-    saved = saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName, ...(opts.payId ? { payId: opts.payId } : {}) });
+    saved = saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName, ...(opts.ticket ? { ticket: opts.ticket } : {}) });
   } else if (!PREVIEW) {
     // Test panel (dry run): nothing is saved, so show a sample serial to see how the badge looks.
     const n = opts.sampleSerial || 1 + Math.floor(Math.random() * 30);
@@ -1276,7 +1276,7 @@ async function pollWebhookQueue() {
     if (!res.ok) return;
     const event = await res.json();
     if (!event) return;
-    if (event.type === 'pull')       queueDraw(event.username, event.paid ? { payId: event.id } : undefined);
+    if (event.type === 'pull')       queueDraw(event.username, event.draw ? { packId: event.draw.packId, cardNumber: event.draw.cardNumber, variant: event.draw.variant, ticket: event.id } : undefined);
     else if (event.type === 'collection') queueCollection(event.username);
     else if (event.type === 'card' && event.cardNumber != null) queueShowCard(event.username, event);
   } catch {

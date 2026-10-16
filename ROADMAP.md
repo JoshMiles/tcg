@@ -360,6 +360,7 @@ Asked (2026-10-16): "should be able to select which print of a card when trading
 | 12.1 | Mix It Up settings tab (connection, price, message) | Done (#201) | M |
 | 12.2 | Paid pulls: balance check, deduct, revoke | Done (#201) | L |
 | 12.3 | Limits per stream per viewer | Done (#201) | S |
+| 13.1 | Lock down `/api/collection`: server-rolled pulls with one-use tickets | Done (this PR) | M |
 
 ### Tracks 7 to 11: order
 
@@ -638,8 +639,8 @@ Settings gets a tab **Mix It Up** (id `mixitup`, icon `coins`) with its own KV k
 
 1. `POST /api/webhooks/pull` (existing; secret and live gate unchanged). If Mix It Up is on: check the viewer's limit (12.3), then `POST balanceUrl` `{ action: 'balance', secret, username, currency }`. The reply must be 2xx JSON with a number at `balanceField`. Count what the viewer already has in flight (`mixitup:pending:<user>`) so ten fast requests cannot spend one balance ten times: the balance must cover `price x (pending + 1)`.
 2. Not enough, over the limit, or no answer: nothing is queued; the webhook answers `{ ok: true, ignored: true, reason, message }` where `reason` is `insufficient_balance | limit_reached | mixitup_unavailable | bad_balance` and `message` is a sentence Mix It Up can post to chat.
-3. Enough: reserve (`mixitup:pay:<eventId>` = viewer, price, stream key, 1 h TTL; pending and stream count go up) and queue the pull with `paid: true` and the event id as before. The overlay passes that id (`payId`) back when it saves the pull.
-4. `POST /api/collection` (pull with a `payId`): adds the print, then `POST deductUrl` `{ action: 'deduct', secret, username, amount, currency, message, pullId }` and waits (5 s). Mix It Up's reply counts as applied when it is 2xx and has no `ok`, `success` or `applied` set to `false`.
+3. Enough: reserve (`mixitup:pay:<eventId>` = viewer, price, stream key, 12 h TTL; pending and stream count go up) and queue the pull with `paid: true` and the event id as before. The overlay passes that id back as the ticket when it saves the pull.
+4. `POST /api/collection` (pull with its ticket, see 13.1): adds the print, then `POST deductUrl` `{ action: 'deduct', secret, username, amount, currency, message, pullId }` and waits (5 s). Mix It Up's reply counts as applied when it is 2xx and has no `ok`, `success` or `applied` set to `false`.
 5. Applied: carry on as today (activity, outgoing Card Pulled webhook). Not applied: **revoke**: the print is removed and retired in the copy ledger (the same change as the admin "remove this print", reason "payment failed"), the stream count goes back down, no pull is recorded, and the reply is `{ ok: true, revoked: true, owned }` so the overlay resyncs. The log records it, and the system Discord channel gets a notice (`notifySystem`, tone `warn`).
 6. The reservation is single-use (`del` decides who owns it), so a repeated save cannot charge twice.
 
@@ -650,6 +651,22 @@ Settings gets a tab **Mix It Up** (id `mixitup`, icon `coins`) with its own KV k
 **Files:** `lib/mixitup-core.ts` (settings, cleaning, template, reply parsing, stream key, decisions; pure), `lib/mixitup.ts` (KV, calls, reserve / settle / revoke, log), `app/admin/settings/MixItUpConfig.tsx` + actions in `app/admin/settings/mixitup-actions.ts`, hooks in `app/api/webhooks/pull/route.ts`, `app/api/collection/route.ts`, `public/widget.js` (pass `payId`), `scripts/check-mixitup.mts` (fake Mix It Up, mock KV: price, limit, pending, revoke, double settle), `docs/admin.md` + `docs/overlay.md` notes, changelog: none (staff-only).
 
 **Known limits:** `/api/collection` is open today (the overlay saves through it), so someone who finds the URL could already add prints; paid pulls do not make that worse but do not fix it. Closing it needs a signed save token from the queue (a separate item). A reply that is lost after Mix It Up applied the deduction would revoke a paid pull; the viewer can be refunded by hand from the log.
+
+---
+
+## Track 13: Lock down the collection API (added 2026-10-16, at the owner's request)
+
+### 13.1 Server-rolled pulls with one-use tickets (Done)
+
+Problem: `POST /api/collection` (and `DELETE`) had no auth because the overlay, a browser source with no login, saves through it, and the overlay chose the card itself. Anyone who found the URL could add any card for anyone, overwrite a collection or reset it.
+
+Fix: **the server decides the pull, the overlay only plays it.** `lib/draw.ts`: when a pull is queued (the pull webhook, dashboard gifts) the server rolls pack, card and version with the same odds the overlay used (pack weight, card probability, the pack's version weights and switches), stores a one-use **ticket** `draw:<id>` (12 h; viewer, collection, card, version, names) and puts the roll on the queue event (`draw`). The overlay plays exactly that (the test panel's pinned-draw path) and saves with `ticket: <event id>`. `/api/collection`:
+- a pull is saved only against an unspent ticket for the same viewer; the card, version, names and collection come **from the ticket**, never from the request (a forged or replayed save gets 401 and adds nothing);
+- replacing a collection (`data`) and `DELETE` need a staff session (`isAuthenticated`); the overlay's test-panel Reset buttons therefore only work in a browser signed in to the admin;
+- `GET` stays public (the same data is on the profile pages).
+The Mix It Up reservation shares the ticket's id (12 h TTL, `releasePaidPull` returns it if a pull is never queued). `scripts/check-draw.mts` covers the odds, tickets and the route.
+
+**Still open (separate items):** `GET /api/webhooks/queue` is unauthenticated, so anyone can take a queued pull before the overlay does (the viewer's pull is lost; a paid one is not charged and its reservation expires); `POST /api/webhooks/notify` can be used to add "collection shown" activity and fire the outgoing webhook. Both need an overlay key. Pulls queued before this change have no ticket and are not saved when played.
 
 ---
 
