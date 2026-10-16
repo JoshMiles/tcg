@@ -8,6 +8,7 @@ import {
   type PropDef, type PropValue, type PropValues, type VariantId,
 } from '@/lib/overlay-props';
 import { DEFAULT_LAYOUT, DEFAULT_PLACEMENT, LAYOUT_PRESETS, VERTICAL_LAYOUT_PRESETS, isVertical, sanitizeLayout, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { MOMENT_IDS, type MomentId } from '@/lib/overlay-moments';
 import { diffLayout, diffProps } from '@/lib/overlay-diff';
 import { PERF_LABEL, variantPerf, type PerfLevel } from '@/lib/overlay-perf';
 import { deleteOverlayVersionAction, refreshOverlayAction, setSeasonLookAction } from '../overlay-actions';
@@ -27,6 +28,7 @@ type Snap = { g: PropValues; p: Record<string, PropValues>; l: Record<string, Ov
 type Bg = 'checker' | 'dark' | 'light' | 'green' | 'image';
 const PERF_STYLE: Record<PerfLevel, string> = { light: 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10', medium: 'text-amber-300 border-amber-400/30 bg-amber-500/10', heavy: 'text-red-300 border-red-400/30 bg-red-500/10' };
 type Mode = 'pack' | 'collection';
+type MomentPick = '' | MomentId;
 
 const VARIANT_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' };
 
@@ -48,6 +50,11 @@ function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean 
     if (/^holo(Colors|Opacity|Speed|Angle|Blend|Loop)$/.test(name)) return { key: `${g}.holoMode`, when: v => v !== 'off' };
     if (/^burst(Opacity|Size|Rays|Speed|Color|Hue)$/.test(name)) return { key: `${g}.burst`, when: v => v === true };
   }
+  const mo = key.match(/^moment\.(firstPull|newCard)\.(.+)$/);
+  if (mo && mo[2] !== 'on') return { key: `moment.${mo[1]}.on`, when: v => v === true };
+  if (/^reveal\.firstEver(Text|Hold)$/.test(key)) return { key: 'reveal.firstEver', when: v => v === true };
+  const fe = key.match(/^moment\.firstEver\.(.+)$/);
+  if (fe) return { key: 'reveal.firstEver', when: v => v === true };
   if (key === 'reveal.gotText') return { key: 'reveal.showGotLine', when: v => v === true };
   if (key === 'collection.headingText') return { key: 'collection.showHeading', when: v => v === true };
   return null;
@@ -101,6 +108,7 @@ export function OverlayEditor({
   const initialActiveLayout = initialLayoutMap[layoutKey] ?? initialLayout;
   const [category, setCategory] = useState('pack');
   const [version, setVersion] = useState<VariantId>('regular');   // the variant being edited AND previewed
+  const [moment, setMoment] = useState<MomentPick>('');            // which special moment the preview plays
   const [mode, setMode] = useState<Mode>('pack');                  // which view the canvas shows
   const [variantOpen, setVariantOpen] = useState(false);          // Variants: false = the variant picker, true = editing `version`
   const [focusKey, setFocusKey] = useState('');                    // a section to scroll into view after a click on the preview
@@ -339,7 +347,7 @@ export function OverlayEditor({
   const play = () => {
     if (!ready || playing) return;
     setPlaying(true);
-    post({ type: mode });
+    post({ type: mode, moment: mode === 'pack' ? moment : undefined });
     setTimeout(() => setPlaying(false), mode === 'pack' ? 13000 : 9000);
   };
 
@@ -1050,6 +1058,14 @@ export function OverlayEditor({
               />
             )}
             {mode === 'pack' && (
+              <Segmented
+                label="Moment"
+                value={moment}
+                onChange={v => setMoment(v as MomentPick)}
+                options={[{ id: '', label: 'None' }, ...MOMENT_IDS.map(m => ({ id: m, label: m === 'firstEver' ? 'First-ever' : m === 'firstPull' ? 'First pull' : 'New card' }))]}
+              />
+            )}
+            {mode === 'pack' && (
               <div className="flex items-center gap-1.5">
                 {!isPack && packs.length > 1 && (
                   <select value={pickPack} onChange={e => { setPickPack(e.target.value); setPickCard(0); }} aria-label="Preview pack" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-[9rem]">
@@ -1141,7 +1157,7 @@ export function OverlayEditor({
                   onClick={() => {
                     setCategory(g.id);
                     setQuery('');
-                    if (g.id === 'pack' || g.id === 'variants') setMode('pack');
+                    if (g.id === 'pack' || g.id === 'variants' || g.id === 'moments') setMode('pack');
                     if (g.id === 'collection') setMode('collection');
                     if (g.id === 'variants') setVariantOpen(false);
                   }}

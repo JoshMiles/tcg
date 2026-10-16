@@ -80,6 +80,7 @@ export type VariantId = (typeof VARIANT_IDS)[number];
 export const PROP_GROUPS: PropGroup[] = [
   { id: 'pack', label: 'Pack opening', icon: 'cards', description: 'How a pulled card is revealed: the animation, the card, its label and details, the light burst, and the row of cards under it.' },
   { id: 'variants', label: 'Variants', icon: 'sparkles', description: 'Pick a card variant, then edit how it looks: label, holo shimmer, glow, motion and sound.' },
+  { id: 'moments', label: 'Special moments', icon: 'sparkles', description: "Banners for the pulls worth a cheer: the first print ever made of a card, a viewer's very first pull, and a card that is new to them. One plays per pull, the highest first." },
   { id: 'collection', label: 'Collection', icon: 'board', description: "The \"show collection\" view: a viewer's whole card grid." },
 ];
 
@@ -177,6 +178,41 @@ function variantPropsRaw(v: VariantId): PropDef[] {
   ];
 }
 
+// ── Special moments ──
+// Three moments share one set of look controls (`momentProps`); the first-ever print keeps its original `reveal.firstEver*`
+// keys for on / text / hold so saved looks carry over (group membership is metadata only). Defaults reproduce the old banner.
+export const MOMENT_BANNER_DEFAULT_BG = ['#ffe27a', '#f1bb06', '#fff2b0', '#f1bb06'];
+
+const MOMENT_STYLE_OPTIONS = [{ value: 'inherit', label: 'Same as the pack opening' }, ...REVEAL_STYLES.map(x => ({ value: x.value, label: x.label + (x.experimental ? ' (experimental)' : '') }))];
+
+function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
+  const m = `moment.${id}`;
+  const first = id === 'firstEver';
+  const who = first ? 'the very first print ever made of a card in a version (edition #1)' : id === 'firstPull' ? "a viewer's very first card in this season" : 'a card the viewer has not had before';
+  const g = 'moments';
+  return [
+    first
+      ? { key: 'reveal.firstEver', group: g, label: 'First-ever moment', type: 'boolean', default: true, help: "When a pull is edition #1 (the very first print ever made of that card in that version) the overlay adds a banner and a burst of sparkles, and keeps the card up a little longer. Needs the season's prints to be numbered." }
+      : { key: `${m}.on`, group: g, label: id === 'firstPull' ? 'First-pull moment' : 'New-card moment', type: 'boolean', default: false, help: `Adds a banner when a pull is ${who}. Off by default.` },
+    first
+      ? { key: 'reveal.firstEverText', group: g, label: 'Banner text', type: 'text', default: 'FIRST EVER!', maxLength: 30 }
+      : { key: `${m}.text`, group: g, label: 'Banner text', type: 'text', default: id === 'firstPull' ? 'Welcome, {username}!' : 'NEW CARD!', maxLength: 40, help: 'Use {username} for the viewer and {cardName} for the card.' },
+    { key: `${m}.subText`, group: g, label: 'Small line', type: 'text', default: '', maxLength: 40, help: first ? 'Empty shows "edition #1" and the version. Use {username} / {cardName}.' : 'Empty shows a short default line. Use {username} / {cardName}.' },
+    { key: `${m}.bgColors`, group: g, label: 'Banner colours', type: 'colors', default: first ? MOMENT_BANNER_DEFAULT_BG : ['#8b5cf6', '#ec4899'], minItems: 1, maxItems: 4, help: 'One colour is solid; more make a gradient.' },
+    { key: `${m}.textColor`, group: g, label: 'Text colour', type: 'color', default: first ? '#1a1205' : '#ffffff' },
+    { key: `${m}.textSize`, group: g, label: 'Text size', type: 'number', default: 26, min: 12, max: 60, step: 1, unit: 'px' },
+    { key: `${m}.position`, group: g, label: 'Position on the card', type: 'select', default: 'top', options: [{ value: 'top', label: 'Top' }, { value: 'middle', label: 'Middle' }, { value: 'bottom', label: 'Bottom' }] },
+    { key: `${m}.sparkles`, group: g, label: 'Sparkle amount', type: 'number', default: first ? 44 : 0, min: 0, max: 80, step: 1, help: 'A burst of sparkles when the banner appears. 0 for none.' },
+    { key: `${m}.sparkleColor`, group: g, label: 'Sparkle colour', type: 'color', default: '#ffe27a' },
+    { key: `${m}.sound`, group: g, label: 'Sound', type: 'text', default: '', maxLength: 300, help: 'An audio file address (for example from the Assets page), played over the card sound. Empty is silent.' },
+    { key: `${m}.volume`, group: g, label: 'Sound volume', type: 'number', default: 1, min: 0, max: 1, step: 0.05, unit: '×' },
+    first
+      ? { key: 'reveal.firstEverHold', group: g, label: 'Extra time on screen', type: 'number', default: 2.5, min: 0, max: 10, step: 0.5, unit: 's', help: 'How much longer the card stays up for this moment.' }
+      : { key: `${m}.hold`, group: g, label: 'Extra time on screen', type: 'number', default: id === 'firstPull' ? 2 : 1, min: 0, max: 10, step: 0.5, unit: 's', help: 'How much longer the card stays up for this moment.' },
+    { key: `${m}.style`, group: g, label: 'Reveal animation', type: 'select', default: 'inherit', options: MOMENT_STYLE_OPTIONS, help: first ? 'Give this moment its own entrance. The overlay waits for the server to confirm the print is edition #1 before it starts, which adds a fraction of a second to that pull only (and only while this is not "Same as the pack opening").' : 'Give this moment its own entrance.' },
+  ];
+}
+
 export const PROPS: PropDef[] = [
   // ── Pack opening ──
   { key: 'reveal.style', group: 'pack', label: 'Reveal animation', type: 'select', default: 'classic', options: REVEAL_STYLES.map(s => ({ value: s.value, label: s.label + (s.experimental ? ' (experimental)' : '') })), help: 'How the pulled card appears.' },
@@ -194,9 +230,6 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.showLabel', group: 'pack', label: 'Label above the card', type: 'boolean', default: true, help: 'The tag: "new", or the version name.' },
   { key: 'reveal.showSerial', group: 'pack', label: 'Edition number on the card', type: 'boolean', default: true, help: 'The edition this print got ("#7": the 7th of that card and version ever made), with its points bonus when it is one of the first prints. Needs the season\'s prints to be numbered.' },
   { key: 'reveal.serialFormat', group: 'pack', label: 'Number shown on the card', type: 'select', default: 'edition', options: [{ value: 'edition', label: 'Edition (#7)' }, { value: 'uid', label: 'Print number (#1023381)' }, { value: 'both', label: 'Both (edition, with the print number under it)' }], help: 'Which number the pill shows: the edition (the 7th of that card and version) or the print\'s own game-wide number. Falls back to the edition when the print has no number yet. Needs the season\'s prints to be numbered.' },
-  { key: 'reveal.firstEver', group: 'pack', label: 'First-ever moment', type: 'boolean', default: true, help: 'When a pull is edition #1 (the very first print ever made of that card in that version) the overlay adds a gold banner and a burst of sparkles, and keeps the card up a little longer. Needs the season\'s prints to be numbered.' },
-  { key: 'reveal.firstEverText', group: 'pack', label: 'First-ever banner text', type: 'text', default: 'FIRST EVER!', maxLength: 30 },
-  { key: 'reveal.firstEverHold', group: 'pack', label: 'First-ever extra time', type: 'number', default: 2.5, min: 0, max: 10, step: 0.5, unit: 's', help: 'How much longer the card stays up for a first-ever pull.' },
   { key: 'reveal.labelOwned', group: 'pack', label: 'Label for a card they already own', type: 'text', default: '', maxLength: 30, help: 'Regular pulls say "new" even when it is a duplicate. Put a word here (e.g. "again") to use it for cards the viewer already has. Empty keeps the normal label.' },
   { key: 'reveal.showInfoBar', group: 'pack', label: 'Name and stars bar', type: 'boolean', default: true, help: 'The card name and star rating at the bottom of the card.' },
   { key: 'reveal.showGotLine', group: 'pack', label: '"… got:" line', type: 'boolean', default: true },
@@ -216,6 +249,11 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.stripShowMarkers', group: 'pack', label: 'Show a sparkle on upgraded cards', type: 'boolean', default: true },
   { key: 'reveal.stripBorderColor', group: 'pack', label: 'Card border colour', type: 'color', default: '#ffffff', help: 'The outline around collected cards.' },
   { key: 'reveal.stripPlaceholderColor', group: 'pack', label: 'Placeholder colour', type: 'color', default: '#f1bb06', help: 'The fill of uncollected "?" cards.' },
+
+  // ── Special moments ──
+  ...momentProps('firstEver'),
+  ...momentProps('firstPull'),
+  ...momentProps('newCard'),
 
   // ── Collection view ──
   { key: 'collection.perRow', group: 'collection', label: 'Cards per row', type: 'number', default: 0, min: 0, max: 30, step: 1, help: '0 = fit as many as the width allows (the original). Otherwise rows hold exactly this many.' },
@@ -264,7 +302,9 @@ function sectionFor(key: string): string {
     [/^reveal.(style|speed|startDelay|packScale|packSounds)$/, 'Animation'],
     [/^reveal.cardScale$/, 'Card'],
     [/^reveal.(showLabel|labelSize|labelOwned|showSerial|serialFormat)$/, 'Label'],
-    [/^reveal.firstEver/, 'First-ever moment'],
+    [/^(reveal\.firstEver|moment\.firstEver\.)/, 'First-ever print'],
+    [/^moment\.firstPull\./, "A viewer's first pull"],
+    [/^moment\.newCard\./, 'A new card for them'],
     [/^reveal.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
     [/^reveal.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],
     [/^show\./, 'Show a card (chat command)'],
@@ -281,9 +321,10 @@ function sectionFor(key: string): string {
 
 /** The order sections appear in within a category (anything unlisted follows). */
 export const SECTION_ORDER = [
-  'Animation', 'Card', 'Label', 'First-ever moment', 'Name and stars bar', '"got:" line',
+  'Animation', 'Card', 'Label', 'Name and stars bar', '"got:" line',
   'Show a card (chat command)', 'Reveal animation', 'Holographic shimmer', 'Glow', 'Pop-in', '3D tilt', 'Rocking', 'Light burst', 'Sparkles', 'Time and sound',
   'Cards under the card', 'Strip layout', 'Strip card look',
+  'First-ever print', "A viewer's first pull", 'A new card for them',
   'Layout', 'What to show', 'Timing', 'Card look',
 ];
 

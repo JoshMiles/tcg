@@ -18,6 +18,41 @@ const kvLib = await import('../lib/kv');
 const sbx = await import('../lib/sandbox');
 const { runInSandbox, prodKv } = await import('../lib/db');
 
+// ── Pure: special moments (ROADMAP 18.1) ──
+{
+  const { pickMoment, MOMENT_IDS } = await import('../lib/overlay-moments');
+  const { PROPS, MOMENT_BANNER_DEFAULT_BG } = await import('../lib/overlay-props');
+  // Defaults reproduce today's overlay: the first-ever banner is on with its old text / hold / look, the new moments are off.
+  ok(DEFAULT_PROPS['reveal.firstEver'] === true && DEFAULT_PROPS['reveal.firstEverText'] === 'FIRST EVER!' && DEFAULT_PROPS['reveal.firstEverHold'] === 2.5, 'first-ever keeps its old defaults');
+  eq(DEFAULT_PROPS['moment.firstEver.bgColors'], MOMENT_BANNER_DEFAULT_BG, 'first-ever banner colours are the old gold');
+  ok(DEFAULT_PROPS['moment.firstEver.textColor'] === '#1a1205' && DEFAULT_PROPS['moment.firstEver.textSize'] === 26 && DEFAULT_PROPS['moment.firstEver.position'] === 'top' && DEFAULT_PROPS['moment.firstEver.sparkles'] === 44 && DEFAULT_PROPS['moment.firstEver.sound'] === '' && DEFAULT_PROPS['moment.firstEver.style'] === 'inherit', 'first-ever look defaults match the old banner');
+  ok(DEFAULT_PROPS['moment.firstPull.on'] === false && DEFAULT_PROPS['moment.newCard.on'] === false, 'first pull and new card moments are off by default');
+  ok(DEFAULT_PROPS['moment.firstPull.text'] === 'Welcome, {username}!', 'first-pull banner text default');
+  ok(PROPS.filter(d => d.group === 'moments').length >= 36 && PROPS.every(d => d.group !== 'pack' || !/firstEver/.test(d.key)), 'the moment keys live in the moments group');
+  ok(new Set(PROPS.filter(d => d.group === 'moments').map(d => d.section)).size === 3, 'three sections');
+  // Priority: one moment per pull, the highest wins.
+  const on = { firstEver: true, firstPull: true, newCard: true };
+  const off = { firstEver: false, firstPull: false, newCard: false };
+  ok(pickMoment({ firstEver: true, firstForViewer: true, isNew: true }, on) === 'firstEver', 'first-ever beats first pull and new card');
+  ok(pickMoment({ firstForViewer: true, isNew: true }, on) === 'firstPull', 'first pull beats new card');
+  ok(pickMoment({ isNew: true }, on) === 'newCard', 'new card alone');
+  ok(pickMoment({ firstEver: true, firstForViewer: true, isNew: true }, { ...on, firstEver: false }) === 'firstPull', 'a disabled moment falls through to the next');
+  ok(pickMoment({ firstEver: true, firstForViewer: true, isNew: true }, off) === null && pickMoment({}, on) === null, 'nothing when off or nothing happened');
+  // The widget mirrors the helper: run its copy over every combination.
+  const { readFileSync } = await import('node:fs');
+  const w = readFileSync('public/widget.js', 'utf8');
+  const fn = w.match(/function pickMoment\(facts, enabled\) \{[\s\S]*?\r?\n\}/)![0];
+  const widgetPick = new Function(fn + '; return pickMoment;')() as typeof pickMoment;
+  let same = true;
+  for (let m = 0; m < 64; m++) {
+    const f = { firstEver: !!(m & 1), firstForViewer: !!(m & 2), isNew: !!(m & 4) };
+    const e = { firstEver: !!(m & 8), firstPull: !!(m & 16), newCard: !!(m & 32) };
+    if (widgetPick(f, e) !== pickMoment(f, e)) same = false;
+  }
+  ok(same, 'widget.js pickMoment agrees with lib/overlay-moments.ts');
+  ok(MOMENT_IDS.every(id => w.includes("'" + id + "'")), 'widget knows every moment id');
+}
+
 // ── Pure: perf ──
 const base = (over: Record<string, unknown> = {}) => (k: string) => (over[k] !== undefined ? over[k] : DEFAULT_PROPS[k]) as never;
 const light = perf.variantPerf(base({ 'variant.regular.glow': false, 'variant.regular.rock': false, 'variant.regular.pop': false, 'variant.regular.holoMode': 'off', 'variant.regular.burst': false }), 'regular');

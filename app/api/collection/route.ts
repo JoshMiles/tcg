@@ -72,6 +72,9 @@ export async function POST(req: NextRequest) {
   const mult = serial ? serialMultiplier(serial, await getScoringSettings()) : 1;
 
   const { cardNumber, variant } = decodeEntry(entry);
+  // What this pull meant for the viewer (the overlay's special moments use these).
+  const isNew = !before?.[username]?.some(e => decodeEntry(e).cardNumber === cardNumber);
+  const firstForViewer = !before?.[username]?.length;
   await recordActivity({
     type: 'pull',
     username,
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest) {
     stars: ticket.stars,
     packName: ticket.packName,
     variant,
-    isNew: !before?.[username]?.some(e => decodeEntry(e).cardNumber === cardNumber),
+    isNew,
     copies: owned.filter(e => decodeEntry(e).cardNumber === cardNumber).length,
     uniqueOwned: new Set(owned.map(e => decodeEntry(e).cardNumber)).size,
     ...(serial ? { serial, ...(mult > 1 ? { bonus: Math.round(mult * 100) / 100 } : {}) } : {}),
@@ -95,7 +98,7 @@ export async function POST(req: NextRequest) {
     })
   ).catch(() => {});
 
-  return NextResponse.json({ ok: true, owned, serial, uid, serialMult: Math.round(mult * 100) / 100 });
+  return NextResponse.json({ ok: true, owned, serial, uid, serialMult: Math.round(mult * 100) / 100, isNew, firstForViewer });
 }
 
 // Resetting collections is an admin tool (the overlay's test panel, opened while signed in).
