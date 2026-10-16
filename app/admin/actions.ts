@@ -27,7 +27,7 @@ import { deleteUnusedBlobs } from '@/lib/assets';
 import { getOverlayStatus } from '@/lib/overlay';
 import { getActivity } from '@/lib/activity';
 import {
-  saveDiscordSettings, cleanDiscordInput, notifyAdminLog, postToDiscord, buildMessage, buildTestMessage,
+  saveDiscordSettings, cleanDiscordInput, notifyAdminLog, deliver, buildMessage, buildTestMessage,
 } from '@/lib/discord';
 import { currentStaffLogin } from '@/lib/staff-actor';
 import type { ActionResult } from './action-types';
@@ -719,11 +719,11 @@ export async function discordAction(_prev: ActionResult | null, formData: FormDa
 
   let result;
   if (kind === 'test') {
-    result = await postToDiscord(channel.url, buildTestMessage());
+    result = await deliver(channel, buildTestMessage(), 'test');
   } else {
     const { events } = await getActivity({ limit: 1 });
     if (!events[0]) return { ok: false, message: 'There is no activity to send yet.' };
-    result = await postToDiscord(channel.url, await buildMessage(events[0], { footer: 'Resent from admin' }));
+    result = await deliver(channel, await buildMessage(events[0], { footer: 'Resent from admin' }), 'last');
   }
 
   if (!result.ok) {

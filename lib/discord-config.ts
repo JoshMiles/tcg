@@ -12,7 +12,14 @@ export interface DiscordChannel {
   categories: Record<DiscordCategory, boolean>;
   minStars: number;     // pulls below this rarity are skipped
   newOnly: boolean;     // pulls: only announce cards the viewer didn't have yet
+  /** Set when the channel was switched off automatically after repeated failed sends (cleared when it is switched on again). */
+  offReason?: string;
 }
+
+/** One send attempt, newest first in the channel's delivery log. */
+export interface DiscordLogEntry { at: number; kind: string; ok: boolean; status: number; error?: string }
+
+export const DISCORD_LOG_CAP = 20;
 
 export interface DiscordSettings {
   /** Master switch: off silences every channel. */

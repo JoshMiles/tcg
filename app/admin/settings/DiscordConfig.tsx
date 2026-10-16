@@ -5,7 +5,7 @@ import { ArmedButton } from '../components/ArmedButton';
 import { useActionState, useId, useState } from 'react';
 import {
   DEPLOY_STEPS, DISCORD_CATEGORIES, DISCORD_PRESETS, MAX_DISCORD_CHANNELS, presetChannel,
-  type DiscordChannel, type DiscordSettings,
+  type DiscordChannel, type DiscordLogEntry, type DiscordSettings,
 } from '@/lib/discord-config';
 import type { ActionResult } from '../action-types';
 import { discordAction } from '../actions';
@@ -29,7 +29,7 @@ const MIN_STARS = [
  * activity" post using whatever is currently typed (so a webhook can be verified before saving). The whole settings object
  * travels in one hidden JSON field, so the controlled state below is the single source of truth.
  */
-export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
+export function DiscordConfig({ settings, logs = {} }: { settings: DiscordSettings; logs?: Record<string, DiscordLogEntry[]> }) {
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(discordAction, null);
   const [enabled, setEnabled] = useState(settings.enabled);
   const [channels, setChannels] = useState<DiscordChannel[]>(settings.channels);
@@ -77,6 +77,7 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
             <ChannelCard
               key={c.id}
               channel={c}
+              log={logs[c.id] ?? []}
               pending={pending}
               onChange={p => patch(c.id, p)}
               onRemove={() => setChannels(cs => cs.filter(x => x.id !== c.id))}
@@ -132,8 +133,9 @@ export function DiscordConfig({ settings }: { settings: DiscordSettings }) {
   );
 }
 
-function ChannelCard({ channel: c, pending, onChange, onRemove }: {
+function ChannelCard({ channel: c, log, pending, onChange, onRemove }: {
   channel: DiscordChannel;
+  log: DiscordLogEntry[];
   pending: boolean;
   onChange: (p: Partial<DiscordChannel>) => void;
   onRemove: () => void;
@@ -146,14 +148,22 @@ function ChannelCard({ channel: c, pending, onChange, onRemove }: {
         <label htmlFor={`${uid}-name`} className="sr-only">Channel name</label>
         <input id={`${uid}-name`} value={c.name} onChange={e => onChange({ name: e.target.value })} maxLength={40} className={`${inputClass} font-semibold w-48`} />
         <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
-          <input type="checkbox" checked={c.enabled} onChange={e => onChange({ enabled: e.target.checked })} className="accent-yellow-500 w-4 h-4" />
+          <input type="checkbox" checked={c.enabled} onChange={e => onChange({ enabled: e.target.checked, ...(e.target.checked ? { offReason: undefined } : {}) })} className="accent-yellow-500 w-4 h-4" />
           On
         </label>
+        {log[0] && (
+          <span className={`inline-flex items-center gap-1.5 text-xs ${log[0].ok ? 'text-gray-500' : 'text-red-300'}`}>
+            <span className={`w-2 h-2 rounded-full ${log[0].ok ? 'bg-green-500' : 'bg-red-500'}`} aria-hidden />
+            {log[0].ok ? 'Last send worked' : 'Last send failed'}
+          </span>
+        )}
         <span className="flex-1" />
         <ArmedButton onConfirm={onRemove} className="text-xs font-bold text-gray-500 hover:text-red-300 transition-colors" armedClassName="text-xs font-bold text-red-300">
           <Icon name="trash" className="mr-1" />Remove
         </ArmedButton>
       </div>
+
+      {c.offReason && <p role="status" className="text-sm rounded-lg px-3 py-2 border text-amber-200 bg-amber-500/10 border-amber-400/30"><Icon name="warning" className="mr-1" />{c.offReason}. Fix the webhook, then tick On and Save.</p>}
 
       <div className="space-y-1.5">
         <label htmlFor={`${uid}-url`} className="block text-xs text-gray-500 font-bold uppercase tracking-wider">Webhook URL</label>
@@ -209,6 +219,22 @@ function ChannelCard({ channel: c, pending, onChange, onRemove }: {
           </label>
         </div>
       </div>
+
+      {log.length > 0 && (
+        <details className="text-xs text-gray-400">
+          <summary className="cursor-pointer select-none font-semibold text-gray-300">Recent sends ({log.length})</summary>
+          <ul className="mt-2 space-y-1">
+            {log.map(e => (
+              <li key={`${e.at}-${e.kind}`} className="flex flex-wrap items-baseline gap-x-2">
+                <span className={`w-1.5 h-1.5 rounded-full self-center ${e.ok ? 'bg-green-500' : 'bg-red-500'}`} aria-hidden />
+                <span className="tabular-nums text-gray-500">{new Date(e.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</span>
+                <span className="text-gray-300">{e.kind}</span>
+                <span className={e.ok ? 'text-gray-500' : 'text-red-300'}>{e.ok ? `HTTP ${e.status}` : `${e.error ?? 'Failed'}${e.status ? ` (HTTP ${e.status})` : ''}`}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <PendingButton type="submit" name="intent" value={`test:${c.id}`} disabled={pending} className={secondaryBtn} title="Posts a sample message using the URL above. Nothing is saved">
