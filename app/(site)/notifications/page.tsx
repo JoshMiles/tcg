@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
+import { PushPrompt } from '@/app/components/site/PushPrompt';
 import { getSession } from '@/lib/session';
 import { listNotices } from '@/lib/trade-notify';
 import { NoticeList } from './NoticeList';
@@ -15,6 +16,7 @@ export default async function NotificationsPage() {
   const { notices, seen } = await listNotices(session.username);
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <PushPrompt />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl font-bold text-white"><Icon name="bell" className="mr-2 text-yellow-400" />Notifications</h1>

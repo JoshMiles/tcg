@@ -1,4 +1,5 @@
 import { Icon } from '@/app/components/Icon';
+import { PushPrompt } from '@/app/components/site/PushPrompt';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSession, loginConfigured } from '@/lib/session';
@@ -69,6 +70,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
+      <PushPrompt />
       <header className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
