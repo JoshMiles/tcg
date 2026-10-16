@@ -12,7 +12,7 @@ import type { WeeklyDigest } from './weekly-digest';
 import { discordText, type FeedbackItem } from './feedback-core';
 import { SITE_URL } from './site';
 import { copyHrefFor } from './copy-link';
-import { DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
+import { FEEDBACK_FILTER_KINDS, type FeedbackFilterKind, DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
 
 export { DISCORD_CATEGORIES, DEFAULT_DISCORD } from './discord-config';
 export type { DiscordCategory, DiscordChannel, DiscordSettings } from './discord-config';
@@ -32,6 +32,16 @@ function normalizeCategories(raw: Partial<Record<DiscordCategory, boolean>> | un
   return cats;
 }
 
+/** A channel's feedback filter: only known kinds, once each; all four (or no list) means "everything", which is stored as no list. An empty list is kept (the channel gets no feedback). */
+export function cleanFeedbackKinds(raw: unknown): { feedbackKinds?: FeedbackFilterKind[] } {
+  if (!Array.isArray(raw)) return {};
+  const kinds = FEEDBACK_FILTER_KINDS.filter(k => raw.includes(k));
+  return kinds.length === FEEDBACK_FILTER_KINDS.length ? {} : { feedbackKinds: kinds };
+}
+
+/** Does this channel want a feedback post of this kind? (Whether it has Feedback ticked is checked by the caller.) */
+export const wantsFeedbackKind = (c: Pick<DiscordChannel, 'feedbackKinds'>, kind: FeedbackFilterKind): boolean => !c.feedbackKinds || c.feedbackKinds.includes(kind);
+
 function normalizeChannel(c: Partial<DiscordChannel> | null | undefined, fallbackId: string): DiscordChannel {
   const id = typeof c?.id === 'string' ? c.id.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20) : '';
   return {
@@ -42,6 +52,7 @@ function normalizeChannel(c: Partial<DiscordChannel> | null | undefined, fallbac
     categories: normalizeCategories(c?.categories),
     minStars: clampStars(c?.minStars),
     newOnly: !!c?.newOnly,
+    ...cleanFeedbackKinds(c?.feedbackKinds),
     ...(!c?.enabled && typeof c?.offReason === 'string' && c.offReason ? { offReason: c.offReason.slice(0, 300) } : {}),
   };
 }
@@ -446,11 +457,11 @@ function later(run: () => Promise<void>): void {
 }
 
 /** Posts one prepared message to every channel that is on and has `category` ticked. Never throws. */
-async function sendToCategory(category: DiscordCategory, body: DiscordPayload): Promise<void> {
+async function sendToCategory(category: DiscordCategory, body: DiscordPayload, feedbackKind?: FeedbackFilterKind): Promise<void> {
   try {
     const settings = await getDiscordSettings();
     if (!settings.enabled) return;
-    await Promise.allSettled(settings.channels.filter(c => c.enabled && c.url && c.categories[category]).map(c => deliver(c, body, category)));
+    await Promise.allSettled(settings.channels.filter(c => c.enabled && c.url && c.categories[category] && (!feedbackKind || wantsFeedbackKind(c, feedbackKind))).map(c => deliver(c, body, category)));
   } catch { /* never breaks the action */ }
 }
 
@@ -564,7 +575,7 @@ export async function notifyFeedback(item: FeedbackItem): Promise<void> {
         ...(item.from ? [{ name: 'Page', value: discordText(item.from, 200), inline: true }] : []),
       ],
     });
-    later(() => sendToCategory('feedback', body));
+    later(() => sendToCategory('feedback', body, item.kind));
   } catch { /* never breaks the send */ }
 }
 

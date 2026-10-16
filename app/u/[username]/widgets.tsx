@@ -372,8 +372,8 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           {a.earned.length > 0 && (
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Earned achievements">
               {a.earned.map(x => (
-                <li key={x.id} title={x.detail} className="flex items-center gap-2.5 rounded-xl border border-yellow-500/30 bg-yellow-500/[0.06] px-3 py-2">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-500/15 text-yellow-300"><Icon name={x.icon} /></span>
+                <li key={x.id} title={x.detail} className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 ${x.seasonId === 'special' ? 'border-purple-400/50 bg-gradient-to-r from-yellow-500/10 to-purple-500/15' : 'border-yellow-500/30 bg-yellow-500/[0.06]'}`}>
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${x.seasonId === 'special' ? 'bg-purple-500/20 text-purple-200' : 'bg-yellow-500/15 text-yellow-300'}`}><Icon name={x.icon} /></span>
                   <span className="min-w-0 text-sm">
                     <span className="block font-semibold text-white truncate">{x.title}</span>
                     <span className="block text-[11px] text-gray-500 truncate">{x.seasonName} · {new Date(x.earnedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>

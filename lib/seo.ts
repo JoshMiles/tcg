@@ -20,14 +20,19 @@ export const INDEXED_PATHS: { path: string; priority: number; changeFrequency: '
   { path: '/terms', priority: 0.2, changeFrequency: 'monthly' },
 ];
 
+/** The public pages that stay reachable (and listed) while the site is closed to testers. */
+export const OPEN_WHEN_CLOSED = ['/faq', '/privacy', '/terms'];
+
 /** Pages that exist but must stay out of search (signed-in, admin, utility). Anything not here or in INDEXED_PATHS fails the check. */
-export const NOINDEX_PATHS = ['/account', '/settings', '/notifications', '/feedback', '/trade', '/trade/new', '/trade/[id]', '/auth/error', '/login', '/admin', '/mod', '/offline'];
+export const NOINDEX_PATHS = ['/account', '/settings', '/notifications', '/feedback', '/trade', '/trade/new', '/trade/[id]', '/auth/error', '/closed', '/login', '/admin', '/mod', '/offline'];
 
 export interface SitemapEntry { url: string; lastModified?: Date; changeFrequency: 'hourly' | 'daily' | 'weekly' | 'monthly'; priority: number }
 
 /** Entries for the sitemap: the fixed pages plus one leaderboard per published season. */
-export function buildSitemap(base: string, seasons: { id: string; status?: string; createdAt?: number }[], now = new Date()): SitemapEntry[] {
+export function buildSitemap(base: string, seasons: { id: string; status?: string; createdAt?: number }[], now = new Date(), closed = false): SitemapEntry[] {
   const root = base.replace(/\/$/, '');
+  // While the site is closed (alpha / beta), only the pages that stay open to everyone are listed.
+  if (closed) return INDEXED_PATHS.filter(p => OPEN_WHEN_CLOSED.includes(p.path)).map(p => ({ url: `${root}${p.path}`, lastModified: now, changeFrequency: p.changeFrequency, priority: p.priority }));
   const fixed = INDEXED_PATHS.map(p => ({ url: `${root}${p.path === '/' ? '' : p.path}`, lastModified: now, changeFrequency: p.changeFrequency, priority: p.priority }));
   const boards = seasons
     .filter(s => s.status !== 'draft')

@@ -58,7 +58,9 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
     Object.assign(stored, add);
   }
 
-  const earned = sortAchievements(Object.values(stored).map(a => ({ ...a, earned: true })));
+  // Tester achievements (pseudo-season `special`, written by lib/access.ts) are kept as they are and listed first.
+  const sorted = sortAchievements(Object.values(stored).map(a => ({ ...a, earned: true })));
+  const earned = [...sorted.filter(a => a.seasonId === 'special'), ...sorted.filter(a => a.seasonId !== 'special')];
   const earnedIds = new Set(earned.map(a => a.id));
   const activeSeasons = new Set((await listSeasons().catch(() => [])).filter(s => s.active && !s.endedAt).map(s => s.id));
   const next = sortAchievements(live.filter(a => !earnedIds.has(a.id) && activeSeasons.has(a.seasonId) && a.have > 0));

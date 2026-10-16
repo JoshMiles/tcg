@@ -22,6 +22,27 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     date: '2026-10-16',
+    title: 'Closed alpha and beta testing',
+    tags: ['new'],
+    items: [
+      'While the Cheesy TCG is being tested, the website can be limited to invited testers. If you are not on the list yet you will see a "closed" page; log in with Twitch and ask in the Discord to be added. The FAQ, Privacy and Terms stay open, and the Twitch panel keeps working.',
+      'Testers earn a permanent Alpha tester or Beta tester achievement, shown first on their profile.',
+    ],
+  },
+  {
+    date: '2026-10-16',
+    title: 'Open your most valuable prints',
+    tags: ['improved'],
+    items: ['Each row in Most valuable prints, on My Stats and on profiles, now opens that print. A row that groups several prints of a card opens the card in the card dex.'],
+  },
+  {
+    date: '2026-10-16',
+    title: 'A wider "live now" banner on the home page',
+    tags: ['improved'],
+    items: ['When Cheesygidds is streaming, the live banner now spans the top of the home page with the stream title, viewer count and a Watch on Twitch button.'],
+  },
+  {
+    date: '2026-10-16',
     title: 'The app icon only shows where it helps',
     tags: ['improved'],
     items: ['The install icon in the top bar now only appears on phones and tablets. On a computer you can still find the install guide in the footer and the site menu.'],

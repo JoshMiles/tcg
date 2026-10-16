@@ -1,3 +1,4 @@
+import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireViewer } from '@/lib/trade-api';
 import { captchaGate } from '@/lib/captcha-server';
@@ -8,6 +9,8 @@ export const dynamic = 'force-dynamic';
 
 // Send a suggestion or problem report. Signed in only, Turnstile like trades, 5 a day per viewer. Who sent it comes from the session.
 export async function POST(req: NextRequest) {
+  const closed = await siteClosedResponse();
+  if (closed) return closed;
   const viewer = await requireViewer(req);
   if ('response' in viewer) return viewer.response;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;

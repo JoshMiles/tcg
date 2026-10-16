@@ -4,7 +4,7 @@ import { PendingButton } from '../components/PendingButton';
 import { ArmedButton } from '../components/ArmedButton';
 import { useActionState, useId, useState } from 'react';
 import {
-  DEPLOY_STEPS, DISCORD_CATEGORIES, DISCORD_PRESETS, MAX_DISCORD_CHANNELS, presetChannel,
+  DEPLOY_STEPS, DISCORD_CATEGORIES, FEEDBACK_FILTER_KINDS, FEEDBACK_FILTER_OPTIONS, DISCORD_PRESETS, MAX_DISCORD_CHANNELS, presetChannel,
   type DiscordChannel, type DiscordLogEntry, type DiscordSettings,
 } from '@/lib/discord-config';
 import type { ActionResult } from '../action-types';
@@ -218,7 +218,8 @@ function ChannelCard({ channel: c, log, pending, onChange, onRemove }: {
       <fieldset className="space-y-2">
         <legend className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">What to post</legend>
         {DISCORD_CATEGORIES.map(cat => (
-          <label key={cat.key} className="flex items-start gap-3 cursor-pointer select-none">
+          <div key={cat.key} className="space-y-2">
+          <label className="flex items-start gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={c.categories[cat.key]}
@@ -230,6 +231,29 @@ function ChannelCard({ channel: c, log, pending, onChange, onRemove }: {
               <span className="block text-xs text-gray-600">{cat.hint}</span>
             </span>
           </label>
+          {cat.key === 'feedback' && c.categories.feedback && (
+                <div className="ml-7 -mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                  {FEEDBACK_FILTER_OPTIONS.map(o => {
+                    const on = !c.feedbackKinds || c.feedbackKinds.includes(o.key);
+                    return (
+                      <label key={o.key} className="inline-flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={e => {
+                            const cur = c.feedbackKinds ?? FEEDBACK_FILTER_KINDS;
+                            const next = e.target.checked ? [...new Set([...cur, o.key])] : cur.filter(k => k !== o.key);
+                            onChange({ feedbackKinds: next.length === FEEDBACK_FILTER_KINDS.length ? undefined : FEEDBACK_FILTER_KINDS.filter(k => next.includes(k)) });
+                          }}
+                          className="accent-yellow-500 w-3.5 h-3.5"
+                        />
+                        {o.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+          </div>
         ))}
       </fieldset>
 

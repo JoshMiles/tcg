@@ -1,3 +1,4 @@
+import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason } from '@/lib/kv';
 import { createTrade } from '@/lib/trades';
@@ -8,6 +9,8 @@ export const dynamic = 'force-dynamic';
 
 // Make an offer: direct (to one viewer) or a listing on the open board. The copies offered are taken into escrow immediately.
 export async function POST(req: NextRequest) {
+  const closed = await siteClosedResponse();
+  if (closed) return closed;
   const viewer = await requireViewer(req);
   if ('response' in viewer) return viewer.response;
 
