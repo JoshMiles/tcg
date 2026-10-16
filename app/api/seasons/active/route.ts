@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
-import { cardThumbUrl } from '@/lib/card-art';
+import { stillFor } from '@/lib/card-art';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +16,8 @@ export async function GET() {
       pack,
       cards: cards.map(c => ({
         ...c,
-        thumbUrl: cardThumbUrl(c.imageUrl),
-        ...(c.fullArtImageUrl && { fullArtThumbUrl: cardThumbUrl(c.fullArtImageUrl) }),
+        thumbUrl: stillFor(c, c.imageUrl),
+        ...(c.fullArtImageUrl && { fullArtThumbUrl: stillFor(c, c.fullArtImageUrl) }),
       })),
     })),
   });

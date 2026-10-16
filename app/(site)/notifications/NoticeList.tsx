@@ -45,6 +45,7 @@ export function NoticeList({ initial, initialSeen }: { initial: Notice[]; initia
                   <p className="text-sm leading-snug text-gray-200 break-words">{n.text}</p>
                   <p className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
                     <span>{timeLabel(n.at)}</span>
+                    {n.kind === 'feedback' && <Link href="/feedback" className="font-semibold text-yellow-400 hover:text-yellow-300">See your feedback</Link>}
                     {n.kind === 'watch' && <Link href="/trade?tab=board" className="font-semibold text-yellow-400 hover:text-yellow-300">See the listing</Link>}
                     {(n.kind === 'offer' || n.kind === 'countered') && <Link href="/trade" className="font-semibold text-yellow-400 hover:text-yellow-300">View offer</Link>}
                   </p>

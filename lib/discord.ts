@@ -2,12 +2,13 @@ import { kv, inSandbox } from './db';
 import { after } from 'next/server';
 import type { ActivityEvent } from './activity';
 import { getActiveSeasonWithPacks } from './kv';
-import { cardThumbUrl } from './card-art';
+import { cardThumbUrl, stillFor, type StillFields } from './card-art';
 import { getRarity } from './rarity';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
 import { VARIANT_LABELS } from './variants';
 import type { StreamRecap } from './stream-recap';
 import type { WeeklyDigest } from './weekly-digest';
+import { discordText, type FeedbackItem } from './feedback-core';
 import { SITE_URL } from './site';
 import { copyHrefFor } from './copy-link';
 import { DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
@@ -185,8 +186,8 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
     const href = 'uid' in e || 'serial' in e ? copyHrefFor(e, active?.season.id ?? '') : null;
     return href ? { url: SITE_URL + href } : {};
   };
-  const thumb = (imageUrl?: string): Pick<Embed, 'thumbnail'> =>
-    imageUrl ? { thumbnail: { url: absolute(cardThumbUrl(imageUrl)) } } : {};
+  const thumb = (imageUrl?: string, card?: Partial<StillFields>): Pick<Embed, 'thumbnail'> =>
+    imageUrl ? { thumbnail: { url: absolute(stillFor(card ?? {}, imageUrl)) } } : {};
 
   switch (e.type) {
     case 'pull': {
@@ -194,7 +195,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
       const rarity = getRarity(e.stars);
       return payload({
         ...base,
-        ...thumb(card?.imageUrl),
+        ...thumb(card?.imageUrl, card),
         ...printUrl(),
         color: rarity ? hexToInt(rarity.hex) : GOLD,
         title: `${'★'.repeat(e.stars)} ${esc(e.cardName || card?.name || `#${e.cardNumber}`)}`,
@@ -208,17 +209,17 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
     }
     case 'grant': {
       const card = cardFor(e.cardNumber);
-      return payload({ ...base, ...thumb(card?.imageUrl), color: GREEN, title: '🎁 Card granted',
+      return payload({ ...base, ...thumb(card?.imageUrl, card), color: GREEN, title: '🎁 Card granted',
         description: `**${esc(card?.name ?? `Card #${e.cardNumber}`)}** → **${esc(e.username)}**\n${e.source === 'webhook' ? 'via webhook' : 'by an admin'}` });
     }
     case 'remove': {
       const card = cardFor(e.cardNumber);
-      return payload({ ...base, ...thumb(card?.imageUrl), color: RED, title: '🗑️ Card removed',
+      return payload({ ...base, ...thumb(card?.imageUrl, card), color: RED, title: '🗑️ Card removed',
         description: `**${esc(card?.name ?? `Card #${e.cardNumber}`)}** removed from **${esc(e.username)}**` });
     }
     case 'upgrade': {
       const card = cardFor(e.cardNumber);
-      return payload({ ...base, ...thumb(card?.imageUrl), ...printUrl(), color: GOLD, title: '✨ Card upgraded',
+      return payload({ ...base, ...thumb(card?.imageUrl, card), ...printUrl(), color: GOLD, title: '✨ Card upgraded',
         description: `**${esc(e.username)}** upgraded **${esc(e.cardName || card?.name || `#${e.cardNumber}`)}** to **${VARIANT_LABELS[e.to]}** (${e.cost}× ${VARIANT_LABELS[e.from]})`,
         fields: [
           { name: 'From', value: VARIANT_LABELS[e.from], inline: true },
@@ -239,6 +240,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
         declined: { color: RED, title: '🚫 Trade declined', text: `**${other}** declined **${who}**'s offer` },
         cancelled: { color: RED, title: adminCancel ? '🛡️ Trade cancelled by an admin' : '✖️ Trade cancelled', text: `**${who}**'s offer was cancelled` },
         expired: { color: RED, title: '⌛ Trade expired', text: `**${who}**'s offer ran out of time` },
+        reversed: { color: RED, title: '🛡️ Trade reversed by staff', text: `**${who}**'s trade with **${other}** was reversed` },
       }[e.action];
       const list = (lines: string[]) => (lines.join('\n') || '-').slice(0, 1000);
       const fields: { name: string; value: string; inline?: boolean }[] = [
@@ -246,7 +248,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
         { name: `${e.action === 'accepted' && other ? other : e.kind === 'listing' ? 'In return' : other ?? 'In return'} gives · ≈${e.getPts.toLocaleString()} pts`, value: list(e.get.map(esc)), inline: true },
       ];
       if (e.note) fields.push({ name: 'Note', value: esc(e.note).slice(0, 200) });
-      return payload({ ...base, ...thumb(card?.imageUrl), color: head.color, title: head.title, description: head.text, fields });
+      return payload({ ...base, ...thumb(card?.imageUrl, card), color: head.color, title: head.title, description: head.text, fields });
     }
     case 'reset':
       return payload({ ...base, color: RED, title: '🔄 Collection reset',
@@ -502,7 +504,7 @@ export async function notifyListing(l: ListingNotice): Promise<void> {
  * Audit entries that have an activity event of their own (a grant, a removal, a reset...): the admin channels already get those from
  * notifyDiscord, with the staff name, so the audit twin is skipped.
  */
-const AUDIT_WITH_EVENT = new Set(['Card removed', 'Season reset', 'All seasons reset', 'Account deleted', 'Cards granted', 'Packs gifted', 'Print removed']);
+const AUDIT_WITH_EVENT = new Set(['Card removed', 'Season reset', 'All seasons reset', 'Account deleted', 'Cards granted', 'Packs gifted', 'Print removed', 'Trade reversed']);
 
 export interface AdminLogEntry { action: string; subject?: string; detail?: string; /** The staff member's login ("password" for the emergency login). */ by?: string | null }
 
@@ -531,6 +533,24 @@ export async function notifySystem(o: { title: string; text?: string; tone?: 'go
     const body = noticeEmbed({ color: o.tone === 'good' ? GREEN : o.tone === 'bad' ? RED : BLUE, title: o.title, text: o.text, fields: o.fields });
     later(() => sendToCategory('system', body));
   } catch { /* never breaks the action */ }
+}
+
+/** A new suggestion or problem report, for channels with Feedback ticked. Text is Markdown-escaped and cut, mentions stay empty, no staff names. Silent in a sandbox. */
+export async function notifyFeedback(item: FeedbackItem): Promise<void> {
+  try {
+    if (await inSandbox()) return;
+    const body = noticeEmbed({
+      color: item.kind === 'bug' ? RED : GOLD,
+      title: `${item.kind === 'bug' ? '🐞 Problem report' : '💡 Suggestion'} from ${esc(item.user)}`,
+      url: `${SITE_URL}/u/${encodeURIComponent(item.user)}`,
+      text: [discordText(item.title, 100) && `**${discordText(item.title, 100)}**`, discordText(item.body)].filter(Boolean).join('\n'),
+      fields: [
+        ...(item.expected ? [{ name: 'Expected', value: discordText(item.expected, 300) }] : []),
+        ...(item.from ? [{ name: 'Page', value: discordText(item.from, 200), inline: true }] : []),
+      ],
+    });
+    later(() => sendToCategory('feedback', body));
+  } catch { /* never breaks the send */ }
 }
 
 /** The stream recap, for channels with Recap ticked. Silent in a sandbox and after the response when inside a request. */

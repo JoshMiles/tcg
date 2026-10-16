@@ -8,7 +8,7 @@ import { bucketsFor, getSeries, sum } from '@/lib/stats';
 import { CardTable, type StatCard } from './CardTable';
 import { PullsChart } from './PullsChart';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
-import { cardThumbUrl } from '@/lib/card-art';
+import { stillFor } from '@/lib/card-art';
 import { getRarity } from '@/lib/rarity';
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const owners = ownersByCard(collection, overview.values, 1, hidden);
   const statCards: StatCard[] = overview.cards.map(c => ({
     number: c.number, name: c.name, stars: c.stars, hex: getRarity(c.stars)?.hex ?? '#9ca3af', label: getRarity(c.stars)?.label ?? '',
-    thumb: c.imageUrl ? cardThumbUrl(c.imageUrl) : undefined, copies: overview.values.cards.get(c.number)?.copies ?? 0, collectors: owners.get(c.number)?.collectors ?? 0,
+    thumb: c.imageUrl ? stillFor(c, c.imageUrl) : undefined, copies: overview.values.cards.get(c.number)?.copies ?? 0, collectors: owners.get(c.number)?.collectors ?? 0,
   }));
   // The whole season (at most 90 days), but never fewer than a week so a young season doesn't draw two giant bars.
   const endAt = season.endedAt ?? Date.now();

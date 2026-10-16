@@ -44,6 +44,15 @@ export async function visit(p, path, errors) {
     try {
       info = await p.evaluate(() => ({
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        // Content pushed past the right edge while the page itself does not scroll (a grid column stretched by a wide child, with an
+        // ancestor hiding the overflow): elements wider than the viewport that no scrolling ancestor contains.
+        clipped: [...document.querySelectorAll('main *, [role="main"] *')].filter(e => {
+          if (e.closest('svg')) return false;
+          const r = e.getBoundingClientRect();
+          if (r.width === 0 || r.right <= innerWidth + 1) return false;
+          for (let a = e.parentElement; a && a !== document.body && !a.matches('main, [role="main"]'); a = a.parentElement) { if (/(auto|scroll)/.test(getComputedStyle(a).overflowX)) return false; }
+          return true;
+        }).length,
         h1: document.querySelectorAll('h1').length,
         title: document.title,
         noAlt: [...document.querySelectorAll('img:not([alt])')].length,
@@ -59,6 +68,7 @@ export function flagsFor(r, { expectH1 = true } = {}) {
   const i = r.info;
   if (!i) return ['could not measure (kept navigating)'];
   if (i.overflow > 1) flags.push(`overflow ${i.overflow}px`);
+  if (i.clipped) flags.push(`${i.clipped} elements pushed past the right edge`);
   if (expectH1 && i.h1 !== 1) flags.push(`h1=${i.h1}`);
   if (i.noAlt) flags.push(`${i.noAlt} img without alt`);
   if (i.unnamed) flags.push(`${i.unnamed} unnamed controls`);

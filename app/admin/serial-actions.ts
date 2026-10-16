@@ -10,12 +10,15 @@ import { recordAudit } from '@/lib/audit';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { currentStaffLogin } from '@/lib/staff-actor';
 import { clearPotw, featureCopy, pickNow } from '@/lib/print-of-week-store';
+import { safeSerialsReturn, withParams } from '@/lib/serials-view';
 
 // Admin actions on ONE specific copy (by id). Each re-checks the admin cookie and re-reads the copy, so a stale page can't act on
 // a copy that has since moved. The collection and the copy ledger are changed together under the collection lock.
 
-const back = (seasonId: string, copyId: string, msg: string, ok = true): never =>
-  redirect(`/admin/serials/${encodeURIComponent(seasonId)}/${copyId}?${ok ? 'done' : 'err'}=${encodeURIComponent(msg)}`);
+// Done from the Prints list's side panel, a hidden `ret` field names the list address to come back to (only ever /admin/serials?...);
+// from the print's own page there is none and the admin lands back on that page.
+const back = (seasonId: string, copyId: string, msg: string, ok = true, ret: string | null = null): never =>
+  redirect(ret ? withParams(ret, { print: copyId, done: ok ? msg : undefined, err: ok ? undefined : msg }) : `/admin/serials/${encodeURIComponent(seasonId)}/${copyId}?${ok ? 'done' : 'err'}=${encodeURIComponent(msg)}`);
 
 async function load(seasonId: string, copyId: string) {
   const parsed = parseCopyId(copyId);
@@ -27,10 +30,12 @@ async function load(seasonId: string, copyId: string) {
 /** Gives one exact copy to another viewer (its history records an admin transfer). Refused while the copy sits in a trade offer. */
 export async function transferCopyAction(seasonId: string, copyId: string, formData: FormData): Promise<void> {
   await requireAdmin();
+  const ret = safeSerialsReturn(formData.get('ret'));
+  const go = (msg: string, ok = true) => back(seasonId, copyId, msg, ok, ret);
   const ctx = await load(seasonId, copyId);
-  if (!ctx) return back(seasonId, copyId, 'That print or season does not exist.', false);
+  if (!ctx) return go('That print or season does not exist.', false);
   const to = String(formData.get('to') ?? '').trim().replace(/^@/, '').toLowerCase();
-  if (!/^[a-z0-9_]{1,25}$/.test(to)) return back(seasonId, copyId, 'Enter a valid Twitch username to give it to.', false);
+  if (!/^[a-z0-9_]{1,25}$/.test(to)) return go('Enter a valid Twitch username to give it to.', false);
   const c = ctx.season.collectionName;
 
   const result = await withCollectionLock(c, async (): Promise<string | null> => {
@@ -48,20 +53,22 @@ export async function transferCopyAction(seasonId: string, copyId: string, formD
     await saveCollection(c, data, { moves: [{ from: copy.owner, to, entry, count: 1, ids: [copy.id], note: 'admin transfer' }] });
     return null;
   });
-  if (result) return back(seasonId, copyId, result, false);
+  if (result) return go(result, false);
 
   await ensureUserProfile(to).catch(() => { /* a profile is a convenience */ });
   const label = `${ctx.parsed.variant === 'regular' ? '' : `${VARIANT_LABELS[ctx.parsed.variant]} `}#${ctx.parsed.card} edition ${ctx.parsed.n}`;
   await recordAudit(to, 'Print received from an admin', label);
   revalidatePath('/admin/serials');
-  return back(seasonId, copyId, `Given to @${to}.`);
+  return go(`Given to @${to}.`);
 }
 
 /** Removes one exact copy from its holder's collection (it is retired, with its history kept). Refused while it sits in a trade offer. */
-export async function removeCopyAction(seasonId: string, copyId: string): Promise<void> {
+export async function removeCopyAction(seasonId: string, copyId: string, formData?: FormData): Promise<void> {
   await requireAdmin();
+  const ret = safeSerialsReturn(formData?.get('ret'));
+  const go = (msg: string, ok = true) => back(seasonId, copyId, msg, ok, ret);
   const ctx = await load(seasonId, copyId);
-  if (!ctx) return back(seasonId, copyId, 'That print or season does not exist.', false);
+  if (!ctx) return go('That print or season does not exist.', false);
   const c = ctx.season.collectionName;
 
   let holder = '';
@@ -79,12 +86,12 @@ export async function removeCopyAction(seasonId: string, copyId: string): Promis
     await saveCollection(c, data, { retire: { owner: copy.owner, ids: [copy.id], who: copy.owner, note: 'removed by an admin' } });
     return null;
   });
-  if (result) return back(seasonId, copyId, result, false);
+  if (result) return go(result, false);
 
   await recordActivity({ type: 'remove', username: holder, cardNumber: ctx.parsed.card, variant: ctx.parsed.variant, collectionName: c });
   await recordAudit(holder, 'Print removed', `#${ctx.parsed.card} ${VARIANT_LABELS[ctx.parsed.variant]} edition ${ctx.parsed.n}`);
   revalidatePath('/admin/serials');
-  return back(seasonId, copyId, `Removed from @${holder}'s collection.`);
+  return go(`Removed from @${holder}'s collection.`);
 }
 
 // ── Print of the week (ROADMAP 6.2) ──
@@ -92,18 +99,20 @@ export async function removeCopyAction(seasonId: string, copyId: string): Promis
 const potwBack = (msg: string, ok = true): never => redirect(`/admin/serials?${ok ? 'done' : 'err'}=${encodeURIComponent(msg)}`);
 
 /** Features one exact print on the home page (replaces the current pick). The staff login is kept as `by`; an audit entry names the holder. */
-export async function featurePrintAction(seasonId: string, copyId: string): Promise<void> {
+export async function featurePrintAction(seasonId: string, copyId: string, formData?: FormData): Promise<void> {
   await requireAdmin();
+  const ret = safeSerialsReturn(formData?.get('ret'));
+  const go = (msg: string, ok = true) => back(seasonId, copyId, msg, ok, ret);
   const ctx = await load(seasonId, copyId);
-  if (!ctx) return back(seasonId, copyId, 'That print or season does not exist.', false);
+  if (!ctx) return go('That print or season does not exist.', false);
   const copy = await getCopy(ctx.season.collectionName, copyId);
-  if (!copy) return back(seasonId, copyId, 'That print no longer exists.', false);
+  if (!copy) return go('That print no longer exists.', false);
   const refused = await featureCopy(ctx.season, copy, (await currentStaffLogin()) ?? 'admin');
-  if (refused) return back(seasonId, copyId, refused, false);
+  if (refused) return go(refused, false);
   await recordAudit(copy.owner, 'Print featured as print of the week', `Print #${copy.uid}`);
   revalidatePath('/');
   revalidatePath('/admin/serials');
-  return back(seasonId, copyId, 'Featured as the print of the week. It is on the home page now.');
+  return go('Featured as the print of the week. It is on the home page now.');
 }
 
 /** Scans the active season and picks again right now (skips prints picked in the last 8 weeks). */

@@ -64,7 +64,7 @@ for (const f of actionFiles) {
 ok(checked >= 60, `audited a realistic number of actions (${checked})`);
 
 // Only these may let a mod in (CLAUDE.md > Staff). Adding one is a decision, so it must be added here too.
-const DOCUMENTED_MOD_ACTIONS = ['saveTagsAction', 'saveFlagsAction', 'cancelUserTradeAction', 'cancelOneTradeAction', 'blockViewerTradingAction'].sort();
+const DOCUMENTED_MOD_ACTIONS = ['saveTagsAction', 'saveFlagsAction', 'cancelUserTradeAction', 'cancelOneTradeAction', 'blockViewerTradingAction', 'reverseTradeAction', 'updateFeedbackAction'].sort();
 ok(JSON.stringify([...modActions].sort()) === JSON.stringify(DOCUMENTED_MOD_ACTIONS), `the actions a mod may use are exactly the documented ones (found: ${[...modActions].sort().join(', ')})`);
 
 // ---- 2. viewer actions (public site) must read the session, never trust the body ----

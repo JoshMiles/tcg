@@ -75,6 +75,8 @@ export async function SiteShell({ children }: { children: ReactNode }) {
             <ChangelogLink newest={newestChangelogDate()} className="hover:text-white transition-colors">What&rsquo;s new</ChangelogLink>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="/feedback?kind=idea" className="hover:text-white transition-colors">Suggest something</Link>
+            <Link href="/feedback?kind=bug" className="hover:text-white transition-colors">Report a problem</Link>
             <CookieSettingsLink />
           </nav>
         </div>

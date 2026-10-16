@@ -59,9 +59,9 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
   { title: 'Upgrades', fields: [
     { name: 'upgradeMargin', label: 'Upgrade margin (×)', help: 'An upgraded print is worth at least this many times the prints spent to make it. 1.2 = 20% more.' },
   ] },
-  { title: 'Collection bonuses (% of the set value)', fields: [
-    { name: 'completionBonusPct', label: 'Completion bonus (%)', help: 'Earned in proportion to how much of the set you own; this is the amount at 100%. 25 = a quarter of the set value.' },
-    { name: 'completeSetBonusPct', label: 'Complete collection bonus (%)', help: 'Extra, for owning at least one of every card. 50 = half the set value.' },
+  { title: 'Set bonuses (% of the set value)', fields: [
+    { name: 'completionBonusPct', label: 'Progress bonus (%)', help: 'Earned in proportion to how much of the set you own; this is the amount at 100%. 25 = a quarter of the set value.' },
+    { name: 'completeSetBonusPct', label: 'Full set bonus (%)', help: 'Extra, for owning at least one of every card. 50 = half the set value.' },
   ] },
   { title: 'Leaderboard', fields: [
     { name: 'leaderboardSize', label: 'Collectors listed', help: 'How many collectors the leaderboard page and the Twitch panel show.' },
@@ -111,7 +111,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {/* OBS overlay */}
       {tab === 'overlay' && (
-        <div className="grid gap-6 xl:grid-cols-2 items-start">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start [&>*]:min-w-0">
           <div className="space-y-6">
             <Panel title="Browser source" icon="tv" hint={`Add this as a Browser Source in OBS, sized as recommended in the Overlay Editor (${overlay.layout.width} × ${overlay.layout.height}).`}>
               <CopyableUrl url={`${SITE_URL}/overlay.html`} />
@@ -164,7 +164,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {/* Twitch & viewers */}
       {tab === 'viewers' && (
-        <div className="grid gap-6 xl:grid-cols-2 items-start">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start [&>*]:min-w-0">
           <div className="space-y-6">
             {(['Extension views', 'Policies', 'Allowlists'] as const).map(group => (
               <Panel key={group} title={group === 'Allowlists' ? 'Allowlist' : group === 'Policies' ? 'Policy links' : 'Extension views'} icon={group === 'Extension views' ? 'tv' : group === 'Policies' ? 'book' : 'lock'}
@@ -220,7 +220,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               {' '}Values are never shown here. Change them in Vercel → Project → Settings → Environment Variables, then <strong>redeploy</strong> (changes only apply to new deployments).
             </p>
           </div>
-          <div className="grid gap-6 xl:grid-cols-2 items-start">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start [&>*]:min-w-0">
             {ENV_GROUPS.map(group => {
               const rows = env.filter(e => e.group === group);
               if (rows.length === 0) return null;
@@ -248,7 +248,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {/* About */}
       {tab === 'about' && (
-        <div className="grid gap-6 xl:grid-cols-2 items-start">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start [&>*]:min-w-0">
           <Panel title="Build" icon="info">
             <dl className="grid grid-cols-[7rem_1fr] gap-y-1.5 text-sm">
               <dt className="text-gray-500">Version</dt><dd className="text-white font-mono">v{build.version}</dd>

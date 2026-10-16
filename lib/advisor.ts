@@ -19,7 +19,7 @@ export interface AdviceInput {
 
 export interface Advice { id: string; icon: 'arrowUp' | 'search' | 'trophy' | 'cheese'; title: string; detail: string; points?: number; href?: string }
 
-/** What finding one more card is worth: its own points plus its share of the completion bonus. */
+/** What finding one more card is worth: its own points plus its share of the progress bonus. */
 export function missingGain(card: MissingCard, input: Pick<AdviceInput, 'maxCompletionBonus' | 'totalCards'>): number {
   return Math.round(card.value + (input.totalCards > 0 ? input.maxCompletionBonus / input.totalCards : 0));
 }
@@ -51,7 +51,7 @@ export function buildAdvice(i: AdviceInput, limit = 4): Advice[] {
     out.push({
       id: 'missing', icon: 'search', points: missingGain(best, i),
       title: `Find ${best.name}`,
-      detail: `The most valuable card you do not have: its points plus a bigger completion bonus. Pull chance ${best.pullRate > 0 ? `1 in ${Math.round(1 / best.pullRate).toLocaleString()}` : 'unknown'}.`,
+      detail: `The most valuable card you do not have: its points plus a bigger progress bonus. Pull chance ${best.pullRate > 0 ? `1 in ${Math.round(1 / best.pullRate).toLocaleString()}` : 'unknown'}.`,
       href: `/cards?card=${best.number}`,
     });
   }

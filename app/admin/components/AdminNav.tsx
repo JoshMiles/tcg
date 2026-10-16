@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { NAV_GROUPS, isActive } from '@/lib/admin-nav';
 
 // The pages come from lib/admin-nav.ts, which the command palette and the "g then a letter" shortcuts share.
-export function AdminNav() {
+export function AdminNav({ badges = {} }: { badges?: Record<string, number> }) {
   const pathname = usePathname();
 
   return (
@@ -30,6 +30,7 @@ export function AdminNav() {
                     {active && <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.6)]" />}
                     <Icon name={item.icon} className={`w-[1.15rem] h-[1.15rem] shrink-0 transition-colors ${active ? 'text-yellow-400' : 'text-gray-500 group-hover:text-gray-300'}`} />
                     <span className="aside-label truncate">{item.label}</span>
+                    {(badges[item.href] ?? 0) > 0 && <span className="aside-label ml-auto rounded-full bg-amber-400/20 px-1.5 text-[10px] font-extrabold text-amber-300" aria-label={`${badges[item.href]} new`}>{badges[item.href]}</span>}
                   </Link>
                 </li>
               );

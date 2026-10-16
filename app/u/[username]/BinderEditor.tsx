@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
@@ -12,7 +13,7 @@ import {
 } from '@/lib/binder-config';
 import type { Variant } from '@/lib/types';
 import { Binder, type BinderEditorBridge } from './Binder';
-import { saveBinderAction } from './actions';
+import { saveBinderAction, saveCollectionViewAction } from './actions';
 import type { GridCard } from './CollectionGrid';
 
 type Tab = 'look' | 'layout' | 'pages' | 'cards';
@@ -30,7 +31,9 @@ function Switch({ on, set, label }: { on: boolean; set: (v: boolean) => void; la
 }
 
 /** The owner's binder workspace: a live book with a side panel to restyle it, switch it to hand-placed pages and fill the pockets. */
-export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose }: {
+export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, visitorsBinder }: {
+  /** Whether visitors currently see the binder first (UserSettings.collectionView). */
+  visitorsBinder: boolean;
   cards: GridCard[];
   initial: BinderConfig;
   seasonId: string;
@@ -39,6 +42,8 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose }: 
   onClose: (saved?: BinderConfig) => void;
 }) {
   const [draft, setDraft] = useState<BinderConfig>(initial);
+  const router = useRouter();
+  const [first, setFirst] = useState(visitorsBinder);
   const [tab, setTab] = useState<Tab>('look');
   const [armed, setArmed] = useState<number | null>(null);
   const [selected, setSelected] = useState<{ page: number; slot: number } | null>(null);
@@ -52,7 +57,7 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose }: 
   const cap = capacity(draft);
   const custom = draft.mode === 'custom' && draft.pages.length > 0 && draft.pagesSeason === seasonId;
   const view: Tab = (tab === 'pages' || tab === 'cards') && !custom ? 'layout' : tab;
-  const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(initial) || first !== visitorsBinder;
   const byNumber = useMemo(() => new Map(cards.map(c => [c.number, c])), [cards]);
   const infos = useMemo(() => cards.map(c => ({ packName: c.packName, number: c.number, stars: c.stars, name: c.name, owned: total(c.counts) > 0 })), [cards]);
 
@@ -127,7 +132,11 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose }: 
   function save() {
     setError('');
     startSave(async () => {
-      try { onClose(await saveBinderAction(draft)); } catch (e) { setError(e instanceof Error ? e.message : 'Could not save. Try again.'); }
+      try {
+        const saved = await saveBinderAction(draft);
+        if (first !== visitorsBinder) { await saveCollectionViewAction(first ? 'binder' : 'grid'); router.refresh(); }
+        onClose(saved);
+      } catch (e) { setError(e instanceof Error ? e.message : 'Could not save. Try again.'); }
     });
   }
   function cancel() {
@@ -171,6 +180,7 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose }: 
 
           {view === 'look' && (
             <div className="space-y-5">
+              <Switch on={first} set={setFirst} label="Show visitors the binder first" />
               <Field label="Cover title"><input className={input} value={draft.title} maxLength={BINDER_LIMITS.title} placeholder={`${ownerLabel} binder`} onChange={e => patch({ title: e.target.value })} /></Field>
               <Field label="Cover subtitle"><input className={input} value={draft.subtitle} maxLength={BINDER_LIMITS.subtitle} placeholder="Leave empty to show your progress" onChange={e => patch({ subtitle: e.target.value })} /></Field>
               <Field label="Cover colour">

@@ -237,6 +237,7 @@ export function NotificationBell() {
                     <p className="text-[13px] leading-snug text-gray-200 break-words">{n.text}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[11px] text-gray-500">
                       <span>{ago(n.at)}</span>
+                      {n.kind === 'feedback' && <Link href="/feedback" onClick={() => setOpen(false)} className="font-semibold text-yellow-400 hover:text-yellow-300">See your feedback</Link>}
                       {n.kind === 'watch' && <Link href="/trade?tab=board" onClick={() => setOpen(false)} className="font-semibold text-yellow-400 hover:text-yellow-300">See the listing</Link>}
                       {(n.kind === 'offer' || n.kind === 'countered') && <Link href="/trade" onClick={() => setOpen(false)} className="font-semibold text-yellow-400 hover:text-yellow-300">View offer</Link>}
                       {n.kind === 'accepted' && n.swap && (
@@ -248,8 +249,9 @@ export function NotificationBell() {
               ))}
             </ul>
           )}
-          <div className="border-t border-gray-800 px-3 py-2 text-center">
+          <div className="border-t border-gray-800 px-3 py-2 flex items-center justify-center gap-4">
             <Link href="/notifications" onClick={() => setOpen(false)} className="text-xs font-semibold text-yellow-400 hover:text-yellow-300">See all notifications</Link>
+            <Link href="/feedback" onClick={() => setOpen(false)} className="text-xs font-semibold text-gray-400 hover:text-white">Send feedback</Link>
           </div>
         </div>
       )}
@@ -257,7 +259,7 @@ export function NotificationBell() {
         {toasts.map(n => (
           <div key={n.id} className="notice-toast pointer-events-auto flex gap-2.5 rounded-xl border border-yellow-500/40 bg-gray-900 px-3 py-2.5 shadow-card">
             <Icon name={NOTICE_ICON[n.kind]} className="w-5 h-5 mt-0.5 shrink-0 text-yellow-400" />
-            <Link href={n.kind === 'watch' ? '/trade?tab=board' : '/trade'} onClick={() => dismiss(n.id)} className="min-w-0 flex-1 text-[13px] leading-snug text-gray-100 break-words hover:text-white">{n.text}</Link>
+            <Link href={n.kind === 'watch' ? '/trade?tab=board' : n.kind === 'feedback' ? '/feedback' : '/trade'} onClick={() => dismiss(n.id)} className="min-w-0 flex-1 text-[13px] leading-snug text-gray-100 break-words hover:text-white">{n.text}</Link>
             <button type="button" onClick={() => dismiss(n.id)} aria-label="Dismiss" className="shrink-0 self-start text-gray-500 hover:text-white"><Icon name="x" className="w-4 h-4" /></button>
           </div>
         ))}

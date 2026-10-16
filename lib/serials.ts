@@ -36,6 +36,8 @@ export interface Move {
   ids?: string[];
   /** Added to each moved copy's history event (e.g. "admin transfer"). */
   note?: string;
+  /** A staff reversal of a completed trade: the copies go back and the history says so (`who` is the staff member, `note` the reason). */
+  reversal?: { who: string; note: string };
 }
 export interface SyncContext {
   /** Where newly added copies came from (default 'other'). */
@@ -198,6 +200,7 @@ async function move(c: string, m: Move): Promise<number> {
   const now = Date.now();
   const moved = picked.map(x => {
     if (isEscrow(m.to)) return withEvent({ ...x, owner: m.to }, { t: now, type: 'escrowed', who: m.from });
+    if (m.reversal) return withEvent({ ...x, owner: m.to }, { t: now, type: 'reversed', who: m.reversal.who, to: m.to, note: m.reversal.note });
     // Out of escrow: back to whoever put it there is a refund, to anyone else it is a trade from them.
     const putBy = isEscrow(m.from) ? [...x.ev].reverse().find(e => e.type === 'escrowed')?.who : undefined;
     return putBy === m.to
@@ -347,4 +350,18 @@ export async function printLabel(c: string, id: string): Promise<string> {
   if (copy?.uid) return `Print #${copy.uid}`;
   const p = parseCopyId(id);
   return p ? `Edition #${p.n}` : 'that print';
+}
+
+/** The unique number most recently handed out, game-wide (null before any). */
+export async function lastUid(): Promise<number | null> {
+  try {
+    const n = Number(await kv.hget(key.uidSeq, 'n'));
+    return Number.isFinite(n) && n > 0 ? UID_BASE + n : null;
+  } catch { return null; }
+}
+
+/** How many prints sit in open trade offers right now (a live print whose holder is an escrow). */
+export async function inOfferCount(c: string): Promise<number> {
+  const idx = (await kv.hgetall(key.idx(c)).catch(() => null)) as Record<string, string> | null;
+  return Object.values(idx ?? {}).filter(o => typeof o === 'string' && isEscrow(o)).length;
 }

@@ -16,6 +16,7 @@ const E = (n: number, v: 'regular' | 'reverse' | 'full' | 'shiny' = 'regular') =
 eq(core.copyId(7, 'shiny', 12), '7.3.12', 'copy id');
 eq(core.parseCopyId('7.3.12'), { card: 7, variant: 'shiny', n: 12 }, 'copy id parses');
 ok(core.parseCopyId('7.9.1') === null && core.parseCopyId('x') === null && core.parseCopyId('7.1.1; drop') === null, 'bad ids are refused');
+ok(core.EVENT_LABELS.reversed.length > 0, 'a staff reversal has a label in the print journey');
 const d = core.diffCounts(new Map([[1, 2], [2, 1]]), new Map([[1, 3], [3, 1]]));
 eq([[...d.mint], [...d.retire]], [[[1, 1], [3, 1]], [[2, 1]]], 'diff: what to mint and retire');
 ok(core.sameCollection([1, 2, 2], [2, 1, 2]) && !core.sameCollection([1], [1, 1]), 'sameCollection ignores order only');

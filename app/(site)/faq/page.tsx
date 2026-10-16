@@ -13,6 +13,7 @@ import { CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { getTradeSettings } from '@/lib/trades';
 import { SHOWOFF_COOLDOWN_S } from '@/lib/showoff-prepare';
+import { FEEDBACK_LIMITS } from '@/lib/feedback-core';
 import { OpenOnHash } from '@/app/components/site/OpenOnHash';
 
 export const dynamic = 'force-dynamic';
@@ -376,12 +377,12 @@ export default async function FaqPage() {
           </p>
           <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
             <li>
-              <strong className="text-white">Completion bonus</strong>: grows with the share of the set you own, up to{' '}
+              <strong className="text-white">Progress bonus</strong> (it used to be called the completion bonus): grows with the share of the set you own, up to{' '}
               <strong className="text-white">{scoring.completionBonusPct}%</strong> of the set value
               {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.completion.toLocaleString()}</strong> points at 100%)</> : null}. Every new card you find adds its own points <em>and</em> raises this.
             </li>
             <li>
-              <strong className="text-white">Complete collection bonus</strong>: own at least one of <em>every</em> card in the season and you earn an extra{' '}
+              <strong className="text-white">Full set bonus</strong> (it used to be called the complete collection bonus): own at least one of <em>every</em> card in the season and you earn an extra{' '}
               <strong className="text-white">{scoring.completeSetBonusPct}%</strong> of the set value
               {bonusAtFull ? <> (about <strong className="text-white">{bonusAtFull.set.toLocaleString()}</strong> points)</> : null}, and a <strong className="text-white"><Icon name="cheese" className="mr-1" />Complete</strong> badge on the leaderboard.
             </li>
@@ -515,6 +516,9 @@ export default async function FaqPage() {
         </Q>
         <Q q="How do I find things quickly?">
           Press <kbd className="kbd">/</kbd> (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, prints or shinies, and shows who moved up or down since you last looked.
+        </Q>
+        <Q q="I have an idea, or something is broken. Where do I say?" id="feedback">
+          Use <Link href="/feedback" className="text-yellow-400 hover:text-yellow-300">Feedback</Link> (also in the footer and the bell). Choose <em>Suggest something</em> or <em>Report a problem</em>, log in with Twitch and send it. You can send {FEEDBACK_LIMITS.perDay} a day. If we answer, you get a notice in the bell, and you can see your sent items and our replies on the same page. Problem reports can include your browser, screen size and the site version, which you can untick. We keep an item until it is dealt with and for {FEEDBACK_LIMITS.keepDaysAfterResolved} days after, then delete it.
         </Q>
         <Q q="A card or my score looks wrong">
           Refresh first. Scores are recalculated whenever anyone pulls or upgrades, so they can move even when you haven&rsquo;t done anything. If something still looks wrong, tell the streamer in chat.
