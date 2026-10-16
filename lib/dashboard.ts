@@ -107,3 +107,8 @@ export const SPAN_CLASS: Record<Span, string> = {
   8: 'md:col-span-12 xl:col-span-8',
   12: 'md:col-span-12 xl:col-span-12',
 };
+
+/** Whose layout key to use: a Twitch staff member's own login, or null (the shared layout) for the emergency password login. */
+export function loginForLayout(who: { login: string; via: 'twitch' | 'password' } | null): string | null {
+  return who && who.via === 'twitch' ? who.login : null;
+}

@@ -2,14 +2,15 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { sanitizeLayout, type DashboardLayout } from '@/lib/dashboard';
+import { loginForLayout } from '@/lib/dashboard';
 import { deleteDashboardPreset, getDashboardPresets, saveDashboardLayout, saveDashboardNotes, saveDashboardPreset } from '@/lib/dashboard-data';
 import { getOverlaySettings, saveOverlaySettings } from '@/lib/overlay-settings';
 
 /** Saves the widget layout (re-sanitised here: a server action can be called with anything). */
 export async function saveDashboardLayoutAction(layout: DashboardLayout): Promise<{ ok: true; layout: DashboardLayout }> {
-  await requireAdmin();
+  const who = await requireAdmin();
   const clean = sanitizeLayout(layout);
-  await saveDashboardLayout(clean);
+  await saveDashboardLayout(clean, loginForLayout(who));
   revalidatePath('/admin');
   return { ok: true, layout: clean };
 }
@@ -20,26 +21,26 @@ export async function saveDashboardNotesAction(text: string): Promise<void> {
 }
 
 /** Stores the given layout as a named preset (replacing one with the same name). */
-export async function saveDashboardPresetAction(name: string, layout: DashboardLayout): Promise<{ name: string }[]> {
-  await requireAdmin();
+export async function saveDashboardPresetAction(name: string, layout: DashboardLayout): Promise<{ name: string; by?: string }[]> {
+  const who = await requireAdmin();
   const clean = String(name ?? '').trim().slice(0, 30);
   if (!clean) throw new Error('Give the preset a name.');
-  await saveDashboardPreset(clean, sanitizeLayout(layout));
-  return (await getDashboardPresets()).map(p => ({ name: p.name }));
+  await saveDashboardPreset(clean, sanitizeLayout(layout), who.via === 'twitch' ? who.login : who.displayName);
+  return (await getDashboardPresets()).map(p => ({ name: p.name, by: p.by }));
 }
 
-export async function deleteDashboardPresetAction(name: string): Promise<{ name: string }[]> {
+export async function deleteDashboardPresetAction(name: string): Promise<{ name: string; by?: string }[]> {
   await requireAdmin();
   await deleteDashboardPreset(String(name));
-  return (await getDashboardPresets()).map(p => ({ name: p.name }));
+  return (await getDashboardPresets()).map(p => ({ name: p.name, by: p.by }));
 }
 
-/** Makes a preset the active layout. */
+/** Makes a team layout the caller's own layout. */
 export async function applyDashboardPresetAction(name: string): Promise<DashboardLayout> {
-  await requireAdmin();
+  const who = await requireAdmin();
   const preset = (await getDashboardPresets()).find(p => p.name === name);
   if (!preset) throw new Error('That preset no longer exists.');
-  await saveDashboardLayout(preset.layout);
+  await saveDashboardLayout(preset.layout, loginForLayout(who));
   revalidatePath('/admin');
   return preset.layout;
 }
