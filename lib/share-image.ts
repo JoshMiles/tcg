@@ -130,6 +130,40 @@ export interface ShareSpec {
   format?: ShareFormat;
   /** Draw the owner's binder pages (cover, page and pocket styles, grid) in place of the card layout. */
   binder?: BinderShare;
+  /** The "Share my stats" card: rank and score, six figures, and `cards` as a strip of their most valuable prints. */
+  statsCard?: StatsCardShare;
+}
+
+/** One figure tile of the stats card. `progress` (0 to 1) draws a bar under it. */
+export interface StatsFigure { label: string; value: string; sub?: string; progress?: number }
+export interface StatsCardShare {
+  rank: string;
+  score: string;
+  /** Six figures, drawn as two columns of three. */
+  figures: StatsFigure[];
+  /** The rarity colour of their rarest print: the card's accent. */
+  accent?: string;
+}
+
+/** Where the parts of the stats card go for an image of height `h` (extra height in a story goes to the figures and the strip). */
+export interface StatsLayout { hero: Rect; tiles: Rect[]; strip: Rect; stripLabelY: number; thumbs: Rect[] }
+export function statsLayout(h = SHARE_H, thumbCount = 3): StatsLayout {
+  const a = cardArea(h);
+  const extra = h - SHARE_H;
+  const heroH = 196 + Math.round(extra * 0.2), gap = 24;
+  const tileH = 144 + Math.round(extra * 0.1), tileW = (a.w - gap) / 2;
+  const hero: Rect = { x: a.x, y: a.y, w: a.w, h: heroH };
+  const tiles: Rect[] = [];
+  for (let i = 0; i < 6; i++) tiles.push({ x: a.x + (i % 2) * (tileW + gap), y: a.y + heroH + gap + Math.floor(i / 2) * (tileH + gap), w: tileW, h: tileH });
+  const stripY = tiles[5].y + tileH + 34;
+  const strip: Rect = { x: a.x, y: stripY, w: a.w, h: a.y + a.h - stripY };
+  const labelH = 44;
+  const tg = 28;
+  // As tall as the strip allows, but never wider than the area (a story's strip is taller than three prints are wide).
+  const tw = Math.min(Math.max(0, strip.h - labelH) * CARD_RATIO, (strip.w - tg * (thumbCount - 1)) / Math.max(1, thumbCount)), th = tw / CARD_RATIO;
+  const total = thumbCount * tw + (thumbCount - 1) * tg;
+  const thumbs: Rect[] = Array.from({ length: thumbCount }, (_, i) => ({ x: strip.x + (strip.w - total) / 2 + i * (tw + tg), y: strip.y + labelH, w: tw, h: th }));
+  return { hero, tiles, strip, stripLabelY: strip.y + 28, thumbs };
 }
 
 /** The header takes the top of the image; cards get the rest. */

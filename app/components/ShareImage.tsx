@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Icon } from './Icon';
 import {
-  SHARE_W, HEADER_H, BIG_STATS_H, cardArea, cardAreaWithPlate, cardAreaWithStats, plateRect, layoutCards, formatHeight, getShareTheme, binderLayout,
+  SHARE_W, HEADER_H, BIG_STATS_H, cardArea, cardAreaWithPlate, cardAreaWithStats, plateRect, layoutCards, formatHeight, getShareTheme, binderLayout, statsLayout,
   type BinderShare, type BinderShareSlot, type Rect, type ShareSpec, type ShareTheme,
 } from '@/lib/share-image';
 import { qrModules } from '@/lib/qr';
@@ -235,6 +235,64 @@ function drawPocket(ctx: CanvasRenderingContext2D, r: Rect, slot: BinderShareSlo
   }
 }
 
+/** The stats card: rank and score, six figure tiles and a strip of their most valuable prints (spec.cards). */
+async function drawStatsCard(ctx: CanvasRenderingContext2D, spec: ShareSpec, H: number, font: string, t: ShareTheme, preview: boolean) {
+  const sc = spec.statsCard!;
+  const L = statsLayout(H, Math.min(3, spec.cards.length));
+  const accent = sc.accent ?? t.chipText;
+  const imgs = await Promise.all(spec.cards.slice(0, L.thumbs.length).map(c => loadImage(preview ? c.thumb ?? c.src : c.src)));
+
+  // Rank and score, big.
+  const hero = L.hero, half = (hero.w - 24) / 2;
+  const heroes: [string, string, string][] = [['RANK', sc.rank, accent], ['POINTS', sc.score, t.title]];
+  heroes.forEach(([label, value, colour], i) => {
+    const x = hero.x + i * (half + 24);
+    ctx.fillStyle = t.tile; roundRect(ctx, x, hero.y, half, hero.h, 26); ctx.fill();
+    ctx.strokeStyle = i === 0 ? accent : t.chipBorder; ctx.lineWidth = i === 0 ? 4 : 2; ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = colour; ctx.font = `800 110px ${font}`; ctx.fillText(value, x + half / 2, hero.y + hero.h / 2 + 30, half - 40);
+    ctx.fillStyle = t.subtitle; ctx.font = `700 24px ${font}`; spaced(ctx, 3); ctx.fillText(label, x + half / 2, hero.y + hero.h - 28); spaced(ctx, 0);
+    ctx.textAlign = 'left';
+  });
+
+  // Six figures, two columns of three.
+  sc.figures.slice(0, 6).forEach((f, i) => {
+    const r = L.tiles[i];
+    ctx.fillStyle = t.tile; roundRect(ctx, r.x, r.y, r.w, r.h, 20); ctx.fill();
+    ctx.strokeStyle = t.chipBorder; ctx.lineWidth = 2; ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = t.subtitle; ctx.font = `700 21px ${font}`; spaced(ctx, 2); ctx.fillText(f.label.toUpperCase(), r.x + 26, r.y + 40, r.w - 52); spaced(ctx, 0);
+    ctx.fillStyle = t.chipText; ctx.font = `800 48px ${font}`; ctx.fillText(f.value, r.x + 26, r.y + 92, r.w - 52);
+    if (f.progress !== undefined) {
+      const bw = r.w - 52, by = r.y + r.h - 24;
+      ctx.fillStyle = t.chipBg; roundRect(ctx, r.x + 26, by, bw, 10, 5); ctx.fill();
+      if (f.progress > 0) { ctx.fillStyle = accent; roundRect(ctx, r.x + 26, by, Math.max(10, bw * Math.min(1, f.progress)), 10, 5); ctx.fill(); }
+    } else if (f.sub) {
+      ctx.fillStyle = t.subtitle; ctx.font = `600 22px ${font}`; ctx.fillText(f.sub, r.x + 26, r.y + r.h - 18, r.w - 52);
+    }
+  });
+
+  // Their most valuable prints, small.
+  if (L.thumbs.length > 0 && L.thumbs[0].h > 60) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = t.subtitle; ctx.font = `700 22px ${font}`; spaced(ctx, 3); ctx.fillText('MOST VALUABLE PRINTS', L.strip.x + L.strip.w / 2, L.stripLabelY); spaced(ctx, 0);
+    ctx.textAlign = 'left';
+    L.thumbs.forEach((r, i) => {
+      const card = spec.cards[i], img = imgs[i], hex = card?.hex ?? '#facc15';
+      ctx.save(); ctx.shadowColor = hex; ctx.shadowBlur = 22;
+      if (img) ctx.drawImage(img, r.x, r.y, r.w, r.h);
+      else { ctx.fillStyle = t.tile; roundRect(ctx, r.x, r.y, r.w, r.h, 12); ctx.fill(); }
+      ctx.restore();
+      if (card?.tag) {
+        ctx.font = `800 20px ${font}`;
+        const tw = ctx.measureText(card.tag).width + 18;
+        ctx.fillStyle = 'rgba(7,11,29,0.9)'; roundRect(ctx, r.x + r.w - tw - 8, r.y + 10, tw, 32, 16); ctx.fill();
+        ctx.fillStyle = '#fde047'; ctx.fillText(card.tag, r.x + r.w - tw + 1, r.y + 33);
+      }
+    });
+  }
+}
+
 /** Draws the binder pages (cover frame, page paper, headings and every pocket) where the card grid would normally go. */
 async function drawBinder(ctx: CanvasRenderingContext2D, b: BinderShare, H: number, font: string, preview: boolean) {
   const L = binderLayout(b, H);
@@ -340,7 +398,8 @@ export async function renderShare(spec: ShareSpec, opts?: { preview?: boolean })
   }
 
   if (spec.binder) await drawBinder(ctx, spec.binder, H, font, !!opts?.preview);
-  const n = spec.binder ? 0 : spec.cards.length;
+  if (spec.statsCard) await drawStatsCard(ctx, spec, H, font, t, !!opts?.preview);
+  const n = spec.binder || spec.statsCard ? 0 : spec.cards.length;
   const area = spec.plate ? cardAreaWithPlate(H) : spec.bigStats?.length ? cardAreaWithStats(H) : cardArea(H);
   // A tall story fits two columns of 5-6 cards bigger than three thin ones.
   const cols = H > 1500 && n >= 5 && n <= 6 ? 2 : undefined;

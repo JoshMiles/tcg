@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
-import { listOpenTrades, sweepTrades } from '@/lib/trades';
+import { listOpenTrades, sweepTrades, tradeHistory } from '@/lib/trades';
+import { getOwnerCopies } from '@/lib/serials';
+import { buildStatsCard } from '@/lib/share-stats';
 import { getUserAwards } from '@/lib/season-wrap';
 import { buildAdvice, missingGain } from '@/lib/advisor';
 import { recordScoreSample } from '@/lib/score-history';
@@ -65,6 +67,10 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   const s = computeUserStats(overview, session.username, owned, collection, { upgrades: live });
   const upgradesOn = live && overview.cards.some(c => c.pack.upgradesEnabled);
 
+  const [ownCopies, tradeLog] = await Promise.all([
+    getOwnerCopies(season.collectionName, session.username).catch(() => []),
+    tradeHistory().catch(() => []),
+  ]);
   const [prefs, awards, openTrades, history] = await Promise.all([
     getUserSettings(session.username),
     getUserAwards(session.username).catch(() => []),
@@ -91,8 +97,23 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   const shareSpec = {
     title: session.displayName,
     subtitle: `@${session.username} · ${season.name}`,
-    stats: [s.rank ? `#${s.rank} rank` : 'Unranked', `${Math.round(s.score).toLocaleString()} pts`, `${s.uniqueCards}/${s.totalCards} cards`],
-    cards: s.topCopies.slice(0, 6).map(t => ({
+    // The stats image: rank and score, six figures and a strip of their three most valuable prints (the header chips would repeat them).
+    statsCard: buildStatsCard({
+      rank: s.rank, score: s.score, uniqueCards: s.uniqueCards, totalCards: s.totalCards, copies: s.copies,
+      completionBonusPct: overview.values.settings.completionBonusPct,
+      prints: ownCopies.filter(c => c.owner === session.username),
+      chance: (card, variant) => {
+        const cv = overview.values.cards.get(card);
+        if (!cv) return 0;
+        const w = cv.maths.weights;
+        const total = w.regular + w.reverse + w.full + w.shiny;
+        return total > 0 ? cv.pullRate * (w[variant] / total) : 0;
+      },
+      nameOf: n => overview.cards.find(c => c.number === n)?.name ?? `Card #${n}`,
+      hexOf: n => getRarity(overview.cards.find(c => c.number === n)?.stars ?? 0)?.hex,
+      tradesCompleted: tradeLog.filter(t => t.status === 'accepted' && t.seasonId === season.id && (t.from === session.username || t.to === session.username || t.resolvedBy === session.username)).length,
+    }),
+    cards: s.topCopies.slice(0, 3).map(t => ({
       src: (t.variant === 'full' || t.variant === 'shiny') && t.card.fullArtImageUrl ? t.card.fullArtImageUrl : t.card.imageUrl,
       name: t.card.name, hex: getRarity(t.card.stars)?.hex, tag: t.variant === 'regular' ? undefined : t.variant === 'reverse' ? 'RH' : t.variant === 'full' ? 'FA' : 'SH',
     })),
