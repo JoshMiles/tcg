@@ -14,6 +14,12 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-16',
+    title: 'Open your most valuable prints',
+    tags: ['improved'],
+    items: ['Each row in Most valuable prints, on My Stats and on profiles, now opens that print. A row that groups several prints of a card opens the card in the card dex.'],
+  },
+  {
+    date: '2026-10-16',
     title: 'Little "i" buttons explain the terms',
     tags: ['new'],
     items: [

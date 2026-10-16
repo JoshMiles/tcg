@@ -19,6 +19,7 @@ import { ShareImageButton } from '@/app/components/ShareImage';
 import { ScoreChart } from './ScoreChart';
 import { WantToggle } from './WantToggle';
 import { getCollection } from '@/lib/kv';
+import { topPrintLinks } from '@/lib/top-prints';
 import { countVariants } from '@/lib/variants';
 import { getActive, getSeasonOverview } from '@/lib/site-data';
 import { computeUserStats, VARIANT_LABELS } from '@/lib/user-stats';
@@ -67,6 +68,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   // Upgrades only make sense in the season that is running; an earlier season is a read-only look back.
   const live = season.active && !season.endedAt;
   const s = computeUserStats(overview, session.username, owned, collection, { upgrades: live });
+  const printLinks = await topPrintLinks(season, s.topCopies.slice(0, 5));
   const upgradesOn = live && overview.cards.some(c => c.pack.upgradesEnabled);
 
   const [ownCopies, tradeLog] = await Promise.all([
@@ -336,10 +338,11 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
             <section className="rind rounded-2xl p-5 space-y-4">
               <h2 className="font-display text-xl font-bold text-white">Most valuable prints</h2>
               <ul className="divide-y divide-gray-800/70">
-                {s.topCopies.map(t => {
+                {s.topCopies.map((t, i) => {
                   const rarity = getRarity(t.card.stars);
                   return (
-                    <li key={`${t.card.id}-${t.variant}-${t.serial ?? 'all'}`} className="py-2 flex items-center gap-3">
+                    <li key={`${t.card.id}-${t.variant}-${t.serial ?? 'all'}`}>
+                    <Link href={printLinks[i] ?? `/cards?card=${t.card.number}`} className="py-2 -mx-2 px-2 rounded-lg flex items-center gap-3 hover:bg-gray-800/60 focus-visible:bg-gray-800/60 transition-colors">
                       {t.card.imageUrl ? (
                         <img src={cardThumbUrl(t.card.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} />
                       ) : <span className="w-8 h-11 rounded bg-gray-800" />}
@@ -348,6 +351,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                         <span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? <span className="text-emerald-300"> · #{t.serial} (×{t.mult?.toFixed(2)} edition bonus)</span> : null}</span>
                       </span>
                       <span className="font-display text-lg font-bold text-yellow-400 tabular-nums">{t.value.toLocaleString()}</span>
+                    </Link>
                     </li>
                   );
                 })}
