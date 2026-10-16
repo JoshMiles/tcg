@@ -8,7 +8,7 @@ import { getHoloResolver } from './holo';
 import { VARIANT_LABELS } from './variants';
 import type { Trade, TradeItem } from './trade-core';
 import { stackPoints, type TradeCardInfo } from './trade-view-core';
-import type { SerialPool } from './serials-core';
+import { parseCopyId, type SerialPool } from './serials-core';
 import { getTradeCards } from './trade-view';
 import type { Notice, NoticeKind, Swap, SwapCard } from './trade-notice-core';
 import { watchersOf, wantedForTrades } from './watch-index';
@@ -76,7 +76,8 @@ export function stackLines(items: TradeItem[], cards: Record<number, TradeCardIn
 /** The stack lines with the edition numbers of the copies that move ("... · #7, #3"): the newest copies leave first, like on the trade page. */
 function withEditions(items: TradeItem[], lines: string[], pool?: SerialPool): string[] {
   return lines.map((line, i) => {
-    const serials = [...(pool?.[encodeEntry(items[i].cardNumber, items[i].variant)] ?? [])].slice(-items[i].count).reverse();
+    const picked = items[i].ids?.map(id => parseCopyId(id)?.n ?? 0).filter(n => n > 0).sort((a, b) => b - a);
+    const serials = picked?.length ? picked : [...(pool?.[encodeEntry(items[i].cardNumber, items[i].variant)] ?? [])].slice(-items[i].count).reverse();
     return serials.length ? `${line} · ${serials.slice(0, 4).map(n => `#${n}`).join(', ')}${serials.length > 4 ? ` +${serials.length - 4}` : ''}` : line;
   });
 }

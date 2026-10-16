@@ -260,6 +260,123 @@ await runInSandbox(box.id, async () => {
   ok(!tradeVisibleTo(direct, 'carol') && !tradeVisibleTo(direct, null) && !tradeVisibleTo(direct, ''), 'a direct offer is private from everyone else');
 }
 
+// ── Choosing which print to trade (ROADMAP 6.4) ──
+{
+  const stk = (cardNumber: number, count: number, ids?: string[]) => ({ cardNumber, variant: 'regular' as const, count, ...(ids ? { ids } : {}) });
+  eq(core.cleanItems([stk(1, 2, ['1.0.1', '1.0.2'])], 8), [stk(1, 2, ['1.0.1', '1.0.2'])], 'exact prints are kept');
+  ok(core.cleanItems([stk(1, 2, ['1.0.1'])], 8) === null, 'ids must match the count');
+  ok(core.cleanItems([stk(1, 2, ['1.0.1', '1.0.1'])], 8) === null, 'the same print twice is refused');
+  ok(core.cleanItems([stk(1, 1, ['2.0.1'])], 8) === null, 'a print of another card is refused');
+  ok(core.cleanItems([{ cardNumber: 1, variant: 'shiny', count: 1, ids: ['1.0.1'] }], 8) === null, 'a print of another version is refused');
+  ok(core.cleanItems([stk(1, 1, ['1.0.1']), stk(1, 1)], 8) === null, 'a picked and an unpicked line of one card do not merge');
+  eq(core.cleanItems([stk(1, 1, ['1.0.1']), stk(1, 1, ['1.0.2'])], 8), [stk(1, 2, ['1.0.1', '1.0.2'])], 'two picked lines merge their prints');
+  eq(core.withChosenPrints([stk(9, 1)], { [String(E(9))]: ['9.0.2'] }), [stk(9, 1, ['9.0.2'])], 'the taker fills in an unpicked ask');
+  eq(core.withChosenPrints([stk(9, 1, ['9.0.1'])], { [String(E(9))]: ['9.0.2'] }), [stk(9, 1, ['9.0.1'])], 'a print the offerer pinned is not overridden');
+  ok(core.withChosenPrints([stk(9, 1)], { [String(E(9))]: ['9.0.2', '9.0.3'] }) === null, 'a wrong-sized choice is refused');
+}
+
+const box2 = await sbx.createSandbox({ name: 'Trade print check', source: 'config' });
+await runInSandbox(box2.id, async () => {
+  const serials = await import('../lib/serials');
+  const sc = await import('../lib/serials-core');
+  const season = (await kvLib.listSeasons())[0];
+  const coll = season.collectionName;
+  const sk = (cardNumber: number, count = 1, ids?: string[]) => ({ cardNumber, variant: 'regular' as const, count, ...(ids ? { ids } : {}) });
+  const holds = async (u: string) => (await serials.getOwnerCopies(coll, u)).map(c => c.id).sort();
+  const inEscrow = async (id: string) => (await serials.getOwnerCopies(coll, sc.escrowOwner(id))).map(c => c.id).sort();
+  const total = async () => Object.values(await kvLib.getCollection(coll)).reduce((n, l) => n + l.length, 0) + (await trades.listOpenTrades()).reduce((n, t) => n + (t.escrowed ? core.itemCopies(t.give) : 0), 0);
+  await trades.saveTradeSettings({ ...core.DEFAULT_TRADE_SETTINGS, cooldownSeconds: 0, maxOpenPerUser: 20 });
+  await kvLib.saveCollection(coll, { pa: [E(1), E(1), E(1), E(1), E(2)], pb: [E(9), E(9), E(9)], pc: [E(7)] });
+
+  // Untracked season: ids are refused, and nothing leaves the collection.
+  const untracked = await trades.createTrade({ seasonId: season.id, from: 'pa', kind: 'direct', to: 'pb', give: [sk(1, 1, ['1.0.1'])], get: [sk(9)] });
+  ok(!untracked.ok && /not numbered/.test(untracked.error), 'ids on an untracked season are refused');
+  ok(core.ownedCopies((await kvLib.getCollection(coll)).pa ?? [], 1, 'regular') === 4, 'a refused pick takes nothing');
+
+  await serials.backfillSerials(coll, await kvLib.getCollection(coll));
+  eq(await holds('pa'), ['1.0.1', '1.0.2', '1.0.3', '1.0.4', '2.0.1'], 'pa holds numbered prints');
+  const start = await total();
+
+  // Exact give + a pinned ask: the OLDEST prints go into escrow, the newest stay.
+  const o1 = await trades.createTrade({ seasonId: season.id, from: 'pa', kind: 'direct', to: 'pb', give: [sk(1, 2, ['1.0.1', '1.0.2'])], get: [sk(9, 1, ['9.0.1'])] });
+  ok(o1.ok, 'an offer with chosen prints is made: ' + (o1.ok ? '' : o1.error));
+  if (!o1.ok) return;
+  eq(await inEscrow(o1.trade.id), ['1.0.1', '1.0.2'], 'exactly the chosen prints are in escrow');
+  eq(await holds('pa'), ['1.0.3', '1.0.4', '2.0.1'], 'the others stay with the offerer');
+  ok(await total() === start, 'copies conserved after a picked offer');
+
+  // A print in another offer, or one that is not yours, is refused.
+  const dup = await trades.createTrade({ seasonId: season.id, from: 'pa', kind: 'listing', give: [sk(1, 1, ['1.0.1'])], get: [sk(9)] });
+  ok(!dup.ok && /another trade offer/.test(dup.error), 'a print already in another offer is refused: ' + JSON.stringify(dup));
+  const notMine = await trades.createTrade({ seasonId: season.id, from: 'pa', kind: 'listing', give: [sk(1, 1, ['1.0.9'])], get: [sk(9)] });
+  ok(!notMine.ok && /isn.t yours/.test(notMine.error), 'a print you never held is refused');
+  const pbPrint = await trades.createTrade({ seasonId: season.id, from: 'pa', kind: 'direct', to: 'pb', give: [sk(2)], get: [sk(9, 1, ['9.0.7'])] });
+  ok(!pbPrint.ok && /hold/.test(pbPrint.error), 'asking for a print they do not hold is refused');
+  const listAsk = await trades.createTrade({ seasonId: season.id, from: 'pa', kind: 'listing', give: [sk(2)], get: [sk(9, 1, ['9.0.1'])] });
+  ok(!listAsk.ok && /listing/.test(listAsk.error), 'a listing cannot pin the taker prints');
+  ok(await total() === start, 'refused offers change nothing');
+
+  // The asked-for print moves away before accept: the accept fails with a clear message and the offer stays open.
+  const away = await trades.createTrade({ seasonId: season.id, from: 'pb', kind: 'listing', give: [sk(9, 1, ['9.0.1'])], get: [sk(2)] });
+  ok(away.ok, 'pb puts 9.0.1 in another offer');
+  const late = await trades.acceptTrade(o1.trade.id, 'pb');
+  ok(!late.ok && /no longer hold/.test(late.error) && /Print #\d{7}/.test(late.error), 'accept fails when the pinned print has moved: ' + JSON.stringify(late));
+  ok((await trades.getTrade(o1.trade.id))?.status === 'open', 'the offer stays open for a counter');
+  if (away.ok) ok((await trades.cancelTrade(away.trade.id, 'pb')).ok, 'pb withdraws that listing');
+  eq(await holds('pb'), ['9.0.1', '9.0.2', '9.0.3'], 'the refund returned the very same print');
+
+  // Now it settles with exactly those prints.
+  ok((await trades.acceptTrade(o1.trade.id, 'pb')).ok, 'accept works once pb holds the print again');
+  eq(await holds('pb'), ['1.0.1', '1.0.2', '9.0.2', '9.0.3'], 'pb received exactly the chosen prints');
+  eq(await holds('pa'), ['1.0.3', '1.0.4', '2.0.1', '9.0.1'], 'pa received exactly the pinned print');
+  ok(await total() === start, 'copies conserved after settling picked prints');
+  eq((await trades.getTrade(o1.trade.id))?.get[0].ids, ['9.0.1'], 'the record keeps the prints');
+
+  // The taker chooses at accept: a listing asks for card 9, pb hands over 9.0.2 (not the newest 9.0.3).
+  const l1 = await trades.createTrade({ seasonId: season.id, from: 'pa', kind: 'listing', give: [sk(1, 1)], get: [sk(9)] });
+  ok(l1.ok, 'listing without chosen prints');
+  if (l1.ok) {
+    const bad = await trades.acceptTrade(l1.trade.id, 'pb', { [String(E(9))]: ['9.0.8'] });
+    ok(!bad.ok && /no longer hold/.test(bad.error), 'a chosen print the taker does not hold is refused');
+    const wrong = await trades.acceptTrade(l1.trade.id, 'pb', { [String(E(9))]: ['9.0.2', '9.0.3'] });
+    ok(!wrong.ok, 'a wrong-sized choice is refused');
+    ok((await trades.getTrade(l1.trade.id))?.status === 'open', 'refused accepts leave the listing open');
+    ok((await trades.acceptTrade(l1.trade.id, 'pb', { [String(E(9))]: ['9.0.2'] })).ok, 'pb accepts with a chosen print');
+    ok((await holds('pa')).includes('9.0.2') && !(await holds('pa')).includes('9.0.3'), 'the chosen print moved, not the newest');
+    ok((await holds('pb')).includes('1.0.4'), 'the unpicked give side moved the newest print (1.0.4)');
+  }
+
+  // Unpicked on both sides: newest first, like before.
+  const l2 = await trades.createTrade({ seasonId: season.id, from: 'pa', kind: 'listing', give: [sk(1, 1)], get: [sk(9)] });
+  if (l2.ok) {
+    ok((await trades.acceptTrade(l2.trade.id, 'pb')).ok, 'an unpicked accept works');
+    ok((await holds('pa')).includes('9.0.3'), 'unpicked ask moved the newest print');
+    ok((await holds('pb')).includes('1.0.3'), 'unpicked give moved the newest print');
+  }
+  ok(await total() === start, 'copies conserved after unpicked trades');
+
+  // Cancel refunds the same prints; a counter carries ids across.
+  const o2 = await trades.createTrade({ seasonId: season.id, from: 'pb', kind: 'direct', to: 'pc', give: [sk(1, 1, ['1.0.1'])], get: [sk(7)] });
+  ok(o2.ok, 'pb offers 1.0.1 to pc');
+  if (o2.ok) {
+    ok((await trades.cancelTrade(o2.trade.id, 'pb')).ok, 'pb cancels');
+    ok((await holds('pb')).includes('1.0.1') && (await inEscrow(o2.trade.id)).length === 0, 'cancel returns the chosen print');
+    const o3 = await trades.createTrade({ seasonId: season.id, from: 'pb', kind: 'direct', to: 'pc', give: [sk(1, 1, ['1.0.2'])], get: [sk(7)] });
+    if (o3.ok) {
+      const ctr = await trades.counterTrade(o3.trade.id, 'pc', { give: [sk(7)], get: [sk(1, 1, ['1.0.2'])] });
+      ok(ctr.ok, 'a counter may ask for the exact print that sits in the offer it answers: ' + (ctr.ok ? '' : ctr.error));
+      if (ctr.ok) {
+        eq(ctr.trade.get[0].ids, ['1.0.2'], 'the counter carries the ids');
+        ok((await trades.acceptTrade(ctr.trade.id, 'pb')).ok, 'pb accepts the counter');
+        ok((await holds('pc')).includes('1.0.2'), 'pc received exactly the print they asked for');
+      }
+    }
+  }
+  ok(await total() === start, 'copies conserved through everything');
+  ok((await trades.listOpenTrades()).every(t => t.escrowed), 'every open offer still holds its escrow');
+});
+await sbx.deleteSandbox(box2.id);
+
 ok(JSON.stringify(await prodKv.get('trades:open')) === prodBefore, 'production trades untouched');
 await sbx.deleteSandbox(box.id);
 console.log('trade checks passed');

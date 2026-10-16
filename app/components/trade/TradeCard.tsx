@@ -46,12 +46,12 @@ export function TradeCard({
       <div className={`grid gap-3 ${compact ? '' : 'md:grid-cols-[1fr_auto_1fr]'} items-start`}>
         <div className="space-y-1.5">
           <p className="text-[11px] uppercase tracking-wide text-gray-500">{trade.from} gives <span className="normal-case text-gray-600">≈ {givePts.toLocaleString()} pts</span></p>
-          <TradeStacks items={trade.give} cards={cards} pool={p.give} wanted={wanted} />
+          <TradeStacks items={trade.give} cards={cards} pool={p.give} wanted={wanted} uids={pools?.uids} />
         </div>
         {!compact && <div className="hidden md:flex self-center text-xl text-gray-600" aria-hidden>⇄</div>}
         <div className="space-y-1.5">
           <p className="text-[11px] uppercase tracking-wide text-gray-500">wants in return <span className="normal-case text-gray-600">≈ {getPts.toLocaleString()} pts</span></p>
-          <TradeStacks items={trade.get} cards={cards} pool={p.get} />
+          <TradeStacks items={trade.get} cards={cards} pool={p.get} uids={pools?.uids} anyPrint={trade.status === 'open'} />
         </div>
       </div>
       {trade.note && <p className="text-sm text-gray-300 italic">&ldquo;{trade.note}&rdquo;</p>}
