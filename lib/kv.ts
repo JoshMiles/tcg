@@ -142,8 +142,15 @@ export async function getPack(id: string): Promise<Pack | null> {
   return raw ? normalizePack(raw) : null;
 }
 
+/** The pack's revision counter: raised by every write to the pack or its cards, so the workspace can tell that someone else saved first. */
+export async function getPackRev(id: string): Promise<number> {
+  return Number(await kv.get(`pack:${id}:rev`)) || 0;
+}
+const bumpRev = async (id: string) => { await kv.incr(`pack:${id}:rev`); };
+
 export async function savePack(pack: Pack): Promise<void> {
   await kv.set(`pack:${pack.id}`, pack);
+  await bumpRev(pack.id);
   const ids = await listAllPackIds();
   if (!ids.includes(pack.id)) {
     await kv.set('packs:list', [...ids, pack.id]);
@@ -151,7 +158,7 @@ export async function savePack(pack: Pack): Promise<void> {
 }
 
 export async function deletePack(id: string): Promise<void> {
-  await Promise.all([kv.del(`pack:${id}`), kv.del(`pack:${id}:cards`), kv.del(`pack:${id}:cardback`)]);
+  await Promise.all([kv.del(`pack:${id}`), kv.del(`pack:${id}:cards`), kv.del(`pack:${id}:cardback`), kv.del(`pack:${id}:rev`)]);
   const ids = await listAllPackIds();
   await kv.set('packs:list', ids.filter(i => i !== id));
   // remove from any seasons that reference this pack
@@ -181,6 +188,7 @@ export async function getPackCards(packId: string): Promise<Card[]> {
 
 export async function savePackCards(packId: string, cards: Card[]): Promise<void> {
   await kv.set(`pack:${packId}:cards`, cards);
+  await bumpRev(packId);
 }
 
 // ── Composite ─────────────────────────────────────────────

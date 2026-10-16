@@ -12,6 +12,10 @@
 - Published packs can be moved back to drafts from the pack page (`unpublishPack`).
 - Published **seasons** can be moved back to drafts from the season page (`unpublishSeason`, with a confirmation). It also deactivates the season (so the overlay / Twitch panel see "no active season" until another is activated) and hides it from the public site; viewers' collections, packs and settings are kept, and it is republished from `/admin/seasons/new?draft=<id>`.
 
+## The pack workspace (`/admin/packs/[packId]`, ROADMAP 20.2a)
+
+A pack and its cards are edited in one full-width workspace (`app/admin/packs/[packId]/workspace/`): card list, preview, properties panel (card fields, or the pack row's settings with the Card back editor). Odds and Overview are views of the same page; `?card=<id|pack>` and `?view=odds|overview` are the URL state, and the old `?tab=` and `/cards/<id>` addresses redirect. All edits go into one working state (undo / redo, 60 deep); what is sent is the change set against the revision opened (`lib/pack-editor-core.ts`, saved by `lib/pack-save.ts`, action `savePackChanges`). Published packs save explicitly after Review; drafts autosave. `pack:<id>:rev` is raised by `savePack` and `savePackCards`, so every writer counts, and a stale revision is refused with "Load their version" (your changes are re-applied, clashes listed). Check: `scripts/check-pack-editor.mts`. The grid, odds-in-workspace, live preview, folder import and wizard removal are 20.2b to 20.2f.
+
 ## Admin routes
 - `/admin`. The **widget dashboard** (see "Admin dashboard (widgets)"): stats, quick actions, top collectors, leaderboard, rarity mix, packs, card ownership, recent activity, trading, overlay status, activity pulse, variant mix, most valuable cards, cards nobody owns, stream status, shortcuts and notes, arranged by the admin
 - `/admin/seasons`, season list (drafts first)

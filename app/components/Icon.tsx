@@ -1,6 +1,6 @@
 import type { ComponentType, SVGProps } from 'react';
 import {
-  Bug, Flag, Activity, Share2, Smartphone, Bell, BellOff, Filter, List, Pin, Heart, ArrowDown, ArrowUp, Award, Ban, BookOpen, Bomb, CalendarDays, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
+  Plus, Bug, Flag, Activity, Share2, Smartphone, Bell, BellOff, Filter, List, Pin, Heart, ArrowDown, ArrowUp, Award, Ban, BookOpen, Bomb, CalendarDays, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   CircleAlert, CircleCheck, CircleDashed, ClipboardList, Clock, Coins, Compass, Copy, Crown, Download, Film, FlaskConical, Gamepad2, Gem,
   Gift, GripVertical, Handshake, History, Hourglass, Image, Inbox, Info, Layers, Link, Lock, Medal, Menu, MessageSquare, Monitor, Music,
   Palette, PartyPopper, Pause, Pencil, Play, Puzzle, Radio, RefreshCw, Repeat, Ruler, Search, Send, Settings, Shield, Sigma, Sparkles,
@@ -29,6 +29,7 @@ function CheeseGlyph(props: SVGProps<SVGSVGElement> & { size?: number | string; 
 }
 
 export const ICONS = {
+  plus: Plus,
   flag: Flag, trophy: Trophy, medal: Medal, award: Award, crown: Crown,
   arrowUp: ArrowUp, arrowDown: ArrowDown, chevronUp: ChevronUp, chevronDown: ChevronDown, chevronLeft: ChevronLeft, chevronRight: ChevronRight,
   star: Star, sparkles: Sparkles, check: Check, checkCircle: CircleCheck, x: X, warning: TriangleAlert, alert: CircleAlert, info: Info, ban: Ban,
