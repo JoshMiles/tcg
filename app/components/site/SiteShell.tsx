@@ -1,6 +1,7 @@
 import { BetaBanner } from './BetaBanner';
 import { bannerText, getSiteLabel } from '@/lib/site-label';
 import { requireSiteAccess } from '@/lib/access';
+import { ClosedShell } from './ClosedShell';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { SiteNav, type NavRank, type NavUser } from './SiteNav';
@@ -24,7 +25,9 @@ import { SandboxPill } from '@/app/components/SandboxPill';
 
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
 export async function SiteShell({ children }: { children: ReactNode }) {
-  await requireSiteAccess(); // the closed alpha / beta gate's authoritative check (lib/access.ts); FAQ, privacy and terms pass
+  // The closed alpha / beta gate's authoritative check (lib/access.ts). Privacy and terms stay readable for everyone, but someone who
+  // can't use the site gets them without the nav, search and site links.
+  if (!(await requireSiteAccess())) return <ClosedShell>{children}</ClosedShell>;
 
   const session = await getSession();
   const siteLabel = await getSiteLabel();

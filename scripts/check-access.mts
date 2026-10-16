@@ -53,7 +53,7 @@ ok((await tok.verifyAccessToken(staffCookie, t0)) === null, 'a staff cookie is n
 // ── the allow list ──
 const EXEMPT = [
   '/closed', '/login', '/auth/twitch', '/auth/access', '/auth/staff', '/auth/logout', '/auth/error', '/admin', '/admin/settings', '/mod', '/mod/users',
-  '/privacy', '/terms', '/faq', '/api/twitch/user', '/api/twitch/leaderboard', '/api/version', '/api/webhooks/pull', '/api/webhooks/queue', '/api/cron/backup', '/api/overlay/config',
+  '/privacy', '/terms', '/api/twitch/user', '/api/twitch/leaderboard', '/api/version', '/api/webhooks/pull', '/api/webhooks/queue', '/api/cron/backup', '/api/overlay/config',
   '/api/overlay/heartbeat', '/api/collection', '/api/seasons/active', '/api/auth/login', '/api/admin/activity', '/api/upload', '/api/account/deletion', '/api/account/export',
   '/overlay.html', '/widget.js', '/widget.css', '/sw.js', '/robots.txt', '/sitemap.xml', '/manifest.webmanifest', '/assets/sounds/1.mp3', '/brand/icon.png',
   '/icons/x.png', '/twitch-panel/panel.js', '/_next/static/x.js', '/apple-touch-icon.png', '/icon.png'
@@ -111,8 +111,11 @@ r = await run('/cards?x=1', 'tcg_session=anything');
 ok(r.status === 307 && location(r).includes('/auth/access?returnTo=' + encodeURIComponent('/cards?x=1')), 'middleware: a signed-in viewer goes to /auth/access');
 r = await run('/api/trades');
 ok(r.status === 403 && (await r.json()).error === 'closed', 'middleware: a gated API answers 403 closed');
+r = await run('/privacy');
+ok(r.status === 200 && r.headers.get('x-middleware-request-x-tcg-path') === '/privacy', 'middleware: /privacy passes and carries its path for the layouts');
 r = await run('/faq');
-ok(r.status === 200 && r.headers.get('x-middleware-request-x-tcg-path') === '/faq', 'middleware: /faq passes and carries its path for the layouts');
+ok(r.status === 307 && location(r).endsWith('/closed'), 'middleware: the FAQ is closed to strangers too');
+ok(!core.isExemptPath('/faq'), 'the FAQ is not on the allow list');
 const good = await tok.signAccessToken({ login: 'sam', tier: 'beta', v: 5 });
 r = await run('/cards', `tcg_access=${good}`);
 ok(r.status === 200, 'middleware: a valid beta cookie passes in beta mode');
@@ -131,7 +134,7 @@ ok(r.status === 200, 'middleware: webhooks pass in alpha mode');
 // A stale cache: the cookie is newer than our remembered copy, so the settings are looked up again (no redirect loop).
 const rawSet = async (v: unknown) => { await fetch(kvUrl, { method: 'POST', headers: { Authorization: 'Bearer dev' }, body: JSON.stringify(['SET', 'access:settings', JSON.stringify(v)]) }); };
 await setSettings({ mode: 'beta', label: 'beta', v: 7 });
-await run('/faq'); // our copy is now beta v7
+await run('/privacy'); // our copy is now beta v7
 await rawSet({ mode: 'alpha', label: 'alpha', v: 8 }); // changed behind our back
 const alphaCookie = await tok.signAccessToken({ login: 'sam', tier: 'alpha', v: 8 });
 r = await run('/cards', `tcg_access=${alphaCookie}`);
@@ -177,7 +180,7 @@ ok(!(await acc.getTester('gone_user')), 'deleteTesterRecord (account deletion)')
 // ── SEO ──
 const seo = await import('../lib/seo');
 const closedMap = seo.buildSitemap('https://x.test', [{ id: 's1' }], new Date(0), true).map(e => e.url);
-ok(closedMap.length === 3 && closedMap.every(u => /\/(faq|privacy|terms)$/.test(u)), 'closed sitemap lists only faq, privacy, terms');
+ok(closedMap.length === 2 && closedMap.every(u => /\/(privacy|terms)$/.test(u)), 'closed sitemap lists only privacy and terms');
 ok(seo.buildSitemap('https://x.test', [{ id: 's1' }]).length > 3, 'open sitemap unchanged');
 
 console.log('check-access: all passed');

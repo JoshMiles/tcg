@@ -134,15 +134,20 @@ export async function hasSiteAccess(): Promise<boolean> {
   return !!(await getStaff()); // the owner's emergency password login and any staff cookie
 }
 
-/** The authoritative check for the public layouts: redirects to /closed. The paths the gate leaves alone (FAQ, privacy, terms) pass. */
-export async function requireSiteAccess(): Promise<void> {
+/**
+ * The authoritative check for the public layouts: redirects to /closed. The paths the gate leaves alone (privacy, terms) still render,
+ * and the answer says whether this viewer may see the rest of the site: false means show those pages without the site's nav and links.
+ */
+export async function requireSiteAccess(): Promise<boolean> {
+  let exempt = false;
   try {
     const path = (await headers()).get('x-tcg-path');
-    if (path && isExemptPath(path)) return;
+    exempt = !!path && isExemptPath(path);
   } catch { /* no request headers: check anyway */ }
   let allowed = true;
   try { allowed = await hasSiteAccess(); } catch { allowed = true; } // a KV blip must not lock the site while live
-  if (!allowed) redirect('/closed');
+  if (!allowed && !exempt) redirect('/closed');
+  return allowed;
 }
 
 /** For the signed-in public APIs: a 403 answer when the site is closed to this caller, else null. */

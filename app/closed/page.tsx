@@ -56,8 +56,7 @@ export default async function ClosedPage({ searchParams }: { searchParams: Promi
           <p className="text-xs text-gray-500">
             The game runs only on the <a href={CHANNEL_URL} className="text-yellow-500 hover:text-yellow-300" target="_blank" rel="noopener noreferrer">{CHANNEL_NAME} Twitch channel</a>.
           </p>
-          <nav aria-label="Legal and help" className="flex justify-center gap-4 text-xs text-yellow-500">
-            <Link href="/faq" className="hover:text-yellow-300">FAQ</Link>
+          <nav aria-label="Legal" className="flex justify-center gap-4 text-xs text-yellow-500">
             <Link href="/privacy" className="hover:text-yellow-300">Privacy</Link>
             <Link href="/terms" className="hover:text-yellow-300">Terms</Link>
           </nav>
