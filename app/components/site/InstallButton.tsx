@@ -11,8 +11,8 @@ const BUTTON = 'inline-flex items-center justify-center w-9 h-9 rounded-lg borde
 /**
  * The top bar's "install the app" icon. Where the browser can install the site in one tap (Chrome, Edge, Android) it opens the browser's
  * own install dialog; otherwise it opens the how-to page (iPhone and iPad have no install dialog, they use Share, Add to Home Screen).
- * It stays hidden once the app is installed, inside another app's browser that can't add sites, and on a computer whose browser has
- * no install option.
+ * It only shows on phones and tablets (computers reach /install from the footer and the site menu), and stays hidden once the app is
+ * installed and inside another app's browser that can't add sites.
  */
 export function InstallButton() {
   const [state, setState] = useState<'hidden' | 'prompt' | 'guide'>('hidden');
@@ -20,9 +20,10 @@ export function InstallButton() {
   useEffect(() => {
     const sync = () => {
       if (isStandalone() || wasInstalled()) { setState('hidden'); return; }
-      if (getInstallPrompt()) { setState('prompt'); return; }
       const env = detectInstallEnv(navigator.userAgent, navigator.maxTouchPoints);
-      setState(env.platform !== 'desktop' && !env.inApp ? 'guide' : 'hidden');
+      if (env.platform === 'desktop') { setState('hidden'); return; }
+      if (getInstallPrompt()) { setState('prompt'); return; }
+      setState(!env.inApp ? 'guide' : 'hidden');
     };
     sync();
     return subscribeInstall(sync);
