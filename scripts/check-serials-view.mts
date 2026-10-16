@@ -30,4 +30,10 @@ for (const bad of ['https://evil.test/', '//evil.test', '/admin/users', '/admin/
 ok(v.withParams('/admin/serials?season=s1&print=1.0.1', { print: '2.0.3', done: 'Given to @jo.' }) === '/admin/serials?season=s1&print=2.0.3&done=Given+to+%40jo.', 'withParams sets and encodes');
 ok(v.withParams('/admin/serials?season=s1&done=x', { done: undefined }) === '/admin/serials?season=s1', 'withParams removes');
 ok(v.safeSerialsReturn(v.withParams('/admin/serials?season=s1', { print: '1.0.1' })) !== null, 'what withParams builds is still a safe address');
+// ── Most valuable prints links (15.4) ──
+const { topPrintHref } = await import('../lib/copy-link');
+const row = (serial?: number, variant: 'regular' | 'shiny' = 'shiny') => ({ card: { number: 7 }, variant, serial });
+ok(topPrintHref(row(3), 's1', 1023381) === '/c/1023381', 'a numbered print with a unique number opens its print page');
+ok(topPrintHref(row(3), 's1', null) === '/copy/s1/7.3.3', 'a numbered print without a unique number opens the derived copy link');
+ok(topPrintHref(row(undefined), 's1', 5) === '/cards?card=7', 'a grouped row opens the card dex dialog');
 console.log('ok');
