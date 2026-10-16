@@ -1,5 +1,6 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
+import { InfoTip } from '@/app/components/InfoTip';
 import { useState, type ReactNode } from 'react';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import type { CardMaths } from '@/lib/card-maths';
@@ -8,7 +9,7 @@ import type { Variant } from '@/lib/types';
 const n = (x: number, d = 2) => (Number.isFinite(x) ? x.toLocaleString(undefined, { maximumFractionDigits: d }) : '∞');
 const pct = (p: number) => (p >= 0.1 ? `${(p * 100).toFixed(1)}%` : p >= 0.001 ? `${(p * 100).toFixed(2)}%` : `${(p * 100).toFixed(3)}%`);
 
-function Step({ no, title, children }: { no: number; title: string; children: ReactNode }) {
+function Step({ no, title, children }: { no: number; title: ReactNode; children: ReactNode }) {
   return (
     <li className="space-y-1.5">
       <p className="text-xs font-bold text-yellow-300"><span className="text-gray-500 mr-1.5">{no}.</span>{title}</p>
@@ -96,7 +97,7 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
             )}
           </Step>
 
-          <Step no={4} title="Edition bonus">
+          <Step no={4} title={<>Edition bonus<InfoTip term="editionBonus" /></>}>
             <Eq>bonus = 1 + (max − 1) × (1 − (edition − 1) ÷ cutoff), for edition 1 to cutoff; 1 after that</Eq>
             <Eq>= 1 + ({n(m.serialBonusMax)} − 1) × (1 − (edition − 1) ÷ {m.serialBonusCutoff})</Eq>
             {m.serialBonusCutoff > 0 && m.serialBonusMax > 1 ? (

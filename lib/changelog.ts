@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-16',
+    title: 'Little "i" buttons explain the terms',
+    tags: ['new'],
+    items: [
+      'Tap or hover the new "i" next to a term such as Progress bonus, Edition, Print number, Pull chance or the trade fairness label to see a short explanation.',
+      'You will find them on your stats, profiles, the leaderboard, the card dex, print pages and the trade screen. Each one links to the full answer in the FAQ.',
+    ],
+  },
+  {
+    date: '2026-10-16',
     title: 'Send feedback, and delete your account yourself',
     tags: ['new'],
     items: [

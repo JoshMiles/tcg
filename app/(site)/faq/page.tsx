@@ -225,7 +225,7 @@ export default async function FaqPage() {
           </ul>
           <p className="mt-2">When someone accepts, the swap happens instantly and both collections update. There are no fees and no randomness. Accept, Take this trade, Decline and Cancel each ask for a second tap (&ldquo;Sure?&rdquo;) before they do anything, so a stray tap can&rsquo;t swap your cards.</p>
         </Q>
-        <Q q="What is escrow? Where do my cards go while an offer is open?">
+        <Q q="What is escrow? Where do my cards go while an offer is open?" id="escrow">
           When you send an offer, the card you are trading leaves your collection and is <strong className="text-white">held safely in escrow</strong>. That guarantees you really have it, so nobody can accept an offer you can&rsquo;t
           honour. It comes straight back to you if the offer is declined, cancelled, countered or runs out of time, and goes to the other person if the offer is accepted. While a card is in escrow it doesn&rsquo;t count towards your points.
         </Q>
@@ -262,7 +262,7 @@ export default async function FaqPage() {
         <Q q="Can I protect a print from being traded?">
           Yes. Press <strong className="text-white">Favourite</strong> on a print&rsquo;s page, or in the card details on your collection, to mark it (up to 50 prints). A favourite print can&rsquo;t be put in an offer, can&rsquo;t be taken when someone accepts your offer or takes your listing, and isn&rsquo;t spent when you upgrade duplicates. When a trade or an upgrade picks prints for you it skips your favourites, and if only favourites are left it stops and says so. Remove the mark whenever you want to trade it. Prints in an open offer can&rsquo;t be favourited until the offer ends.
         </Q>
-        <Q q="Is a trade fair? How do I know what a card is worth?">
+        <Q q="Is a trade fair? How do I know what a card is worth?" id="fair-trade">
           Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule. You can
           trade anything for anything. Remember that a print’s edition number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
         </Q>

@@ -78,4 +78,17 @@ ok(faq.includes('it used to be called the completion bonus'), 'the FAQ keeps the
 ok(faq.includes('it used to be called the complete collection bonus'), 'the FAQ keeps the old full set bonus name findable');
 ok(faq.includes('id="serials"') && faq.includes('id="prints"'), 'the FAQ keeps the #serials anchor and adds #prints');
 
+// ---- the info tooltips (ROADMAP 7.9): every glossary link lands on a real FAQ anchor, and the wording follows the house rules ----
+const glossary = read('lib/glossary.ts');
+const faqAnchors = new Set([...faq.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
+const entries = [...glossary.matchAll(/^  (\w+): \{\n([\s\S]*?)\n  \},$/gm)];
+ok(entries.length >= 15, `the glossary has its first terms (found ${entries.length})`);
+for (const [, term, block] of entries) {
+  const anchor = /faq: '([^']+)'/.exec(block)?.[1];
+  ok(!anchor || faqAnchors.has(anchor), `glossary term ${term} links to #${anchor}, which the FAQ does not have`);
+  ok(/title: '/.test(block) && /body: '/.test(block), `glossary term ${term} has a title and a body`);
+}
+ok(!glossary.includes(String.fromCharCode(8212)) && !/\p{Extended_Pictographic}/u.test(glossary), 'the glossary has no em dash and no emoji');
+ok(!oldBonusNames.test(glossary), 'the glossary uses the new bonus names');
+
 console.log('words checks passed');

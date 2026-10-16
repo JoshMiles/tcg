@@ -1,5 +1,6 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
+import { InfoTip } from '@/app/components/InfoTip';
 import { UserInput } from '@/app/components/UserInput';
 import { Spinner } from '../../admin/components/PendingButton';
 import { useEffect, useMemo, useState } from 'react';
@@ -238,7 +239,7 @@ export function TradeComposer({
           <p className="text-sm text-gray-300">
             You give <strong className="text-white">≈ {givePts.toLocaleString()} pts</strong> and get <strong className="text-white">≈ {getPts.toLocaleString()} pts</strong>
             {Math.abs(givePts - getPts) > 0 && <span className="text-gray-500"> ({getPts >= givePts ? '+' : '−'}{Math.abs(getPts - givePts).toLocaleString()} for you)</span>}.
-            <span className={`ml-2 inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${verdict.warn ? 'border-amber-400/50 bg-amber-500/10 text-amber-300' : verdict.label === 'Even' ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300' : 'border-gray-700 text-gray-400'}`}>{verdict.label}</span>
+            <span className={`ml-2 inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${verdict.warn ? 'border-amber-400/50 bg-amber-500/10 text-amber-300' : verdict.label === 'Even' ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300' : 'border-gray-700 text-gray-400'}`}>{verdict.label}</span><InfoTip term="fairness" />
             <span className="block text-xs text-gray-500 mt-1">Values move as cards are pulled and traded, so treat these as a guide.</span>
           </p>
         )}
@@ -287,7 +288,7 @@ function Side({
         <h2 className="font-display text-lg font-bold text-white">{title}</h2>
         <span className="text-xs text-gray-500">≈ {points.toLocaleString()} pts · {items.length}/{maxStacks} stacks</span>
       </div>
-      <p className="text-xs text-gray-500">{hint}</p>
+      <p className="text-xs text-gray-500">{hint}{giving && <InfoTip term="escrow" />}</p>
 
       {items.length > 0 ? (
         <ul className="space-y-1.5">

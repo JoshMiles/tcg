@@ -25,6 +25,7 @@ import { holoClass, holoVars } from '@/lib/holo-core';
 import { getRarity } from '@/lib/rarity';
 import { profileHref } from '@/lib/profile-url';
 import { VARIANT_LABELS } from '@/lib/variants';
+import { InfoTip } from '@/app/components/InfoTip';
 import { SITE_URL } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
@@ -124,12 +125,12 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
             {copy.uid && (
               <p className="mt-2 flex flex-wrap items-baseline gap-2">
                 <span className="font-display text-xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.uid}</span>
-                <span className="text-xs uppercase tracking-wider text-gray-500 font-bold">Print number</span>
+                <span className="text-xs uppercase tracking-wider text-gray-500 font-bold">Print number<InfoTip term="printNumber" /></span>
               </p>
             )}
             <p className="mt-2 flex flex-wrap items-center gap-2">
               {copy.uid
-                ? <span className="text-sm text-gray-300">Edition <strong className="text-white tabular-nums">#{copy.n}</strong> of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span>
+                ? <span className="text-sm text-gray-300">Edition<InfoTip term="edition" /> <strong className="text-white tabular-nums">#{copy.n}</strong> of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span>
                 : <><span className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.n}</span>
                   <span className="text-sm text-gray-400">of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span></>}
               {copy.est && <span title="This print existed before editions were numbered. Edition numbers within a version were assigned afterwards, so the order is an estimate." className="text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}

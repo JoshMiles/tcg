@@ -1,4 +1,5 @@
 import { Icon } from '@/app/components/Icon';
+import { InfoTip } from '@/app/components/InfoTip';
 import { PushPrompt } from '@/app/components/site/PushPrompt';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -122,8 +123,8 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   };
 
   const tiles = [
-    { label: 'Score', value: s.score.toLocaleString(), sub: 'points' },
-    { label: 'Rank', value: s.rank ? `#${s.rank}` : '-', sub: s.rank ? `of ${s.players}` : 'not on the board yet' },
+    { label: 'Score', tip: 'score' as const, value: s.score.toLocaleString(), sub: 'points' },
+    { label: 'Rank', tip: 'rank' as const, value: s.rank ? `#${s.rank}` : '-', sub: s.rank ? `of ${s.players}` : 'not on the board yet' },
     { label: 'Cards', value: `${s.uniqueCards}/${s.totalCards}`, sub: `${s.completionPct}% complete` },
     { label: 'Prints', value: s.copies.toLocaleString(), sub: 'total owned' },
   ];
@@ -170,7 +171,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {tiles.map(t => (
               <div key={t.label} className="rind rounded-xl p-4 space-y-0.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{t.label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">{t.label}{'tip' in t && t.tip && <InfoTip term={t.tip} />}</p>
                 <p className="font-display text-3xl font-bold text-white tabular-nums">{t.value}</p>
                 <p className="text-xs text-gray-500">{t.sub}</p>
               </div>
@@ -219,16 +220,16 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 <dd className="font-semibold text-white tabular-nums">{(s.cardPoints - s.serialPoints).toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
-                <dt className="text-gray-300">Edition bonus <span className="text-gray-600">· low-numbered prints are worth extra (<Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how it works</Link>)</span></dt>
+                <dt className="text-gray-300">Edition bonus<InfoTip term="editionBonus" /> <span className="text-gray-600">· low-numbered prints are worth extra (<Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how it works</Link>)</span></dt>
                 <dd className={`font-semibold tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{s.serialPoints.toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
-                <dt className="text-gray-300">Progress bonus <span className="text-gray-600">· {s.completionPct}% of the set (up to {s.maxCompletionBonus.toLocaleString()})</span></dt>
+                <dt className="text-gray-300">Progress bonus<InfoTip term="progressBonus" /> <span className="text-gray-600">· {s.completionPct}% of the set (up to {s.maxCompletionBonus.toLocaleString()})</span></dt>
                 <dd className="font-semibold text-emerald-300 tabular-nums">+{s.completionBonus.toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
                 <dt className="text-gray-300">
-                  Full set bonus{' '}
+                  Full set bonus<InfoTip term="fullSetBonus" />{' '}
                   <span className="text-gray-600">· {s.complete ? 'you own every card!' : `own every card to earn +${s.completeSetBonusValue.toLocaleString()}`}</span>
                 </dt>
                 <dd className={`font-semibold tabular-nums ${s.complete ? 'text-emerald-300' : 'text-gray-600'}`}>
@@ -250,7 +251,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           {/* Upgrades you can afford */}
           {upgradesOn && (
             <section id="upgrades" className="rind rounded-2xl p-5 space-y-3">
-              <h2 className="font-display text-xl font-bold text-white"><Icon name="arrowUp" className="mr-2 text-yellow-400" />Ready to upgrade</h2>
+              <h2 className="font-display text-xl font-bold text-white"><Icon name="arrowUp" className="mr-2 text-yellow-400" />Ready to upgrade<InfoTip term="upgrade" /></h2>
               {s.upgradable.length === 0 ? (
                 <p className="text-sm text-gray-400">
                   Nothing yet. Collect duplicates of the same card and version. You&rsquo;ll see what you can upgrade here.

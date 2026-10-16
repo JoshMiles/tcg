@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Icon } from '@/app/components/Icon';
+import { InfoTip } from '@/app/components/InfoTip';
 import { CardTile } from '@/app/components/CardTile';
 import { getActivity, type ActivityEvent } from '@/lib/activity';
 import { getSeasonOverview } from '@/lib/site-data';
@@ -102,9 +103,9 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
         <Box type={type} href={`/leaderboard/${b.season.id}`} linkLabel="Leaderboard">
           <dl className="text-sm divide-y divide-gray-800/70">
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Cards</dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
-            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Edition bonus</dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '-'}</dd></div>
-            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Progress bonus</dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
-            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Full set bonus</dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : '-'}</dd></div>
+            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Edition bonus<InfoTip term="editionBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '-'}</dd></div>
+            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Progress bonus<InfoTip term="progressBonus" /></dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
+            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Full set bonus<InfoTip term="fullSetBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
           </dl>
           <p className="text-xs text-gray-500">{s.copies} print{s.copies === 1 ? '' : 's'} · {s.uniqueCards}/{s.totalCards} different cards</p>
