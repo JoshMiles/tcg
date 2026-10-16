@@ -14,6 +14,12 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-10-16',
+    title: 'A wider "live now" banner on the home page',
+    tags: ['improved'],
+    items: ['When Cheesygidds is streaming, the live banner now spans the top of the home page with the stream title, viewer count and a Watch on Twitch button.'],
+  },
+  {
+    date: '2026-10-16',
     title: 'The app icon only shows where it helps',
     tags: ['improved'],
     items: ['The install icon in the top bar now only appears on phones and tablets. On a computer you can still find the install guide in the footer and the site menu.'],

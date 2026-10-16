@@ -58,7 +58,7 @@ export function LiveBadge() {
   );
 }
 
-/** Wider strip for the home page: title, game, viewers and a Watch button. Only renders while live. */
+/** Full-width strip above the home hero: one line of channel, title, game and viewers, and a Watch button at the right (stacked on phones). Only renders while live. */
 export function LiveBanner() {
   const live = useLive();
   if (!live?.live) return null;
@@ -67,18 +67,18 @@ export function LiveBanner() {
       href={CHANNEL_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-red-500/40 bg-red-950/30 hover:bg-red-950/50 px-4 py-3 transition-colors max-w-xl"
+      className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-2 rounded-2xl border border-red-500/40 bg-red-950/30 hover:bg-red-950/50 px-4 py-3 transition-colors"
     >
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider text-white bg-red-600">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider text-white bg-red-600 self-start sm:self-auto shrink-0">
         <span className="live-dot w-1.5 h-1.5 rounded-full bg-white" /> Live now
       </span>
-      <span className="flex-1 min-w-0 text-sm text-red-50">
+      <span className="flex-1 min-w-0 text-sm text-red-50 sm:truncate">
         <span className="font-semibold">{CHANNEL_NAME}</span> is streaming
-        {live.game ? <> · <span className="text-red-200">{live.game}</span></> : null}
+        {live.title ? <> · <span className="text-red-200">{live.title}</span></> : null}
+        {live.game ? <> · <span className="text-red-200/80">{live.game}</span></> : null}
         {typeof live.viewers === 'number' ? <> · <span className="text-red-200">{viewersText(live.viewers)}</span></> : null}
-        {live.title ? <span className="block truncate text-xs text-red-200/80">{live.title}</span> : null}
       </span>
-      <span className="text-xs font-bold text-white bg-[#9146ff] rounded-lg px-3 py-1.5 shrink-0">Watch on Twitch ↗</span>
+      <span className="text-xs font-bold text-white bg-[#9146ff] rounded-lg px-3 py-2 sm:py-1.5 shrink-0 text-center">Watch on Twitch ↗</span>
     </a>
   );
 }
