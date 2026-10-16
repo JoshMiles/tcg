@@ -21,8 +21,11 @@ import { describeItems } from '@/lib/trade-core';
 import { listUserSnapshots, SUGGESTED_TAGS } from '@/lib/user-admin';
 import { updateUserProfile, removeUserCard, resetUserSeason, resetUser, deleteUser } from '../../actions';
 import { PageTabs, pickTab } from '../../components/PageTabs';
-import { GrantPanel, ModerationPanel, TagsEditor, ToolsPanel, TradesPanel, type TradeLine } from './UserPanels';
+import { GrantPanel, ModerationPanel, PullLimitPanel, TagsEditor, ToolsPanel, TradesPanel, type TradeLine } from './UserPanels';
 import { Panel, Tile } from '../../components/ui';
+import { getUserPullLimit } from '@/lib/pull-limit';
+import { effectiveLimit } from '@/lib/pull-limit-core';
+import { getMixItUpSettings, pullsUsedThisStream } from '@/lib/mixitup';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +62,8 @@ export default async function UserDetailPage({
   const { compare: compareRaw, tab: tabParam } = await searchParams;
   const username = rawUsername.toLowerCase();
   const compareWith = compareRaw?.toLowerCase().replace(/^@/, '').trim() || '';
+  const [pullRec, mix, pullsUsed] = await Promise.all([getUserPullLimit(username), getMixItUpSettings(), pullsUsedThisStream(username)]);
+  const effective = effectiveLimit(mix.limit, pullRec);
 
   const [profile, seasons, avatars, audit, snaps, activity, lastSeenMap, trades] = await Promise.all([
     getUserProfile(username),
@@ -346,6 +351,10 @@ export default async function UserDetailPage({
         <>
       <Panel id="moderation" title="Moderation" hint="Restrictions apply immediately across the website and the Twitch panel.">
         <ModerationPanel username={username} initial={{ noTrading: !!flags?.noTrading, hideFromBoard: !!flags?.hideFromBoard, reason: flags?.reason ?? '', at: flags?.at, by: flags?.by }} />
+      </Panel>
+
+      <Panel id="pull-limit" title="Pull limit" hint="Paid pulls per stream (Settings → Mix It Up). Set one for this viewer, or give a temporary bonus.">
+        <PullLimitPanel username={username} view={{ own: pullRec.limit, defaultLimit: mix.limit, effective: effective.limit, used: pullsUsed, charging: mix.enabled, buffs: pullRec.buffs.filter(b => b.until === null || b.until > Date.now()) }} />
       </Panel>
 
       <Panel id="tools" title="Restore points, compare & merge">

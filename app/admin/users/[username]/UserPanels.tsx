@@ -9,6 +9,7 @@ import { ArmedButton } from '../../components/ArmedButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import {
+  addPullBuffAction, removePullBuffAction, setPullLimitAction,
   cancelUserTradeAction, giftPacksAction, grantManyAction, mergeUserAction, restoreSnapshotAction, saveFlagsAction, saveTagsAction,
   type UserActionResult,
 } from '../../users-actions';
@@ -64,6 +65,68 @@ export function ModerationPanel({ username, initial }: { username: string; initi
       {initial.at && (initial.noTrading || initial.hideFromBoard) && <p className="text-xs text-gray-600">Set {new Date(initial.at).toLocaleString('en-GB', { timeZone: 'UTC' })}{initial.by ? ` by ${initial.by}` : ''}</p>}
       <div className="flex items-center gap-3">
         <button type="button" disabled={!dirty || pending} onClick={() => startTransition(async () => { setResult(await saveFlagsAction(username, { noTrading, hideFromBoard: hide, reason })); })} className={btn}>{pending && <Spinner />}Save restrictions</button>
+      </div>
+      <Result r={result} />
+    </div>
+  );
+}
+
+export interface PullLimitView {
+  /** The viewer's own base limit; null = follows the default. */
+  own: number | null;
+  /** The default from Settings → Mix It Up. */
+  defaultLimit: number;
+  /** What counts right now (0 = no limit). */
+  effective: number;
+  used: number;
+  charging: boolean;
+  buffs: { id: string; amount: number; until: number | null; source: string; note?: string }[];
+}
+
+const when = (t: number) => new Date(t).toLocaleString('en-GB', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' }) + ' UTC';
+
+/** Paid pulls per stream for this viewer: their own limit and temporary bonuses (ROADMAP 12.4). */
+export function PullLimitPanel({ username, view }: { username: string; view: PullLimitView }) {
+  const [own, setOwn] = useState(view.own === null ? '' : String(view.own));
+  const [amount, setAmount] = useState('1');
+  const [hours, setHours] = useState('');
+  const [note, setNote] = useState('');
+  const [pending, startTransition] = useTransition();
+  const [result, setResult] = useState<UserActionResult | null>(null);
+  const run = (fn: () => Promise<UserActionResult>) => startTransition(async () => { setResult(await fn()); });
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-300">
+        Allowed per stream: <strong className="text-white">{view.effective === 0 ? 'no limit' : view.effective}</strong>
+        {view.effective > 0 && <span className="text-gray-500"> · used this stream: <span className="tabular-nums">{view.used}</span></span>}
+        {!view.charging && <span className="block text-xs text-gray-600 mt-0.5">Mix It Up is switched off, so no limit applies yet.</span>}
+      </p>
+      <form onSubmit={e => { e.preventDefault(); run(() => setPullLimitAction(username, own)); }} className="flex flex-wrap items-end gap-2">
+        <label className="text-xs text-gray-400 space-y-1">
+          <span className="block">This viewer&rsquo;s own limit (empty = default {view.defaultLimit === 0 ? 'none' : view.defaultLimit}, 0 = no limit)</span>
+          <input value={own} onChange={e => setOwn(e.target.value)} inputMode="numeric" className={`${field} w-28`} aria-label="Own limit per stream" />
+        </label>
+        <button type="submit" disabled={pending} className={btn}>Save</button>
+      </form>
+      <div className="space-y-2">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Bonuses (extra pulls per stream)</p>
+        {view.buffs.length === 0 && <p className="text-sm text-gray-600">None.</p>}
+        <ul className="space-y-1.5">
+          {view.buffs.map(b => (
+            <li key={b.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-gray-800 px-3 py-2 text-sm">
+              <strong className="text-emerald-300">+{b.amount}</strong>
+              <span className="text-gray-400">{b.until === null ? 'until removed' : `until ${when(b.until)}`}</span>
+              <span className="text-xs text-gray-600">{b.source}{b.note ? ` · ${b.note}` : ''}</span>
+              <button type="button" disabled={pending} onClick={() => run(() => removePullBuffAction(username, b.id))} className="ml-auto text-xs text-red-300 hover:text-red-200 disabled:opacity-50">Remove</button>
+            </li>
+          ))}
+        </ul>
+        <form onSubmit={e => { e.preventDefault(); run(() => addPullBuffAction(username, amount, hours, note)); }} className="flex flex-wrap items-end gap-2">
+          <label className="text-xs text-gray-400 space-y-1"><span className="block">Extra pulls</span><input value={amount} onChange={e => setAmount(e.target.value)} inputMode="numeric" className={`${field} w-20`} aria-label="Extra pulls" /></label>
+          <label className="text-xs text-gray-400 space-y-1"><span className="block">For hours (empty = until removed)</span><input value={hours} onChange={e => setHours(e.target.value)} inputMode="numeric" className={`${field} w-24`} aria-label="Hours" /></label>
+          <label className="text-xs text-gray-400 space-y-1"><span className="block">Note</span><input value={note} onChange={e => setNote(e.target.value)} maxLength={120} className={`${field} w-48`} aria-label="Note" /></label>
+          <button type="submit" disabled={pending} className={btn}>Add bonus</button>
+        </form>
       </div>
       <Result r={result} />
     </div>

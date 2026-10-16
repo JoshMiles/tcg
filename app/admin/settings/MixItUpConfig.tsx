@@ -58,10 +58,10 @@ export function MixItUpConfig({ settings: s, log }: { settings: MixItUpSettings;
                 <input id="mx-cost" name="cost" type="number" min={1} step={1} defaultValue={s.cost} className={input} />
               </div>
               <div>
-                <label className={label} htmlFor="mx-limit">Pulls per viewer per stream</label>
+                <label className={label} htmlFor="mx-limit">Default pulls per viewer per stream</label>
                 <input id="mx-limit" name="limit" type="number" min={0} step={1} defaultValue={s.limit} className={input} />
               </div>
-              <p className={`${help} col-span-2 -mt-2`}>0 = no limit. &ldquo;Per stream&rdquo; follows the live Twitch stream; when the channel is offline it is per day (UTC).</p>
+              <p className={`${help} col-span-2 -mt-2`}>0 = no limit. Each viewer can have their own limit and temporary bonuses on their user page (Admin tab). &ldquo;Per stream&rdquo; follows the live Twitch stream; when the channel is offline it is per day (UTC).</p>
             </div>
           </div>
 
