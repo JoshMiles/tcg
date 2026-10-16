@@ -56,14 +56,33 @@ function plainBase(e: ActivityEvent, cardName: CardNamer): string {
   }
 }
 
+export type PullEvent = Extract<ActivityEvent, { type: 'pull' }>;
+
+/** A pull as a pull event: a pull itself, or a webhook grant (a reward) dressed as one with defaults for facts older events lack. Null for anything else. */
+export function asPullEvent(e: ActivityEvent): PullEvent | null {
+  if (e.type === 'pull') return e;
+  if (e.type !== 'grant' || e.source !== 'webhook') return null;
+  const { source: _source, ...rest } = e;
+  return { ...rest, type: 'pull', cardName: e.cardName ?? `Card #${e.cardNumber}`, stars: e.stars ?? 1, packName: e.packName ?? '', isNew: e.isNew === true, copies: e.copies ?? 1, uniqueOwned: e.uniqueOwned ?? 0 };
+}
+
+/** The facts of a pull, from a pull or from a webhook grant (a reward reads as a pull everywhere in the feed). Null for anything else. */
+export interface PullFacts { username: string; at: number; variant: string; stars: number; isNew: boolean; serial?: number; uniqueOwned?: number; packName?: string }
+export function pullFacts(e: ActivityEvent): PullFacts | null {
+  if (e.type === 'pull') return { username: e.username, at: e.at, variant: e.variant ?? 'regular', stars: e.stars, isNew: e.isNew, serial: e.serial, uniqueOwned: e.uniqueOwned, packName: e.packName };
+  if (e.type === 'grant' && e.source === 'webhook') return { username: e.username, at: e.at, variant: e.variant ?? 'regular', stars: e.stars ?? 1, isNew: e.isNew === true, serial: e.serial, uniqueOwned: e.uniqueOwned, packName: e.packName };
+  return null;
+}
+
 /** Why an event is worth a second look, or null. Used for highlighting, pinning and alerts. */
 export function notableReason(e: ActivityEvent, totalCards: number): string | null {
-  if (e.type === 'pull') {
-    if (e.serial === 1) return 'First ever pull';
-    if (e.variant === 'shiny') return 'Shiny pull';
-    if (e.variant === 'full') return 'Full Art pull';
-    if (e.stars >= 5) return '5-star pull';
-    if (totalCards > 0 && e.isNew && e.uniqueOwned >= totalCards) return 'Collection completed';
+  const p = pullFacts(e);
+  if (p) {
+    if (p.serial === 1) return 'First ever pull';
+    if (p.variant === 'shiny') return 'Shiny pull';
+    if (p.variant === 'full') return 'Full Art pull';
+    if (p.stars >= 5) return '5-star pull';
+    if (totalCards > 0 && p.isNew && (p.uniqueOwned ?? 0) >= totalCards) return 'Collection completed';
   }
   if (e.type === 'upgrade' && (e.to === 'shiny' || e.to === 'full')) return `Upgraded to ${VARIANT_LABELS[e.to]}`;
   if (e.type === 'trade' && e.action === 'cancelled' && e.by === 'admin') return 'Trade cancelled by an admin';
@@ -101,7 +120,7 @@ export interface Rates {
 }
 
 export function rateStats(events: ActivityEvent[], now: number): Rates {
-  const pulls = events.filter((e): e is Extract<ActivityEvent, { type: 'pull' }> => e.type === 'pull');
+  const pulls = events.map(pullFacts).filter((p): p is PullFacts => p !== null); // pulls and webhook grants
   const hour = pulls.filter(p => now - p.at <= 3_600_000);
   const spark = Array.from({ length: 30 }, (_, i) => {
     const from = now - (30 - i) * 60_000;

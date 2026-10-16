@@ -178,5 +178,19 @@ process.env.VERCEL_ENV = 'production';
   await db.runInSandbox(box.id, async () => { ok((await (await call(SECRET)).json()).skipped, 'inside a sandbox it does nothing'); });
   eq(hits.length, before + 1, 'and nothing was sent from it');
 }
+// Webhook grants feed the same counters as pulls (the digest's pulls and new collectors), admin grants do not.
+{
+  const stats = await import('../lib/stats');
+  const coll = 'GrantCountCheck';
+  const at = Date.now();
+  await stats.recordStats({ type: 'grant', source: 'webhook', username: 'wg', collectionName: coll, isNew: true, copies: 1, uniqueOwned: 1, variant: 'shiny', packName: 'Base' }, at);
+  await stats.recordStats({ type: 'grant', source: 'admin', username: 'wg2', collectionName: coll }, at);
+  await stats.recordStats({ type: 'pull', username: 'wg3', collectionName: coll, isNew: false, copies: 2, uniqueOwned: 4, packName: 'Base' }, at);
+  const series = await stats.getSeries(coll, [at - (at % 3_600_000)], 'hour');
+  eq(series.data.pull[0], 2, 'a webhook grant counts as a pull in the stats (with a real pull: 2), an admin grant does not');
+  eq(series.data.newViewer[0], 1, 'a first card by webhook counts as a new viewer');
+  eq(series.data['v:shiny'][0], 1, 'and its version is counted');
+  eq(series.data.grant[0], 1, 'an admin grant is still counted as a grant');
+}
 server.close();
 console.log('weekly digest checks passed');

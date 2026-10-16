@@ -1,5 +1,6 @@
 import type { ActivityEvent } from './activity';
 import { copyHrefFor } from './copy-link';
+import { asPullEvent } from './activity-view';
 import { VARIANTS } from './variants';
 import type { Variant } from './types';
 
@@ -38,7 +39,8 @@ const variantRank = (v?: Variant) => Math.max(0, VARIANTS.indexOf(v ?? 'regular'
  */
 export function buildStreamRecap(events: ActivityEvent[], from: number, to: number, opts: { seasonId?: string; logIsFull?: boolean } = {}): StreamRecap {
   const inWindow = events.filter(e => e.at >= from && e.at <= to);
-  const pulls = inWindow.filter((e): e is ActivityEvent & { type: 'pull' } => e.type === 'pull');
+  // A card granted by webhook (a Mix It Up reward) is a pack opened as far as the stream is concerned.
+  const pulls = inWindow.flatMap(e => asPullEvent(e) ?? []);
   const oldest = events.reduce((m, e) => Math.min(m, e.at), Infinity);
 
   const counts = new Map<string, number>();
