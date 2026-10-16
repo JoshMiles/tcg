@@ -13,10 +13,8 @@ import { getOverlayKey, overlayUrl } from '@/lib/overlay-key';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { regenerateOverlayKeyAction } from './overlay-key-actions';
 import { WebhookConfig } from './WebhookConfig';
-import { MixItUpConfig } from './MixItUpConfig';
 import { AccessConfig } from './AccessConfig';
 import { getAccessLog, getAccessSettings, listTesters } from '@/lib/access';
-import { getMixItUpLog, getMixItUpSettings } from '@/lib/mixitup';
 import { ScoringForm, type ScoringGroupConfig } from './ScoringForm';
 import { CopyBlock, LiveGates, OverlayTest } from './OverlayPanels';
 import { getWebhookSettings } from '@/lib/webhooks';
@@ -38,7 +36,6 @@ const TABS: (PageTab & { hint: string })[] = [
   { id: 'overlay', label: 'OBS Overlay', icon: 'tv', hint: 'Browser source, connection and bot triggers' },
   { id: 'scoring', label: 'Scoring', icon: 'trophy', hint: 'Card values, bonuses and the leaderboard, with a live preview' },
   { id: 'webhooks', label: 'Webhooks', icon: 'link', hint: 'Discord feed, MixItUp integration: incoming triggers and outgoing events' },
-  { id: 'mixitup', label: 'Mix It Up', icon: 'coins', hint: 'Viewers pay Brie Bucks for packs: prices, limits and the message sent to Mix It Up' },
   { id: 'access', label: 'Access', icon: 'lock', hint: 'Lock the site to testers during alpha / beta, label it, and manage the testers list' },
   { id: 'viewers', label: 'Twitch & viewers', icon: 'users', hint: 'The extension setup checklist and the collection page' },
   { id: 'environment', label: 'Environment', icon: 'shield', hint: 'Which secrets and keys are configured, and what each one unlocks' },
@@ -53,7 +50,6 @@ const SAVED_MESSAGES: Record<string, string> = {
   'preview-wiped': 'Preview data wiped.',
   backup: 'Backup finished.',
   webhook: 'Webhook saved.',
-  mixitup: 'Mix It Up saved.',
   'overlay-key': 'New overlay key made. Paste the new address into every OBS browser source.',
   'webhook-secret': 'Incoming webhook secret regenerated. Update the URL in MixItUp.',
 };
@@ -82,6 +78,7 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ q?: string; tab?: string; saved?: string; backupError?: string; error?: string; note?: string }> }) {
   const { tab: tabParam, saved, backupError, error, note, q } = await searchParams;
   // The overlay layout and look now live in the Overlay Editor (old links keep working).
+  if (tabParam === 'mixitup') redirect('/admin/mixitup');
   if (tabParam === 'layout' || tabParam === 'look') redirect('/admin/overlay');
   const tab = pickTab(TABS, tabParam);
 
@@ -167,8 +164,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
       )}
 
-      {/* Mix It Up paid pulls */}
-      {tab === 'mixitup' && <MixItUpConfig settings={await getMixItUpSettings()} log={await getMixItUpLog()} />}
       {tab === 'access' && <AccessConfig settings={await getAccessSettings()} testers={await listTesters()} log={await getAccessLog()} filter={q ?? ''} />}
 
       {/* Scoring */}
