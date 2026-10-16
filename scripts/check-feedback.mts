@@ -172,5 +172,72 @@ eq((await notes()).length, 0, 'no notice before staff act');
   eq(await F.countNewFeedback(), total - 1, 'the new count is untouched by the sweep');
 }
 
+// ── user reports (ROADMAP 17.2) ──
+{
+  const { saveUserProfile } = await import('../lib/kv');
+  const tag = Math.random().toString(36).slice(2, 6);
+  const reporter = 'rp_ann_' + tag, target = 'rp_bob_' + tag, other = 'rp_cy_' + tag;
+  await saveUserProfile({ username: target, displayName: target, createdAt: 1 });
+  await saveUserProfile({ username: other, displayName: other, createdAt: 1 });
+  const rep = (raw: Record<string, unknown>) => { const r = C.parseReportInput(raw); if (!r.ok) throw new Error('bad test input: ' + r.error); return r.value; };
+  // validation
+  ok(!C.parseReportInput({ target: 'x', reason: 'scam' }).ok, 'a malformed target is refused');
+  ok(!C.parseReportInput({ target, reason: 'nope' }).ok, 'an unknown reason is refused');
+  ok(!C.parseReportInput({ target, reason: 'other', details: 'short' }).ok, '"Something else" needs 10 or more characters');
+  ok(C.parseReportInput({ target, reason: 'scam' }).ok, 'other reasons need no details');
+  eq((C.parseReportInput({ target: '@' + target.toUpperCase(), reason: 'cheating', details: 'x'.repeat(5000) }) as { value: { target: string; details: string } }).value.details.length, C.FEEDBACK_LIMITS.reportDetails, 'details are capped at 1000');
+  eq(C.cleanReportLink('/trade/abc123'), '/trade/abc123', 'a trade link is kept');
+  eq(C.cleanReportLink('/copy/season1/xyz'), '/copy/season1/xyz', 'a print link is kept');
+  for (const l of ['/admin/users', 'https://evil.example/trade/1', '//evil.example', '/trade/a b']) eq(C.cleanReportLink(l), '', `link "${l}" is dropped`);
+  // self-report, unknown target
+  const selfR = await F.submitReport(target, rep({ target, reason: 'scam' }), now);
+  ok(!selfR.ok && selfR.status === 400, 'reporting yourself is refused');
+  const ghost = await F.submitReport(reporter, rep({ target: 'rp_nobody_' + tag, reason: 'scam' }), now);
+  ok(!ghost.ok && ghost.status === 404, 'an unknown collector is refused');
+  // Discord gating: only a channel that includes Reports, and the post has no details or reporter
+  hits.length = 0;
+  await d.saveDiscordSettings({
+    enabled: true,
+    channels: [
+      { ...dc.presetChannel('feedback'), id: 'fb2', url: hook, enabled: true },
+      { ...dc.presetChannel('requests'), id: 'rq', url: hook, enabled: true },
+    ],
+  });
+  const first = await F.submitReport(reporter, rep({ target, reason: 'offensive', details: 'SECRET-DETAILS in the bio', link: '/trade/abc' }), now);
+  ok(first.ok, 'a report is filed');
+  if (!first.ok) throw new Error('unreachable');
+  eq(first.item.kind, 'report', 'it is a report item');
+  ok(first.item.target === target && first.item.reason === 'offensive' && first.item.from === '/trade/abc' && first.item.user === reporter, 'it keeps target, reason, link and the reporter (staff only)');
+  await sleep(300);
+  eq(hits.length, 1, 'only the channel that includes Reports got a post');
+  const text = JSON.stringify(hits[0]);
+  ok(!!hits[0].embeds[0].title?.includes(d.escapeMd(target)) && !!hits[0].embeds[0].description?.includes('Offensive'), 'the post names the target and the reason');
+  ok(!text.includes('SECRET-DETAILS') && !text.includes(reporter) && !text.includes(reporter.replace(/_/g, '\\_')), 'the post has neither the details nor the reporter');
+  // one open report per target, and a different target is fine
+  const dup = await F.submitReport(reporter, rep({ target, reason: 'scam' }), now);
+  ok(!dup.ok && dup.status === 409, 'a second open report on the same person is refused');
+  ok((await F.submitReport(reporter, rep({ target: other, reason: 'scam' }), now)).ok, 'another person can be reported');
+  // closing it: outcome only, never the staff note
+  await F.updateFeedback(first.item.id, { status: 'done', reply: 'banned them for 3 days' }, 'mod_mia', now + 1000);
+  const n = (await listNotices(reporter)).notices.filter(x => x.kind === 'feedback');
+  eq(n.length, 1, 'the reporter gets a notice when it is closed');
+  ok(!/banned|mod_mia|3 days/.test(n[0].text) && /report/i.test(n[0].text), 'the notice is the outcome only');
+  ok((await F.submitReport(reporter, rep({ target, reason: 'scam' }), now + 2000)).ok, 'after it is closed, the same person can be reported again');
+  // the daily limit (own counter, apart from feedback sends)
+  const spam = 'rp_spam_' + tag;
+  for (let i = 0; i < C.FEEDBACK_LIMITS.reportsPerDay; i++) {
+    const t = `rp_t${i}_${tag}`; await saveUserProfile({ username: t, displayName: t, createdAt: 1 });
+    ok((await F.submitReport(spam, rep({ target: t, reason: 'scam' }), now)).ok, `report ${i + 1} of the day works`);
+  }
+  const over = await F.submitReport(spam, rep({ target: other, reason: 'scam' }), now);
+  ok(!over.ok && over.status === 429, 'the sixth report in a day is refused');
+  ok((await F.submitFeedback(spam, valid('Still can send feedback'), undefined, now)).ok, 'reports do not use up the feedback limit');
+  // the reported person's export has no reports about them; the reporter's does
+  const expT = JSON.stringify(await buildExport(target)), expR = JSON.stringify(await buildExport(reporter));
+  ok(!expT.includes('SECRET-DETAILS') && !expT.includes(reporter), "the reported person's export has nothing about reports on them");
+  ok(expR.includes('SECRET-DETAILS'), "the reporter's export includes their own sent reports");
+  eq((await F.listFeedback({ kind: 'report', status: 'new' })).every(i => i.kind === 'report'), true, 'the Reports filter works');
+}
+
 server.close();
 console.log('feedback checks passed');

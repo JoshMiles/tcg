@@ -102,7 +102,9 @@ async function computeAttention(season: Season, packs: { pack: Pack; cards: Card
     const overdue = Date.now() - deletions[0].at > DELETION_OVERDUE_DAYS * 86_400_000;
     items.push({ id: 'deletions', level: overdue ? 'warn' : 'info', text: `${deletions.length} account deletion request${deletions.length === 1 ? '' : 's'} waiting${overdue ? ', the oldest for more than a month (people expect it done within about a month)' : ''}.`, href: '/admin/feedback?kind=deletion', cta: 'Deletion requests' });
   }
-  const waiting = await countNewFeedback().catch(() => 0);
+  const reports = await listFeedback({ kind: 'report', status: 'new' }).catch(() => []);
+  if (reports.length > 0) items.push({ id: 'reports', level: 'warn', text: `${reports.length} user report${reports.length === 1 ? '' : 's'} waiting for a look.`, href: '/admin/feedback?kind=report', cta: 'User reports' });
+  const waiting = Math.max(0, (await countNewFeedback().catch(() => 0)) - reports.length);
   if (waiting > 0) items.push({ id: 'feedback', level: 'info', text: `${waiting} new suggestion${waiting === 1 ? '' : 's'} or problem report${waiting === 1 ? '' : 's'} from viewers waiting for a look.`, href: '/admin/feedback', cta: 'Feedback' });
   if (!twitchCredentials()) items.push({ id: 'twitch', level: 'info', text: 'Twitch credentials are not set, so avatars and the live indicator are switched off.', href: '/admin/settings?tab=viewers', cta: 'Viewer settings' });
   return items;

@@ -48,12 +48,12 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
             {mine.map(i => (
               <li key={i.id} className="rounded-2xl border border-gray-800 bg-gray-900/60 p-4 space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="font-semibold text-gray-400"><Icon name={i.kind === 'bug' ? 'wrench' : i.kind === 'deletion' ? 'trash' : 'sparkles'} className="mr-1" />{KIND_LABELS[i.kind]}</span>
+                  <span className="font-semibold text-gray-400"><Icon name={i.kind === 'bug' ? 'wrench' : i.kind === 'deletion' ? 'trash' : i.kind === 'report' ? 'flag' : 'sparkles'} className="mr-1" />{KIND_LABELS[i.kind]}</span>
                   <span className="rounded-full border border-gray-700 px-2 py-0.5 font-bold text-gray-300">{STATUS_LABELS[i.status]}</span>
                   <time className="text-gray-500" dateTime={new Date(i.at).toISOString()}>{dateFmt.format(i.at)}</time>
                 </div>
                 <p className="font-semibold text-white break-words">{i.title}</p>
-                {i.reply && <p className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 text-sm text-yellow-100 whitespace-pre-wrap break-words"><span className="font-bold">Reply:</span> {i.reply}</p>}
+                {i.reply && i.kind !== 'report' && <p className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 text-sm text-yellow-100 whitespace-pre-wrap break-words"><span className="font-bold">Reply:</span> {i.reply}</p>}
               </li>
             ))}
           </ul>

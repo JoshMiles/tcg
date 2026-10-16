@@ -11,7 +11,7 @@ import type { ShareSpec } from '@/lib/share-image';
 import { profileHref } from '@/lib/profile-url';
 
 /** Who this is: avatar, name, awards, rank and progress, and the main actions (trade, share, leaderboard). */
-export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staffBadge }: { /** Streamer / Admin / Mod, already resolved on the server (null when none or hidden). */ staffBadge?: StaffBadgeKind | null; b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec; /** What to show after the name (already resolved on the server), or null. */ pronouns?: string | null }) {
+export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staffBadge, canReport = false }: { /** Signed in, not their own profile, not staff: show Report in the menu. */ canReport?: boolean; /** Streamer / Admin / Mod, already resolved on the server (null when none or hidden). */ staffBadge?: StaffBadgeKind | null; b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec; /** What to show after the name (already resolved on the server), or null. */ pronouns?: string | null }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   const accent = accentHex(b.settings.accent);
   return (
@@ -67,7 +67,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
               <Icon name="trade" />Trade with {b.displayName}
             </Link>
           )}
-          <ShareProfile name={b.displayName} username={b.lower} isOwner={isOwner} spec={shareSpec} customiseHref={isOwner ? profileHref(b.lower, 'share') : undefined} />
+          <ShareProfile name={b.displayName} username={b.lower} isOwner={isOwner} canReport={canReport} spec={shareSpec} customiseHref={isOwner ? profileHref(b.lower, 'share') : undefined} />
           <Link href={leaderboardHref} className="inline-flex items-center gap-1.5 text-xs font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/40 hover:bg-yellow-500/20 rounded-full px-3 py-1.5 transition-colors">
             <Icon name="trophy" />Leaderboard
           </Link>
