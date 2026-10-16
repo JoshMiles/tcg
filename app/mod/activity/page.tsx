@@ -1,4 +1,4 @@
-import { getActiveSeasonWithPacks } from '@/lib/kv';
+import { getActiveSeasonWithPacks, listSeasons } from '@/lib/kv';
 import { getActivity } from '@/lib/activity';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { requireStaff } from '@/lib/staff-guard';
@@ -14,13 +14,14 @@ export default async function ModActivityPage() {
   const [{ events, seq }, active] = await Promise.all([getActivity({ limit: 100 }), getActiveSeasonWithPacks()]);
   const raw = await getAvatars(events.map(e => e.username));
   const avatars = Object.fromEntries(Object.entries(raw).map(([u, url]) => [u, sizeTwitchAvatar(url, 70)]));
+  const seasons = Object.fromEntries((await listSeasons()).map(s => [s.collectionName, s.id]));
   const cards: CardInfo[] = (active?.packs ?? []).flatMap(({ pack, cards }) =>
     cards.map(c => ({ packName: pack.name, number: c.number, name: c.name, imageUrl: c.imageUrl, stars: c.stars })),
   );
   return (
     <div className="space-y-6">
       <PageHeader title="Live Activity" subtitle="Pulls, upgrades and trades as they happen. Click a viewer to open their page." />
-      <ActivityFeed initialEvents={events} initialSeq={seq} initialAvatars={avatars} cards={cards} mod serverNow={Date.now()} />
+      <ActivityFeed initialEvents={events} initialSeq={seq} initialAvatars={avatars} cards={cards} seasons={seasons} mod serverNow={Date.now()} />
     </div>
   );
 }

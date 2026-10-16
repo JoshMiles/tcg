@@ -10,6 +10,7 @@ import { VARIANT_LABELS } from '@/lib/variants';
 import { Avatar } from '@/app/components/Avatar';
 import { CATEGORIES, cardNumberOf, categoryOf, groupEvents, notableReason, plainText, rateStats, toCsv, type Category, type Group } from '@/lib/activity-view';
 import { EventDetail } from './EventDetail';
+import { PrintLink, PrintSeasons } from './PrintLink';
 import { SummaryStrip } from './SummaryStrip';
 
 export type CardInfo = { packName: string; number: number; name: string; imageUrl: string; stars: number };
@@ -81,6 +82,7 @@ export function ActivityFeed({
   initialSeq,
   initialAvatars,
   cards,
+  seasons = {},
   mod = false,
   serverNow,
 }: {
@@ -88,6 +90,8 @@ export function ActivityFeed({
   initialSeq: number;
   initialAvatars: Record<string, string>;
   cards: CardInfo[];
+  /** Collection name -> season id, to link an event to its print. */
+  seasons?: Record<string, string>;
   /** The mod panel's read-only version: no gifting, granting or removing, and viewer links go to the mod panel. */
   mod?: boolean;
   /** The server's clock when the page was rendered. The first client render uses it too, so the relative times ("5m ago", the last-hour counts) match the server's HTML and hydration does not mismatch when a minute turns in between. */
@@ -246,6 +250,7 @@ export function ActivityFeed({
 
   return (
     <PanelBase.Provider value={mod ? '/mod' : '/admin'}>
+    <PrintSeasons.Provider value={seasons}>
     <div className="space-y-4">
       <SummaryStrip rates={rates} onFilterRare={filterRare} />
 
@@ -397,6 +402,7 @@ export function ActivityFeed({
         />
       )}
     </div>
+    </PrintSeasons.Provider>
     </PanelBase.Provider>
   );
 }
@@ -493,6 +499,7 @@ function EventRow({
   onOpen: () => void;
   onFilterViewer: () => void;
 }) {
+  const base = useContext(PanelBase);
   let icon: IconName;
   let accent = 'border-l-transparent';
   let body: ReactNode;
@@ -507,7 +514,7 @@ function EventRow({
       thumb = <CardThumb card={card} stars={e.stars} />;
       body = (
         <>
-          <UserLink username={e.username} /> pulled <span className="font-bold text-white">{e.cardName || card?.name || `#${e.cardNumber}`}</span>{' '}
+          <UserLink username={e.username} /> pulled <PrintLink event={e} mod={base === '/mod'}>{e.cardName || card?.name || `#${e.cardNumber}`}</PrintLink>{' '}
           <Stars n={e.stars} />
           {e.variant && e.variant !== 'regular' && (
             <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-fuchsia-300 border border-fuchsia-500/50 rounded-full px-2 py-0.5">{VARIANT_LABELS[e.variant]}</span>
@@ -530,7 +537,7 @@ function EventRow({
       thumb = <CardThumb card={card} stars={card?.stars ?? 1} />;
       body = (
         <>
-          <span className="font-bold text-white">{card?.name ?? `Card #${e.cardNumber}`}</span> granted to <UserLink username={e.username} />
+          <PrintLink event={e} mod={base === '/mod'}>{card?.name ?? `Card #${e.cardNumber}`}</PrintLink> granted to <UserLink username={e.username} />
         </>
       );
       sub = e.source === 'webhook' ? 'via webhook' : 'by admin';
@@ -556,7 +563,7 @@ function EventRow({
       thumb = <CardThumb card={card} stars={card?.stars ?? 1} />;
       body = (
         <>
-          <UserLink username={e.username} /> upgraded <span className="font-bold text-white">{e.cardName || card?.name || `#${e.cardNumber}`}</span> to <span className="font-bold text-yellow-300">{VARIANT_LABELS[e.to]}</span>
+          <UserLink username={e.username} /> upgraded <PrintLink event={e} mod={base === '/mod'}>{e.cardName || card?.name || `#${e.cardNumber}`}</PrintLink> to <span className="font-bold text-yellow-300">{VARIANT_LABELS[e.to]}</span>
         </>
       );
       sub = `${e.cost}× ${VARIANT_LABELS[e.from]} spent`;

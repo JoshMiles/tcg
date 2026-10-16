@@ -1,4 +1,4 @@
-import { getActiveSeasonWithPacks } from '@/lib/kv';
+import { getActiveSeasonWithPacks, listSeasons } from '@/lib/kv';
 import { getActivity } from '@/lib/activity';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { ActivityFeed, type CardInfo } from './ActivityFeed';
@@ -14,6 +14,7 @@ export default async function ActivityPage() {
   const avatars = Object.fromEntries(Object.entries(raw).map(([u, url]) => [u, sizeTwitchAvatar(url, 70)]));
 
   // Lets the feed show card art/names for events that only carry a card number (grants, removals).
+  const seasons = Object.fromEntries((await listSeasons()).map(s => [s.collectionName, s.id]));
   const cards: CardInfo[] = (active?.packs ?? []).flatMap(({ pack, cards }) =>
     cards.map(c => ({ packName: pack.name, number: c.number, name: c.name, imageUrl: c.imageUrl, stars: c.stars }))
   );
@@ -21,7 +22,7 @@ export default async function ActivityPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Live Activity" subtitle="Pulls, grants, resets and stream triggers as they happen" />
-      <ActivityFeed initialEvents={events} initialSeq={seq} initialAvatars={avatars} cards={cards} serverNow={Date.now()} />
+      <ActivityFeed initialEvents={events} initialSeq={seq} initialAvatars={avatars} cards={cards} seasons={seasons} serverNow={Date.now()} />
     </div>
   );
 }

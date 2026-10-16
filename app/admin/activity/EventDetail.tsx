@@ -10,6 +10,7 @@ import type { ActivityEvent } from '@/lib/activity';
 import { quickAction, removeUserCard } from '../actions';
 import { Spinner } from '../components/PendingButton';
 import type { CardInfo } from './ActivityFeed';
+import { usePrintHref } from './PrintLink';
 
 type Outcome = { ok: boolean; message: string } | null;
 
@@ -40,6 +41,8 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
   const cardNumber = cardNumberOf(e);
   const variant = 'variant' in e && e.variant ? e.variant : 'regular';
   const hasViewer = !!e.username;
+  const printHref = usePrintHref(e, mod);
+  const printNo = e.type === 'pull' || e.type === 'grant' || e.type === 'upgrade' ? e.uid : undefined;
 
   const run = (fn: () => Promise<Outcome>) => startTransition(async () => {
     try { setOutcome(await fn()); } catch (err) { setOutcome({ ok: false, message: err instanceof Error ? err.message : 'That did not work.' }); }
@@ -106,6 +109,13 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
           </dl>
         )}
 
+        {printNo ? (
+          <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2 text-sm">
+            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Print</p>
+            <p className="text-white font-semibold tabular-nums">#{printNo}</p>
+          </div>
+        ) : null}
+
         {e.type === 'trade' && (
           <div className="grid gap-2 text-sm">
             <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{e.username} gives{e.givePts ? ` · ≈${e.givePts.toLocaleString()} pts` : ''}</p><p className="text-gray-200">{e.give.join(', ') || '-'}</p></div>
@@ -119,6 +129,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">Actions</p>
             <div className="grid grid-cols-2 gap-2">
+              {printHref && <Link href={printHref} className={`${act} col-span-2`}><Icon name="cards" />Open this print</Link>}
               <Link href={`${mod ? '/mod' : '/admin'}/users/${encodeURIComponent(e.username)}`} className={act}><Icon name="user" />Open viewer</Link>
               <a href={`/collection/${encodeURIComponent(e.username)}`} target="_blank" rel="noreferrer" className={act}><Icon name="cards" />Their collection ↗</a>
             </div>
