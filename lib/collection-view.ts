@@ -91,3 +91,39 @@ export function compareCollections(cards: ViewCard[], mine: Record<number, numbe
   }
   return { shared, theyHave, iHave, both: shared + theyHave + iHave, total: cards.length };
 }
+
+export interface DialogGroup<T> { variant: Variant; /** How many prints of this version are owned. */ count: number; /** The tiles to show: edition ascending (newest edition last). Empty when the season's prints are not tracked. */ copies: T[] }
+export interface DialogCopies<T> {
+  /** Whether the season tracks individual prints (otherwise one tile per version with its count). */
+  tracked: boolean;
+  /** Versions in Regular, RH, FA, SH order; owned ones only. */
+  groups: DialogGroup<T>[];
+  /** Prints owned in all. */
+  total: number;
+  /** Tiles shown after the cap, and how many were left out. */
+  shown: number; more: number;
+  /** The one print when the card has exactly one tracked print: the dialog opens straight on it. */
+  only: T | null;
+}
+
+/** How the card dialog lays out a card's prints: grouped by version, edition ascending, capped at `limit` tiles (pass Infinity for "Show all"). Pure. */
+export function copiesForDialog<T extends { variant: Variant; n: number }>(copies: T[] | undefined, counts: VariantCounts, limit = 60): DialogCopies<T> {
+  const list = copies ?? [];
+  if (list.length === 0) {
+    const groups = VARIANTS.filter(v => counts[v] > 0).map(v => ({ variant: v, count: counts[v], copies: [] as T[] }));
+    const total = copiesOf(counts);
+    return { tracked: false, groups, total, shown: groups.length, more: 0, only: null };
+  }
+  let left = Math.max(0, limit);
+  let shown = 0;
+  const groups: DialogGroup<T>[] = [];
+  for (const v of VARIANTS) {
+    const all = list.filter(c => c.variant === v).sort((a, b) => a.n - b.n);
+    if (all.length === 0) continue;
+    const take = all.slice(0, left);
+    if (take.length === 0) continue; // cut off by the cap: shown under "Show all"
+    left -= take.length; shown += take.length;
+    groups.push({ variant: v, count: all.length, copies: take });
+  }
+  return { tracked: true, groups, total: list.length, shown, more: list.length - shown, only: list.length === 1 ? list[0] : null };
+}
