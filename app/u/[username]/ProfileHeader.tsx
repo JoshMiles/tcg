@@ -3,14 +3,15 @@ import { Icon } from '@/app/components/Icon';
 import { Avatar } from '@/app/components/Avatar';
 import type { ProfileBase } from '@/lib/profile-data';
 import { ShareProfile } from './ShareProfile';
-import { accentHex, hasExperiment } from '@/lib/user-settings';
+import { accentHex } from '@/lib/user-settings';
+import { ProfileBasicsEditor } from './ProfileBasicsEditor';
 import type { ShareSpec } from '@/lib/share-image';
 import { profileHref } from '@/lib/profile-url';
 
 /** Who this is: avatar, name, awards, rank and progress, and the main actions (trade, share, leaderboard). */
 export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
-  const accent = hasExperiment(b.settings, 'accent') ? accentHex(b.settings.accent) : undefined;
+  const accent = accentHex(b.settings.accent);
   return (
     <header className="rounded-3xl border border-yellow-500/20 bg-gradient-to-br from-gray-900/80 to-gray-950/80" style={accent ? { borderColor: `${accent}88`, boxShadow: `0 0 40px -16px ${accent}` } : undefined}>
       <div className="holo-strip rounded-t-3xl" style={accent ? { background: `linear-gradient(90deg, transparent, ${accent}, transparent)` } : undefined} />
@@ -27,7 +28,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec }: { b: ProfileB
               )}
             </h1>
             <p className="text-sm text-gray-500">@{b.lower}</p>
-            {b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl break-words">{b.bio}</p>}
+            {isOwner ? <ProfileBasicsEditor bio={b.settings.bio} accent={b.settings.accent} /> : b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl break-words">{b.bio}</p>}
             {b.awards.length > 0 && (
               <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Season awards">
                 {b.awards.slice(0, 8).map((a, i) => (

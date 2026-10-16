@@ -20,8 +20,8 @@ export function TradeActions({
   /** When the offer asks for cards you hold spare prints of, accepting first lets you choose which ones (newest by default). */
   pick?: PickProps;
   tradeId: string;
-  /** incoming: an offer made to you; outgoing: your own; board: someone's open listing. */
-  mode: 'incoming' | 'outgoing' | 'board';
+  /** incoming: an offer made to you; outgoing: your own; board: someone's open listing; own: your own listing on the board (Take is greyed out, with a Withdraw). */
+  mode: 'incoming' | 'outgoing' | 'board' | 'own';
   canAccept?: boolean;
   /** Why accepting isn't possible right now (e.g. "You need 2× Dinogidds"). */
   blocked?: string;
@@ -115,7 +115,10 @@ export function TradeActions({
         </div>
       )}
       <div className="flex flex-wrap items-center justify-end gap-2">
-        {mode !== 'outgoing' && (
+        {mode === 'own' && (
+          <button type="button" disabled aria-disabled="true" title="This is your listing" className={`${btn} bg-yellow-400 text-gray-950`}>Take this trade</button>
+        )}
+        {mode !== 'outgoing' && mode !== 'own' && (
           <button type="button" disabled={!!busy || looking || !canAccept || !!choosing} onClick={() => press('accept')} title={blocked} className={`${btn} bg-yellow-400 text-gray-950 hover:bg-yellow-300 ${armed === 'accept' ? 'ring-2 ring-yellow-200' : ''}`}>
             {busy === 'accept' ? <Spinner /> : armed === 'accept' ? 'Sure?' : mode === 'board' ? 'Take this trade' : 'Accept'}
           </button>
@@ -126,12 +129,15 @@ export function TradeActions({
             <button type="button" disabled={!!busy} onClick={() => press('decline')} className={`${btn} ${armed === 'decline' ? 'border border-red-400/60 text-red-300' : 'text-gray-400 hover:text-white'}`}>{busy === 'decline' ? <Spinner /> : armed === 'decline' ? 'Sure?' : 'Decline'}</button>
           </>
         )}
+        {mode === 'own' && (
+          <button type="button" disabled={!!busy} onClick={() => press('cancel')} className={`text-xs font-semibold underline-offset-2 hover:underline ${armed === 'cancel' ? 'text-red-300' : 'text-gray-400 hover:text-white'}`}>{busy === 'cancel' ? <Spinner /> : armed === 'cancel' ? 'Sure?' : 'Withdraw'}</button>
+        )}
         {mode === 'outgoing' && (
           <button type="button" disabled={!!busy} onClick={() => press('cancel')} className={`${btn} border ${armed === 'cancel' ? 'border-red-400/60 text-red-300' : 'border-gray-600 text-gray-200 hover:border-red-400/60 hover:text-red-300'}`}>{busy === 'cancel' ? <Spinner /> : armed === 'cancel' ? 'Sure?' : 'Cancel offer'}</button>
         )}
       </div>
       {armed && !busy && <span role="status" className="text-[11px] text-gray-400 max-w-[16rem] text-right">{armed === 'accept' ? (mode === 'board' ? 'Tap again to take this trade.' : 'Tap again to accept.') : armed === 'decline' ? 'Tap again to decline.' : 'Tap again to cancel and get your cards back.'}</span>}
-      {blocked && mode !== 'outgoing' && !canAccept && <span className="text-[11px] text-amber-400 max-w-[16rem] text-right">{blocked}</span>}
+      {blocked && mode !== 'outgoing' && mode !== 'own' && !canAccept && <span className="text-[11px] text-amber-400 max-w-[16rem] text-right">{blocked}</span>}
       {error && <span role="alert" className="text-[11px] text-red-400 max-w-[16rem] text-right">{error}</span>}
     </div>
   );

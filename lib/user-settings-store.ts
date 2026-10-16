@@ -9,7 +9,7 @@ export const SELF_HIDDEN_KEY = 'users:hidden:self';
 const key = (u: string) => `user:${u.toLowerCase()}:settings`;
 
 export async function getUserSettings(username: string): Promise<UserSettings> {
-  try { return sanitizeUserSettings(await kv.get(key(username))); } catch { return { ...DEFAULT_SETTINGS, experiments: [], watches: [] }; }
+  try { return sanitizeUserSettings(await kv.get(key(username))); } catch { return { ...DEFAULT_SETTINGS, experiments: [], watches: [], favourites: [] }; }
 }
 
 /** Viewers who chose a private profile. Never throws. */

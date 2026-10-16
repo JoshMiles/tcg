@@ -15,6 +15,8 @@ const inputClass =
 const secondaryBtn =
   'px-3.5 py-2 text-sm font-bold bg-gray-800 hover:bg-gray-700 text-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:pointer-events-none';
 
+const COLLAPSE_AFTER = 8;
+
 const MIN_STARS = [
   { value: 1, label: 'All pulls' },
   { value: 2, label: '2★ and up' },
@@ -34,6 +36,9 @@ export function DiscordConfig({ settings, logs = {} }: { settings: DiscordSettin
   const [enabled, setEnabled] = useState(settings.enabled);
   const [channels, setChannels] = useState<DiscordChannel[]>(settings.channels);
   const [showDeploys, setShowDeploys] = useState(false);
+  // Past COLLAPSE_AFTER channels the list collapses to one line each, and one card is open at a time.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const collapsed = channels.length > COLLAPSE_AFTER;
 
   const patch = (id: string, p: Partial<DiscordChannel>) => setChannels(cs => cs.map(c => (c.id === id ? { ...c, ...p } : c)));
   const live = settings.enabled && settings.channels.some(c => c.enabled && c.url);
@@ -73,16 +78,26 @@ export function DiscordConfig({ settings, logs = {} }: { settings: DiscordSettin
         )}
 
         <div className="space-y-4">
-          {channels.map(c => (
-            <ChannelCard
-              key={c.id}
-              channel={c}
-              log={logs[c.id] ?? []}
-              pending={pending}
-              onChange={p => patch(c.id, p)}
-              onRemove={() => setChannels(cs => cs.filter(x => x.id !== c.id))}
-            />
-          ))}
+          {channels.map(c => {
+            const card = (
+              <ChannelCard
+                key={c.id}
+                channel={c}
+                log={logs[c.id] ?? []}
+                pending={pending}
+                onChange={p => patch(c.id, p)}
+                onRemove={() => setChannels(cs => cs.filter(x => x.id !== c.id))}
+              />
+            );
+            if (!collapsed) return card;
+            if (openId === c.id) return (
+              <div key={c.id} className="space-y-2">
+                <button type="button" onClick={() => setOpenId(null)} aria-expanded className="text-xs font-bold text-gray-400 hover:text-white"><Icon name="chevronDown" className="mr-1" />Collapse {c.name || 'channel'}</button>
+                {card}
+              </div>
+            );
+            return <ChannelSummary key={c.id} channel={c} log={logs[c.id] ?? []} onOpen={() => setOpenId(c.id)} />;
+          })}
         </div>
 
         {/* Add channel */}
@@ -90,7 +105,7 @@ export function DiscordConfig({ settings, logs = {} }: { settings: DiscordSettin
           <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Add channel</p>
           <div className="flex flex-wrap gap-2">
             {DISCORD_PRESETS.map(p => (
-              <button key={p.key} type="button" disabled={full} title={p.hint} onClick={() => setChannels(cs => [...cs, presetChannel(p.key)])} className={secondaryBtn}>
+              <button key={p.key} type="button" disabled={full} title={p.hint} onClick={() => { const ch = presetChannel(p.key); setChannels(cs => [...cs, ch]); setOpenId(ch.id); }} className={secondaryBtn}>
                 + {p.name}
               </button>
             ))}
@@ -130,6 +145,20 @@ export function DiscordConfig({ settings, logs = {} }: { settings: DiscordSettin
         )}
       </form>
     </section>
+  );
+}
+
+function ChannelSummary({ channel: c, log, onOpen }: { channel: DiscordChannel; log: DiscordLogEntry[]; onOpen: () => void }) {
+  const cats = DISCORD_CATEGORIES.filter(cat => c.categories[cat.key]).map(cat => cat.label);
+  return (
+    <button type="button" onClick={onOpen} aria-expanded={false} className="w-full text-left rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-1 hover:border-gray-700 transition-colors">
+      <span className={`w-2 h-2 rounded-full shrink-0 ${c.enabled ? 'bg-green-500' : 'bg-gray-600'}`} aria-hidden />
+      <span className="font-semibold text-sm text-white min-w-0 truncate">{c.name || 'Unnamed channel'}</span>
+      <span className="text-xs text-gray-500">{c.enabled ? 'On' : 'Off'}</span>
+      <span className="text-xs text-gray-500 min-w-0 truncate flex-1">{cats.length > 0 ? cats.join(', ') : 'Nothing selected'}</span>
+      <span className={`text-xs ${!log[0] ? 'text-gray-600' : log[0].ok ? 'text-gray-500' : 'text-red-300'}`}>{!log[0] ? 'No sends yet' : log[0].ok ? 'Last send worked' : 'Last send failed'}</span>
+      <Icon name="chevronRight" className="text-gray-500" />
+    </button>
   );
 }
 

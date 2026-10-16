@@ -23,7 +23,7 @@ function reduceMotion(): boolean {
  * `nodes` are the server-rendered widgets, only for the widgets in the saved layout; a widget added in edit mode shows a
  * placeholder until it is saved.
  */
-export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layout: DashboardLayout; nodes: Partial<Record<WidgetType, ReactNode>>; presets: string[] }) {
+export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layout: DashboardLayout; nodes: Partial<Record<WidgetType, ReactNode>>; presets: { name: string; by?: string }[] }) {
   const router = useRouter();
   const [presets, setPresets] = useState(initialPresets);
   const [presetName, setPresetName] = useState('');
@@ -183,7 +183,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
     startTransition(async () => {
       try {
         const list = await saveDashboardPresetAction(name, { widgets: draft });
-        setPresets(list.map(p => p.name));
+        setPresets(list);
         setActivePreset(name);
         setPresetName('');
       } catch (e) {
@@ -195,7 +195,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
     startTransition(async () => {
       try {
         const list = await deleteDashboardPresetAction(name);
-        setPresets(list.map(p => p.name));
+        setPresets(list);
         if (activePreset === name) setActivePreset(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not delete the preset');
@@ -240,9 +240,9 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
         <div className="flex flex-wrap items-center justify-end gap-2">
           {presets.length > 0 && (
             <div role="group" aria-label="Dashboard presets" className="flex flex-wrap items-center gap-1.5 mr-auto">
-              <span className="text-[11px] uppercase tracking-wider font-bold text-gray-600 mr-1">Layout</span>
-              {presets.map(name => (
-                <button key={name} type="button" disabled={pending} onClick={() => askApply(name)} aria-pressed={activePreset === name} className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50 ${activePreset === name ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>{armed === name ? `Apply ${name}?` : name}</button>
+              <span className="text-[11px] uppercase tracking-wider font-bold text-gray-600 mr-1">Team layouts</span>
+              {presets.map(({ name, by }) => (
+                <button key={name} type="button" title={by ? `Saved by ${by}` : undefined} disabled={pending} onClick={() => askApply(name)} aria-pressed={activePreset === name} className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50 ${activePreset === name ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>{armed === name ? `Apply ${name}?` : name}</button>
               ))}
             </div>
           )}
@@ -266,16 +266,16 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
       {/* Presets */}
       {edit && (
         <div className="dash-slide rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3 flex flex-wrap items-center gap-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Presets</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Team layouts</span>
           <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); savePreset(); }}>
-            <input value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={30} placeholder="Name this layout (e.g. Stream day)" aria-label="Preset name" className="w-64 rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
-            <button type="submit" disabled={pending || !presetName.trim()} className={ghost}>Save as preset</button>
+            <input value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={30} placeholder="Name this layout (e.g. Stream day)" aria-label="Layout name" className="w-64 rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
+            <button type="submit" disabled={pending || !presetName.trim()} className={ghost}>Share as team layout</button>
           </form>
-          {presets.length === 0 ? <span className="text-xs text-gray-600">No presets yet. Arrange the dashboard, name it, and switch between layouts later.</span> : (
+          {presets.length === 0 ? <span className="text-xs text-gray-600">No team layouts yet. Arrange your dashboard, name it, and anyone on staff can switch to it. Your own layout is saved just for you.</span> : (
             <ul className="flex flex-wrap items-center gap-1.5">
-              {presets.map(name => (
+              {presets.map(({ name, by }) => (
                 <li key={name} className="flex items-center rounded-full border border-gray-700 overflow-hidden">
-                  <button type="button" disabled={pending} onClick={() => askApply(name)} className="px-2.5 py-1 text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5" title="Use this layout (replaces the saved one)">{armed === name ? `Apply ${name}?` : name}</button>
+                  <button type="button" disabled={pending} onClick={() => askApply(name)} className="px-2.5 py-1 text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5" title={`Use this layout (replaces yours)${by ? `. Saved by ${by}` : ''}`}>{armed === name ? `Apply ${name}?` : name}{by ? <span className="ml-1.5 font-normal text-gray-500">{by}</span> : null}</button>
                   <button type="button" disabled={pending} onClick={() => removePreset(name)} className="px-1.5 py-1 text-gray-500 hover:text-red-300 hover:bg-red-500/10" aria-label={`Delete preset ${name}`}><Icon name="x" className="w-3 h-3" /></button>
                 </li>
               ))}

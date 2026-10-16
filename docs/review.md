@@ -55,6 +55,11 @@ All flag horizontal overflow, a missing or duplicate `h1`, images without `alt`,
 
 The static half of the access test is `scripts/check-staff-guards.mts` (part of `npm run check`): it fails when an admin server action, viewer action or admin API route has no caller check, or when the set a mod may use changes.
 
+## Pull request checklist
+
+- A player-facing change adds or extends an entry in `lib/changelog.ts` (the `/changelog` page) in the same PR.
+- FAQ, Privacy and Terms kept in step (`LEGAL_UPDATED` bumped), `npm run verify` green, and the public sweep run for any new public page.
+
 ## What a sweep cannot check
 
 Real OBS, the Twitch panel inside Twitch, Discord delivery and Blob uploads. Each batch lists anything it could not verify so it can be checked on production. Dev-server first visits compile each page, so a full admin sweep takes a few minutes.

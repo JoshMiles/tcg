@@ -26,6 +26,7 @@ export const PUBLIC_PAGES: SearchItem[] = [
   { id: 'page:stats', kind: 'page', label: 'Season stats', href: '/stats', keywords: ['numbers', 'charts'] },
   { id: 'page:trade', kind: 'page', label: 'Trade', href: '/trade', keywords: ['swap', 'offers', 'board'] },
   { id: 'page:faq', kind: 'page', label: 'FAQ', href: '/faq', keywords: ['help', 'how', 'points', 'upgrade', 'variants'] },
+  { id: 'page:changelog', kind: 'page', label: "What's new", href: '/changelog', keywords: ['changelog', 'updates', 'news', 'changes', 'release notes'] },
   { id: 'page:install', kind: 'page', label: 'Get the app', href: '/install', keywords: ['install', 'home screen', 'add to home screen', 'ios', 'android', 'iphone', 'pwa', 'app'] },
   { id: 'page:account', kind: 'page', label: 'My stats', href: '/account', keywords: ['account', 'profile', 'me', 'upgrade'] },
   { id: 'page:privacy', kind: 'page', label: 'Privacy policy', href: '/privacy' },
