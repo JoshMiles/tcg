@@ -353,7 +353,7 @@ Asked (2026-10-16): "should be able to select which print of a card when trading
 | 10.2 | Dashboard layout per staff member | Ready | S |
 | 10.3 | Built-in dashboard layout presets | Ready (after 10.2) | S |
 | 10.4 | Pick the still frame of an animated card | Ready | M |
-| 10.5 | Redesign the admin Prints screen | Needs a decision (proposal below) | M |
+| 10.5 | Redesign the admin Prints screen | Ready (proposal agreed 2026-10-16) | M |
 | 11.1 | Changelog page | Ready | S |
 | 11.2 | Suggestions and feedback, report a problem (one inbox) | Ready | M |
 | 11.3 | Request account deletion button | Ready (after 11.2) | S |
@@ -364,7 +364,7 @@ Parallel streams, chosen so no two running PRs edit the same files:
 - **Stream G (quick fixes):** 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, one PR each, any order. 7.8 then 7.9.
 - **Stream H (profile):** 8.1 + 8.2 + 8.3 (one PR, all in `widgets.tsx`), then 8.4 + 8.5 (one PR), 8.6, 8.7, 8.8 + 8.9 (one PR, binder), 8.10, 8.11.
 - **Stream I (trading):** 9.1, then 9.2 (both edit `lib/trades.ts`; one at a time).
-- **Stream J (staff and admin):** 10.1, 10.2 then 10.3, 10.4, 10.5 once its design is agreed.
+- **Stream J (staff and admin):** 10.1, 10.2 then 10.3, 10.4, 10.5.
 - **Stream K (help):** 11.1, then 11.2, then 11.3.
 
 Overlaps to watch: 7.9 adds tooltips to pages that 8.x and 7.3 also edit, so start 7.9 after 7.3 and 8.1 to 8.4 have merged. 8.6 and 8.4 both edit `ProfileHeader.tsx`: 8.4 first. 11.2 and 7.5 both touch the Discord categories: 7.5 first.
@@ -575,14 +575,13 @@ The static thumbnail of an animated upload is always the first frame (`toThumb` 
 - Draft packs (wizard) store it on the draft card too.
 - Check: a small check for the URL guard and `cardStill` fallback. Not checkable locally: Blob writes (mock the put in the check, test the UI against the mock KV with a bundled card, whose still upload will fail without Blob; say so in the PR).
 
-### 10.5 Redesign the admin Prints screen (Needs a decision; proposal below)
+### 10.5 Redesign the admin Prints screen (Ready; proposal agreed 2026-10-16)
 
-The request only says "redesign". **Proposed** (the user confirms or says what bothers them today):
+The request only said "redesign". The user agreed to this design on 2026-10-16:
 - **Top:** summary tiles (prints made this season, held / in offers / retired, last numbered, numbering status with the "Number existing copies" action) and one search box that takes a print number (`#1023381` or `1023381`), a login or a card name.
 - **Main:** a card list (art, name, rarity) with per-version made counts. Expanding a card shows its editions as a compact grid of chips (edition, print number, holder, bonus mark), filterable by version, holder and origin, sorted by edition. Clicking a chip opens the print in a side panel (journey, Give, Remove, Feature as print of the week) without leaving the list. The full `/admin/serials/<season>/<copy>` page stays for deep links.
 - **Filters in the URL** (`?card=&v=&holder=&origin=&q=`) so a view can be shared between staff.
 - Phone width: the side panel becomes a full-screen sheet.
-Status changes to Ready once the user agrees (or adjusts).
 
 ---
 
