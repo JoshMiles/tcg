@@ -9,6 +9,7 @@ import { getHiddenUsers } from '@/lib/user-admin';
 import { getSnapshot } from '@/lib/season-wrap';
 import { recentPullItems } from '@/lib/home-pulls';
 import { RecentPulls } from '@/app/components/site/RecentPulls';
+import { PrintOfWeek } from '@/app/components/site/PrintOfWeek';
 import { InstallHint } from '@/app/components/site/InstallHint';
 import { getRarity } from '@/lib/rarity';
 import { CardTile } from '@/app/components/CardTile';
@@ -239,6 +240,8 @@ export default async function HomePage() {
             </div>
           </div>
         )}
+
+        {season && overview && <PrintOfWeek settings={overview.values.settings} />}
 
         <InstallHint />
 

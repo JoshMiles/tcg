@@ -8,10 +8,11 @@ import { getCopy, mintedCounts } from '@/lib/serials';
 import { EVENT_LABELS, ORIGIN_LABELS, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
 import { getRarity } from '@/lib/rarity';
 import { VARIANT_LABELS } from '@/lib/variants';
+import { getPotw } from '@/lib/print-of-week-store';
 import { ConfirmButton } from '../../../components/ConfirmButton';
 import { PendingButton } from '../../../components/PendingButton';
 import { Chip, PageHeader, Panel } from '../../../components/ui';
-import { removeCopyAction, transferCopyAction } from '../../../serial-actions';
+import { featurePrintAction, removeCopyAction, transferCopyAction } from '../../../serial-actions';
 
 // The tab names the copy (its id is card.version.serial), so several open copies can be told apart.
 export async function generateMetadata({ params }: { params: Promise<{ seasonId: string; copyId: string }> }) {
@@ -42,6 +43,8 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
   const retired = !copy.owner;
   const inOffer = !!copy.owner && isEscrow(copy.owner);
   const user = (name?: string) => !name ? null : isEscrow(name) ? <span className="text-amber-300">a trade offer ({name.slice(7)})</span> : <Link href={`/admin/users/${encodeURIComponent(name)}`} className="text-yellow-300 hover:text-yellow-200 font-bold">@{name}</Link>;
+  const potw = await getPotw();
+  const isFeatured = potw?.uid === copy.uid && !!copy.uid;
   const here = (id: string) => `/admin/serials/${encodeURIComponent(season.id)}/${id}`;
 
   return (
@@ -94,6 +97,12 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
                   >
                     <Icon name="send" className="mr-1.5" />Give
                   </ConfirmButton>
+                </form>
+                <form action={featurePrintAction.bind(null, season.id, copy.id)} className="flex flex-wrap items-center gap-3">
+                  <PendingButton type="submit" disabled={isFeatured || !copy.uid} className="px-4 py-2 text-sm font-bold rounded-lg border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50">
+                    <Icon name="sparkles" className="mr-1.5" />Feature as print of the week
+                  </PendingButton>
+                  <span className="text-xs text-gray-500">{isFeatured ? 'It is the print of the week now.' : 'Shows it on the home page in place of the current pick.'}</span>
                 </form>
                 <form action={removeCopyAction.bind(null, season.id, copy.id)}>
                   <ConfirmButton
