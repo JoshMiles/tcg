@@ -27,8 +27,9 @@ import { deleteUnusedBlobs } from '@/lib/assets';
 import { getOverlayStatus } from '@/lib/overlay';
 import { getActivity } from '@/lib/activity';
 import {
-  saveDiscordSettings, cleanDiscordInput, postToDiscord, buildMessage, buildTestMessage,
+  saveDiscordSettings, cleanDiscordInput, notifyAdminLog, postToDiscord, buildMessage, buildTestMessage,
 } from '@/lib/discord';
+import { currentStaffLogin } from '@/lib/staff-actor';
 import type { ActionResult } from './action-types';
 import { getWebhookSettings, saveWebhookSettings, enqueueEvent, clearQueue } from '@/lib/webhooks';
 import { getOverlaySettings, saveOverlaySettings, savePackOverrides, savePreset, deletePreset, bumpReloadToken, updateScene } from '@/lib/overlay-settings';
@@ -86,6 +87,7 @@ export async function activateSeason(id: string) {
   // Wraps up the season it replaces (final standings snapshot, ended, trading frozen) before switching.
   await requireAdmin();
   await activateWithWrapUp(id);
+  await notifyAdminLog({ action: 'Season activated', subject: (await getSeason(id))?.name ?? id, detail: 'The season it replaced was wrapped up', by: await currentStaffLogin() });
   revalidatePath('/admin/seasons');
   revalidatePath(`/admin/seasons/${id}`);
   revalidatePath('/admin');
@@ -503,6 +505,7 @@ export async function saveScoringSettingsAction(formData: FormData) {
   const raw: Record<string, FormDataEntryValue | null> = {};
   for (const key of Object.keys(DEFAULT_SCORING)) raw[key] = formData.get(key);
   await saveScoringSettings(sanitizeScoring(raw));
+  await notifyAdminLog({ action: 'Scoring settings changed', by: await currentStaffLogin() });
   // Public pages compute values live (force-dynamic), but the admin pages that show them need refreshing.
   revalidatePath('/admin/settings');
   revalidatePath('/admin');
@@ -512,6 +515,7 @@ export async function saveScoringSettingsAction(formData: FormData) {
 export async function resetScoringSettingsAction() {
   await requireAdmin();
   await resetScoringSettings();
+  await notifyAdminLog({ action: 'Scoring settings reset to defaults', by: await currentStaffLogin() });
   revalidatePath('/admin/settings');
   revalidatePath('/admin');
   redirect('/admin/settings?tab=scoring&saved=scoring-reset');

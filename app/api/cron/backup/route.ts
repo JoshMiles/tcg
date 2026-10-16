@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { runBackup } from '@/lib/backup';
+import { reportBackup, reportDataHealth } from '@/lib/system-notices';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -18,9 +19,13 @@ function authorised(req: NextRequest): boolean {
 export async function GET(req: NextRequest) {
   if (!authorised(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
-    return NextResponse.json({ ok: true, ...(await runBackup()) });
+    const run = await runBackup();
+    await reportBackup(run);
+    await reportDataHealth();
+    return NextResponse.json({ ok: true, ...run });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Backup failed.';
+    await reportBackup({ error: message });
     console.error('backup failed:', message);
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
