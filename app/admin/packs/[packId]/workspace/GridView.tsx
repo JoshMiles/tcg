@@ -18,7 +18,10 @@ type Col = 'name' | 'stars' | 'weight';
  * other selected rows (or to every row below when only one is selected); pasting several lines from a spreadsheet into a name, stars or
  * weight cell fills that column downward.
  */
-export function GridView({ pack, cards, held, selected, focus, problemIds, onSelect, editCards }: {
+export function GridView({ pack, cards, held, selected, focus, problemIds, onSelect, editCards, only, onShowAll }: {
+  /** Show only these cards (the ones just imported); null shows all. */
+  only?: Set<string> | null;
+  onShowAll?: () => void;
   pack: PackInput;
   cards: WorkCard[];
   held: Set<number>;
@@ -28,7 +31,7 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
   onSelect: (id: string, mode: 'replace' | 'toggle' | 'range', visible: string[]) => void;
   editCards: (fn: (cards: WorkCard[]) => WorkCard[], key?: string) => void;
 }) {
-  const rows = useMemo(() => [...cards].sort((a, b) => (a.number || 1e9) - (b.number || 1e9)), [cards]);
+  const rows = useMemo(() => [...cards].filter(c => !only || only.has(c.id)).sort((a, b) => (a.number || 1e9) - (b.number || 1e9)), [cards, only]);
   const ids = rows.map(r => r.id);
   const total = totalWeight(cards.map(c => c.probability));
   const table = useRef<HTMLTableElement>(null);
@@ -71,6 +74,7 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
   const cell = `${inputCls} !py-1 !px-2 !text-sm`;
   return (
     <div className="tcg-panel rounded-2xl overflow-auto min-h-0 max-h-[75vh] xl:max-h-full">
+      {only && <div className="flex items-center justify-between gap-3 px-4 py-2 text-sm bg-sky-950/30 border-b border-sky-500/20 text-sky-200"><span>Showing the {rows.length} card{rows.length === 1 ? '' : 's'} just imported. Set their stars and weights here.</span><button type="button" onClick={onShowAll} className="font-bold underline">Show all cards</button></div>}
       <table ref={table} className="w-full text-sm min-w-[56rem]">
         <thead className="sticky top-0 z-10 bg-gray-900">
           <tr className="border-b border-gray-800">

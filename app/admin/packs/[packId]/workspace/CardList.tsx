@@ -22,8 +22,12 @@ export function cardMarks(c: WorkCard, pack: PackInput): { id: string; label: st
 }
 
 export function CardList({
-  pack, cards, problemIds, selected, focus, packRow, onSelect, onAdd, onDeleteSelected, changedIds, searchRef,
+  pack, cards, problemIds, selected, focus, packRow, onSelect, onAdd, onDeleteSelected, changedIds, searchRef, onImport, needsOdds,
 }: {
+  /** Files chosen with Import art (the drop is handled by the workspace). */
+  onImport?: (files: File[]) => void;
+  /** Cards imported in this visit whose stars and odds are still the starting values. */
+  needsOdds?: Set<string>;
   pack: PackInput;
   cards: WorkCard[];
   problemIds: Set<string>;
@@ -55,6 +59,8 @@ export function CardList({
   }, [cards, q, stars, sort, problemIds, pack]);
   const ids = visible.map(c => c.id);
   const list = useRef<HTMLUListElement>(null);
+  const pick = useRef<HTMLInputElement>(null);
+  const folder = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-col min-h-0 h-full">
@@ -105,7 +111,7 @@ export function CardList({
                     <span style={{ color: getRarity(c.stars)?.hex }}>{'★'.repeat(c.stars)}</span>
                     <span className="text-gray-500 tabular-nums">{chance}</span>
                   </span>
-                  {marks.length > 0 && <span className="flex flex-wrap gap-1 mt-0.5">{marks.map(m => <span key={m.id} className="text-[10px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded px-1">{m.label}</span>)}</span>}
+                  {(marks.length > 0 || needsOdds?.has(c.id)) && <span className="flex flex-wrap gap-1 mt-0.5">{needsOdds?.has(c.id) && <span className="text-[10px] text-sky-300 bg-sky-500/10 border border-sky-500/20 rounded px-1">Set stars and odds</span>}{marks.map(m => <span key={m.id} className="text-[10px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded px-1">{m.label}</span>)}</span>}
                 </span>
               </button>
             </li>
@@ -115,6 +121,14 @@ export function CardList({
 
       <div className="p-3 border-t border-gray-800 flex items-center gap-2">
         <button type="button" onClick={onAdd} className="flex-1 px-3 py-2 tcg-btn rounded-lg text-sm"><Icon name="plus" className="mr-1" />Add card</button>
+        {onImport && (
+          <>
+            <input ref={pick} type="file" multiple accept="image/*,.gif,audio/*" className="hidden" aria-label="Choose art files" onChange={e => { const f = [...(e.target.files ?? [])]; e.target.value = ''; if (f.length) onImport(f); }} />
+            <input ref={folder} type="file" multiple className="hidden" aria-label="Choose a folder of art" {...({ webkitdirectory: '' } as object)} onChange={e => { const f = [...(e.target.files ?? [])]; e.target.value = ''; if (f.length) onImport(f); }} />
+            <button type="button" onClick={() => pick.current?.click()} className="px-3 py-2 text-sm font-bold rounded-lg border border-gray-700 text-gray-200 hover:border-gray-500" title="Pick pictures and sounds, or drop a folder on this list">Import art</button>
+            <button type="button" onClick={() => folder.current?.click()} className="px-2 py-2 text-sm text-gray-400 hover:text-white" aria-label="Import a folder of art" title="Import a whole folder"><Icon name="inbox" /></button>
+          </>
+        )}
         {selected.size > 0 && !(selected.size === 1 && selected.has('pack')) && (
           <button type="button" onClick={onDeleteSelected} className="px-3 py-2 text-sm font-bold text-red-300 hover:text-red-200 border border-red-500/30 rounded-lg" aria-label={`Delete ${selected.size} selected`}><Icon name="trash" /> {selected.size}</button>
         )}

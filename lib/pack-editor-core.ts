@@ -2,7 +2,7 @@
 // server applies it, the "old -> new" lines of Review, and how a change set is re-applied on top of someone else's save. Client-safe (no
 // database): the workspace shows the result of `applyChanges` and the server saves the result of the SAME function, so they can't differ.
 import type { Card, OptionalVariant, Pack } from './types';
-import { cardProblems, cleanPackInput, int, num, str, type PackInput } from './pack-clean';
+import { cardProblems, cleanPackInput, int, MAX_CARD_NUMBER, num, str, type PackInput } from './pack-clean';
 import { cleanDisabled } from './variants';
 
 /** A card as the workspace edits it: empty strings for "none" so inputs stay controlled. `number` is 0 for a card not saved yet. */
@@ -107,11 +107,16 @@ export function applyChanges(pack: Pack, cards: Card[], changes: ChangeSet): App
   }
   const assigned: Record<string, number> = {};
   const seen = new Set(out.map(c => c.id));
+  const used = new Set(cards.map(c => c.number)); // every number that ever existed here, removed cards included
   for (const a of changes.add) {
     if (typeof a.id !== 'string' || !a.id || seen.has(a.id)) continue;
     seen.add(a.id);
-    assigned[a.id] = ++next;
-    out.push(cleanCard(a, next));
+    // A new card may ask for a number (an imported file named "012 Gouda Goat") and gets it when it is free; otherwise the next one above everything.
+    const asked = Number.isInteger(a.number) && a.number > 0 && a.number <= MAX_CARD_NUMBER && !used.has(a.number) ? a.number : 0;
+    const n = asked || (() => { while (used.has(++next)) { /* next free */ } return next; })();
+    used.add(n); if (n > next) next = n;
+    assigned[a.id] = n;
+    out.push(cleanCard(a, n));
   }
   out.sort((a, b) => a.number - b.number);
   const problems: Applied['problems'] = [];
