@@ -104,4 +104,19 @@ ok(core.bulkApply([core.newWorkCard('z', { number: 99 })], new Set(['z']), { kin
 ok(core.bulkApply(bc, pick, { kind: 'upgrades', on: false }).map(c => c.upgradesEnabled).join() === 'false,true,false', 'upgrades opt-out');
 ok(core.pastedColumn('a\nb\n').join('|') === 'a|b' && core.pastedColumn('x\ty\r\nz').join('|') === 'x|z', 'a pasted column is one value per line, first column of each');
 
+// ── Odds view maths (20.2d) ──
+const odds = await import('../lib/odds-core');
+const maths = await import('../lib/card-maths');
+const oc = [{ id: 'a', stars: 5, probability: 1 }, { id: 'b', stars: 3, probability: 3 }, { id: 'c', stars: 3, probability: 6 }];
+ok(odds.normalizeWeights(oc).a === 10 && odds.normalizeWeights(oc).c === 60, 'normalize scales the weights to add up to 100');
+ok(odds.normalizeWeights([{ id: 'z', stars: 1, probability: 0 }]).z === 0, 'normalize leaves an all-zero pack alone');
+const bal = odds.balanceByRarity(oc, { 5: 10, 3: 90 });
+ok(bal.a === 10 && bal.b === 45 && bal.c === 45, 'balance gives each rarity its share, split equally among its cards');
+ok(maths.totalWeight([1, -2, 3]) === 4 && maths.shareOf(1, 4) === 0.25 && maths.shareOf(0, 4) === 0 && maths.oneInLabel(1, 4) === '1 in 4' && maths.oneInLabel(0, 4) === '-', 'chance maths: total, share and "1 in N"');
+let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+const sim = odds.simulate(oc, () => ({ regular: 1, reverse: 0, full: 0, shiny: 0 }), true, 20_000, rnd)!;
+ok(Math.abs(sim.perCard.c / sim.draws - 0.6) < 0.02 && Math.abs(sim.perStars[5] / sim.draws - 0.1) < 0.02, 'the simulator follows the weights');
+ok(sim.perVariant.regular === sim.draws && sim.fullSet !== null && sim.fullSet.median >= 3, 'variant rolls follow the version weights; the full-set estimate is sane');
+ok(odds.simulate([{ id: 'x', stars: 1, probability: 0 }], () => undefined, false, 10) === null, 'nothing to draw gives no result');
+
 console.log('pack editor checks passed');

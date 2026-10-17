@@ -7,6 +7,7 @@ import type { PackInput } from '@/lib/pack-clean';
 import { pastedColumn, type CardFields, type WorkCard } from '@/lib/pack-editor-core';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
+import { oneInLabel, totalWeight } from '@/lib/card-maths';
 import { NumberInput, inputCls } from './fields';
 
 type Col = 'name' | 'stars' | 'weight';
@@ -29,7 +30,7 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
 }) {
   const rows = useMemo(() => [...cards].sort((a, b) => (a.number || 1e9) - (b.number || 1e9)), [cards]);
   const ids = rows.map(r => r.id);
-  const total = cards.reduce((s, c) => s + (c.probability > 0 ? c.probability : 0), 0);
+  const total = totalWeight(cards.map(c => c.probability));
   const table = useRef<HTMLTableElement>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
 
@@ -89,7 +90,7 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
         <tbody>
           {rows.map((c, i) => {
             const on = selected.has(c.id);
-            const chance = c.probability > 0 && total > 0 ? `1 in ${Math.round(total / c.probability).toLocaleString('en-GB')}` : '-';
+            const chance = oneInLabel(c.probability, total);
             return (
               <tr key={c.id} className={`border-b border-gray-800/60 ${focus === c.id ? 'bg-yellow-500/10' : on ? 'bg-white/[0.05]' : ''}`}>
                 <td className="px-2"><input type="checkbox" checked={on} aria-label={`Select ${c.name || 'card'}`} onChange={() => onSelect(c.id, 'toggle', ids)} onClick={e => { if (e.shiftKey) { e.preventDefault(); onSelect(c.id, 'range', ids); } }} className="accent-yellow-400" /></td>

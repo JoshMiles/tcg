@@ -1,147 +1,77 @@
 'use client';
 import { useMemo, useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
-import { Spinner } from '../../components/PendingButton';
+import { Spinner } from '../../../components/PendingButton';
 import { cardThumbUrl } from '@/lib/card-art';
-import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
+import { shareOf, totalWeight } from '@/lib/card-maths';
+import { TIER_DEFAULTS, balanceByRarity, normalizeWeights, simulate, type SimResult } from '@/lib/odds-core';
+import type { PackInput } from '@/lib/pack-clean';
+import type { WorkCard } from '@/lib/pack-editor-core';
+import { VARIANTS, VARIANT_LABELS, effectiveWeights } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
-import type { Variant } from '@/lib/types';
-import { savePackOddsAction } from '../../pack-actions';
+import { NumberInput } from './fields';
 
-export interface OddsCard { id: string; number: number; name: string; stars: number; imageUrl: string; probability: number }
-type Weights = Record<Variant, number>;
-
-const TIER_DEFAULTS: Record<number, number> = { 5: 2, 4: 8, 3: 20, 2: 30, 1: 40 };
 const RUNS = [1_000, 10_000, 100_000];
 
-interface SimResult {
-  draws: number;
-  perCard: Record<string, number>;
-  perStars: Record<number, number>;
-  perVariant: Record<Variant, number>;
-  found: number;
-  fullSet: { median: number; p90: number } | null;
-}
-
-/** Cumulative draw: picks an index by weight. */
-function makePicker(weights: number[]): () => number {
-  const cum: number[] = [];
-  let t = 0;
-  for (const w of weights) { t += Math.max(0, w); cum.push(t); }
-  return () => {
-    if (t <= 0) return -1;
-    const r = Math.random() * t;
-    let lo = 0, hi = cum.length - 1;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] > r) hi = mid; else lo = mid + 1; }
-    return lo;
-  };
-}
-
 /**
- * Edit every card's odds in one place (with the effect of each change on the whole pack shown live), then try them out: a simulator
- * draws thousands of packs from the numbers you have typed (saved or not), so you can see what the odds really mean before saving.
+ * The Odds view (ROADMAP 20.2d): every card's weight, the share of pulls by rarity, Normalize, Balance by rarity and the draw simulator.
+ * It reads and writes the workspace's working state, so a balance done here shows in the list and is saved with everything else, and the
+ * simulator runs on the unsaved weights and the unsaved version settings.
  */
-export function OddsPanel({ packId, cards, upgrades, cardWeights }: { packId: string; cards: OddsCard[]; upgrades: boolean; cardWeights: Record<string, Weights> }) {
-  const [odds, setOdds] = useState<Record<string, string>>(() => Object.fromEntries(cards.map(c => [c.id, String(c.probability)])));
+export function OddsView({ pack, cards, baseCards, editCards }: {
+  pack: PackInput;
+  cards: WorkCard[];
+  baseCards: WorkCard[];
+  editCards: (fn: (cards: WorkCard[]) => WorkCard[], key?: string) => void;
+}) {
+  const upgrades = pack.upgradesEnabled;
   const [targets, setTargets] = useState<Record<number, string>>(() => Object.fromEntries(Object.entries(TIER_DEFAULTS).map(([k, v]) => [k, String(v)])));
   const [showTiers, setShowTiers] = useState(false);
-  const [saving, startSave] = useTransition();
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [runs, setRuns] = useState(10_000);
   const [sim, setSim] = useState<SimResult | null>(null);
   const [simulating, startSim] = useTransition();
 
-  const num = (id: string) => { const v = Number(odds[id]); return Number.isFinite(v) && v >= 0 ? v : 0; };
-  const total = cards.reduce((s, c) => s + num(c.id), 0);
-  const dirty = cards.some(c => num(c.id) !== c.probability);
-  const pct = (id: string) => (total > 0 ? (num(id) / total) * 100 : 0);
+  const baseProb = useMemo(() => new Map(baseCards.map(c => [c.id, c.probability])), [baseCards]);
+  const total = totalWeight(cards.map(c => c.probability));
+  const dirty = cards.some(c => c.probability !== (baseProb.get(c.id) ?? c.probability));
+  const pct = (w: number) => shareOf(w, total) * 100;
 
   const tiers = useMemo(() => {
     const m = new Map<number, { stars: number; count: number }>();
     for (const c of cards) { const t = m.get(c.stars) ?? { stars: c.stars, count: 0 }; t.count++; m.set(c.stars, t); }
     return [...m.values()].sort((a, b) => b.stars - a.stars);
   }, [cards]);
-  const tierPct = (stars: number) => cards.filter(c => c.stars === stars).reduce((s, c) => s + pct(c.id), 0);
+  const tierPct = (stars: number) => cards.filter(c => c.stars === stars).reduce((s, c) => s + pct(c.probability), 0);
 
-  const set = (id: string, v: string) => setOdds(o => ({ ...o, [id]: v }));
-  const apply = (next: Record<string, number>) => setOdds(Object.fromEntries(cards.map(c => [c.id, String(Math.round((next[c.id] ?? 0) * 10_000) / 10_000)])));
-  const normalize = () => { if (total > 0) apply(Object.fromEntries(cards.map(c => [c.id, (num(c.id) / total) * 100]))); };
-  const balance = () => {
-    const wanted = tiers.map(t => ({ ...t, target: Math.max(0, Number(targets[t.stars]) || 0) }));
-    const sum = wanted.reduce((s, t) => s + t.target, 0) || 1;
-    apply(Object.fromEntries(cards.map(c => {
-      const t = wanted.find(x => x.stars === c.stars)!;
-      return [c.id, ((t.target / sum) * 100) / t.count];
-    })));
-  };
-  const reset = () => setOdds(Object.fromEntries(cards.map(c => [c.id, String(c.probability)])));
+  const set = (id: string, n: number) => editCards(cs => cs.map(c => (c.id === id ? { ...c, probability: n } : c)), `odds:${id}`);
+  const apply = (next: Record<string, number>) => editCards(cs => cs.map(c => (next[c.id] !== undefined ? { ...c, probability: next[c.id] } : c)));
+  const normalize = () => apply(normalizeWeights(cards));
+  const balance = () => apply(balanceByRarity(cards, Object.fromEntries(Object.entries(targets).map(([k, v]) => [Number(k), Number(v)]))));
+  const reset = () => editCards(cs => cs.map(c => (baseProb.has(c.id) ? { ...c, probability: baseProb.get(c.id)! } : c)));
 
-  const save = () => startSave(async () => {
-    setMessage(null);
-    try {
-      const r = await savePackOddsAction(packId, Object.fromEntries(cards.map(c => [c.id, num(c.id)])));
-      setMessage({ ok: true, text: r.changed > 0 ? `Saved odds for ${r.changed} card${r.changed === 1 ? '' : 's'}.` : 'Nothing changed.' });
-    } catch (e) {
-      setMessage({ ok: false, text: e instanceof Error ? e.message : 'Could not save the odds.' });
-    }
-  });
-
-  const simulate = () => startSim(() => {
-    const pick = makePicker(cards.map(c => num(c.id)));
-    if (pick() < 0) { setSim(null); return; }
-    const perCard: Record<string, number> = {};
-    const perStars: Record<number, number> = {};
-    const perVariant = Object.fromEntries(VARIANTS.map(v => [v, 0])) as Record<Variant, number>;
-    const variantPickers = new Map<string, () => number>();
-    const pickVariant = (c: OddsCard): Variant => {
-      if (!upgrades) return 'regular';
-      let p = variantPickers.get(c.id);
-      if (!p) { const w = cardWeights[c.id]; p = makePicker(VARIANTS.map(v => w?.[v] ?? 0)); variantPickers.set(c.id, p); }
-      const i = p();
-      return VARIANTS[i < 0 ? 0 : i];
-    };
-    for (let i = 0; i < runs; i++) {
-      const c = cards[pick()];
-      perCard[c.id] = (perCard[c.id] ?? 0) + 1;
-      perStars[c.stars] = (perStars[c.stars] ?? 0) + 1;
-      perVariant[pickVariant(c)]++;
-    }
-    // How many draws until every card with odds has been seen at least once (300 trials).
-    const reachable = cards.filter(c => num(c.id) > 0).length;
-    const trials: number[] = [];
-    for (let t = 0; t < 300; t++) {
-      const seen = new Set<number>();
-      let n = 0;
-      while (seen.size < reachable && n < 20_000) { seen.add(pick()); n++; }
-      trials.push(n);
-    }
-    trials.sort((a, b) => a - b);
-    setSim({
-      draws: runs, perCard, perStars, perVariant, found: Object.keys(perCard).length,
-      fullSet: reachable > 0 ? { median: trials[Math.floor(trials.length / 2)], p90: trials[Math.floor(trials.length * 0.9)] } : null,
-    });
+  const simulateNow = () => startSim(() => {
+    setSim(simulate(cards, id => { const c = cards.find(x => x.id === id); return c ? effectiveWeights({ variantWeights: pack.variantWeights, disabledVariants: pack.disabledVariants }, { disabledVariants: c.upgradesEnabled ? c.disabledVariants : ['reverse', 'full', 'shiny'] }) : undefined; }, upgrades, runs));
   });
 
   const btn = 'inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white transition-colors disabled:opacity-50';
   const off = Math.abs(total - 100) > 0.05;
+
+  if (cards.length === 0) return <p className="tcg-panel rounded-2xl px-5 py-12 text-center text-gray-500">Add some cards first, then tune their odds here.</p>;
 
   return (
     <section id="odds" className="tcg-panel rounded-2xl overflow-hidden">
       <header className="px-5 py-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="chart" className="text-yellow-500/90" />Odds &amp; simulator</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Probabilities are relative weights. Edit them here, then simulate before you save.</p>
+          <p className="text-xs text-gray-500 mt-0.5">Probabilities are relative weights. They are edited in the same unsaved changes as everything else: simulate here, then save from the top bar.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className={`text-sm font-bold tabular-nums ${off ? 'text-amber-300' : 'text-emerald-300'}`} title="The weights add up to this. Anything works, but 100 reads as percentages.">Total {Math.round(total * 100) / 100}</span>
           <button type="button" onClick={normalize} disabled={total <= 0 || !off} className={btn}>Normalize to 100</button>
           <button type="button" onClick={() => setShowTiers(s => !s)} aria-expanded={showTiers} className={btn}>Balance by rarity</button>
           <button type="button" onClick={reset} disabled={!dirty} className={btn}>Reset</button>
-          <button type="button" onClick={save} disabled={!dirty || saving} className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold border border-yellow-500 bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-50 transition-colors">{saving && <Spinner />}Save odds</button>
         </div>
       </header>
-
-      {message && <p role="status" className={`px-5 py-2 text-sm ${message.ok ? 'text-green-300 bg-green-500/10' : 'text-red-300 bg-red-500/10'}`}>{message.text}</p>}
 
       {showTiers && (
         <div className="dash-slide px-5 py-4 border-b border-gray-800 bg-gray-950/40 space-y-3">
@@ -171,20 +101,20 @@ export function OddsPanel({ packId, cards, upgrades, cardWeights }: { packId: st
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/50">
-              {cards.map(c => {
-                const changed = num(c.id) !== c.probability;
-                const p = pct(c.id);
+              {[...cards].sort((a, b) => (a.number || 1e9) - (b.number || 1e9)).map(c => {
+                const changed = c.probability !== (baseProb.get(c.id) ?? c.probability);
+                const p = pct(c.probability);
                 return (
                   <tr key={c.id} className="hover:bg-white/[0.02]">
                     <td className="px-5 py-1.5">
                       <div className="flex items-center gap-2.5 min-w-0">
                         {c.imageUrl ? <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-6 h-9 object-cover rounded shrink-0" /> : <div className="w-6 h-9 bg-gray-800 rounded shrink-0" />}
-                        <span className="truncate text-gray-200">{c.name}</span>
+                        <span className="truncate text-gray-200">{c.name || 'Untitled'}</span>
                         <span className={`text-[11px] shrink-0 ${getRarity(c.stars)?.text}`}>{'★'.repeat(c.stars)}</span>
                       </div>
                     </td>
                     <td className="px-3 py-1.5 text-right">
-                      <input type="number" min={0} step="any" value={odds[c.id]} onChange={e => set(c.id, e.target.value)} aria-label={`Weight for ${c.name}`} className={`w-24 rounded-lg bg-gray-950 border px-2 py-1 text-right text-sm tabular-nums focus:outline-none focus:border-yellow-500 ${changed ? 'border-yellow-500/60 text-yellow-200' : 'border-gray-700 text-white'}`} />
+                      <div className={`w-24 ml-auto ${changed ? '[&_input]:!border-yellow-500/60 [&_input]:!text-yellow-200' : ''}`}><NumberInput ariaLabel={`Weight for ${c.name || 'card'}`} value={c.probability} min={0} onChange={n => set(c.id, n)} /></div>
                     </td>
                     <td className="px-3 py-1.5 text-right tabular-nums text-gray-300">{p >= 10 ? p.toFixed(1) : p.toFixed(2)}%</td>
                     <td className="pr-5 pl-3 py-1.5 text-right tabular-nums text-gray-600 hidden sm:table-cell">{p > 0 ? Math.round(100 / p).toLocaleString() : '-'}</td>
@@ -216,7 +146,7 @@ export function OddsPanel({ packId, cards, upgrades, cardWeights }: { packId: st
               <select value={runs} onChange={e => setRuns(Number(e.target.value))} aria-label="Packs to simulate" className="rounded-lg bg-gray-950 border border-gray-700 px-2 py-1.5 text-xs text-white">
                 {RUNS.map(n => <option key={n} value={n}>{n.toLocaleString()} packs</option>)}
               </select>
-              <button type="button" onClick={simulate} disabled={simulating || total <= 0} className={btn}>{simulating ? <Spinner /> : <Icon name="play" className="w-3 h-3" />}Run</button>
+              <button type="button" onClick={simulateNow} disabled={simulating || total <= 0} className={btn}>{simulating ? <Spinner /> : <Icon name="play" className="w-3 h-3" />}Run</button>
             </div>
             {!sim ? <p className="text-xs text-gray-600">Uses the weights typed on the left{dirty ? ' (including unsaved changes)' : ''}. Each pack gives one card{upgrades ? ' and a variant roll' : ''}.</p> : (
               <div className="space-y-3 text-sm">
@@ -244,7 +174,7 @@ export function OddsPanel({ packId, cards, upgrades, cardWeights }: { packId: st
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-gray-500">{sim.found} of {cards.filter(c => num(c.id) > 0).length} cards appeared in {sim.draws.toLocaleString()} packs. Most pulled: {(() => { const top = Object.entries(sim.perCard).sort((a, b) => b[1] - a[1])[0]; const c = cards.find(x => x.id === top?.[0]); return c ? `${c.name} (${top[1].toLocaleString()})` : '-'; })()}.</p>
+                <p className="text-xs text-gray-500">{sim.found} of {cards.filter(c => c.probability > 0).length} cards appeared in {sim.draws.toLocaleString()} packs. Most pulled: {(() => { const top = Object.entries(sim.perCard).sort((a, b) => b[1] - a[1])[0]; const c = cards.find(x => x.id === top?.[0]); return c ? `${c.name} (${top[1].toLocaleString()})` : '-'; })()}.</p>
               </div>
             )}
           </div>
