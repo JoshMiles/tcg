@@ -8,6 +8,7 @@ import { heldCardNumbers } from '@/lib/card-held';
 import { packHealth } from '@/lib/pack-health';
 import { effectiveWeights } from '@/lib/variants';
 import { workOf } from '@/lib/pack-editor-core';
+import { getHoloResolver } from '@/lib/holo';
 import { rarityStats } from '@/lib/rarity';
 import { OddsPanel } from './OddsPanel';
 import { PackVariantsPanel } from './VariantControls';
@@ -31,9 +32,9 @@ export default async function PackPage({ params, searchParams }: { params: Promi
     if (tab === 'settings') q.set('card', 'pack');
     redirect(`/admin/packs/${packId}${q.size ? `?${q}` : ''}`);
   }
-  const [pack, cards, seasons, overrides, cardBack, allPacks, rev, held] = await Promise.all([
+  const [pack, cards, seasons, overrides, cardBack, allPacks, rev, held, holoFor] = await Promise.all([
     getPack(packId), getPackCards(packId), listSeasons(), getPackOverrides().catch((): Record<string, unknown> => ({})), getCardBack(packId), listAllPacks(), getPackRev(packId),
-    heldCardNumbers(packId).catch(() => new Set<number>()),
+    heldCardNumbers(packId).catch(() => new Set<number>()), getHoloResolver(),
   ]);
   if (!pack) notFound();
   const inSeasons = seasons.filter(s => s.packIds.includes(packId));
@@ -143,6 +144,8 @@ export default async function PackPage({ params, searchParams }: { params: Promi
       initialView={view}
       initialSelection={card ?? null}
       healthCount={health.length}
+      holoByStars={Object.fromEntries([1, 2, 3, 4, 5].map(s => [s, holoFor(pack, s)]))}
+      onStream={pack.status === 'published' && pack.active && inSeasons.some(s => s.active)}
     />
   );
 }
