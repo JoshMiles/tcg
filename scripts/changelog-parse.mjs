@@ -3,6 +3,8 @@
 //
 // Only a PR's "## Changelog" section is ever read, never commit messages. The section ends at the next heading, a horizontal rule or the
 // first line that starts with the robot emoji or "Generated with". Anything that names the tools or authors behind a change is dropped.
+// Only the section's bulleted list is used (prose around it never ships), "none" on its first line skips the PR, markdown is turned into
+// plain text, and planning PRs (titles starting "ROADMAP") are skipped.
 
 export const MAX_ITEM_LENGTH = 500;
 const EM_DASH = String.fromCharCode(8212);
@@ -32,28 +34,45 @@ export function parseChangelogBody(body) {
   if (!section) return null;
   const nonBlank = section.map(l => l.trimEnd()).filter(l => l.trim() !== '');
   if (nonBlank.length === 0) return null;
-  // "none", "None.", "None (staff-only change)." as the only content
-  if (nonBlank.length === 1 && /^[-*]?\s*none\b[^a-z0-9]*(\([^)]*\))?[^a-z0-9]*$/i.test(nonBlank[0].trim())) return null;
+  // "none", "None.", "None (staff-only change)." on the first line leaves the PR out, whatever follows it.
+  if (/^[-*]?\s*none\b/i.test(nonBlank[0].trim())) return null;
+  // Only the bulleted list counts: prose before it is skipped, and the first plain line after it ends the section, so a PR's own
+  // description can never leak onto the public page.
   let title;
+  const tags = [];
   const items = [];
   let last = -1;
   for (const raw of nonBlank) {
     const line = raw.trim();
     const titleMatch = /^title:\s*(.+)$/i.exec(line);
     if (titleMatch && items.length === 0 && title === undefined) { title = titleMatch[1].trim(); last = -1; continue; }
+    const tagsMatch = /^tags?:\s*(.+)$/i.exec(line);
+    if (tagsMatch && items.length === 0) { for (const t of tagsMatch[1].toLowerCase().split(/[\s,]+/)) if (TAGS.includes(t) && !tags.includes(t)) tags.push(t); last = -1; continue; }
     const bullet = /^([-*+]|\d+[.)])\s+(.*)$/.exec(line);
     if (bullet) { items.push(bullet[2].trim()); last = items.length - 1; continue; }
     if (/^\s/.test(raw) && last >= 0) { items[last] += ' ' + line; continue; }
-    items.push(line);
-    last = items.length - 1;
+    if (items.length > 0) break;
   }
   const clean = items
-    .map(i => i.trim())
+    .map(i => plainText(i).trim())
     .filter(i => /[a-z0-9]/i.test(i) && !BANNED.test(i) && !/^none\.?$/i.test(i))
     .map(i => (i.length > MAX_ITEM_LENGTH ? i.slice(0, MAX_ITEM_LENGTH - 3).trimEnd() + '...' : i));
   if (clean.length === 0) return null;
-  return { title: title && !BANNED.test(title) ? title : undefined, items: clean };
+  const t = title ? plainText(title).trim() : '';
+  return { title: t && !BANNED.test(t) ? t : undefined, tags, items: clean };
 }
+
+/** Markdown a player would see as symbols: bold / italic markers, inline code and links (keeps the link text). */
+export function plainText(s) {
+  return String(s ?? '')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/(\*\*|__)(.+?)\1/g, '$2')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/(^|[\s(])\*([^*\s][^*]*?)\*(?=[\s).,:;!?]|$)/g, '$1$2');
+}
+
+/** Planning PRs (titles starting "ROADMAP") never reach the public changelog. */
+export const isRoadmapPr = (title) => /^\s*roadmap\b/i.test(String(title ?? ''));
 
 /** The PR title without a trailing "(ROADMAP x.y)", "(Track x.y)" or "(x.y)" tag. */
 export function cleanPrTitle(title) {
@@ -62,13 +81,14 @@ export function cleanPrTitle(title) {
 
 /** One changelog entry from a GitHub pull request object, or null when it has none to show. */
 export function entryFromPr(pr) {
-  if (!pr || !pr.merged_at) return null;
+  if (!pr || !pr.merged_at || isRoadmapPr(pr.title)) return null;
   const parsed = parseChangelogBody(pr.body);
   if (!parsed) return null;
   const fromPr = cleanPrTitle(pr.title);
   const title = parsed.title || (BANNED.test(fromPr) ? '' : fromPr) || 'Update';
   const labels = (pr.labels ?? []).map(l => String(typeof l === 'string' ? l : l?.name ?? '').toLowerCase());
-  const tags = TAGS.filter(t => labels.includes(t));
+  // The pills: a "Tags: new, fixed" line in the section, or the PR's labels (either works; kept in the page's order).
+  const tags = TAGS.filter(t => labels.includes(t) || parsed.tags.includes(t));
   const entry = { date: String(pr.merged_at).slice(0, 10), title, items: parsed.items };
   if (tags.length) entry.tags = tags;
   entry.pr = pr.number;
