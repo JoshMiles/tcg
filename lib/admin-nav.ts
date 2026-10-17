@@ -20,6 +20,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   { title: 'Overview', items: [
     { href: '/admin', label: 'Dashboard', icon: 'chart', exact: true, key: 'd', keywords: ['home', 'stats'] },
     { href: '/admin/activity', label: 'Live Activity', icon: 'radio', key: 'a', keywords: ['feed', 'events', 'pulls'] },
+    { href: '/admin/changelog', label: "What's new", icon: 'sparkles', key: 'w', keywords: ['changelog', 'updates', 'release notes', 'staff changes'] },
   ] },
   { title: 'Game', items: [
     { href: '/admin/seasons', label: 'Seasons', icon: 'trophy', key: 's', keywords: ['wrap up', 'activate'] },

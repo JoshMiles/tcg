@@ -57,7 +57,7 @@ The static half of the access test is `scripts/check-staff-guards.mts` (part of 
 
 ## Pull request checklist
 
-- A player-facing change fills the PR's `## Changelog` section (top of the description, written for players, no tool or author credits: an optional `Title:` line, a `Tags:` line with new / improved / fixed for the pills, then a bulleted list, the only part that is published; `none` on the first line for staff-only changes; PRs whose title starts with ROADMAP are skipped) instead of editing `lib/changelog.ts`.
+- A player-facing change fills the PR's `## Changelog` section (top of the description, no tool or author credits: an `Audience:` line (players for the public What's new, staff for the admin / mod What's new, or both), an optional `Title:` line, a `Tags:` line with new / improved / fixed for the pills, then a bulleted list, the only part that is published; `none` on the first line for internal changes nobody would notice; PRs whose title starts with ROADMAP are skipped) instead of editing `lib/changelog.ts`.
 - FAQ, Privacy and Terms kept in step (`LEGAL_UPDATED` bumped), `npm run verify` green, and the public sweep run for any new public page.
 
 ## What a sweep cannot check

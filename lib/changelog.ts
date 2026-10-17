@@ -14,6 +14,8 @@ export interface ChangelogEntry {
   tags?: ChangeTag[];
   /** The pull request the entry was built from (generated entries only). */
   pr?: number;
+  /** Who it is for, from the PR's "Audience:" line: absent = players, `staff` = the staff What's new page only, `both` = both pages. */
+  audience?: 'staff' | 'both';
 }
 
 const HAND_WRITTEN: ChangelogEntry[] = [
@@ -170,8 +172,13 @@ const HAND_WRITTEN: ChangelogEntry[] = [
   },
 ];
 
-/** Generated entries first (newest first), then the hand-written history. */
-export const CHANGELOG: ChangelogEntry[] = [...(generated as ChangelogEntry[]), ...HAND_WRITTEN];
+const GENERATED = generated as ChangelogEntry[];
+
+/** The public What's new: generated player entries first (newest first), then the hand-written history. Staff-only entries never appear. */
+export const CHANGELOG: ChangelogEntry[] = [...GENERATED.filter(e => e.audience !== 'staff'), ...HAND_WRITTEN];
+
+/** The staff What's new (admin and mod panels): entries for staff, and those marked for both. */
+export const STAFF_CHANGELOG: ChangelogEntry[] = GENERATED.filter(e => e.audience === 'staff' || e.audience === 'both');
 
 /** The date of the newest entry (empty when there are none). */
 export function newestChangelogDate(entries: ChangelogEntry[] = CHANGELOG): string {

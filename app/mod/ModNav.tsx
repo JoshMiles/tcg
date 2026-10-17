@@ -10,6 +10,7 @@ const ITEMS: { href: string; label: string; icon: IconName; exact?: boolean }[] 
   { href: '/mod/trades', label: 'Trades', icon: 'trade' },
   { href: '/mod/feedback', label: 'Feedback', icon: 'chat' },
   { href: '/mod/testers', label: 'Testers', icon: 'flask' },
+  { href: '/mod/changelog', label: "What's new", icon: 'sparkles' },
 ];
 
 export function ModNav({ newFeedback = 0 }: { newFeedback?: number }) {
