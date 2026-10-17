@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { getRarity } from '@/lib/rarity';
-import { cardThumbUrl } from '@/lib/card-art';
 import type { PackInput } from '@/lib/pack-clean';
 import { cardProblems } from '@/lib/pack-clean';
 import {
@@ -22,6 +21,8 @@ import type { CardBackEditorProps } from '../../../components/CardBackEditor';
 import { CardList } from './CardList';
 import { CardPanel } from './CardPanel';
 import { PackPanel, type SeasonUse } from './PackPanel';
+import { PreviewPane } from './PreviewPane';
+import type { HoloSpecs } from '@/lib/holo-core';
 
 export type WorkspaceView = 'edit' | 'odds' | 'overview';
 
@@ -32,7 +33,10 @@ interface Base extends WorkspaceState {}
  * Published packs are saved explicitly (Review, then Save) because a change is live on stream at once; drafts autosave. All edits
  * go into one working state with undo / redo; what is sent to the server is the change set against the revision you opened.
  */
-export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBack, odds, overview, initialView, initialSelection, healthCount }: {
+export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBack, odds, overview, initialView, initialSelection, healthCount, holoByStars, onStream }: {
+  holoByStars: Record<number, HoloSpecs>;
+  /** The pack is drawn in the active season (the overlay preview only knows those). */
+  onStream: boolean;
   packId: string;
   initial: WorkspaceState;
   seasons: SeasonUse[];
@@ -257,6 +261,10 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
   }
 
   const sampleCard = work.cards.find(c => c.imageUrl) ?? null;
+  const previewProps = {
+    packId, pack: work.pack, card: showPack ? null : active, selection: work.cards.filter(c => cardIds.includes(c.id)), cards: work.cards, holoByStars,
+    cardBack: cardBack.initial, seasonName: cardBack.seasonName, onStream,
+  };
 
   return (
     <div className="flex flex-col gap-3 xl:h-[calc(100vh-4rem)] min-h-0">
@@ -331,7 +339,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
           </div>
 
           <div className="hidden xl:flex flex-col items-center justify-center min-h-0 overflow-y-auto">
-            <Preview pack={work.pack} card={showPack ? null : active} multi={cardIds.length > 1 ? cardIds.length : 0} coverFallback={sampleCard?.imageUrl} cards={work.cards} />
+            <PreviewPane {...previewProps} />
           </div>
 
           <aside aria-label="Properties" className={`${sheet ? 'fixed inset-0 z-40 bg-gray-950 overflow-y-auto' : 'hidden'} xl:static xl:block xl:z-auto xl:bg-transparent tcg-panel xl:rounded-2xl xl:overflow-y-auto min-h-0`}>
@@ -339,7 +347,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
               <button type="button" onClick={() => setSheet(false)} className="px-3 py-1.5 text-sm font-bold text-yellow-400"><Icon name="chevronLeft" /> Back to the list</button>
               <span className="text-xs text-gray-500 ml-auto">{saving ? 'Saving…' : dirty ? (isDraft ? 'Saving soon…' : 'Unsaved changes') : 'Saved'}</span>
             </div>
-            <div className="xl:hidden p-4 flex justify-center"><Preview pack={work.pack} card={showPack ? null : active} multi={0} coverFallback={sampleCard?.imageUrl} cards={work.cards} small /></div>
+            <div className="xl:hidden p-4 flex justify-center"><PreviewPane {...previewProps} compact /></div>
             {cardIds.length > 1 ? (
               <div className="p-5 space-y-3 text-sm text-gray-300">
                 <p><strong className="text-white">{cardIds.length} cards selected.</strong></p>
@@ -395,35 +403,6 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
           </div>
         </div>
       </Dialog>
-    </div>
-  );
-}
-
-/** The static preview (20.2b replaces it with the live one): the card's art, name, stars and chance, or the pack's cover. */
-function Preview({ pack, card, multi, coverFallback, cards, small }: { pack: PackInput; card: WorkCard | null; multi: number; coverFallback?: string; cards: WorkCard[]; small?: boolean }) {
-  const total = cards.reduce((s, c) => s + (c.probability > 0 ? c.probability : 0), 0);
-  const w = small ? 'w-40' : 'w-60';
-  if (multi > 0) return <p className="text-sm text-gray-500">{multi} cards selected</p>;
-  if (!card) {
-    const src = pack.coverImageUrl || coverFallback;
-    return (
-      <div className="text-center space-y-2">
-        <div className={`${w} aspect-[2/3] rounded-xl overflow-hidden bg-gray-800 border border-white/10 mx-auto flex items-center justify-center`}>{src ? <img src={cardThumbUrl(src)} alt="" className="w-full h-full object-cover" /> : <Icon name="image" className="w-10 h-10 text-gray-600" />}</div>
-        <p className="font-display text-xl font-bold text-white">{pack.name || 'Untitled pack'}</p>
-        <p className="text-sm text-gray-500">{cards.length} cards</p>
-      </div>
-    );
-  }
-  const rarity = getRarity(card.stars);
-  const chance = card.probability > 0 && total > 0 ? Math.round(total / card.probability) : 0;
-  return (
-    <div className="text-center space-y-2">
-      <div className={`${w} aspect-[2/3] rounded-xl overflow-hidden bg-gray-800 border-2 mx-auto flex items-center justify-center`} style={{ borderColor: rarity?.hex, boxShadow: `0 0 28px -8px ${rarity?.hex}` }}>
-        {card.imageUrl ? <img src={cardThumbUrl(card.imageUrl)} alt={card.name} className="w-full h-full object-cover" /> : <Icon name="image" className="w-10 h-10 text-gray-600" />}
-      </div>
-      <p className="font-display text-xl font-bold text-white truncate max-w-[16rem] mx-auto">{card.name || 'Untitled card'}</p>
-      <p className="text-sm font-semibold" style={{ color: rarity?.hex }}>{'★'.repeat(card.stars)} {rarity?.label}</p>
-      <p className="text-xs text-gray-500">{chance > 0 ? `1 in ${chance.toLocaleString('en-GB')} pulls` : 'Never pulled (0 odds)'}</p>
     </div>
   );
 }

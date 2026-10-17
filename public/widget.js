@@ -127,6 +127,17 @@ let previewPackId = '';
 let previewCardNumber = 0;
 let previewShowOff = false;   // the editor's "Show off" view: the still and Play use the show-off settings
 
+// The pack workspace's preview sends the UNSAVED pack and card fields; they are laid over the loaded data (this page only ever shows a preview).
+const DRAFT_PACK_FIELDS = ['name', 'coverImageUrl', 'accentColor', 'tearBorderColor', 'holoMinStars', 'cardTime', 'cooldownTime', 'soundVolume', 'upgradesEnabled', 'variantWeights', 'disabledVariants'];
+const DRAFT_CARD_FIELDS = ['name', 'stars', 'probability', 'image', 'thumb', 'soundUrl', 'fullArt', 'fullArtThumb', 'upgradesEnabled', 'disabledVariants'];
+function applyDraft(d) {
+  const chosen = PACKS.find(p => p.pack.id === d.packId);
+  if (!chosen) return;
+  if (d.pack && typeof d.pack === 'object') for (const k of DRAFT_PACK_FIELDS) if (k in d.pack) chosen.pack[k] = d.pack[k];
+  const c = d.card && typeof d.card === 'object' ? chosen.cards.find(x => x.number === d.card.number) : null;
+  if (c) for (const k of DRAFT_CARD_FIELDS) if (k in d.card) c[k] = d.card[k];
+}
+
 function clearStatic() {
   document.querySelectorAll('.static-preview').forEach(el => el.remove());
 }
@@ -223,6 +234,7 @@ if (PREVIEW) {
       previewCardNumber = Number.isInteger(e.data.cardNumber) ? e.data.cardNumber : 0;
       if (activeDraws === 0) showStatic();
     }
+    else if (e.data.type === 'draft') applyDraft(e.data);
     else if (e.data.type === 'variant') {
       PREVIEW_VARIANT = ['reverse', 'full', 'shiny'].includes(e.data.variant) ? e.data.variant : '';
       if (activeDraws === 0) showStatic();
