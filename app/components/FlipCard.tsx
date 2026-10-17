@@ -15,7 +15,7 @@ const MAX_TILT = 12;
  * 3D, a tap or the Flip button turns it over. Reduced motion (the device setting or the site's Settings → Motion) swaps the turn for a
  * fade and drops the tilt.
  */
-export function FlipCard({ children, back, compact = false, className = '', defaultFlipped = false }: { children: ReactNode; back: FlipBack; compact?: boolean; className?: string; defaultFlipped?: boolean }) {
+export function FlipCard({ children, back, compact = false, className = '', defaultFlipped = false, bare = false }: { children: ReactNode; back: FlipBack; compact?: boolean; className?: string; defaultFlipped?: boolean; /** Just the back, flat: no turning, tilting or button (the card back editor draws on it). */ bare?: boolean }) {
   const [flipped, setFlipped] = useState(defaultFlipped);
   const [tilting, setTilting] = useState(false);
   const inner = useRef<HTMLDivElement>(null);
@@ -63,15 +63,7 @@ export function FlipCard({ children, back, compact = false, className = '', defa
     setFlipped(f => !f);
   }
 
-  return (
-    <div className={`flip-wrap ${className}`}>
-      <div ref={box} className="flip-card" data-flipped={flipped} onPointerMove={move} onPointerLeave={rest} onClick={flip}>
-        <div ref={inner} className={`flip-inner ${tilting ? 'flip-tilting' : ''}`} style={{ ['--flip' as string]: flipped ? '180deg' : '0deg' }}>
-          <div className="flip-face flip-front" aria-hidden={flipped}>
-            {children}
-            <span className="flip-glare" aria-hidden />
-          </div>
-          <div className="flip-face flip-back" aria-hidden={!flipped}>
+  const plate = (
             <div className="flip-plate" style={plateStyle as React.CSSProperties}>
               {stackNodes.map((n, i) => {
                 if (n.kind === 'qr' || n.kind === 'link') {
@@ -82,6 +74,28 @@ export function FlipCard({ children, back, compact = false, className = '', defa
               })}
               {freeNodes.map(n => <BackNodeView key={n.id} n={n} qr={qrOf(n)} flipped={flipped} />)}
             </div>
+  );
+
+  if (bare) {
+    return (
+      <div className={`flip-wrap ${className}`}>
+        <div ref={box} className="flip-card" style={{ cursor: 'default' }}>
+          <div className="flip-face flip-back" style={{ transform: 'none' }}>{plate}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flip-wrap ${className}`}>
+      <div ref={box} className="flip-card" data-flipped={flipped} onPointerMove={move} onPointerLeave={rest} onClick={flip}>
+        <div ref={inner} className={`flip-inner ${tilting ? 'flip-tilting' : ''}`} style={{ ['--flip' as string]: flipped ? '180deg' : '0deg' }}>
+          <div className="flip-face flip-front" aria-hidden={flipped}>
+            {children}
+            <span className="flip-glare" aria-hidden />
+          </div>
+          <div className="flip-face flip-back" aria-hidden={!flipped}>
+            {plate}
           </div>
         </div>
       </div>
@@ -96,14 +110,15 @@ export function FlipCard({ children, back, compact = false, className = '', defa
 function BackNodeView({ n, qr, flipped }: { n: BackNode; qr: { d: string; size: number } | null; flipped: boolean }) {
   const style = { ...n.vars, ...n.css } as React.CSSProperties;
   const cls = n.cls;
+  const id = { 'data-back-id': n.id };
   switch (n.tag) {
-    case 'img': return <img src={n.src} alt="" className={cls} style={style} />;
-    case 'p': return <p className={cls} style={style}>{n.text}</p>;
-    case 'ul': return <ul className={cls} style={style}>{n.items?.map((h, i) => <li key={i}><span>{h.text}</span><span>{h.date}</span></li>)}</ul>;
-    case 'a': return <a href={n.href} tabIndex={flipped ? 0 : -1} onClick={e => e.stopPropagation()} className={cls} style={style}>{n.text}</a>;
+    case 'img': return <img {...id} src={n.src} alt="" className={cls} style={style} />;
+    case 'p': return <p {...id} className={cls} style={style}>{n.text}</p>;
+    case 'ul': return <ul {...id} className={cls} style={style}>{n.items?.map((h, i) => <li key={i}><span>{h.text}</span><span>{h.date}</span></li>)}</ul>;
+    case 'a': return <a {...id} href={n.href} tabIndex={flipped ? 0 : -1} onClick={e => e.stopPropagation()} className={cls} style={style}>{n.text}</a>;
     case 'qr':
       return qr ? (
-        <svg className={cls} style={style} viewBox={`-1 -1 ${qr.size + 2} ${qr.size + 2}`} role="img" aria-label="QR code for this print's page" shapeRendering="crispEdges">
+        <svg {...id} className={cls} style={style} viewBox={`-1 -1 ${qr.size + 2} ${qr.size + 2}`} role="img" aria-label="QR code for this print's page" shapeRendering="crispEdges">
           <rect x={-1} y={-1} width={qr.size + 2} height={qr.size + 2} fill={n.light ?? 'rgba(255,255,255,.88)'} />
           <path d={qr.d} fill={n.dark ?? '#1f1f24'} />
         </svg>

@@ -184,4 +184,39 @@ ok(v1.plateBackground({ ...v1.DEFAULT_V1, pattern: 'holes' }).includes('radial-g
 ok(v1.plateBlend({ ...v1.DEFAULT_V1, pattern: 'dots', patternBlend: 'overlay' }) === 'overlay, normal' && v1.plateBlend({ ...v1.DEFAULT_V1, pattern: 'holes', patternBlend: 'multiply' }) === 'multiply, multiply, normal' && v1.plateBlend({ ...v1.DEFAULT_V1, pattern: 'none', patternBlend: 'screen' }) === undefined, 'the blend covers the pattern layers and not the background');
 ok(css.includes('background-blend-mode: var(--plate-blend, normal)'), 'the stylesheet reads the blend from the plate (normal by default)');
 
+// ── The editor's operations (20.3b) ──
+const ed = await import('../lib/card-back-edit');
+const base0 = cb.DEFAULT_CARD_BACK;
+const added = ed.addText(base0)!;
+ok(added.style.elements.length === base0.elements.length + 1 && added.style.elements.at(-1)!.kind === 'text' && added.style.elements.at(-1)!.place === 'free', 'Add text appends a free text box');
+let many2 = base0;
+for (let i = 0; i < 8; i++) many2 = ed.addText(many2)!.style;
+ok(ed.addText(many2) === null && many2.elements.filter(e => e.kind === 'text').length === 8, 'Add text stops at 8 text boxes');
+const dup = ed.duplicateElement(added.style, added.id)!;
+ok(dup.style.elements.filter(e => e.kind === 'text').length === 2 && dup.id !== added.id && ed.duplicateElement(base0, 'number') === null, 'a text box can be duplicated, other kinds cannot');
+ok(ed.removeElement(added.style, added.id).elements.length === base0.elements.length && ed.removeElement(base0, 'number').elements.length === base0.elements.length, 'only text boxes can be deleted');
+ok(ed.moveElement(base0, 'number', 'link').elements.at(-1)!.id === 'number' && ed.stepElement(base0, 'brand', -1) === base0 && ed.stepElement(base0, 'brand', 1).elements[1].id === 'brand', 'reordering moves an element in the list');
+const freed = ed.makeFree(base0, 'name', { l: 20, t: 40, w: 60, h: 5 }, 22, 220);
+const fn2 = freed.elements.find(e => e.id === 'name')!;
+ok(fn2.place === 'free' && fn2.x === 50 && fn2.y === 42.5 && fn2.w === 64 && fn2.size === 10 && fn2.weight === 800, 'taking an element out of the stack keeps where it was drawn and how big its type was');
+ok(ed.returnToStack(freed, 'name').elements.find(e => e.id === 'name')!.place === 'stack', 'an element can go back to the stack');
+const two = ed.patchElements(ed.patchElements(base0, ['name'], { place: 'free', x: 30, y: 20, w: 40 }), ['date'], { place: 'free', x: 70, y: 60, w: 20 });
+const bx = { name: { l: 10, t: 18, w: 40, h: 4 }, date: { l: 60, t: 58, w: 20, h: 4 } };
+const al = ed.alignElements(two, ['name', 'date'], 'left', bx);
+ok(al.elements.find(e => e.id === 'name')!.x === 30 && al.elements.find(e => e.id === 'date')!.x === 20, 'align left puts the left edges together');
+ok(ed.alignElements(two, ['name', 'date'], 'middle', bx).elements.find(e => e.id === 'name')!.y === 40, 'align middle centres them vertically');
+const three = ed.patchElements(two, ['origin'], { place: 'free', x: 50, y: 90, w: 30 });
+const bx3 = { ...bx, origin: { l: 35, t: 88, w: 30, h: 4 } };
+ok(ed.distributeElements(three, ['name', 'date', 'origin'], 'x', bx3).elements.find(e => e.id === 'origin')!.x === 50 && ed.distributeElements(two, ['name', 'date'], 'x', bx) === two, 'distribute spaces three or more by their centres');
+ok(ed.snapAxis([48.8, 49.5, 50.2], [0, 50, 100]).guide === 50 && Math.abs(ed.snapAxis([48.8, 49.5, 50.2], [0, 50, 100]).delta) <= 0.5 && ed.snapAxis([20, 25, 30], [0, 50, 100]).guide === null, 'snapping finds the card centre and ignores far lines');
+ok(Math.abs(ed.snapAxis([20.4, 21.2, 22], [], {}).delta - 0.8) < 1e-9 && ed.snapAxis([20.4, 21.2, 22], [], { grid: false }).delta === 0, 'the 2 percent grid snaps the centre, and can be switched off');
+const tg = ed.snapTargets([{ l: 10, t: 20, w: 20, h: 10 }]);
+ok(tg.x.includes(20) && tg.x.includes(30) && tg.y.includes(25), 'other boxes give their edges and centres as snap lines');
+ok(ed.patchElements(base0, ['number'], { x: 900, size: 99 }).elements.find(e => e.id === 'number')!.x === 100, 'every edit goes through the sanitiser');
+ok(ed.resetElement(freed, 'name').elements.find(e => e.id === 'name')!.place === 'stack', 'Reset element restores the default design\'s element');
+ok(ed.EDITOR_PRESETS.length === 6 && ed.EDITOR_PRESETS.every(p => JSON.stringify(cb.sanitizeCardBack(p.style)) === JSON.stringify(p.style) && JSON.stringify(p.style).length < cb.MAX_BYTES), 'the editor presets are valid v2 designs');
+ok(ed.EDITOR_PRESETS.some(p => p.style.elements.some(e => e.place === 'free')), 'some presets place elements freely');
+ok(ed.tinyText(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', place: 'free', size: 5, text: 'x' }, { kind: 'text', place: 'free', size: 9, text: 'y' }] }), 120, 9).length === 1, 'text under 9 px at tile size is flagged');
+ok(ed.patchBackground(base0, { pattern: 'dots', patternOpacity: 3 }).patternOpacity === 1 && ed.patchBackground(base0, { pattern: 'dots' }).pattern === 'dots', 'background edits are sanitised too');
+
 console.log('card back checks passed');
