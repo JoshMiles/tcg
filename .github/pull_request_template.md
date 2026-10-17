@@ -1,8 +1,11 @@
 ## Changelog
-<!-- For players, shown on the public What's new page. Write "none" on the first line for staff-only or internal changes (and for ROADMAP PRs, which are skipped anyway).
-Title: a short player-facing heading (optional; otherwise the PR title is used).
+<!-- Shown on a What's new page. Fill in these lines, then a bulleted list (only the bullets are published):
+Audience: players (the public What's new page: features and fixes collectors notice), staff (the admin and mod What's new page only: admin / mod panel changes), or both.
+Title: a short heading for that audience (optional; otherwise the PR title is used).
 Tags: new, improved or fixed (one or more; they become the coloured pills).
-Then a bulleted list: what players can now do. Only the bullets are published; say "print" for a card copy; no credits. -->
+Write "none" on the first line instead for internal changes nobody would notice (refactors, tests, docs). ROADMAP PRs are skipped anyway.
+Say "print" for a card copy; no credits. -->
+Audience: players
 Title: 
 Tags: new
 - 

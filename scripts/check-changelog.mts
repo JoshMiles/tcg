@@ -62,6 +62,16 @@ ok(prose && prose.items.join('|') === 'Cards flip faster.|Binder pages turn smoo
 ok(parseChangelogBody('## Changelog\nJust a paragraph, no list.') === null, 'a section without a list yields nothing');
 const md = parseChangelogBody('## Changelog\nTitle: **Faster** binder\n- **Bold** text, `code`, a [link](https://x.test) and *italic* words.');
 ok(md && md.title === 'Faster binder' && md.items[0] === 'Bold text, code, a link and italic words.', 'markdown is turned into plain text');
+// Audience: players (default), staff or both
+const { parseAudience } = await import('./changelog-parse.mjs');
+ok(parseAudience('players') === 'players' && parseAudience('public') === 'players' && parseAudience('') === 'players', 'players is the default audience');
+ok(parseAudience('staff') === 'staff' && parseAudience('admin / mod') === 'staff' && parseAudience('Mods') === 'staff', 'staff, admin and mod mean staff');
+ok(parseAudience('both') === 'both' && parseAudience('players and staff') === 'both' && parseAudience('players, admins') === 'both', 'both, or players with staff, mean both');
+const staffEntry = entryFromPr(pr(40, 'Pack workspace grid (20.2c)', '## Changelog\nAudience: staff\nTitle: Edit many cards at once\nTags: new\n- Packs have a spreadsheet view.'));
+ok(staffEntry && staffEntry.audience === 'staff' && staffEntry.title === 'Edit many cards at once' && staffEntry.tags?.join() === 'new', 'a staff entry keeps its audience, title and tags');
+ok(entryFromPr(pr(41, 'Faster binder', '## Changelog\n- Pages turn faster.'))?.audience === undefined, 'a player entry has no audience field');
+ok(entryFromPr(pr(42, 'Both', '## Changelog\nAudience: both\n- Something everyone sees.'))?.audience === 'both', 'both is kept');
+ok(parseChangelogBody('## Changelog\nAudience: players\nTitle: \nTags: new\n- ')  === null, 'the untouched new template yields nothing');
 const tagged = entryFromPr(pr(34, 'Binder speed', '## Changelog\nTitle: A faster binder\nTags: fixed, Improved, shiny\n- Pages turn faster.'));
 ok(tagged && tagged.tags?.join() === 'improved,fixed' && tagged.items.length === 1, 'a Tags: line gives the pills (known tags only, page order)');
 ok(entryFromPr(pr(35, 'Labels too', '## Changelog\nTags: new\n- x is better.', ['fixed']))?.tags?.join() === 'new,fixed', 'Tags: and labels combine');

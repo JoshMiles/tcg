@@ -39,6 +39,7 @@ export function parseChangelogBody(body) {
   // Only the bulleted list counts: prose before it is skipped, and the first plain line after it ends the section, so a PR's own
   // description can never leak onto the public page.
   let title;
+  let audience = 'players';
   const tags = [];
   const items = [];
   let last = -1;
@@ -46,6 +47,8 @@ export function parseChangelogBody(body) {
     const line = raw.trim();
     const titleMatch = /^title:\s*(.+)$/i.exec(line);
     if (titleMatch && items.length === 0 && title === undefined) { title = titleMatch[1].trim(); last = -1; continue; }
+    const audienceMatch = /^audience:\s*(.+)$/i.exec(line);
+    if (audienceMatch && items.length === 0) { audience = parseAudience(audienceMatch[1]); last = -1; continue; }
     const tagsMatch = /^tags?:\s*(.+)$/i.exec(line);
     if (tagsMatch && items.length === 0) { for (const t of tagsMatch[1].toLowerCase().split(/[\s,]+/)) if (TAGS.includes(t) && !tags.includes(t)) tags.push(t); last = -1; continue; }
     const bullet = /^([-*+]|\d+[.)])\s+(.*)$/.exec(line);
@@ -59,7 +62,18 @@ export function parseChangelogBody(body) {
     .map(i => (i.length > MAX_ITEM_LENGTH ? i.slice(0, MAX_ITEM_LENGTH - 3).trimEnd() + '...' : i));
   if (clean.length === 0) return null;
   const t = title ? plainText(title).trim() : '';
-  return { title: t && !BANNED.test(t) ? t : undefined, tags, items: clean };
+  return { title: t && !BANNED.test(t) ? t : undefined, tags, audience, items: clean };
+}
+
+/**
+ * Who a PR's changelog is for, from its "Audience:" line: players (the public What's new page, the default), staff (the admin and mod
+ * What's new page only) or both. "public" / "everyone" and "admin" / "mod" / "mods" / "admins" are accepted too.
+ */
+export function parseAudience(v) {
+  const words = String(v ?? '').toLowerCase().split(/[\s,/+&]+|\band\b/).filter(Boolean);
+  const players = words.some(w => ['players', 'player', 'public', 'viewers', 'everyone', 'both', 'all'].includes(w));
+  const staff = words.some(w => ['staff', 'admin', 'admins', 'mod', 'mods', 'moderators', 'both', 'all', 'everyone'].includes(w));
+  return players && staff ? 'both' : staff ? 'staff' : 'players';
 }
 
 /** Markdown a player would see as symbols: bold / italic markers, inline code and links (keeps the link text). */
@@ -91,6 +105,7 @@ export function entryFromPr(pr) {
   const tags = TAGS.filter(t => labels.includes(t) || parsed.tags.includes(t));
   const entry = { date: String(pr.merged_at).slice(0, 10), title, items: parsed.items };
   if (tags.length) entry.tags = tags;
+  if (parsed.audience !== 'players') entry.audience = parsed.audience;
   entry.pr = pr.number;
   return entry;
 }
