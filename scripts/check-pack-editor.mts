@@ -89,4 +89,19 @@ await kvLib.savePack({ ...pack, id: 'dr', status: 'draft', name: '' } as never);
 const draft = await savePackChangesCore('dr', await kvLib.getPackRev('dr'), { pack: {}, add: [core.newWorkCard('d1', { name: '' })], update: {}, remove: [] });
 ok(draft.ok && draft.state.work.cards[0].number === 1, 'a draft saves an unfinished card and numbers it');
 
+// ── Bulk edits (20.2c) ──
+const bc = [1, 2, 3].map(n => core.newWorkCard(`b${n}`, { number: n, name: `B${n}`, probability: 10, stars: 1 }));
+const pick = new Set(['b1', 'b3']);
+ok(core.bulkApply(bc, pick, { kind: 'stars', value: 9 }).map(c => c.stars).join() === '5,1,5' || core.bulkApply(bc, pick, { kind: 'stars', value: 9 }).map(c => c.stars).join() === '5,1,5', 'stars are set on the selected cards only, clamped to 5');
+ok(core.bulkApply(bc, pick, { kind: 'weight', value: 7 }).map(c => c.probability).join() === '7,10,7', 'weight set');
+ok(core.bulkApply(bc, pick, { kind: 'weight', value: -1 }).map(c => c.probability).join() === '10,10,10', 'a negative weight is ignored');
+ok(core.bulkApply(bc, pick, { kind: 'multiply', factor: 0.5 }).map(c => c.probability).join() === '5,10,5', 'weights multiplied');
+const off = core.bulkApply(bc, pick, { kind: 'version', variant: 'shiny', on: false });
+ok(off[0].disabledVariants.join() === 'shiny' && off[1].disabledVariants.length === 0 && core.bulkApply(off, pick, { kind: 'version', variant: 'shiny', on: true })[0].disabledVariants.length === 0, 'a version is switched off and on');
+const snd = core.bulkApply(bc, new Set(['b1', 'b2']), { kind: 'sound', mode: 'default' });
+ok(snd[0].soundUrl === '/assets/sounds/1.mp3' && core.bulkApply(snd, pick, { kind: 'sound', mode: 'clear' })[0].soundUrl === '', 'default sound is the numbered file; clear removes it');
+ok(core.bulkApply([core.newWorkCard('z', { number: 99 })], new Set(['z']), { kind: 'sound', mode: 'default' })[0].soundUrl === '', 'a card with no bundled sound is left alone');
+ok(core.bulkApply(bc, pick, { kind: 'upgrades', on: false }).map(c => c.upgradesEnabled).join() === 'false,true,false', 'upgrades opt-out');
+ok(core.pastedColumn('a\nb\n').join('|') === 'a|b' && core.pastedColumn('x\ty\r\nz').join('|') === 'x|z', 'a pasted column is one value per line, first column of each');
+
 console.log('pack editor checks passed');

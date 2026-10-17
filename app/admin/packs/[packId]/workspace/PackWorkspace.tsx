@@ -6,7 +6,7 @@ import { getRarity } from '@/lib/rarity';
 import type { PackInput } from '@/lib/pack-clean';
 import { cardProblems } from '@/lib/pack-clean';
 import {
-  diffChanges, isEmptyChange, newWorkCard, rebase, reviewLines, type CardFields, type Work, type WorkCard,
+  bulkApply, diffChanges, isEmptyChange, newWorkCard, rebase, reviewLines, type CardFields, type Work, type WorkCard,
 } from '@/lib/pack-editor-core';
 import { DraftChip, StatusChip } from '../../../components/StatusChip';
 import { ConfirmButton } from '../../../components/ConfirmButton';
@@ -22,9 +22,11 @@ import { CardList } from './CardList';
 import { CardPanel } from './CardPanel';
 import { PackPanel, type SeasonUse } from './PackPanel';
 import { PreviewPane } from './PreviewPane';
+import { GridView } from './GridView';
+import { BulkPanel } from './BulkPanel';
 import type { HoloSpecs } from '@/lib/holo-core';
 
-export type WorkspaceView = 'edit' | 'odds' | 'overview';
+export type WorkspaceView = 'edit' | 'grid' | 'odds' | 'overview';
 
 interface Base extends WorkspaceState {}
 
@@ -245,6 +247,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
   }, [focus, dirty, blocked, isDraft, confirm, reviewOpen, undo, redo, select]);
 
   const patchCard = (id: string) => (patch: Partial<CardFields>, key?: string) => edit(w => ({ ...w, cards: w.cards.map(c => (c.id === id ? { ...c, ...patch } : c)) }), key ? `${id}:${key}` : undefined);
+  const editCards = (fn: (cards: WorkCard[]) => WorkCard[], key?: string) => edit(w => { const next = fn(w.cards); return next === w.cards ? w : { ...w, cards: next }; }, key);
   const patchPack = (patch: Partial<PackInput>, key?: string) => edit(w => ({ ...w, pack: { ...w.pack, ...patch } }), key ? `pack:${key}` : undefined);
 
   const review = useMemo(() => reviewLines(base.work, work), [base.work, work]);
@@ -317,13 +320,20 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
 
       {/* ── View switch ── */}
       <div role="tablist" aria-label="Pack views" className="flex gap-1 border-b border-gray-800">
-        {([['edit', 'Edit'], ['odds', 'Odds and simulator'], ['overview', 'Overview']] as const).map(([id, label]) => (
+        {([['edit', 'Edit'], ['grid', 'Grid'], ['odds', 'Odds and simulator'], ['overview', 'Overview']] as const).map(([id, label]) => (
           <button key={id} role="tab" aria-selected={view === id} type="button" onClick={() => setView(id)}
             className={`px-3 py-2 text-sm font-semibold border-b-2 -mb-px ${view === id ? 'border-yellow-400 text-yellow-300' : 'border-transparent text-gray-400 hover:text-white'}`}>
             {label}{id === 'overview' && healthCount > 0 ? <span className="ml-1.5 text-[10px] bg-amber-500/20 text-amber-300 rounded-full px-1.5 py-0.5">{healthCount}</span> : null}
           </button>
         ))}
       </div>
+
+      {view === 'grid' && (
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] flex-1 min-h-0">
+          <GridView pack={work.pack} cards={work.cards} held={held} selected={selected} focus={focus} problemIds={problemIds} onSelect={select} editCards={editCards} />
+          {cardIds.length > 0 && <aside aria-label="Bulk edits" className="tcg-panel rounded-2xl overflow-y-auto min-h-0"><BulkPanel selected={work.cards.filter(c => cardIds.includes(c.id))} held={held} onApply={op => edit(w => ({ ...w, cards: bulkApply(w.cards, new Set(cardIds), op) }))} onRemove={removeCards} /></aside>}
+        </div>
+      )}
 
       {view === 'odds' && <div className="min-h-0 xl:overflow-y-auto">{odds}</div>}
       {view === 'overview' && <div className="min-h-0 xl:overflow-y-auto">{overview}</div>}
@@ -349,11 +359,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
             </div>
             <div className="xl:hidden p-4 flex justify-center"><PreviewPane {...previewProps} compact /></div>
             {cardIds.length > 1 ? (
-              <div className="p-5 space-y-3 text-sm text-gray-300">
-                <p><strong className="text-white">{cardIds.length} cards selected.</strong></p>
-                <p className="text-gray-500">Bulk edits arrive with the grid. For now you can remove them together or pick one card to edit.</p>
-                <button type="button" onClick={() => removeCards(cardIds)} className="px-3 py-1.5 text-sm font-bold text-red-300 border border-red-500/30 rounded-lg">Remove {cardIds.length} cards</button>
-              </div>
+              <BulkPanel selected={work.cards.filter(c => cardIds.includes(c.id))} held={held} onApply={op => edit(w => ({ ...w, cards: bulkApply(w.cards, new Set(cardIds), op) }))} onRemove={removeCards} />
             ) : active ? (
               <CardPanel
                 card={active} cards={work.cards} pack={work.pack} locked={held.has(active.number)}
