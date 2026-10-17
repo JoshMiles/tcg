@@ -184,6 +184,94 @@ ok(v1.plateBackground({ ...v1.DEFAULT_V1, pattern: 'holes' }).includes('radial-g
 ok(v1.plateBlend({ ...v1.DEFAULT_V1, pattern: 'dots', patternBlend: 'overlay' }) === 'overlay, normal' && v1.plateBlend({ ...v1.DEFAULT_V1, pattern: 'holes', patternBlend: 'multiply' }) === 'multiply, multiply, normal' && v1.plateBlend({ ...v1.DEFAULT_V1, pattern: 'none', patternBlend: 'screen' }) === undefined, 'the blend covers the pattern layers and not the background');
 ok(css.includes('background-blend-mode: var(--plate-blend, normal)'), 'the stylesheet reads the blend from the plate (normal by default)');
 
+// ── 20.3c: used everywhere ──
+const fb = await import('../lib/flip-back');
+const canvas = await import('../lib/card-back-canvas');
+const ovl = await import('../lib/card-back-overlay');
+const { readdirSync: ls, statSync: st } = await import('node:fs');
+const { join: pj } = await import('node:path');
+
+// One constructor: nothing under app/ or lib/ builds a FlipBack by hand.
+const BY_HAND_OK = new Set(['lib/flip-back.ts']);
+const walk = (d: string): string[] => ls(d).flatMap(f => { const q = pj(d, f); return st(q).isDirectory() ? (f === 'node_modules' || f === '.next' ? [] : walk(q)) : /\.(ts|tsx)$/.test(f) ? [q] : []; });
+const byHand = [...walk('app'), ...walk('lib')].map(f => f.replace(/\\/g, '/')).filter(f => !BY_HAND_OK.has(f)).filter(f => /\bvariantLabel\s*:/.test(readFileSync(f, 'utf8')) || /back=\{\{\s*n\s*:/.test(readFileSync(f, 'utf8')));
+ok(byHand.length === 0, 'every FlipBack is built by flipBackFor, but these files build one by hand: ' + byHand.join(', '));
+
+// flipBackFor: the same facts in, the same back out; the date comes from the timestamp, the label from the variant.
+const at = Date.UTC(2026, 9, 12);
+const made = fb.flipBackFor({ n: 7, uid: 1023381, total: 12, variant: 'shiny', name: 'Gouda Goat', at, hex: '#a855f7' }, undefined);
+ok(made.variantLabel === 'Shiny Full Art' && made.date === '12 OCT 2026' && made.n === 7 && made.style === undefined, 'flipBackFor builds the label and the date');
+ok(fb.flipBackFor({ n: 1, variant: 'regular', name: 'x' }).date === undefined, 'no timestamp, no date');
+ok(fb.sampleFlipBack('Sample', '#fff').uid === 1023381 && fb.sampleFlipBack('S', undefined).history?.length === 2, 'the sample print used by the editors comes from the same constructor');
+
+// The overlay: the nodes are the engine's, with the facts about a print hidden; the widget's renderer draws every one of them.
+const designs2: [string, ReturnType<typeof cb.sanitizeCardBack>][] = [
+  ['default', cb.DEFAULT_CARD_BACK],
+  ['custom', cb.sanitizeCardBack({ v: 2, pattern: 'dots', elements: [
+    { id: 'logo1', kind: 'logo', place: 'stack', show: true, src: 'url', url: 'https://cdn.example.com/l.png' },
+    { id: 't1', kind: 'text', place: 'free', show: true, text: 'Welcome to {pack}', x: 50, y: 30, w: 80, size: 8, weight: 800, color: '#ff0000', fx: { outline: { color: '#000000', width: 4 }, glow: { color: '#ffff00', blur: 6, strength: 2 } } },
+    { id: 'n1', kind: 'number', place: 'free', show: true, x: 50, y: 60, w: 70, size: 14 },
+  ] })],
+];
+const lastNode = (n: { id: string }[]) => n.map(x => x.id).join();
+for (const [name, style] of designs2) {
+  const o = ovl.overlayBack({ ...style, packName: 'Base', seasonName: 'S1' });
+  ok(o.w === 240 && o.h === 360, name + ': the overlay lays the back out at the reference size');
+  ok(o.nodes.every(n => !ovl.OVERLAY_HIDDEN_KINDS.includes(n.kind) || n.tag === 'empty'), name + ': no fact about a print reaches the overlay');
+  const dom = lay.layoutBack({ ...style, packName: 'Base', seasonName: 'S1', elements: style.elements.map(e => (ovl.OVERLAY_HIDDEN_KINDS.includes(e.kind) ? { ...e, show: false } : e)) }, fb.flipBackFor({ n: 0, variant: 'regular', name: '', hex: ovl.OVERLAY_RARITY }), { w: 240, h: 360 });
+  ok(JSON.stringify(o.nodes) === JSON.stringify(dom), name + ': the overlay node list equals the DOM renderer\'s for the same design');
+  ok(JSON.parse(JSON.stringify(o)).nodes.length === o.nodes.length, name + ': it survives JSON (it is sent by /api/overlay/config)');
+}
+// widget.js: its renderer (between the BACK-RENDERER markers) turns each node into the element and styles FlipCard's BackNodeView gives it.
+const widget = readFileSync('public/widget.js', 'utf8');
+const src = /\/\/ BACK-RENDERER-START\n([\s\S]*?)\/\/ BACK-RENDERER-END/.exec(widget.replace(/\r\n/g, '\n'))?.[1];
+ok(!!src, 'widget.js has the card back renderer between its markers');
+const { runInNewContext } = await import('node:vm');
+const spec = runInNewContext(src + '; backNodeSpec', {}) as (n: unknown) => { tag: string; cls: string; text: string; style: Record<string, string> } | null;
+const unitless = new Set(['opacity', 'zIndex', 'lineHeight', 'fontWeight']);
+const kebab = (k: string) => k.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+const o2 = ovl.overlayBack({ ...designs2[1][1], packName: 'Base', seasonName: 'S1' });
+let drawn = 0;
+for (const n of o2.nodes) {
+  const s = spec(n);
+  if (n.tag !== 'img' && n.tag !== 'p' && n.tag !== 'ul') { ok(s === null, 'widget: ' + n.id + ' (' + n.tag + ') draws nothing'); continue; }
+  drawn++;
+  ok(!!s && s.tag === n.tag && s.cls === n.cls && s.text === (n.text ?? ''), 'widget: ' + n.id + ' has the same tag, classes and text');
+  for (const [k, v] of Object.entries(n.css)) ok(s!.style[kebab(k)] === (typeof v === 'number' && !unitless.has(k) ? v + 'px' : String(v)), 'widget: ' + n.id + ' ' + k + ' is applied as React would');
+  for (const [k, v] of Object.entries(n.vars)) ok(s!.style[k] === v, 'widget: ' + n.id + ' ' + k + ' is set');
+}
+ok(drawn >= 2, 'widget: the design\'s logo and text boxes are drawn (' + drawn + ')');
+ok(/reveal\.flipBack/.test(widget) && /BACKS\[packId\]/.test(widget) && /cfg\.backs/.test(widget), 'widget.js reads reveal.flipBack and the pack\'s back from the config');
+const props = await import('../lib/overlay-props');
+const def = props.PROPS.find(p => p.key === 'reveal.flipBack');
+ok(def && def.type === 'select' && def.default === 'cover' && props.DEFAULT_PROPS['reveal.flipBack'] === 'cover', 'reveal.flipBack is a select that defaults to the cover (nothing changes on stream)');
+
+// The config route sends each pack's back.
+await kvLib.saveSeason({ id: 's20', name: 'S20', collectionName: 'tcg_s20', packIds: ['pk2'], status: 'active', active: true, createdAt: 1 } as never);
+await kvLib.setActiveSeason('s20');
+await kvLib.savePack({ ...pack, id: 'pk2', name: 'Designed' } as never);
+await store.saveCardBack('pk2', { pattern: 'dots' });
+const route = await import('../app/api/overlay/config/route');
+const { NextRequest: Req } = await import('next/server');
+const cfgJson = await (await route.GET(new Req('http://localhost/api/overlay/config'))).json() as { backs: Record<string, { nodes: unknown[]; w: number }> };
+ok(!!cfgJson.backs?.pk2 && cfgJson.backs.pk2.w === 240 && cfgJson.backs.pk2.nodes.length > 0, 'GET /api/overlay/config returns the pack\'s back');
+await kvLib.deletePack('pk2');
+
+// The canvas: effects strings parse, the stack flows inside the card, free boxes sit where the engine put them.
+ok(canvas.parseTextShadow('0 0 4px #fff, 1px 2px 0 rgba(0,0,0,.4)').length === 2 && canvas.parseTextShadow('0 0 4px #fff, 1px 2px 0 rgba(0,0,0,.4)')[1].y === 2, 'text shadows parse');
+ok(canvas.parseStroke('1.2px #000')?.width === 1.2 && canvas.parseStroke('0px #000') === null, 'strokes parse');
+ok(canvas.parseGradient('linear-gradient(90deg, #fff, #000)')?.to === '#000' && canvas.parseGradient('none') === null, 'gradients parse');
+const lw = canvas.wrapText('one two three four', 50, s => s.length * 10);
+ok(lw.length >= 2 && lw.join(' ') === 'one two three four', 'text wraps on words');
+const full = lay.layoutBack({ ...cb.DEFAULT_CARD_BACK, packName: 'Base', seasonName: 'S1' }, PRINT as never, canvas.CANVAS_BACK_REF);
+const boxes = canvas.placeBack(full);
+ok(boxes.length >= 5, 'the classic back places its lines on the canvas (' + boxes.length + ')');
+ok(boxes.every(b => b.y >= 0 && b.y + b.h <= canvas.CANVAS_BACK_REF.h + 0.5), 'every stack box lies inside the card');
+ok(boxes.some(b => b.type === 'qr') && boxes.some(b => b.type === 'hist') && boxes.some(b => b.kind === 'number' && b.text === '#1023381'), 'the number, the history and the QR code are all drawn');
+ok(boxes.filter(b => b.mode === 'stack').every((b, i, a) => i === 0 || a[i - 1].kind === 'qr' || a[i - 1].y <= b.y + 0.001), 'the stack flows top to bottom in order');
+const freeOnly = canvas.placeBack(lay.layoutBack({ ...designs2[1][1], packName: 'Base' }, PRINT as never, canvas.CANVAS_BACK_REF));
+const t1 = freeOnly.find(b => b.id === 't1');
+ok(!!t1 && Math.abs(t1.x + t1.w / 2 - 120) < 0.5 && Math.abs(t1.y + t1.h / 2 - 108) < 0.5 && t1.stroke !== null && t1.shadows.length >= 2, 'a free text box lands at its x / y with its outline and glow');
 // ── The editor's operations (20.3b) ──
 const ed = await import('../lib/card-back-edit');
 const base0 = cb.DEFAULT_CARD_BACK;

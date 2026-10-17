@@ -28,7 +28,7 @@ import { copyId as makeCopyId } from '@/lib/serials-core';
 import { SerialChip } from '@/app/components/SerialChip';
 import { entryOf } from '@/lib/serials-core';
 import { serialMultiplier } from '@/lib/scoring-core';
-import { engravedDate } from '@/lib/flip-back';
+import { flipBackFor } from '@/lib/flip-back';
 import { copyShareSpec } from '@/lib/copy-share';
 import { getHoloResolver } from '@/lib/holo';
 import { holoClass, holoVars } from '@/lib/holo-core';
@@ -158,11 +158,11 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
         <Box type={type}>
           <div className="mx-auto w-full max-w-[220px]">
             <FlipCard
-              back={{
-                n: copy.n, uid: copy.uid, total, variantLabel: VARIANT_LABELS[copy.variant], name: card.name, date: engravedDate(copy.at), est: copy.est,
+              back={flipBackFor({
+                n: copy.n, uid: copy.uid, total, variant: copy.variant, name: card.name, at: copy.at, est: copy.est,
                 bonus: mult > 1 ? Math.round(mult * 100) / 100 : undefined, hex: rarity?.hex, holder: `@${b.lower}`,
-                href: `/copy/${encodeURIComponent(season.id)}/${copy.id}`, qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`, style: backStyle,
-              }}
+                href: `/copy/${encodeURIComponent(season.id)}/${copy.id}`, qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
+              }, backStyle)}
             >
               <CardTile
                 imageUrl={art}

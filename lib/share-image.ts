@@ -2,6 +2,7 @@
 // arithmetic here means it can be checked without a browser.
 
 import type { PlateLook } from './card-back';
+import type { FlipBack } from './flip-back';
 
 export const SHARE_W = 1080;
 export const SHARE_H = 1350;
@@ -54,6 +55,11 @@ export interface SharePlate {
   qrUrl?: string;
   /** The pack's designed back (colours and which parts show); absent = the theme's own plate. */
   look?: PlateLook;
+  /**
+   * The print's back as the site shows it (`flipBackFor`, with the pack's design in `style`). When present the image draws the card and
+   * its designed back side by side, through the canvas renderer of the layout engine's nodes, instead of the slim plate.
+   */
+  back?: FlipBack;
 }
 
 /** Image shapes: a feed post, or a full-screen story. */

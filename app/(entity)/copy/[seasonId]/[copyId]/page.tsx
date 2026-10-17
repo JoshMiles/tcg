@@ -7,7 +7,7 @@ import { FlipCard } from '@/app/components/FlipCard';
 import { cardBackFor } from '@/lib/card-back-store';
 import { ProvenanceTimeline } from '@/app/components/ProvenanceTimeline';
 import { buildProvenance } from '@/lib/provenance';
-import { editionLine, engravedDate, histText } from '@/lib/flip-back';
+import { editionLine, engravedDate, flipBackFor, histText } from '@/lib/flip-back';
 import { copyShareSpec } from '@/lib/copy-share';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
@@ -102,13 +102,13 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
       <div className="grid md:grid-cols-[260px_1fr] gap-8 items-start">
         <div className="mx-auto w-full max-w-[260px]">
           <FlipCard
-            back={{
-              n: copy.n, uid: copy.uid, total, variantLabel: VARIANT_LABELS[copy.variant], name: card.name, date: engravedDate(copy.at), est: copy.est,
+            back={flipBackFor({
+              n: copy.n, uid: copy.uid, total, variant: copy.variant, name: card.name, at: copy.at, est: copy.est,
               bonus: mult > 1 ? Math.round(mult * 100) / 100 : undefined, hex: rarity?.hex, origin: ORIGIN_LABELS[copy.origin],
               holder: gone ? null : copy.owner && isEscrow(copy.owner) ? 'a trade offer' : hidden.has(copy.owner) ? 'a private collector' : `@${copy.owner}`,
               history: copy.ev.slice(-3).map(e => ({ text: histText(e, hidden, copy.origin), date: engravedDate(e.t) })),
-              qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`, style: backStyle,
-            }}
+              qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
+            }, backStyle)}
           >
             <CardTile
               imageUrl={art}

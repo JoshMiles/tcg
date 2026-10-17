@@ -6,6 +6,10 @@ import {
   type BinderShare, type BinderShareSlot, type Rect, type ShareSpec, type ShareTheme,
 } from '@/lib/share-image';
 import { qrModules } from '@/lib/qr';
+import { DEFAULT_CARD_BACK, plateLook } from '@/lib/card-back';
+import { fontsNeeded, layoutBack } from '@/lib/card-back-layout';
+import { loadBackFonts } from '@/lib/card-back-fonts';
+import { CANVAS_BACK_REF, placeBack, wrapText, type BackBox } from '@/lib/card-back-canvas';
 
 const imageCache = new Map<string, Promise<HTMLImageElement | null>>();
 /** Loads (and remembers) an image, so changing a theme doesn't fetch and decode the same art again. */
@@ -120,6 +124,100 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
     ctx.fillStyle = '#1f1f24';
     for (let row = 0; row < qr.size; row++) for (let col = 0; col < qr.size; col++) if (qr.dark(row, col)) ctx.fillRect(q + (col + 1) * cell, qy + (row + 1) * cell, Math.ceil(cell), Math.ceil(cell));
   }
+}
+
+/** One box of the back: text with its outline, shadows, glow and gradient, an image, or a QR code. Drawn in the reference card's px (the context is scaled). */
+function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, images: Map<string, HTMLImageElement | null>) {
+  ctx.save();
+  ctx.globalAlpha = b.opacity;
+  if (b.rotate) { ctx.translate(b.x + b.w / 2, b.y + b.h / 2); ctx.rotate((b.rotate * Math.PI) / 180); ctx.translate(-(b.x + b.w / 2), -(b.y + b.h / 2)); }
+  if (b.type === 'img') {
+    const img = b.src ? images.get(b.src) : null;
+    if (img) { const k = Math.min(b.w / img.width, b.h / img.height); ctx.drawImage(img, b.x + (b.w - img.width * k) / 2, b.y + (b.h - img.height * k) / 2, img.width * k, img.height * k); }
+  } else if (b.type === 'qr' && b.qrUrl && qrModules(b.qrUrl)) {
+    const q = qrModules(b.qrUrl)!;
+    const cell = b.w / (q.size + 2);
+    ctx.fillStyle = b.light ?? 'rgba(255,255,255,0.88)'; roundRect(ctx, b.x, b.y, b.w, b.h, 3); ctx.fill();
+    ctx.fillStyle = b.dark ?? '#1f1f24';
+    for (let row = 0; row < q.size; row++) for (let col = 0; col < q.size; col++) if (q.dark(row, col)) ctx.fillRect(b.x + (col + 1) * cell, b.y + (row + 1) * cell, cell + 0.4, cell + 0.4);
+  } else if (b.type === 'text' || b.type === 'hist') {
+    const f = b.font;
+    ctx.font = `${f.italic ? 'italic ' : ''}${f.weight} ${f.size}px ${f.family ?? family}`;
+    ctx.textBaseline = 'middle'; ctx.textAlign = f.align;
+    spaced(ctx, f.spacing);
+    const maxW = b.w;
+    const x = f.align === 'left' ? b.x : f.align === 'right' ? b.x + b.w : b.x + b.w / 2;
+    const fill = (text: string, tx: number, ty: number, align: CanvasTextAlign) => {
+      ctx.textAlign = align;
+      const s = f.upper ? text.toUpperCase() : text;
+      for (const sh of b.shadows) {
+        ctx.save(); ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x; ctx.shadowOffsetY = sh.y; ctx.shadowBlur = sh.blur;
+        ctx.fillStyle = b.gradient ? 'rgba(0,0,0,0)' : b.color; ctx.fillText(s, tx, ty, maxW); ctx.restore();
+      }
+      if (b.stroke) { ctx.save(); ctx.lineWidth = b.stroke.width * 2; ctx.strokeStyle = b.stroke.color; ctx.lineJoin = 'round'; ctx.strokeText(s, tx, ty, maxW); ctx.restore(); }
+      if (b.gold) { const g = ctx.createLinearGradient(0, ty - f.size / 2, 0, ty + f.size / 2); g.addColorStop(0, '#e0a81c'); g.addColorStop(0.45, '#f7d56b'); g.addColorStop(1, '#8a5a00'); ctx.fillStyle = g; }
+      else if (b.gradient) {
+        const a = (b.gradient.angle * Math.PI) / 180, dx = Math.sin(a) * b.w / 2, dy = -Math.cos(a) * f.size;
+        const cx = b.x + b.w / 2;
+        const g = ctx.createLinearGradient(cx - dx, ty - dy, cx + dx, ty + dy); g.addColorStop(0, b.gradient.from); g.addColorStop(1, b.gradient.to); ctx.fillStyle = g;
+      } else ctx.fillStyle = b.color;
+      ctx.fillText(s, tx, ty, maxW);
+      if (f.underline) { const w = Math.min(maxW, ctx.measureText(s).width); const ux = align === 'center' ? tx - w / 2 : align === 'right' ? tx - w : tx; ctx.fillRect(ux, ty + f.size * 0.45, w, Math.max(1, f.size / 14)); }
+    };
+    if (b.type === 'hist') {
+      (b.items ?? []).forEach((h, i) => {
+        const ty = b.y + i * (f.size * f.lineHeight + 1) + f.size * f.lineHeight / 2;
+        fill(h.text, b.x, ty, 'left');
+        fill(h.date, b.x + b.w, ty, 'right');
+      });
+    } else {
+      const lines = b.mode === 'free' ? wrapText(b.text ?? '', maxW, s => ctx.measureText(f.upper ? s.toUpperCase() : s).width) : [b.text ?? ''];
+      const lh = f.size * f.lineHeight;
+      const top = b.mode === 'free' ? b.y + b.h / 2 - (lines.length * lh) / 2 : b.y;
+      lines.forEach((line, i) => fill(line, x, top + i * lh + lh / 2, f.align));
+    }
+    spaced(ctx, 0);
+  }
+  ctx.restore();
+}
+
+/**
+ * A print's back as a card-shaped panel: the pack's design, drawn from the layout engine's nodes like the site's FlipCard and the overlay
+ * do. The metal and its edge follow the design's colours; the CSS patterns (lines, dots) are not drawn here.
+ */
+async function drawBackCard(ctx: CanvasRenderingContext2D, r: Rect, spec: NonNullable<NonNullable<ShareSpec['plate']>['back']>, rarityEdge: string, font: string, t: ShareTheme) {
+  const style = spec.style ?? DEFAULT_CARD_BACK;
+  const ref = CANVAS_BACK_REF;
+  const nodes = layoutBack(style, spec, { ...ref });
+  await loadBackFonts(fontsNeeded(nodes));
+  const images = new Map<string, HTMLImageElement | null>();
+  await Promise.all(nodes.filter(n => n.src).map(async n => { images.set(n.src!, await loadImage(n.src!)); }));
+  const look = plateLook(style);
+  const pl = look ? { ...t.plate, ...(look.stops ? { stops: look.stops, dark: !!look.dark } : {}), ...(look.ink ? { ink: look.ink } : {}) } : t.plate;
+  const edge = look?.edge ?? rarityEdge;
+  const radius = 20;
+  ctx.save();
+  ctx.shadowColor = edge; ctx.shadowBlur = 30;
+  const metal = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h);
+  metal.addColorStop(0, pl.stops[0]); metal.addColorStop(0.36, pl.stops[1]); metal.addColorStop(0.62, pl.stops[2]); metal.addColorStop(1, pl.stops[3]);
+  ctx.fillStyle = metal; roundRect(ctx, r.x, r.y, r.w, r.h, radius); ctx.fill();
+  ctx.restore();
+  ctx.save();
+  roundRect(ctx, r.x, r.y, r.w, r.h, radius); ctx.clip();
+  ctx.fillStyle = pl.dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)';
+  for (let x = r.x; x < r.x + r.w; x += 4) ctx.fillRect(x, r.y, 1, r.h);
+  const sheen = ctx.createLinearGradient(0, r.y, 0, r.y + r.h);
+  sheen.addColorStop(0, pl.dark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.28)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)'); sheen.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = sheen; ctx.fillRect(r.x, r.y, r.w, r.h);
+  // The design, in reference px scaled to the panel.
+  const k = r.w / ref.w;
+  ctx.translate(r.x, r.y); ctx.scale(k, k);
+  for (const b of placeBack(nodes, ref)) {
+    const numFont = b.kind === 'number' && b.mode === 'stack' ? nodes.find(n => n.id === b.id)?.vars['--num-font'] : undefined;
+    drawBackBox(ctx, numFont ? { ...b, font: { ...b.font, family: numFont } } : b, font, images);
+  }
+  ctx.restore();
+  ctx.strokeStyle = edge; ctx.lineWidth = 4; roundRect(ctx, r.x, r.y, r.w, r.h, radius); ctx.stroke();
 }
 
 /** A rounded rectangle with a separate radius for each corner [top-left, top-right, bottom-right, bottom-left]. */
@@ -405,10 +503,12 @@ export async function renderShare(spec: ShareSpec, opts?: { preview?: boolean })
   if (spec.binder) await drawBinder(ctx, spec.binder, H, font, !!opts?.preview);
   if (spec.statsCard) await drawStatsCard(ctx, spec, H, font, t, !!opts?.preview);
   const n = spec.binder || spec.statsCard ? 0 : spec.cards.length;
-  const area = spec.plate ? cardAreaWithPlate(H) : spec.bigStats?.length ? cardAreaWithStats(H) : cardArea(H);
+  const designed = spec.plate?.back;
+  const area = designed ? cardArea(H) : spec.plate ? cardAreaWithPlate(H) : spec.bigStats?.length ? cardAreaWithStats(H) : cardArea(H);
   // A tall story fits two columns of 5-6 cards bigger than three thin ones.
   const cols = H > 1500 && n >= 5 && n <= 6 ? 2 : undefined;
-  const rects = layoutCards(n, area, 28, cols);
+  const allRects = layoutCards(n + (designed ? 1 : 0), area, 28, cols);
+  const rects = allRects.slice(0, n);
   const imgs = await Promise.all(spec.cards.slice(0, rects.length).map(c => loadImage(opts?.preview ? c.thumb ?? c.src : c.src)));
   rects.forEach((r, i) => {
     const card = spec.cards[i];
@@ -443,7 +543,8 @@ export async function renderShare(spec: ShareSpec, opts?: { preview?: boolean })
     }
   });
 
-  if (spec.plate) drawPlate(ctx, spec.plate, spec.cards[0]?.hex ?? '#facc15', font, t, H);
+  if (spec.plate && designed && allRects[n]) await drawBackCard(ctx, allRects[n], designed, spec.cards[0]?.hex ?? '#facc15', font, t);
+  else if (spec.plate) drawPlate(ctx, spec.plate, spec.cards[0]?.hex ?? '#facc15', font, t, H);
 
   ctx.fillStyle = t.footer; ctx.font = `600 28px ${font}`; ctx.textAlign = 'center';
   ctx.fillText(spec.footer, SHARE_W / 2, H - 40, SHARE_W - 140);

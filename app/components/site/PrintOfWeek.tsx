@@ -10,7 +10,7 @@ import { holoClass, holoVars } from '@/lib/holo-core';
 import { getRarity } from '@/lib/rarity';
 import { mintedCounts } from '@/lib/serials';
 import { ORIGIN_LABELS, entryOf, isEscrow } from '@/lib/serials-core';
-import { editionLine, engravedDate } from '@/lib/flip-back';
+import { editionLine, flipBackFor } from '@/lib/flip-back';
 import { serialMultiplier } from '@/lib/scoring-core';
 import type { ScoringSettings } from '@/lib/scoring-core';
 import { profileHref } from '@/lib/profile-url';
@@ -37,11 +37,11 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
     <section aria-label="Print of the week" className="rind rounded-2xl p-5 sm:p-8 grid gap-6 sm:grid-cols-[220px_1fr] items-center">
       <div className="mx-auto w-full max-w-[220px]">
         <FlipCard
-          back={{
-            n: copy.n, uid: copy.uid, total, variantLabel: VARIANT_LABELS[copy.variant], name: card.name, date: engravedDate(copy.at), est: copy.est,
+          back={flipBackFor({
+            n: copy.n, uid: copy.uid, total, variant: copy.variant, name: card.name, at: copy.at, est: copy.est,
             bonus: mult > 1 ? Math.round(mult * 100) / 100 : undefined, hex: rarity?.hex, origin: ORIGIN_LABELS[copy.origin], holder,
-            qrUrl: `${SITE_URL}${href}`, style: backStyle,
-          }}
+            qrUrl: `${SITE_URL}${href}`,
+          }, backStyle)}
         >
           <CardTile
             imageUrl={art}

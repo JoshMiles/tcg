@@ -6,7 +6,7 @@ import { saveCardBackAction, resetCardBackAction, loadCardBackAction } from '../
 import { BACK_FONTS, DEFAULT_CARD_BACK, isDefaultCardBack, resolveCardBack, type CardBackStyle } from '@/lib/card-back';
 import { loadBackFont } from '@/lib/card-back-fonts';
 import { EDITOR_PRESETS, tinyText, type Box } from '@/lib/card-back-edit';
-import type { FlipBack } from '@/lib/flip-back';
+import { sampleFlipBack, type FlipBack } from '@/lib/flip-back';
 import { Canvas, type Boxes } from './card-back/Canvas';
 import { Layers } from './card-back/Layers';
 import { Properties } from './card-back/Properties';
@@ -75,10 +75,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
 
   const live = useMemo(() => resolveCardBack(style, { packName, seasonName, cover: coverImageUrl })!, [style, packName, seasonName, coverImageUrl]);
   const hex = sample.hex ?? '#facc15';
-  const back: FlipBack = useMemo(() => ({
-    n: 7, uid: 1023381, total: 12, variantLabel: 'Regular', name: sample.name, date: '12 OCT 2026', origin: 'Pulled live on stream', holder: '@viewer', hex,
-    history: [{ text: 'Pulled by @viewer', date: '12 OCT 2026' }, { text: 'Traded to @friend', date: '14 OCT 2026' }], qrUrl: 'https://example.com/', href: '#',
-  }), [sample.name, hex]);
+  const back: FlipBack = useMemo(() => ({ ...sampleFlipBack(sample.name, hex), href: '#' }), [sample.name, hex]);
   const tiny = tinyText(style);
 
   // The editor: fonts for the previews in the font list, the canvas width, Escape and the undo keys.

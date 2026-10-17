@@ -1,11 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
-import { CardTile } from '@/app/components/CardTile';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
 import { entryOf, parseCopyId } from '@/lib/serials-core';
-import { getRarity } from '@/lib/rarity';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { PageHeader } from '../../../components/ui';
 import { PrintDetail } from '../../PrintDetail';
@@ -31,8 +29,6 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
   let card, pack;
   for (const p of packs) { const found = (await getPackCards(p.id)).find(x => x.number === copy.card); if (found) { card = found; pack = p; break; } }
   const made = (await mintedCounts(season.collectionName)).get(entryOf(copy)) ?? copy.n;
-  const art = card && (copy.variant === 'full' || copy.variant === 'shiny') && card.fullArtImageUrl ? card.fullArtImageUrl : card?.imageUrl;
-  const rarity = card ? getRarity(card.stars) : null;
   const label = `${copy.variant === 'regular' ? '' : `${VARIANT_LABELS[copy.variant]} `}${card?.name ?? `Card #${copy.card}`}`;
   const here = (id: string) => `/admin/serials/${encodeURIComponent(season.id)}/${id}`;
 
@@ -49,13 +45,8 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
       {sp.done && <p role="status" className="rounded-xl border border-green-500/30 bg-green-950/30 text-green-300 px-4 py-2.5 text-sm"><Icon name="check" className="mr-1.5" />{sp.done}</p>}
       {sp.err && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-950/30 text-red-300 px-4 py-2.5 text-sm"><Icon name="warning" className="mr-1.5" />{sp.err}</p>}
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr] items-start">
-        {art && (
-          <CardTile imageUrl={art} alt={label} className="relative aspect-[2/3] w-full max-w-[260px] rounded-xl overflow-hidden border-2 bg-gray-900" style={{ borderColor: rarity?.hex, boxShadow: `0 0 28px -6px ${rarity?.hex}` }} />
-        )}
-        <div className="min-w-0">
-          <PrintDetail seasonId={season.id} copy={copy} label={label} hrefFor={here} />
-        </div>
+      <div className="min-w-0">
+        <PrintDetail seasonId={season.id} copy={copy} label={label} hrefFor={here} />
       </div>
     </div>
   );

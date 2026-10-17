@@ -88,6 +88,7 @@ function applyLayout(layout) {
 let PROP_DEFAULTS = {};
 let PROPS_GLOBAL = {};
 let PACK_OVERRIDES = {};
+let BACKS = {};   // each pack's designed card back, laid out at a reference size (lib/card-back-overlay.ts)
 let PREVIEW_PROPS = null;   // admin editor: unsaved values shown live (replaces the saved ones)
 let PREVIEW_VARIANT = '';   // admin editor: "preview as" variant
 
@@ -98,6 +99,53 @@ function effectiveProps(packId) {
   if (packId && PACK_OVERRIDES[packId]) Object.assign(out, PACK_OVERRIDES[packId]);
   return out;
 }
+// ── The pack's designed card back (reveal.flipBack = design) ──
+// The server sends the nodes already laid out (layoutBack) at a reference card size; this draws them as DOM, the way the site's FlipCard
+// does (same classes, rules in widget.css under .tcg-back), and scales the plate to the card. Keep backNodeSpec in step with FlipCard's
+// BackNodeView; scripts/check-card-back.mts runs it against the server's node list.
+// BACK-RENDERER-START
+const BACK_UNITLESS = { opacity: 1, zIndex: 1, lineHeight: 1, fontWeight: 1 };
+const backCssName = k => k.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+// One node as plain data: its tag, classes, text and a map of CSS property -> value (px added to bare numbers); null = nothing to draw.
+function backNodeSpec(n) {
+  if (!n || (n.tag !== 'img' && n.tag !== 'p' && n.tag !== 'ul')) return null; // facts about a print (qr, link) are hidden; empty = nothing to print
+  const style = {};
+  for (const k of Object.keys(n.vars || {})) style[k] = String(n.vars[k]);
+  for (const k of Object.keys(n.css || {})) { const v = n.css[k]; style[backCssName(k)] = typeof v === 'number' && !BACK_UNITLESS[k] ? v + 'px' : String(v); }
+  return { tag: n.tag, cls: n.cls || '', text: n.text || '', src: n.src || '', items: n.items || [], style };
+}
+function backNodeEl(spec) {
+  const el = document.createElement(spec.tag);
+  if (spec.cls) el.className = spec.cls;
+  if (spec.tag === 'img') { el.src = spec.src; el.alt = ''; }
+  else if (spec.tag === 'p') el.textContent = spec.text;
+  for (const k of Object.keys(spec.style)) el.style.setProperty(k, spec.style[k]);
+  return el;
+}
+// Draws the design into `host` (the .card-back element), scaled to its width. False = nothing drawn (the caller keeps the cover).
+function mountDesignBack(host, design) {
+  const w = host.offsetWidth;
+  if (!design || !design.nodes || !w) return false;
+  for (const f of design.fonts || []) {
+    try {
+      const face = new FontFace(f.family, "url('/fonts/back/" + f.file + "') format('woff2')", { weight: String(f.weight), display: 'swap' });
+      document.fonts.add(face); face.load().catch(() => {});
+    } catch { /* the fallback font shows */ }
+  }
+  const root = document.createElement('div');
+  root.className = 'tcg-back';
+  root.style.width = design.w + 'px'; root.style.height = design.h + 'px';
+  root.style.transform = 'scale(' + (w / design.w) + ')';
+  const plate = document.createElement('div');
+  plate.className = 'flip-plate';
+  for (const k of Object.keys(design.vars || {})) plate.style.setProperty(k, design.vars[k]);
+  for (const n of design.nodes) { const spec = backNodeSpec(n); if (spec) plate.appendChild(backNodeEl(spec)); }
+  root.appendChild(plate);
+  host.appendChild(root);
+  host.classList.add('card-back-design');
+  return true;
+}
+// BACK-RENDERER-END
 // Falls back to the literal (the shipped default) if the config couldn't be fetched.
 const pv = (P, key, fallback) => (P[key] !== undefined ? P[key] : fallback);
 
@@ -112,6 +160,7 @@ async function loadLayout() {
       PROP_DEFAULTS = cfg.defaults || {};
       PROPS_GLOBAL = cfg.props || {};
       PACK_OVERRIDES = cfg.packOverrides || {};
+      BACKS = cfg.backs || {};
     }
   } catch { /* keep the defaults */ }
 }
@@ -1077,6 +1126,8 @@ function drawCard(username, opts) {
     back.className = 'card-back';
     back.style.backgroundImage = "url('" + cfg.packageImage + "')";
     mainCard.appendChild(back);
+    // reveal.flipBack = design: the pack's designed back instead of its cover (also for the show-off flip). No design or no size: the cover stays.
+    if (pv(P, 'reveal.flipBack', 'cover') === 'design' && BACKS[packId]) mountDesignBack(back, BACKS[packId]);
     setAnim(back, ['flipBack', R.card[1], 'linear'], S, D);
   }
 

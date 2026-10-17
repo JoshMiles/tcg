@@ -9,7 +9,7 @@ import type { CardBackStyle } from '@/lib/card-back';
 import { Binder } from './Binder';
 import { BinderEditor } from './BinderEditor';
 import { DEFAULT_BINDER, type BinderConfig } from '@/lib/binder-config';
-import { engravedDate } from '@/lib/flip-back';
+import { engravedDate, flipBackFor } from '@/lib/flip-back';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
 import { getRarity } from '@/lib/rarity';
@@ -446,7 +446,7 @@ function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pi
       <div className="grid sm:grid-cols-[220px_1fr] gap-5">
         <div className="mx-auto w-full max-w-[220px]">
           {print.at
-            ? <FlipCard compact back={{ n: print.n, uid: print.uid, total: print.made, variantLabel: VARIANT_LABELS[v], name: card.name, date: engravedDate(print.at), est: print.est, bonus: print.m, hex: rarity?.hex, holder: ownerName ? `@${ownerName}` : 'you', href, style: card.back }}>{face}</FlipCard>
+            ? <FlipCard compact back={flipBackFor({ n: print.n, uid: print.uid, total: print.made, variant: v, name: card.name, at: print.at, est: print.est, bonus: print.m, hex: rarity?.hex, holder: ownerName ? `@${ownerName}` : 'you', href }, card.back)}>{face}</FlipCard>
             : face}
         </div>
         <div className="space-y-3 min-w-0">

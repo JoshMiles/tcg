@@ -1,6 +1,15 @@
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { UserInput } from '@/app/components/UserInput';
+import { CardTile } from '@/app/components/CardTile';
+import { FlipCard } from '@/app/components/FlipCard';
+import { cardBackFor } from '@/lib/card-back-store';
+import { engravedDate, flipBackFor, histText } from '@/lib/flip-back';
+import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
+import { getRarity } from '@/lib/rarity';
+import { mintedCounts } from '@/lib/serials';
+import { SITE_URL } from '@/lib/site';
+import { entryOf } from '@/lib/serials-core';
 import { EVENT_LABELS, ORIGIN_LABELS, isEscrow, type Copy } from '@/lib/serials-core';
 import { getPotw } from '@/lib/print-of-week-store';
 import { ConfirmButton } from '../components/ConfirmButton';
@@ -24,8 +33,31 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
   const isFeatured = potw?.uid === copy.uid && !!copy.uid;
   const hidden = ret ? <input type="hidden" name="ret" value={ret} /> : null;
 
+  // The print as a viewer sees it: the card, and its back with the pack's design (staff see the real holder and every history line).
+  const season = await getSeason(seasonId);
+  let found: { card: Awaited<ReturnType<typeof getPackCards>>[number]; pack: Awaited<ReturnType<typeof getPacksForSeason>>[number] } | null = null;
+  if (season) for (const pk of await getPacksForSeason(season)) { const c = (await getPackCards(pk.id)).find(x => x.number === copy.card); if (c) { found = { card: c, pack: pk }; break; } }
+  const rarity = found ? getRarity(found.card.stars) : null;
+  const art = found && (copy.variant === 'full' || copy.variant === 'shiny') && found.card.fullArtImageUrl ? found.card.fullArtImageUrl : found?.card.imageUrl;
+  const total = season ? (await mintedCounts(season.collectionName)).get(entryOf(copy)) ?? copy.n : copy.n;
+  const back = found && season ? flipBackFor({
+    n: copy.n, uid: copy.uid, total, variant: copy.variant, name: found.card.name, at: copy.at, est: copy.est, hex: rarity?.hex, origin: ORIGIN_LABELS[copy.origin],
+    holder: !copy.owner ? null : isEscrow(copy.owner) ? 'a trade offer' : `@${copy.owner}`,
+    history: copy.ev.slice(-3).map(e => ({ text: histText(e, new Set<string>(), copy.origin), date: engravedDate(e.t) })),
+    qrUrl: `${SITE_URL}/copy/${encodeURIComponent(season.id)}/${copy.id}`,
+  }, await cardBackFor(found.pack, season.name)) : null;
+
   return (
     <div className="space-y-6">
+      {back && art && (
+        <Panel title="The print" icon="cheese" hint="Tap the card to turn it over: the back is the pack's design, as players see it.">
+          <div className="mx-auto w-full max-w-[220px]">
+            <FlipCard back={back}>
+              <CardTile imageUrl={art} alt={label} className={`relative aspect-[2/3] rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''}`} style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}` }} />
+            </FlipCard>
+          </div>
+        </Panel>
+      )}
       <Panel title="Details" icon="info">
         <dl className="grid grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
           <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Print id</dt><dd className="font-mono text-gray-200 break-all">{copy.id}</dd></div>
