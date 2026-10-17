@@ -1,7 +1,9 @@
 // The canvas renderer's pure half (ROADMAP 20.3c): turns the layout engine's nodes into boxes a 2D canvas can draw. Share images draw a
 // print's back from these, so they show the same design as the site (DOM) and the overlay. Pure and client-safe; the drawing itself is
 // in app/components/ShareImage.tsx. Sizes are in px at the reference card width below and the drawing scales the context.
+import type { CardBackStyle } from './card-back';
 import type { BackNode } from './card-back-layout';
+import { DEFAULT_PATTERN, isCustomPattern, patternSvg } from './card-back-patterns';
 
 /** The card size the share image lays the back out at (the drawing scales it to the card's rectangle). */
 export const CANVAS_BACK_REF = { w: 240, h: 360 } as const;
@@ -173,4 +175,33 @@ export function wrapText(text: string, maxW: number, measure: (s: string) => num
   }
   if (line) lines.push(line);
   return lines;
+}
+
+// ── The background pattern, for the canvas ──
+
+export type CanvasPattern =
+  | { kind: 'none' }
+  | { kind: 'lines' }
+  | { kind: 'holes' }
+  | { kind: 'cover'; src: string }
+  /** `src` is a data URI of the pattern's SVG (it covers the whole card, so it is drawn stretched over the plate). */
+  | { kind: 'svg'; src: string; blend: GlobalCompositeOperation };
+
+const BLEND_OPS: Record<string, GlobalCompositeOperation> = { normal: 'source-over', overlay: 'overlay', multiply: 'multiply', screen: 'screen' };
+
+/**
+ * What to paint over the plate's metal for a design's pattern, mirroring `patternLayers` in lib/card-back-v1.ts (the DOM and the overlay
+ * read the same choice as CSS): the classic brushed lines and cheese holes at their default settings, the pack cover faded, or the
+ * pattern's SVG with its colour, opacity, scale and angle already drawn into it. Only the blend mode is left to the canvas.
+ */
+export function canvasPattern(s: Pick<CardBackStyle, 'pattern' | 'patternColor' | 'patternOpacity' | 'patternScale' | 'patternAngle' | 'patternBlend' | 'cover'>): CanvasPattern {
+  if (s.pattern === 'none') return { kind: 'none' };
+  if (s.pattern === 'cover') return s.cover ? { kind: 'cover', src: s.cover } : { kind: 'none' };
+  const set = { ...DEFAULT_PATTERN, color: s.patternColor, opacity: s.patternOpacity, scale: s.patternScale, angle: s.patternAngle };
+  if (!isCustomPattern(set)) {
+    if (s.pattern === 'lines') return { kind: 'lines' };
+    if (s.pattern === 'holes') return { kind: 'holes' };
+  }
+  const svg = patternSvg(s.pattern, set);
+  return svg ? { kind: 'svg', src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, blend: BLEND_OPS[s.patternBlend] ?? 'source-over' } : { kind: 'none' };
 }
