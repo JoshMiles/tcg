@@ -6,11 +6,12 @@
 // its own KV key `pack:<id>:cardback` (lib/card-back-store.ts) as `v: 2`. `sanitizeCardBack` accepts v1 (20.1) and v2 and always returns v2;
 // `upgradeCardBack` turns a v1 design into elements that render exactly as the v1 design did, and `DEFAULT_CARD_BACK` is today's steel plate.
 import {
-  ALIGNS, BACKGROUNDS, DEFAULT_V1, LOGO_PX, PATTERNS, PRESETS_V1, SCALE, SIZES, JUSTIFY, plateBackground, sanitizeV1,
+  ALIGNS, BACKGROUNDS, DEFAULT_V1, LOGO_PX, PATTERNS, PRESETS_V1, SCALE, SIZES, JUSTIFY, plateBackground, plateBlend, sanitizeV1,
   type BackSize, type CardBackV1,
 } from './card-back-v1';
 
 export { ALIGNS, BACKGROUNDS, PATTERNS, SIZES, type BackSize };
+import type { Blend } from './card-back-patterns';
 
 export const ELEMENT_KINDS = ['number', 'edition', 'name', 'date', 'origin', 'history', 'qr', 'logo', 'brand', 'link', 'text'] as const;
 export type ElementKind = (typeof ELEMENT_KINDS)[number];
@@ -89,6 +90,7 @@ export interface CardBackStyle {
   background: (typeof BACKGROUNDS)[number];
   bg1: string; bg2: string; angle: number;
   pattern: (typeof PATTERNS)[number];
+  patternColor: string; patternOpacity: number; patternScale: number; patternAngle: number; patternBlend: Blend;
   /** `rarity` = the card's rarity colour (today); otherwise a fixed #rrggbb. */
   edge: string;
   /** Where the stack sits on the plate. */
@@ -166,6 +168,11 @@ function sanitizeEl(raw: unknown, i: number, taken: Set<string>): BackEl | null 
   };
 }
 
+function patternFields(o: Record<string, unknown>) {
+  const p = sanitizeV1({ pattern: 'none', patternColor: o.patternColor, patternOpacity: o.patternOpacity, patternScale: o.patternScale, patternAngle: o.patternAngle, patternBlend: o.patternBlend });
+  return { patternColor: p.patternColor, patternOpacity: p.patternOpacity, patternScale: p.patternScale, patternAngle: p.patternAngle, patternBlend: p.patternBlend };
+}
+
 function sanitizeV2(o: Record<string, unknown>): CardBackStyle {
   const d = DEFAULT_V1;
   const taken = new Set<string>();
@@ -182,7 +189,7 @@ function sanitizeV2(o: Record<string, unknown>): CardBackStyle {
   return {
     v: 2,
     background: pick(o.background, BACKGROUNDS, d.background), bg1: hex(o.bg1, d.bg1), bg2: hex(o.bg2, d.bg2), angle: Math.round(((clamp(o.angle, -100000, 100000, d.angle) % 360) + 360) % 360),
-    pattern: pick(o.pattern, PATTERNS, d.pattern), edge: hex(o.edge, 'rarity', 'rarity'), align: pick(o.align, ALIGNS, d.align), elements,
+    pattern: o.pattern === undefined ? d.pattern : pick(o.pattern, PATTERNS, 'none'), ...patternFields(o), edge: hex(o.edge, 'rarity', 'rarity'), align: pick(o.align, ALIGNS, d.align), elements,
   };
 }
 
@@ -214,7 +221,7 @@ export function upgradeCardBack(v1: CardBackV1): CardBackStyle {
   if (v1.line) elements.push(el('text', { id: 'text-1', text: v1.line, color: inkOf(v1.text), fx: engrave }));
   elements.push(own('date'), own('origin'), own('history'));
   elements.push(el('qr', { show: v1.show.qr, scale: SCALE[v1.size.qr] }), el('link', { color: accent, fx: engrave }));
-  return { v: 2, background: v1.background, bg1: v1.bg1, bg2: v1.bg2, angle: v1.angle, pattern: v1.pattern, edge: v1.edge, align: v1.align, elements };
+  return { v: 2, background: v1.background, bg1: v1.bg1, bg2: v1.bg2, angle: v1.angle, pattern: v1.pattern, patternColor: v1.patternColor, patternOpacity: v1.patternOpacity, patternScale: v1.patternScale, patternAngle: v1.patternAngle, patternBlend: v1.patternBlend, edge: v1.edge, align: v1.align, elements };
 }
 
 const nearest = (n: number): BackSize => (SIZES as readonly BackSize[]).reduce((best, s) => (Math.abs(SCALE[s] - n) < Math.abs(SCALE[best] - n) ? s : best), 'M' as BackSize);
@@ -235,7 +242,7 @@ export function toV1(s: CardBackStyle): CardBackV1 {
   const px = logo?.px ?? 38;
   const logoSize = (['S', 'M', 'L'] as BackSize[]).reduce((best, k) => (Math.abs(LOGO_PX[k] - px) < Math.abs(LOGO_PX[best] - px) ? k : best), 'M' as BackSize);
   return sanitizeV1({
-    background: s.background, bg1: s.bg1, bg2: s.bg2, angle: s.angle, pattern: s.pattern, edge: s.edge, align: s.align, text, accent,
+    background: s.background, bg1: s.bg1, bg2: s.bg2, angle: s.angle, pattern: s.pattern, patternColor: s.patternColor, patternOpacity: s.patternOpacity, patternScale: s.patternScale, patternAngle: s.patternAngle, patternBlend: s.patternBlend, edge: s.edge, align: s.align, text, accent,
     font: num && ['display', 'body', 'mono'].includes(num.font) ? num.font : 'display',
     logo: logo && logo.show ? (logo.src === 'url' ? 'url' : 'cover') : 'none', logoUrl: logo?.url ?? '', logoSize, line: text1?.text ?? '', show, size,
   });
@@ -262,7 +269,8 @@ export function resolveCardBack(style: CardBackStyle | null | undefined, ctx: { 
 
 /** The CSS custom properties a styled back sets on its plate: edge colour, background and where the stack sits. */
 export function plateVars(s: CardBackStyle, rarityHex: string): Record<string, string> {
-  return { '--edge': s.edge === 'rarity' ? rarityHex : s.edge, '--plate-bg': plateBackground(s), '--plate-justify': JUSTIFY[s.align] };
+  const blend = plateBlend(s);
+  return { '--edge': s.edge === 'rarity' ? rarityHex : s.edge, '--plate-bg': plateBackground(s), '--plate-justify': JUSTIFY[s.align], ...(blend ? { '--plate-blend': blend } : {}) };
 }
 
 // ── The share image's plate (a canvas drawing, so it takes values rather than CSS) ──

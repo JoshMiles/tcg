@@ -354,6 +354,7 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
   background: var(--plate-bg,
     repeating-linear-gradient(90deg, rgba(255,255,255,.28) 0 1px, transparent 1px 3px),
     linear-gradient(135deg, #a9a9b3 0%, #dcdce3 36%, #9a9aa5 62%, #c4c4cd 100%));
+  background-blend-mode: var(--plate-blend, normal);
   box-shadow: inset 0 0 0 5px rgba(0,0,0,.22), inset 0 2px 8px rgba(255,255,255,.35), 0 0 24px -8px var(--edge);
 }
 .flip-plate p { margin: 0; }

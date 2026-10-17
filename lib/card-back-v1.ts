@@ -14,7 +14,8 @@ export const ELEMENT_LABELS: Record<BackElement, string> = {
 };
 
 export const BACKGROUNDS = ['steel', 'solid', 'gradient'] as const;
-export const PATTERNS = ['none', 'lines', 'holes', 'cover'] as const;
+import { BLENDS, DEFAULT_PATTERN, PATTERN_IDS, isCustomPattern, patternSvg, patternUrl, type Blend } from './card-back-patterns';
+export const PATTERNS = PATTERN_IDS;
 export const FONTS = ['display', 'body', 'mono'] as const;
 export const ALIGNS = ['top', 'middle', 'bottom'] as const;
 export const LOGOS = ['none', 'cover', 'url'] as const;
@@ -26,6 +27,12 @@ export interface CardBackV1 {
   bg2: string;
   angle: number;
   pattern: (typeof PATTERNS)[number];
+  /** How the pattern is drawn: a hex colour or `auto` (the pattern's own tint), opacity 0 to 1, cell scale 0.5 to 3, turn 0 to 359 degrees, blend with the background. */
+  patternColor: string;
+  patternOpacity: number;
+  patternScale: number;
+  patternAngle: number;
+  patternBlend: Blend;
   /** `rarity` = the card's rarity colour (today); otherwise a fixed #rrggbb. */
   edge: string;
   /** `auto` = today's dark engraved ink; otherwise a fixed colour. */
@@ -48,7 +55,7 @@ export interface CardBackV1 {
 }
 
 export const DEFAULT_V1: CardBackV1 = {
-  background: 'steel', bg1: '#a9a9b3', bg2: '#dcdce3', angle: 135, pattern: 'lines', edge: 'rarity', text: 'auto', accent: 'auto',
+  background: 'steel', bg1: '#a9a9b3', bg2: '#dcdce3', angle: 135, pattern: 'lines', patternColor: 'auto', patternOpacity: 1, patternScale: 1, patternAngle: 0, patternBlend: 'normal', edge: 'rarity', text: 'auto', accent: 'auto',
   font: 'display', align: 'middle', logo: 'none', logoUrl: '', logoSize: 'M', line: '',
   show: { number: true, edition: true, name: true, date: true, origin: true, history: true, qr: true },
   size: { number: 'M', edition: 'M', name: 'M', date: 'M', origin: 'M', history: 'M', qr: 'M' },
@@ -66,6 +73,7 @@ function colour(v: unknown, fallback: string, allow?: string): string {
   if (SHORT_HEX.test(s)) return `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`.toLowerCase();
   return fallback;
 }
+const num = (v: unknown, lo: number, hi: number, fb: number, mul: number) => { const x = typeof v === 'number' ? v : Number(v); return typeof v !== 'undefined' && v !== null && v !== '' && Number.isFinite(x) ? Math.round(Math.min(hi, Math.max(lo, x)) * mul) / mul : fb; };
 const pick = <T extends string>(v: unknown, all: readonly T[], fallback: T): T => (typeof v === 'string' && (all as readonly string[]).includes(v) ? (v as T) : fallback);
 
 /** Only http(s) and site-relative image addresses; anything else (javascript:, data:, quotes that could end a CSS url()) is dropped. */
@@ -89,7 +97,9 @@ export function sanitizeV1(input: unknown): CardBackV1 {
   return {
     background: pick(o.background, BACKGROUNDS, d.background),
     bg1: colour(o.bg1, d.bg1), bg2: colour(o.bg2, d.bg2), angle,
-    pattern: pick(o.pattern, PATTERNS, d.pattern),
+    pattern: o.pattern === undefined ? d.pattern : pick(o.pattern, PATTERNS, 'none'),
+    patternColor: colour(o.patternColor, d.patternColor, 'auto'), patternOpacity: num(o.patternOpacity, 0, 1, d.patternOpacity, 100), patternScale: num(o.patternScale, 0.5, 3, d.patternScale, 100),
+    patternAngle: Math.round(((num(o.patternAngle, -100000, 100000, d.patternAngle, 1) % 360) + 360) % 360), patternBlend: pick(o.patternBlend, BLENDS, d.patternBlend),
     edge: colour(o.edge, d.edge, 'rarity'), text: colour(o.text, d.text, 'auto'), accent: colour(o.accent, d.accent, 'auto'),
     font: pick(o.font, FONTS, d.font), align: pick(o.align, ALIGNS, d.align),
     logo: logo === 'url' && !logoUrl ? 'none' : logo, logoUrl, logoSize: pick(o.logoSize, SIZES, d.logoSize), line,
@@ -117,16 +127,35 @@ export const FONT_VAR: Record<CardBackV1['font'], string> = { display: 'var(--fo
 export const JUSTIFY: Record<CardBackV1['align'], string> = { top: 'flex-start', middle: 'center', bottom: 'flex-end' };
 export const LOGO_PX: Record<BackSize, number> = { S: 26, M: 38, L: 54 };
 
+type PatternFields = Pick<CardBackV1, 'background' | 'bg1' | 'bg2' | 'angle' | 'pattern' | 'cover'> & Partial<Pick<CardBackV1, 'patternColor' | 'patternOpacity' | 'patternScale' | 'patternAngle' | 'patternBlend'>>;
+
+/** The pattern's layers (top first): the classic CSS for `lines`, `holes` and `cover` at their default settings, otherwise the pattern's SVG. */
+function patternLayers(s: PatternFields): string[] {
+  const set = { ...DEFAULT_PATTERN, color: s.patternColor ?? 'auto', opacity: s.patternOpacity ?? 1, scale: s.patternScale ?? 1, angle: s.patternAngle ?? 0 };
+  if (s.pattern === 'none') return [];
+  if (s.pattern === 'cover') return s.cover ? ['linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55))', `url("${s.cover}") center / cover`] : [];
+  if (!isCustomPattern(set)) {
+    if (s.pattern === 'lines') return ['repeating-linear-gradient(90deg, rgba(255,255,255,.28) 0 1px, transparent 1px 3px)'];
+    if (s.pattern === 'holes') return ['radial-gradient(circle at 50% 50%, rgba(0,0,0,.28) 0 5px, transparent 6px) 0 0 / 28px 28px', 'radial-gradient(circle at 50% 50%, rgba(0,0,0,.2) 0 4px, transparent 5px) 14px 14px / 28px 28px'];
+  }
+  const svg = patternSvg(s.pattern, set);
+  return svg ? [`${patternUrl(svg)} center / 100% 100%`] : [];
+}
+
 /** The plate's background layers (top first). For the default design this is today's brushed steel, character for character. */
-export function plateBackground(s: Pick<CardBackV1, 'background' | 'bg1' | 'bg2' | 'angle' | 'pattern' | 'cover'>): string {
-  const layers: string[] = [];
-  if (s.pattern === 'lines') layers.push('repeating-linear-gradient(90deg, rgba(255,255,255,.28) 0 1px, transparent 1px 3px)');
-  if (s.pattern === 'holes') layers.push('radial-gradient(circle at 50% 50%, rgba(0,0,0,.28) 0 5px, transparent 6px) 0 0 / 28px 28px', 'radial-gradient(circle at 50% 50%, rgba(0,0,0,.2) 0 4px, transparent 5px) 14px 14px / 28px 28px');
-  if (s.pattern === 'cover' && s.cover) layers.push(`linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url("${s.cover}") center / cover`);
+export function plateBackground(s: PatternFields): string {
+  const layers = patternLayers(s);
   if (s.background === 'steel') layers.push('linear-gradient(135deg, #a9a9b3 0%, #dcdce3 36%, #9a9aa5 62%, #c4c4cd 100%)');
   else if (s.background === 'solid') layers.push(`linear-gradient(${s.bg1}, ${s.bg1})`);
   else layers.push(`linear-gradient(${s.angle}deg, ${s.bg1}, ${s.bg2})`);
   return layers.join(', ');
+}
+
+/** `background-blend-mode` for the plate: the pattern layers blend with what is under them; undefined for the normal blend. */
+export function plateBlend(s: PatternFields): string | undefined {
+  const blend = s.patternBlend ?? 'normal';
+  const count = patternLayers(s).length;
+  return blend === 'normal' || count === 0 ? undefined : [...Array(count).fill(blend), 'normal'].join(', ');
 }
 
 /** The CSS custom properties a styled back sets on its plate. The default design sets none that differ from the stylesheet. */

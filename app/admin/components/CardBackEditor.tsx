@@ -7,6 +7,7 @@ import {
   ALIGNS, BACKGROUNDS, DEFAULT_V1, ELEMENTS, ELEMENT_LABELS, FONTS, LOGOS, MAX_LINE, PATTERNS, PRESETS_V1, SIZES,
   sanitizeV1, type BackElement, type CardBackV1,
 } from '@/lib/card-back-v1';
+import { PATTERN_LABELS } from '@/lib/card-back-patterns';
 import { resolveCardBack, toV1, upgradeCardBack, type CardBackStyle } from '@/lib/card-back';
 
 /**
@@ -29,7 +30,7 @@ export interface CardBackEditorProps {
   layout?: 'wide' | 'stacked';
 }
 
-const LABELS = { steel: 'Brushed steel', solid: 'One colour', gradient: 'Gradient', none: 'None', lines: 'Brushed lines', holes: 'Cheese holes', cover: 'Pack cover, faded', display: 'Display', body: 'Body', mono: 'Monospace', top: 'Top', middle: 'Middle', bottom: 'Bottom', url: 'Uploaded image' } as const;
+const LABELS = { ...PATTERN_LABELS, steel: 'Brushed steel', solid: 'One colour', gradient: 'Gradient', none: 'None', lines: 'Brushed lines', holes: 'Cheese holes', cover: 'Pack cover, faded', display: 'Display', body: 'Body', mono: 'Monospace', top: 'Top', middle: 'Middle', bottom: 'Bottom', url: 'Uploaded image' } as const;
 const field = 'bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500';
 const lbl = 'block text-xs text-gray-400 mb-1';
 

@@ -154,4 +154,34 @@ await store.saveCardBack('pk', { pattern: 'holes' });
 await kvLib.deletePack('pk');
 ok(await kv.get('pack:pk:cardback') == null, 'deleting the pack removes its design');
 
+// ── Patterns (20.3a addition) ──
+const pat = await import('../lib/card-back-patterns');
+const realRandom = Math.random;
+Math.random = () => { throw new Error('a pattern must not use Math.random'); };
+try {
+  for (const id of pat.PATTERN_IDS) {
+    const extremes = [{}, { scale: 0.5 }, { scale: 3 }, { opacity: 0 }, { opacity: 1, color: '#ffffff', angle: 359 }, { scale: 0.5, angle: 45, color: '#123456' }];
+    for (const s of extremes) {
+      const svg = pat.patternSvg(id, s);
+      if (id === 'none' || id === 'cover') { ok(svg === null, id + ': draws no SVG'); continue; }
+      ok(!!svg && svg.startsWith('<svg ') && svg.endsWith('</svg>'), id + ': returns an SVG ' + JSON.stringify(s));
+      ok(svg!.length <= pat.MAX_TILE_BYTES, id + ': under the size cap (' + svg!.length + ' bytes) ' + JSON.stringify(s));
+      ok(!/NaN|undefined|Infinity/.test(svg!) && (svg!.match(/</g) ?? []).length === (svg!.match(/>/g) ?? []).length, id + ': well-formed numbers and tags ' + JSON.stringify(s));
+      ok(pat.patternSvg(id, s) === svg, id + ': the same settings give the same SVG every time');
+    }
+  }
+} finally { Math.random = realRandom; }
+ok(pat.patternSvg('nope') === null, 'an unknown pattern draws nothing');
+ok(v1.sanitizeV1({ pattern: 'nope' }).pattern === 'none' && cb.sanitizeCardBack({ v: 2, pattern: 'nope', elements: [] }).pattern === 'none' && v1.sanitizeV1({}).pattern === 'lines', 'an unknown pattern falls back to none; no pattern keeps the default lines');
+ok(pat.PATTERN_IDS.length === 18 && pat.PATTERN_IDS.every(id => cb.sanitizeCardBack({ v: 2, pattern: id, elements: [] }).pattern === id), 'every listed pattern is accepted');
+const ps = cb.sanitizeCardBack({ v: 2, pattern: 'dots', patternColor: 'red', patternOpacity: 9, patternScale: 0.01, patternAngle: -90, patternBlend: 'difference', elements: [] });
+ok(ps.patternColor === 'auto' && ps.patternOpacity === 1 && ps.patternScale === 0.5 && ps.patternAngle === 270 && ps.patternBlend === 'normal', 'pattern settings are validated and clamped');
+ok(cb.sanitizeCardBack({ v: 2, patternColor: '#ABC', patternOpacity: 0.25, patternScale: 2.5, patternAngle: 725, patternBlend: 'multiply', elements: [] }).patternAngle === 5, 'pattern settings keep valid values (angle wraps)');
+// The default keeps today's lines exactly; only custom settings or other patterns use an SVG.
+ok(v1.plateBlend(v1.DEFAULT_V1) === undefined && !('--plate-blend' in cb.plateVars(cb.DEFAULT_CARD_BACK, '#000000')), 'the default design sets no blend');
+ok(v1.plateBackground({ ...v1.DEFAULT_V1, patternOpacity: 0.5 }).includes('data:image/svg+xml') && !v1.plateBackground(v1.DEFAULT_V1).includes('data:image'), 'lines with custom settings use the SVG; the default stays CSS');
+ok(v1.plateBackground({ ...v1.DEFAULT_V1, pattern: 'holes' }).includes('radial-gradient') && v1.plateBackground({ ...v1.DEFAULT_V1, pattern: 'honeycomb' }).startsWith('url("data:image/svg+xml,'), 'holes stay CSS at their defaults; a new pattern is an SVG layer over the background');
+ok(v1.plateBlend({ ...v1.DEFAULT_V1, pattern: 'dots', patternBlend: 'overlay' }) === 'overlay, normal' && v1.plateBlend({ ...v1.DEFAULT_V1, pattern: 'holes', patternBlend: 'multiply' }) === 'multiply, multiply, normal' && v1.plateBlend({ ...v1.DEFAULT_V1, pattern: 'none', patternBlend: 'screen' }) === undefined, 'the blend covers the pattern layers and not the background');
+ok(css.includes('background-blend-mode: var(--plate-blend, normal)'), 'the stylesheet reads the blend from the plate (normal by default)');
+
 console.log('card back checks passed');
