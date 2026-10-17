@@ -241,6 +241,7 @@ const SHOW_PROPS: PropDef[] = [
 export const PROPS: PropDef[] = [
   // ── Pack opening ──
   { key: 'reveal.style', group: 'pack', label: 'Reveal animation', type: 'select', default: 'classic', options: REVEAL_STYLES.map(s => ({ value: s.value, label: s.label + (s.experimental ? ' (experimental)' : '') })), help: 'How the pulled card appears.' },
+  { key: 'reveal.flipBack', group: 'pack', label: 'Flip reveal: card back', type: 'select', default: 'cover', options: [{ value: 'cover', label: 'The pack cover' }, { value: 'design', label: "The pack's designed back" }], help: "What the card shows before it turns over in the Flip reveal and the show-off flip. The designed back is the one made in the pack's Card back editor, without the facts about the print (it isn't known yet): logo, text boxes and pattern stay." },
   { key: 'reveal.speed', group: 'pack', label: 'Animation speed', type: 'number', default: 1, min: 0.5, max: 2.5, step: 0.05, unit: '×', help: '1 is the designed speed. 2 plays everything twice as fast (the on-screen hold time is not changed).' },
   { key: 'reveal.startDelay', group: 'pack', label: 'Start delay', type: 'number', default: 0, min: 0, max: 5, step: 0.1, unit: 's', help: 'Wait this long before the reveal begins (handy to line it up with a bot message or alert).' },
   { key: 'reveal.packScale', group: 'pack', label: 'Pack size', type: 'number', default: 1, min: 0.5, max: 1.5, step: 0.05, unit: '×', help: 'Scales the pack in the styles that show one.' },

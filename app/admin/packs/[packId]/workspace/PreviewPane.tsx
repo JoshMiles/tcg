@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { CardTile } from '@/app/components/CardTile';
 import { FlipCard } from '@/app/components/FlipCard';
+import { sampleFlipBack } from '@/lib/flip-back';
 import { cardThumbUrl, stillFor } from '@/lib/card-art';
 import { resolveCardBack, type CardBackStyle } from '@/lib/card-back';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
@@ -119,10 +120,7 @@ function BackTab({ pack, shown, holoByStars, cardBack, seasonName }: PreviewPane
       <div className="w-60 mx-auto">
         <FlipCard
           key={`${shown.id}-${cardBack ? 'styled' : 'classic'}`} defaultFlipped
-          back={{
-            n: 7, uid: 1023381, total: 12, variantLabel: 'Regular', name: shown.name || 'Untitled card', date: '12 OCT 2026', origin: 'Pulled live on stream', holder: '@viewer', hex: hexOf(shown),
-            history: [{ text: 'Pulled by @viewer', date: '12 OCT 2026' }], qrUrl: 'https://example.com/', style,
-          }}
+          back={sampleFlipBack(shown.name || 'Untitled card', hexOf(shown), style)}
         >
           <Front c={shown} v="regular" holo={holoByStars[shown.stars]} animated={false} />
         </FlipCard>

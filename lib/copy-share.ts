@@ -1,7 +1,7 @@
 import { plateLook, type CardBackStyle } from './card-back';
 import { cardThumbUrl } from './card-art';
-import { editionLine, engravedDate, madeLine } from './flip-back';
-import { isEscrow, type Copy } from './serials-core';
+import { editionLine, engravedDate, flipBackFor, madeLine } from './flip-back';
+import { ORIGIN_LABELS, isEscrow, type Copy } from './serials-core';
 import type { ShareSpec } from './share-image';
 import { VARIANT_LABELS } from './variants';
 
@@ -45,6 +45,13 @@ export function copyShareSpec(i: CopyShareInput): ShareSpec {
       gold: i.mult > 1,
       qrUrl: `${i.siteUrl}/copy/${encodeURIComponent(i.seasonId)}/${copy.id}`,
       look: plateLook(i.back),
+      ...(i.back ? {
+        back: flipBackFor({
+          n: copy.n, uid: copy.uid, total: i.total, variant: copy.variant, name: i.cardName, at: copy.at, est: copy.est, bonus: i.mult > 1 ? Math.round(i.mult * 100) / 100 : undefined,
+          hex: i.hex, origin: ORIGIN_LABELS[copy.origin], holder: gone ? null : isEscrow(copy.owner) ? 'a trade offer' : i.privateHolder ? 'a private collector' : `@${copy.owner}`,
+          qrUrl: `${i.siteUrl}/copy/${encodeURIComponent(i.seasonId)}/${copy.id}`,
+        }, i.back),
+      } : {}),
     },
     footer: copy.uid ? `${host}/c/${copy.uid}` : host,
   };

@@ -1,5 +1,7 @@
 import type { CardBackStyle } from './card-back';
 import { ORIGIN_BY, ORIGIN_VERB, isEscrow, type Origin } from './serials-core';
+import { VARIANT_LABELS } from './variants';
+import type { Variant } from './types';
 
 // The engraved back of a flip card (client-safe, pure): what is printed on it and how dates and history lines are worded.
 
@@ -66,4 +68,46 @@ export function histText(e: { type: string; who?: string; to?: string }, hidden:
     case 'removed': return 'Removed';
     default: return e.type;
   }
+}
+
+/** What the one constructor needs: the facts about a print, in the units the pages already hold (variant id, a timestamp). */
+export interface BackPrint {
+  n: number;
+  uid?: number;
+  total?: number;
+  variant: Variant;
+  name: string;
+  /** When the copy was made (ms); printed as the engraved date. */
+  at?: number;
+  est?: boolean;
+  bonus?: number;
+  hex?: string;
+  origin?: string;
+  holder?: string | null;
+  history?: { text: string; date: string }[];
+  href?: string;
+  qrUrl?: string;
+}
+
+/**
+ * The ONE way to build a FlipBack (ROADMAP 20.3c). Every page, dialog, share image, admin screen and the overlay goes through it, so a
+ * print's back reads the same everywhere; scripts/check-card-back.mts fails when a file builds one by hand. `style` is the pack's
+ * designed back (`cardBackFor`); absent = the classic plate.
+ */
+export function flipBackFor(p: BackPrint, style?: CardBackStyle): FlipBack {
+  return {
+    n: p.n, uid: p.uid, total: p.total, variantLabel: VARIANT_LABELS[p.variant], name: p.name,
+    ...(p.at ? { date: engravedDate(p.at) } : {}), est: p.est, bonus: p.bonus, hex: p.hex, origin: p.origin, holder: p.holder,
+    history: p.history, href: p.href, qrUrl: p.qrUrl, style,
+  };
+}
+
+/** The sample print the editors and the workspace preview show (edition 7 of 12, pulled on stream). */
+export function sampleFlipBack(name: string, hex: string | undefined, style?: CardBackStyle): FlipBack {
+  const day = Date.UTC(2026, 9, 12);
+  return flipBackFor({
+    n: 7, uid: 1023381, total: 12, variant: 'regular', name, at: day, origin: 'Pulled live on stream', holder: '@viewer', hex,
+    history: [{ text: 'Pulled by @viewer', date: engravedDate(day) }, { text: 'Traded to @friend', date: engravedDate(Date.UTC(2026, 9, 14)) }],
+    qrUrl: 'https://example.com/',
+  }, style);
 }
