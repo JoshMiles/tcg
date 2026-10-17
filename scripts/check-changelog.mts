@@ -54,6 +54,21 @@ ok(parseChangelogBody('## Changelog\n- Co-Authored-By: Claude <x@y.z>\n') === nu
 ok(parseChangelogBody('## Changelog\nnone\n\n## Summary\nx') === null, '"none" leaves the PR out');
 ok(parseChangelogBody('## Changelog\nNone.') === null, '"None." leaves the PR out');
 ok(parseChangelogBody('## Changelog\nNone (staff-only change).') === null, '"None (staff-only change)." leaves the PR out');
+// The leaks seen on 2026-10-17: a PR description written straight after "none", and bullets under prose.
+ok(parseChangelogBody("## Changelog\nnone\n\nAdds the owner's request for more card back patterns.\n") === null, '"none" first skips the PR even with text after it');
+ok(parseChangelogBody('## Changelog\nnone\n\nPlans the request:\n\n- **20.3a:** the model.\n- Order: after 20.2d.') === null, '"none" first skips the bullets after it too');
+const prose = parseChangelogBody('## Changelog\nSome intro for reviewers.\n- Cards flip faster.\n- Binder pages turn smoothly.\n\nInternal: refactored the renderer.\n- Not for players.');
+ok(prose && prose.items.join('|') === 'Cards flip faster.|Binder pages turn smoothly.', 'only the bulleted list is used: prose before it is skipped and the first plain line after it ends it');
+ok(parseChangelogBody('## Changelog\nJust a paragraph, no list.') === null, 'a section without a list yields nothing');
+const md = parseChangelogBody('## Changelog\nTitle: **Faster** binder\n- **Bold** text, `code`, a [link](https://x.test) and *italic* words.');
+ok(md && md.title === 'Faster binder' && md.items[0] === 'Bold text, code, a link and italic words.', 'markdown is turned into plain text');
+const tagged = entryFromPr(pr(34, 'Binder speed', '## Changelog\nTitle: A faster binder\nTags: fixed, Improved, shiny\n- Pages turn faster.'));
+ok(tagged && tagged.tags?.join() === 'improved,fixed' && tagged.items.length === 1, 'a Tags: line gives the pills (known tags only, page order)');
+ok(entryFromPr(pr(35, 'Labels too', '## Changelog\nTags: new\n- x is better.', ['fixed']))?.tags?.join() === 'new,fixed', 'Tags: and labels combine');
+ok(parseChangelogBody('## Changelog\nTitle: \nTags: new\n- Something new.')?.items[0] === 'Something new.', 'the template with an empty Title: still works');
+ok(entryFromPr(pr(31, 'ROADMAP: more card back patterns', '## Changelog\n- 14 new patterns.')) === null, 'a PR whose title starts with ROADMAP is skipped');
+ok(entryFromPr(pr(32, 'roadmap sync', '## Changelog\n- x happened.')) === null, 'the ROADMAP skip ignores case');
+ok(entryFromPr(pr(33, 'Weekly digest in Discord (ROADMAP 6.3)', '## Changelog\n- A weekly summary posts in Discord.'))?.title === 'Weekly digest in Discord', 'a feature PR that only mentions ROADMAP at the end still ships');
 ok(entryFromPr(pr(30, 'Pack workspace shell (20.2a)', '## Changelog\n- Packs open in a workspace.'))?.title === 'Pack workspace shell', 'a trailing (20.2a) is removed from the title');
 ok(parseChangelogBody('## Summary\nno section here') === null, 'no section leaves the PR out');
 ok(parseChangelogBody(null) === null && parseChangelogBody('') === null, 'a missing body is fine');
