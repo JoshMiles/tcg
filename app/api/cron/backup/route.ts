@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { runBackup } from '@/lib/backup';
+import { flushDueEmails } from '@/lib/email';
 import { reportBackup, reportDataHealth } from '@/lib/system-notices';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ function authorised(req: NextRequest): boolean {
 export async function GET(req: NextRequest) {
   if (!authorised(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
+    await flushDueEmails().catch(() => 0); // emails the 15 minute window held back
     const run = await runBackup();
     await reportBackup(run);
     await reportDataHealth();

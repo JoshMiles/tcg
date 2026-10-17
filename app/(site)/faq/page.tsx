@@ -260,6 +260,9 @@ export default async function FaqPage() {
           even when the site is closed. On an iPhone or iPad you first need to <Link href="/install" className="text-yellow-400 hover:text-yellow-300">add the app to your Home Screen</Link> and open it from there (iOS 16.4 or newer). You can choose which kinds of alert you want, send yourself a test, and remove a device
           at any time. If you blocked notifications by mistake, allow them again in your browser or phone settings for this site. The option only shows once the site has alerts set up.
         </Q>
+        <Q q="Can I get notifications by email?">
+          Yes, once the site has email set up. In <Link href="/settings#email" className="text-yellow-400 hover:text-yellow-300">Settings</Link>, under notifications, type your address and press <em>Send confirmation</em>, then open the link we email you. Nothing else is sent until you do. By default you get trade offers, counters and how your offers ended; you can add listing alerts and messages from the admins. You get at most one email every 15 minutes: anything that happens in between is sent together in one email. Every email has a link to stop them with one click, and you can remove your address in Settings at any time. Your address is never shown to other collectors.
+        </Q>
         <Q q="Which of my prints get traded?">
           Unless you choose, trades move your <strong className="text-white">newest</strong> prints of a card first, so the low edition numbers you pulled earliest stay with you. If you hold more prints of a card than the trade needs, <strong className="text-white">Choose prints</strong> in the offer lets you tick exactly which ones to give (a warning appears for Edition #1 and prints that earn an edition bonus). You can ask for a specific print of someone&rsquo;s when you offer them a trade directly, and when you take a listing or accept an offer that asks for a card you have spares of, you pick which of yours to hand over before the final tap. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">prints and editions</a>.
         </Q>
@@ -518,10 +521,10 @@ export default async function FaqPage() {
           Your Twitch username and ID, your cards and score, and a short log of recent game events. Logging in on the website uses a login cookie; the Twitch access token isn&rsquo;t kept.
         </Q>
         <Q q="Can I download my data?">
-          Yes: <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> has a <em>Download my data</em> button that gives you your profile, settings, collections, trade offers, notices and alert devices as a file.
+          Yes: <Link href="/settings" className="text-yellow-400 hover:text-yellow-300">Settings</Link> has a <em>Download my data</em> button that gives you your profile, settings, collections, trade offers, notices, alert devices and email address as a file.
         </Q>
         <Q q="How do I get my data deleted?">
-          Go to <Link href="/settings#delete-account" className="text-yellow-400 hover:text-yellow-300">Settings</Link> and press <em>Request deletion</em> at the bottom (you type your login name to confirm). The team deletes your account, usually within about a month: your collection, settings, notices and alert devices are removed, the prints you held are retired, and your open trade offers are cancelled. It cannot be undone. A restore point is kept for 14 days only so a mistake can be fixed. Until it is handled you can cancel the request there.
+          Go to <Link href="/settings#delete-account" className="text-yellow-400 hover:text-yellow-300">Settings</Link> and press <em>Request deletion</em> at the bottom (you type your login name to confirm). The team deletes your account, usually within about a month: your collection, settings, notices, alert devices and email address are removed, the prints you held are retired, and your open trade offers are cancelled. It cannot be undone. A restore point is kept for 14 days only so a mistake can be fixed. Until it is handled you can cancel the request there.
           You can also ask the person who runs the game:{' '}
           {CONTACT_EMAIL ? <a href={`mailto:${CONTACT_EMAIL}`} className="text-yellow-400 hover:text-yellow-300 underline">{CONTACT_EMAIL}</a> : <>contact {OPERATOR} through the stream&rsquo;s Twitch channel</>}
           . Logging out only ends your session; it doesn&rsquo;t delete your collection.

@@ -87,6 +87,9 @@ export default function TermsPage() {
           You choose whether to share your Twitch identity with the Extension. We handle that information as described in the Privacy Policy. You are responsible for activity done through your
           Twitch account. Collections and leaderboards are public, and your username appears on the stream when your cards are shown.
         </p>
+        <p>
+          If you give an email address to get notifications, we only use it to send the notices you chose and the confirmation link, and every email lets you stop them. You can remove the address at any time. Only add an address that is yours.
+        </p>
       </Section>
 
       <Section title="5. Suspension and termination">

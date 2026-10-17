@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { PushAlerts } from '@/app/components/site/PushAlerts';
+import { EmailAlerts } from '@/app/components/site/EmailAlerts';
 import { AccentPicker } from '@/app/components/site/AccentPicker';
 import { PronounPicker } from '@/app/components/site/PronounPicker';
 import { BIO_MAX, EXPERIMENTS, WANTED_MAX, WATCH_MAX, sanitizeUserSettings, type UserSettings } from '@/lib/user-settings';
@@ -129,6 +130,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         <Row id="n-feedback" label="Answers to my feedback" help="A bell notice when staff reply to a suggestion or problem report you sent, or change its status." checked={s.notifyFeedback} onChange={flip('notifyFeedback')} />
         <Row id="n-sound" label="Play a sound" help="A short chime when a new notice arrives while the site is open in your browser. Off by default." checked={s.noticeSound} onChange={flip('noticeSound')} />
         <PushAlerts kinds={s.pushKinds} onKinds={pushKinds => setS(p => ({ ...p, pushKinds }))} />
+        <EmailAlerts />
       </Section>
 
       <Section icon="search" title="Saved alerts" hint="Tell me when someone lists a card, in a version you choose. Cards on your Looking for list alert in every version automatically.">

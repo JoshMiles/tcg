@@ -72,6 +72,11 @@ export default function PrivacyPage() {
             remove the device in Settings, or the browser tells us the address no longer exists. It is included in your data download. If you report another collector from their profile, we keep your username, the person you reported, the reason, your details and any trade or print link you added, so staff can look into it. Only staff see it: the person you reported is never told who reported them, and reports about you are not part of your data download.
           </li>
           <li>
+            <strong className="text-white">Your email address</strong> only if you choose to get notifications by email: the address you typed, which kinds of notice you picked, when you added and confirmed it, and
+            why email was switched off if it was (you unsubscribed, or the address bounced or was reported as spam). Until you confirm it with the link we send, nothing else is emailed to it. It is never shown to other
+            collectors, it is included in your data download, and you can remove it in Settings at any time or with the unsubscribe link in any email. Notices waiting to be sent are kept only until they go out.
+          </li>
+          <li>
             <strong className="text-white">Your settings and profile choices</strong> if you set any: a short bio, the pronouns you chose to show (if any), your Looking for list, display and notification
             preferences, how you arranged your profile and binder, a card you pinned, the achievements you have earned, your newest bell notices (offers and how they ended), and a few samples of your score and rank (taken when you open My Stats) for the history chart.
           </li>
@@ -169,6 +174,7 @@ export default function PrivacyPage() {
         <List>
           <li><strong className="text-white">Twitch</strong>: the Extension runs inside Twitch, and we call the Twitch API to resolve usernames and profile pictures. Twitch&rsquo;s own privacy notice applies to what Twitch collects.</li>
           <li><strong className="text-white">Your browser&rsquo;s push service</strong> (for example Google, Apple or Mozilla), only if you turn on alerts: it carries the alert from our server to your device. The alert contains the short notice text (such as &ldquo;@name offered you a trade&rdquo;). That service&rsquo;s own privacy notice applies.</li>
+          <li><strong className="text-white">Resend</strong> (our email provider), only if you add an email address: it receives your address and the text of each email we send you (the short notice text, such as &ldquo;@name offered you a trade&rdquo;) and tells us when an email bounced or was marked as spam. It may store data in the United States and other countries. Resend&rsquo;s own privacy notice applies.</li>
           <li><strong className="text-white">pr.alejo.io</strong> (the Twitch pronouns service), only if you choose <em>Use the ones I set on pr.alejo.io</em> for your pronouns: when your profile is opened we send your Twitch login name to ask which pronouns you set there, and keep the answer (or that you have none) for a day. Nothing is sent for anyone who has not chosen that option. Their own privacy notice applies.</li>
           <li><strong className="text-white">Vercel</strong>: hosting, logs, analytics and performance measurement, plus the database (Vercel KV, Redis) and file storage (Vercel Blob) where the data above is kept. These services may store data in the United States and other countries.</li>
           <li>
