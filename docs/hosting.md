@@ -18,6 +18,7 @@
 | `TWITCH_CLIENT_SECRET` | Twitch OAuth app Client Secret (for Helix API and website login) |
 | `SESSION_SECRET` | Random string (16+ chars, ideally 48+) used to sign website login cookies. Generate your own, e.g. `openssl rand -base64 48`; not a Twitch value. Website login is hidden/unavailable without it |
 | `SITE_URL` | Optional. Public base URL (default `https://cheesytcg.app`); the OAuth redirect URI is built from it, so set it if the domain changes |
+| `GITHUB_CHANGELOG_TOKEN` | Recommended. Fine-grained GitHub token for this repo only, Pull requests: read-only; add to Production and Preview. The build reads merged PRs with it to make the What's new page (`scripts/build-changelog.mjs`). Without it the generated part is empty and the build still succeeds |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Recommended. Web Push alerts: generate the pair with `npx web-push generate-vapid-keys`, subject is `mailto:` the legal contact address. Without them the alerts option is hidden |
 | `LEGAL_OPERATOR_NAME`, `LEGAL_CONTACT_EMAIL`, `LEGAL_GOVERNING_LAW` | Optional. Name the operator, a privacy contact email, and governing law on `/privacy` and `/terms`; neutral wording is used when unset. **Set these before submitting the extension for review** |
 

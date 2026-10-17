@@ -57,7 +57,7 @@ The static half of the access test is `scripts/check-staff-guards.mts` (part of 
 
 ## Pull request checklist
 
-- A player-facing change adds or extends an entry in `lib/changelog.ts` (the `/changelog` page) in the same PR.
+- A player-facing change fills the PR's `## Changelog` section (top of the description, written for players, no tool or author credits; `none` for staff-only changes) instead of editing `lib/changelog.ts`.
 - FAQ, Privacy and Terms kept in step (`LEGAL_UPDATED` bumped), `npm run verify` green, and the public sweep run for any new public page.
 
 ## What a sweep cannot check
