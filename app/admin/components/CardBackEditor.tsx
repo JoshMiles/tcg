@@ -4,9 +4,11 @@ import { FlipCard } from '@/app/components/FlipCard';
 import { ImageUploadField } from './image-upload';
 import { saveCardBackAction, resetCardBackAction, loadCardBackAction } from '../card-back-actions';
 import {
-  ALIGNS, BACKGROUNDS, DEFAULT_CARD_BACK, ELEMENTS, ELEMENT_LABELS, FONTS, LOGOS, MAX_LINE, PATTERNS, PRESETS, SIZES,
-  resolveCardBack, sanitizeCardBack, type BackElement, type CardBackStyle,
-} from '@/lib/card-back';
+  ALIGNS, BACKGROUNDS, DEFAULT_V1, ELEMENTS, ELEMENT_LABELS, FONTS, LOGOS, MAX_LINE, PATTERNS, PRESETS_V1, SIZES,
+  sanitizeV1, type BackElement, type CardBackV1,
+} from '@/lib/card-back-v1';
+import { PATTERN_LABELS } from '@/lib/card-back-patterns';
+import { resolveCardBack, toV1, upgradeCardBack, type CardBackStyle } from '@/lib/card-back';
 
 /**
  * The "Card back" section of a pack: controls on the left, a live flipped print of the pack on the right. Self-contained (its own
@@ -28,7 +30,7 @@ export interface CardBackEditorProps {
   layout?: 'wide' | 'stacked';
 }
 
-const LABELS = { steel: 'Brushed steel', solid: 'One colour', gradient: 'Gradient', none: 'None', lines: 'Brushed lines', holes: 'Cheese holes', cover: 'Pack cover, faded', display: 'Display', body: 'Body', mono: 'Monospace', top: 'Top', middle: 'Middle', bottom: 'Bottom', url: 'Uploaded image' } as const;
+const LABELS = { ...PATTERN_LABELS, steel: 'Brushed steel', solid: 'One colour', gradient: 'Gradient', none: 'None', lines: 'Brushed lines', holes: 'Cheese holes', cover: 'Pack cover, faded', display: 'Display', body: 'Body', mono: 'Monospace', top: 'Top', middle: 'Middle', bottom: 'Bottom', url: 'Uploaded image' } as const;
 const field = 'bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500';
 const lbl = 'block text-xs text-gray-400 mb-1';
 
@@ -55,25 +57,27 @@ function Swatch({ label, value, onChange }: { label: string; value: string; onCh
 }
 
 export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, initial, sample, others, layout = 'wide' }: CardBackEditorProps) {
-  const [style, setStyle] = useState<CardBackStyle>(initial ?? sanitizeCardBack(DEFAULT_CARD_BACK));
-  const [saved, setSaved] = useState<string>(JSON.stringify(initial ?? sanitizeCardBack(DEFAULT_CARD_BACK)));
+  // The controls edit the 20.1 view of the design (until the visual editor of 20.3b); it is upgraded to elements to preview and to save.
+  const start1 = initial ? toV1(initial) : sanitizeV1(DEFAULT_V1);
+  const [style, setStyle] = useState<CardBackV1>(start1);
+  const [saved, setSaved] = useState<string>(JSON.stringify(start1));
   const [note, setNote] = useState('');
   const [from, setFrom] = useState('');
   const [pending, start] = useTransition();
   const dirty = JSON.stringify(style) !== saved;
-  const set = (patch: Partial<CardBackStyle>) => { setStyle(s => sanitizeCardBack({ ...s, ...patch })); setNote(''); };
+  const set = (patch: Partial<CardBackV1>) => { setStyle(s => sanitizeV1({ ...s, ...patch })); setNote(''); };
   const setEl = (e: BackElement, patch: { show?: boolean; size?: (typeof SIZES)[number] }) =>
     set({ show: { ...style.show, ...(patch.show !== undefined ? { [e]: patch.show } : {}) }, size: { ...style.size, ...(patch.size ? { [e]: patch.size } : {}) } });
 
   const run = (fn: () => Promise<CardBackStyle>, done: string) => start(async () => {
     try {
-      const next = await fn();
+      const next = toV1(await fn());
       setStyle(next); setSaved(JSON.stringify(next));
       setNote(done);
     } catch (err) { setNote(err instanceof Error ? err.message : 'That did not work'); }
   });
 
-  const live = resolveCardBack(style, { packName, seasonName, cover: coverImageUrl });
+  const live = resolveCardBack(upgradeCardBack(sanitizeV1(style)), { packName, seasonName, cover: coverImageUrl });
   const hex = sample.hex ?? '#facc15';
 
   return (
@@ -86,7 +90,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
         <div className={`space-y-5 min-w-0 order-2 ${layout === 'wide' ? 'lg:order-1' : ''}`}>
           <div role="group" aria-label="Presets" className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs text-gray-400 mr-1">Start from</span>
-            {PRESETS.map(p => <button key={p.id} type="button" onClick={() => set(p.style)} className="px-2.5 py-1 text-xs font-bold rounded-lg border bg-gray-800 border-gray-700 text-gray-300 hover:text-white">{p.label}</button>)}
+            {PRESETS_V1.map(p => <button key={p.id} type="button" onClick={() => set(p.style)} className="px-2.5 py-1 text-xs font-bold rounded-lg border bg-gray-800 border-gray-700 text-gray-300 hover:text-white">{p.label}</button>)}
           </div>
 
           <fieldset className="space-y-2"><legend className={lbl}>Background</legend>
@@ -165,7 +169,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
                   <option value="">Copy from another pack…</option>
                   {others.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                 </select>
-                <button type="button" disabled={pending || !from} onClick={() => start(async () => { try { setStyle(await loadCardBackAction(from)); setNote('Copied. Press Save to keep it.'); } catch { setNote('That did not work'); } })} className="px-3 py-2 text-sm font-bold text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl disabled:opacity-50">Copy</button>
+                <button type="button" disabled={pending || !from} onClick={() => start(async () => { try { setStyle(toV1(await loadCardBackAction(from))); setNote('Copied. Press Save to keep it.'); } catch { setNote('That did not work'); } })} className="px-3 py-2 text-sm font-bold text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl disabled:opacity-50">Copy</button>
               </span>
             )}
             <span role="status" className="text-xs text-gray-400">{note || (dirty ? 'Unsaved changes' : '')}</span>

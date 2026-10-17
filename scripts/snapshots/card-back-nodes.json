@@ -1,0 +1,981 @@
+{
+ "default": [
+  {
+   "id": "brand",
+   "kind": "brand",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-brand",
+   "text": "The Cheesy TCG",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "number",
+   "kind": "number",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-serial  long",
+   "text": "#1023381",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "edition",
+   "kind": "edition",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line",
+   "text": "Edition #7 of 12 made",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "name",
+   "kind": "name",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line strong",
+   "text": "Shiny Full Art · Gouda Goat",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "date",
+   "kind": "date",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-date",
+   "text": "PULLED 12 OCT 2026",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "origin",
+   "kind": "origin",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line small",
+   "text": "Pulled live on stream · Held by @alice",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "history",
+   "kind": "history",
+   "mode": "stack",
+   "tag": "ul",
+   "cls": "flip-hist",
+   "items": [
+    {
+     "text": "Pulled by @alice",
+     "date": "12 OCT 2026"
+    }
+   ],
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "qr",
+   "kind": "qr",
+   "mode": "stack",
+   "tag": "qr",
+   "cls": "flip-qr",
+   "qrUrl": "https://example.com/copy/s1/x",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "link",
+   "kind": "link",
+   "mode": "stack",
+   "tag": "a",
+   "cls": "flip-link",
+   "text": "Full history ›",
+   "href": "/copy/s1/x",
+   "vars": {},
+   "css": {}
+  }
+ ],
+ "clean": [
+  {
+   "id": "brand",
+   "kind": "brand",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-brand",
+   "text": "The Cheesy TCG",
+   "vars": {
+    "--accent-ink": "#fbbf24",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "number",
+   "kind": "number",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-serial  long",
+   "text": "#1023381",
+   "vars": {
+    "--ink": "#f3f4f6",
+    "--ink-shadow": "none",
+    "--k-number": "1.25",
+    "--num-font": "inherit"
+   },
+   "css": {}
+  },
+  {
+   "id": "edition",
+   "kind": "edition",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line",
+   "text": "Edition #7 of 12 made",
+   "vars": {
+    "--ink": "#f3f4f6",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "name",
+   "kind": "name",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line strong",
+   "text": "Shiny Full Art · Gouda Goat",
+   "vars": {
+    "--ink": "#f3f4f6",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "date",
+   "kind": "date",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-date",
+   "text": "PULLED 12 OCT 2026",
+   "vars": {
+    "--ink": "#f3f4f6",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "origin",
+   "kind": "origin",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line small",
+   "text": "Pulled live on stream · Held by @alice",
+   "vars": {
+    "--ink": "#f3f4f6",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "qr",
+   "kind": "qr",
+   "mode": "stack",
+   "tag": "qr",
+   "cls": "flip-qr",
+   "qrUrl": "https://example.com/copy/s1/x",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "link",
+   "kind": "link",
+   "mode": "stack",
+   "tag": "a",
+   "cls": "flip-link",
+   "text": "Full history ›",
+   "href": "/copy/s1/x",
+   "vars": {
+    "--accent-ink": "#fbbf24",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  }
+ ],
+ "gold": [
+  {
+   "id": "brand",
+   "kind": "brand",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-brand",
+   "text": "The Cheesy TCG",
+   "vars": {
+    "--accent-ink": "#5a3a06",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "number",
+   "kind": "number",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-serial  long",
+   "text": "#1023381",
+   "vars": {
+    "--ink": "#3c2604",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "edition",
+   "kind": "edition",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line",
+   "text": "Edition #7 of 12 made",
+   "vars": {
+    "--ink": "#3c2604",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "name",
+   "kind": "name",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line strong",
+   "text": "Shiny Full Art · Gouda Goat",
+   "vars": {
+    "--ink": "#3c2604",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "date",
+   "kind": "date",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-date",
+   "text": "PULLED 12 OCT 2026",
+   "vars": {
+    "--ink": "#3c2604",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "origin",
+   "kind": "origin",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line small",
+   "text": "Pulled live on stream · Held by @alice",
+   "vars": {
+    "--ink": "#3c2604",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "history",
+   "kind": "history",
+   "mode": "stack",
+   "tag": "ul",
+   "cls": "flip-hist",
+   "items": [
+    {
+     "text": "Pulled by @alice",
+     "date": "12 OCT 2026"
+    }
+   ],
+   "vars": {
+    "--ink": "#3c2604",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "qr",
+   "kind": "qr",
+   "mode": "stack",
+   "tag": "qr",
+   "cls": "flip-qr",
+   "qrUrl": "https://example.com/copy/s1/x",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "link",
+   "kind": "link",
+   "mode": "stack",
+   "tag": "a",
+   "cls": "flip-link",
+   "text": "Full history ›",
+   "href": "/copy/s1/x",
+   "vars": {
+    "--accent-ink": "#5a3a06",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  }
+ ],
+ "art": [
+  {
+   "id": "logo",
+   "kind": "logo",
+   "mode": "stack",
+   "tag": "img",
+   "cls": "flip-logo",
+   "src": "https://cdn.example.com/cover.png",
+   "vars": {
+    "--logo-px": "38px"
+   },
+   "css": {}
+  },
+  {
+   "id": "brand",
+   "kind": "brand",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-brand",
+   "text": "The Cheesy TCG",
+   "vars": {
+    "--accent-ink": "#fde68a",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "number",
+   "kind": "number",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-serial  long",
+   "text": "#1023381",
+   "vars": {
+    "--ink": "#f9fafb",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "edition",
+   "kind": "edition",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line",
+   "text": "Edition #7 of 12 made",
+   "vars": {
+    "--ink": "#f9fafb",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "name",
+   "kind": "name",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line strong",
+   "text": "Shiny Full Art · Gouda Goat",
+   "vars": {
+    "--ink": "#f9fafb",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "date",
+   "kind": "date",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-date",
+   "text": "PULLED 12 OCT 2026",
+   "vars": {
+    "--ink": "#f9fafb",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "origin",
+   "kind": "origin",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line small",
+   "text": "Pulled live on stream · Held by @alice",
+   "vars": {
+    "--ink": "#f9fafb",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "history",
+   "kind": "history",
+   "mode": "stack",
+   "tag": "ul",
+   "cls": "flip-hist",
+   "items": [
+    {
+     "text": "Pulled by @alice",
+     "date": "12 OCT 2026"
+    }
+   ],
+   "vars": {
+    "--ink": "#f9fafb",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "qr",
+   "kind": "qr",
+   "mode": "stack",
+   "tag": "qr",
+   "cls": "flip-qr",
+   "qrUrl": "https://example.com/copy/s1/x",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "link",
+   "kind": "link",
+   "mode": "stack",
+   "tag": "a",
+   "cls": "flip-link",
+   "text": "Full history ›",
+   "href": "/copy/s1/x",
+   "vars": {
+    "--accent-ink": "#fde68a",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  }
+ ],
+ "text only": [
+  {
+   "id": "brand",
+   "kind": "brand",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-brand",
+   "text": "The Cheesy TCG",
+   "vars": {
+    "--accent-ink": "#112233",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "number",
+   "kind": "number",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-serial  long",
+   "text": "#1023381",
+   "vars": {
+    "--ink": "#112233",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "edition",
+   "kind": "edition",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line",
+   "text": "Edition #7 of 12 made",
+   "vars": {
+    "--ink": "#112233",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "name",
+   "kind": "name",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line strong",
+   "text": "Shiny Full Art · Gouda Goat",
+   "vars": {
+    "--ink": "#112233",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "date",
+   "kind": "date",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-date",
+   "text": "PULLED 12 OCT 2026",
+   "vars": {
+    "--ink": "#112233",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "origin",
+   "kind": "origin",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line small",
+   "text": "Pulled live on stream · Held by @alice",
+   "vars": {
+    "--ink": "#112233",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "history",
+   "kind": "history",
+   "mode": "stack",
+   "tag": "ul",
+   "cls": "flip-hist",
+   "items": [
+    {
+     "text": "Pulled by @alice",
+     "date": "12 OCT 2026"
+    }
+   ],
+   "vars": {
+    "--ink": "#112233",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  },
+  {
+   "id": "qr",
+   "kind": "qr",
+   "mode": "stack",
+   "tag": "qr",
+   "cls": "flip-qr",
+   "qrUrl": "https://example.com/copy/s1/x",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "link",
+   "kind": "link",
+   "mode": "stack",
+   "tag": "a",
+   "cls": "flip-link",
+   "text": "Full history ›",
+   "href": "/copy/s1/x",
+   "vars": {
+    "--accent-ink": "#112233",
+    "--ink-shadow": "none"
+   },
+   "css": {}
+  }
+ ],
+ "accent only": [
+  {
+   "id": "brand",
+   "kind": "brand",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-brand",
+   "text": "The Cheesy TCG",
+   "vars": {
+    "--accent-ink": "#ff00ff"
+   },
+   "css": {}
+  },
+  {
+   "id": "number",
+   "kind": "number",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-serial  long",
+   "text": "#1023381",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "edition",
+   "kind": "edition",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line",
+   "text": "Edition #7 of 12 made",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "name",
+   "kind": "name",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line strong",
+   "text": "Shiny Full Art · Gouda Goat",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "date",
+   "kind": "date",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-date",
+   "text": "PULLED 12 OCT 2026",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "origin",
+   "kind": "origin",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line small",
+   "text": "Pulled live on stream · Held by @alice",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "history",
+   "kind": "history",
+   "mode": "stack",
+   "tag": "ul",
+   "cls": "flip-hist",
+   "items": [
+    {
+     "text": "Pulled by @alice",
+     "date": "12 OCT 2026"
+    }
+   ],
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "qr",
+   "kind": "qr",
+   "mode": "stack",
+   "tag": "qr",
+   "cls": "flip-qr",
+   "qrUrl": "https://example.com/copy/s1/x",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "link",
+   "kind": "link",
+   "mode": "stack",
+   "tag": "a",
+   "cls": "flip-link",
+   "text": "Full history ›",
+   "href": "/copy/s1/x",
+   "vars": {
+    "--accent-ink": "#ff00ff"
+   },
+   "css": {}
+  }
+ ],
+ "mono big": [
+  {
+   "id": "brand",
+   "kind": "brand",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-brand",
+   "text": "The Cheesy TCG",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "number",
+   "kind": "number",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-serial  long",
+   "text": "#1023381",
+   "vars": {
+    "--k-number": "1.25",
+    "--num-font": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+   },
+   "css": {}
+  },
+  {
+   "id": "edition",
+   "kind": "edition",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line",
+   "text": "Edition #7 of 12 made",
+   "vars": {
+    "--k-edition": "0.8"
+   },
+   "css": {}
+  },
+  {
+   "id": "name",
+   "kind": "name",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line strong",
+   "text": "Shiny Full Art · Gouda Goat",
+   "vars": {
+    "--k-name": "1.25"
+   },
+   "css": {}
+  },
+  {
+   "id": "date",
+   "kind": "date",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-date",
+   "text": "PULLED 12 OCT 2026",
+   "vars": {
+    "--k-date": "0.8"
+   },
+   "css": {}
+  },
+  {
+   "id": "origin",
+   "kind": "origin",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line small",
+   "text": "Pulled live on stream · Held by @alice",
+   "vars": {
+    "--k-origin": "1.25"
+   },
+   "css": {}
+  },
+  {
+   "id": "history",
+   "kind": "history",
+   "mode": "stack",
+   "tag": "ul",
+   "cls": "flip-hist",
+   "items": [
+    {
+     "text": "Pulled by @alice",
+     "date": "12 OCT 2026"
+    }
+   ],
+   "vars": {
+    "--k-history": "0.8"
+   },
+   "css": {}
+  },
+  {
+   "id": "qr",
+   "kind": "qr",
+   "mode": "stack",
+   "tag": "qr",
+   "cls": "flip-qr",
+   "qrUrl": "https://example.com/copy/s1/x",
+   "vars": {
+    "--k-qr": "1.25"
+   },
+   "css": {}
+  },
+  {
+   "id": "link",
+   "kind": "link",
+   "mode": "stack",
+   "tag": "a",
+   "cls": "flip-link",
+   "text": "Full history ›",
+   "href": "/copy/s1/x",
+   "vars": {},
+   "css": {}
+  }
+ ],
+ "hidden": [
+  {
+   "id": "brand",
+   "kind": "brand",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-brand",
+   "text": "The Cheesy TCG",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "edition",
+   "kind": "edition",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line",
+   "text": "Edition #7 of 12 made",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "name",
+   "kind": "name",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line strong",
+   "text": "Shiny Full Art · Gouda Goat",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "origin",
+   "kind": "origin",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line small",
+   "text": "Pulled live on stream · Held by @alice",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "qr",
+   "kind": "qr",
+   "mode": "stack",
+   "tag": "empty",
+   "cls": "",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "link",
+   "kind": "link",
+   "mode": "stack",
+   "tag": "a",
+   "cls": "flip-link",
+   "text": "Full history ›",
+   "href": "/copy/s1/x",
+   "vars": {},
+   "css": {}
+  }
+ ],
+ "line + url logo": [
+  {
+   "id": "logo",
+   "kind": "logo",
+   "mode": "stack",
+   "tag": "img",
+   "cls": "flip-logo",
+   "src": "https://cdn.example.com/l.png",
+   "vars": {
+    "--logo-px": "54px"
+   },
+   "css": {}
+  },
+  {
+   "id": "brand",
+   "kind": "brand",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-brand",
+   "text": "The Cheesy TCG",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "number",
+   "kind": "number",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-serial  long",
+   "text": "#1023381",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "edition",
+   "kind": "edition",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line",
+   "text": "Edition #7 of 12 made",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "name",
+   "kind": "name",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line strong",
+   "text": "Shiny Full Art · Gouda Goat",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "text-1",
+   "kind": "text",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-custom",
+   "text": "Hello Base",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "date",
+   "kind": "date",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-date",
+   "text": "PULLED 12 OCT 2026",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "origin",
+   "kind": "origin",
+   "mode": "stack",
+   "tag": "p",
+   "cls": "flip-line small",
+   "text": "Pulled live on stream · Held by @alice",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "history",
+   "kind": "history",
+   "mode": "stack",
+   "tag": "ul",
+   "cls": "flip-hist",
+   "items": [
+    {
+     "text": "Pulled by @alice",
+     "date": "12 OCT 2026"
+    }
+   ],
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "qr",
+   "kind": "qr",
+   "mode": "stack",
+   "tag": "qr",
+   "cls": "flip-qr",
+   "qrUrl": "https://example.com/copy/s1/x",
+   "vars": {},
+   "css": {}
+  },
+  {
+   "id": "link",
+   "kind": "link",
+   "mode": "stack",
+   "tag": "a",
+   "cls": "flip-link",
+   "text": "Full history ›",
+   "href": "/copy/s1/x",
+   "vars": {},
+   "css": {}
+  }
+ ]
+}
