@@ -728,6 +728,9 @@ A card from `POST /api/webhooks/grant-card` is recorded as `grant` with `source:
 | 20.2d | Pack workspace: odds view | Ready (after 20.2a) | S |
 | 20.2e | Pack workspace: import a folder of art | Ready (after 20.2c) | M |
 | 20.2f | One flow for new packs; the wizard goes | Ready (last) | M |
+| 20.3a | Card back v2: model, layout engine, fonts, DOM renderer | Ready (after 20.2d) | M |
+| 20.3b | Card back v2: the visual editor (drag, fonts, sizes, colours, effects) | Ready (after 20.3a) | L |
+| 20.3c | Card back v2: used everywhere (share images, admin, trades, overlay option) | Ready (after 20.3a) | M |
 | 21.1 | Changelog built from PRs on every build | Ready (decided 2026-10-16) | M |
 | 22.1 | Email notifications (Resend) | Ready (decided 2026-10-16) | L |
 
@@ -739,7 +742,7 @@ Parallel streams, chosen so no two running PRs edit the same files:
 - **Stream N (profiles):** 17.1, then 17.2 (both edit `ProfileHeader.tsx`; 17.2 also waits for 15.5, which changes the feedback category).
 - **Stream O (overlay):** 18.1, then 18.2 (both edit `lib/overlay-props.ts`, `widget.js` and the editor).
 - **Stream P (Mix It Up):** 19.1, then 19.2. 19.2 also touches the show-off code: start it after 18.2 merges, or agree that 19.2 only calls `prepareShowOff` and never edits `widget.js`.
-- **Stream Q (cards):** 20.1, then 20.2a, then 20.2b / 20.2c / 20.2d, then 20.2e, then 20.2f (order set out in 20.2).
+- **Stream Q (cards):** 20.1, then 20.2a, then 20.2b / 20.2c / 20.2d, then 20.2e, then 20.2f (order set out in 20.2). 20.3a after 20.2d, then 20.3b and 20.3c (order set out in 20.3).
 - **Stream R (changelog):** 21.1.
 - **Stream S (email):** 22.1. It edits `notify()` and Settings -> Notifications, like 17.2's feedback notice: start it after 17.2 merges, or keep 17.2 to the existing `feedback` notice kind.
 
@@ -996,6 +999,65 @@ Moves today's `OddsPanel` (weights table, Normalize to 100, Balance by rarity, s
 **Order:** 20.1 first (its Card back section is built as a standalone component so 20.2a moves it unchanged). Then **20.2a**. Then 20.2b, 20.2c and 20.2d, one at a time or in parallel if each keeps to its own view component and touches the shell only to register itself. Then 20.2e (it lands in the grid from 20.2c). **20.2f last** (the wizard goes only once the workspace can do everything it did).
 **Not changed:** card and pack data shapes (apart from `pack:<id>:rev`), KV keys, the public site, the overlay, the Twitch panel (freeze). **Checks for every part:** `npm run verify`, the new check script grown per PR, and a hand pass against the mock KV at 1280px and 390px (an admin sweep run as in 7.7). Not checkable locally: Blob uploads (the mock has none; say so in each PR and test uploads on a preview deployment).
 
+### 20.3 Card back editor v2: free layout, per-element styling, used everywhere (Ready, asked 2026-10-17; three PRs, 20.3a to 20.3c)
+
+Asked (2026-10-17): reposition elements on the back, change their fonts, sizes and colours, add effects (outline, glow, italic, bold and so on), and use the design everywhere a back is shown.
+
+**Today (20.1, #222):** `CardBackStyle` is one design for the whole back. It has a background, a pattern, an edge colour, one text colour, one accent colour and one font (for the big number only). Placement is a single top / middle / bottom choice, sizes are S / M / L per element, and each element can be on or off. Elements sit in a fixed stack. The design reaches the print page, card dialog, binder, profile widgets, print of the week, the copy share image and the workspace preview. It does **not** reach the overlay's flip reveal (whose back is the pack cover), the admin print screens, or the Twitch panel (frozen).
+
+#### The model (v2)
+
+`lib/card-back.ts` keeps the background, pattern and edge, and gains a list of **elements**, each placed and styled on its own:
+- **Element kinds:** `number` (print number), `edition`, `name` (name line), `date`, `origin` (origin and holder), `history`, `qr`, `logo`, `brand` (the small site name), `link` ("Full history"), and up to **8 `text` boxes**. Text boxes are templates with `{pack}`, `{season}`, `{card}`, `{version}`, `{edition}`, `{printNumber}`, `{holder}` and `{date}`; unknown placeholders are dropped, and each box is capped at 80 characters. Today's custom `line` becomes the first text box.
+- **Placement**, relative to the card so one design fits every size (a 120 px tile, the print page, a 1080 px share image): `x`, `y` (the centre, 0 to 100 % of the card's width / height), `w` (box width, 10 to 100 %, so text wraps or shrinks inside it), `rotate` (-45 to 45 degrees), `z` (layer order), `locked` (the editor can't drag it), `show`.
+- **Text style** (text elements): `font` from a fixed list (below), `size` in card units (% of card width, 2 to 30, so it scales), `weight` (400 / 500 / 600 / 700 / 800 / 900), `italic`, `underline`, `uppercase`, `letterSpacing` (-2 to 20, in tenths of an em), `lineHeight`, `align` (left / centre / right), `color` (hex, or `rarity`, which follows the card's rarity colour), `opacity` (0 to 1).
+- **Effects** (any element, combinable): `outline` { colour, width }, `glow` { colour, blur, strength }, `shadow` { colour, x, y, blur }, `engrave` (today's pressed-into-metal look: inner light and dark shadows) and `gradientText` { from, to, angle }. For the QR code and the logo: outline, glow and shadow only, plus their own size and, for the QR code, dark / light colours.
+- **Fonts:** a curated list of about 12, self-hosted in `public/fonts/back/` as woff2 so the overlay, the share-image canvas and the site all load the same files, and nothing calls Google at runtime: the site's two (Fredoka, Nunito) plus for example Bebas Neue, Oswald, Orbitron, Playfair Display, Cinzel, Permanent Marker, Press Start 2P, Space Mono, Roboto Slab and Pacifico. All must be OFL-licensed; keep their licence files beside them. A font is loaded only when a back on the page uses it (`FontFace` in the browser, `font-display: swap`).
+- **Versioned and upgraded on read:** stored designs get `v: 2`. `upgradeCardBack(v1)` turns a 20.1 design into the v2 element list that renders the same (the stack positions computed from `align` and the sizes). `DEFAULT_CARD_BACK` stays today's steel plate exactly. No migration script; `sanitizeCardBack` accepts both and always returns v2. Same KV key `pack:<id>:cardback`.
+- **Safety:** every number clamped, fonts and kinds from fixed lists, colours hex only, text rendered as text (never HTML), image URLs through the existing `safeUrl`, at most 24 elements, stored JSON at most 16 KB.
+
+#### One layout engine, three renderers
+
+A pure `layoutBack(style, print, size) -> BackNode[]` (in `lib/card-back-layout.ts`, client-safe) resolves templates, hidden elements and placeholders, and turns the percentages into pixels for a given card size. It returns positioned nodes with their final styles. Three renderers draw those nodes, so every place shows the same design:
+1. **DOM** (`FlipCard`, the editor canvas): absolutely positioned elements, CSS for the effects (`-webkit-text-stroke` for outline, `text-shadow` stacks for glow / shadow / engrave, `background-clip: text` for gradient text).
+2. **Canvas** (`lib/share-image.ts` / `ShareImage.tsx`): the same nodes with `strokeText`, `shadowBlur` and gradients. Fonts are awaited through `document.fonts.load` before drawing.
+3. **Overlay** (`public/widget.js`): the widget can't import TS, so `GET /api/overlay/config` also returns each pack's resolved back design (the v2 JSON), and a small vanilla renderer in `widget.js` draws the same nodes as DOM. Keep it in step with the DOM renderer; the check compares both renderers' node lists on the same inputs.
+
+#### 20.3a Model v2, layout engine, fonts, DOM renderer (M)
+
+The v2 types, `upgradeCardBack`, `sanitizeCardBack` (v1 and v2), `layoutBack`, the curated fonts, and `FlipCard` drawing from `layoutBack`. Nothing looks different after this PR: every existing design (v1 or none) renders as it does today. The current 20.1 editor keeps working by editing through the upgrade (its controls map onto the elements) until 20.3b replaces it. Check: extend `scripts/check-card-back.mts` with: the v1 upgrade renders the same node list as before (snapshot the node lists of the default and the four presets), clamping, unknown fonts and kinds dropped, template placeholders, the 16 KB cap.
+
+#### 20.3b The visual editor (L)
+
+Replaces the controls in `CardBackEditor` (it lives in the pack workspace's pack panel since 20.2a; it keeps its props and server action):
+- **The canvas:** a large live back with a sample print of the pack. You can drag elements to move them, drag a handle to change the box width, Shift-drag a corner to scale the text, and use the rotate handle. Snap guides cover the card centre and edges, other elements' centres and edges, and a 2 % grid (Alt = free). Arrow keys nudge by 0.5 % (Shift = 2 %). Selected elements show their box, and hovering shows an outline. Clicking empty space selects the background.
+- **Layers list:** every element in z order, with show / hide, lock, rename (text boxes), drag to reorder, duplicate and delete (text boxes), and **Add text**. Multi-select (Shift-click, or a marquee on the canvas) gets **Align** (left / centre / right / top / middle / bottom) and **Distribute**.
+- **Properties panel** for the selection:
+  - font (each option previewed in its own face), size, weight, italic, underline, uppercase, letter spacing, line height, alignment, colour (picker, hex, `rarity`), opacity;
+  - effects, each a switch with its settings: outline, glow, shadow, engrave, gradient text;
+  - rotation and exact x / y / w numbers;
+  - for the background: today's background, pattern and edge controls.
+- **Preview sizes** under the canvas: the same back as a tile, on the print page and as a share image, side by side, to catch text that is too small at tile size. A warning badge appears when a text element renders under 9 px at tile size.
+- Undo / redo (60 deep; a drag is one step), the presets from 20.1 rebuilt as v2 layouts, **Copy from another pack**, **Reset element** and **Reset to default**. It saves through the existing action (requireAdmin, audit, revalidate) into the workspace's change set rules (explicit Save with Review on published packs).
+- **Phones:** the canvas fills the width, touch drag works (pointer events), and properties open in a bottom sheet.
+- No changes to the public pages in this PR.
+
+#### 20.3c Used everywhere (M)
+
+- One constructor: `flipBackFor(print, pack, back)` (or the existing builder, renamed) is the only way to build a `FlipBack`, and every place goes through it. `check-card-back` fails if any file under `app/` or `lib/` builds a back object any other way (a grep for the fields).
+- Audit and wire every place a print's back can show, with the result listed in the PR:
+  - print pages (`/c/<uid>`, `/copy/...`), the card dialog, binder, profile widgets (pinned, showcase), print of the week (done in 20.1; re-check them under v2);
+  - the share images of prints, through the canvas renderer, plus any OG image of a print page that draws the back;
+  - trade pages and stacks where a print can be flipped;
+  - the admin Prints screen side panel and `/admin/serials/<season>/<copy>`;
+  - the pack workspace preview (20.2b);
+  - **the overlay:** a new Overlay Editor property `reveal.flipBack` in the Flip reveal section: `cover` (today, the default, so nothing changes on stream) or `design` (the pack's back design, with data elements hidden because the print isn't known before the flip, and logo, text boxes and pattern shown). The same property applies to the show-off flip entrance.
+- **Twitch panel: not changed (freeze).** Added to "Later: next extension version": the panel's flip backs use the pack design.
+- Check: the overlay node lists match the DOM renderer for the same design (pure comparison), `node --check public/widget.js`, then the flip reveal played in `/overlay.html?dev` with `design` on.
+
+**Order:** after 20.2d merges (the workspace's pack panel must be stable). 20.3a first. Then 20.3b and 20.3c can run in parallel: 20.3b only edits the editor, and 20.3c only edits the renderers' callers, the overlay and the share images. They must not both edit `lib/card-back-layout.ts`; if 20.3c needs a layout change, it waits for 20.3b. 20.2e and 20.2f stay in their order and don't touch the card back.
+**Words:** a changelog line in each PR's `## Changelog` (20.3a "none"; 20.3b and 20.3c for players: "Packs can have fully designed card backs"). FAQ: no change.
+
 ---
 
 ## Track 21: Changelog
@@ -1038,7 +1100,7 @@ Asked: a viewer can enter their email for notifications. It adds personal data t
 
 ## Later: next extension version (after the freeze lifts)
 
-Ship as one reviewed panel version: choosing prints when trading (6.4: composer and accept picker, exact serial preview), favourite prints (9.1: hearts and disabled picks), "Reversed by staff" on reversed trades (9.2), achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
+Ship as one reviewed panel version: the pack card back design on the panel's flip backs (20.3), choosing prints when trading (6.4: composer and accept picker, exact serial preview), favourite prints (9.1: hearts and disabled picks), "Reversed by staff" on reversed trades (9.2), achievements, Looking for / listing alerts, the binder, share images, the 2.5 copies-first dialog, unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`.
 
 ## Done (recent)
 
