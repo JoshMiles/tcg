@@ -48,20 +48,3 @@ export async function restorePackAction(packId: string) {
   revalidatePath('/admin/packs');
   revalidatePath(`/admin/packs/${packId}`);
 }
-
-/** Saves new probabilities for cards of a pack: { [cardId]: probability }. Unknown ids and bad numbers are ignored. */
-export async function savePackOddsAction(packId: string, odds: Record<string, number>): Promise<{ changed: number }> {
-  await requireAdmin();
-  const cards = await getPackCards(packId);
-  let changed = 0;
-  const next = cards.map(c => {
-    const v = odds[c.id];
-    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 1_000_000 || v === c.probability) return c;
-    changed++;
-    return { ...c, probability: Math.round(v * 10_000) / 10_000 };
-  });
-  if (changed > 0) await savePackCards(packId, next);
-  revalidatePath(`/admin/packs/${packId}`);
-  revalidatePath('/admin/packs');
-  return { changed };
-}

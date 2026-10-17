@@ -51,3 +51,18 @@ export interface CardMaths {
   setValue: number;
   totalCopies: number;
 }
+
+// ── A card's chance within its pack, from the weights typed (saved or not) ──
+// One place for the arithmetic, so the pack workspace's list, grid, card panel and Odds view always agree.
+
+/** The sum of the weights that can be drawn (negative and non-numbers count as 0). */
+export const totalWeight = (weights: number[]) => weights.reduce((s, w) => s + (w > 0 ? w : 0), 0);
+
+/** A weight's share of the pack (0 to 1; 0 when it cannot be drawn). */
+export const shareOf = (weight: number, total: number) => (weight > 0 && total > 0 ? weight / total : 0);
+
+/** "1 in 40", or "-" when the card can never be drawn. */
+export function oneInLabel(weight: number, total: number): string {
+  const s = shareOf(weight, total);
+  return s > 0 ? `1 in ${Math.round(1 / s).toLocaleString('en-GB')}` : '-';
+}

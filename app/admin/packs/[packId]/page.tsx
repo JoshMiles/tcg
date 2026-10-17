@@ -6,11 +6,9 @@ import { getPackOverrides } from '@/lib/overlay-settings';
 import { getCardBack } from '@/lib/card-back-store';
 import { heldCardNumbers } from '@/lib/card-held';
 import { packHealth } from '@/lib/pack-health';
-import { effectiveWeights } from '@/lib/variants';
 import { workOf } from '@/lib/pack-editor-core';
 import { getHoloResolver } from '@/lib/holo';
 import { rarityStats } from '@/lib/rarity';
-import { OddsPanel } from './OddsPanel';
 import { PackVariantsPanel } from './VariantControls';
 import { PackWorkspace, type WorkspaceView } from './workspace/PackWorkspace';
 
@@ -42,7 +40,6 @@ export default async function PackPage({ params, searchParams }: { params: Promi
   const sorted = [...cards].sort((a, b) => a.number - b.number);
   const isDraft = pack.status === 'draft';
   const health = isDraft || pack.archived ? [] : packHealth(pack, cards, { inSeason: inSeasons.length > 0 });
-  const cardWeights = Object.fromEntries(cards.map(c => [c.id, effectiveWeights(pack, c)]));
   const rarityBreakdown = rarityStats(cards);
   const byId = new Map(allPacks.map(p => [p.id, p]));
   const seasonUse = inSeasons.map(s => {
@@ -52,10 +49,6 @@ export default async function PackPage({ params, searchParams }: { params: Promi
   });
   const view: WorkspaceView = viewParam === 'grid' || viewParam === 'odds' || viewParam === 'overview' ? viewParam : 'edit';
   const state = { work: workOf(pack, cards), rev, held: [...held], status: pack.status, archived: !!pack.archived };
-
-  const oddsView = sorted.length > 0
-    ? <OddsPanel packId={packId} cards={sorted.map(c => ({ id: c.id, number: c.number, name: c.name, stars: c.stars, imageUrl: c.imageUrl, probability: c.probability }))} upgrades={pack.upgradesEnabled} cardWeights={cardWeights} />
-    : <p className="tcg-panel rounded-2xl px-5 py-12 text-center text-gray-500">Add some cards first, then tune their odds here.</p>;
 
   const overviewView = (
       <div className="grid xl:grid-cols-2 gap-6 items-start">
@@ -139,7 +132,6 @@ export default async function PackPage({ params, searchParams }: { params: Promi
         others: allPacks.filter(p => p.id !== packId && p.status !== 'draft').map(p => ({ id: p.id, name: p.name })),
         sampleFallback: { name: 'Sample card', imageUrl: pack.coverImageUrl },
       }}
-      odds={oddsView}
       overview={overviewView}
       initialView={view}
       initialSelection={card ?? null}

@@ -23,6 +23,7 @@ import { CardPanel } from './CardPanel';
 import { PackPanel, type SeasonUse } from './PackPanel';
 import { PreviewPane } from './PreviewPane';
 import { GridView } from './GridView';
+import { OddsView } from './OddsView';
 import { BulkPanel } from './BulkPanel';
 import type { HoloSpecs } from '@/lib/holo-core';
 
@@ -35,7 +36,7 @@ interface Base extends WorkspaceState {}
  * Published packs are saved explicitly (Review, then Save) because a change is live on stream at once; drafts autosave. All edits
  * go into one working state with undo / redo; what is sent to the server is the change set against the revision you opened.
  */
-export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBack, odds, overview, initialView, initialSelection, healthCount, holoByStars, onStream }: {
+export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBack, overview, initialView, initialSelection, healthCount, holoByStars, onStream }: {
   holoByStars: Record<number, HoloSpecs>;
   /** The pack is drawn in the active season (the overlay preview only knows those). */
   onStream: boolean;
@@ -44,7 +45,6 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
   seasons: SeasonUse[];
   overrideCount: number;
   cardBack: Omit<CardBackEditorProps, 'sample'> & { sampleFallback: { name: string; imageUrl: string } };
-  odds: ReactNode;
   overview: ReactNode;
   initialView: WorkspaceView;
   initialSelection: string | null;
@@ -335,7 +335,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
         </div>
       )}
 
-      {view === 'odds' && <div className="min-h-0 xl:overflow-y-auto">{odds}</div>}
+      {view === 'odds' && <div className="min-h-0 xl:overflow-y-auto"><OddsView pack={work.pack} cards={work.cards} baseCards={base.work.cards} editCards={editCards} /></div>}
       {view === 'overview' && <div className="min-h-0 xl:overflow-y-auto">{overview}</div>}
 
       {view === 'edit' && (

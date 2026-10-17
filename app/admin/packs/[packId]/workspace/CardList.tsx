@@ -6,6 +6,7 @@ import type { PackInput } from '@/lib/pack-clean';
 import type { WorkCard } from '@/lib/pack-editor-core';
 import { allowedVariants } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
+import { oneInLabel, totalWeight } from '@/lib/card-maths';
 
 type Sort = 'number' | 'name' | 'stars' | 'chance' | 'problems';
 
@@ -39,7 +40,7 @@ export function CardList({
   const [q, setQ] = useState('');
   const [stars, setStars] = useState(0);
   const [sort, setSort] = useState<Sort>('number');
-  const total = useMemo(() => cards.reduce((s, c) => s + (c.probability > 0 ? c.probability : 0), 0), [cards]);
+  const total = useMemo(() => totalWeight(cards.map(c => c.probability)), [cards]);
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const list = cards.filter(c => (!needle || c.name.toLowerCase().includes(needle) || String(c.number) === needle) && (!stars || c.stars === stars));
@@ -85,7 +86,7 @@ export function CardList({
         {visible.map(c => {
           const marks = cardMarks(c, pack);
           const on = selected.has(c.id);
-          const chance = c.probability > 0 && total > 0 ? `1 in ${Math.round(total / c.probability).toLocaleString('en-GB')}` : '-';
+          const chance = oneInLabel(c.probability, total);
           return (
             <li key={c.id} data-card-row={c.id} className={`flex items-center gap-2 px-2 py-1.5 border-b border-gray-800/60 ${focus === c.id ? 'bg-yellow-500/10' : on ? 'bg-white/[0.05]' : 'hover:bg-white/[0.03]'}`}>
               <input type="checkbox" checked={on} aria-label={`Select ${c.name || 'card'}`} onChange={() => onSelect(c.id, 'toggle', ids)} className="accent-yellow-400 shrink-0" />

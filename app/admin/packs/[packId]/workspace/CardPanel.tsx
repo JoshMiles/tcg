@@ -5,6 +5,7 @@ import { OPTIONAL_VARIANTS } from '../../../components/VariantSwitches';
 import { VARIANT_LABELS } from '@/lib/variants';
 import type { PackInput } from '@/lib/pack-clean';
 import { cardProblems } from '@/lib/pack-clean';
+import { shareOf, totalWeight } from '@/lib/card-maths';
 import type { CardFields, WorkCard } from '@/lib/pack-editor-core';
 import { ArtDrop, Field, NumberInput, Section, SoundField, Stars, inputCls } from './fields';
 import { cardMarks } from './CardList';
@@ -20,8 +21,7 @@ export function CardPanel({ card, cards, pack, locked, changed, onChange, onRemo
   onChange: (patch: Partial<CardFields>, key?: string) => void;
   onRemove: () => void;
 }) {
-  const total = cards.reduce((s, c) => s + (c.probability > 0 ? c.probability : 0), 0);
-  const chance = card.probability > 0 && total > 0 ? card.probability / total : 0;
+  const chance = shareOf(card.probability, totalWeight(cards.map(c => c.probability)));
   const messages = cardProblems({ name: card.name, stars: card.stars, probability: card.probability, number: card.number || 1 }, cards.filter(c => c.id !== card.id && c.number).map(c => c.number));
   const marks = cardMarks(card, pack).filter(m => m.id !== 'sound' && m.id !== 'versions');
   const dot = (...k: (keyof CardFields)[]) => (k.some(x => changed.has(x)) ? 'changed' as const : null);
