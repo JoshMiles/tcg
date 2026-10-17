@@ -9,7 +9,7 @@ import { qrModules } from '@/lib/qr';
 import { DEFAULT_CARD_BACK, plateLook } from '@/lib/card-back';
 import { fontsNeeded, layoutBack } from '@/lib/card-back-layout';
 import { loadBackFonts } from '@/lib/card-back-fonts';
-import { CANVAS_BACK_REF, placeBack, wrapText, type BackBox } from '@/lib/card-back-canvas';
+import { CANVAS_BACK_REF, canvasPattern, placeBack, wrapText, type BackBox } from '@/lib/card-back-canvas';
 
 const imageCache = new Map<string, Promise<HTMLImageElement | null>>();
 /** Loads (and remembers) an image, so changing a theme doesn't fetch and decode the same art again. */
@@ -181,9 +181,34 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
   ctx.restore();
 }
 
+/** The design's background pattern over the plate's metal (the canvas twin of the CSS layers; see `canvasPattern`). */
+function drawBackPattern(ctx: CanvasRenderingContext2D, r: Rect, p: ReturnType<typeof canvasPattern>, img: HTMLImageElement | null, dark: boolean) {
+  if (p.kind === 'lines') {
+    ctx.fillStyle = dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)';
+    for (let x = r.x; x < r.x + r.w; x += 4) ctx.fillRect(x, r.y, 1, r.h);
+  } else if (p.kind === 'holes') {
+    // Two offset grids of dots, as the site's CSS (28 px cells on a 240 px card).
+    const k = r.w / CANVAS_BACK_REF.w, cell = 28 * k;
+    const dots = (first: number, rad: number, a: number) => {
+      ctx.fillStyle = `rgba(0,0,0,${a})`;
+      for (let y = r.y + first; y < r.y + r.h + cell; y += cell) for (let x = r.x + first; x < r.x + r.w + cell; x += cell) { ctx.beginPath(); ctx.arc(x, y, rad * k, 0, Math.PI * 2); ctx.fill(); }
+    };
+    dots(cell / 2, 5, 0.28); dots(0, 4, 0.2);
+  } else if (p.kind === 'cover' && img) {
+    const k = Math.max(r.w / img.width, r.h / img.height);
+    ctx.drawImage(img, r.x + (r.w - img.width * k) / 2, r.y + (r.h - img.height * k) / 2, img.width * k, img.height * k);
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(r.x, r.y, r.w, r.h);
+  } else if (p.kind === 'svg' && img) {
+    ctx.save();
+    ctx.globalCompositeOperation = p.blend;
+    ctx.drawImage(img, r.x, r.y, r.w, r.h);
+    ctx.restore();
+  }
+}
+
 /**
  * A print's back as a card-shaped panel: the pack's design, drawn from the layout engine's nodes like the site's FlipCard and the overlay
- * do. The metal and its edge follow the design's colours; the CSS patterns (lines, dots) are not drawn here.
+ * do. The metal, the pattern and the edge follow the design's colours.
  */
 async function drawBackCard(ctx: CanvasRenderingContext2D, r: Rect, spec: NonNullable<NonNullable<ShareSpec['plate']>['back']>, rarityEdge: string, font: string, t: ShareTheme) {
   const style = spec.style ?? DEFAULT_CARD_BACK;
@@ -192,6 +217,8 @@ async function drawBackCard(ctx: CanvasRenderingContext2D, r: Rect, spec: NonNul
   await loadBackFonts(fontsNeeded(nodes));
   const images = new Map<string, HTMLImageElement | null>();
   await Promise.all(nodes.filter(n => n.src).map(async n => { images.set(n.src!, await loadImage(n.src!)); }));
+  const pattern = canvasPattern(style);
+  const patternImg = pattern.kind === 'svg' || pattern.kind === 'cover' ? await loadImage(pattern.src) : null;
   const look = plateLook(style);
   const pl = look ? { ...t.plate, ...(look.stops ? { stops: look.stops, dark: !!look.dark } : {}), ...(look.ink ? { ink: look.ink } : {}) } : t.plate;
   const edge = look?.edge ?? rarityEdge;
@@ -204,8 +231,7 @@ async function drawBackCard(ctx: CanvasRenderingContext2D, r: Rect, spec: NonNul
   ctx.restore();
   ctx.save();
   roundRect(ctx, r.x, r.y, r.w, r.h, radius); ctx.clip();
-  ctx.fillStyle = pl.dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)';
-  for (let x = r.x; x < r.x + r.w; x += 4) ctx.fillRect(x, r.y, 1, r.h);
+  drawBackPattern(ctx, r, pattern, patternImg, pl.dark);
   const sheen = ctx.createLinearGradient(0, r.y, 0, r.y + r.h);
   sheen.addColorStop(0, pl.dark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.28)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)'); sheen.addColorStop(1, 'rgba(0,0,0,0.12)');
   ctx.fillStyle = sheen; ctx.fillRect(r.x, r.y, r.w, r.h);

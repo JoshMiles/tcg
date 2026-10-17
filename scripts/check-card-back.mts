@@ -82,7 +82,7 @@ ok(cb.sanitizeCardBack(v1.PRESETS_V1[1].style).v === 2, 'a v1 design is accepted
 const snapPath = new URL('./snapshots/card-back-nodes.json', import.meta.url);
 const snap = JSON.stringify(nodesByDesign, null, 1);
 if (process.env.UPDATE_SNAPSHOT || !existsSync(snapPath)) writeFileSync(snapPath, snap + '\n');
-ok(readFileSync(snapPath, 'utf8').trim() === snap.trim(), 'the node lists of the default and the presets match the snapshot (UPDATE_SNAPSHOT=1 to refresh on purpose)');
+ok(readFileSync(snapPath, 'utf8').replace(/\r\n/g, '\n').trim() === snap.trim(), 'the node lists of the default and the presets match the snapshot (UPDATE_SNAPSHOT=1 to refresh on purpose)');
 
 // The stylesheet still falls back to the classic plate.
 const legacyBg = 'repeating-linear-gradient(90deg, rgba(255,255,255,.28) 0 1px, transparent 1px 3px), linear-gradient(135deg, #a9a9b3 0%, #dcdce3 36%, #9a9aa5 62%, #c4c4cd 100%)';
@@ -306,5 +306,15 @@ ok(ed.EDITOR_PRESETS.length === 6 && ed.EDITOR_PRESETS.every(p => JSON.stringify
 ok(ed.EDITOR_PRESETS.some(p => p.style.elements.some(e => e.place === 'free')), 'some presets place elements freely');
 ok(ed.tinyText(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', place: 'free', size: 5, text: 'x' }, { kind: 'text', place: 'free', size: 9, text: 'y' }] }), 120, 9).length === 1, 'text under 9 px at tile size is flagged');
 ok(ed.patchBackground(base0, { pattern: 'dots', patternOpacity: 3 }).patternOpacity === 1 && ed.patchBackground(base0, { pattern: 'dots' }).pattern === 'dots', 'background edits are sanitised too');
+
+// ── Patterns in the canvas (share images) ──
+const cp = (o: object) => canvas.canvasPattern({ ...cb.DEFAULT_CARD_BACK, ...o });
+ok(cp({}).kind === 'lines' && cp({ pattern: 'holes' }).kind === 'holes' && cp({ pattern: 'none' }).kind === 'none', 'the classic lines, holes and none are drawn by the canvas itself');
+ok(cp({ pattern: 'cover' }).kind === 'none' && (cp({ pattern: 'cover', cover: 'https://cdn.example.com/c.png' }) as { src?: string }).src === 'https://cdn.example.com/c.png', 'the faded cover needs the pack cover');
+const dotsP = cp({ pattern: 'dots', patternBlend: 'multiply', patternColor: '#ff0000', patternOpacity: 0.5, patternScale: 2, patternAngle: 30 }) as { kind: string; src: string; blend: string };
+ok(dotsP.kind === 'svg' && dotsP.blend === 'multiply' && decodeURIComponent(dotsP.src.split(',')[1]).startsWith('<svg ') && decodeURIComponent(dotsP.src.split(',')[1]).includes('#ff0000'), 'a pattern is the same SVG the DOM uses, with its colour in it, plus a blend mode');
+ok((cp({ pattern: 'lines', patternOpacity: 0.5 }) as { kind: string }).kind === 'svg', 'custom settings on the classic lines use the SVG');
+ok(cp({ pattern: 'grain', patternBlend: 'overlay' }).kind === 'svg' && (cp({ pattern: 'grain', patternBlend: 'overlay' }) as { blend: string }).blend === 'overlay', 'every blend maps to a canvas operation');
+for (const id of pat.PATTERN_IDS) if (!['none', 'cover'].includes(id)) ok(['svg', 'lines', 'holes'].includes(cp({ pattern: id, patternScale: 1.5 }).kind), id + ': has a canvas drawing');
 
 console.log('card back checks passed');
