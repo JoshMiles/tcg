@@ -31,11 +31,11 @@ export function Field({ label, children, help, htmlFor }: { label: string; child
 }
 
 /** A number input that keeps what you type (so "1." or an empty box doesn't jump) and reports a number when it parses. */
-export function NumberInput({ value, onChange, min, max, step = 'any', id, disabled, ariaLabel }: { value: number; onChange: (n: number) => void; min?: number; max?: number; step?: number | 'any'; id?: string; disabled?: boolean; ariaLabel?: string }) {
+export function NumberInput({ value, onChange, min, max, step = 'any', id, disabled, ariaLabel, dataCol, dataRow }: { dataCol?: string; dataRow?: number; value: number; onChange: (n: number) => void; min?: number; max?: number; step?: number | 'any'; id?: string; disabled?: boolean; ariaLabel?: string }) {
   const [text, setText] = useState<string | null>(null);
   return (
     <input
-      id={id} type="number" aria-label={ariaLabel} className={inputCls} min={min} max={max} step={step} disabled={disabled}
+      id={id} data-col={dataCol} data-row={dataRow} type="number" aria-label={ariaLabel} className={inputCls} min={min} max={max} step={step} disabled={disabled}
       value={text !== null && text.trim() !== '' && Number(text) === value ? text : String(value)}
       onChange={e => { setText(e.target.value); const n = Number(e.target.value); if (e.target.value.trim() !== '' && Number.isFinite(n)) onChange(n); }}
       onBlur={() => setText(null)}

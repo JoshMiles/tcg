@@ -50,7 +50,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
     const sum = drawn.reduce((t, p) => t + p.weight, 0);
     return { id: s.id, name: s.name, active: s.active, share: pack.active && !isDraft && sum > 0 ? pack.weight / sum : null };
   });
-  const view: WorkspaceView = viewParam === 'odds' || viewParam === 'overview' ? viewParam : 'edit';
+  const view: WorkspaceView = viewParam === 'grid' || viewParam === 'odds' || viewParam === 'overview' ? viewParam : 'edit';
   const state = { work: workOf(pack, cards), rev, held: [...held], status: pack.status, archived: !!pack.archived };
 
   const oddsView = sorted.length > 0

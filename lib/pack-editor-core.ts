@@ -195,3 +195,42 @@ export function rebase(oldBase: Work, newBase: Work, mine: ChangeSet): { work: W
   const gone = new Set(mine.remove);
   return { work: { pack, cards: cards.filter(c => !gone.has(c.id)) }, clashes };
 }
+
+// ── Bulk edits (20.2c) ───────────────────────────────────
+
+export type BulkOp =
+  | { kind: 'stars'; value: number }
+  | { kind: 'weight'; value: number }
+  | { kind: 'multiply'; factor: number }
+  | { kind: 'version'; variant: OptionalVariant; on: boolean }
+  | { kind: 'sound'; mode: 'default' | 'clear' }
+  | { kind: 'upgrades'; on: boolean };
+
+/** The bundled sound of the first 25 cards, or '' when a card has none. */
+export const defaultSoundFor = (number: number) => (number >= 1 && number <= 25 ? `/assets/sounds/${number}.mp3` : '');
+
+/** `op` applied to the cards in `ids` (the others, and the order, are untouched). A card the op cannot change is returned as it was. */
+export function bulkApply(cards: WorkCard[], ids: Set<string>, op: BulkOp): WorkCard[] {
+  return cards.map(c => {
+    if (!ids.has(c.id)) return c;
+    switch (op.kind) {
+      case 'stars': return { ...c, stars: Math.min(5, Math.max(1, Math.round(op.value) || 1)) };
+      case 'weight': return Number.isFinite(op.value) && op.value >= 0 ? { ...c, probability: op.value } : c;
+      case 'multiply': return Number.isFinite(op.factor) && op.factor >= 0 ? { ...c, probability: Math.round(c.probability * op.factor * 10_000) / 10_000 } : c;
+      case 'version': {
+        const off = new Set(c.disabledVariants);
+        if (op.on) off.delete(op.variant); else off.add(op.variant);
+        return { ...c, disabledVariants: [...off] as OptionalVariant[] };
+      }
+      case 'sound': { const s = op.mode === 'clear' ? '' : defaultSoundFor(c.number); return op.mode === 'default' && !s ? c : { ...c, soundUrl: s }; }
+      case 'upgrades': return { ...c, upgradesEnabled: op.on };
+    }
+  });
+}
+
+/** Lines pasted from a spreadsheet column (one value per line; a trailing empty line is dropped). */
+export function pastedColumn(text: string): string[] {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
+  return lines.map(l => l.split('\t')[0].trim());
+}
