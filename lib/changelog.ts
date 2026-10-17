@@ -1,5 +1,8 @@
-// "What's new" for players, newest first. Hand-written: a player-facing change adds or extends an entry here in the same PR
-// (CLAUDE.md Conventions). Write for players, not developers: say what they can now do, say "print" for a card copy, no em dashes.
+// "What's new" for players. Entries come from two places: the `## Changelog` section of every merged PR, collected at build time by
+// scripts/build-changelog.mjs into .next-changelog.json (ROADMAP 21.1), and the hand-written history below, from before that shipped.
+// New changes are NOT added here: fill the PR's Changelog section instead. Write for players, not developers: say what they can now do,
+// say "print" for a card copy, no em dashes, and never name a tool or author.
+import generated from '../.next-changelog.json';
 
 export type ChangeTag = 'new' | 'improved' | 'fixed';
 
@@ -9,9 +12,11 @@ export interface ChangelogEntry {
   title: string;
   items: string[];
   tags?: ChangeTag[];
+  /** The pull request the entry was built from (generated entries only). */
+  pr?: number;
 }
 
-export const CHANGELOG: ChangelogEntry[] = [
+const HAND_WRITTEN: ChangelogEntry[] = [
   {
     date: '2026-10-17',
     title: 'Chat commands',
@@ -164,6 +169,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
 ];
+
+/** Generated entries first (newest first), then the hand-written history. */
+export const CHANGELOG: ChangelogEntry[] = [...(generated as ChangelogEntry[]), ...HAND_WRITTEN];
 
 /** The date of the newest entry (empty when there are none). */
 export function newestChangelogDate(entries: ChangelogEntry[] = CHANGELOG): string {

@@ -27,6 +27,7 @@ export const ENV_SPECS: EnvSpec[] = [
   { name: 'SITE_URL', group: 'Website login', level: 'optional', unlocks: 'The public address used in login redirects and links. Defaults to the production domain.' },
   { name: 'TURNSTILE_SITE_KEY', group: 'Bot protection', level: 'recommended', unlocks: 'The Cloudflare Turnstile check shown before trades and upgrades on the website (the public site key).' },
   { name: 'TURNSTILE_SECRET_KEY', group: 'Bot protection', level: 'recommended', unlocks: 'Verifying that check on the server (needs the site key too). Without both, trades and upgrades skip the check.' },
+  { name: 'GITHUB_CHANGELOG_TOKEN', group: 'Storage', level: 'recommended', unlocks: "The What's new page: at each build it reads the merged pull requests (fine-grained token for this repo only, Pull requests: read-only) and turns their Changelog sections into entries. Without it only the hand-written history shows." },
   { name: 'LEGAL_OPERATOR_NAME', group: 'Legal pages', level: 'recommended', unlocks: 'Names who runs the extension on the Privacy Policy and Terms. Set before submitting the extension for review.' },
   { name: 'LEGAL_CONTACT_EMAIL', group: 'Legal pages', level: 'recommended', unlocks: 'The privacy contact address on the Privacy Policy. Set before submitting the extension for review.' },
   { name: 'LEGAL_GOVERNING_LAW', group: 'Legal pages', level: 'optional', unlocks: 'The governing-law line in the Terms.' },
