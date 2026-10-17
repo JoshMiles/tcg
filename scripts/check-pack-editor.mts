@@ -119,4 +119,34 @@ ok(Math.abs(sim.perCard.c / sim.draws - 0.6) < 0.02 && Math.abs(sim.perStars[5] 
 ok(sim.perVariant.regular === sim.draws && sim.fullSet !== null && sim.fullSet.median >= 3, 'variant rolls follow the version weights; the full-set estimate is sane');
 ok(odds.simulate([{ id: 'x', stars: 1, probability: 0 }], () => undefined, false, 10) === null, 'nothing to draw gives no result');
 
+// ── Import a folder of art (20.2e) ──
+const imp = await import('../lib/art-import');
+const P = imp.parseArtFileName;
+ok(P('012 Gouda Goat.webp').title === 'Gouda Goat' && P('012 Gouda Goat.webp').number === 12 && P('012 Gouda Goat.webp').kind === 'art', '"012 Gouda Goat.webp": number 12, name Gouda Goat');
+ok(P('12-gouda-goat.gif').title === 'Gouda Goat' && P('12-gouda-goat.gif').number === 12, '"12-gouda-goat.gif" is the same card');
+ok(P('gouda_goat.png').title === 'Gouda Goat' && P('gouda_goat.png').number === undefined && P('Gouda Goat.PNG').key === 'gouda goat', '"gouda_goat.png" has no number; case and extension case do not matter');
+ok(['gouda-fa.png', 'gouda_fullart.webp', 'Gouda full art.png', 'gouda-full-art.png', '07 Gouda FA.png'].every(n => P(n).kind === 'fullart' && P(n).key === 'gouda'), 'fa, fullart and full art suffixes make full art of the card with the same name');
+ok(P('07 Gouda FA.png').number === 7 && P('fa.png').kind === 'art', 'a number is kept on a full art file; a file that is only "fa" is a card');
+ok(P('Gouda Goat.mp3').kind === 'sound' && P('gouda_goat.WAV').kind === 'sound' && P('x.ogg').kind === 'sound' && P('gouda-fa.mp3').kind === 'sound', 'audio files are sounds');
+ok(P('notes.txt').kind === 'other' && P('folder/sub/Cheddar.png').title === 'Cheddar' && P('7.png').title === '' && P('7.png').number === 7, 'other files are not used; folders are dropped from the name; a number alone gives no name');
+const exist = [{ id: 'e1', number: 1, name: 'Cheddar' }, { id: 'e2', number: 5, name: 'Brie' }];
+const f = (name: string, size = 1000) => ({ name, size });
+const plan = imp.planImport([f('012 Gouda Goat.webp'), f('gouda_goat-fa.png'), f('gouda goat.mp3'), f('5 Swiss.png'), f('brie.ogg'), f('cheddar-fullart.webp'), f('mystery.mp3'), f('readme.txt'), f('Huge.png', 9 * 1024 * 1024)], exist);
+const byName = (n: string) => plan.find(r => r.name === n && r.kind === 'new')!;
+ok(byName('Gouda Goat').number === 12 && byName('Gouda Goat').problems.length === 0, 'a free leading number becomes the number');
+ok(byName('Swiss').number === 6 && byName('Swiss').problems.some(p => p.includes('#5')), 'a used number gives the next free one, with a note');
+const gfa = plan.find(r => r.kind === 'fullart' && r.name === 'Gouda Goat')!;
+ok(!!gfa.target && 'file' in gfa.target && gfa.targetName === 'Gouda Goat', 'full art attaches to the new card of the same name in the drop');
+ok(plan.filter(r => r.kind === 'sound').find(r => r.name === 'Gouda Goat')!.target !== undefined && plan.find(r => r.kind === 'sound' && r.name === 'Brie')!.target?.hasOwnProperty('existing'), 'a sound attaches to a new card or to one already in the pack');
+ok(plan.find(r => r.kind === 'fullart' && r.name === 'Cheddar')!.target?.hasOwnProperty('existing'), 'full art attaches to an existing card');
+const orphan = plan.find(r => r.name === 'Mystery')!;
+ok(orphan.skip && orphan.problems[0].includes('No card named') && imp.blocked(orphan), 'a sound with no card is left out, with the reason');
+ok(plan.find(r => r.skip && r.problems[0].includes('Not a picture'))!.name === 'readme' && imp.blocked(byName('Huge')) && byName('Huge').problems.some(p => p.includes('too big')), 'an unusable file and a too big file are blocked with a reason');
+ok(imp.planImport([f('Cheddar.png')], exist)[0].problems.some(p => p.includes('already exists')) && !imp.blocked(imp.planImport([f('Cheddar.png')], exist)[0]), 'a duplicate name warns but can still be imported');
+const dupDrop = imp.planImport([f('1 A.png'), f('1 B.png')], []);
+ok(dupDrop[0].number === 1 && dupDrop[1].number === 2, 'two files asking for the same number: the second gets the next one');
+// A new card that asks for a number gets it when it is free; otherwise the next one above everything.
+const ask = core.applyChanges(pk, cards, { pack: {}, update: {}, remove: [], add: [core.newWorkCard('n12', { name: 'Twelve', number: 12, imageUrl: '/a.png' }), core.newWorkCard('n2', { name: 'Two', number: 2, imageUrl: '/b.png' }), core.newWorkCard('n0', { name: 'Zero', imageUrl: '/c.png' })] });
+ok(ask.assigned.n12 === 12 && ask.assigned.n2 > 3 && ask.assigned.n0 !== ask.assigned.n2 && ask.cards.length === cards.length + 3, 'a requested free number is kept; a used one and no request get the next free numbers');
+
 console.log('pack editor checks passed');

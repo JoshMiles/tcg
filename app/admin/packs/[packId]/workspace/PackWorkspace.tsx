@@ -24,6 +24,7 @@ import { PackPanel, type SeasonUse } from './PackPanel';
 import { PreviewPane } from './PreviewPane';
 import { GridView } from './GridView';
 import { OddsView } from './OddsView';
+import { ImportDialog, filesFromDrop } from './ImportDialog';
 import { BulkPanel } from './BulkPanel';
 import type { HoloSpecs } from '@/lib/holo-core';
 
@@ -67,6 +68,9 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
   const [view, setView] = useState<WorkspaceView>(initialView);
   const [sheet, setSheet] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [importFiles, setImportFiles] = useState<File[] | null>(null);
+  const [fresh, setFresh] = useState<Set<string>>(new Set()); // cards imported in this visit
+  const [only, setOnly] = useState<Set<string> | null>(null); // the grid shows just these
   const [confirm, setConfirm] = useState<{ title: string; body: ReactNode; label: string; run: () => void } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -263,6 +267,8 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
     window.location.reload();
   }
 
+  // Imported cards keep their "set stars and odds" mark until either changes from the starting 1 and 1.
+  const needsOdds = useMemo(() => new Set(work.cards.filter(c => fresh.has(c.id) && c.stars === 1 && c.probability === 1).map(c => c.id)), [fresh, work.cards]);
   const sampleCard = work.cards.find(c => c.imageUrl) ?? null;
   const previewProps = {
     packId, pack: work.pack, card: showPack ? null : active, selection: work.cards.filter(c => cardIds.includes(c.id)), cards: work.cards, holoByStars,
@@ -330,7 +336,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
 
       {view === 'grid' && (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] flex-1 min-h-0">
-          <GridView pack={work.pack} cards={work.cards} held={held} selected={selected} focus={focus} problemIds={problemIds} onSelect={select} editCards={editCards} />
+          <GridView pack={work.pack} cards={work.cards} held={held} selected={selected} focus={focus} problemIds={problemIds} onSelect={select} editCards={editCards} only={only} onShowAll={() => setOnly(null)} />
           {cardIds.length > 0 && <aside aria-label="Bulk edits" className="tcg-panel rounded-2xl overflow-y-auto min-h-0"><BulkPanel selected={work.cards.filter(c => cardIds.includes(c.id))} held={held} onApply={op => edit(w => ({ ...w, cards: bulkApply(w.cards, new Set(cardIds), op) }))} onRemove={removeCards} /></aside>}
         </div>
       )}
@@ -340,10 +346,12 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
 
       {view === 'edit' && (
         <div className="grid gap-4 xl:grid-cols-[19rem_minmax(0,1fr)_25rem] flex-1 min-h-0">
-          <div className="tcg-panel rounded-2xl overflow-hidden min-h-0 xl:h-full max-h-[70vh] xl:max-h-none">
+          <div className="tcg-panel rounded-2xl overflow-hidden min-h-0 xl:h-full max-h-[70vh] xl:max-h-none"
+            onDragOver={e => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
+            onDrop={async e => { if (!e.dataTransfer.types.includes('Files')) return; e.preventDefault(); const f = await filesFromDrop(e.dataTransfer); if (f.length) setImportFiles(f); }}>
             <CardList
               pack={work.pack} cards={work.cards} problemIds={problemIds} selected={selected} focus={focus} changedIds={changedIds}
-              packRow={{ changed: packChanged, problem: nameMissing }} onSelect={select} onAdd={addCard}
+              packRow={{ changed: packChanged, problem: nameMissing }} onSelect={select} onAdd={addCard} onImport={setImportFiles} needsOdds={needsOdds}
               onDeleteSelected={() => removeCards(cardIds)} searchRef={searchRef}
             />
           </div>
@@ -375,6 +383,13 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
             )}
           </aside>
         </div>
+      )}
+
+      {importFiles && (
+        <ImportDialog
+          files={importFiles} existing={work.cards} onClose={() => setImportFiles(null)}
+          onApply={(fn, ids) => { editCards(fn); if (ids.length > 0) { setFresh(f => new Set([...f, ...ids])); setOnly(o => new Set([...(o ?? []), ...ids])); setView('grid'); } }}
+        />
       )}
 
       {/* ── Review changes ── */}
