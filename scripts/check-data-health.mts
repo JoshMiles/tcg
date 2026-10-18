@@ -43,6 +43,7 @@ ok(row.collection.viewers === 3 && row.collection.entries === 7 && row.collectio
 ok(row.collection.bytes === dh.jsonBytes({ alice: [1, 1, 2, 3], bob: [4], carol: [5, 6] }) && row.level === 'ok', 'measured size and level');
 ok(!row.ledger.tracking && row.ledger.live === 0 && row.ledger.ownerEntries === 0 && row.ledger.largestOwner === null, 'an unnumbered season has no ledger numbers');
 ok(h.trades.openCount === 0 && h.trades.historyCount === 0 && h.activityEvents === 0, 'empty trades and activity read as zero');
+ok(h.trades.stuckEscrow.length === 0, 'nothing is stuck in escrow');
 
 // Draft seasons are not measured.
 await kvLib.saveSeason({ ...season, id: 'draft-x', name: 'Draft', status: 'draft', collectionName: 'DraftX' });
@@ -60,10 +61,11 @@ ok(led.editions >= 6 && led.ownerEntries > 0 && led.largestOwner?.username === '
 
 // Trades and activity.
 await prodKv.set('trades:open', [{ id: 't1' }, { id: 't2' }]);
-await prodKv.set('trades:history', [{ id: 'h1' }, { id: 'h2' }, { id: 'h3' }]);
+await prodKv.set('trades:history', [{ id: 'h1' }, { id: 'h2', escrowed: true }, { id: 'h3' }]);
 await prodKv.lpush('activity:log', { id: 1 }); await prodKv.lpush('activity:log', { id: 2 });
 h = await dh.loadDataHealth(season.id);
-ok(h.trades.openCount === 2 && h.trades.historyCount === 3 && h.trades.historyBytes === dh.jsonBytes([{ id: 'h1' }, { id: 'h2' }, { id: 'h3' }]), 'trade offers and history are measured');
+ok(h.trades.openCount === 2 && h.trades.historyCount === 3 && h.trades.historyBytes === dh.jsonBytes([{ id: 'h1' }, { id: 'h2', escrowed: true }, { id: 'h3' }]), 'trade offers and history are measured');
+ok(h.trades.stuckEscrow.join() === 'h2', 'a closed offer still marked escrowed is listed as stuck');
 ok(h.activityEvents === 2, 'activity events are counted');
 
 console.log('data health checks passed');

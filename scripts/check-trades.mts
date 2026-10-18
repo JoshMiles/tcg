@@ -126,6 +126,23 @@ await runInSandbox(box.id, async () => {
   ok(core.ownedCopies(await owned('bob'), 1, 'regular') === 2 && core.ownedCopies(await owned('alice'), 9, 'regular') === 1, 'the copies changed hands');
   ok(await universe() === start, 'copies conserved after accepting');
   ok(!(await trades.acceptTrade(a1.trade.id, 'bob')).ok, 'an offer can only be accepted once');
+
+  // KV has no multi-key transaction. When a refund fails after the offer was saved as closed (here: the collection lock is held,
+  // so the refund times out), the offer is never refunded a second time: it stays in history marked escrowed for staff to fix.
+  const stuck = await trades.createTrade({ seasonId: season.id, from: 'carol', kind: 'listing', give: [stack(7)], get: [stack(4, 'full')] });
+  ok(stuck.ok, 'carol lists a card');
+  if (stuck.ok) {
+    await db.kv.set(`lock:tcg_${coll}`, 'held', { ex: 30 });
+    ok(await trades.cancelTrade(stuck.trade.id, 'carol').then(() => false, () => true), 'the refund fails while the collection is locked');
+    await db.kv.del(`lock:tcg_${coll}`);
+    await trades.sweepTrades();
+    const rec = await trades.getTrade(stuck.trade.id);
+    ok(rec?.status === 'cancelled' && rec.escrowed, 'the failed refund leaves a closed offer marked escrowed');
+    ok(!(await trades.listOpenTrades()).some(t => t.id === stuck.trade.id), 'it is no longer open, so it cannot be refunded again');
+    ok(await universe() === start - 1, 'the copy is stuck, never duplicated');
+    await put({ ...(await kvLib.getCollection(coll)), carol: [...(await owned('carol')), E(7)] }); // staff hand it back
+  }
+  ok(await universe() === start, 'copies conserved after the stuck-escrow repairs');
   ok((await trades.getTrade(a1.trade.id))?.status === 'accepted', 'it is recorded as accepted');
   {
     // Notifications: the offerer hears about the acceptance (after the trade lock is released), the recipient heard about the offer.

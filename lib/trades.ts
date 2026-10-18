@@ -109,10 +109,6 @@ async function returnToCollection(seasonId: string, username: string, items: Tra
 async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status: TradeStatus, by: string | undefined, reason?: string, refund = true, settledPools?: EventPools): Promise<void> {
   // A refund puts the escrowed copies back with the offerer, so price the give side from the escrow before that happens.
   const pools = settledPools ?? (trade.escrowed ? await snapshotPools(trade.seasonId, { give: escrowOwner(trade.id) }) : undefined);
-  if (refund && trade.escrowed) {
-    await returnToCollection(trade.seasonId, trade.from, trade.give, trade.id);
-    trade.escrowed = false;
-  }
   trade.status = status;
   trade.resolvedAt = Date.now();
   if (by) trade.resolvedBy = by;
@@ -122,6 +118,13 @@ async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status:
   if (i >= 0) open.splice(i, 1);
   history.unshift(trade);
   if (history.length > HISTORY_CAP) history.length = HISTORY_CAP;
+  if (refund && trade.escrowed) {
+    // KV has no multi-key transaction: save the offer as closed (still marked escrowed) BEFORE the copies move. If the refund
+    // then fails, the offer can't be refunded twice; Data health lists it as stuck in escrow. The caller's persist clears the flag.
+    await persist(open, history);
+    await returnToCollection(trade.seasonId, trade.from, trade.give, trade.id);
+    trade.escrowed = false;
+  }
   // (a counter is announced by the new offer it creates)
   if (status === 'accepted' || status === 'declined' || status === 'cancelled' || status === 'expired') queueEvent(trade, status, by, pools);
 }
@@ -377,6 +380,11 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
       moved = await movedPrints(season.collectionName, escrowOwner(trade.id), trade.give, taker, get!);
       data[trade.from] = settled.offerer;
       data[taker] = settled.taker;
+      // Close the offer (still marked escrowed) before the copies move, so a failure in between can't refund it later (see closeTrade).
+      trade.get = get!;
+      if (moved) trade.moved = moved;
+      await closeTrade(open, history, trade, 'accepted', taker, undefined, false, pools);
+      await persist(open, history);
       // Identity follows the cards: the offer's copies leave escrow for the taker, the asked-for copies go to the offerer.
       await saveCollection(season.collectionName, data, { moves: [
         ...trade.give.map(i => ({ from: escrowOwner(trade.id), to: taker, ...moveOf(i) })),
@@ -388,11 +396,8 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
     if (!result.ok) {
       return fail(400, `You don't have ${result.missing.count}× card #${result.missing.cardNumber} (${result.missing.variant}) that this offer asks for.`);
     }
-    // The escrow has been handed over, so close without refunding. The record keeps the exact prints that came back.
+    // The escrow has been handed over. The record keeps the exact prints that came back.
     trade.escrowed = false;
-    trade.get = get!;
-    if (moved) trade.moved = moved;
-    await closeTrade(open, history, trade, 'accepted', taker, undefined, false, pools);
     await persist(open, history);
     return { ok: true, trade };
   });
