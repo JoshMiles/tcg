@@ -23,7 +23,7 @@ ok(JSON.stringify(cleanWebhookFields([{ key: ' user ', value: '{username}' }, { 
 ok(cleanWebhookFields('nope').length === 0 && cleanWebhookFields({}).length === 0, 'fields that are not a list become empty');
 ok(cleanWebhookFields(Array.from({ length: 50 }, (_, i) => ({ key: 'k' + i, value: '' }))).length === 20, 'at most 20 fields');
 
-const actions = readFileSync(new URL('../app/admin/actions.ts', import.meta.url), 'utf8');
+const actions = readFileSync(new URL('../app/admin/actions/settings.ts', import.meta.url), 'utf8');
 const section = actions.slice(actions.indexOf('export async function saveOutgoingWebhook'), actions.indexOf('export async function regenerateWebhookSecret'));
 ok(section.includes('checkWebhookUrl(') && section.includes('cleanWebhookFields('), 'the settings form checks the address and the fields');
 const lib = readFileSync(new URL('../lib/webhooks.ts', import.meta.url), 'utf8');

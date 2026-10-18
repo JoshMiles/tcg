@@ -4,7 +4,7 @@ import { useRef, useState, useTransition, type DragEvent } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { Spinner } from '../../components/PendingButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
-import { removePackFromSeason } from '../../actions';
+import { removePackFromSeason } from '../../actions/seasons';
 import { reorderSeasonPacksAction, setPackWeightAction } from '../../season-actions';
 
 export interface LineupPack { id: string; name: string; coverImageUrl: string; weight: number; status: 'draft' | 'published'; active: boolean; cards: number; archived: boolean }

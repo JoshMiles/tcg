@@ -9,7 +9,7 @@ import { cancelTrade } from '@/lib/trades';
 import { cleanTags, mergeUsers, restoreUserSnapshot, saveFlags, saveTags } from '@/lib/user-admin';
 import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
-import { quickAction } from './actions';
+import { quickAction } from './actions/users';
 import { addUserPullBuff, removeUserPullBuff, setUserBaseLimit } from '@/lib/pull-limit';
 
 export interface UserActionResult { ok: boolean; message: string }

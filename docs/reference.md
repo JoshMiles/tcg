@@ -18,7 +18,7 @@
 | `lib/legacy-data.ts` | Season 1 legacy collection data for the one-time import route |
 | `lib/seed.ts` | Static seed data for Season 1 / Cheesy Starter Pack (25 cards with soundUrl set) |
 | `lib/webhooks.ts` | Webhook settings helpers (incomingSecret, etc.) |
-| `app/admin/actions.ts` | All server actions (mutations). No data fetching here |
+| `app/admin/actions/*.ts` | Server actions (mutations) by domain: `seasons`, `packs`, `cards`, `users` (also the dashboard quick actions), `settings` (webhooks, scoring, Discord, overlay, assets); non-exported form parsers and shared types live in `form-helpers.ts`. No data fetching here |
 | `app/admin/layout.tsx` | Admin layout: fills the slots of `AdminShell` (brand, `AdminNav`, overlay status, footer actions) |
 | `app/admin/components/AdminShell.tsx` | Client frame that owns the sidebar state: off-canvas **drawer + top bar below `lg`**, **collapsible icon rail on `lg+`** (remembered in `localStorage` `tcg_admin_sidebar`). Parts that must vanish when collapsed carry the `aside-label` class, centred items `aside-item`, rows that stack into a column on the rail `aside-stack`, cards `aside-card`, and group dividers `aside-rule` (CSS in `globals.css`). Add them to any new sidebar content. The nav is grouped (Overview / Game / Community / System in `AdminNav`); the bottom is a status card (`OverlayStatus` compact), Copy URL / Preview buttons, and an account row with log out + build badge; the collapse handle is a round button on the sidebar's edge |
 | `app/admin/components/AdminNav.tsx` | Client component, uses `usePathname()` for active nav state |

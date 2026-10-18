@@ -6,7 +6,7 @@ import { PageTabs, pickTab, type PageTab } from '../components/PageTabs';
 import { OverlayStatus } from '../components/OverlayStatus';
 import { getBuildInfo } from '@/lib/version';
 import { getOverlaySettings } from '@/lib/overlay-settings';
-import { saveScoringSettingsAction, resetScoringSettingsAction } from '../actions';
+import { saveScoringSettingsAction, resetScoringSettingsAction } from '../actions/settings';
 import { getScoringSettings, DEFAULT_SCORING, type ScoringSettings } from '@/lib/scoring';
 import { DiscordConfig } from './DiscordConfig';
 import { getOverlayKey, overlayUrl } from '@/lib/overlay-key';

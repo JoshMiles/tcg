@@ -19,7 +19,7 @@ import { getLastSeen } from '@/lib/stats';
 import { tradesForUser } from '@/lib/trades';
 import { describeItems } from '@/lib/trade-core';
 import { listUserSnapshots, SUGGESTED_TAGS } from '@/lib/user-admin';
-import { updateUserProfile, removeUserCard, resetUserSeason, resetUser, deleteUser } from '../../actions';
+import { updateUserProfile, removeUserCard, resetUserSeason, resetUser, deleteUser } from '../../actions/users';
 import { PageTabs, pickTab } from '../../components/PageTabs';
 import { UserTesterPicker } from '../../settings/TesterControls';
 import { getTester } from '@/lib/access';

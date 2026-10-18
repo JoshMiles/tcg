@@ -7,7 +7,7 @@ import { getSeasonLeaderboard } from '@/lib/leaderboard';
 import { getSeasonStats, getSnapshot, getActivationPreview } from '@/lib/season-wrap';
 import { bucketsFor, getSeries } from '@/lib/stats';
 import { ConfirmButton } from '../../components/ConfirmButton';
-import { updateSeason, addPackToSeason, activateSeason } from '../../actions';
+import { updateSeason, addPackToSeason, activateSeason } from '../../actions/seasons';
 import { duplicateSeasonAction, endSeasonAction, reopenSeasonAction } from '../../season-actions';
 import { SeasonFields } from '../../components/SeasonFields';
 import { DraftChip } from '../../components/StatusChip';

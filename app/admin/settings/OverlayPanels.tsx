@@ -3,7 +3,7 @@ import { useActionState, useState, useTransition } from 'react';
 import { UserInput } from '@/app/components/UserInput';
 import { Icon } from '@/app/components/Icon';
 import type { ActionResult } from '../action-types';
-import { quickAction } from '../actions';
+import { quickAction } from '../actions/users';
 import { setLiveGateAction } from '../dashboard/actions';
 import { useOverlayStatus } from '../components/OverlayStatusContext';
 import { PendingButton } from '../components/PendingButton';

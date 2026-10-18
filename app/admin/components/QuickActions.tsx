@@ -2,7 +2,7 @@
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from './PendingButton';
 import { useActionState, useEffect, useState } from 'react';
-import { quickAction, clearQueueAction } from '../actions';
+import { quickAction, clearQueueAction } from '../actions/users';
 import type { ActionResult } from '../action-types';
 import { ConfirmButton } from './ConfirmButton';
 import { useOverlayStatus } from './OverlayStatusContext';

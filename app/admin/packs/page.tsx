@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { listAllPacks, getPackCards, listSeasons } from '@/lib/kv';
 import { getPackOverrides } from '@/lib/overlay-settings';
 import { rarityStats } from '@/lib/rarity';
-import { deletePackAction, setPackActive } from '../actions';
+import { deletePackAction, setPackActive } from '../actions/packs';
 import { archivePackAction, duplicatePackAction, restorePackAction } from '../pack-actions';
 import { packHealth } from '@/lib/pack-health';
 import { getPackPulls } from '@/lib/stats';

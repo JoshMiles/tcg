@@ -3,7 +3,7 @@ import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import { useId, useState } from 'react';
 import type { WebhookSettings, OutgoingWebhookConfig, WebhookField } from '@/lib/webhooks';
-import { saveOutgoingWebhook, regenerateWebhookSecret } from '../actions';
+import { saveOutgoingWebhook, regenerateWebhookSecret } from '../actions/settings';
 import { ConfirmButton } from '../components/ConfirmButton';
 
 // ── Outgoing event definitions ────────────────────────────

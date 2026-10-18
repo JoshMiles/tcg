@@ -3,7 +3,9 @@ import { Icon } from '@/app/components/Icon';
 import { useState, useTransition } from 'react';
 import type { OptionalVariant, VariantWeights } from '@/lib/types';
 import { VARIANT_LABELS } from '@/lib/variants';
-import { setPackVariant, setCardUpgrades, setCardVariant, bulkCards, type BulkCardOp } from '../../actions';
+import { setPackVariant } from '../../actions/packs';
+import { setCardUpgrades, setCardVariant, bulkCards } from '../../actions/cards';
+import type { BulkCardOp } from '../../actions/form-helpers';
 import { VariantChips, OPTIONAL_VARIANTS } from '../../components/VariantSwitches';
 
 /** "Variants & odds": switch a variant on or off for the whole pack and see the resulting pull odds. */
