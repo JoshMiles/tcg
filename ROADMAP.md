@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-18 (after #238).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-18 (after #257).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -18,6 +18,18 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 23.2 | Overlay Editor: split the rest | Needs design | M |
 | 4.4 | Link a Discord account for DMs | Needs a decision | L |
 | Ext | Next extension version | Blocked (panel freeze) | L |
+| 24 | daisyUI: Tailwind 4, a `cheesy` theme, then page by page | 24.0 Ready, rest after it | L (about 10 PRs) |
+
+### 24 Switch the site and admin to daisyUI 5 (24.0 Ready, L)
+
+Today every page is hand-written Tailwind 3 utilities (about 500 buttons, 240 inputs, 72 selects across 286 `.tsx` files) with the theme in `tailwind.config.ts` (navy `gray-*`, brand `yellow-*`, `poke-*`, fonts, `shadow-card`/`shadow-glow`). The only shared classes are `.tcg-btn` and `.tcg-panel` in `app/globals.css`, and nothing defines daisyUI's class names, so no prefix is needed. daisyUI 5 needs Tailwind 4, so Tailwind moves first. One PR per step, each branched from `main`; pages mixing raw utilities and daisyUI classes are fine in between.
+
+- **24.0 Tailwind 3 to 4, no visual change (Ready).** `npx @tailwindcss/upgrade`, then check its work: the theme moves to `@theme` in `app/globals.css` (gray, yellow and poke scales, `--font-display`/`--font-body`, the two shadows), PostCSS uses `@tailwindcss/postcss`, `tailwind.config.ts` goes. Watch the v4 renames and default changes (`shadow-sm` to `shadow-xs`, `rounded-sm` to `rounded-xs`, `ring` to `ring-3`, `outline-none` to `outline-hidden`, borders and rings default to `currentColor`, so add the gray-800 border default to the base layer). `.design-sync` has its own safelisted Tailwind config: move it to v4 too and confirm its build. Should also clear the Dependabot `braces` alert. Checks: `npm run verify`, `npm run build`, the public-site and admin sweeps from `docs/review.md` against the mock KV at 1280px and 390px; pages should look the same.
+- **24.1 Add daisyUI with a `cheesy` theme, no visual change.** `@plugin "daisyui" { themes: cheesy --default; }` and a `@plugin "daisyui/theme"` block: `base-100/200/300` = gray-950/900/800, `base-content` = gray-100, `primary` = `#ffcb05` on `#1a1400`, `secondary` = poke-blue, `error` = poke-red, `success`/`warning`/`info` = the green/amber/sky in use, `--radius-field` xl, `--radius-box` 2xl, `color-scheme: dark`. Keep the gray/yellow scales. Sweep again: daisyUI's base layer touches the page background, `<dialog>` and form controls.
+- **24.2 Shared primitives,** props unchanged so callers don't move: `.tcg-btn` to `btn btn-primary` (keep the 3D shadow as an override), `ArmedButton`/`ConfirmButton` armed state to `btn-error`, `Spinner` to `loading loading-spinner`, `StatusChip`/`DraftChip`/`StaffBadge`/`SerialChip` to `badge` (SerialChip keeps its tiers), `Dialog` to a `<dialog>`-based `modal` (native focus trap and Esc; check the thin open/close wrappers), `PageTab`/`AdminNav` to `tabs`/`menu`. Re-sync the design system.
+- **24.3 Page by page:** forms first (`input`, `select`, `textarea`, `toggle`, `fieldset`), then panels (`card`) and tables (`table`). Admin (about 2 PRs), public site (about 3: profile and binder, dex and leaderboard, trading), account and settings. Each PR: verify plus that area's sweep.
+- **24.4 Clean-up:** drop `.tcg-btn`/`.tcg-panel` once unused; update `.design-sync/conventions.md`, the Tailwind line in `CLAUDE.md` conventions ("daisyUI `cheesy` theme; use `btn`/`card`/`input`, not raw utilities") and the house-pattern notes in `docs/admin/ux-conventions.md` and `docs/public-site.md`.
+- **Not changed:** the overlay (`widget.js`/`widget.css`) and the Twitch panel (plain CSS, and frozen), card effects (`holo-fx`, `cheese-hero`, `vfx-*`), `Icon` (daisyUI has no icons), no light theme or theme switcher.
 
 ### 20.2f One flow for new packs; the wizard goes (Ready, M)
 
