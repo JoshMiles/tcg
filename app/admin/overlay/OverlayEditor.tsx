@@ -4,14 +4,24 @@ import { PendingButton } from '../components/PendingButton';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import {
-  PROPS, PROP_BY_KEY, PROP_GROUPS, REVEAL_STYLES, SECTION_ORDER, VARIANT_IDS, cleanValue, exportProps, importProps,
+  PROPS, PROP_BY_KEY, PROP_GROUPS, SECTION_ORDER, VARIANT_IDS, cleanValue, exportProps, importProps,
   type PropDef, type PropValue, type PropValues, type VariantId,
 } from '@/lib/overlay-props';
-import { DEFAULT_LAYOUT, DEFAULT_PLACEMENT, LAYOUT_PRESETS, VERTICAL_LAYOUT_PRESETS, isVertical, sanitizeLayout, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
-import { MOMENT_IDS, type MomentId } from '@/lib/overlay-moments';
+import { DEFAULT_LAYOUT, sanitizeLayout, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { MOMENT_IDS } from '@/lib/overlay-moments';
 import { diffLayout, diffProps } from '@/lib/overlay-diff';
-import { PERF_LABEL, variantPerf, type PerfLevel } from '@/lib/overlay-perf';
-import { deleteOverlayVersionAction, refreshOverlayAction, setSeasonLookAction } from '../overlay-actions';
+import { PERF_LABEL, variantPerf } from '@/lib/overlay-perf';
+import { refreshOverlayAction } from '../overlay-actions';
+import { Segmented, PropRow, btn } from './editor-controls';
+import {
+  PERF_STYLE, VARIANT_LABELS, dependsOn,
+  type Bg, type CardInfo, type Mode, type MomentPick, type PackInfo, type PresetInfo, type SeasonInfo, type SidebarWindow, type Snap, type VersionInfo,
+} from './editor-types';
+import { GuidesMenu, ImportExportMenu, PackToolsMenu, PresetsMenu, ReviewMenu, SaveOptionsMenu, ScenesMenu, VersionsMenu } from './EditorMenus';
+import { LayoutPanel } from './LayoutPanel';
+import { VariantPicker } from './VariantPicker';
+import { CategoryRail } from './CategoryRail';
+
 
 // The Overlay Editor: one Photoshop-style workspace for where the overlay sits (Layout) and how it looks and moves. Everything is generated from the registry in
 // lib/overlay-props.ts. Layout: an options bar (scope, presets, import/export, save) over a fixed canvas (the real overlay
@@ -19,57 +29,16 @@ import { deleteOverlayVersionAction, refreshOverlayAction, setSeasonLookAction }
 // rail, version tabs, collapsible sections, search). Values are stored sparsely; there are two scopes: Global and
 // per-pack overrides. The preview is /overlay.html?preview fed the unsaved values by postMessage.
 
-interface PackInfo { id: string; name: string }
-interface PresetInfo { id: string; name: string; props: PropValues; layout?: OverlayLayout; updatedAt: number }
-interface VersionInfo { id: string; at: number; note: string; layout: OverlayLayout; props: PropValues; packs: Record<string, PropValues> }
-interface SeasonInfo { id: string; name: string; active: boolean }
-interface CardInfo { number: number; name: string; stars: number }
-type Snap = { g: PropValues; p: Record<string, PropValues>; l: Record<string, OverlayLayout> };   // p / l also hold the scenes, keyed "scene:<preset id>"
-type Bg = 'checker' | 'dark' | 'light' | 'green' | 'image';
-const PERF_STYLE: Record<PerfLevel, string> = { light: 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10', medium: 'text-amber-300 border-amber-400/30 bg-amber-500/10', heavy: 'text-red-300 border-red-400/30 bg-red-500/10' };
-type Mode = 'pack' | 'collection';
-type MomentPick = '' | MomentId;
-
-const VARIANT_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' };
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
 const snapKey = (x: Snap) => JSON.stringify([canon(x.g), Object.keys(x.p).sort().map(k => [k, canon(x.p[k])]), x.l]);
 const sectionRank = (s: string) => { const i = SECTION_ORDER.indexOf(s); return i < 0 ? 99 : i; };
 
-// Which other property switches a property's controls on or off (so the panel can grey out what has no effect).
-function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean } | null {
-  const m = key.match(/^(variant\.[a-z]+)\.(.+)$/);
-  if (m) {
-    const [, g, name] = m;
-    if (/^glow(ColorA|ColorB|Blur|Spread|Speed)$/.test(name)) return { key: `${g}.glow`, when: v => v === true };
-    if (/^pop(Scale|Tilt)$/.test(name)) return { key: `${g}.pop`, when: v => v === true };
-    if (/^tilt(Axis|Amount|Speed|Perspective)$/.test(name)) return { key: `${g}.tilt`, when: v => v === true };
-    if (/^rock(Amount|Speed)$/.test(name)) return { key: `${g}.rock`, when: v => v === true };
-    if (/^sparkle(Count|Color)$/.test(name)) return { key: `${g}.sparkles`, when: v => v === true };
-    if (/^holo(Colors|Opacity|Speed|Angle|Blend|Loop)$/.test(name)) return { key: `${g}.holoMode`, when: v => v !== 'off' };
-    if (/^burst(Opacity|Size|Rays|Speed|Color|Hue)$/.test(name)) return { key: `${g}.burst`, when: v => v === true };
-  }
-  const mo = key.match(/^moment\.(firstPull|newCard)\.(.+)$/);
-  if (mo && mo[2] !== 'on') return { key: `moment.${mo[1]}.on`, when: v => v === true };
-  if (/^reveal\.firstEver(Text|Hold)$/.test(key)) return { key: 'reveal.firstEver', when: v => v === true };
-  const fe = key.match(/^moment\.firstEver\.(.+)$/);
-  if (fe) return { key: 'reveal.firstEver', when: v => v === true };
-  if (/^show\.(labelColor|labelTextColor)$/.test(key)) return { key: 'show.ownLabelLook', when: v => v === true };
-  if (/^show\.(text|ownLabelLook|labelSize|labelX|labelY)$/.test(key)) return { key: 'show.showLabel', when: v => v === true };
-  if (key === 'show.printFormat') return { key: 'show.showPrint', when: v => v === true };
-  if (key === 'show.soundUrl') return { key: 'show.sound', when: v => v === 'custom' };
-  if (key === 'show.volume') return { key: 'show.sound', when: v => v !== 'off' };
-  if (key === 'reveal.gotText') return { key: 'reveal.showGotLine', when: v => v === true };
-  if (key === 'collection.headingText') return { key: 'collection.showHeading', when: v => v === true };
-  return null;
-}
-
 // "Layout" sits in the rail beside the registry's categories but isn't registry-driven: it edits the stage size and where each
 // view is placed. Layout is global (not per pack), so it is hidden while editing a pack.
 const LAYOUT_CAT: { id: string; label: string; icon: IconName; description: string } = { id: 'layout', label: 'Layout', icon: 'ruler', description: 'Where the overlay sits on your OBS browser source.' };
 
-type SidebarWindow = Window & { __tcgSidebarForce?: boolean };
 
 export function OverlayEditor({
   initialGlobal, initialPacks, packs, presets, initialLayout, initialScope, saveAction, savePresetAction, deletePresetAction,
@@ -400,9 +369,6 @@ export function OverlayEditor({
     setNotice(`Copied the ${VARIANT_LABELS[from]} look onto ${VARIANT_LABELS[version]}. Review, then Save.`);
   };
 
-  const btn = 'px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors';
-  const ghost = `${btn} border border-gray-700 text-gray-200 hover:border-gray-500`;
-
   const renderRow = (def: PropDef) => {
     const dep = dependsOn(def.key);
     const off = dep ? !dep.when(valueOf(dep.key)) : false;
@@ -456,7 +422,6 @@ export function OverlayEditor({
 
   // ── Layout (stage size + where each view sits) ──
   const placement = layout[mode];
-  const setSize = (patch: Partial<Pick<OverlayLayout, 'width' | 'height'>>) => setLayoutVals(l => ({ ...l, ...patch }));
   // `patch` may be a function of the latest placement, so rapid key presses never work from stale state.
   const setPlacement = (patch: Partial<Placement> | ((p: Placement) => Partial<Placement>)) =>
     setLayoutVals(l => ({ ...l, [mode]: { ...l[mode], ...(typeof patch === 'function' ? patch(l[mode]) : patch) } }));
@@ -546,138 +511,19 @@ export function OverlayEditor({
         .flatMap(([name, defs]) => defs.map(d => ({ d, crumb: `${g.label}${d.variant ? ' › ' + VARIANT_LABELS[d.variant] : ''} › ${name}` }))))
     : [];
 
-  const variantSummary = (v: VariantId) => {
-    const g = (n: string) => valueOf(`variant.${v}.${n}`);
-    const bits: string[] = [];
-    if (g('holoMode') === 'on') bits.push('Holo'); else if (g('holoMode') === 'auto') bits.push('Holo by stars');
-    if (g('glow') === true) bits.push('Glow');
-    if (g('pop') === true) bits.push('Pop');
-    if (g('tilt') === true) bits.push('3D tilt');
-    if (g('rock') === true) bits.push('Rock');
-    if (g('sparkles') === true) bits.push('Sparkles');
-    return bits.join(' · ') || 'Plain';
-  };
   const variantPickerList = (
-    <div className="p-3 space-y-2">
-      <p className="text-xs text-gray-500 leading-relaxed">Choose a card variant to edit. Clicking the card in the preview opens the variant you are previewing.</p>
-      {VARIANT_IDS.map(v => {
-        const colors = valueOf(`variant.${v}.labelColors`) as string[];
-        const changed = PROPS.filter(d => d.variant === v && current[d.key] !== undefined).length;
-        return (
-          <button
-            key={v}
-            type="button"
-            onClick={() => { setVersion(v); setVariantOpen(true); setMode('pack'); }}
-            className={`w-full text-left rounded-xl border p-3 flex items-center gap-3 transition-colors ${version === v ? 'border-yellow-500/60 bg-yellow-500/5' : 'border-gray-700 hover:border-gray-500 hover:bg-white/5'}`}
-          >
-            <span
-              className="px-2.5 py-1 rounded-full text-[11px] font-bold text-white shrink-0 max-w-[8rem] truncate"
-              style={{ background: colors.length > 1 ? `linear-gradient(90deg, ${colors.join(', ')})` : colors[0] }}
-            >
-              {String(valueOf(`variant.${v}.labelText`))}
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block text-sm font-semibold text-white">{VARIANT_LABELS[v]}</span>
-              <span className="block text-xs text-gray-500 truncate">{variantSummary(v)}</span>
-            </span>
-            {(() => { const r = variantPerf(valueOf, v); return <span title={r.reasons.join(', ') || 'A rough guide to how hard this version works the overlay'} className={`text-[10px] font-bold rounded-full border px-1.5 shrink-0 ${PERF_STYLE[r.level]}`}>{PERF_LABEL[r.level]}</span>; })()}
-            {version === v && <span className="text-[10px] uppercase tracking-wide text-yellow-400 font-bold shrink-0">Previewing</span>}
-            {changed > 0 && <span className="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 rounded-full px-1.5 shrink-0">{changed}</span>}
-            <span aria-hidden className="text-gray-500">›</span>
-          </button>
-        );
-      })}
-    </div>
+    <VariantPicker valueOf={valueOf} current={current} version={version} onPick={v => { setVersion(v); setVariantOpen(true); setMode('pack'); }} />
   );
+
 
   const viewName = mode === 'pack' ? 'pack opening' : 'collection view';
   const layoutPanel = (
-    <div className="p-3 space-y-5">
-      <section className="space-y-2">
-        <h4 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Browser source size <span className="normal-case text-gray-600 font-normal">· {isScene ? `scene "${scene?.name ?? ''}"` : 'shared by both views'}</span></h4>
-        <p className="text-xs text-gray-400 leading-relaxed">
-          Set the OBS browser source to <code className="text-yellow-400">{layout.width}</code> × <code className="text-yellow-400">{layout.height}</code>.
-          The overlay is drawn at this size and scaled to fit if your source differs, so nothing gets cut off.
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {LAYOUT_PRESETS.map(p => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => setSize({ width: p.width, height: p.height })}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${layout.width === p.width && layout.height === p.height ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-300 hover:border-gray-500'}`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] uppercase tracking-wide text-gray-600 mr-1">Vertical</span>
-          {VERTICAL_LAYOUT_PRESETS.map(p => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => setSize({ width: p.width, height: p.height })}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${layout.width === p.width && layout.height === p.height ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-300 hover:border-gray-500'}`}
-            >
-              {p.label}
-            </button>
-          ))}
-          <button type="button" onClick={() => setSize({ width: layout.height, height: layout.width })} title="Swap width and height" className={`${btn} border border-gray-700 text-gray-300 hover:border-gray-500 py-1`}>Rotate</button>
-        </div>
-        {isVertical(layout) && (
-          <div className="rounded-lg border border-sky-500/25 bg-sky-950/20 p-2.5 text-xs text-sky-100/90 space-y-1.5">
-            <p>Vertical stage. The collection wraps to the stage width, so pick how many cards fit on a line (3 or 4 suits a phone-shaped canvas) under Collection, then centre each view here.</p>
-            {!isPack && <button type="button" onClick={() => { setValue('collection.perRow', 4); setNotice('Set the collection to 4 cards per row. Review, then Save.'); }} className={`${btn} border border-sky-400/40 text-sky-200 hover:bg-sky-500/10 py-1`}>Show 4 cards per row</button>}
-          </div>
-        )}
-        <div className="flex gap-3">
-          <label className="text-xs text-gray-500 space-y-1">Width
-            <input type="number" min={320} max={3840} value={layoutVals.width} onChange={e => setSize({ width: Number(e.target.value) })} className={`${inputCls} block w-24`} />
-          </label>
-          <label className="text-xs text-gray-500 space-y-1">Height
-            <input type="number" min={240} max={2160} value={layoutVals.height} onChange={e => setSize({ height: Number(e.target.value) })} className={`${inputCls} block w-24`} />
-          </label>
-        </div>
-      </section>
-
-      <section className="space-y-3 border-t border-gray-800 pt-4">
-        <h4 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Position</h4>
-        <Segmented
-          label="Placing"
-          value={mode}
-          onChange={v => setMode(v as Mode)}
-          options={[{ id: 'pack', label: 'Pack opening', dot: moved(layout.pack) }, { id: 'collection', label: 'Collection', dot: moved(layout.collection) }]}
-          wrap
-        />
-        <p className="text-xs text-gray-500 leading-relaxed">
-          The size and position of the {viewName} are independent of the other view. <strong className="text-gray-400">Drag the canvas</strong>, or click it and use the arrow keys (Shift for bigger steps).
-        </p>
-        <label className="block space-y-1 text-sm text-gray-300">
-          Size <span className="text-white font-semibold">{Math.round(placement.scale * 100)}%</span>
-          <input
-            type="range" min={0.3} max={1.5} step={0.01} value={placement.scale}
-            onChange={e => setPlacement({ scale: Number(e.target.value) })}
-            className="block w-full accent-yellow-500"
-          />
-        </label>
-        <div className="flex gap-3">
-          <label className="text-xs text-gray-500 space-y-1">Offset X
-            <input type="number" value={placement.offsetX} onChange={e => setPlacement({ offsetX: Number(e.target.value) })} className={`${inputCls} block w-24`} />
-          </label>
-          <label className="text-xs text-gray-500 space-y-1">Offset Y
-            <input type="number" value={placement.offsetY} onChange={e => setPlacement({ offsetY: Number(e.target.value) })} className={`${inputCls} block w-24`} />
-          </label>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => setPlacement({ offsetX: 0, offsetY: 0 })} className={ghost}>Center</button>
-          <button type="button" onClick={() => setPlacement({ ...DEFAULT_PLACEMENT })} className={`${btn} text-gray-400 hover:text-white`}>Reset {viewName}</button>
-        </div>
-      </section>
-
-      <button type="button" onClick={() => setLayoutVals(DEFAULT_LAYOUT)} className="text-xs text-gray-500 hover:text-red-300">Reset the whole layout</button>
-    </div>
+    <LayoutPanel
+      layout={layout} layoutVals={layoutVals} isScene={isScene} sceneName={scene?.name ?? ''} isPack={isPack} mode={mode} setMode={setMode}
+      setLayoutVals={setLayoutVals} setPlacement={setPlacement} setValue={setValue} setNotice={setNotice}
+    />
   );
+
 
   return (
     <div data-workspace className="flex flex-col gap-3 xl:h-full min-h-0">
@@ -704,221 +550,31 @@ export function OverlayEditor({
         {isPack && <span className="text-xs text-yellow-300/80 hidden md:inline">Only what you change applies to this pack; the rest follows global.</span>}
         {isScene && <span className="text-xs text-sky-300/80 hidden md:inline">This scene has its own overlay URL and layout; only what you change differs from the global look.</span>}
 
-        <Popover label="Presets" badge={presets.length || undefined}>
-          <div className="w-80 space-y-3 text-sm">
-            <p className="text-xs text-gray-500">A preset is a named set of {isPack ? 'this pack’s effective' : 'global'} values you can apply later{isPack ? ' to any pack' : ''}.</p>
-            {presets.length === 0 && <p className="text-xs text-gray-600">No presets yet.</p>}
-            <ul className="space-y-1 max-h-48 overflow-y-auto">
-              {presets.map(p => (
-                <li key={p.id} className="flex items-center gap-2">
-                  <span className="flex-1 truncate text-gray-200">{p.name} <span className="text-gray-600 text-xs">· {Object.keys(p.props).length}</span></span>
-                  <button type="button" onClick={() => applyPreset(p)} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`}>Apply</button>
-                  <form action={deletePresetAction}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <input type="hidden" name="scope" value={scope} />
-                    <PendingButton type="submit" className={`${btn} text-gray-500 hover:text-red-300 py-1`} aria-label={`Delete preset ${p.name}`}>Delete</PendingButton>
-                  </form>
-                </li>
-              ))}
-            </ul>
-            <form action={savePresetAction} className="flex items-center gap-2">
-              <input type="hidden" name="props" value={JSON.stringify(effectiveSparse)} />
-              <input type="hidden" name="scope" value={scope} />
-              <input
-                name="name"
-                value={presetName}
-                onChange={e => setPresetName(e.target.value)}
-                maxLength={40}
-                placeholder="New preset name"
-                className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none"
-              />
-              <PendingButton type="submit" disabled={!presetName.trim()} className={`${ghost} disabled:opacity-40`}>Save</PendingButton>
-            </form>
-            {dirty && <p className="text-xs text-yellow-500/80">Saving a preset reloads the page. Save your changes first.</p>}
+        <PresetsMenu
+          presets={presets} isPack={isPack} scope={scope} dirty={dirty} effectiveSparse={effectiveSparse} applyPreset={applyPreset}
+          deletePresetAction={deletePresetAction} savePresetAction={savePresetAction} presetName={presetName} setPresetName={setPresetName}
+          seasons={seasons} looks={looks} setLooks={setLooks} setNotice={setNotice}
+        />
 
-            {seasons.length > 0 && presets.length > 0 && (
-              <div className="border-t border-gray-800 pt-3 space-y-2">
-                <p className="text-xs font-semibold text-gray-300">Season looks</p>
-                <p className="text-xs text-gray-500">Attach a preset to a season: while it is the active season its look is layered over the global values (a pack&apos;s own overrides still win). Applied immediately, no Save needed.</p>
-                {seasons.map(s => (
-                  <label key={s.id} className="flex items-center gap-2 text-xs text-gray-400">
-                    <span className="flex-1 truncate">{s.name}{s.active && <span className="ml-1 text-green-400">(active)</span>}</span>
-                    <select
-                      value={looks[s.id] ?? ''}
-                      onChange={async e => {
-                        const id = e.target.value || null;
-                        const r = await setSeasonLookAction(s.id, id);
-                        if (r.ok) setLooks(l => { const n = { ...l }; if (id) n[s.id] = id; else delete n[s.id]; return n; });
-                        setNotice(r.message);
-                      }}
-                      aria-label={`Look for ${s.name}`}
-                      className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-[9rem]"
-                    >
-                      <option value="">Global look</option>
-                      {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        </Popover>
+        <ScenesMenu
+          presets={presets} initialLayout={initialLayout} globalLayout={layoutOf('global')} siteUrl={siteUrl} overlayKey={overlayKey}
+          scope={scope} setScope={setScope} setNotice={setNotice} savePresetAction={savePresetAction} presetName={presetName} setPresetName={setPresetName} dirty={dirty}
+        />
 
-        <Popover label="Scenes" icon="tv" badge={presets.length || undefined}>
-          <div className="w-[26rem] max-w-[85vw] space-y-3 text-sm">
-            <p className="text-xs text-gray-500">
-              A scene has its own overlay URL, so each OBS scene (a vertical one, a different canvas size) can use its own size, position and look.
-              Put the URL in that scene&apos;s browser source. Everything a scene does not change follows the global look.
-            </p>
-            <ul className="space-y-1.5 max-h-64 overflow-y-auto">
-              {[{ id: '', name: 'Everything (global)', size: `${initialLayout.width} × ${initialLayout.height}`, own: true }, ...presets.map(x => {
-                const l = x.layout;
-                return { id: x.id, name: x.name, size: l ? `${l.width} × ${l.height}${isVertical(l) ? ' · vertical' : ''}` : 'uses the global layout', own: !!l };
-              })].map(row => {
-                const url = `${siteUrl}/overlay.html?${row.id ? 'preset=' + row.id + '&' : ''}key=${overlayKey}`;
-                const key = row.id ? 'scene:' + row.id : 'global';
-                return (
-                  <li key={row.id || 'global'} className={`rounded-lg border px-2.5 py-2 space-y-1.5 ${scope === key ? 'border-yellow-500/60 bg-yellow-500/5' : 'border-gray-800'}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="flex-1 min-w-0 truncate text-gray-200 font-semibold">{row.name}</span>
-                      <span className="text-[11px] text-gray-500 shrink-0">{row.size}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <code className="flex-1 min-w-0 truncate rounded bg-gray-950 border border-gray-800 px-1.5 py-1 text-[11px] text-gray-400">{url}</code>
-                      <button type="button" onClick={() => navigator.clipboard.writeText(url).then(() => setNotice(`Copied the URL for "${row.name}".`), () => setNotice('Could not copy. Select the URL instead.'))} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`}>Copy</button>
-                      <a href={url} target="_blank" rel="noreferrer" className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`} aria-label={`Open the overlay for ${row.name}`}>Open</a>
-                      <button type="button" onClick={() => setScope(key)} disabled={scope === key} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1 disabled:opacity-40`}>Edit</button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-            <form action={savePresetAction} className="border-t border-gray-800 pt-3 space-y-2">
-              <p className="text-xs font-semibold text-gray-300">New scene</p>
-              <input type="hidden" name="props" value="{}" />
-              <input type="hidden" name="scope" value={scope} />
-              <input type="hidden" name="layout" value={JSON.stringify(layoutOf('global'))} />
-              <div className="flex items-center gap-2">
-                <input name="name" value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={40} placeholder="e.g. Vertical, Just chatting" className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none" />
-                <select name="sceneKind" defaultValue="landscape" aria-label="Orientation" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1.5 text-sm text-gray-200">
-                  <option value="landscape">Landscape</option>
-                  <option value="vertical">Vertical</option>
-                </select>
-                <PendingButton type="submit" disabled={!presetName.trim() || dirty} className={`${ghost} disabled:opacity-40`}>Create</PendingButton>
-              </div>
-              {dirty ? <p className="text-xs text-yellow-500/80">Creating a scene reloads the page. Save your changes first.</p> : <p className="text-xs text-gray-600">Landscape starts from the global layout; vertical starts from a 1080 × 1920 stage. Then adjust it under Layout.</p>}
-            </form>
-          </div>
-        </Popover>
+        <VersionsMenu versionList={versionList} setVersionList={setVersionList} versionDistance={versionDistance} loadVersion={loadVersion} />
 
-        <Popover label="Versions" icon="history" badge={versionList.length || undefined}>
-          <div className="w-96 space-y-2 text-sm">
-            <p className="text-xs text-gray-500">Every save keeps a version (newest 20). Load one into the editor to compare, then Save to make it live.</p>
-            {versionList.length === 0 && <p className="text-xs text-gray-600">Nothing saved yet. Your first save starts the history.</p>}
-            <ul className="space-y-1 max-h-64 overflow-y-auto">
-              {versionList.map(v => {
-                const dist = versionDistance(v);
-                return (
-                  <li key={v.id} className="flex items-center gap-2 rounded-lg border border-gray-800 px-2 py-1.5">
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-gray-200 truncate">{v.note || 'Saved'}</span>
-                      <span className="block text-[11px] text-gray-500">{new Date(v.at).toLocaleString('en-GB', { timeZone: 'UTC' })} · {dist === 0 ? 'same as now' : `${dist} difference${dist === 1 ? '' : 's'} from your edit`}</span>
-                    </span>
-                    <button type="button" disabled={dist === 0} onClick={() => loadVersion(v)} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1 disabled:opacity-40`}>Load</button>
-                    <button
-                      type="button"
-                      aria-label="Delete version"
-                      onClick={async () => { const r = await deleteOverlayVersionAction(v.id); if (r.ok) setVersionList(l => l.filter(x => x.id !== v.id)); }}
-                      className="text-gray-600 hover:text-red-300 px-1"
-                    ><Icon name="trash" /></button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </Popover>
-
-        <Popover label="Import / Export">
-          <div className="w-80 space-y-2 text-sm">
-            <p className="text-xs text-gray-500">Share or back up this look as JSON. Importing replaces the values at the current scope (you can still Revert).</p>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={download} className={ghost}><Icon name="download" className="mr-1" />Download</button>
-              <button type="button" onClick={copyJson} className={ghost}>Copy</button>
-              <label className={`${ghost} cursor-pointer`}>
-                Import file…
-                <input
-                  type="file"
-                  accept="application/json,.json"
-                  className="sr-only"
-                  onChange={async e => {
-                    const f = e.target.files?.[0];
-                    e.target.value = '';
-                    if (f) runImport(await f.text());
-                  }}
-                />
-              </label>
-            </div>
-            <textarea
-              value={importText}
-              onChange={e => { setImportText(e.target.value); setImportError(''); }}
-              rows={3}
-              placeholder="…or paste exported JSON here"
-              className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-xs font-mono text-white focus:border-yellow-500 focus:outline-none"
-            />
-            <div className="flex items-center gap-3">
-              <button type="button" disabled={!importText.trim()} onClick={() => runImport(importText)} className={`${ghost} disabled:opacity-40`}>Import pasted JSON</button>
-              {importError && <span role="alert" className="text-xs text-red-300">{importError}</span>}
-            </div>
-          </div>
-        </Popover>
+        <ImportExportMenu
+          download={download} copyJson={copyJson} runImport={runImport} importText={importText} setImportText={setImportText}
+          importError={importError} setImportError={setImportError}
+        />
 
         {isPack && (
-          <Popover label="Pack tools" icon="copy">
-            <div className="w-96 space-y-4 text-sm">
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-gray-300">Copy this pack&apos;s look to other packs</p>
-                <p className="text-xs text-gray-500">Merges this pack&apos;s {Object.keys(packVals[scope] ?? {}).length} override{Object.keys(packVals[scope] ?? {}).length === 1 ? '' : 's'} into the packs you tick (their other overrides stay). Review, then Save.</p>
-                <ul className="max-h-32 overflow-y-auto space-y-1">
-                  {packs.filter(x => x.id !== scope).map(x => (
-                    <li key={x.id}><label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={copyTargets.includes(x.id)} onChange={e => setCopyTargets(t => (e.target.checked ? [...t, x.id] : t.filter(i => i !== x.id)))} className="accent-yellow-400" />{x.name}</label></li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  disabled={copyTargets.length === 0 || Object.keys(packVals[scope] ?? {}).length === 0}
-                  onClick={() => {
-                    const own = packVals[scope] ?? {};
-                    setPackVals(p => ({ ...p, ...Object.fromEntries(copyTargets.map(id => [id, { ...(p[id] ?? {}), ...own }])) }));
-                    setNotice(`Copied to ${copyTargets.length} pack${copyTargets.length === 1 ? '' : 's'}. Review, then Save.`);
-                    setCopyTargets([]);
-                  }}
-                  className={`${ghost} disabled:opacity-40`}
-                >Copy to {copyTargets.length || '…'}</button>
-              </div>
-              <div className="space-y-1.5 border-t border-gray-800 pt-3">
-                <p className="text-xs font-semibold text-gray-300">Use another pack&apos;s look here</p>
-                <div className="flex items-center gap-2">
-                  <select value={copyFrom} onChange={e => setCopyFrom(e.target.value)} aria-label="Copy overrides from" className="flex-1 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white">
-                    <option value="">Choose a pack…</option>
-                    {packs.filter(x => x.id !== scope).map(x => <option key={x.id} value={x.id}>{x.name} ({Object.keys(packVals[x.id] ?? {}).length})</option>)}
-                  </select>
-                  <button type="button" disabled={!copyFrom} onClick={() => { replaceCurrent({ ...(packVals[copyFrom] ?? {}) }); setNotice('Replaced this pack’s overrides. Review, then Save.'); setCopyFrom(''); }} className={`${ghost} disabled:opacity-40`}>Replace</button>
-                </div>
-              </div>
-              <div className="space-y-1.5 border-t border-gray-800 pt-3">
-                <p className="text-xs font-semibold text-gray-300">Differences from global</p>
-                {Object.keys(packVals[scope] ?? {}).length === 0 ? <p className="text-xs text-gray-600">This pack follows the global look exactly.</p> : (
-                  <ul className="max-h-40 overflow-y-auto space-y-0.5">
-                    {diffProps('', globalVals, { ...globalVals, ...(packVals[scope] ?? {}) }, k => PROP_BY_KEY[k]?.default).map((d, i) => (
-                      <li key={i} className="text-xs text-gray-400"><span className="text-gray-300">{d.label}</span> <span className="text-gray-600">{d.from} → </span><span className="text-yellow-300">{d.to}</span></li>
-                    ))}
-                  </ul>
-                )}
-                <button type="button" disabled={Object.keys(packVals[scope] ?? {}).length === 0} onClick={() => { replaceCurrent({}); setNotice('Cleared this pack’s overrides. Review, then Save.'); }} className={`${btn} text-gray-400 hover:text-red-300 px-0 disabled:opacity-40`}>Clear all overrides</button>
-              </div>
-            </div>
-          </Popover>
+          <PackToolsMenu
+            packs={packs} packVals={packVals} setPackVals={setPackVals} scope={scope} globalVals={globalVals} copyTargets={copyTargets}
+            setCopyTargets={setCopyTargets} copyFrom={copyFrom} setCopyFrom={setCopyFrom} replaceCurrent={replaceCurrent} setNotice={setNotice}
+          />
         )}
+
 
         <div className="flex items-center gap-1" role="group" aria-label="History">
           <button type="button" onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Undo" className="p-2 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500 disabled:opacity-35"><Icon name="undo" /></button>
@@ -940,20 +596,7 @@ export function OverlayEditor({
           className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 disabled:opacity-50"
         ><Icon name="refresh" className={`mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />Refresh overlay</button>
 
-        <Popover label={`Review${diffs.length ? ` (${diffs.length})` : ''}`} icon="list" align="right" disabled={!dirty}>
-          <div className="w-[26rem] max-w-[85vw] space-y-2 text-sm">
-            <p className="text-xs text-gray-500">Everything that differs from what is saved. Nothing goes live until you Save.</p>
-            <ul className="max-h-80 overflow-y-auto divide-y divide-gray-800/70">
-              {diffs.map((d, i) => (
-                <li key={i} className="py-1.5 text-xs">
-                  <span className="text-[10px] uppercase tracking-wide text-gray-600">{d.scope}</span>
-                  <span className="block text-gray-200">{d.label}</span>
-                  <span className="text-gray-500">{d.from}</span> <span className="text-gray-600">→</span> <span className="text-yellow-300">{d.to}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Popover>
+        <ReviewMenu diffs={diffs} dirty={dirty} />
 
         <form action={saveAction} className="flex items-center gap-2">
           <input type="hidden" name="payload" value={payload} />
@@ -963,14 +606,7 @@ export function OverlayEditor({
           <button type="button" disabled={!dirty} onClick={revert} className={`${btn} text-gray-400 hover:text-white disabled:opacity-40`}>Revert</button>
           <PendingButton type="submit" disabled={!dirty} className={`${btn} bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}>Save</PendingButton>
         </form>
-        <Popover label="Save options" icon="settings" align="right">
-          <div className="w-72 space-y-3 text-sm">
-            <label className="block text-xs text-gray-400 space-y-1">Version note (optional)
-              <input value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="e.g. Brighter shiny glow" className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none" />
-            </label>
-            <label className="flex items-start gap-2 text-xs text-gray-300"><input type="checkbox" checked={autoReload} onChange={e => setAutoReload(e.target.checked)} className="mt-0.5 accent-yellow-400" /><span>Refresh open overlays after saving. They reload once nothing is animating, so a pack opening is never cut short.</span></label>
-          </div>
-        </Popover>
+        <SaveOptionsMenu note={note} setNote={setNote} autoReload={autoReload} setAutoReload={setAutoReload} />
       </div>
 
       <div className="flex-1 min-h-0 grid gap-3 xl:grid-cols-[minmax(0,1fr)_26rem]">
@@ -1099,42 +735,10 @@ export function OverlayEditor({
               title="Flip the preview between your edit and what is saved"
               className={`px-2.5 py-1 rounded-md text-xs font-semibold border disabled:opacity-35 ${showSaved ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}
             ><Icon name="eye" className="mr-1" />Before / after</button>
-            <Popover label="Guides" icon="grid" up>
-              <div className="w-64 space-y-3 text-sm">
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={showThirds} onChange={e => setShowThirds(e.target.checked)} className="accent-yellow-400" />Rule of thirds</label>
-                  <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} className="accent-yellow-400" />10% grid</label>
-                  <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={showSafe} onChange={e => setShowSafe(e.target.checked)} className="accent-yellow-400" />Safe areas (5% and 10%)</label>
-                  <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={snapOn} onChange={e => setSnapOn(e.target.checked)} className="accent-yellow-400" />Snap to centre / 10 px when dragging <span className="text-gray-600">(Alt = free)</span></label>
-                </div>
-                <label className="block text-xs text-gray-400 space-y-1">Zoom
-                  <select value={zoom} onChange={e => setZoom(Number(e.target.value))} className="block w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white">
-                    <option value={1}>Fit to the space</option><option value={1.5}>150%</option><option value={2}>200%</option><option value={3}>300%</option>
-                  </select>
-                </label>
-                <div className="space-y-1.5">
-                  <p className="text-xs text-gray-400">Background</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(['checker', 'dark', 'light', 'green'] as Bg[]).map(b => (
-                      <button key={b} type="button" aria-pressed={bg === b} onClick={() => setBg(b)} className={`px-2 py-1 rounded-md text-xs font-semibold border ${bg === b ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}>{b === 'checker' ? 'Checker' : b[0].toUpperCase() + b.slice(1)}</button>
-                    ))}
-                    {bgImage && <button type="button" aria-pressed={bg === 'image'} onClick={() => setBg('image')} className={`px-2 py-1 rounded-md text-xs font-semibold border ${bg === 'image' ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}>Screenshot</button>}
-                  </div>
-                  <label className={`${ghost} cursor-pointer inline-block text-xs`}>
-                    Use a stream screenshot…
-                    <input type="file" accept="image/*" className="sr-only" onChange={e => {
-                      const f = e.target.files?.[0];
-                      e.target.value = '';
-                      if (!f) return;
-                      if (bgImage) URL.revokeObjectURL(bgImage);
-                      setBgImage(URL.createObjectURL(f));
-                      setBg('image');
-                    }} />
-                  </label>
-                  <p className="text-[11px] text-gray-600">Only shown in this editor, never saved or uploaded.</p>
-                </div>
-              </div>
-            </Popover>
+            <GuidesMenu
+              showThirds={showThirds} setShowThirds={setShowThirds} showGrid={showGrid} setShowGrid={setShowGrid} showSafe={showSafe} setShowSafe={setShowSafe}
+              snapOn={snapOn} setSnapOn={setSnapOn} zoom={zoom} setZoom={setZoom} bg={bg} setBg={setBg} bgImage={bgImage} setBgImage={setBgImage}
+            />
             {(() => {
               const worst = VARIANT_IDS.map(v => ({ v, r: variantPerf(valueOf, v) })).sort((a, b) => b.r.score - a.r.score)[0];
               return (
@@ -1156,33 +760,19 @@ export function OverlayEditor({
 
         {/* ── Properties dock ── */}
         <div className="min-h-0 flex rounded-xl border border-gray-800 bg-gray-900/80 overflow-hidden h-[75vh] xl:h-auto">
-          <nav aria-label="Property categories" className="w-[4.5rem] shrink-0 border-r border-gray-800 bg-gray-950/50 flex flex-col py-2 gap-1">
-            {rail.map(g => {
-              const n = g.id === 'layout' ? layoutMoved : modifiedCount(g.id);
-              const active = !searching && (g.id === 'layout' ? layoutCat : !layoutCat && cat.id === g.id);
-              return (
-                <button
-                  key={g.id}
-                  type="button"
-                  onClick={() => {
-                    setCategory(g.id);
-                    setQuery('');
-                    if (g.id === 'pack' || g.id === 'variants' || g.id === 'moments' || g.id === 'showoff') setMode('pack');
-                    setShowOff(g.id === 'showoff');
-                    if (g.id === 'collection') setMode('collection');
-                    if (g.id === 'variants') setVariantOpen(false);
-                  }}
-                  aria-current={active ? 'page' : undefined}
-                  title={g.description}
-                  className={`relative mx-1.5 rounded-lg py-2 flex flex-col items-center gap-0.5 text-[11px] font-semibold transition-colors ${active ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                >
-                  <Icon name={g.icon} className="w-[1.15rem] h-[1.15rem]" />
-                  {g.label}
-                  {n > 0 && <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-yellow-500 text-gray-950 text-[10px] font-bold leading-4 text-center">{n}</span>}
-                </button>
-              );
-            })}
-          </nav>
+          <CategoryRail
+            rail={rail}
+            countOf={id => (id === 'layout' ? layoutMoved : modifiedCount(id))}
+            activeId={searching ? null : layoutCat ? 'layout' : cat.id}
+            onSelect={id => {
+              setCategory(id);
+              setQuery('');
+              if (id === 'pack' || id === 'variants' || id === 'moments' || id === 'showoff') setMode('pack');
+              setShowOff(id === 'showoff');
+              if (id === 'collection') setMode('collection');
+              if (id === 'variants') setVariantOpen(false);
+            }}
+          />
 
           <div className="flex-1 min-w-0 flex flex-col">
             <div className="p-3 space-y-2 border-b border-gray-800">
@@ -1282,249 +872,4 @@ export function OverlayEditor({
       </div>
     </div>
   );
-}
-
-// ── Small building blocks ─────────────────────────────────
-
-/** A button that opens a floating panel; closes on an outside click or Escape. */
-function Popover({ label, badge, children, align = 'left', up = false, icon, disabled = false }: { label: string; badge?: number; children: React.ReactNode; align?: 'left' | 'right'; up?: boolean; icon?: IconName; disabled?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
-  }, [open]);
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        aria-expanded={open}
-        disabled={disabled}
-        onClick={() => setOpen(o => !o)}
-        className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-40 ${open ? 'border-yellow-500 text-yellow-300' : 'border-gray-700 text-gray-200 hover:border-gray-500'}`}
-      >
-        {icon && <Icon name={icon} className="mr-1.5" />}{label}{badge ? <span className="ml-1.5 text-xs text-gray-500">{badge}</span> : null} <span aria-hidden className="text-[10px] text-gray-500">▾</span>
-      </button>
-      {open && (
-        <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} ${up ? 'bottom-full mb-2' : 'top-full mt-2'} z-40 rounded-xl border border-gray-700 bg-gray-900 shadow-2xl p-3`}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** A row of mutually exclusive choices. */
-function Segmented({
-  label, value, onChange, options, disabled = [], wrap = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { id: string; label: string; dot?: boolean }[];
-  disabled?: string[];
-  wrap?: boolean;
-}) {
-  return (
-    <div role="group" aria-label={label} className={`flex items-center gap-1 ${wrap ? 'flex-wrap' : ''}`}>
-      <span className="text-xs text-gray-500 mr-1">{label}</span>
-      {options.map(o => (
-        <button
-          key={o.id}
-          type="button"
-          aria-pressed={value === o.id}
-          disabled={disabled.includes(o.id)}
-          onClick={() => onChange(o.id)}
-          className={`px-2.5 py-1 rounded-md text-xs font-semibold border disabled:opacity-35 ${value === o.id ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}
-        >
-          {o.label}{o.dot && <span className="ml-1 text-yellow-400">●</span>}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ── One property row ──────────────────────────────────────
-
-function PropRow({
-  def, value, modified, inherited, isPack, off, onChange, onReset,
-}: {
-  def: PropDef;
-  value: PropValue;
-  modified: boolean;
-  inherited: boolean;
-  isPack: boolean;
-  off: boolean;
-  onChange: (v: unknown) => void;
-  onReset: () => void;
-}) {
-  const id = `prop-${def.key}`;
-  const styleHelp = def.key === 'reveal.style' || /^variant.[a-z]+.style$/.test(def.key) ? REVEAL_STYLES.find(s => s.value === value)?.description : undefined;
-  const inline = def.type === 'boolean';
-  const label = (
-    <label htmlFor={id} className="text-sm text-gray-200 font-medium">
-      {def.label}
-      {modified && <span className="ml-1.5 text-yellow-400" title={isPack ? 'Overridden for this pack' : 'Changed from the default'}>●</span>}
-      {inherited && <span className="ml-1.5 text-xs text-gray-600 font-normal">(from global)</span>}
-      {def.experimental && <span className="ml-1.5 text-[10px] uppercase tracking-wide rounded bg-purple-500/20 text-purple-300 px-1.5 py-0.5 font-semibold">experimental</span>}
-    </label>
-  );
-  const reset = (
-    <button
-      type="button"
-      onClick={onReset}
-      disabled={!modified}
-      className="text-xs text-gray-500 hover:text-white disabled:opacity-0 shrink-0"
-      title={isPack ? 'Stop overriding (use the global value)' : `Reset to ${formatValue(def, def.default)}`}
-    >
-      {isPack ? 'inherit' : 'reset'}
-    </button>
-  );
-  return (
-    <div className={`space-y-1 ${off ? 'opacity-45' : ''}`}>
-      <div className="flex items-center justify-between gap-2">
-        {label}
-        <span className="flex items-center gap-2">
-          {reset}
-          {inline && <Control def={def} id={id} value={value} onChange={onChange} />}
-        </span>
-      </div>
-      {!inline && <Control def={def} id={id} value={value} onChange={onChange} />}
-      {(styleHelp || def.help) && <p className="text-xs text-gray-500 leading-relaxed">{styleHelp ?? def.help}</p>}
-    </div>
-  );
-}
-
-function formatValue(def: PropDef, v: PropValue): string {
-  if (Array.isArray(v)) return v.join(', ');
-  if (typeof v === 'boolean') return v ? 'on' : 'off';
-  if (def.type === 'select') return def.options?.find(o => o.value === v)?.label ?? String(v);
-  return `${v}${def.unit ?? ''}`;
-}
-
-const inputCls = 'rounded-md bg-gray-950 border border-gray-700 px-2 py-1 text-sm text-white focus:border-yellow-500 focus:outline-none';
-
-function Control({ def, id, value, onChange }: { def: PropDef; id: string; value: PropValue; onChange: (v: unknown) => void }) {
-  switch (def.type) {
-    case 'number': {
-      const n = typeof value === 'number' ? value : Number(def.default);
-      return (
-        <div className="flex items-center gap-3">
-          <input
-            id={id}
-            type="range"
-            min={def.min}
-            max={def.max}
-            step={def.step ?? 1}
-            value={n}
-            onChange={e => onChange(Number(e.target.value))}
-            className="flex-1 accent-yellow-500 min-w-0"
-          />
-          <span className="flex items-center gap-1 shrink-0">
-            <input
-              type="number"
-              aria-label={`${def.label} value`}
-              min={def.min}
-              max={def.max}
-              step={def.step ?? 1}
-              value={n}
-              onChange={e => { if (e.target.value !== '') onChange(Number(e.target.value)); }}
-              className={`${inputCls} w-20`}
-            />
-            {def.unit && <span className="text-xs text-gray-500 w-4">{def.unit}</span>}
-          </span>
-        </div>
-      );
-    }
-    case 'boolean': {
-      const on = value === true;
-      return (
-        <button
-          id={id}
-          type="button"
-          role="switch"
-          aria-checked={on}
-          onClick={() => onChange(!on)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${on ? 'bg-yellow-500' : 'bg-gray-700'}`}
-        >
-          <span className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
-        </button>
-      );
-    }
-    case 'select':
-      return (
-        <select id={id} value={String(value)} onChange={e => onChange(e.target.value)} className={`${inputCls} w-full`}>
-          {def.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      );
-    case 'color': {
-      const c = typeof value === 'string' ? value : '#ffffff';
-      return (
-        <div className="flex items-center gap-2">
-          <input id={id} type="color" value={c} onChange={e => onChange(e.target.value)} className="h-8 w-12 rounded bg-transparent border border-gray-700 cursor-pointer" />
-          <input
-            type="text"
-            aria-label={`${def.label} hex`}
-            defaultValue={c}
-            key={c}
-            maxLength={7}
-            onBlur={e => onChange(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onChange((e.target as HTMLInputElement).value); } }}
-            className={`${inputCls} w-24 font-mono`}
-          />
-        </div>
-      );
-    }
-    case 'colors': {
-      const list = Array.isArray(value) ? value : [];
-      const min = def.minItems ?? 1, max = def.maxItems ?? 8;
-      const set = (i: number, c: string) => onChange(list.map((x, j) => (j === i ? c : x)));
-      return (
-        <div className="space-y-2">
-          <div
-            aria-hidden
-            className="h-3 rounded-full border border-gray-700"
-            style={{ background: list.length > 1 ? `linear-gradient(90deg, ${list.join(', ')})` : list[0] ?? '#000' }}
-          />
-          <div id={id} className="flex flex-wrap items-center gap-2">
-            {list.map((c, i) => (
-              <span key={i} className="relative inline-flex">
-                <input type="color" aria-label={`${def.label} ${i + 1}`} value={c} onChange={e => set(i, e.target.value)} className="h-8 w-10 rounded bg-transparent border border-gray-700 cursor-pointer" />
-                {list.length > min && (
-                  <button
-                    type="button"
-                    aria-label={`Remove colour ${i + 1}`}
-                    onClick={() => onChange(list.filter((_, j) => j !== i))}
-                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-gray-800 border border-gray-600 text-[10px] leading-none text-gray-300 hover:text-red-300"
-                  >×</button>
-                )}
-              </span>
-            ))}
-            {list.length < max && (
-              <button
-                type="button"
-                onClick={() => onChange([...list, list[list.length - 1] ?? '#ffffff'])}
-                className="h-8 px-2 rounded border border-dashed border-gray-600 text-xs text-gray-400 hover:text-white hover:border-gray-400"
-              >+ add</button>
-            )}
-          </div>
-        </div>
-      );
-    }
-    case 'text':
-      return (
-        <input
-          id={id}
-          type="text"
-          value={String(value)}
-          maxLength={def.maxLength}
-          onChange={e => onChange(e.target.value)}
-          className={`${inputCls} w-full`}
-        />
-      );
-  }
 }
