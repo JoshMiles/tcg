@@ -57,6 +57,16 @@ await runInSandbox(box.id, async () => {
   ok(restored.ok && restored.cards === 3, 'restore reports the cards');
   eq((await kvLib.getCollection(coll)).alice, [E(1), E(1), E(2)], 'restore brings every copy back');
   ok((await admin.listUserSnapshots('alice')).length >= 2, 'restoring itself leaves a restore point');
+
+  // A reset waits for the collection lock, so it cannot overwrite a pull that lands mid-write
+  let reset!: Promise<boolean>;
+  await kvLib.withCollectionLock(coll, async () => {
+    reset = kvLib.removeUserFromCollection(coll, 'carol');
+    await new Promise(r => setTimeout(r, 300));
+    ok((await kvLib.getCollection(coll)).carol, 'a reset does not write while the collection is locked');
+  });
+  ok(await reset, 'the reset runs once the lock is free');
+  await kvLib.saveCollection(coll, { ...(await kvLib.getCollection(coll)), carol: [E(9)] });
   ok(!(await admin.restoreUserSnapshot('alice', 'nope')).ok, 'an unknown restore point is refused');
 
   // Merge

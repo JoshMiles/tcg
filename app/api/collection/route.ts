@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCollection, saveCollection, deleteCollection, addCollectionEntryWithSerial } from '@/lib/kv';
+import { getCollection, saveCollection, deleteCollection, addCollectionEntryWithSerial, removeUserFromCollection, withCollectionLock } from '@/lib/kv';
 import { getScoringSettings } from '@/lib/scoring';
 import { serialMultiplier } from '@/lib/scoring-core';
 import { getWebhookSettings, fireOutgoing } from '@/lib/webhooks';
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     if (!(await isAuthenticated())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const target = req.nextUrl.searchParams.get('name');
     if (!target || !data || typeof data !== 'object') return NextResponse.json({ error: 'missing name or data' }, { status: 400 });
-    await saveCollection(target, data);
+    await withCollectionLock(target, () => saveCollection(target, data));
     return NextResponse.json({ ok: true });
   }
 
@@ -110,9 +110,7 @@ export async function DELETE(req: NextRequest) {
   if (!name) return NextResponse.json({ error: 'missing name' }, { status: 400 });
 
   if (username) {
-    const data = await getCollection(name);
-    delete data[username.toLowerCase()];
-    await saveCollection(name, data);
+    await removeUserFromCollection(name, username);
     await recordActivity({ type: 'reset', scope: 'season', username, collectionName: name });
   } else {
     await deleteCollection(name);
