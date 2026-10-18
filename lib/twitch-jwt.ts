@@ -28,7 +28,8 @@ export function verifyTwitchJwt(token: string): TwitchJwtPayload | null {
       .update(`${header}.${payload}`)
       .digest('base64url');
 
-    if (sig !== expected) return null;
+    const given = Buffer.from(sig), want = Buffer.from(expected);
+    if (given.length !== want.length || !timingSafeEqual(given, want)) return null;
 
     const decoded = JSON.parse(
       Buffer.from(payload, 'base64url').toString('utf8')

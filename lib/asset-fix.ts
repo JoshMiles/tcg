@@ -29,7 +29,12 @@ async function resolveRef(key: AssetKey): Promise<Ref | null> {
   };
 }
 
-const absolute = (url: string, origin: string) => (url.startsWith('/') ? origin + url : url);
+/** Where to fetch a stored file from: only our Blob store or a bundled /assets file, never an arbitrary host. */
+function fetchUrl(url: string, origin: string): string | null {
+  if (isBlobUrl(url)) return url;
+  if (url.startsWith('/assets/') && !url.includes('..')) return origin + url;
+  return null;
+}
 const fail = (message: string): FixResult => ({ ok: false, message });
 
 const IMAGE_EXT = ['webp', 'gif', 'png', 'jpg', 'jpeg', 'svg'];
@@ -63,8 +68,10 @@ export async function fixAsset(key: AssetKey, origin: string): Promise<FixResult
   const format = formatOf(url);
   if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.VERCEL_BLOB_RW_TOKEN) return fail('Blob storage is not connected here, so fixed files cannot be saved.');
 
+  const src = fetchUrl(url, origin);
+  if (!src) return fail('This file is hosted elsewhere, so it cannot be fixed. Replace it instead.');
   let res: Response;
-  try { res = await fetch(absolute(url, origin)); } catch { return fail('Could not reach the file.'); }
+  try { res = await fetch(src); } catch { return fail('Could not reach the file.'); }
   if (!res.ok) return fail('The file is missing. Replace it instead.');
   const buf = Buffer.from(await res.arrayBuffer());
 
@@ -114,10 +121,11 @@ export async function optimizeCover(key: AssetKey, origin: string): Promise<FixR
   if (!ref?.url) return fail('This pack has no cover.');
   if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.VERCEL_BLOB_RW_TOKEN) return fail('Blob storage is not connected here, so optimised files cannot be saved.');
   const url = ref.url;
-  if (!isBlobUrl(url) && !url.startsWith('/')) return fail('This cover is hosted elsewhere, so it cannot be optimised.');
+  const src = fetchUrl(url, origin);
+  if (!src) return fail('This cover is hosted elsewhere, so it cannot be optimised.');
 
   let res: Response;
-  try { res = await fetch(absolute(url, origin)); } catch { return fail('Could not reach the file.'); }
+  try { res = await fetch(src); } catch { return fail('Could not reach the file.'); }
   if (!res.ok) return fail('The file is missing. Replace it instead.');
   const buf = Buffer.from(await res.arrayBuffer());
 

@@ -68,7 +68,7 @@ export async function inSandbox(): Promise<boolean> {
   return (await currentSandboxId()) !== null;
 }
 
-/** Commands whose first argument is a key. Anything else is refused rather than risk an un-prefixed key. */
+/** Commands whose first argument is a key (`del` takes several keys and is handled on its own below). Anything else is refused rather than risk an un-prefixed key. */
 const KEY_FIRST = new Set([
   'get', 'set', 'getset', 'getdel', 'incr', 'incrby', 'decr', 'exists', 'expire', 'ttl',
   'hget', 'hset', 'hgetall', 'hdel', 'hincrby', 'hexists', 'hlen',

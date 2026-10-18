@@ -126,7 +126,7 @@ export function flagTrades(trades: Trade[], ctx: FlagContext): Map<string, Trade
     const sorted = [...list].sort((a, b) => (a.resolvedAt ?? 0) - (b.resolvedAt ?? 0));
     for (let i = 0; i < sorted.length; i++) {
       const window = sorted.filter(t => Math.abs((t.resolvedAt ?? 0) - (sorted[i].resolvedAt ?? 0)) <= FLAG_RULES.repeatDays * DAY);
-      if (window.length >= FLAG_RULES.repeatTrades) for (const t of window) add(t.id, { kind: 'repeat', label: `${window.length} trades between ${k.replace('|', ' and ')} in ${FLAG_RULES.repeatDays} days` });
+      if (window.length >= FLAG_RULES.repeatTrades) for (const t of window) add(t.id, { kind: 'repeat', label: `${window.length} trades between ${k.split('|').join(' and ')} in ${FLAG_RULES.repeatDays} days` });
     }
   }
 

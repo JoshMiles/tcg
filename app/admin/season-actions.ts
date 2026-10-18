@@ -14,7 +14,7 @@ export async function duplicateSeasonAction(id: string) {
   const source = await getSeason(id);
   if (!source) redirect('/admin/seasons');
   const taken = new Set((await listSeasons()).map(s => s.collectionName.toLowerCase()));
-  const base = (source.collectionName || 'Season').replace(/\d+$/, '') || 'Season';
+  const base = (source.collectionName || 'Season').replace(/(?<!\d)\d+$/, '') || 'Season';
   let n = 2;
   while (taken.has(`${base}${n}`.toLowerCase())) n++;
   const newId = crypto.randomUUID();

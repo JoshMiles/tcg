@@ -175,7 +175,7 @@ eq((await notes()).length, 0, 'no notice before staff act');
 // ── user reports (ROADMAP 17.2) ──
 {
   const { saveUserProfile } = await import('../lib/kv');
-  const tag = Math.random().toString(36).slice(2, 6);
+  const tag = crypto.randomUUID().slice(0, 4);
   const reporter = 'rp_ann_' + tag, target = 'rp_bob_' + tag, other = 'rp_cy_' + tag;
   await saveUserProfile({ username: target, displayName: target, createdAt: 1 });
   await saveUserProfile({ username: other, displayName: other, createdAt: 1 });
@@ -212,7 +212,7 @@ eq((await notes()).length, 0, 'no notice before staff act');
   eq(hits.length, 1, 'only the channel that includes Reports got a post');
   const text = JSON.stringify(hits[0]);
   ok(!!hits[0].embeds[0].title?.includes(d.escapeMd(target)) && !!hits[0].embeds[0].description?.includes('Offensive'), 'the post names the target and the reason');
-  ok(!text.includes('SECRET-DETAILS') && !text.includes(reporter) && !text.includes(reporter.replace(/_/g, '\\_')), 'the post has neither the details nor the reporter');
+  ok(!text.includes('SECRET-DETAILS') && !text.includes(reporter) && !text.includes(d.escapeMd(reporter)), 'the post has neither the details nor the reporter');
   // one open report per target, and a different target is fine
   const dup = await F.submitReport(reporter, rep({ target, reason: 'scam' }), now);
   ok(!dup.ok && dup.status === 409, 'a second open report on the same person is refused');

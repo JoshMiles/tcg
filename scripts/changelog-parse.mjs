@@ -15,7 +15,9 @@ const TAGS = ['new', 'improved', 'fixed'];
 
 /** The lines of the Changelog section of a PR body, or null when there is none. */
 export function changelogSection(body) {
-  const lines = String(body ?? '').replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
+  let text = String(body ?? '');
+  for (let prev = null; prev !== text;) { prev = text; text = text.replace(/<!--[\s\S]*?-->/g, ''); }
+  const lines = text.split(/\r?\n/);
   const start = lines.findIndex(l => /^#{1,6}\s+changelog\s*$/i.test(l.trim()));
   if (start < 0) return null;
   const out = [];

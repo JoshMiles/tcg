@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection, saveCollection, getUserProfile, saveUserProfile } from '@/lib/kv';
 import { LEGACY_DATA, LEGACY_COLLECTION_NAME as COLLECTION_NAME } from '@/lib/legacy-data';
+import { sameString } from '@/lib/admin-token';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // Pass ?overwrite=1 to replace existing user data (default: skip users that already have cards).
 export async function GET(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get('secret');
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
+  if (!secret || !process.env.ADMIN_SECRET || !sameString(secret, process.env.ADMIN_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
