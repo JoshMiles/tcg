@@ -140,7 +140,12 @@ await runInSandbox(box.id, async () => {
     ok(rec?.status === 'cancelled' && rec.escrowed, 'the failed refund leaves a closed offer marked escrowed');
     ok(!(await trades.listOpenTrades()).some(t => t.id === stuck.trade.id), 'it is no longer open, so it cannot be refunded again');
     ok(await universe() === start - 1, 'the copy is stuck, never duplicated');
-    await put({ ...(await kvLib.getCollection(coll)), carol: [...(await owned('carol')), E(7)] }); // staff hand it back
+    const handed = await trades.releaseStuckEscrow(stuck.trade.id);
+    ok(handed.ok && handed.cleared, 'staff return the stuck print once');
+    ok(core.ownedCopies(await owned('carol'), 7, 'regular') === 1, 'the print is back with carol');
+    ok((await trades.getTrade(stuck.trade.id))?.escrowed === false, 'the escrow flag is cleared');
+    const handedAgain = await trades.releaseStuckEscrow(stuck.trade.id);
+    ok(handedAgain.ok && !handedAgain.cleared && core.ownedCopies(await owned('carol'), 7, 'regular') === 1, 'returning it again does not add a second print');
   }
   ok(await universe() === start, 'copies conserved after the stuck-escrow repairs');
   ok((await trades.getTrade(a1.trade.id))?.status === 'accepted', 'it is recorded as accepted');
@@ -260,6 +265,74 @@ await runInSandbox(box.id, async () => {
     await trades.saveTradeSettings({ ...(await trades.getTradeSettings()), minAccountHours: 0 });
   }
 
+  // A sweep refunds and saves the cleared flag before a later create or accept returns early. A missing season does not clear it.
+  {
+    const { decodeEntry } = await import('../lib/variants');
+    const countCards = async () => Object.values(await kvLib.getCollection(coll)).reduce((n, l) => n + l.length, 0);
+    const data = await kvLib.getCollection(coll);
+    const holder = Object.entries(data).sort((a, b) => b[1].length - a[1].length)[0]?.[0];
+    const beforeCards = await countCards();
+    ok(!!holder, 'someone still holds a card to plant an expired offer with');
+    if (holder) {
+      const entry = data[holder][0];
+      const { cardNumber, variant } = decodeEntry(entry);
+      data[holder] = data[holder].slice(1);
+      await put(data);
+      const planted = { id: 'exp-sweep', seasonId: season.id, kind: 'listing' as const, from: holder, give: [{ cardNumber, variant, count: 1 }], escrowed: true, get: [{ cardNumber: 9, variant: 'regular' as const, count: 1 }], status: 'open' as const, createdAt: 1, expiresAt: 1 };
+      await db.kv.set('trades:open', [...((await db.kv.get<typeof planted[]>('trades:open')) ?? []), planted]);
+      const refused = await trades.createTrade({ seasonId: season.id, from: holder, kind: 'direct', to: holder, give: [{ cardNumber, variant, count: 1 }], get: [{ cardNumber: 9, variant: 'regular', count: 1 }] });
+      ok(!refused.ok, 'the create after the sweep is refused');
+      const swept = ((await db.kv.get<typeof planted[]>('trades:history')) ?? []).find(t => t.id === 'exp-sweep');
+      ok(swept?.status === 'expired' && swept.escrowed === false, 'the swept refund is saved as not escrowed before the create returns');
+      ok(await countCards() === beforeCards, 'that refund restored the print and did not add another');
+      await trades.sweepTrades();
+      ok(await countCards() === beforeCards, 'sweeping again does not refund the same offer again');
+
+      const live = await trades.createTrade({ seasonId: season.id, from: holder, kind: 'listing', give: [{ cardNumber, variant, count: 1 }], get: [{ cardNumber: 9, variant: 'regular', count: 1 }] });
+      ok(live.ok, 'a live offer exists so a failed accept can run after another sweep');
+      if (live.ok) {
+        const again = await kvLib.getCollection(coll);
+        const entry2 = again[holder]?.[0];
+        ok(entry2 !== undefined, 'the offerer still holds something to plant');
+        if (entry2 !== undefined) {
+          const d2 = decodeEntry(entry2);
+          again[holder] = again[holder].slice(1);
+          await put(again);
+          const planted2 = { id: 'exp-accept', seasonId: season.id, kind: 'listing' as const, from: holder, give: [{ cardNumber: d2.cardNumber, variant: d2.variant, count: 1 }], escrowed: true, get: [{ cardNumber: 9, variant: 'regular' as const, count: 1 }], status: 'open' as const, createdAt: 1, expiresAt: 1 };
+          await db.kv.set('trades:open', [...((await db.kv.get<typeof planted2[]>('trades:open')) ?? []), planted2]);
+          ok(!(await trades.acceptTrade(live.trade.id, holder)).ok, 'accepting your own offer is refused after the sweep');
+          const swept2 = ((await db.kv.get<typeof planted2[]>('trades:history')) ?? []).find(t => t.id === 'exp-accept');
+          ok(swept2?.status === 'expired' && swept2.escrowed === false, 'the swept refund is saved as not escrowed before the accept returns');
+          ok(await countCards() === beforeCards - 1, 'the accept path refunded the planted print and left the live offer in escrow');
+        }
+        ok((await trades.cancelTrade(live.trade.id, holder)).ok, 'the live offer is cancelled after the failed accept');
+      }
+    }
+
+    const still = await kvLib.getCollection(coll);
+    const giver = Object.entries(still).find(([, list]) => list.length > 0);
+    ok(!!giver, 'someone can open an offer that blocks deleting the season');
+    const blocking = giver
+      ? await trades.createTrade({ seasonId: season.id, from: giver[0], kind: 'listing', give: [{ ...decodeEntry(giver[1][0]), count: 1 }], get: [{ cardNumber: 9, variant: 'regular', count: 1 }] })
+      : { ok: false as const, status: 400, error: 'nobody' };
+    ok(blocking.ok, 'an open offer blocks deleting its season: ' + (blocking.ok ? '' : blocking.error));
+    let deleteRefused = false;
+    try { await kvLib.deleteSeason(season.id); } catch (e) { deleteRefused = e instanceof Error && /open trade offers/.test(e.message); }
+    ok(deleteRefused, 'deleteSeason refuses while an offer for that season is open');
+    ok((await kvLib.getSeason(season.id))?.id === season.id, 'the season record is still there');
+    if (blocking.ok) ok((await trades.cancelTrade(blocking.trade.id, giver![0])).ok, 'the blocking offer is cancelled');
+
+    const beforeGhost = await universe();
+    const ghost = { id: 'ghost-season', seasonId: 'gone-season', kind: 'listing' as const, from: 'alice', give: [{ cardNumber: 1, variant: 'regular' as const, count: 1 }], escrowed: true, get: [{ cardNumber: 2, variant: 'regular' as const, count: 1 }], status: 'open' as const, createdAt: 1, expiresAt: 1 };
+    await db.kv.set('trades:open', [...((await db.kv.get<typeof ghost[]>('trades:open')) ?? []), ghost]);
+    await trades.sweepTrades();
+    const ghostRec = ((await db.kv.get<typeof ghost[]>('trades:history')) ?? []).find(t => t.id === 'ghost-season');
+    ok(ghostRec?.status === 'expired' && ghostRec.escrowed === true, 'a missing season leaves the offer marked escrowed');
+    const ghostRelease = await trades.releaseStuckEscrow('ghost-season');
+    ok(!ghostRelease.ok && (await trades.getTrade('ghost-season'))?.escrowed === true, 'returning it is refused and the flag stays set');
+    ok(await universe() === beforeGhost, 'the missing-season refund added no prints');
+  }
+
   // Whatever happened, no copy was created or destroyed beyond what the test itself added (dave + erin).
   const open = await trades.listOpenTrades();
   ok(open.every(t => t.escrowed), 'every open offer holds its escrow');
@@ -313,6 +386,21 @@ await runInSandbox(box2.id, async () => {
   await serials.backfillSerials(coll, await kvLib.getCollection(coll));
   eq(await holds('pa'), ['1.0.1', '1.0.2', '1.0.3', '1.0.4', '2.0.1'], 'pa holds numbered prints');
   const start = await total();
+
+  // A closed offer still marked escrowed, whose prints are already home, must not mint another set.
+  {
+    const fake = { id: 'false-stuck', seasonId: season.id, kind: 'listing' as const, from: 'pa', give: [{ cardNumber: 1, variant: 'regular' as const, count: 1 }], escrowed: true, get: [{ cardNumber: 9, variant: 'regular' as const, count: 1 }], status: 'cancelled' as const, createdAt: 1, expiresAt: 1, resolvedAt: 2 };
+    await db.kv.set('trades:history', [fake, ...((await db.kv.get<typeof fake[]>('trades:history')) ?? [])]);
+    const before = await holds('pa');
+    const minted = (await serials.serialStats(coll)).minted;
+    const rel = await trades.releaseStuckEscrow('false-stuck');
+    ok(rel.ok && rel.cleared, 'a flag left set after the prints came home is cleared');
+    eq(await holds('pa'), before, 'no second print is minted');
+    ok((await serials.serialStats(coll)).minted === minted, 'the edition counter does not move');
+    const rel2 = await trades.releaseStuckEscrow('false-stuck');
+    ok(rel2.ok && !rel2.cleared && (await holds('pa')).join() === before.join(), 'a second return changes nothing');
+    ok(await total() === start, 'the false stuck offer did not change the universe');
+  }
 
   // Exact give + a pinned ask: the OLDEST prints go into escrow, the newest stay.
   const o1 = await trades.createTrade({ seasonId: season.id, from: 'pa', kind: 'direct', to: 'pb', give: [sk(1, 2, ['1.0.1', '1.0.2'])], get: [sk(9, 1, ['9.0.1'])] });

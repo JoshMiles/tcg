@@ -48,6 +48,10 @@ export interface SyncContext {
   retire?: { owner: string; ids: string[]; who: string; note?: string };
   /** Copies spent and the one made from them. */
   upgrade?: { user: string; spent: number; count: number; made: number; /** Spend exactly these prints (the newest that are not favourites) instead of the newest `count`. */ ids?: string[] };
+  /** Put these exact prints back with `owner` (revive retired ones, retire any other prints they hold). Checked by `printsBlocked` before the save. */
+  restore?: { owner: string; ids: string[] };
+  /** Before reconciling `owner`, bring back prints of theirs that were removed, so a restore with no saved ids does not mint a second set. */
+  restoreRetired?: string;
 }
 
 const parse = (v: unknown): Copy | null => {
@@ -213,6 +217,59 @@ async function move(c: string, m: Move): Promise<number> {
   return picked.length;
 }
 
+async function readRetired(c: string): Promise<Copy[]> {
+  const h = (await kv.hgetall(key.ret(c)).catch(() => null)) as Record<string, unknown> | null;
+  return h ? Object.values(h).map(parse).filter((x): x is Copy => !!x) : [];
+}
+
+/** Brings retired copies back to `owner` with their identity (same id, edition and print number). */
+async function revive(c: string, owner: string, copies: Copy[]): Promise<void> {
+  if (copies.length === 0) return;
+  const now = Date.now();
+  const back = copies.map(x => withEvent({ ...x, owner }, { t: now, type: 'restored', who: owner }));
+  await kv.hset(key.owner(c, owner), Object.fromEntries(back.map(x => [x.id, x])));
+  await kv.hset(key.idx(c), Object.fromEntries(back.map(x => [x.id, owner])));
+  await kv.hdel(key.ret(c), ...copies.map(x => x.id));
+}
+
+/**
+ * Why these saved prints cannot be put back, or null when each one is already with `owner` or retired.
+ * A print someone else holds (or that sits in an offer) is refused so the restore does not mint a second one.
+ */
+export async function printsBlocked(c: string, owner: string, ids: string[]): Promise<string | null> {
+  if (!(await isTracking(c))) return null;
+  for (const id of ids) {
+    const copy = await getCopy(c, id);
+    if (!copy) return 'A saved print is not in the ledger, so the restore was refused.';
+    if (!copy.owner || copy.owner === owner) continue;
+    if (isEscrow(copy.owner)) return 'A saved print is in an open offer. Cancel that offer before restoring.';
+    return `A saved print is held by @${copy.owner}. The restore was refused so a second print is not minted.`;
+  }
+  return null;
+}
+
+/** Revives the saved prints that were retired, then retires any other prints `owner` holds. */
+async function applyExactRestore(c: string, owner: string, ids: string[]): Promise<void> {
+  const want = new Set(ids);
+  await revive(c, owner, (await readRetired(c)).filter(x => want.has(x.id)));
+  const extra = (await readOwner(c, owner)).filter(x => !want.has(x.id));
+  if (extra.length) await retire(c, owner, extra, { type: 'removed', who: owner, note: 'replaced by a restore' });
+}
+
+/** Revives this viewer's most recently removed prints to fill what a restore point asks for, when that point has no print ids. */
+async function reviveRemovedToFill(c: string, user: string, want: number[]): Promise<void> {
+  const haveN = countEntries((await readOwner(c, user)).map(entryOf));
+  const wantN = countEntries(want);
+  const retired = await readRetired(c);
+  for (const [entry, w] of wantN) {
+    const need = w - (haveN.get(entry) ?? 0);
+    if (need <= 0) continue;
+    const candidates = retired.filter(x => entryOf(x) === entry && x.ev.at(-1)?.type === 'removed' && x.ev.at(-1)?.who === user);
+    candidates.sort((a, b) => (b.ev.at(-1)?.t ?? 0) - (a.ev.at(-1)?.t ?? 0));
+    await revive(c, user, candidates.slice(0, need));
+  }
+}
+
 /** Makes the ledger match one viewer's collection: mint what they have that it lacks, retire what it holds that they no longer have. */
 async function reconcileUser(c: string, user: string, owned: number[], origin: Origin, est = false, noUid = false): Promise<void> {
   const have = await readOwner(c, user);
@@ -252,6 +309,15 @@ export async function syncAfterSave(c: string, before: Record<string, number[]>,
       const [fresh] = await mint(c, user, made, 1, 'upgrade', { madeFrom: used.map(x => x.id) });
       await retire(c, user, used, { type: 'upgraded', who: user, ...(fresh ? { note: fresh.id } : {}) });
       touched.add(user);
+    }
+
+    if (ctx.restore) {
+      await applyExactRestore(c, ctx.restore.owner, ctx.restore.ids);
+      touched.add(ctx.restore.owner);
+    }
+    if (ctx.restoreRetired) {
+      await reviveRemovedToFill(c, ctx.restoreRetired, after[ctx.restoreRetired] ?? []);
+      touched.add(ctx.restoreRetired);
     }
 
     for (const u of touched) await reconcileUser(c, u, after[u] ?? [], ctx.origin ?? 'other');

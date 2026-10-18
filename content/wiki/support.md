@@ -19,7 +19,7 @@ That is normal. Every pull is its own print. `×N` is the count. Send them the p
 
 ## Cards vanished after a trade
 
-Open [Trades](/admin/trades) and search their login. An open offer is holding the cards in escrow. A closed offer that still says escrowed is the stuck case in [Trading](/admin/wiki/trading): Data health lists it. Cancelling an open offer refunds. Do not grant a replacement on top of escrowed cards.
+Open [Trades](/admin/trades) and search their login. An open offer is holding the cards in escrow. A closed offer that still says escrowed is the stuck case in [Trading](/admin/wiki/trading): Data health lists it, and Return prints puts those cards back once. Cancelling an open offer refunds. Do not grant a replacement on top of escrowed cards.
 
 ## They cannot trade, or cannot accept
 

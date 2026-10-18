@@ -64,6 +64,7 @@ export function histText(e: { type: string; who?: string; to?: string }, hidden:
     case 'traded': return `Traded to ${name(e.to)}`;
     case 'escrowed': return 'Put up in a trade';
     case 'returned': return 'Back from a trade';
+    case 'restored': return 'Restored';
     case 'upgraded': return 'Spent in an upgrade';
     case 'removed': return 'Removed';
     default: return e.type;

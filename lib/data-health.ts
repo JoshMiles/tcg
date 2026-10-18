@@ -84,7 +84,7 @@ export interface SeasonHealth {
 
 export interface TradesHealth {
   openCount: number; openBytes: number; historyCount: number; historyBytes: number;
-  /** Closed offers still marked escrowed: a refund or accept failed after the offer was saved, so its copies need returning by hand. */
+  /** Closed offers still marked escrowed: a refund failed after the offer was saved, or the flag was not cleared. Return prints puts back what escrow still holds. */
   stuckEscrow: string[];
 }
 

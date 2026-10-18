@@ -1,5 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin-guard';
 import { activateWithWrapUp } from '@/lib/season-wrap';
 import {
@@ -213,6 +214,12 @@ export async function discardDraftSeason(id: string): Promise<void> {
   await requireAdmin();
   const season = await getSeason(id);
   if (!season || season.status !== 'draft') return;
-  await deleteSeason(id);
+  let error: string | null = null;
+  try {
+    await deleteSeason(id);
+  } catch (e) {
+    error = e instanceof Error ? e.message : 'Could not discard that draft.';
+  }
   revalidatePath('/admin/seasons');
+  if (error) redirect(`/admin/seasons?error=${encodeURIComponent(error)}`);
 }

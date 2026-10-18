@@ -7,7 +7,7 @@ import { sanitizeTradeSettings } from '@/lib/trade-core';
 import { recordAudit } from '@/lib/audit';
 import { getSeason, getUserProfile, saveSeason } from '@/lib/kv';
 import { saveFlags } from '@/lib/user-admin';
-import { cancelOpenTrades, cancelTrade, extendOpenTrades, reverseTrade, getTradeSettings, saveTradeSettings } from '@/lib/trades';
+import { cancelOpenTrades, cancelTrade, extendOpenTrades, releaseStuckEscrow, reverseTrade, getTradeSettings, saveTradeSettings } from '@/lib/trades';
 import { notifyAdminLog } from '@/lib/discord';
 import { currentStaffLogin } from '@/lib/staff-actor';
 
@@ -28,6 +28,16 @@ export async function saveTradeSettingsAction(formData: FormData) {
   if (now !== was) await notifyAdminLog({ action: now ? 'Trading resumed' : 'Trading paused', by: await currentStaffLogin() });
   revalidatePath('/admin/trades');
   redirect('/admin/trades?tab=settings&saved=1');
+}
+
+/** Returns the prints of one closed offer that is still marked escrowed, then clears the flag. Safe to run again. */
+export async function releaseStuckEscrowAction(id: string) {
+  await requireAdmin();
+  const res = await releaseStuckEscrow(id);
+  revalidatePath('/admin/settings');
+  if (!res.ok) redirect(`/admin/settings?tab=environment&error=${encodeURIComponent(res.error)}`);
+  if (res.cleared) await recordAudit(res.trade.from, 'Stuck trade returned', `${res.trade.id}: prints returned and the escrow flag cleared`);
+  redirect(`/admin/settings?tab=environment&note=${encodeURIComponent(res.cleared ? 'Prints returned and the escrow flag cleared.' : 'That offer was not marked escrowed.')}`);
 }
 
 /** Cancels an open offer and returns the escrowed cards to their owner. Works while trading is paused. */

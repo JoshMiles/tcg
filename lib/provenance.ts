@@ -45,7 +45,7 @@ export function buildProvenance(copy: Pick<Copy, 'ev' | 'owner' | 'at'>, now = D
   for (const e of copy.ev as CopyEvent[]) {
     if (e.type === 'minted') { holder = viewer(e.who); steps.push({ kind: 'made', t: e.t, to: holder, holder }); }
     else if (e.type === 'escrowed') { steps.push({ kind: 'offered', t: e.t, from: viewer(e.who) }); holder = undefined; }
-    else if (e.type === 'returned') { holder = viewer(e.who); steps.push({ kind: 'returned', t: e.t, to: holder, holder }); }
+    else if (e.type === 'returned' || e.type === 'restored') { holder = viewer(e.who); steps.push({ kind: 'returned', t: e.t, to: holder, holder }); }
     else if (e.type === 'traded') { holder = viewer(e.to); steps.push({ kind: 'passed', t: e.t, from: viewer(e.who), to: holder, holder }); }
     else if (e.type === 'upgraded') { steps.push({ kind: 'forged', t: e.t, from: viewer(e.who), into: e.note }); holder = undefined; }
     else if (e.type === 'removed') { steps.push({ kind: 'removed', t: e.t, from: viewer(e.who) }); holder = undefined; }

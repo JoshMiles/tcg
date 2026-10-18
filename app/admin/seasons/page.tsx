@@ -15,7 +15,8 @@ import { PageHeader, EmptyState } from '../components/ui';
 export const metadata = { title: 'Seasons · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
-export default async function SeasonsPage() {
+export default async function SeasonsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
   const seasons = await listSeasons();
   // Drafts first, then the active season, then newest.
   seasons.sort((a, b) => Number(b.status === 'draft') - Number(a.status === 'draft') || Number(b.active) - Number(a.active) || b.createdAt - a.createdAt);
@@ -41,6 +42,8 @@ export default async function SeasonsPage() {
         subtitle={`${seasons.length} season${seasons.length !== 1 ? 's' : ''} · one active at a time · starting one wraps up the one it replaces`}
         actions={<NewSeasonButton />}
       />
+
+      {error && <div role="alert" className="rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-2.5 text-sm text-red-300">{error}</div>}
 
       {seasons.length === 0 ? (
         <EmptyState icon="trophy" title="No seasons yet" action={<NewSeasonButton />}>
@@ -143,7 +146,7 @@ export default async function SeasonsPage() {
                         <ConfirmButton
                           title={isDraft ? 'Discard draft?' : 'Delete season?'}
                           confirmLabel={isDraft ? 'Discard draft' : 'Delete season'}
-                          message={<>{isDraft ? 'Discard' : 'Delete'} <strong className="text-white">{s.name || 'Untitled season'}</strong>? The season and its settings are removed. Packs and viewers&apos; collection data are kept. This can&apos;t be undone.</>}
+                          message={<>{isDraft ? 'Discard' : 'Delete'} <strong className="text-white">{s.name || 'Untitled season'}</strong>? The season and its settings are removed. Packs and viewers&apos; collection data are kept. This can&apos;t be undone. Open trade offers must be cancelled first, so the prints in them can be returned.</>}
                           className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
                         >
                           {isDraft ? 'Discard' : 'Delete'}
