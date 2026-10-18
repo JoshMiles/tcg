@@ -1,0 +1,25 @@
+# lib/pack-editor-core.ts
+
+- WorkCard · interface · L9-L22 — interface WorkCard
+- CardFields · type · L23-L23 — type CardFields = Omit<WorkCard, 'id'>;
+- Work · interface · L25-L25 — interface Work
+- ChangeSet · interface · L28-L33 — interface ChangeSet
+- packToInput · function · L35-L39 — packToInput = (p: Pack): PackInput
+- cardToWork · function · L41-L45 — cardToWork = (c: Card): WorkCard
+- newWorkCard · function · L47-L49 — function newWorkCard(id: string, over: Partial<CardFields> = {}): WorkCard
+- same · function · L51-L51 — same = (a: unknown, b: unknown)
+- diffChanges · function · L54-L69 — function diffChanges(base: Work, work: Work): ChangeSet
+- isEmptyChange · function · L71-L71 — isEmptyChange = (c: ChangeSet)
+- cleanCard · function · L74-L86 — function cleanCard(w: WorkCard, number: number): Card
+- Applied · interface · L88-L95 — interface Applied
+- applyChanges · function · L98-L126 — function applyChanges(pack: Pack, cards: Card[], changes: ChangeSet): Applied
+- workOf · function · L129-L129 — workOf = (pack: Pack, cards: Card[]): Work
+- ReviewLine · interface · L133-L133 — interface ReviewLine
+- fieldLabel · function · L141-L141 — fieldLabel = (k: string)
+- show · function · L143-L150 — function show(k: string, v: unknown): string
+- reviewLines · function · L152-L165 — function reviewLines(base: Work, work: Work): ReviewLine[]
+- rebase · function · L173-L197 — function rebase(oldBase: Work, newBase: Work, mine: ChangeSet): { work: Work; clashes: string[] }
+- BulkOp · type · L201-L207 — type BulkOp = | { kind: 'stars'; value: number } | { kind: 'weight'; value: number } | { kind: 'multiply'; factor: number } | { kind: 'version'; variant: OptionalVariant; on: boolean } | { kind: 'sound'; mode: 'default' | 'clear' } | { kind: 'upgrades'; on: boolean };
+- defaultSoundFor · function · L210-L210 — defaultSoundFor = (number: number)
+- bulkApply · function · L213-L229 — function bulkApply(cards: WorkCard[], ids: Set<string>, op: BulkOp): WorkCard[]
+- pastedColumn · function · L232-L236 — function pastedColumn(text: string): string[]

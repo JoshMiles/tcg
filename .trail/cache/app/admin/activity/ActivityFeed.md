@@ -1,0 +1,24 @@
+# app/admin/activity/ActivityFeed.tsx
+
+- CardInfo · type · L16-L16 — type CardInfo = { packName: string; number: number; name: string; imageUrl: string; stars: number };
+- Status · type · L18-L18 — type Status = 'live' | 'paused' | 'reconnecting' | 'signed-out';
+- Prefs · interface · L25-L36 — interface Prefs
+- loadPrefs · function · L39-L41 — function loadPrefs(): Prefs
+- timeAgo · function · L43-L52 — function timeAgo(at: number, now: number): string
+- chime · function · L55-L72 — function chime()
+- chip · function · L74-L74 — chip = (on: boolean)
+- toggle · function · L78-L78 — toggle = <T,>(list: T[], v: T): T[]
+- ActivityFeed · function · L80-L414 — function ActivityFeed({ initialEvents, initialSeq, initialAvatars, cards, seasons = {}, mod = false, serverNow, }: { initialEvents: ActivityEvent[]; initialSeq: number; initialAvatars: Record<string, string>; cards: CardInfo[]; /** Collection name -> season id, to link an event to its print. */ seasons?: Record<string, string>; /** The mod panel's read-only version: no gifting, granting or removing, and viewer links go to the mod panel. */ mod?: boolean; /** The server's clock when the page was rendered. The first client render uses it too, so the relative times ("5m ago", the last-hour counts) match the server's HTML and hydration does not mismatch when a minute turns in between. */ serverNow?: number; })
+- setPref · function · L123-L123 — setPref = <K extends keyof Prefs>(k: K, v: Prefs[K])
+- tick · function · L196-L196 — tick = ()
+- onVisible · function · L198-L198 — onVisible = ()
+- clearFilters · function · L238-L238 — clearFilters = ()
+- download · function · L239-L247 — download = (kind: 'csv' | 'json')
+- enableDesktop · function · L248-L253 — enableDesktop = async ()
+- filterRare · function · L254-L254 — filterRare = ()
+- GroupHeader · function · L417-L443 — function GroupHeader({ group, now, open, avatar, cardIndex, onToggle }: { group: Group; now: number; open: boolean; avatar?: string; cardIndex: (n: number, p?: string) => CardInfo | undefined; onToggle: () => void; })
+- StatusPill · function · L445-L458 — function StatusPill({ status }: { status: Status })
+- UserLink · function · L460-L467 — function UserLink({ username }: { username: string })
+- CardThumb · function · L469-L479 — function CardThumb({ card, stars }: { card?: CardInfo; stars: number })
+- Stars · function · L481-L484 — function Stars({ n }: { n: number })
+- EventRow · function · L486-L679 — function EventRow({ event: e, now, avatar, cardIndex, totalCards, compact = false, reason = null, onOpen, onFilterViewer, }: { event: ActivityEvent; now: number; avatar?: string; cardIndex: (n: number, packName?: string) => CardInfo | undefined; totalCards: number; compact?: boolean; /** Why this event is notable (highlighted), or null. */ reason?: string | null; onOpen: () => void; onFilterViewer: () => void; })

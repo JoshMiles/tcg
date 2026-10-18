@@ -1,0 +1,21 @@
+# lib/collection-view.ts
+
+- ShowFilter · type · L6-L6 — type ShowFilter = 'default' | 'all' | 'owned' | 'missing' | 'dupes' | 'versions' | 'theyHave' | 'iHave' | 'shared';
+- SortKey · type · L7-L7 — type SortKey = 'number' | 'rarity' | 'value' | 'copies' | 'name';
+- ViewCard · interface · L9-L14 — interface ViewCard
+- ViewState · interface · L15-L15 — interface ViewState
+- copiesOf · function · L25-L25 — copiesOf = (c: VariantCounts)
+- pointsOf · function · L26-L26 — pointsOf = (c: ViewCard)
+- applyView · function · L29-L68 — function applyView(cards: ViewCard[], view: ViewState, opts: { hideUncollected: boolean; mine?: Record<number, number> }): number[]
+- keep · function · L32-L49 — keep = (c: ViewCard): boolean
+- key · function · L51-L59 — key = (c: ViewCard): number | string
+- PackProgress · interface · L70-L70 — interface PackProgress
+- packProgress · function · L73-L81 — function packProgress(cards: ViewCard[]): PackProgress[]
+- Comparison · interface · L83-L83 — interface Comparison
+- compareCollections · function · L86-L93 — function compareCollections(cards: ViewCard[], mine: Record<number, number>): Comparison
+- DialogGroup · interface · L95-L95 — interface DialogGroup<T>
+- DialogCopies · interface · L96-L107 — interface DialogCopies<T>
+- copiesForDialog · function · L110-L129 — function copiesForDialog<T extends { variant: Variant; n: number }>(copies: T[] | undefined, counts: VariantCounts, limit = 60): DialogCopies<T>
+- PrintLike · interface · L131-L131 — interface PrintLike
+- bestPrintOf · function · L134-L138 — function bestPrintOf<T extends PrintLike>(copies: T[], card: number, variant: Variant): T | undefined
+- rarestPrints · function · L142-L154 — function rarestPrints<T extends PrintLike>(copies: T[], chance: (card: number, variant: Variant) => number, limit = 5): (T & { chance: number })[]

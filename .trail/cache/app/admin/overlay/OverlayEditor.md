@@ -1,0 +1,65 @@
+# app/admin/overlay/OverlayEditor.tsx
+
+- PackInfo · interface · L22-L22 — interface PackInfo
+- PresetInfo · interface · L23-L23 — interface PresetInfo
+- VersionInfo · interface · L24-L24 — interface VersionInfo
+- SeasonInfo · interface · L25-L25 — interface SeasonInfo
+- CardInfo · interface · L26-L26 — interface CardInfo
+- Snap · type · L27-L27 — type Snap = { g: PropValues; p: Record<string, PropValues>; l: Record<string, OverlayLayout> };
+- Bg · type · L28-L28 — type Bg = 'checker' | 'dark' | 'light' | 'green' | 'image';
+- Mode · type · L30-L30 — type Mode = 'pack' | 'collection';
+- MomentPick · type · L31-L31 — type MomentPick = '' | MomentId;
+- canon · function · L35-L35 — canon = (v: PropValues)
+- eq · function · L36-L36 — eq = (a: PropValue | undefined, b: PropValue | undefined)
+- snapKey · function · L37-L37 — snapKey = (x: Snap)
+- sectionRank · function · L38-L38 — sectionRank = (s: string)
+- dependsOn · function · L41-L66 — function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean } | null
+- SidebarWindow · type · L72-L72 — type SidebarWindow = Window & { __tcgSidebarForce?: boolean };
+- OverlayEditor · function · L74-L1285 — function OverlayEditor({ initialGlobal, initialPacks, packs, presets, initialLayout, initialScope, saveAction, savePresetAction, deletePresetAction, versions, seasons, seasonLooks, packCards, initialAutoReload, siteUrl, overlayKey, }: { /** Where the overlay is served from (a scene's OBS URL is this + /overlay.html?preset=<id>). */ siteUrl: string; /** The overlay key that goes in every OBS URL (lib/overlay-key.ts). */ overlayKey: string; versions: VersionInfo[]; seasons: SeasonInfo[]; seasonLooks: Record<string, string>; packCards: Record<string, CardInfo[]>; initialAutoReload: boolean; initialGlobal: PropValues; initialPacks: Record<string, PropValues>; packs: PackInfo[]; presets: PresetInfo[]; initialLayout: OverlayLayout; initialScope: string; saveAction: (formData: FormData) => void | Promise<void>; savePresetAction: (formData: FormData) => void | Promise<void>; deletePresetAction: (formData: FormData) => void | Promise<void>; })
+- setValue · function · L177-L196 — setValue = (key: string, raw: unknown)
+- resetKeys · function · L197-L200 — resetKeys = (keys: string[])
+- drop · function · L198-L198 — drop = (m: PropValues)
+- replaceCurrent · function · L201-L203 — replaceCurrent = (next: PropValues)
+- restoreSnap · function · L227-L227 — restoreSnap = (x: Snap)
+- undo · function · L228-L228 — undo = ()
+- redo · function · L229-L229 — redo = ()
+- onKey · function · L235-L242 — onKey = (e: KeyboardEvent)
+- keys · function · L249-L249 — keys = (m: Record<string, unknown>)
+- layoutOf · function · L251-L251 — layoutOf = (k: string)
+- revert · function · L265-L265 — revert = ()
+- versionDistance · function · L279-L282 — versionDistance = (v: VersionInfo)
+- loadVersion · function · L283-L286 — loadVersion = (v: VersionInfo)
+- hiddenInScope · function · L293-L293 — hiddenInScope = (d: PropDef)
+- defsFor · function · L294-L298 — defsFor = (cat: string): PropDef[]
+- modifiedCount · function · L299-L299 — modifiedCount = (cat: string)
+- versionModified · function · L300-L300 — versionModified = (v: VariantId)
+- matches · function · L304-L304 — matches = (d: PropDef)
+- groupSections · function · L307-L311 — groupSections = (defs: PropDef[])
+- warn · function · L343-L343 — warn = (e: BeforeUnloadEvent)
+- play · function · L353-L358 — play = ()
+- download · function · L361-L368 — download = ()
+- copyJson · function · L369-L372 — copyJson = async ()
+- runImport · function · L373-L383 — runImport = (text: string)
+- applyPreset · function · L384-L387 — applyPreset = (p: PresetInfo)
+- copyVariant · function · L390-L401 — copyVariant = (from: VariantId)
+- renderRow · function · L406-L422 — renderRow = (def: PropDef)
+- renderSection · function · L424-L455 — renderSection = (scopeKey: string, name: string, defs: PropDef[], index: number)
+- setSize · function · L459-L459 — setSize = (patch: Partial<Pick<OverlayLayout, 'width' | 'height'>>)
+- setPlacement · function · L461-L462 — setPlacement = (patch: Partial<Placement> | ((p: Placement) => Partial<Placement>))
+- moved · function · L463-L463 — moved = (p: Placement)
+- onPointerDown · function · L470-L473 — onPointerDown = (e: React.PointerEvent)
+- onPointerMove · function · L474-L486 — onPointerMove = (e: React.PointerEvent)
+- onPointerUp · function · L487-L487 — onPointerUp = ()
+- onKeyDown · function · L488-L496 — onKeyDown = (e: React.KeyboardEvent)
+- onMsg · function · L501-L527 — onMsg = (e: MessageEvent)
+- go · function · L505-L516 — go = (c: string, section?: string)
+- variantSummary · function · L549-L559 — variantSummary = (v: VariantId)
+- g · function · L550-L550 — g = (n: string)
+- Popover · function · L1290-L1319 — function Popover({ label, badge, children, align = 'left', up = false, icon, disabled = false }: { label: string; badge?: number; children: React.ReactNode; align?: 'left' | 'right'; up?: boolean; icon?: IconName; disabled?: boolean })
+- onDown · function · L1295-L1295 — onDown = (e: MouseEvent)
+- onKey · function · L1296-L1296 — onKey = (e: KeyboardEvent)
+- Segmented · function · L1322-L1349 — function Segmented({ label, value, onChange, options, disabled = [], wrap = false, }: { label: string; value: string; onChange: (v: string) => void; options: { id: string; label: string; dot?: boolean }[]; disabled?: string[]; wrap?: boolean; })
+- PropRow · function · L1353-L1400 — function PropRow({ def, value, modified, inherited, isPack, off, onChange, onReset, }: { def: PropDef; value: PropValue; modified: boolean; inherited: boolean; isPack: boolean; off: boolean; onChange: (v: unknown) => void; onReset: () => void; })
+- formatValue · function · L1402-L1407 — function formatValue(def: PropDef, v: PropValue): string
+- Control · function · L1411-L1530 — function Control({ def, id, value, onChange }: { def: PropDef; id: string; value: PropValue; onChange: (v: unknown) => void })
+- set · function · L1485-L1485 — set = (i: number, c: string)

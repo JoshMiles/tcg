@@ -1,0 +1,4 @@
+# app/admin/components/ConfirmButton.tsx
+
+- ConfirmButton · function · L13-L100 — function ConfirmButton({ message, title = 'Are you sure?', confirmLabel = 'Delete', className, children, formId, tone = 'danger', typeToConfirm, disabled = false, }: { message: ReactNode; title?: string; confirmLabel?: string; className?: string; children: ReactNode; formId?: string; /** The confirm button's colour: red for something destructive (default), yellow for a switch that is not (activating a season). */ tone?: 'danger' | 'primary'; /** For something that can't be undone and affects everyone: the confirm button stays off until this exact phrase is typed. */ typeToConfirm?: string; /** Keeps the opening button off (for a form whose own fields are not ready). */ disabled?: boolean; })
+- confirm · function · L43-L51 — function confirm()

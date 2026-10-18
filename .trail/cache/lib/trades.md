@@ -1,0 +1,45 @@
+# lib/trades.ts
+
+- queueEvent · function · L34-L36 — function queueEvent(trade: Trade, action: TradeAction, by?: string, pools?: EventPools): void
+- snapshotPools · function · L38-L45 — async function snapshotPools(seasonId: string, owners: { give?: string; get?: string }): Promise<EventPools>
+- flushEvents · function · L46-L49 — async function flushEvents(): Promise<void>
+- locked · function · L51-L53 — function locked<T>(fn: () => Promise<T>): Promise<T>
+- blocked · function · L56-L58 — async function blocked(username: string): Promise<boolean>
+- tooNew · function · L61-L67 — async function tooNew(username: string, settings: TradeSettings): Promise<boolean>
+- TradeResult · type · L69-L69 — type TradeResult<T = object> = ({ ok: true } & T) | { ok: false; status: number; error: string };
+- fail · function · L70-L70 — fail = (status: number, error: string): { ok: false; status: number; error: string }
+- getTradeSettings · function · L74-L76 — async function getTradeSettings(): Promise<TradeSettings>
+- saveTradeSettings · function · L78-L80 — async function saveTradeSettings(settings: TradeSettings): Promise<void>
+- readOpen · function · L84-L84 — readOpen = async (): Promise<Trade[]>
+- readHistory · function · L85-L85 — readHistory = async (): Promise<Trade[]>
+- seasonContext · function · L87-L94 — async function seasonContext(seasonId: string)
+- returnToCollection · function · L97-L106 — async function returnToCollection(seasonId: string, username: string, items: TradeItem[], tradeId?: string): Promise<void>
+- closeTrade · function · L109-L127 — async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status: TradeStatus, by: string | undefined, reason?: string, refund = true, settledPools?: EventPools): Promise<void>
+- sweepInLock · function · L130-L135 — async function sweepInLock(open: Trade[], history: Trade[]): Promise<boolean>
+- persist · function · L137-L140 — async function persist(open: Trade[], history: Trade[]): Promise<void>
+- sweepTrades · function · L146-L158 — async function sweepTrades(): Promise<number>
+- listOpenTrades · function · L163-L166 — async function listOpenTrades(): Promise<Trade[]>
+- getTrade · function · L168-L171 — async function getTrade(id: string): Promise<Trade | null>
+- tradeHistory · function · L173-L175 — async function tradeHistory(): Promise<Trade[]>
+- tradesForUser · function · L178-L189 — async function tradesForUser(username: string): Promise<{ incoming: Trade[]; outgoing: Trade[]; board: Trade[]; recent: Trade[] }>
+- NewTrade · interface · L193-L201 — interface NewTrade
+- createInLock · function · L204-L309 — async function createInLock(input: NewTrade, settings: TradeSettings, open: Trade[], history: Trade[], counterOf?: string): Promise<TradeResult<{ trade: Trade }>>
+- createTrade · function · L311-L320 — async function createTrade(input: NewTrade): Promise<TradeResult<{ trade: Trade }>>
+- findOpen · function · L324-L334 — async function findOpen(id: string): Promise<{ open: Trade[]; history: Trade[]; trade: Trade } | { error: ReturnType<typeof fail> }>
+- acceptTrade · function · L337-L399 — async function acceptTrade(id: string, username: string, getIds?: Record<string, string[]>): Promise<TradeResult<{ trade: Trade }>>
+- movedPrints · function · L402-L409 — async function movedPrints(c: string, escrow: string, give: TradeItem[], taker: string, get: TradeItem[]): Promise<Trade['moved']>
+- pick · function · L404-L407 — pick = async (owner: string, items: TradeItem[])
+- declineTrade · function · L412-L423 — async function declineTrade(id: string, username: string): Promise<TradeResult<{ trade: Trade }>>
+- cancelTrade · function · L426-L437 — async function cancelTrade(id: string, username: string, opts: { admin?: boolean; reason?: string } = {}): Promise<TradeResult<{ trade: Trade }>>
+- counterTrade · function · L443-L459 — async function counterTrade(id: string, username: string, input: { give: unknown; get: unknown; note?: string }): Promise<TradeResult<{ trade: Trade }>>
+- summarizeTrade · function · L462-L464 — function summarizeTrade(t: Trade, nameOf?: (n: number) => string | undefined): string
+- tradeCountsByUser · function · L467-L484 — async function tradeCountsByUser(): Promise<Record<string, { total: number; open: number; completed: number }>>
+- bump · function · L470-L476 — bump = (u: string | undefined, key: 'open' | 'completed' | 'other')
+- cancelOpenTrades · function · L489-L500 — async function cancelOpenTrades(filter: { username?: string; seasonId?: string }, reason = 'Cancelled by an admin'): Promise<number>
+- extendOpenTrades · function · L503-L518 — async function extendOpenTrades(ids: string[] | null, hours: number): Promise<number>
+- rebuildMoved · function · L528-L549 — async function rebuildMoved(c: string, trade: Trade, taker: string): Promise<Trade['moved'] | null>
+- side · function · L531-L545 — side = async (items: TradeItem[], by: string, to: string): Promise<string[] | null>
+- stillWithReceiver · function · L552-L558 — async function stillWithReceiver(c: string, holder: string, ids: string[]): Promise<string | null>
+- reverseBlocker · function · L561-L568 — async function reverseBlocker(trade: Trade): Promise<string | null>
+- reverseTrade · function · L575-L632 — async function reverseTrade(id: string, staff: string, reason: string): Promise<TradeResult<{ trade: Trade }>>
+- groups · function · L596-L600 — groups = (ids: string[])

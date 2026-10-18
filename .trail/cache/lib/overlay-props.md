@@ -1,0 +1,23 @@
+# lib/overlay-props.ts
+
+- PropValue · type · L12-L12 — type PropValue = number | boolean | string | string[];
+- PropValues · type · L13-L13 — type PropValues = Record<string, PropValue>;
+- PropType · type · L15-L15 — type PropType = 'number' | 'boolean' | 'select' | 'color' | 'colors' | 'text';
+- PropDef · interface · L17-L42 — interface PropDef
+- PropGroup · interface · L44-L49 — interface PropGroup
+- VariantId · type · L78-L78 — type VariantId = (typeof VARIANT_IDS)[number];
+- VariantDefaults · interface · L91-L100 — interface VariantDefaults
+- variantProps · function · L120-L122 — function variantProps(v: VariantId): PropDef[]
+- variantPropsRaw · function · L124-L180 — function variantPropsRaw(v: VariantId): PropDef[]
+- momentProps · function · L189-L215 — function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[]
+- sectionFor · function · L311-L349 — function sectionFor(key: string): string
+- clamp · function · L370-L370 — clamp = (n: number, lo: number, hi: number)
+- cleanValue · function · L373-L401 — function cleanValue(def: PropDef, raw: unknown): PropValue | undefined
+- same · function · L403-L403 — same = (a: PropValue, b: PropValue)
+- sanitizePropValues · function · L410-L420 — function sanitizePropValues(input: unknown, opts: { keepDefaults?: boolean } = {}): PropValues
+- withDefaults · function · L423-L428 — function withDefaults(sparse: PropValues | null | undefined): PropValues
+- effectiveProps · function · L431-L433 — function effectiveProps(global: PropValues | null | undefined, packOverrides?: PropValues | null): PropValues
+- isChanged · function · L435-L435 — isChanged = (key: string, value: PropValue | undefined)
+- PropsExport · interface · L438-L438 — interface PropsExport
+- exportProps · function · L440-L442 — function exportProps(sparse: PropValues): PropsExport
+- importProps · function · L445-L456 — function importProps(text: string): PropValues

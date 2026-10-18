@@ -1,0 +1,29 @@
+# lib/feedback.ts
+
+- itemKey · function · L14-L14 — itemKey = (id: string)
+- rateKey · function · L17-L17 — rateKey = (user: string, at: number)
+- ParsedInput · type · L19-L19 — type ParsedInput = Extract<FeedbackInput, { ok: true }>['value'];
+- ParsedReport · type · L20-L20 — type ParsedReport = Extract<ReportInput, { ok: true }>['value'];
+- SubmitResult · type · L22-L22 — type SubmitResult = { ok: true; item: FeedbackItem } | { ok: false; status: number; error: string };
+- sentToday · function · L25-L27 — async function sentToday(user: string, now = Date.now()): Promise<number>
+- submitFeedback · function · L29-L49 — async function submitFeedback(user: string, input: ParsedInput, device: unknown, now = Date.now()): Promise<SubmitResult>
+- getFeedback · function · L51-L53 — async function getFeedback(id: string): Promise<FeedbackItem | null>
+- loadMany · function · L55-L58 — async function loadMany(ids: string[]): Promise<FeedbackItem[]>
+- FeedbackFilter · interface · L60-L60 — interface FeedbackFilter
+- listFeedback · function · L63-L68 — async function listFeedback(filter: FeedbackFilter = {}): Promise<FeedbackItem[]>
+- reportRateKey · function · L73-L73 — reportRateKey = (user: string, at: number)
+- reportsToday · function · L75-L77 — async function reportsToday(user: string, now = Date.now()): Promise<number>
+- knownViewer · function · L79-L84 — async function knownViewer(login: string): Promise<boolean>
+- submitReport · function · L86-L108 — async function submitReport(reporter: string, input: ParsedReport, now = Date.now()): Promise<SubmitResult>
+- feedbackOf · function · L111-L114 — async function feedbackOf(user: string): Promise<FeedbackItem[]>
+- countNewFeedback · function · L117-L119 — async function countNewFeedback(): Promise<number>
+- UpdateResult · type · L121-L121 — type UpdateResult = { ok: true; item: FeedbackItem } | { ok: false; error: string };
+- updateFeedback · function · L127-L143 — async function updateFeedback(id: string, patch: { status?: unknown; reply?: unknown }, by: string | null, now = Date.now()): Promise<UpdateResult>
+- sweepFeedback · function · L148-L164 — async function sweepFeedback(now = Date.now()): Promise<number>
+- deletionOf · function · L171-L173 — async function deletionOf(user: string): Promise<FeedbackItem | null>
+- DeletionRequestResult · type · L175-L175 — type DeletionRequestResult = { ok: true; item: FeedbackItem } | { ok: false; error: string };
+- requestDeletion · function · L177-L191 — async function requestDeletion(user: string, now = Date.now()): Promise<DeletionRequestResult>
+- removeFeedbackItem · function · L194-L197 — async function removeFeedbackItem(id: string): Promise<void>
+- cancelDeletion · function · L200-L206 — async function cancelDeletion(user: string): Promise<boolean>
+- closeDeletion · function · L209-L214 — async function closeDeletion(id: string, by: string | null, now = Date.now()): Promise<void>
+- deleteFeedbackOf · function · L217-L222 — async function deleteFeedbackOf(user: string): Promise<number>

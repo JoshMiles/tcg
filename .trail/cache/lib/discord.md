@@ -1,0 +1,54 @@
+# lib/discord.ts
+
+- clampStars · function · L25-L25 — clampStars = (n: unknown)
+- normalizeCategories · function · L28-L33 — function normalizeCategories(raw: Partial<Record<DiscordCategory, boolean>> | undefined): Record<DiscordCategory, boolean>
+- cleanFeedbackKinds · function · L36-L40 — function cleanFeedbackKinds(raw: unknown): { feedbackKinds?: FeedbackFilterKind[] }
+- wantsFeedbackKind · function · L43-L43 — wantsFeedbackKind = (c: Pick<DiscordChannel, 'feedbackKinds'>, kind: FeedbackFilterKind): boolean
+- normalizeChannel · function · L45-L58 — function normalizeChannel(c: Partial<DiscordChannel> | null | undefined, fallbackId: string): DiscordChannel
+- normalize · function · L64-L79 — function normalize(s: (Partial<DiscordSettings> & Partial<DiscordChannel>) | null | undefined): DiscordSettings
+- getDiscordSettings · function · L81-L83 — async function getDiscordSettings(): Promise<DiscordSettings>
+- saveDiscordSettings · function · L85-L87 — async function saveDiscordSettings(s: DiscordSettings): Promise<void>
+- isValidDiscordWebhookUrl · function · L95-L98 — function isValidDiscordWebhookUrl(url: string): boolean
+- categoryOf · function · L100-L111 — function categoryOf(e: ActivityEvent): DiscordCategory
+- shouldSend · function · L114-L125 — function shouldSend(e: ActivityEvent, c: Pick<DiscordChannel, 'categories' | 'minStars' | 'newOnly'>): boolean
+- newestMatchingEvent · function · L128-L130 — function newestMatchingEvent(events: ActivityEvent[], c: Pick<DiscordChannel, 'categories' | 'minStars' | 'newOnly'>): ActivityEvent | undefined
+- cleanDiscordInput · function · L133-L143 — function cleanDiscordInput(raw: unknown): { ok: true; settings: DiscordSettings } | { ok: false; message: string }
+- Embed · interface · L147-L157 — interface Embed
+- DiscordPayload · interface · L159-L163 — interface DiscordPayload
+- esc · function · L172-L172 — esc = (s: string)
+- hexToInt · function · L175-L175 — hexToInt = (hex: string)
+- absolute · function · L176-L176 — absolute = (url: string)
+- payload · function · L178-L180 — function payload(embed: Embed): DiscordPayload
+- buildBase · function · L183-L295 — async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Promise<DiscordPayload>
+- cardFor · function · L187-L187 — cardFor = (n: number, pack?: string)
+- printUrl · function · L203-L206 — printUrl = (): Pick<Embed, 'url'>
+- thumb · function · L207-L208 — thumb = (imageUrl?: string, card?: Partial<StillFields>): Pick<Embed, 'thumbnail'>
+- PullFacts · type · L211-L211 — type PullFacts = { username: string; cardNumber: number; cardName?: string; stars?: number; packName?: string; variant?: Variant; isNew?: boolean; copies?: number; uniqueOwned?: number; serial?: number; bonus?: number; copyId?: string; uid?: number; via?: 'webhook' };
+- pullEmbed · function · L212-L231 — pullEmbed = (e: PullFacts): DiscordPayload
+- list · function · L271-L271 — list = (lines: string[])
+- buildMessage · function · L298-L305 — async function buildMessage(e: ActivityEvent, opts: { footer?: string; showStaff?: boolean } = {}): Promise<DiscordPayload>
+- buildRecapMessage · function · L308-L333 — function buildRecapMessage(r: StreamRecap, opts: { footer?: string } = {}): DiscordPayload
+- printLine · function · L312-L316 — printLine = (p: NonNullable<StreamRecap['rarest']>)
+- buildDigestMessage · function · L336-L361 — function buildDigestMessage(d: WeeklyDigest, opts: { footer?: string } = {}): DiscordPayload
+- n · function · L337-L337 — n = (x: number)
+- noticeEmbed · function · L364-L369 — function noticeEmbed(o: { title: string; text?: string; fields?: { name: string; value: string; inline?: boolean }[]; color: number; url?: string }): DiscordPayload
+- buildTestMessage · function · L371-L379 — function buildTestMessage(): DiscordPayload
+- SendResult · interface · L383-L383 — interface SendResult
+- postToDiscord · function · L386-L412 — async function postToDiscord(url: string, body: DiscordPayload): Promise<SendResult>
+- logKey · function · L416-L416 — logKey = (channelId: string)
+- getDiscordLog · function · L419-L421 — async function getDiscordLog(channelId: string): Promise<DiscordLogEntry[]>
+- recordDelivery · function · L424-L440 — async function recordDelivery(channel: DiscordChannel, kind: string, r: SendResult): Promise<void>
+- deliver · function · L443-L447 — async function deliver(channel: DiscordChannel, body: DiscordPayload, kind: string): Promise<SendResult>
+- autoDisabledChannels · function · L450-L452 — async function autoDisabledChannels(): Promise<{ id: string; name: string; reason: string }[]>
+- later · function · L455-L457 — function later(run: () => Promise<void>): void
+- sendToCategory · function · L460-L466 — async function sendToCategory(category: DiscordCategory, body: DiscordPayload, feedbackKind?: FeedbackFilterKind): Promise<void>
+- notifyDiscord · function · L469-L481 — async function notifyDiscord(e: ActivityEvent): Promise<void>
+- ListingNotice · interface · L483-L497 — interface ListingNotice
+- notifyListing · function · L504-L525 — async function notifyListing(l: ListingNotice): Promise<void>
+- list · function · L507-L507 — list = (lines: string[])
+- AdminLogEntry · interface · L535-L535 — interface AdminLogEntry
+- notifyAdminLog · function · L542-L553 — async function notifyAdminLog(entry: AdminLogEntry): Promise<void>
+- notifySystem · function · L556-L562 — async function notifySystem(o: { title: string; text?: string; tone?: 'good' | 'bad' | 'info'; fields?: { name: string; value: string; inline?: boolean }[] }): Promise<void>
+- notifyFeedback · function · L565-L592 — async function notifyFeedback(item: FeedbackItem): Promise<void>
+- notifyRecap · function · L595-L600 — async function notifyRecap(r: StreamRecap): Promise<void>
+- postDigest · function · L603-L611 — async function postDigest(d: WeeklyDigest): Promise<number>

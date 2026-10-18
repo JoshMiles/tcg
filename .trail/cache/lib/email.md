@@ -1,0 +1,37 @@
+# lib/email.ts
+
+- recordKey · function · L23-L23 — recordKey = (u: string)
+- queueKey · function · L24-L24 — queueKey = (u: string)
+- lastKey · function · L25-L25 — lastKey = (u: string)
+- emailApiKey · function · L28-L28 — emailApiKey = ()
+- signingKey · function · L29-L29 — signingKey = ()
+- emailConfigured · function · L30-L30 — emailConfigured = ()
+- fromAddress · function · L31-L31 — fromAddress = ()
+- apiBase · function · L33-L33 — apiBase = ()
+- b64 · function · L36-L36 — b64 = (s: string)
+- mac · function · L37-L37 — mac = (data: string)
+- addrHash · function · L38-L38 — addrHash = (address: string)
+- same · function · L39-L39 — same = (a: string, b: string)
+- confirmToken · function · L41-L44 — function confirmToken(user: string, address: string, now = Date.now()): string
+- readConfirmToken · function · L47-L56 — function readConfirmToken(token: string, now = Date.now()): { user: string; hash: string } | null
+- unsubscribeToken · function · L59-L59 — unsubscribeToken = (user: string)
+- readUnsubscribeToken · function · L60-L65 — function readUnsubscribeToken(token: string): string | null
+- links · function · L67-L71 — links = (user: string)
+- getEmail · function · L74-L76 — async function getEmail(user: string): Promise<EmailRecord | null>
+- putEmail · function · L77-L77 — putEmail = (user: string, r: EmailRecord)
+- deleteEmail · function · L80-L83 — async function deleteEmail(user: string): Promise<void>
+- Outgoing · interface · L86-L86 — interface Outgoing
+- deliver · function · L89-L109 — async function deliver(o: Outgoing): Promise<boolean>
+- StartResult · type · L111-L111 — type StartResult = { ok: true; record: EmailRecord } | { ok: false; error: string };
+- startEmail · function · L114-L133 — async function startEmail(user: string, input: unknown): Promise<StartResult>
+- confirmEmail · function · L136-L145 — async function confirmEmail(token: string): Promise<boolean>
+- setEmailKinds · function · L147-L153 — async function setEmailKinds(user: string, kinds: unknown): Promise<EmailRecord | null>
+- switchEmailOff · function · L156-L162 — async function switchEmailOff(user: string, why: EmailOff): Promise<boolean>
+- readQueue · function · L165-L168 — async function readQueue(user: string): Promise<Notice[]>
+- flushEmail · function · L171-L193 — async function flushEmail(user: string): Promise<number>
+- coalesceMs · function · L196-L196 — coalesceMs = ()
+- emailNotice · function · L202-L217 — async function emailNotice(user: string, notice: Notice): Promise<void>
+- run · function · L210-L214 — run = async ()
+- flushDueEmails · function · L220-L226 — async function flushDueEmails(): Promise<number>
+- verifyWebhook · function · L230-L237 — function verifyWebhook(body: string, h: { id: string | null; timestamp: string | null; signature: string | null }, secret = (process.env.RESEND_WEBHOOK_SECRET ?? '').trim(), now = Date.now()): boolean
+- handleWebhookEvent · function · L240-L252 — async function handleWebhookEvent(event: unknown): Promise<'off' | 'ignored'>

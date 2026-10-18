@@ -1,0 +1,24 @@
+# lib/serials-core.ts
+
+- Origin · type · L8-L8 — type Origin = 'pull' | 'grant' | 'upgrade' | 'estimated' | 'other';
+- CopyEventType · type · L10-L10 — type CopyEventType = 'minted' | 'escrowed' | 'returned' | 'traded' | 'upgraded' | 'removed' | 'reversed';
+- CopyEvent · interface · L11-L11 — interface CopyEvent
+- Copy · interface · L13-L30 — interface Copy
+- copyId · function · L34-L34 — copyId = (card: number, variant: Variant, n: number)
+- parseCopyId · function · L36-L40 — function parseCopyId(id: string): { card: number; variant: Variant; n: number } | null
+- escrowOwner · function · L43-L43 — escrowOwner = (tradeId: string)
+- isEscrow · function · L44-L44 — isEscrow = (owner: string)
+- entryOf · function · L47-L47 — entryOf = (c: { card: number; variant: Variant })
+- countEntries · function · L50-L54 — function countEntries(owned: number[]): Map<number, number>
+- sameCollection · function · L57-L63 — function sameCollection(a: number[] | undefined, b: number[] | undefined): boolean
+- newestFirst · function · L66-L68 — function newestFirst(copies: Copy[], k: number): Copy[]
+- Reconcile · interface · L70-L70 — interface Reconcile
+- diffCounts · function · L73-L78 — function diffCounts(have: Map<number, number>, want: Map<number, number>): Reconcile
+- withEvent · function · L81-L84 — function withEvent(c: Copy, e: CopyEvent): Copy
+- serialLabel · function · L101-L101 — serialLabel = (c: { variant: Variant; n: number }, labels: Record<Variant, string>)
+- SerialIndex · interface · L108-L113 — interface SerialIndex
+- SerialPool · type · L116-L116 — type SerialPool = Record<number, number[]>;
+- poolOf · function · L117-L117 — poolOf = (m: Map<number, number[]> | undefined): SerialPool
+- buildSerialIndex · function · L120-L135 — function buildSerialIndex(idx: Record<string, string>, minted: Map<number, number>): SerialIndex
+- uidLabel · function · L143-L143 — uidLabel = (uid?: number)
+- parseUid · function · L146-L151 — function parseUid(raw: string): number | null

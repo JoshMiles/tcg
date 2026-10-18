@@ -1,0 +1,3 @@
+# app/components/trade/TradeCard.tsx
+
+- TradeCard · function · L17-L62 — function TradeCard({ trade, cards, title, actions, compact = false, pools, href, wanted, }: { trade: Trade; cards: Record<number, TradeCardInfo>; title: ReactNode; actions?: ReactNode; compact?: boolean; /** Serial numbers, so the points include the serial bonuses of the copies that would move. */ pools?: TradePools; /** Where this offer has a page of its own (a board listing), shown as a link in the header. */ href?: string; /** Per card the given side has, how many viewers want it (open listings only). */ wanted?: Record<number, number>; })

@@ -1,0 +1,53 @@
+# app/admin/actions.ts
+
+- num · function · L49-L52 — num = (v: FormDataEntryValue | null): number | undefined
+- updateSeason · function · L54-L89 — async function updateSeason(id: string, formData: FormData)
+- activateSeason · function · L91-L99 — async function activateSeason(id: string)
+- deleteSeasonAction · function · L101-L106 — async function deleteSeasonAction(id: string)
+- addPackToSeason · function · L110-L118 — async function addPackToSeason(seasonId: string, formData: FormData)
+- removePackFromSeason · function · L120-L126 — async function removePackFromSeason(seasonId: string, packId: string)
+- parseVariant · function · L130-L133 — function parseVariant(raw: FormDataEntryValue | null): Variant
+- positiveInt · function · L135-L138 — function positiveInt(raw: FormDataEntryValue | null, fallback: number): number
+- nonNegative · function · L140-L143 — function nonNegative(raw: FormDataEntryValue | null, fallback: number): number
+- disabledFromForm · function · L149-L152 — function disabledFromForm(formData: FormData, fallback: OptionalVariant[] = []): OptionalVariant[]
+- upgradeSettings · function · L154-L170 — function upgradeSettings(formData: FormData)
+- updatePack · function · L174-L202 — async function updatePack(packId: string, formData: FormData)
+- field · function · L180-L180 — field = (key: string, fallback: number)
+- setPackActive · function · L205-L212 — async function setPackActive(packId: string, active: boolean)
+- deletePackAction · function · L214-L219 — async function deletePackAction(packId: string)
+- cardFromForm · function · L224-L233 — function cardFromForm(formData: FormData, otherNumbers: number[], fallbackNumber: number, useFormNumber = true)
+- addCard · function · L235-L259 — async function addCard(packId: string, formData: FormData)
+- updateCard · function · L261-L302 — async function updateCard(packId: string, cardId: string, formData: FormData)
+- withoutVariant · function · L306-L306 — withoutVariant = (list: OptionalVariant[] | undefined, v: OptionalVariant)
+- withVariant · function · L307-L307 — withVariant = (list: OptionalVariant[] | undefined, v: OptionalVariant)
+- setPackVariant · function · L310-L318 — async function setPackVariant(packId: string, variant: OptionalVariant, enabled: boolean)
+- setCardUpgrades · function · L320-L325 — async function setCardUpgrades(packId: string, cardId: string, enabled: boolean)
+- setCardVariant · function · L328-L338 — async function setCardVariant(packId: string, cardId: string, variant: OptionalVariant, enabled: boolean)
+- BulkCardOp · type · L340-L340 — type BulkCardOp = 'upgrades-on' | 'upgrades-off' | 'fullart-off-without-art' | 'all-variants-on';
+- bulkCards · function · L343-L363 — async function bulkCards(packId: string, op: BulkCardOp): Promise<{ changed: number }>
+- deleteCard · function · L365-L370 — async function deleteCard(packId: string, cardId: string)
+- requireSeasonCollection · function · L375-L377 — async function requireSeasonCollection(collectionName: string): Promise<void>
+- updateUserProfile · function · L379-L394 — async function updateUserProfile(username: string, formData: FormData)
+- removeUserCard · function · L397-L417 — async function removeUserCard(username: string, collectionName: string, entry: number)
+- resetUserSeason · function · L420-L431 — async function resetUserSeason(username: string, collectionName: string)
+- deleteUser · function · L434-L440 — async function deleteUser(username: string)
+- resetUser · function · L443-L453 — async function resetUser(rawUsername: string)
+- resetAllUsers · function · L456-L462 — async function resetAllUsers()
+- seedSeason1 · function · L466-L472 — async function seedSeason1()
+- saveOutgoingWebhook · function · L476-L495 — async function saveOutgoingWebhook( event: 'cardPulled' | 'collectionShown', formData: FormData, )
+- regenerateWebhookSecret · function · L497-L504 — async function regenerateWebhookSecret()
+- saveScoringSettingsAction · function · L511-L521 — async function saveScoringSettingsAction(formData: FormData)
+- resetScoringSettingsAction · function · L523-L530 — async function resetScoringSettingsAction()
+- saveOverlaySettingsAction · function · L532-L542 — async function saveOverlaySettingsAction(formData: FormData)
+- saveOverlayEditorAction · function · L548-L580 — async function saveOverlayEditorAction(formData: FormData)
+- saveOverlayPresetAction · function · L582-L598 — async function saveOverlayPresetAction(formData: FormData)
+- deleteOverlayPresetAction · function · L600-L605 — async function deleteOverlayPresetAction(formData: FormData)
+- deleteUnusedAssets · function · L610-L615 — async function deleteUnusedAssets(formData: FormData)
+- cleanUsername · function · L620-L623 — function cleanUsername(raw: FormDataEntryValue | null): string | null
+- queueForOverlay · function · L628-L657 — async function queueForOverlay(kind: 'pull' | 'collection', formData: FormData, count: number): Promise<ActionResult>
+- giftPack · function · L659-L662 — async function giftPack(formData: FormData): Promise<ActionResult>
+- showCollection · function · L664-L666 — async function showCollection(formData: FormData): Promise<ActionResult>
+- quickAction · function · L669-L677 — async function quickAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult>
+- grantCard · function · L679-L697 — async function grantCard(formData: FormData): Promise<ActionResult>
+- clearQueueAction · function · L699-L704 — async function clearQueueAction(): Promise<ActionResult>
+- discordAction · function · L711-L749 — async function discordAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult>

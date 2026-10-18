@@ -1,0 +1,35 @@
+# lib/serials.ts
+
+- Move · interface · L33-L41 — interface Move
+- SyncContext · interface · L42-L51 — interface SyncContext
+- parse · function · L53-L55 — parse = (v: unknown): Copy | null
+- readOwner · function · L57-L60 — async function readOwner(c: string, owner: string): Promise<Copy[]>
+- isTracking · function · L62-L64 — async function isTracking(c: string): Promise<boolean>
+- getOwnerCopies · function · L66-L66 — getOwnerCopies = (c: string, owner: string)
+- getCopy · function · L69-L77 — async function getCopy(c: string, id: string): Promise<Copy | null>
+- mintedCounts · function · L80-L83 — async function mintedCounts(c: string): Promise<Map<number, number>>
+- loadSerialIndex · function · L86-L92 — async function loadSerialIndex(c: string): Promise<SerialIndex | null>
+- serialPool · function · L95-L101 — async function serialPool(c: string, owner: string): Promise<SerialPool>
+- CopyPage · interface · L103-L103 — interface CopyPage
+- pageCopies · function · L109-L115 — async function pageCopies(c: string, card: number, variant: Variant, page: number, size: number, oldestFirst = false): Promise<CopyPage>
+- liveCounts · function · L118-L128 — async function liveCounts(c: string): Promise<Map<number, number>>
+- lastSerial · function · L131-L137 — async function lastSerial(c: string, entry: number): Promise<number | null>
+- lastCopy · function · L140-L147 — async function lastCopy(c: string, entry: number): Promise<{ serial: number | null; copyId: string | null; uid: number | null }>
+- liveCopiesOfEntry · function · L150-L155 — async function liveCopiesOfEntry(c: string, entry: number): Promise<{ id: string; owner: string }[]>
+- nextUids · function · L158-L160 — async function nextUids(count: number): Promise<number>
+- registerUids · function · L162-L165 — async function registerUids(c: string, copies: Copy[]): Promise<void>
+- mint · function · L167-L185 — async function mint(c: string, owner: string, entry: number, count: number, origin: Origin, opts: { est?: boolean; madeFrom?: string[]; who?: string; noUid?: boolean } = {}): Promise<Copy[]>
+- retire · function · L187-L193 — async function retire(c: string, owner: string, copies: Copy[], ev: Omit<CopyEvent, 't'>): Promise<void>
+- move · function · L196-L214 — async function move(c: string, m: Move): Promise<number>
+- reconcileUser · function · L217-L224 — async function reconcileUser(c: string, user: string, owned: number[], origin: Origin, est = false, noUid = false): Promise<void>
+- syncAfterSave · function · L230-L261 — async function syncAfterSave(c: string, before: Record<string, number[]>, after: Record<string, number[]>, ctx: SyncContext = {}): Promise<void>
+- BackfillResult · interface · L263-L263 — interface BackfillResult
+- backfillSerials · function · L270-L281 — async function backfillSerials(c: string, data: Record<string, number[]>): Promise<BackfillResult>
+- assignMissingUids · function · L287-L310 — async function assignMissingUids(c: string): Promise<number>
+- findByUid · function · L313-L320 — async function findByUid(uid: number): Promise<{ collection: string; copyId: string } | null>
+- serialStats · function · L323-L326 — async function serialStats(c: string): Promise<{ tracking: boolean; minted: number; live: number; retired: number }>
+- dropLedger · function · L329-L333 — async function dropLedger(c: string, users: string[]): Promise<void>
+- firstNotHeld · function · L339-L345 — async function firstNotHeld(c: string, owners: string[], ids: string[]): Promise<{ id: string; holder: string } | null>
+- printLabel · function · L348-L353 — async function printLabel(c: string, id: string): Promise<string>
+- lastUid · function · L356-L361 — async function lastUid(): Promise<number | null>
+- inOfferCount · function · L364-L367 — async function inOfferCount(c: string): Promise<number>

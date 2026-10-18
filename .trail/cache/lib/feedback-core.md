@@ -1,0 +1,21 @@
+# lib/feedback-core.ts
+
+- FeedbackKind · type · L5-L5 — type FeedbackKind = 'idea' | 'bug' | 'deletion' | 'report';
+- FeedbackStatus · type · L6-L6 — type FeedbackStatus = 'new' | 'planned' | 'done' | 'wontfix' | 'duplicate';
+- FeedbackMeta · interface · L36-L36 — interface FeedbackMeta
+- FeedbackItem · interface · L38-L59 — interface FeedbackItem
+- oneLine · function · L64-L66 — function oneLine(s: unknown, max: number): string
+- multiLine · function · L69-L71 — function multiLine(s: unknown, max: number): string
+- cleanFrom · function · L74-L78 — function cleanFrom(v: unknown): string
+- FeedbackInput · type · L80-L82 — type FeedbackInput = | { ok: true; value: { kind: FeedbackKind; title: string; body: string; expected?: string; from?: string; includeDevice: boolean } } | { ok: false; error: string };
+- parseFeedbackInput · function · L85-L97 — function parseFeedbackInput(raw: unknown): FeedbackInput
+- cleanMeta · function · L100-L105 — function cleanMeta(raw: unknown, build: string): FeedbackMeta
+- dayKey · function · L108-L108 — dayKey = (at: number)
+- isStatus · function · L110-L112 — function isStatus(v: unknown): v is FeedbackStatus
+- expired · function · L115-L119 — function expired(item: Pick<FeedbackItem, 'status' | 'resolvedAt'>, now: number): boolean
+- noticeText · function · L122-L130 — function noticeText(item: Pick<FeedbackItem, 'title' | 'status' | 'reply'> & { kind?: FeedbackKind }, changed: { status: boolean; reply: boolean }): string | null
+- discordText · function · L133-L135 — function discordText(s: string, max: number = FEEDBACK_LIMITS.discordText): string
+- ReportReason · type · L140-L140 — type ReportReason = 'offensive' | 'cheating' | 'scam' | 'other';
+- cleanReportLink · function · L150-L153 — function cleanReportLink(v: unknown): string
+- ReportInput · type · L155-L157 — type ReportInput = | { ok: true; value: { target: string; reason: ReportReason; details: string; link?: string } } | { ok: false; error: string };
+- parseReportInput · function · L160-L170 — function parseReportInput(raw: unknown): ReportInput

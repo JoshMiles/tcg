@@ -1,0 +1,14 @@
+# scripts/check-discord.mts
+
+- ok · function · L10-L10 — ok = (cond: unknown, msg: string)
+- hook · function · L24-L24 — hook = (id: number)
+- ch · function · L50-L50 — ch = (over: Record<string, unknown>)
+- event · function · L60-L63 — event = (over: Record<string, unknown> = {})
+- cats · function · L64-L64 — cats = (p: Record<string, boolean>)
+- pick · function · L78-L78 — pick = (c: Record<string, unknown>)
+- wait · function · L127-L127 — wait = ()
+- only · function · L128-L128 — only = (n: number)
+- wg · function · L195-L195 — wg = (over: Record<string, unknown> = {})
+- fc · function · L230-L230 — fc = (over: Record<string, unknown>)
+- item · function · L244-L244 — item = (kind: string)
+- got · function · L245-L245 — got = async (kind: string)

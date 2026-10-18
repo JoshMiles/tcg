@@ -1,0 +1,13 @@
+{
+  "version": "0.23.0",
+  "hosts": [
+    "claude"
+  ],
+  "opts": {
+    "global": true,
+    "mcp": true,
+    "hooks": true,
+    "statusline": true
+  },
+  "at": "2026-10-18T14:22:43.086Z"
+}

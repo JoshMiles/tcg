@@ -1,0 +1,21 @@
+# lib/trade-core.ts
+
+- TradeItem · interface · L14-L23 — interface TradeItem
+- TradeStatus · type · L25-L25 — type TradeStatus = 'open' | 'accepted' | 'declined' | 'cancelled' | 'expired' | 'countered' | 'failed';
+- Trade · interface · L27-L61 — interface Trade
+- tradeVisibleTo · function · L67-L71 — function tradeVisibleTo(trade: Pick<Trade, 'kind' | 'from' | 'to'>, viewer: string | null | undefined): boolean
+- TradeSettings · interface · L73-L86 — interface TradeSettings
+- clampInt · function · L107-L110 — clampInt = (v: unknown, min: number, max: number, fallback: number)
+- sanitizeTradeSettings · function · L113-L124 — function sanitizeTradeSettings(input: unknown): TradeSettings
+- cleanItems · function · L130-L155 — function cleanItems(input: unknown, maxStacks: number): TradeItem[] | null
+- cleanIds · function · L158-L168 — function cleanIds(input: unknown, cardNumber: number, variant: Variant, count: number): string[] | null
+- hasPickedPrints · function · L171-L171 — hasPickedPrints = (items: TradeItem[])
+- moveOf · function · L174-L174 — moveOf = (i: TradeItem)
+- withChosenPrints · function · L177-L188 — function withChosenPrints(items: TradeItem[], chosen: Record<string, string[]> | undefined): TradeItem[] | null
+- itemEntries · function · L191-L193 — function itemEntries(items: TradeItem[]): number[]
+- itemCopies · function · L195-L195 — itemCopies = (items: TradeItem[])
+- ownedCopies · function · L198-L203 — function ownedCopies(owned: number[], cardNumber: number, variant: Variant): number
+- firstMissing · function · L206-L208 — function firstMissing(owned: number[], items: TradeItem[]): TradeItem | null
+- settleTrade · function · L215-L227 — function settleTrade( offererOwned: number[], takerOwned: number[], give: TradeItem[], get: TradeItem[], ): { ok: true; offerer: number[]; taker: number[] } | { ok: false; missing: TradeItem }
+- takeForEscrow · function · L232-L239 — function takeForEscrow(owned: number[], items: TradeItem[]): { ok: true; rest: number[] } | { ok: false; missing: TradeItem }
+- describeItems · function · L242-L246 — function describeItems(items: TradeItem[], nameOf?: (cardNumber: number) => string | undefined): string
