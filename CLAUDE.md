@@ -1,6 +1,6 @@
 # TCG, CLAUDE.md
 
-A trading card game played live on stream: an OBS overlay where viewers pull cards, an admin panel (seasons, packs, cards), a public site (profiles, binder, dex, leaderboard, trading) and a Twitch Extension panel. Production: `https://cheesytcg.app` (Vercel, Next.js 15, KV + Blob). Planned work and the rules in force live in `ROADMAP.md`; read it before starting anything non-trivial.
+A trading card game played live on stream: an OBS overlay where viewers pull cards, an admin panel (seasons, packs, cards), a public site (profiles, binder, dex, leaderboard, trading) and a Twitch Extension panel. Production: `https://cheesytcg.app` (Vercel, Next.js 15, KV + Blob). Open work and the rules in force live in `ROADMAP.md` (short, open items only); read it before starting anything non-trivial.
 
 **The game runs only on the Cheesygidds Twitch channel (https://www.twitch.tv/cheesygidds).** Say so in public copy (FAQ, Terms, Privacy, home, footer) and use `CHANNEL_NAME` / `CHANNEL_URL` from `lib/site.ts`, never a hard-coded name or URL.
 
@@ -70,6 +70,7 @@ Read the doc that matches what you are changing **before** you change it; each s
 | [docs/review.md](docs/review.md) | running a review batch: the seed data, the page sweeps, the mod access test |
 | [docs/local-dev.md](docs/local-dev.md) | running the app locally, the overlay test panel, website login against the fake Twitch |
 | [docs/reference.md](docs/reference.md) | which file does what (key files), the API routes |
+| [docs/roadmap-history.md](docs/roadmap-history.md) | only when you need the original plan behind a finished roadmap item ("ROADMAP 13.1") |
 
 ## Data architecture
 
@@ -97,7 +98,9 @@ Three tiers in Vercel KV: **Seasons → Packs → Cards**.
 
 ## Git and PRs
 
-- Branch off an up-to-date `origin/main`, push, open a PR against `main`. **Every push to GitHub gets a PR**: open one straight away if the branch has none. Don't push to `main` and don't merge or close PRs unless asked.
+- Branch off an up-to-date `origin/main`, push, open a PR against `main`. **Every push to GitHub gets a PR**: open one straight away if the branch has none. Don't push to `main`.
+- **Before pushing to a branch that has a PR, check whether that PR is merged.** If it is, start again from `origin/main` (rebase any unmerged commits onto it) and open a new PR; never stack new work on a merged PR.
+- **Merging:** Opus may merge PRs and delete their branches when necessary (CI green, no open review asks). Sonnet doesn't merge or close PRs unless the user asks.
 - **One feature per PR, each branched from `main`.** Never stack PRs: merging them out of order drops commits. A fix that lands after its PR merged needs a new branch and PR.
 - Commit messages and PR bodies end with the attribution lines the harness gives.
 - Ignore `Old/` and `olddata.txt` (pre-rewrite leftovers). CRLF warnings on Windows are harmless (`.gitattributes`).
