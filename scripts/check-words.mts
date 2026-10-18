@@ -14,7 +14,10 @@ const fromCode = (file: string, re: RegExp): number => {
 };
 
 const privacy = read('app/privacy/page.tsx');
-const faq = read('app/(site)/faq/page.tsx');
+// The FAQ is split: page.tsx holds the order and the data, parts.tsx the Section / Q shells, sections/*.tsx one section each. Read them all as one text.
+const FAQ_DIR = 'app/(site)/faq';
+const faqFiles = [FAQ_DIR + '/page.tsx', FAQ_DIR + '/parts.tsx', ...readdirSync(join(root, FAQ_DIR, 'sections')).filter(f => f.endsWith('.tsx')).sort().map(f => FAQ_DIR + '/sections/' + f)];
+const faq = faqFiles.map(read).join('\n');
 const terms = read('app/terms/page.tsx');
 const has = (text: string, phrase: string, label: string) => ok(text.includes(phrase), `${label}: the page says "${phrase}"`);
 
@@ -73,7 +76,7 @@ for (const file of userFacing) {
 }
 // ---- the two set bonuses are the "progress bonus" and the "full set bonus" (ROADMAP 7.8); the FAQ alone may name the old words ("it used to be called") ----
 const oldBonusNames = /completion bonus|complete[- ](set|collection) bonus/i;
-for (const file of userFacing.filter(f => f !== 'app/(site)/faq/page.tsx')) ok(!oldBonusNames.test(withoutComments(read(file))), `${file} uses an old bonus name: say "progress bonus" or "full set bonus"`);
+for (const file of userFacing.filter(f => !f.startsWith(FAQ_DIR + '/'))) ok(!oldBonusNames.test(withoutComments(read(file))), `${file} uses an old bonus name: say "progress bonus" or "full set bonus"`);
 ok(faq.includes('it used to be called the completion bonus'), 'the FAQ keeps the old progress bonus name findable');
 ok(faq.includes('it used to be called the complete collection bonus'), 'the FAQ keeps the old full set bonus name findable');
 ok(faq.includes('id="serials"') && faq.includes('id="prints"'), 'the FAQ keeps the #serials anchor and adds #prints');
