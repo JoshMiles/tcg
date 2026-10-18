@@ -514,24 +514,28 @@ export interface ListingNotice {
 export async function notifyListing(l: ListingNotice): Promise<void> {
   try {
     if (await inSandbox()) return;
-    const list = (lines: string[]) => (lines.join('\n') || '-').slice(0, 1000);
-    const body = payload({
-      color: BLUE,
-      title: `📋 ${esc(l.from)} listed a trade`,
-      url: `${SITE_URL}/trade/${encodeURIComponent(l.id)}`,
-      ...(l.imageUrl ? { thumbnail: { url: absolute(cardThumbUrl(l.imageUrl)) } } : {}),
-      fields: [
-        { name: `Gives · ≈${l.givePts.toLocaleString()} pts`, value: list(l.give.map(esc)), inline: true },
-        { name: `Wants · ≈${l.getPts.toLocaleString()} pts`, value: list(l.get.map(esc)), inline: true },
-        ...(l.wanted?.length ? [{ name: 'Wanted', value: l.wanted.map(esc).join('\n').slice(0, 1000) }] : []),
-        { name: 'Ends', value: `<t:${Math.floor(l.expiresAt / 1000)}:R>`, inline: true },
-        ...(l.note ? [{ name: 'Note', value: esc(l.note).slice(0, 200) }] : []),
-      ],
-      timestamp: new Date().toISOString(),
-      footer: { text: 'Open the title to take the trade' },
-    });
+    const body = buildListingMessage(l);
     later(() => sendToCategory('listings', body));
   } catch { /* never breaks the trade */ }
+}
+
+export function buildListingMessage(l: ListingNotice): DiscordPayload {
+  const list = (lines: string[]) => (lines.join('\n') || '-').slice(0, 1000);
+  return payload({
+    color: BLUE,
+    title: `📋 ${esc(l.from)} listed a trade`,
+    url: `${SITE_URL}/trade/${encodeURIComponent(l.id)}`,
+    ...(l.imageUrl ? { thumbnail: { url: absolute(cardThumbUrl(l.imageUrl)) } } : {}),
+    fields: [
+      { name: `Gives · ≈${l.givePts.toLocaleString()} pts`, value: list(l.give.map(esc)), inline: true },
+      { name: `Wants · ≈${l.getPts.toLocaleString()} pts`, value: list(l.get.map(esc)), inline: true },
+      ...(l.wanted?.length ? [{ name: 'Wanted', value: l.wanted.map(esc).join('\n').slice(0, 1000) }] : []),
+      { name: 'Ends', value: `<t:${Math.floor(l.expiresAt / 1000)}:R>`, inline: true },
+      ...(l.note ? [{ name: 'Note', value: esc(l.note).slice(0, 200) }] : []),
+    ],
+    timestamp: new Date().toISOString(),
+    footer: { text: 'Open the title to take the trade' },
+  });
 }
 
 // ── Admin log and system notices ──────────────────────────
@@ -552,21 +556,28 @@ export interface AdminLogEntry { action: string; subject?: string; detail?: stri
 export async function notifyAdminLog(entry: AdminLogEntry): Promise<void> {
   try {
     if (AUDIT_WITH_EVENT.has(entry.action) || (await inSandbox())) return;
-    const body = noticeEmbed({
-      color: GRAY,
-      title: `🛡️ ${esc(entry.action)}`,
-      text: [entry.subject && `**${esc(entry.subject)}**`, entry.detail && esc(entry.detail)].filter(Boolean).join('\n') || undefined,
-      fields: entry.by ? [{ name: 'By', value: `@${esc(entry.by)}`, inline: true }] : [],
-    });
+    const body = buildAdminLogMessage(entry);
     later(() => sendToCategory('admin', body));
   } catch { /* never breaks the action */ }
 }
 
+export const buildAdminLogMessage = (entry: AdminLogEntry): DiscordPayload => noticeEmbed({
+  color: GRAY,
+  title: `🛡️ ${esc(entry.action)}`,
+  text: [entry.subject && `**${esc(entry.subject)}**`, entry.detail && esc(entry.detail)].filter(Boolean).join('\n') || undefined,
+  fields: entry.by ? [{ name: 'By', value: `@${esc(entry.by)}`, inline: true }] : [],
+});
+
+export interface SystemNotice { title: string; text?: string; tone?: 'good' | 'bad' | 'info'; fields?: { name: string; value: string; inline?: boolean }[] }
+
+export const buildSystemMessage = (o: SystemNotice): DiscordPayload =>
+  noticeEmbed({ color: o.tone === 'good' ? GREEN : o.tone === 'bad' ? RED : BLUE, title: o.title, text: o.text, fields: o.fields });
+
 /** A system notice (backup result, data-health warning, sandbox, live status) for channels with System ticked. Silent in a sandbox. */
-export async function notifySystem(o: { title: string; text?: string; tone?: 'good' | 'bad' | 'info'; fields?: { name: string; value: string; inline?: boolean }[] }): Promise<void> {
+export async function notifySystem(o: SystemNotice): Promise<void> {
   try {
     if (await inSandbox()) return;
-    const body = noticeEmbed({ color: o.tone === 'good' ? GREEN : o.tone === 'bad' ? RED : BLUE, title: o.title, text: o.text, fields: o.fields });
+    const body = buildSystemMessage(o);
     later(() => sendToCategory('system', body));
   } catch { /* never breaks the action */ }
 }
@@ -575,30 +586,32 @@ export async function notifySystem(o: { title: string; text?: string; tone?: 'go
 export async function notifyFeedback(item: FeedbackItem): Promise<void> {
   try {
     if (await inSandbox()) return;
-    if (item.kind === 'report') {
-      // Names the target and the reason only: not the details, not the reporter. Only channels that ticked Reports get it.
-      const body = noticeEmbed({
-        color: RED,
-        title: `Report about ${esc(item.target ?? 'a viewer')}`,
-        url: `${SITE_URL}/u/${encodeURIComponent(item.target ?? '')}`,
-        text: discordText(item.reason ? REPORT_REASON_LABELS[item.reason] : 'User report', 100),
-        fields: [],
-      });
-      later(() => sendToCategory('feedback', body, 'report'));
-      return;
-    }
-    const body = noticeEmbed({
-      color: item.kind === 'bug' || item.kind === 'deletion' ? RED : GOLD,
-      title: `${item.kind === 'bug' ? '🐞 Problem report' : item.kind === 'deletion' ? '🗑️ Deletion request' : '💡 Suggestion'} from ${esc(item.user)}`,
-      url: `${SITE_URL}/u/${encodeURIComponent(item.user)}`,
-      text: [discordText(item.title, 100) && `**${discordText(item.title, 100)}**`, discordText(item.body)].filter(Boolean).join('\n'),
-      fields: [
-        ...(item.expected ? [{ name: 'Expected', value: discordText(item.expected, 300) }] : []),
-        ...(item.from ? [{ name: 'Page', value: discordText(item.from, 200), inline: true }] : []),
-      ],
-    });
+    const body = buildFeedbackMessage(item);
     later(() => sendToCategory('feedback', body, item.kind));
   } catch { /* never breaks the send */ }
+}
+
+export function buildFeedbackMessage(item: FeedbackItem): DiscordPayload {
+  if (item.kind === 'report') {
+    // Names the target and the reason only: not the details, not the reporter. Only channels that ticked Reports get it.
+    return noticeEmbed({
+      color: RED,
+      title: `Report about ${esc(item.target ?? 'a viewer')}`,
+      url: `${SITE_URL}/u/${encodeURIComponent(item.target ?? '')}`,
+      text: discordText(item.reason ? REPORT_REASON_LABELS[item.reason] : 'User report', 100),
+      fields: [],
+    });
+  }
+  return noticeEmbed({
+    color: item.kind === 'bug' || item.kind === 'deletion' ? RED : GOLD,
+    title: `${item.kind === 'bug' ? '🐞 Problem report' : item.kind === 'deletion' ? '🗑️ Deletion request' : '💡 Suggestion'} from ${esc(item.user)}`,
+    url: `${SITE_URL}/u/${encodeURIComponent(item.user)}`,
+    text: [discordText(item.title, 100) && `**${discordText(item.title, 100)}**`, discordText(item.body)].filter(Boolean).join('\n'),
+    fields: [
+      ...(item.expected ? [{ name: 'Expected', value: discordText(item.expected, 300) }] : []),
+      ...(item.from ? [{ name: 'Page', value: discordText(item.from, 200), inline: true }] : []),
+    ],
+  });
 }
 
 /** The stream recap, for channels with Recap ticked. Silent in a sandbox and after the response when inside a request. */
