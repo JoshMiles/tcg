@@ -177,6 +177,17 @@ await acc.setTester('josh', 'gone_user', 'beta');
 await acc.deleteTesterRecord('gone_user');
 ok(!(await acc.getTester('gone_user')), 'deleteTesterRecord (account deletion)');
 
+// ── a database outage keeps the last good settings rather than opening the site ──
+await setSettings({ mode: 'alpha', label: 'alpha', v: 9 });
+ok((await edge.readAccessSettings(true))?.mode === 'alpha', 'outage: the settings are read');
+const liveUrl = process.env.KV_REST_API_URL;
+process.env.KV_REST_API_URL = 'http://127.0.0.1:1';
+ok((await edge.readAccessSettings(true))?.mode === 'alpha', 'outage: the last good copy stands in');
+edge.resetAccessCache();
+ok((await edge.readAccessSettings(true)) === null, 'outage: with no earlier copy there is nothing to go on');
+process.env.KV_REST_API_URL = liveUrl;
+ok((await edge.readAccessSettings(true))?.mode === 'alpha', 'outage: reads recover');
+
 // ── SEO ──
 const seo = await import('../lib/seo');
 const closedMap = seo.buildSitemap('https://x.test', [{ id: 's1' }], new Date(0), true).map(e => e.url);

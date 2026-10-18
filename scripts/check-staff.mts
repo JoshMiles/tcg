@@ -86,6 +86,13 @@ ok(await tok.verifyStaffToken(roleless!, 1_000_000_000_000) === null, 'a token w
 // ── the emergency password switch ──
 ok(adminToken.isPasswordLoginEnabled({}) && adminToken.isPasswordLoginEnabled({ ADMIN_PASSWORD_LOGIN: 'on' }), 'password login is on by default');
 ok(['off', 'OFF', 'false', '0', 'no', ' off '].every(v => !adminToken.isPasswordLoginEnabled({ ADMIN_PASSWORD_LOGIN: v })), 'and can be switched off');
+const adminEnv = { ADMIN_SECRET: 'the-admin-secret' };
+const adminCookie = await adminToken.adminCookieValue(adminEnv);
+ok(adminCookie && adminCookie !== adminEnv.ADMIN_SECRET && !adminCookie.includes(adminEnv.ADMIN_SECRET), 'the admin cookie does not hold the secret');
+ok(await adminToken.isValidAdminToken(adminCookie!, adminEnv), 'the admin cookie is accepted');
+ok(!(await adminToken.isValidAdminToken(adminEnv.ADMIN_SECRET, adminEnv)), 'the raw secret is not a valid cookie');
+ok(!(await adminToken.isValidAdminToken(undefined, adminEnv)) && !(await adminToken.isValidAdminToken(adminCookie!, {})), 'no cookie, or no secret configured, fails closed');
+ok(adminToken.sameString('abc', 'abc') && !adminToken.sameString('abc', 'abd') && !adminToken.sameString('abc', 'abcd'), 'sameString compares whole strings');
 
 // ── the staff list ──
 const staff = await import('../lib/staff');

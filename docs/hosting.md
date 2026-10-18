@@ -5,7 +5,7 @@
 ## Environment variables
 | Variable | Purpose |
 |----------|---------|
-| `ADMIN_SECRET` | The emergency password login's cookie value (the password login does not work if unset). Staff sign-in uses `SESSION_SECRET` instead |
+| `ADMIN_SECRET` | Keys the emergency password login's cookie (an HMAC of it, never the secret itself; the password login does not work if unset). Password attempts are limited to 10 wrong ones per address every 15 minutes. Staff sign-in uses `SESSION_SECRET` instead |
 | `ADMIN_PASSWORD` | Password checked by `/api/auth/login` (the emergency login) |
 | `ADMIN_PASSWORD_LOGIN` | Optional. `off` switches the emergency password login off |
 | `SUPER_ADMIN_TWITCH_IDS` | Optional. Extra super admins (comma-separated numeric Twitch IDs); joshmiles is hard-coded |

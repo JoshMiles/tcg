@@ -30,7 +30,7 @@ export const getStaff = cache(async (): Promise<StaffContext | null> => {
     const role = resolveRole({ login: token.u, twitchId: token.id }, await getStaffRecord(token.u));
     if (role) return { login: token.u, twitchId: token.id, displayName: token.dn || token.u, role, via: 'twitch' };
   }
-  if (isPasswordLoginEnabled() && isValidAdminToken(jar.get(AUTH_COOKIE)?.value)) {
+  if (isPasswordLoginEnabled() && await isValidAdminToken(jar.get(AUTH_COOKIE)?.value)) {
     return { login: 'password', displayName: 'Admin (password)', role: 'super', via: 'password' };
   }
   return null;

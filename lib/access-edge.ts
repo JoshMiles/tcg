@@ -1,5 +1,6 @@
 // The middleware's view of the access settings (edge-safe, no @vercel/kv): one GET of `access:settings` over the Upstash REST API,
-// remembered for 30 seconds per instance. Returns null when the database cannot be reached, which the middleware treats as "open".
+// remembered for 30 seconds per instance. When the database cannot be reached it keeps using the last good copy, so an outage
+// does not open a closed site; only an instance that has never read the settings gets null, which the middleware treats as "open".
 
 import { normalizeAccess, type AccessSettings } from './access-core';
 
@@ -23,11 +24,11 @@ async function fetchSettings(): Promise<AccessSettings | null> {
   }
 }
 
-/** The settings, at most 30 seconds old (`fresh` skips the wait). Null on a database error: the caller fails open. */
+/** The settings, at most 30 seconds old (`fresh` skips the wait). On a database error, the last good copy; null if there is none. */
 export async function readAccessSettings(fresh = false, now = Date.now()): Promise<AccessSettings | null> {
   if (!fresh && cache && now - cache.at < TTL_MS && cache.settings) return cache.settings;
   const settings = await fetchSettings();
-  // A failed read is not remembered, so the next request tries again; the last good copy is not used past its time.
-  cache = settings ? { at: now, settings } : null;
-  return settings;
+  // A failed read is not remembered, so the next request tries again; until one succeeds the last good copy stands in.
+  if (settings) cache = { at: now, settings };
+  return settings ?? cache?.settings ?? null;
 }

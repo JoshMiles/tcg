@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 // On Vercel the commit comes from VERCEL_GIT_*; locally we ask git.
 function git(args: string): string | undefined {
   try {
-    return execSync(`git ${args}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || undefined;
+    return execSync(`git ${args}`, { stdio: ['ignore', 'pipe', 'ignore'], timeout: 5000 }).toString().trim() || undefined;
   } catch {
     return undefined;
   }

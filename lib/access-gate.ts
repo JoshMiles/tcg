@@ -10,7 +10,7 @@ export type GateOutcome =
   | 'forbidden'; // an API call: 403 { ok: false, error: 'closed' }
 
 /**
- * `settings` is null when the database could not be read, which fails open. A staff cookie passes in every mode (the layouts re-check the
+ * `settings` is null only when the database could not be read and there is no earlier copy, which fails open. A staff cookie passes in every mode (the layouts re-check the
  * live staff list). An access cookie passes when it was issued at or after the current settings version and its tier is still allowed.
  */
 export function gateDecision(input: { pathname: string; settings: AccessSettings | null; access: AccessToken | null; staffCookie: boolean; hasSession: boolean }): GateOutcome {

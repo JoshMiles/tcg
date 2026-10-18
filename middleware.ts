@@ -50,7 +50,7 @@ async function publicGate(req: NextRequest): Promise<NextResponse> {
   // A cookie issued after our remembered copy means the copy is out of date: look again before judging it.
   if (access && access.v > settings.v) settings = (await readAccessSettings(true)) ?? settings;
   const staffCookie = !!(await verifyStaffToken(req.cookies.get(STAFF_COOKIE)?.value))
-    || (isPasswordLoginEnabled() && isValidAdminToken(req.cookies.get(AUTH_COOKIE)?.value));
+    || (isPasswordLoginEnabled() && await isValidAdminToken(req.cookies.get(AUTH_COOKIE)?.value));
   const outcome = gateDecision({ pathname, settings, access, staffCookie, hasSession: !!req.cookies.get('tcg_session')?.value });
   if (outcome === 'pass') return pass();
   if (outcome === 'forbidden') return NextResponse.json({ ok: false, error: 'closed' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
@@ -68,7 +68,7 @@ export async function middleware(req: NextRequest) {
   let role: StaffRole | null = null;
   const staff = await verifyStaffToken(req.cookies.get(STAFF_COOKIE)?.value);
   if (staff) role = staff.role;
-  else if (isPasswordLoginEnabled() && isValidAdminToken(req.cookies.get(AUTH_COOKIE)?.value)) role = 'super';
+  else if (isPasswordLoginEnabled() && await isValidAdminToken(req.cookies.get(AUTH_COOKIE)?.value)) role = 'super';
 
   if (!role) {
     const here = pathname + search;
