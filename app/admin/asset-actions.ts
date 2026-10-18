@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { fixAsset, optimizeCover, replaceAsset, type FixResult } from '@/lib/asset-fix';
 import type { AssetKey } from '@/lib/assets';
+import { SITE_URL } from '@/lib/site';
 
 // Server actions behind /admin/assets. Each re-checks the admin cookie (a server action can be invoked outside its page)
 // and takes an AssetKey, never a URL to act on: the server reads the current file from the database itself.
@@ -16,6 +17,7 @@ function cleanKey(k: AssetKey): AssetKey | null {
 }
 
 async function origin() {
+  if (process.env.VERCEL_ENV === 'production') return SITE_URL;
   const h = await headers();
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
   return `${h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')}://${host}`;

@@ -60,6 +60,11 @@ ok(!(await fix.replaceAsset({ kind: 'card-art', packId: 'nope', cardId: 'x' }, a
 ok(!(await fix.fixAsset({ kind: 'sound', packId: pack.id, cardId: after[0].id }, 'http://localhost:1')).ok, 'sounds are never auto-fixed');
 const noToken = await fix.fixAsset(assets.keyOf(lib.assets.find(a => a.url.endsWith('legacy.gif'))!.origin, 'card-art'), 'http://localhost:1');
 ok(!noToken.ok && /not connected/i.test(noToken.message), 'fixing needs Blob storage');
+process.env.BLOB_READ_WRITE_TOKEN = 'test-token';
+await kvLib.savePackCards(pack.id, after.map((c, i) => (i === 0 ? { ...c, imageUrl: 'https://example.com/x.gif' } : c)));
+const external = await fix.fixAsset({ kind: 'card-art', packId: pack.id, cardId: after[0].id }, 'http://localhost:1');
+delete process.env.BLOB_READ_WRITE_TOKEN;
+ok(!external.ok && /hosted elsewhere/i.test(external.message), 'a file on another host is never fetched');
 
 // ── insights + selection helpers ──
 const i = ins.computeInsights([
