@@ -1,0 +1,24 @@
+# lib/sandbox.ts
+
+- SandboxSource · type · L9-L9 — type SandboxSource = 'config' | 'collections' | 'empty';
+- Sandbox · interface · L11-L21 — interface Sandbox
+- ns · function · L33-L33 — ns = (id: string, key: string)
+- listSandboxes · function · L35-L38 — async function listSandboxes(): Promise<Sandbox[]>
+- getSandbox · function · L40-L42 — async function getSandbox(id: string): Promise<Sandbox | null>
+- saveRegistry · function · L44-L47 — async function saveRegistry(list: Sandbox[])
+- makeId · function · L50-L57 — function makeId(name: string, takenIds: string[]): string
+- copyKey · function · L60-L63 — async function copyKey(id: string, key: string): Promise<void>
+- cloneFromProduction · function · L69-L87 — async function cloneFromProduction(id: string, withCollections: boolean): Promise<void>
+- seedPreviewFromProduction · function · L90-L92 — async function seedPreviewFromProduction(withCollections: boolean): Promise<void>
+- wipeKeys · function · L95-L106 — async function wipeKeys(id: string, pattern = '*'): Promise<number>
+- createSandbox · function · L108-L118 — async function createSandbox(input: { name: string; source: SandboxSource; expiresInDays?: number }): Promise<Sandbox>
+- resetSandbox · function · L121-L126 — async function resetSandbox(id: string): Promise<void>
+- resetTestData · function · L129-L133 — async function resetTestData(id: string): Promise<number>
+- deleteSandbox · function · L135-L138 — async function deleteSandbox(id: string): Promise<void>
+- touchSandbox · function · L141-L147 — async function touchSandbox(id: string, now = Date.now()): Promise<void>
+- setSandboxExpiry · function · L150-L158 — async function setSandboxExpiry(id: string, days: number, now = Date.now()): Promise<void>
+- expiredSandboxes · function · L161-L163 — function expiredSandboxes(list: Sandbox[], now = Date.now()): Sandbox[]
+- sweepExpiredSandboxes · function · L166-L170 — async function sweepExpiredSandboxes(now = Date.now()): Promise<string[]>
+- countKeys · function · L173-L182 — async function countKeys(id: string): Promise<number>
+- readProduction · function · L185-L185 — readProduction = (key: string)
+- readSandboxKey · function · L187-L187 — readSandboxKey = (id: string, key: string)

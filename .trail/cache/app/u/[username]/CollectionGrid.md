@@ -1,0 +1,24 @@
+# app/u/[username]/CollectionGrid.tsx
+
+- GridCard · interface · L26-L64 — interface GridCard
+- bestVariant · function · L68-L68 — bestVariant = (c: VariantCounts): Variant
+- totalCopies · function · L69-L69 — totalCopies = (c: VariantCounts)
+- artFor · function · L70-L70 — artFor = (c: GridCard, v: Variant)
+- oneIn · function · L71-L71 — oneIn = (p: number)
+- CollectionGrid · function · L73-L295 — function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade = false, ownerName, tradeWith, seasonId, defaultHide = true, compact = false, mine, binderConfig, siteHost, pinnedUid, favouriteUids, defaultLayout = 'grid' }: { /** The owner's choice of view for visitors who have not picked one. */ defaultLayout?: 'grid' | 'binder'; /** Unique numbers of the owner's favourite prints (for the Favourite button and heart). */ favouriteUids?: number[]; /** The print the owner has pinned to their profile (for the Pin button). */ pinnedUid?: number; /** The owner's binder settings (their look and layout); null = the defaults. */ binderConfig?: BinderConfig | null; /** The site address for the binder page's share image. */ siteHost?: string; /** The signed-in viewer's copies per card number, when looking at someone else's collection: switches on Compare. */ mine?: Record<number, number>; /** Needed for the serial links. */ seasonId?: string; /** The viewer's Settings: start with uncollected cards hidden (a choice made on the grid itself still wins). */ defaultHide?: boolean; /** The viewer's Settings: smaller tiles. */ compact?: boolean; cards: GridCard[]; totalScore: number; leaderboardHref: string; canUpgrade?: boolean; /** Whose collection this is, for wording when it isn't the viewer's own. */ ownerName?: string; /** Their login, when a logged-in viewer is looking at someone else's collection: adds the trade button. */ tradeWith?: string })
+- toggleHide · function · L81-L85 — toggleHide = ()
+- chooseLayout · function · L99-L99 — chooseLayout = (l: 'grid' | 'binder')
+- patch · function · L106-L106 — patch = (p: Partial<ViewState>)
+- open · function · L119-L119 — open = (idx: number, el: HTMLElement | null)
+- DialogCopy · type · L299-L299 — type DialogCopy = NonNullable<GridCard['copies']>[number];
+- printHref · function · L300-L300 — printHref = (seasonId: string, c: DialogCopy)
+- CardDetail · function · L303-L366 — function CardDetail({ card, totalScore, canUpgrade, ownerName, tradeWith, seasonId, pinnedUid, favouriteUids, canStep, onClose, onStep, }: { card: GridCard; totalScore: number; canUpgrade: boolean; ownerName?: string; tradeWith?: string; seasonId?: string; pinnedUid?: number; favouriteUids?: number[]; canStep: boolean; onClose: () => void; onStep: (d: number) => void; })
+- onKey · function · L323-L327 — onKey = (e: KeyboardEvent)
+- PrintsView · function · L369-L408 — function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCard; dialog: ReturnType<typeof copiesForDialog<DialogCopy>>; seasonId?: string; onPick: (id: string) => void; showAll: () => void })
+- tileStyle · function · L371-L371 — tileStyle = (v: Variant)
+- tileClass · function · L372-L372 — tileClass = (v: Variant)
+- art · function · L373-L373 — art = (v: Variant)
+- PrintView · function · L413-L484 — function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pinnedUid, favouriteUids, onBack }: { card: GridCard; print: DialogCopy; seasonId: string; ownerName?: string; canUpgrade: boolean; tradeWith?: string; pinnedUid?: number; favouriteUids?: number[]; onBack?: () => void })
+- share · function · L418-L425 — share = async ()
+- CardInfo · function · L487-L571 — function CardInfo({ card, totalScore, canUpgrade, ownerName, tradeWith, shown }: { card: GridCard; totalScore: number; canUpgrade: boolean; ownerName?: string; tradeWith?: string; shown: Variant })
+- FullArt · function · L574-L587 — function FullArt({ url }: { url: string })

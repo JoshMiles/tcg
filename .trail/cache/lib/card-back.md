@@ -1,0 +1,36 @@
+# lib/card-back.ts
+
+- ElementKind · type · L17-L17 — type ElementKind = (typeof ELEMENT_KINDS)[number];
+- BackFont · interface · L28-L28 — interface BackFont
+- fontCss · function · L47-L47 — fontCss = (id: string)
+- Effects · interface · L52-L59 — interface Effects
+- BackEl · interface · L61-L86 — interface BackEl
+- CardBackStyle · interface · L88-L103 — interface CardBackStyle
+- isRec · function · L109-L109 — isRec = (v: unknown): v is Record<string, unknown>
+- clamp · function · L110-L110 — clamp = (v: unknown, lo: number, hi: number, fb: number)
+- r2 · function · L111-L111 — r2 = (n: number)
+- hex · function · L113-L120 — function hex(v: unknown, fb: string, ...allow: string[]): string
+- pick · function · L121-L121 — pick = <T extends string | number>(v: unknown, all: readonly T[], fb: T): T
+- safeUrl · function · L124-L129 — function safeUrl(v: unknown): string
+- cleanText · function · L131-L131 — cleanText = (v: unknown, max: number)
+- sanitizeFx · function · L133-L142 — function sanitizeFx(v: unknown): Effects
+- sanitizeEl · function · L150-L169 — function sanitizeEl(raw: unknown, i: number, taken: Set<string>): BackEl | null
+- patternFields · function · L171-L174 — function patternFields(o: Record<string, unknown>)
+- sanitizeV2 · function · L176-L194 — function sanitizeV2(o: Record<string, unknown>): CardBackStyle
+- sanitizeCardBack · function · L197-L201 — function sanitizeCardBack(input: unknown): CardBackStyle
+- el · function · L205-L205 — el = (kind: ElementKind, over: Partial<BackEl> = {}): BackEl
+- upgradeCardBack · function · L212-L225 — function upgradeCardBack(v1: CardBackV1): CardBackStyle
+- inkOf · function · L213-L213 — inkOf = (c: string)
+- own · function · L214-L214 — own = (kind: Exclude<keyof CardBackV1['show'], never>, over: Partial<BackEl> = {})
+- nearest · function · L227-L227 — nearest = (n: number): BackSize
+- toV1 · function · L230-L249 — function toV1(s: CardBackStyle): CardBackV1
+- find · function · L231-L231 — find = (k: ElementKind)
+- isDefaultCardBack · function · L254-L258 — function isDefaultCardBack(s: CardBackStyle): boolean
+- resolveCardBack · function · L263-L266 — function resolveCardBack(style: CardBackStyle | null | undefined, ctx: { packName: string; seasonName?: string; cover?: string }): CardBackStyle | undefined
+- plateVars · function · L271-L274 — function plateVars(s: CardBackStyle, rarityHex: string): Record<string, string>
+- PlateLook · interface · L279-L285 — interface PlateLook
+- rgb · function · L287-L287 — rgb = (h: string): [number, number, number]
+- hexOf · function · L288-L288 — hexOf = (c: number[])
+- mix · function · L289-L289 — mix = (a: string, b: string, t: number)
+- luma · function · L290-L290 — luma = (h: string)
+- plateLook · function · L292-L304 — function plateLook(s: CardBackStyle | undefined | null): PlateLook | undefined

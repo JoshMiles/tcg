@@ -1,0 +1,31 @@
+# lib/mixitup.ts
+
+- getMixItUpSettings · function · L24-L26 — async function getMixItUpSettings(): Promise<MixItUpSettings>
+- saveMixItUpSettings · function · L27-L29 — async function saveMixItUpSettings(s: MixItUpSettings): Promise<void>
+- MixItUpLogEntry · interface · L32-L32 — interface MixItUpLogEntry
+- logMixItUp · function · L33-L35 — async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>): Promise<void>
+- getMixItUpLog · function · L36-L38 — async function getMixItUpLog(): Promise<MixItUpLogEntry[]>
+- Fetch · type · L41-L41 — type Fetch = typeof fetch;
+- Reply · interface · L42-L42 — interface Reply
+- callMixItUp · function · L45-L60 — async function callMixItUp(url: string, payload: Record<string, unknown>, doFetch: Fetch = fetch): Promise<Reply>
+- deductUrl · function · L62-L62 — deductUrl = (s: MixItUpSettings)
+- fetchBalance · function · L65-L70 — async function fetchBalance(s: MixItUpSettings, username: string, doFetch?: Fetch): Promise<{ balance: number | null; error?: string }>
+- sendTest · function · L73-L75 — async function sendTest(s: MixItUpSettings, doFetch?: Fetch): Promise<Reply>
+- cntKey · function · L78-L78 — cntKey = (stream: string, user: string)
+- pendKey · function · L79-L79 — pendKey = (user: string)
+- payKey · function · L80-L80 — payKey = (id: string)
+- PayRecord · interface · L82-L82 — interface PayRecord
+- Reservation · type · L83-L83 — type Reservation = { ok: true } | { ok: false; reason: RefusalReason; message: string; balance?: number };
+- currentStream · function · L85-L89 — async function currentStream(): Promise<string>
+- reservePaidPull · function · L95-L126 — async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch): Promise<Reservation>
+- refuse · function · L100-L103 — refuse = async (reason: RefusalReason, balance?: number, why?: string): Promise<Reservation>
+- undo · function · L112-L112 — undo = async ()
+- pullsUsedThisStream · function · L129-L132 — async function pullsUsedThisStream(username: string): Promise<number>
+- Claimed · interface · L135-L135 — interface Claimed
+- claimPaidPull · function · L138-L144 — async function claimPaidPull(payId: string, username: string): Promise<Claimed | null>
+- PullDetails · interface · L146-L146 — interface PullDetails
+- chargePaidPull · function · L149-L156 — async function chargePaidPull(s: MixItUpSettings, c: Claimed, d: PullDetails, doFetch?: Fetch): Promise<{ applied: boolean; error?: string }>
+- releasePaidPull · function · L159-L164 — async function releasePaidPull(payId: string): Promise<void>
+- releaseCount · function · L167-L169 — async function releaseCount(c: Claimed): Promise<void>
+- revokePrint · function · L175-L190 — async function revokePrint(collectionName: string, username: string, entry: number, copyId: string | null): Promise<number[] | null>
+- noticeRevoked · function · L192-L195 — async function noticeRevoked(username: string, cardName: string, why: string): Promise<void>

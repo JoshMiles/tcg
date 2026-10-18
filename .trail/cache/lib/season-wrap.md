@@ -1,0 +1,21 @@
+# lib/season-wrap.ts
+
+- SeasonStats · interface · L13-L23 — interface SeasonStats
+- seasonCards · function · L26-L29 — async function seasonCards(season: Season): Promise<Card[]>
+- getSeasonStats · function · L31-L56 — async function getSeasonStats(season: Season): Promise<SeasonStats>
+- Award · interface · L60-L60 — interface Award
+- SnapshotRow · interface · L61-L65 — interface SnapshotRow
+- SeasonSnapshot · interface · L66-L72 — interface SeasonSnapshot
+- snapKey · function · L74-L74 — snapKey = (id: string)
+- buildAwards · function · L78-L97 — function buildAwards(rows: LeaderboardRow[]): Award[]
+- best · function · L83-L87 — best = <T,>(pick: (r: LeaderboardRow) => number, min = 1): LeaderboardRow | null
+- getSnapshot · function · L99-L101 — async function getSnapshot(seasonId: string): Promise<SeasonSnapshot | null>
+- takeSnapshot · function · L104-L115 — async function takeSnapshot(season: Season): Promise<SeasonSnapshot>
+- endSeason · function · L122-L130 — async function endSeason(id: string, opts: { freezeTrading?: boolean } = {}): Promise<{ ok: true; snapshot: SeasonSnapshot } | { ok: false; error: string }>
+- reopenSeason · function · L133-L139 — async function reopenSeason(id: string): Promise<void>
+- activateWithWrapUp · function · L142-L159 — async function activateWithWrapUp(id: string): Promise<{ ok: true; replaced?: string } | { ok: false; error: string }>
+- applySeasonSchedule · function · L162-L175 — async function applySeasonSchedule(): Promise<void>
+- due · function · L164-L167 — due = (list: Season[])
+- getUserAwards · function · L178-L183 — async function getUserAwards(username: string): Promise<{ seasonId: string; seasonName: string; award: Award }[]>
+- ActivationPreview · interface · L185-L190 — interface ActivationPreview
+- getActivationPreview · function · L193-L217 — async function getActivationPreview(season: Season): Promise<ActivationPreview>

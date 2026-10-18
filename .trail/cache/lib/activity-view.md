@@ -1,0 +1,21 @@
+# lib/activity-view.ts
+
+- Category · type · L6-L6 — type Category = 'pulls' | 'upgrades' | 'grants' | 'trades' | 'stream' | 'resets';
+- categoryOf · function · L16-L27 — function categoryOf(e: ActivityEvent): Category
+- CardNamer · type · L30-L30 — type CardNamer = (number: number, packName?: string) => string | undefined;
+- plainText · function · L33-L36 — function plainText(e: ActivityEvent, cardName: CardNamer): string
+- plainBase · function · L38-L57 — function plainBase(e: ActivityEvent, cardName: CardNamer): string
+- name · function · L39-L39 — name = (n: number, pack?: string)
+- v · function · L40-L40 — v = (x?: string)
+- PullEvent · type · L59-L59 — type PullEvent = Extract<ActivityEvent, { type: 'pull' }>;
+- asPullEvent · function · L62-L67 — function asPullEvent(e: ActivityEvent): PullEvent | null
+- PullFacts · interface · L70-L70 — interface PullFacts
+- pullFacts · function · L71-L75 — function pullFacts(e: ActivityEvent): PullFacts | null
+- notableReason · function · L78-L91 — function notableReason(e: ActivityEvent, totalCards: number): string | null
+- Group · interface · L93-L93 — interface Group
+- groupEvents · function · L99-L108 — function groupEvents(events: ActivityEvent[]): Group[]
+- Rates · interface · L110-L120 — interface Rates
+- rateStats · function · L122-L141 — function rateStats(events: ActivityEvent[], now: number): Rates
+- csvCell · function · L143-L143 — csvCell = (v: string | number)
+- toCsv · function · L146-L150 — function toCsv(events: ActivityEvent[], cardName: CardNamer): string
+- cardNumberOf · function · L153-L155 — function cardNumberOf(e: ActivityEvent): number | undefined

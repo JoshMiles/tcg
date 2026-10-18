@@ -1,0 +1,23 @@
+# app/admin/sandbox/actions.ts
+
+- back · function · L21-L22 — back = (id: string, msg: string, kind: 'ok' | 'error' = 'ok', tab = 'overview')
+- admin · function · L25-L28 — async function admin()
+- guarded · function · L36-L48 — async function guarded(id: string, tab: string, fn: () => Promise<string>): Promise<never>
+- createSandboxAction · function · L50-L64 — async function createSandboxAction(formData: FormData)
+- enterSandboxAction · function · L66-L73 — async function enterSandboxAction(id: string)
+- exitSandboxAction · function · L75-L83 — async function exitSandboxAction()
+- resetSandboxAction · function · L85-L92 — async function resetSandboxAction(id: string)
+- deleteSandboxAction · function · L94-L103 — async function deleteSandboxAction(id: string)
+- resetTestDataAction · function · L105-L110 — async function resetTestDataAction(id: string)
+- simulatePullsAction · function · L112-L120 — async function simulatePullsAction(id: string, formData: FormData)
+- seedUsersAction · function · L122-L129 — async function seedUsersAction(id: string, formData: FormData)
+- grantCopiesAction · function · L131-L140 — async function grantCopiesAction(id: string, formData: FormData)
+- addTestUserAction · function · L142-L149 — async function addTestUserAction(id: string, formData: FormData)
+- isScenario · function · L151-L151 — isScenario = (v: string): v is ScenarioId
+- applyScenarioAction · function · L153-L160 — async function applyScenarioAction(id: string, scenario: string)
+- removeUsersAction · function · L163-L171 — async function removeUsersAction(id: string, mode: 'clear' | 'delete', formData: FormData)
+- undoLastAction · function · L173-L179 — async function undoLastAction(id: string)
+- setExpiryAction · function · L181-L188 — async function setExpiryAction(id: string, formData: FormData)
+- loginAsAction · function · L191-L202 — async function loginAsAction(id: string, username: string)
+- isRedirect · function · L204-L206 — function isRedirect(e: unknown): boolean
+- loginAsFormAction · function · L209-L211 — async function loginAsFormAction(id: string, formData: FormData)

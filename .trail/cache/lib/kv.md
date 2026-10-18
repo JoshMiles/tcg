@@ -1,0 +1,42 @@
+# lib/kv.ts
+
+- normalizeSeason · function · L10-L27 — function normalizeSeason(raw: unknown): Season
+- normalizeCard · function · L31-L37 — function normalizeCard(card: Card): Card
+- normalizePack · function · L39-L61 — function normalizePack(raw: unknown): Pack
+- listSeasonIds · function · L65-L67 — async function listSeasonIds(): Promise<string[]>
+- listSeasons · function · L69-L73 — async function listSeasons(): Promise<Season[]>
+- getSeason · function · L75-L78 — async function getSeason(id: string): Promise<Season | null>
+- scheduleDue · function · L81-L86 — function scheduleDue(seasons: Season[], now = Date.now()): boolean
+- getActiveSeason · function · L88-L99 — async function getActiveSeason(): Promise<Season | null>
+- saveSeason · function · L101-L107 — async function saveSeason(season: Season): Promise<void>
+- setActiveSeason · function · L110-L120 — async function setActiveSeason(activeId?: string): Promise<void>
+- deleteSeason · function · L122-L126 — async function deleteSeason(id: string): Promise<void>
+- listAllPackIds · function · L130-L132 — async function listAllPackIds(): Promise<string[]>
+- listAllPacks · function · L134-L138 — async function listAllPacks(): Promise<Pack[]>
+- getPack · function · L140-L143 — async function getPack(id: string): Promise<Pack | null>
+- getPackRev · function · L146-L148 — async function getPackRev(id: string): Promise<number>
+- bumpRev · function · L149-L149 — bumpRev = async (id: string)
+- savePack · function · L151-L158 — async function savePack(pack: Pack): Promise<void>
+- deletePack · function · L160-L171 — async function deletePack(id: string): Promise<void>
+- getPacksForSeason · function · L173-L176 — async function getPacksForSeason(season: Season): Promise<Pack[]>
+- getActivePacksForSeason · function · L178-L181 — async function getActivePacksForSeason(season: Season): Promise<Pack[]>
+- getPackCards · function · L185-L187 — async function getPackCards(packId: string): Promise<Card[]>
+- savePackCards · function · L189-L192 — async function savePackCards(packId: string, cards: Card[]): Promise<void>
+- getActiveSeasonWithPacks · function · L196-L207 — async function getActiveSeasonWithPacks(): Promise<{ season: Season; packs: { pack: Pack; cards: Card[] }[]; } | null>
+- getUserProfile · function · L211-L213 — async function getUserProfile(username: string): Promise<UserProfile | null>
+- saveUserProfile · function · L215-L217 — async function saveUserProfile(profile: UserProfile): Promise<void>
+- ensureUserProfile · function · L220-L228 — async function ensureUserProfile(username: string, twitchId?: string): Promise<void>
+- deleteUserProfile · function · L230-L232 — async function deleteUserProfile(username: string): Promise<void>
+- getAllCollectionUsers · function · L236-L259 — async function getAllCollectionUsers(): Promise<{ username: string; seasons: { id: string; name: string; collectionName: string; cards: number[] }[]; }[]>
+- getTwitchOpaqueUser · function · L263-L265 — async function getTwitchOpaqueUser(opaqueId: string): Promise<string | null>
+- saveTwitchOpaqueUser · function · L267-L269 — async function saveTwitchOpaqueUser(opaqueId: string, username: string): Promise<void>
+- deleteTwitchOpaqueUser · function · L271-L273 — async function deleteTwitchOpaqueUser(opaqueId: string): Promise<void>
+- getCollection · function · L277-L279 — async function getCollection(collectionName: string): Promise<Record<string, number[]>>
+- saveCollection · function · L286-L290 — async function saveCollection(collectionName: string, data: Record<string, number[]>, ctx?: SyncContext): Promise<void>
+- withCollectionLock · function · L297-L299 — async function withCollectionLock<T>(collectionName: string, fn: () => Promise<T>): Promise<T>
+- withLock · function · L306-L321 — async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T>
+- addCollectionEntry · function · L324-L332 — async function addCollectionEntry(collectionName: string, username: string, entry: number, origin: Origin = 'other'): Promise<number[]>
+- addCollectionEntryWithSerial · function · L335-L343 — async function addCollectionEntryWithSerial(collectionName: string, username: string, entry: number, origin: Origin = 'other'): Promise<{ owned: number[]; serial: number | null; copyId: string | null; uid: number | null }>
+- deleteCollection · function · L345-L349 — async function deleteCollection(collectionName: string): Promise<void>
+- removeUserFromCollection · function · L352-L359 — async function removeUserFromCollection(collectionName: string, username: string): Promise<boolean>
+- seedSeason1 · function · L364-L389 — async function seedSeason1(): Promise<void>

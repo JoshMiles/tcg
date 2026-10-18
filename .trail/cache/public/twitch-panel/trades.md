@@ -1,0 +1,32 @@
+# public/twitch-panel/trades.js
+
+- tkey · function · L10-L10 — tkey = (number, variant)
+- tradeCardMap · function · L12-L16 — function tradeCardMap()
+- timeLeftText · function · L17-L22 — timeLeftText = ms
+- resetTrades · function · L24-L24 — function resetTrades()
+- seenAlerts · function · L29-L29 — function seenAlerts()
+- markAlertsSeen · function · L30-L35 — function markAlertsSeen()
+- updateTradesDot · function · L36-L44 — function updateTradesDot()
+- loadTrades · function · L46-L58 — async function loadTrades(force)
+- tradeRequest · function · L60-L72 — async function tradeRequest(payload)
+- stackChips · function · L75-L86 — function stackChips(items, cards)
+- confirmButton · function · L89-L104 — function confirmButton(label, className, run)
+- answerTrade · function · L106-L111 — async function answerTrade(action, id, doneText)
+- tradeRow · function · L113-L154 — function tradeRow(t, mode, cards)
+- side · function · L127-L131 — side = (label, items, pts)
+- recentRow · function · L157-L166 — function recentRow(t, cards)
+- sum · function · L163-L163 — sum = items
+- renderTrades · function · L169-L201 — function renderTrades()
+- section · function · L190-L195 — section = (title, count, ...children)
+- startCounter · function · L206-L217 — function startCounter(t)
+- stepper · function · L218-L227 — function stepper(value, max, onChange)
+- stackCount · function · L228-L228 — stackCount = obj
+- setCount · function · L229-L229 — setCount = (obj, key, n)
+- cardRowBase · function · L231-L238 — function cardRowBase(card, nameSuffix)
+- renderGive · function · L240-L261 — function renderGive(box)
+- renderWant · function · L263-L292 — function renderWant(box)
+- itemsOf · function · L294-L294 — itemsOf = obj
+- renderSummary · function · L296-L312 — function renderSummary()
+- line · function · L302-L306 — line = (label, items)
+- renderComposer · function · L314-L370 — function renderComposer(area)
+- section · function · L323-L329 — section = (title, hint, child)

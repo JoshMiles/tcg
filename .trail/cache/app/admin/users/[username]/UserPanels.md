@@ -1,0 +1,22 @@
+# app/admin/users/[username]/UserPanels.tsx
+
+- Result · function · L20-L23 — function Result({ r }: { r: UserActionResult | null })
+- TagsEditor · function · L26-L50 — function TagsEditor({ username, initial, suggestions }: { username: string; initial: string[]; suggestions: string[] })
+- save · function · L30-L30 — save = (next: string[])
+- add · function · L31-L31 — add = (t: string)
+- ModerationPanel · function · L53-L72 — function ModerationPanel({ username, initial }: { username: string; initial: { noTrading: boolean; hideFromBoard: boolean; reason: string; at?: number; by?: string } })
+- PullLimitView · interface · L74-L84 — interface PullLimitView
+- when · function · L86-L86 — when = (t: number)
+- PullLimitPanel · function · L89-L134 — function PullLimitPanel({ username, view }: { username: string; view: PullLimitView })
+- run · function · L96-L96 — run = (fn: () => Promise<UserActionResult>)
+- GrantCard · interface · L136-L136 — interface GrantCard
+- GrantPanel · function · L139-L188 — function GrantPanel({ username, cards, upgrades }: { username: string; cards: GrantCard[]; upgrades: boolean })
+- run · function · L148-L148 — run = (fn: () => Promise<UserActionResult>)
+- TradeLine · interface · L190-L190 — interface TradeLine
+- TradesPanel · function · L193-L218 — function TradesPanel({ username, lines }: { username: string; lines: TradeLine[] })
+- cancel · function · L199-L199 — cancel = (id: string)
+- row · function · L200-L208 — row = (l: TradeLine)
+- SnapshotLine · interface · L220-L220 — interface SnapshotLine
+- ToolsPanel · function · L223-L291 — function ToolsPanel({ username, snapshots, collections }: { username: string; snapshots: SnapshotLine[]; collections: { cards: number; seasons: number } })
+- restore · function · L229-L229 — restore = (id: string)
+- merge · function · L230-L234 — merge = ()

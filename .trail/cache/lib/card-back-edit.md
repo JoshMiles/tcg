@@ -1,0 +1,24 @@
+# lib/card-back-edit.ts
+
+- Box · interface · L8-L8 — interface Box
+- r2 · function · L9-L9 — r2 = (n: number)
+- clamp · function · L10-L10 — clamp = (n: number, lo: number, hi: number)
+- patchElements · function · L13-L16 — function patchElements(style: CardBackStyle, ids: Iterable<string>, patch: Partial<BackEl> | ((e: BackEl) => Partial<BackEl>)): CardBackStyle
+- patchBackground · function · L19-L21 — function patchBackground(style: CardBackStyle, patch: Partial<Omit<CardBackStyle, 'elements' | 'v'>>): CardBackStyle
+- nextId · function · L23-L23 — nextId = (style: CardBackStyle, base: string)
+- addText · function · L26-L32 — function addText(style: CardBackStyle, text = 'New text'): { style: CardBackStyle; id: string } | null
+- duplicateElement · function · L35-L41 — function duplicateElement(style: CardBackStyle, id: string): { style: CardBackStyle; id: string } | null
+- removeElement · function · L44-L46 — function removeElement(style: CardBackStyle, id: string): CardBackStyle
+- moveElement · function · L49-L56 — function moveElement(style: CardBackStyle, from: string, to: string): CardBackStyle
+- stepElement · function · L59-L62 — function stepElement(style: CardBackStyle, id: string, dir: -1 | 1): CardBackStyle
+- makeFree · function · L76-L82 — function makeFree(style: CardBackStyle, id: string, box: Box, fontPx: number, cardW: number): CardBackStyle
+- returnToStack · function · L85-L85 — returnToStack = (style: CardBackStyle, id: string)
+- resetElement · function · L88-L91 — function resetElement(style: CardBackStyle, id: string): CardBackStyle
+- AlignMode · type · L95-L95 — type AlignMode = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom';
+- alignElements · function · L97-L113 — function alignElements(style: CardBackStyle, ids: string[], mode: AlignMode, boxes: Record<string, Box>): CardBackStyle
+- distributeElements · function · L116-L124 — function distributeElements(style: CardBackStyle, ids: string[], axis: 'x' | 'y', boxes: Record<string, Box>): CardBackStyle
+- c · function · L119-L119 — c = (id: string)
+- snapAxis · function · L135-L145 — function snapAxis(edges: [number, number, number], targets: number[], opts: { grid?: boolean; threshold?: number } = {}): { delta: number; guide: number | null }
+- snapTargets · function · L148-L152 — function snapTargets(others: Box[]): { x: number[]; y: number[] }
+- freeText · function · L156-L156 — freeText = (id: string, over: Partial<BackEl>): Partial<BackEl> & { id: string; kind: ElementKind }
+- tinyText · function · L186-L188 — function tinyText(style: CardBackStyle, tileW = 120, minPx = 9): string[]

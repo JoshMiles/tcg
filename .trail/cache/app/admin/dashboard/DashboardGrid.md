@@ -1,0 +1,26 @@
+# app/admin/dashboard/DashboardGrid.tsx
+
+- DragSource · type · L10-L10 — type DragSource = { type: WidgetType; fromLibrary: boolean };
+- DropAt · type · L11-L11 — type DropAt = { type: WidgetType; after: boolean } | 'end' | null;
+- reduceMotion · function · L16-L18 — function reduceMotion(): boolean
+- DashboardGrid · function · L27-L400 — function DashboardGrid({ layout, nodes, presets: initialPresets }: { layout: DashboardLayout; nodes: Partial<Record<WidgetType, ReactNode>>; presets: { name: string; by?: string }[] })
+- flash · function · L48-L52 — flash = (type: WidgetType, kind: 'settle' | 'pop')
+- move · function · L62-L69 — move = (type: WidgetType, to: number)
+- insert · function · L70-L70 — insert = (type: WidgetType, at: number)
+- remove · function · L71-L76 — remove = (type: WidgetType)
+- setSpan · function · L77-L77 — setSpan = (type: WidgetType, span: Span)
+- step · function · L78-L78 — step = (type: WidgetType, delta: number)
+- widen · function · L79-L84 — widen = (w: WidgetPlacement, dir: 1 | -1)
+- dropOn · function · L107-L122 — function dropOn(target: DropAt)
+- overWidget · function · L124-L131 — function overWidget(e: DragEvent, w: WidgetPlacement)
+- save · function · L133-L146 — function save()
+- reset · function · L148-L148 — function reset()
+- onKey · function · L152-L152 — onKey = (e: KeyboardEvent)
+- cancel · function · L157-L157 — function cancel()
+- askApply · function · L162-L167 — function askApply(name: string, builtin = false)
+- applyPreset · function · L168-L181 — function applyPreset(name: string, builtin = false)
+- savePreset · function · L182-L196 — function savePreset()
+- removePreset · function · L197-L207 — function removePreset(name: string)
+- startResize · function · L210-L237 — function startResize(e: React.PointerEvent<HTMLElement>, w: WidgetPlacement)
+- onMove · function · L222-L226 — onMove = (ev: PointerEvent)
+- onUp · function · L227-L233 — onUp = ()

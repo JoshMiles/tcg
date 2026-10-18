@@ -1,0 +1,20 @@
+# app/u/[username]/BinderEditor.tsx
+
+- Tab · type · L19-L19 — type Tab = 'look' | 'layout' | 'pages' | 'cards';
+- total · function · L21-L21 — total = (c: VariantCounts)
+- artOf · function · L22-L22 — artOf = (c: GridCard)
+- chip · function · L24-L24 — chip = (on: boolean)
+- Field · function · L26-L28 — function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string })
+- Switch · function · L29-L31 — function Switch({ on, set, label }: { on: boolean; set: (v: boolean) => void; label: string })
+- BinderEditor · function · L34-L339 — function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, visitorsBinder }: { /** Whether visitors currently see the binder first (UserSettings.collectionView). */ visitorsBinder: boolean; cards: GridCard[]; initial: BinderConfig; seasonId: string; ownerLabel: string; /** Called with the saved config after Save, or with nothing on Cancel. */ onClose: (saved?: BinderConfig) => void; })
+- patch · function · L64-L64 — patch = (p: Partial<BinderConfig>)
+- setPages · function · L65-L65 — setPages = (pages: BinderPageCfg[])
+- goPage · function · L66-L66 — goPage = (page: number)
+- warn · function · L71-L71 — warn = (e: BeforeUnloadEvent)
+- esc · function · L76-L76 — esc = (e: KeyboardEvent)
+- setMode · function · L81-L87 — function setMode(mode: 'auto' | 'custom')
+- resize · function · L88-L91 — function resize(cols: number, rows: number)
+- place · function · L93-L100 — place = (page: number, slot: number, card: number)
+- pickCard · function · L117-L121 — function pickCard(c: GridCard)
+- save · function · L132-L141 — function save()
+- cancel · function · L142-L145 — function cancel()

@@ -1,0 +1,23 @@
+# app/admin/dashboard/widgets.tsx
+
+- Overview · function · L22-L43 — function Overview({ d }: { d: DashboardData })
+- TopCollectors · function · L45-L65 — function TopCollectors({ d }: { d: DashboardData })
+- Leaderboard · function · L67-L84 — function Leaderboard({ d }: { d: DashboardData })
+- Rarity · function · L86-L101 — function Rarity({ d }: { d: DashboardData })
+- Packs · function · L103-L119 — function Packs({ d }: { d: DashboardData })
+- CardOwnership · function · L121-L154 — function CardOwnership({ d }: { d: DashboardData })
+- describe · function · L157-L176 — function describe(e: ActivityEvent, d: DashboardData): { icon: IconName; text: string }
+- cardName · function · L158-L158 — cardName = (n: number)
+- v · function · L159-L159 — v = (x?: string)
+- Activity · function · L178-L198 — function Activity({ d }: { d: DashboardData })
+- Trades · function · L200-L225 — function Trades({ d }: { d: DashboardData })
+- tile · function · L202-L204 — tile = (label: string, value: number | string)
+- Overlay · function · L227-L239 — function Overlay()
+- Variants · function · L242-L262 — function Variants({ d }: { d: DashboardData })
+- Valuable · function · L264-L285 — function Valuable({ d }: { d: DashboardData })
+- Unowned · function · L287-L304 — function Unowned({ d }: { d: DashboardData })
+- Live · function · L306-L319 — function Live({ d }: { d: DashboardData })
+- Digest · function · L321-L342 — function Digest({ d }: { d: DashboardData })
+- Recap · function · L344-L365 — function Recap({ d }: { d: DashboardData })
+- Shortcuts · function · L371-L381 — function Shortcuts()
+- renderWidget · function · L384-L414 — function renderWidget(type: WidgetType, d: DashboardData, opts: { gift?: string }): ReactNode

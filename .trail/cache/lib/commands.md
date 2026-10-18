@@ -1,0 +1,26 @@
+# lib/commands.ts
+
+- getCommands · function · L34-L44 — async function getCommands(): Promise<ChatCommand[]>
+- saveCommands · function · L46-L48 — async function saveCommands(commands: ChatCommand[]): Promise<void>
+- CommandStats · type · L50-L50 — type CommandStats = Record<string, { count: number; last: number }>;
+- getCommandStats · function · L51-L53 — async function getCommandStats(): Promise<CommandStats>
+- getCommandLog · function · L56-L58 — async function getCommandLog(): Promise<MixItUpLogEntry[]>
+- noteRun · function · L60-L68 — async function noteRun(c: ChatCommand, username: string, ok: boolean, detail: string): Promise<void>
+- RunInput · interface · L70-L70 — interface RunInput
+- RunOutput · interface · L71-L77 — interface RunOutput
+- Fail · type · L79-L79 — type Fail = { fail: true; kind?: ErrorKind; message: string };
+- Done · type · L80-L80 — type Done = { fail?: false; vars: Record<string, string> };
+- fail · function · L81-L81 — fail = (message: string, kind?: ErrorKind): Fail
+- Ctx · interface · L83-L83 — interface Ctx
+- season · function · L85-L91 — async function season()
+- asCards · function · L94-L94 — asCards = (cards: { number: number; name: string; stars: number }[]): ShowCard[]
+- doShowOff · function · L98-L118 — async function doShowOff(c: Ctx): Promise<Done | Fail>
+- doCardStats · function · L122-L163 — async function doCardStats(c: Ctx): Promise<Done | Fail>
+- doMyStats · function · L165-L195 — async function doMyStats(c: Ctx): Promise<Done | Fail>
+- doCollection · function · L197-L206 — async function doCollection(c: Ctx): Promise<Done | Fail>
+- doLeaderboard · function · L208-L215 — async function doLeaderboard(): Promise<Done | Fail>
+- at · function · L213-L213 — at = (i: number)
+- doPullsLeft · function · L217-L226 — async function doPullsLeft(c: Ctx): Promise<Done | Fail>
+- doText · function · L228-L228 — doText = async (c: Ctx): Promise<Done>
+- runCommand · function · L234-L276 — async function runCommand(input: RunInput, commands?: ChatCommand[]): Promise<RunOutput>
+- refuse · function · L241-L245 — refuse = async (kind: ErrorKind | undefined, message: string): Promise<RunOutput>

@@ -1,0 +1,32 @@
+# lib/binder-config.ts
+
+- CoverColour · interface · L11-L11 — interface CoverColour
+- Material · type · L26-L26 — type Material = (typeof MATERIALS)[number]['id'];
+- Emblem · type · L30-L30 — type Emblem = (typeof EMBLEMS)[number];
+- PageColour · interface · L32-L32 — interface PageColour
+- PocketStyle · type · L45-L45 — type PocketStyle = (typeof POCKET_STYLES)[number]['id'];
+- MissingStyle · type · L51-L51 — type MissingStyle = (typeof MISSING_STYLES)[number]['id'];
+- BinderSort · type · L56-L56 — type BinderSort = (typeof SORTS)[number]['id'];
+- BinderSlot · interface · L59-L59 — interface BinderSlot
+- BinderPageCfg · interface · L60-L60 — interface BinderPageCfg
+- BinderConfig · interface · L62-L88 — interface BinderConfig
+- coverColour · function · L95-L95 — coverColour = (id: string)
+- pageColour · function · L96-L96 — pageColour = (id: string)
+- isLightColour · function · L98-L104 — function isLightColour(hex: string): boolean
+- capacity · function · L105-L105 — capacity = (c: Pick<BinderConfig, 'cols' | 'rows'>)
+- clean · function · L107-L107 — clean = (v: unknown, max: number)
+- pick · function · L108-L108 — pick = <T extends string>(v: unknown, ok: readonly T[], fallback: T): T
+- int · function · L109-L109 — int = (v: unknown, [lo, hi]: readonly [number, number] | readonly number[], fallback: number)
+- sanitizeSlot · function · L111-L117 — function sanitizeSlot(s: unknown): BinderSlot | null
+- sanitizeBinder · function · L120-L154 — function sanitizeBinder(input: unknown): BinderConfig | null
+- emptySlots · function · L158-L158 — emptySlots = (n: number): (BinderSlot | null)[]
+- blankPage · function · L159-L159 — blankPage = (cap: number, title = ''): BinderPageCfg
+- reflowPages · function · L165-L179 — function reflowPages(pages: BinderPageCfg[], cap: number): BinderPageCfg[]
+- addPage · function · L181-L185 — function addPage(pages: BinderPageCfg[], cap: number, at = pages.length): BinderPageCfg[]
+- removePage · function · L186-L186 — removePage = (pages: BinderPageCfg[], i: number): BinderPageCfg[]
+- movePage · function · L187-L194 — function movePage(pages: BinderPageCfg[], from: number, to: number): BinderPageCfg[]
+- renamePage · function · L195-L196 — renamePage = (pages: BinderPageCfg[], i: number, title: string): BinderPageCfg[]
+- clearPage · function · L197-L198 — clearPage = (pages: BinderPageCfg[], i: number): BinderPageCfg[]
+- setSlot · function · L199-L201 — function setSlot(pages: BinderPageCfg[], page: number, slot: number, value: BinderSlot | null): BinderPageCfg[]
+- nextEmpty · function · L203-L206 — function nextEmpty(pages: BinderPageCfg[], page: number, slot: number): { page: number; slot: number } | null
+- swapSlots · function · L208-L211 — function swapSlots(pages: BinderPageCfg[], a: { page: number; slot: number }, b: { page: number; slot: number }): BinderPageCfg[]
