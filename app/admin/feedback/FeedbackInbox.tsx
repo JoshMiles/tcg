@@ -36,8 +36,8 @@ export function FeedbackInbox({ items, base, kind, status, viewerHref, canDelete
         <Panel key={i.id} title={i.title} icon={i.kind === 'bug' ? 'wrench' : i.kind === 'deletion' ? 'trash' : i.kind === 'report' ? 'flag' : 'sparkles'} hint={`${KIND_LABELS[i.kind]} from @${i.user} · ${when(i.at)}`} actions={<span className="flex gap-1.5">{i.kind === 'deletion' && i.status === 'new' && Date.now() - i.at > DELETION_OVERDUE_DAYS * 86_400_000 && <Chip tone="red">Overdue</Chip>}<Chip tone={i.status === 'new' ? (i.kind === 'deletion' || i.kind === 'report' ? 'red' : 'amber') : i.status === 'done' ? 'green' : 'gray'}>{STATUS_LABELS[i.status]}</Chip></span>}>
           <div className="space-y-3 text-sm">
             {i.kind === 'report' && i.reason && <p className="text-gray-300"><span className="font-bold text-gray-400">Reason:</span> {REPORT_REASON_LABELS[i.reason]}</p>}
-            {i.body ? <p className="whitespace-pre-wrap break-words text-gray-200">{i.body}</p> : i.kind === 'report' && <p className="text-gray-500">No details given.</p>}
-            {i.expected && <p className="whitespace-pre-wrap break-words text-gray-300"><span className="font-bold text-gray-400">Expected:</span> {i.expected}</p>}
+            {i.body ? <p className="whitespace-pre-wrap wrap-break-word text-gray-200">{i.body}</p> : i.kind === 'report' && <p className="text-gray-500">No details given.</p>}
+            {i.expected && <p className="whitespace-pre-wrap wrap-break-word text-gray-300"><span className="font-bold text-gray-400">Expected:</span> {i.expected}</p>}
             {i.kind === 'report' && i.target && (
               <p className="text-xs flex flex-wrap gap-x-4 gap-y-1">
                 <Link href={`/u/${encodeURIComponent(i.target)}`} className="text-yellow-400 hover:text-yellow-300"><Icon name="user" className="mr-1" />@{i.target}&rsquo;s profile</Link>
@@ -47,7 +47,7 @@ export function FeedbackInbox({ items, base, kind, status, viewerHref, canDelete
             )}
             {i.kind !== 'report' && i.from && <p className="text-xs text-gray-500">Page: <span className="font-mono text-gray-300 break-all">{i.from}</span></p>}
             {i.meta && (i.meta.ua || i.meta.screen || i.meta.build) && (
-              <p className="text-xs text-gray-500 break-words">Device: {[i.meta.build, i.meta.screen, i.meta.ua].filter(Boolean).join(' · ')}</p>
+              <p className="text-xs text-gray-500 wrap-break-word">Device: {[i.meta.build, i.meta.screen, i.meta.ua].filter(Boolean).join(' · ')}</p>
             )}
             <p className="text-xs"><Link href={viewerHref(i.user)} className="text-yellow-400 hover:text-yellow-300"><Icon name="user" className="mr-1" />@{i.user}</Link>{i.repliedBy && <span className="text-gray-600"> · last changed by {i.repliedBy}</span>}</p>
             {i.kind === 'deletion' ? (

@@ -46,7 +46,7 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
           <CardTile
             imageUrl={art}
             alt={label}
-            className={`relative aspect-[2/3] rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''} ${holoClass(holo, true)}`}
+            className={`relative aspect-2/3 rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''} ${holoClass(holo, true)}`}
             style={{ borderColor: rarity?.hex, boxShadow: `0 0 28px -6px ${rarity?.hex}`, ...holoVars(holo) }}
           />
         </FlipCard>
@@ -54,7 +54,7 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
       <div className="space-y-3 min-w-0">
         <h2 className="font-display text-3xl font-bold text-white"><Icon name="sparkles" className="mr-2 text-yellow-400" />Print of the week</h2>
         <div>
-          <p className="font-display text-2xl font-bold text-white break-words">{label}</p>
+          <p className="font-display text-2xl font-bold text-white wrap-break-word">{label}</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="font-display text-xl font-bold text-yellow-400 tabular-nums">Print #{pick.uid}</span>
             <span className="text-sm text-gray-300">{editionLine(copy.n, total)}</span>

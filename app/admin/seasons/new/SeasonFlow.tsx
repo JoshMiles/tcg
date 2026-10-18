@@ -28,7 +28,7 @@ const STEPS = [
   { id: 'review',  label: 'Review' },
 ];
 
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors';
+const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors';
 
 export function SeasonFlow({
   packs, otherCollections, initial,
@@ -122,7 +122,7 @@ export function SeasonFlow({
     <div className="space-y-6 mx-auto w-full max-w-3xl">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white break-words min-w-0">{season.name.trim() || 'New season'}</h1>
+          <h1 className="text-3xl font-bold text-white wrap-break-word min-w-0">{season.name.trim() || 'New season'}</h1>
           <p className="text-sm text-gray-500 mt-0.5">Season setup · saved as a draft until you create it</p>
         </div>
         <div className="flex items-center gap-4">
@@ -176,7 +176,7 @@ export function SeasonFlow({
                 value={maxText}
                 onChange={e => { setMaxText(e.target.value); const n = Math.floor(Number(e.target.value)); if (Number.isFinite(n) && n >= 1) set('maxConcurrentPacks', n); }}
                 onBlur={() => setMaxText(String(season.maxConcurrentPacks))}
-                className={inputCls + ' !w-28'}
+                className={inputCls + ' w-28!'}
               />
               <p className="text-xs text-gray-600 mt-1">Pack openings shown at once on the overlay</p>
             </div>
@@ -223,9 +223,9 @@ export function SeasonFlow({
                           {on ? <Icon name="check" className="w-3 h-3" /> : ''}
                         </span>
                         {p.coverImageUrl ? (
-                          <img src={p.coverImageUrl} alt="" className="w-10 h-12 object-cover rounded shrink-0" />
+                          <img src={p.coverImageUrl} alt="" className="w-10 h-12 object-cover rounded-sm shrink-0" />
                         ) : (
-                          <span className="w-10 h-12 rounded bg-gray-800 flex items-center justify-center shrink-0"><BrandMark size={24} /></span>
+                          <span className="w-10 h-12 rounded-sm bg-gray-800 flex items-center justify-center shrink-0"><BrandMark size={24} /></span>
                         )}
                         <span className="flex-1 min-w-0">
                           <span className="block font-medium text-white truncate">{p.name || 'Untitled pack'}</span>

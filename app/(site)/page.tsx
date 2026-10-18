@@ -94,7 +94,7 @@ export default async function HomePage() {
                   placeholder="Find a Twitch username…"
                   aria-label="Twitch username"
                   wrapperClassName="relative flex-1 min-w-0"
-                  className="w-full bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 text-sm"
+                  className="w-full bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-hidden focus:border-yellow-500 text-sm"
                 />
                 <PendingButton type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">Go →</PendingButton>
               </form>
@@ -113,7 +113,7 @@ export default async function HomePage() {
           </div>
 
           <div className="hidden md:flex justify-center">
-            <img src="/brand/icon.png" alt="The Cheesy TCG mascot sipping a hot drink" width={190} height={190} className="cheese-float rounded-[2rem] ring-2 ring-yellow-500/50 shadow-glow" />
+            <img src="/brand/icon.png" alt="The Cheesy TCG mascot sipping a hot drink" width={190} height={190} className="cheese-float rounded-4xl ring-2 ring-yellow-500/50 shadow-glow" />
           </div>
         </div>
         </div>
@@ -134,7 +134,7 @@ export default async function HomePage() {
                     {standing.ahead ? <> · <span className="tabular-nums">{standing.ahead.gap.toLocaleString()}</span> to pass <Link href={profileHref(standing.ahead.username)} className="text-yellow-400 hover:text-yellow-300">@{standing.ahead.username}</Link></> : <> · you lead the board</>}
                   </p>
                   <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-                    <div className="h-2 w-40 max-w-full rounded-full bg-gray-950 border border-gray-800 overflow-hidden" role="progressbar" aria-valuenow={standing.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Cards collected"><div className="h-full bg-gradient-to-r from-yellow-300 to-yellow-600" style={{ width: `${standing.pct}%` }} /></div>
+                    <div className="h-2 w-40 max-w-full rounded-full bg-gray-950 border border-gray-800 overflow-hidden" role="progressbar" aria-valuenow={standing.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Cards collected"><div className="h-full bg-linear-to-r from-yellow-300 to-yellow-600" style={{ width: `${standing.pct}%` }} /></div>
                     <span className="tabular-nums">{standing.uniqueCards}/{standing.totalCards} cards · {standing.totalCards - standing.uniqueCards} to find</span>
                   </div>
                 </>
@@ -278,9 +278,9 @@ export default async function HomePage() {
                 return (
                   <Link key={card.id} href={`/cards?card=${card.number}`} className="block space-y-2 group">
                     {card.imageUrl ? (
-                      <CardTile imageUrl={card.imageUrl} alt={card.name} className="holo-hover relative aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900" style={{ borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` }} />
+                      <CardTile imageUrl={card.imageUrl} alt={card.name} className="holo-hover relative aspect-2/3 rounded-xl overflow-hidden border-2 bg-gray-900" style={{ borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` }} />
                     ) : (
-                      <div className="holo-hover aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900" style={{ borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` }} />
+                      <div className="holo-hover aspect-2/3 rounded-xl overflow-hidden border-2 bg-gray-900" style={{ borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` }} />
                     )}
                     <div className="text-center">
                       <p className="text-sm font-semibold text-white truncate">{card.name}</p>

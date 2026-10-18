@@ -6,7 +6,7 @@ import type { AccessLogEntry } from '@/lib/access';
 import { addTesterAction, saveAccessAction } from './access-actions';
 import { RemoveTesterButton } from './TesterControls';
 
-const input = 'w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none';
+const input = 'w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-hidden';
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
 const help = 'text-[11px] text-gray-500 mt-1';
 const primary = 'rounded-lg bg-yellow-500 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-400 disabled:opacity-60';
@@ -33,7 +33,7 @@ export function AccessConfig({ settings: s, testers, log, filter }: { settings: 
             <legend className={label}>Mode</legend>
             <div className="grid gap-2 sm:grid-cols-3">
               {ACCESS_MODES.map(m => (
-                <label key={m} className="flex items-start gap-2 rounded-xl border border-gray-800 bg-gray-950/50 p-3 text-sm has-[:checked]:border-yellow-500/60">
+                <label key={m} className="flex items-start gap-2 rounded-xl border border-gray-800 bg-gray-950/50 p-3 text-sm has-checked:border-yellow-500/60">
                   <input type="radio" name="mode" value={m} defaultChecked={s.mode === m} className="mt-1 accent-yellow-500" />
                   <span><span className="block font-semibold text-white">{MODE_LABELS[m]}</span><span className="block text-[11px] text-gray-500">{MODE_HINTS[m]}</span></span>
                 </label>
@@ -95,7 +95,7 @@ export function AccessConfig({ settings: s, testers, log, filter }: { settings: 
               <li key={t.login} className="px-6 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                 <span className="font-semibold text-white">{t.login}</span>
                 <Chip tone={t.tier === 'alpha' ? 'purple' : 'amber'}>{t.tier === 'alpha' ? 'Alpha' : 'Beta'}</Chip>
-                {t.note && <span className="text-xs text-gray-400 min-w-0 break-words">{t.note}</span>}
+                {t.note && <span className="text-xs text-gray-400 min-w-0 wrap-break-word">{t.note}</span>}
                 <span className="text-xs text-gray-600 ml-auto">added {when(t.addedAt)}{t.addedBy ? ` by ${t.addedBy}` : ''}</span>
                 <RemoveTesterButton login={t.login} />
               </li>

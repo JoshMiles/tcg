@@ -28,7 +28,7 @@ const GRID: Record<View, string> = {
   compact: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2.5',
   list: '',
 };
-const CHECKER = 'bg-[conic-gradient(#0b1020_25%,#111a30_0_50%,#0b1020_0_75%,#111a30_0)] bg-[length:14px_14px]';
+const CHECKER = 'bg-[conic-gradient(#0b1020_25%,#111a30_0_50%,#0b1020_0_75%,#111a30_0)] bg-size-[14px_14px]';
 
 export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibrary; tab: AssetTab; issuesOnly?: boolean }) {
   const router = useRouter();
@@ -149,11 +149,11 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
           <div className="relative">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input ref={searchRef} type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name, pack or #…  ( / )" aria-label="Search assets"
-              className="bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 w-64" />
+              className="bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 w-64" />
           </div>
           {kindTab && (
             <>
-              <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-none focus:border-yellow-500">
+              <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-hidden focus:border-yellow-500">
                 <option value="default">Default order</option><option value="size">Largest first</option><option value="issues">Flagged first</option>
               </select>
               <button onClick={() => setOnlyIssues(v => !v)} aria-pressed={onlyIssues} className={`px-3 py-2 text-sm font-semibold rounded-xl border transition-colors ${onlyIssues ? 'border-amber-400/50 bg-amber-500/10 text-amber-200' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>
@@ -169,7 +169,7 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
                 )}
                 {kindTab === 'sound' && visible.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <select value={mp3.kbps} onChange={e => setMp3({ ...mp3, kbps: Number(e.target.value) })} aria-label="Sound quality" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-none focus:border-yellow-500">
+                    <select value={mp3.kbps} onChange={e => setMp3({ ...mp3, kbps: Number(e.target.value) })} aria-label="Sound quality" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-hidden focus:border-yellow-500">
                       {BITRATES.map(b => <option key={b} value={b}>{b} kbps</option>)}
                     </select>
                     <label className="flex items-center gap-1.5 text-sm text-gray-300"><input type="checkbox" checked={mp3.mono} onChange={e => setMp3({ ...mp3, mono: e.target.checked })} className="accent-yellow-500" />Mono</label>
@@ -218,7 +218,7 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
       )}
 
       {selected.size > 0 && kindTab && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-2xl border border-gray-700 bg-gray-900/95 backdrop-blur px-4 py-2.5 shadow-2xl max-w-[calc(100vw-2rem)]">
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-2xl border border-gray-700 bg-gray-900/95 backdrop-blur-sm px-4 py-2.5 shadow-2xl max-w-[calc(100vw-2rem)]">
           <span className="text-sm text-gray-200 whitespace-nowrap"><strong>{selected.size}</strong> selected{selectedFixable.length !== selected.size && <span className="text-gray-500"> · {selectedFixable.length} fixable</span>}</span>
           <button onClick={() => runFix(selectedFixable)} disabled={selectedFixable.length === 0 || !!fixing} className="tcg-btn px-3.5 py-1.5 text-sm rounded-xl whitespace-nowrap"><Icon name="wrench" className="mr-1.5" />Fix {selectedFixable.length || ''}</button>
           <button onClick={() => setSelected(new Set())} className="text-sm text-gray-400 hover:text-white">Clear</button>
@@ -242,8 +242,8 @@ function Preview({ asset, className }: { asset: LibraryAsset; className?: string
   const title = assetTitle(asset.origin);
   if (asset.issues.includes('missing')) return <Icon name="ban" className="w-8 h-8 text-red-300/70" />;
   if (asset.kind === 'sound') return <Icon name="music" className="w-8 h-8 text-gray-500" />;
-  if (asset.kind === 'card-art') return <CardTile imageUrl={asset.url} alt={title} className={`relative aspect-[2/3] rounded-md overflow-hidden ${className ?? 'h-full'}`} />;
-  return <img src={asset.url} alt={title} loading="lazy" className="max-h-full max-w-full object-contain rounded" />;
+  if (asset.kind === 'card-art') return <CardTile imageUrl={asset.url} alt={title} className={`relative aspect-2/3 rounded-md overflow-hidden ${className ?? 'h-full'}`} />;
+  return <img src={asset.url} alt={title} loading="lazy" className="max-h-full max-w-full object-contain rounded-sm" />;
 }
 
 function useDrop(onDropFile: (f: File) => void) {
@@ -281,17 +281,17 @@ function AssetTile({ asset, compact, selected, onToggle, onOpen, busy, onDropFil
   return (
     <div {...drop.props} className={`group relative tcg-panel rounded-2xl overflow-hidden flex flex-col transition-all hover:-translate-y-0.5 ${selected ? 'ring-2 ring-yellow-400' : flagged ? (red ? 'ring-1 ring-red-400/40' : 'ring-1 ring-amber-400/30') : ''}`}>
       <BusyOverlay over={drop.over} busy={busy} />
-      <div className="absolute top-2 left-2 z-[5]"><Check on={selected} onToggle={onToggle} label={`Select ${assetTitle(asset.origin)}`} /></div>
-      {flagged && <span title={asset.issues.join(', ')} className={`absolute top-2.5 right-2.5 z-[5] w-2.5 h-2.5 rounded-full ${red ? 'bg-red-400' : 'bg-amber-400'} shadow`} />}
-      <button onClick={onOpen} aria-label={`Details for ${assetTitle(asset.origin)}`} className={`${CHECKER} ${compact ? 'h-24' : 'h-44'} flex items-center justify-center overflow-hidden p-2 focus-visible:outline-none focus-visible:ring-2 ring-inset ring-yellow-400/60`}>
+      <div className="absolute top-2 left-2 z-5"><Check on={selected} onToggle={onToggle} label={`Select ${assetTitle(asset.origin)}`} /></div>
+      {flagged && <span title={asset.issues.join(', ')} className={`absolute top-2.5 right-2.5 z-5 w-2.5 h-2.5 rounded-full ${red ? 'bg-red-400' : 'bg-amber-400'} shadow-sm`} />}
+      <button onClick={onOpen} aria-label={`Details for ${assetTitle(asset.origin)}`} className={`${CHECKER} ${compact ? 'h-24' : 'h-44'} flex items-center justify-center overflow-hidden p-2 focus-visible:outline-hidden focus-visible:ring-2 ring-inset ring-yellow-400/60`}>
         <Preview asset={asset} />
       </button>
       <div className={`${compact ? 'p-2' : 'p-3'} space-y-1 flex-1 min-w-0`}>
         <p className={`${compact ? 'text-xs' : 'text-sm'} font-bold text-white truncate`} title={assetTitle(asset.origin)}>{assetTitle(asset.origin)}</p>
         {!compact && <p className="text-xs text-gray-500 truncate">{asset.origin.kind === 'pack-cover' ? 'Pack cover' : `Card #${asset.origin.cardNumber}`} · {asset.origin.packName}</p>}
         <div className="flex flex-wrap items-center gap-1 pt-0.5">
-          <span className="text-[10px] font-bold text-gray-300 bg-gray-800 rounded px-1.5 py-px">{asset.format}</span>
-          <span className="text-[10px] font-bold text-gray-300 bg-gray-800 rounded px-1.5 py-px tabular-nums">{formatBytes(asset.bytes)}</span>
+          <span className="text-[10px] font-bold text-gray-300 bg-gray-800 rounded-sm px-1.5 py-px">{asset.format}</span>
+          <span className="text-[10px] font-bold text-gray-300 bg-gray-800 rounded-sm px-1.5 py-px tabular-nums">{formatBytes(asset.bytes)}</span>
           {!compact && <IssueChips asset={asset} />}
         </div>
       </div>
@@ -302,7 +302,7 @@ function AssetTile({ asset, compact, selected, onToggle, onOpen, busy, onDropFil
 function AssetRow({ asset, maxBytes, selected, onToggle, onOpen, busy, onDropFile }: { asset: LibraryAsset; maxBytes: number; selected: boolean; onToggle: () => void; onOpen: () => void; busy: boolean; onDropFile: (f: File) => void }) {
   const drop = useDrop(onDropFile);
   return (
-    <div {...drop.props} className={`group relative flex items-center gap-3 px-4 py-2 transition-colors ${selected ? 'bg-yellow-500/[0.06]' : 'hover:bg-white/[0.02]'}`}>
+    <div {...drop.props} className={`group relative flex items-center gap-3 px-4 py-2 transition-colors ${selected ? 'bg-yellow-500/6' : 'hover:bg-white/2'}`}>
       <BusyOverlay over={drop.over} busy={busy} />
       <Check always on={selected} onToggle={onToggle} label={`Select ${assetTitle(asset.origin)}`} />
       <button onClick={onOpen} className={`${CHECKER} w-10 h-14 rounded-md flex items-center justify-center overflow-hidden shrink-0`} aria-label={`Details for ${assetTitle(asset.origin)}`}>
@@ -312,7 +312,7 @@ function AssetRow({ asset, maxBytes, selected, onToggle, onOpen, busy, onDropFil
         <button onClick={onOpen} className="text-sm font-bold text-white truncate block max-w-full text-left hover:text-yellow-300">{assetTitle(asset.origin)}</button>
         <p className="text-xs text-gray-500 truncate">{KIND_LABEL[asset.kind]} · {asset.origin.packName} · <span className="font-mono">{filename(asset.url)}</span></p>
       </div>
-      <div className="hidden md:flex flex-wrap gap-1 justify-end max-w-[14rem]"><IssueChips asset={asset} /></div>
+      <div className="hidden md:flex flex-wrap gap-1 justify-end max-w-56"><IssueChips asset={asset} /></div>
       <div className="hidden sm:block w-32 shrink-0 space-y-1">
         <p className="text-xs text-right text-gray-300 tabular-nums"><span className="text-gray-500 mr-1.5">{asset.format}</span>{formatBytes(asset.bytes)}</p>
         <SizeBar value={asset.bytes ?? 0} max={maxBytes} tone={asset.issues.length ? 'amber' : 'yellow'} />

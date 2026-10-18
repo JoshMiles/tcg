@@ -16,10 +16,10 @@ export function WantToggle({ number, initial }: { number: number; initial: boole
           const res = await toggleWantedAction(number);
           if (res.ok) setOn(res.wanted.includes(number)); else setError(res.error);
         });
-      }} className={`inline-flex items-center gap-1 text-[11px] font-bold rounded-full border px-2.5 py-1 transition-colors disabled:opacity-60 ${on ? 'border-purple-400/60 bg-purple-500/20 text-purple-100' : 'border-white/10 bg-white/[0.06] text-gray-300 hover:bg-white/10'}`}>
+      }} className={`inline-flex items-center gap-1 text-[11px] font-bold rounded-full border px-2.5 py-1 transition-colors disabled:opacity-60 ${on ? 'border-purple-400/60 bg-purple-500/20 text-purple-100' : 'border-white/10 bg-white/6 text-gray-300 hover:bg-white/10'}`}>
         <Icon name="search" className="w-3 h-3" />{on ? 'Looking for' : 'Look for'}
       </button>
-      {error && <span role="alert" className="text-[10px] text-red-400 max-w-[12rem] text-right">{error}</span>}
+      {error && <span role="alert" className="text-[10px] text-red-400 max-w-48 text-right">{error}</span>}
     </span>
   );
 }

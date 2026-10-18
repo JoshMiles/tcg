@@ -28,7 +28,7 @@ export function SearchButton({ className = '' }: { className?: string }) {
     >
       <Icon name="search" className="w-[1.05rem] h-[1.05rem]" />
       <span className="hidden 2xl:inline text-sm">Search</span>
-      <kbd className="hidden 2xl:inline text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded px-1.5 py-px">/</kbd>
+      <kbd className="hidden 2xl:inline text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded-sm px-1.5 py-px">/</kbd>
     </button>
   );
 }
@@ -104,8 +104,8 @@ export function SiteSearch() {
   const q = cleanQuery(query);
 
   return createPortal(
-    <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Search">
-      <div className="absolute inset-0 bg-gray-950/70 backdrop-blur-sm" onClick={close} />
+    <div className="fixed inset-0 z-80" role="dialog" aria-modal="true" aria-label="Search">
+      <div className="absolute inset-0 bg-gray-950/70 backdrop-blur-xs" onClick={close} />
       <div className="relative mx-auto mt-[10vh] w-[calc(100%-2rem)] max-w-xl tcg-panel rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
         <div className="flex items-center gap-3 px-4 border-b border-gray-800">
           <Icon name="search" className="text-gray-500 shrink-0" />
@@ -113,10 +113,10 @@ export function SiteSearch() {
             autoFocus value={query} onChange={e => setQuery(e.target.value)} onKeyDown={onInputKey}
             placeholder="Find a collector, a card or a page…" aria-label="Search" autoComplete="off"
             role="combobox" aria-expanded="true" aria-controls="site-search-list"
-            className="flex-1 bg-transparent py-4 text-sm text-white placeholder-gray-600 focus:outline-none"
+            className="flex-1 bg-transparent py-4 text-sm text-white placeholder-gray-600 focus:outline-hidden"
           />
           {loading && <span className="text-xs text-gray-600">…</span>}
-          <kbd className="text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded px-1.5 py-px">Esc</kbd>
+          <kbd className="text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded-sm px-1.5 py-px">Esc</kbd>
         </div>
         <ul id="site-search-list" ref={listRef} className="max-h-[55vh] overflow-y-auto py-2" role="listbox">
           {!q && <li className="px-5 pt-1 pb-2 text-[10px] uppercase tracking-wider font-extrabold text-gray-600">Jump to</li>}
@@ -137,10 +137,10 @@ export function SiteSearch() {
                   type="button" data-active={i === index} onMouseMove={() => setIndex(i)} onClick={() => go(it)}
                   className={`w-full flex items-center gap-3 px-5 py-2 text-left text-sm transition-colors ${i === index ? 'bg-yellow-500/10 text-yellow-100' : 'text-gray-300'}`}
                 >
-                  {it.image ? <img src={it.image} alt="" width={24} height={34} className="w-6 h-8 object-cover rounded shrink-0" /> : <Icon name={grp.icon} className={i === index ? 'text-yellow-400' : 'text-gray-500'} />}
+                  {it.image ? <img src={it.image} alt="" width={24} height={34} className="w-6 h-8 object-cover rounded-sm shrink-0" /> : <Icon name={grp.icon} className={i === index ? 'text-yellow-400' : 'text-gray-500'} />}
                   <span className="flex-1 truncate">{it.label}</span>
                   {rar && <span className={`text-xs ${rar.text}`}>{'★'.repeat(it.stars!)}</span>}
-                  {it.hint && <span className="text-xs text-gray-600 truncate max-w-[9rem]">{it.hint}</span>}
+                  {it.hint && <span className="text-xs text-gray-600 truncate max-w-36">{it.hint}</span>}
                 </button>
               </li>
             );

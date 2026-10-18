@@ -7,7 +7,7 @@ import { SITE_DESCRIPTION, SITE_NAME } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
 import { ServiceWorker } from './components/ServiceWorker';
 
-const display = Fredoka({ subsets: ['latin'], variable: '--font-display', weight: ['500', '600', '700'] });
+const display = Fredoka({ subsets: ['latin'], variable: '--font-display-family', weight: ['500', '600', '700'] });
 const body = Nunito({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {

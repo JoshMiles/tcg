@@ -14,7 +14,7 @@ export function SiteMessage({ icon, title, children, actions, tone = 'yellow' }:
   );
 }
 
-const Bar = ({ className = '' }: { className?: string }) => <div className={`rounded-lg bg-white/[0.05] animate-pulse ${className}`} />;
+const Bar = ({ className = '' }: { className?: string }) => <div className={`rounded-lg bg-white/5 animate-pulse ${className}`} />;
 
 /** What a public page shows while its data loads: roughly a header and a few cards, so nothing jumps when the page arrives. */
 export function SiteSkeleton() {

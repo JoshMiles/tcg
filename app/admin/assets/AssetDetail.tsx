@@ -9,7 +9,7 @@ import { SoundOptimiser } from './SoundOptimiser';
 import type { OptNote } from './useOptimise';
 import { ISSUE_TEXT, IssueChips, KIND_LABEL, assetTitle, filename, formatBytes, isFixable, originHref, originLabel } from './asset-ui';
 
-const CHECKER = 'bg-[conic-gradient(#0b1020_25%,#111a30_0_50%,#0b1020_0_75%,#111a30_0)] bg-[length:16px_16px]';
+const CHECKER = 'bg-[conic-gradient(#0b1020_25%,#111a30_0_50%,#0b1020_0_75%,#111a30_0)] bg-size-[16px_16px]';
 
 export function DropZone({ kind, busy, onFile, compact }: { kind: LibraryAsset['kind']; busy: boolean; onFile: (f: File) => void; compact?: boolean }) {
   const [over, setOver] = useState(false);
@@ -59,7 +59,7 @@ export function AssetDetail({ asset, index, total, onClose, onStep, onCopy, copi
   return createPortal(
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`${assetTitle(origin)} details`}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
-      <aside className="absolute right-0 top-0 h-full w-full sm:w-[28rem] bg-gray-900 border-l border-gray-800 shadow-2xl flex flex-col">
+      <aside className="absolute right-0 top-0 h-full w-full sm:w-md bg-gray-900 border-l border-gray-800 shadow-2xl flex flex-col">
         <header className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-800">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500">{KIND_LABEL[asset.kind]}</p>
@@ -80,7 +80,7 @@ export function AssetDetail({ asset, index, total, onClose, onStep, onCopy, copi
               <div className="w-full space-y-3 text-center"><Icon name="music" className="w-10 h-10 mx-auto text-gray-500" /><audio controls preload="none" src={asset.url} className="w-full" /></div>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={asset.url} alt={assetTitle(origin)} onLoad={e => setDims(`${e.currentTarget.naturalWidth} × ${e.currentTarget.naturalHeight}`)} className="max-h-[22rem] max-w-full object-contain rounded-lg" />
+              <img src={asset.url} alt={assetTitle(origin)} onLoad={e => setDims(`${e.currentTarget.naturalWidth} × ${e.currentTarget.naturalHeight}`)} className="max-h-88 max-w-full object-contain rounded-lg" />
             )}
           </div>
 
@@ -134,7 +134,7 @@ export function AssetDetail({ asset, index, total, onClose, onStep, onCopy, copi
             <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Used by</p>
             <ul className="space-y-1">
               {[origin, ...asset.sharedWith].map((o, i) => (
-                <li key={i}><Link href={originHref(o)} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 bg-white/[0.03] hover:bg-white/[0.07] text-sm text-gray-200 transition-colors"><span className="truncate">{originLabel(o)}</span><Icon name="chevronRight" className="text-gray-600 shrink-0" /></Link></li>
+                <li key={i}><Link href={originHref(o)} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 bg-white/3 hover:bg-white/[0.07] text-sm text-gray-200 transition-colors"><span className="truncate">{originLabel(o)}</span><Icon name="chevronRight" className="text-gray-600 shrink-0" /></Link></li>
               ))}
             </ul>
             {asset.sharedWith.length > 0 && <p className="text-xs text-gray-500">This exact file is shared, so replacing it here changes only {assetTitle(origin)}; the others keep the old file.</p>}

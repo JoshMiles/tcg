@@ -17,7 +17,7 @@ function Step({ no, title, children }: { no: number; title: ReactNode; children:
     </li>
   );
 }
-const Eq = ({ children }: { children: ReactNode }) => <p className="font-mono text-[12px] leading-relaxed text-gray-300 break-words">{children}</p>;
+const Eq = ({ children }: { children: ReactNode }) => <p className="font-mono text-[12px] leading-relaxed text-gray-300 wrap-break-word">{children}</p>;
 const Note = ({ children }: { children: ReactNode }) => <p className="text-[11px] leading-relaxed text-gray-500">{children}</p>;
 const Hi = ({ children }: { children: ReactNode }) => <strong className="text-yellow-300">{children}</strong>;
 

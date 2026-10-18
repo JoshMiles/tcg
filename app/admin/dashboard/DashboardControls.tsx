@@ -24,7 +24,7 @@ export function DashboardControls({ seasons, seasonId, range }: { seasons: { id:
         <label className="flex items-center gap-2 text-xs text-gray-500">
           <Icon name="calendar" />
           <span className="sr-only">Season</span>
-          <select value={seasonId} onChange={e => go({ season: e.target.value })} className="rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-200 focus:outline-none focus:border-yellow-500">
+          <select value={seasonId} onChange={e => go({ season: e.target.value })} className="rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-200 focus:outline-hidden focus:border-yellow-500">
             {seasons.map(s => <option key={s.id} value={s.id}>{s.name}{s.active ? ' (active)' : ''}</option>)}
           </select>
         </label>

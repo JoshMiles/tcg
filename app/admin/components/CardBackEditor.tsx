@@ -33,7 +33,7 @@ export interface CardBackEditorProps {
 }
 
 const btn = 'px-3 py-2 text-sm font-bold rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white disabled:opacity-50';
-const field = 'bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500';
+const field = 'bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500';
 
 export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, initial, sample, others, layout = 'wide' }: CardBackEditorProps) {
   const start = initial ?? DEFAULT_CARD_BACK;
@@ -117,7 +117,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
   const actions = (
     <div className="flex flex-wrap items-center gap-2 pt-1">
       <button type="button" onClick={() => setOpen(true)} className="px-4 py-2 tcg-btn rounded-xl text-sm"><Icon name="palette" className="mr-1.5" />Edit design</button>
-      <button type="button" disabled={pending || !dirty} onClick={save} className={`${btn} !text-white bg-gray-700`}>{pending ? 'Working…' : 'Save card back'}</button>
+      <button type="button" disabled={pending || !dirty} onClick={save} className={`${btn} text-white! bg-gray-700`}>{pending ? 'Working…' : 'Save card back'}</button>
       <button type="button" disabled={pending || (isDefaultCardBack(style) && !dirty && !initial)} onClick={() => exec(resetCardBackAction.bind(null, packId), 'Back to the classic look')} className={btn}>Reset to default</button>
       {others.length > 0 && (
         <span className="inline-flex items-center gap-1.5">

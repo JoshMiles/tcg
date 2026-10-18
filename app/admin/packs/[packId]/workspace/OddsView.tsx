@@ -80,7 +80,7 @@ export function OddsView({ pack, cards, baseCards, editCards }: {
             {tiers.map(t => (
               <label key={t.stars} className="text-xs text-gray-500 space-y-1">
                 <span className={getRarity(t.stars)?.text}>{'★'.repeat(t.stars)} <span className="text-gray-600">({t.count})</span></span>
-                <input type="number" min={0} step="any" value={targets[t.stars] ?? ''} onChange={e => setTargets(x => ({ ...x, [t.stars]: e.target.value }))} className="block w-20 rounded-lg bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500" />
+                <input type="number" min={0} step="any" value={targets[t.stars] ?? ''} onChange={e => setTargets(x => ({ ...x, [t.stars]: e.target.value }))} className="block w-20 rounded-lg bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500" />
               </label>
             ))}
             <button type="button" onClick={balance} className={btn}>Apply</button>
@@ -90,7 +90,7 @@ export function OddsView({ pack, cards, baseCards, editCards }: {
 
       <div className="grid xl:grid-cols-[1.3fr_1fr]">
         {/* Odds table */}
-        <div className="max-h-[32rem] overflow-auto xl:border-r border-gray-800">
+        <div className="max-h-128 overflow-auto xl:border-r border-gray-800">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-gray-900 z-10">
               <tr className="text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-800">
@@ -105,16 +105,16 @@ export function OddsView({ pack, cards, baseCards, editCards }: {
                 const changed = c.probability !== (baseProb.get(c.id) ?? c.probability);
                 const p = pct(c.probability);
                 return (
-                  <tr key={c.id} className="hover:bg-white/[0.02]">
+                  <tr key={c.id} className="hover:bg-white/2">
                     <td className="px-5 py-1.5">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {c.imageUrl ? <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-6 h-9 object-cover rounded shrink-0" /> : <div className="w-6 h-9 bg-gray-800 rounded shrink-0" />}
+                        {c.imageUrl ? <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-6 h-9 object-cover rounded-sm shrink-0" /> : <div className="w-6 h-9 bg-gray-800 rounded-sm shrink-0" />}
                         <span className="truncate text-gray-200">{c.name || 'Untitled'}</span>
                         <span className={`text-[11px] shrink-0 ${getRarity(c.stars)?.text}`}>{'★'.repeat(c.stars)}</span>
                       </div>
                     </td>
                     <td className="px-3 py-1.5 text-right">
-                      <div className={`w-24 ml-auto ${changed ? '[&_input]:!border-yellow-500/60 [&_input]:!text-yellow-200' : ''}`}><NumberInput ariaLabel={`Weight for ${c.name || 'card'}`} value={c.probability} min={0} onChange={n => set(c.id, n)} /></div>
+                      <div className={`w-24 ml-auto ${changed ? '[&_input]:border-yellow-500/60! [&_input]:text-yellow-200!' : ''}`}><NumberInput ariaLabel={`Weight for ${c.name || 'card'}`} value={c.probability} min={0} onChange={n => set(c.id, n)} /></div>
                     </td>
                     <td className="px-3 py-1.5 text-right tabular-nums text-gray-300">{p >= 10 ? p.toFixed(1) : p.toFixed(2)}%</td>
                     <td className="pr-5 pl-3 py-1.5 text-right tabular-nums text-gray-600 hidden sm:table-cell">{p > 0 ? Math.round(100 / p).toLocaleString() : '-'}</td>

@@ -107,13 +107,13 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
     });
   }, [shown]);
 
-  const select = 'bg-gray-950/80 border border-gray-700 rounded-xl px-2 py-2 text-sm text-gray-200 focus:outline-none focus:border-yellow-500';
+  const select = 'bg-gray-950/80 border border-gray-700 rounded-xl px-2 py-2 text-sm text-gray-200 focus:outline-hidden focus:border-yellow-500';
   return (
     <div className="space-y-5">
       {showMine && (
         <div className="rind rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-2" aria-label="Your progress">
           <p className="text-sm text-gray-300"><strong className="text-white tabular-nums">{progress.owned}</strong> of <span className="tabular-nums">{progress.total}</span> collected</p>
-          <div className="h-2 w-48 max-w-full rounded-full bg-gray-950 border border-gray-800 overflow-hidden" role="progressbar" aria-valuenow={progress.pct} aria-valuemin={0} aria-valuemax={100}><div className="h-full bg-gradient-to-r from-yellow-300 to-yellow-600" style={{ width: `${progress.pct}%` }} /></div>
+          <div className="h-2 w-48 max-w-full rounded-full bg-gray-950 border border-gray-800 overflow-hidden" role="progressbar" aria-valuenow={progress.pct} aria-valuemin={0} aria-valuemax={100}><div className="h-full bg-linear-to-r from-yellow-300 to-yellow-600" style={{ width: `${progress.pct}%` }} /></div>
           {wantedCount > 0 && <p className="text-xs text-gray-500">{wantedCount} on your <Link href="/settings#looking-for" className="text-yellow-400 hover:text-yellow-300">Looking for</Link> list</p>}
         </div>
       )}
@@ -124,7 +124,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
           onChange={e => patch({ q: e.target.value })}
           placeholder="Search name or #"
           aria-label="Search cards"
-          className="bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 w-56"
+          className="bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-hidden focus:border-yellow-500 w-56"
         />
         <div className="flex flex-wrap gap-1.5">
           <Chip active={f.stars === null} onClick={() => patch({ stars: null })}>All</Chip>
@@ -164,7 +164,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
         <div className={compact ? 'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-3' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4'}>
           {shown.map(c => {
             const rarity = getRarity(c.stars);
-            const tileClass = 'holo-hover relative aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 cursor-pointer transition-transform hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400';
+            const tileClass = 'holo-hover relative aspect-2/3 rounded-xl overflow-hidden border-2 bg-gray-900 cursor-pointer transition-transform hover:-translate-y-1 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400';
             const style = { borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` };
             const badges = (
               <>
@@ -238,7 +238,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${card.name} details`}>
-      <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-xs" onClick={onClose} />
 
       <div className="relative w-full max-w-4xl max-h-full overflow-y-auto tcg-panel rounded-2xl shadow-glow">
         <button ref={closeBtn} onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-gray-900/80 text-gray-300 hover:text-white text-xl leading-none">×</button>
@@ -249,7 +249,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
             <div className="flex items-center gap-2 w-full justify-center">
               {canStep && <button onClick={() => onStep(-1)} aria-label="Previous card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">‹</button>}
               <div
-                className={`relative w-full max-w-[210px] aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown}` : ''} ${holoClass(card.holo[shown], true)}`}
+                className={`relative w-full max-w-[210px] aspect-2/3 rounded-xl overflow-hidden border-2 bg-gray-900 ${shown !== 'regular' ? `vfx-${shown}` : ''} ${holoClass(card.holo[shown], true)}`}
                 style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ...holoVars(card.holo[shown]), ['--art-mask' as string]: maskFor(card, art) } as React.CSSProperties}
               >
                 <img src={stillFor(card, art)} alt={card.name} className="w-full h-full object-cover" />
@@ -262,10 +262,10 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
               spec={{ title: card.name, subtitle: `${'★'.repeat(card.stars)} ${rarity?.label ?? ''} · ${oneIn(card.pullRate)} per pack`, stats: [`${card.copies.toLocaleString()} out there`, `${card.collectors} collector${card.collectors === 1 ? '' : 's'}`], cards: [{ src: art, name: card.name, hex: rarity?.hex }], footer: siteHost }}
               filename={`cheesy-tcg-card-${card.number}.png`}
               label="Share this card"
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors disabled:opacity-60 w-full max-w-[210px]"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors disabled:opacity-60 w-full max-w-[210px]"
             />
             {signedIn && (
-              <button type="button" onClick={() => onToggleWanted(card)} aria-pressed={!!card.wanted} className={`inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-full border px-3 py-1.5 transition-colors w-full max-w-[210px] ${card.wanted ? 'border-purple-400/60 bg-purple-500/20 text-purple-100' : 'border-white/10 bg-white/[0.06] text-gray-200 hover:bg-white/10'}`}>
+              <button type="button" onClick={() => onToggleWanted(card)} aria-pressed={!!card.wanted} className={`inline-flex items-center justify-center gap-1.5 text-xs font-bold rounded-full border px-3 py-1.5 transition-colors w-full max-w-[210px] ${card.wanted ? 'border-purple-400/60 bg-purple-500/20 text-purple-100' : 'border-white/10 bg-white/6 text-gray-200 hover:bg-white/10'}`}>
                 <Icon name="search" />{card.wanted ? 'On your Looking for list' : 'Add to Looking for'}
               </button>
             )}
@@ -275,7 +275,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
           <div className="space-y-4 min-w-0">
             <div>
               <p className="text-xs text-gray-500">#{card.number} · {card.packName}</p>
-              <h2 className="font-display text-3xl font-bold text-white leading-tight break-words">{card.name}</h2>
+              <h2 className="font-display text-3xl font-bold text-white leading-tight wrap-break-word">{card.name}</h2>
               <p className="text-sm font-semibold mt-1" style={{ color: rarity?.hex }}>{'★'.repeat(card.stars)} {rarity?.label}</p>
             </div>
 
@@ -301,7 +301,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                     <tr
                       key={v}
                       onClick={() => card.upgradable && setShown(v)}
-                      className={`${card.upgradable ? 'cursor-pointer hover:bg-white/[0.03]' : ''} ${v === shown && card.upgradable ? 'bg-white/[0.04]' : ''}`}
+                      className={`${card.upgradable ? 'cursor-pointer hover:bg-white/3' : ''} ${v === shown && card.upgradable ? 'bg-white/4' : ''}`}
                     >
                       <td className="py-2 px-3 text-gray-200">{VARIANT_LABELS[v]}{VARIANT_TIPS[v] && <InfoTip term={VARIANT_TIPS[v]} />}</td>
                       {card.upgradable && <td className="py-2 px-2 text-right tabular-nums whitespace-nowrap text-gray-500 hidden sm:table-cell">{oneIn(card.variantOdds[v])}</td>}
@@ -337,7 +337,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                     const extras = VARIANTS.filter(v => v !== 'regular' && o.variants[v] > 0);
                     return (
                       <li key={o.username}>
-                        <Link href={`/u/${o.username}`} className="flex items-center gap-3 px-3 py-2 hover:bg-white/[0.04] transition-colors">
+                        <Link href={`/u/${o.username}`} className="flex items-center gap-3 px-3 py-2 hover:bg-white/4 transition-colors">
                           <span className="w-7 text-center text-sm font-bold text-gray-500 tabular-nums"><RankMedal rank={i + 1} /></span>
                           <Avatar src={o.avatar} name={o.username} className="w-8 h-8 text-xs" />
                           <span className="flex-1 min-w-0">

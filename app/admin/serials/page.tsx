@@ -26,7 +26,7 @@ export const dynamic = 'force-dynamic';
 const PAGE = 120;       // edition chips per page
 const FILTER_CAP = 600; // editions read when a holder / origin filter has to look at all of them
 const when = (t: number) => `${new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
-const field = 'rounded-xl bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500';
+const field = 'rounded-xl bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500';
 
 type SP = { done?: string; err?: string; season?: string; card?: string; v?: string; variant?: string; holder?: string; origin?: string; q?: string; page?: string; print?: string };
 
@@ -190,7 +190,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
           hint={`${totalEditions.toLocaleString()} held. Click a print to open it.`}
           actions={<form method="get" className="flex items-center gap-2">
             <input type="hidden" name="season" value={season.id} /><input type="hidden" name="holder" value={holderMode} />
-            <select name="origin" defaultValue={origin} aria-label="Origin" className={`${selectClass} max-w-[11rem]`}><option value="">Any origin</option>{ORIGINS.map(o => <option key={o} value={o}>{ORIGIN_LABELS[o]}</option>)}</select>
+            <select name="origin" defaultValue={origin} aria-label="Origin" className={`${selectClass} max-w-44`}><option value="">Any origin</option>{ORIGINS.map(o => <option key={o} value={o}>{ORIGIN_LABELS[o]}</option>)}</select>
             <button type="submit" className="px-3 py-2 text-sm rounded-xl border border-gray-700 text-gray-300 hover:text-white">Filter</button>
           </form>}
         >
@@ -209,8 +209,8 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
                 return (
                   <li key={x.number} className="py-1.5">
                     <Link href={open ? mk({ card: undefined, v: undefined, holder: undefined, origin: undefined, page: undefined, print: undefined }) : mk({ card: String(x.number), v: undefined, holder: undefined, origin: undefined, page: undefined, print: undefined })} aria-expanded={open}
-                      className="flex items-center gap-3 rounded-lg px-1.5 py-1 hover:bg-white/[0.03]">
-                      {x.imageUrl ? <img src={cardThumbUrl(x.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded shrink-0 border" style={{ borderColor: rarity?.hex }} /> : <span className="w-8 h-11 rounded bg-gray-800 shrink-0" />}
+                      className="flex items-center gap-3 rounded-lg px-1.5 py-1 hover:bg-white/3">
+                      {x.imageUrl ? <img src={cardThumbUrl(x.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded-sm shrink-0 border" style={{ borderColor: rarity?.hex }} /> : <span className="w-8 h-11 rounded-sm bg-gray-800 shrink-0" />}
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm text-gray-100 truncate"><span className="text-gray-600 tabular-nums mr-1.5">{x.number}</span>{x.name} <span className="text-yellow-500/80">{'★'.repeat(x.stars)}</span></span>
                         <span className="flex flex-wrap gap-x-3 text-[11px] text-gray-500 tabular-nums">
@@ -279,7 +279,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
       {printId && (
         <>
           <Link href={listUrl} aria-label="Close the print" className="fixed inset-0 z-40 bg-black/50 hidden sm:block" />
-          <aside role="dialog" aria-label={printCopy ? `Print ${printLabel} number ${printCopy.n}` : 'Print'} className="fixed inset-0 sm:left-auto sm:w-[34rem] z-50 overflow-y-auto bg-gray-950 sm:border-l border-gray-800 shadow-2xl p-4 sm:p-5 space-y-4">
+          <aside role="dialog" aria-label={printCopy ? `Print ${printLabel} number ${printCopy.n}` : 'Print'} className="fixed inset-0 sm:left-auto sm:w-136 z-50 overflow-y-auto bg-gray-950 sm:border-l border-gray-800 shadow-2xl p-4 sm:p-5 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-display text-lg font-bold text-white truncate">{printCopy ? <>{printLabel} <span className="text-yellow-400 tabular-nums">#{printCopy.n}</span></> : 'Print not found'}</p>

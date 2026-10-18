@@ -77,9 +77,9 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-screen text-gray-100">
-      <a href="#admin-main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-lg focus:bg-yellow-500 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
+      <a href="#admin-main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-60 focus:rounded-lg focus:bg-yellow-500 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       {/* Mobile top bar */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center gap-3 px-3 bg-gray-950/95 backdrop-blur border-b border-poke-blue-light/15">
+      <header className="lg:hidden fixed top-0 inset-x-0 z-30 h-14 flex items-center gap-3 px-3 bg-gray-950/95 backdrop-blur-sm border-b border-poke-blue-light/15">
         <button
           ref={menuButton}
           type="button"
@@ -103,9 +103,9 @@ export function AdminShell({
         onMouseLeave={() => setPeek(false)}
         onFocusCapture={() => setPeek(true)}
         onBlurCapture={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPeek(false); }}
-        className={`admin-aside bg-gray-950/95 lg:bg-gray-950/80 backdrop-blur border-r border-poke-blue-light/15 flex flex-col shrink-0
+        className={`admin-aside bg-gray-950/95 lg:bg-gray-950/80 backdrop-blur-sm border-r border-poke-blue-light/15 flex flex-col shrink-0
           fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}
-          lg:z-40 lg:translate-x-0 lg:transition-[width] ${expandedLook ? 'lg:w-60' : 'lg:w-[4.5rem]'} ${shownCollapsed && peek ? 'lg:shadow-2xl' : ''}`}
+          lg:z-40 lg:translate-x-0 lg:transition-[width] ${expandedLook ? 'lg:w-60' : 'lg:w-18'} ${shownCollapsed && peek ? 'lg:shadow-2xl' : ''}`}
       >
         <div className="px-4 pt-5 pb-4 flex items-center gap-2">
           <div className="flex-1 min-w-0">{brand}</div>
@@ -121,7 +121,7 @@ export function AdminShell({
         </div>
         
         {nav}
-        <div className="p-3 pt-2.5 border-t border-white/[0.06] space-y-2.5">
+        <div className="p-3 pt-2.5 border-t border-white/6 space-y-2.5">
           {status}
           {footer}
         </div>
@@ -132,13 +132,13 @@ export function AdminShell({
           onClick={toggle}
           aria-label={shownCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={shownCollapsed ? 'Keep sidebar open' : 'Collapse sidebar'}
-          className="hidden lg:flex absolute -right-3 top-[4.6rem] z-10 w-6 h-6 items-center justify-center rounded-full bg-gray-900 border border-gray-700 text-gray-400 hover:text-yellow-300 hover:border-yellow-500/50 shadow transition-colors"
+          className="hidden lg:flex absolute -right-3 top-[4.6rem] z-10 w-6 h-6 items-center justify-center rounded-full bg-gray-900 border border-gray-700 text-gray-400 hover:text-yellow-300 hover:border-yellow-500/50 shadow-sm transition-colors"
         >
           <Icon name={shownCollapsed ? 'chevronRight' : 'chevronLeft'} className="w-3.5 h-3.5" />
         </button>
       </aside>
 
-      <main id="admin-main" tabIndex={-1} className={`flex-1 min-w-0 overflow-auto focus:outline-none px-4 pb-6 pt-20 sm:px-6 lg:p-8 lg:transition-[margin] ${shownCollapsed ? 'lg:ml-[4.5rem]' : 'lg:ml-60'}`}>
+      <main id="admin-main" tabIndex={-1} className={`flex-1 min-w-0 overflow-auto focus:outline-hidden px-4 pb-6 pt-20 sm:px-6 lg:p-8 lg:transition-[margin] ${shownCollapsed ? 'lg:ml-18' : 'lg:ml-60'}`}>
         {children}
       </main>
     </div>

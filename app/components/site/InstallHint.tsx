@@ -21,7 +21,7 @@ export function InstallHint() {
   if (!show) return null;
   const dismiss = () => { try { localStorage.setItem(KEY, '1'); } catch { /* ignore */ } setShow(false); };
   return (
-    <aside className="sm:hidden rounded-2xl border border-yellow-500/30 bg-yellow-500/[0.06] p-4 flex items-start gap-3" aria-label="Add to home screen">
+    <aside className="sm:hidden rounded-2xl border border-yellow-500/30 bg-yellow-500/6 p-4 flex items-start gap-3" aria-label="Add to home screen">
       <Icon name="phone" className="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="font-bold text-white">Add the app to your home screen</p>

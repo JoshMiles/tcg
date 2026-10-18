@@ -113,7 +113,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
             <CardTile
               imageUrl={art}
               alt={label}
-              className={`relative aspect-[2/3] rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''} ${holoClass(holo, true)}`}
+              className={`relative aspect-2/3 rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''} ${holoClass(holo, true)}`}
               style={{ borderColor: rarity?.hex, boxShadow: `0 0 28px -6px ${rarity?.hex}`, ...holoVars(holo) }}
             />
           </FlipCard>
@@ -122,7 +122,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
         <div className="space-y-5 min-w-0">
           <div>
             <p className="text-xs text-gray-500">#{card.number} · {pack.name} · {season.name}</p>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">{label}</h1>
+            <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight wrap-break-word">{label}</h1>
             {copy.uid && (
               <p className="mt-2 flex flex-wrap items-baseline gap-2">
                 <span className="font-display text-xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.uid}</span>
@@ -140,7 +140,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
 
           {worth !== null && !gone && (
             <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-4 gap-y-1 ${mult > 1 ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
-              <SerialChip n={copy.n} bonus={mult > 1 ? Math.round(mult * 100) / 100 : undefined} est={copy.est} className="text-sm !px-3 !py-1" />
+              <SerialChip n={copy.n} bonus={mult > 1 ? Math.round(mult * 100) / 100 : undefined} est={copy.est} className="text-sm px-3! py-1!" />
               <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{worth.toLocaleString()} pts</strong>{cv && worth !== cv.values[copy.variant] ? <span className="text-gray-500"> instead of {cv.values[copy.variant].toLocaleString()}</span> : null}</span>
               <span className="text-xs text-gray-500">{mult > 1 ? `Its edition number earns a ×${Math.round(mult * 100) / 100} points bonus: the first prints ever made of a card are worth extra.` : 'No bonus: only the first prints ever made of a card earn one.'}</span>
             </div>

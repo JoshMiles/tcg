@@ -68,10 +68,10 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
       <nav className="text-sm text-gray-500"><Link href="/cards" className="hover:text-white">Card Dex</Link> <span className="mx-1">/</span> <Link href={`/cards?card=${number}`} className="hover:text-white">{card.name}</Link> <span className="mx-1">/</span> <span className="text-gray-300">All copies</span></nav>
 
       <header className="flex items-center gap-5">
-        <CardTile imageUrl={art} alt={card.name} className="relative w-24 shrink-0 aspect-[2/3] rounded-lg overflow-hidden border-2" style={{ borderColor: rarity?.hex }} />
+        <CardTile imageUrl={art} alt={card.name} className="relative w-24 shrink-0 aspect-2/3 rounded-lg overflow-hidden border-2" style={{ borderColor: rarity?.hex }} />
         <div className="min-w-0">
           <p className="text-xs text-gray-500">#{number} · {card.packName} · {season.name}</p>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">{card.name}: every print</h1>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight wrap-break-word">{card.name}: every print</h1>
           <p className="text-sm text-gray-400 mt-1">{tracking ? `${total.toLocaleString()} ${VARIANT_LABELS[variant]} print${total === 1 ? '' : 's'} made, newest first.` : 'Prints have not been numbered yet.'}</p>
         </div>
       </header>
@@ -95,7 +95,7 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
               const ended = last?.type === 'upgraded' ? 'spent in an upgrade' : last?.type === 'removed' ? 'removed from the game' : 'no longer exists';
               const pulledBy = r.origin === 'pull' ? r.ev[0]?.who : undefined;
               return (
-                <li key={r.id} className="relative flex items-center gap-4 px-4 py-3 hover:bg-white/[0.04]">
+                <li key={r.id} className="relative flex items-center gap-4 px-4 py-3 hover:bg-white/4">
                   {/* The number is the row's link (stretched over the whole row); the holder is its own link above it, so no link sits inside another. */}
                   <Link href={`/copy/${encodeURIComponent(season.id)}/${r.id}`} aria-label={`Edition #${r.n}`} className="font-display text-2xl font-bold text-yellow-400 tabular-nums w-16 shrink-0 after:absolute after:inset-0">#{r.n}{r.est ? '~' : ''}</Link>
                   <div className="min-w-0 flex-1">

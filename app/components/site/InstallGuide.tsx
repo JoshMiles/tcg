@@ -45,7 +45,7 @@ export function InstallGuide() {
     setOutcome(accepted ? 'Installing…' : 'No problem, you can do it any time from the browser menu.');
   }
 
-  const chip = (on: boolean) => `px-4 py-2 rounded-full text-sm font-bold border transition-colors ${on ? 'bg-yellow-400 text-gray-950 border-yellow-400' : 'bg-white/[0.04] text-gray-300 border-white/10 hover:bg-white/10'}`;
+  const chip = (on: boolean) => `px-4 py-2 rounded-full text-sm font-bold border transition-colors ${on ? 'bg-yellow-400 text-gray-950 border-yellow-400' : 'bg-white/4 text-gray-300 border-white/10 hover:bg-white/10'}`;
 
   return (
     <div className="space-y-6">

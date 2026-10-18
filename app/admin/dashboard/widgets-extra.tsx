@@ -74,7 +74,7 @@ export function PullsChart({ d }: { d: DashboardData }) {
           <StackedBars layers={layers} labels={bucketLabels(s.starts, s.step)} />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-400">
-              {layers.map(l => <li key={l.label} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm" style={{ background: l.color }} />{l.label}</li>)}
+              {layers.map(l => <li key={l.label} className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-xs" style={{ background: l.color }} />{l.label}</li>)}
             </ul>
             <p className="text-[11px] text-gray-600">{trackingNote(d)}</p>
           </div>
@@ -158,7 +158,7 @@ export function Progress({ d }: { d: DashboardData }) {
       <div className="space-y-3">
         <div>
           <div className="flex items-baseline justify-between text-xs mb-1"><span className="text-gray-500">Card pool found by the community</span><span className="text-yellow-400 font-bold tabular-nums">{found}/{pool} · {pct}%</span></div>
-          <div className="h-2 rounded-full bg-gray-800 overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-yellow-500 to-amber-300" style={{ width: `${pct}%` }} /></div>
+          <div className="h-2 rounded-full bg-gray-800 overflow-hidden"><div className="h-full rounded-full bg-linear-to-r from-yellow-500 to-amber-300" style={{ width: `${pct}%` }} /></div>
         </div>
         {row('Running for', `${days} day${days === 1 ? '' : 's'}`)}
         {row('Prints in collections', d.totalOwned.toLocaleString())}

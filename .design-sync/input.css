@@ -1,0 +1,23 @@
+/* Design-sync stylesheet only. The app build does not import this file.
+   It compiles the app theme plus a safelist of utility families a design can use
+   before the app itself uses them. */
+@import "../app/globals.css";
+@source "../app";
+@source "../lib";
+@source "./previews";
+
+@source inline("{grid-cols,col-span}-{1,2,3,4,5,6,12}");
+@source inline("{gap,gap-x,gap-y,space-x,space-y,p,px,py,pt,pb,pl,pr,m,mx,my,mt,mb,ml,mr}-{0,0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,16}");
+@source inline("{w,h,size}-{1,2,3,4,5,6,8,10,12,14,16,20,24,32,40,48,56,64,72,80,96,full,auto}");
+@source inline("max-w-{xs,sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,full,prose}");
+@source inline("text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl}");
+@source inline("font-{normal,medium,semibold,bold,extrabold,black,display,sans}");
+@source inline("rounded-{xs,sm,md,lg,xl,2xl,3xl,4xl,full,none}");
+@source inline("flex grid inline-flex block inline-block hidden flex-col flex-row flex-wrap flex-1 shrink-0 grow");
+@source inline("{items,justify}-{start,center,end,between,stretch,baseline}");
+@source inline("{hover:,}{bg,text,border}-{gray,yellow}-{50,100,200,300,400,500,600,700,800,900,950}");
+@source inline("{bg,text,border}-{red,green,amber,purple,sky}-{200,300,400,500}");
+@source inline("{bg,text,border}-poke-{blue,blue-light,red}");
+@source inline("bg-{gray,yellow,red,green,amber,purple}-{500,800,900,950}/{10,20,40,60,70,80}");
+@source inline("border-{gray,yellow,red,green,amber,purple}-{400,500,700,800}/{30,40,60}");
+@source inline("shadow-{card,glow,xs,sm,md,lg,xl,2xl}");

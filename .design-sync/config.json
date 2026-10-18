@@ -3,7 +3,7 @@
   "shape": "package",
   "pkg": "cheesy-tcg",
   "globalName": "CheesyTCG",
-  "buildCmd": "npx tailwindcss -c .design-sync/tailwind.config.ts -i app/globals.css -o .design-sync/.cache/tw.css --minify && cat .design-sync/fonts.css .design-sync/.cache/tw.css > .design-sync/.cache/app.css",
+  "buildCmd": "npx --yes @tailwindcss/cli@4.3.3 -i .design-sync/input.css -o .design-sync/.cache/tw.css --minify && cat .design-sync/fonts.css .design-sync/.cache/tw.css > .design-sync/.cache/app.css",
   "tsconfig": "tsconfig.json",
   "srcDir": "app/components",
   "cssEntry": ".design-sync/.cache/app.css",

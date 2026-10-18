@@ -4,7 +4,7 @@ import { Icon } from '@/app/components/Icon';
 import { postJson } from '@/app/components/captcha-client';
 import { FEEDBACK_LIMITS, REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/feedback-core';
 
-const field = 'w-full rounded-xl border border-gray-700 bg-gray-950/70 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none';
+const field = 'w-full rounded-xl border border-gray-700 bg-gray-950/70 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-hidden';
 
 /** The report form, opened from the profile's menu. Staff see who sent it; the reported person never does. */
 export function ReportDialog({ target, name, onClose }: { target: string; name: string; onClose: () => void }) {
@@ -39,7 +39,7 @@ export function ReportDialog({ target, name, onClose }: { target: string; name: 
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Report ${name}`} className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div role="dialog" aria-modal="true" aria-label={`Report ${name}`} className="fixed inset-0 z-90 grid place-items-center overflow-y-auto p-4 bg-black/60 backdrop-blur-xs" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-md rounded-2xl border border-gray-700 bg-gray-900 p-5 shadow-2xl">
         {sent ? (
           <div className="space-y-3 text-center" role="status">

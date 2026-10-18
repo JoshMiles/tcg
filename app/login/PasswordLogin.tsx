@@ -30,10 +30,10 @@ export function PasswordLogin() {
       <form onSubmit={handleSubmit} className="mt-3 space-y-3">
         <input
           ref={field} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} aria-label="Admin password"
-          className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 focus:shadow-glow transition"
+          className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 focus:shadow-glow transition"
         />
         {error && <p role="alert" className="text-poke-red text-sm font-semibold">{error}</p>}
-        <button type="submit" disabled={loading || !password} className="w-full rounded-xl py-2.5 text-sm font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 disabled:opacity-60">
+        <button type="submit" disabled={loading || !password} className="w-full rounded-xl py-2.5 text-sm font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 disabled:opacity-60">
           {loading ? 'Logging in…' : 'Log in'}
         </button>
       </form>

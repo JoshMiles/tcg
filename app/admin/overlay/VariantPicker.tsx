@@ -30,7 +30,7 @@ export function VariantPicker({ valueOf, current, version, onPick }: { valueOf: 
             className={`w-full text-left rounded-xl border p-3 flex items-center gap-3 transition-colors ${version === v ? 'border-yellow-500/60 bg-yellow-500/5' : 'border-gray-700 hover:border-gray-500 hover:bg-white/5'}`}
           >
             <span
-              className="px-2.5 py-1 rounded-full text-[11px] font-bold text-white shrink-0 max-w-[8rem] truncate"
+              className="px-2.5 py-1 rounded-full text-[11px] font-bold text-white shrink-0 max-w-32 truncate"
               style={{ background: colors.length > 1 ? `linear-gradient(90deg, ${colors.join(', ')})` : colors[0] }}
             >
               {String(valueOf(`variant.${v}.labelText`))}

@@ -7,7 +7,7 @@ import { REVEAL_STYLES, type PropDef, type PropValue } from '@/lib/overlay-props
 
 export const btn = 'px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors';
 export const ghost = `${btn} border border-gray-700 text-gray-200 hover:border-gray-500`;
-export const inputCls = 'rounded-md bg-gray-950 border border-gray-700 px-2 py-1 text-sm text-white focus:border-yellow-500 focus:outline-none';
+export const inputCls = 'rounded-md bg-gray-950 border border-gray-700 px-2 py-1 text-sm text-white focus:border-yellow-500 focus:outline-hidden';
 
 /** A button that opens a floating panel; closes on an outside click or Escape. */
 export function Popover({ label, badge, children, align = 'left', up = false, icon, disabled = false }: { label: string; badge?: number; children: React.ReactNode; align?: 'left' | 'right'; up?: boolean; icon?: IconName; disabled?: boolean }) {
@@ -93,7 +93,7 @@ export function PropRow({
       {def.label}
       {modified && <span className="ml-1.5 text-yellow-400" title={isPack ? 'Overridden for this pack' : 'Changed from the default'}>●</span>}
       {inherited && <span className="ml-1.5 text-xs text-gray-600 font-normal">(from global)</span>}
-      {def.experimental && <span className="ml-1.5 text-[10px] uppercase tracking-wide rounded bg-purple-500/20 text-purple-300 px-1.5 py-0.5 font-semibold">experimental</span>}
+      {def.experimental && <span className="ml-1.5 text-[10px] uppercase tracking-wide rounded-sm bg-purple-500/20 text-purple-300 px-1.5 py-0.5 font-semibold">experimental</span>}
     </label>
   );
   const reset = (
@@ -186,7 +186,7 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
       const c = typeof value === 'string' ? value : '#ffffff';
       return (
         <div className="flex items-center gap-2">
-          <input id={id} type="color" value={c} onChange={e => onChange(e.target.value)} className="h-8 w-12 rounded bg-transparent border border-gray-700 cursor-pointer" />
+          <input id={id} type="color" value={c} onChange={e => onChange(e.target.value)} className="h-8 w-12 rounded-sm bg-transparent border border-gray-700 cursor-pointer" />
           <input
             type="text"
             aria-label={`${def.label} hex`}
@@ -214,7 +214,7 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
           <div id={id} className="flex flex-wrap items-center gap-2">
             {list.map((c, i) => (
               <span key={i} className="relative inline-flex">
-                <input type="color" aria-label={`${def.label} ${i + 1}`} value={c} onChange={e => set(i, e.target.value)} className="h-8 w-10 rounded bg-transparent border border-gray-700 cursor-pointer" />
+                <input type="color" aria-label={`${def.label} ${i + 1}`} value={c} onChange={e => set(i, e.target.value)} className="h-8 w-10 rounded-sm bg-transparent border border-gray-700 cursor-pointer" />
                 {list.length > min && (
                   <button
                     type="button"
@@ -229,7 +229,7 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
               <button
                 type="button"
                 onClick={() => onChange([...list, list[list.length - 1] ?? '#ffffff'])}
-                className="h-8 px-2 rounded border border-dashed border-gray-600 text-xs text-gray-400 hover:text-white hover:border-gray-400"
+                className="h-8 px-2 rounded-sm border border-dashed border-gray-600 text-xs text-gray-400 hover:text-white hover:border-gray-400"
               >+ add</button>
             )}
           </div>

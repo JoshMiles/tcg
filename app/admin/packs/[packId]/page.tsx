@@ -80,7 +80,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
             <ul className="space-y-1.5">
               {inSeasons.map(s => (
                 <li key={s.id}>
-                  <Link href={`/admin/seasons/${s.id}`} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 bg-white/[0.03] hover:bg-white/[0.07] text-sm text-gray-200 transition-colors">
+                  <Link href={`/admin/seasons/${s.id}`} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 bg-white/3 hover:bg-white/[0.07] text-sm text-gray-200 transition-colors">
                     <span className="truncate">{s.name}</span>
                     {s.active && <span className="text-[10px] font-extrabold uppercase tracking-wider text-yellow-300">Active season</span>}
                   </Link>

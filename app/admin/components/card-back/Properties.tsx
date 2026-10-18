@@ -7,7 +7,7 @@ import { BLENDS, PATTERN_IDS, PATTERN_LABELS } from '@/lib/card-back-patterns';
 import { plateBackground } from '@/lib/card-back-v1';
 import { makeFree, patchBackground, patchElements, resetElement, returnToStack, type Box } from '@/lib/card-back-edit';
 
-const field = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500';
+const field = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500';
 const chip = (on: boolean) => `px-2 py-1 text-xs font-bold rounded-lg border ${on ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300' : 'bg-gray-800 border-gray-700 text-gray-300 hover:text-white'}`;
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
@@ -34,8 +34,8 @@ function Colour({ label, value, onChange, named = [] }: { label: string; value: 
   return (
     <Row label={label}>
       <span className="flex flex-wrap items-center gap-1.5">
-        <input type="color" aria-label={`${label} colour`} value={isHex ? value : '#808080'} onChange={e => onChange(e.target.value)} className="w-8 h-7 rounded bg-transparent border border-gray-700 p-0.5" />
-        <input aria-label={`${label} hex`} className={`${field} !w-24`} value={isHex ? value : ''} placeholder={value} onChange={e => { if (/^#[0-9a-f]{6}$/i.test(e.target.value)) onChange(e.target.value.toLowerCase()); }} />
+        <input type="color" aria-label={`${label} colour`} value={isHex ? value : '#808080'} onChange={e => onChange(e.target.value)} className="w-8 h-7 rounded-sm bg-transparent border border-gray-700 p-0.5" />
+        <input aria-label={`${label} hex`} className={`${field} w-24!`} value={isHex ? value : ''} placeholder={value} onChange={e => { if (/^#[0-9a-f]{6}$/i.test(e.target.value)) onChange(e.target.value.toLowerCase()); }} />
         {named.map(n => <button key={n} type="button" onClick={() => onChange(n)} aria-pressed={value === n} className={chip(value === n)}>{n}</button>)}
       </span>
     </Row>
@@ -158,7 +158,7 @@ function BackgroundPanel({ style, onChange }: { style: CardBackStyle; onChange: 
             <button key={id} type="button" aria-pressed={style.pattern === id} aria-label={PATTERN_LABELS[id]} title={PATTERN_LABELS[id]} onClick={() => set({ pattern: id })}
               className={`h-14 rounded-md border overflow-hidden text-[9px] font-bold ${style.pattern === id ? 'border-yellow-400 ring-1 ring-yellow-400' : 'border-gray-700'}`}
               style={{ background: plateBackground({ background: 'steel', bg1: '#a9a9b3', bg2: '#dcdce3', angle: 135, pattern: id, cover: style.cover, patternColor: 'auto', patternOpacity: 1, patternScale: 1.4, patternAngle: 0 }) }}>
-              <span className="bg-black/50 text-white px-0.5 rounded">{id === 'none' ? 'none' : ''}</span>
+              <span className="bg-black/50 text-white px-0.5 rounded-sm">{id === 'none' ? 'none' : ''}</span>
             </button>
           ))}
         </div>

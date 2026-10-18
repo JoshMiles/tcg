@@ -6,7 +6,7 @@ import { APP_NAME, LEGAL_UPDATED } from '@/lib/legal';
 export function LegalPage({ title, intro, children }: { title: string; intro?: ReactNode; children: ReactNode }) {
   return (
     <div className="min-h-screen text-gray-200">
-      <div className="border-b border-poke-blue-light/20 bg-gray-950/70 backdrop-blur">
+      <div className="border-b border-poke-blue-light/20 bg-gray-950/70 backdrop-blur-sm">
         <div className="holo-strip" />
         <div className="max-w-3xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
           <div>

@@ -67,7 +67,7 @@ export function CardList({
       <div className="p-3 space-y-2 border-b border-gray-800">
         <div className="relative">
           <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input ref={searchRef} type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards ( / )" aria-label="Search cards" className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500" />
+          <input ref={searchRef} type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards ( / )" aria-label="Search cards" className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500" />
         </div>
         <div className="flex gap-2">
           <select aria-label="Filter by rarity" value={stars} onChange={e => setStars(Number(e.target.value))} className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white">
@@ -81,7 +81,7 @@ export function CardList({
       </div>
 
       <button type="button" onClick={() => onSelect('pack', 'replace', ids)} aria-pressed={focus === 'pack'}
-        className={`flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-left border-b border-gray-800 ${focus === 'pack' ? 'bg-yellow-500/10 text-yellow-300' : 'text-gray-200 hover:bg-white/[0.04]'}`}>
+        className={`flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-left border-b border-gray-800 ${focus === 'pack' ? 'bg-yellow-500/10 text-yellow-300' : 'text-gray-200 hover:bg-white/4'}`}>
         <Icon name="settings" /> <span className="flex-1">Pack settings</span>
         {packRow.problem && <span className="w-2 h-2 rounded-full bg-amber-400" aria-label="Has a problem" />}
         {packRow.changed && <span className="w-2 h-2 rounded-full bg-yellow-400" aria-label="Unsaved changes" />}
@@ -94,10 +94,10 @@ export function CardList({
           const on = selected.has(c.id);
           const chance = oneInLabel(c.probability, total);
           return (
-            <li key={c.id} data-card-row={c.id} className={`flex items-center gap-2 px-2 py-1.5 border-b border-gray-800/60 ${focus === c.id ? 'bg-yellow-500/10' : on ? 'bg-white/[0.05]' : 'hover:bg-white/[0.03]'}`}>
+            <li key={c.id} data-card-row={c.id} className={`flex items-center gap-2 px-2 py-1.5 border-b border-gray-800/60 ${focus === c.id ? 'bg-yellow-500/10' : on ? 'bg-white/5' : 'hover:bg-white/3'}`}>
               <input type="checkbox" checked={on} aria-label={`Select ${c.name || 'card'}`} onChange={() => onSelect(c.id, 'toggle', ids)} className="accent-yellow-400 shrink-0" />
               <button type="button" onClick={e => onSelect(c.id, e.shiftKey ? 'range' : e.ctrlKey || e.metaKey ? 'toggle' : 'replace', ids)} aria-current={focus === c.id} className="flex-1 min-w-0 flex items-center gap-2 text-left">
-                <span className="w-9 h-12 shrink-0 rounded bg-gray-800 overflow-hidden flex items-center justify-center">
+                <span className="w-9 h-12 shrink-0 rounded-sm bg-gray-800 overflow-hidden flex items-center justify-center">
                   {c.imageUrl ? <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-full h-full object-cover" /> : <Icon name="image" className="text-gray-600" />}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -111,7 +111,7 @@ export function CardList({
                     <span style={{ color: getRarity(c.stars)?.hex }}>{'★'.repeat(c.stars)}</span>
                     <span className="text-gray-500 tabular-nums">{chance}</span>
                   </span>
-                  {(marks.length > 0 || needsOdds?.has(c.id)) && <span className="flex flex-wrap gap-1 mt-0.5">{needsOdds?.has(c.id) && <span className="text-[10px] text-sky-300 bg-sky-500/10 border border-sky-500/20 rounded px-1">Set stars and odds</span>}{marks.map(m => <span key={m.id} className="text-[10px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded px-1">{m.label}</span>)}</span>}
+                  {(marks.length > 0 || needsOdds?.has(c.id)) && <span className="flex flex-wrap gap-1 mt-0.5">{needsOdds?.has(c.id) && <span className="text-[10px] text-sky-300 bg-sky-500/10 border border-sky-500/20 rounded-sm px-1">Set stars and odds</span>}{marks.map(m => <span key={m.id} className="text-[10px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-sm px-1">{m.label}</span>)}</span>}
                 </span>
               </button>
             </li>

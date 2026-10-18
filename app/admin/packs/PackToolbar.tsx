@@ -60,7 +60,7 @@ export function PackToolbar({ counts }: { counts: Record<Filter, number> }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[14rem] max-w-sm">
+        <div className="relative flex-1 min-w-56 max-w-sm">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"><Icon name="search" /></span>
           <input
             ref={inputRef}
@@ -70,7 +70,7 @@ export function PackToolbar({ counts }: { counts: Record<Filter, number> }) {
             onKeyDown={e => { if (e.key === 'Escape') setQuery(''); }}
             placeholder="Search packs or seasons…  ( / )"
             aria-label="Search packs"
-            className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
+            className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
           />
         </div>
 
@@ -95,7 +95,7 @@ export function PackToolbar({ counts }: { counts: Record<Filter, number> }) {
           <select
             value={sort}
             onChange={e => setSort(e.target.value as Sort)}
-            className="bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-yellow-500"
+            className="bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-200 focus:outline-hidden focus:border-yellow-500"
           >
             {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>

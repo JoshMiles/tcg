@@ -87,7 +87,7 @@ export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount
       <Section title="Seasons" defaultOpen={false}>
         {seasons.length > 0 ? (
           <ul className="space-y-1.5">{seasons.map(s => (
-            <li key={s.id}><Link href={`/admin/seasons/${s.id}`} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 bg-white/[0.03] hover:bg-white/[0.07] text-sm text-gray-200"><span className="truncate">{s.name}</span>{s.active && <span className="text-[10px] font-extrabold uppercase tracking-wider text-yellow-300">Active season</span>}</Link></li>
+            <li key={s.id}><Link href={`/admin/seasons/${s.id}`} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 bg-white/3 hover:bg-white/[0.07] text-sm text-gray-200"><span className="truncate">{s.name}</span>{s.active && <span className="text-[10px] font-extrabold uppercase tracking-wider text-yellow-300">Active season</span>}</Link></li>
           ))}</ul>
         ) : <p className="text-sm text-amber-300">Not in a season yet. <Link href="/admin/seasons" className="underline hover:text-amber-100">Add it to a season</Link></p>}
       </Section>

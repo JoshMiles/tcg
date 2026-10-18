@@ -22,7 +22,7 @@ export function AssetInsights({ assets, onOpen, onFixGifs }: { assets: LibraryAs
         <ul className="space-y-1.5 text-sm">
           {kinds.map((k, i) => (
             <li key={k} className="flex items-center gap-2.5">
-              <span className={`w-2.5 h-2.5 rounded-sm ${['bg-yellow-400/80', 'bg-sky-400/80', 'bg-fuchsia-400/70'][i]}`} />
+              <span className={`w-2.5 h-2.5 rounded-xs ${['bg-yellow-400/80', 'bg-sky-400/80', 'bg-fuchsia-400/70'][i]}`} />
               <span className="text-gray-300">{KIND_LABEL[k]}</span>
               <span className="text-xs text-gray-600">{ins.byKind[k].files} file{ins.byKind[k].files === 1 ? '' : 's'}</span>
               <span className="ml-auto tabular-nums text-gray-200">{formatBytes(ins.byKind[k].bytes)}</span>
@@ -71,9 +71,9 @@ export function AssetInsights({ assets, onOpen, onFixGifs }: { assets: LibraryAs
           <ol className="divide-y divide-gray-800/60 -mx-2">
             {ins.heaviest.map((a, i) => (
               <li key={a.id}>
-                <button onClick={() => onOpen(a)} className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/[0.04] text-left transition-colors">
+                <button onClick={() => onOpen(a)} className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/4 text-left transition-colors">
                   <span className="w-5 text-xs text-gray-600 tabular-nums">{i + 1}</span>
-                  <span className="w-8 h-11 rounded bg-gray-800 overflow-hidden shrink-0 flex items-center justify-center">
+                  <span className="w-8 h-11 rounded-sm bg-gray-800 overflow-hidden shrink-0 flex items-center justify-center">
                     {a.kind === 'card-art' ? <CardTile imageUrl={a.url} alt="" className="relative w-full h-full" /> : a.kind === 'pack-cover' ? <img src={a.url} alt="" className="w-full h-full object-cover" /> : <Icon name="music" className="text-gray-500" />}
                   </span>
                   <span className="min-w-0 flex-1"><span className="block text-sm text-gray-100 truncate">{assetTitle(a.origin)}</span><span className="block text-xs text-gray-500">{KIND_LABEL[a.kind]} · {a.format}</span></span>

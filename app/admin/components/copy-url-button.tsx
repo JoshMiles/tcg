@@ -17,7 +17,7 @@ export function CopyUrlButton({ url }: { url: string }) {
     <button
       onClick={copy}
       title="Copy the OBS overlay URL"
-      className="aside-item flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.09] text-gray-300 hover:text-white text-xs font-semibold transition-colors"
+      className="aside-item flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-white/4 hover:bg-white/9 text-gray-300 hover:text-white text-xs font-semibold transition-colors"
     >
       <Icon name={copied ? 'check' : 'copy'} className={copied ? 'text-green-400' : ''} />
       <span className="aside-label truncate">{copied ? 'Copied' : 'Copy URL'}</span>

@@ -16,16 +16,16 @@ export function PaletteButton() {
       type="button"
       onClick={() => window.dispatchEvent(new Event(OPEN_EVENT))}
       title="Search and jump to anything (Ctrl/⌘ + K)"
-      className="aside-item w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-gray-400 hover:text-white text-sm transition-colors"
+      className="aside-item w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/4 hover:bg-white/8 border border-white/6 text-gray-400 hover:text-white text-sm transition-colors"
     >
       <Icon name="search" className="shrink-0" />
       <span className="aside-label flex-1 text-left truncate">Search…</span>
-      <kbd className="aside-label text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded px-1.5 py-px">⌘K</kbd>
+      <kbd className="aside-label text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded-sm px-1.5 py-px">⌘K</kbd>
     </button>
   );
 }
 
-const KeyCap = ({ k }: { k: string }) => <kbd className="min-w-[1.5rem] whitespace-nowrap text-center text-[11px] font-sans font-bold text-gray-300 bg-gray-800 border border-gray-700 rounded-md px-1.5 py-0.5">{k}</kbd>;
+const KeyCap = ({ k }: { k: string }) => <kbd className="min-w-6 whitespace-nowrap text-center text-[11px] font-sans font-bold text-gray-300 bg-gray-800 border border-gray-700 rounded-md px-1.5 py-0.5">{k}</kbd>;
 
 /**
  * Admin-wide keyboard layer, mounted once: Ctrl/⌘+K opens the command palette, "g" then a letter jumps to a page, "?" lists the
@@ -104,17 +104,17 @@ export function AdminKeyboard({ overlayKey }: { overlayKey?: string }) {
   return (
     <>
       {open && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Command palette">
-          <div className="absolute inset-0 bg-gray-950/70 backdrop-blur-sm" onClick={close} />
+        <div className="fixed inset-0 z-80" role="dialog" aria-modal="true" aria-label="Command palette">
+          <div className="absolute inset-0 bg-gray-950/70 backdrop-blur-xs" onClick={close} />
           <div className="relative mx-auto mt-[12vh] w-[calc(100%-2rem)] max-w-xl tcg-panel rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
             <div className="flex items-center gap-3 px-4 border-b border-gray-800">
               <Icon name="search" className="text-gray-500 shrink-0" />
               <input
                 autoFocus value={query} onChange={e => setQuery(e.target.value)} onKeyDown={onInputKey}
                 placeholder="Search pages, packs, seasons, viewers, actions…" aria-label="Search the admin"
-                className="flex-1 bg-transparent py-4 text-sm text-white placeholder-gray-600 focus:outline-none"
+                className="flex-1 bg-transparent py-4 text-sm text-white placeholder-gray-600 focus:outline-hidden"
               />
-              <kbd className="text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded px-1.5 py-px">Esc</kbd>
+              <kbd className="text-[10px] font-sans font-bold text-gray-500 border border-gray-700 rounded-sm px-1.5 py-px">Esc</kbd>
             </div>
             <ul ref={listRef} className="max-h-[50vh] overflow-y-auto py-2" role="listbox">
               {results.length === 0 && <li className="px-5 py-8 text-center text-sm text-gray-500">Nothing matches “{query}”.</li>}
@@ -130,7 +130,7 @@ export function AdminKeyboard({ overlayKey }: { overlayKey?: string }) {
                     >
                       <Icon name={it.icon} className={i === index ? 'text-yellow-400' : 'text-gray-500'} />
                       <span className="flex-1 truncate">{it.label}</span>
-                      {it.hint && <span className="text-xs text-gray-600 truncate max-w-[10rem]">{it.hint}</span>}
+                      {it.hint && <span className="text-xs text-gray-600 truncate max-w-40">{it.hint}</span>}
                       {it.keys && <span className="flex gap-1">{it.keys.map(k => <KeyCap key={k} k={k} />)}</span>}
                     </button>
                   </li>

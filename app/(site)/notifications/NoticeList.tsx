@@ -39,10 +39,10 @@ export function NoticeList({ initial, initialSeen }: { initial: Notice[]; initia
           <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500">{g.label}</h2>
           <ul className="tcg-panel rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
             {g.items.map(n => (
-              <li key={n.id} className={`px-4 py-3 flex gap-3 ${n.at > seen ? 'bg-yellow-500/[0.06]' : ''}`}>
+              <li key={n.id} className={`px-4 py-3 flex gap-3 ${n.at > seen ? 'bg-yellow-500/6' : ''}`}>
                 <Icon name={NOTICE_ICON[n.kind]} className="w-5 h-5 mt-0.5 shrink-0 text-yellow-400/90" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm leading-snug text-gray-200 break-words">{n.text}</p>
+                  <p className="text-sm leading-snug text-gray-200 wrap-break-word">{n.text}</p>
                   <p className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-gray-500">
                     <span>{timeLabel(n.at)}</span>
                     {n.kind === 'feedback' && <Link href="/feedback" className="font-semibold text-yellow-400 hover:text-yellow-300">See your feedback</Link>}

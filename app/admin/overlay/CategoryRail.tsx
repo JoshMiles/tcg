@@ -5,7 +5,7 @@ import type { RailItem } from './editor-types';
 // The property panel's category rail. `countOf` is the badge number, `activeId` the highlighted category (or null while searching).
 export function CategoryRail({ rail, countOf, activeId, onSelect }: { rail: RailItem[]; countOf: (id: string) => number; activeId: string | null; onSelect: (id: string) => void }) {
   return (
-    <nav aria-label="Property categories" className="w-[4.5rem] shrink-0 border-r border-gray-800 bg-gray-950/50 flex flex-col py-2 gap-1">
+    <nav aria-label="Property categories" className="w-18 shrink-0 border-r border-gray-800 bg-gray-950/50 flex flex-col py-2 gap-1">
       {rail.map(g => {
         const n = countOf(g.id);
         const active = activeId === g.id;

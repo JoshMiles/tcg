@@ -52,13 +52,13 @@ export function ShareProfile({ name, username, isOwner, spec, customiseHref, can
     setBusy(false);
   }
 
-  const item = 'w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 hover:bg-white/10 focus:bg-white/10 focus:outline-none';
+  const item = 'w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 hover:bg-white/10 focus:bg-white/10 focus:outline-hidden';
   const hasCards = !!spec && spec.cards.length > 0;
   return (
     <div ref={root} className="relative">
       <button
         type="button" onClick={() => setOpen(o => !o)} aria-haspopup="menu" aria-expanded={open} disabled={busy}
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors disabled:opacity-60"
       >
         <Icon name={note?.startsWith('Link copied') ? 'check' : 'link'} className={note?.startsWith('Link copied') ? 'text-green-400' : ''} />
         {busy ? 'Making image…' : note ?? 'Share'}

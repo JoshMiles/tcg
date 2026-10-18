@@ -18,7 +18,7 @@ import { Chip, Panel } from '../components/ui';
 import { featurePrintAction, removeCopyAction, transferCopyAction } from '../serial-actions';
 
 const when = (t: number) => `${new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
-const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500';
+const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500';
 
 /**
  * One print's details, actions and history. Shared by the print's own page (/admin/serials/<season>/<copy>) and the Prints list's
@@ -53,7 +53,7 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
         <Panel title="The print" icon="cheese" hint="Tap the card to turn it over: the back is the pack's design, as players see it.">
           <div className="mx-auto w-full max-w-[220px]">
             <FlipCard back={back}>
-              <CardTile imageUrl={art} alt={label} className={`relative aspect-[2/3] rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''}`} style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}` }} />
+              <CardTile imageUrl={art} alt={label} className={`relative aspect-2/3 rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''}`} style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}` }} />
             </FlipCard>
           </div>
         </Panel>
@@ -118,7 +118,7 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
         <ol className="space-y-3 border-l border-gray-800 pl-5">
           {copy.ev.map((e, i) => (
             <li key={i} className="relative text-sm">
-              <span className="absolute -left-[26px] top-1.5 h-2 w-2 rounded-full bg-yellow-400" />
+              <span className="absolute left-[-26px] top-1.5 h-2 w-2 rounded-full bg-yellow-400" />
               <p className="text-gray-200">
                 {e.type === 'minted' && <>Created{e.who ? <> for {user(e.who)}</> : null}</>}
                 {e.type === 'traded' && <>Moved from {user(e.who)} to {user(e.to)}{e.note ? <span className="text-gray-500"> · {e.note}</span> : null}</>}

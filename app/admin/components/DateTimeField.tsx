@@ -30,7 +30,7 @@ export function DateTimeField({ label, name, defaultValue, onChange, help }: {
           type="datetime-local"
           value={local}
           onChange={e => { setLocal(e.target.value); const v = e.target.value ? new Date(e.target.value).getTime() : undefined; onChange?.(v !== undefined && Number.isFinite(v) ? v : undefined); }}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500"
         />
         {local && <button type="button" onClick={() => { setLocal(''); onChange?.(undefined); }} className="text-xs text-gray-500 hover:text-white underline underline-offset-2">Clear</button>}
       </div>

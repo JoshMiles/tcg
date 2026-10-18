@@ -53,14 +53,14 @@ export async function SiteShell({ children }: { children: ReactNode }) {
     <LiveProvider initial={live}>
     <div className="min-h-screen flex flex-col" data-motion={prefs.motion}>
       {hasExperiment(prefs, 'shortcuts') && <PublicKeyboard username={session?.username} />}
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[90] focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-90 focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       <SandboxPill />
       {siteLabel.label && <BetaBanner text={bannerText(siteLabel)} />}
       <CookieNotice />
       <CaptchaHost />
       <SiteNav label={siteLabel.label} user={user} loginEnabled={loginConfigured()} rank={rank} staff={await staffPanelLink(session).catch(() => null)} />
       <SiteSearch />
-      <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">{children}</main>
+      <main id="main" tabIndex={-1} className="flex-1 focus:outline-hidden">{children}</main>
       <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">
         <div className="max-w-6xl mx-auto px-4 pt-8 pb-6">
           <div className="grid gap-8 md:grid-cols-[minmax(0,20rem)_1fr] md:gap-10 items-start">

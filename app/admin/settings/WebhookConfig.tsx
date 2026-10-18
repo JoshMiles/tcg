@@ -238,7 +238,7 @@ function OutgoingEventForm({ eventKey, config, variables }: {
           value={url}
           onChange={e => setUrl(e.target.value)}
           placeholder="https://desktop.api.mixitupapp.com/api/webhook/..."
-          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
+          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
         />
       </div>
 
@@ -251,7 +251,7 @@ function OutgoingEventForm({ eventKey, config, variables }: {
         className="flex items-center gap-3 group"
       >
         <div className={`w-10 h-6 rounded-full relative transition-colors ${enabled ? 'bg-yellow-500' : 'bg-gray-700'}`}>
-          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-1'}`} />
+          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${enabled ? 'translate-x-5' : 'translate-x-1'}`} />
         </div>
         <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
           {enabled ? 'Enabled' : 'Disabled'}
@@ -281,14 +281,14 @@ function OutgoingEventForm({ eventKey, config, variables }: {
                   value={f.key}
                   onChange={e => updateField(i, 'key', e.target.value)}
                   placeholder="key_name"
-                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
                 />
                 <input
                   type="text"
                   value={f.value}
                   onChange={e => updateField(i, 'value', e.target.value)}
                   placeholder="{username}"
-                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors font-mono"
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors font-mono"
                 />
                 <button
                   type="button"

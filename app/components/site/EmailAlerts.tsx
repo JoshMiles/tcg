@@ -69,7 +69,7 @@ export function EmailAlerts() {
       )}
       <form onSubmit={e => { e.preventDefault(); void start(draft); }} className="flex flex-wrap gap-2">
         <input type="email" inputMode="email" autoComplete="email" value={draft} onChange={e => setDraft(e.target.value)} placeholder={email ? 'Use a different address' : 'you@example.com'} aria-label="Email address" maxLength={254}
-          className="min-w-0 flex-1 basis-56 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
+          className="min-w-0 flex-1 basis-56 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
         <button type="submit" disabled={busy || !draft.trim()} className="rounded-xl bg-yellow-500 hover:bg-yellow-400 px-3 py-1.5 text-sm font-bold text-gray-950 disabled:opacity-50">Send confirmation</button>
       </form>
       {msg && <p role="status" className="text-xs text-yellow-300">{msg}</p>}

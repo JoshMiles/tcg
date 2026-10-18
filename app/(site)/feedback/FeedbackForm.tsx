@@ -4,7 +4,7 @@ import { Icon } from '@/app/components/Icon';
 import { postJson } from '@/app/components/captcha-client';
 import { FEEDBACK_LIMITS } from '@/lib/feedback-core';
 
-const field = 'w-full rounded-xl border border-gray-700 bg-gray-950/70 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none';
+const field = 'w-full rounded-xl border border-gray-700 bg-gray-950/70 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-hidden';
 
 // Suggestions only: problem reports go to GitHub issues (reportProblemUrl in lib/site.ts).
 export function FeedbackForm({ left }: { left: number }) {

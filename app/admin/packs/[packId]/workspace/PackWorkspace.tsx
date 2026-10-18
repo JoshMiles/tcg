@@ -399,7 +399,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
             <ul className="max-h-[50vh] overflow-y-auto divide-y divide-gray-800 text-sm">
               {review.map((l, i) => (
                 <li key={i} className="py-2 flex flex-wrap gap-x-2 gap-y-0.5">
-                  <span className="text-gray-400 min-w-[7rem]">{l.scope}</span>
+                  <span className="text-gray-400 min-w-28">{l.scope}</span>
                   <span className="text-gray-300">{l.field}</span>
                   <span className="text-gray-500 line-through break-all">{l.from}</span><span className="text-gray-600">to</span><span className="text-yellow-200 break-all">{l.to}</span>
                 </li>

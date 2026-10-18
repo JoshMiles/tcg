@@ -65,7 +65,7 @@ function Field({
         defaultValue={defaultValue}
         min={type === 'number' ? 1 : undefined}
         step={type === 'number' ? 1 : undefined}
-        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
+        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500"
       />
       {help && <p className="text-xs text-gray-600 mt-1">{help}</p>}
     </div>

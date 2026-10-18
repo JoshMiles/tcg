@@ -92,7 +92,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
 
         {card && (
           <div className="flex items-center gap-3 rounded-xl border border-gray-800 bg-gray-950/50 p-3">
-            <img src={cardThumbUrl(card.imageUrl)} alt="" className="w-14 h-20 rounded object-cover border border-gray-700" />
+            <img src={cardThumbUrl(card.imageUrl)} alt="" className="w-14 h-20 rounded-sm object-cover border border-gray-700" />
             <div className="min-w-0">
               <p className="font-bold text-white truncate">{card.name}</p>
               <p className="text-xs text-gray-500">#{card.number} · {card.packName}</p>

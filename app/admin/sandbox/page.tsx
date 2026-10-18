@@ -111,7 +111,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
           <h2 className="font-semibold text-white">New sandbox</h2>
           <label className="block space-y-1 text-sm text-gray-300">
             Name
-            <input name="name" required maxLength={40} placeholder="e.g. Upgrade testing" className="block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-none" />
+            <input name="name" required maxLength={40} placeholder="e.g. Upgrade testing" className="block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-hidden" />
           </label>
           <fieldset className="space-y-2">
             <legend className="text-sm text-gray-300 mb-1">Start from</legend>
@@ -124,7 +124,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
           </fieldset>
           <label className="block space-y-1 text-sm text-gray-300">
             Delete itself
-            <select name="expiresInDays" defaultValue="0" className="block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-none">
+            <select name="expiresInDays" defaultValue="0" className="block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-hidden">
               <option value="0">Never (I will delete it)</option>
               <option value="7">After 7 days</option>
               <option value="30">After 30 days</option>

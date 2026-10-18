@@ -24,7 +24,7 @@ export function BetaBanner({ text }: { text: string }) {
           type="button"
           aria-label="Dismiss the testing notice"
           onClick={() => { setHidden(true); try { sessionStorage.setItem(KEY, '1'); } catch { /* fine */ } }}
-          className="shrink-0 rounded p-1 hover:bg-white/10"
+          className="shrink-0 rounded-sm p-1 hover:bg-white/10"
         ><Icon name="x" /></button>
         </span>
       </div>

@@ -30,7 +30,7 @@ export function CardFilter({ total, stars }: { total: number; stars: number[] })
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="relative flex-1 min-w-[12rem] max-w-xs">
+      <div className="relative flex-1 min-w-48 max-w-xs">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"><Icon name="search" /></span>
         <input
           ref={inputRef}
@@ -40,7 +40,7 @@ export function CardFilter({ total, stars }: { total: number; stars: number[] })
           onKeyDown={e => { if (e.key === 'Escape') setQuery(''); }}
           placeholder="Search cards…  ( / )"
           aria-label="Search cards"
-          className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
+          className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
         />
       </div>
       <div role="group" aria-label="Filter by rarity" className="flex items-center gap-1">

@@ -30,7 +30,7 @@ export function StaffManager({ staff, viewerRole, viewerLogin }: { staff: Row[];
         className="flex flex-wrap items-end gap-2 mb-5"
         onSubmit={e => { e.preventDefault(); if (login.trim()) run(() => addStaffAction(login, role), () => setLogin('')); }}
       >
-        <label className="text-xs text-gray-400 flex-1 min-w-[12rem]">Twitch username
+        <label className="text-xs text-gray-400 flex-1 min-w-48">Twitch username
           <UserInput value={login} onValueChange={setLogin} onPick={setLogin} placeholder="their Twitch name" className={`${fieldClass} mt-1`} aria-label="Twitch username" />
         </label>
         <label className="text-xs text-gray-400">Role

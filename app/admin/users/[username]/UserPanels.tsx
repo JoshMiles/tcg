@@ -14,7 +14,7 @@ import {
   type UserActionResult,
 } from '../../users-actions';
 
-const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500';
+const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500';
 const btn = 'inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 disabled:opacity-50 transition-colors';
 
 function Result({ r }: { r: UserActionResult | null }) {
@@ -203,7 +203,7 @@ export function TradesPanel({ username, lines }: { username: string; lines: Trad
       <span className="text-gray-300">{l.mine ? 'gives' : `${l.other ?? 'someone'} gives`} <strong className="text-white">{l.mine ? l.give : l.give}</strong> {l.mine ? 'for' : 'for'} <strong className="text-white">{l.get}</strong></span>
       <span className="text-xs text-gray-600">{l.kind === 'listing' ? 'board' : l.other ? (l.mine ? `to ${l.other}` : `with ${l.other}`) : ''} · {l.season}</span>
       <span className="ml-auto flex items-center gap-3 text-xs text-gray-500">{l.open && l.expiresAt ? `expires ${new Date(l.expiresAt).toLocaleString('en-GB', { timeZone: 'UTC' })}` : new Date(l.at).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
-        {l.open && l.mine && <ArmedButton disabled={pending} onConfirm={() => cancel(l.id)} className="text-red-300 hover:text-red-200 font-semibold" armedClassName="text-white bg-red-600 hover:bg-red-500 font-semibold rounded px-2 py-0.5">Cancel &amp; refund</ArmedButton>}</span>
+        {l.open && l.mine && <ArmedButton disabled={pending} onConfirm={() => cancel(l.id)} className="text-red-300 hover:text-red-200 font-semibold" armedClassName="text-white bg-red-600 hover:bg-red-500 font-semibold rounded-sm px-2 py-0.5">Cancel &amp; refund</ArmedButton>}</span>
     </li>
   );
   return (

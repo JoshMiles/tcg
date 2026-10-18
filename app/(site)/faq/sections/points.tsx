@@ -117,7 +117,7 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
                   <tr key={card.id} className="text-gray-300">
                     <td className="py-1.5 px-3">
                       <span className="flex items-center gap-2">
-                        {card.imageUrl && <img src={cardThumbUrl(card.imageUrl)} alt="" loading="lazy" className="w-5 h-7 object-cover rounded-sm" />}
+                        {card.imageUrl && <img src={cardThumbUrl(card.imageUrl)} alt="" loading="lazy" className="w-5 h-7 object-cover rounded-xs" />}
                         <span className="truncate">{card.name}</span>
                       </span>
                     </td>

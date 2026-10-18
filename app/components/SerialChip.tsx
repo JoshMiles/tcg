@@ -7,7 +7,7 @@ import { Icon } from '@/app/components/Icon';
 export function SerialChip({ n, bonus, est = false, className = '', title }: { n: number; bonus?: number; est?: boolean; className?: string; title?: string }) {
   const first = n === 1;
   const gold = !!bonus && bonus > 1;
-  const tone = first ? 'bg-gradient-to-r from-yellow-300 to-yellow-500 text-gray-950 border-yellow-200 shadow-[0_0_10px_rgba(250,204,21,.45)]'
+  const tone = first ? 'bg-linear-to-r from-yellow-300 to-yellow-500 text-gray-950 border-yellow-200 shadow-[0_0_10px_rgba(250,204,21,.45)]'
     : gold ? 'text-yellow-200 border-yellow-500/60 bg-yellow-500/10'
     : 'text-gray-300 border-gray-700 bg-gray-900/60';
   return (

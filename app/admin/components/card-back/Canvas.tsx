@@ -181,7 +181,7 @@ export function Canvas({ style, back, width, selection, onSelect, onGesture, onC
   const fb = useMemo(() => ({ ...back, style }), [back, style]);
 
   return (
-    <div ref={wrap} className="relative select-none outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/60 rounded-xl" style={{ width }} tabIndex={0} onKeyDown={key} aria-label="Card back canvas. Arrow keys move the selected element.">
+    <div ref={wrap} className="relative select-none outline-hidden focus-visible:ring-2 focus-visible:ring-yellow-500/60 rounded-xl" style={{ width }} tabIndex={0} onKeyDown={key} aria-label="Card back canvas. Arrow keys move the selected element.">
       <FlipCard bare back={fb}>{null}</FlipCard>
       <div className="absolute inset-0 touch-none" onPointerDown={bgDown} onPointerMove={move} onPointerUp={end} onPointerCancel={end}>
         {guides.x.map(g => <div key={`x${g}`} className="absolute top-0 bottom-0 w-px bg-pink-400/80 pointer-events-none" style={{ left: `${g}%` }} />)}
@@ -198,8 +198,8 @@ export function Canvas({ style, back, width, selection, onSelect, onGesture, onC
               style={{ left: `${b.l}%`, top: `${b.t}%`, width: `${b.w}%`, height: `${b.h}%` }}>
               {only?.id === el.id && el.place === 'free' && !el.locked && (
                 <>
-                  <span onPointerDown={e => start(e, el.id, 'width')} className="absolute top-1/2 -right-2 -translate-y-1/2 w-3 h-5 rounded-sm bg-yellow-400 border border-gray-900 cursor-ew-resize" title="Drag to change the width" />
-                  <span onPointerDown={e => start(e, el.id, 'scale')} className="absolute -bottom-2 -right-2 w-3.5 h-3.5 rounded-sm bg-yellow-400 border border-gray-900 cursor-nwse-resize" title="Drag to change the width, Shift-drag to scale the text" />
+                  <span onPointerDown={e => start(e, el.id, 'width')} className="absolute top-1/2 -right-2 -translate-y-1/2 w-3 h-5 rounded-xs bg-yellow-400 border border-gray-900 cursor-ew-resize" title="Drag to change the width" />
+                  <span onPointerDown={e => start(e, el.id, 'scale')} className="absolute -bottom-2 -right-2 w-3.5 h-3.5 rounded-xs bg-yellow-400 border border-gray-900 cursor-nwse-resize" title="Drag to change the width, Shift-drag to scale the text" />
                   <span onPointerDown={e => start(e, el.id, 'rotate')} className="absolute -top-6 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-yellow-400 border border-gray-900 cursor-grab" title="Drag to rotate" />
                 </>
               )}
