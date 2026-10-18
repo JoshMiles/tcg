@@ -43,11 +43,13 @@ Behavioural guidelines to reduce common coding mistakes (from [andrej-karpathy-s
 
 ## Model workflow
 
-Work is split between two models. Follow your role.
+Work is split between three models. Follow your role.
 
-- **Opus plans.** High-level planning, architecture, trade-off analysis, and writing or updating `ROADMAP.md`. Opus does not write feature code.
+- **Opus plans.** High-level planning, architecture, trade-off analysis, reviewing, and writing or updating `ROADMAP.md`. Opus does not write feature code; it hands execution to subagents (`model: sonnet` or `model: haiku`) with a self-contained brief.
 - **Sonnet executes.** Functions, boilerplate, refactoring, terminal commands, tests. Sonnet does not make architectural decisions or edit the roadmap.
-- **Plan gate.** Before executing code, Sonnet checks that an Opus-approved plan covers the task (in `ROADMAP.md` or the task's approved plan). If none exists, stop and ask for an Opus planning pass.
+- **Haiku supports.** Focused, well-bounded tasks with a clear brief: searching the codebase and reporting where something lives, reading CI logs or scanner output and summarising the failure, running `npm run verify` or named checks and reporting results, mechanical edits the brief spells out (renames, copy fixes, swapping one call for another). Haiku does not design, write new logic or decide what a finding means; anything that needs judgement goes back to Sonnet or Opus.
+- **Pick the cheapest model that fits.** Lookups, log reading and check runs go to Haiku; code changes go to Sonnet; Opus keeps only planning, review and decisions.
+- **Plan gate.** Before executing code, Sonnet and Haiku check that an Opus-approved plan covers the task (in `ROADMAP.md` or the task's brief). If none exists, stop and ask for an Opus planning pass.
 - **Escalate, don't improvise.** A design question the plan doesn't answer (data model, API shape, a change to the architecture below) goes back to Opus, not into code.
 - **Exempt:** typos, copy edits, one-line bug fixes and documentation updates.
 
@@ -76,7 +78,8 @@ Read the doc that matches what you are changing **before** you change it; each s
 
 - Read the part of a file you need (search first, then read a line range); the big ones (`public/widget.js`, `OverlayEditor.tsx`) cost 12k to 20k tokens whole.
 - Send wide searches across many files to a subagent (Explore) so only the answer comes back.
-- Long build sessions run on Sonnet (see "Model workflow"); Opus sessions plan and review.
+- Long build sessions run on Sonnet and supporting lookups on Haiku (see "Model workflow"); Opus sessions plan and review.
+- **Remind the user to reset context.** When a task is finished (PR merged, or the user moves to an unrelated task), end your reply with one line suggesting `/clear`. When a session is running long but the task isn't done (many files read, several PR rounds), suggest `/compact` and name what the summary should keep (branch, PR, open items). Say it once per break point, not every turn.
 - When you change behaviour, update the matching doc to say what the code does now. History belongs in PR descriptions and `docs/archive/`, not in the area docs.
 
 ## Data architecture
@@ -107,7 +110,7 @@ Three tiers in Vercel KV: **Seasons → Packs → Cards**.
 
 - Branch off an up-to-date `origin/main`, push, open a PR against `main`. **Every push to GitHub gets a PR**: open one straight away if the branch has none. Don't push to `main`.
 - **Before pushing to a branch that has a PR, check whether that PR is merged.** If it is, start again from `origin/main` (rebase any unmerged commits onto it) and open a new PR; never stack new work on a merged PR.
-- **Merging:** Opus may merge PRs and delete their branches when necessary (CI green, no open review asks). Sonnet doesn't merge or close PRs unless the user asks.
+- **Merging:** Opus may merge PRs and delete their branches when necessary (CI green, no open review asks). Sonnet and Haiku don't merge or close PRs unless the user asks.
 - **One feature per PR, each branched from `main`.** Never stack PRs: merging them out of order drops commits. A fix that lands after its PR merged needs a new branch and PR.
 - Commit messages and PR bodies end with the attribution lines the harness gives.
 - CRLF warnings on Windows are harmless (`.gitattributes`). The pre-rewrite `Old/` folder and `olddata.txt` are only in git history now (gitignored).
