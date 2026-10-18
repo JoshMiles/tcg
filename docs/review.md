@@ -5,7 +5,7 @@
 ## One-time setup
 
 - Playwright (not a project dependency, it is large): `npm i --no-save playwright && npx playwright install chromium`, or point `PLAYWRIGHT_MODULE` at an existing install's `index.mjs`. In the Claude cloud environment it is already there.
-- `.env.local` (gitignored, delete it afterwards), the same as the "Testing locally" setup plus website login:
+- `.env.local` (gitignored, delete it afterwards), the same as the docs/local-dev.md setup plus website login:
 
   ```
   KV_REST_API_URL=http://localhost:4111
