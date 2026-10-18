@@ -1,6 +1,6 @@
 # Page-by-page review tooling
 
-> Read this when you run a review batch (ROADMAP.md, Phase 2) or need realistic local data, a sweep of the pages, or the mod access test.
+> Read this when you run a review batch (the previous roadmap's Phase 2) or need realistic local data, a sweep of the pages, or the mod access test.
 
 ## One-time setup
 
