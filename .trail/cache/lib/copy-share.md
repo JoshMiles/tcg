@@ -1,4 +1,4 @@
 # lib/copy-share.ts
 
 - CopyShareInput · interface · L9-L27 — interface CopyShareInput
-- copyShareSpec · function · L30-L51 — function copyShareSpec(i: CopyShareInput): ShareSpec
+- copyShareSpec · function · L30-L58 — function copyShareSpec(i: CopyShareInput): ShareSpec

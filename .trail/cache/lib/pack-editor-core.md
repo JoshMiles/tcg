@@ -12,14 +12,14 @@
 - isEmptyChange · function · L71-L71 — isEmptyChange = (c: ChangeSet)
 - cleanCard · function · L74-L86 — function cleanCard(w: WorkCard, number: number): Card
 - Applied · interface · L88-L95 — interface Applied
-- applyChanges · function · L98-L126 — function applyChanges(pack: Pack, cards: Card[], changes: ChangeSet): Applied
-- workOf · function · L129-L129 — workOf = (pack: Pack, cards: Card[]): Work
-- ReviewLine · interface · L133-L133 — interface ReviewLine
-- fieldLabel · function · L141-L141 — fieldLabel = (k: string)
-- show · function · L143-L150 — function show(k: string, v: unknown): string
-- reviewLines · function · L152-L165 — function reviewLines(base: Work, work: Work): ReviewLine[]
-- rebase · function · L173-L197 — function rebase(oldBase: Work, newBase: Work, mine: ChangeSet): { work: Work; clashes: string[] }
-- BulkOp · type · L201-L207 — type BulkOp = | { kind: 'stars'; value: number } | { kind: 'weight'; value: number } | { kind: 'multiply'; factor: number } | { kind: 'version'; variant: OptionalVariant; on: boolean } | { kind: 'sound'; mode: 'default' | 'clear' } | { kind: 'upgrades'; on: boolean };
-- defaultSoundFor · function · L210-L210 — defaultSoundFor = (number: number)
-- bulkApply · function · L213-L229 — function bulkApply(cards: WorkCard[], ids: Set<string>, op: BulkOp): WorkCard[]
-- pastedColumn · function · L232-L236 — function pastedColumn(text: string): string[]
+- applyChanges · function · L98-L131 — function applyChanges(pack: Pack, cards: Card[], changes: ChangeSet): Applied
+- workOf · function · L134-L134 — workOf = (pack: Pack, cards: Card[]): Work
+- ReviewLine · interface · L138-L138 — interface ReviewLine
+- fieldLabel · function · L146-L146 — fieldLabel = (k: string)
+- show · function · L148-L155 — function show(k: string, v: unknown): string
+- reviewLines · function · L157-L170 — function reviewLines(base: Work, work: Work): ReviewLine[]
+- rebase · function · L178-L202 — function rebase(oldBase: Work, newBase: Work, mine: ChangeSet): { work: Work; clashes: string[] }
+- BulkOp · type · L206-L212 — type BulkOp = | { kind: 'stars'; value: number } | { kind: 'weight'; value: number } | { kind: 'multiply'; factor: number } | { kind: 'version'; variant: OptionalVariant; on: boolean } | { kind: 'sound'; mode: 'default' | 'clear' } | { kind: 'upgrades'; on: boolean };
+- defaultSoundFor · function · L215-L215 — defaultSoundFor = (number: number)
+- bulkApply · function · L218-L234 — function bulkApply(cards: WorkCard[], ids: Set<string>, op: BulkOp): WorkCard[]
+- pastedColumn · function · L237-L241 — function pastedColumn(text: string): string[]

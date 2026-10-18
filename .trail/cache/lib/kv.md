@@ -37,6 +37,6 @@
 - withLock · function · L306-L321 — async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T>
 - addCollectionEntry · function · L324-L332 — async function addCollectionEntry(collectionName: string, username: string, entry: number, origin: Origin = 'other'): Promise<number[]>
 - addCollectionEntryWithSerial · function · L335-L343 — async function addCollectionEntryWithSerial(collectionName: string, username: string, entry: number, origin: Origin = 'other'): Promise<{ owned: number[]; serial: number | null; copyId: string | null; uid: number | null }>
-- deleteCollection · function · L345-L349 — async function deleteCollection(collectionName: string): Promise<void>
-- removeUserFromCollection · function · L352-L359 — async function removeUserFromCollection(collectionName: string, username: string): Promise<boolean>
-- seedSeason1 · function · L364-L389 — async function seedSeason1(): Promise<void>
+- deleteCollection · function · L345-L351 — async function deleteCollection(collectionName: string): Promise<void>
+- removeUserFromCollection · function · L354-L363 — async function removeUserFromCollection(collectionName: string, username: string): Promise<boolean>
+- seedSeason1 · function · L368-L393 — async function seedSeason1(): Promise<void>

@@ -1,18 +1,23 @@
 # app/components/ShareImage.tsx
 
-- loadImage · function · L12-L24 — function loadImage(src: string): Promise<HTMLImageElement | null>
-- roundRect · function · L26-L29 — function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number)
-- spaced · function · L32-L34 — function spaced(ctx: CanvasRenderingContext2D, px: number)
-- drawPlate · function · L39-L123 — function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plate']>, rarityEdge: string, font: string, t: ShareTheme, h: number)
-- engrave · function · L81-L87 — engrave = (text: string, x: number, y: number, size: number, weight: number, fill: string, maxW: number, family = font, spacing = 0)
-- roundRectR · function · L126-L135 — function roundRectR(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: [number, number, number, number])
-- drawLeather · function · L138-L175 — function drawLeather(ctx: CanvasRenderingContext2D, r: Rect, b: BinderShare)
-- drawPocket · function · L178-L241 — function drawPocket(ctx: CanvasRenderingContext2D, r: Rect, slot: BinderShareSlot | null, img: HTMLImageElement | null, b: BinderShare, k: number, font: string)
-- pill · function · L230-L237 — pill = (text: string, x: number, y: number, size: number, fill: string, line: string, ink: string, rightAlign = false)
-- drawStatsCard · function · L244-L299 — async function drawStatsCard(ctx: CanvasRenderingContext2D, spec: ShareSpec, H: number, font: string, t: ShareTheme, preview: boolean)
-- drawBinder · function · L302-L354 — async function drawBinder(ctx: CanvasRenderingContext2D, b: BinderShare, H: number, font: string, preview: boolean)
-- renderShare · function · L357-L451 — async function renderShare(spec: ShareSpec, opts?: { preview?: boolean }): Promise<HTMLCanvasElement>
-- ExportResult · type · L453-L453 — type ExportResult = 'shared' | 'downloaded' | 'cancelled';
-- exportShare · function · L456-L472 — async function exportShare(spec: ShareSpec, filename: string, extra?: { text?: string; url?: string; download?: boolean }): Promise<ExportResult>
-- ShareImageButton · function · L475-L488 — function ShareImageButton({ spec, filename, label = 'Share image', className }: { spec: ShareSpec; filename: string; label?: string; className?: string })
-- go · function · L478-L481 — async function go()
+- loadImage · function · L16-L28 — function loadImage(src: string): Promise<HTMLImageElement | null>
+- roundRect · function · L30-L33 — function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number)
+- spaced · function · L36-L38 — function spaced(ctx: CanvasRenderingContext2D, px: number)
+- drawPlate · function · L43-L127 — function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plate']>, rarityEdge: string, font: string, t: ShareTheme, h: number)
+- engrave · function · L85-L91 — engrave = (text: string, x: number, y: number, size: number, weight: number, fill: string, maxW: number, family = font, spacing = 0)
+- drawBackBox · function · L130-L182 — function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, images: Map<string, HTMLImageElement | null>)
+- fill · function · L150-L166 — fill = (text: string, tx: number, ty: number, align: CanvasTextAlign)
+- drawBackPattern · function · L185-L207 — function drawBackPattern(ctx: CanvasRenderingContext2D, r: Rect, p: ReturnType<typeof canvasPattern>, img: HTMLImageElement | null, dark: boolean)
+- dots · function · L192-L195 — dots = (first: number, rad: number, a: number)
+- drawBackCard · function · L213-L247 — async function drawBackCard(ctx: CanvasRenderingContext2D, r: Rect, spec: NonNullable<NonNullable<ShareSpec['plate']>['back']>, rarityEdge: string, font: string, t: ShareTheme)
+- roundRectR · function · L250-L259 — function roundRectR(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: [number, number, number, number])
+- drawLeather · function · L262-L299 — function drawLeather(ctx: CanvasRenderingContext2D, r: Rect, b: BinderShare)
+- drawPocket · function · L302-L365 — function drawPocket(ctx: CanvasRenderingContext2D, r: Rect, slot: BinderShareSlot | null, img: HTMLImageElement | null, b: BinderShare, k: number, font: string)
+- pill · function · L354-L361 — pill = (text: string, x: number, y: number, size: number, fill: string, line: string, ink: string, rightAlign = false)
+- drawStatsCard · function · L368-L423 — async function drawStatsCard(ctx: CanvasRenderingContext2D, spec: ShareSpec, H: number, font: string, t: ShareTheme, preview: boolean)
+- drawBinder · function · L426-L478 — async function drawBinder(ctx: CanvasRenderingContext2D, b: BinderShare, H: number, font: string, preview: boolean)
+- renderShare · function · L481-L578 — async function renderShare(spec: ShareSpec, opts?: { preview?: boolean }): Promise<HTMLCanvasElement>
+- ExportResult · type · L580-L580 — type ExportResult = 'shared' | 'downloaded' | 'cancelled';
+- exportShare · function · L583-L599 — async function exportShare(spec: ShareSpec, filename: string, extra?: { text?: string; url?: string; download?: boolean }): Promise<ExportResult>
+- ShareImageButton · function · L602-L615 — function ShareImageButton({ spec, filename, label = 'Share image', className }: { spec: ShareSpec; filename: string; label?: string; className?: string })
+- go · function · L605-L608 — async function go()
