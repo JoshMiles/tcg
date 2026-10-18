@@ -1,4 +1,4 @@
-// Legacy Season 1 collection data parsed from olddata.txt (used by /api/admin/import-legacy).
+// Legacy Season 1 collection data (used by /api/admin/import-legacy), parsed from olddata.txt, which now lives only in git history.
 // Key: lowercase Twitch username, Value: array of card numbers (one entry per pull).
 export const LEGACY_DATA: Record<string, number[]> = {
   angrymactavish:         [22],
