@@ -25,7 +25,7 @@
 
 1. `node scripts/mock-kv.cjs` (port 4111) and `node scripts/mock-twitch.cjs` (port 4222), then `npx next dev -p 3111`.
 2. `npx tsx scripts/seed-review.mts` (or `npm run review:seed`). Refuses any KV that is not localhost, and **wipes the mock KV first**, so it is repeatable. About 20 seconds.
-3. Sweep the batch's pages (below), do the hand pass, write `docs/review/<batch>.md`.
+3. Sweep the batch's pages (below), do the hand pass, write `docs/review/<batch>.md` (move it to `docs/archive/review/` once its fixes have merged; past reports are there).
 4. Stop the servers, delete `.env.local`.
 
 On Windows Git Bash, prefix commands that take paths starting with `/` with `MSYS_NO_PATHCONV=1`, or Git Bash rewrites `/admin` into a Windows path.

@@ -53,7 +53,7 @@ Work is split between two models. Follow your role.
 
 ## Area docs
 
-Read the doc that matches what you are changing **before** you change it; each starts with a line saying when it applies.
+Read the doc that matches what you are changing **before** you change it; each starts with a line saying when it applies. `docs/admin.md` and `docs/public-site.md` are indexes: read only the topic file they point to. `docs/archive/` is history; read it only when asked or when you need why something was decided.
 
 | Doc | Read it when you touch |
 |-----|------------------------|
@@ -70,7 +70,14 @@ Read the doc that matches what you are changing **before** you change it; each s
 | [docs/review.md](docs/review.md) | running a review batch: the seed data, the page sweeps, the mod access test |
 | [docs/local-dev.md](docs/local-dev.md) | running the app locally, the overlay test panel, website login against the fake Twitch |
 | [docs/reference.md](docs/reference.md) | which file does what (key files), the API routes |
-| [docs/roadmap-history.md](docs/roadmap-history.md) | only when you need the original plan behind a finished roadmap item ("ROADMAP 13.1") |
+| [docs/archive/roadmap-history.md](docs/archive/roadmap-history.md) | only when you need the original plan behind a finished roadmap item ("ROADMAP 13.1") |
+
+## Keeping context small
+
+- Read the part of a file you need (search first, then read a line range); the big ones (`OverlayEditor.tsx`, `public/widget.js`, the FAQ page) cost 10k to 23k tokens whole.
+- Send wide searches across many files to a subagent (Explore) so only the answer comes back.
+- Long build sessions run on Sonnet (see "Model workflow"); Opus sessions plan and review.
+- When you change behaviour, update the matching doc to say what the code does now. History belongs in PR descriptions and `docs/archive/`, not in the area docs.
 
 ## Data architecture
 
@@ -103,7 +110,7 @@ Three tiers in Vercel KV: **Seasons → Packs → Cards**.
 - **Merging:** Opus may merge PRs and delete their branches when necessary (CI green, no open review asks). Sonnet doesn't merge or close PRs unless the user asks.
 - **One feature per PR, each branched from `main`.** Never stack PRs: merging them out of order drops commits. A fix that lands after its PR merged needs a new branch and PR.
 - Commit messages and PR bodies end with the attribution lines the harness gives.
-- Ignore `Old/` and `olddata.txt` (pre-rewrite leftovers). CRLF warnings on Windows are harmless (`.gitattributes`).
+- CRLF warnings on Windows are harmless (`.gitattributes`). The pre-rewrite `Old/` folder and `olddata.txt` are only in git history now (gitignored).
 
 ## Gotchas
 

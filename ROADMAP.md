@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-18 (after #238).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-18 (after #238).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -15,18 +15,29 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 20.2f | One flow for new packs; the pack wizard goes | Ready | M |
+| 23.1 | Split the largest source files (cheaper to read and edit) | Ready (after 20.2f) | M, five PRs |
 | 4.4 | Link a Discord account for DMs | Needs a decision | L |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 
 ### 20.2f One flow for new packs; the wizard goes (Ready, M)
 
-Last part of the pack workspace (20.2a to 20.2e are done; the workspace is described in `docs/admin.md`, "The pack workspace").
+Last part of the pack workspace (20.2a to 20.2e are done; the workspace is described in `docs/admin/packs-and-seasons.md`).
 - **New pack** (the library's button and the command palette) asks only for a name, creates the draft (`createDraftPack`) and opens the workspace on it.
 - A draft shows a **Publish checklist** in the top bar (replacing the wizard's Review step, from `validatePack` and `packHealth`): has a name and cover, at least one card, every card has art, a name and odds above 0, stars set on imported cards, Full Art cards have full art where the versions need it, in at least one season (or "publish without a season" with the warning). **Publish** stays disabled until the blocking items pass; warnings can be accepted.
 - `PackFlow` and the wizard routes are removed; `/admin/packs/new?draft=<id>` redirects to `/admin/packs/<id>`. The season wizard (`SeasonFlow`) is unchanged.
-- Update `docs/admin.md` ("Drafts & wizards", the pack routes, the admin UX widths: the pack workspace is the second full-width workspace after the Overlay Editor) and `CLAUDE.md`'s wizards convention (packs use the workspace; seasons keep the wizard).
+- Update `docs/admin/packs-and-seasons.md` ("Drafts & wizards"), `docs/admin/routes.md` (the pack routes), `docs/admin/ux-conventions.md` (widths: the pack workspace is the second full-width workspace after the Overlay Editor) and `CLAUDE.md`'s wizards convention (packs use the workspace; seasons keep the wizard).
 - **Not changed:** card and pack data shapes, KV keys, the public site, the overlay, the Twitch panel.
 - **Checks:** `npm run verify`, `scripts/check-pack-editor.mts` grown for the draft and publish path, and a hand pass against the mock KV at 1280px and 390px. Blob uploads can't be checked locally; say so in the PR.
+
+### 23.1 Split the largest source files (Ready, after 20.2f; five PRs, 23.1a to 23.1e)
+
+Why: editing one of these files means reading all of it, which costs 10k to 23k tokens a time. **Pure moves, no behaviour change**: same output, same exports used by other files, same check results. One file per PR, any order, but not while another open PR edits the same file. Grep `scripts/` and `.github/workflows/ci.yml` for the file's path before moving code: `check-overlay.mts`, `check-card-back.mts`, `check-access.mts` and `check-words.mts` read some of these files as text, and must point at the new files.
+- **23.1a FAQ** (`app/(site)/faq/page.tsx`, ~53 KB, one 520-line function): each `<Section>` becomes its own server component in `app/(site)/faq/sections/<id>.tsx`; `Section` and `Q` move to `faq/parts.tsx`; `page.tsx` keeps `SECTIONS`, the data loading and the order. Data a section needs is passed as props. `check-words.mts` must read every section file (glob the folder) so the numbers and the Cheesygidds-only rule are still checked.
+- **23.1b Overlay Editor** (`app/admin/overlay/OverlayEditor.tsx`, ~92 KB): types and `dependsOn` to `editor-types.ts`; `Popover`, `Segmented`, `PropRow`, `formatValue`, `Control` to `editor-controls.tsx`; then the visible regions of the main component (top bar, preview canvas, properties panel, Review dialog) into their own files, with the state staying in `OverlayEditor` (or one `useOverlayEditor` hook) and passed down. Stop and hand back to planning if a region needs more than about 15 props.
+- **23.1c Collection grid** (`app/u/[username]/CollectionGrid.tsx`, ~41 KB): `CardDetail`, `PrintsView`, `PrintView`, `CardInfo`, `FullArt` to `CardDetail.tsx` (client, same folder); `GridCard` stays exported from `CollectionGrid.tsx` (other files import it).
+- **23.1d Admin actions** (`app/admin/actions.ts`, ~39 KB): split by domain into `app/admin/actions/seasons.ts`, `packs.ts`, `cards.ts`, `users.ts`, `settings.ts` (each `'use server'`), with the form helpers in a plain `form-helpers.ts`. Update the imports; no `actions.ts` re-export barrel (a `'use server'` file may only export async functions).
+- **23.1e Overlay test panel** (`public/widget.js`, ~84 KB): move `initDevPanel` and the reset helpers into `public/widget-dev.js`, loaded by `overlay.html` only when the URL has `?dev` (a small loader appends the script before `initDevPanel` would run). Classic script, same globals; OBS never downloads it. `node --check` both files in `verify`; load `/overlay.html?dev` and `/overlay.html?preview` by hand and draw a card in each.
+- **Not touched:** `public/twitch-panel/*` (freeze). **Checks:** `npm run verify` and `npm run build` before and after; for 23.1b and 23.1c a hand pass of the page at 1280px and 390px.
 
 ### 4.4 Link a Discord account for DMs (Needs a decision)
 
