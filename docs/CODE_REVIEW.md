@@ -1,10 +1,24 @@
 # Code review
 
-Reviewed 2026-10-18 against `main` at `e79eb1d` (static reading of the auth, API, trading, collection, and hosting paths, plus the area docs and `ROADMAP.md`). This file reports issues. It does not change how the game behaves.
+Reviewed 2026-10-18 against `main` at `e79eb1d` (static reading of the auth, API, trading, collection, and hosting paths, plus the area docs and `ROADMAP.md`). A second pass the same day re-read the trade, backup, restore, Twitch, and sandbox paths and kept only the findings those lines support. This file reports issues. It does not change how the game behaves.
 
-No critical issue was verified. The two high findings are a public dump of every viewer's collection (including people who set a private profile) and a state-changing admin import that puts `ADMIN_SECRET` in the query string. Staff controls around server actions, draw tickets, cron, and the preview database fence are in good shape. Those are summarised at the end so the gaps are read against what already holds.
+One critical issue: the legacy import puts `ADMIN_SECRET` in a URL, and that same secret is the key for a super-admin cookie that never expires. Other high findings are public collection dumps (including private profiles) and trade or restore paths that can desync prints from the escrow flag. Staff controls around server actions, draw tickets, cron, and the preview database fence are in good shape. Those are summarised at the end so the gaps are read against what already holds.
 
 Shipped behaviour is what this review talks about. Open roadmap items (a single pack-create flow, daisyUI, Discord account linking, the next Twitch panel zip) are not treated as bugs for being absent.
+
+## Critical
+
+### 2. Legacy import is a GET that takes `ADMIN_SECRET` in the URL, and that secret mints the super-admin cookie
+
+`app/api/admin/import-legacy/route.ts` lines 8-16: the handler is `GET`, and the secret is `searchParams.get('secret')`, compared with `sameString` against `process.env.ADMIN_SECRET`.
+
+With `?overwrite=1` it replaces existing users' cards and writes the collection (`route.ts` lines 19 and 38-40). `/api/admin` is exempt from the closed-site gate (`lib/access-core.ts` line 77). The staff-guard check explicitly allows this route to skip `requireAdmin` (`scripts/check-staff-guards.mts` lines 88-89).
+
+`adminCookieValue` (`lib/admin-token.ts` lines 23-29) is an HMAC of the fixed label `admin-auth:v1` under that same `ADMIN_SECRET`. `isValidAdminToken` (lines 33-36) accepts the result with no expiry. A valid cookie is the super admin (`lib/staff-guard.ts` lines 33-35). Anyone who can read the import URL can recompute the cookie. They do not need `ADMIN_PASSWORD`.
+
+**Why it matters.** The master secret lands in access logs, browser history, and any `Referer` if the response is ever followed. A GET that writes data can be replayed from a log line or a link. Overwrite replaces live collection rows for every legacy login. The same leaked secret is a permanent super-admin session until `ADMIN_SECRET` is rotated (finding 3). The staff cookie, which the rest of `/api/admin/*` uses, is not consulted.
+
+**Fix.** Remove the route if the one-time import has already run. If it must stay, make it `POST`, require `requireAdmin()`, and never read the secret from the query string. Drop the special case in `check-staff-guards.mts`. Rotate `ADMIN_SECRET` if this URL has ever been requested on production. Give the cookie an expiry (finding 3) so a copied value dies on its own.
 
 ## High
 
@@ -30,15 +44,54 @@ The overlay already sends `x-overlay-key` on same-origin fetches when the OBS UR
 
 **Fix.** Require `isOverlayRequest` (key or staff) for this GET, which the overlay already satisfies once the key is in the OBS URL. If some response must stay public, strip logins that are private or staff-hidden, and send `Cache-Control: no-store`. Add a check that a private profile does not appear in the JSON.
 
-### 2. Legacy import is a GET that takes `ADMIN_SECRET` in the URL and can overwrite a collection
+### 7. A refunded offer can stay marked escrowed, and a missing season drops the prints
 
-`app/api/admin/import-legacy/route.ts` lines 8-16: the handler is `GET`, and the secret is `searchParams.get('secret')`, compared with `sameString` against `process.env.ADMIN_SECRET`.
+`lib/trades.ts` lines 121-126: when a refund is due, `persist` runs while `escrowed` is still true, then `returnToCollection` moves the prints, then `escrowed` is cleared.
 
-With `?overwrite=1` it replaces existing users' cards and writes the collection (`route.ts` lines 19 and 38-40). `/api/admin` is exempt from the closed-site gate (`lib/access-core.ts` line 77). The staff-guard check explicitly allows this route to skip `requireAdmin` (`scripts/check-staff-guards.mts` lines 88-89).
+The order is deliberate and documented (`docs/trading.md`, `lib/data-health.ts`). It avoids a double refund if the process dies between the two writes. The leftover of that crash is a closed offer whose cards are in neither collection until someone returns them by hand.
 
-**Why it matters.** The master secret lands in access logs, browser history, and any `Referer` if the response is ever followed. A GET that writes data can be replayed from a log line or a link. Overwrite replaces live collection rows for every legacy login. The staff cookie, which the rest of `/api/admin/*` uses, is not consulted.
+The flag is only cleared in memory. The caller's later `persist` (`lib/trades.ts` lines 140-143, two separate `kv.set` calls) is what writes `escrowed: false`. Several callers never get there:
 
-**Fix.** Remove the route if the one-time import has already run. If it must stay, make it `POST`, require `requireAdmin()`, and never read the secret from the query string. Drop the special case in `check-staff-guards.mts`.
+- `createTrade` (lines 314-322) sweeps inside the lock, then `createInLock` returns on validation failure (lines 210-260) without another `persist`.
+- `acceptTrade` (lines 340-358) uses `findOpen`, which persists only when the offer is already gone (lines 332-334). The early failures after that (own offer, wrong recipient, blocked, too new, missing season, frozen, bad prints) return without `persist`.
+
+`sweepTrades` itself does persist (lines 153-159). A failed create or accept after a sweep does not. History then still says `escrowed: true` after the prints were returned. A later repair that refunds again would duplicate them.
+
+`returnToCollection` (lines 97-99) returns immediately when `getSeason` is null, and `closeTrade` still sets `escrowed` false in memory. `deleteSeason` (`lib/kv.ts` lines 122-126) removes the season record and does not cancel offers (`app/admin/actions/seasons.ts` lines 66-68). The next sweep refunds nothing and clears the flag. The prints stay out of the collection.
+
+`createInLock` (lines 302-307) refunds if `persist` throws. `persist` writes the open list first and history second. If the open-list write succeeded and the history write threw, the catch still refunds, so the new offer can sit on the open list with its prints already back in the collection.
+
+**Why it matters.** A viewer reports missing cards, or Data health shows escrow that was already refunded. Granting replacements, or refunding a flag that lies, duplicates the prints. Deleting a season with an open offer drops the prints out of the collection on the next trade touch.
+
+**Fix.** Keep the crash-safe order. After every sweep, persist before returning, including the failure paths in `createInLock` and `acceptTrade`. If the season is gone, leave `escrowed` true and do not pretend the refund happened. Cancel or refuse season delete while offers for that season are open. Add a staff action that returns the prints for one stuck offer idempotently (the same move the refund would have done, then clears `escrowed`), and alert when the count is non-zero rather than only painting a red row.
+
+### 15. The panel collection route returns any viewer's cards, including draft seasons
+
+`GET /api/twitch/collection` (`app/api/twitch/collection/route.ts` lines 8-31) takes a `username` query and no session, no extension JWT, and no overlay key. It loads `listSeasons()` (every season, drafts included: `lib/kv.ts` lines 69-72) and returns that viewer's `ownedNumbers` for each season they have cards in, plus the active season.
+
+The released panel calls it that way (`public/twitch-panel/panel.js` around line 1041). Private profile is not consulted. `GET /api/collection` (finding 1) is the full map. This route is one viewer at a time, still with no check.
+
+**Why it matters.** Anyone who can guess a login can read that viewer's card numbers across seasons the public site does not list (drafts) and across a private profile. The current panel zip cannot send a JWT until the next panel release, so a fix has to keep a response the released panel can still parse.
+
+**Fix.** Drop draft seasons from this response. For a private profile, return the active season only when the caller is that viewer (extension JWT or site session). Keep the JSON shape the released panel already reads.
+
+### 16. Trade holdings skip private profiles and return exact prints
+
+`GET /api/trades/holdings` (`app/api/trades/holdings/route.ts` lines 15-36) checks the closed-site gate and then, with no session, returns `holdings`, the Looking for list, the serial pool, and print ids for any username in a non-draft season. The comment says this matches the public collection page. A private profile hides that page (`app/u/[username]/page.tsx` around line 54, and the setting text in `app/(site)/settings/SettingsForm.tsx`). This route does not read `privateProfile`.
+
+**Why it matters.** While the site is open, a private profile's cards, wanted list, and print identities are still downloadable. Print ids are more specific than the public grid.
+
+**Fix.** Require a viewer session, or apply the same private-profile rule as the profile page (the owner, and staff, may still load it). The trade composer can keep working for public profiles.
+
+### 17. Restoring a viewer replaces cards without their print ids, and does not look at open trades
+
+`restoreUserSnapshot` (`lib/user-admin.ts` lines 128-141) writes `data[name] = [...c.entries]` and `saveCollection` with no `moves` and no copy ids. `mergeUsers` just below refuses while either account has an open offer. Restore does not.
+
+`saveCollection` then calls `syncAfterSave` (`lib/serials.ts` lines 230-257). Once the collection is numbered, `reconcileUser` (lines 216-224) mints and retires by count, not by copy id. A restore that changes counts mints new prints. Cards sitting in escrow are owned by `escrow:<tradeId>` (`lib/serials-core.ts` lines 42-43), so they are not in the viewer's ledger bucket. Putting the pre-trade entries back adds a second set while the offer still holds the first.
+
+**Why it matters.** An admin restore can duplicate prints that are in an open offer, and the new prints get new edition numbers. The old identity is not put back.
+
+**Fix.** Refuse the restore while that viewer has an open offer, the same check merge already uses. When the ledger is tracking, restore by copy id (move the saved prints back) instead of reconciling counts.
 
 ## Medium
 
@@ -82,23 +135,13 @@ On Vercel the platform appends the real client address. The first entry is whate
 
 **Fix.** Reject usernames that fail the Twitch login pattern before any write. Add a per-username and per-secret budget on pull and grant. Rotate the incoming secret from Settings if it has ever been pasted into a log.
 
-### 7. A crash between saving a trade and moving its cards leaves prints in escrow
-
-`lib/trades.ts` lines 121-126: when a refund is due, `persist` runs while `escrowed` is still true, then `returnToCollection` moves the prints, then `escrowed` is cleared.
-
-The order is deliberate and documented (`docs/trading.md`, `lib/data-health.ts`). It avoids a double refund. The leftover is a closed offer whose cards are in neither collection until someone returns them by hand. Accept has the same window.
-
-**Why it matters.** A viewer reports missing cards. Granting replacements on top of a stuck refund duplicates the prints. Data health shows the offer. Nothing repairs it.
-
-**Fix.** Keep the order. Add a staff action that returns the prints for one stuck offer idempotently (the same move the refund would have done, then clears `escrowed`), and alert when the count is non-zero rather than only painting a red row.
-
 ### 8. Every request inside a sandbox is treated as the overlay
 
 `lib/overlay-key.ts` lines 38-46: `isOverlayRequest` returns true when the overlay key matches, when `inSandbox()` is true, or when the caller is an admin. The sandbox branch does not look at the key.
 
-`inSandbox()` is true for the whole preview deployment (`lib/db.ts` lines 16-19 and 67-68), not only for a staff member who entered a sandbox. Preview URLs are documented as Vercel-SSO protected (`docs/hosting.md`). The code itself does not check that.
+`inSandbox()` is true for any non-null sandbox id, including the dead namespace (`lib/db.ts` lines 50-68). On production, `currentSandboxId` also trusts the `x-tcg-sandbox` header when the id matches a real sandbox. Keys are prefixed `sbx:<id>:`, so that header does not write production data. It does make `isOverlayRequest` true with no overlay key. Preview deployments are forced into `sbx:preview:` (`lib/db.ts` lines 16-19 and 51-52) and are documented as Vercel-SSO protected (`docs/hosting.md`). The code itself does not check that.
 
-**Why it matters.** Queue dequeue (`app/api/webhooks/queue/route.ts`), heartbeats, and anything else behind `isOverlayRequest` succeed with no key on a preview. If SSO is ever off, that preview's queue and sandbox data are open. Production is unaffected.
+**Why it matters.** Queue dequeue (`app/api/webhooks/queue/route.ts`), heartbeats, and anything else behind `isOverlayRequest` succeed with no key on a preview, and on production for anyone who knows a live sandbox id. If SSO is ever off, that preview's queue and sandbox data are open. Production keys stay prefixed.
 
 **Fix.** On preview, still require the overlay key or a staff session. Keep the sandbox shortcut only for the explicit sandbox cookie a staff member set.
 
@@ -109,6 +152,68 @@ The order is deliberate and documented (`docs/trading.md`, `lib/data-health.ts`)
 **Why it matters.** Latency and clash risk grow with the number of prints, and a hot pull locks the whole season. This is the scaling limit to watch, not a logic bug.
 
 **Fix.** Keep the lock. When Data health stays amber, plan the split from measured sizes. Do not do it as a drive-by.
+
+### 18. A collection lock can be stolen when the 10 second TTL expires
+
+`withLock` (`lib/kv.ts` lines 306-320) is `SET NX EX 10`. Release is a `GET`, then a `DEL` only if the token matches. The comment says locks are never held across slow work. The check and the delete are still two commands. If the TTL expires after the `GET` sees this holder's token, another invocation can take the lock, and the first holder's `DEL` removes the new token.
+
+**Why it matters.** Two pulls or two trades can then both believe they hold the lock and overwrite the same JSON value (finding 9) or the trade lists. The window is short. It is real if a save or a refund runs past 10 seconds.
+
+**Fix.** Release with a compare-and-delete (a Lua script or `GETDEL` plus a check that the value was still this token). Refresh the TTL only if the work can legitimately run long, and keep the "never hold a lock across slow I/O" rule.
+
+### 19. Leaving a sandbox follows `/\` off the site
+
+`POST /api/sandbox/exit` (`app/api/sandbox/exit/route.ts` lines 9-14) is public. It keeps any `to` that starts with `/` and does not start with `//`, then `NextResponse.redirect(new URL(target, req.url))`. `safeReturnTo` (`lib/twitch-oauth.ts` line 94) also rejects `/\`. This route does not.
+
+In Node, `new URL('/\\evil.com', 'https://cheesytcg.app/api/sandbox/exit')` is `https://evil.com/`. The handler also deletes the sandbox cookie and the viewer session cookie.
+
+**Why it matters.** A page on another site can POST the viewer here and send the browser to an address the site does not own, after clearing the session. `//evil.com` is already rejected.
+
+**Fix.** Use `safeReturnTo` (or the same `/\` check) before building the redirect.
+
+### 20. Extension auth accepts any bearer when the extension secret is unset
+
+`extensionViewer` (`lib/twitch-viewer.ts` lines 11-18): if `verifyExtensionAuth` fails and `TWITCH_EXTENSION_SECRET` is unset, any bearer token is treated as the dev opaque id `dev_mock_opaque`. The comment says that is dev mode. There is no check that the deployment is local.
+
+**Why it matters.** A production deploy that forgot the secret maps every extension caller who sends some bearer onto one shared dev user, or onto whoever that opaque id was linked to. Routes that use `extensionViewer` then act as that user.
+
+**Fix.** Treat a missing secret as "not configured": return 401 in production. Keep the dev opaque id only when a local or sandbox flag is set.
+
+### 21. Opaque-id and Helix lookups are unauthenticated
+
+`GET /api/twitch/user` (`app/api/twitch/user/route.ts` lines 6-13) returns the username linked to any `opaqueId`. The released panel calls it with the viewer's own id (`public/twitch-panel/panel.js` around line 1183) and sends no proof.
+
+`GET /api/twitch/resolve-username` (`app/api/twitch/resolve-username/route.ts` lines 6-20) takes a numeric Twitch user id and calls Helix `resolveTwitchLogin`. No session.
+
+**Why it matters.** The first route turns an opaque id into a login. The second spends the site's Helix quota and reveals a login for any numeric id. Neither is on a staff check.
+
+**Fix.** Require the extension JWT (or a staff session) before either lookup. Cache Helix answers so a loop cannot burn the quota.
+
+### 22. A same-day backup is deleted before the new file is stored
+
+`runBackup` (`lib/backup.ts` lines 135-138) deletes the existing blob for that day's name, then `put`s the new one. The comment says a second run the same day replaces the first.
+
+**Why it matters.** If `put` throws, that day's backup is already gone. The older days are still there until the retention delete, which runs only after a successful `put`.
+
+**Fix.** `put` the new bytes first (a temp name, or overwrite in one call), and delete the previous object only after the new one is stored.
+
+### 23. A failed watch-index rebuild is marked ready
+
+`ensureIndex` (`lib/watch-index.ts` lines 26-30) returns early when `watch:idx:ready` is set. Otherwise it loads every collection user, and a failed load becomes `[]` (`.catch(() => [])`). It then `kv.set(READY, Date.now())` even when that list was empty because the read failed. `syncWatchIndex` swallows its own errors (lines 17-23).
+
+**Why it matters.** Listing alerts and wanted counts then stay empty until someone deletes the ready key. Viewers who asked to hear about a card do not.
+
+**Fix.** Set the ready key only after a scan that did not throw. If the scan throws, leave the key unset so the next lookup tries again.
+
+### 24. A paid print is saved before Mix It Up confirms the charge
+
+`POST /api/collection` (`app/api/collection/route.ts` lines 47-66) claims the paid ticket, appends the print, then `chargePaidPull`. On a failed charge it calls `revokePrint`. `claimDraw` (`lib/draw.ts` lines 76-79) is get-then-delete and the second delete returns 0, so two saves cannot both claim one ticket.
+
+`revokePrint` (`lib/mixitup.ts` lines 175-188) returns null, and does not remove the collection entry, when the ledger copy is not owned by that viewer. A crash after the append and before the revoke leaves the print in place with no charge.
+
+**Why it matters.** A paid pull can become a free print when the charge call fails halfway, or when the revoke bails out. The ticket itself cannot be replayed.
+
+**Fix.** Charge first, or write the print only after `charge.applied`. If revoke cannot see the copy, still remove one matching entry under the collection lock.
 
 ## Low
 
@@ -144,6 +249,22 @@ The order is deliberate and documented (`docs/trading.md`, `lib/data-health.ts`)
 
 **Fix.** Accept only `Record<string, number[]>` with logins that match the Twitch pattern, and reject anything else before the lock.
 
+### 25. A failed email-cap expiry can lock confirmation for good
+
+`startEmail` (`lib/email.ts` lines 119-122) increments `email:cfm:<user>:day` and, on the first hit, sets a one-day TTL. The `expire` error is swallowed (`.catch(() => 0)`). The next lines still refuse once the counter is over 5.
+
+**Why it matters.** If `expire` fails, the counter never resets. That viewer cannot ask for another confirmation email until someone deletes the key.
+
+**Fix.** If `expire` fails, delete the counter (or do not count that attempt) and return the same "try again later" error. Do not leave a counter with no TTL.
+
+### 26. Wiping a collection leaves escrow ledger hashes behind
+
+`deleteCollection` (`lib/kv.ts` lines 345-350) lists the usernames in the collection blob and passes those to `dropLedger` (`lib/serials.ts` lines 328-332). Escrow owners are `escrow:<tradeId>` (`lib/serials-core.ts` lines 42-43), not collection usernames, so those hashes are not in the delete list. `resetAllUsers` (`app/admin/actions/users.ts` lines 100-103) and `DELETE /api/collection` without a username (`app/api/collection/route.ts` lines 115-117) both call this.
+
+**Why it matters.** After an everyone-reset, print records for cards that were in an open offer can remain. They are orphan ledger rows, not a public dump.
+
+**Fix.** Include escrow owner keys (or every owner hash for that collection) in `dropLedger` before the collection blob is removed. Refuse the reset while offers in that season are still open.
+
 ## Dependency health
 
 Production dependencies are few and current for this stack: Next 15.3, React 19, `@vercel/kv`, `@vercel/blob` 2.x, `sharp`, `web-push`. `docs/hosting.md` records the Blob 2.x move as the thing that cleared the earlier `undici` / `@fastify/busboy` advisories.
@@ -160,11 +281,12 @@ Coverage of game rules is strong for a Next app. `npm run check` runs every `scr
 
 What those checks do not cover, and where the findings above live:
 
-- No check asserts that `GET /api/collection` hides a private profile or demands the overlay key.
+- No check asserts that `GET /api/collection`, `GET /api/twitch/collection`, or `GET /api/trades/holdings` hides a private profile.
 - `check-staff-guards.mts` blesses the legacy import's query-string secret instead of failing it.
+- Trade checks cover races and reversal. They do not cover a sweep followed by a failed accept, or a refund after the season record is gone.
 - There is no browser suite. `docs/review.md` sweeps are manual. Overlay frame rate and the panel inside Twitch cannot be checked here.
 
-A useful next check is a small mock-KV script for findings 1 and 2's replacements, once those routes change. This review does not add that behaviour.
+A useful next check is a small mock-KV script for findings 1, 2, 7, and 16, once those paths change. This review does not add that behaviour.
 
 ## Maintainability
 
@@ -172,8 +294,10 @@ Worth knowing, not worth a rewrite in this pass:
 
 - The staff-guard source audit is the right idea and is why a missing `requireAdmin()` does not slip in quietly. The import-legacy exception is the hole in that net.
 - `public/widget.js` and `OverlayEditor.tsx` are still very large. Roadmap 23.2 says the editor split needs a design before more files are torn apart. Leave it until that design exists.
-- Admin pages, server actions, and `/api/admin/*` generally fail closed. Viewer mutations go through the session (`requireViewer`), not a username in the body. Draw tickets mean a caller cannot choose the card a pull saves (`lib/draw.ts` `claimDraw`, `app/api/collection/route.ts` lines 21-34). Cron routes refuse a missing or short `CRON_SECRET` (`app/api/cron/backup/route.ts` lines 12-17). `safeReturnTo` and `staffReturnTo` reject protocol-relative redirects (`lib/twitch-oauth.ts` lines 92-96, `lib/staff-core.ts` lines 82-86). Preview deployments cannot write outside `sbx:preview:` (`lib/db.ts`).
+- Admin pages, server actions, and `/api/admin/*` generally fail closed. Viewer mutations go through the session (`requireViewer`), not a username in the body. Draw tickets mean a caller cannot choose the card a pull saves (`lib/draw.ts` `claimDraw`: a second delete returns 0, so the ticket is single use). The paid path still grants before the charge is confirmed (finding 24). Cron routes refuse a missing or short `CRON_SECRET` (`app/api/cron/backup/route.ts` lines 12-17). `safeReturnTo` and `staffReturnTo` reject protocol-relative redirects, including `/\` (`lib/twitch-oauth.ts` lines 92-96, `lib/staff-core.ts` lines 82-86). Sandbox exit does not use that helper (finding 19). Preview deployments cannot write outside `sbx:preview:` (`lib/db.ts`).
 
 ## What this review did not do
 
-No production KV, no live secrets, no exploit scripts. Line numbers refer to `main` at the commit above. If a later change moves a function, search the symbol rather than trusting the line.
+No production KV, no live secrets, no exploit scripts. Line numbers refer to `main` at the commit above, plus this branch where a line was re-read. If a later change moves a function, search the symbol rather than trusting the line.
+
+Checked and left out: `claimDraw` is not a double-claim (the second delete loses). A dead sandbox id does not fall through to production keys. `syncAfterSave` swallows ledger errors on purpose so a pull still saves. Those are not extra findings.
