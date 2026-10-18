@@ -1,0 +1,57 @@
+{
+  "projectId": "52f9591a-78a8-442d-a0ac-33f24fc02e9b",
+  "shape": "package",
+  "pkg": "cheesy-tcg",
+  "globalName": "CheesyTCG",
+  "buildCmd": "npx tailwindcss -c .design-sync/tailwind.config.ts -i app/globals.css -o .design-sync/.cache/tw.css --minify && cat .design-sync/fonts.css .design-sync/.cache/tw.css > .design-sync/.cache/app.css",
+  "tsconfig": "tsconfig.json",
+  "srcDir": "app/components",
+  "cssEntry": ".design-sync/.cache/app.css",
+  "runtimeFontPrefixes": [
+    "Fredoka",
+    "Nunito"
+  ],
+  "guidelinesGlob": [],
+  "componentSrcMap": {
+    "Icon": "app/components/Icon.tsx",
+    "RankMedal": "app/components/Icon.tsx",
+    "Avatar": "app/components/Avatar.tsx",
+    "CardTile": "app/components/CardTile.tsx",
+    "SerialChip": "app/components/SerialChip.tsx",
+    "StaffBadge": "app/components/StaffBadge.tsx",
+    "Dialog": "app/admin/components/Dialog.tsx",
+    "StatusChip": "app/admin/components/StatusChip.tsx",
+    "DraftChip": "app/admin/components/StatusChip.tsx",
+    "ArmedButton": "app/admin/components/ArmedButton.tsx",
+    "Spinner": "app/admin/components/PendingButton.tsx"
+  },
+  "dtsPropsFor": {
+    "Icon": "/** Icon by short name (Lucide set plus the custom \"cheese\" brand glyph). Sized in em unless className sets a w-, h- or size- class. */ name: \"plus\" | \"flag\" | \"trophy\" | \"medal\" | \"award\" | \"crown\" | \"arrowUp\" | \"arrowDown\" | \"chevronUp\" | \"chevronDown\" | \"chevronLeft\" | \"chevronRight\" | \"star\" | \"sparkles\" | \"check\" | \"checkCircle\" | \"x\" | \"warning\" | \"alert\" | \"info\" | \"ban\" | \"trade\" | \"handshake\" | \"undo\" | \"inbox\" | \"send\" | \"board\" | \"history\" | \"hourglass\" | \"cards\" | \"gift\" | \"trash\" | \"refresh\" | \"zap\" | \"book\" | \"radio\" | \"users\" | \"user\" | \"image\" | \"film\" | \"music\" | \"palette\" | \"flask\" | \"bug\" | \"settings\" | \"menu\" | \"volume\" | \"target\" | \"pencil\" | \"puzzle\" | \"gem\" | \"monitor\" | \"trend\" | \"chart\" | \"coins\" | \"hole\" | \"party\" | \"compass\" | \"note\" | \"ruler\" | \"search\" | \"gamepad\" | \"chat\" | \"link\" | \"share\" | \"phone\" | \"shield\" | \"database\" | \"home\" | \"stop\" | \"bomb\" | \"grip\" | \"download\" | \"copy\" | \"pause\" | \"play\" | \"filter\" | \"bell\" | \"bellOff\" | \"list\" | \"pin\" | \"heart\" | \"activity\" | \"calendar\" | \"tv\" | \"lock\" | \"wrench\" | \"nerd\" | \"clock\" | \"cheese\" | \"redo\" | \"logout\" | \"panelClose\" | \"panelOpen\" | \"external\" | \"eye\" | \"grid\"; className?: string; strokeWidth?: number; /** Accessible label; omit for decorative icons. */ title?: string;",
+    "RankMedal": "/** 1-3 render a gold/silver/bronze medal icon, higher ranks the plain number. */ rank: number; className?: string;",
+    "Avatar": "/** Profile image URL; falls back to the initial on the theme gradient. */ src?: string; name: string; /** Size and typography, default \"w-8 h-8 text-xs\". */ className?: string;",
+    "CardTile": "/** Full (possibly animated) card art URL, loaded on hover. */ imageUrl: string; /** Chosen still frame; defaults to the thumbnail. */ still?: string; alt: string; className?: string; style?: React.CSSProperties; title?: string; /** Makes the tile a button. */ onActivate?: (el: HTMLElement) => void; /** Overlays (badges, labels) rendered above the art. */ children?: React.ReactNode;",
+    "SerialChip": "/** Serial (edition) number of a print. #1 renders gold with the cheese glyph. */ n: number; /** Score multiplier; > 1 renders the chip gold with \"xN\". */ bonus?: number; /** Estimated serial, adds \"~\". */ est?: boolean; className?: string; title?: string;",
+    "StaffBadge": "badge: \"streamer\" | \"admin\" | \"mod\" | null | undefined; /** Shield icon only. */ compact?: boolean;",
+    "Dialog": "open: boolean; onClose: () => void; title?: string; children: React.ReactNode; size?: \"sm\" | \"md\" | \"lg\";",
+    "StatusChip": "active: boolean; activeLabel?: string; inactiveLabel?: string;",
+    "DraftChip": "",
+    "ArmedButton": "/** Runs on the second click; the first arms the button for 4s. */ onConfirm: () => void; children: React.ReactNode; armedLabel?: React.ReactNode; className?: string; armedClassName?: string; disabled?: boolean; title?: string;",
+    "Spinner": "/** Size classes, default \"w-3.5 h-3.5\". Inherits text colour. */ className?: string;"
+  },
+  "overrides": {
+    "Dialog": {
+      "cardMode": "single",
+      "viewport": "640x360"
+    },
+    "DraftChip": {
+      "cardMode": "column"
+    },
+    "RankMedal": {
+      "cardMode": "column"
+    },
+    "SerialChip": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

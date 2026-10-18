@@ -29,3 +29,10 @@ Thumbs.db
 # Pre-rewrite leftovers (StreamElements overlay, Season 1 data), removed from the repo; still in git history
 /Old/
 /olddata.txt
+
+# design-sync
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

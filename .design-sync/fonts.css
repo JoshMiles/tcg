@@ -1,0 +1,3 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
+:root { --font-display: 'Fredoka'; --font-body: 'Nunito'; }
+body { font-family: var(--font-body), system-ui, sans-serif; color: #e6eafb; }
