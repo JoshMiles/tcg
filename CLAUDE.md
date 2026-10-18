@@ -74,7 +74,7 @@ Read the doc that matches what you are changing **before** you change it; each s
 
 ## Keeping context small
 
-- Read the part of a file you need (search first, then read a line range); the big ones (`OverlayEditor.tsx`, `public/widget.js`, the FAQ page) cost 10k to 23k tokens whole.
+- Read the part of a file you need (search first, then read a line range); the big ones (`public/widget.js`, `OverlayEditor.tsx`) cost 12k to 20k tokens whole.
 - Send wide searches across many files to a subagent (Explore) so only the answer comes back.
 - Long build sessions run on Sonnet (see "Model workflow"); Opus sessions plan and review.
 - When you change behaviour, update the matching doc to say what the code does now. History belongs in PR descriptions and `docs/archive/`, not in the area docs.

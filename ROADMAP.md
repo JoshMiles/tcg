@@ -15,7 +15,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 20.2f | One flow for new packs; the pack wizard goes | Ready | M |
-| 23.1 | Split the largest source files (cheaper to read and edit) | Ready (after 20.2f) | M, five PRs |
+| 23.2 | Overlay Editor: split the rest | Needs design | M |
 | 4.4 | Link a Discord account for DMs | Needs a decision | L |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 
@@ -29,15 +29,9 @@ Last part of the pack workspace (20.2a to 20.2e are done; the workspace is descr
 - **Not changed:** card and pack data shapes, KV keys, the public site, the overlay, the Twitch panel.
 - **Checks:** `npm run verify`, `scripts/check-pack-editor.mts` grown for the draft and publish path, and a hand pass against the mock KV at 1280px and 390px. Blob uploads can't be checked locally; say so in the PR.
 
-### 23.1 Split the largest source files (Ready, after 20.2f; five PRs, 23.1a to 23.1e)
+### 23.2 Overlay Editor: split the rest (Needs design)
 
-Why: editing one of these files means reading all of it, which costs 10k to 23k tokens a time. **Pure moves, no behaviour change**: same output, same exports used by other files, same check results. One file per PR, any order, but not while another open PR edits the same file. Grep `scripts/` and `.github/workflows/ci.yml` for the file's path before moving code: `check-overlay.mts`, `check-card-back.mts`, `check-access.mts` and `check-words.mts` read some of these files as text, and must point at the new files.
-- **23.1a FAQ** (`app/(site)/faq/page.tsx`, ~53 KB, one 520-line function): each `<Section>` becomes its own server component in `app/(site)/faq/sections/<id>.tsx`; `Section` and `Q` move to `faq/parts.tsx`; `page.tsx` keeps `SECTIONS`, the data loading and the order. Data a section needs is passed as props. `check-words.mts` must read every section file (glob the folder) so the numbers and the Cheesygidds-only rule are still checked.
-- **23.1b Overlay Editor** (`app/admin/overlay/OverlayEditor.tsx`, ~92 KB): types and `dependsOn` to `editor-types.ts`; `Popover`, `Segmented`, `PropRow`, `formatValue`, `Control` to `editor-controls.tsx`; then the visible regions of the main component (top bar, preview canvas, properties panel, Review dialog) into their own files, with the state staying in `OverlayEditor` (or one `useOverlayEditor` hook) and passed down. Stop and hand back to planning if a region needs more than about 15 props.
-- **23.1c Collection grid** (`app/u/[username]/CollectionGrid.tsx`, ~41 KB): `CardDetail`, `PrintsView`, `PrintView`, `CardInfo`, `FullArt` to `CardDetail.tsx` (client, same folder); `GridCard` stays exported from `CollectionGrid.tsx` (other files import it).
-- **23.1d Admin actions** (`app/admin/actions.ts`, ~39 KB): split by domain into `app/admin/actions/seasons.ts`, `packs.ts`, `cards.ts`, `users.ts`, `settings.ts` (each `'use server'`), with the form helpers in a plain `form-helpers.ts`. Update the imports; no `actions.ts` re-export barrel (a `'use server'` file may only export async functions).
-- **23.1e Overlay test panel** (`public/widget.js`, ~84 KB): move `initDevPanel` and the reset helpers into `public/widget-dev.js`, loaded by `overlay.html` only when the URL has `?dev` (a small loader appends the script before `initDevPanel` would run). Classic script, same globals; OBS never downloads it. `node --check` both files in `verify`; load `/overlay.html?dev` and `/overlay.html?preview` by hand and draw a card in each.
-- **Not touched:** `public/twitch-panel/*` (freeze). **Checks:** `npm run verify` and `npm run build` before and after; for 23.1b and 23.1c a hand pass of the page at 1280px and 390px.
+23.1 split the five largest files. `OverlayEditor.tsx` is still ~50 KB: the top bar shell, the preview stage (~21 props: refs, fit and frame size, guide flags, drag handlers), the preview toolbar and the properties panel header and body (`renderRow`, `renderSection`) stay inline because each would need more than ~15 props. Splitting them needs a state design first, for example a `useOverlayEditor` hook or a small context for the editor's state and actions. Planning pass needed; not urgent.
 
 ### 4.4 Link a Discord account for DMs (Needs a decision)
 
