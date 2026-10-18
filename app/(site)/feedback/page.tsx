@@ -1,19 +1,23 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { SiteMessage } from '@/app/components/site/SiteMessage';
 import { getSession } from '@/lib/session';
 import { feedbackOf, sentToday } from '@/lib/feedback';
-import { FEEDBACK_LIMITS, KIND_LABELS, STATUS_LABELS, cleanFrom, type FeedbackKind } from '@/lib/feedback-core';
+import { FEEDBACK_LIMITS, KIND_LABELS, STATUS_LABELS, cleanFrom } from '@/lib/feedback-core';
+import { reportProblemUrl } from '@/lib/site';
 import { FeedbackForm } from './FeedbackForm';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Feedback', description: 'Suggest something or report a problem.', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'Feedback', description: 'Suggest something for the Cheesy TCG.', robots: { index: false, follow: false } };
 
 const dateFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 export default async function FeedbackPage({ searchParams }: { searchParams: Promise<{ from?: string; kind?: string }> }) {
   const { from, kind } = await searchParams;
+  // Problem reports are GitHub issues now; old /feedback?kind=bug links (and ?from= without a kind) go there.
+  if (kind === 'bug' || (!kind && from)) redirect(reportProblemUrl(cleanFrom(from)));
   const session = await getSession();
   if (!session) {
     const params = new URLSearchParams();
@@ -25,21 +29,20 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
         icon="chat" title="Log in to send feedback"
         actions={<a href={`/auth/twitch?returnTo=${encodeURIComponent(back)}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Log in with Twitch</a>}
       >
-        <p>We ask you to log in so we can answer you and keep spam out. Log in with Twitch to suggest something or report a problem.</p>
+        <p>We ask you to log in so we can answer you and keep spam out. Log in with Twitch to suggest something. To report a problem, <a href={reportProblemUrl()} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300">open an issue on GitHub</a>.</p>
       </SiteMessage>
     );
   }
   const [mine, used] = await Promise.all([feedbackOf(session.username), sentToday(session.username)]);
-  const startKind: FeedbackKind = kind === 'bug' || (!kind && from) ? 'bug' : 'idea';
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
       <header className="space-y-3">
         <h1 className="font-display text-4xl sm:text-5xl font-bold text-white">Feedback</h1>
-        <p className="text-gray-400 leading-relaxed">Got an idea, or did something not work? Tell us here. We read all of it and answer in your bell when we can. See also the <Link href="/faq#help" className="text-yellow-400 hover:text-yellow-300">FAQ</Link>.</p>
+        <p className="text-gray-400 leading-relaxed">Got an idea? Tell us here. We read all of it and answer in your bell when we can. Something not working? <a href={reportProblemUrl()} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300">Report a problem on GitHub</a>. See also the <Link href="/faq#help" className="text-yellow-400 hover:text-yellow-300">FAQ</Link>.</p>
       </header>
 
-      <FeedbackForm from={cleanFrom(from)} startKind={startKind} left={Math.max(0, FEEDBACK_LIMITS.perDay - used)} />
+      <FeedbackForm left={Math.max(0, FEEDBACK_LIMITS.perDay - used)} />
 
       {mine.length > 0 && (
         <section className="space-y-3" aria-labelledby="mine">
