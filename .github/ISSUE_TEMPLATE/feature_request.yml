@@ -1,0 +1,55 @@
+name: ✨ Feature Request
+description: Suggest an idea, new mechanic, or improvement for The Cheesy TCG.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea to make **The Cheesy TCG** even better? Let us know below!
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What part of the project does this idea relate to?
+      options:
+        - "Web App / UI & UX"
+        - "Trading & Card Upgrading"
+        - "Leaderboards & Season Stats"
+        - "Card Dex & Collector Profiles"
+        - "Twitch Stream Integration / Live Pulls"
+        - "New Game Mechanic / Progression"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: Is your feature request related to a frustration or limitation? What makes this a great addition?
+      placeholder: "I'd love a way to easily filter the Card Dex by cards I'm still missing..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe how you envision this feature working.
+      placeholder: "Add a toggle switch at the top of the Card Dex page for 'Owned / Missing / Shiny'..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered (Optional)
+      description: Any other ways this could be solved or implemented?
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context / Mockups (Optional)
+      description: Attach any sketches, screenshots, or examples from other games/sites.
