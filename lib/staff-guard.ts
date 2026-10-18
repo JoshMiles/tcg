@@ -1,13 +1,15 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
-import { AUTH_COOKIE, isPasswordLoginEnabled, isValidAdminToken } from './admin-token';
+import { currentAdminGen } from './admin-cookie';
+import { AUTH_COOKIE, adminCookieKey, isPasswordLoginEnabled, isValidAdminToken } from './admin-token';
 import { getStaffRecord } from './staff';
 import type { Session } from './session';
 import { roleCan, resolveRole, type Capability, type StaffRole } from './staff-core';
 import { STAFF_COOKIE, renewStaffToken, staffCookieOptions, verifyStaffToken } from './staff-token';
 
-// Who is making this request, as staff. The authoritative check (server actions, API routes and the panel layouts call this);
-// the middleware only does the coarse, database-free version from the signed cookie.
+// Who is making this request, as staff. The authoritative check (server actions, API routes and the panel layouts call this).
+// The middleware does the coarse version from the signed cookies. For the emergency password cookie both checks also read the
+// generation in KV, so a sign-out rejects a copied cookie here at once.
 
 export interface StaffContext {
   /** Lower-case Twitch login (or "password" for the emergency password login). */
@@ -18,10 +20,18 @@ export interface StaffContext {
   via: 'twitch' | 'password';
 }
 
+/** Signature, expiry and the live generation. A missing key or a failed generation read rejects the cookie. */
+async function emergencyCookieValid(token: string): Promise<boolean> {
+  const key = adminCookieKey();
+  if (!key) return false;
+  const gen = await currentAdminGen();
+  return gen !== null && await isValidAdminToken(token, key, gen);
+}
+
 /**
  * The signed-in staff member for this request, or null. A Twitch staff cookie is re-checked against the live staff list on every
- * call (so removing someone, or changing their role, takes effect at once for anything they change). The old admin password
- * cookie still counts as a super admin unless ADMIN_PASSWORD_LOGIN=off.
+ * call (so removing someone, or changing their role, takes effect at once for anything they change). The emergency password
+ * cookie still counts as a super admin unless ADMIN_PASSWORD_LOGIN=off, and only while its signature, expiry and generation hold.
  */
 export const getStaff = cache(async (): Promise<StaffContext | null> => {
   const jar = await cookies();
@@ -30,7 +40,8 @@ export const getStaff = cache(async (): Promise<StaffContext | null> => {
     const role = resolveRole({ login: token.u, twitchId: token.id }, await getStaffRecord(token.u));
     if (role) return { login: token.u, twitchId: token.id, displayName: token.dn || token.u, role, via: 'twitch' };
   }
-  if (isPasswordLoginEnabled() && await isValidAdminToken(jar.get(AUTH_COOKIE)?.value)) {
+  const emergency = jar.get(AUTH_COOKIE)?.value;
+  if (isPasswordLoginEnabled() && emergency && await emergencyCookieValid(emergency)) {
     return { login: 'password', displayName: 'Admin (password)', role: 'super', via: 'password' };
   }
   return null;

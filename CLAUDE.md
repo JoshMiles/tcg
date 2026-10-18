@@ -101,7 +101,7 @@ Three tiers in Vercel KV: **Seasons → Packs → Cards**.
 - TypeScript strict; no `any` unless unavoidable. Tailwind dark theme: gray-950 background, gray-900 cards, yellow-500 accent.
 - Client components only when truly required (e.g. `AdminNav` for `usePathname`, dialog triggers, dialogs).
 - **Never put `onClick` or other event handlers in JSX in a server component file**, even inside a client component's children; Next.js throws at runtime.
-- Admin pages: `force-dynamic` on every page; `revalidatePath` after every mutation; `requireAdmin()` guards every admin server action (staff sign in with Twitch and have a role, see docs/staff.md; `ADMIN_SECRET` is only the emergency password login).
+- Admin pages: `force-dynamic` on every page; `revalidatePath` after every mutation; `requireAdmin()` guards every admin server action (staff sign in with Twitch and have a role, see docs/staff.md; the emergency password login uses `ADMIN_PASSWORD` and `ADMIN_COOKIE_SECRET`, not `ADMIN_SECRET`).
 - Server actions take fixed arguments via `.bind(null, arg)` before going into `<form action={}>`.
 - Image uploads go through `ImageUploadField` → Vercel Blob.
 - **Multi-step creation uses full-page wizards** (`PackFlow`, `SeasonFlow`), not modals. Dialogs are for small one-shot forms: the page stays a server component, a thin client wrapper (e.g. `NewPackButton`) owns the open/close state, and the dialog uses `<form action={serverAction}>`.

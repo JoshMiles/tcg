@@ -12,7 +12,7 @@ Never develop against production KV.
    KV_REST_API_URL=http://localhost:4111
    KV_REST_API_TOKEN=dev
    KV_URL=redis://dev
-   ADMIN_SECRET=testsecret
+   ADMIN_COOKIE_SECRET=testsecret-0123456789
    ADMIN_PASSWORD=pw
    ```
 3. `npx tsx scripts/seed-dev.mts`, seeds Season 1 (refuses any non-localhost KV URL).
@@ -23,7 +23,7 @@ Port 4111 (mock KV) and 3111 (dev server) are the conventional test ports; check
 
 ## Overlay and its test panel
 
-Open `/overlay.html` (add `?dev` for the test panel; `?preview` is the admin editor's isolated mode). A browser signed in as staff needs no key; anything else (OBS, a clean test browser) needs `?key=<overlay key>` from Settings → OBS Overlay (`getOverlayKey()` locally), or the queue, notify and heartbeat answer 401.
+Open `/overlay.html` (add `?dev` for the test panel; `?preview` is the admin editor's isolated mode). A browser signed in as staff needs no key; anything else (OBS, a clean test browser) needs `?key=<overlay key>` from Settings → OBS Overlay (`getOverlayKey()` locally), or the queue, notify, heartbeat and collection read answer 401.
 
 **Test panel (`?dev`)**: Pack / Card / Variant pickers (blank = random, exactly as a real draw), a count + **Draw**, **All 4 variants** (one card shown Regular → Shiny; random card if none picked), Show Collection, Clear queue, and switches: **Don't save (dry run, on by default)**, Mute, Quick timing (≤1.5s on screen). Keys: **D** draw · **A** all variants · **C** collection · **R/F/S** Reverse / Full Art / Shiny. A pinned variant is shown even where the pack has upgrades off. Reset buttons live in a collapsed Danger zone. Draw options are passed as `queueDraw(username, { packId, cardNumber, variant, dry })`; the panel code lives in `public/widget-dev.js`, which `overlay.html` loads only under `?dev` (OBS never downloads it); the `DEV` object in `widget.js` only changes behaviour when set from the panel.
 

@@ -27,8 +27,8 @@ if (SANDBOX_ID) {
   });
 }
 
-// Overlay key: the OBS URL carries ?key=..., and the server only lets the overlay take queued pulls, report shown collections and
-// check in when that key (or a staff session) comes with the request (lib/overlay-key.ts). Sent on every request to this site.
+// Overlay key: the OBS URL carries ?key=..., and the server only lets the overlay take queued pulls, report shown collections,
+// read the collection and check in when that key (or a staff session) comes with the request (lib/overlay-key.ts). Sent on every request to this site.
 const OVERLAY_KEY = new URLSearchParams(window.location.search).get('key');
 if (OVERLAY_KEY) {
   const keyedFetch = window.fetch.bind(window);
