@@ -82,7 +82,11 @@ export interface SeasonHealth {
   ledger: LedgerHealth;
 }
 
-export interface TradesHealth { openCount: number; openBytes: number; historyCount: number; historyBytes: number }
+export interface TradesHealth {
+  openCount: number; openBytes: number; historyCount: number; historyBytes: number;
+  /** Closed offers still marked escrowed: a refund or accept failed after the offer was saved, so its copies need returning by hand. */
+  stuckEscrow: string[];
+}
 
 export interface DataHealth {
   at: number;
@@ -124,12 +128,12 @@ export async function loadDataHealth(activeSeasonId?: string | null): Promise<Da
     return { id: s.id, name: s.name, active: s.id === activeSeasonId, collection, level: healthLevel(collection.bytes), ledger: await ledgerHealth(s.collectionName, Object.keys(raw)) };
   }));
   const [open, history, activityEvents] = await Promise.all([
-    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<unknown[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0),
+    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<{ id: string; escrowed?: boolean }[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0),
   ]);
   return {
     at: Date.now(),
     seasons: rows,
-    trades: { openCount: open?.length ?? 0, openBytes: jsonBytes(open), historyCount: history?.length ?? 0, historyBytes: jsonBytes(history) },
+    trades: { openCount: open?.length ?? 0, openBytes: jsonBytes(open), historyCount: history?.length ?? 0, historyBytes: jsonBytes(history), stuckEscrow: (history ?? []).filter(t => t.escrowed).map(t => t.id) },
     activityEvents: Number(activityEvents) || 0,
   };
 }

@@ -62,6 +62,10 @@ export async function DataHealthPanel() {
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.trades.openCount)} ({formatBytes(h.trades.openBytes)})</dd>
         <dt className="text-gray-500">Trade history</dt>
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.trades.historyCount)} kept ({formatBytes(h.trades.historyBytes)}), capped at 400</dd>
+        {h.trades.stuckEscrow.length > 0 && <>
+          <dt className="text-red-400">Stuck in escrow</dt>
+          <dd className="text-red-300 mb-1.5 sm:mb-0">{h.trades.stuckEscrow.join(', ')}: closed offers whose cards never moved. Return them to the offerer by hand.</dd>
+        </>}
         <dt className="text-gray-500">Activity log</dt>
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.activityEvents)} events, capped at 500</dd>
       </dl>
