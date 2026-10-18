@@ -37,6 +37,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   ] },
   { title: 'System', items: [
     { href: '/admin/staff', label: 'Staff', icon: 'shield', key: 'f', keywords: ['admins', 'mods', 'moderators', 'roles', 'permissions', 'team'] },
+    { href: '/admin/wiki', label: 'Staff wiki', icon: 'book', key: 'k', keywords: ['handbook', 'help', 'docs', 'guide', 'glossary', 'support'] },
     { href: '/admin/sandbox', label: 'Sandbox', icon: 'flask', key: 'b', keywords: ['test', 'testing'] },
     { href: '/admin/settings', label: 'Settings', icon: 'settings', key: 'c', keywords: ['scoring', 'webhooks', 'discord', 'environment', 'twitch', 'config'] },
   ] },

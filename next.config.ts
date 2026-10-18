@@ -15,6 +15,11 @@ function git(args: string): string | undefined {
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
 
 const nextConfig: NextConfig = {
+  // Wiki pages read content/wiki/*.md at request time. Trace those files into the server bundle.
+  outputFileTracingIncludes: {
+    '/admin/wiki': ['./content/wiki/**/*'],
+    '/admin/wiki/[slug]': ['./content/wiki/**/*'],
+  },
   env: {
     BUILD_VERSION: pkg.version,
     BUILD_COMMIT: process.env.VERCEL_GIT_COMMIT_SHA ?? git('rev-parse HEAD') ?? '',
