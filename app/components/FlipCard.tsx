@@ -79,7 +79,7 @@ export function FlipCard({ children, back, compact = false, className = '', defa
   if (bare) {
     return (
       <div className={`flip-wrap ${className}`}>
-        <div ref={box} className="flip-card" style={{ cursor: 'default' }}>
+        <div ref={box} className="flip-card" data-flipped="true" style={{ cursor: 'default' }}>
           <div className="flip-face flip-back" style={{ transform: 'none' }}>{plate}</div>
         </div>
       </div>
