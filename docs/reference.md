@@ -42,7 +42,7 @@
 | `public/twitch-panel/panel.js` | Extension panel logic: Twitch auth flow, pack tabs, collection display |
 | `public/twitch-panel/panel.css` | Extension panel styles (Twitch dark theme) |
 | `public/twitch-panel/mobile.html`, `video_component.html`, `views.css` | The Extension's Mobile and Video - Component views: same markup + `panel.js`/`panel.css` as the panel, with a `view-mobile` / `view-video` body class and layout overrides in `views.css`. Keep the three HTML files' markup in sync |
-| `scripts/mock-kv.cjs`, `scripts/seed-dev.mts` | Dev-only fake KV server + Season 1 seeder (see Testing locally); `scripts/optimize-cards.mjs` converts card GIFs |
+| `scripts/mock-kv.cjs`, `scripts/seed-dev.mts` | Dev-only fake KV server + Season 1 seeder (see docs/local-dev.md); `scripts/optimize-cards.mjs` converts card GIFs |
 | `middleware.ts` | First auth gate for `/admin/*` and `/mod/*` (reads the signed staff cookie; the real check is `lib/staff-guard.ts`, see "Staff"). The public site (`/u/*`, `/collection`) is open |
 
 ## API routes

@@ -163,6 +163,6 @@ node scripts/make-pwa-icons.mjs         # the website's home-screen icons (same 
 
 The screenshots are real captures of the panel, framed on a branded 1024 x 768 backdrop. To redo them after the panel changes:
 
-1. Run the app against the mock database (see "Testing locally" in CLAUDE.md) and seed a sandbox with a rich viewer, a crowd and some board listings: `npx tsx scripts/seed-twitch-screenshots.mts` (prints the sandbox id).
+1. Run the app against the mock database (see docs/local-dev.md) and seed a sandbox with a rich viewer, a crowd and some board listings: `npx tsx scripts/seed-twitch-screenshots.mts` (prints the sandbox id).
 2. Log in to the admin, set the `tcg_sandbox` cookie to that id, and open the panel with the fake Twitch helper (`/twitch-panel/panel.html?mock=1&as=cheesyfan&share=1`) at 318 x 500, scaled 1.35x on a 1024 x 768 stage.
 3. The browser pane can only capture 800 x 600, so capture the stage as four lossless tiles (page scrolled to 0,0 / 224,0 / 0,168 / 224,168) with animations frozen, then join them: `node scripts/stitch-screenshot-tiles.cjs <out.png> <a> <b> <c> <d>`. The stitcher takes each pixel from exactly one tile, so animated card art never shows a seam.
