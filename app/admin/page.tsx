@@ -44,6 +44,12 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           >
             Create Pack
           </Link>
+          <Link
+            href="/admin/wiki"
+            className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl text-sm transition-colors"
+          >
+            Staff wiki
+          </Link>
         </div>
       </div>
     );
@@ -75,6 +81,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
           <Link href={`/admin/seasons/${season.id}`} className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">Season Settings</Link>
+          <Link href="/admin/wiki" className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">Staff wiki</Link>
           <Link href={`/leaderboard/${season.id}`} target="_blank" className="px-3 py-1.5 text-xs bg-yellow-500/10 border border-yellow-500/30 hover:bg-yellow-500/20 text-yellow-300 font-semibold rounded-lg transition-colors"><Icon name="trophy" className="mr-1" />Leaderboard ↗</Link>
           <OverlayStatus />
         </div>
