@@ -296,12 +296,17 @@ function ChannelCard({ channel: c, log, pending, onChange, onRemove }: {
         <PendingButton type="submit" name="intent" value={`last:${c.id}`} disabled={pending} className={secondaryBtn} title="Re-posts the most recent activity event that matches this channel's categories and filters">
           Send last activity
         </PendingButton>
-        {c.categories.digest && (
-          <PendingButton type="submit" name="intent" value={`digest:${c.id}`} disabled={pending} className={secondaryBtn} title="Posts a weekly digest with made-up numbers using the URL above. Nothing is saved">
-            Send test digest
-          </PendingButton>
-        )}
       </div>
+      {DISCORD_CATEGORIES.some(cat => c.categories[cat.key]) && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-gray-500">Test a category:</span>
+          {DISCORD_CATEGORIES.filter(cat => c.categories[cat.key]).map(cat => (
+            <PendingButton key={cat.key} type="submit" name="intent" value={`sample:${c.id}:${cat.key}`} disabled={pending} className={secondaryBtn} title={`Posts the newest real ${cat.label.toLowerCase()} message, or a made-up one when there is none. Nothing is saved`}>
+              {cat.label}
+            </PendingButton>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

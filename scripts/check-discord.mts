@@ -248,6 +248,24 @@ ok(lc.categories.listings === false, 'an old channel does not start posting list
   ok(await got('deletion') === '21,23', 'a deletion request reaches the all-kinds and the requests channel');
 }
 
+// ── Per-category test sends: a real example when one exists, made-up data otherwise ──
+{
+  const { sampleMessage } = await import('../lib/discord-samples');
+  const dc = await import('../lib/discord-config');
+  const footer = (m: { embeds: { footer?: { text: string } }[] }) => m.embeds[0]?.footer?.text ?? '';
+  for (const k of ['activity:log', 'activity:seq', 'stream:recap:latest', 'digest:latest']) await kv.del(k);
+  for (const { key } of dc.DISCORD_CATEGORIES) {
+    const m = await sampleMessage(key);
+    ok(m.embeds.length === 1 && m.embeds[0].title && JSON.stringify(m.allowed_mentions) === '{"parse":[]}', `the ${key} test is one embed that pings nobody`);
+    ok(key === 'feedback' || footer(m).includes('made-up'), `with no data the ${key} test says it is made up (${footer(m)})`);
+  }
+  const { recordActivity } = await import('../lib/activity');
+  await recordActivity({ type: 'upgrade', username: 'realviewer', cardNumber: 1, cardName: 'Real Card', from: 'regular', to: 'shiny', cost: 5 });
+  const up = await sampleMessage('upgrades');
+  ok(footer(up).includes('real') && JSON.stringify(up).includes('realviewer'), 'with an upgrade in the log the upgrades test uses it');
+  ok(footer(await sampleMessage('pulls')).includes('made-up'), 'other categories still fall back to made-up data');
+}
+
 server.close();
 console.log('discord ok');
 process.exit(0);

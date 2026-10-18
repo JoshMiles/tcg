@@ -52,7 +52,7 @@ export const DISCORD_CATEGORIES: { key: DiscordCategory; label: string; hint: st
   { key: 'upgrades', label: 'Upgrades', hint: 'Cards upgraded to a better version, with a link to the new print' },
   { key: 'trades', label: 'Trades', hint: 'Completed trades, counter-offers and admin cancels' },
   { key: 'listings', label: 'Trade listings', hint: 'New listings on the trade board, each with a link to its trade page' },
-  { key: 'recap', label: 'Stream recap', hint: 'One summary after each stream: packs opened, new collectors, the rarest pull, the top puller and trades' },
+  { key: 'recap', label: 'Stream recap', hint: 'One summary after each stream: packs opened, rewards and grants, upgrades, overlay requests, new collectors, the rarest pull, the top puller and trades' },
   { key: 'digest', label: 'Weekly digest', hint: 'One post each Sunday evening: pulls, new collectors and trades, the top 3, movers, the most traded and most wanted cards and the print of the week' },
   { key: 'feedback', label: 'Feedback', hint: 'Each new suggestion and problem report, with the sender’s login (the text is cut and Markdown-escaped)' },
   { key: 'stream', label: 'Stream triggers', hint: 'Pack draws / collection views requested, and collections shown' },

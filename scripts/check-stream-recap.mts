@@ -48,11 +48,22 @@ const r = buildStreamRecap(events, T0, T0 + 2 * H);
 // A card granted by webhook (a reward) counts as a pack opened, a puller, a new collector, and can be the rarest.
 const wgrant = (username: string, at: number, over: Record<string, unknown> = {}) => ({ type: 'grant', source: 'webhook', seq: ++seq, at, username, cardNumber: 9, ...over }) as unknown as Ev;
 const rg = buildStreamRecap([...events, wgrant('dee', T0 + 7000, { stars: 5, cardName: 'Dragon', packName: 'Base', isNew: true, copies: 1, uniqueOwned: 1, serial: 1, variant: 'shiny' }), wgrant('ann', T0 + 8000), { type: 'grant', source: 'admin', seq: ++seq, at: T0 + 9000, username: 'zed', cardNumber: 2 } as unknown as Ev], T0, T0 + 2 * H);
-ok(rg.packs === 7 && rg.pullers === 4, 'webhook grants count as packs and pullers; an admin grant does not');
+ok(rg.packs === 5 && rg.rewards === 2 && rg.staffGrants === 1 && rg.pullers === 4, 'grants are counted apart from packs; a webhook grant counts as a puller, an admin grant does not');
 ok(rg.rarest?.cardName === 'Dragon' && rg.rarest.variant === 'shiny', 'a rare webhook grant can be the rarest pull');
 ok(rg.newCollectors.includes('dee') && rg.firstEver.some(p => p.username === 'dee'), 'and a first-ever new collector');
 ok(rg.topPuller?.username === 'ann' && rg.topPuller.packs === 3, 'and counts towards the top puller (ann: 2 pulls and a grant)');
 ok(r.packs === 5 && r.pullers === 3, 'counts only the pulls inside the window');
+// Overlay requests (webhooks and commands, staff quick actions) and upgrades.
+const trig = (kind: string, at: number, over: Record<string, unknown> = {}) => ({ type: 'trigger', kind, seq: ++seq, at, username: 'ann', ...over }) as unknown as Ev;
+const ra = buildStreamRecap([...events, trig('pull', T0 + 100, { source: 'webhook' }), trig('collection', T0 + 200), trig('card', T0 + 300, { source: 'webhook' }), trig('pull', T0 + 400, { source: 'admin', count: 3 }),
+  trig('collection', T0 + 500, { source: 'admin' }), trig('pull', T0 + 4 * H), { type: 'upgrade', seq: ++seq, at: T0 + 600, username: 'ann', cardNumber: 1, cardName: 'Cat', from: 'regular', to: 'shiny', cost: 5 } as unknown as Ev], T0, T0 + 2 * H);
+ok(JSON.stringify(ra.actions) === '{"webhook":{"packs":1,"collections":1,"cards":1},"staff":{"packs":3,"collections":1,"cards":0}}', 'overlay requests are split by source (a command has none) and a staff pull counts its packs');
+ok(ra.upgrades === 1 && r.upgrades === 0, 'upgrades in the window are counted');
+const fa = Object.fromEntries((d.buildRecapMessage(ra).embeds[0].fields ?? []).map(f => [f.name, f.value]));
+ok(fa['Overlay requests'] === 'Webhooks and commands: 1 pack, 1 collection shown, 1 card shown\nStaff: 3 packs, 1 collection shown' && fa['Upgrades'] === '1', 'the embed lists the overlay requests and upgrades');
+const fg = Object.fromEntries((d.buildRecapMessage(rg).embeds[0].fields ?? []).map(f => [f.name, f.value]));
+ok(fg['Rewards granted'] === '2' && fg['Staff grants'] === '1' && !('Overlay requests' in fg), 'the embed lists rewards and staff grants, and leaves out empty lines');
+ok(recapWorthPosting(buildStreamRecap([wgrant('dee', T0 + 7000)], T0, T0 + H)), 'a stream with only rewards still gets a recap');
 ok(r.distinctCards === 5, 'counts different cards');
 ok(JSON.stringify(r.newCollectors) === '["ann"]', 'a new collector is a first-ever card, not just a new card');
 ok(r.firstEver.length === 1 && r.firstEver[0].username === 'ann', 'first-ever pulls are edition 1 pulls');
@@ -90,6 +101,9 @@ await sleep(300);
 ok(!!(a ?? b) && !(a && b), 'two instances ending the same stream: exactly one builds the recap');
 ok(hits.length === 1 && hits[0].embeds[0].title?.includes('Stream recap'), 'exactly one recap reaches Discord');
 ok((await live.getLatestRecap())?.packs === 1, 'the latest recap is stored for the dashboard');
+const stored = await kv.get<Record<string, unknown>>('stream:recap:latest');
+await kv.set('stream:recap:latest', { ...stored, rewards: undefined, staffGrants: undefined, upgrades: undefined, actions: undefined });
+ok((await live.getLatestRecap())?.actions.staff.packs === 0, 'a recap stored before the grant and request counts reads with zeros');
 await kv.del('twitch:recap:lock');
 await live.finishStream(); await sleep(200);
 ok(hits.length === 1, 'the same stream is never recapped twice, even once the lock has expired');

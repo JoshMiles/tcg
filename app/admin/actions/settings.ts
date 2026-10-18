@@ -8,10 +8,10 @@ import { listAllPackIds } from '@/lib/kv';
 import { deleteUnusedBlobs } from '@/lib/assets';
 import { getActivity } from '@/lib/activity';
 import {
-  saveDiscordSettings, cleanDiscordInput, notifyAdminLog, deliver, buildMessage, buildTestMessage, buildDigestMessage, newestMatchingEvent,
+  saveDiscordSettings, cleanDiscordInput, notifyAdminLog, deliver, buildMessage, buildTestMessage, newestMatchingEvent, DISCORD_CATEGORIES,
 } from '@/lib/discord';
+import { sampleMessage } from '@/lib/discord-samples';
 import { currentStaffLogin } from '@/lib/staff-actor';
-import { sampleDigest } from '@/lib/weekly-digest';
 import type { ActionResult } from '../action-types';
 import { getWebhookSettings, saveWebhookSettings } from '@/lib/webhooks';
 import { getOverlaySettings, saveOverlaySettings, savePackOverrides, savePreset, deletePreset, bumpReloadToken, updateScene } from '@/lib/overlay-settings';
@@ -165,7 +165,7 @@ export async function deleteUnusedAssets(formData: FormData) {
 
 // ── Discord activity feed ─────────────────────────────────
 // One form: the whole settings object travels as JSON in the `settings` field, and the submit button's intent is
-// save | test:<channelId> | last:<channelId>. Test and "last" use the channel as currently typed, so a webhook can be
+// save | test:<channelId> | last:<channelId> | sample:<channelId>:<category>. Test and "last" use the channel as currently typed, so a webhook can be
 // verified before it is saved.
 
 export async function discordAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
@@ -184,16 +184,17 @@ export async function discordAction(_prev: ActionResult | null, formData: FormDa
     return { ok: true, message: live ? 'Saved. Activity will be posted to Discord.' : 'Saved. Posting to Discord is off.' };
   }
 
-  const [kind, id] = intent.split(':');
+  const [kind, id, category] = intent.split(':');
   const channel = settings.channels.find(c => c.id === id);
-  if (!channel || (kind !== 'test' && kind !== 'last' && kind !== 'recap' && kind !== 'digest')) return { ok: false, message: 'That channel is not in the form any more.' };
+  const sampleCategory = DISCORD_CATEGORIES.find(c => c.key === category);
+  if (!channel || (kind !== 'test' && kind !== 'last' && !(kind === 'sample' && sampleCategory))) return { ok: false, message: 'That channel is not in the form any more.' };
   if (!channel.url) return { ok: false, message: `${channel.name}: paste a webhook URL first.` };
 
   let result;
   if (kind === 'test') {
     result = await deliver(channel, buildTestMessage(), 'test');
-  } else if (kind === 'digest') {
-    result = await deliver(channel, buildDigestMessage(sampleDigest(), { footer: 'Test digest, made-up numbers' }), 'digest');
+  } else if (sampleCategory) {
+    result = await deliver(channel, await sampleMessage(sampleCategory.key), `test ${sampleCategory.key}`);
   } else {
     const { events } = await getActivity({ limit: 200 });
     if (!events[0]) return { ok: false, message: 'There is no activity to send yet.' };
@@ -205,5 +206,5 @@ export async function discordAction(_prev: ActionResult | null, formData: FormDa
   if (!result.ok) {
     return { ok: false, message: `${channel.name}: Discord didn’t accept it: ${result.error}${result.status ? ` (HTTP ${result.status})` : ''}` };
   }
-  return { ok: true, message: kind === 'digest' ? `Test digest sent to ${channel.name}.` : kind === 'recap' ? `Test recap sent to ${channel.name}.` : kind === 'test' ? `Test message sent to ${channel.name}. Check your Discord channel.` : `Sent the most recent matching activity to ${channel.name}.` };
+  return { ok: true, message: sampleCategory ? `Test ${sampleCategory.label} sent to ${channel.name}.` : kind === 'test' ? `Test message sent to ${channel.name}. Check your Discord channel.` : `Sent the most recent matching activity to ${channel.name}.` };
 }
