@@ -34,7 +34,7 @@
 | `app/admin/components/AddCardButton.tsx` | Client button that owns AddCardDialog open/close state |
 | `lib/twitch-jwt.ts` | Manual JWT verification via Node `crypto` (no external deps) + `getBearerToken()` |
 | `lib/overlay-props.ts` | Registry of every adjustable overlay property (defaults, limits, validation, import/export). See "Overlay properties" |
-| `app/admin/overlay/OverlayEditor.tsx`, `app/admin/overlay/page.tsx` | The **Overlay Editor** (sidebar → `/admin/overlay`): one workspace for the overlay's layout and look, registry-driven properties, live preview, drag-to-position, per-pack overrides, presets, import/export |
+| `app/admin/overlay/OverlayEditor.tsx`, `app/admin/overlay/page.tsx` | The **Overlay Editor** (sidebar → `/admin/overlay`): one workspace for the overlay's layout and look, registry-driven properties, live preview, drag-to-position, per-pack overrides, presets, import/export. `OverlayEditor.tsx` holds the state; its parts live beside it: `editor-types.ts`, `editor-controls.tsx` (inputs and shared class strings), `EditorMenus.tsx` (the top bar popovers), `LayoutPanel.tsx`, `VariantPicker.tsx`, `CategoryRail.tsx` |
 | `public/widget.js` | OBS overlay widget. Vanilla JS, no build step |
 | `public/overlay.html` | OBS browser source HTML |
 | `public/widget.css` | Overlay styles |
