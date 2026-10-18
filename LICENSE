@@ -1,0 +1,24 @@
+Copyright (c) 2026 Josh Miles. All rights reserved.
+
+This repository is published so that its source can be read. Publishing it
+does not grant a license to use it.
+
+You may view the source code and documentation on GitHub, and fork the
+repository on GitHub only as far as GitHub's Terms of Service require.
+
+You may not, without prior written permission from the copyright holder:
+
+  - copy, modify, merge or create derivative works of the code or assets;
+  - host, deploy or run the software, or any part of it, for others;
+  - distribute, sublicense or sell the code or assets;
+  - use the card art, sounds, images, names or branding of The Cheesy TCG.
+
+Third-party components keep their own licenses: npm dependencies (see
+package.json) and the fonts in public/fonts/back (SIL Open Font License,
+each with its own LICENSE file).
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
