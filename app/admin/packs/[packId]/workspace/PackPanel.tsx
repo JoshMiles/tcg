@@ -4,7 +4,7 @@ import { Icon } from '@/app/components/Icon';
 import { CardBackEditor, type CardBackEditorProps } from '../../../components/CardBackEditor';
 import { ConfirmButton } from '../../../components/ConfirmButton';
 import { VariantChips } from '../../../components/VariantSwitches';
-import { deletePackAction } from '../../../actions';
+import { deletePackAction } from '../../../actions/packs';
 import type { PackInput } from '@/lib/pack-clean';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { ArtDrop, Field, NumberInput, Section, inputCls } from './fields';

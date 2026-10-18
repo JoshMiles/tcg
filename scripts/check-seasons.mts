@@ -86,7 +86,7 @@ await db.runInSandbox(box.id, async () => {
 // ── The season actions validate on the server (a form can be posted without the browser's checks) ──
 {
   const { readFileSync } = await import('node:fs');
-  const actions = readFileSync(new URL('../app/admin/actions.ts', import.meta.url), 'utf8');
+  const actions = readFileSync(new URL('../app/admin/actions/seasons.ts', import.meta.url), 'utf8');
   const body = actions.slice(actions.indexOf('export async function updateSeason'), actions.indexOf('export async function activateSeason'));
   ok(body.includes('validateSeason(') && body.includes('redirect('),'updateSeason runs validateSeason and sends the admin back with the reason');
   ok(body.includes('Math.max(1, Math.floor('),'updateSeason keeps max concurrent packs a whole number of at least 1');

@@ -1,6 +1,6 @@
 'use client';
 import { useActionState, useState, useTransition } from 'react';
-import { clearQueueAction } from '../actions';
+import { clearQueueAction } from '../actions/users';
 import type { ActionResult } from '../action-types';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { Spinner } from '../components/PendingButton';

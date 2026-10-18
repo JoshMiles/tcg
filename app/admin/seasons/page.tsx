@@ -3,7 +3,7 @@ import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
 import { listSeasons, getPacksForSeason } from '@/lib/kv';
 import { getActivationPreview, getSeasonStats, getSnapshot, type ActivationPreview, type SeasonStats } from '@/lib/season-wrap';
-import { deleteSeasonAction, activateSeason } from '../actions';
+import { deleteSeasonAction, activateSeason } from '../actions/seasons';
 import { discardDraftSeason } from '../draft-actions';
 import { duplicateSeasonAction } from '../season-actions';
 import { NewSeasonButton } from '../components/NewSeasonButton';

@@ -3,7 +3,7 @@ import { PendingButton } from './components/PendingButton';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { getActiveSeasonWithPacks, getPackCards, getPacksForSeason, listSeasons } from '@/lib/kv';
-import { seedSeason1 } from './actions';
+import { seedSeason1 } from './actions/seasons';
 import { OverlayStatus } from './components/OverlayStatus';
 import { getStaff } from '@/lib/staff-guard';
 import { loginForLayout } from '@/lib/dashboard';

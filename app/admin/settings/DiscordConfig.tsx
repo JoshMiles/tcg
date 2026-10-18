@@ -8,7 +8,7 @@ import {
   type DiscordChannel, type DiscordLogEntry, type DiscordSettings,
 } from '@/lib/discord-config';
 import type { ActionResult } from '../action-types';
-import { discordAction } from '../actions';
+import { discordAction } from '../actions/settings';
 
 const inputClass =
   'bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors';

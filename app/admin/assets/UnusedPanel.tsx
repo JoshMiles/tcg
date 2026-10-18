@@ -4,7 +4,7 @@ import { Icon } from '@/app/components/Icon';
 import type { BlobProblem, UnusedBlob } from '@/lib/assets';
 import { olderThan } from '@/lib/asset-insights';
 import { ConfirmButton } from '../components/ConfirmButton';
-import { deleteUnusedAssets } from '../actions';
+import { deleteUnusedAssets } from '../actions/settings';
 import { formatBytes } from './asset-ui';
 
 const AGES = [7, 30, 90];

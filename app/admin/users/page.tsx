@@ -7,7 +7,7 @@ import { getSeasonLeaderboard } from '@/lib/leaderboard';
 import { getLastSeen } from '@/lib/stats';
 import { tradeCountsByUser } from '@/lib/trades';
 import { decodeEntry } from '@/lib/variants';
-import { resetAllUsers } from '../actions';
+import { resetAllUsers } from '../actions/users';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { UsersList, type UserRow } from './UsersList';
 import { Tile, EmptyState } from '../components/ui';

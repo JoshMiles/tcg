@@ -7,7 +7,7 @@ import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import { cardNumberOf, notableReason, plainText, type CardNamer } from '@/lib/activity-view';
 import type { ActivityEvent } from '@/lib/activity';
-import { quickAction, removeUserCard } from '../actions';
+import { quickAction, removeUserCard } from '../actions/users';
 import { Spinner } from '../components/PendingButton';
 import type { CardInfo } from './ActivityFeed';
 import { usePrintHref } from './PrintLink';

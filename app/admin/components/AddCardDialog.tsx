@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import { Dialog } from './Dialog';
 import { ImageUploadField } from './image-upload';
 import { AudioUploadField } from './audio-upload';
-import { addCard } from '../actions';
+import { addCard } from '../actions/cards';
 import { RARITIES } from '@/lib/rarity';
 
 export function AddCardDialog({

@@ -53,12 +53,15 @@ ok(cardProblems({ ...card, number: MAX_CARD_NUMBER }, []).length === 0, 'the lar
 }
 
 // ── the forms go through it ──
-const actions = readFileSync(new URL('../app/admin/actions.ts', import.meta.url), 'utf8');
-const section = (from: string, to: string) => actions.slice(actions.indexOf(from), actions.indexOf(to));
-ok(section('export async function updatePack', '// One-click').includes('cleanPackInput('), 'updatePack cleans the form with cleanPackInput');
-ok(section('export async function addCard', 'export async function updateCard').includes('cardFromForm(') && actions.includes('cardProblems(fields'), 'addCard checks the card');
-ok(section('export async function updateCard', '// ── Quick variant').includes('cardFromForm('), 'updateCard checks the card');
-ok(section('export async function updateCard', '// ── Quick variant').includes('heldCardNumbers('), 'updateCard refuses to renumber a card viewers hold');
+const packActions = readFileSync(new URL('../app/admin/actions/packs.ts', import.meta.url), 'utf8');
+const cardActions = readFileSync(new URL('../app/admin/actions/cards.ts', import.meta.url), 'utf8');
+const formHelpers = readFileSync(new URL('../app/admin/actions/form-helpers.ts', import.meta.url), 'utf8');
+const actions = packActions + cardActions;
+const section = (src: string, from: string, to: string) => src.slice(src.indexOf(from), src.indexOf(to));
+ok(section(packActions, 'export async function updatePack', '// One-click').includes('cleanPackInput('), 'updatePack cleans the form with cleanPackInput');
+ok(section(cardActions, 'export async function addCard', 'export async function updateCard').includes('cardFromForm(') && formHelpers.includes('cardProblems(fields'), 'addCard checks the card');
+ok(section(cardActions, 'export async function updateCard', 'export async function setCardUpgrades').includes('cardFromForm('), 'updateCard checks the card');
+ok(section(cardActions, 'export async function updateCard', 'export async function setCardUpgrades').includes('heldCardNumbers('), 'updateCard refuses to renumber a card viewers hold');
 ok(!/export async function createPack\b/.test(actions), 'there is no second, unchecked way to create a pack (the wizard is the only one)');
 const drafts = readFileSync(new URL('../app/admin/draft-actions.ts', import.meta.url), 'utf8');
 ok(drafts.includes("from '@/lib/pack-clean'"), 'the wizard autosave uses the same cleaner');
