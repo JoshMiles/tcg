@@ -349,7 +349,7 @@ function Recap({ d }: { d: DashboardData }) {
         <div className="space-y-2 text-sm">
           <p className="text-xs text-gray-500">{new Date(r.to).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC{r.partial ? ' · minimums, the activity log no longer reaches the start' : ''}</p>
           <dl className="grid grid-cols-3 gap-2 text-center">
-            {([['Packs', r.packs], ['Collectors', r.pullers], ['New', r.newCollectors.length], ['First ever', r.firstEver.length], ['Trades', r.tradesCompleted], ['Cards', r.distinctCards]] as const).map(([label, n]) => (
+            {([['Packs', r.packs], ['Rewards', r.rewards], ['Staff grants', r.staffGrants], ['Upgrades', r.upgrades], ['Collectors', r.pullers], ['New', r.newCollectors.length], ['First ever', r.firstEver.length], ['Trades', r.tradesCompleted], ['Cards', r.distinctCards]] as const).map(([label, n]) => (
               <div key={label} className="rounded-lg bg-gray-950/50 border border-gray-800 py-1.5"><dd className="font-bold text-white tabular-nums">{n}</dd><dt className="text-[11px] text-gray-500">{label}</dt></div>
             ))}
           </dl>
@@ -357,7 +357,7 @@ function Recap({ d }: { d: DashboardData }) {
             <p className="text-gray-300">Rarest: {r.rarest.href ? <Link href={r.rarest.href} className="text-yellow-400 hover:underline">{'★'.repeat(r.rarest.stars)} {r.rarest.cardName}</Link> : <span>{'★'.repeat(r.rarest.stars)} {r.rarest.cardName}</span>}
               {r.rarest.serial ? ', Print #' + r.rarest.serial : ''} <span className="text-gray-500">by {r.rarest.username}</span></p>
           )}
-          {r.topPuller && <p className="text-gray-300">Top puller: <span className="text-white font-medium">{r.topPuller.username}</span> <span className="text-gray-500">({r.topPuller.packs} packs)</span></p>}
+          {r.topPuller && <p className="text-gray-300">Top puller: <span className="text-white font-medium">{r.topPuller.username}</span> <span className="text-gray-500">({r.topPuller.packs} pulls)</span></p>}
         </div>
       )}
     </Panel>

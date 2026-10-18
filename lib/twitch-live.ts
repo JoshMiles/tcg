@@ -2,7 +2,7 @@ import { kv, inSandbox } from './db';
 import { escapeMd, notifyRecap, notifySystem } from './discord';
 import { getActivity } from './activity';
 import { getActiveSeasonWithPacks } from './kv';
-import { buildStreamRecap, recapWorthPosting, type StreamRecap } from './stream-recap';
+import { buildStreamRecap, normalizeRecap, recapWorthPosting, type StreamRecap } from './stream-recap';
 import { getAppAccessToken, twitchCredentials, TWITCH_API_URL } from './twitch-helix';
 import { CHANNEL_LOGIN } from './site';
 
@@ -91,5 +91,5 @@ export async function finishStream(now = Date.now()): Promise<StreamRecap | null
 
 /** The most recent stream recap, for the dashboard widget and the channel card's test button. */
 export async function getLatestRecap(): Promise<StreamRecap | null> {
-  try { return (await kv.get<StreamRecap>(RECAP_KEY)) ?? null; } catch { return null; }
+  try { const r = await kv.get<StreamRecap>(RECAP_KEY); return r ? normalizeRecap(r) : null; } catch { return null; }
 }

@@ -319,11 +319,21 @@ pulled by **${esc(p.username)}**`;
     { name: 'Different cards', value: String(r.distinctCards), inline: true },
     { name: 'Collectors', value: String(r.pullers), inline: true },
   ];
+  if (r.rewards) fields.push({ name: 'Rewards granted', value: String(r.rewards), inline: true });
+  if (r.staffGrants) fields.push({ name: 'Staff grants', value: String(r.staffGrants), inline: true });
+  if (r.upgrades) fields.push({ name: 'Upgrades', value: String(r.upgrades), inline: true });
   if (r.newCollectors.length) fields.push({ name: 'New collectors', value: String(r.newCollectors.length), inline: true });
   if (r.firstEver.length) fields.push({ name: 'First-ever pulls', value: String(r.firstEver.length), inline: true });
   if (r.tradesCompleted) fields.push({ name: 'Trades completed', value: String(r.tradesCompleted), inline: true });
+  const actionLine = (label: string, a: StreamRecap['actions']['webhook']) => {
+    const parts = [[a.packs, 'pack', ''], [a.collections, 'collection', ' shown'], [a.cards, 'card', ' shown']] as const;
+    const shown = parts.filter(([n]) => n > 0).map(([n, noun, tail]) => `${n} ${noun}${n === 1 ? '' : 's'}${tail}`);
+    return shown.length ? `${label}: ${shown.join(', ')}` : null;
+  };
+  const actions = [actionLine('Webhooks and commands', r.actions.webhook), actionLine('Staff', r.actions.staff)].filter(Boolean);
+  if (actions.length) fields.push({ name: 'Overlay requests', value: actions.join('\n') });
   if (r.rarest) fields.push({ name: 'Rarest pull', value: printLine(r.rarest) });
-  if (r.topPuller) fields.push({ name: 'Top puller', value: `**${esc(r.topPuller.username)}** with ${r.topPuller.packs} pack${r.topPuller.packs === 1 ? '' : 's'}` });
+  if (r.topPuller) fields.push({ name: 'Top puller', value: `**${esc(r.topPuller.username)}** with ${r.topPuller.packs} pull${r.topPuller.packs === 1 ? '' : 's'}` });
   return payload({
     color: rarity ? hexToInt(rarity.hex) : GOLD,
     title: '📼 Stream recap',

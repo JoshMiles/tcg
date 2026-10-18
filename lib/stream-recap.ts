@@ -11,11 +11,20 @@ import type { Variant } from './types';
 
 export interface RecapPull { username: string; cardName: string; stars: number; variant?: Variant; packName: string; /** Site path of the print, when the pull has one. */ href: string | null; serial?: number }
 
+/** Overlay requests by kind: packs drawn, collections shown, cards shown. */
+export interface RecapActions { packs: number; collections: number; cards: number }
+
 export interface StreamRecap {
   from: number;
   to: number;
-  /** Packs opened (one pull is one pack). */
+  /** Packs opened (one pull is one pack). Webhook grants are not packs, but count as pulls everywhere else in the recap. */
   packs: number;
+  /** Cards granted by webhook (rewards) and by staff. */
+  rewards: number;
+  staffGrants: number;
+  upgrades: number;
+  /** Overlay requests from webhooks and chat commands, and from staff quick actions. */
+  actions: { webhook: RecapActions; staff: RecapActions };
   /** Different cards among those pulls. */
   distinctCards: number;
   /** Viewers who opened at least one pack. */
@@ -30,6 +39,9 @@ export interface StreamRecap {
   /** True when the activity log (capped) no longer reaches back to the start of the stream, so the numbers are a floor. */
   partial: boolean;
 }
+
+const noActions = (): RecapActions => ({ packs: 0, collections: 0, cards: 0 });
+const ACTION_KEY = { pull: 'packs', collection: 'collections', card: 'cards' } as const;
 
 const variantRank = (v?: Variant) => Math.max(0, VARIANTS.indexOf(v ?? 'regular'));
 
@@ -58,9 +70,17 @@ export function buildStreamRecap(events: ActivityEvent[], from: number, to: numb
     if (better) rarest = p;
   }
 
+  const actions = { webhook: noActions(), staff: noActions() };
+  for (const e of inWindow) if (e.type === 'trigger') actions[e.source === 'admin' ? 'staff' : 'webhook'][ACTION_KEY[e.kind]] += e.kind === 'pull' ? (e.count ?? 1) : 1;
+  const grants = inWindow.filter(e => e.type === 'grant');
+
   return {
     from, to,
-    packs: pulls.length,
+    packs: inWindow.filter(e => e.type === 'pull').length,
+    rewards: grants.filter(e => e.source === 'webhook').length,
+    staffGrants: grants.filter(e => e.source === 'admin').length,
+    upgrades: inWindow.filter(e => e.type === 'upgrade').length,
+    actions,
     distinctCards: new Set(pulls.map(p => p.cardNumber)).size,
     pullers: counts.size,
     newCollectors: [...new Set(pulls.filter(p => p.isNew && p.uniqueOwned === 1).map(p => p.username))],
@@ -72,13 +92,18 @@ export function buildStreamRecap(events: ActivityEvent[], from: number, to: numb
   };
 }
 
-/** A stream with no pulls gets no recap. */
-export const recapWorthPosting = (r: StreamRecap) => r.packs > 0;
+/** A stream with no pulls or rewards gets no recap. */
+export const recapWorthPosting = (r: StreamRecap) => r.packs + r.rewards > 0;
+
+/** Fills in the fields a stored recap from before they existed lacks. */
+export const normalizeRecap = (r: Partial<StreamRecap> & Omit<StreamRecap, 'rewards' | 'staffGrants' | 'upgrades' | 'actions'>): StreamRecap =>
+  ({ ...r, rewards: r.rewards ?? 0, staffGrants: r.staffGrants ?? 0, upgrades: r.upgrades ?? 0, actions: { webhook: r.actions?.webhook ?? noActions(), staff: r.actions?.staff ?? noActions() } });
 
 /** Made-up numbers for the Discord channel card's test button when no real recap exists yet. */
 export function sampleRecap(now = Date.now()): StreamRecap {
   return {
     from: now - 2 * 3_600_000 - 15 * 60_000, to: now, packs: 42, distinctCards: 27, pullers: 9, newCollectors: ['sample_viewer'],
+    rewards: 5, staffGrants: 1, upgrades: 3, actions: { webhook: { packs: 6, collections: 4, cards: 2 }, staff: { packs: 1, collections: 0, cards: 0 } },
     firstEver: [], tradesCompleted: 2, partial: false, topPuller: { username: 'sample_viewer', packs: 11 },
     rarest: { username: 'sample_viewer', cardName: 'Sample Card', stars: 5, variant: 'shiny', packName: 'Sample Pack', href: null, serial: 1 },
   };
