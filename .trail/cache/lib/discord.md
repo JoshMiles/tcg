@@ -27,28 +27,34 @@
 - pullEmbed · function · L212-L231 — pullEmbed = (e: PullFacts): DiscordPayload
 - list · function · L271-L271 — list = (lines: string[])
 - buildMessage · function · L298-L305 — async function buildMessage(e: ActivityEvent, opts: { footer?: string; showStaff?: boolean } = {}): Promise<DiscordPayload>
-- buildRecapMessage · function · L308-L333 — function buildRecapMessage(r: StreamRecap, opts: { footer?: string } = {}): DiscordPayload
+- buildRecapMessage · function · L308-L343 — function buildRecapMessage(r: StreamRecap, opts: { footer?: string } = {}): DiscordPayload
 - printLine · function · L312-L316 — printLine = (p: NonNullable<StreamRecap['rarest']>)
-- buildDigestMessage · function · L336-L361 — function buildDigestMessage(d: WeeklyDigest, opts: { footer?: string } = {}): DiscordPayload
-- n · function · L337-L337 — n = (x: number)
-- noticeEmbed · function · L364-L369 — function noticeEmbed(o: { title: string; text?: string; fields?: { name: string; value: string; inline?: boolean }[]; color: number; url?: string }): DiscordPayload
-- buildTestMessage · function · L371-L379 — function buildTestMessage(): DiscordPayload
-- SendResult · interface · L383-L383 — interface SendResult
-- postToDiscord · function · L386-L412 — async function postToDiscord(url: string, body: DiscordPayload): Promise<SendResult>
-- logKey · function · L416-L416 — logKey = (channelId: string)
-- getDiscordLog · function · L419-L421 — async function getDiscordLog(channelId: string): Promise<DiscordLogEntry[]>
-- recordDelivery · function · L424-L440 — async function recordDelivery(channel: DiscordChannel, kind: string, r: SendResult): Promise<void>
-- deliver · function · L443-L447 — async function deliver(channel: DiscordChannel, body: DiscordPayload, kind: string): Promise<SendResult>
-- autoDisabledChannels · function · L450-L452 — async function autoDisabledChannels(): Promise<{ id: string; name: string; reason: string }[]>
-- later · function · L455-L457 — function later(run: () => Promise<void>): void
-- sendToCategory · function · L460-L466 — async function sendToCategory(category: DiscordCategory, body: DiscordPayload, feedbackKind?: FeedbackFilterKind): Promise<void>
-- notifyDiscord · function · L469-L481 — async function notifyDiscord(e: ActivityEvent): Promise<void>
-- ListingNotice · interface · L483-L497 — interface ListingNotice
-- notifyListing · function · L504-L525 — async function notifyListing(l: ListingNotice): Promise<void>
-- list · function · L507-L507 — list = (lines: string[])
-- AdminLogEntry · interface · L535-L535 — interface AdminLogEntry
-- notifyAdminLog · function · L542-L553 — async function notifyAdminLog(entry: AdminLogEntry): Promise<void>
-- notifySystem · function · L556-L562 — async function notifySystem(o: { title: string; text?: string; tone?: 'good' | 'bad' | 'info'; fields?: { name: string; value: string; inline?: boolean }[] }): Promise<void>
-- notifyFeedback · function · L565-L592 — async function notifyFeedback(item: FeedbackItem): Promise<void>
-- notifyRecap · function · L595-L600 — async function notifyRecap(r: StreamRecap): Promise<void>
-- postDigest · function · L603-L611 — async function postDigest(d: WeeklyDigest): Promise<number>
+- actionLine · function · L328-L332 — actionLine = (label: string, a: StreamRecap['actions']['webhook'])
+- buildDigestMessage · function · L346-L371 — function buildDigestMessage(d: WeeklyDigest, opts: { footer?: string } = {}): DiscordPayload
+- n · function · L347-L347 — n = (x: number)
+- noticeEmbed · function · L374-L379 — function noticeEmbed(o: { title: string; text?: string; fields?: { name: string; value: string; inline?: boolean }[]; color: number; url?: string }): DiscordPayload
+- buildTestMessage · function · L381-L389 — function buildTestMessage(): DiscordPayload
+- SendResult · interface · L393-L393 — interface SendResult
+- postToDiscord · function · L396-L422 — async function postToDiscord(url: string, body: DiscordPayload): Promise<SendResult>
+- logKey · function · L426-L426 — logKey = (channelId: string)
+- getDiscordLog · function · L429-L431 — async function getDiscordLog(channelId: string): Promise<DiscordLogEntry[]>
+- recordDelivery · function · L434-L450 — async function recordDelivery(channel: DiscordChannel, kind: string, r: SendResult): Promise<void>
+- deliver · function · L453-L457 — async function deliver(channel: DiscordChannel, body: DiscordPayload, kind: string): Promise<SendResult>
+- autoDisabledChannels · function · L460-L462 — async function autoDisabledChannels(): Promise<{ id: string; name: string; reason: string }[]>
+- later · function · L465-L467 — function later(run: () => Promise<void>): void
+- sendToCategory · function · L470-L476 — async function sendToCategory(category: DiscordCategory, body: DiscordPayload, feedbackKind?: FeedbackFilterKind): Promise<void>
+- notifyDiscord · function · L479-L491 — async function notifyDiscord(e: ActivityEvent): Promise<void>
+- ListingNotice · interface · L493-L507 — interface ListingNotice
+- notifyListing · function · L514-L520 — async function notifyListing(l: ListingNotice): Promise<void>
+- buildListingMessage · function · L522-L539 — function buildListingMessage(l: ListingNotice): DiscordPayload
+- list · function · L523-L523 — list = (lines: string[])
+- AdminLogEntry · interface · L549-L549 — interface AdminLogEntry
+- notifyAdminLog · function · L556-L562 — async function notifyAdminLog(entry: AdminLogEntry): Promise<void>
+- buildAdminLogMessage · function · L564-L569 — buildAdminLogMessage = (entry: AdminLogEntry): DiscordPayload
+- SystemNotice · interface · L571-L571 — interface SystemNotice
+- buildSystemMessage · function · L573-L574 — buildSystemMessage = (o: SystemNotice): DiscordPayload
+- notifySystem · function · L577-L583 — async function notifySystem(o: SystemNotice): Promise<void>
+- notifyFeedback · function · L586-L592 — async function notifyFeedback(item: FeedbackItem): Promise<void>
+- buildFeedbackMessage · function · L594-L615 — function buildFeedbackMessage(item: FeedbackItem): DiscordPayload
+- notifyRecap · function · L618-L623 — async function notifyRecap(r: StreamRecap): Promise<void>
+- postDigest · function · L626-L634 — async function postDigest(d: WeeklyDigest): Promise<number>

@@ -12,3 +12,4 @@
 - fc · function · L230-L230 — fc = (over: Record<string, unknown>)
 - item · function · L244-L244 — item = (kind: string)
 - got · function · L245-L245 — got = async (kind: string)
+- footer · function · L255-L255 — footer = (m: { embeds: { footer?: { text: string } }[] })

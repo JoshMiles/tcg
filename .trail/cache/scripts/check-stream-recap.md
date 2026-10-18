@@ -6,4 +6,5 @@
 - pull · function · L31-L33 — pull = (username: string, at: number, over: Record<string, unknown> = {})
 - trade · function · L34-L34 — trade = (action: string, at: number)
 - wgrant · function · L49-L49 — wgrant = (username: string, at: number, over: Record<string, unknown> = {})
-- reset · function · L78-L78 — reset = async ()
+- trig · function · L57-L57 — trig = (kind: string, at: number, over: Record<string, unknown> = {})
+- reset · function · L89-L89 — reset = async ()

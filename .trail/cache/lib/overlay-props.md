@@ -10,14 +10,14 @@
 - variantProps · function · L120-L122 — function variantProps(v: VariantId): PropDef[]
 - variantPropsRaw · function · L124-L180 — function variantPropsRaw(v: VariantId): PropDef[]
 - momentProps · function · L189-L215 — function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[]
-- sectionFor · function · L311-L349 — function sectionFor(key: string): string
-- clamp · function · L370-L370 — clamp = (n: number, lo: number, hi: number)
-- cleanValue · function · L373-L401 — function cleanValue(def: PropDef, raw: unknown): PropValue | undefined
-- same · function · L403-L403 — same = (a: PropValue, b: PropValue)
-- sanitizePropValues · function · L410-L420 — function sanitizePropValues(input: unknown, opts: { keepDefaults?: boolean } = {}): PropValues
-- withDefaults · function · L423-L428 — function withDefaults(sparse: PropValues | null | undefined): PropValues
-- effectiveProps · function · L431-L433 — function effectiveProps(global: PropValues | null | undefined, packOverrides?: PropValues | null): PropValues
-- isChanged · function · L435-L435 — isChanged = (key: string, value: PropValue | undefined)
-- PropsExport · interface · L438-L438 — interface PropsExport
-- exportProps · function · L440-L442 — function exportProps(sparse: PropValues): PropsExport
-- importProps · function · L445-L456 — function importProps(text: string): PropValues
+- sectionFor · function · L312-L350 — function sectionFor(key: string): string
+- clamp · function · L371-L371 — clamp = (n: number, lo: number, hi: number)
+- cleanValue · function · L374-L402 — function cleanValue(def: PropDef, raw: unknown): PropValue | undefined
+- same · function · L404-L404 — same = (a: PropValue, b: PropValue)
+- sanitizePropValues · function · L411-L421 — function sanitizePropValues(input: unknown, opts: { keepDefaults?: boolean } = {}): PropValues
+- withDefaults · function · L424-L429 — function withDefaults(sparse: PropValues | null | undefined): PropValues
+- effectiveProps · function · L432-L434 — function effectiveProps(global: PropValues | null | undefined, packOverrides?: PropValues | null): PropValues
+- isChanged · function · L436-L436 — isChanged = (key: string, value: PropValue | undefined)
+- PropsExport · interface · L439-L439 — interface PropsExport
+- exportProps · function · L441-L443 — function exportProps(sparse: PropValues): PropsExport
+- importProps · function · L446-L457 — function importProps(text: string): PropValues

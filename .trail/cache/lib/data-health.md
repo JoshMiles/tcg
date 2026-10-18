@@ -9,7 +9,7 @@
 - sizeAttention · function · L50-L57 — function sizeAttention(seasonName: string, bytes: number): { level: HealthLevel; text: string } | null
 - LedgerHealth · interface · L61-L74 — interface LedgerHealth
 - SeasonHealth · interface · L76-L83 — interface SeasonHealth
-- TradesHealth · interface · L85-L85 — interface TradesHealth
-- DataHealth · interface · L87-L92 — interface DataHealth
-- ledgerHealth · function · L97-L116 — async function ledgerHealth(collectionName: string, viewers: string[]): Promise<LedgerHealth>
-- loadDataHealth · function · L119-L135 — async function loadDataHealth(activeSeasonId?: string | null): Promise<DataHealth>
+- TradesHealth · interface · L85-L89 — interface TradesHealth
+- DataHealth · interface · L91-L96 — interface DataHealth
+- ledgerHealth · function · L101-L120 — async function ledgerHealth(collectionName: string, viewers: string[]): Promise<LedgerHealth>
+- loadDataHealth · function · L123-L139 — async function loadDataHealth(activeSeasonId?: string | null): Promise<DataHealth>

@@ -1,25 +1,25 @@
 # lib/share-image.ts
 
-- Rect · interface · L11-L11 — interface Rect
-- layoutCards · function · L14-L33 — function layoutCards(n: number, area: Rect, gap = 28, colsOverride?: number): Rect[]
-- ShareCard · interface · L35-L40 — interface ShareCard
-- SharePlate · interface · L42-L57 — interface SharePlate
-- ShareFormat · type · L60-L60 — type ShareFormat = 'post' | 'story';
-- formatHeight · function · L65-L65 — formatHeight = (f?: ShareFormat): number
-- ShareTheme · interface · L68-L81 — interface ShareTheme
-- getShareTheme · function · L117-L117 — getShareTheme = (id?: string): ShareTheme
-- BigStat · interface · L119-L119 — interface BigStat
-- ShareSpec · interface · L121-L139 — interface ShareSpec
-- StatsFigure · interface · L142-L142 — interface StatsFigure
-- StatsCardShare · interface · L143-L150 — interface StatsCardShare
-- StatsLayout · interface · L153-L153 — interface StatsLayout
-- statsLayout · function · L154-L171 — function statsLayout(h = SHARE_H, thumbCount = 3): StatsLayout
-- cardArea · function · L176-L176 — cardArea = (h = SHARE_H): Rect
-- cardAreaWithStats · function · L182-L182 — cardAreaWithStats = (h = SHARE_H): Rect
-- cardAreaWithPlate · function · L188-L188 — cardAreaWithPlate = (h = SHARE_H): Rect
-- plateRect · function · L190-L190 — plateRect = (h = SHARE_H): Rect
-- BinderShareSlot · interface · L195-L208 — interface BinderShareSlot
-- BinderSharePage · interface · L209-L209 — interface BinderSharePage
-- BinderShare · interface · L210-L221 — interface BinderShare
-- BinderLayout · interface · L230-L235 — interface BinderLayout
-- binderLayout · function · L241-L267 — function binderLayout(b: { cols: number; rows: number; pages: unknown[] }, h = SHARE_H): BinderLayout
+- Rect · interface · L12-L12 — interface Rect
+- layoutCards · function · L15-L34 — function layoutCards(n: number, area: Rect, gap = 28, colsOverride?: number): Rect[]
+- ShareCard · interface · L36-L41 — interface ShareCard
+- SharePlate · interface · L43-L63 — interface SharePlate
+- ShareFormat · type · L66-L66 — type ShareFormat = 'post' | 'story';
+- formatHeight · function · L71-L71 — formatHeight = (f?: ShareFormat): number
+- ShareTheme · interface · L74-L87 — interface ShareTheme
+- getShareTheme · function · L123-L123 — getShareTheme = (id?: string): ShareTheme
+- BigStat · interface · L125-L125 — interface BigStat
+- ShareSpec · interface · L127-L145 — interface ShareSpec
+- StatsFigure · interface · L148-L148 — interface StatsFigure
+- StatsCardShare · interface · L149-L156 — interface StatsCardShare
+- StatsLayout · interface · L159-L159 — interface StatsLayout
+- statsLayout · function · L160-L177 — function statsLayout(h = SHARE_H, thumbCount = 3): StatsLayout
+- cardArea · function · L182-L182 — cardArea = (h = SHARE_H): Rect
+- cardAreaWithStats · function · L188-L188 — cardAreaWithStats = (h = SHARE_H): Rect
+- cardAreaWithPlate · function · L194-L194 — cardAreaWithPlate = (h = SHARE_H): Rect
+- plateRect · function · L196-L196 — plateRect = (h = SHARE_H): Rect
+- BinderShareSlot · interface · L201-L214 — interface BinderShareSlot
+- BinderSharePage · interface · L215-L215 — interface BinderSharePage
+- BinderShare · interface · L216-L227 — interface BinderShare
+- BinderLayout · interface · L236-L241 — interface BinderLayout
+- binderLayout · function · L247-L273 — function binderLayout(b: { cols: number; rows: number; pages: unknown[] }, h = SHARE_H): BinderLayout
