@@ -98,7 +98,9 @@ Three tiers in Vercel KV: **Seasons → Packs → Cards**.
 
 ## Git and PRs
 
-- Branch off an up-to-date `origin/main`, push, open a PR against `main`. **Every push to GitHub gets a PR**: open one straight away if the branch has none. Don't push to `main` and don't merge or close PRs unless asked.
+- Branch off an up-to-date `origin/main`, push, open a PR against `main`. **Every push to GitHub gets a PR**: open one straight away if the branch has none. Don't push to `main`.
+- **Before pushing to a branch that has a PR, check whether that PR is merged.** If it is, start again from `origin/main` (rebase any unmerged commits onto it) and open a new PR; never stack new work on a merged PR.
+- **Merging:** Opus may merge PRs and delete their branches when necessary (CI green, no open review asks). Sonnet doesn't merge or close PRs unless the user asks.
 - **One feature per PR, each branched from `main`.** Never stack PRs: merging them out of order drops commits. A fix that lands after its PR merged needs a new branch and PR.
 - Commit messages and PR bodies end with the attribution lines the harness gives.
 - Ignore `Old/` and `olddata.txt` (pre-rewrite leftovers). CRLF warnings on Windows are harmless (`.gitattributes`).

@@ -7,7 +7,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 ## Rules in force
 
 - **Twitch panel freeze (from 2026-10-15).** The extension is under Twitch review. Do not touch `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the behaviour or response shape of `/api/twitch/*`, or the CORS rules in `middleware.ts` until the user lifts it. Panel-worthy ideas go under "Next extension version".
-- One feature per PR, branched from up-to-date `origin/main`; every push gets a PR.
+- One feature per PR, branched from up-to-date `origin/main`; every push gets a PR (see "Git and PRs" in `CLAUDE.md`).
 - No em dashes, no emoji in the UI, FAQ / Privacy / Terms kept in step (`scripts/check-words.mts`), `npm run verify` before every PR.
 
 ## Open items
