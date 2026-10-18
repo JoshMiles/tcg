@@ -57,7 +57,6 @@
 - `GET /api/twitch/collection?username=foo`, user's owned card numbers across all seasons, as `{ collections: [{ seasonId, seasonName, active, ownedNumbers }] }`
 - `GET /api/twitch/user?opaqueId=xxx`, look up username by Twitch opaque ID
 - `POST /api/twitch/login`, **primary login endpoint**: verifies Extension JWT, gets the viewer's numeric ID via `getTwitchUserId()` (`user_id` after an identity grant, or `channel_id` when the signed `role` is `broadcaster`), resolves via Helix API, saves opaque→username mapping, creates user profile if needed, returns `{ username }`
-- `POST /api/twitch/link`, JWT-validated, links opaque ID to username; also creates user profile if not present
 - `POST /api/twitch/unlink`, JWT-validated, deletes opaque ID → username mapping (logout)
 - `GET /api/twitch/me[?fresh=1]`, JWT-validated (opaque ID → linked username): the viewer's rank, score breakdown (`cardPoints`, `serialPoints`, completion / set bonuses), who is next up, every card's base values + unrounded `raw` + pull rate + copies out there, the serials they hold (`entry → number[]`), the serial-bonus rule, and how many trade offers are waiting. Shared 20 s leaderboard unless `fresh=1` (used right after an upgrade)
 - `POST /api/twitch/upgrade`, JWT-validated; body `{ seasonId, cardNumber, from }`; spends the pack's upgrade cost in `from` copies for one of the next variant
