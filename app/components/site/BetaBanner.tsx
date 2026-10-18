@@ -1,8 +1,8 @@
 'use client';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
+import { reportProblemUrl } from '@/lib/site';
 
 const KEY = 'tcg_beta_banner';
 
@@ -19,7 +19,7 @@ export function BetaBanner({ text }: { text: string }) {
       <div className="max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap text-xs">
         <span className="min-w-0 flex-1 basis-48">{text}</span>
         <span className="flex shrink-0 items-center gap-2 ml-auto">
-        <Link href={`/feedback?kind=bug&from=${encodeURIComponent(path || '/')}`} className="font-bold underline underline-offset-2 hover:text-white">Report a problem</Link>
+        <a href={reportProblemUrl(path)} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-2 hover:text-white">Report a problem</a>
         <button
           type="button"
           aria-label="Dismiss the testing notice"

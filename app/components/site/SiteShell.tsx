@@ -8,7 +8,7 @@ import { SiteNav, type NavRank, type NavUser } from './SiteNav';
 import { SiteSearch } from './SiteSearch';
 import { getActiveSeason } from '@/lib/kv';
 import { getSeasonLeaderboardCached } from '@/lib/leaderboard';
-import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
+import { CHANNEL_NAME, CHANNEL_URL, reportProblemUrl } from '@/lib/site';
 import { getLiveStatus } from '@/lib/twitch-live';
 import { LiveProvider } from './Live';
 import { getSession, loginConfigured } from '@/lib/session';
@@ -90,7 +90,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
                   <li><Link href="/install" className="hover:text-white transition-colors">Get the app</Link></li>
                   <li><ChangelogLink newest={newestChangelogDate()} className="hover:text-white transition-colors">What&rsquo;s new</ChangelogLink></li>
                   <li><Link href="/feedback?kind=idea" className="hover:text-white transition-colors">Suggest something</Link></li>
-                  <li><Link href="/feedback?kind=bug" className="hover:text-white transition-colors">Report a problem</Link></li>
+                  <li><a href={reportProblemUrl()} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Report a problem</a></li>
                 </ul>
               </nav>
               <nav aria-label="Legal">
