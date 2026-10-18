@@ -343,19 +343,23 @@ export async function addCollectionEntryWithSerial(collectionName: string, usern
 }
 
 export async function deleteCollection(collectionName: string): Promise<void> {
-  const users = Object.keys(await getCollection(collectionName).catch(() => ({} as Record<string, number[]>)));
-  await kv.del(`tcg_${collectionName}`);
-  await dropLedger(collectionName, users);
+  return withCollectionLock(collectionName, async () => {
+    const users = Object.keys(await getCollection(collectionName).catch(() => ({} as Record<string, number[]>)));
+    await kv.del(`tcg_${collectionName}`);
+    await dropLedger(collectionName, users);
+  });
 }
 
 /** Removes a user's entry from one collection. Returns true if there was anything to remove. */
 export async function removeUserFromCollection(collectionName: string, username: string): Promise<boolean> {
   const lower = username.toLowerCase();
-  const data = await getCollection(collectionName);
-  if (!(lower in data)) return false;
-  delete data[lower];
-  await saveCollection(collectionName, data);
-  return true;
+  return withCollectionLock(collectionName, async () => {
+    const data = await getCollection(collectionName);
+    if (!(lower in data)) return false;
+    delete data[lower];
+    await saveCollection(collectionName, data);
+    return true;
+  });
 }
 
 // ── Seed ──────────────────────────────────────────────────
