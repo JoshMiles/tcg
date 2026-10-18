@@ -8,7 +8,7 @@
     "start": "next start",
     "check": "node scripts/build-changelog.mjs --ensure && node scripts/run-checks.mjs",
     "typecheck": "node scripts/build-changelog.mjs --ensure && tsc --noEmit",
-    "verify": "npm run typecheck && npm run check && node --check public/widget.js",
+    "verify": "npm run typecheck && npm run check && node --check public/widget.js && node --check public/widget-dev.js",
     "review:seed": "tsx scripts/seed-review.mts",
     "review:public": "node scripts/sweep-public.mjs",
     "review:admin": "node scripts/sweep-admin.mjs",

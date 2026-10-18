@@ -34,6 +34,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run check
       - run: node --check public/widget.js
+      - run: node --check public/widget-dev.js
 
       # No secrets on purpose: the build must succeed with no KV / Twitch variables.
       - run: npm run build
