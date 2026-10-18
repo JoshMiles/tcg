@@ -1,0 +1,78 @@
+name: 🐛 Bug Report
+description: Report a bug with the web app, card pulls, trading, leaderboards, or Twitch integration.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug in **The Cheesy TCG**! Please fill out the sections below so we can squash it quickly.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Component / Area Affected
+      description: Which part of The Cheesy TCG is experiencing the issue?
+      options:
+        - "Website / UI (General)"
+        - "Card Pulls / Stream Overlay"
+        - "Card Dex / Collector Profiles"
+        - "Trading / Duplicate Upgrades"
+        - "Leaderboard / Season Stats / Points"
+        - "Twitch Login / Authentication"
+        - "Mobile / Get the App (PWA)"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: "When I tried to upgrade my duplicate cards..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we trigger this bug?
+      placeholder: |
+        1. Log in with Twitch
+        2. Go to 'Trade' or 'Card Dex'
+        3. Click on '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: input
+    id: twitch_username
+    attributes:
+      label: Twitch Username (Optional)
+      description: If this bug affects your specific collection, points, or a recent pull, what is your Twitch username?
+      placeholder: "e.g., joshmiles"
+
+  - type: input
+    id: environment
+    attributes:
+      label: Device & Browser
+      description: What device and browser were you using?
+      placeholder: "e.g., Desktop Chrome 130, iOS Safari, Android App"
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots, Console Logs, or Clip Links
+      description: Add any screenshots, browser console errors, or Twitch clip links (if it happened live on stream).
