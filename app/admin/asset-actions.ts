@@ -1,5 +1,4 @@
 'use server';
-import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { fixAsset, optimizeCover, replaceAsset, type FixResult } from '@/lib/asset-fix';
@@ -16,11 +15,11 @@ function cleanKey(k: AssetKey): AssetKey | null {
   return { kind: k.kind, packId: k.packId, cardId: k.kind === 'pack-cover' ? undefined : k.cardId };
 }
 
-async function origin() {
+/** Where bundled /assets files are fetched from: a fixed address, never a request header. */
+function origin(): string {
   if (process.env.VERCEL_ENV === 'production') return SITE_URL;
-  const h = await headers();
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
-  return `${h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')}://${host}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return `http://localhost:${process.env.PORT ?? 3000}`;
 }
 
 /** Repairs one file (the page calls this once per file so progress shows and each request stays short). */
@@ -28,7 +27,7 @@ export async function fixAssetAction(key: AssetKey): Promise<FixResult> {
   await requireAdmin();
   const k = cleanKey(key);
   if (!k) return { ok: false, message: 'Unknown file.' };
-  const result = await fixAsset(k, await origin());
+  const result = await fixAsset(k, origin());
   revalidatePath('/admin/assets');
   return result;
 }
@@ -38,7 +37,7 @@ export async function optimizeCoverAction(key: AssetKey): Promise<FixResult> {
   await requireAdmin();
   const k = cleanKey(key);
   if (!k) return { ok: false, message: 'Unknown file.' };
-  const result = await optimizeCover(k, await origin());
+  const result = await optimizeCover(k, origin());
   revalidatePath('/admin/assets');
   revalidatePath(`/admin/packs/${k.packId}`);
   return result;
