@@ -79,6 +79,7 @@ Read the doc that matches what you are changing **before** you change it; each s
 - Read the part of a file you need (search first, then read a line range); the big ones (`public/widget.js`, `OverlayEditor.tsx`) cost 12k to 20k tokens whole.
 - Send wide searches across many files to a subagent (Explore) so only the answer comes back.
 - Long build sessions run on Sonnet and supporting lookups on Haiku (see "Model workflow"); Opus sessions plan and review.
+- **Remind the user to reset context.** When a task is finished (PR merged, or the user moves to an unrelated task), end your reply with one line suggesting `/clear`. When a session is running long but the task isn't done (many files read, several PR rounds), suggest `/compact` and name what the summary should keep (branch, PR, open items). Say it once per break point, not every turn.
 - When you change behaviour, update the matching doc to say what the code does now. History belongs in PR descriptions and `docs/archive/`, not in the area docs.
 
 ## Data architecture
