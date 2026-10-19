@@ -27,32 +27,53 @@ export function holoGradient(colors: string[], angle: number): string {
   return `linear-gradient(${angle}deg, ${stops.join(', ')})`;
 }
 
-/** Builds the shimmer for each variant of a card, from the effective overlay properties. */
+/** Builds the shimmer, glow and rock for each variant of a card, from the effective overlay properties. */
 export function buildHoloSpecs(props: PropValues, stars: number, holoMinStars: number): HoloSpecs {
   const out = { ...NO_HOLO } as HoloSpecs;
   for (const v of VARIANTS) {
     const g = (name: string): PropValue | undefined => props[`variant.${v}.${name}`];
     const mode = String(g('holoMode'));
     const on = mode === 'on' || (mode === 'auto' && stars >= holoMinStars);
-    if (!on) { out[v] = NONE; continue; }
+    const glowOn = g('glow') === true;
+    const rockOn = g('rock') === true;
+
+    if (!on && !glowOn && !rockOn) {
+      out[v] = NONE;
+      continue;
+    }
+
     const loop = g('holoLoop') === true;
-    out[v] = {
-      on: true,
-      style: {
-        '--holo-gradient': holoGradient(Array.isArray(g('holoColors')) ? (g('holoColors') as string[]) : [], Number(g('holoAngle'))),
-        '--holo-opacity': String(g('holoOpacity')),
-        '--holo-time': `${Number(g('holoSpeed'))}s`,
-        '--holo-blend': String(g('holoBlend')),
-        '--holo-name': loop ? 'holoSiteLoop' : 'holoSite',
-        '--holo-iter': loop ? 'infinite' : '1',
-        '--holo-timing': loop ? 'linear' : 'ease',
-      },
-    };
+    const style: Record<string, string> = {};
+
+    if (on) {
+      style['--holo-gradient'] = holoGradient(Array.isArray(g('holoColors')) ? (g('holoColors') as string[]) : [], Number(g('holoAngle')));
+      style['--holo-opacity'] = String(g('holoOpacity'));
+      style['--holo-time'] = `${Number(g('holoSpeed'))}s`;
+      style['--holo-blend'] = String(g('holoBlend'));
+      style['--holo-name'] = loop ? 'holoSiteLoop' : 'holoSite';
+      style['--holo-iter'] = loop ? 'infinite' : '1';
+      style['--holo-timing'] = loop ? 'linear' : 'ease';
+    }
+
+    if (glowOn) {
+      style['--glow-color-a'] = String(g('glowColorA') ?? '#ffffff');
+      style['--glow-color-b'] = String(g('glowColorB') ?? '#ffffff');
+      style['--glow-blur'] = `${Number(g('glowBlur') ?? 40) / 2}px`;
+      style['--glow-spread'] = `${Number(g('glowSpread') ?? 8) / 4}px`;
+      style['--glow-speed'] = `${Number(g('glowSpeed') ?? 1.4)}s`;
+    }
+
+    if (rockOn) {
+      style['--rock-amt'] = `${Number(g('rockAmount') ?? 2)}deg`;
+      style['--rock-speed'] = `${Number(g('rockSpeed') ?? 3.6)}s`;
+    }
+
+    out[v] = { on: true, style };
   }
   return out;
 }
 
-/** The CSS custom properties for a variant's shimmer, as a React style object (client-safe). Empty when the shimmer is off. */
+/** The CSS custom properties for a variant's shimmer, glow and rock, as a React style object (client-safe). Empty when all are off. */
 export function holoVars(spec: HoloSpec | undefined): React.CSSProperties {
   return (spec?.on ? spec.style : {}) as React.CSSProperties;
 }

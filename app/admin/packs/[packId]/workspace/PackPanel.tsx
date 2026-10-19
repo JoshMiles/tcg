@@ -82,7 +82,10 @@ export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount
 
       <Section title="Overlay look" defaultOpen={false}>
         <p className="text-sm text-gray-300">{overrideCount > 0 ? `${overrideCount} overlay setting${overrideCount === 1 ? '' : 's'} differ for this pack.` : 'This pack uses the overlay\'s shared look.'}</p>
-        <Link href={`/admin/overlay?scope=${packId}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-gray-700 text-gray-200 hover:border-yellow-500/60 hover:text-yellow-300"><Icon name="palette" />Open the Overlay Editor</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/admin/overlay?scope=${packId}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-gray-700 text-gray-200 hover:border-yellow-500/60 hover:text-yellow-300"><Icon name="palette" />Open the Overlay Editor</Link>
+          <Link href={`/admin/overlay?pack=${packId}&group=variants`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-gray-700 text-gray-200 hover:border-yellow-500/60 hover:text-yellow-300"><Icon name="sparkles" />Variant styles</Link>
+        </div>
       </Section>
 
       <Section title="Seasons" defaultOpen={false}>

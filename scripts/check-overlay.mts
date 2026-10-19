@@ -65,6 +65,31 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   ok(PROP_BY_KEY['show.style'].options!.every(o => !['classic', 'rip-shake', 'rip-peel', 'rip-slice', 'rip-explode'].includes(o.value)), 'entrances are the pack-less styles only');
 }
 
+// ── Pure: Golden variant overlay defaults and holo/glow/rock resolution (ROADMAP 29.4) ──
+{
+  const { buildHoloSpecs } = await import('../lib/holo-core');
+  ok(DEFAULT_PROPS['variant.golden.labelText'] === 'Golden', 'golden label text default');
+  eq(DEFAULT_PROPS['variant.golden.labelColors'], ['#fbbf24', '#f59e0b', '#d97706'], 'golden label colors');
+  eq(DEFAULT_PROPS['variant.golden.holoColors'], ['#ffb703', '#ffe14d', '#fff6c2'], 'golden shimmer colors');
+  ok(DEFAULT_PROPS['variant.golden.holoSpeed'] === 14, 'golden shimmer sweep time 14s');
+  ok(DEFAULT_PROPS['variant.golden.holoLoop'] === true, 'golden shimmer loop on');
+  ok(DEFAULT_PROPS['variant.golden.glow'] === true && DEFAULT_PROPS['variant.golden.rock'] === true, 'golden glow and rock enabled');
+  ok(DEFAULT_PROPS['variant.golden.burstColor'] === '#f59e0b', 'golden burst color #f59e0b');
+
+  // Verify buildHoloSpecs resolves glow and rock custom properties
+  const specs = buildHoloSpecs(DEFAULT_PROPS, 1, 3);
+  ok(specs.golden.on === true, 'golden holo spec is on');
+  ok(specs.golden.style['--holo-time'] === '14s', 'golden holo time in style');
+  ok(specs.golden.style['--glow-color-a'] === '#fde047', 'golden glow color in style');
+  ok(specs.golden.style['--rock-amt'] === '2deg' && specs.golden.style['--rock-speed'] === '3.4s', 'golden rock vars in style');
+
+  // Pack override resolution
+  const packOverrides = { ...DEFAULT_PROPS, 'variant.golden.rockAmount': 4, 'variant.golden.glowColorA': '#ffffff' };
+  const overridden = buildHoloSpecs(packOverrides, 1, 3);
+  ok(overridden.golden.style['--rock-amt'] === '4deg', 'pack override rock amount applied');
+  ok(overridden.golden.style['--glow-color-a'] === '#ffffff', 'pack override glow color applied');
+}
+
 // ── Pure: overlay text fonts (ROADMAP 28.4) ──
 {
   const { FONT_IDS } = await import('../lib/card-back');
