@@ -1163,6 +1163,6 @@ Shipped that way. `Dialog` uses `showModal()` so Esc and the focus trap stay the
 
 Admin and mod text fields, selects, textareas, on/off switches and field labels use daisyUI `input`, `select`, `textarea`, `toggle` and `fieldset`. Shared strings in `app/admin/components/ui.tsx` (`fieldClass`, `selectClass`, `areaClass`, `toggleClass`) keep the same exports. Row-selection checkboxes, variant chips and radio groups stay native. Panels and tables were the next 24.3 PR. Design-sync conventions stay for 24.4.
 
-### 24.3 Admin panels and tables (part 2)
+### 24.3 Admin panels and tables (part 2, #271)
 
 Admin panels use daisyUI `card` and keep `.tcg-panel` for the navy surface, shadow and rim. `Panel` headings are `card-title`. Admin tables use `table` (`table-sm` or `table-xs` where the rows are dense). The public site still uses `.tcg-panel` and its own tables. `.tcg-panel` is dropped in 24.4, once nothing else uses it.
