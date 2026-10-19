@@ -12,6 +12,7 @@ import {
   describeItems, hasPickedPrints, moveOf, withChosenPrints, type Trade, type TradeItem, type TradeSettings, type TradeStatus,
 } from './trade-core';
 import type { Card, Pack } from './types';
+import { parseAuditCopy, refundEvidence } from './trade-ledger-audit';
 
 // Trading engine (server). See lib/trade-core.ts for the model. Storage (all through the namespaced `kv`, so sandboxes work):
 //   trades:open     Trade[]  every open offer (one blob, mutated under the 'trades' lock, like a collection)
@@ -93,16 +94,48 @@ async function seasonContext(seasonId: string) {
   return { season, cardMap };
 }
 
-/** Puts copies back into a viewer's collection (a refund). Safe to call once per escrow: callers flip `escrowed` first. */
-async function returnToCollection(seasonId: string, username: string, items: TradeItem[], tradeId?: string): Promise<void> {
+/**
+ * Prints still sitting with this offer's escrow, when the season is numbered.
+ * Null when it is not numbered (the caller then returns every stack, as before).
+ */
+async function heldEscrowEntries(c: string, tradeId: string, items: TradeItem[]): Promise<{ entries: number[]; moves: { from: string; to: string; entry: number; count: number; ids: string[] }[] } | null> {
+  if (!(await isTracking(c))) return null;
+  const from = escrowOwner(tradeId);
+  const held = await getOwnerCopies(c, from);
+  const entries: number[] = [];
+  const moves: { from: string; to: string; entry: number; count: number; ids: string[] }[] = [];
+  for (const item of items) {
+    const entry = encodeEntry(item.cardNumber, item.variant);
+    const mine = held.filter(x => entryOf(x) === entry);
+    const picked = item.ids ? mine.filter(x => item.ids!.includes(x.id)) : mine.slice(0, item.count);
+    if (picked.length === 0) continue;
+    const ids = picked.map(x => x.id);
+    entries.push(...Array<number>(picked.length).fill(entry));
+    moves.push({ from, to: '', entry, count: picked.length, ids });
+  }
+  return { entries, moves };
+}
+
+/**
+ * Puts copies back into a viewer's collection (a refund). Returns false when the season record is gone:
+ * nothing was written and the caller must leave `escrowed` set. When the season is numbered, only prints
+ * still held by this offer's escrow are appended, so a second call does not mint another set.
+ */
+async function returnToCollection(seasonId: string, username: string, items: TradeItem[], tradeId?: string): Promise<boolean> {
   const season = await getSeason(seasonId);
-  if (!season) return; // the season is gone: nothing to refund into
+  if (!season) return false;
   await withCollectionLock(season.collectionName, async () => {
+    const partial = tradeId ? await heldEscrowEntries(season.collectionName, tradeId, items) : null;
+    const entries = partial ? partial.entries : itemEntries(items);
+    if (entries.length === 0) return;
     const data = await getCollection(season.collectionName);
-    data[username] = [...(data[username] ?? []), ...itemEntries(items)];
-    // The copies come back out of escrow with their identity (serials) intact.
-    await saveCollection(season.collectionName, data, tradeId ? { moves: items.map(i => ({ from: escrowOwner(tradeId), to: username, ...moveOf(i) })) } : undefined);
+    data[username] = [...(data[username] ?? []), ...entries];
+    const moves = tradeId
+      ? (partial ? partial.moves.map(m => ({ ...m, to: username })) : items.map(i => ({ from: escrowOwner(tradeId), to: username, ...moveOf(i) })))
+      : undefined;
+    await saveCollection(season.collectionName, data, moves ? { moves } : undefined);
   });
+  return true;
 }
 
 /** Ends an offer: refunds its escrow (unless it is being settled), records why, and moves it to history. */
@@ -118,22 +151,26 @@ async function closeTrade(open: Trade[], history: Trade[], trade: Trade, status:
   if (i >= 0) open.splice(i, 1);
   history.unshift(trade);
   if (history.length > HISTORY_CAP) history.length = HISTORY_CAP;
-  if (refund && trade.escrowed) {
+  const needsRefund = refund && trade.escrowed;
+  if (needsRefund) {
     // KV has no multi-key transaction: save the offer as closed (still marked escrowed) BEFORE the copies move. If the refund
-    // then fails, the offer can't be refunded twice; Data health lists it as stuck in escrow. The caller's persist clears the flag.
+    // then fails, the offer can't be refunded twice; Data health lists it as stuck in escrow. A missing season is not a refund.
     await persist(open, history);
-    await returnToCollection(trade.seasonId, trade.from, trade.give, trade.id);
-    trade.escrowed = false;
+    if (await returnToCollection(trade.seasonId, trade.from, trade.give, trade.id)) trade.escrowed = false;
   }
-  // (a counter is announced by the new offer it creates)
-  if (status === 'accepted' || status === 'declined' || status === 'cancelled' || status === 'expired') queueEvent(trade, status, by, pools);
+  // (a counter is announced by the new offer it creates). Skip the notice when the prints did not actually come back.
+  if ((status === 'accepted' || status === 'declined' || status === 'cancelled' || status === 'expired') && !(needsRefund && trade.escrowed)) queueEvent(trade, status, by, pools);
 }
 
-/** Expires (and refunds) every overdue open offer. Returns whether anything changed. Call inside the lock. */
+/**
+ * Expires (and refunds) every overdue open offer. Returns whether anything changed. Call inside the lock.
+ * Persists before returning: closeTrade clears `escrowed` only in memory, and several callers return early after this.
+ */
 async function sweepInLock(open: Trade[], history: Trade[]): Promise<boolean> {
   const now = Date.now();
   const overdue = open.filter(t => t.expiresAt <= now);
   for (const t of overdue) await closeTrade(open, history, t, 'expired', undefined, 'The offer ran out of time.');
+  if (overdue.length > 0) await persist(open, history);
   return overdue.length > 0;
 }
 
@@ -299,11 +336,14 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     const card = cardMap.get(taken.missing.cardNumber)?.card.name ?? `#${taken.missing.cardNumber}`;
     return fail(400, `You don't have ${taken.missing.count}× ${card} (${taken.missing.variant}) to offer.`);
   }
+  // History was already saved by the sweep (or was unchanged). Write only the open list: a throw then means this offer
+  // was not stored, so putting the prints back cannot leave them on the open list as well.
+  open.unshift(trade);
   try {
-    open.unshift(trade);
-    await persist(open, history);
+    await kv.set(OPEN_KEY, open);
   } catch (e) {
-    await returnToCollection(season.id, from, give, trade.id); // never lose the copies
+    open.shift();
+    await returnToCollection(season.id, from, give, trade.id);
     throw e;
   }
   if (settings.cooldownSeconds > 0) await kv.set(`trade:cd:${from}`, '1', { ex: settings.cooldownSeconds });
@@ -460,6 +500,80 @@ export async function counterTrade(id: string, username: string, input: { give: 
     await closeTrade(open, history, trade, 'countered', user);
     await persist(open, history);
     return created;
+  });
+}
+
+/**
+ * Staff return the prints of one closed offer that is still marked escrowed, then clear the flag.
+ * Idempotent: a second call finds the flag clear and does nothing. When the season is numbered, only prints
+ * still in that offer's escrow are moved, so a flag that outlived the refund does not mint a second set.
+ * When the season record is gone, the flag stays set.
+ */
+export async function releaseStuckEscrow(id: string): Promise<TradeResult<{ trade: Trade; cleared: boolean }>> {
+  return locked(async () => {
+    const open = await readOpen();
+    const history = await readHistory();
+    const trade = history.find(t => t.id === id);
+    if (!trade) return fail(404, "That offer isn't in the history.");
+    if (open.some(t => t.id === id)) return fail(400, 'That offer is still open. Cancel it so the prints come back.');
+    if (!trade.escrowed) return { ok: true, trade, cleared: false };
+    if (!(await returnToCollection(trade.seasonId, trade.from, trade.give, trade.id))) {
+      return fail(400, 'That season no longer exists, so the prints cannot be returned. The offer stays marked escrowed.');
+    }
+    trade.escrowed = false;
+    await persist(open, history);
+    return { ok: true, trade, cleared: true };
+  });
+}
+
+/**
+ * True when a closed offer's prints already came back: escrow is empty and a returned event confirms it.
+ * Reads only. The caller takes the trades lock afterwards and checks the escrow hash again before clearing the flag.
+ */
+async function refundAlreadyHome(id: string): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const open = await readOpen();
+  const history = await readHistory();
+  const trade = history.find(t => t.id === id);
+  if (!trade) return fail(404, "That offer isn't in the history.");
+  if (open.some(t => t.id === id)) return fail(400, 'That offer is still open.');
+  if (!trade.escrowed) return { ok: true };
+  const season = await getSeason(trade.seasonId);
+  if (!season) return fail(400, 'That season no longer exists. The flag stays set.');
+  if (!(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered, so the flag was not cleared.');
+  const held = await getOwnerCopies(season.collectionName, escrowOwner(trade.id));
+  if (held.length > 0) return fail(400, 'Escrow still holds prints. Return those instead of only clearing the flag.');
+  const data = await getCollection(season.collectionName);
+  const live = (await Promise.all(Object.keys(data).map(u => getOwnerCopies(season.collectionName, u)))).flat();
+  const retiredRaw = (await kv.hgetall(`copies:${season.collectionName}:ret`).catch(() => null)) as Record<string, unknown> | null;
+  const retired = Object.values(retiredRaw ?? {}).map(parseAuditCopy).filter(c => !!c);
+  if (!refundEvidence(trade, [...live, ...retired])) return fail(400, 'No returned event confirms the prints came back. The flag stays set.');
+  return { ok: true };
+}
+
+/**
+ * Clears the escrow flag on one closed offer whose escrow hash is empty and whose prints have a returned event.
+ * Does not append cards. Refuses when anything is still under `escrow:<id>`, when the season is missing, or when
+ * the season is not numbered (there is then no way to see that the prints already came back). The collection scan
+ * happens before the trades lock, so it does not block other offers; the lock only re-checks that escrow is still empty.
+ */
+export async function clearEscrowFlagIfEmpty(id: string): Promise<TradeResult<{ trade: Trade }>> {
+  const prior = await refundAlreadyHome(id);
+  if (!prior.ok) return prior;
+  return locked(async () => {
+    const open = await readOpen();
+    const history = await readHistory();
+    const trade = history.find(t => t.id === id);
+    if (!trade) return fail(404, "That offer isn't in the history.");
+    if (open.some(t => t.id === id)) return fail(400, 'That offer is still open.');
+    if (!trade.escrowed) return { ok: true, trade };
+    const season = await getSeason(trade.seasonId);
+    if (!season) return fail(400, 'That season no longer exists. The flag stays set.');
+    if (!(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered, so the flag was not cleared.');
+    const held = await getOwnerCopies(season.collectionName, escrowOwner(trade.id));
+    if (held.length > 0) return fail(400, 'Escrow still holds prints. Return those instead of only clearing the flag.');
+    trade.escrowed = false;
+    await persist(open, history);
+    return { ok: true, trade };
   });
 }
 

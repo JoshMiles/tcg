@@ -86,6 +86,51 @@ await runInSandbox(box.id, async () => {
   // Audit
   await audit.recordAudit('alice', 'Test', 'detail');
   ok((await audit.getUserAudit('alice')).some(a => a.action === 'Test'), 'audit entries are readable');
+
+  // Numbered restore puts the same prints back, and refuses while an offer is open or a print has moved on.
+  const serials = await import('../lib/serials');
+  const { kv } = await import('../lib/db');
+  await kvLib.saveCollection(coll, { ...(await kvLib.getCollection(coll)), dave: [E(1), E(1), E(2)] });
+  await serials.backfillSerials(coll, await kvLib.getCollection(coll));
+  const beforeIds = (await serials.getOwnerCopies(coll, 'dave')).map(c => c.id).sort();
+  const minted = (await serials.serialStats(coll)).minted;
+  ok(beforeIds.length === 3, 'dave\'s prints are numbered');
+  const snapN = await admin.takeUserSnapshot('dave', 'Before numbered reset');
+  ok(snapN?.collections[0]?.prints?.length === 3, 'a numbered restore point stores the print ids');
+  await kvLib.removeUserFromCollection(coll, 'dave');
+  ok((await serials.getOwnerCopies(coll, 'dave')).length === 0, 'reset retires dave\'s prints');
+  const backN = await admin.restoreUserSnapshot('dave', snapN!.id);
+  ok(backN.ok && backN.cards === 3, 'numbered restore reports the cards: ' + (backN.ok ? '' : backN.error));
+  eq((await serials.getOwnerCopies(coll, 'dave')).map(c => c.id).sort(), beforeIds, 'the same prints come back');
+  ok((await serials.serialStats(coll)).minted === minted, 'restore does not mint a second set');
+
+  const listed = await trades.createTrade({ seasonId: season.id, from: 'dave', kind: 'listing', give: [{ cardNumber: 2, variant: 'regular', count: 1 }], get: [{ cardNumber: 3, variant: 'regular', count: 1 }] });
+  ok(listed.ok, 'dave lists a print');
+  const during = await admin.restoreUserSnapshot('dave', snapN!.id);
+  ok(!during.ok && /open trade/.test(during.error), 'restore is refused while an offer is open');
+  ok((await serials.serialStats(coll)).minted === minted, 'a refused restore mints nothing');
+  if (listed.ok) ok((await trades.cancelTrade(listed.trade.id, 'dave')).ok, 'the listing is cancelled');
+  eq((await serials.getOwnerCopies(coll, 'dave')).map(c => c.id).sort(), beforeIds, 'cancelling returns the same print');
+
+  const bare = await admin.takeUserSnapshot('dave', 'Without print ids');
+  const stored = await kv.get<NonNullable<typeof bare>>(`user:dave:snap:${bare!.id}`);
+  ok(!!stored, 'the id-less point can be rewritten');
+  if (stored) {
+    for (const c of stored.collections) delete c.prints;
+    await kv.set(`user:dave:snap:${bare.id}`, stored);
+  }
+  await kvLib.removeUserFromCollection(coll, 'dave');
+  const revived = await admin.restoreUserSnapshot('dave', bare!.id);
+  ok(revived.ok, 'an older restore point with no print ids still restores: ' + (revived.ok ? '' : revived.error));
+  eq((await serials.getOwnerCopies(coll, 'dave')).map(c => c.id).sort(), beforeIds, 'removed prints are revived instead of minted');
+  ok((await serials.serialStats(coll)).minted === minted, 'reviving does not mint');
+
+  const away = await trades.createTrade({ seasonId: season.id, from: 'dave', kind: 'direct', to: 'bob', give: [{ cardNumber: 2, variant: 'regular', count: 1 }], get: [{ cardNumber: 3, variant: 'regular', count: 1 }] });
+  ok(away.ok && (await trades.acceptTrade(away.trade.id, 'bob')).ok, 'bob takes one of dave\'s prints');
+  const moved = await admin.restoreUserSnapshot('dave', snapN!.id);
+  ok(!moved.ok && /held by @bob/.test(moved.error), 'restore is refused when a saved print has moved on: ' + (moved.ok ? '' : moved.error));
+  ok((await serials.serialStats(coll)).minted === minted, 'the refused restore still mints nothing');
+  ok((await serials.getOwnerCopies(coll, 'bob')).some(c => beforeIds.includes(c.id)), 'bob keeps the print');
 });
 
 ok(JSON.stringify(await prodKv.get('users:hidden')) === prodBefore, 'production hidden set untouched by the sandbox');

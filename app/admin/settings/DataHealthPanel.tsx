@@ -1,5 +1,7 @@
 import { formatBytes, loadDataHealth, BLOB_WARN_BYTES, BLOB_HIGH_BYTES, type HealthLevel } from '@/lib/data-health';
 import { getActiveSeason } from '@/lib/kv';
+import { releaseStuckEscrowAction } from '../trade-actions';
+import { PendingButton } from '../components/PendingButton';
 import { Panel, Chip } from '../components/ui';
 
 const TONE: Record<HealthLevel, 'green' | 'amber' | 'red'> = { ok: 'green', warn: 'amber', high: 'red' };
@@ -57,6 +59,24 @@ export async function DataHealthPanel() {
         </div>
         </>
       )}
+      {h.trades.stuckEscrow.length > 0 && (
+        <div role="alert" className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-200 space-y-3">
+          <p>
+            {n(h.trades.stuckEscrow.length)} closed offer{h.trades.stuckEscrow.length === 1 ? '' : 's'} still marked escrowed.
+            Return prints puts back only what that offer still holds, then clears the flag. Running it again does not add the prints a second time.
+            If the season was deleted, it refuses and the flag stays set. On a season whose prints are not numbered, use it only when the offerer is actually missing the cards.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {h.trades.stuckEscrow.map(id => (
+              <form key={id} action={releaseStuckEscrowAction.bind(null, id)}>
+                <PendingButton type="submit" className="px-3 py-1.5 text-xs font-bold rounded-lg border border-red-400/40 text-red-100 hover:bg-red-900/40">
+                  Return prints {id.slice(0, 8)}
+                </PendingButton>
+              </form>
+            ))}
+          </div>
+        </div>
+      )}
       <dl className="grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-y-0.5 sm:gap-y-1 text-sm">
         <dt className="text-gray-500">Open trade offers</dt>
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.trades.openCount)} ({formatBytes(h.trades.openBytes)})</dd>
@@ -64,7 +84,7 @@ export async function DataHealthPanel() {
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.trades.historyCount)} kept ({formatBytes(h.trades.historyBytes)}), capped at 400</dd>
         {h.trades.stuckEscrow.length > 0 && <>
           <dt className="text-red-400">Stuck in escrow</dt>
-          <dd className="text-red-300 mb-1.5 sm:mb-0">{h.trades.stuckEscrow.join(', ')}: closed offers whose cards never moved. Return them to the offerer by hand.</dd>
+          <dd className="text-red-300 mb-1.5 sm:mb-0">{h.trades.stuckEscrow.join(', ')}: closed offers still marked escrowed. Use Return prints above.</dd>
         </>}
         <dt className="text-gray-500">Activity log</dt>
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.activityEvents)} events, capped at 500</dd>

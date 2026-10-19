@@ -65,9 +65,14 @@ export async function activateSeason(id: string) {
 
 export async function deleteSeasonAction(id: string) {
   await requireAdmin();
-  await deleteSeason(id);
+  let error: string | null = null;
+  try {
+    await deleteSeason(id);
+  } catch (e) {
+    error = e instanceof Error ? e.message : 'Could not delete that season.';
+  }
   revalidatePath('/admin/seasons');
-  redirect('/admin/seasons');
+  redirect(error ? `/admin/seasons?error=${encodeURIComponent(error)}` : '/admin/seasons');
 }
 
 // ── Season ↔ Pack assignment ──────────────────────────────

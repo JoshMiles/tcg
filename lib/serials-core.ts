@@ -7,7 +7,7 @@ import type { Variant } from './types';
 
 export type Origin = 'pull' | 'grant' | 'upgrade' | 'estimated' | 'other';
 
-export type CopyEventType = 'minted' | 'escrowed' | 'returned' | 'traded' | 'upgraded' | 'removed' | 'reversed';
+export type CopyEventType = 'minted' | 'escrowed' | 'returned' | 'traded' | 'upgraded' | 'removed' | 'reversed' | 'restored';
 export interface CopyEvent { t: number; type: CopyEventType; who?: string; to?: string; note?: string }
 
 export interface Copy {
@@ -94,7 +94,7 @@ export const ORIGIN_BY: Record<Origin, string> = { pull: 'pulled by', grant: 'gi
 export const ORIGIN_VERB: Record<Origin, string> = { pull: 'Pulled', grant: 'Given', upgrade: 'Forged', estimated: 'First recorded', other: 'Added' };
 
 export const EVENT_LABELS: Record<CopyEventType, string> = {
-  minted: 'Created', escrowed: 'Put up in a trade offer', returned: 'Came back from a trade offer', traded: 'Traded', upgraded: 'Spent in an upgrade', removed: 'Removed from the collection', reversed: 'Returned by staff (trade reversed)',
+  minted: 'Created', escrowed: 'Put up in a trade offer', returned: 'Came back from a trade offer', traded: 'Traded', upgraded: 'Spent in an upgrade', removed: 'Removed from the collection', reversed: 'Returned by staff (trade reversed)', restored: 'Restored to the collection',
 };
 
 /** "Shiny Full Art #3" without the card name, for chips. */

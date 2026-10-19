@@ -4,7 +4,9 @@ import { getCollection, getUserProfile, listSeasons, saveCollection, saveUserPro
 import { recordAudit } from './audit';
 import { currentStaffLogin } from './staff-actor';
 import { listOpenTrades } from './trades';
-import type { UserProfile } from './types';
+import { getOwnerCopies, isTracking, printsBlocked } from './serials';
+import { entryOf } from './serials-core';
+import type { UserProfile, Variant } from './types';
 
 // Server-side helpers for the admin Users pages: tags and moderation flags, the hidden-viewers set, restore points (snapshots taken
 // before a reset / delete / merge) and account merging.
@@ -89,7 +91,23 @@ export interface UserSnapshot {
   at: number;
   reason: string;
   profile: UserProfile | null;
-  collections: { collectionName: string; seasonName: string; entries: number[] }[];
+  collections: { collectionName: string; seasonName: string; entries: number[]; /** Copy ids, one per entry, when the season was numbered. */ prints?: string[] }[];
+}
+
+/** One saved print per entry the viewer holds. Undefined when the ledger does not match the collection (an older point then has no ids). */
+function assignPrints(entries: number[], copies: { id: string; card: number; variant: Variant }[]): string[] | undefined {
+  const pools = new Map<number, string[]>();
+  for (const x of copies) {
+    const e = entryOf(x);
+    pools.set(e, [...(pools.get(e) ?? []), x.id]);
+  }
+  const ids: string[] = [];
+  for (const e of entries) {
+    const id = pools.get(e)?.pop();
+    if (!id) return undefined;
+    ids.push(id);
+  }
+  return ids;
 }
 
 const SNAP_TTL = 14 * 24 * 3600; // seconds
@@ -104,7 +122,10 @@ export async function takeUserSnapshot(username: string, reason: string): Promis
   const collections: UserSnapshot['collections'] = [];
   for (const s of seasons) {
     const entries = (await getCollection(s.collectionName))[name];
-    if (entries && entries.length > 0) collections.push({ collectionName: s.collectionName, seasonName: s.name, entries: [...entries] });
+    if (entries && entries.length > 0) {
+      const prints = (await isTracking(s.collectionName)) ? assignPrints(entries, await getOwnerCopies(s.collectionName, name)) : undefined;
+      collections.push({ collectionName: s.collectionName, seasonName: s.name, entries: [...entries], ...(prints ? { prints } : {}) });
+    }
   }
   if (collections.length === 0 && !profile) return null;
   const snap: UserSnapshot = { id: Math.random().toString(36).slice(2, 10), at: Date.now(), reason, profile: profile ?? null, collections };
@@ -130,13 +151,22 @@ export async function restoreUserSnapshot(username: string, id: string): Promise
   const name = username.toLowerCase();
   const snap = await kv.get<UserSnapshot>(snapKey(name, id));
   if (!snap) return { ok: false, error: 'That restore point has expired or no longer exists.' };
+  const open = await listOpenTrades();
+  if (open.some(t => t.from === name || t.to === name)) return { ok: false, error: 'This viewer has open trade offers. Cancel or wait for them to end first (the cards in an offer belong to the trade).' };
+  for (const c of snap.collections) {
+    if (!c.prints || c.prints.length !== c.entries.length || !(await isTracking(c.collectionName))) continue;
+    const block = await printsBlocked(c.collectionName, name, c.prints);
+    if (block) return { ok: false, error: block };
+  }
   await takeUserSnapshot(name, 'Before restoring');
   let cards = 0;
   for (const c of snap.collections) {
     await withCollectionLock(c.collectionName, async () => {
       const data = await getCollection(c.collectionName);
       data[name] = [...c.entries];
-      await saveCollection(c.collectionName, data);
+      const tracking = await isTracking(c.collectionName);
+      const exact = tracking && c.prints && c.prints.length === c.entries.length ? c.prints : undefined;
+      await saveCollection(c.collectionName, data, exact ? { restore: { owner: name, ids: exact } } : tracking ? { restoreRetired: name } : undefined);
     });
     cards += c.entries.length;
   }
