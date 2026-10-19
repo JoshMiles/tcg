@@ -19,6 +19,7 @@ import { listVersions, recordVersion } from '@/lib/overlay-versions';
 import { sanitizePropValues } from '@/lib/overlay-props';
 import { sanitizeLayout, sceneLayout, type OverlayLayout } from '@/lib/overlay-layout';
 import { DEFAULT_SCORING, sanitizeScoring, saveScoringSettings, resetScoringSettings } from '@/lib/scoring';
+import { achievementSettingsFromForm, saveAchievementSettings } from '@/lib/achievement-settings';
 
 // ── Webhooks ──────────────────────────────────────────────
 
@@ -67,6 +68,15 @@ export async function saveScoringSettingsAction(formData: FormData) {
   revalidatePath('/admin/settings');
   revalidatePath('/admin');
   redirect('/admin/settings?tab=scoring&saved=scoring');
+}
+
+/** Saves which built-in achievements are on, and any replacement title or detail. A missing checkbox means off. */
+export async function saveAchievementSettingsAction(formData: FormData) {
+  await requireAdmin();
+  await saveAchievementSettings(achievementSettingsFromForm(formData));
+  await notifyAdminLog({ action: 'Achievement list changed', by: await currentStaffLogin() });
+  revalidatePath('/admin/settings');
+  redirect('/admin/settings?tab=achievements&saved=achievements');
 }
 
 export async function resetScoringSettingsAction() {

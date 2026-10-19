@@ -1219,6 +1219,10 @@ A collection tile or binder pocket with `holo-fx` does not also take `holo-hover
 
 `DEFAULT_SCORING.serialBonusCutoff` is 40. A saved `scoring:settings` value is left as stored, so a site that already saved 20 keeps 20 until someone saves 40 in Admin → Settings → Scoring. Scores recompute on the next page load after that save. `EVENT_CAP` (how many journey events a copy keeps) stays 40 and is a different setting.
 
+### 27.3 Achievement list: on/off, rename, edit the text (Done)
+
+Settings → Achievements lists every built-in kind (completed set, each star tier, each version, master set, and the edition-number goals). Each row is on or off, plus a title and a detail. A blank box keeps the built-in sentence. Stored at `achievements:settings`. A switched-off kind is left out of a fresh evaluation. A goal already stored on a profile stays, and clearing the words brings the built-in sentence back. No new rules, no icons, no per-season overrides.
+
 ### 28.2 Generate a Mix It Up command from the saved settings (Done)
 
 The Commands tab lists a Copy setup block for every switched-on command (the `!` name, the webhook, the JSON, and the `message` field). Paid pulls show the balance and deduct requests from the saved settings. Mix It Up is not called to create them.

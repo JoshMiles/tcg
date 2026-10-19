@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (27.3 shipped: Settings → Achievements can switch a built-in goal off or replace its title and detail. A goal already earned stays. 28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -21,7 +21,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 25.1 | Home: Card of the week | Ready | S |
 | 25.2 | A copy is an edition; "24 of 28" is a print | Ready | L |
 | 27.1 | FAQ pass: cards, commands, trading, points, brackets | Ready | M |
-| 27.3 | Achievement list: on/off, rename, edit the text | Ready | M |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
 | 28.1 | Pull limits per role, editable, plus a this-stream buff | Ready | M |
 | 28.4 | Font control in the Overlay Editor | Ready | M |
@@ -99,7 +98,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | FAQ Points and leaderboard: how are points worked out | 27.1 (question already exists) |
 | "Edition #1 is worth 3x ... until the 40th edition" | Superseded: 27.1 says print #1 ... the 40th print, from the live cutoff. The default cutoff is 40 |
 | Master set achievement: every variant of every card | Already shipped (see above) |
-| Achievement editor? | 27.3 |
+| Achievement editor? | Done |
 | FAQ: can I see the exact maths for a card | 27.1 (question already exists) |
 | Spacing looks weird on some of the brackets | 27.1 |
 | Cheesy TCG logo goes to the homepage, or the dashboard in admin | Done |
@@ -114,7 +113,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 
 Parallel streams, so no two open PRs edit the same files:
 - **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
-- **FAQ:** 27.1 after 25.2 (same words). 27.3 is the achievement list and does not touch the FAQ.
+- **FAQ:** 27.1 after 25.2 (same words).
 - **Fonts:** 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 25.2, 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 25.2, then 28.4, then 29.1, then 29.4.
 - **Mix It Up:** 28.1 edits `lib/pull-limit-core.ts`. Do not run it beside 30.2.
 - **Variants:** 29.1 (includes the audit and the dry-run script), then 29.4. There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
@@ -181,19 +180,9 @@ Files: `app/(site)/faq/page.tsx` (the `SECTIONS` jump list and the body order, w
 
 **Checks:** `scripts/check-words.mts` and `npm run verify`. Read the rendered FAQ at 390px and 1280px, including the maths block.
 
-### 27.3 Achievement list: on/off, rename, edit the text (Ready, M)
-
-Decided 2026-10-19: a small editor for the built-in list, not a way to invent new goal rules. The master set goal already exists (see above). Granting a bonus is 27.5, after the buff catalogue exists.
-
-- Settings → Achievements, admins only (`requireAdmin`). Mods do not get the page.
-- One row per built-in kind from `evaluateSeason` (`lib/achievements.ts`): completed set, each star tier, each version, master set, and the edition-number goals. Fields: **on/off** (default on), **title**, **detail**. Empty title or detail means "use the built-in words".
-- Stored at `achievements:settings`. `evaluateSeason` skips a switched-off kind. Achievements already stored on a user stay (they are never revoked). No icon upload, no per-season overrides, no custom rules ("own 10 shinies") in this item.
-- **Checks:** a small `scripts/check-achievements.mts` case, or the existing one: a switched-off kind is absent from a fresh evaluation, and a stored earned row is left in place. Hand pass of the settings page at 1280px and 390px.
-- **Docs:** `docs/public-site/dex-leaderboard-stats.md` (achievements).
-
 ### 27.5 An achievement can grant a bonus (Ready after 30.1, M)
 
-Decided with 27.3. The list editor ships first. This item adds the bonus, and it uses the buff catalogue from 30.1 so there is one bonus system.
+Decided with 27.3. The list editor has shipped (Settings → Achievements). This item adds the bonus, and it uses the buff catalogue from 30.1 so there is one bonus system.
 
 - On each achievement row, an optional bonus: none, or one buff definition (extra pulls, extra pack, or a personal buff with a duration). Not a community buff: an achievement is earned by one person.
 - When `syncAchievements` newly earns it, apply that buff to the user with `source: 'achievement:<id>'`. The badge stays forever. The bonus expires by the buff's own rule (time, streams, season, or the next N pulls). Earning it again does not happen (stored achievements are not re-awarded), so the bonus is not applied twice.
