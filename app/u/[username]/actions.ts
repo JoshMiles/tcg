@@ -8,6 +8,7 @@ import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { getOwnerCopies } from '@/lib/serials';
 import type { Pronouns } from '@/lib/pronouns';
 import { DEFAULT_BINDER, sanitizeBinder, type BinderConfig } from '@/lib/binder-config';
+import { useTrainerCard } from '@/lib/buffs';
 
 /** Saves the signed-in viewer's own Overview layout. The viewer comes from the session, never the arguments. */
 export async function saveProfileLayoutAction(layout: unknown): Promise<ProfilePlacement[]> {
@@ -75,4 +76,21 @@ export async function saveShowcaseAction(uids: unknown): Promise<{ ok: true; uid
   await saveUserSettings(session.username, clean);
   revalidatePath(`/u/${session.username}`);
   return { ok: true, uids: clean.showcaseUids };
+}
+
+/**
+ * Uses a trainer card: consumes 1 Regular copy and activates its buff.
+ * Viewer identity is strictly from the active session.
+ */
+export async function useTrainerCardAction(cardNumber: number, seasonId?: string): Promise<{ ok: boolean; error?: string; message?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Log in to use trainer cards.' };
+  if (!Number.isInteger(cardNumber) || cardNumber <= 0) return { ok: false, error: 'Invalid card number.' };
+  const res = await useTrainerCard(session.username, cardNumber, seasonId);
+  if (!res.ok) {
+    return { ok: false, error: res.error };
+  }
+  revalidatePath(`/u/${session.username}`);
+  revalidatePath('/account');
+  return { ok: true, message: res.message };
 }

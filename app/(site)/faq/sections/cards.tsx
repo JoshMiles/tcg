@@ -46,6 +46,11 @@ export function CardsSection({ pct, upgradesOn }: { pct: (v: Variant) => string;
         and press one to see its page and its journey: who pulled it, who has held it and for how long, and where it has been traded or forged in an upgrade. Editions that existed before prints were numbered were numbered afterwards, so their order is an estimate (shown with a ~). On an edition&rsquo;s page and in your card details the card can be turned over: move the pointer over it to tilt it, then tap it or press <em>Flip</em> to see the engraved back with the edition number and the date.
         When you upgrade, the spent editions are retired and the new edition remembers what it was made from.
       </Q>
+      <Q q="What is a trainer card?">
+        <p>
+          Trainer cards are special cards that grant a temporary buff when used, such as an extra card pack, bonus points or special perks. When you own a Regular edition of a trainer card, open its card details in your collection and tap <strong className="text-white">Use trainer card</strong> (then tap again to confirm). Using the card activates its buff and consumes one Regular edition of the card.
+        </p>
+      </Q>
     </Section>
   );
 }

@@ -33,7 +33,7 @@ export function pickProfileTab(raw: string | undefined, isOwner = false): Profil
 }
 
 /** Event types the public Activity tab may show: pulls, upgrades and completed trades only (never admin actions or declined offers). */
-export const PUBLIC_ACTIVITY_TYPES = ['pull', 'upgrade', 'trade'] as const;
+export const PUBLIC_ACTIVITY_TYPES = ['pull', 'upgrade', 'trade', 'buff'] as const;
 
 /** The facts a public activity row needs in order to link somewhere. */
 export type ActivityLink = {
@@ -51,7 +51,7 @@ export type ActivityLink = {
  */
 export function publicActivityHref(e: ActivityLink, seasonId: string): string | null {
   if (e.type === 'trade') return e.tradeId ? `/trade/${encodeURIComponent(e.tradeId)}` : null;
-  if (e.type !== 'pull' && e.type !== 'upgrade') return null;
+  if (e.type !== 'pull' && e.type !== 'upgrade' && e.type !== 'buff') return null;
   if (e.uid) return copyHrefFor({ type: e.type, uid: e.uid, cardNumber: e.cardNumber }, seasonId);
   if (e.copyId && seasonId) return `/copy/${encodeURIComponent(seasonId)}/${e.copyId}`;
   return e.cardNumber != null ? `/cards?card=${e.cardNumber}` : null;

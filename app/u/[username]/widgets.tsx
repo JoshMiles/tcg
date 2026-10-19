@@ -370,6 +370,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                 <span className="flex-1 min-w-0 truncate">
                   {e.type === 'pull' && <>Pulled <strong className="text-white">{name(e.cardNumber, e.cardName)}</strong>{e.variant && e.variant !== 'regular' ? <span className="text-purple-300"> ({VARIANT_LABELS[e.variant]})</span> : null}</>}
                   {e.type === 'upgrade' && <>Upgraded <strong className="text-white">{name(e.cardNumber, e.cardName)}</strong> to <span className="text-purple-300">{VARIANT_LABELS[e.to]}</span></>}
+                  {e.type === 'buff' && <>Used trainer card <strong className="text-white">{name(e.cardNumber, e.cardName)}</strong> ({e.buffName})</>}
                   {e.type === 'trade' && <>Traded with {e.partner ? `@${e.partner}` : 'another collector'}</>}
                 </span>
                 <span className="text-xs text-gray-600 shrink-0">{ago(e.at)}</span>

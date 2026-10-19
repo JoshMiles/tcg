@@ -10,6 +10,7 @@ import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
 import { getStreamBuff, getUserPullLimit } from './pull-limit';
 import { effectiveLimit, streamBuffAmount } from './pull-limit-core';
+import { hasExtraPackCredit } from './buffs';
 import {
   normalizeMixItUp, parseBalance, pullRole, refusalMessage, renderMessage, replyApplied, roleLimitOf, streamKey, decide,
   type MixItUpSettings, type RefusalReason,
@@ -79,7 +80,7 @@ const cntKey = (stream: string, user: string) => `mixitup:cnt:${stream}:${user}`
 const pendKey = (user: string) => `mixitup:pending:${user}`;
 const payKey = (id: string) => `mixitup:pay:${id}`;
 
-interface PayRecord { username: string; amount: number; stream: string; at: number }
+interface PayRecord { username: string; amount: number; stream: string; at: number; credit?: boolean }
 export type Reservation = { ok: true } | { ok: false; reason: RefusalReason; message: string; balance?: number };
 
 /** The window "per stream" counts in: the live Twitch stream's start, else the UTC day. */
@@ -96,6 +97,13 @@ export async function currentStreamKey(): Promise<string> {
 export async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch, role?: unknown): Promise<Reservation> {
   const user = username.toLowerCase();
   const stream = await currentStreamKey();
+
+  // If the viewer has an active extra-pack credit, bypass limit and fee (ROADMAP 30.2 / Decision 4).
+  if (await hasExtraPackCredit(user, { now: Date.now(), streamKey: stream })) {
+    await kv.set(payKey(payId), { username: user, amount: 0, stream, at: Date.now(), credit: true } satisfies PayRecord, { ex: PAY_TTL_S });
+    return { ok: true };
+  }
+
   // Their own limit replaces the role default. A this-stream bonus adds on top. 0 = no limit, and bonuses cannot change that.
   const extra = streamBuffAmount(await getStreamBuff(), stream);
   const limit = effectiveLimit(roleLimitOf(s, pullRole(role, user)), await getUserPullLimit(user), Date.now(), extra).limit;
@@ -134,7 +142,7 @@ export async function pullsUsedThisStream(username: string): Promise<number> {
 }
 
 // ── Claim, charge, revoke ──
-export interface Claimed { payId: string; username: string; amount: number; stream: string }
+export interface Claimed { payId: string; username: string; amount: number; stream: string; credit?: boolean }
 
 /** Takes a reservation (once). Null = unknown, expired, already used, or for another viewer: nothing is saved then. */
 export async function claimPaidPull(payId: string, username: string): Promise<Claimed | null> {
@@ -142,13 +150,14 @@ export async function claimPaidPull(payId: string, username: string): Promise<Cl
   if (!rec || rec.username !== username.toLowerCase()) return null;
   if ((await kv.del(payKey(payId))) !== 1) return null; // someone else claimed it first
   await kv.decr(pendKey(rec.username)).catch(() => {});
-  return { payId, username: rec.username, amount: rec.amount, stream: rec.stream };
+  return { payId, username: rec.username, amount: rec.amount, stream: rec.stream, credit: !!rec.credit };
 }
 
 export interface PullDetails { cardName: string; variant: string; stars: number; packName: string; cardNumber: number; serial?: number | null }
 
 /** Tells Mix It Up to take the currency, with the message about the card. Applied = it said so. */
 export async function chargePaidPull(s: MixItUpSettings, c: Claimed, d: PullDetails, doFetch?: Fetch): Promise<{ applied: boolean; error?: string }> {
+  if (c.credit || c.amount === 0) return { applied: true };
   if (await inSandbox()) return { applied: true };
   const message = renderMessage(s.message, { username: c.username, amount: c.amount, currency: s.currency, cardName: d.cardName, variant: d.variant, stars: d.stars, packName: d.packName, cardNumber: d.cardNumber, serial: d.serial ?? '' });
   const r = await callMixItUp(deductUrl(s), { action: 'deduct', secret: s.secret, username: c.username, amount: c.amount, currency: s.currency, message, pullId: c.payId }, doFetch);
@@ -162,11 +171,12 @@ export async function releasePaidPull(payId: string): Promise<void> {
   const rec = await kv.get<PayRecord>(payKey(payId)).catch(() => null);
   if (!rec || (await kv.del(payKey(payId))) !== 1) return;
   await kv.decr(pendKey(rec.username)).catch(() => {});
-  await releaseCount({ payId, username: rec.username, amount: rec.amount, stream: rec.stream });
+  await releaseCount({ payId, username: rec.username, amount: rec.amount, stream: rec.stream, credit: rec.credit });
 }
 
 /** A claimed pull that was not charged: give the viewer's pull allowance back. */
 export async function releaseCount(c: Claimed): Promise<void> {
+  if (c.credit) return;
   await kv.decr(cntKey(c.stream, c.username)).catch(() => {});
 }
 

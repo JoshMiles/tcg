@@ -12,6 +12,7 @@ import { cardThumbUrl, stillFor } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS, usesFullArt, type VariantCounts } from '@/lib/variants';
 import { holoClass, holoVars } from '@/lib/holo-core';
 import { UpgradeButton } from '@/app/components/UpgradeButton';
+import { UseTrainerButton } from '@/app/components/UseTrainerButton';
 import { CardMathsPanel } from '@/app/components/CardMathsPanel';
 import type { Variant } from '@/lib/types';
 import { copiesForDialog } from '@/lib/collection-view';
@@ -75,6 +76,7 @@ export function CardDetail({
               <h2 className="font-display text-2xl sm:text-3xl font-bold text-white leading-tight wrap-break-word">{card.name}</h2>
               <p className="text-sm font-semibold mt-1" style={{ color: rarity?.hex }}>
                 {'★'.repeat(card.stars)} {rarity?.label}
+                {card.kind === 'trainer' ? <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"><Icon name="zap" className="w-3 h-3" />Trainer</span> : null}
                 <span className="ml-2 text-gray-400 font-normal">{total.toLocaleString()} edition{total === 1 ? '' : 's'}</span>
               </p>
             </div>
@@ -198,6 +200,18 @@ function PrintView({ card, edition, seasonId, ownerName, canUpgrade, tradeWith, 
             {canUpgrade && edition.uid ? <FavouriteCopyButton uid={edition.uid} favourite={!!favouriteUids?.includes(edition.uid)} /> : null}
             {tradeWith && <a href={`/trade/new?to=${encodeURIComponent(tradeWith)}&want=${card.number}.${v}`} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border border-purple-400/40 bg-purple-500/10 text-purple-200 hover:bg-purple-500/20"><Icon name="trade" />Offer a trade</a>}
           </div>
+          {canUpgrade && card.kind === 'trainer' && v === 'regular' && (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 pt-1">
+              <UseTrainerButton
+                cardNumber={card.number}
+                cardName={card.name}
+                seasonId={seasonId}
+                isFavourite={!!edition.uid && !!favouriteUids?.includes(edition.uid)}
+                disabled={card.counts.regular < 1}
+              />
+              <span>Trainer cards activate their buff and consume 1 Regular edition.</span>
+            </div>
+          )}
           {showUpgrade && (
             <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
               <UpgradeButton cardNumber={card.number} from={v} to={step!.to} have={card.counts[v]} cost={step!.cost} holo={card.holo} card={{ name: card.name, imageUrl: card.imageUrl, fullArtImageUrl: card.fullArtImageUrl }} />

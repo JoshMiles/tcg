@@ -176,6 +176,9 @@ export async function ActivityTab({ b }: { b: ProfileBase }) {
         } else if (e.type === 'upgrade') {
           icon = 'sparkles';
           text = <>Upgraded {activityCard(e, seasonFor(e.collectionName), name(e.cardNumber, e.cardName), VARIANT_LABELS[e.to])}</>;
+        } else if (e.type === 'buff') {
+          icon = 'zap';
+          text = <>Used trainer card {activityCard(e, seasonFor(e.collectionName), name(e.cardNumber, e.cardName), 'Regular')} ({e.buffName})</>;
         } else if (e.type === 'trade') {
           icon = 'trade';
           const tradeHref = publicActivityHref(e, '');

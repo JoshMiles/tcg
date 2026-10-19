@@ -13,7 +13,7 @@ export const PrintSeasons = createContext<Record<string, string>>({});
  */
 export function usePrintHref(e: ActivityEvent, mod: boolean): string | null {
   const seasons = useContext(PrintSeasons);
-  if (e.type !== 'pull' && e.type !== 'grant' && e.type !== 'upgrade') return null;
+  if (e.type !== 'pull' && e.type !== 'grant' && e.type !== 'upgrade' && e.type !== 'buff') return null;
   const seasonId = (e.collectionName && seasons[e.collectionName]) || '';
   return mod ? copyHrefFor(e, seasonId) : adminCopyHrefFor(e, seasonId) ?? copyHrefFor(e, seasonId);
 }

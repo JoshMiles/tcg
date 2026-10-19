@@ -1,7 +1,18 @@
 import { kv } from './db';
-import { getPackCards, listAllPacks } from './kv';
+import { getCollection, getPackCards, getPacksForSeason, getSeason, listAllPacks, listSeasons, saveCollection, withCollectionLock } from './kv';
 import { ACHIEVEMENT_KINDS } from './achievement-settings';
-import { normalizeBuffDef, applyBuffToList, type ActiveBuff, type BuffDef, type BuffUsage } from './buffs-core';
+import {
+  consumeBuffPull, describeBuffDef, isBuffActiveFor, normalizeBuffDef, applyBuffToList,
+  type ActiveBuff, type BuffDef, type BuffEvalContext, type BuffUsage,
+} from './buffs-core';
+import { encodeEntry, removeEntries } from './variants';
+import { favouriteIdsOf, spendablePrints } from './favourites';
+import { getCopy, isTracking } from './serials';
+import { recordAudit } from './audit';
+import { recordActivity } from './activity';
+import { getLiveStatus } from './twitch-live';
+import { streamKey } from './mixitup-core';
+import type { Card } from './types';
 
 export type { BuffUsage };
 
@@ -202,4 +213,184 @@ export async function applyBuff(
     await saveUserBuffs(username, res.buffs);
   }
   return res;
+}
+
+export async function currentBuffStreamKey(): Promise<string> {
+  const live = await getLiveStatus().catch(() => null);
+  const started = live?.live && live.startedAt ? Date.parse(live.startedAt) : NaN;
+  return streamKey(Number.isFinite(started) ? started : null);
+}
+
+/** Whether the viewer has an active extra-pack credit (personal or community). */
+export async function hasExtraPackCredit(username: string, ctx?: BuffEvalContext): Promise<boolean> {
+  const u = username.toLowerCase();
+  const now = ctx?.now ?? Date.now();
+  const evalCtx = { now, ...ctx, username: u };
+  const personal = await getUserBuffs(u);
+  for (const b of personal) {
+    if (b.type === 'extra-pack' && isBuffActiveFor(b, evalCtx)) return true;
+  }
+  const community = await getCommunityBuffs();
+  for (const b of community) {
+    if (b.type === 'extra-pack' && isBuffActiveFor(b, evalCtx)) return true;
+  }
+  return false;
+}
+
+/**
+ * Called when a card pull is successfully saved:
+ * 1. Consumes 1 extra-pack credit if `options.wasCredit` is true.
+ * 2. Decrements any `pulls`-duration buffs for `username` (both personal and community).
+ */
+export async function consumePullOnSave(
+  username: string,
+  options?: { wasCredit?: boolean; now?: number; streamKey?: string; seasonId?: string },
+): Promise<void> {
+  const u = username.toLowerCase();
+  const now = options?.now ?? Date.now();
+  const stream = options?.streamKey ?? (await currentBuffStreamKey().catch(() => undefined));
+  const ctx = { now, streamKey: stream, seasonId: options?.seasonId, username: u };
+
+  // 1. Consume 1 extra-pack credit if this was a credit pull
+  if (options?.wasCredit) {
+    const personal = await getUserBuffs(u);
+    const pRes = consumeBuffPull(personal, { ...ctx, type: 'extra-pack', onlyOneCredit: true });
+    if (pRes.consumedCredit) {
+      await saveUserBuffs(u, pRes.buffs);
+    } else {
+      const comm = await getCommunityBuffs();
+      const cRes = consumeBuffPull(comm, { ...ctx, type: 'extra-pack', onlyOneCredit: true });
+      if (cRes.consumedCredit) {
+        await saveCommunityBuffs(cRes.buffs);
+      }
+    }
+  }
+
+  // 2. Decrement pulls-duration buffs (personal & community)
+  const personal = await getUserBuffs(u);
+  const pPulls = consumeBuffPull(personal, { ...ctx, type: 'extra-pulls' });
+  if (pPulls.consumedCredit) {
+    await saveUserBuffs(u, pPulls.buffs);
+  }
+  const comm = await getCommunityBuffs();
+  const cPulls = consumeBuffPull(comm, { ...ctx, type: 'extra-pulls' });
+  if (cPulls.consumedCredit) {
+    await saveCommunityBuffs(cPulls.buffs);
+  }
+}
+
+export interface UseTrainerResult {
+  ok: boolean;
+  status: number;
+  message?: string;
+  error?: string;
+  cardName?: string;
+  buffName?: string;
+}
+
+/**
+ * Uses a trainer card: confirms ownership of 1 Regular copy (excluding favourites/escrow),
+ * verifies card kind is trainer and buff definition exists, confirms stacking rules, applies buff,
+ * consumes 1 edition (retiring in ledger), records audit, and logs activity (type: 'buff').
+ */
+export async function useTrainerCard(
+  username: string,
+  cardNumber: number,
+  seasonId?: string,
+): Promise<UseTrainerResult> {
+  const u = username.toLowerCase();
+  const seasons = await listSeasons().catch(() => []);
+  const season = seasonId
+    ? seasons.find(s => s.id === seasonId) ?? (await getSeason(seasonId))
+    : seasons.find(s => s.active && !s.endedAt) ?? seasons[0];
+  if (!season) return { ok: false, status: 400, error: 'No active season.' };
+
+  const packs = await getPacksForSeason(season);
+  let trainerCard: Card | null = null;
+  for (const p of packs) {
+    const cards = await getPackCards(p.id);
+    const found = cards.find(c => c.number === cardNumber);
+    if (found) { trainerCard = found; break; }
+  }
+  if (!trainerCard) return { ok: false, status: 404, error: 'Card not found.' };
+  if (trainerCard.kind !== 'trainer' || !trainerCard.buffId) {
+    return { ok: false, status: 400, error: 'This card is not a trainer card.' };
+  }
+
+  const buffDef = await getBuffDef(trainerCard.buffId);
+  if (!buffDef) return { ok: false, status: 400, error: 'This card has no valid buff.' };
+
+  return withCollectionLock(season.collectionName, async (): Promise<UseTrainerResult> => {
+    const coll = await getCollection(season.collectionName);
+    const owned = coll[u] ?? [];
+    const fromEntry = encodeEntry(cardNumber, 'regular');
+    const remaining = removeEntries(owned, fromEntry, 1);
+    if (!remaining) {
+      return { ok: false, status: 400, error: `You do not hold a Regular copy of ${trainerCard.name}.` };
+    }
+
+    let spendIds: string[] | undefined;
+    let retiredUid: number | undefined;
+    let retiredCopyId: string | undefined;
+
+    if (await isTracking(season.collectionName)) {
+      const favs = await favouriteIdsOf(season.collectionName, u);
+      const r = await spendablePrints(season.collectionName, u, fromEntry, 1, undefined, favs, 'spend');
+      if (!r.ok) return { ok: false, status: 400, error: r.text };
+      spendIds = r.ids ?? undefined;
+      if (spendIds?.[0]) {
+        retiredCopyId = spendIds[0];
+        const copy = await getCopy(season.collectionName, spendIds[0]);
+        if (copy?.uid) retiredUid = copy.uid;
+      }
+    }
+
+    const now = Date.now();
+    const stream = await currentBuffStreamKey().catch(() => undefined);
+    const buffRes = await applyBuff(u, buffDef.id, {
+      source: `card:${cardNumber}`,
+      seasonId: season.id,
+      streamKey: stream,
+      now,
+    });
+    if (!buffRes.ok) {
+      if (buffRes.reason === 'already_active') {
+        return { ok: false, status: 400, error: `Buff "${buffDef.name}" is already active.` };
+      }
+      if (buffRes.reason === 'max_buffs') {
+        return { ok: false, status: 400, error: 'You have reached the maximum number of active buffs.' };
+      }
+      return { ok: false, status: 400, error: 'Could not apply buff.' };
+    }
+
+    coll[u] = remaining;
+    await saveCollection(season.collectionName, coll, {
+      retire: spendIds ? { owner: u, ids: spendIds, who: u, note: 'trainer card used' } : undefined,
+    });
+
+    const durSummary = describeBuffDef(buffDef);
+    await recordAudit(u, 'Trainer card used', `${trainerCard.name}, ${buffDef.name}, ${durSummary}`);
+
+    await recordActivity({
+      type: 'buff',
+      username: u,
+      collectionName: season.collectionName,
+      cardNumber,
+      cardName: trainerCard.name,
+      buffName: buffDef.name,
+      buffType: buffDef.type,
+      magnitude: buffDef.magnitude,
+      duration: durSummary,
+      ...(retiredCopyId ? { copyId: retiredCopyId } : {}),
+      ...(retiredUid ? { uid: retiredUid } : {}),
+    });
+
+    return {
+      ok: true,
+      status: 200,
+      message: `Used ${trainerCard.name}! ${buffDef.name} is now active.`,
+      cardName: trainerCard.name,
+      buffName: buffDef.name,
+    };
+  });
 }

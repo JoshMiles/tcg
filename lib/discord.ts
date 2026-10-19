@@ -103,6 +103,7 @@ export function categoryOf(e: ActivityEvent): DiscordCategory {
     case 'grant': return e.source === 'webhook' ? 'pulls' : 'cards'; // a webhook reward posts like a pull
     case 'remove': return 'cards';
     case 'upgrade': return 'upgrades';
+    case 'buff': return 'cards';
     case 'trade': return 'trades';
     case 'trigger':
     case 'collection_shown': return 'stream';
@@ -253,6 +254,23 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
           { name: 'Cost', value: `${e.cost}×`, inline: true },
           ...(e.uid ? [{ name: 'New edition', value: `**Edition #${e.uid}**`, inline: true }] : []),
         ] });
+    }
+    case 'buff': {
+      const card = cardFor(e.cardNumber);
+      return payload({
+        ...base,
+        ...thumb(card?.imageUrl, card),
+        ...printUrl(),
+        color: GOLD,
+        title: '⚡ Trainer card used',
+        description: `**${esc(e.username)}** used trainer card **${esc(e.cardName || card?.name || `#${e.cardNumber}`)}**`,
+        fields: [
+          { name: 'Buff', value: e.buffName, inline: true },
+          { name: 'Type', value: e.buffType, inline: true },
+          ...(e.duration ? [{ name: 'Duration', value: e.duration, inline: true }] : []),
+          ...(e.uid ? [{ name: 'Edition consumed', value: `**Edition #${e.uid}**`, inline: true }] : []),
+        ],
+      });
     }
     case 'trade': {
       const card = e.cardNumber ? cardFor(e.cardNumber) : undefined;

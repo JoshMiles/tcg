@@ -27,6 +27,10 @@ export interface GridCard {
   fullArtStillUrl?: string;
   stars: number;
   packName: string;
+  /** Whether this card is a collector card or a usable trainer card. */
+  kind?: 'collector' | 'trainer';
+  /** The buff definition id granted when this trainer card is used. */
+  buffId?: string;
   /** Whether this card can be pulled / upgraded as variants. */
   upgradable: boolean;
   /** Chance that a single pull of the season is this card (before the variant roll). */

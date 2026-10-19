@@ -596,6 +596,19 @@ function EventRow({
       sub = `${e.cost}× ${VARIANT_LABELS[e.from]} spent`;
       break;
     }
+    case 'buff': {
+      const card = cardIndex(e.cardNumber);
+      icon = 'zap';
+      accent = 'border-l-amber-400';
+      thumb = <CardThumb card={card} stars={card?.stars ?? 1} />;
+      body = (
+        <>
+          <UserLink username={e.username} /> used trainer card <PrintLink event={e} mod={base === '/mod'}>{e.cardName || card?.name || `#${e.cardNumber}`}</PrintLink>
+        </>
+      );
+      sub = `${e.buffName} (${e.duration || e.buffType})`;
+      break;
+    }
     case 'trade':
       icon = 'trade';
       accent = e.action === 'accepted' ? 'border-l-emerald-400' : e.action === 'offered' || e.action === 'countered' ? 'border-l-blue-400' : 'border-l-red-400';

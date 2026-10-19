@@ -9,6 +9,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { claimDraw } from '@/lib/draw';
 import { getMixItUpSettings, claimPaidPull, chargePaidPull, releaseCount, revokePrint, noticeRevoked } from '@/lib/mixitup';
 import { isOverlayRequest } from '@/lib/overlay-key';
+import { consumePullOnSave } from '@/lib/buffs';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
@@ -73,6 +74,8 @@ export async function POST(req: NextRequest) {
       }
     }
   }
+
+  await consumePullOnSave(username, { wasCredit: paid?.credit, seasonId: name }).catch(() => {});
 
   // The serial the new copy got and what it is worth (the overlay shows it on the reveal).
   const mult = serial ? serialMultiplier(serial, await getScoringSettings()) : 1;

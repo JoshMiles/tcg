@@ -237,4 +237,123 @@ for (let i = 0; i < 30; i++) {
   ok(rolled && rolled.variant === 'regular', 'rollDraw always returns regular for a trainer card');
 }
 
+// ── 7. ROADMAP 30.2: Use trainer card (consume, buff, audit, activity) ──
+const sId = 's-train-test';
+const cName = 'train_test';
+await kvLib.saveSeason({
+  id: sId, name: 'Trainer Season', collectionName: cName, active: true,
+  packIds: ['p-train'], startDate: '2026-01-01', endDate: '2026-12-31',
+} as never);
+
+// Add trainer cards:
+// Card 10: Extra Pack Credit buff ('t-pk')
+const extraPkDef: import('../lib/buffs-core').BuffDef = {
+  id: 't-pk', name: 'Pack Surge', type: 'extra-pack', magnitude: 1,
+  duration: { unit: 'streams', n: 1 }, stack: 'refresh', scope: 'self',
+};
+await buffsStore.upsertBuffDef(extraPkDef);
+
+// Card 11: Reject stack buff ('t-rej')
+const rejectTrainerDef: import('../lib/buffs-core').BuffDef = {
+  id: 't-rej', name: 'Reject Shield', type: 'extra-pulls', magnitude: 1,
+  duration: { unit: 'hours', n: 5 }, stack: 'reject', scope: 'self',
+};
+await buffsStore.upsertBuffDef(rejectTrainerDef);
+
+// Card 12: Pulls-duration buff ('t-pulls')
+const pullsTrainerDef: import('../lib/buffs-core').BuffDef = {
+  id: 't-pulls', name: 'Two Extra Pulls', type: 'extra-pulls', magnitude: 2,
+  duration: { unit: 'pulls', n: 2 }, stack: 'refresh', scope: 'self',
+};
+await buffsStore.upsertBuffDef(pullsTrainerDef);
+
+await kvLib.savePackCards('p-train', [
+  { id: 'c10', number: 10, name: 'Pack Surge Card', imageUrl: '/a/10.png', probability: 5, stars: 3, kind: 'trainer', buffId: 't-pk' },
+  { id: 'c11', number: 11, name: 'Reject Shield Card', imageUrl: '/a/11.png', probability: 5, stars: 3, kind: 'trainer', buffId: 't-rej' },
+  { id: 'c12', number: 12, name: 'Pulls Card', imageUrl: '/a/12.png', probability: 5, stars: 3, kind: 'trainer', buffId: 't-pulls' },
+]);
+
+// 1. Cannot use if viewer holds 0 copies
+const noCopies = await buffsStore.useTrainerCard('dan', 10, sId);
+ok(!noCopies.ok && noCopies.error.includes('do not hold a Regular copy'), 'refused when viewer holds no copy');
+
+// 2. Set up alice with 2 regular copies of card 10
+await kvLib.saveCollection(cName, { alice: [variants.encodeEntry(10, 'regular'), variants.encodeEntry(10, 'regular')] });
+const ser = await import('../lib/serials');
+await ser.backfillSerials(cName, await kvLib.getCollection(cName));
+ok(await ser.isTracking(cName), 'tracking enabled for season');
+
+// 3. Favourite 1 copy: only 1 spendable
+const aliceCopies = await ser.getOwnerCopies(cName, 'alice');
+eq(aliceCopies.length, 2, 'alice has 2 copies');
+const userSettings = await import('../lib/user-settings-store');
+const favsMod = await import('../lib/favourites');
+const curSettings = await userSettings.getUserSettings('alice');
+await userSettings.saveUserSettings('alice', { ...curSettings, favourites: [aliceCopies[0].uid!] });
+const favs = await favsMod.favouriteIdsOf(cName, 'alice');
+ok(favs.has(aliceCopies[0].id), 'copy 0 is favourite');
+
+// If both were favourited, useTrainerCard would fail
+await userSettings.saveUserSettings('alice', { ...curSettings, favourites: [aliceCopies[0].uid!, aliceCopies[1].uid!] });
+const allFav = await buffsStore.useTrainerCard('alice', 10, sId);
+ok(!allFav.ok && allFav.error.includes('favourite'), 'refused when all copies are favourited');
+
+// Leave only copy 0 favourited so copy 1 is spendable
+await userSettings.saveUserSettings('alice', { ...curSettings, favourites: [aliceCopies[0].uid!] });
+
+// 4. Use trainer card: consumes 1 copy, applies buff
+const usedRes = await buffsStore.useTrainerCard('alice', 10, sId);
+ok(usedRes.ok && usedRes.message.includes('Pack Surge is now active'), 'useTrainerCard succeeds');
+
+const aliceCollAfter = await kvLib.getCollection(cName);
+eq(aliceCollAfter.alice.length, 1, '1 copy consumed from collection');
+const aliceCopiesAfter = await ser.getOwnerCopies(cName, 'alice');
+eq(aliceCopiesAfter.length, 1, '1 copy remains in ledger');
+ok(aliceCopiesAfter[0].id === aliceCopies[0].id, 'favourited copy was preserved, non-favourite consumed');
+
+// Check extra-pack credit is active
+ok(await buffsStore.hasExtraPackCredit('alice'), 'alice has extra pack credit');
+
+// 5. reservePaidPull bypasses limits and fee when viewer has credit
+const mixSettings = { enabled: true, cost: 50, pullLimitPerStream: 1, command: '!pack' };
+const paidRes = await (await import('../lib/mixitup')).reservePaidPull(mixSettings, 'alice', 'pay-test-1');
+ok(paidRes.ok, 'reservePaidPull succeeds for viewer with credit');
+const claimed = await (await import('../lib/mixitup')).claimPaidPull('pay-test-1', 'alice');
+ok(claimed && claimed.amount === 0 && claimed.credit === true, 'credit pull is 0 cost with credit: true');
+
+// 6. consumePullOnSave consumes credit
+await buffsStore.consumePullOnSave('alice', { wasCredit: true, seasonId: sId });
+ok(!(await buffsStore.hasExtraPackCredit('alice')), 'credit consumed on save');
+
+// 7. Reject stack trainer card
+await kvLib.addCollectionEntryWithSerial(cName, 'alice', variants.encodeEntry(11, 'regular'), 'pull');
+await kvLib.addCollectionEntryWithSerial(cName, 'alice', variants.encodeEntry(11, 'regular'), 'pull');
+const useRej1 = await buffsStore.useTrainerCard('alice', 11, sId);
+ok(useRej1.ok, 'first use of reject buff succeeds');
+const useRej2 = await buffsStore.useTrainerCard('alice', 11, sId);
+ok(!useRej2.ok && useRej2.error.includes('already active'), 'second use of reject buff refused while active');
+
+// 8. Pulls-duration buff decremented on save
+await kvLib.addCollectionEntryWithSerial(cName, 'alice', variants.encodeEntry(12, 'regular'), 'pull');
+const usePulls = await buffsStore.useTrainerCard('alice', 12, sId);
+ok(usePulls.ok, 'use pulls-duration trainer card succeeds');
+let uBuffs = await buffsStore.getUserBuffs('alice');
+eq(uBuffs.find(b => b.buffId === 't-pulls')?.pullsLeft, 2, 'pullsLeft starts at 2');
+await buffsStore.consumePullOnSave('alice', { seasonId: sId });
+uBuffs = await buffsStore.getUserBuffs('alice');
+eq(uBuffs.find(b => b.buffId === 't-pulls')?.pullsLeft, 1, 'pullsLeft decremented to 1 on pull save');
+await buffsStore.consumePullOnSave('alice', { seasonId: sId });
+uBuffs = await buffsStore.getUserBuffs('alice');
+ok(!uBuffs.some(b => b.buffId === 't-pulls'), 'pulls-duration buff finished and removed after 2 pulls');
+
+// 9. Activity recorded with type: 'buff'
+const act = await (await import('../lib/activity')).getActivity({ limit: 10 });
+const buffAct = act.events.find(a => a.type === 'buff' && a.username === 'alice' && a.cardNumber === 12);
+ok(buffAct && buffAct.cardName === 'Pulls Card' && buffAct.buffName === 'Two Extra Pulls', 'buff activity recorded correctly');
+
+// 10. Audit log recorded
+const audits = await (await import('../lib/audit')).getUserAudit('alice', 10);
+ok(audits.some(a => a.action === 'Trainer card used' && a.detail?.includes('Pack Surge Card')), 'audit recorded for trainer card use');
+
 console.log('trainer buff checks passed');
+
