@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -22,7 +22,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 25.2 | A copy is an edition; "24 of 28" is a print | Ready | L |
 | 26.6 | Post a share image straight to Discord | Ready | M |
 | 26.7 | Editable profile showcase, and !showoff uses it | Ready | M |
-| 26.8 | Wordmark links home, or to the dashboard in admin | Ready | S |
 | 27.1 | FAQ pass: cards, commands, trading, points, brackets | Ready | M |
 | 27.3 | Achievement list: on/off, rename, edit the text | Ready | M |
 | 27.4 | Print bonus cutoff set to 40 | Ready | S |
@@ -80,7 +79,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 - **Master set.** `evaluateSeason` in `lib/achievements.ts` already awards `master` ("Master set: {season}", own every card in every version). The FAQ already says so (`app/(site)/faq/sections/profile.tsx`, "What are achievements?"). The goal is omitted when every card has only Regular, because it would be the same as Completed. Season 1's pack has upgrades off, so the goal does not show there. Turning versions on is what makes it appear. No new kind.
 - **How are points worked out?** and **Can I see the exact maths for a card?** already exist in `app/(site)/faq/sections/points.tsx`. 27.1 tightens the wording and the bracket spacing. It does not add a second copy of either question.
 - **Pull history on the profile.** The Activity tab lists pulls (card, version, sequence, linked to the print or the card dex), upgrades (linked to the print they made) and accepted trades (linked when the event has a trade id). Admin grants and declined offers stay off it.
-- **Public wordmark.** `SiteNav` already links the logo and "The Cheesy TCG" to `/`. 26.8 is the admin wordmark, which is not a link today.
+- **Public wordmark.** `SiteNav` links the logo and "The Cheesy TCG" to `/`. The admin sidebar brand and the phone top-bar title link to `/admin`. The mod bar links to `/mod`.
 
 ### Where each Discord line went
 
@@ -108,7 +107,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Achievement editor? | 27.3 |
 | FAQ: can I see the exact maths for a card | 27.1 (question already exists) |
 | Spacing looks weird on some of the brackets | 27.1 |
-| Cheesy TCG logo goes to the homepage, or the dashboard in admin | 26.8 |
+| Cheesy TCG logo goes to the homepage, or the dashboard in admin | Done |
 | Default limits for subscribers, mods, broadcaster, VIPs and regular | 28.1 |
 | !showoff pulls from the user's profile showcase | 26.7 |
 | Option to edit the showcase on a person's profile | 26.7 |
@@ -120,7 +119,6 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 
 Parallel streams, so no two open PRs edit the same files:
 - **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
-- **Profile header:** 26.8 is the admin shell only.
 - **Share:** 26.6 (`ShareStudio.tsx` and Discord).
 - **Showcase:** 26.7. It does not edit `public/widget.js`.
 - **FAQ:** 27.1 after 25.2 (same words). 27.4 only changes the scoring default (`lib/scoring-core.ts`) and can run beside it. 27.3 is the achievement list and does not touch the FAQ.
@@ -176,15 +174,6 @@ Two different things today. The showcase widget is the three most valuable print
 - `!showoff` with no card argument: the pinned print if they have one, otherwise the first showcase pick, otherwise today's most valuable card. Arguments (`!showoff <card>`) stay as they are. Cooldown, live gate and the overlay event stay. This does not edit `public/widget.js` or `/api/twitch/*`.
 - **Checks:** `scripts/check-user-settings.mts` for the sanitizer. A showoff check (or `scripts/check-commands.mts`) for: pinned wins, else showcase, else best card; a dry run queues nothing.
 - **Docs:** `docs/public-site/profiles.md`, `docs/overlay.md` (show off), `docs/admin/mixitup.md` only if the command text changes.
-
-### 26.8 Wordmark links home, or to the dashboard in admin (Ready, S)
-
-The logo is the top left, not the top right. Do not move it.
-
-- Public `SiteNav`: already `href="/"`. Leave it.
-- Admin sidebar brand (`app/admin/layout.tsx`, the `BrandMark` plus "The Cheesy TCG") is a plain div. Make it a link to `/admin` (the dashboard). Accessible name: "The Cheesy TCG, dashboard".
-- Mod top bar already links to `/mod` (`app/mod/layout.tsx`). Leave it.
-- **Checks:** click the admin wordmark, land on `/admin`. Public wordmark still lands on `/`.
 
 ### 27.1 FAQ pass (Ready, M)
 

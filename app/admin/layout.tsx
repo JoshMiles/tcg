@@ -9,6 +9,7 @@ import { OverlayStatusProvider } from './components/OverlayStatusContext';
 import { CopyUrlButton } from './components/copy-url-button';
 import { Icon } from '@/app/components/Icon';
 import { SandboxPill } from '@/app/components/SandboxPill';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { countNewFeedback } from '@/lib/feedback';
 import { getStaff } from '@/lib/staff-guard';
@@ -28,13 +29,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <OverlayStatusProvider>
       <AdminShell
         brand={
-          <div className="flex items-center gap-3">
+          <Link href="/admin" aria-label="The Cheesy TCG, dashboard" className="flex items-center gap-3 min-w-0 rounded-lg text-inherit no-underline">
             <BrandMark />
             <div className="aside-label min-w-0">
               <p className="font-display text-yellow-400 font-bold text-lg leading-none tracking-tight">The Cheesy TCG</p>
               <p className="text-gray-500 text-[10px] mt-1.5 font-bold uppercase tracking-[0.18em]">Card Manager</p>
             </div>
-          </div>
+          </Link>
         }
         nav={<><div className="px-3 pt-1"><PaletteButton /></div><AdminNav badges={{ '/admin/feedback': await countNewFeedback().catch(() => 0) }} /></>}
         status={<OverlayStatus variant="compact" />}

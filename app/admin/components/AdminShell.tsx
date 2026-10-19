@@ -2,6 +2,7 @@
 import { Icon } from '@/app/components/Icon';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const STORAGE_KEY = 'tcg_admin_sidebar';
@@ -90,7 +91,7 @@ export function AdminShell({
         >
           <Icon name="menu" className="w-5 h-5" />
         </button>
-        <span className="font-display text-yellow-400 font-bold tracking-tight">The Cheesy TCG</span>
+        <Link href="/admin" aria-label="The Cheesy TCG, dashboard" className="font-display text-yellow-400 font-bold tracking-tight no-underline">The Cheesy TCG</Link>
       </header>
 
       {/* Backdrop for the drawer */}
