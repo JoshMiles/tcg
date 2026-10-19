@@ -107,7 +107,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
     });
   }, [shown]);
 
-  const select = 'bg-gray-950/80 border border-gray-700 rounded-xl px-2 py-2 text-sm text-gray-200 focus:outline-hidden focus:border-yellow-500';
+  const select = 'select select-sm w-fit max-w-full';
   return (
     <div className="space-y-5">
       {showMine && (
@@ -124,7 +124,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
           onChange={e => patch({ q: e.target.value })}
           placeholder="Search name or #"
           aria-label="Search cards"
-          className="bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-hidden focus:border-yellow-500 w-56"
+          className="input input-sm w-56 max-w-full"
         />
         <div className="flex flex-wrap gap-1.5">
           <Chip active={f.stars === null} onClick={() => patch({ stars: null })}>All</Chip>
@@ -240,7 +240,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`${card.name} details`}>
       <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-xs" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl max-h-full overflow-y-auto tcg-panel rounded-2xl shadow-glow">
+      <div className="card tcg-panel relative w-full max-w-4xl max-h-full overflow-y-auto rounded-2xl shadow-glow">
         <button ref={closeBtn} onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-gray-900/80 text-gray-300 hover:text-white text-xl leading-none">×</button>
 
         <div className="grid md:grid-cols-[240px_1fr] gap-6 p-5 sm:p-6">
@@ -287,7 +287,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
             {/* Versions */}
             <div className="rounded-xl border border-gray-800 overflow-hidden">
-              <table className="w-full text-sm">
+              <table className="table table-sm w-full text-sm">
                 <thead>
                   <tr className="text-[11px] uppercase tracking-wider text-gray-500 text-left bg-gray-950/50">
                     <th className="py-2 px-3 font-bold">Version</th>
