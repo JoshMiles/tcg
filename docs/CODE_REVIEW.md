@@ -269,9 +269,9 @@ In Node, `new URL('/\\evil.com', 'https://cheesytcg.app/api/sandbox/exit')` is `
 
 Production dependencies are few and current for this stack: Next 15.3, React 19, `@vercel/kv`, `@vercel/blob` 2.x, `sharp`, `web-push`. `docs/hosting.md` records the Blob 2.x move as the thing that cleared the earlier `undici` / `@fastify/busboy` advisories.
 
-`ROADMAP.md` already tracks a dev-only Dependabot advisory in `braces`, pulled in by Tailwind 3. There is no patched release on that line. The planned Tailwind 4 move (roadmap 24.0, not done) is what drops it. Do not treat a green `npm audit` as optional after that move, but do not bump Tailwind to clear it in a drive-by: the roadmap says the v4 bump fails the build until 24.0 is done on purpose.
+At review time, `ROADMAP.md` tracked a dev-only Dependabot advisory in `braces`, pulled in by Tailwind 3. There was no patched release on that line. Roadmap 24.0 (this branch) is the Tailwind 4 move that drops it. Do not treat a green `npm audit` as optional, and do not `npm audit fix --force`.
 
-`npm audit` on this branch (after `npm ci`) reported 5 high advisories and nothing critical, moderate, or low. All five are the same `braces` stack-exhaustion issue, reached only through the dev dependency `tailwindcss` 3.4 (`chokidar`, `fast-glob`, `micromatch`, `braces`). It does not ship in the production server bundle. `npm audit fix` cannot bump those ranges to a patched release. Roadmap 24.0 (Tailwind 4, not started) is the planned way off that line. Do not `npm audit fix --force`.
+`npm audit` on the review branch (after `npm ci`, still on Tailwind 3.4) reported 5 high advisories and nothing critical, moderate, or low. All five were the same `braces` stack-exhaustion issue, reached only through the dev dependency `tailwindcss` 3.4 (`chokidar`, `fast-glob`, `micromatch`, `braces`). It did not ship in the production server bundle. After 24.0, `@tailwindcss/cli` stays out of the lockfile for the same reason, and `npm audit` is clean.
 
 `@vercel/kv@3.0.0` prints a deprecation notice on install (Vercel KV stores now show up as Upstash). The app still imports it. That is a maintenance note, not an advisory. Do not swap the client in a drive-by.
 
