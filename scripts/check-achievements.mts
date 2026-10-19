@@ -33,6 +33,20 @@ ok(!noUpgrades.some(x => x.id.includes('all-') || x.id.includes('master')), 'a s
 const full = a.evaluateSeason(season(cards.flatMap(c => [[c.number, Object.fromEntries(c.variants.map(v => [v, 1]))] as [number, Partial<typeof none>]])));
 ok(by(full, 'master').earned && by(full, 'all-shiny').earned && by(full, 'all-full').earned, 'every version of every card earns the master set');
 
+const switchedOff = a.evaluateSeason(season(cards.flatMap(c => [[c.number, Object.fromEntries(c.variants.map(v => [v, 1]))] as [number, Partial<typeof none>]])), new Set(['complete']));
+ok(!switchedOff.some(x => x.id.endsWith(':complete')) && switchedOff.some(x => x.id.endsWith(':master')), 'a switched-off kind is absent from a fresh evaluation');
+
+const settingsLib = await import('../lib/achievement-settings');
+const cleaned = settingsLib.normalizeAchievementSettings({
+  complete: { on: true, title: '  Hi  ', detail: '' },
+  nope: { on: false, title: 'no' },
+  master: { on: true, title: '', detail: '' },
+  'tier-1': { on: false, title: 'x'.repeat(200), detail: 'y'.repeat(400) },
+});
+eq(cleaned.complete, { on: true, title: 'Hi', detail: '' }, 'a custom title is kept and trimmed');
+ok(!('nope' in cleaned) && !('master' in cleaned), 'unknown kinds and all-default rows are dropped');
+ok(cleaned['tier-1'].on === false && cleaned['tier-1'].title.length === 80 && cleaned['tier-1'].detail.length === 200, 'off is kept and text is capped');
+
 const sorted = a.sortAchievements([{ earned: false, have: 1, need: 4 }, { earned: true, have: 2, need: 2, earnedAt: 5 }, { earned: true, have: 3, need: 3, earnedAt: 9 }, { earned: false, have: 3, need: 4 }]);
 eq(sorted.map(x => [x.earned, x.have]), [[true, 3], [true, 2], [false, 3], [false, 1]], 'earned first (newest first), then closest to done');
 
@@ -76,5 +90,20 @@ const later = await store.syncAchievements('amy', 9000);
 const kept = later.earned.find(x => x.id === `${season1.id}:complete`);
 ok(kept && kept.earnedAt === 1000, 'a goal is never taken back, and keeps its date');
 ok(later.earned.some(x => x.id.endsWith(':first-edition')), 'a first edition stays earned after the copy is traded away');
+
+await settingsLib.saveAchievementSettings(settingsLib.normalizeAchievementSettings({
+  complete: { on: false, title: 'Season finished', detail: 'You finished it.' },
+}));
+const renamed = await store.syncAchievements('amy', 12000);
+const shown = renamed.earned.find(x => x.id === `${season1.id}:complete`);
+ok(!!shown && shown.earnedAt === 1000 && shown.title === 'Season finished' && shown.detail === 'You finished it.', 'a stored earned row stays, and the custom words show');
+await kvLib.saveCollection(season1.collectionName, { amy: [nums[0]], ben: [...nums] });
+const benFull = await store.syncAchievements('ben', 13000);
+ok(!benFull.earned.some(x => x.id.endsWith(':complete')), 'a switched-off kind is not newly earned');
+ok(!benFull.next.some(x => x.id.endsWith(':complete')), 'a switched-off kind is not listed as next');
+await settingsLib.saveAchievementSettings({});
+const restored = await store.syncAchievements('amy', 14000);
+const back = restored.earned.find(x => x.id === `${season1.id}:complete`);
+ok(!!back && back.title.startsWith('Completed ') && back.detail.startsWith('Own at least one') && back.earnedAt === 1000, 'clearing the override brings back the built-in words');
 console.log('achievement checks passed');
 process.exit(0);

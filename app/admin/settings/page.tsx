@@ -6,7 +6,9 @@ import { PageTabs, pickTab, type PageTab } from '../components/PageTabs';
 import { OverlayStatus } from '../components/OverlayStatus';
 import { getBuildInfo } from '@/lib/version';
 import { getOverlaySettings } from '@/lib/overlay-settings';
-import { saveScoringSettingsAction, resetScoringSettingsAction } from '../actions/settings';
+import { saveScoringSettingsAction, resetScoringSettingsAction, saveAchievementSettingsAction } from '../actions/settings';
+import { getAchievementSettings } from '@/lib/achievement-settings';
+import { AchievementsForm } from './AchievementsForm';
 import { getScoringSettings, DEFAULT_SCORING, type ScoringSettings } from '@/lib/scoring';
 import { DiscordConfig } from './DiscordConfig';
 import { getOverlayKey, overlayUrl } from '@/lib/overlay-key';
@@ -35,6 +37,7 @@ export const dynamic = 'force-dynamic';
 const TABS: (PageTab & { hint: string })[] = [
   { id: 'overlay', label: 'OBS Overlay', icon: 'tv', hint: 'Browser source, connection and bot triggers' },
   { id: 'scoring', label: 'Scoring', icon: 'trophy', hint: 'Card values, bonuses and the leaderboard, with a live preview' },
+  { id: 'achievements', label: 'Achievements', icon: 'award', hint: 'Switch built-in goals off, or replace their title and detail' },
   { id: 'webhooks', label: 'Webhooks', icon: 'link', hint: 'Discord feed, MixItUp integration: incoming triggers and outgoing events' },
   { id: 'access', label: 'Access', icon: 'lock', hint: 'Lock the site to testers during alpha / beta, label it, and manage the testers list' },
   { id: 'viewers', label: 'Twitch & viewers', icon: 'users', hint: 'The extension setup checklist and the collection page' },
@@ -44,6 +47,7 @@ const TABS: (PageTab & { hint: string })[] = [
 
 const SAVED_MESSAGES: Record<string, string> = {
   scoring: 'Scoring saved. The leaderboard and card values now use the new numbers.',
+  achievements: 'Achievements saved. Switched-off goals are no longer earned. Ones already earned stay.',
   'scoring-reset': 'Scoring reset to the defaults.',
   serials: 'Done. Existing prints are numbered, and every print has a print number.',
   'preview-seeded': 'Copied the live setup into this preview.',
@@ -176,6 +180,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <ScoringForm saved={scoring} groups={SCORING_GROUPS} save={saveScoringSettingsAction} reset={resetScoringSettingsAction} />
         </div>
       )}
+
+      {tab === 'achievements' && <AchievementsForm settings={await getAchievementSettings()} save={saveAchievementSettingsAction} />}
 
       {/* Twitch & viewers */}
       {tab === 'viewers' && (

@@ -46,8 +46,8 @@ function goal(s: AchSeason, kind: string, title: string, detail: string, icon: I
   return { id: `${s.seasonId}:${kind}`, seasonId: s.seasonId, seasonName: s.seasonName, title, detail, icon, have, need: cards.length, earned: have === cards.length };
 }
 
-/** Every goal for one season. Goals that make no sense for the season (no cards of a rarity, no upgrades) are left out. */
-export function evaluateSeason(s: AchSeason): Achievement[] {
+/** Every goal for one season. Goals that make no sense for the season (no cards of a rarity, no upgrades) are left out. A kind in `disabled` is left out too; stored earned rows are not touched here. */
+export function evaluateSeason(s: AchSeason, disabled?: ReadonlySet<string>): Achievement[] {
   const out: (Achievement | null)[] = [];
   out.push(goal(s, 'complete', `Completed ${s.seasonName}`, `Own at least one of every card in ${s.seasonName}.`, 'cheese', s.cards, c => owns(s, c.number)));
 
@@ -67,7 +67,7 @@ export function evaluateSeason(s: AchSeason): Achievement[] {
     out.push(goal(s, 'master', `Master set: ${s.seasonName}`, `Own every card in every version in ${s.seasonName}.`, 'trophy', wanted, c => owns(s, c.number, c.variants[0])));
   }
   if (s.held) out.push(...serialGoals(s));
-  return out.filter((a): a is Achievement => a !== null);
+  return out.filter((a): a is Achievement => a !== null && !disabled?.has(a.id.slice(s.seasonId.length + 1)));
 }
 
 /** One-off goals about the numbers on the copies you hold: first editions and early numbers. Needs the season's copies to be numbered. */

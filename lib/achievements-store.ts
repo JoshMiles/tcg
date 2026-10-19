@@ -2,6 +2,7 @@ import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, listSeasons } from './kv';
 import { countVariants, allowedVariants } from './variants';
 import { evaluateSeason, sortAchievements, type AchCard, type Achievement } from './achievements';
+import { applyAchievementText, disabledKinds, getAchievementSettings } from './achievement-settings';
 import { loadSerialIndex } from './serials';
 import { getScoringSettings } from './scoring';
 
@@ -31,9 +32,15 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
   } catch { stored = {}; }
 
   const live: Achievement[] = [];
+  let settings: Awaited<ReturnType<typeof getAchievementSettings>> = {};
   try {
     const seasons = (await listSeasons()).filter(s => s.status !== 'draft');
-    const cutoff = (await getScoringSettings().catch(() => null))?.serialBonusCutoff ?? 0;
+    const [cutoff, loaded] = await Promise.all([
+      getScoringSettings().then(s => s.serialBonusCutoff).catch(() => 0),
+      getAchievementSettings().catch(() => ({})),
+    ]);
+    settings = loaded;
+    const disabled = disabledKinds(settings);
     await Promise.all(seasons.map(async season => {
       const [collection, packs] = await Promise.all([getCollection(season.collectionName), getPacksForSeason(season)]);
       const owned = collection[u];
@@ -47,7 +54,7 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
       // Edition numbers need the season's copies to be numbered; until then there are no serial milestones.
       const idx = await loadSerialIndex(season.collectionName).catch(() => null);
       const held = idx ? idx.held.get(u) ?? new Map<number, number[]>() : undefined;
-      live.push(...evaluateSeason({ seasonId: season.id, seasonName: season.name, cards, counts: countVariants(owned), held, bonusCutoff: cutoff }));
+      live.push(...evaluateSeason({ seasonId: season.id, seasonName: season.name, cards, counts: countVariants(owned), held, bonusCutoff: cutoff }, disabled));
     }));
   } catch { /* keep what we have */ }
 
@@ -64,5 +71,7 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
   const earnedIds = new Set(earned.map(a => a.id));
   const activeSeasons = new Set((await listSeasons().catch(() => [])).filter(s => s.active && !s.endedAt).map(s => s.id));
   const next = sortAchievements(live.filter(a => !earnedIds.has(a.id) && activeSeasons.has(a.seasonId) && a.have > 0));
-  return { earned, next };
+  // Custom words are applied on the way out, so clearing an override brings the stored built-in sentence back.
+  const show = <T extends Achievement>(a: T) => applyAchievementText(a, settings);
+  return { earned: earned.map(show), next: next.map(show) };
 }
