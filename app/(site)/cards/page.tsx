@@ -7,7 +7,7 @@ import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
 import { getCollection } from '@/lib/kv';
 import { getSession } from '@/lib/session';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
-import { VARIANTS, countVariants, effectiveWeights } from '@/lib/variants';
+import { VARIANTS, countVariants, effectiveWeights, emptyCounts } from '@/lib/variants';
 import { SITE_URL } from '@/lib/site';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { CardDex, type DexCard } from './CardDex';
@@ -23,6 +23,7 @@ function variantOdds(w: Record<(typeof VARIANTS)[number], number>, pullRate: num
     reverse: (pullRate * Math.max(0, w.reverse)) / total,
     full: (pullRate * Math.max(0, w.full)) / total,
     shiny: (pullRate * Math.max(0, w.shiny)) / total,
+    golden: (pullRate * Math.max(0, w.golden)) / total,
   };
 }
 
@@ -65,11 +66,11 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
         pullRate: v?.pullRate ?? 0,
         copies: v?.copies ?? 0,
         upgradable: c.pack.upgradesEnabled && c.upgradesEnabled !== false,
-        values: [v?.values.regular ?? 0, v?.values.reverse ?? 0, v?.values.full ?? 0, v?.values.shiny ?? 0] as DexCard['values'],
+        values: [v?.values.regular ?? 0, v?.values.reverse ?? 0, v?.values.full ?? 0, v?.values.shiny ?? 0, v?.values.golden ?? 0] as DexCard['values'],
         fullArtImageUrl: c.fullArtImageUrl,
         stillUrl: c.stillUrl,
         fullArtStillUrl: c.fullArtStillUrl,
-        variantCopies: v?.variantCopies ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
+        variantCopies: v?.variantCopies ?? emptyCounts(),
         variantOdds: variantOdds(effectiveWeights(c.pack, c), v?.pullRate ?? 0),
         collectors: owners.get(c.number)?.collectors ?? 0,
         owners: (owners.get(c.number)?.top ?? []).map(o => ({ ...o, avatar: avatars[o.username] ? sizeTwitchAvatar(avatars[o.username], 70) : undefined })),

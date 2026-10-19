@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatedArt } from '@/app/components/AnimatedArt';
 import { cardThumbUrl } from '@/lib/card-art';
-import { VARIANT_LABELS } from '@/lib/variants';
+import { VARIANT_LABELS, usesFullArt } from '@/lib/variants';
 import { holoClass, holoVars } from '@/lib/holo-core';
 import type { Variant } from '@/lib/types';
 import type { Swap, SwapCard } from '@/lib/trade-notice-core';
@@ -13,10 +13,11 @@ const PILL: Record<Variant, string> = {
   reverse: 'linear-gradient(90deg,#8b5cf6,#ec4899)',
   full: 'linear-gradient(90deg,#0ea5e9,#6366f1)',
   shiny: 'linear-gradient(90deg,#f59e0b,#ef4444,#a855f7)',
+  golden: 'linear-gradient(90deg,#fbbf24,#f59e0b,#fef08a)',
 };
 const SHOWN = 3; // cards drawn per side; the rest collapse into "+N"
 
-const artFor = (c: SwapCard) => ((c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
+const artFor = (c: SwapCard) => (usesFullArt(c.variant) && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 
 function Side({ cards, caption, cls }: { cards: SwapCard[]; caption: string; cls: string }) {
   const shown = cards.slice(0, SHOWN);

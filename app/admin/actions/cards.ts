@@ -112,8 +112,8 @@ export async function bulkCards(packId: string, op: BulkCardOp): Promise<{ chang
     else if (op === 'upgrades-off' && c.upgradesEnabled !== false) updated = { ...c, upgradesEnabled: false };
     else if (op === 'all-variants-on' && c.disabledVariants?.length) updated = { ...c, disabledVariants: undefined };
     else if (op === 'fullart-off-without-art' && !c.fullArtImageUrl) {
-      // A card with no full-art image would show its normal art as Full Art / Shiny: switch those off for it.
-      const off = [...new Set([...(c.disabledVariants ?? []), 'full', 'shiny'])] as OptionalVariant[];
+      // A card with no full-art image would show its normal art as Full Art / Full Art Holo / Golden: switch those off for it.
+      const off = [...new Set([...(c.disabledVariants ?? []), 'full', 'shiny', 'golden'])] as OptionalVariant[];
       if (off.length !== (c.disabledVariants ?? []).length) updated = { ...c, disabledVariants: off };
     }
     if (updated !== c) changed++;

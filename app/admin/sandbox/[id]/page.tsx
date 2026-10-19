@@ -177,7 +177,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
               <h2 className="font-semibold text-white">Give specific editions</h2>
               <p className="text-xs text-gray-500">The quickest way to set up a one-off scenario, e.g. exactly enough Regulars to test an upgrade.</p>
               {upgradePacks.length > 0 && (
-                <p className="text-xs text-gray-500">Upgrade costs: {upgradePacks.map(p => `${p.pack.name}: ${p.pack.upgradeCosts.reverse} / ${p.pack.upgradeCosts.full} / ${p.pack.upgradeCosts.shiny} (Reverse / Full / Shiny)`).join(' · ')}</p>
+                <p className="text-xs text-gray-500">Upgrade costs: {upgradePacks.map(p => `${p.pack.name}: ${p.pack.upgradeCosts.reverse} / ${p.pack.upgradeCosts.full} / ${p.pack.upgradeCosts.shiny} / ${p.pack.upgradeCosts.golden} (Reverse / Full / Full Art Holo / Golden)`).join(' · ')}</p>
               )}
               <label className="block text-xs text-gray-500 space-y-1">User<input name="username" list="sandbox-users" required defaultValue={userParam} className={field} placeholder="alice" /></label>
               <label className="block text-xs text-gray-500 space-y-1">Card
@@ -194,7 +194,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
           </div>
           <datalist id="sandbox-users">{(rows ?? []).map(u => <option key={u.username} value={u.username} />)}</datalist>
 
-          <UpgradePreview cards={cards} costs={upgradePacks[0]?.pack.upgradeCosts ?? { reverse: 5, full: 3, shiny: 3 }} />
+          <UpgradePreview cards={cards} costs={upgradePacks[0]?.pack.upgradeCosts ?? { reverse: 5, full: 3, shiny: 3, golden: 3 }} />
 
           <form action={seedUsersAction.bind(null, id)} className="card rounded-2xl p-5 space-y-3">
             <h2 className="font-semibold text-white">Seed a custom crowd</h2>
@@ -228,8 +228,8 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                   <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
                     <th className="text-left py-2 pr-2">#</th><th className="text-left py-2 pr-2">Card</th>
                     <th className="text-right py-2 px-2">Pull odds</th>
-                    <th className="text-right py-2 px-2" title="Editions out there: Regular / Reverse / Full / Shiny">Editions R·RH·FA·SH</th>
-                    {VARIANTS.map(v => <th key={v} className="text-right py-2 px-2">{v === 'regular' ? 'Regular' : v === 'reverse' ? 'Reverse' : v === 'full' ? 'Full Art' : 'Shiny'} pts</th>)}
+                    <th className="text-right py-2 px-2" title="Editions out there: Regular / Reverse / Full / Full Art Holo / Golden">Editions R·RH·FA·FH·GD</th>
+                    {VARIANTS.map(v => <th key={v} className="text-right py-2 px-2">{VARIANT_LABELS[v]} pts</th>)}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800/50">
@@ -238,7 +238,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                       <td className="py-1.5 pr-2 text-gray-600 tabular-nums">{c.number}</td>
                       <td className="py-1.5 pr-2 text-gray-200">{c.name} <span className="text-yellow-500/80">{'★'.repeat(c.stars)}</span></td>
                       <td className="py-1.5 px-2 text-right tabular-nums text-gray-400">{c.pullRate > 0 ? `${(c.pullRate * 100).toFixed(c.pullRate < 0.01 ? 2 : 1)}%` : '-'}</td>
-                      <td className="py-1.5 px-2 text-right tabular-nums text-gray-500">{c.copies.regular}·{c.copies.reverse}·{c.copies.full}·{c.copies.shiny}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums text-gray-500">{c.copies.regular}·{c.copies.reverse}·{c.copies.full}·{c.copies.shiny}·{c.copies.golden ?? 0}</td>
                       {VARIANTS.map(v => <td key={v} className={`py-1.5 px-2 text-right tabular-nums font-semibold ${v !== 'regular' && !c.upgrades ? 'text-gray-700' : 'text-yellow-300'}`}>{c.values[v].toLocaleString()}</td>)}
                     </tr>
                   ))}

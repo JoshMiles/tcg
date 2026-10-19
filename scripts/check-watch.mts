@@ -16,7 +16,7 @@ const hits = w.matchingAlerts(s, items).map(i => `${i.cardNumber}.${i.variant}`)
 ok(hits.join() === '1.regular,2.shiny,3.full', `Looking for = any version, a watch = its version (or any): ${hits}`);
 ok(w.alertCards(s).sort().join() === '1,2,3,4', 'index keys: the Looking for card plus every watched card');
 ok(!us.wantsNotice({ ...s, notifyWatch: false }, 'watch') && us.wantsNotice({ ...s, notifyWatch: false }, 'offer'), 'the watch switch only governs watch notices');
-ok(w.watchLabel({ card: 2, variant: 'shiny' }, () => 'Gouda') === 'Shiny Full Art Gouda' && w.watchLabel({ card: 2, variant: null }, () => 'Gouda') === 'Gouda (any version)', 'labels');
+ok(w.watchLabel({ card: 2, variant: 'shiny' }, () => 'Gouda') === 'Full Art Holo Gouda' && w.watchLabel({ card: 2, variant: null }, () => 'Gouda') === 'Gouda (any version)', 'labels');
 
 const wc = w.wantedCounts([{ cardNumber: 1 }, { cardNumber: 2 }, { cardNumber: 2 }, { cardNumber: 3 }], { 1: ['alice', 'Bob', 'carol'], 2: ['alice', 'alice'], 3: ['bob'] }, ['bob']);
 ok(JSON.stringify(wc) === '{"1":2,"2":1}', `wanted counts drop the excluded, count a person once, and skip zeros: ${JSON.stringify(wc)}`);

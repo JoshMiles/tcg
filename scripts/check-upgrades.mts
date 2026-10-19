@@ -11,14 +11,17 @@ function eq(a: unknown, b: unknown, msg: string) {
 eq(decodeEntry(25), { cardNumber: 25, variant: 'regular' }, 'legacy entry');
 for (const n of [1, 40, 5000, 999_999]) for (const v of VARIANTS) eq(decodeEntry(encodeEntry(n, v)), { cardNumber: n, variant: v }, `roundtrip ${n} ${v}`);
 
-// Variant roll hits roughly the configured odds.
+// Variant roll hits roughly the configured odds (and never rolls golden while GOLDEN_PULLS is false).
 const N = 200_000;
-const hits = { regular: 0, reverse: 0, full: 0, shiny: 0 };
+const hits = { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0 };
 for (let i = 0; i < N; i++) hits[rollVariant(DEFAULT_VARIANT_WEIGHTS)]++;
 const pct = (v: keyof typeof hits) => (hits[v] / N) * 100;
 console.log('roll %:', Object.fromEntries(VARIANTS.map(v => [v, pct(v).toFixed(2)])));
-if (Math.abs(pct('regular') - 76.6) > 1 || Math.abs(pct('reverse') - 19.1) > 1 || Math.abs(pct('shiny') - 0.8) > 0.3) throw new Error('roll odds off');
-eq(rollVariant({ regular: 0, reverse: 0, full: 0, shiny: 0 }), 'regular', 'zero weights');
+if (Math.abs(pct('regular') - 76.3) > 1 || Math.abs(pct('reverse') - 19.1) > 1 || Math.abs(pct('shiny') - 0.8) > 0.3 || hits.golden !== 0) throw new Error('roll odds off');
+eq(rollVariant({ regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0 }), 'regular', 'zero weights');
+for (let i = 0; i < 10_000; i++) {
+  if (rollVariant({ regular: 1, reverse: 1, full: 1, shiny: 1, golden: 1000 }) === 'golden') throw new Error('rollVariant must not return golden while GOLDEN_PULLS is false');
+}
 
 // Removing copies.
 eq(removeEntries([1, 1, 2, 1], 1, 2), [2, 1], 'remove 2');
@@ -26,7 +29,7 @@ eq(removeEntries([1, 2], 1, 2), null, 'not enough');
 
 // Counting.
 const owned = [3, 3, encodeEntry(3, 'reverse'), encodeEntry(4, 'shiny')];
-eq(countVariants(owned).get(3), { regular: 2, reverse: 1, full: 0, shiny: 0 }, 'countVariants');
+eq(countVariants(owned).get(3), { regular: 2, reverse: 1, full: 0, shiny: 0, golden: 0 }, 'countVariants');
 
 // Values: an upgrade is always worth more than the copies it consumes, whatever the admin sets.
 const pack = (over: Partial<Pack> = {}): Pack => ({
@@ -34,13 +37,13 @@ const pack = (over: Partial<Pack> = {}): Pack => ({
   cardTime: 3, cooldownTime: 1, soundVolume: 1, createdAt: 0,
   upgradesEnabled: true, variantWeights: DEFAULT_VARIANT_WEIGHTS, upgradeCosts: DEFAULT_UPGRADE_COSTS, ...over,
 });
-for (const p of [pack(), pack({ upgradeCosts: { reverse: 2, full: 2, shiny: 2 } }), pack({ variantWeights: { regular: 1, reverse: 1, full: 1, shiny: 1 } }), pack({ upgradeCosts: { reverse: 10, full: 10, shiny: 10 } })]) {
+for (const p of [pack(), pack({ upgradeCosts: { reverse: 2, full: 2, shiny: 2, golden: 2 } }), pack({ variantWeights: { regular: 1, reverse: 1, full: 1, shiny: 1, golden: 1 } }), pack({ upgradeCosts: { reverse: 10, full: 10, shiny: 10, golden: 10 } })]) {
   const m = variantMultipliers(p);
-  const costs = [0, p.upgradeCosts.reverse, p.upgradeCosts.full, p.upgradeCosts.shiny];
-  for (let i = 1; i < 4; i++) if (!(m[VARIANTS[i]] > m[VARIANTS[i - 1]] * costs[i])) throw new Error(`upgrade ${VARIANTS[i]} is not a net gain: ${JSON.stringify(m)}`);
+  const costs = [0, p.upgradeCosts.reverse, p.upgradeCosts.full, p.upgradeCosts.shiny, p.upgradeCosts.golden ?? 3];
+  for (let i = 1; i < VARIANTS.length; i++) if (!(m[VARIANTS[i]] > m[VARIANTS[i - 1]] * costs[i])) throw new Error(`upgrade ${VARIANTS[i]} is not a net gain: ${JSON.stringify(m)}`);
 }
 console.log('multipliers (defaults):', variantMultipliers(pack()));
-eq(variantMultipliers(pack({ upgradesEnabled: false })), { regular: 1, reverse: 1, full: 1, shiny: 1 }, 'upgrades off => flat');
+eq(variantMultipliers(pack({ upgradesEnabled: false })), { regular: 1, reverse: 1, full: 1, shiny: 1, golden: 1 }, 'upgrades off => flat');
 
 // Leaderboard: rarer cards score higher; variants count; deleted cards are ignored.
 const cards: Card[] = [
@@ -59,7 +62,8 @@ console.log('all checks passed');
 // Serial bonus: the first copies of a card (per version) earn a multiplier that fades to nothing after the cutoff.
 import { projectUpgradeGain, scoreFor, pointsFor, computeSeasonValues as csv } from '../lib/leaderboard';
 import { serialMultiplier } from '../lib/scoring-core';
-import { buildSerialIndex } from '../lib/serials-core';
+import { buildSerialIndex, parseCopyId } from '../lib/serials-core';
+import { rollDraw } from '../lib/draw';
 const SB = { serialBonusMax: 3, serialBonusCutoff: 20 };
 eq(serialMultiplier(1, SB), 3, 'copy #1 gets the full bonus');
 eq(serialMultiplier(21, SB), 1, 'past the cutoff there is no bonus');
@@ -141,8 +145,8 @@ if (bigBonus.completion !== sv.setValue || bigBonus.set !== 2 * sv.setValue) thr
 const noBonus = collectionBonuses({ ...sv, settings: { ...DEFAULT_SCORING, completionBonusPct: 0, completeSetBonusPct: 0 } }, 4);
 if (noBonus.completion !== 0 || noBonus.set !== 0) throw new Error('0% disables the bonuses');
 // margin changes the variant multipliers
-const wide = variantMultipliers(pack({ variantWeights: { regular: 1, reverse: 1, full: 1, shiny: 1 } }), { ...DEFAULT_SCORING, upgradeMargin: 2 });
-const narrow = variantMultipliers(pack({ variantWeights: { regular: 1, reverse: 1, full: 1, shiny: 1 } }), { ...DEFAULT_SCORING, upgradeMargin: 1 });
+const wide = variantMultipliers(pack({ variantWeights: { regular: 1, reverse: 1, full: 1, shiny: 1, golden: 1 } }), { ...DEFAULT_SCORING, upgradeMargin: 2 });
+const narrow = variantMultipliers(pack({ variantWeights: { regular: 1, reverse: 1, full: 1, shiny: 1, golden: 1 } }), { ...DEFAULT_SCORING, upgradeMargin: 1 });
 if (!(wide.shiny > narrow.shiny)) throw new Error('a bigger upgrade margin should raise upgraded values');
 // sanitising: junk, out-of-range and inconsistent input are all made safe
 const messy = sanitizeScoring({ baseScore: '-5', rarityExponent: 'abc', serialBonusMax: 99, serialBonusCutoff: -5, completionBonusPct: 99999, leaderboardSize: 12.6, unknown: 1 });
@@ -151,21 +155,30 @@ eq(sanitizeScoring(undefined), DEFAULT_SCORING, 'no stored settings -> defaults'
 console.log('scoring settings checks passed');
 
 // ── Switched-off variants: pack / card switches, upgrade steps and odds ──
-import { allowedVariants, effectiveWeights, upgradeStep, cleanDisabled } from '../lib/variants';
-const vp = { disabledVariants: [] as ('reverse' | 'full' | 'shiny')[], upgradeCosts: DEFAULT_UPGRADE_COSTS, variantWeights: DEFAULT_VARIANT_WEIGHTS };
-eq(allowedVariants(vp), ['regular', 'reverse', 'full', 'shiny'], 'everything is on by default');
-eq(allowedVariants({ ...vp, disabledVariants: ['reverse'] }, { disabledVariants: ['shiny'] }), ['regular', 'full'], 'pack and card switches combine');
-eq(cleanDisabled(['shiny', 'regular', 'bogus', 'shiny', 'reverse']), ['reverse', 'shiny'], 'regular and junk are dropped, order and uniqueness are fixed');
+import { allowedVariants, effectiveWeights, upgradeStep, cleanDisabled, GOLDEN_PULLS } from '../lib/variants';
+const vp = { disabledVariants: [] as ('reverse' | 'full' | 'shiny' | 'golden')[], upgradeCosts: DEFAULT_UPGRADE_COSTS, variantWeights: DEFAULT_VARIANT_WEIGHTS };
+eq(allowedVariants(vp), ['regular', 'reverse', 'full', 'shiny', 'golden'], 'everything is on by default');
+eq(allowedVariants({ ...vp, disabledVariants: ['reverse'] }, { disabledVariants: ['shiny', 'golden'] }), ['regular', 'full'], 'pack and card switches combine');
+eq(cleanDisabled(['shiny', 'regular', 'bogus', 'shiny', 'reverse', 'golden']), ['reverse', 'shiny', 'golden'], 'regular and junk are dropped, order and uniqueness are fixed');
 eq(upgradeStep(vp, undefined, 'regular'), { to: 'reverse', cost: 5 }, 'plain step');
-eq(upgradeStep(vp, undefined, 'shiny'), null, 'nothing above shiny');
+eq(upgradeStep(vp, undefined, 'shiny'), GOLDEN_PULLS ? { to: 'golden', cost: 3 } : null, 'while GOLDEN_PULLS is false, nothing above shiny');
 // Skipping a switched-off variant costs the combined price (no shortcut): regular -> full with Reverse off = 5 x 3.
 eq(upgradeStep({ ...vp, disabledVariants: ['reverse'] }, undefined, 'regular'), { to: 'full', cost: 15 }, 'skip reverse');
 eq(upgradeStep(vp, { disabledVariants: ['full'] }, 'reverse'), { to: 'shiny', cost: 9 }, 'card-level skip');
-eq(upgradeStep({ ...vp, disabledVariants: ['full', 'shiny'] }, undefined, 'reverse'), null, 'top variants off -> reverse is the end of the line');
-eq(effectiveWeights({ ...vp, disabledVariants: ['full'] }), { regular: 100, reverse: 25, full: 0, shiny: 1 }, 'switched-off weights are zeroed');
+eq(upgradeStep({ ...vp, disabledVariants: ['full', 'shiny', 'golden'] }, undefined, 'reverse'), null, 'top variants off -> reverse is the end of the line');
+eq(effectiveWeights({ ...vp, disabledVariants: ['full'] }), { regular: 100, reverse: 25, full: 0, shiny: 1, golden: 0 }, 'switched-off weights are zeroed');
 // Rolling never returns a switched-off variant.
 const offW = effectiveWeights({ ...vp, disabledVariants: ['reverse', 'shiny'] });
-for (let i = 0; i < 20_000; i++) { const v = rollVariant(offW); if (v === 'reverse' || v === 'shiny') throw new Error('rolled a switched-off variant'); }
+for (let i = 0; i < 20_000; i++) { const v = rollVariant(offW); if (v === 'reverse' || v === 'shiny' || v === 'golden') throw new Error('rolled a switched-off variant'); }
+// parseCopyId accepts index 4 (golden) and rejects >= 5.
+eq(parseCopyId('7.4.3'), { card: 7, variant: 'golden', n: 3 }, 'parseCopyId accepts index 4');
+eq(parseCopyId('7.5.3'), null, 'parseCopyId rejects index 5');
+// rollDraw never returns golden while GOLDEN_PULLS is false, even when a pack sets golden weight > 0.
+const goldenPack = pack({ variantWeights: { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 100 } });
+for (let i = 0; i < 500; i++) {
+  const d = rollDraw([{ pack: goldenPack, cards }]);
+  if (!d || d.variant === 'golden') throw new Error('rollDraw returned golden while GOLDEN_PULLS is false');
+}
 // The value multipliers only credit variants that exist: with Full off, Shiny is still priced from the chain of costs.
 const mOff = variantMultipliers(pack({ disabledVariants: ['full'] }));
 if (!(mOff.shiny >= mOff.reverse)) throw new Error('shiny should never be worth less than reverse');

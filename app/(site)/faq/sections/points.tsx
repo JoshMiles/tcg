@@ -8,7 +8,7 @@ import type { Bonuses, CardValue } from '@/lib/leaderboard';
 import type { ScoringSettings } from '@/lib/scoring';
 import { Section, Q } from '../parts';
 
-const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny: 'SH' };
+const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
 
 export type ValueRow = { card: SeasonCard; v: CardValue | undefined; upgradable: boolean };
 
@@ -32,7 +32,7 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
           </li>
           {upgradesOn && (
             <li>
-              <strong className="text-white">Version</strong>: Reverse Holo, Full Art and Shiny Full Art editions are worth far more than a Regular. An upgraded card is normally worth more than the editions you spend to
+              <strong className="text-white">Version</strong>: Reverse Holo, Full Art, Full Art Holo and Golden editions are worth far more than a Regular. An upgraded card is normally worth more than the editions you spend to
               make it, though the print bonus on the editions you spend can change that.
             </li>
           )}
@@ -131,7 +131,7 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
               </tbody>
             </table>
           </div>
-          {upgradesOn && <p className="text-[11px] text-gray-600 mt-2">RH = Reverse Holo · FA = Full Art · SH = Shiny Full Art.</p>}
+          {upgradesOn && <p className="text-[11px] text-gray-600 mt-2">RH = Reverse Holo · FA = Full Art · FH = Full Art Holo · GD = Golden.</p>}
         </Q>
       )}
     </Section>

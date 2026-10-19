@@ -21,7 +21,7 @@ export function nonNegative(raw: FormDataEntryValue | null, fallback: number): n
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
-export const OPTIONAL: OptionalVariant[] = ['reverse', 'full', 'shiny'];
+export const OPTIONAL: OptionalVariant[] = ['reverse', 'full', 'shiny', 'golden'];
 
 // A form that carries the variant switches (marker `variant_switches`) lists the ones that are ticked; a form without them
 // leaves whatever is stored alone, so no other form can switch variants off by accident.
@@ -39,11 +39,13 @@ export function upgradeSettings(formData: FormData) {
       reverse: nonNegative(formData.get('weight_reverse'), DEFAULT_VARIANT_WEIGHTS.reverse),
       full:    nonNegative(formData.get('weight_full'),    DEFAULT_VARIANT_WEIGHTS.full),
       shiny:   nonNegative(formData.get('weight_shiny'),   DEFAULT_VARIANT_WEIGHTS.shiny),
+      golden:  nonNegative(formData.get('weight_golden'),  DEFAULT_VARIANT_WEIGHTS.golden),
     },
     upgradeCosts: {
       reverse: positiveInt(formData.get('cost_reverse'), DEFAULT_UPGRADE_COSTS.reverse),
       full:    positiveInt(formData.get('cost_full'),    DEFAULT_UPGRADE_COSTS.full),
       shiny:   positiveInt(formData.get('cost_shiny'),   DEFAULT_UPGRADE_COSTS.shiny),
+      golden:  positiveInt(formData.get('cost_golden'),  DEFAULT_UPGRADE_COSTS.golden),
     },
   };
 }

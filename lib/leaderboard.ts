@@ -131,9 +131,9 @@ export function variantMultiplierDetail(
   pack: Pick<Pack, 'upgradesEnabled' | 'variantWeights' | 'upgradeCosts' | 'disabledVariants'>,
   settings: ScoringSettings = DEFAULT_SCORING,
 ): { multiplier: Record<Variant, number>; byOdds: Record<Variant, number>; byCost: Record<Variant, number> } {
-  const m: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1 };
-  const byOddsAll: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1 };
-  const byCostAll: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1 };
+  const m: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1, golden: 1 };
+  const byOddsAll: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1, golden: 1 };
+  const byCostAll: Record<Variant, number> = { regular: 1, reverse: 1, full: 1, shiny: 1, golden: 1 };
   if (!pack.upgradesEnabled) return { multiplier: m, byOdds: byOddsAll, byCost: byCostAll };
   const w = effectiveWeights(pack); // switched-off variants have no odds, so only the crafting cost sets their value
   for (let i = 1; i < VARIANTS.length; i++) {

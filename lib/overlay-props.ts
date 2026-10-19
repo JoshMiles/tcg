@@ -75,7 +75,7 @@ export const BLEND_MODES = [
   { value: 'plus-lighter', label: 'Add (very bright)' },
 ];
 
-export const VARIANT_IDS = ['regular', 'reverse', 'full', 'shiny'] as const;
+export const VARIANT_IDS = ['regular', 'reverse', 'full', 'shiny', 'golden'] as const;
 export type VariantId = (typeof VARIANT_IDS)[number];
 
 export const PROP_GROUPS: PropGroup[] = [
@@ -86,7 +86,7 @@ export const PROP_GROUPS: PropGroup[] = [
   { id: 'collection', label: 'Collection', icon: 'board', description: "The \"show collection\" view: a viewer's whole card grid." },
 ];
 
-const GROUP_LABEL: Record<VariantId, string> = { regular: 'Regular cards', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny Full Art' };
+const GROUP_LABEL: Record<VariantId, string> = { regular: 'Regular cards', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };
 
 // Per-variant defaults (they reproduce the original hard-coded effects).
 interface VariantDefaults {
@@ -112,9 +112,14 @@ const VARIANT_DEFAULTS: Record<VariantId, VariantDefaults> = {
     pop: true, popScale: 1.12, popTilt: 0, rock: false, rockAmount: 2, rockSpeed: 3.6, burstColor: '#78c8ff', burstHue: false,
   },
   shiny: {
-    labelText: '✨ Shiny Full Art', labelColors: ['#f59e0b', '#ef4444', '#a855f7'], holoMode: 'on', holoColors: HOLO_PALETTE,
+    labelText: '✨ Full Art Holo', labelColors: ['#f59e0b', '#ef4444', '#a855f7'], holoMode: 'on', holoColors: HOLO_PALETTE,
     glow: true, glowColorA: '#ffc828', glowColorB: '#ff78c8', glowBlur: 70, glowSpread: 20, glowSpeed: 1.1,
     pop: true, popScale: 1.22, popTilt: -2, rock: true, rockAmount: 2, rockSpeed: 3.6, burstColor: '#fff08c', burstHue: true,
+  },
+  golden: {
+    labelText: '✨ Golden', labelColors: ['#fbbf24', '#f59e0b', '#d97706'], holoMode: 'on', holoColors: ['#fffee3', '#fef08a', '#fbbf24', '#fffee3', '#f59e0b', '#fffee3', '#fef08a', '#fffee3'],
+    glow: true, glowColorA: '#fde047', glowColorB: '#f59e0b', glowBlur: 75, glowSpread: 22, glowSpeed: 1.1,
+    pop: true, popScale: 1.25, popTilt: -2, rock: true, rockAmount: 2, rockSpeed: 3.4, burstColor: '#fef08a', burstHue: false,
   },
 };
 

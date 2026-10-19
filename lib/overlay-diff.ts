@@ -5,7 +5,7 @@ import type { OverlayLayout } from './overlay-layout';
 
 export interface DiffLine { scope: string; label: string; from: string; to: string }
 
-const VARIANT_NAME: Record<string, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' };
+const VARIANT_NAME: Record<string, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };
 
 export function formatValue(def: PropDef | undefined, v: PropValue | undefined): string {
   if (v === undefined) return '-';

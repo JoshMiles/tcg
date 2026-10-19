@@ -6,7 +6,7 @@ import { Spinner } from '../../admin/components/PendingButton';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cardThumbUrl } from '@/lib/card-art';
-import { VARIANT_LABELS, encodeEntry } from '@/lib/variants';
+import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
 import type { Variant } from '@/lib/types';
 import { postJson } from '../captcha-client';
@@ -18,7 +18,7 @@ import { TradeStacks } from './TradeStacks';
 import { PrintPicker } from './PrintPicker';
 
 type Holdings = Record<number, Partial<Record<Variant, number>>>;
-const SHORT: Record<Variant, string> = { regular: 'Reg', reverse: 'RH', full: 'FA', shiny: 'SH' };
+const SHORT: Record<Variant, string> = { regular: 'Reg', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
 const MAX_COPIES = 99;
 
 /**
@@ -123,10 +123,10 @@ export function TradeComposer({
   const ready = give.length > 0 && get.length > 0 && (kind === 'listing' || !!to.trim()) && (!verdict.warn || okLopsided);
 
   // Quick picks from the Looking for lists: what they want that you own, and what you want that they have.
-  const bestOwned = (n: number): Variant | null => (['regular', 'reverse', 'full', 'shiny'] as Variant[]).find(v => giveAvail(n, v) > 0) ?? null;
+  const bestOwned = (n: number): Variant | null => VARIANTS.find(v => giveAvail(n, v) > 0) ?? null;
   const theyWantAndYouHave = kind === 'direct' && partner ? partnerWanted.filter(n => byNumber[n] && bestOwned(n)) : [];
-  const youWantAndTheyHave = kind === 'direct' && partner ? myWanted.filter(n => byNumber[n] && (['regular', 'reverse', 'full', 'shiny'] as Variant[]).some(v => getAvail(n, v) > 0)) : [];
-  const bestTheirs = (n: number): Variant | null => (['regular', 'reverse', 'full', 'shiny'] as Variant[]).find(v => getAvail(n, v) > 0) ?? null;
+  const youWantAndTheyHave = kind === 'direct' && partner ? myWanted.filter(n => byNumber[n] && VARIANTS.some(v => getAvail(n, v) > 0)) : [];
+  const bestTheirs = (n: number): Variant | null => VARIANTS.find(v => getAvail(n, v) > 0) ?? null;
 
   async function send() {
     setBusy(true);
@@ -251,7 +251,7 @@ export function TradeComposer({
         )}
         <fieldset className="fieldset">
           <legend className="fieldset-legend">Note (optional)</legend>
-          <input value={note} maxLength={140} onChange={e => setNote(e.target.value)} placeholder="e.g. my last Shiny for your Full Art?" className={`${input} w-full`} />
+          <input value={note} maxLength={140} onChange={e => setNote(e.target.value)} placeholder="e.g. my last Full Art Holo for your Full Art?" className={`${input} w-full`} />
         </fieldset>
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={send} disabled={!ready || busy} className="btn btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm disabled:opacity-50">{busy ? <><Spinner /> Sending…</> : counter ? 'Send counter-offer' : kind === 'listing' ? 'Post to the board' : 'Send offer'}</button>

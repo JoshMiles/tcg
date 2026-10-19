@@ -4,7 +4,7 @@ import type { OptionalVariant } from '@/lib/types';
 import { VARIANT_LABELS } from '@/lib/variants';
 
 /** The variants that can be switched off. Regular always exists. */
-export const OPTIONAL_VARIANTS: OptionalVariant[] = ['reverse', 'full', 'shiny'];
+export const OPTIONAL_VARIANTS: OptionalVariant[] = ['reverse', 'full', 'shiny', 'golden'];
 
 /**
  * Plain form checkboxes (`variant_on_reverse` ...) for server-rendered forms. A hidden `variant_switches` marker tells the
@@ -63,7 +63,7 @@ export function VariantChips({
               : 'border-gray-700 text-gray-500 line-through hover:text-gray-300'
             }`}
           >
-            {compact ? ({ reverse: 'RH', full: 'FA', shiny: 'SH' } as const)[v] : VARIANT_LABELS[v]}
+            {compact ? ({ reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' } as const)[v] : VARIANT_LABELS[v]}
           </button>
         );
       })}

@@ -11,8 +11,8 @@ import { profileHref } from '@/lib/profile-url';
 
 const PAGE = 25;
 const ALL_METRICS = Object.keys(METRIC_LABELS) as BoardMetric[];
-const SHORT = { reverse: 'RH', full: 'FA', shiny: 'SH' } as const;
-const LABEL = { reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' } as const;
+const SHORT = { reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' } as const;
+const LABEL = { reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' } as const;
 type Moves = Record<string, number>;
 
 /**
@@ -20,7 +20,7 @@ type Moves = Record<string, number>;
  * breakdown, and see who moved since you last looked (remembered in this browser). Ranks never change when you search, so
  * finding someone still shows their true place.
  */
-export function Board({ rows, avatars, totalCards, seasonId, viewer, badges = {}, noVariants = false }: { rows: BoardRow[]; avatars: Record<string, string | undefined>; totalCards: number; seasonId: string; viewer?: string; /** Staff badges by login. */ badges?: Record<string, StaffBadgeKind>; /** Rows without per-version counts (an old final standing): no Shinies ranking. */ noVariants?: boolean }) {
+export function Board({ rows, avatars, totalCards, seasonId, viewer, badges = {}, noVariants = false }: { rows: BoardRow[]; avatars: Record<string, string | undefined>; totalCards: number; seasonId: string; viewer?: string; /** Staff badges by login. */ badges?: Record<string, StaffBadgeKind>; /** Rows without per-version counts (an old final standing): no Full Art Holos ranking. */ noVariants?: boolean }) {
   const METRICS = noVariants ? ALL_METRICS.filter(m => m !== 'shiny') : ALL_METRICS;
   const [metric, setMetric] = useState<BoardMetric>('points');
   const [q, setQ] = useState('');
@@ -99,7 +99,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer, badges = {}
                       </span>
                       <span className="block text-xs text-gray-500 sm:truncate">
                         {r.uniqueCards}/{totalCards} cards · {r.copies.toLocaleString()} edition{r.copies === 1 ? '' : 's'}
-                        {(['reverse', 'full', 'shiny'] as const).filter(v => r.variants[v] > 0).map(v => <span key={v} className="ml-2 text-fuchsia-300" title={LABEL[v]}>{r.variants[v]}× {SHORT[v]}</span>)}
+                        {(['reverse', 'full', 'shiny', 'golden'] as const).filter(v => (r.variants[v] ?? 0) > 0).map(v => <span key={v} className="ml-2 text-fuchsia-300" title={LABEL[v]}>{r.variants[v]}× {SHORT[v]}</span>)}
                       </span>
                     </span>
                   </Link>

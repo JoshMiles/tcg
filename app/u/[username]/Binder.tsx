@@ -19,10 +19,10 @@ import type { GridCard } from './CollectionGrid';
 // pages, pockets, grid size) and the layout (automatic by pack, or placed by hand) come from the owner's BinderConfig.
 // Wide screens show two pages like an open book and turn them in 3D; phones show one page at a time. Reduced motion just swaps pages.
 
-const SHORT: Record<string, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
+const SHORT: Record<string, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
 const total = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0);
 const bestOf = (c: VariantCounts) => [...VARIANTS].reverse().find(v => c[v] > 0) ?? 'regular';
-const artOf = (c: GridCard, v: string) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
+const artOf = (c: GridCard, v: string) => ((v === 'full' || v === 'shiny' || v === 'golden') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const TURN_MS = 700;
 
 /** What the editor gives the book so its pockets can be picked, filled and dragged. Absent when just viewing. */

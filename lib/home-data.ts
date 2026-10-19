@@ -42,6 +42,7 @@ export function seasonCountdown(endsAt: number | undefined, now = Date.now()): s
 }
 
 // ── recent pulls (the home feed) ──
+import type { Variant } from './types';
 
 export interface PullItem {
   seq: number;
@@ -49,13 +50,13 @@ export interface PullItem {
   cardNumber: number;
   cardName: string;
   stars: number;
-  variant?: 'regular' | 'reverse' | 'full' | 'shiny';
+  variant?: Variant;
   at: number;
   thumb?: string;
   hex?: string;
   /** How the card arrived: pulled in a pack (default) or granted (an admin gift or the grant webhook). */
   kind?: 'pull' | 'grant';
-  /** A pull worth a second look: Shiny, Full Art or a 5-star card. */
+  /** A pull worth a second look: Golden, Full Art Holo, Full Art or a 5-star card. */
   notable: boolean;
   /** The serial number the copy got, and its points multiplier when above 1. */
   serial?: number;
@@ -68,7 +69,8 @@ export interface PullItem {
 /** Why a pull stands out (the chip text), or null for an ordinary one. */
 export function notableReason(p: { variant?: string; stars: number; serial?: number }): string | null {
   if (p.serial === 1) return 'First ever';
-  if (p.variant === 'shiny') return 'Shiny';
+  if (p.variant === 'golden') return 'Golden';
+  if (p.variant === 'shiny') return 'Full Art Holo';
   if (p.variant === 'full') return 'Full Art';
   if (p.stars >= 5) return '5★';
   return null;

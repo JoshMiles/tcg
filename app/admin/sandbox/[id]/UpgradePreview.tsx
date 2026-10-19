@@ -9,14 +9,14 @@ import type { HoloSpecs } from '@/lib/holo-core';
 interface PreviewCard { number: number; name: string; imageUrl: string; fullArtImageUrl?: string; holo: HoloSpecs }
 
 /** Plays the viewer-facing upgrade animation for any card and variant step, without needing to set up a real upgrade. */
-export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: { reverse: number; full: number; shiny: number } }) {
+export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: { reverse: number; full: number; shiny: number; golden?: number } }) {
   const [number, setNumber] = useState(cards[0]?.number ?? 0);
   const [to, setTo] = useState<Variant>('reverse');
   const [playing, setPlaying] = useState(false);
   const card = cards.find(c => c.number === number) ?? cards[0];
   if (!card) return null;
   const from = VARIANTS[Math.max(0, VARIANTS.indexOf(to) - 1)];
-  const cost = costs[to as 'reverse' | 'full' | 'shiny'] ?? 5;
+  const cost = costs[to as 'reverse' | 'full' | 'shiny' | 'golden'] ?? 5;
   const sel = 'select w-full';
 
   return (
@@ -31,7 +31,7 @@ export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: 
         </label>
         <label className="block text-xs text-gray-500 space-y-1">Upgrade to
           <select value={to} onChange={e => setTo(e.target.value as Variant)} className={sel}>
-            {(['reverse', 'full', 'shiny'] as Variant[]).map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}
+            {(['reverse', 'full', 'shiny', 'golden'] as Variant[]).map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}
           </select>
         </label>
       </div>

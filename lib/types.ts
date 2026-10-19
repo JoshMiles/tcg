@@ -1,5 +1,5 @@
 /** Card variants, lowest to highest. Upgrades only ever move one step up this ladder. */
-export type Variant = 'regular' | 'reverse' | 'full' | 'shiny';
+export type Variant = 'regular' | 'reverse' | 'full' | 'shiny' | 'golden';
 
 export type VariantWeights = Record<Variant, number>;
 

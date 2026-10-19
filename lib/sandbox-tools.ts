@@ -178,7 +178,7 @@ export function listCardValues(sandboxId: string): Promise<{
         return {
           number: card.number, name: card.name, stars: card.stars, pack: pack.name, upgrades: upgradesAllowed(pack, card),
           pullRate: v?.pullRate ?? 0, copies: v?.variantCopies ?? emptyCounts(),
-          values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
+          values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0 },
         };
       })
       .sort((a, b) => a.number - b.number);

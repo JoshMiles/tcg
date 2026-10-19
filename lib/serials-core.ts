@@ -34,7 +34,7 @@ export const EVENT_CAP = 40;
 export const copyId = (card: number, variant: Variant, n: number) => `${card}.${VARIANTS.indexOf(variant)}.${n}`;
 
 export function parseCopyId(id: string): { card: number; variant: Variant; n: number } | null {
-  const m = /^(\d{1,6})\.([0-3])\.(\d{1,9})$/.exec(id);
+  const m = /^(\d{1,6})\.([0-4])\.(\d{1,9})$/.exec(id);
   if (!m) return null;
   return { card: Number(m[1]), variant: VARIANTS[Number(m[2])], n: Number(m[3]) };
 }

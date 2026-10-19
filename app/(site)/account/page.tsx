@@ -20,7 +20,7 @@ import { ScoreChart } from './ScoreChart';
 import { WantToggle } from './WantToggle';
 import { getCollection } from '@/lib/kv';
 import { topPrintLinks } from '@/lib/top-prints';
-import { countVariants } from '@/lib/variants';
+import { countVariants, usesFullArt } from '@/lib/variants';
 import { getActive, getSeasonOverview } from '@/lib/site-data';
 import { computeUserStats, VARIANT_LABELS } from '@/lib/user-stats';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
@@ -110,7 +110,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         const cv = overview.values.cards.get(card);
         if (!cv) return 0;
         const w = cv.maths.weights;
-        const total = w.regular + w.reverse + w.full + w.shiny;
+        const total = w.regular + w.reverse + w.full + w.shiny + (w.golden ?? 0);
         return total > 0 ? cv.pullRate * (w[variant] / total) : 0;
       },
       nameOf: n => overview.cards.find(c => c.number === n)?.name ?? `Card #${n}`,
@@ -118,8 +118,8 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
       tradesCompleted: tradeLog.filter(t => t.status === 'accepted' && t.seasonId === season.id && (t.from === session.username || t.to === session.username || t.resolvedBy === session.username)).length,
     }),
     cards: s.topCopies.slice(0, 3).map(t => ({
-      src: (t.variant === 'full' || t.variant === 'shiny') && t.card.fullArtImageUrl ? t.card.fullArtImageUrl : t.card.imageUrl,
-      name: t.card.name, hex: getRarity(t.card.stars)?.hex, tag: t.variant === 'regular' ? undefined : t.variant === 'reverse' ? 'RH' : t.variant === 'full' ? 'FA' : 'SH',
+      src: usesFullArt(t.variant) && t.card.fullArtImageUrl ? t.card.fullArtImageUrl : t.card.imageUrl,
+      name: t.card.name, hex: getRarity(t.card.stars)?.hex, tag: t.variant === 'regular' ? undefined : t.variant === 'reverse' ? 'RH' : t.variant === 'full' ? 'FA' : t.variant === 'shiny' ? 'FH' : 'GD',
     })),
     footer: SITE_URL.replace(/^https?:\/\//, ''),
   };

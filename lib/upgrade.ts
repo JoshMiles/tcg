@@ -5,7 +5,7 @@ import { getScoringSettings } from './scoring';
 import { serialMultiplier } from './scoring-core';
 import { recordActivity } from './activity';
 import type { Variant } from './types';
-import { VARIANT_LABELS, encodeEntry, removeEntries, upgradeStep, upgradesAllowed } from './variants';
+import { GOLDEN_PULLS, VARIANT_LABELS, encodeEntry, removeEntries, upgradeStep, upgradesAllowed } from './variants';
 
 export type UpgradeResult =
   | { ok: true; owned: number[]; cardName: string; from: Variant; to: Variant; cost: number; /** The serial the new copy got (null before the season's copies are numbered) and its points multiplier. */ serial: number | null; serialMult: number }
@@ -13,7 +13,7 @@ export type UpgradeResult =
 
 /**
  * Swaps `cost` duplicates of one card variant for a single copy of the next variant up. Strictly one
- * step (regular → reverse → full → shiny), same card only, active season only. Runs under the
+ * step (regular → reverse → full → shiny → golden), same card only, active season only. Runs under the
  * collection lock so it can't interleave with a pull or a grant writing the same blob.
  */
 export async function upgradeCard(opts: {
@@ -25,7 +25,7 @@ export async function upgradeCard(opts: {
   const { seasonId, cardNumber, from } = opts;
   const username = opts.username.toLowerCase();
 
-  if (from === 'shiny') return { ok: false, status: 400, error: `${VARIANT_LABELS[from]} can't be upgraded any further.` };
+  if (from === 'golden' || (!GOLDEN_PULLS && from === 'shiny')) return { ok: false, status: 400, error: `${VARIANT_LABELS[from]} can't be upgraded any further.` };
 
   const season = await getSeason(seasonId);
   if (!season) return { ok: false, status: 404, error: 'Season not found.' };

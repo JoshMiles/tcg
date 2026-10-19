@@ -8,7 +8,8 @@ const VARIANT_WORDS: Record<string, Variant> = {
   regular: 'regular', normal: 'regular', base: 'regular',
   reverse: 'reverse', rh: 'reverse', holo: 'reverse', reverseholo: 'reverse',
   full: 'full', fa: 'full', fullart: 'full',
-  shiny: 'shiny', sh: 'shiny', shinyfullart: 'shiny',
+  shiny: 'shiny', sh: 'shiny', shinyfullart: 'shiny', fh: 'shiny', fullartholo: 'shiny',
+  golden: 'golden', gd: 'golden', gold: 'golden',
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -20,11 +21,11 @@ export interface ShowQuery {
   variant: Variant | null;
 }
 
-/** Splits "shiny gouda goat" / "gouda goat sh" / "#12 reverse" into a card and a version. Never throws. */
+/** Splits "shiny gouda goat" / "gouda goat fh" / "#12 reverse" into a card and a version. Never throws. */
 export function parseShowQuery(raw: unknown): ShowQuery {
   const text = typeof raw === 'number' ? `#${raw}` : typeof raw === 'string' ? raw : '';
-  // Two-word version names first ("shiny full art", "full art", "reverse holo").
-  const tidy = text.trim().slice(0, 80).replace(/\bshiny\s+full\s*art\b/gi, 'shiny').replace(/\bfull\s+art\b/gi, 'full').replace(/\breverse\s+holo\b/gi, 'reverse');
+  // Multi-word version names first ("full art holo", "shiny full art", "full art", "reverse holo").
+  const tidy = text.trim().slice(0, 80).replace(/\bfull\s*art\s+holo\b/gi, 'shiny').replace(/\bshiny\s+full\s*art\b/gi, 'shiny').replace(/\bfull\s+art\b/gi, 'full').replace(/\breverse\s+holo\b/gi, 'reverse');
   const tokens = tidy.split(/\s+/).filter(Boolean);
   let variant: Variant | null = null;
   const rest: string[] = [];

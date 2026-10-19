@@ -73,7 +73,7 @@ function initDevPanel() {
       const w = Object.assign({}, DEFAULT_VARIANT_WEIGHTS, upg[0].pack.variantWeights);
       const total = VARIANTS.reduce((s, v) => s + Math.max(0, w[v]), 0) || 1;
       const pct = v => (w[v] / total * 100).toFixed(w[v] / total < 0.1 ? 1 : 0) + '%';
-      info.textContent = 'Odds: Reg ' + pct('regular') + ' · RH ' + pct('reverse') + ' · FA ' + pct('full') + ' · Shiny ' + pct('shiny');
+      info.textContent = 'Odds: Reg ' + pct('regular') + ' · RH ' + pct('reverse') + ' · FA ' + pct('full') + ' · FH ' + pct('shiny') + (w.golden > 0 ? ' · GD ' + pct('golden') : '');
     }
   }
   packSel.addEventListener('change', () => { fillCards(); updateInfo(); });

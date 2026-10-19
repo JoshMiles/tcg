@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatedArt } from '@/app/components/AnimatedArt';
 import { cardThumbUrl } from '@/lib/card-art';
-import { VARIANT_LABELS } from '@/lib/variants';
+import { VARIANT_LABELS, usesFullArt } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 
@@ -21,10 +21,11 @@ const PILL: Record<Variant, string> = {
   reverse: 'linear-gradient(90deg,#8b5cf6,#ec4899)',
   full: 'linear-gradient(90deg,#0ea5e9,#6366f1)',
   shiny: 'linear-gradient(90deg,#f59e0b,#ef4444,#a855f7)',
+  golden: 'linear-gradient(90deg,#fbbf24,#f59e0b,#fef08a)',
 };
 
-/** The art a variant shows: Full Art and Shiny use the full-art image where the card has one. */
-const artFor = (card: CeremonyCard, v: Variant) => ((v === 'full' || v === 'shiny') && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl);
+/** The art a variant shows: Full Art, Full Art Holo and Golden use the full-art image where the card has one. */
+const artFor = (card: CeremonyCard, v: Variant) => (usesFullArt(v) && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl);
 
 /**
  * The upgrade moment: the spent copies spiral into the middle, a flash, and the new variant is revealed with its holo / glow.
@@ -87,7 +88,7 @@ export function UpgradeCeremony({
           </div>
         </div>
 
-        {(to === 'full' || to === 'shiny') && (
+        {usesFullArt(to) && (
           <div aria-hidden>
             {Array.from({ length: 16 }).map((_, i) => (
               <span
@@ -96,7 +97,7 @@ export function UpgradeCeremony({
                 style={{
                   ['--x' as string]: `${Math.round(Math.cos((i / 16) * Math.PI * 2) * (130 + (i % 3) * 40))}px`,
                   ['--y' as string]: `${Math.round(Math.sin((i / 16) * Math.PI * 2) * (150 + (i % 4) * 30))}px`,
-                  color: to === 'shiny' ? '#ffd24d' : '#7cc7ff',
+                  color: to === 'shiny' || to === 'golden' ? '#ffd24d' : '#7cc7ff',
                 }}
               >{i % 2 ? '✦' : '✧'}</span>
             ))}

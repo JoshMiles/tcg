@@ -67,11 +67,13 @@ export function cleanPackInput(i: PackInput): Omit<Pack, 'id' | 'createdAt' | 's
       reverse: num(w.reverse, DEFAULT_VARIANT_WEIGHTS.reverse),
       full: num(w.full, DEFAULT_VARIANT_WEIGHTS.full),
       shiny: num(w.shiny, DEFAULT_VARIANT_WEIGHTS.shiny),
+      golden: num(w.golden, DEFAULT_VARIANT_WEIGHTS.golden),
     },
     upgradeCosts: {
       reverse: int(c.reverse, DEFAULT_UPGRADE_COSTS.reverse),
       full: int(c.full, DEFAULT_UPGRADE_COSTS.full),
       shiny: int(c.shiny, DEFAULT_UPGRADE_COSTS.shiny),
+      golden: int(c.golden, DEFAULT_UPGRADE_COSTS.golden),
     },
     disabledVariants: cleanDisabled(i.disabledVariants),
   };

@@ -1,4 +1,5 @@
 import { kv, inSandbox } from './db';
+import type { Variant } from './types';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { checkWebhookUrl, cleanWebhookFields } from './webhook-clean';
 import { NextResponse } from 'next/server';
@@ -30,12 +31,12 @@ export interface QueuedEvent {
   username: string;
   queuedAt: number;
   /** For `pull`: what the server rolled (lib/draw.ts). The overlay plays exactly this and saves it with `id` as the ticket. */
-  draw?: { packId: string; cardNumber: number; variant: 'regular' | 'reverse' | 'full' | 'shiny' };
+  draw?: { packId: string; cardNumber: number; variant: Variant };
   /** A paid pull (Mix It Up): the same id is the payment reservation, charged when the card is saved. */
   paid?: boolean;
   /** For `card` (show a card off): which card and version, and the serial of the viewer's copy. Already checked against their collection. */
   cardNumber?: number;
-  variant?: 'regular' | 'reverse' | 'full' | 'shiny';
+  variant?: Variant;
   serial?: number;
   serialMult?: number;
   /** The print number of that copy. */

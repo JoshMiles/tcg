@@ -50,7 +50,7 @@ export function OddsView({ pack, cards, baseCards, editCards }: {
   const reset = () => editCards(cs => cs.map(c => (baseProb.has(c.id) ? { ...c, probability: baseProb.get(c.id)! } : c)));
 
   const simulateNow = () => startSim(() => {
-    setSim(simulate(cards, id => { const c = cards.find(x => x.id === id); return c ? effectiveWeights({ variantWeights: pack.variantWeights, disabledVariants: pack.disabledVariants }, { disabledVariants: c.upgradesEnabled ? c.disabledVariants : ['reverse', 'full', 'shiny'] }) : undefined; }, upgrades, runs));
+    setSim(simulate(cards, id => { const c = cards.find(x => x.id === id); return c ? effectiveWeights({ variantWeights: pack.variantWeights, disabledVariants: pack.disabledVariants }, { disabledVariants: c.upgradesEnabled ? c.disabledVariants : ['reverse', 'full', 'shiny', 'golden'] }) : undefined; }, upgrades, runs));
   });
 
   const btn = 'inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white transition-colors disabled:opacity-50';
@@ -165,7 +165,7 @@ export function OddsView({ pack, cards, baseCards, editCards }: {
                   ))}
                 </div>
                 {upgrades && (
-                  <div className="grid grid-cols-4 gap-1.5 text-center">
+                  <div className="grid grid-cols-5 gap-1.5 text-center">
                     {VARIANTS.map(v => (
                       <div key={v} className="rounded-lg bg-gray-950/50 border border-gray-800 py-1.5">
                         <p className="text-[11px] text-gray-500">{VARIANT_LABELS[v]}</p>

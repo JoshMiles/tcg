@@ -261,8 +261,9 @@ function showStatic(mode) {
         editable(userText, 'got', 'Click to edit the "got:" line');
         editable(miniList, 'strip', 'Click to edit the cards under the card');
       }
-      const art = (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArt : card.image;
-      paintCard(theater, card, art, (variant === 'full' || variant === 'shiny') && card.fullArt ? card.fullArtThumb : card.thumb);
+      const usesFull = (variant === 'full' || variant === 'shiny' || variant === 'golden') && card.fullArt;
+      const art = usesFull ? card.fullArt : card.image;
+      paintCard(theater, card, art, usesFull ? card.fullArtThumb : card.thumb);
       const fx = mainCardAnimation(PS, variant, 1, 0, true);
       mainCard.style.animation = fx.anim;
       wrapper.style.setProperty('--fx-start', '0s');
@@ -305,7 +306,7 @@ if (PREVIEW) {
     }
     else if (e.data.type === 'draft') applyDraft(e.data);
     else if (e.data.type === 'variant') {
-      PREVIEW_VARIANT = ['reverse', 'full', 'shiny'].includes(e.data.variant) ? e.data.variant : '';
+      PREVIEW_VARIANT = ['reverse', 'full', 'shiny', 'golden'].includes(e.data.variant) ? e.data.variant : '';
       if (activeDraws === 0) showStatic();
     }
     else if (e.data.type === 'static') { previewShowOff = !!e.data.showoff && e.data.mode !== 'collection'; if (activeDraws === 0) showStatic(e.data.mode); else previewMode = e.data.mode === 'collection' ? 'collection' : 'pack'; }
@@ -325,10 +326,11 @@ if (PREVIEW) {
 // ═══════════════════════════════════════════════════════
 // Collection entries encode the variant: cardNumber + VARIANT_OFFSET * variantIndex (regular = plain number).
 // Keep in sync with lib/variants.ts.
-const VARIANTS = ['regular', 'reverse', 'full', 'shiny'];
+const VARIANTS = ['regular', 'reverse', 'full', 'shiny', 'golden'];
 const VARIANT_OFFSET = 1000000;
-const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny Full Art' };
-const DEFAULT_VARIANT_WEIGHTS = { regular: 100, reverse: 25, full: 5, shiny: 1 };
+const GOLDEN_PULLS = false;
+const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };
+const DEFAULT_VARIANT_WEIGHTS = { regular: 100, reverse: 25, full: 5, shiny: 1, golden: 0 };
 function encodeEntry(cardNumber, variant) { return cardNumber + VARIANT_OFFSET * Math.max(0, VARIANTS.indexOf(variant)); }
 function decodeEntry(entry) {
   const idx = Math.min(Math.floor(entry / VARIANT_OFFSET), VARIANTS.length - 1);
@@ -340,7 +342,7 @@ const DEV = { dry: true, mute: false, quick: false };
 // `off` lists the variants switched off for this pack / card: they are never rolled (Regular can't be switched off).
 function rollVariant(weights, off) {
   const w = Object.assign({}, DEFAULT_VARIANT_WEIGHTS, weights);
-  const weight = v => (v !== 'regular' && off && off.indexOf(v) !== -1 ? 0 : Math.max(0, w[v]));
+  const weight = v => ((v === 'golden' && !GOLDEN_PULLS) || (v !== 'regular' && off && off.indexOf(v) !== -1) ? 0 : Math.max(0, w[v]));
   const total = VARIANTS.reduce((s, v) => s + weight(v), 0);
   if (total <= 0) return 'regular';
   let r = Math.random() * total;
@@ -899,7 +901,7 @@ function styleShowLabel(el, P) {
 const headingText = (P, user) => String(pv(P, 'collection.headingText', "{user}'s collection:")).split('{user}').join(user || 'Someone');
 
 function holoOn(P, variant, card, cfg) {
-  const mode = pv(P, 'variant.' + variant + '.holoMode', variant === 'reverse' || variant === 'shiny' ? 'on' : 'auto');
+  const mode = pv(P, 'variant.' + variant + '.holoMode', variant === 'reverse' || variant === 'shiny' || variant === 'golden' ? 'on' : 'auto');
   return mode === 'on' || (mode === 'auto' && card.stars >= cfg.holoMinStars);
 }
 
@@ -934,7 +936,7 @@ function applyLook(theater, P, variant, card, cfg, owned) {
   const g = (s, d) => pv(P, 'variant.' + variant + '.' + s, d);
   const st = wrapper.style;
 
-  wrapper.classList.remove('variant-reverse', 'variant-full', 'variant-shiny');
+  wrapper.classList.remove('variant-reverse', 'variant-full', 'variant-shiny', 'variant-golden');
   if (variant !== 'regular') wrapper.classList.add('variant-' + variant);
 
   // Label
@@ -1095,8 +1097,8 @@ function drawCard(username, opts) {
   const at = sec => (sec * 1000) / S + D * 1000;
   // Test panel "quick" mode shortens the on-screen time so many draws can be reviewed fast.
   const cfg = DEV.quick ? Object.assign({}, pick.cfg, { cardTime: Math.min(pick.cfg.cardTime, 1.5), cooldownTime: 0.2 }) : pick.cfg;
-  // Full Art and Shiny use the card's full-art image when it has one; Regular and Reverse use the base art.
-  const isFullArt = (variant === 'full' || variant === 'shiny') && card.fullArt;
+  // Full Art, Full Art Holo and Golden use the card's full-art image when it has one; Regular and Reverse use the base art.
+  const isFullArt = (variant === 'full' || variant === 'shiny' || variant === 'golden') && card.fullArt;
   const art = isFullArt ? card.fullArt : card.image;
   // The card isn't revealed for a moment; fetch and decode its animated art now so the reveal never hitches.
   warmImage(art);

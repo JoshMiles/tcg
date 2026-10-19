@@ -1,6 +1,6 @@
 import type { IconName } from '@/app/components/Icon';
 import type { Variant } from './types';
-import { VARIANTS, VARIANT_LABELS, decodeEntry, type VariantCounts } from './variants';
+import { GOLDEN_PULLS, VARIANTS, VARIANT_LABELS, decodeEntry, type VariantCounts } from './variants';
 import { RARITIES } from './rarity';
 
 // Profile achievements (pure, client-safe): collection goals per season, such as completing the season, owning every card of a
@@ -56,14 +56,15 @@ export function evaluateSeason(s: AchSeason, disabled?: ReadonlySet<string>): Ac
     out.push(goal(s, `tier-${tier.stars}`, `All ${tier.label}`, `Own every ${tier.label} card in ${s.seasonName}.`, 'award', cards, c => owns(s, c.number)));
   }
 
-  for (const v of VARIANTS.filter(x => x !== 'regular')) {
+  for (const v of VARIANTS.filter(x => x !== 'regular' && (GOLDEN_PULLS || x !== 'golden'))) {
     const cards = s.cards.filter(c => c.variants.includes(v));
-    out.push(goal(s, `all-${v}`, `All ${VARIANT_LABELS[v]}`, `Own the ${VARIANT_LABELS[v]} version of every card that has one in ${s.seasonName}.`, v === 'shiny' ? 'sparkles' : 'gem', cards, c => owns(s, c.number, v)));
+    out.push(goal(s, `all-${v}`, `All ${VARIANT_LABELS[v]}`, `Own the ${VARIANT_LABELS[v]} version of every card that has one in ${s.seasonName}.`, v === 'shiny' || v === 'golden' ? 'sparkles' : 'gem', cards, c => owns(s, c.number, v)));
   }
 
   // The master set: every card in every version it can be pulled in. Only meaningful when some card has more than one version.
-  if (s.cards.some(c => c.variants.length > 1)) {
-    const wanted = s.cards.flatMap(c => c.variants.map(v => ({ number: c.number, stars: c.stars, variants: [v] as Variant[] })));
+  const liveVariants = (c: AchCard) => GOLDEN_PULLS ? c.variants : c.variants.filter(v => v !== 'golden');
+  if (s.cards.some(c => liveVariants(c).length > 1)) {
+    const wanted = s.cards.flatMap(c => liveVariants(c).map(v => ({ number: c.number, stars: c.stars, variants: [v] as Variant[] })));
     out.push(goal(s, 'master', `Master set: ${s.seasonName}`, `Own every card in every version in ${s.seasonName}.`, 'trophy', wanted, c => owns(s, c.number, c.variants[0])));
   }
   if (s.held) out.push(...serialGoals(s));
@@ -87,7 +88,7 @@ export function serialGoals(s: AchSeason): Achievement[] {
   goals.push(mk('first-edition', 'First print', `Hold print #1 of any card in ${s.seasonName}: the very first edition ever made.`, 'gem', firsts.size > 0 ? 1 : 0, 1));
   if (s.cards.some(c => c.variants.includes('shiny'))) {
     const shinyFirst = [...firsts.values()].some(v => v.has('shiny'));
-    goals.push(mk('first-shiny', 'First shiny print', `Hold print #1 of a Shiny Full Art card in ${s.seasonName}.`, 'sparkles', shinyFirst ? 1 : 0, 1));
+    goals.push(mk('first-shiny', 'First Full Art Holo print', `Hold print #1 of a Full Art Holo card in ${s.seasonName}.`, 'sparkles', shinyFirst ? 1 : 0, 1));
   }
   goals.push(mk('five-firsts', 'Five firsts', `Hold print #1 of five different cards in ${s.seasonName}.`, 'award', firsts.size, Math.min(5, Math.max(1, s.cards.length))));
   if ((s.bonusCutoff ?? 0) > 0) goals.push(mk('early-bird', 'Early bird', `Hold an edition with a low enough print number (#${s.bonusCutoff} or lower) to earn the print bonus in ${s.seasonName}.`, 'zap', early > 0 ? 1 : 0, 1));

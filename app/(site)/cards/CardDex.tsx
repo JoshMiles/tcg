@@ -9,7 +9,7 @@ import { CardTile } from '@/app/components/CardTile';
 import { Avatar } from '@/app/components/Avatar';
 import { RARITIES, getRarity } from '@/lib/rarity';
 import { cardThumbUrl, stillFor } from '@/lib/card-art';
-import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
+import { VARIANTS, VARIANT_LABELS, usesFullArt, type VariantCounts } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 import { CardMathsPanel } from '@/app/components/CardMathsPanel';
 import type { CardMaths } from '@/lib/card-maths';
@@ -38,8 +38,8 @@ export interface DexCard {
   pullRate: number;
   copies: number;
   upgradable: boolean;
-  /** Points per copy: Regular, Reverse Holo, Full Art, Shiny Full Art. */
-  values: [number, number, number, number];
+  /** Points per copy: Regular, Reverse Holo, Full Art, Full Art Holo, Golden. */
+  values: [number, number, number, number, number];
   /** Copies of each version out there, and the chance of each per pull. */
   variantCopies: VariantCounts;
   variantOdds: Record<Variant, number>;
@@ -56,10 +56,10 @@ export interface DexCard {
   maths?: CardMaths;
 }
 
-const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
-const VARIANT_TIPS: Partial<Record<Variant, TermId>> = { reverse: 'reverseHolo', full: 'fullArt', shiny: 'shiny' };
+const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
+const VARIANT_TIPS: Partial<Record<Variant, TermId>> = { reverse: 'reverseHolo', full: 'fullArt', shiny: 'shiny', golden: 'golden' };
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '-');
-const artFor = (c: DexCard, v: Variant) => ((v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
+const artFor = (c: DexCard, v: Variant) => (usesFullArt(v) && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const maskFor = (c: DexCard, url: string) => (cardThumbUrl(url) !== url ? `url("${stillFor(c, url)}")` : 'none');
 
 /** Every card in a season, with filters (rarity, pack, collected / missing / wanted / undiscovered), sorting, search and click-through details. */
@@ -196,7 +196,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
                   <p className="text-sm font-semibold text-white truncate">{c.name}</p>
                   <p className="text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)} {rarity?.label}</p>
                   <p className="text-[11px] text-gray-500">1 in {Math.round(1 / c.pullRate).toLocaleString()} · {c.copies} out there</p>
-                  <p className="text-[11px] text-yellow-300/90 tabular-nums" title={c.upgradable ? 'Points per edition: Regular · Reverse Holo · Full Art · Shiny' : 'Points per edition'}>
+                  <p className="text-[11px] text-yellow-300/90 tabular-nums" title={c.upgradable ? 'Points per edition: Regular · Reverse Holo · Full Art · Full Art Holo · Golden' : 'Points per edition'}>
                     {c.upgradable ? c.values.join(' · ') : c.values[0]} pts
                   </p>
                 </div>

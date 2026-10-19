@@ -33,8 +33,8 @@ export interface CardMaths {
   upgradesEnabled: boolean;
   /** Effective variant roll weights (switched-off variants are 0). */
   weights: Record<Variant, number>;
-  /** Copies needed for each upgrade step in a row (Regular→Reverse, Reverse→Full, Full→Shiny). */
-  costs: { reverse: number; full: number; shiny: number };
+  /** Copies needed for each upgrade step in a row (Regular→Reverse, Reverse→Full, Full→Full Art Holo, Full Art Holo→Golden). */
+  costs: { reverse: number; full: number; shiny: number; golden: number };
   /** Variant multiplier workings: byOdds = regular weight ÷ this weight, byCost = previous multiplier × cost × margin. */
   byOdds: Record<Variant, number>;
   byCost: Record<Variant, number>;
