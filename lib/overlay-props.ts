@@ -1,4 +1,5 @@
 import type { IconName } from '@/app/components/Icon';
+import { BACK_FONTS } from './card-back';
 // Every adjustable property of the OBS overlay, in one registry. Browser-safe (no KV) so the admin editor can import it.
 //
 // Design:
@@ -185,6 +186,7 @@ function variantPropsRaw(v: VariantId): PropDef[] {
 export const MOMENT_BANNER_DEFAULT_BG = ['#ffe27a', '#f1bb06', '#fff2b0', '#f1bb06'];
 
 const MOMENT_STYLE_OPTIONS = [{ value: 'inherit', label: 'Same as the pack opening' }, ...REVEAL_STYLES.map(x => ({ value: x.value, label: x.label + (x.experimental ? ' (experimental)' : '') }))];
+const FONT_OPTIONS = BACK_FONTS.map(f => ({ value: f.id, label: f.label }));
 
 function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
   const m = `moment.${id}`;
@@ -202,6 +204,7 @@ function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
     { key: `${m}.bgColors`, group: g, label: 'Banner colours', type: 'colors', default: first ? MOMENT_BANNER_DEFAULT_BG : ['#8b5cf6', '#ec4899'], minItems: 1, maxItems: 4, help: 'One colour is solid; more make a gradient.' },
     { key: `${m}.textColor`, group: g, label: 'Text colour', type: 'color', default: first ? '#1a1205' : '#ffffff' },
     { key: `${m}.textSize`, group: g, label: 'Text size', type: 'number', default: 26, min: 12, max: 60, step: 1, unit: 'px' },
+    { key: `${m}.font`, group: g, label: 'Font', type: 'select', default: 'display', options: FONT_OPTIONS, help: 'Site display keeps today\'s banner face.' },
     { key: `${m}.position`, group: g, label: 'Position on the card', type: 'select', default: 'top', options: [{ value: 'top', label: 'Top' }, { value: 'middle', label: 'Middle' }, { value: 'bottom', label: 'Bottom' }] },
     { key: `${m}.sparkles`, group: g, label: 'Sparkle amount', type: 'number', default: first ? 44 : 0, min: 0, max: 80, step: 1, help: 'A burst of sparkles when the banner appears. 0 for none.' },
     { key: `${m}.sparkleColor`, group: g, label: 'Sparkle colour', type: 'color', default: '#ffe27a' },
@@ -226,6 +229,7 @@ const SHOW_PROPS: PropDef[] = [
   { key: 'show.labelColor', label: 'Label colour', type: 'color', default: '#f1bb06' },
   { key: 'show.labelTextColor', label: 'Label text colour', type: 'color', default: '#fffefe' },
   { key: 'show.labelSize', label: 'Label text size', type: 'number', default: 14, min: 10, max: 40, step: 1, unit: 'px' },
+  { key: 'show.labelFont', label: 'Label font', type: 'select', default: 'display', options: FONT_OPTIONS, help: 'Site display keeps today\'s face.' },
   { key: 'show.labelX', label: 'Label nudge across', type: 'number', default: 0, min: -300, max: 300, step: 2, unit: 'px', help: 'Moves the label sideways from where it sits.' },
   { key: 'show.labelY', label: 'Label nudge up / down', type: 'number', default: 0, min: -400, max: 300, step: 2, unit: 'px', help: 'Moves the label down (positive) or up (negative), for example over the card.' },
   { key: 'show.showPrint', label: 'Print number pill', type: 'boolean', default: true, help: 'The number on the card. Also needs "Print number on the card" in Pack opening to be on, and the season\'s editions to be numbered.' },
@@ -248,6 +252,7 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.packSounds', group: 'pack', label: 'Pack-opening sounds', type: 'boolean', default: true, help: 'The rip and shake sounds for the pack styles. (Card sounds are set on each card.)' },
   { key: 'reveal.cardScale', group: 'pack', label: 'Revealed card size', type: 'number', default: 1, min: 0.5, max: 1.5, step: 0.05, unit: '×', help: 'Scales the card itself (the pack and the strip stay as they are).' },
   { key: 'reveal.labelSize', group: 'pack', label: 'Label text size', type: 'number', default: 14, min: 10, max: 30, step: 1, unit: 'px' },
+  { key: 'reveal.labelFont', group: 'pack', label: 'Label font', type: 'select', default: 'display', options: FONT_OPTIONS, help: 'Site display keeps today\'s face. A pack can override this.' },
   { key: 'reveal.nameColor', group: 'pack', label: 'Card name colour', type: 'color', default: '#f1bb06' },
   { key: 'reveal.starColor', group: 'pack', label: 'Star colour', type: 'color', default: '#f1bb06' },
   { key: 'reveal.infoBg', group: 'pack', label: 'Name & stars bar colour', type: 'color', default: '#fffefe' },
@@ -327,7 +332,7 @@ function sectionFor(key: string): string {
   const r: [RegExp, string][] = [
     [/^reveal.(style|speed|startDelay|packScale|packSounds)$/, 'Animation'],
     [/^reveal.cardScale$/, 'Card'],
-    [/^reveal.(showLabel|labelSize|labelOwned|showSerial|serialFormat)$/, 'Label'],
+    [/^reveal.(showLabel|labelSize|labelFont|labelOwned|showSerial|serialFormat)$/, 'Label'],
     [/^(reveal\.firstEver|moment\.firstEver\.)/, 'First-ever edition'],
     [/^moment\.firstPull\./, "A viewer's first pull"],
     [/^moment\.newCard\./, 'A new card for them'],

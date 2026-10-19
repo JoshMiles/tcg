@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason, getPacksForSeason } from '@/lib/kv';
 import { cardBackFor } from '@/lib/card-back-store';
-import { overlayBack, type OverlayBack } from '@/lib/card-back-overlay';
+import { overlayBack, overlayFontCatalog, type OverlayBack } from '@/lib/card-back-overlay';
 import { getOverlaySettings, getPackOverrides, getPreset, getSeasonLookPreset } from '@/lib/overlay-settings';
 import { DEFAULT_LAYOUT } from '@/lib/overlay-layout';
 import { DEFAULT_PROPS } from '@/lib/overlay-props';
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   // the season's look. An unknown id just means the global overlay.
   const scene = await getPreset(req.nextUrl.searchParams.get('preset')).catch((): null => null);
   return NextResponse.json(
-    { layout: scene?.layout ?? settings.layout, defaults: DEFAULT_PROPS, props: { ...settings.props, ...(look?.props ?? {}), ...(scene?.props ?? {}) }, packOverrides, backs },
+    { layout: scene?.layout ?? settings.layout, defaults: DEFAULT_PROPS, props: { ...settings.props, ...(look?.props ?? {}), ...(scene?.props ?? {}) }, packOverrides, backs, fonts: overlayFontCatalog() },
     { headers: { 'Cache-Control': 'no-store' } },
   );
 }

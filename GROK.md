@@ -82,6 +82,7 @@ Read the doc that matches what you are changing **before** you change it; each s
 - Narrow a wide search before reading the files it returns.
 - **Remind the user to reset context.** When a task is finished (PR merged, or the user moves to an unrelated task), end your reply with one line suggesting a fresh chat. When a session is running long but the task isn't done (many files read, several PR rounds), suggest compacting the conversation and name what the summary should keep (branch, PR, open items). Say it once per break point, not every turn.
 - When you change behaviour, update the matching doc to say what the code does now. History belongs in PR descriptions and `docs/archive/`, not in the area docs.
+- When a PR updates `ROADMAP.md`, only bump the date on the **Last updated** line. Never add a shipped log there.
 
 ## Data architecture
 
