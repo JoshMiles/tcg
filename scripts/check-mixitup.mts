@@ -17,7 +17,7 @@ ok(!c.cleanMixItUpInput({ enabled: true, balanceUrl: '' }).ok, 'switching on nee
 ok(!c.cleanMixItUpInput({ balanceUrl: 'http://localhost:8911/api/x' }).ok, 'a private address is refused');
 ok(!c.cleanMixItUpInput({ balanceUrl: 'https://hook.example/a', cost: 0 }).ok, 'a price below 1 is refused');
 const good = c.cleanMixItUpInput({ enabled: 'on', balanceUrl: 'https://hook.example/a', limit: '3', cost: '50' });
-ok(good.ok && good.settings.enabled && good.settings.limit === 3 && good.settings.cost === 50, 'a good form is cleaned');
+ok(good.ok && good.settings.enabled && good.settings.limit === 3 && good.settings.cost === 50 && good.settings.roleLimits.subscriber === 3, 'a good form is cleaned, and a missing role uses the fallback limit');
 
 const setup = await import('../lib/mixitup-setup');
 const paid = setup.paidPullSetup({ ...c.DEFAULT_MIXITUP, secret: 's3cret', currency: 'Gouda Coins', cost: 40, balanceUrl: 'https://hook.example/bal', deductUrl: '', message: c.DEFAULT_MESSAGE, balanceField: 'balance' });
@@ -58,7 +58,7 @@ const a2 = await reserve('ann', 'p2');
 ok(a2.ok, 'a second pull is allowed while the balance covers both (250 vs 200)');
 const a3 = await reserve('ann', 'p3');
 ok(!a3.ok && a3.reason === 'limit_reached' && /used all 2/.test(a3.message), 'the third pull is over the limit of 2');
-const noLimit = { ...settings, limit: 0 };
+const noLimit = { ...settings, limit: 0, roleLimits: { regular: 0, subscriber: 0, vip: 0, moderator: 0, broadcaster: 0 } };
 const a4 = await m.reservePaidPull(noLimit, 'ann', 'p4', fake);
 ok(!a4.ok && a4.reason === 'insufficient_balance' && a4.balance === 250 && /costs 100/.test(a4.message), 'in-flight pulls count against the balance (250 does not cover three)');
 const b1 = await reserve('bob', 'q1');

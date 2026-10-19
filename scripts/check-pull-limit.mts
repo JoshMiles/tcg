@@ -57,4 +57,38 @@ await store.addUserPullBuff('cy', { amount: 1, hours: 2 });
 ok((await r('cy', 'c4')).ok && !(await r('cy', 'c5')).ok, 'a bonus gives a viewer one more pull this stream');
 ok((await mix.pullsUsedThisStream('cy')) === 3, 'the admin page can show how many were used');
 
+// ── Roles and the this-stream bonus (ROADMAP 28.1) ──
+const fresh = mc.normalizeMixItUp(null);
+ok(mc.PULL_ROLES.every(role => fresh.roleLimits[role] === 0), 'every role starts at no limit');
+ok(mc.normalizeMixItUp({ limit: 4 }).roleLimits.moderator === 4, 'a missing role uses the old single limit');
+const partial = mc.normalizeMixItUp({ limit: 4, roleLimits: { subscriber: 1 } });
+ok(partial.roleLimits.subscriber === 1 && partial.roleLimits.regular === 4, 'a saved role stays, and the others fall back');
+ok(mc.pullRole('VIP', 'alice') === 'vip' && mc.pullRole('founder', 'alice') === 'regular' && mc.pullRole(undefined, 'alice') === 'regular', 'an unknown or missing role counts as regular');
+ok(mc.pullRole('subscriber', 'Cheesygidds') === 'broadcaster', 'the channel login is always the broadcaster');
+const buffOn = { amount: 2, streamKey: 's1', by: 'a', at: 1 };
+ok(c.streamBuffAmount(buffOn, 's1') === 2 && c.streamBuffAmount(buffOn, 's2') === 0 && c.streamBuffAmount(null, 's1') === 0, 'a stream bonus counts only while its stream key matches');
+ok(c.effectiveLimit(2, none, NOW, 3).limit === 5 && c.effectiveLimit(0, none, NOW, 3).limit === 0 && c.effectiveLimit(2, c.withBase(none, 0), NOW, 3).limit === 0, 'a stream bonus adds on top, and a limit of 0 stays unlimited');
+
+const roles = mc.normalizeMixItUp({
+  enabled: true, balanceUrl: 'https://hook.example/mix', cost: 10, limit: 9,
+  roleLimits: { regular: 2, subscriber: 1, vip: 0, moderator: 4, broadcaster: 0 },
+});
+const pull = (u: string, id: string, role?: string) => mix.reservePaidPull(roles, u, id, fake, role);
+ok((await pull('reg', 'rg1')).ok && (await pull('reg', 'rg2')).ok && !(await pull('reg', 'rg3')).ok, 'a missing role uses the regular limit');
+ok((await pull('sub', 'sb1', 'subscriber')).ok && !(await pull('sub', 'sb2', 'subscriber')).ok, 'a subscriber uses the subscriber limit');
+ok((await pull('vip', 'vp1', 'vip')).ok && (await pull('vip', 'vp2', 'vip')).ok && (await pull('vip', 'vp3', 'vip')).ok, 'a role set to 0 has no limit');
+ok((await pull('mod', 'md1', 'moderator')).ok && (await pull('mod', 'md2', 'moderator')).ok && (await pull('mod', 'md3', 'moderator')).ok && (await pull('mod', 'md4', 'moderator')).ok && !(await pull('mod', 'md5', 'moderator')).ok, 'a moderator stops at 4');
+ok((await pull('cheesygidds', 'bc1', 'subscriber')).ok && (await pull('cheesygidds', 'bc2', 'subscriber')).ok, 'the channel login ignores a sent role and uses the broadcaster limit');
+ok(mc.pullRole('nope', 'zed') === 'regular' && (await pull('zed', 'zd1', 'nope')).ok && (await pull('zed', 'zd2', 'nope')).ok && !(await pull('zed', 'zd3', 'nope')).ok, 'an unknown role counts as regular');
+await store.setUserBaseLimit('sub', 3);
+ok((await pull('sub', 'sb3', 'subscriber')).ok && (await pull('sub', 'sb4', 'subscriber')).ok, 'a personal limit replaces the role limit');
+await store.addUserPullBuff('reg', { amount: 1, hours: 2 });
+ok((await pull('reg', 'rg4')).ok && !(await pull('reg', 'rg5')).ok, 'a personal bonus adds to the role limit');
+const stream = await mix.currentStreamKey();
+await store.setStreamPullBuff(1, stream, 'password');
+ok((await pull('one', 'on1', 'subscriber')).ok && (await pull('one', 'on2', 'subscriber')).ok && !(await pull('one', 'on3', 'subscriber')).ok, 'the stream bonus gives everyone one more pull');
+await store.setStreamPullBuff(1, 's-other', 'password');
+ok((await pull('two', 'tw1', 'subscriber')).ok && !(await pull('two', 'tw2', 'subscriber')).ok, 'a stream bonus for a different stream is ignored');
+ok((await store.setStreamPullBuff(0, stream, 'password')) === null && (await store.getStreamBuff()) === null, '0 clears the stream bonus');
+
 console.log('pull limit checks passed');

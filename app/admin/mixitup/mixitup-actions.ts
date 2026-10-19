@@ -2,8 +2,11 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
+import { recordAudit } from '@/lib/audit';
 import { cleanMixItUpInput } from '@/lib/mixitup-core';
-import { fetchBalance, getMixItUpSettings, logMixItUp, saveMixItUpSettings, sendTest } from '@/lib/mixitup';
+import { currentStreamKey, fetchBalance, getMixItUpSettings, logMixItUp, saveMixItUpSettings, sendTest } from '@/lib/mixitup';
+import { setStreamPullBuff } from '@/lib/pull-limit';
+import { streamAmount } from '@/lib/pull-limit-core';
 
 const back = (kind: 'saved' | 'error' | 'note', text: string): never => redirect(`/admin/mixitup?${kind}=${encodeURIComponent(text)}`);
 
@@ -16,6 +19,26 @@ export async function saveMixItUpAction(formData: FormData): Promise<void> {
   await saveMixItUpSettings(r.settings);
   revalidatePath('/admin/mixitup');
   return back('saved', 'mixitup');
+}
+
+/** Extra pulls for every viewer until this stream ends. 0 clears it. */
+export async function setStreamBuffAction(formData: FormData): Promise<void> {
+  const staff = await requireAdmin();
+  const n = streamAmount(String(formData.get('amount') ?? '').trim());
+  if (n === null) return back('error', 'Type a whole number, 0 or more.');
+  await setStreamPullBuff(n, await currentStreamKey(), staff.login);
+  await recordAudit('everyone', n === 0 ? 'Stream pull bonus cleared' : 'Stream pull bonus set', n === 0 ? undefined : `+${n} pulls while this stream lasts`);
+  revalidatePath('/admin/mixitup');
+  return back('note', n === 0 ? 'The extra pulls for this stream are cleared.' : `Everyone gets ${n} extra pull${n === 1 ? '' : 's'} this stream.`);
+}
+
+/** Removes the extra pulls for this stream. */
+export async function clearStreamBuffAction(): Promise<void> {
+  const staff = await requireAdmin();
+  await setStreamPullBuff(0, await currentStreamKey(), staff.login);
+  await recordAudit('everyone', 'Stream pull bonus cleared');
+  revalidatePath('/admin/mixitup');
+  return back('note', 'The extra pulls for this stream are cleared.');
 }
 
 /** Asks Mix It Up for one viewer's balance using the saved settings. Nothing is charged. */
