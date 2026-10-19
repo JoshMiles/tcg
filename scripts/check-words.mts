@@ -5,7 +5,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = join(import.meta.dirname, '..');
-const read = (p: string) => readFileSync(join(root, p), 'utf8');
+const read = (p: string) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n');
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
 const fromCode = (file: string, re: RegExp): number => {
   const m = re.exec(read(file));
