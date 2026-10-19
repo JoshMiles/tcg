@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Icon } from '@/app/components/Icon';
 import Link from 'next/link';
 import { cardThumbUrl } from '@/lib/card-art';
@@ -12,9 +13,9 @@ const VARIANT_SHORT: Record<string, string> = { reverse: 'RH', full: 'FA', shiny
 
 export type ValueRow = { card: SeasonCard; v: CardValue | undefined; upgradable: boolean };
 
-export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scoring, valueRows }: { season: Season | null; overview: SeasonOverview | null; upgradesOn: boolean; bonusAtFull: Bonuses | null; scoring: ScoringSettings; valueRows: ValueRow[] }) {
+export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scoring, valueRows, title = 'Points & leaderboard', extra }: { season: Season | null; overview: SeasonOverview | null; upgradesOn: boolean; bonusAtFull: Bonuses | null; scoring: ScoringSettings; valueRows: ValueRow[]; title?: string; extra?: ReactNode }) {
   return (
-    <Section id="points" title="Points & leaderboard" icon="trophy">
+    <Section id="points" title={title} icon="trophy">
       <Q q="How are points worked out?" open>
         <p>
           Your score is the value of <strong className="text-white">every card you own</strong>, duplicates included. Each edition is worth:
@@ -134,6 +135,7 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
           {upgradesOn && <p className="text-[11px] text-gray-600 mt-2">RH = Reverse Holo · FA = Full Art · FH = Full Art Holo · GD = Golden.</p>}
         </Q>
       )}
+      {extra}
     </Section>
   );
 }

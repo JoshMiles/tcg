@@ -5,7 +5,9 @@ import { DEFAULT_SCORING } from '@/lib/scoring';
 import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, VARIANTS, effectiveWeights } from '@/lib/variants';
 import { getTradeSettings } from '@/lib/trades';
 import { getCommands } from '@/lib/commands';
+import { getFaqStore } from '@/lib/faq';
 import { OpenOnHash } from '@/app/components/site/OpenOnHash';
+import { Section, CustomQ } from './parts';
 import { StartSection } from './sections/start';
 import { CardsSection } from './sections/cards';
 import { UpgradesSection } from './sections/upgrades';
@@ -25,26 +27,25 @@ export const metadata: Metadata = {
   description: 'How The Cheesy TCG works: packs, variants, upgrades, points and the leaderboard.',
 };
 
-const SECTIONS = [
-  { id: 'start', label: 'Getting started' },
-  { id: 'commands', label: 'Chat commands' },
-  { id: 'cards', label: 'Cards & versions' },
-  { id: 'trading', label: 'Trading' },
-  { id: 'upgrades', label: 'Upgrading' },
-  { id: 'profile', label: 'Your profile' },
-  { id: 'show', label: 'Showing off' },
-  { id: 'points', label: 'Points & leaderboard' },
-  { id: 'seasons', label: 'Seasons' },
-  { id: 'extension', label: 'Twitch extension' },
-  { id: 'privacy', label: 'Privacy & data' },
-  { id: 'help', label: 'Something not working?' },
-];
-
 export default async function FaqPage() {
-  const { season } = await getActive();
+  const [activeData, trade, allCommands, faqStore] = await Promise.all([
+    getActive(),
+    getTradeSettings(),
+    getCommands(),
+    getFaqStore(),
+  ]);
+  const { season } = activeData;
   const overview = season ? await getSeasonOverview(season) : null;
-  const trade = await getTradeSettings();
-  const chatCommands = (await getCommands()).filter(c => c.enabled);
+  const chatCommands = allCommands.filter(c => c.enabled);
+  const visibleSections = faqStore.sections.filter(s => !s.hidden);
+
+  const customQuestionsBySection = new Map<string, typeof faqStore.questions>();
+  for (const q of faqStore.questions) {
+    if (q.enabled === false) continue;
+    const list = customQuestionsBySection.get(q.sectionId) ?? [];
+    list.push(q);
+    customQuestionsBySection.set(q.sectionId, list);
+  }
 
   // Live numbers from the current season where we have them; sensible defaults otherwise.
   const upgradePack = overview?.cards.find(c => c.pack.upgradesEnabled)?.pack ?? null;
@@ -77,49 +78,71 @@ export default async function FaqPage() {
           Everything about collecting cards on The Cheesy TCG: how to get them, what the versions mean, how upgrades work and how your points are worked out.
         </p>
         <nav aria-label="FAQ sections" className="flex flex-wrap gap-2 pt-1">
-          {SECTIONS.map(s => (
+          {visibleSections.map(s => (
             <a key={s.id} href={`#${s.id}`} className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-700 text-gray-300 hover:text-yellow-300 hover:border-yellow-500/50 transition-colors">
-              {s.label}
+              {s.title}
             </a>
           ))}
         </nav>
       </header>
 
-      {/* ── Getting started ── */}
-      <StartSection />
+      {visibleSections.map(s => {
+        const customList = customQuestionsBySection.get(s.id) ?? [];
+        const extra = customList.length > 0 ? (
+          <>
+            {customList.map(q => (
+              <CustomQ key={q.id} q={q.question} answer={q.answer} id={q.id} />
+            ))}
+          </>
+        ) : undefined;
 
-      {/* ── Chat commands ── */}
-      <CommandsSection chatCommands={chatCommands} />
-
-      {/* ── Cards & versions ── */}
-      <CardsSection pct={pct} upgradesOn={upgradesOn} />
-
-      {/* ── Trading ── */}
-      <TradingSection trade={trade} />
-
-      {/* ── Upgrading ── */}
-      <UpgradesSection costs={costs} upgradesOn={upgradesOn} />
-
-      {/* ── Your profile ── */}
-      <ProfileSection />
-
-      {/* ── Showing off ── */}
-      <ShowSection />
-
-      {/* ── Points & leaderboard ── */}
-      <PointsSection season={season} overview={overview} upgradesOn={upgradesOn} bonusAtFull={bonusAtFull} scoring={scoring} valueRows={valueRows} />
-
-      {/* ── Seasons ── */}
-      <SeasonsSection />
-
-      {/* ── Extension ── */}
-      <ExtensionSection />
-
-      {/* ── Privacy ── */}
-      <PrivacySection />
-
-      {/* ── Help ── */}
-      <HelpSection />
+        switch (s.id) {
+          case 'start':
+            return <StartSection key={s.id} title={s.title} extra={extra} />;
+          case 'commands':
+            return <CommandsSection key={s.id} title={s.title} chatCommands={chatCommands} extra={extra} />;
+          case 'cards':
+            return <CardsSection key={s.id} title={s.title} pct={pct} upgradesOn={upgradesOn} extra={extra} />;
+          case 'trading':
+            return <TradingSection key={s.id} title={s.title} trade={trade} extra={extra} />;
+          case 'upgrades':
+            return <UpgradesSection key={s.id} title={s.title} costs={costs} upgradesOn={upgradesOn} extra={extra} />;
+          case 'profile':
+            return <ProfileSection key={s.id} title={s.title} extra={extra} />;
+          case 'show':
+            return <ShowSection key={s.id} title={s.title} extra={extra} />;
+          case 'points':
+            return (
+              <PointsSection
+                key={s.id}
+                title={s.title}
+                season={season}
+                overview={overview}
+                upgradesOn={upgradesOn}
+                bonusAtFull={bonusAtFull}
+                scoring={scoring}
+                valueRows={valueRows}
+                extra={extra}
+              />
+            );
+          case 'seasons':
+            return <SeasonsSection key={s.id} title={s.title} extra={extra} />;
+          case 'extension':
+            return <ExtensionSection key={s.id} title={s.title} extra={extra} />;
+          case 'privacy':
+            return <PrivacySection key={s.id} title={s.title} extra={extra} />;
+          case 'help':
+            return <HelpSection key={s.id} title={s.title} extra={extra} />;
+          default:
+            return (
+              <Section key={s.id} id={s.id} title={s.title} icon={s.icon}>
+                {customList.map(q => (
+                  <CustomQ key={q.id} q={q.question} answer={q.answer} id={q.id} />
+                ))}
+              </Section>
+            );
+        }
+      })}
     </div>
   );
 }

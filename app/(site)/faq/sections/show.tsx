@@ -1,10 +1,11 @@
+import type { ReactNode } from 'react';
 import { SHOWOFF_COOLDOWN_S } from '@/lib/showoff-prepare';
 import { CHANNEL_NAME } from '@/lib/site';
 import { Section, Q } from '../parts';
 
-export function ShowSection() {
+export function ShowSection({ title = 'Showing off your cards', extra }: { title?: string; extra?: ReactNode } = {}) {
   return (
-    <Section id="show" title="Showing off your cards" icon="image">
+    <Section id="show" title={title} icon="image">
       <Q q="How do I show off my cards?" open>
         <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
           <li><strong className="text-white">Share</strong> on a profile has the link and a quick picture of that collector's best cards, with their version and print number, plus rank and progress. On your own profile, the <strong className="text-white">Share</strong> tab lets you choose a theme, a post or story shape, a stats poster, and exactly which cards go in.</li>
@@ -37,6 +38,7 @@ export function ShowSection() {
       <Q q="Can I make my profile look the way I want?">
         Yes, see <a href="#profile" className="text-yellow-400 hover:text-yellow-300">Your profile</a>: arrange the widgets, show your best cards, and add a bio.
       </Q>
+      {extra}
     </Section>
   );
 }

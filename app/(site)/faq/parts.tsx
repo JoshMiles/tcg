@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from '@/app/components/Icon';
+import { parseFaqAnswerBlocks, parseInlineTokens } from '@/lib/faq-core';
 
 export function Section({ id, title, icon, children }: { id: string; title: string; icon: IconName; children: ReactNode }) {
   return (
@@ -24,3 +25,55 @@ export function Q({ q, open, id, children }: { q: string; open?: boolean; id?: s
     </details>
   );
 }
+
+function renderFaqTokens(text: string): ReactNode {
+  const tokens = parseInlineTokens(text);
+  return tokens.map((t, idx) => {
+    if (t.type === 'bold') {
+      return <strong key={idx} className="text-white font-semibold">{t.content}</strong>;
+    }
+    if (t.type === 'link') {
+      return (
+        <a
+          key={idx}
+          href={t.href}
+          target={t.href.startsWith('http') ? '_blank' : undefined}
+          rel={t.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+          className="text-yellow-400 hover:text-yellow-300 underline"
+        >
+          {t.content}
+        </a>
+      );
+    }
+    return t.content;
+  });
+}
+
+export function FaqAnswer({ answer }: { answer: string }) {
+  const blocks = parseFaqAnswerBlocks(answer);
+  return (
+    <div className="space-y-2">
+      {blocks.map((block, i) => {
+        if (block.type === 'ul') {
+          return (
+            <ul key={i} className="list-disc pl-5 space-y-1 marker:text-gray-600">
+              {block.items.map((item, j) => (
+                <li key={j}>{renderFaqTokens(item)}</li>
+              ))}
+            </ul>
+          );
+        }
+        return <p key={i}>{renderFaqTokens(block.text)}</p>;
+      })}
+    </div>
+  );
+}
+
+export function CustomQ({ q, answer, id }: { q: string; answer: string; id?: string }) {
+  return (
+    <Q q={q} id={id}>
+      <FaqAnswer answer={answer} />
+    </Q>
+  );
+}
+

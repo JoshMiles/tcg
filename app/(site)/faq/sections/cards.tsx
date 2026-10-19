@@ -1,11 +1,12 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { RARITIES } from '@/lib/rarity';
 import type { Variant } from '@/lib/types';
 import { Section, Q } from '../parts';
 
-export function CardsSection({ pct, upgradesOn }: { pct: (v: Variant) => string; upgradesOn: boolean }) {
+export function CardsSection({ pct, upgradesOn, title = 'Cards & versions', extra }: { pct: (v: Variant) => string; upgradesOn: boolean; title?: string; extra?: ReactNode }) {
   return (
-    <Section id="cards" title="Cards & versions" icon="cards">
+    <Section id="cards" title={title} icon="cards">
       <Q q="What do the stars mean?" open>
         Each card has a rarity from one to five stars:{' '}
         {[...RARITIES].reverse().map((r, i, arr) => (
@@ -51,6 +52,7 @@ export function CardsSection({ pct, upgradesOn }: { pct: (v: Variant) => string;
           Trainer cards are special cards that grant a temporary buff when used, such as an extra card pack, bonus points or special perks. When you own a Regular edition of a trainer card, open its card details in your collection and tap <strong className="text-white">Use trainer card</strong> (then tap again to confirm). Using the card activates its buff and consumes one Regular edition of the card.
         </p>
       </Q>
+      {extra}
     </Section>
   );
 }

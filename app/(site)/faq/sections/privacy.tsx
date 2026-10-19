@@ -1,10 +1,11 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { CONTACT_EMAIL, OPERATOR } from '@/lib/legal';
 import { Section, Q } from '../parts';
 
-export function PrivacySection() {
+export function PrivacySection({ title = 'Privacy & data', extra }: { title?: string; extra?: ReactNode } = {}) {
   return (
-    <Section id="privacy" title="Privacy & data" icon="lock">
+    <Section id="privacy" title={title} icon="lock">
       <Q q="What can other people see?" open>
         Collections, the leaderboard, season stats, recent pulls and each print&rsquo;s history are public, and your username appears on stream when your cards are shown. A private profile hides you from the boards and feeds. The full details are in the{' '}
         <Link href="/privacy" className="text-yellow-400 hover:text-yellow-300">Privacy Policy</Link>; the rules of the game are in the <Link href="/terms" className="text-yellow-400 hover:text-yellow-300">Terms</Link>.
@@ -21,6 +22,7 @@ export function PrivacySection() {
         {CONTACT_EMAIL ? <a href={`mailto:${CONTACT_EMAIL}`} className="text-yellow-400 hover:text-yellow-300 underline">{CONTACT_EMAIL}</a> : <>contact {OPERATOR} through the stream&rsquo;s Twitch channel</>}
         . Logging out only ends your session; it doesn&rsquo;t delete your collection.
       </Q>
+      {extra}
     </Section>
   );
 }
