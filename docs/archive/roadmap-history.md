@@ -1143,7 +1143,7 @@ Original design, from the 2026-10 plan:
 
 Shipped as Tailwind 4.3.3. The theme lives in `@theme`, there is no `tailwind.config.ts`, and the pages look the same. The font variables are `--font-display-family` (set by Next) and `--font-display` / `--font-sans` in the theme, so the two do not cycle.
 
-### 24.1 Add daisyUI with a `cheesy` theme, no visual change (Done)
+### 24.1 Add daisyUI with a `cheesy` theme, no visual change (Done, #268)
 
 Original design:
 
