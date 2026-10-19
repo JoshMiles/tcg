@@ -40,13 +40,13 @@ export function ProfileBasicsEditor({ bio, accent, pronouns }: { bio: string; ac
     );
   }
   return (
-    <form onSubmit={e => { e.preventDefault(); save(); }} className="mt-3 max-w-xl space-y-3 rounded-2xl border border-gray-800 bg-gray-950/60 p-4">
-      <div className="space-y-1.5">
-        <label htmlFor="profile-bio" className="block text-sm font-semibold text-gray-100">About you</label>
+    <form onSubmit={e => { e.preventDefault(); save(); }} className="card tcg-panel mt-3 max-w-xl space-y-3 rounded-2xl p-4">
+      <fieldset className="fieldset">
+        <legend className="fieldset-legend"><label htmlFor="profile-bio">About you</label></legend>
         <textarea id="profile-bio" value={draftBio} maxLength={BIO_MAX} rows={2} onChange={e => setDraftBio(e.target.value)} placeholder="A line about your collection, favourite card, trading wishes..."
-          className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-hidden" />
+          className="textarea w-full" />
         <p className="text-xs text-gray-500 text-right tabular-nums">{draftBio.length}/{BIO_MAX}</p>
-      </div>
+      </fieldset>
       <div className="space-y-1.5">
         <p className="text-sm font-semibold text-gray-100">Header colour</p>
         <AccentPicker id="profile-accent" value={draftAccent} onChange={setDraftAccent} />

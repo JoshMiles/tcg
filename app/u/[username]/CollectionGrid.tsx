@@ -163,8 +163,8 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
 
       {!binder && <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter the collection">
         <input type="search" value={view.q} onChange={e => patch({ q: e.target.value })} placeholder="Search name or #" aria-label="Search cards"
-          className="min-w-0 flex-1 basis-40 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
-        <select value={view.show} onChange={e => patch({ show: e.target.value as ShowFilter })} aria-label="Show" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
+          className="input input-sm flex-1 min-w-40" />
+        <select value={view.show} onChange={e => patch({ show: e.target.value as ShowFilter })} aria-label="Show" className="select select-sm w-fit max-w-full">
           <option value="default">{hiding ? 'Default (collected)' : 'Default (everything)'}</option>
           <option value="all">Everything</option>
           <option value="owned">Collected only</option>
@@ -173,11 +173,11 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           <option value="versions">{SHOW_LABELS.versions}</option>
           {cmp && <><option value="theyHave">{SHOW_LABELS.theyHave}</option><option value="iHave">{SHOW_LABELS.iHave}</option><option value="shared">{SHOW_LABELS.shared}</option></>}
         </select>
-        <select value={view.stars} onChange={e => patch({ stars: Number(e.target.value) })} aria-label="Rarity" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
+        <select value={view.stars} onChange={e => patch({ stars: Number(e.target.value) })} aria-label="Rarity" className="select select-sm w-fit max-w-full">
           <option value={0}>Any rarity</option>
           {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{'★'.repeat(n)}</option>)}
         </select>
-        <select value={view.sort} onChange={e => patch({ sort: e.target.value as SortKey })} aria-label="Sort by" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
+        <select value={view.sort} onChange={e => patch({ sort: e.target.value as SortKey })} aria-label="Sort by" className="select select-sm w-fit max-w-full">
           {(Object.keys(SORT_LABELS) as SortKey[]).map(k => <option key={k} value={k}>Sort: {SORT_LABELS[k]}</option>)}
         </select>
         <button type="button" onClick={() => patch({ dir: view.dir === 1 ? -1 : 1 })} aria-label="Reverse the order" title="Reverse the order" className="rounded-xl border border-gray-700 px-2 py-1.5 text-gray-300 hover:text-white"><Icon name={view.dir === 1 ? 'arrowDown' : 'arrowUp'} /></button>

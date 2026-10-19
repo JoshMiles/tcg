@@ -22,12 +22,13 @@ const total = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0);
 const artOf = (c: GridCard) => cardThumbUrl(c.imageUrl);
 
 const chip = (on: boolean) => `px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${on ? 'bg-yellow-400 text-gray-950 border-yellow-400' : 'bg-white/4 text-gray-300 border-white/10 hover:bg-white/10'}`;
-const input = 'w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500';
+const input = 'input input-sm w-full';
+const select = 'select select-sm w-full';
 function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
-  return <fieldset className="space-y-1.5"><legend className="text-[11px] uppercase tracking-wider font-bold text-gray-500">{label}</legend>{children}{hint && <p className="text-xs text-gray-500">{hint}</p>}</fieldset>;
+  return <fieldset className="fieldset"><legend className="fieldset-legend">{label}</legend>{children}{hint && <p className="fieldset-label">{hint}</p>}</fieldset>;
 }
 function Switch({ on, set, label }: { on: boolean; set: (v: boolean) => void; label: string }) {
-  return <label className="flex items-center justify-between gap-3 text-sm text-gray-200 cursor-pointer"><span>{label}</span><input type="checkbox" checked={on} onChange={e => set(e.target.checked)} className="h-4 w-4 accent-yellow-400" /></label>;
+  return <label className="flex items-center justify-between gap-3 text-sm text-gray-200 cursor-pointer"><span>{label}</span><input type="checkbox" role="switch" checked={on} onChange={e => set(e.target.checked)} className="toggle toggle-sm toggle-primary" /></label>;
 }
 
 /** The owner's binder workspace: a live book with a side panel to restyle it, switch it to hand-placed pages and fill the pockets. */
@@ -170,7 +171,7 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
           )}
         </div>
 
-        <aside className="tcg-panel rounded-2xl p-4 space-y-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto" aria-label="Binder settings">
+        <aside className="card tcg-panel rounded-2xl p-4 space-y-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto" aria-label="Binder settings">
           <div role="tablist" aria-label="Binder settings" className="flex flex-wrap gap-1.5">
             {tabs.map(t => {
               const off = !!t.needsCustom && !custom;
@@ -229,13 +230,13 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
               </Field>
               <Field label="Pockets per page" hint={`${draft.cols} × ${draft.rows} = ${cap} pockets`}>
                 <div className="flex items-center gap-3">
-                  <label className="text-xs text-gray-400">Columns
-                    <select className={`${input} mt-1`} value={draft.cols} onChange={e => resize(Number(e.target.value), draft.rows)}>
+                  <label className="text-xs text-gray-400 flex-1 min-w-0">Columns
+                    <select className={`${select} mt-1`} value={draft.cols} onChange={e => resize(Number(e.target.value), draft.rows)}>
                       {Array.from({ length: BINDER_LIMITS.cols[1] - BINDER_LIMITS.cols[0] + 1 }, (_, i) => BINDER_LIMITS.cols[0] + i).map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </label>
-                  <label className="text-xs text-gray-400">Rows
-                    <select className={`${input} mt-1`} value={draft.rows} onChange={e => resize(draft.cols, Number(e.target.value))}>
+                  <label className="text-xs text-gray-400 flex-1 min-w-0">Rows
+                    <select className={`${select} mt-1`} value={draft.rows} onChange={e => resize(draft.cols, Number(e.target.value))}>
                       {Array.from({ length: BINDER_LIMITS.rows[1] - BINDER_LIMITS.rows[0] + 1 }, (_, i) => BINDER_LIMITS.rows[0] + i).map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </label>
@@ -244,7 +245,7 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
               {draft.mode === 'auto' && (
                 <>
                   <Field label="Order">
-                    <select className={input} value={draft.sort} onChange={e => patch({ sort: e.target.value as BinderConfig['sort'] })}>{SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
+                    <select className={select} value={draft.sort} onChange={e => patch({ sort: e.target.value as BinderConfig['sort'] })}>{SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
                   </Field>
                   <div className="space-y-2">
                     <Switch on={draft.groupByPack} set={v => patch({ groupByPack: v })} label="A fresh page for each pack" />
@@ -303,8 +304,8 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
                 </p>
               )}
               <div className="flex items-center gap-2">
-                <input type="search" className={input} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or #" aria-label="Search cards" />
-                <select className={`${input} w-auto!`} value={show} onChange={e => setShow(e.target.value as typeof show)} aria-label="Show">
+                <input type="search" className="input input-sm flex-1 min-w-40" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or #" aria-label="Search cards" />
+                <select className="select select-sm w-fit max-w-full shrink-0" value={show} onChange={e => setShow(e.target.value as typeof show)} aria-label="Show">
                   <option value="all">All</option><option value="owned">I have</option><option value="unplaced">Not placed</option>
                 </select>
               </div>

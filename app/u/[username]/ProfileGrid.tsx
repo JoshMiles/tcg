@@ -118,7 +118,7 @@ export function ProfileGrid({ layout, nodes, isOwner }: { layout: ProfilePlaceme
             <p className="text-sm font-bold text-yellow-300">Editing your profile</p>
             <p className="text-xs text-gray-500">Drag widgets to rearrange, drag a right edge or use the arrows to resize, the cross removes one. Add widgets from the list below.</p>
           </div>
-          <select value="" onChange={e => applyPreset(e.target.value)} disabled={pending} aria-label="Start from a preset layout" className={`${ghost} bg-gray-950`}>
+          <select value="" onChange={e => applyPreset(e.target.value)} disabled={pending} aria-label="Start from a preset layout" className="select select-sm w-fit max-w-full">
             <option value="">Start from a preset...</option>
             {PROFILE_PRESETS.map(p => <option key={p.id} value={p.id} title={p.description}>{p.label}</option>)}
           </select>
