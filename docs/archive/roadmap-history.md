@@ -1167,6 +1167,6 @@ Admin and mod text fields, selects, textareas, on/off switches and field labels 
 
 Admin panels use daisyUI `card` and keep `.tcg-panel` for the navy surface, shadow and rim. `Panel` headings are `card-title`. Admin tables use `table` (`table-sm` or `table-xs` where the rows are dense). The public site still uses `.tcg-panel` and its own tables. `.tcg-panel` is dropped in 24.4, once nothing else uses it.
 
-### 24.3 Public profile and binder
+### 24.3 Public profile and binder (#272)
 
 Profile and binder panels (`ProfileTabs`, overview widgets, the share tab, the binder settings aside, the card dialog, the report dialog and the inline profile editor) use daisyUI `card` and keep `.tcg-panel` for the navy surface. Collection filters, the binder editor, the bio and the report form use `input`, `select`, `textarea`, `toggle` and `fieldset`. The print dialog's version table is `table table-sm`. The leather binder (`.bn-*`), `holo-hover` on card tiles, the Grid / Binder switch, and the accent and pronoun pickers (shared with Settings) are unchanged. Dex, leaderboard, trading, account and settings are the remaining 24.3 slices.
