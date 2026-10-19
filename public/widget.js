@@ -89,6 +89,27 @@ let PROP_DEFAULTS = {};
 let PROPS_GLOBAL = {};
 let PACK_OVERRIDES = {};
 let BACKS = {};   // each pack's designed card back, laid out at a reference size (lib/card-back-overlay.ts)
+let FONT_CATALOG = [];   // card-back faces (lib/card-back-overlay.ts overlayFontCatalog); display leaves the stylesheet alone
+const loadedFaces = new Set();
+function loadFace(family, weight, file) {
+  if (!family || !file) return;
+  const k = family + ':' + weight;
+  if (loadedFaces.has(k)) return;
+  loadedFaces.add(k);
+  try {
+    const face = new FontFace(family, "url('/fonts/back/" + file + "') format('woff2')", { weight: String(weight), display: 'swap' });
+    document.fonts.add(face); face.load().catch(() => {});
+  } catch { /* the fallback font shows */ }
+}
+// Site display (the default) clears any inline family so today's stylesheet face stays. Any other id sets one.
+function applyTextFont(el, id) {
+  if (!el) return;
+  if (!id || id === 'display') { el.style.fontFamily = ''; return; }
+  const f = FONT_CATALOG.find(x => x.id === id);
+  if (!f || !f.css) return;
+  if (f.file) loadFace(f.family, f.weight, f.file);
+  el.style.fontFamily = f.css;
+}
 let PREVIEW_PROPS = null;   // admin editor: unsaved values shown live (replaces the saved ones)
 let PREVIEW_VARIANT = '';   // admin editor: "preview as" variant
 
@@ -126,12 +147,7 @@ function backNodeEl(spec) {
 function mountDesignBack(host, design) {
   const w = host.offsetWidth;
   if (!design || !design.nodes || !w) return false;
-  for (const f of design.fonts || []) {
-    try {
-      const face = new FontFace(f.family, "url('/fonts/back/" + f.file + "') format('woff2')", { weight: String(f.weight), display: 'swap' });
-      document.fonts.add(face); face.load().catch(() => {});
-    } catch { /* the fallback font shows */ }
-  }
+  for (const f of design.fonts || []) loadFace(f.family, f.weight, f.file);
   const root = document.createElement('div');
   root.className = 'tcg-back';
   root.style.width = design.w + 'px'; root.style.height = design.h + 'px';
@@ -156,11 +172,15 @@ async function loadLayout() {
     const res = await fetch('/api/overlay/config' + (scene ? '?preset=' + encodeURIComponent(scene) : ''), { cache: 'no-store' });
     if (res.ok) {
       const cfg = await res.json();
-      applyLayout(cfg.layout);
+      // The editor preview posts its own layout and values. Loading those here would overwrite them. The font list is still needed.
+      if (!PREVIEW) applyLayout(cfg.layout);
       PROP_DEFAULTS = cfg.defaults || {};
-      PROPS_GLOBAL = cfg.props || {};
-      PACK_OVERRIDES = cfg.packOverrides || {};
+      if (!PREVIEW) {
+        PROPS_GLOBAL = cfg.props || {};
+        PACK_OVERRIDES = cfg.packOverrides || {};
+      }
       BACKS = cfg.backs || {};
+      FONT_CATALOG = cfg.fonts || [];
     }
   } catch { /* keep the defaults */ }
 }
@@ -567,6 +587,7 @@ function momentSpec(P, id, ctx) {
     bg: g('bgColors', id === 'firstEver' ? MOMENT_DEFAULT_BG : ['#8b5cf6', '#ec4899']),
     textColor: g('textColor', id === 'firstEver' ? '#1a1205' : '#ffffff'),
     textSize: g('textSize', 26),
+    font: g('font', 'display'),
     position: g('position', 'top'),
     sparkles: Math.round(g('sparkles', id === 'firstEver' ? 44 : 0)),
     sparkleColor: g('sparkleColor', '#ffe27a'),
@@ -599,6 +620,7 @@ function momentBanner(theater, P, spec, S, extendHold) {
   }
   banner.style.color = spec.textColor;
   main.style.fontSize = spec.textSize + 'px';
+  applyTextFont(banner, spec.font);
   cardBox.appendChild(banner);
   requestAnimationFrame(() => banner.classList.add('on'));
   if (spec.sparkles > 0) {
@@ -870,6 +892,7 @@ function styleShowLabel(el, P) {
     el.style.color = pv(P, 'show.labelTextColor', '#fffefe');
   }
   el.style.fontSize = pv(P, 'show.labelSize', 14) + 'px';
+  applyTextFont(el, pv(P, 'show.labelFont', 'display'));
   const x = pv(P, 'show.labelX', 0), y = pv(P, 'show.labelY', 0);
   if (x || y) el.style.translate = x + 'px ' + y + 'px';
 }
@@ -959,6 +982,7 @@ function applyLook(theater, P, variant, card, cfg, owned) {
   st.setProperty('--pack-size', String(pv(P, 'reveal.packScale', 1)));
   buildRays(theater.radialContainer, burstSpec(P, variant));
   st.setProperty('--label-size', pv(P, 'reveal.labelSize', 14) + 'px');
+  applyTextFont(cardLabel, pv(P, 'reveal.labelFont', 'display'));
   st.setProperty('--name-color', pv(P, 'reveal.nameColor', '#f1bb06'));
   st.setProperty('--star-color', pv(P, 'reveal.starColor', '#f1bb06'));
   st.setProperty('--info-bg', pv(P, 'reveal.infoBg', '#fffefe'));
@@ -1399,7 +1423,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (PREVIEW) {
     // Admin editor preview: fake data only, no heartbeat / queue polling / saving.
     document.getElementById('dev-panel')?.classList.add('hidden');
-    await initSeason();
+    await Promise.all([loadLayout(), initSeason()]);
     revealedCardsByUser.preview = ALL_CARDS.slice(0, 10).map(c => c.number);
     showStatic('pack');
     return;

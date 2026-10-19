@@ -40,7 +40,7 @@ export function dependsOn(key: string): { key: string; when: (v: PropValue) => b
   const fe = key.match(/^moment\.firstEver\.(.+)$/);
   if (fe) return { key: 'reveal.firstEver', when: v => v === true };
   if (/^show\.(labelColor|labelTextColor)$/.test(key)) return { key: 'show.ownLabelLook', when: v => v === true };
-  if (/^show\.(text|ownLabelLook|labelSize|labelX|labelY)$/.test(key)) return { key: 'show.showLabel', when: v => v === true };
+  if (/^show\.(text|ownLabelLook|labelSize|labelFont|labelX|labelY)$/.test(key)) return { key: 'show.showLabel', when: v => v === true };
   if (key === 'show.printFormat') return { key: 'show.showPrint', when: v => v === true };
   if (key === 'show.soundUrl') return { key: 'show.sound', when: v => v === 'custom' };
   if (key === 'show.volume') return { key: 'show.sound', when: v => v !== 'off' };

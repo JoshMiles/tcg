@@ -65,6 +65,25 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   ok(PROP_BY_KEY['show.style'].options!.every(o => !['classic', 'rip-shake', 'rip-peel', 'rip-slice', 'rip-explode'].includes(o.value)), 'entrances are the pack-less styles only');
 }
 
+// ── Pure: overlay text fonts (ROADMAP 28.4) ──
+{
+  const { FONT_IDS } = await import('../lib/card-back');
+  const { overlayFontCatalog } = await import('../lib/card-back-overlay');
+  const { readFileSync } = await import('node:fs');
+  const fontKeys = ['reveal.labelFont', 'show.labelFont', 'moment.firstEver.font', 'moment.firstPull.font', 'moment.newCard.font'];
+  ok(fontKeys.every(k => DEFAULT_PROPS[k] === 'display'), 'overlay text fonts default to site display');
+  ok(fontKeys.every(k => {
+    const opts = (PROP_BY_KEY[k].options ?? []).map(o => o.value);
+    return opts.length === FONT_IDS.length && FONT_IDS.every((id, i) => opts[i] === id);
+  }), 'font selects use the card-back faces');
+  const fonts = overlayFontCatalog();
+  const fredoka = fonts.find(f => f.id === 'fredoka');
+  ok(fredoka?.file === 'fredoka-700.woff2' && fredoka.family === 'BackFredoka' && fredoka.weight === 700, 'catalog prefers the 700 card-back file');
+  ok(!fonts.find(f => f.id === 'display')?.file && fonts.find(f => f.id === 'bebas')?.file === 'bebas-neue-400.woff2', 'site display has no file; a 400-only face uses that file');
+  const w = readFileSync('public/widget.js', 'utf8');
+  ok(w.includes("id === 'display'") && w.includes('reveal.labelFont') && w.includes('show.labelFont'), 'display leaves the stylesheet font');
+}
+
 // ── Pure: perf ──
 const base = (over: Record<string, unknown> = {}) => (k: string) => (over[k] !== undefined ? over[k] : DEFAULT_PROPS[k]) as never;
 const light = perf.variantPerf(base({ 'variant.regular.glow': false, 'variant.regular.rock': false, 'variant.regular.pop': false, 'variant.regular.holoMode': 'off', 'variant.regular.burst': false }), 'regular');
@@ -149,6 +168,7 @@ await runInSandbox(box.id, async () => {
     const cfg = async (q = '') => (await (await GET(new NextRequest('http://localhost/api/overlay/config' + q))).json()) as { layout: { width: number; height: number }; props: Record<string, unknown> };
     const globalCfg = await cfg();
     ok(globalCfg.layout.width === DEFAULT_LAYOUT.width && globalCfg.props['collection.cardWidth'] === 90, 'no preset: the global layout and look');
+    ok(Array.isArray((globalCfg as { fonts?: { id: string }[] }).fonts) && (globalCfg as { fonts: { id: string }[] }).fonts.some(f => f.id === 'fredoka'), 'config sends the font catalog');
     const sceneCfg = await cfg('?preset=' + id);
     ok(sceneCfg.layout.width === 1080 && sceneCfg.layout.height === 1920, 'with ?preset: the scene layout');
     ok(sceneCfg.props['collection.cardWidth'] === 48, "with ?preset: the scene's values win over the global ones");

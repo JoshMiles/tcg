@@ -1,6 +1,8 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (28.1 shipped: paid pulls have a limit per role, all starting at no limit, and staff can add extra pulls for everyone for the current stream. 27.1 shipped: the FAQ jump list and body share one order, Getting started covers follow, subscribe and gift subs plus one paid-pull limit, chat commands include a fixed !pack line, an upgraded edition can be traded, and the print bonus sentence uses the live cutoff. 25.1 shipped: the home block is Card of the week, with the card name, Edition #uid, Print #n of N, who holds it, and a link to its journey. 25.2 shipped: a copy is an edition, Edition #uid is the game-wide id, Print #n of N is the sequence, and the points bonus is the print bonus. The Twitch panel still says print for a copy. The home block is Edition of the week until 25.1. 27.3 shipped: Settings → Achievements can switch a built-in goal off or replace its title and detail. A goal already earned stays. 28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+**Last updated 2026-10-19**
+
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked Ready; Needs design or Needs a decision goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item.
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -19,7 +21,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 4.4 | Link a Discord account for DMs | Needs a decision | L |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
-| 28.4 | Font control in the Overlay Editor | Ready | M |
 | 29.1 | Variant ladder gains Golden; labels; read-only audit | Ready | M |
 | 29.4 | Variant styles, per pack, including Golden | Ready (after 29.1) | M |
 | 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
@@ -108,13 +109,17 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 ### Tracks 25 to 30: order
 
 Parallel streams, so no two open PRs edit the same files:
-- **Glossary:** 25.2, 25.1 and 27.1 shipped.
-- **FAQ:** 27.1 and 28.1 shipped.
-- **Fonts:** 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 28.4, then 29.1, then 29.4.
-- **Mix It Up:** 28.1 shipped. 30.2 extends `effectiveLimit` after 30.1. Do not run 30.2 beside another edit of `lib/pull-limit-core.ts`.
+- **widget.js:** 29.1, then 29.4. Do not run those beside each other.
+- **Mix It Up:** 30.2 extends `effectiveLimit` after 30.1. Do not run 30.2 beside another edit of `lib/pull-limit-core.ts`.
 - **Variants:** 29.1 (includes the audit and the dry-run script), then 29.4. There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
 - **Trainers and achievement bonuses:** 30.1, then 30.2, then 30.3, and 27.5 after 30.1 (it picks a buff from that catalogue). 30.4 waits for the freeze.
-- **Nothing on tracks 25 to 30 is waiting for an answer.** Trainer cards are tradable until used (30.2).
+
+## Standing decisions
+
+- Paid-pull limits default to no limit and stay editable. Staff can add extra pulls for everyone for the current stream.
+- Stars keep setting the card value.
+- Trainer cards can be traded until used.
+- The Twitch panel freeze is still on. The panel still says print for a copy.
 
 **Twitch panel freeze:** nothing in a Ready item edits `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the behaviour or response shape of `/api/twitch/*`, or the CORS rules in `middleware.ts`. 29.5, 30.4, and the panel's copy of the edition/print words (25.2) are the exceptions and they are blocked.
 
@@ -127,17 +132,6 @@ Decided with 27.3. The list editor has shipped (Settings → Achievements). This
 - Switching the achievement off later does not strip a bonus already granted.
 - **Checks:** extend `scripts/check-achievements.mts`: a new earn writes one buff; a second sync does not write another; a disabled kind grants nothing new.
 - **Docs:** the achievements section from 27.3.
-
-### 28.4 Font control in the Overlay Editor (Ready, M)
-
-Decided with 28.3. The Overlay Editor has no font property (`lib/overlay-props.ts`). Text size and colour exist on the reveal label, the show-off label and the special-moment banner.
-
-- Add a font select to those three text blocks, options the same `BACK_FONTS` ids. Default `display`, which is today's look, so a saved overlay does not change until someone picks a face.
-- `public/widget.js` applies the family. Reuse the card-back font loader (`lib/card-back-overlay.ts`) rather than a second set of files. Per-pack overrides already exist (`overlay:packprops`): a pack can have its own face because these are ordinary overlay props.
-- Do not edit `public/widget.js` in parallel with 25.2, 29.1 or 29.4.
-- **Not touched:** the Twitch panel.
-- **Checks:** `scripts/check-overlay.mts` for the new keys' defaults. `node --check public/widget.js`. Hand pass in the editor preview. Real OBS is not checkable here: say so in the PR.
-- **Docs:** `docs/overlay.md`.
 
 ### 29.1 Variant ladder gains Golden; labels; read-only audit (Ready, M)
 
@@ -183,7 +177,7 @@ The Overlay Editor's **Variants** group is already that editor (`lib/overlay-pro
 - Pack workspace: a **Variant styles** link that opens the Overlay Editor with that pack selected and the Variants group open. Add a query (`?pack=<id>&group=variants`) if the editor cannot do that today. Do not build a second form that writes the same keys.
 - Website tiles, the card dialog, the binder and the upgrade ceremony use the resolved shimmer, glow and rock for every version, including Golden, from those settings. A pack override then matches the stream. Overlay: `public/widget.js` and `public/widget.css`.
 - **Not touched:** the Twitch panel. Golden is still not pulled (29.5), so the panel has nothing new to draw.
-- Do not edit `public/widget.js` beside 25.2, 28.4 or 29.1.
+- Do not edit `public/widget.js` beside 29.1.
 - **Checks:** `scripts/check-overlay.mts` for the Golden defaults. Hand pass: change Golden's shimmer on one pack, see it in the editor preview and on a profile tile. Real OBS is not checkable here.
 - **Docs:** `docs/overlay.md`, `docs/variants-and-scoring.md`.
 
