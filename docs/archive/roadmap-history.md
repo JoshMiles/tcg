@@ -1194,3 +1194,7 @@ Dropped `.tcg-btn` and `.tcg-panel`. Primary page buttons are `btn btn-primary` 
 ### 26.1 Profile: one Edit profile, and a separate Settings link (Done)
 
 The owner's profile action row has **Edit profile** (opens the inline bio, header colour and pronouns editor under the name) and **Settings** (`/settings`). The extra Edit profile button by the name is gone. Visitors see neither. Bio still shows for visitors. Save still goes through `saveProfileBasics`.
+
+### 26.2 Collection tiles: no name overlay, readable edition pill (Done)
+
+Collection tiles no longer print the card name on hover, and the long tooltip is gone. The accessible name is the card name. The sequence chip on a tile, and the same chip on a binder pocket, is a solid dark plate with yellow text and a yellow border. The card dialog keeps the usual gold `SerialChip`.

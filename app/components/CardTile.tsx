@@ -15,6 +15,7 @@ export function CardTile({
   className,
   style,
   title,
+  label,
   onActivate,
   children,
 }: {
@@ -25,6 +26,8 @@ export function CardTile({
   className?: string;
   style?: CSSProperties;
   title?: string;
+  /** Accessible name of the tile when it should not include the overlay text. */
+  label?: string;
   /** Makes the tile a button; called with the tile element on click / Enter / Space. */
   onActivate?: (el: HTMLElement) => void;
   children?: ReactNode;
@@ -40,6 +43,7 @@ export function CardTile({
       className={className}
       style={{ ...style, ['--art-mask' as string]: animates ? `url("${thumb}")` : 'none' } as CSSProperties}
       title={title}
+      aria-label={label}
       {...(onActivate ? {
         role: 'button',
         tabIndex: 0,
