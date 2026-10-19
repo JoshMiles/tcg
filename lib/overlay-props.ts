@@ -100,6 +100,9 @@ interface VariantDefaults {
   pop: boolean; popScale: number; popTilt: number;
   rock: boolean; rockAmount: number; rockSpeed: number;
   burstColor: string; burstHue: boolean;
+  sparkles?: boolean;
+  sparkleCount?: number;
+  sparkleColor?: string;
 }
 
 const HOLO_PALETTE = ['#fffee3', '#ffe078', '#afffb5', '#fffee3', '#96f5ff', '#fffee3', '#ffe078', '#fffee3'];
@@ -123,6 +126,7 @@ const VARIANT_DEFAULTS: Record<VariantId, VariantDefaults> = {
     holoSpeed: 14, holoLoop: true,
     glow: true, glowColorA: '#fde047', glowColorB: '#f59e0b', glowBlur: 75, glowSpread: 22, glowSpeed: 1.1,
     pop: true, popScale: 1.25, popTilt: -2, rock: true, rockAmount: 2, rockSpeed: 3.4, burstColor: '#f59e0b', burstHue: false,
+    sparkles: true, sparkleCount: 32, sparkleColor: '#ffe14d',
   },
 };
 
@@ -170,9 +174,9 @@ function variantPropsRaw(v: VariantId): PropDef[] {
     { key: `${g}.tiltPerspective`, group: g, label: '3D depth', type: 'number', default: 900, min: 300, max: 2500, step: 50, unit: 'px', help: 'Lower is a stronger, closer 3D effect; higher is flatter.' },
     { key: `${g}.holdExtra`, group: g, label: 'Extra time on screen', type: 'number', default: 0, min: 0, max: 15, step: 0.5, unit: 's', help: 'Keep this version on screen longer, so a rare pull gets its moment.' },
     { key: `${g}.volume`, group: g, label: 'Reveal sound volume', type: 'number', default: 1, min: 0, max: 2, step: 0.05, unit: '×', help: "Multiplies the card's reveal sound on top of the pack's volume. Playback is capped at full volume, so above 1 only helps where the pack volume is below 1." },
-    { key: `${g}.sparkles`, group: g, label: 'Sparkle burst', type: 'boolean', default: false, experimental: true, help: 'A burst of sparkles flies out from the card when it is revealed.' },
-    { key: `${g}.sparkleCount`, group: g, label: 'Sparkle amount', type: 'number', default: 28, min: 6, max: 80, step: 1 },
-    { key: `${g}.sparkleColor`, group: g, label: 'Sparkle colour', type: 'color', default: '#ffe27a' },
+    { key: `${g}.sparkles`, group: g, label: 'Sparkle burst', type: 'boolean', default: d.sparkles ?? false, experimental: true, help: 'A burst of sparkles flies out from the card when it is revealed.' },
+    { key: `${g}.sparkleCount`, group: g, label: 'Sparkle amount', type: 'number', default: d.sparkleCount ?? 28, min: 6, max: 80, step: 1 },
+    { key: `${g}.sparkleColor`, group: g, label: 'Sparkle colour', type: 'color', default: d.sparkleColor ?? '#ffe27a' },
     {
       key: `${g}.style`, group: g, label: 'Reveal animation', type: 'select', default: 'inherit',
       options: [{ value: 'inherit', label: 'Same as the pack opening' }, ...REVEAL_STYLES.map(x => ({ value: x.value, label: x.label + (x.experimental ? ' (experimental)' : '') }))],

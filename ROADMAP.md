@@ -19,7 +19,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 20.2f | One flow for new packs; the pack wizard goes | Ready | M |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
-| 29.4 | Variant styles, per pack, including Golden | Ready | M |
 | 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
 | 30.1 | Trainer cards: buff model and Buff Editor | Ready | L |
 | 30.2 | Use a trainer card: consume, buff, audit | Ready (after 30.1) | M |
@@ -122,19 +121,6 @@ Decided with 27.3. The list editor has shipped (Settings → Achievements). This
 Decided 2026-10-19. The stars on a card keep setting its value. The version multiplier stays as it is today (`baseScore × rarity from Card.stars × variantMultiplier × print bonus` in `lib/leaderboard.ts`). A Golden edition, once it exists, gets a version multiplier the same way a Full Art Holo does. It does not replace the stars.
 
 The names in 29.1 (Regular/Common through Golden/Legendary) are labels on the versions. The star names (Common through Legendary) stay too. Do not change `copyPoints`. Do not open a PR for this.
-
-### 29.4 Variant styles, per pack, including Golden (Ready, M)
-
-Decided 2026-10-19: the amber Golden look is the default, and it must be editable. Every version's look is editable per pack. This is not a second effect system.
-
-The Overlay Editor's **Variants** group is already that editor (`lib/overlay-props.ts`: label, shimmer, glow, rock, sparkles, reveal). Per-pack overrides are already `overlay:packprops`. What is missing is Golden, a way to open that group for one pack, and the website ignoring glow and rock (it uses the shimmer settings, then a hard-coded `.vfx-full` / `.vfx-shiny`).
-
-- Add `golden` beside the other four in `VARIANT_DEFAULTS` and `variantProps`. Starting look, all of it editable: label "Golden", amber and cream shimmer (`#ffb703`, `#ffe14d`, `#fff6c2`), sweep 14s, loop on, an amber glow, a gentle rock, sparkles, burst colour `#f59e0b` (the Legendary amber in `lib/rarity.ts`). Reduced motion disables the sweep and the rock, as it does for Full Art Holo.
-- Pack workspace: a **Variant styles** link that opens the Overlay Editor with that pack selected and the Variants group open. Add a query (`?pack=<id>&group=variants`) if the editor cannot do that today. Do not build a second form that writes the same keys.
-- Website tiles, the card dialog, the binder and the upgrade ceremony use the resolved shimmer, glow and rock for every version, including Golden, from those settings. A pack override then matches the stream. Overlay: `public/widget.js` and `public/widget.css`.
-- **Not touched:** the Twitch panel. Golden is still not pulled (29.5), so the panel has nothing new to draw.
-- **Checks:** `scripts/check-overlay.mts` for the Golden defaults. Hand pass: change Golden's shimmer on one pack, see it in the editor preview and on a profile tile. Real OBS is not checkable here.
-- **Docs:** `docs/overlay.md`, `docs/variants-and-scoring.md`.
 
 ### 29.5 Let Golden be pulled, including the Twitch panel (Blocked, panel freeze)
 
