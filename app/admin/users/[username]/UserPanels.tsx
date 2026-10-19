@@ -103,7 +103,7 @@ export function PullLimitPanel({ username, view }: { username: string; view: Pul
       </p>
       <form onSubmit={e => { e.preventDefault(); run(() => setPullLimitAction(username, own)); }} className="flex flex-wrap items-end gap-2">
         <label className="text-xs text-gray-400 space-y-1">
-          <span className="block">This viewer&rsquo;s own limit (empty = default {view.defaultLimit === 0 ? 'none' : view.defaultLimit}, 0 = no limit)</span>
+          <span className="block">This viewer&rsquo;s own limit (empty = {view.defaultLimit === 0 ? 'no limit' : view.defaultLimit}, 0 = no limit). That number is their role when the pull does not say which role they are.</span>
           <input value={own} onChange={e => setOwn(e.target.value)} inputMode="numeric" className={`${field} w-28`} aria-label="Own limit per stream" />
         </label>
         <button type="submit" disabled={pending} className={btn}>Save</button>

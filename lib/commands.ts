@@ -13,9 +13,10 @@ import { enqueueEvent } from './webhooks';
 import { recordActivity } from './activity';
 import { liveGate } from './overlay-settings';
 import { getLiveStatus } from './twitch-live';
-import { getMixItUpSettings, pullsUsedThisStream, type MixItUpLogEntry } from './mixitup';
-import { getUserPullLimit } from './pull-limit';
-import { effectiveLimit } from './pull-limit-core';
+import { currentStreamKey, getMixItUpSettings, pullsUsedThisStream, type MixItUpLogEntry } from './mixitup';
+import { pullRole, roleLimitOf } from './mixitup-core';
+import { getStreamBuff, getUserPullLimit } from './pull-limit';
+import { effectiveLimit, streamBuffAmount } from './pull-limit-core';
 import { SITE_URL } from './site';
 import { profileHref } from './profile-url';
 import {
@@ -67,7 +68,7 @@ async function noteRun(c: ChatCommand, username: string, ok: boolean, detail: st
   } catch { /* the log never breaks a command */ }
 }
 
-export interface RunInput { command: string; username: string; args: string; dry?: boolean }
+export interface RunInput { command: string; username: string; args: string; dry?: boolean; role?: unknown }
 export interface RunOutput {
   /** False for an unknown or switched-off command (then `message` is empty and the bot says nothing). */
   known: boolean;
@@ -80,7 +81,7 @@ type Fail = { fail: true; kind?: ErrorKind; message: string };
 type Done = { fail?: false; vars: Record<string, string> };
 const fail = (message: string, kind?: ErrorKind): Fail => ({ fail: true, kind, message });
 
-interface Ctx { user: string; args: string; dry: boolean; sandbox: boolean }
+interface Ctx { user: string; args: string; dry: boolean; sandbox: boolean; role?: unknown }
 
 async function season() {
   const active = await getActiveSeasonWithPacks();
@@ -217,7 +218,8 @@ async function doLeaderboard(): Promise<Done | Fail> {
 async function doPullsLeft(c: Ctx): Promise<Done | Fail> {
   const m = await getMixItUpSettings();
   if (!m.enabled) return fail('Paid pulls are off right now.', 'notFound');
-  const eff = effectiveLimit(m.limit, await getUserPullLimit(c.user));
+  const extra = streamBuffAmount(await getStreamBuff(), await currentStreamKey());
+  const eff = effectiveLimit(roleLimitOf(m, pullRole(c.role, c.user)), await getUserPullLimit(c.user), Date.now(), extra);
   const used = await pullsUsedThisStream(c.user);
   return { vars: {
     left: eff.limit > 0 ? String(Math.max(0, eff.limit - used)) : 'unlimited', limit: eff.limit > 0 ? String(eff.limit) : 'unlimited',
@@ -236,7 +238,7 @@ export async function runCommand(input: RunInput, commands?: ChatCommand[]): Pro
   const cmd = matchCommand(list, input.command);
   if (!cmd) return { known: false, ok: false, message: '', vars: {} };
   const user = input.username.toLowerCase().replace(/^@/, '').trim();
-  const ctx: Ctx = { user, args: input.args, dry: !!input.dry, sandbox: await inSandbox() };
+  const ctx: Ctx = { user, args: input.args, dry: !!input.dry, sandbox: await inSandbox(), role: input.role };
   const base = { username: user, args: input.args };
   const refuse = async (kind: ErrorKind | undefined, message: string): Promise<RunOutput> => {
     const text = tidyReply(interpolate((kind && cmd.errors[kind]) || message, base));

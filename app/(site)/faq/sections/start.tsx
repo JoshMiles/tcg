@@ -38,7 +38,7 @@ export function StartSection() {
         </p>
       </Q>
       <Q q="Is there a limit to how many cards I can get per stream?">
-        Paid pulls have one default for everyone. 0 means no limit. Staff can set a personal limit for you instead of that default, and they can grant bonuses that add extra pulls until the bonus ends or they remove it. A limit of 0 stays unlimited, and a bonus does not change that.
+        There is no limit on paid pulls until staff set one. They can set a limit for regular viewers, subscribers, VIPs, moderators and the broadcaster, and a personal limit for you that replaces yours. They can also add extra pulls for everyone for the current stream, and grant you a personal bonus. A limit of 0 means no limit, and a bonus does not change that. A gifted sub earns a pack. It does not raise your pull limit.
       </Q>
       <Q q="Where can I see my cards?">
         <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">

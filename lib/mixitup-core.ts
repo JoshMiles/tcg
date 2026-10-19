@@ -1,6 +1,14 @@
 // Mix It Up paid pulls (ROADMAP Track 12): the settings, the message template, how replies are read and when a pull is allowed.
 // Pure (no database, no network), so the settings form, the server and scripts/check-mixitup.mts share it.
+import { CHANNEL_LOGIN } from './site';
 import { checkWebhookUrl } from './webhook-clean';
+
+/** Who a paid pull counts as. Gifted subs are not a role: a gift earns a pack and does not change these limits. */
+export const PULL_ROLES = ['regular', 'subscriber', 'vip', 'moderator', 'broadcaster'] as const;
+export type PullRole = (typeof PULL_ROLES)[number];
+export const PULL_ROLE_LABELS: Record<PullRole, string> = {
+  regular: 'Regular', subscriber: 'Subscriber', vip: 'VIP', moderator: 'Moderator', broadcaster: 'Broadcaster',
+};
 
 export interface MixItUpSettings {
   enabled: boolean;
@@ -13,8 +21,10 @@ export interface MixItUpSettings {
   currency: string;
   /** What one pack costs, in the currency. */
   cost: number;
-  /** Paid pulls per viewer per stream; 0 = no limit. */
+  /** Fallback paid pulls per viewer per stream when a role has no number of its own. 0 = no limit. */
   limit: number;
+  /** Paid pulls per stream for each role. 0 = no limit. A missing role uses `limit`. */
+  roleLimits: Record<PullRole, number>;
   /** The message sent with the deduction. See MESSAGE_VARS. */
   message: string;
   /** Which key of the balance reply holds the number. */
@@ -25,9 +35,26 @@ export const MESSAGE_VARS = ['username', 'amount', 'currency', 'cardName', 'vari
 export const DEFAULT_MESSAGE = '{username} opened a pack and pulled {cardName} ({variant}, {stars} stars). {amount} {currency} spent.';
 export const MESSAGE_MAX = 400;
 
+const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vip: 0, moderator: 0, broadcaster: 0 };
+
 export const DEFAULT_MIXITUP: MixItUpSettings = {
-  enabled: false, balanceUrl: '', deductUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0, message: DEFAULT_MESSAGE, balanceField: 'balance',
+  enabled: false, balanceUrl: '', deductUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
+  roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance',
 };
+
+/** The role a paid pull counts as. The channel login is always the broadcaster. Missing or unknown is regular. */
+export function pullRole(role: unknown, username: string): PullRole {
+  const name = username.replace(/^@/, '').trim().toLowerCase();
+  if (name === CHANNEL_LOGIN) return 'broadcaster';
+  const r = typeof role === 'string' ? role.trim().toLowerCase() : '';
+  return (PULL_ROLES as readonly string[]).includes(r) ? r as PullRole : 'regular';
+}
+
+/** This role's limit, or the old single limit when that role was never saved. */
+export function roleLimitOf(s: Pick<MixItUpSettings, 'limit' | 'roleLimits'>, role: PullRole): number {
+  const n = s.roleLimits?.[role];
+  return typeof n === 'number' && Number.isFinite(n) ? Math.min(1000, Math.max(0, Math.floor(n))) : s.limit;
+}
 
 const num = (v: unknown, fallback: number, min: number, max: number): number => {
   const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
@@ -35,10 +62,21 @@ const num = (v: unknown, fallback: number, min: number, max: number): number => 
 };
 const text = (v: unknown, max: number, fallback = ''): string => (typeof v === 'string' ? v.trim().slice(0, max) : fallback);
 
+function roleLimitsFrom(raw: Record<string, unknown>, fallback: number): Record<PullRole, number> {
+  const obj = (raw.roleLimits && typeof raw.roleLimits === 'object' ? raw.roleLimits : {}) as Record<string, unknown>;
+  const out = {} as Record<PullRole, number>;
+  for (const role of PULL_ROLES) {
+    const field = raw[`roleLimit_${role}`];
+    out[role] = num(field !== undefined ? field : obj[role], fallback, 0, 1000);
+  }
+  return out;
+}
+
 /** Whatever is stored (or nothing), as complete, safe settings. */
 export function normalizeMixItUp(raw: unknown): MixItUpSettings {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const d = DEFAULT_MIXITUP;
+  const limit = num(r.limit, d.limit, 0, 1000);
   return {
     enabled: r.enabled === true,
     balanceUrl: text(r.balanceUrl, 500),
@@ -46,7 +84,8 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
     secret: text(r.secret, 200),
     currency: text(r.currency, 40, d.currency) || d.currency,
     cost: num(r.cost, d.cost, 1, 1_000_000),
-    limit: num(r.limit, d.limit, 0, 1000),
+    limit,
+    roleLimits: roleLimitsFrom(r, limit),
     message: text(r.message, MESSAGE_MAX, d.message) || d.message,
     balanceField: text(r.balanceField, 60, d.balanceField) || d.balanceField,
   };

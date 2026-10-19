@@ -8,10 +8,10 @@ import { getCopy } from './serials';
 import { entryOf, isEscrow } from './serials-core';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
-import { getUserPullLimit } from './pull-limit';
-import { effectiveLimit } from './pull-limit-core';
+import { getStreamBuff, getUserPullLimit } from './pull-limit';
+import { effectiveLimit, streamBuffAmount } from './pull-limit-core';
 import {
-  normalizeMixItUp, parseBalance, refusalMessage, renderMessage, replyApplied, streamKey, decide,
+  normalizeMixItUp, parseBalance, pullRole, refusalMessage, renderMessage, replyApplied, roleLimitOf, streamKey, decide,
   type MixItUpSettings, type RefusalReason,
 } from './mixitup-core';
 
@@ -82,7 +82,8 @@ const payKey = (id: string) => `mixitup:pay:${id}`;
 interface PayRecord { username: string; amount: number; stream: string; at: number }
 export type Reservation = { ok: true } | { ok: false; reason: RefusalReason; message: string; balance?: number };
 
-async function currentStream(): Promise<string> {
+/** The window "per stream" counts in: the live Twitch stream's start, else the UTC day. */
+export async function currentStreamKey(): Promise<string> {
   const live = await getLiveStatus().catch(() => null);
   const started = live?.live && live.startedAt ? Date.parse(live.startedAt) : NaN;
   return streamKey(Number.isFinite(started) ? started : null);
@@ -92,11 +93,12 @@ async function currentStream(): Promise<string> {
  * Before a pull is queued: is the viewer under their limit and able to pay? On success the pull is reserved under `payId` (limit
  * and in-flight counts raised, until the pull is claimed or the reservation expires). A sandbox never calls out and never charges.
  */
-export async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch): Promise<Reservation> {
+export async function reservePaidPull(s: MixItUpSettings, username: string, payId: string, doFetch?: Fetch, role?: unknown): Promise<Reservation> {
   const user = username.toLowerCase();
-  const stream = await currentStream();
-  // The viewer's own limit (and any bonuses they hold) wins over the default in Settings; 0 = no limit.
-  const limit = effectiveLimit(s.limit, await getUserPullLimit(user)).limit;
+  const stream = await currentStreamKey();
+  // Their own limit replaces the role default. A this-stream bonus adds on top. 0 = no limit, and bonuses cannot change that.
+  const extra = streamBuffAmount(await getStreamBuff(), stream);
+  const limit = effectiveLimit(roleLimitOf(s, pullRole(role, user)), await getUserPullLimit(user), Date.now(), extra).limit;
   const refuse = async (reason: RefusalReason, balance?: number, why?: string): Promise<Reservation> => {
     await logMixItUp({ username: user, what: 'refused', ok: false, detail: `${reason}${why ? `: ${why}` : ''}` });
     return { ok: false, reason, message: refusalMessage(reason, { ...s, limit }, user, balance), ...(balance !== undefined ? { balance } : {}) };
@@ -127,7 +129,7 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
 
 /** How many paid pulls a viewer has used in the current stream window (for the admin's user page). */
 export async function pullsUsedThisStream(username: string): Promise<number> {
-  const n = Number(await kv.get(cntKey(await currentStream(), username.toLowerCase())).catch(() => 0));
+  const n = Number(await kv.get(cntKey(await currentStreamKey(), username.toLowerCase())).catch(() => 0));
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 

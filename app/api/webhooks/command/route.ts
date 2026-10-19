@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     command: typeof parsed.body.command === 'string' ? parsed.body.command : '',
     username: parsed.username.replace(/^@/, ''),
     args: argsFrom(parsed.body),
+    role: parsed.body.role,
   });
   return NextResponse.json(flatReply(out.ok, out.message, out.vars));
 }

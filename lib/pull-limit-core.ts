@@ -52,14 +52,47 @@ export function normalizePullLimit(raw: unknown): UserPullLimit {
 
 export const isActive = (b: PullBuff, now: number) => b.until === null || b.until > now;
 
+/** One extra for every viewer, only while its stream key still matches. Amount 0 is not stored. */
+export interface StreamPullBuff {
+  amount: number;
+  streamKey: string;
+  by: string;
+  at: number;
+}
+
+/** A whole number of extra pulls, or null when the input is not usable. 0 is allowed (it clears the bonus). */
+export function streamAmount(value: unknown): number | null {
+  return int(value, 0, MAX_LIMIT);
+}
+
+export function normalizeStreamBuff(raw: unknown): StreamPullBuff | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const amount = streamAmount(o.amount);
+  if (amount === null || amount < 1 || typeof o.streamKey !== 'string' || !o.streamKey) return null;
+  return {
+    amount,
+    streamKey: o.streamKey.slice(0, 40),
+    by: typeof o.by === 'string' && o.by ? o.by.slice(0, 60) : 'admin',
+    at: typeof o.at === 'number' && Number.isFinite(o.at) ? o.at : 0,
+  };
+}
+
+/** How many extra pulls this stream key still grants. A different key (the stream ended) grants none. */
+export function streamBuffAmount(rec: StreamPullBuff | null, streamKey: string): number {
+  return rec && rec.streamKey === streamKey ? rec.amount : 0;
+}
+
 /**
- * What this viewer may pull per stream: their own base (else the default), plus every buff still running. A base of 0 means no
- * limit, and buffs cannot change that. `limit` 0 = unlimited.
+ * What this viewer may pull per stream: their own base (else the role default), plus every personal buff still running, plus
+ * `extra` for this stream (the everyone-bonus, and later a community buff added by the caller). A base of 0 means no limit, and
+ * neither buffs nor `extra` can change that. `limit` 0 = unlimited.
  */
-export function effectiveLimit(defaultLimit: number, rec: UserPullLimit, now = Date.now()): { limit: number; base: number; bonus: number; custom: boolean } {
+export function effectiveLimit(defaultLimit: number, rec: UserPullLimit, now = Date.now(), extra = 0): { limit: number; base: number; bonus: number; custom: boolean } {
   const base = rec.limit ?? defaultLimit;
   const bonus = rec.buffs.filter(b => isActive(b, now)).reduce((s, b) => s + b.amount, 0);
-  return { limit: base === 0 ? 0 : base + bonus, base, bonus, custom: rec.limit !== null };
+  const stream = base === 0 ? 0 : Math.max(0, Math.floor(extra) || 0);
+  return { limit: base === 0 ? 0 : base + bonus + stream, base, bonus, custom: rec.limit !== null };
 }
 
 /** Sets (or clears, with null) the viewer's own base limit. */

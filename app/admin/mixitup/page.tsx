@@ -1,7 +1,9 @@
 import { Icon } from '@/app/components/Icon';
 import { PageTabs, pickTab, type PageTab } from '../components/PageTabs';
 import { PageHeader } from '../components/ui';
-import { getMixItUpLog, getMixItUpSettings } from '@/lib/mixitup';
+import { currentStreamKey, getMixItUpLog, getMixItUpSettings } from '@/lib/mixitup';
+import { getStreamBuff } from '@/lib/pull-limit';
+import { streamBuffAmount } from '@/lib/pull-limit-core';
 import { getCommandLog, getCommands, getCommandStats } from '@/lib/commands';
 import { getWebhookSettings } from '@/lib/webhooks';
 import { SITE_URL } from '@/lib/site';
@@ -34,7 +36,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
         </div>
       )}
 
-      {tab === 'paid' && <MixItUpConfig settings={await getMixItUpSettings()} />}
+      {tab === 'paid' && <MixItUpConfig settings={await getMixItUpSettings()} streamExtra={streamBuffAmount(await getStreamBuff(), await currentStreamKey())} />}
       {tab === 'commands' && <CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
       {tab === 'log' && <MixItUpLog log={[...await getMixItUpLog(), ...await getCommandLog()].sort((a, b) => b.at - a.at)} />}
     </div>

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const mix = await getMixItUpSettings();
   const paid = mix.enabled && !(await inSandbox());
   if (paid) {
-    const r = await reservePaidPull(mix, parsed.username, id);
+    const r = await reservePaidPull(mix, parsed.username, id, undefined, parsed.body.role);
     if (!r.ok) return NextResponse.json({ ok: true, ignored: true, reason: r.reason, message: r.message, ...(r.balance !== undefined ? { balance: r.balance } : {}) });
   }
 
