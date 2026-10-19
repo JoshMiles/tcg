@@ -1199,6 +1199,10 @@ The owner's profile action row has **Edit profile** (opens the inline bio, heade
 
 Collection tiles no longer print the card name on hover, and the long tooltip is gone. The accessible name is the card name. The sequence chip on a tile, and the same chip on a binder pocket, is a solid dark plate with yellow text and a yellow border. The card dialog keeps the usual gold `SerialChip`.
 
+### 26.8 Wordmark links home, or to the dashboard in admin (Done)
+
+The public site wordmark still opens `/`. The admin sidebar brand (logo and "The Cheesy TCG") and the phone top-bar title open `/admin`. The accessible name is "The Cheesy TCG, dashboard". The mod bar still opens `/mod`. The logo stays at the top left.
+
 ### 26.5 Share image presets (Done)
 
 The owner's Share tab picks cards with one row: My best 1, Top 3, Top 6, Top 9, Custom. The selected chip is yellow and the others stay grey, including on hover. Each count takes the first N candidates (best first). Top 6 is the default. Choosing Custom, or toggling a card, leaves the per-card toggles in charge. A single copy's share image has no row.
