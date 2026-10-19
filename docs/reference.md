@@ -23,14 +23,14 @@
 | `app/admin/components/AdminShell.tsx` | Client frame that owns the sidebar state: off-canvas **drawer + top bar below `lg`**, **collapsible icon rail on `lg+`** (remembered in `localStorage` `tcg_admin_sidebar`). Parts that must vanish when collapsed carry the `aside-label` class, centred items `aside-item`, rows that stack into a column on the rail `aside-stack`, cards `aside-card`, and group dividers `aside-rule` (CSS in `globals.css`). Add them to any new sidebar content. The nav is grouped (Overview / Game / Community / System in `AdminNav`); the bottom is a status card (`OverlayStatus` compact), Copy URL / Preview buttons, and an account row with log out + build badge; the collapse handle is a round button on the sidebar's edge |
 | `app/admin/components/AdminNav.tsx` | Client component, a daisyUI `menu`. Uses `usePathname()` for the active item (`aria-current`) |
 | `app/admin/components/Dialog.tsx` | Native `<dialog class="modal">` (`showModal`, so Esc and the focus trap are the browser's). Backdrop and the close button call `onClose` |
-| `app/admin/packs/new/PackFlow.tsx` | Full-page pack wizard (Details → Look & feel → Upgrades → Timing → Cards → Review). Autosaves a draft; see Drafts & wizards |
-| `app/admin/seasons/new/SeasonFlow.tsx` | Full-page season wizard (Details → Packs → Review); also autosaves a draft |
-| `app/admin/components/CardsEditor.tsx` | Controlled bulk card editor (drag-drop many images → rows with inline name/stars/odds/sound/full-art). Used by the pack wizard and `/admin/packs/[id]/cards` |
-| `app/admin/components/{Stepper,Toggle,PackPreview}.tsx`, `use-autosave.ts`, `upload-client.ts` | Wizard building blocks: step bar + save indicator, switch, live pack preview, debounced serialised autosave hook, browser upload helpers (GIFs → Blob → optimize) |
-| `app/admin/draft-actions.ts` | Server actions for the wizards (create/save draft, `saveCards`, publish, discard). Return data instead of redirecting |
-| `lib/draft-validation.ts` | `validatePack` / `validateSeason`. The same checks run live in the wizard and again on publish |
+| `app/admin/packs/[packId]/workspace/PackWorkspace.tsx` | Single-screen pack workspace (Cards / Odds / Pack views, autosave on drafts, Publish checklist) |
+| `app/admin/seasons/new/SeasonFlow.tsx` | Full-page season wizard (Details -> Packs -> Review); autosaves a draft |
+| `app/admin/components/{Stepper,Toggle}.tsx`, `use-autosave.ts`, `upload-client.ts` | Wizard and workspace building blocks: step bar + save indicator, switch, debounced serialised autosave hook, browser upload helpers (GIFs -> Blob -> optimize) |
+| `app/admin/draft-actions.ts` | Server actions for drafts and the season wizard (create draft pack/season, save season draft, publish, discard). Return data instead of redirecting |
+| `lib/draft-validation.ts` | `validatePack` / `validateSeason`. The same checks run live in the workspace/wizard and again on publish |
 | `app/admin/components/AddCardDialog.tsx` | Dialog for adding a single card to a pack |
-| `app/admin/components/NewPackButton.tsx`, `NewSeasonButton.tsx` | Plain links to the wizards |
+| `app/admin/components/NewPackButton.tsx` | Client button + dialog that asks for a pack name, creates a draft pack, and opens `/admin/packs/[packId]` |
+| `app/admin/components/NewSeasonButton.tsx` | Link to the season wizard (`/admin/seasons/new`) |
 | `app/admin/components/AddCardButton.tsx` | Client button that owns AddCardDialog open/close state |
 | `lib/twitch-jwt.ts` | Manual JWT verification via Node `crypto` (no external deps) + `getBearerToken()` |
 | `lib/overlay-props.ts` | Registry of every adjustable overlay property (defaults, limits, validation, import/export). See "Overlay properties" |

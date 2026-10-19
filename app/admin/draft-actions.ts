@@ -4,113 +4,35 @@ import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin-guard';
 import { activateWithWrapUp } from '@/lib/season-wrap';
 import {
-  getPack, savePack, deletePack, getPackCards, savePackCards,
-  getSeason, saveSeason, deleteSeason, listSeasons, setActiveSeason,
+  getPack, savePack, deletePack,
+  getSeason, saveSeason, deleteSeason, listSeasons,
 } from '@/lib/kv';
-import type { Card, OptionalVariant, Pack, Season, UpgradeCosts, VariantWeights } from '@/lib/types';
-import { cleanDisabled } from '@/lib/variants';
+import type { Season } from '@/lib/types';
 import { notifyAdminLog } from '@/lib/discord';
 import { currentStaffLogin } from '@/lib/staff-actor';
-import { validatePack, validateSeason, type Issue } from '@/lib/draft-validation';
-import { cleanPackInput, int, num, str, type PackInput } from '@/lib/pack-clean';
+import { validateSeason, type Issue } from '@/lib/draft-validation';
+import { int, str, type PackInput } from '@/lib/pack-clean';
+import { createDraftPackCore, publishPackCore } from '@/lib/pack-save';
 
-// Server actions behind the pack / season wizards. Unlike actions.ts they return data instead of
-// redirecting, because the wizards are client components that autosave as you go.
+// Server actions behind pack drafts and the season wizard.
 // Every action checks the caller itself (requireAdmin): a server action is a public POST endpoint, so the middleware on the page is not enough. scripts/check-staff-guards.mts fails if one is missing.
 
 // ── Packs ─────────────────────────────────────────────────
 
 export type { PackInput };
 
-/** Creates the draft record the first time the wizard has something worth keeping. */
-export async function createDraftPack(input: PackInput): Promise<{ id: string }> {
+/** Creates a draft pack and returns its id so the caller can open the pack workspace on it. */
+export async function createDraftPack(input: Partial<PackInput> | string): Promise<{ id: string }> {
   await requireAdmin();
-  const id = crypto.randomUUID();
-  await savePack({ id, createdAt: Date.now(), status: 'draft', ...cleanPackInput(input) });
-  // No revalidatePath here or in the autosave actions below: it would re-render the wizard page under the
-  // user mid-edit. The list pages are force-dynamic, so they're fresh on every visit anyway.
-  return { id };
-}
-
-/** Autosave target. Only touches drafts, so a stale wizard tab can't overwrite a live pack. */
-export async function saveDraftPack(id: string, input: PackInput): Promise<void> {
-  await requireAdmin();
-  const existing = await getPack(id);
-  if (!existing) throw new Error('This draft no longer exists.');
-  if (existing.status !== 'draft') throw new Error('This pack has already been published.');
-  await savePack({ ...existing, ...cleanPackInput(input) });
-}
-
-export interface CardInput {
-  id: string;
-  name: string;
-  imageUrl: string;
-  fullArtImageUrl?: string;
-  /** Chosen still frames (see cardStill()). */
-  stillUrl?: string;
-  fullArtStillUrl?: string;
-  soundUrl?: string;
-  stars: number;
-  probability: number;
-  upgradesEnabled: boolean;
-  disabledVariants?: OptionalVariant[];
-}
-
-/**
- * Replaces a pack's cards with the editor's list. Card numbers are what viewers' collections point at, so
- * existing cards always keep theirs; new cards get the next free number. Returns the saved cards so the
- * editor can show the assigned numbers.
- */
-export async function saveCards(packId: string, rows: CardInput[]): Promise<Card[]> {
-  await requireAdmin();
-  const pack = await getPack(packId);
-  if (!pack) throw new Error('Pack not found.');
-  const existing = await getPackCards(packId);
-  const byId = new Map(existing.map(c => [c.id, c]));
-  let next = existing.reduce((m, c) => Math.max(m, c.number), 0);
-
-  const seen = new Set<string>();
-  const cards: Card[] = [];
-  for (const r of rows) {
-    if (typeof r.id !== 'string' || !r.id || seen.has(r.id)) continue;
-    seen.add(r.id);
-    const prev = byId.get(r.id);
-    const full = str(r.fullArtImageUrl) || undefined;
-    const still = str(r.stillUrl) || undefined;
-    const fullStill = full ? str(r.fullArtStillUrl) || undefined : undefined;
-    const sound = str(r.soundUrl) || undefined;
-    const off = cleanDisabled(r.disabledVariants);
-    cards.push({
-      id: r.id,
-      number: prev?.number ?? ++next,
-      name: str(r.name, 80).trim(),
-      imageUrl: str(r.imageUrl),
-      ...(sound && { soundUrl: sound }),
-      ...(full && { fullArtImageUrl: full }),
-      ...(still && { stillUrl: still }),
-      ...(fullStill && { fullArtStillUrl: fullStill }),
-      ...(off.length > 0 && { disabledVariants: off }),
-      upgradesEnabled: r.upgradesEnabled !== false,
-      probability: num(r.probability, 1, 0),
-      stars: int(r.stars, 1),
-    });
-  }
-  // Keep ordering by number so the table is stable across reloads.
-  cards.sort((a, b) => a.number - b.number);
-  await savePackCards(packId, cards);
-  return cards;
+  return createDraftPackCore(input);
 }
 
 /** Publishes a draft once it passes validation. `active` = include in draws straight away. */
 export async function publishPack(id: string, active: boolean): Promise<{ ok: true } | { ok: false; issues: Issue[] }> {
   await requireAdmin();
-  const pack = await getPack(id);
-  if (!pack) return { ok: false, issues: [{ step: 'details', message: 'This draft no longer exists.' }] };
-  const cards = await getPackCards(id);
-  const issues = validatePack(pack, cards);
-  if (issues.length > 0) return { ok: false, issues };
-  await savePack({ ...pack, status: 'published', active });
-  await notifyAdminLog({ action: 'Pack published', subject: pack.name, detail: active ? 'In draws straight away' : 'Not in draws yet', by: await currentStaffLogin() });
+  const r = await publishPackCore(id, active);
+  if (!r.ok) return r;
+  await notifyAdminLog({ action: 'Pack published', subject: r.pack.name, detail: active ? 'In draws straight away' : 'Not in draws yet', by: await currentStaffLogin() });
   revalidatePath('/admin/packs');
   revalidatePath(`/admin/packs/${id}`);
   revalidatePath('/admin');

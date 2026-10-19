@@ -149,4 +149,39 @@ ok(dupDrop[0].number === 1 && dupDrop[1].number === 2, 'two files asking for the
 const ask = core.applyChanges(pk, cards, { pack: {}, update: {}, remove: [], add: [core.newWorkCard('n12', { name: 'Twelve', number: 12, imageUrl: '/a.png' }), core.newWorkCard('n2', { name: 'Two', number: 2, imageUrl: '/b.png' }), core.newWorkCard('n0', { name: 'Zero', imageUrl: '/c.png' })] });
 ok(ask.assigned.n12 === 12 && ask.assigned.n2 > 3 && ask.assigned.n0 !== ask.assigned.n2 && ask.cards.length === cards.length + 3, 'a requested free number is kept; a used one and no request get the next free numbers');
 
+// ── New pack flow & Publish checklist (20.2f) ──
+const { createDraftPackCore, publishPackCore } = await import('../lib/pack-save');
+const { id: draftId } = await createDraftPackCore('  Fresh Draft  ');
+const freshPack = (await kvLib.getPack(draftId))!;
+ok(freshPack.status === 'draft' && freshPack.name === 'Fresh Draft' && freshPack.active === true, 'createDraftPackCore creates a named draft pack that defaults to active');
+const freshWork = core.workOf(freshPack, []);
+const cl0 = core.publishChecklist(freshWork, { inSeason: false });
+ok(!cl0.canPublish && cl0.blocking.some(i => i.id === 'cards') && cl0.items.find(i => i.id === 'name')?.ok === true, 'an empty named draft is blocked by missing cards');
+const failPub = await publishPackCore(draftId, true);
+ok(!failPub.ok && failPub.issues.length > 0 && (await kvLib.getPack(draftId))!.status === 'draft', 'publishPackCore refuses a draft that fails blocking checks');
+
+// Add an imported card with upgradesEnabled (no cover, no season, imported-odds unset, full art missing art): only warnings remain
+const withCard: typeof freshWork = {
+  pack: { ...freshWork.pack, active: false, upgradesEnabled: true },
+  cards: [core.newWorkCard('imp1', { number: 1, name: 'Gouda', imageUrl: '/g.png', probability: 1, stars: 1, upgradesEnabled: true, fullArtUrl: '' })],
+};
+const clWarn = core.publishChecklist(withCard, { inSeason: false, needsOddsCount: 1 });
+ok(clWarn.blocking.length === 0 && clWarn.warnings.map(i => i.id).sort().join() === 'cover,full-art,imported-odds,season', 'a draft with a valid card but no cover, no season, unset imported odds, and missing full-art has 0 blockers and 4 warnings');
+ok(!clWarn.canPublish, 'unaccepted warnings keep Publish disabled');
+const clAccepted = core.publishChecklist(withCard, { inSeason: false, needsOddsCount: 1, warningsAccepted: true });
+ok(clAccepted.canPublish, 'accepting the warnings enables Publish');
+
+// Regular weight = 0 with upgradesEnabled is a blocker
+const zeroReg = core.publishChecklist({ ...withCard, pack: { ...withCard.pack, upgradesEnabled: true, variantWeights: { ...withCard.pack.variantWeights, regular: 0 } } }, { inSeason: true, warningsAccepted: true });
+ok(!zeroReg.canPublish && zeroReg.blocking.some(i => i.id === 'regular-weight'), 'Regular weight = 0 when upgrades are on is a blocking item even when warnings are accepted');
+
+// Save the card onto the draft and publish it with active = false
+const savedDraft = await savePackChangesCore(draftId, await kvLib.getPackRev(draftId), core.diffChanges(freshWork, withCard));
+ok(savedDraft.ok, 'saving the draft card before publish succeeds');
+const pubRes = await publishPackCore(draftId, false);
+ok(pubRes.ok && pubRes.pack.id === draftId, 'publishPackCore succeeds once blocking checks pass');
+const pubPack = (await kvLib.getPack(draftId))!;
+ok(pubPack.status === 'published' && pubPack.active === false, 'published pack is marked published and respects active = false');
+
 console.log('pack editor checks passed');
+

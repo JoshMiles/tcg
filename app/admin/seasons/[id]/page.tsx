@@ -11,6 +11,7 @@ import { updateSeason, addPackToSeason, activateSeason } from '../../actions/sea
 import { duplicateSeasonAction, endSeasonAction, reopenSeasonAction } from '../../season-actions';
 import { SeasonFields } from '../../components/SeasonFields';
 import { DraftChip } from '../../components/StatusChip';
+import { NewPackButton } from '../../components/NewPackButton';
 import { unpublishSeason } from '../../draft-actions';
 import { StackedBars } from '../../dashboard/charts';
 import { LineupEditor, type LineupPack } from './LineupEditor';
@@ -272,7 +273,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
             <h2 className="text-xl font-bold">Pack lineup</h2>
             <p className="text-sm text-gray-500 mt-0.5">Packs are drawn randomly by weight while this season is active. Drag to reorder; edit weights in place.</p>
           </div>
-          <Link href="/admin/packs/new" className="text-sm text-yellow-500 hover:text-yellow-400 transition-colors">+ New Pack</Link>
+          <NewPackButton label="+ New Pack" className="text-sm text-yellow-500 hover:text-yellow-400 transition-colors" />
         </div>
 
         <LineupEditor seasonId={id} initial={lineup} />
@@ -288,7 +289,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
         )}
         {availablePacks.length === 0 && allPacks.length > 0 && <p className="text-sm text-gray-600 text-center">All packs are already assigned to this season.</p>}
         {allPacks.length === 0 && (
-          <div className="text-center py-4"><Link href="/admin/packs/new" className="text-sm text-yellow-500 hover:text-yellow-400 transition-colors">Create a pack first →</Link></div>
+          <div className="text-center py-4"><NewPackButton label="Create a pack first →" className="text-sm text-yellow-500 hover:text-yellow-400 transition-colors" /></div>
         )}
       </div>
       )}

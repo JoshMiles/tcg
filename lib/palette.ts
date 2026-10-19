@@ -5,7 +5,7 @@ import type { IconName } from '@/app/components/Icon';
 // fetched when the palette opens (GET /api/admin/palette).
 
 export type PaletteGroup = 'Pages' | 'Actions' | 'Packs' | 'Seasons' | 'Users';
-export type PaletteAction = 'copy-overlay' | 'open-preview' | 'exit-sandbox' | 'logout';
+export type PaletteAction = 'new-pack' | 'copy-overlay' | 'open-preview' | 'exit-sandbox' | 'logout';
 
 export interface PaletteItem {
   id: string;
@@ -24,7 +24,7 @@ export const GROUP_ORDER: PaletteGroup[] = ['Pages', 'Actions', 'Packs', 'Season
 
 export const STATIC_ITEMS: PaletteItem[] = [
   ...NAV_ITEMS.map(i => ({ id: `page:${i.href}`, label: i.label, group: 'Pages' as const, icon: i.icon, href: i.href, keywords: i.keywords, keys: ['g', i.key] })),
-  { id: 'act:new-pack', label: 'New pack', group: 'Actions', icon: 'cards', href: '/admin/packs/new', hint: 'Start the pack wizard', keywords: ['create', 'add'] },
+  { id: 'act:new-pack', label: 'New pack', group: 'Actions', icon: 'cards', action: 'new-pack', hint: 'Name a pack and open the workspace', keywords: ['create', 'add'] },
   { id: 'act:new-season', label: 'New season', group: 'Actions', icon: 'trophy', href: '/admin/seasons/new', hint: 'Start the season wizard', keywords: ['create', 'add'] },
   { id: 'act:gift', label: 'Gift packs to a viewer', group: 'Actions', icon: 'gift', href: '/admin', hint: 'Dashboard quick actions', keywords: ['quick', 'send'] },
   { id: 'act:scoring', label: 'Scoring settings', group: 'Actions', icon: 'trophy', href: '/admin/settings?tab=scoring', keywords: ['points', 'leaderboard', 'values'] },

@@ -1,5 +1,6 @@
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from './components/PendingButton';
+import { NewPackButton } from './components/NewPackButton';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { getActiveSeasonWithPacks, getPackCards, getPacksForSeason, listSeasons } from '@/lib/kv';
@@ -38,12 +39,10 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           >
             Create Season
           </Link>
-          <Link
-            href="/admin/packs/new"
+          <NewPackButton
+            label="Create Pack"
             className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl text-sm transition-colors"
-          >
-            Create Pack
-          </Link>
+          />
           <Link
             href="/admin/wiki"
             className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl text-sm transition-colors"

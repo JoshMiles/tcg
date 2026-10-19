@@ -6,6 +6,7 @@ import { Icon } from '@/app/components/Icon';
 import { STATIC_ITEMS, rankItems, type PaletteItem } from '@/lib/palette';
 import { ALL_SHORTCUTS, IDLE, isTypingTarget, stepSequence, type SeqState } from '@/lib/shortcuts';
 import { Dialog } from './Dialog';
+import { NewPackDialog } from './NewPackButton';
 
 const OPEN_EVENT = 'tcg:palette';
 
@@ -35,6 +36,7 @@ export function AdminKeyboard({ overlayKey }: { overlayKey?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [help, setHelp] = useState(false);
+  const [newPack, setNewPack] = useState(false);
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const [dynamicItems, setDynamicItems] = useState<PaletteItem[]>([]);
@@ -82,6 +84,7 @@ export function AdminKeyboard({ overlayKey }: { overlayKey?: string }) {
     close();
     if (item.href) { router.push(item.href); return; }
     switch (item.action) {
+      case 'new-pack': setNewPack(true); break;
       case 'copy-overlay': navigator.clipboard?.writeText(`${window.location.origin}/overlay.html${overlayKey ? `?key=${overlayKey}` : ''}`).catch(() => {}); break;
       case 'open-preview': window.open('/overlay.html', '_blank'); break;
       case 'exit-sandbox': postForm('/api/sandbox/exit?to=/admin/sandbox'); break;
@@ -145,6 +148,8 @@ export function AdminKeyboard({ overlayKey }: { overlayKey?: string }) {
         </div>,
         document.body,
       )}
+
+      <NewPackDialog open={newPack} onClose={() => setNewPack(false)} />
 
       <Dialog open={help} onClose={() => setHelp(false)} title="Keyboard shortcuts" size="md">
         <div className="p-6 grid gap-6 sm:grid-cols-2">
