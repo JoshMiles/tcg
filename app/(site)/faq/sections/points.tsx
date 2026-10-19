@@ -27,7 +27,7 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
           <li>
             <strong className="text-white">Print bonus</strong>: {scoring.serialBonusCutoff > 0 ? (
               <>every edition has a <a href="#serials" className="text-yellow-400 hover:text-yellow-300">print number</a>, and the first editions ever made of a card (in each version) are worth extra. Print #1 is worth{' '}
-              <strong className="text-white">{scoring.serialBonusMax}×</strong>, and the bonus fades in a straight line until it is gone after #{scoring.serialBonusCutoff}. The bonus belongs to the edition, so it moves with it if you trade it.</>
+              <strong className="text-white">{scoring.serialBonusMax}×</strong> and the bonus decreases until the {scoring.serialBonusCutoff}th print of that card is created. The bonus belongs to the edition, so it moves with it if you trade it.</>
             ) : 'switched off in this game, so every edition of a version is worth the same.'}
           </li>
           {upgradesOn && (
@@ -71,10 +71,10 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
           and the final rounding, plus the pull odds, how many packs you&rsquo;d expect to need, and what the print bonus is worth at different numbers. In short:
         </p>
         <p className="font-mono text-[12px] text-gray-300 my-2 leading-relaxed">
-          points = max(1, round( {scoring.baseScore} × rarity × version × print bonus ))<br />
+          points = max(1, round({scoring.baseScore} × rarity × version × print bonus))<br />
           rarity = (1 ÷ (pull chance × cards in the season)) ^ {scoring.rarityExponent}<br />
           print bonus = 1 + ({scoring.serialBonusMax} − 1) × (1 − (print − 1) ÷ {scoring.serialBonusCutoff}) for print 1 to {scoring.serialBonusCutoff}, otherwise 1<br />
-          version = max( Regular weight ÷ version weight, previous version × upgrade cost × {scoring.upgradeMargin} )
+          version = max(Regular weight ÷ version weight, previous version × upgrade cost × {scoring.upgradeMargin})
         </p>
         <p>
           The {scoring.baseScore}, the limits and the margin are settings the streamer can change, so the numbers above are today&rsquo;s. Cards sitting in an open trade (escrow) aren&rsquo;t counted as editions in anyone&rsquo;s collection.

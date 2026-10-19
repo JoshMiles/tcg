@@ -1219,6 +1219,10 @@ A collection tile or binder pocket with `holo-fx` does not also take `holo-hover
 
 `DEFAULT_SCORING.serialBonusCutoff` is 40. A saved `scoring:settings` value is left as stored, so a site that already saved 20 keeps 20 until someone saves 40 in Admin → Settings → Scoring. Scores recompute on the next page load after that save. `EVENT_CAP` (how many journey events a copy keeps) stays 40 and is a different setting.
 
+### 27.1 FAQ pass (Done)
+
+The FAQ jump list and the page body use the same order: Getting started, Chat commands, Cards & versions, Trading, Upgrading, Your profile, Showing off, Points & leaderboard, Seasons, Twitch extension, Privacy & data, Something not working? Getting started says follow, subscribe or gift subs, links to `#commands`, and does not name a pack count. It also says paid pulls have one default (0 means no limit), staff can set a personal limit, and staff can grant bonuses. Chat commands keeps the enabled list from `getCommands()` and adds a fixed `!pack` line (set up in Mix It Up, not the command builder). Upgrading says any edition of any version can be traded, including an upgraded one, and that a favourite or an edition already in an offer cannot. The print-bonus sentence uses the live cutoff ("the Nth print"); cutoff 0 keeps the switched-off sentence. The maths block has no space inside `round(` or `max(`. Privacy and Terms were not changed. 28.1 rewrites the limit answer when role limits exist.
+
 ### 25.1 Home: Card of the week (Done)
 
 The home block is titled Card of the week. Under the card name it shows Edition #uid, the print line, who holds it (a private collector or a trade offer when that applies), and See its journey. The reason sits under those in smaller type. The block still hides when there is no pick or the edition was spent. The FAQ question is "How is the card of the week chosen?" (`id="card-of-the-week"`). The pick, the KV keys and the admin button "Feature as print of the week" stay.
