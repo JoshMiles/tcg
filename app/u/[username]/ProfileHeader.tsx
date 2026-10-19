@@ -6,7 +6,7 @@ import { StaffBadge } from '@/app/components/StaffBadge';
 import type { StaffBadge as StaffBadgeKind } from '@/lib/staff-badge-core';
 import { ShareProfile } from './ShareProfile';
 import { accentHex } from '@/lib/user-settings';
-import { ProfileBasicsEditor } from './ProfileBasicsEditor';
+import { ProfileBasics, ProfileBioLine, ProfileEditButton } from './ProfileBasicsEditor';
 import type { ShareSpec } from '@/lib/share-image';
 import { profileHref } from '@/lib/profile-url';
 
@@ -14,7 +14,7 @@ import { profileHref } from '@/lib/profile-url';
 export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staffBadge, canReport = false }: { /** Signed in, not their own profile, not staff: show Report in the menu. */ canReport?: boolean; /** Streamer / Admin / Mod, already resolved on the server (null when none or hidden). */ staffBadge?: StaffBadgeKind | null; b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec; /** What to show after the name (already resolved on the server), or null. */ pronouns?: string | null }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   const accent = accentHex(b.settings.accent);
-  return (
+  const header = (
     <header className="rounded-3xl border border-yellow-500/20 bg-linear-to-br from-gray-900/80 to-gray-950/80" style={accent ? { borderColor: `${accent}88`, boxShadow: `0 0 40px -16px ${accent}` } : undefined}>
       <div className="holo-strip rounded-t-3xl" style={accent ? { background: `linear-gradient(90deg, transparent, ${accent}, transparent)` } : undefined} />
       <div className="p-5 sm:p-6 flex flex-wrap items-start justify-between gap-5">
@@ -32,7 +32,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
               )}
             </h1>
             <p className="text-sm text-gray-500">@{b.lower}</p>
-            {isOwner ? <ProfileBasicsEditor bio={b.settings.bio} accent={b.settings.accent} pronouns={b.settings.pronouns} /> : b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl wrap-break-word">{b.bio}</p>}
+            {isOwner ? <ProfileBioLine /> : b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl wrap-break-word">{b.bio}</p>}
             {b.awards.length > 0 && (
               <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Season awards">
                 {b.awards.slice(0, 8).map((a, i) => (
@@ -76,13 +76,16 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
               <Icon name="trend" />My stats &amp; upgrades
             </Link>
           )}
+          {isOwner && <ProfileEditButton />}
           {isOwner && (
             <Link href="/settings" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
-              <Icon name="settings" />Edit profile &amp; settings
+              <Icon name="settings" />Settings
             </Link>
           )}
         </div>
       </div>
     </header>
   );
+  if (!isOwner) return header;
+  return <ProfileBasics bio={b.settings.bio} accent={b.settings.accent} pronouns={b.settings.pronouns}>{header}</ProfileBasics>;
 }
