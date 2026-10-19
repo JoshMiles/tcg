@@ -116,10 +116,13 @@
 }
 
 @utility tcg-btn {
-  /* Chunky "press" button in trading-card yellow. */
-  background-image: linear-gradient(180deg, #ffe14d, #ffcb05);
-  color: #1a1400;
+  /* daisyUI primary button, with the chunky 3D press kept on top. */
+  @apply btn btn-primary;
+  height: auto;
+  min-height: 0;
+  border-color: transparent;
   font-weight: 800;
+  background-image: linear-gradient(180deg, #ffe14d, #ffcb05);
   box-shadow:
     0 3px 0 0 #b88a00,
     0 6px 14px -4px rgba(255, 203, 5, 0.45);
@@ -325,6 +328,29 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
   outline-offset: 2px;
   border-radius: 0.5rem;
 }
+
+/* daisyUI menu fills the sidebar. Active stays yellow. Unlayered so it wins over the menu component. */
+.admin-aside .menu {
+  width: 100%;
+  padding: 0;
+  background-color: transparent;
+  --menu-active-bg: color-mix(in srgb, #ffcb05 14%, transparent);
+  --menu-active-fg: #ffe14d;
+}
+.admin-aside .menu :where(li > a) {
+  display: flex;
+  width: 100%;
+}
+
+/* daisyUI modal box: no extra padding (the dialog body brings its own) and the panel surface. */
+.tcg-modal {
+  padding: 0;
+  background-color: var(--color-gray-900);
+  box-shadow: var(--shadow-card);
+}
+.tcg-modal.max-w-md { max-width: 28rem; }
+.tcg-modal.max-w-xl { max-width: 36rem; }
+.tcg-modal.max-w-2xl { max-width: 42rem; }
 
 /* Admin sidebar: on desktop it can collapse to an icon rail; "aside-label" parts disappear and items centre. */
 @media (min-width: 1024px) {

@@ -31,7 +31,7 @@ export function ArmedButton({ onConfirm, children, armedLabel = 'Sure?', classNa
         setArmed(true);
         timer.current = setTimeout(() => setArmed(false), 4000);
       }}
-      className={armed && armedClassName ? armedClassName : className}
+      className={armed ? `btn btn-sm btn-error ${armedClassName || className}` : className}
     >
       {armed ? armedLabel : children}
     </button>

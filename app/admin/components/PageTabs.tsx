@@ -17,16 +17,14 @@ export function PageTabs({ tabs, active, base, keep, label = 'Page sections' }: 
     return `${base}?${q.toString()}`;
   };
   return (
-    <nav aria-label={label} className="no-scrollbar flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-800 -mx-1 px-1">
+    <nav aria-label={label} className="tabs tabs-border no-scrollbar w-full flex-nowrap overflow-x-auto overflow-y-hidden border-b border-gray-800">
       {tabs.map(t => (
         <Link
           key={t.id}
           href={href(t.id)}
           scroll={false}
           aria-current={t.id === active ? 'page' : undefined}
-          className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${
-            t.id === active ? 'border-yellow-500 text-yellow-300' : 'border-transparent text-gray-400 hover:text-white hover:border-gray-600'
-          }`}
+          className={`tab gap-1.5 font-semibold whitespace-nowrap ${t.id === active ? 'tab-active text-yellow-300' : ''}`}
         >
           {t.icon && <Icon name={t.icon} />}{t.label}
           {t.count !== undefined && <span className={`text-[11px] tabular-nums rounded-full px-1.5 py-px ${t.id === active ? 'bg-yellow-500/15 text-yellow-300' : 'bg-gray-800 text-gray-400'}`}>{t.count}</span>}

@@ -12,9 +12,9 @@ export function AdminNav({ badges = {} }: { badges?: Record<string, number> }) {
     <nav aria-label="Admin" className="flex-1 min-h-0 px-3 pt-3 pb-2 overflow-y-auto">
       {NAV_GROUPS.map((g, gi) => (
         <div key={g.title} className={gi > 0 ? 'mt-4' : ''}>
-          <p className="aside-label px-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-gray-600">{g.title}</p>
+          <p className="menu-title aside-label px-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-gray-600">{g.title}</p>
           {gi > 0 && <div className="aside-rule" aria-hidden />}
-          <ul className="space-y-0.5">
+          <ul className="menu menu-sm">
             {g.items.map(item => {
               const active = isActive(item, pathname);
               return (
@@ -23,8 +23,8 @@ export function AdminNav({ badges = {} }: { badges?: Record<string, number> }) {
                     href={item.href}
                     title={`${item.label}  (g then ${item.key})`}
                     aria-current={active ? 'page' : undefined}
-                    className={`aside-item group relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                      active ? 'bg-yellow-500/10 text-yellow-200' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                    className={`aside-item group relative gap-3 rounded-xl text-sm font-semibold ${
+                      active ? '' : 'text-gray-400'
                     }`}
                   >
                     {active && <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.6)]" />}
