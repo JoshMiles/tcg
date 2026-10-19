@@ -1,10 +1,11 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 import { Section, Q } from '../parts';
 
-export function StartSection() {
+export function StartSection({ title = 'Getting started', extra }: { title?: string; extra?: ReactNode } = {}) {
   return (
-    <Section id="start" title="Getting started" icon="cheese">
+    <Section id="start" title={title} icon="cheese">
       <Q q="What is The Cheesy TCG?" open>
         A collectible card game played live on {CHANNEL_NAME}&rsquo;s Twitch channel. Packs are opened on stream, the cards you pull go into your collection, and you can hunt for rare versions, upgrade your duplicates and climb
         the leaderboard. It&rsquo;s a fan-made community game and isn&rsquo;t affiliated with Twitch.
@@ -54,6 +55,7 @@ export function StartSection() {
       <Q q="I can&rsquo;t find my collection">
         A collection appears once you&rsquo;ve pulled at least one card this season. Check the spelling of your Twitch username (capitals don&rsquo;t matter). If you&rsquo;ve just pulled something, refresh the page.
       </Q>
+      {extra}
     </Section>
   );
 }

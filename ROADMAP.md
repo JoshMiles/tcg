@@ -16,26 +16,22 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 | # | Item | Status | Size |
 |---|------|--------|------|
-| 20.2f | One flow for new packs; the pack wizard goes | Ready | M |
+| 31.1 | FAQ Editor on Admin dashboard (Issue #294) | Ready | M |
 | Ext | Next extension version | Blocked (panel freeze) | L |
-| 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
 | 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
-| 30.1 | Trainer cards: buff model and Buff Editor | Ready | L |
-| 30.2 | Use a trainer card: consume, buff, audit | Ready (after 30.1) | M |
-| 30.3 | Chat command to use a trainer card | Ready (after 30.2) | S |
 | 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
 
 27.2 is unused on purpose: the master set achievement is already shipped (see "Already on the site" under tracks 25 to 30). 29.2 is unused on purpose: the read-only audit and the dry-run script shipped inside 29.1. 29.3 is not in the table: stars keep setting the value, so there is no PR.
 
-### 20.2f One flow for new packs; the wizard goes (Ready, M)
+### 31.1 FAQ Editor on Admin dashboard (Ready, M)
 
-Last part of the pack workspace (20.2a to 20.2e are done; the workspace is described in `docs/admin/packs-and-seasons.md`).
-- **New pack** (the library's button and the command palette) asks only for a name, creates the draft (`createDraftPack`) and opens the workspace on it.
-- A draft shows a **Publish checklist** in the top bar (replacing the wizard's Review step, from `validatePack` and `packHealth`): has a name and cover, at least one card, every card has art, a name and odds above 0, stars set on imported cards, Full Art cards have full art where the versions need it, in at least one season (or "publish without a season" with the warning). **Publish** stays disabled until the blocking items pass; warnings can be accepted.
-- `PackFlow` and the wizard routes are removed; `/admin/packs/new?draft=<id>` redirects to `/admin/packs/<id>`. The season wizard (`SeasonFlow`) is unchanged.
-- Update `docs/admin/packs-and-seasons.md` ("Drafts & wizards"), `docs/admin/routes.md` (the pack routes), `docs/admin/ux-conventions.md` (widths: the pack workspace is the second full-width workspace after the Overlay Editor) and `CLAUDE.md`'s wizards convention (packs use the workspace; seasons keep the wizard).
-- **Not changed:** card and pack data shapes, KV keys, the public site, the overlay, the Twitch panel.
-- **Checks:** `npm run verify`, `scripts/check-pack-editor.mts` grown for the draft and publish path, and a hand pass against the mock KV at 1280px and 390px. Blob uploads can't be checked locally; say so in the PR.
+Decided 2026-10-19 (GitHub Issue #294). Admins can edit the FAQ directly from the dashboard (`/admin/faq`), reorder section blocks, add new questions, edit answers, create custom sections, and toggle visibility.
+
+- **Store & Core (`lib/faq-core.ts`, `lib/faq.ts`):** `FaqStoreData` backed by KV `site:faq`. Section blocks can be reordered, hidden, or created. Built-in sections (`start`, `commands`, `cards`, `trading`, `upgrades`, `profile`, `show`, `points`, `seasons`, `extension`, `privacy`, `help`) provide default ordering and built-in questions. Custom questions support formatted answers (paragraphs, bold, bullet points, links).
+- **Admin UI (`app/admin/faq/page.tsx`, `FaqEditorClient.tsx`):** Nav entry in `lib/admin-nav.ts` under Community (`/admin/faq`, icon `help`, shortcut `q`). Reorder section blocks (move up/down), toggle section visibility, add/edit/delete custom questions, and reorder questions within sections. Armed deletion for custom questions and custom sections. Armed reset to defaults. All actions guarded by `requireAdmin()` and logged via `recordAudit`.
+- **Public Site (`app/(site)/faq/page.tsx`, `parts.tsx`):** Reads `getFaqStore()`. Dynamic nav pills and section blocks render in configured order. Built-in sections render their base questions plus any custom questions assigned to that block. Custom sections render with their icon and questions.
+- **Checks & Docs:** `scripts/check-faq.mts` (store normalization, CRUD operations, ordering, staff guard, mock KV). Update `docs/admin.md` and `docs/public-site.md`.
+
 
 ### Next extension version (Blocked until the freeze lifts)
 
@@ -106,16 +102,6 @@ Parallel streams, so no two open PRs edit the same files:
 
 **Twitch panel freeze:** nothing in a Ready item edits `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the behaviour or response shape of `/api/twitch/*`, or the CORS rules in `middleware.ts`. 29.5, 30.4, and the panel's copy of the edition/print words (25.2) are the exceptions and they are blocked.
 
-### 27.5 An achievement can grant a bonus (Ready after 30.1, M)
-
-Decided with 27.3. The list editor has shipped (Settings → Achievements). This item adds the bonus, and it uses the buff catalogue from 30.1 so there is one bonus system.
-
-- On each achievement row, an optional bonus: none, or one buff definition (extra pulls, extra pack, or a personal buff with a duration). Not a community buff: an achievement is earned by one person.
-- When `syncAchievements` newly earns it, apply that buff to the user with `source: 'achievement:<id>'`. The badge stays forever. The bonus expires by the buff's own rule (time, streams, season, or the next N pulls). Earning it again does not happen (stored achievements are not re-awarded), so the bonus is not applied twice.
-- Switching the achievement off later does not strip a bonus already granted.
-- **Checks:** extend `scripts/check-achievements.mts`: a new earn writes one buff; a second sync does not write another; a disabled kind grants nothing new.
-- **Docs:** the achievements section from 27.3.
-
 ### 29.3 Stars keep setting the value (decided, no PR)
 
 Decided 2026-10-19. The stars on a card keep setting its value. The version multiplier stays as it is today (`baseScore × rarity from Card.stars × variantMultiplier × print bonus` in `lib/leaderboard.ts`). A Golden edition, once it exists, gets a version multiplier the same way a Full Art Holo does. It does not replace the stars.
@@ -130,58 +116,10 @@ When the freeze lifts, in the same panel version as Ext:
 - Overlay already learned Golden in 29.1 and 29.4.
 - Rebuild the extension zip (`scripts/lib/twitch-package.mjs` is in the freeze too). Bump `version`, screenshots, `twitch-extension/SUBMISSION.md`.
 
-### 30.1 Trainer cards: buff model and Buff Editor (Ready, L)
-
-Decided 2026-10-19. A trainer card grants one buff when its holder uses it, then the card is consumed (30.2). Staff-gated with the existing roles: admins edit (`requireAdmin`), mods do not get the page. No new role.
-
-**Buff types** (the catalogue achievements also use, 27.5):
-
-| Type | What the holder gets |
-|---|---|
-| `extra-pulls` | Their per-stream pull limit goes up by the magnitude while the buff lasts. Writes a `PullBuff` (`lib/pull-limit-core.ts`). A base limit of 0 still means no limit. |
-| `extra-pack` | Magnitude pack credits. One pack is one card pull, the same as `!pack` today. A credit is used instead of counting against the stream limit. |
-| `grant-achievement` | Awards one built-in achievement (and that achievement's bonus, once 27.5 has shipped). The achievement stays. This type has no duration. |
-| Community | The same `extra-pulls` or `extra-pack`, but for every viewer, not one holder. Each viewer gets the benefit. It is not a shared pool. Stored once at `buffs:community`, not copied onto every user. |
-
-**How long it lasts** (not used for `grant-achievement`):
-
-- **Time:** a number of hours (`until` timestamp). Cap 1 to 8760.
-- **Streams:** a number of stream keys (`streamKey()` in `lib/mixitup-core.ts`). Cap 1 to 30. Dropped when the limit is read, not by a cron.
-- **Season:** until the active season changes.
-- **Pulls:** for the next N pulls (cap 1 to 100). Decremented when a pull is saved for that viewer. A community buff counts a pull by each viewer separately.
-
-Magnitude for pulls and packs is 1 to 10. **Stacking:** `refresh` moves the expiry out and does not add the amount again; `reject` refuses the use while that buff is active. Two different buffs both apply, up to `MAX_BUFFS` (20).
-
-**Trade (decided).** A trainer card can be traded until someone uses it, like any other edition. Favourites and escrow still block a trade. Using it consumes it, so the new holder is the one who can use it. 30.2 does not add a trade ban.
-
-**Model (pure, `lib/buffs-core.ts`):** `BuffDef`: `id`, `name`, `type`, `magnitude`, `duration: { unit: 'hours' | 'streams' | 'season' | 'pulls'; n?: number }`, `stack: 'refresh' | 'reject'`, `scope: 'self' | 'community'`, and `achievementId` when the type grants an achievement. KV `trainer:buffs` holds the definitions. A card gains `kind?: 'collector' | 'trainer'` (absent means collector) and `buffId?: string`, through the normal card save. A trainer is a Regular collection entry, so the frozen panel shows it as an ordinary card and needs no new key.
-
-**Obtained** by a normal pull (the card's probability) or an admin grant. No variant roll, upgrades forced off. Not crafted.
-
-**Editor.** `/admin/buffs`, "Buff Editor for Trainer Cards", nav entry in `lib/admin-nav.ts` (Game group), `docs/admin/routes.md`. List, create, edit, delete. Delete is refused while a card or an achievement still points at the buff. Pack workspace card panel: Kind, and a Buff select when Kind is Trainer. `ArmedButton` on delete. Audited (`recordAudit`).
-
-**Docs:** `docs/admin.md` index line, and a short section in `docs/admin/packs-and-seasons.md` for the card kind. The FAQ waits for 30.2 so it does not describe a button that does not exist.
-
-**Checks:** `scripts/check-buffs.mts` for the pure rules (duration maths, stack, community is not copied onto a user, caps). No KV writes from a laptop.
-
-### 30.2 Use a trainer card: consume, buff, audit (Ready after 30.1, M)
-
-- Owner, on the website card dialog: **Use** (two-tap, same arming as Upgrade). Hidden for visitors, for collector cards, and while the edition is in an offer or favourited.
-- Server action, session viewer, not a client-supplied user. Confirms they hold one Regular copy, `card.kind === 'trainer'`, the buff exists, stack rule allows it.
-- Applies the buff from 30.1: a personal `PullBuff` or pack credit on `user:<u>:pulllimit`, a row on `buffs:community`, or an achievement award. Source `card:<number>`.
-- Consumes one edition: remove one collection entry (newest first, same choice as an upgrade spend) and retire that ledger copy. The card is gone. A timed buff can outlive it.
-- `recordAudit(username, 'Trainer card used', '<card name>, <buff name>, until ...')`. New activity type `buff` on the site log only. Do not add it to any `/api/twitch/*` response.
-- Tradable until used. Favourites and escrow still cannot be used or traded away by the usual rules. No new trade ban.
-- **Checks:** `scripts/check-buffs.mts`: refresh does not double the amount, reject blocks, each duration drops the buff, a pull credit is consumed by one pull, a second copy is required for a second use, a favourite cannot be used.
-- **Docs:** FAQ "What is a trainer card?" under Cards & versions.
-
-### 30.3 Chat command to use a trainer card (Ready after 30.2, S)
-
-New `COMMAND_ACTIONS` id `use-trainer`. `!use` plus a card name or number. Same server function as the button. Dry run does not consume and does not write a buff. Reply variables: `{cardName}`, `{buff}`, `{until}`, `{left}` (pulls left this stream). Errors: not owned, not a trainer, already active (when stack is reject), cooldown. Seed nothing until the owner enables it (do not surprise chat). 28.2's copy-setup block picks it up with the other commands. Not a panel change.
-
 ### 30.4 Use a trainer card from the Twitch panel (Blocked, panel freeze)
 
 The panel can already show the card as a normal collection entry (Regular encoding). It has no Use button, and it must not grow one during the freeze. When the freeze lifts, add Use next to Upgrade on that card only, calling a new field on an existing authenticated route or a new `/api/twitch` route in that panel version (not before). Same two-tap, same consume rules as 30.2.
+
 
 ## Blocked by the Twitch freeze
 

@@ -1,10 +1,11 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { TradeSettings } from '@/lib/trade-core';
 import { Section, Q } from '../parts';
 
-export function TradingSection({ trade }: { trade: TradeSettings }) {
+export function TradingSection({ trade, title = 'Trading', extra }: { trade: TradeSettings; title?: string; extra?: ReactNode }) {
   return (
-    <Section id="trading" title="Trading" icon="trade">
+    <Section id="trading" title={title} icon="trade">
       <Q q="How does trading work?" open>
         <p>
           Open the <Link href="/trade" className="text-yellow-400 hover:text-yellow-300">Trade</Link> page (you need to be logged in with Twitch) and make an offer: pick the cards you give and the cards you want back. Any edition of any version can be traded.
@@ -69,6 +70,7 @@ export function TradingSection({ trade }: { trade: TradeSettings }) {
       <Q q="Can I trade in the Twitch extension?">
         Yes. The extension has a Trades tab where you can accept, decline or <strong className="text-white">counter</strong> offers, take listings from the open board, cancel your own offers and make new ones (name a viewer, or leave the name empty to post on the board). Listings for cards on your Looking for list or saved alerts are tagged <em>On your list</em>, and the tab shows a dot when one appears. It works exactly like the website, so your offers and cards are the same in both places. The website also has extras such as matches and the full history.
       </Q>
+      {extra}
     </Section>
   );
 }

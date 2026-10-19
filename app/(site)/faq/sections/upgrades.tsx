@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react';
 import type { UpgradeCosts } from '@/lib/types';
 import { Section, Q } from '../parts';
 
-export function UpgradesSection({ costs, upgradesOn }: { costs: UpgradeCosts; upgradesOn: boolean }) {
+export function UpgradesSection({ costs, upgradesOn, title = 'Upgrading', extra }: { costs: UpgradeCosts; upgradesOn: boolean; title?: string; extra?: ReactNode }) {
   return (
-    <Section id="upgrades" title="Upgrading" icon="arrowUp">
+    <Section id="upgrades" title={title} icon="arrowUp">
       {upgradesOn ? (
         <>
           <Q q="How do upgrades work?" open>
@@ -42,6 +43,7 @@ export function UpgradesSection({ costs, upgradesOn }: { costs: UpgradeCosts; up
       <Q q="Can I trade upgraded cards?">
         Yes. Any edition of any version can be traded, including an upgraded one. A favourite, or an edition already in an offer, cannot. See <a href="#trading" className="text-yellow-400 hover:text-yellow-300">Trading</a>.
       </Q>
+      {extra}
     </Section>
   );
 }

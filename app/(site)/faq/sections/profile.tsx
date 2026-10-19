@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Section, Q } from '../parts';
 
-export function ProfileSection() {
+export function ProfileSection({ title = 'Your profile', extra }: { title?: string; extra?: ReactNode } = {}) {
   return (
-    <Section id="profile" title="Your profile" icon="user">
+    <Section id="profile" title={title} icon="user">
       <Q q="What is on a profile?" open>
         Every collector has a public profile with an <em>Overview</em>, their <em>Collection</em>, <em>Stats</em>, <em>Trades</em> and <em>Activity</em>. The Collection tab lets you search, filter by rarity or pack, sort, and (when you are
         logged in and looking at someone else) compare what you each have.
@@ -31,6 +32,7 @@ export function ProfileSection() {
       <Q q="What are the experimental features?">
         Early features you can switch on in Settings, such as keyboard shortcuts (press <kbd className="kbd">g</kbd> then a letter to jump between pages, or <kbd className="kbd">?</kbd> for the list) and a profile accent colour. They may change or go away.
       </Q>
+      {extra}
     </Section>
   );
 }

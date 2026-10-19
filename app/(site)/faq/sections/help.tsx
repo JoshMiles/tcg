@@ -1,11 +1,12 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { FEEDBACK_LIMITS } from '@/lib/feedback-core';
 import { CHANNEL_NAME, CHANNEL_URL, reportProblemUrl } from '@/lib/site';
 import { Section, Q } from '../parts';
 
-export function HelpSection() {
+export function HelpSection({ title = 'Something not working?', extra }: { title?: string; extra?: ReactNode } = {}) {
   return (
-    <Section id="help" title="Something not working?" icon="wrench">
+    <Section id="help" title={title} icon="wrench">
       <Q q="Why can&rsquo;t I get in?" id="closed">
         While the Cheesy TCG is in a closed alpha or beta, only invited testers can open the website. If you see the closed page, log in with Twitch; if your name is not on the tester list yet, ask in the {CHANNEL_NAME} Discord. The Privacy Policy and the Terms stay open to everyone; this FAQ is for testers too. Playing on stream is not affected: packs are still opened live on the{' '}
         <a href={CHANNEL_URL} className="text-yellow-400 hover:text-yellow-300" target="_blank" rel="noopener noreferrer">{CHANNEL_NAME} channel</a>, and the Twitch panel keeps working.
@@ -29,6 +30,7 @@ export function HelpSection() {
       <Q q="A card or my score looks wrong">
         Refresh first. Scores are recalculated whenever anyone pulls or upgrades, so they can move even when you haven&rsquo;t done anything. If something still looks wrong, tell the streamer in chat.
       </Q>
+      {extra}
     </Section>
   );
 }
