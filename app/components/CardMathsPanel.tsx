@@ -64,8 +64,8 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
         )}
 
         <div className="rounded-lg bg-gray-900/70 border border-gray-800 p-3">
-          <Eq>points = max(1, round( <Hi>base</Hi> × <Hi>rarity</Hi> × <Hi>version</Hi> × <Hi>edition bonus</Hi> ))</Eq>
-          <Eq>{label}, no edition bonus: round( {n(m.baseScore, 4)} × {n(m.rarity, 4)} × {n(m.multiplier[v], 4)} ) = round({n(m.raw[v], 3)}) = <Hi>{m.values[v].toLocaleString()} pts</Hi></Eq>
+          <Eq>points = max(1, round( <Hi>base</Hi> × <Hi>rarity</Hi> × <Hi>version</Hi> × <Hi>print bonus</Hi> ))</Eq>
+          <Eq>{label}, no print bonus: round( {n(m.baseScore, 4)} × {n(m.rarity, 4)} × {n(m.multiplier[v], 4)} ) = round({n(m.raw[v], 3)}) = <Hi>{m.values[v].toLocaleString()} pts</Hi></Eq>
         </div>
 
         <ol className="space-y-4">
@@ -90,23 +90,23 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
               <>
                 <Eq>multiplier = max( by odds, by crafting cost )</Eq>
                 <Eq>by odds = Regular weight ÷ {label} weight = {n(m.weights.regular)} ÷ {n(m.weights[v])} = {n(m.byOdds[v], 3)}</Eq>
-                <Eq>by cost = {VARIANT_LABELS[prev]} multiplier × prints to upgrade × margin = {n(m.multiplier[prev], 3)} × {m.costs[v as Exclude<Variant, 'regular'>]} × {n(m.upgradeMargin)} = {n(m.byCost[v], 3)}</Eq>
+                <Eq>by cost = {VARIANT_LABELS[prev]} multiplier × editions to upgrade × margin = {n(m.multiplier[prev], 3)} × {m.costs[v as Exclude<Variant, 'regular'>]} × {n(m.upgradeMargin)} = {n(m.byCost[v], 3)}</Eq>
                 <Eq>= max({n(m.byOdds[v], 3)}, {n(m.byCost[v], 3)}) = <Hi>{n(m.multiplier[v], 3)}</Hi> <span className="text-gray-500">({m.byOdds[v] >= m.byCost[v] ? 'set by how rare it is to pull' : 'set by what it costs to craft'})</span></Eq>
-                <Note>The cost floor means upgrading is never a pure loss: a crafted print is always worth a little more than the prints it consumed.</Note>
+                <Note>The cost floor means upgrading is never a pure loss: a crafted edition is always worth a little more than the editions it consumed.</Note>
               </>
             )}
           </Step>
 
-          <Step no={4} title={<>Edition bonus<InfoTip term="editionBonus" /></>}>
-            <Eq>bonus = 1 + (max − 1) × (1 − (edition − 1) ÷ cutoff), for edition 1 to cutoff; 1 after that</Eq>
-            <Eq>= 1 + ({n(m.serialBonusMax)} − 1) × (1 − (edition − 1) ÷ {m.serialBonusCutoff})</Eq>
+          <Step no={4} title={<>Print bonus<InfoTip term="editionBonus" /></>}>
+            <Eq>bonus = 1 + (max − 1) × (1 − (print − 1) ÷ cutoff), for print 1 to cutoff; 1 after that</Eq>
+            <Eq>= 1 + ({n(m.serialBonusMax)} − 1) × (1 − (print − 1) ÷ {m.serialBonusCutoff})</Eq>
             {m.serialBonusCutoff > 0 && m.serialBonusMax > 1 ? (
               <>
                 {samples.map(x => <Eq key={x}>{label} #{x}: ×{n(bonusAt(x), 3)} → <Hi>{pointsAt(x).toLocaleString()} pts</Hi></Eq>)}
-                <Note>The number is counted per card and version, from the first print ever made, so a Shiny #1 is the first Shiny of this card. Only prints with a low edition number earn the bonus, and it stays with the print when it is traded. {m.copies[v].toLocaleString()} {label} print{m.copies[v] === 1 ? ' exists' : 's exist'} now.</Note>
+                <Note>The number is counted per card and version, from the first print ever made, so a Shiny #1 is the first Shiny of this card. Only editions with a low print number earn the bonus, and it stays with the edition when it is traded. {m.copies[v].toLocaleString()} {label} edition{m.copies[v] === 1 ? ' exists' : 's exist'} now.</Note>
               </>
             ) : (
-              <Note>The edition bonus is switched off in the scoring settings, so every print of a version is worth the same.</Note>
+              <Note>The print bonus is switched off in the scoring settings, so every edition of a version is worth the same.</Note>
             )}
           </Step>
         </ol>
@@ -116,9 +116,9 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
           <Eq>chance per pack of this card: {pct(m.pullRate)} · expected packs to see it: {n(1 / m.pullRate, 1)}</Eq>
           {m.upgradesEnabled && <Eq>chance per pack of a {label}: {pct(variantRate)} ({label} weight {n(m.weights[v])} of {n(wTotal)}) · expected packs: {variantRate > 0 ? n(1 / variantRate, 1) : '∞'}</Eq>}
           <Eq>at least one {label} within 10 / 50 / 100 packs: {variantRate > 0 ? `${pct(within(10, variantRate))} / ${pct(within(50, variantRate))} / ${pct(within(100, variantRate))}` : '-'}</Eq>
-          {m.upgradesEnabled && v !== 'regular' && <Eq>crafting a {label} from Regulars costs {craft} prints (each step&rsquo;s cost multiplied)</Eq>}
-          <Eq>season: {m.totalCards} cards · {m.totalCopies.toLocaleString()} prints pulled · set value {m.setValue.toLocaleString()} pts (one Regular of every card)</Eq>
-          <Note>Your score is the points of every print you own, plus a progress bonus ({n(m.completionBonusPct, 1)}% of the set value × the share of cards you own) and a full set bonus ({n(m.completeSetBonusPct, 1)}% of the set value once you own every card). Values are live, so these numbers drift as the season goes on.</Note>
+          {m.upgradesEnabled && v !== 'regular' && <Eq>crafting a {label} from Regulars costs {craft} editions (each step&rsquo;s cost multiplied)</Eq>}
+          <Eq>season: {m.totalCards} cards · {m.totalCopies.toLocaleString()} editions pulled · set value {m.setValue.toLocaleString()} pts (one Regular of every card)</Eq>
+          <Note>Your score is the points of every edition you own, plus a progress bonus ({n(m.completionBonusPct, 1)}% of the set value × the share of cards you own) and a full set bonus ({n(m.completeSetBonusPct, 1)}% of the set value once you own every card). Values are live, so these numbers drift as the season goes on.</Note>
         </div>
       </div>
     </details>

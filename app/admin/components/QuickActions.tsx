@@ -148,7 +148,7 @@ export function QuickActions({
           <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4 flex flex-col gap-3 hover:border-purple-400/30 transition-colors">
             <div>
               <p className="font-semibold text-white flex items-center gap-2"><Icon name="cards" className="text-purple-300" />Grant a card</p>
-              <p className="text-xs text-gray-500 mt-0.5">Adds one print straight to their collection.</p>
+              <p className="text-xs text-gray-500 mt-0.5">Adds one edition straight to their collection.</p>
             </div>
             <select name="cardNumber" value={cardNumber} onChange={e => setCardNumber(e.target.value)} aria-label="Card to grant" className={`${inputClass} w-full`}>
               <option value="" disabled>Choose a card…</option>

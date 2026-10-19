@@ -45,7 +45,7 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search viewers…" aria-label="Search viewers" className="input w-56 pl-9" />
         </div>
         <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="select select-sm">
-          <option value="copies">Most prints</option><option value="rank">Best rank</option><option value="name">Name</option><option value="new">Newest</option>
+          <option value="copies">Most editions</option><option value="rank">Best rank</option><option value="name">Name</option><option value="new">Newest</option>
         </select>
         <span className="text-xs text-gray-500">{list.length} of {rows.length}</span>
         {picked.size > 0 && (
@@ -68,7 +68,7 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
             <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
               <th className="w-10 pl-4 py-2.5 text-left"><input type="checkbox" aria-label="Select all shown" checked={shown.length > 0 && shown.every(r => picked.has(r.username))} onChange={e => setPicked(e.target.checked ? new Set(shown.map(r => r.username)) : new Set())} className="accent-yellow-400" /></th>
               <th className="py-2.5 text-left">Viewer</th>
-              <th className="py-2.5 text-right">Rank</th><th className="py-2.5 text-right">Score</th><th className="py-2.5 text-right">Prints</th><th className="py-2.5 text-right">Unique</th>
+              <th className="py-2.5 text-right">Rank</th><th className="py-2.5 text-right">Score</th><th className="py-2.5 text-right">Editions</th><th className="py-2.5 text-right">Unique</th>
               <th className="pr-4 py-2.5 text-right">Actions</th>
             </tr>
           </thead>

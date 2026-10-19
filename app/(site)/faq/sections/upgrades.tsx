@@ -24,8 +24,8 @@ export function UpgradesSection({ costs, upgradesOn }: { costs: UpgradeCosts; up
           <Q q="What are the rules?">
             <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
               <li>Only one step at a time. No skipping from Regular straight to Shiny.</li>
-              <li>Only prints of the <strong className="text-white">same card and the same version</strong> can be combined.</li>
-              <li>Upgrades are <strong className="text-white">permanent</strong>. The prints you spend are destroyed, so the Upgrade button asks you to tap twice (the first tap says &ldquo;Sure?&rdquo;).</li>
+              <li>Only editions of the <strong className="text-white">same card and the same version</strong> can be combined.</li>
+              <li>Upgrades are <strong className="text-white">permanent</strong>. The editions you spend are destroyed, so the Upgrade button asks you to tap twice (the first tap says &ldquo;Sure?&rdquo;).</li>
               <li>Only the current season can be upgraded.</li>
               <li>Some cards or packs can have upgrades turned off.</li>
             </ul>

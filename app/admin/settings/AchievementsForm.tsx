@@ -1,7 +1,7 @@
 import { ACHIEVEMENT_KINDS, DETAIL_MAX, TITLE_MAX, rowSetting, type AchievementSettings } from '@/lib/achievement-settings';
 import { Panel } from '../components/ui';
 
-const GROUPS = ['Set', 'Rarity', 'Version', 'Edition number'] as const;
+const GROUPS = ['Set', 'Rarity', 'Version', 'Print number'] as const;
 
 /** One row per built-in kind. A blank title or detail keeps the sentence the game already uses. */
 export function AchievementsForm({ settings, save }: { settings: AchievementSettings; save: (formData: FormData) => Promise<void> }) {

@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (27.3 shipped: Settings → Achievements can switch a built-in goal off or replace its title and detail. A goal already earned stays. 28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (25.2 shipped: a copy is an edition, Edition #uid is the game-wide id, Print #n of N is the sequence, and the points bonus is the print bonus. The Twitch panel still says print for a copy. The home block is Edition of the week until 25.1. 27.3 shipped: Settings → Achievements can switch a built-in goal off or replace its title and detail. A goal already earned stays. 28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -19,7 +19,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 4.4 | Link a Discord account for DMs | Needs a decision | L |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 25.1 | Home: Card of the week | Ready | S |
-| 25.2 | A copy is an edition; "24 of 28" is a print | Ready | L |
 | 27.1 | FAQ pass: cards, commands, trading, points, brackets | Ready | M |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
 | 28.1 | Pull limits per role, editable, plus a this-stream buff | Ready | M |
@@ -67,7 +66,7 @@ Ship as one reviewed panel version: the pack card back on the panel's flip backs
 
 From Cheesygidds and Joshua in Discord (the two screenshots), checked against `main` on 2026-10-19. One PR per item, each branched from up-to-date `origin/main`. New UI uses the daisyUI 5 `cheesy` primitives (`btn`, `card`, `input`, `select`, `badge`, `fieldset`). No em dashes. Public copy uses `CHANNEL_NAME` / `CHANNEL_URL` from `lib/site.ts`.
 
-**Glossary (decided 2026-10-19, built in 25.2).** A person's copy of a card is an **edition**, not a print ("your recent editions"). The game-wide id is **Edition #1023381** (`Copy.uid`). The line that today says "Edition #24 of 28" is the sequence, and it becomes **Print #24 of 28** (`Copy.n`). That sequence is what the points bonus uses. Code, KV and URLs keep saying copy, serial and uid. Until 25.2 ships, the site still uses the old words, and `scripts/check-words.mts` still requires them.
+**Glossary (decided 2026-10-19, built in 25.2).** A person's copy of a card is an **edition**, not a print ("your recent editions"). The game-wide id is **Edition #1023381** (`Copy.uid`). The line that today says "Edition #24 of 28" is the sequence, and it becomes **Print #24 of 28** (`Copy.n`). That sequence is what the points bonus uses. Code, KV and URLs keep saying copy, serial and uid. `scripts/check-words.mts` requires these words. The Twitch panel still says print for a copy.
 
 **Already on the site (do not rebuild):**
 - **Master set.** `evaluateSeason` in `lib/achievements.ts` already awards `master` ("Master set: {season}", own every card in every version). The FAQ already says so (`app/(site)/faq/sections/profile.tsx`, "What are achievements?"). The goal is omitted when every card has only Regular, because it would be the same as Completed. Season 1's pack has upgrades off, so the goal does not show there. Turning versions on is what makes it appear. No new kind.
@@ -80,7 +79,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Discord line | Item |
 |---|---|
 | Home layout: Card of the week, card name, print, edition, held by, See its journey | 25.1 |
-| Change the name of print to edition (swap the names round) | 25.2 |
+| Change the name of print to edition (swap the names round) | Done |
 | Collectors page: Top collectors, collector name, 24/25 cards, Card dex | Done |
 | Text should say Bottomgidds, not bottomygidds | Done |
 | Font change on the card back editor | Done |
@@ -112,9 +111,9 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 ### Tracks 25 to 30: order
 
 Parallel streams, so no two open PRs edit the same files:
-- **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
+- **Glossary:** 25.2 shipped. 25.1 and 27.1 come next and use edition and print as 25.2 defines them.
 - **FAQ:** 27.1 after 25.2 (same words).
-- **Fonts:** 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 25.2, 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 25.2, then 28.4, then 29.1, then 29.4.
+- **Fonts:** 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 28.4, then 29.1, then 29.4.
 - **Mix It Up:** 28.1 edits `lib/pull-limit-core.ts`. Do not run it beside 30.2.
 - **Variants:** 29.1 (includes the audit and the dry-run script), then 29.4. There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
 - **Trainers and achievement bonuses:** 30.1, then 30.2, then 30.3, and 27.5 after 30.1 (it picks a buff from that catalogue). 30.4 waits for the freeze.
@@ -124,28 +123,14 @@ Parallel streams, so no two open PRs edit the same files:
 
 ### 25.1 Home: Card of the week (Ready, S)
 
-After 25.2, so the labels below are the new ones. The home block is "Print of the week" (`app/components/site/PrintOfWeek.tsx`, data from `potw:current`, docs in `docs/serials.md` and `docs/public-site/home.md`). Keep the pick, the KV keys and the admin feature button. Change the player-facing layout only.
+After 25.2, so the labels below are the new ones. The home block is "Edition of the week" (`app/components/site/PrintOfWeek.tsx`, data from `potw:current`, docs in `docs/serials.md` and `docs/public-site/home.md`). Keep the pick, the KV keys and the admin feature button. Change the player-facing layout only.
 
 - Title: **Card of the week**.
 - Lines, in this order: **card name** (version + name, as today), **Edition #**`uid` (the copy), **Print #n of N** (the sequence, from `editionLine`), **Held by** `@name` (same masking as today: private collector, or a trade offer), **See its journey** to `/copy/{seasonId}/{copyId}`.
 - Keep the short reason line under those, in smaller type. It is how the pick is explained.
-- The FAQ question "How is the print of the week chosen?" becomes "How is the card of the week chosen?" and the answer says an edition is featured. Anchor id can stay so old links work; add `id="card-of-the-week"` as well if the old id moves.
+- The FAQ question "How is the edition of the week chosen?" becomes "How is the card of the week chosen?" and the answer says an edition is featured. Anchor id can stay so old links work; add `id="card-of-the-week"` as well if the old id moves.
 - Internal names (`potw`, `PrintOfWeek`, admin "Feature as print of the week") stay.
 - **Checks:** `npm run verify`. Hand pass of `/` with a featured edition and with none (the block hides when the edition was spent).
-
-### 25.2 A copy is an edition; "24 of 28" is a print (Ready, L)
-
-Decided 2026-10-19. Do not keep the old glossary.
-
-- A person's copy is an **edition**. Lists say "recent editions", and the unique id is **Edition #1023381** (`Copy.uid`, was "Print #1023381").
-- The card page line that says "Edition #24 of 28" says **Print #24 of 28**. That is `Copy.n` and how many have been made. The points bonus uses this number, so player-facing text calls it the **print bonus** (the code name `serialMultiplier` stays).
-- The older Discord sentence "Edition #1 is worth 3x ... the 40th edition" is superseded by this swap. 27.1 writes it as print #1 through the 40th print.
-- Code, KV keys, URLs (`/copy`, `/c/<uid>`) and the copy id `<card>.<index>.<n>` do not rename. Card-back template tokens `{printNumber}` and `{edition}` do not rename, or saved designs break. What they render swaps: `{printNumber}` is Edition #uid, `{edition}` is Print #n of N. Staff-facing element labels swap to match. A custom line someone typed is not rewritten.
-- Stored overlay value `reveal.serialFormat` (`edition` / `print` / `both`) stays. The menu labels swap so "edition" means Edition #uid and "print" means Print #n.
-- `scripts/check-words.mts` flips in this PR: player-facing text must not call a copy a print, and must not call the n-of-N line an edition.
-- Surfaces: FAQ, `SerialChip`, `editionLine` in `lib/flip-back.ts` (the function keeps its name; the string changes), profile, the leaderboard "Prints" count (it becomes "Editions"), activity, share images, overlay labels in `public/widget.js`, admin labels, `docs/serials.md`.
-- **Not in this PR:** `public/twitch-panel/*`. The panel keeps saying print for a copy until the freeze lifts. Say that in the PR.
-- **Checks:** `scripts/check-words.mts`, `npm run verify`, and a pass of a copy page, a profile and the FAQ. The panel is not loaded.
 
 ### 27.1 FAQ pass (Ready, M)
 
@@ -335,7 +320,7 @@ Do not touch `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the beha
 | Ext | The whole next panel version, including the collection privacy fix already written above |
 | 29.5 | Decoding and drawing Golden. Until then `GOLDEN_PULLS` stays off, so no index-4 number is ever written |
 | 30.4 | A Use button in the panel. Website use (30.2) and the chat command (30.3) do not wait |
-| 25.2 panel strings | The website and the overlay change in 25.2. The panel keeps the old words (a copy is a print) until the freeze lifts |
+| 25.2 panel strings | The website and the overlay changed in 25.2. The panel still says print for a copy until the freeze lifts |
 
 Ready items above were checked against this list. Showoff, paid-pull limits, share images, the FAQ and the card back editor do not go through the frozen paths.
 

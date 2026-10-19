@@ -72,8 +72,8 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
       <section className="card rounded-2xl p-5 space-y-3 lg:col-span-2">
         <h2 className="font-display text-xl font-bold text-white">Where the points come from</h2>
         <dl className="text-sm divide-y divide-gray-800/70">
-          <div className="flex justify-between py-2"><dt className="text-gray-300">Cards <span className="text-gray-600">· every print</span></dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
-          <div className="flex justify-between py-2"><dt className="text-gray-300">Edition bonus<InfoTip term="editionBonus" /> <span className="text-gray-600">· low numbers</span></dt><dd className={`tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{Math.round(s.serialPoints).toLocaleString()}</dd></div>
+          <div className="flex justify-between py-2"><dt className="text-gray-300">Cards <span className="text-gray-600">· every edition</span></dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
+          <div className="flex justify-between py-2"><dt className="text-gray-300">Print bonus<InfoTip term="editionBonus" /> <span className="text-gray-600">· low numbers</span></dt><dd className={`tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{Math.round(s.serialPoints).toLocaleString()}</dd></div>
           <div className="flex justify-between py-2"><dt className="text-gray-300">Progress bonus<InfoTip term="progressBonus" /> <span className="text-gray-600">· {s.completionPct}% of the set</span></dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
           <div className="flex justify-between py-2"><dt className="text-gray-300">Full set bonus<InfoTip term="fullSetBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : <span className="text-gray-600">{s.totalCards - s.uniqueCards} card{s.totalCards - s.uniqueCards === 1 ? '' : 's'} to go</span>}</dd></div>
           <div className="flex justify-between py-2 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
@@ -91,11 +91,11 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
             </li>
           ))}
         </ul>
-        <p className="text-xs text-gray-500">{s.copies} print{s.copies === 1 ? '' : 's'} in total.</p>
+        <p className="text-xs text-gray-500">{s.copies} edition{s.copies === 1 ? '' : 's'} in total.</p>
       </section>
 
       <section className="card rounded-2xl p-5 space-y-3">
-        <h2 className="font-display text-xl font-bold text-white">Most valuable prints</h2>
+        <h2 className="font-display text-xl font-bold text-white">Most valuable editions</h2>
         <ul className="divide-y divide-gray-800/70">
           {s.topCopies.slice(0, 5).map((t, i) => (
             <li key={`${t.card.number}-${t.variant}-${t.serial ?? 'all'}`}>

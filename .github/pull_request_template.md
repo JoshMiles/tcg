@@ -4,7 +4,7 @@ Audience: players (the public What's new page: features and fixes collectors not
 Title: a short heading for that audience (optional; otherwise the PR title is used).
 Tags: new, improved or fixed (one or more; they become the coloured pills).
 Write "none" on the first line instead for internal changes nobody would notice (refactors, tests, docs). ROADMAP PRs are skipped anyway.
-Say "print" for a card copy; no credits. -->
+Say "edition" for a card copy; no credits. -->
 Audience: players
 Title: 
 Tags: new

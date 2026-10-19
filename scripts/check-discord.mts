@@ -130,7 +130,7 @@ const only = (n: number) => hits.length === 1 && hits[0].path.includes(`/${n}/`)
 hits.length = 0;
 await d.notifyDiscord(event({ type: 'upgrade', cardName: 'Cat', from: 'regular', to: 'shiny', cost: 3, uid: 1023381, copyId: '1.3.1' }));
 ok(only(11), 'an upgrade reaches only the Upgrades channel');
-ok(JSON.stringify(hits[0].body).includes('Print #1023381') && JSON.stringify(hits[0].body).includes('/c/1023381'), 'the upgrade embed names and links the print');
+ok(JSON.stringify(hits[0].body).includes('Edition #1023381') && JSON.stringify(hits[0].body).includes('/c/1023381'), 'the upgrade embed names and links the edition');
 hits.length = 0;
 await d.notifyDiscord(event({ type: 'trade', action: 'accepted', partner: 'bob', kind: 'direct', give: ['a'], get: ['b'], givePts: 1, getPts: 1 }));
 ok(only(12), 'a completed trade reaches only the Trades channel');
@@ -199,7 +199,7 @@ ok(hits.length === 1 && hits[0].path.includes('/61/'), 'a webhook grant goes to 
 const emb = hits[0].body.embeds[0] as { title?: string; description?: string; fields?: { name: string }[] };
 ok(/★★★★ Gouda Goat/.test(emb.title ?? '') && /pulled/.test(emb.description ?? '') && /FIRST EVER/.test(emb.description ?? '') && /NEW!/.test(emb.description ?? ''), 'it looks like a pull: stars, pulled, first ever, new');
 ok(/Granted by webhook/.test(emb.description ?? ''), 'and says it was granted by webhook');
-ok(['Pack', 'Collected', 'Edition'].every(n => emb.fields?.some(f => f.name === n)), 'with the same Pack, Collected and Edition fields');
+ok(['Pack', 'Collected', 'Print'].every(n => emb.fields?.some(f => f.name === n)), 'with the same Pack, Collected and Print fields');
 hits.length = 0;
 await d.notifyDiscord(wg({ stars: 2 }));
 ok(hits.length === 0, 'the Pulls channel star filter applies to it');

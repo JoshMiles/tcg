@@ -22,7 +22,7 @@ function madeStep(origin: Origin | undefined, to: ReactNode | null): ReactNode {
   switch (origin) {
     case 'grant': return to ? <>Given to {to}</> : <>Given as a gift</>;
     case 'upgrade': return to ? <>Forged by {to} in an upgrade</> : <>Forged in an upgrade</>;
-    case 'estimated': return to ? <>Already held by {to} when prints were first numbered</> : <>Existed before prints were numbered</>;
+    case 'estimated': return to ? <>Already held by {to} when editions were first numbered</> : <>Existed before editions were numbered</>;
     case 'other': return to ? <>Added to {to}&rsquo;s collection</> : <>Added to a collection</>;
     default: return to ? <>Pulled by {to}</> : <>Pulled</>;
   }
@@ -47,7 +47,7 @@ export function ProvenanceTimeline({ prov, who, plain, seasonId, refs, madeFrom,
   const total = segments.reduce((n, s) => n + (s.heldMs ?? 0), 0);
   const ref = (id: string) => {
     const r = refs[id];
-    return <Link href={`/copy/${encodeURIComponent(seasonId)}/${id}`} className="text-yellow-300 hover:text-yellow-200 tabular-nums">{r?.uid ? `Print #${r.uid}` : r ? `edition #${r.n}` : 'a print'}</Link>;
+    return <Link href={`/copy/${encodeURIComponent(seasonId)}/${id}`} className="text-yellow-300 hover:text-yellow-200 tabular-nums">{r?.uid ? `Edition #${r.uid}` : r ? `print #${r.n}` : 'an edition'}</Link>;
   };
 
   const tile = (label: string, value: ReactNode, sub?: ReactNode) => (

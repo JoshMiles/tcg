@@ -196,7 +196,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
                   <p className="text-sm font-semibold text-white truncate">{c.name}</p>
                   <p className="text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)} {rarity?.label}</p>
                   <p className="text-[11px] text-gray-500">1 in {Math.round(1 / c.pullRate).toLocaleString()} · {c.copies} out there</p>
-                  <p className="text-[11px] text-yellow-300/90 tabular-nums" title={c.upgradable ? 'Points per print: Regular · Reverse Holo · Full Art · Shiny' : 'Points per print'}>
+                  <p className="text-[11px] text-yellow-300/90 tabular-nums" title={c.upgradable ? 'Points per edition: Regular · Reverse Holo · Full Art · Shiny' : 'Points per edition'}>
                     {c.upgradable ? c.values.join(' · ') : c.values[0]} pts
                   </p>
                 </div>
@@ -281,7 +281,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
             <div className="grid grid-cols-3 gap-3">
               <Stat label="Pull chance" tip="pullChance" value={oneIn(card.pullRate)} sub="per pack" />
-              <Stat label="Prints out there" value={card.copies.toLocaleString()} sub="across everyone" />
+              <Stat label="Editions out there" value={card.copies.toLocaleString()} sub="across everyone" />
               <Stat label="Collectors" value={card.collectors.toLocaleString()} sub="own at least one" />
             </div>
 
@@ -317,7 +317,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
             {card.copies > 0 && (
               <Link href={`/cards/${card.number}/copies?season=${encodeURIComponent(seasonId)}`} className="flex items-center justify-between gap-2 rounded-xl border border-gray-800 bg-gray-950/40 px-3 py-2.5 text-sm font-bold text-gray-300 hover:text-white hover:border-yellow-500/40 transition-colors">
-                <span><Icon name="cheese" className="mr-1.5" />Browse every print</span><Icon name="chevronRight" className="text-gray-500" />
+                <span><Icon name="cheese" className="mr-1.5" />Browse every edition</span><Icon name="chevronRight" className="text-gray-500" />
               </Link>
             )}
 
@@ -358,7 +358,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                   })}
                 </ol>
               )}
-              <p className="text-[11px] text-gray-600">Ranked by how many prints of this card they own, across all versions.</p>
+              <p className="text-[11px] text-gray-600">Ranked by how many editions of this card they own, across all versions.</p>
             </div>
           </div>
         </div>

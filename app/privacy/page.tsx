@@ -63,13 +63,13 @@ export default function PrivacyPage() {
             <strong className="text-white">Trade offers</strong> you make or receive (who, which cards, any note you write, and when), kept in a log of the latest 400 finished trades. Open offers on the Trade page, including the board, are visible to logged-in viewers.
           </li>
           <li>
-            <strong className="text-white">A history for every print.</strong> Each print of a card has a print number, an edition number and a record of when it was created and who
+            <strong className="text-white">A history for every edition.</strong> Each edition of a card has a print number, an edition number and a record of when it was created and who
             held, traded or spent it (kept with the usernames involved). It is shown on the card&rsquo;s public page.
           </li>
           <li>
             <strong className="text-white">Alert devices</strong> if you turn on alerts (push notifications): for each device up to five, the push address your browser gives us (a web address that lets
             us send that browser an alert, together with its encryption keys), a short device label such as &ldquo;Chrome on Android&rdquo;, and when it was added and last used. We delete it when you turn alerts off,
-            remove the device in Settings, or the browser tells us the address no longer exists. It is included in your data download. If you report another collector from their profile, we keep your username, the person you reported, the reason, your details and any trade or print link you added, so staff can look into it. Only staff see it: the person you reported is never told who reported them, and reports about you are not part of your data download.
+            remove the device in Settings, or the browser tells us the address no longer exists. It is included in your data download. If you report another collector from their profile, we keep your username, the person you reported, the reason, your details and any trade or edition link you added, so staff can look into it. Only staff see it: the person you reported is never told who reported them, and reports about you are not part of your data download.
           </li>
           <li>
             <strong className="text-white">Your email address</strong> only if you choose to get notifications by email: the address you typed, which kinds of notice you picked, when you added and confirmed it, and
@@ -151,7 +151,7 @@ export default function PrivacyPage() {
             <strong className="text-white">The home page shows recent pulls and gifted cards</strong> (username, card, and when), the top collectors, and season statistics that are built from everyone&rsquo;s collections.
           </li>
           <li>
-            <strong className="text-white">Every print has a public history.</strong> Each print of a card has a print number, an edition number and a page showing when it was created and who has held it, traded it or spent it in an upgrade.
+            <strong className="text-white">Every edition has a public history.</strong> Each edition of a card has a print number, an edition number and a page showing when it was created and who has held it, traded it or spent it in an upgrade.
             Collectors with a private profile are shown as &ldquo;a private collector&rdquo; there.
           </li>
           <li>
@@ -221,7 +221,7 @@ export default function PrivacyPage() {
           <li><strong className="text-white">Disconnect from Twitch.</strong> You can remove this site&rsquo;s access from your Twitch account under Settings &rarr; Connections at any time; we hold no Twitch token, so there is nothing further to revoke on our side.</li>
           <li><strong className="text-white">Stop sharing your identity.</strong> You can stop sharing your Twitch identity with an Extension from Twitch itself (see Twitch&rsquo;s help pages on Extension permissions).</li>
           <li>
-            <strong className="text-white">Access, correct or delete your data.</strong> To delete your account, press <em>Request deletion</em> at the bottom of Settings (it asks for your login name to confirm); the request reaches us in the feedback inbox and we delete your collection, profile, settings, notices, alert devices and feedback, cancel your open trade offers and retire the prints you held (they show as a removed collector in a print&rsquo;s history), normally within a month. We keep the request itself as a record, for the same period as other feedback. You can cancel it until it is handled. For the other requests, or if you cannot use Settings, contact us (below) and we will provide a copy of the data we hold about you, correct it, or delete your collection,
+            <strong className="text-white">Access, correct or delete your data.</strong> To delete your account, press <em>Request deletion</em> at the bottom of Settings (it asks for your login name to confirm); the request reaches us in the feedback inbox and we delete your collection, profile, settings, notices, alert devices and feedback, cancel your open trade offers and retire the editions you held (they show as a removed collector in an edition&rsquo;s history), normally within a month. We keep the request itself as a record, for the same period as other feedback. You can cancel it until it is handled. For the other requests, or if you cannot use Settings, contact us (below) and we will provide a copy of the data we hold about you, correct it, or delete your collection,
             profile and activity entries. Depending on where you live (for example the EU/UK under GDPR, or California under the CCPA/CPRA) you may have additional rights, including to object to or
             restrict processing and to complain to your local data-protection authority. We will respond within the time required by applicable law.
           </li>

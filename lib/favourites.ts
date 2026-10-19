@@ -35,7 +35,7 @@ export async function spendablePrints(collection: string, owner: string, entry: 
   if (free.length < count) {
     return { ok: false, text: free.length === 0
       ? `You only have favourites of that card left. Unfavourite one to ${verb} it.`
-      : `Some of your prints of that card are favourites, so only ${free.length} can be ${verb === 'trade' ? 'traded' : 'spent'}. Unfavourite one to use more.` };
+      : `Some of your editions of that card are favourites, so only ${free.length} can be ${verb === 'trade' ? 'traded' : 'spent'}. Unfavourite one to use more.` };
   }
   return { ok: true, ids: newestFirst(free, count).map(c => c.id) };
 }

@@ -52,11 +52,11 @@ export const DEFAULT_DISCORD: DiscordSettings = { enabled: false, channels: [] }
 export const DISCORD_CATEGORIES: { key: DiscordCategory; label: string; hint: string }[] = [
   { key: 'pulls', label: 'Card pulls', hint: 'Every pack opened on stream' },
   { key: 'cards', label: 'Grants & removals', hint: 'Cards given or taken away by an admin or webhook' },
-  { key: 'upgrades', label: 'Upgrades', hint: 'Cards upgraded to a better version, with a link to the new print' },
+  { key: 'upgrades', label: 'Upgrades', hint: 'Cards upgraded to a better version, with a link to the new edition' },
   { key: 'trades', label: 'Trades', hint: 'Completed trades, counter-offers and admin cancels' },
   { key: 'listings', label: 'Trade listings', hint: 'New listings on the trade board, each with a link to its trade page' },
   { key: 'recap', label: 'Stream recap', hint: 'One summary after each stream: packs opened, rewards and grants, upgrades, overlay requests, new collectors, the rarest pull, the top puller and trades' },
-  { key: 'digest', label: 'Weekly digest', hint: 'One post each Sunday evening: pulls, new collectors and trades, the top 3, movers, the most traded and most wanted cards and the print of the week' },
+  { key: 'digest', label: 'Weekly digest', hint: 'One post each Sunday evening: pulls, new collectors and trades, the top 3, movers, the most traded and most wanted cards and the edition of the week' },
   { key: 'feedback', label: 'Feedback', hint: 'Each new suggestion and problem report, with the sender’s login (the text is cut and Markdown-escaped)' },
   { key: 'shares', label: 'Shares', hint: 'A collector posts their share image from their own profile' },
   { key: 'stream', label: 'Stream triggers', hint: 'Pack draws / collection views requested, and collections shown' },

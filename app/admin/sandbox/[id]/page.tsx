@@ -101,7 +101,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
             <Tile label="Viewers" value={stats.users.toLocaleString()} />
-            <Tile label="Prints" value={stats.copies.toLocaleString()} sub={`${stats.unique} different cards`} />
+            <Tile label="Editions" value={stats.copies.toLocaleString()} sub={`${stats.unique} different cards`} />
             <Tile label="Active season" value={stats.activeSeason ?? 'None'} sub={`${stats.seasons} season${stats.seasons === 1 ? '' : 's'}, ${stats.packs} pack${stats.packs === 1 ? '' : 's'}`} />
             <Tile label="Open trades" value={stats.openTrades} />
             <Tile label="Last used" value={sandbox.lastUsedAt ? ago(sandbox.lastUsedAt, now) : 'never'} />
@@ -174,7 +174,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
             </form>
 
             <form action={grantCopiesAction.bind(null, id)} className="card rounded-2xl p-5 space-y-3">
-              <h2 className="font-semibold text-white">Give specific prints</h2>
+              <h2 className="font-semibold text-white">Give specific editions</h2>
               <p className="text-xs text-gray-500">The quickest way to set up a one-off scenario, e.g. exactly enough Regulars to test an upgrade.</p>
               {upgradePacks.length > 0 && (
                 <p className="text-xs text-gray-500">Upgrade costs: {upgradePacks.map(p => `${p.pack.name}: ${p.pack.upgradeCosts.reverse} / ${p.pack.upgradeCosts.full} / ${p.pack.upgradeCosts.shiny} (Reverse / Full / Shiny)`).join(' · ')}</p>
@@ -187,7 +187,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                 <label className="block text-xs text-gray-500 space-y-1">Variant
                   <select name="variant" className="select w-full">{VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}</select>
                 </label>
-                <label className="block text-xs text-gray-500 space-y-1">Prints<input name="count" type="number" min={1} max={200} defaultValue={5} className={field} /></label>
+                <label className="block text-xs text-gray-500 space-y-1">Editions<input name="count" type="number" min={1} max={200} defaultValue={5} className={field} /></label>
               </div>
               <PendingButton className="btn btn-primary px-4 py-2 text-sm rounded-xl" disabled={cards.length === 0}>Give</PendingButton>
             </form>
@@ -220,7 +220,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         values.length === 0 ? <p className="card rounded-2xl p-8 text-center text-sm text-gray-500">No active season, so there are no cards to value.</p> : (
           <section className="card rounded-2xl p-5 space-y-3">
             <p className="text-xs text-gray-500 leading-relaxed">
-              Points per print = base × <strong className="text-gray-400">rarity</strong> (how unlikely the card is to be pulled) × the variant multiplier. These are the base values: a print with a low edition number (see Settings → Scoring) is worth more.
+              Points per edition = base × <strong className="text-gray-400">rarity</strong> (how unlikely the card is to be pulled) × the variant multiplier. These are the base values: an edition with a low print number (see Settings → Scoring) is worth more.
             </p>
             <div className="overflow-x-auto">
               <table className="table table-xs w-full text-xs">
@@ -228,7 +228,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
                   <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
                     <th className="text-left py-2 pr-2">#</th><th className="text-left py-2 pr-2">Card</th>
                     <th className="text-right py-2 px-2">Pull odds</th>
-                    <th className="text-right py-2 px-2" title="Prints out there: Regular / Reverse / Full / Shiny">Prints R·RH·FA·SH</th>
+                    <th className="text-right py-2 px-2" title="Editions out there: Regular / Reverse / Full / Shiny">Editions R·RH·FA·SH</th>
                     {VARIANTS.map(v => <th key={v} className="text-right py-2 px-2">{v === 'regular' ? 'Regular' : v === 'reverse' ? 'Reverse' : v === 'full' ? 'Full Art' : 'Shiny'} pts</th>)}
                   </tr>
                 </thead>

@@ -106,12 +106,12 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
         <Box type={type} href={`/leaderboard/${b.season.id}`} linkLabel="Leaderboard">
           <dl className="text-sm divide-y divide-gray-800/70">
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Cards</dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
-            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Edition bonus<InfoTip term="editionBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '-'}</dd></div>
+            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Print bonus<InfoTip term="editionBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Progress bonus<InfoTip term="progressBonus" /></dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Full set bonus<InfoTip term="fullSetBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
           </dl>
-          <p className="text-xs text-gray-500">{s.copies} print{s.copies === 1 ? '' : 's'} · {s.uniqueCards}/{s.totalCards} different cards</p>
+          <p className="text-xs text-gray-500">{s.copies} edition{s.copies === 1 ? '' : 's'} · {s.uniqueCards}/{s.totalCards} different cards</p>
         </Box>
       );
     }
@@ -124,36 +124,36 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
       const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, pickedIds.length ? 18 : 3, serialOpts);
       const artOf = (imageUrl: string, fullArtImageUrl: string | undefined, variant: typeof top[number]['variant']) => (variant === 'full' || variant === 'shiny') && fullArtImageUrl ? fullArtImageUrl : imageUrl;
       const choices: ShowcaseChoice[] = topCopies(b.allCards, b.variantMap, b.board.values.cards, 18, serialOpts).flatMap(c => {
-        const print = held.filter(x => x.card === c.number && x.variant === c.variant).sort((a, z) => a.n - z.n)[0];
-        if (!print?.uid) return [];
+        const edition = held.filter(x => x.card === c.number && x.variant === c.variant).sort((a, z) => a.n - z.n)[0];
+        if (!edition?.uid) return [];
         const art = artOf(c.imageUrl, c.fullArtImageUrl, c.variant);
-        return [{ uid: print.uid, name: c.name, thumb: cardThumbUrl(art), tag: [c.variant === 'regular' ? '' : VARIANT_LABELS[c.variant], `#${print.n}`].filter(Boolean).join(' ') || undefined }];
+        return [{ uid: edition.uid, name: c.name, thumb: cardThumbUrl(art), tag: [c.variant === 'regular' ? '' : VARIANT_LABELS[c.variant], `#${edition.n}`].filter(Boolean).join(' ') || undefined }];
       });
       const rows = pickedIds.length
         ? pickedIds.flatMap(uid => {
-            const print = held.find(c => c.uid === uid);
-            const card = print && b.allCards.find(c => c.number === print.card);
-            if (!print || !card) return [];
-            const cv = b.board.values.cards.get(print.card);
-            const points = cv ? copyPoints(cv, print.variant, print.n, b.board.values.settings) : 0;
-            return [{ number: print.card, name: card.name, imageUrl: card.imageUrl, fullArtImageUrl: card.fullArtImageUrl, stars: card.stars, variant: print.variant, points, print }];
+            const edition = held.find(c => c.uid === uid);
+            const card = edition && b.allCards.find(c => c.number === edition.card);
+            if (!edition || !card) return [];
+            const cv = b.board.values.cards.get(edition.card);
+            const points = cv ? copyPoints(cv, edition.variant, edition.n, b.board.values.settings) : 0;
+            return [{ number: edition.card, name: card.name, imageUrl: card.imageUrl, fullArtImageUrl: card.fullArtImageUrl, stars: card.stars, variant: edition.variant, points, edition }];
           })
-        : top.map(c => ({ ...c, print: bestPrintOf(held, c.number, c.variant) }));
+        : top.map(c => ({ ...c, edition: bestPrintOf(held, c.number, c.variant) }));
       if (rows.length === 0) return none('Your three most valuable cards appear here once you have some.');
       return (
         <Box type={type}>
           <ul className="flex flex-wrap gap-4">
             {rows.map(c => {
-              const print = c.print;
-              const href = print?.uid ? `/c/${print.uid}` : print ? `/copy/${encodeURIComponent(b.season.id)}/${print.id}` : `/cards?card=${c.number}`;
+              const edition = c.edition;
+              const href = edition?.uid ? `/c/${edition.uid}` : edition ? `/copy/${encodeURIComponent(b.season.id)}/${edition.id}` : `/cards?card=${c.number}`;
               return (
-                <li key={print?.uid ?? c.number} className="w-24 sm:w-28">
+                <li key={edition?.uid ?? c.number} className="w-24 sm:w-28">
                   <Link href={href} title={`${c.name}${c.variant === 'regular' ? '' : ` (${VARIANT_LABELS[c.variant]})`}`}>
                     <CardTile imageUrl={artOf(c.imageUrl, c.fullArtImageUrl, c.variant)} alt={c.name} className="relative aspect-2/3 rounded-lg overflow-hidden border-2" style={{ borderColor: getRarity(c.stars)?.hex }} />
                   </Link>
                   <p className="mt-1 text-xs text-gray-200 truncate">{c.name}</p>
                   <p className="text-[11px] text-yellow-400 tabular-nums">{Math.round(c.points).toLocaleString()} pts{c.variant !== 'regular' ? ` · ${VARIANT_LABELS[c.variant]}` : ''}</p>
-                  {print && <p className="text-[11px] text-gray-500 tabular-nums truncate">{print.uid ? `Print #${print.uid}` : `Edition #${print.n}`}</p>}
+                  {edition && <p className="text-[11px] text-gray-500 tabular-nums truncate">{edition.uid ? `Edition #${edition.uid}` : `Print #${edition.n}`}</p>}
                 </li>
               );
             })}
@@ -165,10 +165,10 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
 
     case 'pinned': {
       const uid = b.settings.pinned;
-      if (!uid) return none('Open one of your prints and press “Pin to my profile” to show it here.');
+      if (!uid) return none('Open one of your editions and press “Pin to my profile” to show it here.');
       const found = await loadCopyByUid(uid).catch(() => null);
       // Only the holder's own copy is shown: a copy that was traded away stops being their showcase.
-      if (!found || found.copy.owner !== b.lower) return none('The pinned print is not in your collection any more. Pin another from its page.');
+      if (!found || found.copy.owner !== b.lower) return none('The pinned edition is not in your collection any more. Pin another from its page.');
       const { season, copy, pack, card } = found;
       const [minted, holoFor, backStyle] = await Promise.all([mintedCounts(season.collectionName), getHoloResolver(), cardBackFor(pack, season.name)]);
       const total = minted.get(entryOf(copy)) ?? copy.n;
@@ -197,7 +197,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           </div>
           <div className="text-center space-y-1">
             <p className="font-bold text-white leading-tight">{label}</p>
-            <p className="text-sm text-yellow-300 tabular-nums">#{copy.uid ?? copy.n}<span className="text-gray-500"> · edition #{copy.n} of {total.toLocaleString()}</span></p>
+            <p className="text-sm text-yellow-300 tabular-nums">#{copy.uid ?? copy.n}<span className="text-gray-500"> · print #{copy.n} of {total.toLocaleString()}</span></p>
             <p className="text-xs">
               <Link href={`/copy/${encodeURIComponent(season.id)}/${copy.id}`} className="text-yellow-500 hover:text-yellow-300">Full journey →</Link>
             </p>
@@ -206,7 +206,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
             <ShareImageButton
               spec={copyShareSpec({ copy, cardName: card.name, seasonId: season.id, seasonName: season.name, packName: pack.name, total, mult, art, hex: rarity?.hex, privateHolder: false, siteUrl: SITE_URL, back: backStyle })}
               filename={`cheesy-tcg-${copy.uid ?? copy.id}.png`}
-              label="Share this print"
+              label="Share this edition"
             />
             {isOwner && <PinCopyButton uid={copy.uid!} pinned label="Pin" />}
           </div>
@@ -275,7 +275,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                         <span className={`w-8 h-11 rounded-sm overflow-hidden bg-gray-800 shrink-0 ${p.variant !== 'regular' ? `vfx-${p.variant}` : ''} ${holoClass(holo, true)}`} style={holoVars(holo)}><CardTile imageUrl={art} alt="" className="relative w-full h-full" /></span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm text-white truncate">{p.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[p.variant]}</span>}{c.name}</span>
-                          <span className="block text-xs text-gray-500 tabular-nums truncate"><span style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)}</span> {p.uid ? `Print #${p.uid}` : 'Print'}</span>
+                          <span className="block text-xs text-gray-500 tabular-nums truncate"><span style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)}</span> {p.uid ? `Edition #${p.uid}` : 'Edition'}</span>
                         </span>
                         <SerialChip n={p.n} est={p.est} />
                         <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">1 in {Math.round(1 / p.chance).toLocaleString()}</span>
@@ -292,7 +292,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
       const owned = b.allCards.filter(c => b.countMap.has(c.number))
         .map(c => ({ c, rate: b.board.values.cards.get(c.number)?.pullRate ?? 1 }))
         .sort((x, y) => x.rate - y.rate || y.c.stars - x.c.stars).slice(0, 5);
-      if (owned.length === 0) return none('Your rarest prints appear here.');
+      if (owned.length === 0) return none('Your rarest editions appear here.');
       return (
         <Box type={type}>
           <ul className="divide-y divide-gray-800/70">
@@ -328,7 +328,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                     <Link href={copyHrefFor({ type: 'pull', uid: p.uid, serial: p.n, variant: p.variant, cardNumber: p.card }, b.season.id) ?? `/copy/${encodeURIComponent(b.season.id)}/${p.id}`} className="flex items-center gap-2 py-2 text-sm hover:text-white text-gray-300">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{p.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[p.variant]}</span>}{names.get(p.card) ?? `Card #${p.card}`}</span>
-                        <span className="block text-xs text-gray-500 tabular-nums truncate">{p.uid ? `Print #${p.uid}` : 'Print'}{p.origin === 'grant' && p.fate === 'held' ? ' · Granted' : FATE[p.fate] ? ` · ${p.origin === 'grant' ? 'Granted, ' : ''}${FATE[p.fate]}` : ''}</span>
+                        <span className="block text-xs text-gray-500 tabular-nums truncate">{p.uid ? `Edition #${p.uid}` : 'Edition'}{p.origin === 'grant' && p.fate === 'held' ? ' · Granted' : FATE[p.fate] ? ` · ${p.origin === 'grant' ? 'Granted, ' : ''}${FATE[p.fate]}` : ''}</span>
                       </span>
                       <SerialChip n={p.n} est={p.est} />
                       <span className="text-xs text-gray-600 tabular-nums whitespace-nowrap w-14 text-right">{ago(p.at)}</span>

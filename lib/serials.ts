@@ -47,10 +47,10 @@ export interface SyncContext {
   /** Retire exactly these copies of `owner` (an admin removing one specific copy), in place of retiring the newest. */
   retire?: { owner: string; ids: string[]; who: string; note?: string };
   /** Copies spent and the one made from them. */
-  upgrade?: { user: string; spent: number; count: number; made: number; /** Spend exactly these prints (the newest that are not favourites) instead of the newest `count`. */ ids?: string[] };
-  /** Put these exact prints back with `owner` (revive retired ones, retire any other prints they hold). Checked by `printsBlocked` before the save. */
+  upgrade?: { user: string; spent: number; count: number; made: number; /** Spend exactly these editions (the newest that are not favourites) instead of the newest `count`. */ ids?: string[] };
+  /** Put these exact editions back with `owner` (revive retired ones, retire any other editions they hold). Checked by `printsBlocked` before the save. */
   restore?: { owner: string; ids: string[] };
-  /** Before reconciling `owner`, bring back prints of theirs that were removed, so a restore with no saved ids does not mint a second set. */
+  /** Before reconciling `owner`, bring back editions of theirs that were removed, so a restore with no saved ids does not mint a second set. */
   restoreRetired?: string;
 }
 
@@ -240,10 +240,10 @@ export async function printsBlocked(c: string, owner: string, ids: string[]): Pr
   if (!(await isTracking(c))) return null;
   for (const id of ids) {
     const copy = await getCopy(c, id);
-    if (!copy) return 'A saved print is not in the ledger, so the restore was refused.';
+    if (!copy) return 'A saved edition is not in the ledger, so the restore was refused.';
     if (!copy.owner || copy.owner === owner) continue;
-    if (isEscrow(copy.owner)) return 'A saved print is in an open offer. Cancel that offer before restoring.';
-    return `A saved print is held by @${copy.owner}. The restore was refused so a second print is not minted.`;
+    if (isEscrow(copy.owner)) return 'A saved edition is in an open offer. Cancel that offer before restoring.';
+    return `A saved edition is held by @${copy.owner}. The restore was refused so a second edition is not minted.`;
   }
   return null;
 }
@@ -256,7 +256,7 @@ async function applyExactRestore(c: string, owner: string, ids: string[]): Promi
   if (extra.length) await retire(c, owner, extra, { type: 'removed', who: owner, note: 'replaced by a restore' });
 }
 
-/** Revives this viewer's most recently removed prints to fill what a restore point asks for, when that point has no print ids. */
+/** Revives this viewer's most recently removed editions to fill what a restore point asks for, when that point has no edition ids. */
 async function reviveRemovedToFill(c: string, user: string, want: number[]): Promise<void> {
   const haveN = countEntries((await readOwner(c, user)).map(entryOf));
   const wantN = countEntries(want);
@@ -410,12 +410,12 @@ export async function firstNotHeld(c: string, owners: string[], ids: string[]): 
   return null;
 }
 
-/** "Print #1023381" for a copy id (the edition when the copy has no unique number yet). */
+/** "Edition #1023381" for a copy id (the edition when the copy has no unique number yet). */
 export async function printLabel(c: string, id: string): Promise<string> {
   const copy = await getCopy(c, id);
-  if (copy?.uid) return `Print #${copy.uid}`;
+  if (copy?.uid) return `Edition #${copy.uid}`;
   const p = parseCopyId(id);
-  return p ? `Edition #${p.n}` : 'that print';
+  return p ? `Print #${p.n}` : 'that edition';
 }
 
 /** The unique number most recently handed out, game-wide (null before any). */

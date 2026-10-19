@@ -307,10 +307,10 @@ function Side({
                 return item.ids ? (
                   <div className="w-full space-y-1">
                     <PrintPicker prints={list} count={item.count} selected={item.ids} onChange={ids => onIds(item, ids)} card={byNumber[item.cardNumber]} giving={giving} />
-                    <button type="button" onClick={() => onIds(item, undefined)} className="text-[11px] font-semibold text-gray-400 hover:text-white">Any print (the newest)</button>
+                    <button type="button" onClick={() => onIds(item, undefined)} className="text-[11px] font-semibold text-gray-400 hover:text-white">Any edition (the newest)</button>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => onIds(item, newestIds(list, item.count))} className="text-[11px] font-semibold text-yellow-400 hover:text-yellow-300">Choose prints ({list.length} to pick from)</button>
+                  <button type="button" onClick={() => onIds(item, newestIds(list, item.count))} className="text-[11px] font-semibold text-yellow-400 hover:text-yellow-300">Choose editions ({list.length} to pick from)</button>
                 );
               })()}
             </li>
@@ -321,7 +321,7 @@ function Side({
       <div className="border-t border-gray-800 pt-3 space-y-2">
         <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards…" aria-label={`Search ${title} cards`} className="input input-sm w-full" />
         {spareOf && cards.length > 0 && (
-          <button type="button" onClick={() => setSpares(x => !x)} aria-pressed={spares} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${spares ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-400 hover:text-white'}`}>Spares only (2+ prints)</button>
+          <button type="button" onClick={() => setSpares(x => !x)} aria-pressed={spares} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${spares ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-400 hover:text-white'}`}>Spares only (2+ editions)</button>
         )}
         {cards.length === 0 ? <p className="text-sm text-gray-500">{empty}</p> : (
           <ul className="max-h-72 overflow-y-auto space-y-1 pr-1">

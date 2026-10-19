@@ -43,7 +43,7 @@ export function DeleteAccount({ username, initial }: { username: string; initial
         <p>If you ask, the team deletes your account and everything stored about it:</p>
         <ul className="list-disc pl-5 space-y-1 text-gray-400">
           <li>your collection, settings, notices and alert devices are removed;</li>
-          <li>the prints you hold are retired, and show as &ldquo;a removed collector&rdquo; in their history;</li>
+          <li>the editions you hold are retired, and show as &ldquo;a removed collector&rdquo; in their history;</li>
           <li>your open trade offers are cancelled;</li>
           <li>it cannot be undone (we keep a restore point for 14 days only so a mistake can be fixed).</li>
         </ul>

@@ -46,7 +46,7 @@ export async function transferCopyAction(seasonId: string, copyId: string, formD
     const data = await getCollection(c);
     const entry = entryOf(copy);
     const i = data[copy.owner]?.indexOf(entry) ?? -1;
-    if (i < 0) return 'The collection does not match the ledger for this print; nothing was changed.';
+    if (i < 0) return 'The collection does not match the ledger for this edition; nothing was changed.';
     data[copy.owner] = [...data[copy.owner].slice(0, i), ...data[copy.owner].slice(i + 1)];
     if (data[copy.owner].length === 0) delete data[copy.owner];
     data[to] = [...(data[to] ?? []), entry];
@@ -79,7 +79,7 @@ export async function removeCopyAction(seasonId: string, copyId: string, formDat
     const data = await getCollection(c);
     const entry = entryOf(copy);
     const i = data[copy.owner]?.indexOf(entry) ?? -1;
-    if (i < 0) return 'The collection does not match the ledger for this print; nothing was changed.';
+    if (i < 0) return 'The collection does not match the ledger for this edition; nothing was changed.';
     holder = copy.owner;
     data[copy.owner] = [...data[copy.owner].slice(0, i), ...data[copy.owner].slice(i + 1)];
     if (data[copy.owner].length === 0) delete data[copy.owner];
@@ -89,7 +89,7 @@ export async function removeCopyAction(seasonId: string, copyId: string, formDat
   if (result) return go(result, false);
 
   await recordActivity({ type: 'remove', username: holder, cardNumber: ctx.parsed.card, variant: ctx.parsed.variant, collectionName: c });
-  await recordAudit(holder, 'Print removed', `#${ctx.parsed.card} ${VARIANT_LABELS[ctx.parsed.variant]} edition ${ctx.parsed.n}`);
+  await recordAudit(holder, 'Edition removed', `#${ctx.parsed.card} ${VARIANT_LABELS[ctx.parsed.variant]} print #${ctx.parsed.n}`);
   revalidatePath('/admin/serials');
   return go(`Removed from @${holder}'s collection.`);
 }
@@ -109,10 +109,10 @@ export async function featurePrintAction(seasonId: string, copyId: string, formD
   if (!copy) return go('That print no longer exists.', false);
   const refused = await featureCopy(ctx.season, copy, (await currentStaffLogin()) ?? 'admin');
   if (refused) return go(refused, false);
-  await recordAudit(copy.owner, 'Print featured as print of the week', `Print #${copy.uid}`);
+  await recordAudit(copy.owner, 'Print featured as print of the week', `Edition #${copy.uid}`);
   revalidatePath('/');
   revalidatePath('/admin/serials');
-  return go('Featured as the print of the week. It is on the home page now.');
+  return go('Featured as the edition of the week. It is on the home page now.');
 }
 
 /** Scans the active season and picks again right now (skips prints picked in the last 8 weeks). */
@@ -121,10 +121,10 @@ export async function pickPotwAgainAction(): Promise<void> {
   const out = await pickNow((await currentStaffLogin()) ?? 'admin');
   if (!out.ok) return potwBack(out.reason, false);
   const picked = await getSeason(out.pick.seasonId).then(se => (se ? getCopy(se.collectionName, out.pick.copyId) : null)).catch(() => null);
-  await recordAudit(picked?.owner || 'unknown', 'Print of the week picked again', `Print #${out.pick.uid}, ${out.pick.reason}`);
+  await recordAudit(picked?.owner || 'unknown', 'Print of the week picked again', `Edition #${out.pick.uid}, ${out.pick.reason}`);
   revalidatePath('/');
   revalidatePath('/admin/serials');
-  return potwBack(`Picked Print #${out.pick.uid} (scanned ${out.scan.prints.toLocaleString()} prints in ${out.scan.ms} ms).`);
+  return potwBack(`Picked Edition #${out.pick.uid} (scanned ${out.scan.prints.toLocaleString()} editions in ${out.scan.ms} ms).`);
 }
 
 /** Takes the print of the week off the home page until the next pick. */

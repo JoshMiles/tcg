@@ -84,7 +84,7 @@ const input = (over: Partial<import('../lib/weekly-digest').DigestInput> = {}): 
 {
   const msg = d.buildDigestMessage(W.sampleDigest(now), { footer: 'Test digest' });
   const names = msg.embeds[0].fields?.map(f => f.name) ?? [];
-  for (const n of ['Packs opened', 'Top 3 right now', 'Movers', 'Print of the week', 'Leaderboard']) ok(names.includes(n), `the embed has ${n}`);
+  for (const n of ['Packs opened', 'Top 3 right now', 'Movers', 'Edition of the week', 'Leaderboard']) ok(names.includes(n), `the embed has ${n}`);
   ok(!/—/.test(JSON.stringify(msg)), 'no em dash');
   const first = d.buildDigestMessage({ ...W.sampleDigest(now), movers: null });
   ok(first.embeds[0].fields?.some(f => f.value === 'Movers start next week.'), 'the first run says movers start next week');

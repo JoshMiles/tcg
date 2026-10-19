@@ -262,7 +262,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
 
   let give = cleanItems(input.give, settings.maxStacksPerSide);
   const get = cleanItems(input.get, settings.maxStacksPerSide);
-  if (!give) return fail(400, `Choose between 1 and ${settings.maxStacksPerSide} different cards to give (up to ${TRADE_LIMITS.copiesPerStack} prints of each).`);
+  if (!give) return fail(400, `Choose between 1 and ${settings.maxStacksPerSide} different cards to give (up to ${TRADE_LIMITS.copiesPerStack} editions of each).`);
   if (!get) return fail(400, `Choose between 1 and ${settings.maxStacksPerSide} different cards you want back.`);
   // Wanted cards must exist, and a wanted variant must be one the card can actually be in this pack.
   for (const item of get) {
@@ -276,7 +276,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
   // Exact prints need a numbered ledger, and only a direct offer can ask for the other person's exact prints (a listing is taken by a stranger who picks at accept).
   if (hasPickedPrints(give) || hasPickedPrints(get)) {
     if (!(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered yet, so you can\'t choose which ones to trade.');
-    if (input.kind === 'listing' && hasPickedPrints(get)) return fail(400, 'A listing can\'t ask for exact prints: whoever takes it chooses theirs.');
+    if (input.kind === 'listing' && hasPickedPrints(get)) return fail(400, 'A listing can\'t ask for exact editions: whoever takes it chooses theirs.');
   }
 
   if (open.filter(t => t.from === from).length >= settings.maxOpenPerUser) {
@@ -395,7 +395,7 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
 
     // Prints the taker chose for what the offer asks (the offerer may have pinned some already).
     let get = withChosenPrints(trade.get, getIds);
-    if (!get) return fail(400, 'Those prints don\'t match what the offer asks for.');
+    if (!get) return fail(400, 'Those editions don\'t match what the offer asks for.');
     if (hasPickedPrints(get) && !(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered yet, so they can\'t be chosen.');
 
     // Read the serials on both sides before the copies change hands (picked prints are priced from their own ids).
@@ -515,10 +515,10 @@ export async function releaseStuckEscrow(id: string): Promise<TradeResult<{ trad
     const history = await readHistory();
     const trade = history.find(t => t.id === id);
     if (!trade) return fail(404, "That offer isn't in the history.");
-    if (open.some(t => t.id === id)) return fail(400, 'That offer is still open. Cancel it so the prints come back.');
+    if (open.some(t => t.id === id)) return fail(400, 'That offer is still open. Cancel it so the editions come back.');
     if (!trade.escrowed) return { ok: true, trade, cleared: false };
     if (!(await returnToCollection(trade.seasonId, trade.from, trade.give, trade.id))) {
-      return fail(400, 'That season no longer exists, so the prints cannot be returned. The offer stays marked escrowed.');
+      return fail(400, 'That season no longer exists, so the editions cannot be returned. The offer stays marked escrowed.');
     }
     trade.escrowed = false;
     await persist(open, history);
@@ -546,7 +546,7 @@ async function refundAlreadyHome(id: string): Promise<{ ok: true } | { ok: false
   const live = (await Promise.all(Object.keys(data).map(u => getOwnerCopies(season.collectionName, u)))).flat();
   const retiredRaw = (await kv.hgetall(`copies:${season.collectionName}:ret`).catch(() => null)) as Record<string, unknown> | null;
   const retired = Object.values(retiredRaw ?? {}).map(parseAuditCopy).filter(c => !!c);
-  if (!refundEvidence(trade, [...live, ...retired])) return fail(400, 'No returned event confirms the prints came back. The flag stays set.');
+  if (!refundEvidence(trade, [...live, ...retired])) return fail(400, 'No returned event confirms the editions came back. The flag stays set.');
   return { ok: true };
 }
 

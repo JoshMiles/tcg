@@ -56,7 +56,7 @@ export async function upgradeCard(opts: {
       return {
         ok: false,
         status: 400,
-        error: `You need ${cost} ${VARIANT_LABELS[from]} prints to upgrade; you have ${have}.`,
+        error: `You need ${cost} ${VARIANT_LABELS[from]} editions to upgrade; you have ${have}.`,
       };
     }
     // Favourite prints are never spent: the cost is paid from the newest prints that are not favourites.

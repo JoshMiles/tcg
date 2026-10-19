@@ -24,7 +24,7 @@ export function ReportDialog({ target, name, onClose }: { target: string; name: 
     if (busy) return;
     setBusy(true); setError('');
     try {
-      // A pasted full address is cut down to its path, so only a trade or print page on this site is kept.
+      // A pasted full address is cut down to its path, so only a trade or edition page on this site is kept.
       let path = link.trim();
       try { const u = new URL(path, window.location.origin); if (u.origin === window.location.origin) path = u.pathname; } catch { /* keep as typed */ }
       const res = await postJson('/api/feedback/report', { target, reason, details, link: path });
@@ -65,7 +65,7 @@ export function ReportDialog({ target, name, onClose }: { target: string; name: 
               <textarea value={details} onChange={e => setDetails(e.target.value)} rows={4} maxLength={FEEDBACK_LIMITS.reportDetails} required={reason === 'other'} minLength={reason === 'other' ? FEEDBACK_LIMITS.reportDetailsMin : undefined} className="textarea w-full" placeholder="What happened?" />
             </fieldset>
             <fieldset className="fieldset">
-              <legend className="fieldset-legend">Link to a trade or print (optional)</legend>
+              <legend className="fieldset-legend">Link to a trade or edition (optional)</legend>
               <input value={link} onChange={e => setLink(e.target.value)} maxLength={200} className="input w-full" placeholder="/trade/..." />
             </fieldset>
             {error && <p role="alert" className="text-sm text-red-400">{error}</p>}

@@ -17,7 +17,7 @@ import { profileHref } from '@/lib/profile-url';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { SITE_URL } from '@/lib/site';
 
-/** The home page's "Print of the week". Shows nothing when there is no pick or the print was spent since. Holders are masked like the print page. */
+/** The home page's "Edition of the week". Shows nothing when there is no pick or the edition was spent since. Holders are masked like the edition page. */
 export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) {
   const f = await loadFeatured().catch(() => null);
   if (!f) return null;
@@ -34,7 +34,7 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
   const href = `/copy/${encodeURIComponent(season.id)}/${copy.id}`;
 
   return (
-    <section aria-label="Print of the week" className="rind rounded-2xl p-5 sm:p-8 grid gap-6 sm:grid-cols-[220px_1fr] items-center">
+    <section aria-label="Edition of the week" className="rind rounded-2xl p-5 sm:p-8 grid gap-6 sm:grid-cols-[220px_1fr] items-center">
       <div className="mx-auto w-full max-w-[220px]">
         <FlipCard
           back={flipBackFor({
@@ -52,11 +52,11 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
         </FlipCard>
       </div>
       <div className="space-y-3 min-w-0">
-        <h2 className="font-display text-3xl font-bold text-white"><Icon name="sparkles" className="mr-2 text-yellow-400" />Print of the week</h2>
+        <h2 className="font-display text-3xl font-bold text-white"><Icon name="sparkles" className="mr-2 text-yellow-400" />Edition of the week</h2>
         <div>
           <p className="font-display text-2xl font-bold text-white wrap-break-word">{label}</p>
           <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="font-display text-xl font-bold text-yellow-400 tabular-nums">Print #{pick.uid}</span>
+            <span className="font-display text-xl font-bold text-yellow-400 tabular-nums">Edition #{pick.uid}</span>
             <span className="text-sm text-gray-300">{editionLine(copy.n, total)}</span>
           </p>
         </div>

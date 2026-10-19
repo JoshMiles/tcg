@@ -156,7 +156,7 @@ export async function announceTrade(trade: Trade, action: TradeAction, by?: stri
         } else await tell(trade.to, 'cancelled', `@${trade.from} withdrew their offer to you.`);
         break;
       case 'reversed': {
-        const text = (other: string) => `A trade between you and @${other} was reversed by staff: ${trade.reverseReason ?? 'no reason given'}. The prints went back to where they started.`;
+        const text = (other: string) => `A trade between you and @${other} was reversed by staff: ${trade.reverseReason ?? 'no reason given'}. The editions went back to where they started.`;
         await tell(trade.from, 'admin', text(trade.resolvedBy ?? '?'));
         await tell(trade.resolvedBy, 'admin', text(trade.from));
         break;

@@ -17,35 +17,35 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
     <Section id="points" title="Points & leaderboard" icon="trophy">
       <Q q="How are points worked out?" open>
         <p>
-          Your score is the value of <strong className="text-white">every card you own</strong>, duplicates included. Each print is worth:
+          Your score is the value of <strong className="text-white">every card you own</strong>, duplicates included. Each edition is worth:
         </p>
-        <p className="font-display text-xl font-bold text-yellow-300 my-2">{scoring.baseScore} × rarity{upgradesOn ? ' × version' : ''} × edition bonus</p>
+        <p className="font-display text-xl font-bold text-yellow-300 my-2">{scoring.baseScore} × rarity{upgradesOn ? ' × version' : ''} × print bonus</p>
         <ul className="space-y-2">
           <li>
             <strong className="text-white">Rarity</strong>: how hard the card is to pull compared with an average card. A card that comes up half as often is worth twice as much.
           </li>
           <li>
-            <strong className="text-white">Edition bonus</strong>: {scoring.serialBonusCutoff > 0 ? (
-              <>every print has an <a href="#serials" className="text-yellow-400 hover:text-yellow-300">edition number</a>, and the first prints ever made of a card (in each version) are worth extra. Edition #1 is worth{' '}
-              <strong className="text-white">{scoring.serialBonusMax}×</strong>, and the bonus fades in a straight line until it is gone after #{scoring.serialBonusCutoff}. The bonus belongs to the print, so it moves with it if you trade it.</>
-            ) : 'switched off in this game, so every print of a version is worth the same.'}
+            <strong className="text-white">Print bonus</strong>: {scoring.serialBonusCutoff > 0 ? (
+              <>every edition has a <a href="#serials" className="text-yellow-400 hover:text-yellow-300">print number</a>, and the first editions ever made of a card (in each version) are worth extra. Print #1 is worth{' '}
+              <strong className="text-white">{scoring.serialBonusMax}×</strong>, and the bonus fades in a straight line until it is gone after #{scoring.serialBonusCutoff}. The bonus belongs to the edition, so it moves with it if you trade it.</>
+            ) : 'switched off in this game, so every edition of a version is worth the same.'}
           </li>
           {upgradesOn && (
             <li>
-              <strong className="text-white">Version</strong>: Reverse Holo, Full Art and Shiny Full Art prints are worth far more than a Regular. An upgraded card is normally worth more than the prints you spend to
-              make it, though the edition bonus on the prints you spend can change that.
+              <strong className="text-white">Version</strong>: Reverse Holo, Full Art and Shiny Full Art editions are worth far more than a Regular. An upgraded card is normally worth more than the editions you spend to
+              make it, though the print bonus on the editions you spend can change that.
             </li>
           )}
         </ul>
         <p className="mt-2">
-          Add up all your prints, then add the <a href="#bonuses" className="text-yellow-400 hover:text-yellow-300">collection bonuses</a> below, and that&rsquo;s your score on the{' '}
+          Add up all your editions, then add the <a href="#bonuses" className="text-yellow-400 hover:text-yellow-300">collection bonuses</a> below, and that&rsquo;s your score on the{' '}
           <Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300">leaderboard</Link>.
         </p>
       </Q>
       <Q q="What are the collection bonuses?">
         <p id="bonuses">
           Collecting more of the set pays off, on top of what your individual cards are worth. There are two bonuses, both measured against the <strong className="text-white">set value</strong>: what one
-          Regular print of every card in the season is worth right now{overview ? <> (currently <strong className="text-white">{overview.values.setValue.toLocaleString()}</strong> points)</> : null}:
+          Regular edition of every card in the season is worth right now{overview ? <> (currently <strong className="text-white">{overview.values.setValue.toLocaleString()}</strong> points)</> : null}:
         </p>
         <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
           <li>
@@ -60,7 +60,7 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
           </li>
         </ul>
         <p className="mt-2">
-          Duplicates and rarer versions don&rsquo;t count towards completeness. Only having at least one print of each card does. The bonuses move with the set value, so they stay in proportion as card values shift. You can see your own
+          Duplicates and rarer versions don&rsquo;t count towards completeness. Only having at least one edition of each card does. The bonuses move with the set value, so they stay in proportion as card values shift. You can see your own
           breakdown on <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>.
         </p>
       </Q>
@@ -68,25 +68,25 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
         <p>
           Yes. Click any card on the <Link href="/cards" className="text-yellow-400 hover:text-yellow-300">card dex</Link> or in a collection to open its details, then open{' '}
           <strong className="text-white"><Icon name="nerd" className="mr-1" />Advanced information (for nerds)</strong>. It shows every step with the real numbers filled in, for each version: the pull chance, rarity, the version multiplier
-          and the final rounding, plus the pull odds, how many packs you&rsquo;d expect to need, and what the edition bonus is worth at different numbers. In short:
+          and the final rounding, plus the pull odds, how many packs you&rsquo;d expect to need, and what the print bonus is worth at different numbers. In short:
         </p>
         <p className="font-mono text-[12px] text-gray-300 my-2 leading-relaxed">
-          points = max(1, round( {scoring.baseScore} × rarity × version × edition bonus ))<br />
+          points = max(1, round( {scoring.baseScore} × rarity × version × print bonus ))<br />
           rarity = (1 ÷ (pull chance × cards in the season)) ^ {scoring.rarityExponent}<br />
-          edition bonus = 1 + ({scoring.serialBonusMax} − 1) × (1 − (edition − 1) ÷ {scoring.serialBonusCutoff}) for edition 1 to {scoring.serialBonusCutoff}, otherwise 1<br />
+          print bonus = 1 + ({scoring.serialBonusMax} − 1) × (1 − (print − 1) ÷ {scoring.serialBonusCutoff}) for print 1 to {scoring.serialBonusCutoff}, otherwise 1<br />
           version = max( Regular weight ÷ version weight, previous version × upgrade cost × {scoring.upgradeMargin} )
         </p>
         <p>
-          The {scoring.baseScore}, the limits and the margin are settings the streamer can change, so the numbers above are today&rsquo;s. Cards sitting in an open trade (escrow) aren&rsquo;t counted as prints in anyone&rsquo;s collection.
+          The {scoring.baseScore}, the limits and the margin are settings the streamer can change, so the numbers above are today&rsquo;s. Cards sitting in an open trade (escrow) aren&rsquo;t counted as editions in anyone&rsquo;s collection.
         </p>
       </Q>
       <Q q="Why did my points change?">
-        A print’s own points only change if the streamer edits the scoring settings or the card’s pull odds change. What moves most is your rank, because other collectors keep pulling and the completion bonus is measured against the set value. An edition bonus never changes: it is fixed by the edition number on the print.
+        An edition’s own points only change if the streamer edits the scoring settings or the card’s pull odds change. What moves most is your rank, because other collectors keep pulling and the completion bonus is measured against the set value. A print bonus never changes: it is fixed by the print number on the edition.
       </Q>
       <Q q="Does upgrading raise my score?">
         {upgradesOn ? (
           <>
-            Usually, yes. A higher version is worth much more. But upgrades <strong className="text-white">use cards up</strong>: the prints you spend are destroyed (the newest edition numbers go first, so your lowest numbers are the last to go), and the new print gets the next free edition of its version, which is only worth a bonus while it is still early in that version’s count. <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>{' '}
+            Usually, yes. A higher version is worth much more. But upgrades <strong className="text-white">use cards up</strong>: the editions you spend are destroyed (the newest print numbers go first, so your lowest numbers are the last to go), and the new edition gets the next free print of its version, which is only worth a bonus while it is still early in that version’s count. <Link href="/account" className="text-yellow-400 hover:text-yellow-300">My stats</Link>{' '}
             shows a projected change for each upgrade with all of this included, so occasionally it can be negative.
           </>
         ) : (
@@ -99,13 +99,13 @@ export function PointsSection({ season, overview, upgradesOn, bonusAtFull, scori
       </Q>
       {valueRows.length > 0 && (
         <Q q={`What is each card worth right now? (${season?.name})`}>
-          <p className="mb-3">Points per print at this moment. These update as cards are pulled and upgraded.</p>
+          <p className="mb-3">Points per edition at this moment. These update as cards are pulled and upgraded.</p>
           <div className="overflow-x-auto rounded-lg border border-gray-800">
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-gray-500 text-left bg-gray-950/50">
                   <th className="py-2 px-3 font-medium">Card</th>
-                  <th className="py-2 px-2 font-medium text-right">Prints</th>
+                  <th className="py-2 px-2 font-medium text-right">Editions</th>
                   <th className="py-2 px-2 font-medium text-right">Regular</th>
                   {upgradesOn && VARIANTS.filter(v => v !== 'regular').map(v => (
                     <th key={v} className="py-2 px-2 font-medium text-right" title={VARIANT_LABELS[v]}>{VARIANT_SHORT[v]}</th>

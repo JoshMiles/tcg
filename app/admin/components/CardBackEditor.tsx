@@ -136,7 +136,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
     <div id="card-back" className="card rounded-2xl overflow-hidden scroll-mt-20">
       <div className="px-5 py-4 border-b border-gray-800">
         <h3 className="text-sm font-semibold text-white">Card back</h3>
-        <p className="text-xs text-gray-500 mt-0.5">How the back of a print looks for cards from this pack. Until you save a design, it keeps the classic engraved plate.</p>
+        <p className="text-xs text-gray-500 mt-0.5">How the back of an edition looks for cards from this pack. Until you save a design, it keeps the classic engraved plate.</p>
       </div>
       <div className={`p-5 grid gap-6 items-start ${layout === 'wide' ? 'lg:grid-cols-[240px_1fr]' : ''}`}>
         <div className="mx-auto w-full max-w-[220px]">{panelCard}</div>
@@ -176,7 +176,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
                 </p>
               )}
               <div className="flex flex-wrap items-end justify-center gap-6">
-                {([['Tile', 120, true], ['Print page', 240, false], ['Large', 360, false]] as const).map(([label, w, compact]) => (
+                {([['Tile', 120, true], ['Edition page', 240, false], ['Large', 360, false]] as const).map(([label, w, compact]) => (
                   <figure key={label} className="text-center">
                     <div style={{ width: Math.min(w, canvasW + 40) }}><FlipCard bare compact={compact} back={{ ...back, style: live }}>{null}</FlipCard></div>
                     <figcaption className="text-[11px] text-gray-500 mt-1">{label}</figcaption>

@@ -21,27 +21,27 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
   },
   fullSetBonus: {
     title: 'Full set bonus',
-    body: 'A one-off extra for owning at least one print of every card in the season. You also get a Complete badge on the leaderboard.',
+    body: 'A one-off extra for owning at least one edition of every card in the season. You also get a Complete badge on the leaderboard.',
     faq: 'bonuses',
   },
   editionBonus: {
-    title: 'Edition bonus',
-    body: 'The first prints ever made of a card are worth extra. Edition #1 is worth the most, and the bonus fades away as the edition number goes up. It belongs to the print, so it moves with it if you trade it.',
+    title: 'Print bonus',
+    body: 'The first editions ever made of a card are worth extra. Print #1 is worth the most, and the bonus fades away as the print number goes up. It belongs to the edition, so it moves with it if you trade it.',
     faq: 'points',
   },
   edition: {
-    title: 'Edition',
-    body: 'The count of a print among all prints of the same card and version. Your Shiny Gouda Goat edition #3 is the third Shiny Gouda Goat ever drawn. Low editions earn the edition bonus.',
+    title: 'Print',
+    body: 'The count of an edition among all editions of the same card and version. Your Shiny Gouda Goat print #3 is the third Shiny Gouda Goat ever drawn. Low print numbers earn the print bonus.',
     faq: 'serials',
   },
   printNumber: {
-    title: 'Print number',
-    body: 'A number that belongs to one print only, across the whole game. Use it to refer to a print: type it in the search box or open its page. It is not the same as the edition number.',
+    title: 'Edition number',
+    body: 'A number that belongs to one edition only, across the whole game. Use it to refer to an edition: type it in the search box or open its page. It is not the same as the print number.',
     faq: 'serials',
   },
   points: {
     title: 'Points',
-    body: 'What a print is worth. Rarer cards, shinier versions and low edition numbers are worth more. Card values shift a little as cards are pulled, so the numbers are a guide.',
+    body: 'What an edition is worth. Rarer cards, shinier versions and low print numbers are worth more. Card values shift a little as cards are pulled, so the numbers are a guide.',
     faq: 'points',
   },
   pullChance: {
@@ -51,7 +51,7 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
   },
   score: {
     title: 'Score',
-    body: 'The total of what every print you own is worth, plus the collection bonuses. It is what the leaderboard ranks by.',
+    body: 'The total of what every edition you own is worth, plus the collection bonuses. It is what the leaderboard ranks by.',
     faq: 'points',
   },
   rank: {
@@ -61,7 +61,7 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
   },
   fairness: {
     title: 'Fairness label',
-    body: 'A rough guide comparing the points on each side of the offer. It only looks at points, so a low edition number or a card you simply want can matter more to you. You are never stopped from making a lopsided offer, only asked to confirm it.',
+    body: 'A rough guide comparing the points on each side of the offer. It only looks at points, so a low print number or a card you simply want can matter more to you. You are never stopped from making a lopsided offer, only asked to confirm it.',
     faq: 'fair-trade',
   },
   escrow: {
@@ -86,7 +86,7 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
   },
   upgrade: {
     title: 'Upgrade',
-    body: 'Spend several prints of a card to make one print of the next version up. The spent prints are retired and the new print remembers what it was made from.',
+    body: 'Spend several editions of a card to make one edition of the next version up. The spent editions are retired and the new edition remembers what it was made from.',
     faq: 'upgrades',
   },
 };

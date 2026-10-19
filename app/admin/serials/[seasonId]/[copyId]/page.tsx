@@ -10,7 +10,7 @@ import { PrintDetail } from '../../PrintDetail';
 
 // The tab names the copy (its id is card.version.serial), so several open copies can be told apart.
 export async function generateMetadata({ params }: { params: Promise<{ seasonId: string; copyId: string }> }) {
-  return { title: `Print ${(await params).copyId} · Admin`, robots: { index: false } };
+  return { title: `Edition ${(await params).copyId} · Admin`, robots: { index: false } };
 }
 export const dynamic = 'force-dynamic';
 
@@ -35,10 +35,10 @@ export default async function AdminCopyPage({ params, searchParams }: { params: 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={<>{label} <span className="text-yellow-400 tabular-nums">#{copy.n}</span>{copy.uid ? <span className="ml-3 text-base text-gray-400 tabular-nums">Print #{copy.uid}</span> : null}</>}
+        title={<>{label} <span className="text-yellow-400 tabular-nums">#{copy.n}</span>{copy.uid ? <span className="ml-3 text-base text-gray-400 tabular-nums">Edition #{copy.uid}</span> : null}</>}
         icon="cheese"
         subtitle={`${season.name}${pack ? ` · ${pack.name}` : ''} · ${made.toLocaleString()} ${VARIANT_LABELS[copy.variant]} made`}
-        back={{ href: `/admin/serials?season=${encodeURIComponent(season.id)}&card=${copy.card}&v=${copy.variant}`, label: 'Prints' }}
+        back={{ href: `/admin/serials?season=${encodeURIComponent(season.id)}&card=${copy.card}&v=${copy.variant}`, label: 'Editions' }}
         actions={<Link href={`/copy/${encodeURIComponent(season.id)}/${copy.id}`} className="px-3 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-300 hover:text-white">Public page ↗</Link>}
       />
 

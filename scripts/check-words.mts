@@ -52,8 +52,9 @@ for (const [name, text] of [['faq', faq], ['privacy', privacy], ['terms', terms]
 ok(!/in seasons that enable it\. Can/.test(terms), 'the Terms sentence about upgrades is one sentence');
 ok(!faq.includes('>Collections</Link> or the search box'), 'the FAQ calls the page Collectors, as the nav does');
 
-// ---- a card copy is a "print" (ROADMAP 2.6): the old names must not come back into user-facing text ----
-// Narrow on purpose: code identifiers (copy, uid, Copy) and comments are fine, only phrases a viewer would read are banned.
+// ---- retired names must not come back (ROADMAP 2.6), and a copy is an edition (ROADMAP 25.2) ----
+// Narrow on purpose: code identifiers (copy, uid, Copy, print) and comments are fine, only phrases a viewer would read are banned.
+// The Twitch panel is not in this list: it keeps the old words until the freeze lifts. lib/changelog.ts keeps the words each entry shipped with.
 const walkSrc = (dir: string, re: RegExp, out: string[] = []): string[] => {
   for (const f of readdirSync(join(root, dir))) {
     const rel = dir + '/' + f;
@@ -72,8 +73,16 @@ const userFacing = [...walkSrc('app', /\.tsx$/), 'public/widget.js', 'public/wid
 const banned: [RegExp, string][] = [[/unique copy number/i, 'unique copy number'], [/unique number/i, 'unique number'], [/copy page/i, 'copy page'], [/ID #/, 'ID #']];
 for (const file of userFacing) {
   const src = withoutComments(read(file));
-  for (const [re, label] of banned) ok(!re.test(src), `${file} says "${label}": a card copy is a print (ROADMAP 2.6), so use "print number", "print page" or "Print #1023381"`);
+  for (const [re, label] of banned) ok(!re.test(src), `${file} says "${label}": say "edition number", "edition page" or "Edition #1023381"`);
 }
+// A copy is an edition. The n-of-N line is a print (Print #7 of 12). The game-wide id is an edition number (Edition #1023381). The points bonus is the print bonus.
+const glossaryBanned: [RegExp, string][] = [[/edition bonus/i, 'edition bonus'], [/Edition #\d+ of/, 'Edition #n of N'], [/Print #\d{6,}/, 'Print # with a long id']];
+for (const file of userFacing.filter(f => f !== 'lib/changelog.ts')) {
+  const src = withoutComments(read(file));
+  for (const [re, label] of glossaryBanned) ok(!re.test(src), `${file} says "${label}": a copy is an edition and the n-of-N line is a print (ROADMAP 25.2)`);
+}
+ok(faq.includes('Edition #1023381'), 'the FAQ shows an edition number as Edition #1023381');
+ok(/print bonus/i.test(faq) && !/edition bonus/i.test(faq), 'the FAQ calls the points bonus the print bonus');
 // ---- the two set bonuses are the "progress bonus" and the "full set bonus" (ROADMAP 7.8); the FAQ alone may name the old words ("it used to be called") ----
 const oldBonusNames = /completion bonus|complete[- ](set|collection) bonus/i;
 for (const file of userFacing.filter(f => !f.startsWith(FAQ_DIR + '/'))) ok(!oldBonusNames.test(withoutComments(read(file))), `${file} uses an old bonus name: say "progress bonus" or "full set bonus"`);
