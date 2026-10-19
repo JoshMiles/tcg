@@ -283,7 +283,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
           </ul>
           <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Team layouts</span>
           <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); savePreset(); }}>
-            <input value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={30} placeholder="Name this layout (e.g. Stream day)" aria-label="Layout name" className="w-64 rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500" />
+            <input value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={30} placeholder="Name this layout (e.g. Stream day)" aria-label="Layout name" className="input input-sm w-64" />
             <button type="submit" disabled={pending || !presetName.trim()} className={ghost}>Share as team layout</button>
           </form>
           {presets.length === 0 ? <span className="text-xs text-gray-600">No team layouts yet. Arrange your dashboard, name it, and anyone on staff can switch to it. Your own layout is saved just for you.</span> : (

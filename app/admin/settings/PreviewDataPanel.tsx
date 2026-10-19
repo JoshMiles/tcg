@@ -18,7 +18,7 @@ export async function PreviewDataPanel() {
       </p>
       <form action={seedPreviewAction} className="space-y-3">
         <label className="flex items-start gap-2 text-sm text-gray-300">
-          <input type="checkbox" name="withCollections" className="mt-1" />
+          <input type="checkbox" name="withCollections" className="toggle toggle-sm toggle-primary" />
           <span>Also copy every viewer&apos;s collection <span className="text-gray-500">(for testing trades and the leaderboard on real-looking data)</span></span>
         </label>
         <ConfirmButton

@@ -34,7 +34,7 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
       <PageHeader title="Viewers" subtitle="Look a viewer up, see their trades, and restrict or tag them." />
       <form method="GET" className="flex flex-wrap items-center gap-2" role="search">
         <input name="q" defaultValue={q} placeholder="Search by Twitch name" aria-label="Search viewers" className={`${fieldClass} max-w-xs`} />
-        <select name="show" defaultValue={show ?? ''} aria-label="Show" className="rounded-xl bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-gray-200">
+        <select name="show" defaultValue={show ?? ''} aria-label="Show" className="select">
           <option value="">Everyone</option><option value="restricted">Restricted only</option>
         </select>
         <button type="submit" className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="search" className="mr-1.5" />Search</button>

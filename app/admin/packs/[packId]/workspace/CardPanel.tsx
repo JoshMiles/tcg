@@ -59,7 +59,7 @@ export function CardPanel({ card, cards, pack, locked, changed, onChange, onRemo
 
       <Section title="Versions" dot={dot('disabledVariants', 'upgradesEnabled')}>
         <label className="flex items-center gap-2 text-sm text-gray-200">
-          <input type="checkbox" checked={card.upgradesEnabled} onChange={e => onChange({ upgradesEnabled: e.target.checked })} className="accent-yellow-400" />
+          <input type="checkbox" role="switch" checked={card.upgradesEnabled} onChange={e => onChange({ upgradesEnabled: e.target.checked })} className="toggle toggle-sm toggle-primary" />
           Allow versions and upgrades for this card
           {!pack.upgradesEnabled && <span className="text-xs text-gray-600">(the pack has them off)</span>}
         </label>

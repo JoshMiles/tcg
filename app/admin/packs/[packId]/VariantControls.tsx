@@ -78,16 +78,15 @@ export function CardToggles({
   const fullArtOn = !packDisabled.includes('full') && !disabled.includes('full') || !packDisabled.includes('shiny') && !disabled.includes('shiny');
   return (
     <div className="flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">
-      <button
-        type="button"
+      <input
+        type="checkbox"
         role="switch"
-        aria-checked={upgrades}
+        className="toggle toggle-xs toggle-primary"
+        checked={upgrades}
+        aria-label={upgrades ? 'Variants and upgrades on for this card' : 'Variants and upgrades off for this card'}
         title={upgrades ? 'Variants & upgrades on for this card: click to turn off' : 'Variants & upgrades off for this card: click to turn on'}
-        onClick={() => { const next = !upgrades; setUpgrades(next); start(async () => { await setCardUpgrades(packId, cardId, next); }); }}
-        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${upgrades ? 'bg-yellow-500' : 'bg-gray-700'}`}
-      >
-        <span className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${upgrades ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
-      </button>
+        onChange={() => { const next = !upgrades; setUpgrades(next); start(async () => { await setCardUpgrades(packId, cardId, next); }); }}
+      />
       {upgrades ? (
         <>
           <VariantChips

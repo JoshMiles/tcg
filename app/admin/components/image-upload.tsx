@@ -65,8 +65,8 @@ export function ImageUploadField({
   const preview = imagePreviewSrc(url);
 
   return (
-    <div>
-      <label className="block text-sm text-gray-400 mb-1">{fieldLabel}</label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend">{fieldLabel}</legend>
       <div className="flex gap-2">
         <input
           type="text"
@@ -74,7 +74,7 @@ export function ImageUploadField({
           value={url}
           onChange={e => setUrl(e.target.value)}
           placeholder="https://... or upload →"
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500"
+          className="input flex-1"
         />
         <label className={`px-3 py-2 text-sm rounded-lg cursor-pointer shrink-0 transition-colors ${busy ? 'bg-gray-600 text-gray-400' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
           {label}
@@ -86,6 +86,6 @@ export function ImageUploadField({
       )}
       {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
       {preview && <img src={preview} alt="" className="mt-2 h-20 object-contain rounded-sm border border-gray-700" />}
-    </div>
+    </fieldset>
   );
 }

@@ -33,7 +33,7 @@ export interface CardBackEditorProps {
 }
 
 const btn = 'px-3 py-2 text-sm font-bold rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white disabled:opacity-50';
-const field = 'bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500';
+const field = 'select select-sm';
 
 export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, initial, sample, others, layout = 'wide' }: CardBackEditorProps) {
   const start = initial ?? DEFAULT_CARD_BACK;

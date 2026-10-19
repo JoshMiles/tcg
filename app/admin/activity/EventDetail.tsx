@@ -135,7 +135,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
             </div>
             {!mod && (<>
             <div className="flex items-center gap-2">
-              <select value={packs} onChange={ev => setPacks(ev.target.value)} aria-label="Packs to gift" className="rounded-lg bg-gray-950 border border-gray-700 px-2 py-2 text-sm text-white">
+              <select value={packs} onChange={ev => setPacks(ev.target.value)} aria-label="Packs to gift" className="select select-sm">
                 {[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n} pack{n === 1 ? '' : 's'}</option>)}
               </select>
               <button type="button" onClick={gift} disabled={pending} className={`${act} flex-1`}><Icon name="gift" />Gift {packs} pack{packs === '1' ? '' : 's'}</button>

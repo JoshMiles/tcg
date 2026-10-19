@@ -102,7 +102,7 @@ export function LineupEditor({ seasonId, initial }: { seasonId: string; initial:
                 onBlur={e => saveWeight(pack.id, e.currentTarget.value)}
                 onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                 aria-label={`Draw weight for ${pack.name}`}
-                className="w-16 rounded-lg bg-gray-950 border border-gray-700 px-2 py-1 text-right text-sm text-white tabular-nums focus:outline-hidden focus:border-yellow-500"
+                className="input input-sm w-16 text-right tabular-nums"
               />
             </label>
             <div className="flex items-center gap-1 shrink-0">

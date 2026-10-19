@@ -8,16 +8,14 @@ import { setLiveGateAction } from './actions';
 
 function Switch({ label, hint, on, busy, onChange }: { label: string; hint: string; on: boolean; busy: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button type="button" role="switch" aria-checked={on} disabled={busy} onClick={() => onChange(!on)} className="w-full flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-950/40 hover:border-gray-600 px-3 py-2.5 text-left transition-colors disabled:opacity-60">
-      <span className={`relative w-9 h-5 rounded-full shrink-0 transition-colors ${on ? 'bg-yellow-500' : 'bg-gray-700'}`}>
-        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${on ? 'left-[1.1rem]' : 'left-0.5'}`} />
-      </span>
+    <label className={`w-full flex items-center gap-3 rounded-lg border border-gray-800 bg-gray-950/40 hover:border-gray-600 px-3 py-2.5 text-left transition-colors cursor-pointer ${busy ? 'opacity-60' : ''}`}>
+      <input type="checkbox" role="switch" className="toggle toggle-sm toggle-primary" checked={on} disabled={busy} onChange={e => onChange(e.target.checked)} />
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-gray-200">{label}</span>
         <span className="block text-[11px] text-gray-500">{hint}</span>
       </span>
       {busy && <Spinner />}
-    </button>
+    </label>
   );
 }
 

@@ -22,20 +22,20 @@ export function DateTimeField({ label, name, defaultValue, onChange, help }: {
   const ms = local ? new Date(local).getTime() : undefined;
   const valid = ms !== undefined && Number.isFinite(ms);
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm text-gray-400 mb-1">{label}</label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend"><label htmlFor={id}>{label}</label></legend>
       <div className="flex items-center gap-2">
         <input
           id={id}
           type="datetime-local"
           value={local}
           onChange={e => { setLocal(e.target.value); const v = e.target.value ? new Date(e.target.value).getTime() : undefined; onChange?.(v !== undefined && Number.isFinite(v) ? v : undefined); }}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500"
+          className="input w-full"
         />
         {local && <button type="button" onClick={() => { setLocal(''); onChange?.(undefined); }} className="text-xs text-gray-500 hover:text-white underline underline-offset-2">Clear</button>}
       </div>
       {name && <input type="hidden" name={name} value={valid ? String(ms) : ''} />}
-      {help && <p className="text-xs text-gray-600 mt-1">{help}</p>}
-    </div>
+      {help && <p className="fieldset-label">{help}</p>}
+    </fieldset>
   );
 }

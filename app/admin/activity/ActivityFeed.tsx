@@ -268,7 +268,7 @@ export function ActivityFeed({
             onChange={e => setSearch(e.target.value)}
             placeholder="Search viewers, cards, packs…"
             aria-label="Search activity"
-            className="w-full rounded-xl bg-gray-950 border border-gray-700 pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500"
+            className="input w-full pl-9"
           />
         </div>
         {viewer && (
@@ -309,14 +309,14 @@ export function ActivityFeed({
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1.5">Pack</p>
-            <select value={prefs.pack} onChange={e => setPref('pack', e.target.value)} aria-label="Pack" className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-white">
+            <select value={prefs.pack} onChange={e => setPref('pack', e.target.value)} aria-label="Pack" className="select select-sm w-full">
               <option value="">Any pack</option>
               {packNames.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1.5">Other</p>
-            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer"><input type="checkbox" checked={prefs.newOnly} onChange={e => setPref('newOnly', e.target.checked)} className="accent-yellow-500" />Only new cards</label>
+            <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer"><input type="checkbox" role="switch" checked={prefs.newOnly} onChange={e => setPref('newOnly', e.target.checked)} className="toggle toggle-sm toggle-primary" />Only new cards</label>
           </div>
         </div>
       )}

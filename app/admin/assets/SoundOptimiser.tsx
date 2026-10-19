@@ -32,7 +32,7 @@ export function SoundOptimiser({ asset, onUse, replacing }: { asset: LibraryAsse
   }
 
   const smaller = result ? Math.round((1 - result.bytes / result.original) * 100) : 0;
-  const field = 'bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-200 focus:outline-hidden focus:border-yellow-500';
+  const field = 'select select-sm';
   return (
     <div className="space-y-2">
       <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Optimise</p>
@@ -43,7 +43,7 @@ export function SoundOptimiser({ asset, onUse, replacing }: { asset: LibraryAsse
               {BITRATES.map(b => <option key={b} value={b}>{b} kbps</option>)}
             </select>
           </label>
-          <label className="flex items-center gap-1.5"><input type="checkbox" checked={opts.mono} onChange={e => setOpts({ ...opts, mono: e.target.checked })} className="accent-yellow-500" />Mono</label>
+          <label className="flex items-center gap-1.5"><input type="checkbox" role="switch" checked={opts.mono} onChange={e => setOpts({ ...opts, mono: e.target.checked })} className="toggle toggle-xs toggle-primary" />Mono</label>
           <button type="button" onClick={run} disabled={working || replacing} className="ml-auto px-3 py-1.5 text-sm font-semibold rounded-lg border border-gray-600 text-gray-200 hover:border-yellow-500/60 disabled:opacity-50">
             <Icon name="zap" className="mr-1.5" />{working ? 'Compressing…' : 'Compress'}
           </button>

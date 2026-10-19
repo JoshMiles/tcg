@@ -111,10 +111,10 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
           <h2 className="font-semibold text-white">New sandbox</h2>
           <label className="block space-y-1 text-sm text-gray-300">
             Name
-            <input name="name" required maxLength={40} placeholder="e.g. Upgrade testing" className="block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-hidden" />
+            <input name="name" required maxLength={40} placeholder="e.g. Upgrade testing" className="input w-full block" />
           </label>
-          <fieldset className="space-y-2">
-            <legend className="text-sm text-gray-300 mb-1">Start from</legend>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">Start from</legend>
             {SOURCES.map((s, i) => (
               <label key={s} className="flex items-start gap-3 rounded-lg border border-gray-800 hover:border-gray-600 px-3 py-2.5 cursor-pointer">
                 <input type="radio" name="source" value={s} defaultChecked={i === 0} className="mt-1 accent-yellow-400" />
@@ -124,7 +124,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
           </fieldset>
           <label className="block space-y-1 text-sm text-gray-300">
             Delete itself
-            <select name="expiresInDays" defaultValue="0" className="block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-hidden">
+            <select name="expiresInDays" defaultValue="0" className="select w-full block">
               <option value="0">Never (I will delete it)</option>
               <option value="7">After 7 days</option>
               <option value="30">After 30 days</option>

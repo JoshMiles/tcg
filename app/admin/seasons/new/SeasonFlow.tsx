@@ -28,7 +28,7 @@ const STEPS = [
   { id: 'review',  label: 'Review' },
 ];
 
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors';
+const inputCls = 'input w-full';
 
 export function SeasonFlow({
   packs, otherCollections, initial,
@@ -139,8 +139,8 @@ export function SeasonFlow({
         {step === 'details' && (
           <>
             <StepTitle title="Season details" hint="You can change these later, except that the collection name should stay fixed once viewers have cards." />
-            <div>
-              <label htmlFor="season-name" className="block text-sm font-medium text-gray-300 mb-1.5">Season name <span className="text-red-400">*</span></label>
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend"><label htmlFor="season-name">Season name <span className="text-red-400">*</span></label></legend>
               <input
                 id="season-name"
                 value={season.name}
@@ -150,10 +150,10 @@ export function SeasonFlow({
                 autoFocus
                 className={inputCls}
               />
-              {nameError && <p className="text-xs text-red-400 mt-1.5">{nameError}</p>}
-            </div>
-            <div>
-              <label htmlFor="season-collection" className="block text-sm font-medium text-gray-300 mb-1.5">Collection name</label>
+              {nameError && <p className="fieldset-label text-red-400">{nameError}</p>}
+            </fieldset>
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend"><label htmlFor="season-collection">Collection name</label></legend>
               <input
                 id="season-collection"
                 value={season.collectionName}
@@ -161,13 +161,13 @@ export function SeasonFlow({
                 placeholder="e.g. Season2Deck"
                 className={inputCls}
               />
-              <p className="text-xs text-gray-600 mt-1">Storage key for viewers&apos; cards. No spaces, and unique per season. Suggested from the name.</p>
+              <p className="fieldset-label">Storage key for viewers&apos; cards. No spaces, and unique per season. Suggested from the name.</p>
               {season.collectionName && otherCollections.some(n => n.toLowerCase() === season.collectionName.toLowerCase()) && (
-                <p className="text-xs text-red-400 mt-1">Another season already uses this. Its viewers&apos; cards would be shared.</p>
+                <p className="fieldset-label text-red-400">Another season already uses this. Its viewers&apos; cards would be shared.</p>
               )}
-            </div>
-            <div>
-              <label htmlFor="season-max" className="block text-sm font-medium text-gray-300 mb-1.5">Max concurrent packs</label>
+            </fieldset>
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend"><label htmlFor="season-max">Max concurrent packs</label></legend>
               <input
                 id="season-max"
                 type="number"
@@ -178,15 +178,15 @@ export function SeasonFlow({
                 onBlur={() => setMaxText(String(season.maxConcurrentPacks))}
                 className={inputCls + ' w-28!'}
               />
-              <p className="text-xs text-gray-600 mt-1">Pack openings shown at once on the overlay</p>
-            </div>
+              <p className="fieldset-label">Pack openings shown at once on the overlay</p>
+            </fieldset>
             <div className="grid gap-4 sm:grid-cols-2">
               <DateTimeField label="Starts (optional)" defaultValue={season.startsAt} onChange={ms => set('startsAt', ms)} help="Shown on the Seasons page; with the switch below it also turns the season on by itself." />
               <DateTimeField label="Ends (optional)" defaultValue={season.endsAt} onChange={ms => set('endsAt', ms)} help="At this time an active season is wrapped up: final standings, awards, trading closed." />
             </div>
             {season.startsAt !== undefined && (
               <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                <input type="checkbox" checked={!!season.autoStart} onChange={e => set('autoStart', e.target.checked)} className="w-4 h-4 accent-yellow-400" />
+                <input type="checkbox" role="switch" checked={!!season.autoStart} onChange={e => set('autoStart', e.target.checked)} className="toggle toggle-sm toggle-primary" />
                 Switch this season on automatically at the start time
               </label>
             )}

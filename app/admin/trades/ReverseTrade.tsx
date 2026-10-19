@@ -20,7 +20,7 @@ export function ReverseTrade({ tradeId }: { tradeId: string }) {
     <div className="space-y-2 rounded-xl border border-gray-800 bg-gray-900/50 p-3">
       <label className="block text-xs font-semibold text-white" htmlFor={`rev-${tradeId}`}>Reverse this trade</label>
       <input id={`rev-${tradeId}`} value={reason} onChange={e => setReason(e.target.value)} maxLength={300} placeholder="Reason (both people are told)"
-        className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white focus:outline-hidden focus:border-yellow-500" />
+        className="input input-sm w-full" />
       <ArmedButton disabled={pending || !reason.trim()} onConfirm={run}
         className="px-3 py-1.5 rounded-lg border border-red-500/40 text-red-300 text-xs font-semibold hover:bg-red-500/10 disabled:opacity-50"
         armedClassName="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-500 disabled:opacity-50" armedLabel="Sure? Reverse trade">

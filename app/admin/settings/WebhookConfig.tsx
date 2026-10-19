@@ -229,8 +229,8 @@ function OutgoingEventForm({ eventKey, config, variables }: {
       <input type="hidden" name="fieldsJson" value={JSON.stringify(fields)} />
 
       {/* URL */}
-      <div>
-        <label htmlFor={urlId} className="block text-sm text-gray-400 mb-1.5">Webhook URL</label>
+      <fieldset className="fieldset">
+        <legend className="fieldset-legend"><label htmlFor={urlId}>Webhook URL</label></legend>
         <input
           id={urlId}
           type="text"
@@ -238,25 +238,17 @@ function OutgoingEventForm({ eventKey, config, variables }: {
           value={url}
           onChange={e => setUrl(e.target.value)}
           placeholder="https://desktop.api.mixitupapp.com/api/webhook/..."
-          className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
+          className="input w-full"
         />
-      </div>
+      </fieldset>
 
       {/* Enabled toggle */}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={enabled}
-        onClick={() => setEnabled(e => !e)}
-        className="flex items-center gap-3 group"
-      >
-        <div className={`w-10 h-6 rounded-full relative transition-colors ${enabled ? 'bg-yellow-500' : 'bg-gray-700'}`}>
-          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${enabled ? 'translate-x-5' : 'translate-x-1'}`} />
-        </div>
-        <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" role="switch" className="toggle toggle-primary" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+        <span className="text-sm text-gray-300">
           {enabled ? 'Enabled' : 'Disabled'}
         </span>
-      </button>
+      </label>
 
       {/* Payload fields */}
       <div className="space-y-3">
@@ -281,14 +273,14 @@ function OutgoingEventForm({ eventKey, config, variables }: {
                   value={f.key}
                   onChange={e => updateField(i, 'key', e.target.value)}
                   placeholder="key_name"
-                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
+                  className="input"
                 />
                 <input
                   type="text"
                   value={f.value}
                   onChange={e => updateField(i, 'value', e.target.value)}
                   placeholder="{username}"
-                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors font-mono"
+                  className="input font-mono"
                 />
                 <button
                   type="button"

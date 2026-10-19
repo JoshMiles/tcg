@@ -211,18 +211,18 @@ export default async function UserDetailPage({
       <Panel id="overview" title="Profile" hint="Tags and notes are only visible to admins.">
         <TagsEditor username={username} initial={profile?.tags ?? []} suggestions={SUGGESTED_TAGS} />
         <form action={updateProfile} className="grid md:grid-cols-3 gap-4">
-          <div>
-            <label htmlFor="profile-displayName" className="block text-xs text-gray-500 mb-1.5">Display name</label>
-            <input id="profile-displayName" name="displayName" maxLength={60} defaultValue={profile?.displayName || username} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500 transition-colors" />
-          </div>
-          <div>
-            <label htmlFor="profile-twitchId" className="block text-xs text-gray-500 mb-1.5">Twitch username</label>
-            <input id="profile-twitchId" name="twitchId" maxLength={60} defaultValue={profile?.twitchId || ''} placeholder="twitch_username" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-hidden focus:border-purple-500 transition-colors" />
-          </div>
-          <div className="md:col-span-3">
-            <label htmlFor="profile-notes" className="block text-xs text-gray-500 mb-1.5">Private notes</label>
-            <textarea id="profile-notes" name="notes" maxLength={2000} rows={3} defaultValue={profile?.notes || ''} placeholder="Anything worth remembering about this viewer" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500 transition-colors" />
-          </div>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend"><label htmlFor="profile-displayName">Display name</label></legend>
+            <input id="profile-displayName" name="displayName" maxLength={60} defaultValue={profile?.displayName || username} className="input w-full" />
+          </fieldset>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend"><label htmlFor="profile-twitchId">Twitch username</label></legend>
+            <input id="profile-twitchId" name="twitchId" maxLength={60} defaultValue={profile?.twitchId || ''} placeholder="twitch_username" className="input w-full" />
+          </fieldset>
+          <fieldset className="fieldset md:col-span-3">
+            <legend className="fieldset-legend"><label htmlFor="profile-notes">Private notes</label></legend>
+            <textarea id="profile-notes" name="notes" maxLength={2000} rows={3} defaultValue={profile?.notes || ''} placeholder="Anything worth remembering about this viewer" className="textarea w-full" />
+          </fieldset>
           <div className="md:col-span-3"><PendingButton type="submit" className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors">Save Profile</PendingButton></div>
         </form>
       </Panel>

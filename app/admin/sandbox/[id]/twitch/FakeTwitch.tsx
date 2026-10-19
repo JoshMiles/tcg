@@ -72,7 +72,7 @@ export function FakeTwitch({ sandboxId, users, channel }: { sandboxId: string; u
             className="mt-2 flex items-center gap-2"
             onSubmit={e => { e.preventDefault(); const l = custom.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''); if (l) { choose({ kind: 'viewer', login: l }); setCustom(''); } }}
           >
-            <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="another name (created on first login)" className="w-64 rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white focus:outline-hidden focus:border-purple-400" />
+            <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="another name (created on first login)" className="input input-sm w-64" />
             <button type="submit" className={chip(false)}>Watch as</button>
           </form>
         </div>
@@ -91,7 +91,7 @@ export function FakeTwitch({ sandboxId, users, channel }: { sandboxId: string; u
             )}
             <button type="button" onClick={() => load()} className={chip(false)}>↻ Reload panel</button>
             <label className="flex items-center gap-1.5 text-xs text-gray-400 ml-2">
-              <input type="checkbox" checked={showOverlay} onChange={e => setShowOverlay(e.target.checked)} className="accent-purple-500" /> Overlay in the stream
+              <input type="checkbox" role="switch" checked={showOverlay} onChange={e => setShowOverlay(e.target.checked)} className="toggle toggle-sm toggle-primary" /> Overlay in the stream
             </label>
           </div>
         </div>

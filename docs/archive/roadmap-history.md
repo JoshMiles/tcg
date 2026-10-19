@@ -1158,3 +1158,7 @@ Original design:
 Props unchanged so callers don't move: `.tcg-btn` to `btn btn-primary` (keep the 3D shadow as an override), `ArmedButton`/`ConfirmButton` armed state to `btn-error`, `Spinner` to `loading loading-spinner`, `StatusChip`/`DraftChip`/`StaffBadge`/`SerialChip` to `badge` (SerialChip keeps its tiers), `Dialog` to a `<dialog>`-based `modal` (native focus trap and Esc; check the thin open/close wrappers), `PageTab`/`AdminNav` to `tabs`/`menu`. Re-sync the design system.
 
 Shipped that way. `Dialog` uses `showModal()` so Esc and the focus trap stay the browser's, and a wrapper that ignores `onClose` (a busy import) keeps the dialog open. The design-sync conventions and compiled CSS match the primitives. The remote design project was not uploaded from this environment (the resync script is not in the repo).
+
+### 24.3 Admin forms (part 1)
+
+Admin and mod text fields, selects, textareas, on/off switches and field labels use daisyUI `input`, `select`, `textarea`, `toggle` and `fieldset`. Shared strings in `app/admin/components/ui.tsx` (`fieldClass`, `selectClass`, `areaClass`, `toggleClass`) keep the same exports. Row-selection checkboxes, variant chips and radio groups stay native. Panels and tables are the next 24.3 PR. Design-sync conventions stay for 24.4.

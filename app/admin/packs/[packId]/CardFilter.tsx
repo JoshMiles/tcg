@@ -40,7 +40,7 @@ export function CardFilter({ total, stars }: { total: number; stars: number[] })
           onKeyDown={e => { if (e.key === 'Escape') setQuery(''); }}
           placeholder="Search cards…  ( / )"
           aria-label="Search cards"
-          className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
+          className="input w-full pl-9"
         />
       </div>
       <div role="group" aria-label="Filter by rarity" className="flex items-center gap-1">

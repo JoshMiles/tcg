@@ -6,7 +6,7 @@ import type { AccessLogEntry } from '@/lib/access';
 import { addTesterAction, saveAccessAction } from './access-actions';
 import { RemoveTesterButton } from './TesterControls';
 
-const input = 'w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-hidden';
+const input = 'input w-full';
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
 const help = 'text-[11px] text-gray-500 mt-1';
 const primary = 'rounded-lg bg-yellow-500 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-400 disabled:opacity-60';
@@ -29,8 +29,8 @@ export function AccessConfig({ settings: s, testers, log, filter }: { settings: 
           <p className="text-xs text-gray-500 mt-0.5">While the site is closed, only the people on the list below and staff get in. The Twitch panel, the OBS overlay, the FAQ, Privacy and Terms always work.</p>
         </div>
         <div className="px-6 py-5 space-y-5">
-          <fieldset>
-            <legend className={label}>Mode</legend>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">Mode</legend>
             <div className="grid gap-2 sm:grid-cols-3">
               {ACCESS_MODES.map(m => (
                 <label key={m} className="flex items-start gap-2 rounded-xl border border-gray-800 bg-gray-950/50 p-3 text-sm has-checked:border-yellow-500/60">
@@ -42,8 +42,8 @@ export function AccessConfig({ settings: s, testers, log, filter }: { settings: 
             {s.mode !== 'open' && <p className="mt-2 text-xs text-amber-300">The site is closed right now. A change reaches everyone within a minute.</p>}
           </fieldset>
 
-          <fieldset>
-            <legend className={label}>Banner and logo pill</legend>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">Banner and logo pill</legend>
             <div className="flex flex-wrap gap-3">
               {ACCESS_LABELS.map(l => (
                 <label key={l} className="flex items-center gap-2 text-sm text-gray-200">
@@ -56,7 +56,7 @@ export function AccessConfig({ settings: s, testers, log, filter }: { settings: 
 
           <div>
             <label className={label} htmlFor="ac-message">Message (shown on the closed page, and as the banner text)</label>
-            <textarea id="ac-message" name="message" defaultValue={s.message ?? ''} maxLength={MESSAGE_MAX} rows={2} className={input} placeholder="Leave empty for the default wording" />
+            <textarea id="ac-message" name="message" defaultValue={s.message ?? ''} maxLength={MESSAGE_MAX} rows={2} className="textarea w-full" placeholder="Leave empty for the default wording" />
           </div>
           <div className="flex items-center gap-3">
             <PendingButton className={primary}>Save access</PendingButton>
@@ -81,7 +81,7 @@ export function AccessConfig({ settings: s, testers, log, filter }: { settings: 
           <div><label className={label} htmlFor="ac-login">Twitch username</label><input id="ac-login" name="login" required placeholder="viewer_name" autoComplete="off" className={input} /></div>
           <div>
             <label className={label} htmlFor="ac-tier">Tier</label>
-            <select id="ac-tier" name="tier" defaultValue="beta" className={input}><option value="beta">Beta</option><option value="alpha">Alpha</option></select>
+            <select id="ac-tier" name="tier" defaultValue="beta" className="select w-full"><option value="beta">Beta</option><option value="alpha">Alpha</option></select>
           </div>
           <div><label className={label} htmlFor="ac-note">Note (optional)</label><input id="ac-note" name="note" maxLength={120} className={input} /></div>
           <PendingButton className={primary}>Add</PendingButton>

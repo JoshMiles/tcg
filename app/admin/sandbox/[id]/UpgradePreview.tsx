@@ -17,7 +17,7 @@ export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: 
   if (!card) return null;
   const from = VARIANTS[Math.max(0, VARIANTS.indexOf(to) - 1)];
   const cost = costs[to as 'reverse' | 'full' | 'shiny'] ?? 5;
-  const sel = 'block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-hidden';
+  const sel = 'select w-full';
 
   return (
     <div className="tcg-panel rounded-2xl p-5 space-y-3">

@@ -102,7 +102,7 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
                 <td className="px-2 py-1"><span className="block w-8 h-11 rounded-sm bg-gray-800 overflow-hidden">{c.imageUrl && <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-full h-full object-cover" />}</span></td>
                 <td className="px-1 py-1 min-w-40"><input data-col="name" data-row={i} aria-label={`Name of card ${c.number || 'new'}`} className={cell} value={c.name} maxLength={80} onFocus={() => onSelect(c.id, 'replace', ids)} onChange={e => patch(c.id, { name: e.target.value }, 'name')} onKeyDown={e => onKey(e, 'name', i)} onPaste={e => onPaste(e, 'name', i)} /></td>
                 <td className="px-1 py-1 w-24">
-                  <select data-col="stars" data-row={i} aria-label={`Stars of ${c.name || 'card'}`} className={cell} style={{ color: getRarity(c.stars)?.hex }} value={c.stars} onChange={e => patch(c.id, { stars: Number(e.target.value) })} onKeyDown={e => onKey(e, 'stars', i)} onPaste={e => onPaste(e, 'stars', i)}>
+                  <select data-col="stars" data-row={i} aria-label={`Stars of ${c.name || 'card'}`} className="select select-sm w-full" style={{ color: getRarity(c.stars)?.hex }} value={c.stars} onChange={e => patch(c.id, { stars: Number(e.target.value) })} onKeyDown={e => onKey(e, 'stars', i)} onPaste={e => onPaste(e, 'stars', i)}>
                     {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{'★'.repeat(n)}</option>)}
                   </select>
                 </td>

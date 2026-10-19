@@ -42,7 +42,7 @@ export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, ap
             onChange={e => setPresetName(e.target.value)}
             maxLength={40}
             placeholder="New preset name"
-            className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-hidden"
+            className="input input-sm flex-1 min-w-0"
           />
           <PendingButton type="submit" disabled={!presetName.trim()} className={`${ghost} disabled:opacity-40`}>Save</PendingButton>
         </form>
@@ -64,7 +64,7 @@ export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, ap
                     setNotice(r.message);
                   }}
                   aria-label={`Look for ${s.name}`}
-                  className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-36"
+                  className="select select-sm max-w-36"
                 >
                   <option value="">Global look</option>
                   {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -115,8 +115,8 @@ export function ScenesMenu({ presets, initialLayout, globalLayout, siteUrl, over
           <input type="hidden" name="scope" value={scope} />
           <input type="hidden" name="layout" value={JSON.stringify(globalLayout)} />
           <div className="flex items-center gap-2">
-            <input name="name" value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={40} placeholder="e.g. Vertical, Just chatting" className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-hidden" />
-            <select name="sceneKind" defaultValue="landscape" aria-label="Orientation" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1.5 text-sm text-gray-200">
+            <input name="name" value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={40} placeholder="e.g. Vertical, Just chatting" className="input input-sm flex-1 min-w-0" />
+            <select name="sceneKind" defaultValue="landscape" aria-label="Orientation" className="select select-sm">
               <option value="landscape">Landscape</option>
               <option value="vertical">Vertical</option>
             </select>
@@ -187,7 +187,7 @@ export function ImportExportMenu({ download, copyJson, runImport, importText, se
           onChange={e => { setImportText(e.target.value); setImportError(''); }}
           rows={3}
           placeholder="…or paste exported JSON here"
-          className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-xs font-mono text-white focus:border-yellow-500 focus:outline-hidden"
+          className="textarea w-full font-mono"
         />
         <div className="flex items-center gap-3">
           <button type="button" disabled={!importText.trim()} onClick={() => runImport(importText)} className={`${ghost} disabled:opacity-40`}>Import pasted JSON</button>
@@ -225,7 +225,7 @@ export function PackToolsMenu({ packs, packVals, setPackVals, scope, globalVals,
         <div className="space-y-1.5 border-t border-gray-800 pt-3">
           <p className="text-xs font-semibold text-gray-300">Use another pack&apos;s look here</p>
           <div className="flex items-center gap-2">
-            <select value={copyFrom} onChange={e => setCopyFrom(e.target.value)} aria-label="Copy overrides from" className="flex-1 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white">
+            <select value={copyFrom} onChange={e => setCopyFrom(e.target.value)} aria-label="Copy overrides from" className="select select-sm flex-1 min-w-0">
               <option value="">Choose a pack…</option>
               {packs.filter(x => x.id !== scope).map(x => <option key={x.id} value={x.id}>{x.name} ({Object.keys(packVals[x.id] ?? {}).length})</option>)}
             </select>
@@ -272,9 +272,9 @@ export function SaveOptionsMenu({ note, setNote, autoReload, setAutoReload }: { 
     <Popover label="Save options" icon="settings" align="right">
       <div className="w-72 space-y-3 text-sm">
         <label className="block text-xs text-gray-400 space-y-1">Version note (optional)
-          <input value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="e.g. Brighter shiny glow" className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-hidden" />
+          <input value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="e.g. Brighter shiny glow" className="input input-sm w-full" />
         </label>
-        <label className="flex items-start gap-2 text-xs text-gray-300"><input type="checkbox" checked={autoReload} onChange={e => setAutoReload(e.target.checked)} className="mt-0.5 accent-yellow-400" /><span>Refresh open overlays after saving. They reload once nothing is animating, so a pack opening is never cut short.</span></label>
+        <label className="flex items-start gap-2 text-xs text-gray-300"><input type="checkbox" role="switch" checked={autoReload} onChange={e => setAutoReload(e.target.checked)} className="toggle toggle-xs toggle-primary mt-0.5" /><span>Refresh open overlays after saving. They reload once nothing is animating, so a pack opening is never cut short.</span></label>
       </div>
     </Popover>
   );
@@ -285,13 +285,13 @@ export function GuidesMenu({ showThirds, setShowThirds, showGrid, setShowGrid, s
     <Popover label="Guides" icon="grid" up>
       <div className="w-64 space-y-3 text-sm">
         <div className="space-y-1.5">
-          <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={showThirds} onChange={e => setShowThirds(e.target.checked)} className="accent-yellow-400" />Rule of thirds</label>
-          <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} className="accent-yellow-400" />10% grid</label>
-          <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={showSafe} onChange={e => setShowSafe(e.target.checked)} className="accent-yellow-400" />Safe areas (5% and 10%)</label>
-          <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" checked={snapOn} onChange={e => setSnapOn(e.target.checked)} className="accent-yellow-400" />Snap to centre / 10 px when dragging <span className="text-gray-600">(Alt = free)</span></label>
+          <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" role="switch" checked={showThirds} onChange={e => setShowThirds(e.target.checked)} className="toggle toggle-xs toggle-primary" />Rule of thirds</label>
+          <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" role="switch" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} className="toggle toggle-xs toggle-primary" />10% grid</label>
+          <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" role="switch" checked={showSafe} onChange={e => setShowSafe(e.target.checked)} className="toggle toggle-xs toggle-primary" />Safe areas (5% and 10%)</label>
+          <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" role="switch" checked={snapOn} onChange={e => setSnapOn(e.target.checked)} className="toggle toggle-xs toggle-primary" />Snap to centre / 10 px when dragging <span className="text-gray-600">(Alt = free)</span></label>
         </div>
         <label className="block text-xs text-gray-400 space-y-1">Zoom
-          <select value={zoom} onChange={e => setZoom(Number(e.target.value))} className="block w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white">
+          <select value={zoom} onChange={e => setZoom(Number(e.target.value))} className="select select-sm w-full block">
             <option value={1}>Fit to the space</option><option value={1.5}>150%</option><option value={2}>200%</option><option value={3}>300%</option>
           </select>
         </label>

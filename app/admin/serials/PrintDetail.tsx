@@ -18,7 +18,7 @@ import { Chip, Panel } from '../components/ui';
 import { featurePrintAction, removeCopyAction, transferCopyAction } from '../serial-actions';
 
 const when = (t: number) => `${new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
-const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500';
+const field = 'input';
 
 /**
  * One print's details, actions and history. Shared by the print's own page (/admin/serials/<season>/<copy>) and the Prints list's

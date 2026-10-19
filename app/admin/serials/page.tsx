@@ -26,7 +26,7 @@ export const dynamic = 'force-dynamic';
 const PAGE = 120;       // edition chips per page
 const FILTER_CAP = 600; // editions read when a holder / origin filter has to look at all of them
 const when = (t: number) => `${new Date(t).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
-const field = 'rounded-xl bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500';
+const field = 'input';
 
 type SP = { done?: string; err?: string; season?: string; card?: string; v?: string; variant?: string; holder?: string; origin?: string; q?: string; page?: string; print?: string };
 

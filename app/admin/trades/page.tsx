@@ -12,7 +12,7 @@ import { Panel, Tile, PageHeader } from '../components/ui';
 export const metadata = { title: 'Trades · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
-const field = 'w-28 rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500';
+const field = 'input w-28';
 
 export default async function AdminTradesPage({ searchParams }: { searchParams: Promise<{ saved?: string; flagged?: string; tab?: string }> }) {
   const sp = await searchParams;
@@ -95,7 +95,7 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
         <Panel title="Settings">
           <form action={saveTradeSettingsAction} className="space-y-4">
             <label className="flex items-start gap-3 text-sm text-gray-300">
-              <input type="checkbox" name="enabled" defaultChecked={settings.enabled} className="mt-1 h-4 w-4 accent-yellow-500" />
+              <input type="checkbox" name="enabled" defaultChecked={settings.enabled} className="toggle toggle-sm toggle-primary" />
               <span><strong className="text-white">Trading is on.</strong> Turn it off to freeze trading for everyone: nothing new can be offered or accepted, but viewers can still cancel their own offers to get their cards back.</span>
             </label>
             <div className="flex flex-wrap gap-4">
