@@ -65,7 +65,7 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret }: { initial:
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <aside className="tcg-panel rounded-2xl overflow-hidden self-start">
+        <aside className="card tcg-panel rounded-2xl overflow-hidden self-start">
           <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between gap-2">
             <h2 className="font-semibold text-white text-sm">Commands</h2>
             <button type="button" onClick={add} disabled={commands.length >= MAX_COMMANDS} className={`${secondary} py-1! px-2! text-xs`}>New</button>
@@ -89,7 +89,7 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret }: { initial:
         </aside>
 
         {cmd && info ? (
-          <section className="tcg-panel rounded-2xl overflow-hidden min-w-0">
+          <section className="card tcg-panel rounded-2xl overflow-hidden min-w-0">
             <div className="px-6 py-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-3">
               <label className="flex items-center gap-2 text-sm text-white font-semibold">
                 <input type="checkbox" role="switch" checked={cmd.enabled} onChange={e => patch({ enabled: e.target.checked })} className="toggle toggle-sm toggle-primary" />
@@ -162,7 +162,7 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret }: { initial:
             </div>
           </section>
         ) : (
-          <section className="tcg-panel rounded-2xl px-6 py-8 text-sm text-gray-500">Add a command to get started.</section>
+          <section className="card tcg-panel rounded-2xl px-6 py-8 text-sm text-gray-500">Add a command to get started.</section>
         )}
       </div>
 
@@ -209,7 +209,7 @@ function SetupPanel({ cmd, webhookUrl, secret }: { cmd: ChatCommand | null; webh
   const body = JSON.stringify({ secret, command: cmd?.name ?? 'stats', username: '$username', args: '$allargs' }, null, 2);
   const copy = (t: string) => { try { void navigator.clipboard.writeText(t); } catch { /* clipboard blocked */ } };
   return (
-    <section className="tcg-panel rounded-2xl overflow-hidden">
+    <section className="card tcg-panel rounded-2xl overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-800">
         <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="link" className="text-yellow-400" />Set up in Mix It Up</h2>
         <p className="text-xs text-gray-500 mt-0.5">One Web Request action per chat command. Keep the secret private.</p>

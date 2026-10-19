@@ -130,7 +130,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
             <Tile label={season.endedAt ? 'Ran for' : 'Running'} value={`${stats.days} day${stats.days === 1 ? '' : 's'}`} />
           </div>
           <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
-            <div className="tcg-panel rounded-2xl p-5 space-y-3">
+            <div className="card tcg-panel rounded-2xl p-5 space-y-3">
               <div className="flex items-baseline justify-between gap-3">
                 <h3 className="text-sm font-semibold text-white">Pulls per day</h3>
                 <span className="text-xs text-gray-500">{sumArr(series?.data.pull ?? []).toLocaleString()} pulls · {sumArr(series?.data['v:shiny'] ?? [])} Shiny</span>
@@ -147,7 +147,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
                 />
               ) : <p className="text-sm text-gray-600 py-6">No pulls counted yet{series?.since ? '' : ' (charts fill in from the first pull after tracking started)'}.</p>}
             </div>
-            <div className="tcg-panel rounded-2xl overflow-hidden">
+            <div className="card tcg-panel rounded-2xl overflow-hidden">
               <div className="px-5 py-3.5 border-b border-gray-800 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-white">Top collectors</h3>
                 <Link href={`/leaderboard/${id}`} target="_blank" className="text-xs text-yellow-500 hover:text-yellow-300">Leaderboard ↗</Link>
@@ -172,7 +172,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
       {tab === 'settings' && error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-300">Not saved: {error}</p>}
       {tab === 'settings' && (
         <div className="grid gap-6 xl:grid-cols-2 items-start">
-          <form action={updateThisSeason} className="tcg-panel rounded-xl p-6 space-y-4 xl:col-start-1">
+          <form action={updateThisSeason} className="card tcg-panel rounded-xl p-6 space-y-4 xl:col-start-1">
             <h2 className="text-lg font-semibold text-white">Settings</h2>
             <SeasonFields
               defaults={{
@@ -185,7 +185,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
             </div>
           </form>
           {isPublished && (
-            <form action={moveToDrafts} className="xl:col-start-2 xl:row-start-1 tcg-panel rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
+            <form action={moveToDrafts} className="xl:col-start-2 xl:row-start-1 card tcg-panel rounded-xl p-5 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-gray-500 max-w-xl leading-relaxed">
                 <strong className="text-gray-300">Published.</strong> Move it back to a draft to take it off the public site while you rework it. Viewers&apos; cards, the season&apos;s packs and its settings are all kept.
                 {season.active && <span className="text-amber-300"> This is the active season, so the overlay and Twitch panel will have no season until you activate another.</span>}
@@ -207,7 +207,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
         <div className="grid gap-6 xl:grid-cols-2 items-start">
         {/* Wrap-up */}
         {isPublished && (
-          <section className="tcg-panel rounded-xl p-6 space-y-4">
+          <section className="card tcg-panel rounded-xl p-6 space-y-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2"><Icon name="trophy" className="text-yellow-500/90" />Wrap-up</h2>
             {season.active && (
               <form action={endSeasonAction.bind(null, id)} className="space-y-3">

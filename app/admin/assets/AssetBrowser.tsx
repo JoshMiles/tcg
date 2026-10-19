@@ -126,7 +126,7 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
         </div>
       )}
       {opt.progress && (
-        <div className="tcg-panel rounded-xl px-4 py-3 space-y-2" role="status">
+        <div className="card tcg-panel rounded-xl px-4 py-3 space-y-2" role="status">
           <p className="text-sm text-gray-200"><Icon name="zap" className="mr-1.5 text-yellow-400" />Optimising {opt.progress.what} {opt.progress.done + 1} of {opt.progress.total}…<span className="text-gray-500"> keep this page open.</span></p>
           <SizeBar value={opt.progress.done + 0.5} max={opt.progress.total} />
         </div>
@@ -138,7 +138,7 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
         </div>
       )}
       {fixing && (
-        <div className="tcg-panel rounded-xl px-4 py-3 space-y-2" role="status">
+        <div className="card tcg-panel rounded-xl px-4 py-3 space-y-2" role="status">
           <p className="text-sm text-gray-200"><Icon name="wrench" className="mr-1.5 text-yellow-400" />Fixing {fixing.done + 1} of {fixing.total}…<span className="text-gray-500"> large GIFs can take up to a minute each. Keep this page open.</span></p>
           <SizeBar value={fixing.done + 0.5} max={fixing.total} />
         </div>
@@ -184,7 +184,7 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
                     <Icon name="wrench" className="mr-1.5" />Fix all ({flaggedFixable.length})
                   </button>
                 )}
-                <div className="flex tcg-panel rounded-xl p-0.5" role="group" aria-label="View">
+                <div className="flex card tcg-panel rounded-xl p-0.5" role="group" aria-label="View">
                   {VIEWS.map(v => (
                     <button key={v.id} onClick={() => chooseView(v.id)} aria-pressed={view === v.id} title={v.label} className={`p-2 rounded-lg transition-colors ${view === v.id ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}><Icon name={v.icon} /></button>
                   ))}
@@ -202,7 +202,7 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
       ) : visible.length === 0 ? (
         <div className="py-16 text-center text-sm text-gray-500">{onlyIssues || q ? 'Nothing matches the current filters.' : 'No files here yet. They appear once packs and cards use them.'}</div>
       ) : view === 'list' ? (
-        <div className="tcg-panel rounded-2xl overflow-hidden divide-y divide-gray-800/60">
+        <div className="card tcg-panel rounded-2xl overflow-hidden divide-y divide-gray-800/60">
           {visible.map(a => (
             <AssetRow key={a.id} asset={a} maxBytes={maxBytes} selected={selected.has(a.id)} onToggle={() => toggle(a.id)} onOpen={() => setOpenId(a.id)}
               busy={fixing?.current === a.id || opt.progress?.current === a.id || rep.busy === a.id} onDropFile={f => rep.replace(a, f)} />
@@ -279,7 +279,7 @@ function AssetTile({ asset, compact, selected, onToggle, onOpen, busy, onDropFil
   const flagged = asset.issues.length > 0;
   const red = asset.issues.includes('missing');
   return (
-    <div {...drop.props} className={`group relative tcg-panel rounded-2xl overflow-hidden flex flex-col transition-all hover:-translate-y-0.5 ${selected ? 'ring-2 ring-yellow-400' : flagged ? (red ? 'ring-1 ring-red-400/40' : 'ring-1 ring-amber-400/30') : ''}`}>
+    <div {...drop.props} className={`group relative card tcg-panel rounded-2xl overflow-hidden flex flex-col transition-all hover:-translate-y-0.5 ${selected ? 'ring-2 ring-yellow-400' : flagged ? (red ? 'ring-1 ring-red-400/40' : 'ring-1 ring-amber-400/30') : ''}`}>
       <BusyOverlay over={drop.over} busy={busy} />
       <div className="absolute top-2 left-2 z-5"><Check on={selected} onToggle={onToggle} label={`Select ${assetTitle(asset.origin)}`} /></div>
       {flagged && <span title={asset.issues.join(', ')} className={`absolute top-2.5 right-2.5 z-5 w-2.5 h-2.5 rounded-full ${red ? 'bg-red-400' : 'bg-amber-400'} shadow-sm`} />}

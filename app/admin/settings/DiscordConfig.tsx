@@ -45,7 +45,7 @@ export function DiscordConfig({ settings, logs = {} }: { settings: DiscordSettin
   const full = channels.length >= MAX_DISCORD_CHANNELS;
 
   return (
-    <section className="tcg-panel rounded-2xl overflow-hidden">
+    <section className="card tcg-panel rounded-2xl overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-800 flex items-start justify-between gap-4">
         <div>
           <h2 className="font-semibold text-white flex items-center gap-2">

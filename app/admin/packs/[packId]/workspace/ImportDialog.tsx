@@ -89,7 +89,7 @@ export function ImportDialog({ files, existing, onClose, onApply }: {
         </p>
         {tooMany && <p role="alert" className="text-sm text-amber-300">Only the first {MAX_IMPORT_FILES} files are used. Import the rest in another drop.</p>}
         <div className="max-h-[50vh] overflow-auto rounded-xl border border-gray-800">
-          <table className="w-full text-sm min-w-160">
+          <table className="table table-xs w-full text-sm min-w-160">
             <thead className="sticky top-0 bg-gray-900 text-[11px] uppercase tracking-wider text-gray-500"><tr><th className="px-2 py-2 w-8"><span className="sr-only">Include</span></th><th className="px-2 py-2 w-14" /><th className="px-2 py-2 text-left">What it becomes</th><th className="px-2 py-2 text-left w-20">Number</th><th className="px-2 py-2 text-left">Name</th><th className="px-2 py-2 text-left">Notes</th></tr></thead>
             <tbody className="divide-y divide-gray-800/60">
               {rows.map(r => {

@@ -35,7 +35,7 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
   const names = [...picked];
   const hidden = <>{names.map(n => <input key={n} type="hidden" name="username" value={n} />)}</>;
 
-  if (rows.length === 0) return <p className="tcg-panel rounded-2xl p-8 text-center text-sm text-gray-500">No viewers yet. Add a test user below, or set up a scenario on the Simulate tab.</p>;
+  if (rows.length === 0) return <p className="card tcg-panel rounded-2xl p-8 text-center text-sm text-gray-500">No viewers yet. Add a test user below, or set up a scenario on the Simulate tab.</p>;
 
   return (
     <div className="space-y-3">
@@ -62,8 +62,8 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
         )}
       </div>
 
-      <div className="tcg-panel rounded-2xl overflow-x-auto">
-        <table className="w-full text-sm min-w-160">
+      <div className="card tcg-panel rounded-2xl overflow-x-auto">
+        <table className="table table-sm w-full text-sm min-w-160">
           <thead>
             <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
               <th className="w-10 pl-4 py-2.5 text-left"><input type="checkbox" aria-label="Select all shown" checked={shown.length > 0 && shown.every(r => picked.has(r.username))} onChange={e => setPicked(e.target.checked ? new Set(shown.map(r => r.username)) : new Set())} className="accent-yellow-400" /></th>

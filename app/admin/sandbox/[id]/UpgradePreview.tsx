@@ -20,7 +20,7 @@ export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: 
   const sel = 'select w-full';
 
   return (
-    <div className="tcg-panel rounded-2xl p-5 space-y-3">
+    <div className="card tcg-panel rounded-2xl p-5 space-y-3">
       <h2 className="font-semibold text-white">Preview the upgrade animation</h2>
       <p className="text-xs text-gray-500">What a viewer sees when they upgrade on the website. Nothing is saved.</p>
       <div className="grid grid-cols-2 gap-3">

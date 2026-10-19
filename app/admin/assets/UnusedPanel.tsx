@@ -20,7 +20,7 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
 
   if (!blobConnected) {
     return (
-      <div className="tcg-panel rounded-xl p-6 text-sm text-gray-400 space-y-2">
+      <div className="card tcg-panel rounded-xl p-6 text-sm text-gray-400 space-y-2">
         {problem?.kind === 'error' ? (
           <>
             <p>Blob storage is configured here, but reading it failed, so unused files can&apos;t be checked.</p>
@@ -42,7 +42,7 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
 
   return (
     <div className="space-y-4">
-      <div className="tcg-panel rounded-xl p-4 space-y-3">
+      <div className="card tcg-panel rounded-xl p-4 space-y-3">
         <p className="text-sm text-gray-400 max-w-3xl">
           These files are in Blob storage but no card or pack points at them (leftover originals, replaced art, abandoned uploads). Files uploaded in the last 10 minutes are hidden in case they&apos;re still being processed. Tick the ones to delete; anything still in use is skipped on the server.
         </p>
@@ -84,7 +84,7 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
       {items.length === 0 ? (
         <div className="py-10 text-center text-sm text-gray-500">No unused files match your search.</div>
       ) : (
-        <div className="tcg-panel rounded-xl overflow-hidden divide-y divide-gray-800/60">
+        <div className="card tcg-panel rounded-xl overflow-hidden divide-y divide-gray-800/60">
           {items.map(u => {
             const isImage = ['WebP', 'PNG', 'JPEG', 'GIF'].includes(u.format);
             const previewable = isImage && u.bytes <= 1.5 * 1024 * 1024; // never pull a 25MB original just to preview it

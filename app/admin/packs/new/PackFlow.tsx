@@ -171,7 +171,7 @@ export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: 
       />
 
       <div className={wide ? '' : 'grid lg:grid-cols-[1fr_280px] gap-6 items-start'}>
-        <div className="tcg-panel rounded-2xl p-6 space-y-5">
+        <div className="card tcg-panel rounded-2xl p-6 space-y-5">
 
           {/* ── Details ── */}
           {step === 'details' && (

@@ -33,7 +33,7 @@ export function WebhookConfig({ settings, base }: { settings: WebhookSettings; b
     <div className="space-y-8">
 
       {/* ── Incoming ── */}
-      <section className="tcg-panel rounded-2xl overflow-hidden">
+      <section className="card tcg-panel rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-800">
           <h2 className="font-semibold text-white">Incoming Webhooks</h2>
           <p className="text-xs text-gray-500 mt-0.5">MixItUp calls these URLs to trigger overlay actions</p>
@@ -71,7 +71,7 @@ export function WebhookConfig({ settings, base }: { settings: WebhookSettings; b
       </section>
 
       {/* ── Outgoing ── */}
-      <section className="tcg-panel rounded-2xl overflow-hidden">
+      <section className="card tcg-panel rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-800">
           <h2 className="font-semibold text-white">Outgoing Webhooks</h2>
           <p className="text-xs text-gray-500 mt-0.5">TCG calls these URLs when events happen on stream</p>

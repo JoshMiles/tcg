@@ -45,7 +45,7 @@ export function StaffManager({ staff, viewerRole, viewerLogin }: { staff: Row[];
 
       {staff.length === 0 ? <p className="text-sm text-gray-600">No admins or mods yet. Add someone above.</p> : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="table table-sm w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-gray-500">
                 <th className="py-2 pr-3">Person</th><th className="py-2 pr-3">Role</th>

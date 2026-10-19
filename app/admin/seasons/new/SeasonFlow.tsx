@@ -133,7 +133,7 @@ export function SeasonFlow({
 
       <Stepper steps={STEPS} current={step} onSelect={id => { setStep(id); setPublishIssues([]); }} locked={!draftId} issuesByStep={issuesByStep} />
 
-      <div className="tcg-panel rounded-2xl p-6 space-y-5">
+      <div className="card tcg-panel rounded-2xl p-6 space-y-5">
 
         {/* ── Details ── */}
         {step === 'details' && (

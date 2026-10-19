@@ -73,12 +73,12 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
         {/* Existing */}
         <section className="space-y-3">
           <h2 className="font-semibold text-white">Your sandboxes <span className="text-gray-600 font-normal">({sandboxes.length})</span></h2>
-          {sandboxes.length === 0 && <p className="tcg-panel rounded-xl p-6 text-sm text-gray-500 text-center">None yet. Create one to start testing.</p>}
+          {sandboxes.length === 0 && <p className="card tcg-panel rounded-xl p-6 text-sm text-gray-500 text-center">None yet. Create one to start testing.</p>}
           <ul className="space-y-3">
             {details.map(({ s, stats, keys }) => {
               const left = s.expiresAt ? s.expiresAt - now : null;
               return (
-                <li key={s.id} className={`tcg-panel rounded-2xl p-4 space-y-3 ${s.id === activeId ? 'ring-1 ring-purple-400/40' : ''}`}>
+                <li key={s.id} className={`card tcg-panel rounded-2xl p-4 space-y-3 ${s.id === activeId ? 'ring-1 ring-purple-400/40' : ''}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-semibold text-white flex flex-wrap items-center gap-2">
@@ -107,7 +107,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
         </section>
 
         {/* Create */}
-        <form action={createSandboxAction} className="tcg-panel rounded-2xl p-5 space-y-4 xl:sticky xl:top-4">
+        <form action={createSandboxAction} className="card tcg-panel rounded-2xl p-5 space-y-4 xl:sticky xl:top-4">
           <h2 className="font-semibold text-white">New sandbox</h2>
           <label className="block space-y-1 text-sm text-gray-300">
             Name
@@ -136,7 +136,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
       </div>
 
       {/* How it keeps production safe */}
-      <details className="tcg-panel rounded-2xl p-5 text-sm text-gray-400 leading-relaxed">
+      <details className="card tcg-panel rounded-2xl p-5 text-sm text-gray-400 leading-relaxed">
         <summary className="cursor-pointer text-gray-200 font-semibold">How a sandbox keeps production safe</summary>
         <ul className="mt-3 space-y-1.5 list-disc pl-5">
           <li>Its data lives in a separate namespace of the same database: every read and write is prefixed with the sandbox id, so it cannot see or change production records.</li>

@@ -63,7 +63,7 @@ export function ScoringForm({ saved, groups, save, reset }: {
     <div className="grid gap-6 xl:grid-cols-[1.25fr_1fr] items-start">
       <form action={save} className="space-y-5 min-w-0">
         {groups.map(g => (
-          <fieldset key={g.title} className="tcg-panel rounded-2xl p-5 space-y-4">
+          <fieldset key={g.title} className="card tcg-panel rounded-2xl p-5 space-y-4">
             <legend className="px-2 -ml-2 text-xs font-extrabold text-gray-300 uppercase tracking-wider">{g.title}</legend>
             {g.fields.map(f => {
               const { min, max, step } = SCORING_LIMITS[f.name];
@@ -109,14 +109,14 @@ export function ScoringForm({ saved, groups, save, reset }: {
       <form id="scoring-reset" action={reset} className="hidden" />
 
       {/* Preview */}
-      <aside className="tcg-panel rounded-2xl p-5 space-y-4 xl:sticky xl:top-4 min-w-0" aria-live="polite">
+      <aside className="card tcg-panel rounded-2xl p-5 space-y-4 xl:sticky xl:top-4 min-w-0" aria-live="polite">
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold text-white"><Icon name="eye" className="mr-1.5 text-yellow-400" />Preview{result && 'season' in result ? <span className="text-gray-500 font-normal"> · {result.season}</span> : null}</h3>
           {busy ? <span className="text-xs text-gray-500">Updating…</span> : dirty ? <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">not saved</span> : <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500">same as saved</span>}
         </div>
         {!result ? <p className="text-sm text-gray-500">Working it out…</p> : !preview ? <p className="text-sm text-gray-500">{'message' in result ? result.message : ''}</p> : (
           <>
-            <table className="w-full text-sm">
+            <table className="table table-xs w-full text-sm">
               <thead><tr className="text-[10px] uppercase tracking-wider text-gray-500"><th className="text-left font-bold pb-1.5" /><th className="text-right font-bold pb-1.5">Saved</th><th className="text-right font-bold pb-1.5">With these</th></tr></thead>
               <tbody className="divide-y divide-gray-800/60">
                 <Row label="Set value" a={preview.saved.setValue} b={preview.candidate.setValue} />

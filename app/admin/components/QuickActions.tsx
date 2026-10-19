@@ -68,7 +68,7 @@ export function QuickActions({
   const connected = status?.connected ?? 0;
 
   return (
-    <section id="quick-actions" className="tcg-panel rounded-2xl overflow-hidden">
+    <section id="quick-actions" className="card tcg-panel rounded-2xl overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-lg font-bold text-white flex items-center gap-2"><Icon name="zap" className="text-yellow-400" />Quick actions</h2>
         <div className="flex items-center gap-2 text-xs">
