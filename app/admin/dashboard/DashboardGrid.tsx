@@ -374,7 +374,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
               {/* Content, inert while editing so a click or drag never triggers the widget itself */}
               <div className="pointer-events-none select-none h-full">
                 {node ?? (
-                  <div className="tcg-panel rounded-2xl h-full min-h-40 p-6 flex flex-col items-center justify-center text-center gap-1.5">
+                  <div className="card tcg-panel rounded-2xl h-full min-h-40 p-6 flex flex-col items-center justify-center text-center gap-1.5">
                     <Icon name={def.icon} className="w-8 h-8 text-yellow-500/90" />
                     <p className="font-semibold text-white">{def.title}</p>
                     <p className="text-xs text-gray-500 max-w-xs">{def.description}</p>

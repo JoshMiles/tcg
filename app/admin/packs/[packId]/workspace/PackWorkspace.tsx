@@ -337,7 +337,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
       {view === 'grid' && (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] flex-1 min-h-0">
           <GridView pack={work.pack} cards={work.cards} held={held} selected={selected} focus={focus} problemIds={problemIds} onSelect={select} editCards={editCards} only={only} onShowAll={() => setOnly(null)} />
-          {cardIds.length > 0 && <aside aria-label="Bulk edits" className="tcg-panel rounded-2xl overflow-y-auto min-h-0"><BulkPanel selected={work.cards.filter(c => cardIds.includes(c.id))} held={held} onApply={op => edit(w => ({ ...w, cards: bulkApply(w.cards, new Set(cardIds), op) }))} onRemove={removeCards} /></aside>}
+          {cardIds.length > 0 && <aside aria-label="Bulk edits" className="card tcg-panel rounded-2xl overflow-y-auto min-h-0"><BulkPanel selected={work.cards.filter(c => cardIds.includes(c.id))} held={held} onApply={op => edit(w => ({ ...w, cards: bulkApply(w.cards, new Set(cardIds), op) }))} onRemove={removeCards} /></aside>}
         </div>
       )}
 
@@ -346,7 +346,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
 
       {view === 'edit' && (
         <div className="grid gap-4 xl:grid-cols-[19rem_minmax(0,1fr)_25rem] flex-1 min-h-0">
-          <div className="tcg-panel rounded-2xl overflow-hidden min-h-0 xl:h-full max-h-[70vh] xl:max-h-none"
+          <div className="card tcg-panel rounded-2xl overflow-hidden min-h-0 xl:h-full max-h-[70vh] xl:max-h-none"
             onDragOver={e => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
             onDrop={async e => { if (!e.dataTransfer.types.includes('Files')) return; e.preventDefault(); const f = await filesFromDrop(e.dataTransfer); if (f.length) setImportFiles(f); }}>
             <CardList
@@ -360,7 +360,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
             <PreviewPane {...previewProps} />
           </div>
 
-          <aside aria-label="Properties" className={`${sheet ? 'fixed inset-0 z-40 bg-gray-950 overflow-y-auto' : 'hidden'} xl:static xl:block xl:z-auto xl:bg-transparent tcg-panel xl:rounded-2xl xl:overflow-y-auto min-h-0`}>
+          <aside aria-label="Properties" className={`${sheet ? 'fixed inset-0 z-40 bg-gray-950 overflow-y-auto' : 'hidden'} xl:static xl:block xl:z-auto xl:bg-transparent card tcg-panel xl:rounded-2xl xl:overflow-y-auto min-h-0`}>
             <div className="xl:hidden sticky top-0 z-10 bg-gray-950 border-b border-gray-800 p-3 flex items-center gap-3">
               <button type="button" onClick={() => setSheet(false)} className="px-3 py-1.5 text-sm font-bold text-yellow-400"><Icon name="chevronLeft" /> Back to the list</button>
               <span className="text-xs text-gray-500 ml-auto">{saving ? 'Saving…' : dirty ? (isDraft ? 'Saving soon…' : 'Unsaved changes') : 'Saved'}</span>

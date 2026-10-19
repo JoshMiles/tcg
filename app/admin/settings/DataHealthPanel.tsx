@@ -28,7 +28,7 @@ export async function DataHealthPanel() {
           ))}
         </ul>
         <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="table table-sm w-full text-sm">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
                 <th className="py-1.5 pr-3 font-bold">Season</th>

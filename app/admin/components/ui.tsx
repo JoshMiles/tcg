@@ -29,11 +29,11 @@ export function Panel({ title, hint, icon, actions, id, children, className = ''
   title?: ReactNode; hint?: ReactNode; icon?: IconName; actions?: ReactNode; id?: string; children: ReactNode; className?: string;
 }) {
   return (
-    <section id={id} className={`tcg-panel rounded-2xl p-5 space-y-3 ${id ? 'scroll-mt-16' : ''} ${className}`}>
+    <section id={id} className={`card tcg-panel rounded-2xl p-5 space-y-3 ${id ? 'scroll-mt-16' : ''} ${className}`}>
       {(title || actions) && (
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            {title && <h2 className="font-semibold text-white">{icon && <Icon name={icon} className="mr-2 text-yellow-400/90" />}{title}</h2>}
+            {title && <h2 className="card-title text-base text-white">{icon && <Icon name={icon} className="text-yellow-400/90" />}{title}</h2>}
             {hint && <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{hint}</p>}
           </div>
           {actions && <div className="shrink-0 flex items-center gap-2">{actions}</div>}
@@ -70,7 +70,7 @@ export function Narrow({ size = 'lg', children, className = '' }: { size?: 'md' 
 export function EmptyState({ icon = 'inbox', title, children, action, asH1 = false }: { icon?: IconName; title: string; children?: ReactNode; action?: ReactNode; /** For a screen that is the whole page (not found): the title is the page's one heading. */ asH1?: boolean }) {
   const Title = asH1 ? 'h1' : 'p';
   return (
-    <div className="tcg-panel rounded-2xl px-6 py-14 text-center">
+    <div className="card tcg-panel rounded-2xl px-6 py-14 text-center">
       <span className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-white/4 border border-white/6 text-gray-500 flex items-center justify-center"><Icon name={icon} className="w-6 h-6" /></span>
       <Title className="font-semibold text-gray-200">{title}</Title>
       {children && <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto leading-relaxed">{children}</p>}

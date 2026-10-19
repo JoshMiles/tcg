@@ -133,7 +133,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
   );
 
   return (
-    <div id="card-back" className="tcg-panel rounded-2xl overflow-hidden scroll-mt-20">
+    <div id="card-back" className="card tcg-panel rounded-2xl overflow-hidden scroll-mt-20">
       <div className="px-5 py-4 border-b border-gray-800">
         <h3 className="text-sm font-semibold text-white">Card back</h3>
         <p className="text-xs text-gray-500 mt-0.5">How the back of a print looks for cards from this pack. Until you save a design, it keeps the classic engraved plate.</p>

@@ -240,7 +240,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               const rows = env.filter(e => e.group === group);
               if (rows.length === 0) return null;
               return (
-                <section key={group} className="tcg-panel rounded-2xl overflow-hidden">
+                <section key={group} className="card tcg-panel rounded-2xl overflow-hidden">
                   <div className="px-5 py-3 border-b border-gray-800"><h2 className="font-semibold text-white">{group}</h2></div>
                   <ul className="divide-y divide-gray-800/60">
                     {rows.map(e => (

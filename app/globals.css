@@ -372,6 +372,45 @@ main :is(a, button, summary, [role='button'], [role='switch'], [role='tab']):foc
   min-inline-size: 0;
 }
 
+/* daisyUI card is a column flex with its own radius. A layout or radius utility on the same panel decides. */
+.card.grid { display: grid; }
+.card.inline-flex { display: inline-flex; }
+.card.flex:not(.flex-col),
+.card.inline-flex:not(.flex-col) { flex-direction: row; }
+.card.hidden { display: none; }
+fieldset.card { display: block; }
+.card.rounded-lg { border-radius: 0.5rem; }
+.card.rounded-xl { border-radius: 0.75rem; }
+.card.rounded-2xl { border-radius: 1rem; }
+.card.xl\:rounded-2xl { border-radius: 0; }
+@media (min-width: 1280px) {
+  .card.xl\:rounded-2xl { border-radius: 1rem; }
+  .card.hidden.xl\:block { display: block; }
+}
+.card-title.text-base { font-size: 1rem; line-height: 1.5rem; }
+
+/* daisyUI table paints its own type size, header colour and cell padding. A utility on the same cell decides. */
+.table.text-xs { font-size: 0.75rem; }
+.table.text-sm { font-size: 0.875rem; }
+.table.border-collapse { border-collapse: collapse; }
+.table :is(thead, tfoot) { color: inherit; white-space: inherit; }
+.table :is(th, td) { border-bottom-width: 0; }
+.table :is(th, td).px-1 { padding-inline: 0.25rem; }
+.table :is(th, td).px-2 { padding-inline: 0.5rem; }
+.table :is(th, td).px-3 { padding-inline: 0.75rem; }
+.table :is(th, td).px-5 { padding-inline: 1.25rem; }
+.table :is(th, td).py-1 { padding-block: 0.25rem; }
+.table :is(th, td).py-1\.5 { padding-block: 0.375rem; }
+.table :is(th, td).py-2 { padding-block: 0.5rem; }
+.table :is(th, td).py-2\.5 { padding-block: 0.625rem; }
+.table :is(th, td).py-3 { padding-block: 0.75rem; }
+.table :is(th, td).py-8 { padding-block: 2rem; }
+.table :is(th, td).pr-2 { padding-inline-end: 0.5rem; }
+.table :is(th, td).pr-3 { padding-inline-end: 0.75rem; }
+.table :is(th, td).pr-5 { padding-inline-end: 1.25rem; }
+.table :is(th, td).pl-3 { padding-inline-start: 0.75rem; }
+.table :is(th, td).pb-1\.5 { padding-bottom: 0.375rem; }
+
 /* daisyUI modal box: no extra padding (the dialog body brings its own) and the panel surface. */
 .tcg-modal {
   padding: 0;

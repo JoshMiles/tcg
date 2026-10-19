@@ -192,7 +192,7 @@ export function CardsEditor({
             return (
               <li
                 key={c.id}
-                className={`tcg-panel rounded-xl p-3 flex flex-wrap items-start gap-3 ${missing && !c.busy ? 'ring-1 ring-red-500/30' : ''}`}
+                className={`card tcg-panel rounded-xl p-3 flex flex-wrap items-start gap-3 ${missing && !c.busy ? 'ring-1 ring-red-500/30' : ''}`}
               >
                 <span className="w-8 pt-2 text-center text-xs font-bold text-gray-600 tabular-nums" title="Card number">
                   {c.number ?? idx + 1}

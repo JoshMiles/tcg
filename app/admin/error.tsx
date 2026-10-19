@@ -7,7 +7,7 @@ import { Icon } from '@/app/components/Icon';
 export default function AdminError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => { console.error(error); }, [error]);
   return (
-    <div className="mx-auto max-w-xl tcg-panel rounded-2xl px-6 py-12 text-center space-y-4" role="alert">
+    <div className="mx-auto max-w-xl card tcg-panel rounded-2xl px-6 py-12 text-center space-y-4" role="alert">
       <span className="mx-auto w-12 h-12 rounded-2xl bg-red-500/10 border border-red-400/30 text-red-300 flex items-center justify-center"><Icon name="warning" className="w-6 h-6" /></span>
       <div>
         <h1 className="text-xl font-bold text-white">This page hit a problem</h1>

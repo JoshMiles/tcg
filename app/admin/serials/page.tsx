@@ -166,7 +166,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
         <Tile label="Numbering" icon="check" tone="green" value="Tracking" sub="Give print numbers in Settings" href="/admin/settings?tab=viewers" />
       </div>
 
-      <form method="get" className="tcg-panel rounded-2xl p-4 flex flex-wrap items-end gap-3">
+      <form method="get" className="card tcg-panel rounded-2xl p-4 flex flex-wrap items-end gap-3">
         <input type="hidden" name="season" value={season.id} />
         <label className="text-xs text-gray-500 space-y-1 flex-1 basis-64">Search
           <span className="relative block">

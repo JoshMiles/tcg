@@ -15,7 +15,7 @@ export function WikiScreen({ page }: { page: WikiDoc }) {
         back={page.slug === 'index' ? undefined : { href: '/admin/wiki', label: 'All topics' }}
       />
       <div className="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <nav aria-label="Wiki topics" className="tcg-panel rounded-2xl p-3 lg:sticky lg:top-4">
+        <nav aria-label="Wiki topics" className="card tcg-panel rounded-2xl p-3 lg:sticky lg:top-4">
           <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Topics</p>
           <ul className="space-y-0.5">
             {pages.map(item => {
@@ -34,7 +34,7 @@ export function WikiScreen({ page }: { page: WikiDoc }) {
             })}
           </ul>
         </nav>
-        <article className="tcg-panel min-w-0 rounded-2xl p-5 sm:p-6">
+        <article className="card tcg-panel min-w-0 rounded-2xl p-5 sm:p-6">
           <WikiBody source={page.body} />
         </article>
       </div>

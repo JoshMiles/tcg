@@ -55,7 +55,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
         <div className="space-y-6">
         {/* Health */}
         {!isDraft && !pack.archived && (
-          <div id="health" className="tcg-panel rounded-2xl p-5 space-y-3 scroll-mt-20">
+          <div id="health" className="card tcg-panel rounded-2xl p-5 space-y-3 scroll-mt-20">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               {health.length === 0 ? <Icon name="checkCircle" className="text-emerald-400" /> : <Icon name="warning" className="text-amber-400" />}Pack health
             </h3>
@@ -74,7 +74,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
         )}
 
         {/* Where it's used */}
-        <div className="tcg-panel rounded-2xl p-5 space-y-3">
+        <div className="card tcg-panel rounded-2xl p-5 space-y-3">
           <h3 className="text-sm font-semibold text-white">Used in</h3>
           {inSeasons.length > 0 ? (
             <ul className="space-y-1.5">
@@ -101,7 +101,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
 
         {/* Rarity breakdown */}
         {rarityBreakdown.length > 0 && (
-          <div className="tcg-panel rounded-2xl p-5 space-y-3">
+          <div className="card tcg-panel rounded-2xl p-5 space-y-3">
             <h3 className="text-sm font-semibold text-white">Rarity Mix</h3>
             {rarityBreakdown.map(r => (
               <div key={r.stars} className="space-y-1">

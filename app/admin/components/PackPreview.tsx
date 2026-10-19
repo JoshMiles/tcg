@@ -7,7 +7,7 @@ export function PackPreview({ pack, cardCount }: { pack: PackInput; cardCount: n
   const total = w.regular + w.reverse + w.full + w.shiny;
   const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0);
   return (
-    <div className="tcg-panel rounded-2xl p-4 space-y-3">
+    <div className="card tcg-panel rounded-2xl p-4 space-y-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Preview</p>
       <div
         className="relative aspect-4/3 rounded-xl overflow-hidden bg-gray-950 border flex items-center justify-center"

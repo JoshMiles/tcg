@@ -29,7 +29,7 @@ function Overview({ d }: { d: DashboardData }) {
   return (
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 h-full">
       {stats.map(({ label, accent, value, sub }) => (
-        <div key={label} className="tcg-panel holo-hover rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-glow transition-all">
+        <div key={label} className="card tcg-panel holo-hover rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-glow transition-all">
           <div className={`h-1.5 bg-linear-to-r ${accent}`} />
           <div className="p-5 space-y-1">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{label}</p>
@@ -122,7 +122,7 @@ function CardOwnership({ d }: { d: DashboardData }) {
   return (
     <Panel title="Card ownership" icon="cards" flush action={<span className="text-xs text-gray-600">sorted by rarity</span>}>
       <div className="overflow-auto max-h-96">
-        <table className="w-full text-sm">
+        <table className="table table-sm w-full text-sm">
           <thead className="sticky top-0 bg-gray-900">
             <tr className="text-gray-600 text-xs uppercase border-b border-gray-800">
               <th className="text-left px-5 py-3">#</th><th className="text-left px-5 py-3">Card</th><th className="text-left px-5 py-3">Pack</th>

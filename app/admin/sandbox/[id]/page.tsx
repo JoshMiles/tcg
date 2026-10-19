@@ -107,7 +107,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
             <Tile label="Last used" value={sandbox.lastUsedAt ? ago(sandbox.lastUsedAt, now) : 'never'} />
             <Tile label="Upgrades" value={upgradePacks.length > 0 ? 'On' : 'Off'} sub={upgradePacks.length > 0 ? `${upgradePacks.length} pack${upgradePacks.length === 1 ? '' : 's'}` : 'no pack has them'} />
           </div>
-          <section className="tcg-panel rounded-2xl p-5 space-y-3">
+          <section className="card tcg-panel rounded-2xl p-5 space-y-3">
             <h2 className="font-semibold text-white">Open it</h2>
             <div className="space-y-1.5">
               <p className="text-xs text-gray-500">OBS overlay for this sandbox (add <code className="text-gray-400">&amp;dev</code> for the test panel):</p>
@@ -131,7 +131,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
       {tab === 'users' && rows && (
         <div className="space-y-4">
           <SandboxUsers id={id} rows={rows} loginAs={loginAsFormAction.bind(null, id)} clear={removeUsersAction.bind(null, id, 'clear')} remove={removeUsersAction.bind(null, id, 'delete')} />
-          <form action={addTestUserAction.bind(null, id)} className="tcg-panel rounded-2xl p-4 flex flex-wrap items-end gap-2">
+          <form action={addTestUserAction.bind(null, id)} className="card tcg-panel rounded-2xl p-4 flex flex-wrap items-end gap-2">
             <label className="text-xs text-gray-500 space-y-1">Add a test user
               <input name="username" required maxLength={25} placeholder="alice" className={`${field} w-48`} />
             </label>
@@ -149,7 +149,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
               {SCENARIOS.map(s => {
                 const blocked = !active ? 'No active season' : s.needsUpgrades && upgradePacks.length === 0 ? 'Needs upgrades switched on in a pack' : null;
                 return (
-                  <form key={s.id} action={applyScenarioAction.bind(null, id, s.id)} className="tcg-panel rounded-2xl p-4 flex flex-col gap-3">
+                  <form key={s.id} action={applyScenarioAction.bind(null, id, s.id)} className="card tcg-panel rounded-2xl p-4 flex flex-col gap-3">
                     <div className="flex items-start gap-3">
                       <span className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-400/25 text-purple-200 flex items-center justify-center shrink-0"><Icon name={s.icon} /></span>
                       <div className="min-w-0"><h3 className="font-semibold text-white leading-tight">{s.title}</h3><p className="text-xs text-gray-500 mt-1 leading-relaxed">{s.description}</p></div>
@@ -165,7 +165,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
           </section>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <form action={simulatePullsAction.bind(null, id)} className="tcg-panel rounded-2xl p-5 space-y-3">
+            <form action={simulatePullsAction.bind(null, id)} className="card tcg-panel rounded-2xl p-5 space-y-3">
               <h2 className="font-semibold text-white">Simulate pulls</h2>
               <p className="text-xs text-gray-500">Draws cards exactly as the overlay does (pack by weight, card by odds, then the variant roll) and adds them to the user&apos;s collection.</p>
               <label className="block text-xs text-gray-500 space-y-1">User<input name="username" list="sandbox-users" required defaultValue={userParam} className={field} placeholder="alice" /></label>
@@ -173,7 +173,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
               <PendingButton pendingLabel="Pulling…" className="tcg-btn px-4 py-2 text-sm rounded-xl">Pull</PendingButton>
             </form>
 
-            <form action={grantCopiesAction.bind(null, id)} className="tcg-panel rounded-2xl p-5 space-y-3">
+            <form action={grantCopiesAction.bind(null, id)} className="card tcg-panel rounded-2xl p-5 space-y-3">
               <h2 className="font-semibold text-white">Give specific prints</h2>
               <p className="text-xs text-gray-500">The quickest way to set up a one-off scenario, e.g. exactly enough Regulars to test an upgrade.</p>
               {upgradePacks.length > 0 && (
@@ -196,7 +196,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
 
           <UpgradePreview cards={cards} costs={upgradePacks[0]?.pack.upgradeCosts ?? { reverse: 5, full: 3, shiny: 3 }} />
 
-          <form action={seedUsersAction.bind(null, id)} className="tcg-panel rounded-2xl p-5 space-y-3">
+          <form action={seedUsersAction.bind(null, id)} className="card tcg-panel rounded-2xl p-5 space-y-3">
             <h2 className="font-semibold text-white">Seed a custom crowd</h2>
             <p className="text-xs text-gray-500 leading-relaxed">Creates many viewers who have each pulled cards the way the overlay would draw them, so the leaderboard, card values and scarcity look like a real season. Run it again to add more.</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -217,13 +217,13 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
 
       {/* ── Card values ── */}
       {tab === 'values' && values && (
-        values.length === 0 ? <p className="tcg-panel rounded-2xl p-8 text-center text-sm text-gray-500">No active season, so there are no cards to value.</p> : (
-          <section className="tcg-panel rounded-2xl p-5 space-y-3">
+        values.length === 0 ? <p className="card tcg-panel rounded-2xl p-8 text-center text-sm text-gray-500">No active season, so there are no cards to value.</p> : (
+          <section className="card tcg-panel rounded-2xl p-5 space-y-3">
             <p className="text-xs text-gray-500 leading-relaxed">
               Points per print = base × <strong className="text-gray-400">rarity</strong> (how unlikely the card is to be pulled) × the variant multiplier. These are the base values: a print with a low edition number (see Settings → Scoring) is worth more.
             </p>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="table table-xs w-full text-xs">
                 <thead>
                   <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
                     <th className="text-left py-2 pr-2">#</th><th className="text-left py-2 pr-2">Card</th>
@@ -255,7 +255,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
       {/* ── Activity ── */}
       {tab === 'log' && entries && (
         <div className="space-y-4">
-          <section className="tcg-panel rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
+          <section className="card tcg-panel rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
             {undo ? (
               <>
                 <div><h2 className="font-semibold text-white">Undo the last change</h2><p className="text-sm text-gray-400 mt-0.5">Puts viewers&apos; cards back as they were before: <strong className="text-gray-200">{undo.label}</strong> ({ago(undo.at, now)}).</p></div>
@@ -267,7 +267,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
               </>
             ) : <p className="text-sm text-gray-500">Nothing to undo yet. Changes to viewers&apos; cards (pulls, grants, scenarios, clearing) can be undone one step at a time.</p>}
           </section>
-          <section className="tcg-panel rounded-2xl overflow-hidden">
+          <section className="card tcg-panel rounded-2xl overflow-hidden">
             <div className="px-5 py-3.5 border-b border-gray-800"><h2 className="font-semibold text-white">What happened here</h2><p className="text-xs text-gray-500 mt-0.5">The newest {entries.length === 0 ? 'actions' : `${entries.length} actions`} taken in this sandbox from the admin.</p></div>
             {entries.length === 0 ? <p className="px-5 py-10 text-center text-sm text-gray-600">Nothing yet.</p> : (
               <ul className="divide-y divide-gray-800/60">
@@ -288,7 +288,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
       {/* ── Settings & reset ── */}
       {tab === 'reset' && (
         <div className="space-y-6">
-          <form action={setExpiryAction.bind(null, id)} className="tcg-panel rounded-2xl p-5 flex flex-wrap items-end gap-3">
+          <form action={setExpiryAction.bind(null, id)} className="card tcg-panel rounded-2xl p-5 flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-[16rem]"><h2 className="font-semibold text-white">Automatic deletion</h2><p className="text-xs text-gray-500 mt-0.5">{left !== null ? `This sandbox deletes itself in ${left < DAY ? 'under a day' : `${Math.ceil(left / DAY)} days`}. Change or switch it off here.` : 'Old sandboxes clutter the database. Let this one delete itself after a while.'}</p></div>
             <select name="days" defaultValue="0" className="select w-48"><option value="0">Never</option><option value="7">In 7 days</option><option value="30">In 30 days</option></select>
             <PendingButton className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Save</PendingButton>
@@ -329,19 +329,19 @@ function CompareTab({ items, source }: { items: ReturnType<typeof diffSetup>; so
       </div>
       <p className="text-xs text-gray-500 leading-relaxed">Compares seasons, packs, cards and the overlay and scoring settings with production right now. It does not compare viewers. {source === 'empty' ? 'This sandbox started empty, so everything it lacks shows as only in production. ' : 'A sandbox starts as a copy, so differences are what you changed here (or what changed in production since). '}Nothing here writes to production; to start again from production&apos;s current setup, use Reset.</p>
       {items.length === 0 ? (
-        <p className="tcg-panel rounded-2xl p-8 text-center text-sm text-gray-500"><Icon name="checkCircle" className="block w-7 h-7 mx-auto mb-2 text-green-400/70" />This sandbox&apos;s setup matches production.</p>
+        <p className="card tcg-panel rounded-2xl p-8 text-center text-sm text-gray-500"><Icon name="checkCircle" className="block w-7 h-7 mx-auto mb-2 text-green-400/70" />This sandbox&apos;s setup matches production.</p>
       ) : AREAS.map(area => {
         const list = items.filter(i => i.area === area);
         if (list.length === 0) return null;
         return (
-          <section key={area} className="tcg-panel rounded-2xl overflow-hidden">
+          <section key={area} className="card tcg-panel rounded-2xl overflow-hidden">
             <div className="px-5 py-3 border-b border-gray-800 flex items-center gap-2"><h2 className="font-semibold text-white">{area}s</h2><span className="text-xs text-gray-500">{list.length}</span></div>
             <ul className="divide-y divide-gray-800/60">
               {list.slice(0, SHOWN).map(i => (
                 <li key={`${i.area}-${i.id}`} className="px-5 py-3 space-y-1.5">
                   <p className="flex items-center gap-2 text-sm text-gray-100"><span className={`text-[10px] font-extrabold uppercase tracking-wider rounded-full px-1.5 py-px border ${CHANGE_STYLE[i.change]}`}>{i.change === 'added' ? 'only here' : i.change === 'removed' ? 'only in production' : 'changed'}</span><span className="truncate">{i.label}</span></p>
                   {i.fields.length > 0 && (
-                    <table className="text-xs w-full max-w-3xl"><tbody>
+                    <table className="table table-xs text-xs w-full max-w-3xl"><tbody>
                       {i.fields.map(f => (
                         <tr key={f.field}><td className="pr-3 py-0.5 text-gray-500 whitespace-nowrap align-top">{f.field}</td><td className="pr-3 py-0.5 text-gray-400 font-mono break-all">{f.production}</td><td className="pr-3 py-0.5 text-gray-600 align-top">→</td><td className="py-0.5 text-amber-200 font-mono break-all">{f.sandbox}</td></tr>
                       ))}

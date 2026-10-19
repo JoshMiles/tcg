@@ -68,14 +68,14 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
     editCards(cs => cs.map(c => (targets.has(c.id) ? { ...c, ...(col === 'stars' ? { stars: from.stars } : { probability: from.probability }) } : c)));
   }
 
-  if (rows.length === 0) return <p className="tcg-panel rounded-2xl px-5 py-12 text-center text-gray-500">No cards yet. Add one in the Edit view.</p>;
+  if (rows.length === 0) return <p className="card tcg-panel rounded-2xl px-5 py-12 text-center text-gray-500">No cards yet. Add one in the Edit view.</p>;
 
   const th = 'px-2 py-2 text-left text-[11px] uppercase tracking-wider text-gray-500 font-bold whitespace-nowrap';
   const cell = `${inputCls} py-1! px-2! text-sm!`;
   return (
-    <div className="tcg-panel rounded-2xl overflow-auto min-h-0 max-h-[75vh] xl:max-h-full">
+    <div className="card tcg-panel rounded-2xl overflow-auto min-h-0 max-h-[75vh] xl:max-h-full">
       {only && <div className="flex items-center justify-between gap-3 px-4 py-2 text-sm bg-sky-950/30 border-b border-sky-500/20 text-sky-200"><span>Showing the {rows.length} card{rows.length === 1 ? '' : 's'} just imported. Set their stars and weights here.</span><button type="button" onClick={onShowAll} className="font-bold underline">Show all cards</button></div>}
-      <table ref={table} className="w-full text-sm min-w-4xl">
+      <table ref={table} className="table table-xs w-full text-sm min-w-4xl">
         <thead className="sticky top-0 z-10 bg-gray-900">
           <tr className="border-b border-gray-800">
             <th className={`${th} w-8`}><span className="sr-only">Select</span></th>

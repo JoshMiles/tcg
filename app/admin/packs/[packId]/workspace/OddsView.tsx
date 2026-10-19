@@ -56,10 +56,10 @@ export function OddsView({ pack, cards, baseCards, editCards }: {
   const btn = 'inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white transition-colors disabled:opacity-50';
   const off = Math.abs(total - 100) > 0.05;
 
-  if (cards.length === 0) return <p className="tcg-panel rounded-2xl px-5 py-12 text-center text-gray-500">Add some cards first, then tune their odds here.</p>;
+  if (cards.length === 0) return <p className="card tcg-panel rounded-2xl px-5 py-12 text-center text-gray-500">Add some cards first, then tune their odds here.</p>;
 
   return (
-    <section id="odds" className="tcg-panel rounded-2xl overflow-hidden">
+    <section id="odds" className="card tcg-panel rounded-2xl overflow-hidden">
       <header className="px-5 py-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="chart" className="text-yellow-500/90" />Odds &amp; simulator</h2>
@@ -91,7 +91,7 @@ export function OddsView({ pack, cards, baseCards, editCards }: {
       <div className="grid xl:grid-cols-[1.3fr_1fr]">
         {/* Odds table */}
         <div className="max-h-128 overflow-auto xl:border-r border-gray-800">
-          <table className="w-full text-sm">
+          <table className="table table-sm w-full text-sm">
             <thead className="sticky top-0 bg-gray-900 z-10">
               <tr className="text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-800">
                 <th className="text-left px-5 py-2.5">Card</th>

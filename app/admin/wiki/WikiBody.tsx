@@ -51,7 +51,7 @@ export function WikiBody({ source }: { source: string }) {
         if (block.kind !== 'table') return null;
         return (
           <div key={key} className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
+            <table className="table table-sm w-full border-collapse text-left text-sm">
               <thead>
                 <tr>{block.header.map((cell, j) => <th key={j} className="border-b border-gray-800 px-2 py-1.5 text-xs font-bold uppercase tracking-wide text-gray-400">{inline(cell, `${key}-h${j}`)}</th>)}</tr>
               </thead>
