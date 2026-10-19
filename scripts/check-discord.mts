@@ -296,7 +296,8 @@ ok(lc.categories.listings === false, 'an old channel does not start posting list
   const sent = await d.postShareImage('alice', png, 'Ann *');
   ok(sent.ok && hits.length === 1 && hits[0].path.includes('/30/'), 'an enabled shares channel gets the file');
   const raw = hits[0].raw;
-  ok(raw.includes('payload_json') && raw.includes('Ann') && raw.includes('\\\\*') && raw.includes('The Cheesy TCG') && raw.includes('Cheesygidds') && raw.includes('https://www.twitch.tv/cheesygidds') && raw.includes('image/png'), 'the post is one line plus the png, with the name escaped');
+  const channel = [...raw.matchAll(/https:\/\/[^"\\\s]+/g)].map(m => { try { return new URL(m[0]); } catch { return null; } }).find(u => u?.hostname === 'www.twitch.tv' && u.pathname === '/cheesygidds');
+  ok(raw.includes('payload_json') && raw.includes('Ann') && raw.includes('\\\\*') && raw.includes('The Cheesy TCG') && !!channel && raw.includes('image/png'), 'the post is one line plus the png, with the name escaped');
   ok(JSON.stringify({ parse: [] }) && raw.includes('"parse":[]'), 'share mentions stay empty');
   hits.length = 0;
   const again = await d.postShareImage('alice', png);
