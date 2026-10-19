@@ -41,7 +41,7 @@ const LAYOUT_CAT: { id: string; label: string; icon: IconName; description: stri
 
 
 export function OverlayEditor({
-  initialGlobal, initialPacks, packs, presets, initialLayout, initialScope, saveAction, savePresetAction, deletePresetAction,
+  initialGlobal, initialPacks, packs, presets, initialLayout, initialScope, initialCategory, saveAction, savePresetAction, deletePresetAction,
   versions, seasons, seasonLooks, packCards, initialAutoReload, siteUrl, overlayKey,
 }: {
   /** Where the overlay is served from (a scene's OBS URL is this + /overlay.html?preset=<id>). */
@@ -59,6 +59,7 @@ export function OverlayEditor({
   presets: PresetInfo[];
   initialLayout: OverlayLayout;
   initialScope: string;
+  initialCategory?: string;
   saveAction: (formData: FormData) => void | Promise<void>;
   savePresetAction: (formData: FormData) => void | Promise<void>;
   deletePresetAction: (formData: FormData) => void | Promise<void>;
@@ -80,7 +81,7 @@ export function OverlayEditor({
     setLayoutMap(m => ({ ...m, [layoutKey]: typeof u === 'function' ? u(m[layoutKey] ?? m.global) : u })), [layoutKey]);
   const layout = useMemo(() => sanitizeLayout(layoutVals), [layoutVals]);
   const initialActiveLayout = initialLayoutMap[layoutKey] ?? initialLayout;
-  const [category, setCategory] = useState('pack');
+  const [category, setCategory] = useState(initialCategory && (PROP_GROUPS.some(g => g.id === initialCategory) || initialCategory === 'layout') ? initialCategory : 'pack');
   const [version, setVersion] = useState<VariantId>('regular');   // the variant being edited AND previewed
   const [moment, setMoment] = useState<MomentPick>('');            // which special moment the preview plays
   const [showOff, setShowOff] = useState(false);                     // the canvas shows a chat show-off (placed like the pack opening)

@@ -94,6 +94,8 @@ interface VariantDefaults {
   labelColors: string[];
   holoMode: 'auto' | 'on' | 'off';
   holoColors: string[];
+  holoSpeed?: number;
+  holoLoop?: boolean;
   glow: boolean; glowColorA: string; glowColorB: string; glowBlur: number; glowSpread: number; glowSpeed: number;
   pop: boolean; popScale: number; popTilt: number;
   rock: boolean; rockAmount: number; rockSpeed: number;
@@ -117,9 +119,10 @@ const VARIANT_DEFAULTS: Record<VariantId, VariantDefaults> = {
     pop: true, popScale: 1.22, popTilt: -2, rock: true, rockAmount: 2, rockSpeed: 3.6, burstColor: '#fff08c', burstHue: true,
   },
   golden: {
-    labelText: '✨ Golden', labelColors: ['#fbbf24', '#f59e0b', '#d97706'], holoMode: 'on', holoColors: ['#fffee3', '#fef08a', '#fbbf24', '#fffee3', '#f59e0b', '#fffee3', '#fef08a', '#fffee3'],
+    labelText: 'Golden', labelColors: ['#fbbf24', '#f59e0b', '#d97706'], holoMode: 'on', holoColors: ['#ffb703', '#ffe14d', '#fff6c2'],
+    holoSpeed: 14, holoLoop: true,
     glow: true, glowColorA: '#fde047', glowColorB: '#f59e0b', glowBlur: 75, glowSpread: 22, glowSpeed: 1.1,
-    pop: true, popScale: 1.25, popTilt: -2, rock: true, rockAmount: 2, rockSpeed: 3.4, burstColor: '#fef08a', burstHue: false,
+    pop: true, popScale: 1.25, popTilt: -2, rock: true, rockAmount: 2, rockSpeed: 3.4, burstColor: '#f59e0b', burstHue: false,
   },
 };
 
@@ -141,10 +144,10 @@ function variantPropsRaw(v: VariantId): PropDef[] {
     },
     { key: `${g}.holoColors`, group: g, label: 'Shimmer colors', type: 'colors', default: d.holoColors, minItems: 1, maxItems: 8, help: 'The bands of light that sweep across the card, in order (up to 8).' },
     { key: `${g}.holoOpacity`, group: g, label: 'Shimmer strength', type: 'number', default: 0.9, min: 0, max: 1, step: 0.05, help: 'How bright the bands are.' },
-    { key: `${g}.holoSpeed`, group: g, label: 'Shimmer sweep time', type: 'number', default: 10.5, min: 1, max: 40, step: 0.5, unit: 's', help: 'Seconds for one sweep across the card. Lower is faster.' },
+    { key: `${g}.holoSpeed`, group: g, label: 'Shimmer sweep time', type: 'number', default: d.holoSpeed ?? 10.5, min: 1, max: 40, step: 0.5, unit: 's', help: 'Seconds for one sweep across the card. Lower is faster.' },
     { key: `${g}.holoAngle`, group: g, label: 'Shimmer angle', type: 'number', default: 120, min: 0, max: 360, step: 5, unit: '°', help: 'The tilt of the bands.' },
     { key: `${g}.holoBlend`, group: g, label: 'Shimmer blending', type: 'select', default: 'overlay', options: BLEND_MODES, help: 'How the light mixes with the art. Overlay is the original.' },
-    { key: `${g}.holoLoop`, group: g, label: 'Keep sweeping', type: 'boolean', default: false, help: 'Off: one pass then it fades. On: sweeps repeatedly while the card is shown.' },
+    { key: `${g}.holoLoop`, group: g, label: 'Keep sweeping', type: 'boolean', default: d.holoLoop ?? false, help: 'Off: one pass then it fades. On: sweeps repeatedly while the card is shown.' },
     { key: `${g}.glow`, group: g, label: 'Glow', type: 'boolean', default: d.glow, help: 'A pulsing coloured halo. It follows the card\'s own shape, so rounded corners and holes in the art stay clear.' },
     { key: `${g}.glowColorA`, group: g, label: 'Glow colour A', type: 'color', default: d.glowColorA, help: 'The glow pulses between colour A and colour B.' },
     { key: `${g}.glowColorB`, group: g, label: 'Glow colour B', type: 'color', default: d.glowColorB },
