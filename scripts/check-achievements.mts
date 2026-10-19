@@ -105,5 +105,64 @@ await settingsLib.saveAchievementSettings({});
 const restored = await store.syncAchievements('amy', 14000);
 const back = restored.earned.find(x => x.id === `${season1.id}:complete`);
 ok(!!back && back.title.startsWith('Completed ') && back.detail.startsWith('Own at least one') && back.earnedAt === 1000, 'clearing the override brings back the built-in words');
+
+// ── achievement bonuses (ROADMAP 27.5) ──
+const withBuffOnly = settingsLib.normalizeAchievementSettings({
+  master: { on: true, title: '', detail: '', buffId: 'ach-bonus' },
+});
+eq(withBuffOnly.master, { on: true, title: '', detail: '', buffId: 'ach-bonus' }, 'row with buffId is kept even if title and detail are empty');
+
+const buffsLib = await import('../lib/buffs');
+await buffsLib.saveBuffDefs([
+  {
+    id: 'ach-bonus',
+    name: 'Champion bonus',
+    type: 'extra-pulls',
+    magnitude: 2,
+    duration: { unit: 'hours', n: 48 },
+    stack: 'refresh',
+    scope: 'self',
+  },
+]);
+
+await settingsLib.saveAchievementSettings(settingsLib.normalizeAchievementSettings({
+  complete: { on: true, title: '', detail: '', buffId: 'ach-bonus' },
+}));
+
+const existingColl = await kvLib.getCollection(season1.collectionName);
+await kvLib.saveCollection(season1.collectionName, {
+  ...existingColl,
+  cora: [...nums],
+});
+
+const coraBuffsBefore = await buffsLib.getUserBuffs('cora');
+eq(coraBuffsBefore.length, 0, 'cora starts with no buffs');
+
+const coraFirst = await store.syncAchievements('cora', 20000);
+ok(coraFirst.earned.some(x => x.id === `${season1.id}:complete`), 'cora earns complete');
+const coraBuffsAfter = await buffsLib.getUserBuffs('cora');
+eq(coraBuffsAfter.length, 1, 'a new earn writes 1 buff');
+eq(coraBuffsAfter[0].buffId, 'ach-bonus', 'the written buff matches the achievement bonus');
+eq(coraBuffsAfter[0].source, `achievement:${season1.id}:complete`, 'source is achievement:<id>');
+eq(coraBuffsAfter[0].magnitude, 2, 'magnitude matches buff definition');
+
+// Second sync does not write another buff (stored achievements are never re-awarded)
+await store.syncAchievements('cora', 25000);
+const coraBuffsResync = await buffsLib.getUserBuffs('cora');
+eq(coraBuffsResync.length, 1, 'second sync does not write another buff');
+
+// A disabled kind grants nothing new
+await settingsLib.saveAchievementSettings(settingsLib.normalizeAchievementSettings({
+  complete: { on: false, title: '', detail: '', buffId: 'ach-bonus' },
+}));
+const collWithDan = await kvLib.getCollection(season1.collectionName);
+await kvLib.saveCollection(season1.collectionName, {
+  ...collWithDan,
+  dan: [...nums],
+});
+await store.syncAchievements('dan', 30000);
+const danBuffs = await buffsLib.getUserBuffs('dan');
+eq(danBuffs.length, 0, 'a disabled kind grants nothing new');
+
 console.log('achievement checks passed');
 process.exit(0);

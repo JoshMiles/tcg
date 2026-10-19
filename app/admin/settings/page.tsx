@@ -8,6 +8,7 @@ import { getBuildInfo } from '@/lib/version';
 import { getOverlaySettings } from '@/lib/overlay-settings';
 import { saveScoringSettingsAction, resetScoringSettingsAction, saveAchievementSettingsAction } from '../actions/settings';
 import { getAchievementSettings } from '@/lib/achievement-settings';
+import { getBuffDefs } from '@/lib/buffs';
 import { AchievementsForm } from './AchievementsForm';
 import { getScoringSettings, DEFAULT_SCORING, type ScoringSettings } from '@/lib/scoring';
 import { DiscordConfig } from './DiscordConfig';
@@ -181,7 +182,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
       )}
 
-      {tab === 'achievements' && <AchievementsForm settings={await getAchievementSettings()} save={saveAchievementSettingsAction} />}
+      {tab === 'achievements' && <AchievementsForm settings={await getAchievementSettings()} buffDefs={await getBuffDefs()} save={saveAchievementSettingsAction} />}
 
       {/* Twitch & viewers */}
       {tab === 'viewers' && (

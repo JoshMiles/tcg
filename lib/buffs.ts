@@ -1,7 +1,7 @@
 import { kv } from './db';
 import { getPackCards, listAllPacks } from './kv';
 import { ACHIEVEMENT_KINDS } from './achievement-settings';
-import { normalizeBuffDef, type ActiveBuff, type BuffDef, type BuffUsage } from './buffs-core';
+import { normalizeBuffDef, applyBuffToList, type ActiveBuff, type BuffDef, type BuffUsage } from './buffs-core';
 
 export type { BuffUsage };
 
@@ -126,4 +126,80 @@ export async function getCommunityBuffs(): Promise<ActiveBuff[]> {
 export async function saveCommunityBuffs(buffs: ActiveBuff[]): Promise<void> {
   if (buffs.length === 0) await kv.del(COMMUNITY_KEY);
   else await kv.set(COMMUNITY_KEY, buffs);
+}
+
+// ── Personal buffs (`user:<username>:buffs`) ──────────────
+
+const userBuffsKey = (u: string) => `user:${u.toLowerCase()}:buffs`;
+
+export async function getUserBuffs(username: string): Promise<ActiveBuff[]> {
+  try {
+    const raw = await kv.get<ActiveBuff[]>(userBuffsKey(username));
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveUserBuffs(username: string, buffs: ActiveBuff[]): Promise<void> {
+  const k = userBuffsKey(username);
+  if (buffs.length === 0) await kv.del(k);
+  else await kv.set(k, buffs);
+}
+
+export type ApplyBuffOutcome =
+  | { ok: true; buffs: ActiveBuff[]; refreshed: boolean }
+  | { ok: false; reason: 'not_found' | 'already_active' | 'max_buffs' | 'invalid_type' | 'community_disallowed' };
+
+/**
+ * Applies a configured buff definition to a user (or community).
+ * For personal buffs, enforces duration and stacking rules, persisting to `user:<u>:buffs`.
+ */
+export async function applyBuff(
+  username: string,
+  buffId: string,
+  options?: {
+    source?: string;
+    streamKey?: string;
+    seasonId?: string;
+    now?: number;
+    disallowCommunity?: boolean;
+  },
+): Promise<ApplyBuffOutcome> {
+  const def = await getBuffDef(buffId);
+  if (!def) return { ok: false, reason: 'not_found' };
+  if (def.type === 'grant-achievement') return { ok: false, reason: 'invalid_type' };
+
+  if (def.scope === 'community') {
+    if (options?.disallowCommunity) return { ok: false, reason: 'community_disallowed' };
+    const community = await getCommunityBuffs();
+    const now = options?.now ?? Date.now();
+    const res = applyBuffToList(community, def, {
+      id: crypto.randomUUID(),
+      now,
+      streamKey: options?.streamKey,
+      seasonId: options?.seasonId,
+      source: options?.source ?? 'admin',
+      username,
+    });
+    if (res.ok) {
+      await saveCommunityBuffs(res.buffs);
+    }
+    return res;
+  }
+
+  const existing = await getUserBuffs(username);
+  const now = options?.now ?? Date.now();
+  const res = applyBuffToList(existing, def, {
+    id: crypto.randomUUID(),
+    now,
+    streamKey: options?.streamKey,
+    seasonId: options?.seasonId,
+    source: options?.source ?? 'admin',
+    username,
+  });
+  if (res.ok) {
+    await saveUserBuffs(username, res.buffs);
+  }
+  return res;
 }
