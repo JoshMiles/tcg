@@ -1,5 +1,48 @@
 @import 'tailwindcss';
 
+/* daisyUI 5, one theme. Built-in light/dark stay off so the page does not restyle. */
+@plugin "daisyui" {
+  themes: cheesy --default;
+}
+
+@plugin "daisyui/theme" {
+  name: "cheesy";
+  default: true;
+  prefersdark: false;
+  color-scheme: dark;
+
+  --color-base-100: #0a0f21;
+  --color-base-200: #141b36;
+  --color-base-300: #1f2848;
+  --color-base-content: #e6eafb;
+  --color-primary: #ffcb05;
+  --color-primary-content: #1a1400;
+  --color-secondary: #3b4cca;
+  --color-secondary-content: #e6eafb;
+  --color-accent: #6b7cff;
+  --color-accent-content: #0a0f21;
+  --color-neutral: #1f2848;
+  --color-neutral-content: #e6eafb;
+  /* Same greens, ambers and skies the pages already use (Tailwind green-400, amber-400, sky-400). */
+  --color-info: oklch(74.6% 0.16 232.661);
+  --color-info-content: #0a0f21;
+  --color-success: oklch(79.2% 0.209 151.711);
+  --color-success-content: #0a0f21;
+  --color-warning: oklch(82.8% 0.189 84.429);
+  --color-warning-content: #1a1400;
+  --color-error: #ee3b3b;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 1rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
 @theme {
   --color-gray-50: #f4f6ff;
   --color-gray-100: #e6eafb;
@@ -146,6 +189,9 @@
 
 @layer base {
   html { color-scheme: dark; }
+
+  /* daisyUI paints a standard scrollbar on :root. The webkit rules below stay the look, so the standard property goes back to the browser default. */
+  :root:root { scrollbar-color: auto; }
 
   body {
     background-color: #0a0f21;

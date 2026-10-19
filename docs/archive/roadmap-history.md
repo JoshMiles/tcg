@@ -1132,3 +1132,21 @@ Ship as one reviewed panel version: the pack card back design on the panel's fli
 - Track 1 quick fixes: opaque apple icons plus the root apple-touch names, rarest cards animate on hover (#144, 2026-10-16).
 
 - Previous roadmap complete (2026-10-15): `npm run verify` and CI, preview isolation, nightly backups, data health, `CLAUDE.md` split into `docs/`, `@vercel/blob` 2.x, review batches P1 to P7, M1, A1 to A8.
+
+## Track 24: daisyUI
+
+### 24.0 Tailwind 3 to 4, no visual change (Done, #267)
+
+Original design, from the 2026-10 plan:
+
+`npx @tailwindcss/upgrade`, then check its work: the theme moves to `@theme` in `app/globals.css` (gray, yellow and poke scales, `--font-display`/`--font-body`, the two shadows), PostCSS uses `@tailwindcss/postcss`, `tailwind.config.ts` goes. Watch the v4 renames and default changes (`shadow-sm` to `shadow-xs`, `rounded-sm` to `rounded-xs`, `ring` to `ring-3`, `outline-none` to `outline-hidden`, borders and rings default to `currentColor`, so add the gray-800 border default to the base layer). `.design-sync` has its own safelisted Tailwind config: move it to v4 too and confirm its build. Should also clear the Dependabot `braces` alert. Checks: `npm run verify`, `npm run build`, the public-site and admin sweeps from `docs/review.md` against the mock KV at 1280px and 390px; pages should look the same.
+
+Shipped as Tailwind 4.3.3. The theme lives in `@theme`, there is no `tailwind.config.ts`, and the pages look the same. The font variables are `--font-display-family` (set by Next) and `--font-display` / `--font-sans` in the theme, so the two do not cycle.
+
+### 24.1 Add daisyUI with a `cheesy` theme, no visual change (Done)
+
+Original design:
+
+`@plugin "daisyui" { themes: cheesy --default; }` and a `@plugin "daisyui/theme"` block: `base-100/200/300` = gray-950/900/800, `base-content` = gray-100, `primary` = `#ffcb05` on `#1a1400`, `secondary` = poke-blue, `error` = poke-red, `success`/`warning`/`info` = the green/amber/sky in use, `--radius-field` xl, `--radius-box` 2xl, `color-scheme: dark`. Keep the gray/yellow scales. Sweep again: daisyUI's base layer touches the page background, `<dialog>` and form controls.
+
+Shipped as daisyUI 5 with only the `cheesy` theme. Built-in light and dark themes stay off. Pages still use the hand-written utilities.
