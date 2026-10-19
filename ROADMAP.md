@@ -16,21 +16,11 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 | # | Item | Status | Size |
 |---|------|--------|------|
-| 31.1 | FAQ Editor on Admin dashboard (Issue #294) | Ready | M |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
 | 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
 
 27.2 is unused on purpose: the master set achievement is already shipped (see "Already on the site" under tracks 25 to 30). 29.2 is unused on purpose: the read-only audit and the dry-run script shipped inside 29.1. 29.3 is not in the table: stars keep setting the value, so there is no PR.
-
-### 31.1 FAQ Editor on Admin dashboard (Ready, M)
-
-Decided 2026-10-19 (GitHub Issue #294). Admins can edit the FAQ directly from the dashboard (`/admin/faq`), reorder section blocks, add new questions, edit answers, create custom sections, and toggle visibility.
-
-- **Store & Core (`lib/faq-core.ts`, `lib/faq.ts`):** `FaqStoreData` backed by KV `site:faq`. Section blocks can be reordered, hidden, or created. Built-in sections (`start`, `commands`, `cards`, `trading`, `upgrades`, `profile`, `show`, `points`, `seasons`, `extension`, `privacy`, `help`) provide default ordering and built-in questions. Custom questions support formatted answers (paragraphs, bold, bullet points, links).
-- **Admin UI (`app/admin/faq/page.tsx`, `FaqEditorClient.tsx`):** Nav entry in `lib/admin-nav.ts` under Community (`/admin/faq`, icon `help`, shortcut `q`). Reorder section blocks (move up/down), toggle section visibility, add/edit/delete custom questions, and reorder questions within sections. Armed deletion for custom questions and custom sections. Armed reset to defaults. All actions guarded by `requireAdmin()` and logged via `recordAudit`.
-- **Public Site (`app/(site)/faq/page.tsx`, `parts.tsx`):** Reads `getFaqStore()`. Dynamic nav pills and section blocks render in configured order. Built-in sections render their base questions plus any custom questions assigned to that block. Custom sections render with their icon and questions.
-- **Checks & Docs:** `scripts/check-faq.mts` (store normalization, CRUD operations, ordering, staff guard, mock KV). Update `docs/admin.md` and `docs/public-site.md`.
 
 
 ### Next extension version (Blocked until the freeze lifts)
