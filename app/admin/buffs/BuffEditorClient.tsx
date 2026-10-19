@@ -2,8 +2,8 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
-import { ACHIEVEMENT_KINDS } from '@/lib/achievement-settings';
 import {
+  BUFF_ACHIEVEMENT_KINDS,
   BUFF_NAME_MAX,
   BUFF_TYPE_LABELS,
   BUFF_TYPES,
@@ -22,9 +22,9 @@ import {
   type BuffScope,
   type BuffStackMode,
   type BuffType,
+  type BuffUsage,
   type DurationUnit,
 } from '@/lib/buffs-core';
-import type { BuffUsage } from '@/lib/buffs';
 import { ArmedButton } from '../components/ArmedButton';
 import { Chip, EmptyState, Panel, fieldClass, selectClass } from '../components/ui';
 import { createBuffAction, deleteBuffAction, updateBuffAction } from '../buff-actions';
@@ -48,7 +48,7 @@ const EMPTY_FORM: FormState = {
   durationN: 1,
   stack: 'refresh',
   scope: 'self',
-  achievementId: ACHIEVEMENT_KINDS[0].kind,
+  achievementId: BUFF_ACHIEVEMENT_KINDS[0].kind,
 };
 
 function defToForm(def: BuffDef): FormState {
@@ -60,7 +60,7 @@ function defToForm(def: BuffDef): FormState {
     durationN: def.duration.n ?? (def.duration.unit === 'hours' ? 24 : 1),
     stack: def.stack,
     scope: def.type === 'grant-achievement' ? 'self' : def.scope,
-    achievementId: def.achievementId ?? ACHIEVEMENT_KINDS[0].kind,
+    achievementId: def.achievementId ?? BUFF_ACHIEVEMENT_KINDS[0].kind,
   };
 }
 
@@ -292,7 +292,7 @@ export function BuffEditorClient({
                 onChange={e => setForm(f => ({ ...f, achievementId: e.target.value }))}
                 className={`${selectClass} w-full`}
               >
-                {ACHIEVEMENT_KINDS.map(k => (
+                {BUFF_ACHIEVEMENT_KINDS.map(k => (
                   <option key={k.kind} value={k.kind}>{k.label} ({k.group})</option>
                 ))}
               </select>

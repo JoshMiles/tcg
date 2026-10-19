@@ -1,10 +1,28 @@
-import { ACHIEVEMENT_KINDS } from './achievement-settings';
+import { RARITIES } from './rarity';
+import { VARIANTS, VARIANT_LABELS } from './variants';
 import { MAX_BUFFS } from './pull-limit-core';
 
-// Trainer card buffs (ROADMAP 30.1). Pure: no database, no network.
+// Trainer card buffs (ROADMAP 30.1). Pure and client-safe: no database, no network.
 // A trainer card grants one buff when used, then the card is consumed (30.2). Achievements can also reference this catalogue (27.5).
 // Note (A4): an `extra-pack` buff grants `magnitude` pack credits where one credit is used instead of counting against the stream
 // limit AND waives the Brie Bucks deduction for that pull.
+
+export interface BuffAchievementKind {
+  kind: string;
+  label: string;
+  group: 'Set' | 'Rarity' | 'Version' | 'Edition number';
+}
+
+export const BUFF_ACHIEVEMENT_KINDS: readonly BuffAchievementKind[] = [
+  { kind: 'complete', label: 'Completed set', group: 'Set' },
+  { kind: 'master', label: 'Master set', group: 'Set' },
+  ...[...RARITIES].sort((a, b) => a.stars - b.stars).map(r => ({ kind: `tier-${r.stars}`, label: `All ${r.label}`, group: 'Rarity' as const })),
+  ...VARIANTS.filter(v => v !== 'regular').map(v => ({ kind: `all-${v}`, label: `All ${VARIANT_LABELS[v]}`, group: 'Version' as const })),
+  { kind: 'first-edition', label: 'First edition', group: 'Edition number' },
+  { kind: 'first-shiny', label: 'First shiny edition', group: 'Edition number' },
+  { kind: 'five-firsts', label: 'Five firsts', group: 'Edition number' },
+  { kind: 'early-bird', label: 'Early bird', group: 'Edition number' },
+];
 
 export { MAX_BUFFS };
 
@@ -92,7 +110,12 @@ export interface ActiveBuff {
   usedBy?: Record<string, number>;
 }
 
-const KNOWN_ACHIEVEMENTS = new Set(ACHIEVEMENT_KINDS.map(k => k.kind));
+export interface BuffUsage {
+  cards: { packId: string; packName: string; cardId: string; cardNumber: number; cardName: string }[];
+  achievements: { kind: string; label: string }[];
+}
+
+const KNOWN_ACHIEVEMENTS = new Set(BUFF_ACHIEVEMENT_KINDS.map(k => k.kind));
 
 const clampInt = (v: unknown, min: number, max: number, fallback: number): number => {
   const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
@@ -117,7 +140,7 @@ export function normalizeBuffDef(raw: unknown): BuffDef | null {
   const stack: BuffStackMode = r.stack === 'reject' ? 'reject' : 'refresh';
   if (type === 'grant-achievement') {
     const ach = typeof r.achievementId === 'string' ? r.achievementId.trim() : '';
-    const achievementId = KNOWN_ACHIEVEMENTS.has(ach) ? ach : ACHIEVEMENT_KINDS[0].kind;
+    const achievementId = KNOWN_ACHIEVEMENTS.has(ach) ? ach : BUFF_ACHIEVEMENT_KINDS[0].kind;
     return {
       id,
       name,
@@ -181,7 +204,7 @@ export function cleanBuffDefInput(raw: Record<string, unknown>, existingId?: str
 /** Short human description of a buff definition for the admin list and card editor. */
 export function describeBuffDef(def: BuffDef): string {
   if (def.type === 'grant-achievement') {
-    const kind = ACHIEVEMENT_KINDS.find(k => k.kind === def.achievementId);
+    const kind = BUFF_ACHIEVEMENT_KINDS.find(k => k.kind === def.achievementId);
     return `Grants achievement "${kind?.label ?? def.achievementId ?? 'Unknown'}" (self)`;
   }
   const what = def.type === 'extra-pulls'

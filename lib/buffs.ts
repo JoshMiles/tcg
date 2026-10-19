@@ -1,7 +1,9 @@
 import { kv } from './db';
 import { getPackCards, listAllPacks } from './kv';
 import { ACHIEVEMENT_KINDS } from './achievement-settings';
-import { normalizeBuffDef, type ActiveBuff, type BuffDef } from './buffs-core';
+import { normalizeBuffDef, type ActiveBuff, type BuffDef, type BuffUsage } from './buffs-core';
+
+export type { BuffUsage };
 
 // KV storage for Trainer card buff definitions (`trainer:buffs`) and active community buffs (`buffs:community`).
 
@@ -53,11 +55,6 @@ export async function upsertBuffDef(def: BuffDef): Promise<BuffDef[]> {
   const next = idx >= 0 ? existing.map((b, i) => (i === idx ? clean : b)) : [...existing, clean];
   await saveBuffDefs(next);
   return next;
-}
-
-export interface BuffUsage {
-  cards: { packId: string; packName: string; cardId: string; cardNumber: number; cardName: string }[];
-  achievements: { kind: string; label: string }[];
 }
 
 /** Finds every card in any pack and any achievement in `achievements:settings` that references `buffId`. */
