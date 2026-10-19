@@ -33,11 +33,11 @@ export function NoticeList({ initial, initialSeen }: { initial: Notice[]; initia
         <button type="button" onClick={markAll} disabled={unread === 0} className="text-xs font-semibold text-yellow-400 hover:text-yellow-300 disabled:text-gray-600 disabled:hover:text-gray-600">Mark all read</button>
       </div>
       {groups.length === 0 ? (
-        <p className="tcg-panel rounded-2xl px-4 py-10 text-center text-sm text-gray-500">{!mounted ? 'Loading...' : initial.length === 0 ? 'Nothing yet. Trade offers and their results show up here.' : 'No notices match this filter.'}</p>
+        <p className="card tcg-panel rounded-2xl px-4 py-10 text-center text-sm text-gray-500">{!mounted ? 'Loading...' : initial.length === 0 ? 'Nothing yet. Trade offers and their results show up here.' : 'No notices match this filter.'}</p>
       ) : groups.map(g => (
         <section key={g.label} className="space-y-2">
           <h2 className="text-xs font-bold uppercase tracking-wide text-gray-500">{g.label}</h2>
-          <ul className="tcg-panel rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
+          <ul className="card tcg-panel rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
             {g.items.map(n => (
               <li key={n.id} className={`px-4 py-3 flex gap-3 ${n.at > seen ? 'bg-yellow-500/6' : ''}`}>
                 <Icon name={NOTICE_ICON[n.kind]} className="w-5 h-5 mt-0.5 shrink-0 text-yellow-400/90" />

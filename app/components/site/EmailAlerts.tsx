@@ -69,19 +69,19 @@ export function EmailAlerts() {
       )}
       <form onSubmit={e => { e.preventDefault(); void start(draft); }} className="flex flex-wrap gap-2">
         <input type="email" inputMode="email" autoComplete="email" value={draft} onChange={e => setDraft(e.target.value)} placeholder={email ? 'Use a different address' : 'you@example.com'} aria-label="Email address" maxLength={254}
-          className="min-w-0 flex-1 basis-56 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
+          className="input input-sm flex-1 min-w-40" />
         <button type="submit" disabled={busy || !draft.trim()} className="rounded-xl bg-yellow-500 hover:bg-yellow-400 px-3 py-1.5 text-sm font-bold text-gray-950 disabled:opacity-50">Send confirmation</button>
       </form>
       {msg && <p role="status" className="text-xs text-yellow-300">{msg}</p>}
       {email && (
-        <fieldset className="space-y-1" disabled={busy}>
-          <legend className="text-xs text-gray-500 mb-1">Email me for (saved at once)</legend>
+        <fieldset className="fieldset" disabled={busy}>
+          <legend className="fieldset-legend">Email me for (saved at once)</legend>
           {EMAIL_KINDS.map(k => (
             <label key={k} className="flex items-center gap-2 text-sm text-gray-200">
-              <input type="checkbox" checked={email.kinds.includes(k)} onChange={() => toggle(k)} className="accent-yellow-500" />{PUSH_KIND_LABELS[k]}
+              <input type="checkbox" role="switch" checked={email.kinds.includes(k)} onChange={() => toggle(k)} className="toggle toggle-sm toggle-primary" />{PUSH_KIND_LABELS[k]}
             </label>
           ))}
-          <p className="text-xs text-gray-600">An email is only sent when the matching bell notice above is on, too.</p>
+          <p className="fieldset-label">An email is only sent when the matching bell notice above is on, too.</p>
         </fieldset>
       )}
     </div>

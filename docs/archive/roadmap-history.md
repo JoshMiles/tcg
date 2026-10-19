@@ -1178,3 +1178,7 @@ The card dex filters use daisyUI `input` and `select`. The dex dialog is a `card
 ### 24.3 Public trading (#274)
 
 Public trade panels (`TradeCard` and each side of the composer) use daisyUI `card` and keep `.tcg-panel` for the navy surface. The board search and sort, the composer name, note and card search use `input`, `select` and `fieldset`. Cheese `.rind` sections, filter chips, the lopsided-offer tick, print chips and the second-tap actions stay. Escrow, locks and the trade engine are unchanged. The Twitch panel is untouched. Account and settings are the remaining 24.3 slice.
+
+### 24.3 Account and settings
+
+Settings sections, the feedback form and list, and notification day lists use daisyUI `card` and keep `.tcg-panel`. Settings switches, push kinds and email kinds are `toggle`. Bio, feedback, the delete confirmation, searches and the accent hex field use `input` and `textarea`; collection view, watch version and pronouns use `select` and `fieldset`. `/account` stays on cheese `.rind`. Filter chips, looking-for chips, accent swatches, the colour box, the sticky save bar and the red delete section stay. Saving, export and deletion are unchanged. The Twitch panel is untouched. 24.4 cleanup is what remains of item 24.

@@ -62,7 +62,7 @@ export function DeleteAccount({ username, initial }: { username: string; initial
           <form onSubmit={request} className="space-y-3">
             <label className="block space-y-1 text-sm text-gray-300">
               <span>Type your login name (<span className="font-mono text-white">{username}</span>) to confirm</span>
-              <input value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" spellCheck={false} className="w-full max-w-xs rounded-xl border border-gray-700 bg-gray-950/70 px-3 py-2 text-sm text-white focus:border-red-400 focus:outline-hidden" />
+              <input value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" spellCheck={false} aria-label="Type your login name to confirm" className="input input-sm w-full max-w-xs" />
             </label>
             <button type="submit" disabled={busy || typed.trim().replace(/^@/, '').toLowerCase() !== username.toLowerCase()} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:opacity-40">Request deletion</button>
           </form>

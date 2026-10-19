@@ -77,14 +77,14 @@ export function PushAlerts({ kinds, onKinds }: { kinds: PushKind[]; onKinds: (k:
         </div>
       )}
       {msg && <p role="status" className="text-xs text-yellow-300">{msg}</p>}
-      <fieldset className="space-y-1">
-        <legend className="text-xs text-gray-500 mb-1">Send an alert for (saved with the Save button below)</legend>
+      <fieldset className="fieldset">
+        <legend className="fieldset-legend">Send an alert for (saved with the Save button below)</legend>
         {PUSH_KINDS.map(k => (
           <label key={k} className="flex items-center gap-2 text-sm text-gray-200">
-            <input type="checkbox" checked={kinds.includes(k)} onChange={() => toggle(k)} className="accent-yellow-500" />{PUSH_KIND_LABELS[k]}
+            <input type="checkbox" role="switch" checked={kinds.includes(k)} onChange={() => toggle(k)} className="toggle toggle-sm toggle-primary" />{PUSH_KIND_LABELS[k]}
           </label>
         ))}
-        <p className="text-xs text-gray-600">An alert is only sent when the matching bell notice above is on, too.</p>
+        <p className="fieldset-label">An alert is only sent when the matching bell notice above is on, too.</p>
       </fieldset>
       {info.devices.length > 0 && (
         <ul className="space-y-1.5">
