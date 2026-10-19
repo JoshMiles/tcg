@@ -248,7 +248,7 @@ export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: 
           {/* ── Card back (optional) ── */}
           {step === 'back' && (
             <>
-              <StepTitle title="Card back" hint="Optional. How the back of a print looks for this pack. Skip it to keep the classic engraved plate." />
+              <StepTitle title="Card back" hint="Optional. How the back of an edition looks for this pack. Skip it to keep the classic engraved plate." />
               {draftId
                 ? <CardBackEditor key={draftId} packId={draftId} packName={pack.name || 'This pack'} coverImageUrl={pack.coverImageUrl} initial={cardBack?.initial ?? null} sample={{ name: cards[0]?.name || 'Sample card', imageUrl: cards[0]?.imageUrl || pack.coverImageUrl }} others={cardBack?.others ?? []} />
                 : <p className="text-sm text-gray-500">Finish the first step so the draft exists, then come back here.</p>}

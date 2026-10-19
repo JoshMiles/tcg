@@ -7,7 +7,7 @@ export function TradingSection({ trade }: { trade: TradeSettings }) {
     <Section id="trading" title="Trading" icon="trade">
       <Q q="How does trading work?" open>
         <p>
-          Open the <Link href="/trade" className="text-yellow-400 hover:text-yellow-300">Trade</Link> page (you need to be logged in with Twitch) and make an offer: pick the cards you give and the cards you want back. Any print of any version can be traded.
+          Open the <Link href="/trade" className="text-yellow-400 hover:text-yellow-300">Trade</Link> page (you need to be logged in with Twitch) and make an offer: pick the cards you give and the cards you want back. Any edition of any version can be traded.
           There are two kinds of offer:
         </p>
         <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
@@ -35,7 +35,7 @@ export function TradingSection({ trade }: { trade: TradeSettings }) {
       </Q>
       <Q q="How do I find a good trade?">
         The Trade page has three tabs: <em>Your trades</em>, <em>The board</em> and <em>History</em>. <strong className="text-white">Matches for you</strong> picks out board listings you can take that give a card you are
-        looking for or do not have yet, or that only ask for your spare prints. On the board you can search, filter (for example &ldquo;I can take&rdquo;) and sort by points. When you make an offer to someone, quick picks show
+        looking for or do not have yet, or that only ask for your spare editions. On the board you can search, filter (for example &ldquo;I can take&rdquo;) and sort by points. When you make an offer to someone, quick picks show
         the cards they are looking for that you own and the cards you want that they have. Add cards to your own <em>Looking for</em> list from the Card Dex, My Stats or Settings.
       </Q>
       <Q q="Can I stop getting offers or notifications?">
@@ -50,15 +50,15 @@ export function TradingSection({ trade }: { trade: TradeSettings }) {
       <Q q="Can I get notifications by email?">
         Yes, once the site has email set up. In <Link href="/settings#email" className="text-yellow-400 hover:text-yellow-300">Settings</Link>, under notifications, type your address and press <em>Send confirmation</em>, then open the link we email you. Nothing else is sent until you do. By default you get trade offers, counters and how your offers ended; you can add listing alerts and messages from the admins. You get at most one email every 15 minutes: anything that happens in between is sent together in one email. Every email has a link to stop them with one click, and you can remove your address in Settings at any time. Your address is never shown to other collectors.
       </Q>
-      <Q q="Which of my prints get traded?">
-        Unless you choose, trades move your <strong className="text-white">newest</strong> prints of a card first, so the low edition numbers you pulled earliest stay with you. If you hold more prints of a card than the trade needs, <strong className="text-white">Choose prints</strong> in the offer lets you tick exactly which ones to give (a warning appears for Edition #1 and prints that earn an edition bonus). You can ask for a specific print of someone&rsquo;s when you offer them a trade directly, and when you take a listing or accept an offer that asks for a card you have spares of, you pick which of yours to hand over before the final tap. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">prints and editions</a>.
+      <Q q="Which of my editions get traded?">
+        Unless you choose, trades move your <strong className="text-white">newest</strong> editions of a card first, so the low print numbers you pulled earliest stay with you. If you hold more editions of a card than the trade needs, <strong className="text-white">Choose editions</strong> in the offer lets you tick exactly which ones to give (a warning appears for Print #1 and editions that earn a print bonus). You can ask for a specific edition of someone&rsquo;s when you offer them a trade directly, and when you take a listing or accept an offer that asks for a card you have spares of, you pick which of yours to hand over before the final tap. See <a href="#serials" className="text-yellow-400 hover:text-yellow-300">editions and prints</a>.
       </Q>
-      <Q q="Can I protect a print from being traded?">
-        Yes. Press <strong className="text-white">Favourite</strong> on a print&rsquo;s page, or in the card details on your collection, to mark it (up to 50 prints). A favourite print can&rsquo;t be put in an offer, can&rsquo;t be taken when someone accepts your offer or takes your listing, and isn&rsquo;t spent when you upgrade duplicates. When a trade or an upgrade picks prints for you it skips your favourites, and if only favourites are left it stops and says so. Remove the mark whenever you want to trade it. Prints in an open offer can&rsquo;t be favourited until the offer ends.
+      <Q q="Can I protect an edition from being traded?">
+        Yes. Press <strong className="text-white">Favourite</strong> on an edition&rsquo;s page, or in the card details on your collection, to mark it (up to 50 editions). A favourite edition can&rsquo;t be put in an offer, can&rsquo;t be taken when someone accepts your offer or takes your listing, and isn&rsquo;t spent when you upgrade duplicates. When a trade or an upgrade picks editions for you it skips your favourites, and if only favourites are left it stops and says so. Remove the mark whenever you want to trade it. Editions in an open offer can&rsquo;t be favourited until the offer ends.
       </Q>
       <Q q="Is a trade fair? How do I know what a card is worth?" id="fair-trade">
         Every offer shows the approximate points on each side, using today&rsquo;s card values (see <a href="#points" className="text-yellow-400 hover:text-yellow-300">Points &amp; leaderboard</a>). It&rsquo;s a guide, not a rule. You can
-        trade anything for anything. Remember that a print’s edition number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
+        trade anything for anything. Remember that an edition’s print number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
       </Q>
       <Q q="Can I be told when a card I want is listed?">
         Yes. Cards on your <strong className="text-white">Looking for</strong> list alert you for every version. For something more specific, add a <strong className="text-white">saved alert</strong> in <Link href="/settings#watches" className="text-yellow-400 hover:text-yellow-300">Settings</Link>, such as &ldquo;a Shiny Full Art Gouda&rdquo; (up to 10). When someone posts a matching card on the open board you get a notice in the bell, and in the Twitch extension the listing is tagged <em>On your list</em>. You can turn these notices off in Settings.

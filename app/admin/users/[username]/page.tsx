@@ -313,7 +313,7 @@ export default async function UserDetailPage({
                                       <ConfirmButton
                                         title="Remove card?"
                                         confirmLabel="Remove one"
-                                        message={<>Remove one print of <strong className="text-white">{v === 'regular' ? '' : `${VARIANT_LABELS[v]} `}{card.name}</strong> from <strong className="text-white">{displayName}</strong>&apos;s collection?</>}
+                                        message={<>Remove one edition of <strong className="text-white">{v === 'regular' ? '' : `${VARIANT_LABELS[v]} `}{card.name}</strong> from <strong className="text-white">{displayName}</strong>&apos;s collection?</>}
                                         className="min-w-5 h-5 px-1 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center gap-0.5 text-[10px] font-bold leading-none transition-colors"
                                       >
                                         {v === 'regular' ? '' : `${VARIANT_LABELS[v].split(' ')[0]} `}×{counts[v]}
@@ -342,7 +342,7 @@ export default async function UserDetailPage({
 
       {tab === 'grant' && (
         <>
-      <Panel id="grant" title="Grant cards & packs" hint={activeSeason ? `Into ${activeSeason.name}. Pick several cards, choose a version and how many prints of each.` : 'There is no active season.'}>
+      <Panel id="grant" title="Grant cards & packs" hint={activeSeason ? `Into ${activeSeason.name}. Pick several cards, choose a version and how many editions of each.` : 'There is no active season.'}>
         {activeSeason ? <GrantPanel username={username} cards={grantCards} upgrades={grantUpgrades} /> : <p className="text-sm text-gray-600">Activate a season first.</p>}
       </Panel>
 

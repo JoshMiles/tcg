@@ -42,7 +42,7 @@ export function FeedbackInbox({ items, base, kind, status, viewerHref, canDelete
               <p className="text-xs flex flex-wrap gap-x-4 gap-y-1">
                 <Link href={`/u/${encodeURIComponent(i.target)}`} className="text-yellow-400 hover:text-yellow-300"><Icon name="user" className="mr-1" />@{i.target}&rsquo;s profile</Link>
                 <Link href={viewerHref(i.target)} className="text-yellow-400 hover:text-yellow-300"><Icon name="shield" className="mr-1" />Admin user page</Link>
-                {i.from && <Link href={i.from} className="text-yellow-400 hover:text-yellow-300"><Icon name="link" className="mr-1" />{i.from.startsWith('/trade') ? 'The trade' : 'The print'}</Link>}
+                {i.from && <Link href={i.from} className="text-yellow-400 hover:text-yellow-300"><Icon name="link" className="mr-1" />{i.from.startsWith('/trade') ? 'The trade' : 'The edition'}</Link>}
               </p>
             )}
             {i.kind !== 'report' && i.from && <p className="text-xs text-gray-500">Page: <span className="font-mono text-gray-300 break-all">{i.from}</span></p>}

@@ -1,6 +1,6 @@
 // The design of a print's back, per pack: the v2 model (ROADMAP 20.3a). Pure and client-safe.
 //
-// A design is a background (steel, one colour or a gradient, with a pattern and an edge) plus a list of ELEMENTS: the print number, edition,
+// A design is a background (steel, one colour or a gradient, with a pattern and an edge) plus a list of ELEMENTS: the edition number, edition,
 // name, date, origin and holder, history, QR code, logo, brand, the "Full history" link and up to 8 text boxes. Each element is shown or
 // hidden and is placed either in the STACK (today's centred column, in list order) or FREE (a box placed in percent of the card). Stored in
 // its own KV key `pack:<id>:cardback` (lib/card-back-store.ts) as `v: 2`. `sanitizeCardBack` accepts v1 (20.1) and v2 and always returns v2;
@@ -16,7 +16,7 @@ import type { Blend } from './card-back-patterns';
 export const ELEMENT_KINDS = ['number', 'edition', 'name', 'date', 'origin', 'history', 'qr', 'logo', 'brand', 'link', 'text'] as const;
 export type ElementKind = (typeof ELEMENT_KINDS)[number];
 export const KIND_LABELS: Record<ElementKind, string> = {
-  number: 'Print number', edition: 'Edition line', name: 'Name line', date: 'Date', origin: 'Origin and holder', history: 'History', qr: 'QR code',
+  number: 'Edition number', edition: 'Print line', name: 'Name line', date: 'Date', origin: 'Origin and holder', history: 'History', qr: 'QR code',
   logo: 'Logo', brand: 'Site name', link: 'Full history link', text: 'Text',
 };
 export const MAX_ELEMENTS = 24;
@@ -259,7 +259,7 @@ export function isDefaultCardBack(s: CardBackStyle): boolean {
 
 export const PRESETS: { id: string; label: string; style: CardBackStyle }[] = PRESETS_V1.map(p => ({ id: p.id, label: p.label, style: upgradeCardBack(p.style) }));
 
-/** A stored design ready for prints of `packName` in `seasonName`: the cover and the names attached so text boxes can use them. */
+/** A stored design ready for editions of `packName` in `seasonName`: the cover and the names attached so text boxes can use them. */
 export function resolveCardBack(style: CardBackStyle | null | undefined, ctx: { packName: string; seasonName?: string; cover?: string }): CardBackStyle | undefined {
   if (!style) return undefined;
   return { ...style, cover: safeUrl(ctx.cover) || undefined, packName: ctx.packName, seasonName: ctx.seasonName };

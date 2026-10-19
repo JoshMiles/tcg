@@ -77,7 +77,7 @@ export function MixItUpConfig({ settings: s }: { settings: MixItUpSettings }) {
               <li>The bot asks for a pack for a viewer. We check their pulls this stream and ask Mix It Up for their balance.</li>
               <li>Not enough, or over the limit: no pack, and the answer carries a <code>message</code> the command can post to chat.</li>
               <li>Enough: the pack opens. When the card is revealed we tell Mix It Up to take {s.cost.toLocaleString()} {s.currency} and send your message.</li>
-              <li>If Mix It Up does not confirm the payment, the print is taken back and the System Discord channel is told.</li>
+              <li>If Mix It Up does not confirm the payment, the edition is taken back and the System Discord channel is told.</li>
             </ol>
             <p>Mix It Up must answer in the reply to each request (a Webhook Response action). A reply counts as paid when it is a 2xx and does not say <code>ok</code>, <code>success</code> or <code>applied</code> is <code>false</code>.</p>
           </div>

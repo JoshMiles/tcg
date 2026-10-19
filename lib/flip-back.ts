@@ -49,10 +49,10 @@ export function madeLine(n: number, total?: number): string {
   return total && total >= n ? `of ${total.toLocaleString('en-GB')} made` : '';
 }
 
-/** The edition line under the engraved number: "Edition #7 of 12 made" (just "Edition #7" when the total is unknown). */
+/** The edition line under the engraved number: "Print #7 of 12 made" (just "Print #7" when the total is unknown). */
 export function editionLine(n: number, total?: number): string {
   const made = madeLine(n, total);
-  return `Edition #${n}${made ? ` ${made}` : ''}`;
+  return `Print #${n}${made ? ` ${made}` : ''}`;
 }
 
 /** One short line of a print's history ("Traded to @bob"), for the engraved back and the card dialog. Private collectors stay private. */
@@ -71,7 +71,7 @@ export function histText(e: { type: string; who?: string; to?: string }, hidden:
   }
 }
 
-/** What the one constructor needs: the facts about a print, in the units the pages already hold (variant id, a timestamp). */
+/** What the one constructor needs: the facts about an edition, in the units the pages already hold (variant id, a timestamp). */
 export interface BackPrint {
   n: number;
   uid?: number;
@@ -92,7 +92,7 @@ export interface BackPrint {
 
 /**
  * The ONE way to build a FlipBack (ROADMAP 20.3c). Every page, dialog, share image, admin screen and the overlay goes through it, so a
- * print's back reads the same everywhere; scripts/check-card-back.mts fails when a file builds one by hand. `style` is the pack's
+ * edition's back reads the same everywhere; scripts/check-card-back.mts fails when a file builds one by hand. `style` is the pack's
  * designed back (`cardBackFor`); absent = the classic plate.
  */
 export function flipBackFor(p: BackPrint, style?: CardBackStyle): FlipBack {
@@ -103,7 +103,7 @@ export function flipBackFor(p: BackPrint, style?: CardBackStyle): FlipBack {
   };
 }
 
-/** The sample print the editors and the workspace preview show (edition 7 of 12, pulled on stream). */
+/** The sample edition the editors and the workspace preview show (edition 7 of 12, pulled on stream). */
 export function sampleFlipBack(name: string, hex: string | undefined, style?: CardBackStyle): FlipBack {
   const day = Date.UTC(2026, 9, 12);
   return flipBackFor({

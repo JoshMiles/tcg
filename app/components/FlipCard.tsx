@@ -100,7 +100,7 @@ export function FlipCard({ children, back, compact = false, className = '', defa
         </div>
       </div>
       <button type="button" className="flip-btn" aria-pressed={flipped} onClick={flip}>
-        {flipped ? 'Show the front' : 'Flip to see the print number'}
+        {flipped ? 'Show the front' : 'Flip to see the edition number'}
       </button>
     </div>
   );
@@ -118,7 +118,7 @@ function BackNodeView({ n, qr, flipped }: { n: BackNode; qr: { d: string; size: 
     case 'a': return <a {...id} href={n.href} tabIndex={flipped ? 0 : -1} onClick={e => e.stopPropagation()} className={cls} style={style}>{n.text}</a>;
     case 'qr':
       return qr ? (
-        <svg {...id} className={cls} style={style} viewBox={`-1 -1 ${qr.size + 2} ${qr.size + 2}`} role="img" aria-label="QR code for this print's page" shapeRendering="crispEdges">
+        <svg {...id} className={cls} style={style} viewBox={`-1 -1 ${qr.size + 2} ${qr.size + 2}`} role="img" aria-label="QR code for this edition's page" shapeRendering="crispEdges">
           <rect x={-1} y={-1} width={qr.size + 2} height={qr.size + 2} fill={n.light ?? 'rgba(255,255,255,.88)'} />
           <path d={qr.d} fill={n.dark ?? '#1f1f24'} />
         </svg>

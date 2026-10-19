@@ -59,7 +59,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
   });
   const removeCopy = () => run(async () => {
     await removeUserCard(e.username, e.collectionName ?? '', encodeEntry(cardNumber!, variant));
-    return { ok: true, message: `Removed one ${variant === 'regular' ? '' : VARIANT_LABELS[variant] + ' '}print from ${e.username}.` };
+    return { ok: true, message: `Removed one ${variant === 'regular' ? '' : VARIANT_LABELS[variant] + ' '}edition from ${e.username}.` };
   });
 
   const act = 'inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 disabled:opacity-50 transition-colors';
@@ -103,15 +103,15 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
 
         {e.type === 'pull' && (
           <dl className="grid grid-cols-2 gap-2 text-sm">
-            {e.serial ? <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2 col-span-2"><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Edition</dt><dd className="text-white font-semibold">#{e.serial}{e.bonus ? <span className="text-yellow-300"> · ×{e.bonus} points bonus</span> : <span className="text-gray-500"> · no bonus</span>}</dd></div> : null}
-            <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Prints now</dt><dd className="text-white font-semibold tabular-nums">{e.copies}</dd></div>
+            {e.serial ? <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2 col-span-2"><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Print</dt><dd className="text-white font-semibold">#{e.serial}{e.bonus ? <span className="text-yellow-300"> · ×{e.bonus} points bonus</span> : <span className="text-gray-500"> · no bonus</span>}</dd></div> : null}
+            <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Editions now</dt><dd className="text-white font-semibold tabular-nums">{e.copies}</dd></div>
             <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Collected</dt><dd className="text-white font-semibold tabular-nums">{e.uniqueOwned}{totalCards > 0 ? `/${totalCards}` : ''}</dd></div>
           </dl>
         )}
 
         {printNo ? (
           <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2 text-sm">
-            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Print</p>
+            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Edition</p>
             <p className="text-white font-semibold tabular-nums">#{printNo}</p>
           </div>
         ) : null}
@@ -129,7 +129,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">Actions</p>
             <div className="grid grid-cols-2 gap-2">
-              {printHref && <Link href={printHref} className={`${act} col-span-2`}><Icon name="cards" />Open this print</Link>}
+              {printHref && <Link href={printHref} className={`${act} col-span-2`}><Icon name="cards" />Open this edition</Link>}
               <Link href={`${mod ? '/mod' : '/admin'}/users/${encodeURIComponent(e.username)}`} className={act}><Icon name="user" />Open viewer</Link>
               <a href={`/collection/${encodeURIComponent(e.username)}`} target="_blank" rel="noreferrer" className={act}><Icon name="cards" />Their collection ↗</a>
             </div>
@@ -143,7 +143,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
             {cardNumber !== undefined && (e.type === 'pull' || e.type === 'grant' || e.type === 'upgrade' || e.type === 'remove') && (
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={grantAgain} disabled={pending} className={act}><Icon name="cards" />Grant again</button>
-                <button type="button" onClick={removeCopy} disabled={pending || !e.collectionName} className={`${act} hover:border-red-400/60 hover:text-red-300`}><Icon name="trash" />Remove a print</button>
+                <button type="button" onClick={removeCopy} disabled={pending || !e.collectionName} className={`${act} hover:border-red-400/60 hover:text-red-300`}><Icon name="trash" />Remove an edition</button>
               </div>
             )}
             </>)}

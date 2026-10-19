@@ -70,7 +70,7 @@ export default async function AdminTradesPage({ searchParams }: { searchParams: 
             ))}</ol>
           )}
         </Panel>
-        <Panel title="Most traded cards" hint="Prints moved in completed trades.">
+        <Panel title="Most traded cards" hint="Editions moved in completed trades.">
           {stats.topCards.length === 0 ? <p className="text-sm text-gray-600">No completed trades yet.</p> : (
             <ol className="space-y-1.5">{stats.topCards.map((c, i) => (
               <li key={c.key} className="flex items-center gap-3 text-sm"><span className="w-4 text-xs text-gray-600 tabular-nums">{i + 1}</span><span className="text-gray-200 truncate">{cardLabel(c.key)}</span><span className="ml-auto text-xs text-gray-500 tabular-nums">{c.copies} copies</span></li>

@@ -146,7 +146,7 @@ export default async function SeasonsPage({ searchParams }: { searchParams: Prom
                         <ConfirmButton
                           title={isDraft ? 'Discard draft?' : 'Delete season?'}
                           confirmLabel={isDraft ? 'Discard draft' : 'Delete season'}
-                          message={<>{isDraft ? 'Discard' : 'Delete'} <strong className="text-white">{s.name || 'Untitled season'}</strong>? The season and its settings are removed. Packs and viewers&apos; collection data are kept. This can&apos;t be undone. Open trade offers must be cancelled first, so the prints in them can be returned.</>}
+                          message={<>{isDraft ? 'Discard' : 'Delete'} <strong className="text-white">{s.name || 'Untitled season'}</strong>? The season and its settings are removed. Packs and viewers&apos; collection data are kept. This can&apos;t be undone. Open trade offers must be cancelled first, so the editions in them can be returned.</>}
                           className="px-3 py-2 text-xs font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 rounded-xl transition-colors"
                         >
                           {isDraft ? 'Discard' : 'Delete'}

@@ -40,13 +40,13 @@ export const COMMAND_ACTIONS: Record<CommandActionId, ActionInfo> = {
   showoff: {
     label: 'Show off a card',
     description: "Puts one of the viewer's own cards on stream (the overlay show-off). Args: a card name or number, optionally with a version.",
-    vars: [v('username', 'cheesefan'), v('cardName', 'Gouda Goat'), v('variant', 'Shiny'), v('edition', '#12', 'Edition number, empty when the copy has none'), v('printNumber', '#1023381', 'Unique print number'), v('points', '480'), v('stars', '4')],
+    vars: [v('username', 'cheesefan'), v('cardName', 'Gouda Goat'), v('variant', 'Shiny'), v('edition', '#12', 'Print number, empty when the copy has none'), v('printNumber', '#1023381', 'Unique edition number'), v('points', '480'), v('stars', '4')],
     errors: ['notFound', 'notOwned', 'cooldown', 'offline'],
   },
   'card-stats': {
     label: 'Card stats',
     description: 'Public facts about one card of the running season. Args: a card name or number.',
-    vars: [v('cardName', 'Gouda Goat'), v('number', '12'), v('stars', '4'), v('rarity', 'Epic'), v('pullChance', '1 in 40'), v('printsMade', '57'), v('collectors', '31'), v('topHolder', 'cheesefan', 'Private collectors show as "a private collector"'), v('firstPulledBy', 'brielover'), v('points', '120', 'One Regular print'), v('yourPrints', '2'), v('url', 'https://cheesytcg.app/cards?card=12', 'The card dex link')],
+    vars: [v('cardName', 'Gouda Goat'), v('number', '12'), v('stars', '4'), v('rarity', 'Epic'), v('pullChance', '1 in 40'), v('printsMade', '57'), v('collectors', '31'), v('topHolder', 'cheesefan', 'Private collectors show as "a private collector"'), v('firstPulledBy', 'brielover'), v('points', '120', 'One Regular edition'), v('yourPrints', '2'), v('url', 'https://cheesytcg.app/cards?card=12', 'The card dex link')],
     errors: ['notFound', 'cooldown', 'offline'],
   },
   'my-stats': {

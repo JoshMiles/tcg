@@ -41,7 +41,7 @@ export function CardTable({ cards, collectors }: { cards: StatCard[]; collectors
       </div>
       <div className="overflow-x-auto">
         <table className="table table-sm w-full text-sm">
-          <thead className="text-[11px] text-gray-500 bg-gray-950/50"><tr>{head('number', '#')}{head('name', 'Card')}{head('stars', 'Rarity')}{head('copies', 'Prints', true)}{head('collectors', 'Collectors', true)}</tr></thead>
+          <thead className="text-[11px] text-gray-500 bg-gray-950/50"><tr>{head('number', '#')}{head('name', 'Card')}{head('stars', 'Rarity')}{head('copies', 'Editions', true)}{head('collectors', 'Collectors', true)}</tr></thead>
           <tbody className="divide-y divide-gray-800/70">
             {shown.map(c => (
               <tr key={c.number} className="hover:bg-white/2">

@@ -21,8 +21,8 @@ const when = (t: number) => `${new Date(t).toLocaleString('en-GB', { dateStyle: 
 const field = 'input';
 
 /**
- * One print's details, actions and history. Shared by the print's own page (/admin/serials/<season>/<copy>) and the Prints list's
- * side panel. In the panel `ret` is the list address the actions come back to (and `hrefFor` keeps links to other prints inside
+ * One print's details, actions and history. Shared by the edition's own page (/admin/serials/<season>/<copy>) and the Prints list's
+ * side panel. In the panel `ret` is the list address the actions come back to (and `hrefFor` keeps links to other editions inside
  * the list); on the page both are left out.
  */
 export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { seasonId: string; copy: Copy; label: string; ret?: string; hrefFor: (copyId: string) => string }) {
@@ -33,7 +33,7 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
   const isFeatured = potw?.uid === copy.uid && !!copy.uid;
   const hidden = ret ? <input type="hidden" name="ret" value={ret} /> : null;
 
-  // The print as a viewer sees it: the card, and its back with the pack's design (staff see the real holder and every history line).
+  // The edition as a viewer sees it: the card, and its back with the pack's design (staff see the real holder and every history line).
   const season = await getSeason(seasonId);
   let found: { card: Awaited<ReturnType<typeof getPackCards>>[number]; pack: Awaited<ReturnType<typeof getPacksForSeason>>[number] } | null = null;
   if (season) for (const pk of await getPacksForSeason(season)) { const c = (await getPackCards(pk.id)).find(x => x.number === copy.card); if (c) { found = { card: c, pack: pk }; break; } }
@@ -50,7 +50,7 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
   return (
     <div className="space-y-6">
       {back && art && (
-        <Panel title="The print" icon="cheese" hint="Tap the card to turn it over: the back is the pack's design, as players see it.">
+        <Panel title="The edition" icon="cheese" hint="Tap the card to turn it over: the back is the pack's design, as players see it.">
           <div className="mx-auto w-full max-w-[220px]">
             <FlipCard back={back}>
               <CardTile imageUrl={art} alt={label} className={`relative aspect-2/3 rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''}`} style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}` }} />
@@ -60,7 +60,7 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
       )}
       <Panel title="Details" icon="info">
         <dl className="grid grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
-          <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Print id</dt><dd className="font-mono text-gray-200 break-all">{copy.id}</dd></div>
+          <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Edition id</dt><dd className="font-mono text-gray-200 break-all">{copy.id}</dd></div>
           <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{retired ? 'Status' : 'Held by'}</dt><dd className="text-gray-200">{retired ? <Chip tone="gray">retired</Chip> : user(copy.owner)}</dd></div>
           <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Created</dt><dd className="text-gray-200">{when(copy.at)}</dd></div>
           <div><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Origin</dt><dd className="text-gray-200">{ORIGIN_LABELS[copy.origin]}{copy.est && <> <Chip tone="amber">estimated number</Chip></>}</dd></div>
@@ -70,9 +70,9 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
         )}
       </Panel>
 
-      <Panel title="Actions" icon="wrench" hint="These change the holder's collection and this print's history together. Neither works while the print sits in an open trade offer.">
+      <Panel title="Actions" icon="wrench" hint="These change the holder's collection and this edition's history together. Neither works while the edition sits in an open trade offer.">
         {retired ? (
-          <p className="text-sm text-gray-500">This print no longer exists, so there is nothing to do with it. Its history is below.</p>
+          <p className="text-sm text-gray-500">This edition no longer exists, so there is nothing to do with it. Its history is below.</p>
         ) : inOffer ? (
           <p className="text-sm text-amber-200">It is held by an open trade offer. Cancel the offer from <Link href="/admin/trades" className="underline">Trades</Link> and it comes back to its owner, then you can act on it.</p>
         ) : (
@@ -83,10 +83,10 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
                 <UserInput name="to" required placeholder="their Twitch username" wrapperClassName="relative block" className={`${field} block w-56 max-w-full`} />
               </label>
               <ConfirmButton
-                title="Give this print away?"
+                title="Give this edition away?"
                 confirmLabel="Give it"
                 tone="primary"
-                message={<>This moves the print, with any edition bonus it earns, from <strong className="text-white">@{copy.owner}</strong> to the viewer you typed. It is logged as an admin transfer in the print&rsquo;s history. If nobody has used that name yet, it becomes a new account, so check the spelling.</>}
+                message={<>This moves the edition, with any print bonus it earns, from <strong className="text-white">@{copy.owner}</strong> to the viewer you typed. It is logged as an admin transfer in the edition&rsquo;s history. If nobody has used that name yet, it becomes a new account, so check the spelling.</>}
                 className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-600 text-gray-100 hover:border-yellow-500/60"
               >
                 <Icon name="send" className="mr-1.5" />Give
@@ -97,14 +97,14 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
               <PendingButton type="submit" disabled={isFeatured || !copy.uid} className="px-4 py-2 text-sm font-bold rounded-lg border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50">
                 <Icon name="sparkles" className="mr-1.5" />Feature as print of the week
               </PendingButton>
-              <span className="text-xs text-gray-500">{isFeatured ? 'It is the print of the week now.' : 'Shows it on the home page in place of the current pick.'}</span>
+              <span className="text-xs text-gray-500">{isFeatured ? 'It is the edition of the week now.' : 'Shows it on the home page in place of the current pick.'}</span>
             </form>
             <form action={removeCopyAction.bind(null, seasonId, copy.id)}>
               {hidden}
               <ConfirmButton
                 title={`Remove ${label} #${copy.n}?`}
                 confirmLabel="Remove it"
-                message={<>This takes the print out of <strong className="text-white">@{copy.owner}</strong>&rsquo;s collection for good. Its number is never reused, and its history stays here.</>}
+                message={<>This takes the edition out of <strong className="text-white">@{copy.owner}</strong>&rsquo;s collection for good. Its number is never reused, and its history stays here.</>}
                 className="px-4 py-2 text-sm font-bold rounded-lg border border-red-500/40 text-red-300 hover:bg-red-950/40"
               >
                 <Icon name="trash" className="mr-1.5" />Remove from {copy.owner}&rsquo;s collection

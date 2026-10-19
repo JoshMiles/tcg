@@ -23,7 +23,7 @@ export async function DataHealthPanel() {
               <p className="text-white font-semibold">{s.name} {s.active && <Chip tone="green">Active</Chip>}</p>
               <p className="text-gray-300 tabular-nums">{formatBytes(s.collection.bytes)} <Chip tone={TONE[s.level]}>{LABEL[s.level]}</Chip></p>
               <p className="text-xs text-gray-400">{n(s.collection.viewers)} viewers, {n(s.collection.entries)} entries{s.collection.largest ? `, largest ${n(s.collection.largest.entries)} (${s.collection.largest.username})` : ''}</p>
-              <p className="text-xs text-gray-500 wrap-break-word">{s.ledger.tracking ? `Print ledger: ${n(s.ledger.live)} live, ${n(s.ledger.retired)} retired, ${n(s.ledger.editions)} editions` : 'Print ledger: not numbered yet'}</p>
+              <p className="text-xs text-gray-500 wrap-break-word">{s.ledger.tracking ? `Edition ledger: ${n(s.ledger.live)} live, ${n(s.ledger.retired)} retired, ${n(s.ledger.editions)} editions` : 'Edition ledger: not numbered yet'}</p>
             </li>
           ))}
         </ul>
@@ -36,7 +36,7 @@ export async function DataHealthPanel() {
                 <th className="py-1.5 pr-3 font-bold text-right">Viewers</th>
                 <th className="py-1.5 pr-3 font-bold text-right">Entries</th>
                 <th className="py-1.5 pr-3 font-bold text-right">Largest viewer</th>
-                <th className="py-1.5 font-bold">Print ledger</th>
+                <th className="py-1.5 font-bold">Edition ledger</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/60">
@@ -63,14 +63,14 @@ export async function DataHealthPanel() {
         <div role="alert" className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-200 space-y-3">
           <p>
             {n(h.trades.stuckEscrow.length)} closed offer{h.trades.stuckEscrow.length === 1 ? '' : 's'} still marked escrowed.
-            Return prints puts back only what that offer still holds, then clears the flag. Running it again does not add the prints a second time.
-            If the season was deleted, it refuses and the flag stays set. On a season whose prints are not numbered, use it only when the offerer is actually missing the cards.
+            Return editions puts back only what that offer still holds, then clears the flag. Running it again does not add the editions a second time.
+            If the season was deleted, it refuses and the flag stays set. On a season whose editions are not numbered, use it only when the offerer is actually missing the cards.
           </p>
           <div className="flex flex-wrap gap-2">
             {h.trades.stuckEscrow.map(id => (
               <form key={id} action={releaseStuckEscrowAction.bind(null, id)}>
                 <PendingButton type="submit" className="px-3 py-1.5 text-xs font-bold rounded-lg border border-red-400/40 text-red-100 hover:bg-red-900/40">
-                  Return prints {id.slice(0, 8)}
+                  Return editions {id.slice(0, 8)}
                 </PendingButton>
               </form>
             ))}
@@ -84,7 +84,7 @@ export async function DataHealthPanel() {
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.trades.historyCount)} kept ({formatBytes(h.trades.historyBytes)}), capped at 400</dd>
         {h.trades.stuckEscrow.length > 0 && <>
           <dt className="text-red-400">Stuck in escrow</dt>
-          <dd className="text-red-300 mb-1.5 sm:mb-0">{h.trades.stuckEscrow.join(', ')}: closed offers still marked escrowed. Use Return prints above.</dd>
+          <dd className="text-red-300 mb-1.5 sm:mb-0">{h.trades.stuckEscrow.join(', ')}: closed offers still marked escrowed. Use Return editions above.</dd>
         </>}
         <dt className="text-gray-500">Activity log</dt>
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.activityEvents)} events, capped at 500</dd>

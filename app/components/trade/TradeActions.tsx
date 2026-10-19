@@ -98,7 +98,7 @@ export function TradeActions({
     <div className="flex flex-col items-end gap-1">
       {choosing && pick && (
         <div className="w-full max-w-md space-y-2 rounded-xl border border-gray-700 bg-gray-950/70 p-3 text-left">
-          <p className="text-xs font-semibold text-gray-200">Choose which prints you hand over</p>
+          <p className="text-xs font-semibold text-gray-200">Choose which editions you hand over</p>
           {pick.items.filter(i => choosing.sel[String(encodeEntry(i.cardNumber, i.variant))]).map(i => {
             const key = String(encodeEntry(i.cardNumber, i.variant));
             return (
@@ -110,7 +110,7 @@ export function TradeActions({
           })}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setChoosing(null)} className="text-xs font-semibold text-gray-400 hover:text-white">Back</button>
-            <button type="button" disabled={Object.entries(choosing.sel).some(([k, ids]) => ids.length !== (pick.items.find(i => String(encodeEntry(i.cardNumber, i.variant)) === k)?.count ?? 0))} onClick={() => { setChosen(choosing.sel); setChoosing(null); arm('accept'); }} className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-bold text-gray-950 hover:bg-yellow-300 disabled:opacity-50">Use these prints</button>
+            <button type="button" disabled={Object.entries(choosing.sel).some(([k, ids]) => ids.length !== (pick.items.find(i => String(encodeEntry(i.cardNumber, i.variant)) === k)?.count ?? 0))} onClick={() => { setChosen(choosing.sel); setChoosing(null); arm('accept'); }} className="rounded-full bg-yellow-400 px-3 py-1 text-xs font-bold text-gray-950 hover:bg-yellow-300 disabled:opacity-50">Use these editions</button>
           </div>
         </div>
       )}

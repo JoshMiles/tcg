@@ -26,7 +26,7 @@ const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()
 export type DialogCopy = NonNullable<GridCard['copies']>[number];
 const printHref = (seasonId: string, c: DialogCopy) => `/copy/${encodeURIComponent(seasonId)}/${c.id}`;
 
-/** The dialog for one card: first its prints (one tile each), then one print's details. A card with a single print opens on that print. */
+/** The dialog for one card: first its prints (one tile each), then one print's details. A card with a single edition opens on that edition. */
 export function CardDetail({
   card, totalScore, canUpgrade, ownerName, tradeWith, seasonId, pinnedUid, favouriteUids, canStep, onClose, onStep,
 }: {
@@ -38,9 +38,9 @@ export function CardDetail({
   const [printId, setPrintId] = useState<string | null>(null);
 
   const dialog = copiesForDialog(seasonId ? card.copies : undefined, card.counts, showAll ? Infinity : 60);
-  const print = dialog.only ?? (printId ? (card.copies ?? []).find(c => c.id === printId) ?? null : null);
+  const edition = dialog.only ?? (printId ? (card.copies ?? []).find(c => c.id === printId) ?? null : null);
 
-  // Back to the prints when moving to another card.
+  // Back to the editions when moving to another card.
   useEffect(() => { setPrintId(null); setShowAll(false); }, [card.id]);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export function CardDetail({
 
   const total = dialog.total;
   const best = bestVariant(card.counts);
-  const label = print ? `${card.name}, ${VARIANT_LABELS[print.variant]} edition #${print.n}` : `${card.name} details`;
+  const label = edition ? `${card.name}, ${VARIANT_LABELS[edition.variant]} print #${edition.n}` : `${card.name} details`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={label}>
@@ -75,25 +75,25 @@ export function CardDetail({
               <h2 className="font-display text-2xl sm:text-3xl font-bold text-white leading-tight wrap-break-word">{card.name}</h2>
               <p className="text-sm font-semibold mt-1" style={{ color: rarity?.hex }}>
                 {'★'.repeat(card.stars)} {rarity?.label}
-                <span className="ml-2 text-gray-400 font-normal">{total.toLocaleString()} print{total === 1 ? '' : 's'}</span>
+                <span className="ml-2 text-gray-400 font-normal">{total.toLocaleString()} edition{total === 1 ? '' : 's'}</span>
               </p>
             </div>
             {canStep && <button onClick={() => onStep(1)} aria-label="Next card" className="w-8 h-10 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">›</button>}
           </div>
 
-          {print && seasonId
-            ? <PrintView card={card} print={print} seasonId={seasonId} ownerName={ownerName} canUpgrade={canUpgrade} tradeWith={tradeWith} pinnedUid={pinnedUid} favouriteUids={favouriteUids} onBack={dialog.only ? undefined : () => setPrintId(null)} />
-            : <PrintsView card={card} dialog={dialog} seasonId={seasonId} onPick={setPrintId} showAll={() => setShowAll(true)} />}
+          {edition && seasonId
+            ? <PrintView card={card} edition={edition} seasonId={seasonId} ownerName={ownerName} canUpgrade={canUpgrade} tradeWith={tradeWith} pinnedUid={pinnedUid} favouriteUids={favouriteUids} onBack={dialog.only ? undefined : () => setPrintId(null)} />
+            : <EditionsView card={card} dialog={dialog} seasonId={seasonId} onPick={setPrintId} showAll={() => setShowAll(true)} />}
 
-          <CardInfo card={card} totalScore={totalScore} canUpgrade={canUpgrade} ownerName={ownerName} tradeWith={print ? undefined : tradeWith} shown={print?.variant ?? best} />
+          <CardInfo card={card} totalScore={totalScore} canUpgrade={canUpgrade} ownerName={ownerName} tradeWith={edition ? undefined : tradeWith} shown={edition?.variant ?? best} />
         </div>
       </div>
     </div>
   );
 }
 
-/** Step 1: one small tile per print, grouped by version (or one tile per version with its count when prints are not tracked). */
-function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCard; dialog: ReturnType<typeof copiesForDialog<DialogCopy>>; seasonId?: string; onPick: (id: string) => void; showAll: () => void }) {
+/** Step 1: one small tile per edition, grouped by version (or one tile per version with its count when editions are not tracked). */
+function EditionsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCard; dialog: ReturnType<typeof copiesForDialog<DialogCopy>>; seasonId?: string; onPick: (id: string) => void; showAll: () => void }) {
   const rarity = getRarity(card.stars);
   const tileStyle = (v: Variant) => ({ borderColor: rarity?.hex, ...holoVars(card.holo[v]) } as React.CSSProperties);
   const tileClass = (v: Variant) => `relative aspect-2/3 w-full rounded-lg overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v} ` : ''}${holoClass(card.holo[v])}`;
@@ -101,19 +101,19 @@ function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCar
   return (
     <div className="space-y-4">
       {dialog.groups.map(g => (
-        <section key={g.variant} aria-label={`${VARIANT_LABELS[g.variant]} prints`}>
+        <section key={g.variant} aria-label={`${VARIANT_LABELS[g.variant]} editions`}>
           <h3 className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-2">{VARIANT_LABELS[g.variant]} <span className="text-gray-600 normal-case tracking-normal">×{g.count}</span></h3>
           {dialog.tracked ? (
             <ul className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-2">
               {g.copies.map(c => (
                 <li key={c.id} className="min-w-0">
-                  <button type="button" onClick={() => onPick(c.id)} aria-label={`${VARIANT_LABELS[g.variant]} edition #${c.n}${c.uid ? `, print number ${c.uid}` : ''}${c.m ? ', edition bonus' : ''}`}
+                  <button type="button" onClick={() => onPick(c.id)} aria-label={`${VARIANT_LABELS[g.variant]} print #${c.n}${c.uid ? `, edition number ${c.uid}` : ''}${c.m ? ', print bonus' : ''}`}
                     className="group block w-full text-left focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400 rounded-lg">
                     <span className={`${tileClass(g.variant)} block transition-transform group-hover:-translate-y-0.5`} style={tileStyle(g.variant)}>{art(g.variant)}</span>
                     <span className="mt-1 flex items-center gap-1 min-w-0">
                       <SerialChip n={c.n} bonus={c.m} est={c.est} className="text-[10px]! px-1.5! py-0!" />
                     </span>
-                    {c.uid ? <span className="block truncate text-[10px] text-gray-500 tabular-nums">Print #{c.uid}</span> : null}
+                    {c.uid ? <span className="block truncate text-[10px] text-gray-500 tabular-nums">Edition #{c.uid}</span> : null}
                   </button>
                 </li>
               ))}
@@ -128,24 +128,24 @@ function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCar
         </section>
       ))}
       {dialog.more > 0 && <button type="button" onClick={showAll} className="text-xs text-yellow-400 hover:text-yellow-300">Show all {dialog.total.toLocaleString()}</button>}
-      {seasonId && dialog.tracked && <p className="text-[11px] text-gray-600">Choose a print to see its edition, print number, points and history. The first prints ever made of a card are worth extra points.</p>}
-      {!dialog.tracked && <p className="text-[11px] text-gray-600">This season does not number its prints, so each version shows as one tile.</p>}
+      {seasonId && dialog.tracked && <p className="text-[11px] text-gray-600">Choose an edition to see its print, edition number, points and history. The first editions ever made of a card are worth extra points.</p>}
+      {!dialog.tracked && <p className="text-[11px] text-gray-600">This season does not number its editions, so each version shows as one tile.</p>}
     </div>
   );
 }
 
 const pill = 'inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border text-gray-200 bg-white/6 border-white/10 hover:bg-white/10';
 
-/** Step 2: one print, turned over on the flip card, with what it is worth and where it has been. */
-function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pinnedUid, favouriteUids, onBack }: { card: GridCard; print: DialogCopy; seasonId: string; ownerName?: string; canUpgrade: boolean; tradeWith?: string; pinnedUid?: number; favouriteUids?: number[]; onBack?: () => void }) {
+/** Step 2: one edition, turned over on the flip card, with what it is worth and where it has been. */
+function PrintView({ card, edition, seasonId, ownerName, canUpgrade, tradeWith, pinnedUid, favouriteUids, onBack }: { card: GridCard; edition: DialogCopy; seasonId: string; ownerName?: string; canUpgrade: boolean; tradeWith?: string; pinnedUid?: number; favouriteUids?: number[]; onBack?: () => void }) {
   const rarity = getRarity(card.stars);
-  const v = print.variant;
-  const href = printHref(seasonId, print);
+  const v = edition.variant;
+  const href = printHref(seasonId, edition);
   const [copied, setCopied] = useState(false);
   const share = async () => {
     const url = `${window.location.origin}${href}`;
     try {
-      if (navigator.share) { await navigator.share({ title: `${card.name}${print.uid ? ` #${print.uid}` : ''}`, url }); return; }
+      if (navigator.share) { await navigator.share({ title: `${card.name}${edition.uid ? ` #${edition.uid}` : ''}`, url }); return; }
       await navigator.clipboard.writeText(url);
       setCopied(true); setTimeout(() => setCopied(false), 2000);
     } catch { /* cancelled or blocked */ }
@@ -164,44 +164,44 @@ function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pi
     </div>
   );
   // The first line is how it began (origin and date); the rest are what happened since, at most three lines in all.
-  const journey = [`${print.origin ?? 'Made'}${print.at ? `, ${engravedDate(print.at)}` : ''}`, ...(print.j ?? [])].slice(0, 3);
+  const journey = [`${edition.origin ?? 'Made'}${edition.at ? `, ${engravedDate(edition.at)}` : ''}`, ...(edition.j ?? [])].slice(0, 3);
   const step = card.steps[v];
   const showUpgrade = canUpgrade && card.upgradable && step && card.counts[v] > 0;
   return (
     <div className="space-y-4">
-      {onBack && <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-sm font-bold text-yellow-400 hover:text-yellow-300">‹ Back to all prints</button>}
+      {onBack && <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-sm font-bold text-yellow-400 hover:text-yellow-300">‹ Back to all editions</button>}
       <div className="grid sm:grid-cols-[220px_1fr] gap-5">
         <div className="mx-auto w-full max-w-[220px]">
-          {print.at
-            ? <FlipCard compact back={flipBackFor({ n: print.n, uid: print.uid, total: print.made, variant: v, name: card.name, at: print.at, est: print.est, bonus: print.m, hex: rarity?.hex, holder: ownerName ? `@${ownerName}` : 'you', href }, card.back)}>{face}</FlipCard>
+          {edition.at
+            ? <FlipCard compact back={flipBackFor({ n: edition.n, uid: edition.uid, total: edition.made, variant: v, name: card.name, at: edition.at, est: edition.est, bonus: edition.m, hex: rarity?.hex, holder: ownerName ? `@${ownerName}` : 'you', href }, card.back)}>{face}</FlipCard>
             : face}
         </div>
         <div className="space-y-3 min-w-0">
           <div>
             <p className="font-display text-xl font-bold text-white">{VARIANT_LABELS[v]} {card.name}</p>
-            <p className="text-sm text-gray-300 mt-0.5">Edition<InfoTip term="edition" /> <strong className="text-white tabular-nums">#{print.n}</strong>{print.made && print.made >= print.n ? <> of {print.made.toLocaleString()} made</> : null}{print.est && <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}</p>
-            {print.uid ? <p className="text-sm text-gray-400 tabular-nums">Print #{print.uid}<InfoTip term="printNumber" /></p> : null}
+            <p className="text-sm text-gray-300 mt-0.5">Print<InfoTip term="edition" /> <strong className="text-white tabular-nums">#{edition.n}</strong>{edition.made && edition.made >= edition.n ? <> of {edition.made.toLocaleString()} made</> : null}{edition.est && <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}</p>
+            {edition.uid ? <p className="text-sm text-gray-400 tabular-nums">Edition #{edition.uid}<InfoTip term="printNumber" /></p> : null}
           </div>
-          <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-3 gap-y-1 ${print.m ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
-            <SerialChip n={print.n} bonus={print.m} est={print.est} className="text-sm px-3! py-1!" />
-            <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{(print.p ?? card.values[v]).toLocaleString()} pts</strong></span>
-            <span className="text-xs text-gray-500">{print.m ? `Edition bonus ×${print.m}` : 'No edition bonus'}<InfoTip term="editionBonus" /></span>
+          <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-3 gap-y-1 ${edition.m ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
+            <SerialChip n={edition.n} bonus={edition.m} est={edition.est} className="text-sm px-3! py-1!" />
+            <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{(edition.p ?? card.values[v]).toLocaleString()} pts</strong></span>
+            <span className="text-xs text-gray-500">{edition.m ? `Print bonus ×${edition.m}` : 'No print bonus'}<InfoTip term="editionBonus" /></span>
           </div>
           <div>
             <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Journey</p>
             <ol className="space-y-0.5 text-sm text-gray-300">{journey.map((t, i) => <li key={i} className="flex gap-2"><span aria-hidden className="text-gray-600">•</span>{t}</li>)}</ol>
           </div>
           <div className="flex flex-wrap items-start gap-2 pt-1">
-            <a href={href} className={pill}>Open print page</a>
-            <button type="button" onClick={share} className={pill}><Icon name="share" />{copied ? 'Link copied' : 'Share this print'}</button>
-            {canUpgrade && print.uid ? <PinCopyButton uid={print.uid} pinned={pinnedUid === print.uid} /> : null}
-            {canUpgrade && print.uid ? <FavouriteCopyButton uid={print.uid} favourite={!!favouriteUids?.includes(print.uid)} /> : null}
+            <a href={href} className={pill}>Open edition page</a>
+            <button type="button" onClick={share} className={pill}><Icon name="share" />{copied ? 'Link copied' : 'Share this edition'}</button>
+            {canUpgrade && edition.uid ? <PinCopyButton uid={edition.uid} pinned={pinnedUid === edition.uid} /> : null}
+            {canUpgrade && edition.uid ? <FavouriteCopyButton uid={edition.uid} favourite={!!favouriteUids?.includes(edition.uid)} /> : null}
             {tradeWith && <a href={`/trade/new?to=${encodeURIComponent(tradeWith)}&want=${card.number}.${v}`} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border border-purple-400/40 bg-purple-500/10 text-purple-200 hover:bg-purple-500/20"><Icon name="trade" />Offer a trade</a>}
           </div>
           {showUpgrade && (
             <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
               <UpgradeButton cardNumber={card.number} from={v} to={step!.to} have={card.counts[v]} cost={step!.cost} holo={card.holo} card={{ name: card.name, imageUrl: card.imageUrl, fullArtImageUrl: card.fullArtImageUrl }} />
-              <span>Upgrades spend your newest prints first.</span>
+              <span>Upgrades spend your newest editions first.</span>
             </div>
           )}
         </div>
@@ -223,7 +223,7 @@ function CardInfo({ card, totalScore, canUpgrade, ownerName, tradeWith, shown }:
       <div className="space-y-4 px-4 pb-4 min-w-0">
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3">
-            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{ownerName ? `${ownerName}’s prints are worth` : 'Your prints are worth'}</p>
+            <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{ownerName ? `${ownerName}’s editions are worth` : 'Your editions are worth'}</p>
             <p className="font-display text-3xl font-bold text-yellow-400 tabular-nums">{cardTotal.toLocaleString()}<span className="text-sm text-gray-500 ml-1">pts</span></p>
             {share > 0 && <p className="text-xs text-gray-500">{share}% of {ownerName ? `${ownerName}’s` : 'your'} card points</p>}
           </div>
@@ -235,9 +235,9 @@ function CardInfo({ card, totalScore, canUpgrade, ownerName, tradeWith, shown }:
         </div>
 
         <p className="text-xs text-gray-500">
-          {card.serial.points > 0 && <span className="text-emerald-300">Edition bonuses add +{card.serial.points.toLocaleString()} pts to this card. </span>}
-          {(!card.copies || card.copies.length === 0) && card.serial.mult <= 1 && 'Low edition numbers earn a bonus; none of these prints qualify. '}
-          {outThere.toLocaleString()} print{outThere === 1 ? '' : 's'} of {VARIANT_LABELS[shown]} out there
+          {card.serial.points > 0 && <span className="text-emerald-300">Print bonuses add +{card.serial.points.toLocaleString()} pts to this card. </span>}
+          {(!card.copies || card.copies.length === 0) && card.serial.mult <= 1 && 'Low print numbers earn a bonus; none of these editions qualify. '}
+          {outThere.toLocaleString()} edition{outThere === 1 ? '' : 's'} of {VARIANT_LABELS[shown]} out there
         </p>
 
         <div className="rounded-xl border border-gray-800 overflow-hidden">
@@ -289,7 +289,7 @@ function CardInfo({ card, totalScore, canUpgrade, ownerName, tradeWith, shown }:
         {card.maths && <CardMathsPanel maths={card.maths} variants={rows} shown={shown} />}
 
         <p className="text-xs text-gray-500">
-          {canUpgrade && card.upgradable ? 'Upgrades are permanent: the prints you spend are destroyed. The newest edition numbers go first, so a print with a low number is safe. ' : ''}Card values change as the season goes on; edition bonuses never do.{' '}
+          {canUpgrade && card.upgradable ? 'Upgrades are permanent: the editions you spend are destroyed. The newest print numbers go first, so an edition with a low print number is safe. ' : ''}Card values change as the season goes on; print bonuses never do.{' '}
           <a href="/faq#points" className="text-yellow-500 hover:text-yellow-300">How are points worked out? →</a>
         </p>
       </div>

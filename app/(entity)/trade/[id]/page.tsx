@@ -130,7 +130,7 @@ function OutcomeNote({ trade, user }: { trade: Trade; user: (name: string) => Re
   if (trade.reversedAt) {
     return (
       <p role="status" className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-200">
-        <Icon name="shield" className="mr-1" />Reversed by staff: every print in this trade went back to where it started.{trade.reverseReason ? <> Reason: {trade.reverseReason}</> : null}
+        <Icon name="shield" className="mr-1" />Reversed by staff: every edition in this trade went back to where it started.{trade.reverseReason ? <> Reason: {trade.reverseReason}</> : null}
       </p>
     );
   }

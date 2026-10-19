@@ -207,7 +207,7 @@ function drawBackPattern(ctx: CanvasRenderingContext2D, r: Rect, p: ReturnType<t
 }
 
 /**
- * A print's back as a card-shaped panel: the pack's design, drawn from the layout engine's nodes like the site's FlipCard and the overlay
+ * An edition's back as a card-shaped panel: the pack's design, drawn from the layout engine's nodes like the site's FlipCard and the overlay
  * do. The metal, the pattern and the edge follow the design's colours.
  */
 async function drawBackCard(ctx: CanvasRenderingContext2D, r: Rect, spec: NonNullable<NonNullable<ShareSpec['plate']>['back']>, rarityEdge: string, font: string, t: ShareTheme) {

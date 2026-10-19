@@ -225,7 +225,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
       fields: [
         { name: 'Pack', value: esc(packName) || '-', inline: true },
         ...(e.uniqueOwned !== undefined ? [{ name: 'Collected', value: totalCards ? `${e.uniqueOwned}/${totalCards}` : String(e.uniqueOwned), inline: true }] : []),
-        ...(e.serial ? [{ name: 'Edition', value: `**#${e.serial}**${e.serial === 1 ? ' (the first ever)' : ''}${e.bonus ? ` · ×${e.bonus} points` : ''}`, inline: true }] : []),
+        ...(e.serial ? [{ name: 'Print', value: `**#${e.serial}**${e.serial === 1 ? ' (the first ever)' : ''}${e.bonus ? ` · ×${e.bonus} points` : ''}`, inline: true }] : []),
       ],
     });
   };
@@ -251,7 +251,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
           { name: 'From', value: VARIANT_LABELS[e.from], inline: true },
           { name: 'To', value: VARIANT_LABELS[e.to], inline: true },
           { name: 'Cost', value: `${e.cost}×`, inline: true },
-          ...(e.uid ? [{ name: 'New print', value: `**Print #${e.uid}**`, inline: true }] : []),
+          ...(e.uid ? [{ name: 'New edition', value: `**Edition #${e.uid}**`, inline: true }] : []),
         ] });
     }
     case 'trade': {
@@ -361,7 +361,7 @@ export function buildDigestMessage(d: WeeklyDigest, opts: { footer?: string } = 
   });
   if (d.mostTraded.length) fields.push({ name: `Most traded cards${d.tradedAtLeast ? ' (at least)' : ''}`, value: d.mostTraded.map(c => `${esc(c.name)}, ${c.count}×`).join('\n'), inline: true });
   if (d.mostWanted) fields.push({ name: 'Most wanted card', value: `${esc(d.mostWanted.name)}, ${d.mostWanted.watchers} collector${d.mostWanted.watchers === 1 ? '' : 's'} want it`, inline: true });
-  if (d.print) fields.push({ name: 'Print of the week', value: `[${esc(d.print.name)}${d.print.label ? ` (${esc(d.print.label)})` : ''}${d.print.uid ? `, Print #${d.print.uid}` : ''}](${SITE_URL}${d.print.href})\n${esc(d.print.reason)}` });
+  if (d.print) fields.push({ name: 'Edition of the week', value: `[${esc(d.print.name)}${d.print.label ? ` (${esc(d.print.label)})` : ''}${d.print.uid ? `, Edition #${d.print.uid}` : ''}](${SITE_URL}${d.print.href})\n${esc(d.print.reason)}` });
   fields.push({ name: 'Leaderboard', value: `[See the full board](${SITE_URL}/leaderboard)` });
   return payload({
     color: GOLD, title: '🧀 The week in Cheesy TCG',
@@ -615,7 +615,7 @@ export function buildListingMessage(l: ListingNotice): DiscordPayload {
  * Audit entries that have an activity event of their own (a grant, a removal, a reset...): the admin channels already get those from
  * notifyDiscord, with the staff name, so the audit twin is skipped.
  */
-const AUDIT_WITH_EVENT = new Set(['Card removed', 'Season reset', 'All seasons reset', 'Account deleted', 'Cards granted', 'Packs gifted', 'Print removed', 'Trade reversed']);
+const AUDIT_WITH_EVENT = new Set(['Card removed', 'Season reset', 'All seasons reset', 'Account deleted', 'Cards granted', 'Packs gifted', 'Edition removed', 'Trade reversed']);
 
 export interface AdminLogEntry { action: string; subject?: string; detail?: string; /** The staff member's login ("password" for the emergency login). */ by?: string | null }
 

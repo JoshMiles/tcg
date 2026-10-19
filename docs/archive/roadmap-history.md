@@ -1219,6 +1219,10 @@ A collection tile or binder pocket with `holo-fx` does not also take `holo-hover
 
 `DEFAULT_SCORING.serialBonusCutoff` is 40. A saved `scoring:settings` value is left as stored, so a site that already saved 20 keeps 20 until someone saves 40 in Admin → Settings → Scoring. Scores recompute on the next page load after that save. `EVENT_CAP` (how many journey events a copy keeps) stays 40 and is a different setting.
 
+### 25.2 A copy is an edition; "24 of 28" is a print (Done)
+
+A person's copy is an edition. Edition #uid is the game-wide id (it was Print #uid). Print #n of N is the sequence (it was Edition #n of N), and the points bonus on that number is the print bonus. Code, KV, URLs and the card-back tokens `{printNumber}` and `{edition}` keep their names: `{printNumber}` still renders the uid and `{edition}` still renders n. Saved overlay values `edition`, `uid` and `both` still select the same number; the menu labels swapped. The admin button stays "Feature as print of the week". The home block is "Edition of the week" until 25.1 renames it. The Twitch panel still says print for a copy. Achievement titles earned before this change keep the words they were given.
+
 ### 27.3 Achievement list: on/off, rename, edit the text (Done)
 
 Settings → Achievements lists every built-in kind (completed set, each star tier, each version, master set, and the edition-number goals). Each row is on or off, plus a title and a detail. A blank box keeps the built-in sentence. Stored at `achievements:settings`. A switched-off kind is left out of a fresh evaluation. A goal already stored on a profile stays, and clearing the words brings the built-in sentence back. No new rules, no icons, no per-season overrides.

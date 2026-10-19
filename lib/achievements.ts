@@ -15,7 +15,7 @@ export interface AchSeason {
   cards: AchCard[];
   /** The viewer's copies per card number, by version. */
   counts: Map<number, VariantCounts>;
-  /** The edition numbers they hold, by entry (card + version), when the season's copies are numbered. Switches on the serial milestones. */
+  /** The print numbers they hold, by entry (card + version), when the season's copies are numbered. Switches on the serial milestones. */
   held?: Map<number, number[]>;
   /** The serial bonus cutoff (editions up to this number earn extra points; 0 = none). */
   bonusCutoff?: number;
@@ -77,20 +77,20 @@ export function serialGoals(s: AchSeason): Achievement[] {
   const mk = (kind: string, title: string, detail: string, icon: IconName, have: number, need: number): Achievement =>
     ({ id: `${s.seasonId}:${kind}`, seasonId: s.seasonId, seasonName: s.seasonName, title, detail, icon, have: Math.min(have, need), need, earned: have >= need });
 
-  const firsts = new Map<number, Set<Variant>>(); // card -> versions whose edition #1 they hold
+  const firsts = new Map<number, Set<Variant>>(); // card -> versions whose print #1 they hold
   let early = 0;
   for (const [entry, list] of s.held) {
     const { cardNumber, variant } = decodeEntry(entry);
     if (list.includes(1)) firsts.set(cardNumber, (firsts.get(cardNumber) ?? new Set()).add(variant));
     if ((s.bonusCutoff ?? 0) > 0 && list.some(n => n <= (s.bonusCutoff ?? 0))) early++;
   }
-  goals.push(mk('first-edition', 'First edition', `Hold edition #1 of any card in ${s.seasonName}: the very first print ever made.`, 'gem', firsts.size > 0 ? 1 : 0, 1));
+  goals.push(mk('first-edition', 'First print', `Hold print #1 of any card in ${s.seasonName}: the very first edition ever made.`, 'gem', firsts.size > 0 ? 1 : 0, 1));
   if (s.cards.some(c => c.variants.includes('shiny'))) {
     const shinyFirst = [...firsts.values()].some(v => v.has('shiny'));
-    goals.push(mk('first-shiny', 'First shiny edition', `Hold edition #1 of a Shiny Full Art card in ${s.seasonName}.`, 'sparkles', shinyFirst ? 1 : 0, 1));
+    goals.push(mk('first-shiny', 'First shiny print', `Hold print #1 of a Shiny Full Art card in ${s.seasonName}.`, 'sparkles', shinyFirst ? 1 : 0, 1));
   }
-  goals.push(mk('five-firsts', 'Five firsts', `Hold edition #1 of five different cards in ${s.seasonName}.`, 'award', firsts.size, Math.min(5, Math.max(1, s.cards.length))));
-  if ((s.bonusCutoff ?? 0) > 0) goals.push(mk('early-bird', 'Early bird', `Hold a print with a low enough edition number (#${s.bonusCutoff} or lower) to earn the edition points bonus in ${s.seasonName}.`, 'zap', early > 0 ? 1 : 0, 1));
+  goals.push(mk('five-firsts', 'Five firsts', `Hold print #1 of five different cards in ${s.seasonName}.`, 'award', firsts.size, Math.min(5, Math.max(1, s.cards.length))));
+  if ((s.bonusCutoff ?? 0) > 0) goals.push(mk('early-bird', 'Early bird', `Hold an edition with a low enough print number (#${s.bonusCutoff} or lower) to earn the print bonus in ${s.seasonName}.`, 'zap', early > 0 ? 1 : 0, 1));
   return goals;
 }
 

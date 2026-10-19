@@ -4,7 +4,7 @@ import { listSeasons } from '@/lib/kv';
 import { findByUid } from '@/lib/serials';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Card print', robots: { index: false, follow: true } };
+export const metadata: Metadata = { title: 'Card edition', robots: { index: false, follow: true } };
 
 // A copy's short address: /c/1023381 sends you to that copy's page, whichever season it belongs to.
 export default async function CopyByNumber({ params }: { params: Promise<{ uid: string }> }) {
