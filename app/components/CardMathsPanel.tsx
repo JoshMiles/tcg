@@ -103,7 +103,7 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
             {m.serialBonusCutoff > 0 && m.serialBonusMax > 1 ? (
               <>
                 {samples.map(x => <Eq key={x}>{label} #{x}: ×{n(bonusAt(x), 3)} → <Hi>{pointsAt(x).toLocaleString()} pts</Hi></Eq>)}
-                <Note>The number is counted per card and version, from the first print ever made, so a Shiny #1 is the first Shiny of this card. Only editions with a low print number earn the bonus, and it stays with the edition when it is traded. {m.copies[v].toLocaleString()} {label} edition{m.copies[v] === 1 ? ' exists' : 's exist'} now.</Note>
+                <Note>The number is counted per card and version, from the first print ever made, so a Full Art Holo #1 is the first Full Art Holo of this card. Only editions with a low print number earn the bonus, and it stays with the edition when it is traded. {m.copies[v].toLocaleString()} {label} edition{m.copies[v] === 1 ? ' exists' : 's exist'} now.</Note>
               </>
             ) : (
               <Note>The print bonus is switched off in the scoring settings, so every edition of a version is worth the same.</Note>

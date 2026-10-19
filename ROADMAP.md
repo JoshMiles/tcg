@@ -21,15 +21,14 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 4.4 | Link a Discord account for DMs | Needs a decision | L |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
-| 29.1 | Variant ladder gains Golden; labels; read-only audit | Ready | M |
-| 29.4 | Variant styles, per pack, including Golden | Ready (after 29.1) | M |
+| 29.4 | Variant styles, per pack, including Golden | Ready | M |
 | 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
 | 30.1 | Trainer cards: buff model and Buff Editor | Ready | L |
 | 30.2 | Use a trainer card: consume, buff, audit | Ready (after 30.1) | M |
 | 30.3 | Chat command to use a trainer card | Ready (after 30.2) | S |
 | 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
 
-27.2 is unused on purpose: the master set achievement is already shipped (see "Already on the site" under tracks 25 to 30). 29.2 is unused on purpose: the read-only audit and the dry-run script ship inside 29.1. 29.3 is not in the table: stars keep setting the value, so there is no PR.
+27.2 is unused on purpose: the master set achievement is already shipped (see "Already on the site" under tracks 25 to 30). 29.2 is unused on purpose: the read-only audit and the dry-run script shipped inside 29.1. 29.3 is not in the table: stars keep setting the value, so there is no PR.
 
 ### 20.2f One flow for new packs; the wizard goes (Ready, M)
 
@@ -103,15 +102,15 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | !showoff pulls from the user's profile showcase | Done |
 | Option to edit the showcase on a person's profile | Done |
 | Generate a Mix It Up command from settings (commands and pulls) | Done |
-| Align variant with rarity, plus a Golden variant (Joshua) | 29.1, 29.3, 29.4, 29.5 |
+| Align variant with rarity, plus a Golden variant (Joshua) | 29.1 (done), 29.3, 29.4, 29.5 |
 | Trainer cards and a Buff Editor (Joshua) | 30.1 to 30.4 |
 
 ### Tracks 25 to 30: order
 
 Parallel streams, so no two open PRs edit the same files:
-- **widget.js:** 29.1, then 29.4. Do not run those beside each other.
+- **widget.js:** 29.4 (29.1 is done).
 - **Mix It Up:** 30.2 extends `effectiveLimit` after 30.1. Do not run 30.2 beside another edit of `lib/pull-limit-core.ts`.
-- **Variants:** 29.1 (includes the audit and the dry-run script), then 29.4. There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
+- **Variants:** 29.4 (29.1 is done). There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
 - **Trainers and achievement bonuses:** 30.1, then 30.2, then 30.3, and 27.5 after 30.1 (it picks a buff from that catalogue). 30.4 waits for the freeze.
 
 ## Standing decisions
@@ -133,51 +132,22 @@ Decided with 27.3. The list editor has shipped (Settings → Achievements). This
 - **Checks:** extend `scripts/check-achievements.mts`: a new earn writes one buff; a second sync does not write another; a disabled kind grants nothing new.
 - **Docs:** the achievements section from 27.3.
 
-### 29.1 Variant ladder gains Golden; labels; read-only audit (Ready, M)
-
-Joshua: align the variant with the rarity, and add Golden = Legendary.
-
-**Mapping.** Keep the stored ids so existing copy ids (`<card>.<index>.<n>`) and collection numbers (`cardNumber + 1_000_000 × index`, `lib/variants.ts`) stay valid. Append Golden at index 4. Change labels only.
-
-| Index | Id (unchanged) | Label now | Label | Rarity name |
-|---|---|---|---|---|
-| 0 | `regular` | Regular | Regular | Common |
-| 1 | `reverse` | Reverse Holo | Reverse Holo | Uncommon |
-| 2 | `full` | Full Art | Full Art | Rare |
-| 3 | `shiny` | Shiny Full Art | Full Art Holo | Epic |
-| 4 | `golden` | (new) | Golden | Legendary |
-
-Short labels: RH, FA, FH, GD. `Card.stars` stays in KV. This PR does **not** change points (29.3) and does **not** roll Golden (29.5).
-
-**Data.** `Variant` gains `'golden'`. `VARIANTS`, labels, `emptyCounts`, `DEFAULT_VARIANT_WEIGHTS` (`golden: 0`), `DEFAULT_UPGRADE_COSTS` (a Golden step, default the same 3 as the previous step, used only when upgrades are on). `parseCopyId` in `lib/serials-core.ts` allows index 0-4 (`[0-4]` instead of `[0-3]`). `decodeEntry` keeps using `VARIANTS.length`, so an index-4 number decodes as Golden on the site and overlay. `public/widget.js` mirrors the list (the overlay is not frozen). **Do not edit `public/twitch-panel/panel.js`.** Its list is still the four old ids, and its decoder clamps to that list, so an index-4 entry would show up as a nonsense card number. That is why Golden cannot be pulled yet.
-
-**Pulls.** `rollDraw` (`lib/draw.ts`) never returns `golden` while 29.5 is blocked. Weight 0 is not enough on its own if a pack later sets a weight: also refuse Golden in `rollVariant` until a constant `GOLDEN_PULLS` is turned on in 29.5. Existing packs do not change.
-
-**Admin.** Pack workspace variant chips, the weights row and the upgrade cost row grow a Golden column. The public site shows the new labels wherever `VARIANT_LABELS` is used (dex, profile, FAQ, overlay). Achievement titles that say "Shiny Full Art" follow the label; the stored kind `all-shiny` / `first-shiny` does not rename. `docs/variants-and-scoring.md` describes the ladder and states that points still use `Card.stars` (29.3), and that Golden is not pulled until 29.5.
-
-**Audit (read-only).** `scripts/audit-variant-rarity.mts`, same shape as `scripts/audit-trade-ledger.mts`: require `KV_REST_API_URL` and `KV_REST_API_READ_ONLY_TOKEN`, set the URL before the dynamic `import()`, load via `lib/db`, print a report, exit 0, first line "No keys were written." Report: cards by star count, holdings by variant index, copy ids `parseCopyId` would reject, any collection entry with index >= 4. Expected on today's data: zero index-4 entries, zero bad copy ids. Never writes.
-
-**Dry-run migration.** `scripts/migrate-variant-rarity.mts`, same opt-in shape as `scripts/repair-trade-ledger.mts`: default dry-run, writes only with `--apply` and `TCG_REPAIR_CONFIRM=yes`, and only against the KV the env points at. The plan for this ladder is **empty** (ids did not move). The script prints "0 writes" and refuses `--apply` while the plan is empty, so it cannot be pointed at production by mistake. Holdings do not need a rewrite (29.3 keeps the score formula).
-
-**Checks:** `scripts/check-upgrades.mts` for index 4 encode/decode, `parseCopyId`, and "rollDraw never returns golden". `npm run verify`.
-
 ### 29.3 Stars keep setting the value (decided, no PR)
 
-Decided 2026-10-19. The stars on a card keep setting its value. The version multiplier stays as it is today (`baseScore × rarity from Card.stars × variantMultiplier × print bonus` in `lib/leaderboard.ts`). A Golden edition, once it exists, gets a version multiplier the same way a Shiny does. It does not replace the stars.
+Decided 2026-10-19. The stars on a card keep setting its value. The version multiplier stays as it is today (`baseScore × rarity from Card.stars × variantMultiplier × print bonus` in `lib/leaderboard.ts`). A Golden edition, once it exists, gets a version multiplier the same way a Full Art Holo does. It does not replace the stars.
 
 The names in 29.1 (Regular/Common through Golden/Legendary) are labels on the versions. The star names (Common through Legendary) stay too. Do not change `copyPoints`. Do not open a PR for this.
 
-### 29.4 Variant styles, per pack, including Golden (Ready after 29.1, M)
+### 29.4 Variant styles, per pack, including Golden (Ready, M)
 
 Decided 2026-10-19: the amber Golden look is the default, and it must be editable. Every version's look is editable per pack. This is not a second effect system.
 
 The Overlay Editor's **Variants** group is already that editor (`lib/overlay-props.ts`: label, shimmer, glow, rock, sparkles, reveal). Per-pack overrides are already `overlay:packprops`. What is missing is Golden, a way to open that group for one pack, and the website ignoring glow and rock (it uses the shimmer settings, then a hard-coded `.vfx-full` / `.vfx-shiny`).
 
-- Add `golden` beside the other four in `VARIANT_DEFAULTS` and `variantProps`. Starting look, all of it editable: label "Golden", amber and cream shimmer (`#ffb703`, `#ffe14d`, `#fff6c2`), sweep 14s, loop on, an amber glow, a gentle rock, sparkles, burst colour `#f59e0b` (the Legendary amber in `lib/rarity.ts`). Reduced motion disables the sweep and the rock, as it does for Shiny.
+- Add `golden` beside the other four in `VARIANT_DEFAULTS` and `variantProps`. Starting look, all of it editable: label "Golden", amber and cream shimmer (`#ffb703`, `#ffe14d`, `#fff6c2`), sweep 14s, loop on, an amber glow, a gentle rock, sparkles, burst colour `#f59e0b` (the Legendary amber in `lib/rarity.ts`). Reduced motion disables the sweep and the rock, as it does for Full Art Holo.
 - Pack workspace: a **Variant styles** link that opens the Overlay Editor with that pack selected and the Variants group open. Add a query (`?pack=<id>&group=variants`) if the editor cannot do that today. Do not build a second form that writes the same keys.
 - Website tiles, the card dialog, the binder and the upgrade ceremony use the resolved shimmer, glow and rock for every version, including Golden, from those settings. A pack override then matches the stream. Overlay: `public/widget.js` and `public/widget.css`.
 - **Not touched:** the Twitch panel. Golden is still not pulled (29.5), so the panel has nothing new to draw.
-- Do not edit `public/widget.js` beside 29.1.
 - **Checks:** `scripts/check-overlay.mts` for the Golden defaults. Hand pass: change Golden's shimmer on one pack, see it in the editor preview and on a profile tile. Real OBS is not checkable here.
 - **Docs:** `docs/overlay.md`, `docs/variants-and-scoring.md`.
 

@@ -61,7 +61,7 @@ export function TradingSection({ trade }: { trade: TradeSettings }) {
         trade anything for anything. Remember that an edition’s print number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.
       </Q>
       <Q q="Can I be told when a card I want is listed?">
-        Yes. Cards on your <strong className="text-white">Looking for</strong> list alert you for every version. For something more specific, add a <strong className="text-white">saved alert</strong> in <Link href="/settings#watches" className="text-yellow-400 hover:text-yellow-300">Settings</Link>, such as &ldquo;a Shiny Full Art Gouda&rdquo; (up to 10). When someone posts a matching card on the open board you get a notice in the bell, and in the Twitch extension the listing is tagged <em>On your list</em>. You can turn these notices off in Settings.
+        Yes. Cards on your <strong className="text-white">Looking for</strong> list alert you for every version. For something more specific, add a <strong className="text-white">saved alert</strong> in <Link href="/settings#watches" className="text-yellow-400 hover:text-yellow-300">Settings</Link>, such as &ldquo;a Full Art Holo Gouda&rdquo; (up to 10). When someone posts a matching card on the open board you get a notice in the bell, and in the Twitch extension the listing is tagged <em>On your list</em>. You can turn these notices off in Settings.
       </Q>
       <Q q="Trading seems to be switched off">
         Trading can be paused by the streamer, for example while something is being fixed. While it&rsquo;s paused nothing new can be offered or accepted, but you can still cancel your own offers to get your cards back.

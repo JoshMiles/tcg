@@ -10,7 +10,7 @@ import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import type { PackInput } from '@/lib/pack-clean';
 import type { WorkCard } from '@/lib/pack-editor-core';
 import { getRarity } from '@/lib/rarity';
-import { VARIANTS, VARIANT_LABELS, allowedVariants } from '@/lib/variants';
+import { VARIANTS, VARIANT_LABELS, allowedVariants, usesFullArt } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
 type Tab = 'card' | 'back' | 'stream' | 'sizes';
@@ -68,7 +68,7 @@ function variantsFor(pack: PackInput, c: WorkCard): Variant[] {
 }
 
 function artOf(c: WorkCard, v: Variant) {
-  return (v === 'full' || v === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl;
+  return usesFullArt(v) && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl;
 }
 
 /** The front exactly as the site draws it: rarity border and glow, the version's look and its holo. */

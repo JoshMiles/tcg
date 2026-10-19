@@ -36,9 +36,14 @@ eq((r('#9') as { reason?: string }).reason, 'none', 'unknown number');
 eq(r(''), { ok: true, card: cards[2] }, 'no query shows their best card');
 eq((s.resolveCard(s.parseShowQuery(''), cards, new Set(), () => null) as { reason?: string }).reason, 'nothing-to-show', 'no cards at all');
 
-const counts = (o: Partial<Record<'regular' | 'reverse' | 'full' | 'shiny', number>>) => ({ regular: 0, reverse: 0, full: 0, shiny: 0, ...o });
+eq(s.parseShowQuery('Full Art Holo Gouda Goat'), { number: null, name: 'Gouda Goat', variant: 'shiny' }, '"full art holo" is the shiny version');
+eq(s.parseShowQuery('Gouda Goat FH'), { number: null, name: 'Gouda Goat', variant: 'shiny' }, 'FH alias');
+eq(s.parseShowQuery('Golden Gouda Goat'), { number: null, name: 'Gouda Goat', variant: 'golden' }, 'golden version');
+eq(s.parseShowQuery('Gouda Goat GD'), { number: null, name: 'Gouda Goat', variant: 'golden' }, 'GD alias');
+
+const counts = (o: Partial<Record<'regular' | 'reverse' | 'full' | 'shiny' | 'golden', number>>) => ({ regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0, ...o });
 eq(s.pickShowVariant(counts({ regular: 2, reverse: 1 }), null), { ok: true, variant: 'reverse' }, 'no preference shows the best version owned');
 eq(s.pickShowVariant(counts({ regular: 2, reverse: 1 }), 'regular'), { ok: true, variant: 'regular' }, 'an owned version is honoured');
 const no = s.pickShowVariant(counts({ regular: 2 }), 'shiny') as { ok: boolean; message: string };
-ok(!no.ok && no.message.includes('Shiny') && no.message.includes('Regular'), 'a version they do not own says what they do have');
+ok(!no.ok && no.message.includes('Full Art Holo') && no.message.includes('Regular'), 'a version they do not own says what they do have');
 console.log('showoff checks passed');

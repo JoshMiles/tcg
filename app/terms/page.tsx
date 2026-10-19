@@ -50,7 +50,7 @@ export default function TermsPage() {
       <Section title="3. Digital items have no real-world value">
         <List>
           <li>
-            Cards, variants (such as Reverse Holo, Full Art and Shiny Full Art), and leaderboard scores are <strong className="text-white">virtual items for fun</strong>. They have no cash or
+            Cards, variants (such as Reverse Holo, Full Art, Full Art Holo and Golden), and leaderboard scores are <strong className="text-white">virtual items for fun</strong>. They have no cash or
             other monetary value, are not property or a financial asset, and can&rsquo;t be sold, bought, or exchanged for money, goods, or services, inside or outside the Service.
           </li>
           <li>

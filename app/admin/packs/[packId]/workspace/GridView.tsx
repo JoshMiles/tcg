@@ -118,7 +118,7 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
                       return (
                         <button key={v} type="button" aria-pressed={isOn} disabled={packOff || !pack.upgradesEnabled} title={`${VARIANT_LABELS[v]}${packOff ? ' (off for the whole pack)' : ''}`}
                           onClick={() => patch(c.id, { disabledVariants: isOn ? [...c.disabledVariants, v] : c.disabledVariants.filter(x => x !== v) })}
-                          className={`px-1.5 py-0.5 rounded-sm text-[11px] font-bold border disabled:opacity-40 ${isOn ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-500'}`}>{v === 'reverse' ? 'RH' : v === 'full' ? 'FA' : 'SH'}</button>
+                          className={`px-1.5 py-0.5 rounded-sm text-[11px] font-bold border disabled:opacity-40 ${isOn ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-500'}`}>{({ reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' } as const)[v]}</button>
                       );
                     })}
                   </span>

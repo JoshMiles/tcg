@@ -316,14 +316,15 @@ function UpgradesStep({ pack, set }: { pack: PackInput; set: <K extends keyof Pa
   const w = pack.variantWeights;
   const c = pack.upgradeCosts;
   const off = pack.disabledVariants ?? [];
-  const eff = { regular: w.regular, reverse: off.includes('reverse') ? 0 : w.reverse, full: off.includes('full') ? 0 : w.full, shiny: off.includes('shiny') ? 0 : w.shiny };
-  const total = eff.regular + eff.reverse + eff.full + eff.shiny;
+  const eff = { regular: w.regular, reverse: off.includes('reverse') ? 0 : w.reverse, full: off.includes('full') ? 0 : w.full, shiny: off.includes('shiny') ? 0 : w.shiny, golden: off.includes('golden') ? 0 : w.golden };
+  const total = eff.regular + eff.reverse + eff.full + eff.shiny + eff.golden;
   const pct = (n: number) => (total > 0 ? ((n / total) * 100).toFixed(n / total < 0.1 ? 1 : 0) : '0');
   const setW = (k: keyof typeof w, v: number) => set('variantWeights', { ...w, [k]: v });
   const setC = (k: keyof typeof c, v: number) => set('upgradeCosts', { ...c, [k]: v });
   const reverseCost = c.reverse;
   const fullCost = c.reverse * c.full;
   const shinyCost = c.reverse * c.full * c.shiny;
+  const goldenCost = shinyCost * c.golden;
 
   return (
     <>
@@ -347,26 +348,29 @@ function UpgradesStep({ pack, set }: { pack: PackInput; set: <K extends keyof Pa
           <p className="text-xs text-gray-500 mb-3">
             After a card is picked, its variant is rolled using these weights. Relative numbers. Only the proportions matter.
           </p>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-5 gap-3">
             <VariantWeight label="Regular" value={w.regular} percent={pct(w.regular)} onChange={v => setW('regular', v)} />
             <VariantWeight label="Reverse Holo" value={w.reverse} percent={pct(eff.reverse)} onChange={v => setW('reverse', v)} />
             <VariantWeight label="Full Art" value={w.full} percent={pct(eff.full)} onChange={v => setW('full', v)} />
-            <VariantWeight label="Shiny Full Art" value={w.shiny} percent={pct(eff.shiny)} onChange={v => setW('shiny', v)} />
+            <VariantWeight label="Full Art Holo" value={w.shiny} percent={pct(eff.shiny)} onChange={v => setW('shiny', v)} />
+            <VariantWeight label="Golden" value={w.golden} percent={pct(eff.golden)} onChange={v => setW('golden', v)} />
           </div>
         </div>
 
         <div>
           <p className="text-sm font-medium text-gray-300 mb-2">Upgrade cost</p>
           <p className="text-xs text-gray-500 mb-3">How many duplicates of one card (same variant) are spent to make one of the next variant.</p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <NumberField label="Regular → Reverse" value={c.reverse} min={1} onChange={v => setC('reverse', v)} />
             <NumberField label="Reverse → Full Art" value={c.full} min={1} onChange={v => setC('full', v)} />
-            <NumberField label="Full Art → Shiny" value={c.shiny} min={1} onChange={v => setC('shiny', v)} />
+            <NumberField label="Full Art → Full Art Holo" value={c.shiny} min={1} onChange={v => setC('shiny', v)} />
+            <NumberField label="Full Art Holo → Golden" value={c.golden} min={1} onChange={v => setC('golden', v)} />
           </div>
           <p className="text-xs text-gray-500 mt-3 leading-relaxed">
             From Regular prints alone that is <strong className="text-gray-300">{reverseCost}</strong> for a Reverse Holo,{' '}
-            <strong className="text-gray-300">{fullCost}</strong> for a Full Art and{' '}
-            <strong className="text-gray-300">{shinyCost}</strong> for a Shiny Full Art.
+            <strong className="text-gray-300">{fullCost}</strong> for a Full Art,{' '}
+            <strong className="text-gray-300">{shinyCost}</strong> for a Full Art Holo and{' '}
+            <strong className="text-gray-300">{goldenCost}</strong> for a Golden.
           </p>
         </div>
       </div>
@@ -425,7 +429,7 @@ function ReviewStep({
         <Summary
           label="Variants & upgrades"
           value={pack.upgradesEnabled
-            ? `On, costs ${pack.upgradeCosts.reverse} / ${pack.upgradeCosts.full} / ${pack.upgradeCosts.shiny}`
+            ? `On, costs ${pack.upgradeCosts.reverse} / ${pack.upgradeCosts.full} / ${pack.upgradeCosts.shiny} / ${pack.upgradeCosts.golden}`
             : 'Off'}
         />
       </dl>

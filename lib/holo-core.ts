@@ -16,7 +16,7 @@ export interface HoloSpec {
 export type HoloSpecs = Record<Variant, HoloSpec>;
 
 const NONE: HoloSpec = { on: false, style: {} };
-export const NO_HOLO: HoloSpecs = { regular: NONE, reverse: NONE, full: NONE, shiny: NONE };
+export const NO_HOLO: HoloSpecs = { regular: NONE, reverse: NONE, full: NONE, shiny: NONE, golden: NONE };
 
 /** The overlay's gradient: 8 colour bands (cycling through the palette) separated by transparent gaps. */
 export function holoGradient(colors: string[], angle: number): string {

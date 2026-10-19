@@ -4,7 +4,7 @@
 
 export type TermId =
   | 'progressBonus' | 'fullSetBonus' | 'editionBonus' | 'edition' | 'printNumber' | 'points' | 'pullChance' | 'score' | 'rank'
-  | 'fairness' | 'escrow' | 'reverseHolo' | 'fullArt' | 'shiny' | 'upgrade';
+  | 'fairness' | 'escrow' | 'reverseHolo' | 'fullArt' | 'shiny' | 'golden' | 'upgrade';
 
 export type GlossaryEntry = {
   title: string;
@@ -31,7 +31,7 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
   },
   edition: {
     title: 'Print',
-    body: 'The count of an edition among all editions of the same card and version. Your Shiny Gouda Goat print #3 is the third Shiny Gouda Goat ever drawn. Low print numbers earn the print bonus.',
+    body: 'The count of an edition among all editions of the same card and version. Your Full Art Holo Gouda Goat print #3 is the third Full Art Holo Gouda Goat ever drawn. Low print numbers earn the print bonus.',
     faq: 'serials',
   },
   printNumber: {
@@ -80,8 +80,13 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
     faq: 'cards',
   },
   shiny: {
-    title: 'Shiny Full Art',
-    body: 'The full art with the holographic shimmer, and it gently rocks on screen. The rarest version, and worth the most.',
+    title: 'Full Art Holo',
+    body: 'The full art with the holographic shimmer, and it gently rocks on screen. Worth more than a Full Art.',
+    faq: 'cards',
+  },
+  golden: {
+    title: 'Golden',
+    body: 'The rarest version of a card, with a golden shimmer and glow. Worth the most.',
     faq: 'cards',
   },
   upgrade: {

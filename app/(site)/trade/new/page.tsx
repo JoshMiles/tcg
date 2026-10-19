@@ -65,7 +65,7 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
       }).filter(i => i.count > 0)
     : [];
   // ?want=<card>.<variant> (from the "Offer a trade" button on a card) pre-selects the card you are asking for.
-  const wanted = /^(\d{1,6})\.(regular|reverse|full|shiny)$/.exec(want ?? '');
+  const wanted = /^(\d{1,6})\.(regular|reverse|full|shiny|golden)$/.exec(want ?? '');
   const startGet: TradeItem[] = original ? original.give.map(({ ids: _ids, ...i }) => i) : wanted && VARIANTS.includes(wanted[2] as Variant) ? [{ cardNumber: Number(wanted[1]), variant: wanted[2] as Variant, count: 1 }] : [];
 
   return wrap(

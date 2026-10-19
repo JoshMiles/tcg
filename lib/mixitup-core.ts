@@ -113,7 +113,7 @@ export function renderMessage(template: string, vars: Record<string, string | nu
 }
 
 /** Sample values for the form's live preview. */
-export const SAMPLE_VARS = { username: 'cheesyviewer', amount: 100, currency: 'Brie Bucks', cardName: 'Gouda Goat', variant: 'Shiny Full Art', stars: 4, packName: 'Base', cardNumber: 7, serial: 3 };
+export const SAMPLE_VARS = { username: 'cheesyviewer', amount: 100, currency: 'Brie Bucks', cardName: 'Gouda Goat', variant: 'Full Art Holo', stars: 4, packName: 'Base', cardNumber: 7, serial: 3 };
 
 /** The balance in a reply body, or null when it is missing or not a whole, non-negative number. Numeric strings ("1,250" too) are accepted. */
 export function parseBalance(body: unknown, field: string): number | null {

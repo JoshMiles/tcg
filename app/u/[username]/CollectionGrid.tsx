@@ -57,7 +57,7 @@ export interface GridCard {
   maths?: CardMaths;
 }
 
-const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
+const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
 
 const totalCopies = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0);
 

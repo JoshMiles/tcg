@@ -28,9 +28,10 @@ export function PackVariantsPanel({
     reverse: disabled.includes('reverse') ? 0 : Math.max(0, weights.reverse),
     full: disabled.includes('full') ? 0 : Math.max(0, weights.full),
     shiny: disabled.includes('shiny') ? 0 : Math.max(0, weights.shiny),
+    golden: disabled.includes('golden') ? 0 : Math.max(0, weights.golden),
   };
-  const total = eff.regular + eff.reverse + eff.full + eff.shiny || 1;
-  const rows = (['regular', 'reverse', 'full', 'shiny'] as const).map(v => ({ v, pct: (eff[v] / total) * 100 }));
+  const total = eff.regular + eff.reverse + eff.full + eff.shiny + eff.golden || 1;
+  const rows = (['regular', 'reverse', 'full', 'shiny', 'golden'] as const).map(v => ({ v, pct: (eff[v] / total) * 100 }));
 
   return (
     <div className="card rounded-2xl p-5 space-y-3">
@@ -75,7 +76,7 @@ export function CardToggles({
 
   if (!packUpgrades) return <span className="text-xs text-gray-700">-</span>;
 
-  const fullArtOn = !packDisabled.includes('full') && !disabled.includes('full') || !packDisabled.includes('shiny') && !disabled.includes('shiny');
+  const fullArtOn = (['full', 'shiny', 'golden'] as const).some(v => !packDisabled.includes(v) && !disabled.includes(v));
   return (
     <div className="flex flex-nowrap items-center justify-end gap-2 whitespace-nowrap">
       <input
@@ -99,7 +100,7 @@ export function CardToggles({
               if (changed) start(async () => { await setCardVariant(packId, cardId, changed, !next.includes(changed)); });
             }}
           />
-          {!hasFullArt && fullArtOn && <span className="text-xs text-amber-500" title="No full-art image: Full Art and Shiny reuse the normal art. Use Variant tools to switch them off for cards like this." aria-label="No full-art image"><Icon name="warning" className="w-3.5 h-3.5" /></span>}
+          {!hasFullArt && fullArtOn && <span className="text-xs text-amber-500" title="No full-art image: Full Art, Full Art Holo and Golden reuse the normal art. Use Variant tools to switch them off for cards like this." aria-label="No full-art image"><Icon name="warning" className="w-3.5 h-3.5" /></span>}
         </>
       ) : (
         <span className="text-[11px] text-gray-600">off</span>
@@ -109,7 +110,7 @@ export function CardToggles({
 }
 
 const OPS: { op: BulkCardOp; label: string; hint: string }[] = [
-  { op: 'fullart-off-without-art', label: 'Switch off Full Art & Shiny where there is no full-art image', hint: 'Those cards would just reuse their normal art.' },
+  { op: 'fullart-off-without-art', label: 'Switch off Full Art, Full Art Holo & Golden where there is no full-art image', hint: 'Those cards would just reuse their normal art.' },
   { op: 'upgrades-on', label: 'Turn upgrades on for every card', hint: '' },
   { op: 'upgrades-off', label: 'Turn upgrades off for every card', hint: '' },
   { op: 'all-variants-on', label: 'Switch every card\'s variants back on', hint: 'Clears the per-card switches.' },

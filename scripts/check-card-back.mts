@@ -212,7 +212,7 @@ ok(byHand.length === 0, 'every FlipBack is built by flipBackFor, but these files
 // flipBackFor: the same facts in, the same back out; the date comes from the timestamp, the label from the variant.
 const at = Date.UTC(2026, 9, 12);
 const made = fb.flipBackFor({ n: 7, uid: 1023381, total: 12, variant: 'shiny', name: 'Gouda Goat', at, hex: '#a855f7' }, undefined);
-ok(made.variantLabel === 'Shiny Full Art' && made.date === '12 OCT 2026' && made.n === 7 && made.style === undefined, 'flipBackFor builds the label and the date');
+ok(made.variantLabel === 'Full Art Holo' && made.date === '12 OCT 2026' && made.n === 7 && made.style === undefined, 'flipBackFor builds the label and the date');
 ok(fb.flipBackFor({ n: 1, variant: 'regular', name: 'x' }).date === undefined, 'no timestamp, no date');
 ok(fb.sampleFlipBack('Sample', '#fff').uid === 1023381 && fb.sampleFlipBack('S', undefined).history?.length === 2, 'the sample print used by the editors comes from the same constructor');
 

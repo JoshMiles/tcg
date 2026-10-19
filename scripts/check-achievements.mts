@@ -4,7 +4,7 @@ const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED:
 const eq = (a: unknown, b: unknown, msg: string) => ok(JSON.stringify(a) === JSON.stringify(b), `${msg}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
 const a = await import('../lib/achievements');
 
-const none = { regular: 0, reverse: 0, full: 0, shiny: 0 };
+const none = { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0 };
 const V = (o: Partial<typeof none>) => ({ ...none, ...o });
 const R: ('regular' | 'reverse' | 'full' | 'shiny')[] = ['regular', 'reverse', 'full', 'shiny'];
 const cards = [

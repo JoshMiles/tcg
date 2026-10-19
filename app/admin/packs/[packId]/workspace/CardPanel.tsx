@@ -48,7 +48,7 @@ export function CardPanel({ card, cards, pack, locked, changed, onChange, onRemo
           <div className="mt-2"><FramePicker artUrl={card.imageUrl} value={card.stillUrl} onChange={u => onChange({ stillUrl: u })} /></div>
         </div>
         <div id="cw-fullart" tabIndex={-1}>
-          <ArtDrop label="Full art image (Full Art and Shiny)" value={card.fullArtImageUrl} onChange={u => onChange({ fullArtImageUrl: u, ...(u !== card.fullArtImageUrl ? { fullArtStillUrl: '' } : {}) })} />
+          <ArtDrop label="Full art image (Full Art, Full Art Holo and Golden)" value={card.fullArtImageUrl} onChange={u => onChange({ fullArtImageUrl: u, ...(u !== card.fullArtImageUrl ? { fullArtStillUrl: '' } : {}) })} />
           <div className="mt-2"><FramePicker artUrl={card.fullArtImageUrl} value={card.fullArtStillUrl} onChange={u => onChange({ fullArtStillUrl: u })} label="Choose full-art still frame" /></div>
         </div>
       </Section>

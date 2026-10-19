@@ -24,7 +24,7 @@ export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount
 }) {
   const changed = (...k: (keyof PackInput)[]) => (k.some(x => JSON.stringify(pack[x]) !== JSON.stringify(base[x])) ? 'changed' as const : null);
   const w = pack.variantWeights;
-  const wTotal = w.regular + w.reverse + w.full + w.shiny;
+  const wTotal = w.regular + w.reverse + w.full + w.shiny + w.golden;
   const pct = (n: number) => (wTotal > 0 ? `${((n / wTotal) * 100).toFixed(n / wTotal >= 0.1 ? 0 : 1)}%` : '-');
 
   return (
@@ -53,14 +53,14 @@ export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount
           <VariantChips disabled={pack.disabledVariants ?? []} onChange={d => onChange({ disabledVariants: d })} compact />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {(['regular', 'reverse', 'full', 'shiny'] as const).map(v => (
+          {(['regular', 'reverse', 'full', 'shiny', 'golden'] as const).map(v => (
             <Field key={v} label={`${VARIANT_LABELS[v]} weight`} htmlFor={`pw-w-${v}`} help={`${pct(w[v])} of pulls`}>
               <NumberInput id={`pw-w-${v}`} value={w[v]} min={0} onChange={n => onChange({ variantWeights: { ...w, [v]: n } }, `w-${v}`)} />
             </Field>
           ))}
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          {([['reverse', 'To Reverse'], ['full', 'To Full Art'], ['shiny', 'To Shiny']] as const).map(([k, label]) => (
+        <div className="grid grid-cols-2 gap-3">
+          {([['reverse', 'To Reverse'], ['full', 'To Full Art'], ['shiny', 'To Full Art Holo'], ['golden', 'To Golden']] as const).map(([k, label]) => (
             <Field key={k} label={`${label} (copies)`} htmlFor={`pw-c-${k}`}>
               <NumberInput id={`pw-c-${k}`} value={pack.upgradeCosts[k]} min={1} step={1} onChange={n => onChange({ upgradeCosts: { ...pack.upgradeCosts, [k]: n } }, `c-${k}`)} />
             </Field>

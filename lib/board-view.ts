@@ -2,7 +2,7 @@
 
 export type BoardMetric = 'points' | 'cards' | 'copies' | 'shiny';
 
-export const METRIC_LABELS: Record<BoardMetric, string> = { points: 'Points', cards: 'Different cards', copies: 'Editions', shiny: 'Shinies' };
+export const METRIC_LABELS: Record<BoardMetric, string> = { points: 'Points', cards: 'Different cards', copies: 'Editions', shiny: 'Full Art Holos' };
 
 export interface BoardRow {
   username: string;
@@ -14,7 +14,7 @@ export interface BoardRow {
   uniqueCards: number;
   copies: number;
   /** Copies per version, Regular first (see VARIANTS). */
-  variants: { regular: number; reverse: number; full: number; shiny: number };
+  variants: { regular: number; reverse: number; full: number; shiny: number; golden?: number };
   /** The bonuses are one lump (completionBonus holds the total): an old final standing that did not record the split. */
   bonusesTogether?: boolean;
 }
@@ -32,7 +32,7 @@ export function standingsToBoardRows(
       return {
         username: s.username, score: s.score, cardPoints: s.cardPoints, complete: s.complete, uniqueCards: s.uniqueCards, copies: s.copies,
         completionBonus: split ? s.completionBonus! : Math.max(0, s.score - s.cardPoints), setBonus: split ? s.setBonus! : 0,
-        variants: s.variants ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
+        variants: { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0, ...s.variants },
         ...(split ? {} : { bonusesTogether: true }),
       };
     }),

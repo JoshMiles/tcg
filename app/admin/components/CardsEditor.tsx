@@ -278,7 +278,7 @@ export function CardsEditor({
                   </div>
                   {c.error && <p className="text-xs text-red-400">{c.error}</p>}
                   {upgradesEnabled && c.upgradesEnabled && !c.fullArtImageUrl && c.imageUrl && (
-                    <p className="text-[11px] text-gray-600">No full-art image, Full Art and Shiny will reuse the card art.</p>
+                    <p className="text-[11px] text-gray-600">No full-art image, Full Art, Full Art Holo and Golden will reuse the card art.</p>
                   )}
                 </div>
 

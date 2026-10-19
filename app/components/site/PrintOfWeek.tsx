@@ -14,7 +14,7 @@ import { editionLine, flipBackFor } from '@/lib/flip-back';
 import { serialMultiplier } from '@/lib/scoring-core';
 import type { ScoringSettings } from '@/lib/scoring-core';
 import { profileHref } from '@/lib/profile-url';
-import { VARIANT_LABELS } from '@/lib/variants';
+import { VARIANT_LABELS, usesFullArt } from '@/lib/variants';
 import { SITE_URL } from '@/lib/site';
 
 /** The home page's "Card of the week". Shows nothing when there is no pick or the edition was spent since. Holders are masked like the edition page. */
@@ -27,7 +27,7 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
   const mult = settings ? serialMultiplier(copy.n, settings) : 1;
   const rarity = getRarity(card.stars);
   const holo = holoFor(pack, card.stars)[copy.variant];
-  const art = (copy.variant === 'full' || copy.variant === 'shiny') && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl;
+  const art = usesFullArt(copy.variant) && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl;
   const label = `${copy.variant === 'regular' ? '' : `${VARIANT_LABELS[copy.variant]} `}${card.name}`;
   const inOffer = isEscrow(copy.owner);
   const holder = inOffer ? 'a trade offer' : hidden.has(copy.owner) ? 'a private collector' : `@${copy.owner}`;

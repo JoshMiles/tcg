@@ -12,6 +12,7 @@ import { SITE_URL } from '@/lib/site';
 import { entryOf } from '@/lib/serials-core';
 import { EVENT_LABELS, ORIGIN_LABELS, isEscrow, type Copy } from '@/lib/serials-core';
 import { getPotw } from '@/lib/print-of-week-store';
+import { usesFullArt } from '@/lib/variants';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { PendingButton } from '../components/PendingButton';
 import { Chip, Panel } from '../components/ui';
@@ -38,7 +39,7 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
   let found: { card: Awaited<ReturnType<typeof getPackCards>>[number]; pack: Awaited<ReturnType<typeof getPacksForSeason>>[number] } | null = null;
   if (season) for (const pk of await getPacksForSeason(season)) { const c = (await getPackCards(pk.id)).find(x => x.number === copy.card); if (c) { found = { card: c, pack: pk }; break; } }
   const rarity = found ? getRarity(found.card.stars) : null;
-  const art = found && (copy.variant === 'full' || copy.variant === 'shiny') && found.card.fullArtImageUrl ? found.card.fullArtImageUrl : found?.card.imageUrl;
+  const art = found && usesFullArt(copy.variant) && found.card.fullArtImageUrl ? found.card.fullArtImageUrl : found?.card.imageUrl;
   const total = season ? (await mintedCounts(season.collectionName)).get(entryOf(copy)) ?? copy.n : copy.n;
   const back = found && season ? flipBackFor({
     n: copy.n, uid: copy.uid, total, variant: copy.variant, name: found.card.name, at: copy.at, est: copy.est, hex: rarity?.hex, origin: ORIGIN_LABELS[copy.origin],

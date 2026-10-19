@@ -11,10 +11,10 @@ export function UpgradesSection({ costs, upgradesOn }: { costs: UpgradeCosts; up
             <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
               <li><strong className="text-white">{costs.reverse}</strong> Regular → 1 <strong className="text-fuchsia-300">Reverse Holo</strong></li>
               <li><strong className="text-white">{costs.full}</strong> Reverse Holo → 1 <strong className="text-sky-300">Full Art</strong></li>
-              <li><strong className="text-white">{costs.shiny}</strong> Full Art → 1 <strong className="text-amber-300">Shiny Full Art</strong></li>
+              <li><strong className="text-white">{costs.shiny}</strong> Full Art → 1 <strong className="text-amber-300">Full Art Holo</strong></li>
             </ul>
             <p className="mt-2">
-              That&rsquo;s {costs.reverse} Regulars for a Reverse Holo, {costs.reverse * costs.full} for a Full Art and {costs.reverse * costs.full * costs.shiny} for a Shiny, counted from Regular editions alone.
+              That&rsquo;s {costs.reverse} Regulars for a Reverse Holo, {costs.reverse * costs.full} for a Full Art and {costs.reverse * costs.full * costs.shiny} for a Full Art Holo, counted from Regular editions alone.
             </p>
           </Q>
           <Q q="Where do I upgrade?">
@@ -23,7 +23,7 @@ export function UpgradesSection({ costs, upgradesOn }: { costs: UpgradeCosts; up
           </Q>
           <Q q="What are the rules?">
             <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">
-              <li>Only one step at a time. No skipping from Regular straight to Shiny.</li>
+              <li>Only one step at a time. No skipping from Regular straight to Full Art Holo.</li>
               <li>Only editions of the <strong className="text-white">same card and the same version</strong> can be combined.</li>
               <li>Upgrades are <strong className="text-white">permanent</strong>. The editions you spend are destroyed, so the Upgrade button asks you to tap twice (the first tap says &ldquo;Sure?&rdquo;).</li>
               <li>Only the current season can be upgraded.</li>

@@ -11,7 +11,7 @@ import { PUBLIC_ACTIVITY_TYPES, profileHref } from '@/lib/profile-url';
 import { PROFILE_WIDGETS, type ProfileWidgetType } from '@/lib/profile-widgets';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
-import { VARIANT_LABELS } from '@/lib/variants';
+import { VARIANT_LABELS, usesFullArt } from '@/lib/variants';
 import { topCopies, type ProfileBase } from '@/lib/profile-data';
 import { copyPoints } from '@/lib/leaderboard';
 import { ShowcaseEditor, type ShowcaseChoice } from './ShowcaseEditor';
@@ -122,7 +122,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
       const owned = new Set(held.flatMap(c => c.uid ? [c.uid] : []));
       const pickedIds = b.settings.showcaseUids.filter(u => owned.has(u)).slice(0, 3);
       const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, pickedIds.length ? 18 : 3, serialOpts);
-      const artOf = (imageUrl: string, fullArtImageUrl: string | undefined, variant: typeof top[number]['variant']) => (variant === 'full' || variant === 'shiny') && fullArtImageUrl ? fullArtImageUrl : imageUrl;
+      const artOf = (imageUrl: string, fullArtImageUrl: string | undefined, variant: typeof top[number]['variant']) => usesFullArt(variant) && fullArtImageUrl ? fullArtImageUrl : imageUrl;
       const choices: ShowcaseChoice[] = topCopies(b.allCards, b.variantMap, b.board.values.cards, 18, serialOpts).flatMap(c => {
         const edition = held.filter(x => x.card === c.number && x.variant === c.variant).sort((a, z) => a.n - z.n)[0];
         if (!edition?.uid) return [];
@@ -173,7 +173,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
       const [minted, holoFor, backStyle] = await Promise.all([mintedCounts(season.collectionName), getHoloResolver(), cardBackFor(pack, season.name)]);
       const total = minted.get(entryOf(copy)) ?? copy.n;
       const mult = serialMultiplier(copy.n, b.board.values.settings);
-      const art = (copy.variant === 'full' || copy.variant === 'shiny') && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl;
+      const art = usesFullArt(copy.variant) && card.fullArtImageUrl ? card.fullArtImageUrl : card.imageUrl;
       const rarity = getRarity(card.stars);
       const holo = holoFor(pack, card.stars)[copy.variant];
       const label = `${copy.variant === 'regular' ? '' : `${VARIANT_LABELS[copy.variant]} `}${card.name}`;
@@ -255,7 +255,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           const cv = b.board.values.cards.get(card);
           if (!cv) return 0;
           const w = cv.maths.weights;
-          const total = w.regular + w.reverse + w.full + w.shiny;
+          const total = w.regular + w.reverse + w.full + w.shiny + (w.golden ?? 0);
           return total > 0 ? cv.pullRate * (w[variant] / total) : 0;
         };
         const rows = rarestPrints(held, chanceOf, 5).filter(p => byNumber.has(p.card));
@@ -268,7 +268,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                   const c = byNumber.get(p.card)!;
                   const rarity = getRarity(c.stars);
                   const holo = holoFor(c.pack, c.stars)[p.variant];
-                  const art = (p.variant === 'full' || p.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl;
+                  const art = usesFullArt(p.variant) && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl;
                   return (
                     <li key={p.id}>
                       <Link href={p.uid ? `/c/${p.uid}` : `/copy/${encodeURIComponent(b.season.id)}/${p.id}`} className="flex items-center gap-3 py-2 hover:text-white text-gray-300">

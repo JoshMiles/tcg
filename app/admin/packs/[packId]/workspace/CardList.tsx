@@ -4,7 +4,7 @@ import { Icon } from '@/app/components/Icon';
 import { cardThumbUrl } from '@/lib/card-art';
 import type { PackInput } from '@/lib/pack-clean';
 import type { WorkCard } from '@/lib/pack-editor-core';
-import { allowedVariants } from '@/lib/variants';
+import { allowedVariants, usesFullArt } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
 import { oneInLabel, totalWeight } from '@/lib/card-maths';
 
@@ -14,7 +14,7 @@ type Sort = 'number' | 'name' | 'stars' | 'chance' | 'problems';
 export function cardMarks(c: WorkCard, pack: PackInput): { id: string; label: string }[] {
   const out: { id: string; label: string }[] = [];
   if (!c.imageUrl) out.push({ id: 'art', label: 'No art' });
-  if (pack.upgradesEnabled && !c.fullArtImageUrl && allowedVariants(pack, c).includes('full')) out.push({ id: 'full', label: 'No full art' });
+  if (pack.upgradesEnabled && !c.fullArtImageUrl && allowedVariants(pack, c).some(usesFullArt)) out.push({ id: 'full', label: 'No full art' });
   if (!c.soundUrl) out.push({ id: 'sound', label: 'No sound' });
   if (!(c.probability > 0)) out.push({ id: 'odds', label: '0 odds' });
   if (pack.upgradesEnabled && (c.disabledVariants.length > 0 || !c.upgradesEnabled)) out.push({ id: 'versions', label: 'Versions off' });

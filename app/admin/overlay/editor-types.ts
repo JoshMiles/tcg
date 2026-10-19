@@ -19,7 +19,7 @@ export type MomentPick = '' | MomentId;
 /** One entry of the category rail (the registry's groups plus the Layout pseudo-category). */
 export interface RailItem { id: string; label: string; icon: IconName; description: string }
 
-export const VARIANT_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny' };
+export const VARIANT_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };
 
 // Which other property switches a property's controls on or off (so the panel can grey out what has no effect).
 export function dependsOn(key: string): { key: string; when: (v: PropValue) => boolean } | null {

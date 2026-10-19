@@ -90,7 +90,7 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
           </label>
         </div>
         <p className="text-xs text-gray-600 -mt-2">
-          Pulls roll Regular / Reverse Holo / Full Art / Shiny Full Art, and viewers can upgrade duplicates.
+          Pulls roll Regular / Reverse Holo / Full Art / Full Art Holo / Golden, and viewers can upgrade duplicates.
           Leave off for packs that should stay single-version. Individual cards can opt out too.
         </p>
 
@@ -105,21 +105,23 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
 
         <div>
           <p className="text-sm text-gray-400 mb-2">Variant weights</p>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-5 gap-3">
             <Field label="Regular" name="weight_regular" type="number" min={0} defaultValue={String(defaults?.variantWeights?.regular ?? DEFAULT_VARIANT_WEIGHTS.regular)} />
             <Field label="Reverse" name="weight_reverse" type="number" min={0} defaultValue={String(defaults?.variantWeights?.reverse ?? DEFAULT_VARIANT_WEIGHTS.reverse)} />
             <Field label="Full Art" name="weight_full" type="number" min={0} defaultValue={String(defaults?.variantWeights?.full ?? DEFAULT_VARIANT_WEIGHTS.full)} />
-            <Field label="Shiny" name="weight_shiny" type="number" min={0} defaultValue={String(defaults?.variantWeights?.shiny ?? DEFAULT_VARIANT_WEIGHTS.shiny)} />
+            <Field label="Full Art Holo" name="weight_shiny" type="number" min={0} defaultValue={String(defaults?.variantWeights?.shiny ?? DEFAULT_VARIANT_WEIGHTS.shiny)} />
+            <Field label="Golden" name="weight_golden" type="number" min={0} defaultValue={String(defaults?.variantWeights?.golden ?? DEFAULT_VARIANT_WEIGHTS.golden)} />
           </div>
-          <p className="text-xs text-gray-600 mt-1">Relative odds, rolled after the card. 100 / 25 / 5 / 1 ≈ 77% / 19% / 4% / 1%.</p>
+          <p className="text-xs text-gray-600 mt-1">Relative odds, rolled after the card. 100 / 25 / 5 / 1 / 0 ≈ 77% / 19% / 4% / 1% / 0%.</p>
         </div>
 
         <div>
           <p className="text-sm text-gray-400 mb-2">Upgrade cost (duplicates consumed)</p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <Field label="Regular → Reverse" name="cost_reverse" type="number" min={1} step={1} defaultValue={String(defaults?.upgradeCosts?.reverse ?? DEFAULT_UPGRADE_COSTS.reverse)} />
             <Field label="Reverse → Full Art" name="cost_full" type="number" min={1} step={1} defaultValue={String(defaults?.upgradeCosts?.full ?? DEFAULT_UPGRADE_COSTS.full)} />
-            <Field label="Full Art → Shiny" name="cost_shiny" type="number" min={1} step={1} defaultValue={String(defaults?.upgradeCosts?.shiny ?? DEFAULT_UPGRADE_COSTS.shiny)} />
+            <Field label="Full Art → Full Art Holo" name="cost_shiny" type="number" min={1} step={1} defaultValue={String(defaults?.upgradeCosts?.shiny ?? DEFAULT_UPGRADE_COSTS.shiny)} />
+            <Field label="Full Art Holo → Golden" name="cost_golden" type="number" min={1} step={1} defaultValue={String(defaults?.upgradeCosts?.golden ?? DEFAULT_UPGRADE_COSTS.golden)} />
           </div>
         </div>
       </div>

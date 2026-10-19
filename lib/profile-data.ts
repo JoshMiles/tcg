@@ -8,7 +8,7 @@ import { hasExperiment, type UserSettings } from './user-settings';
 import { countPulls } from './collection';
 import { RARITIES } from './rarity';
 import { serialMultiplier } from './scoring-core';
-import { VARIANTS, allowedVariants, countVariants, decodeEntry, effectiveWeights, encodeEntry, emptyCounts, upgradeStep } from './variants';
+import { VARIANTS, allowedVariants, countVariants, decodeEntry, effectiveWeights, encodeEntry, emptyCounts, upgradeStep, usesFullArt } from './variants';
 import { getHoloResolver } from './holo';
 import type { GridCard } from '@/app/u/[username]/CollectionGrid';
 import type { Card, Pack, Season, UserProfile, Variant } from './types';
@@ -42,7 +42,7 @@ export function topCopies(allCards: { number: number; name: string; imageUrl: st
 /** Everything a collector could put in a share image, best first: their strongest copy of each card with its lowest serial. */
 export function buildShareCandidates(b: ProfileBase, copies: Copy[], n = 18): ShareCard[] {
   const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, n, { held: b.board.values.serials?.held.get(b.lower), settings: b.board.values.settings });
-  const art = (c: ShowcaseCard) => ((c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
+  const art = (c: ShowcaseCard) => (usesFullArt(c.variant) && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
   return top.map(c => {
     const lowest = copies.filter(x => x.card === c.number && x.variant === c.variant).sort((a, z) => a.n - z.n)[0];
     return { src: art(c), thumb: cardThumbUrl(art(c)), name: c.name, hex: RARITIES.find(r => r.stars === c.stars)?.hex, tag: [c.variant === 'regular' ? '' : SHORT_VARIANT[c.variant], lowest ? `#${lowest.n}` : ''].filter(Boolean).join(' ') || undefined };
@@ -72,7 +72,7 @@ export function buildBigStats(b: ProfileBase): BigStat[] {
 export function buildShareSpec(b: ProfileBase, copies: Copy[], siteHost: string): ShareSpec {
   return { ...buildShareBase(b, siteHost), cards: buildShareCandidates(b, copies, 6) };
 }
-const SHORT_VARIANT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
+const SHORT_VARIANT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
 
 export interface ProfileBase {
   lower: string;
@@ -169,9 +169,10 @@ export async function buildGridCards(b: ProfileBase, copies: Copy[] = []): Promi
       variantOdds: {
         regular: pullRate * Math.max(0, w.regular) / wTotal, reverse: pullRate * Math.max(0, w.reverse) / wTotal,
         full: pullRate * Math.max(0, w.full) / wTotal, shiny: pullRate * Math.max(0, w.shiny) / wTotal,
+        golden: pullRate * Math.max(0, w.golden) / wTotal,
       },
       counts: b.variantMap.get(c.number) ?? emptyCounts(),
-      values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0 },
+      values: v?.values ?? { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0 },
       variantCopies: v?.variantCopies ?? emptyCounts(),
       serial: serialFor(b, c.number),
       costs: c.pack.upgradeCosts,

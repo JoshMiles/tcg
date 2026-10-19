@@ -1,5 +1,5 @@
 import { cardThumbUrl } from '@/lib/card-art';
-import { VARIANT_LABELS, encodeEntry } from '@/lib/variants';
+import { VARIANT_LABELS, encodeEntry, usesFullArt } from '@/lib/variants';
 import { serialMultiplier } from '@/lib/scoring-core';
 import { parseCopyId, type SerialPool } from '@/lib/serials-core';
 import { SerialChip } from '@/app/components/SerialChip';
@@ -7,7 +7,7 @@ import { getRarity } from '@/lib/rarity';
 import type { TradeItem } from '@/lib/trade-core';
 import type { TradeCardInfo } from '@/lib/trade-view-core';
 
-const SHORT: Record<string, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
+const SHORT: Record<string, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
 
 /**
  * A row of card stacks: thumbnail, name, version badge and ×count. Plain markup, so it works in server and client components.
@@ -19,7 +19,7 @@ export function TradeStacks({ items, cards, className = '', pool, hideCount = fa
     <ul className={`flex flex-wrap gap-2 ${className}`}>
       {items.map(i => {
         const c = cards[i.cardNumber];
-        const art = (i.variant === 'full' || i.variant === 'shiny') && c?.fullArtImageUrl ? c.fullArtImageUrl : c?.imageUrl;
+        const art = usesFullArt(i.variant) && c?.fullArtImageUrl ? c.fullArtImageUrl : c?.imageUrl;
         const rarity = getRarity(c?.stars ?? 1);
         // Chosen prints (`ids`) are shown as they are; otherwise the newest of the pool, which is what would move.
         const picked = i.ids?.flatMap(id => { const p = parseCopyId(id); return p ? [{ n: p.n, uid: uids?.[id] }] : []; }).sort((a, b) => b.n - a.n);

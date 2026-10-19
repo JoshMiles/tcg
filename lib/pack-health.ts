@@ -1,5 +1,5 @@
 import type { Card, Pack } from './types';
-import { allowedVariants } from './variants';
+import { allowedVariants, usesFullArt } from './variants';
 
 // Client-safe checks that say what is wrong or incomplete about a pack, shown as a badge on every pack tile and as a list on the
 // pack page. Each issue names what to do and where (a link into the right editor).
@@ -34,8 +34,8 @@ export function packHealth(pack: Pack, cards: Card[], opts: { inSeason: boolean 
   if (dupNumbers.length > 0) issues.push({ id: 'dup-numbers', level: 'warn', text: `Card number${dupNumbers.length === 1 ? '' : 's'} used twice: ${dupNumbers.map(([n]) => `#${n}`).join(', ')}. Viewer collections point at numbers, so they must be unique.`, href: base });
 
   if (pack.upgradesEnabled) {
-    const noFullArt = cards.filter(c => !c.fullArtImageUrl && allowedVariants(pack, c).includes('full'));
-    if (noFullArt.length > 0) issues.push({ id: 'no-full-art', level: 'warn', text: `${noFullArt.length} ${plural(noFullArt.length, 'card can', 'cards can')} be pulled as Full Art / Shiny but ${plural(noFullArt.length, 'has', 'have')} no full-art image.`, href: base });
+    const noFullArt = cards.filter(c => !c.fullArtImageUrl && allowedVariants(pack, c).some(usesFullArt));
+    if (noFullArt.length > 0) issues.push({ id: 'no-full-art', level: 'warn', text: `${noFullArt.length} ${plural(noFullArt.length, 'card can', 'cards can')} be pulled as Full Art / Full Art Holo / Golden but ${plural(noFullArt.length, 'has', 'have')} no full-art image.`, href: base });
     if (!(pack.variantWeights.regular > 0)) issues.push({ id: 'regular-weight', level: 'warn', text: 'The Regular weight is 0, so every pull would be a rare variant.', href: base });
   }
 

@@ -1,6 +1,6 @@
 import { kv } from './db';
 import { RARITIES } from './rarity';
-import { VARIANTS, VARIANT_LABELS } from './variants';
+import { GOLDEN_PULLS, VARIANTS, VARIANT_LABELS } from './variants';
 
 // Staff list of the built-in achievement kinds (Admin → Settings → Achievements). KV `achievements:settings`.
 // A missing row means on, with the built-in title and detail. There is no way to invent a new goal here.
@@ -21,9 +21,9 @@ export const ACHIEVEMENT_KINDS: readonly AchievementKind[] = [
   { kind: 'complete', label: 'Completed set', group: 'Set' },
   { kind: 'master', label: 'Master set', group: 'Set' },
   ...[...RARITIES].sort((a, b) => a.stars - b.stars).map(r => ({ kind: `tier-${r.stars}`, label: `All ${r.label}`, group: 'Rarity' as const })),
-  ...VARIANTS.filter(v => v !== 'regular').map(v => ({ kind: `all-${v}`, label: `All ${VARIANT_LABELS[v]}`, group: 'Version' as const })),
+  ...VARIANTS.filter(v => v !== 'regular' && (GOLDEN_PULLS || v !== 'golden')).map(v => ({ kind: `all-${v}`, label: `All ${VARIANT_LABELS[v]}`, group: 'Version' as const })),
   { kind: 'first-edition', label: 'First edition', group: 'Edition number' },
-  { kind: 'first-shiny', label: 'First shiny edition', group: 'Edition number' },
+  { kind: 'first-shiny', label: 'First Full Art Holo edition', group: 'Edition number' },
   { kind: 'five-firsts', label: 'Five firsts', group: 'Edition number' },
   { kind: 'early-bird', label: 'Early bird', group: 'Edition number' },
 ];
