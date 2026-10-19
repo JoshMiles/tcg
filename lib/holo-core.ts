@@ -57,6 +57,14 @@ export function holoVars(spec: HoloSpec | undefined): React.CSSProperties {
   return (spec?.on ? spec.style : {}) as React.CSSProperties;
 }
 
+/** Grid and binder only. A saved sweep faster than 8 seconds is raised to 8. Overlay, ceremony and the panel keep `holoVars`. */
+export function siteHoloVars(spec: HoloSpec | undefined): React.CSSProperties {
+  const style = { ...holoVars(spec) } as Record<string, string>;
+  const seconds = Number.parseFloat(style['--holo-time'] ?? '');
+  if (Number.isFinite(seconds) && seconds < 8) style['--holo-time'] = '8s';
+  return style as React.CSSProperties;
+}
+
 /** Class names to add to a card's art for its shimmer: always the base class, plus .holo-live where it should sweep by itself. */
 export function holoClass(spec: HoloSpec | undefined, live = false): string {
   return spec?.on ? (live ? 'holo-fx holo-live' : 'holo-fx') : '';
