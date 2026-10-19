@@ -4,6 +4,26 @@ import { uploadImageFile } from './upload-client';
 
 type Status = 'idle' | 'uploading' | 'optimizing';
 
+/**
+ * Preview src for an admin-typed image URL: http(s), or a root-relative path.
+ * Quotes and angle brackets are stripped so the img src is not raw DOM text.
+ */
+function imagePreviewSrc(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try {
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+      const parsed = new URL(trimmed, 'https://local.invalid');
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`.replace(/[<>"']/g, '');
+    }
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+    return parsed.href.replace(/[<>"']/g, '');
+  } catch {
+    return '';
+  }
+}
+
 export function ImageUploadField({
   name = 'imageUrl',
   defaultValue,
@@ -42,6 +62,7 @@ export function ImageUploadField({
   }
 
   const label = status === 'uploading' ? 'Uploading…' : status === 'optimizing' ? 'Optimizing…' : 'Upload';
+  const preview = imagePreviewSrc(url);
 
   return (
     <div>
@@ -64,7 +85,7 @@ export function ImageUploadField({
         <p className="text-xs text-gray-500 mt-1">Shrinking the GIF and creating a thumbnail. This can take up to a minute.</p>
       )}
       {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
-      {url && <img src={url} alt="" className="mt-2 h-20 object-contain rounded-sm border border-gray-700" />}
+      {preview && <img src={preview} alt="" className="mt-2 h-20 object-contain rounded-sm border border-gray-700" />}
     </div>
   );
 }
