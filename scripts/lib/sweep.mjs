@@ -19,7 +19,7 @@ export async function loadPlaywright() {
 /** Admin through the emergency password (sets the httpOnly admin cookie on this context). */
 export async function loginAdminPassword(ctx) {
   const res = await ctx.request.post(`${BASE}/api/auth/login`, { data: { password: ADMIN_PASSWORD } });
-  if (!res.ok()) throw new Error(`Admin password login failed (${res.status()}). Is ADMIN_PASSWORD in .env.local '${ADMIN_PASSWORD}'?`);
+  if (!res.ok()) throw new Error(`Admin password login failed (${res.status()}). Is ADMIN_PASSWORD '${ADMIN_PASSWORD}' and ADMIN_COOKIE_SECRET (16+ characters) in .env.local?`);
 }
 
 /** Signs this context in as a fake-Twitch viewer (and so as staff when that login is on the staff list). */
