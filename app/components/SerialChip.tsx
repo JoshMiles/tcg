@@ -4,6 +4,9 @@ import { Icon } from '@/app/components/Icon';
  * A copy's serial number as a chip: "#7". The first copies of a card are worth extra points, so a copy that earns a bonus is gold
  * (with the multiplier), and #1 is the "first ever". One look for the serial everywhere it is shown (feeds, trades, dialogs).
  */
+/** On a collection tile or binder pocket: a solid plate, so the chip stays readable on yellow art. Other surfaces keep the chip's own gold look. */
+export const tileChipClass = 'absolute bottom-1 left-1 border-yellow-400! bg-gray-950! bg-none! text-yellow-300! shadow-none! text-[9px]! px-1.5! py-0! leading-tight';
+
 export function SerialChip({ n, bonus, est = false, className = '', title }: { n: number; bonus?: number; est?: boolean; className?: string; title?: string }) {
   const first = n === 1;
   const gold = !!bonus && bonus > 1;

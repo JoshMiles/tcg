@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { CardTile } from '@/app/components/CardTile';
+import { SerialChip, tileChipClass } from '@/app/components/SerialChip';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { getRarity } from '@/lib/rarity';
 import { stillFor } from '@/lib/card-art';
@@ -298,14 +299,15 @@ function Pocket({ card, pin, cfg, onOpen }: { card: GridCard; pin: Variant | nul
   const art = artOf(card, best);
   const className = `bn-pocket bn-owned ${cfg.holo ? `holo-hover ${holoClass(card.holo[best])}` : ''} ${best !== 'regular' ? `vfx-${best}` : ''}`;
   const style = { borderColor: rarity?.hex, ...(cfg.holo ? holoVars(card.holo[best]) : {}) } as React.CSSProperties;
+  const lowest = (card.copies ?? []).filter(c => c.variant === best).sort((a, b) => a.n - b.n)[0];
   const badges = cfg.badges ? (
     <>
       {have > 1 && <span className="absolute top-1 left-1 bg-gray-950/85 border border-yellow-500/50 text-yellow-300 text-[10px] font-extrabold px-1.5 rounded-full leading-tight">×{have}</span>}
       {best !== 'regular' && <span className="absolute bottom-1 right-1 bg-gray-950/85 border border-fuchsia-400/50 text-fuchsia-200 text-[9px] font-extrabold px-1.5 rounded-full leading-tight">{SHORT[best]}</span>}
+      {lowest && <SerialChip n={lowest.n} bonus={lowest.m} est={lowest.est} className={tileChipClass} />}
     </>
   ) : null;
-  const title = `#${card.number} ${card.name}${best !== 'regular' ? ` · ${VARIANT_LABELS[best]}` : ''}${have > 1 ? ` · ×${have}` : ''}`;
   return art
-    ? <CardTile imageUrl={art} still={stillFor(card, art)} alt={card.name} title={title} className={className} style={style} onActivate={onOpen}>{badges}</CardTile>
-    : <div className={className} style={style} title={title} role="button" tabIndex={0} onClick={e => onOpen(e.currentTarget)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(e.currentTarget); } }}>{badges}</div>;
+    ? <CardTile imageUrl={art} still={stillFor(card, art)} alt={card.name} label={card.name} className={className} style={style} onActivate={onOpen}>{badges}</CardTile>
+    : <div className={className} style={style} role="button" tabIndex={0} aria-label={card.name} onClick={e => onOpen(e.currentTarget)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(e.currentTarget); } }}>{badges}</div>;
 }

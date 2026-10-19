@@ -2,7 +2,7 @@
 import { Icon } from '@/app/components/Icon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
-import { SerialChip } from '@/app/components/SerialChip';
+import { SerialChip, tileChipClass } from '@/app/components/SerialChip';
 import type { CardBackStyle } from '@/lib/card-back';
 import { CardDetail, artFor, bestVariant } from './CardDetail';
 import { Binder } from './Binder';
@@ -10,7 +10,7 @@ import { BinderEditor } from './BinderEditor';
 import { DEFAULT_BINDER, type BinderConfig } from '@/lib/binder-config';
 import { getRarity } from '@/lib/rarity';
 import { stillFor } from '@/lib/card-art';
-import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
+import { VARIANTS, type VariantCounts } from '@/lib/variants';
 import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
 import type { CardMaths } from '@/lib/card-maths';
 import type { UpgradeCosts, Variant } from '@/lib/types';
@@ -212,20 +212,13 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           const art = artFor(card, best);
           // The lowest-numbered copy of the version shown on the tile.
           const lowest = (card.copies ?? []).filter(c => c.variant === best).sort((a, b) => a.n - b.n)[0];
-          const variantSummary = VARIANTS.filter(v => v !== 'regular' && card.counts[v] > 0)
-            .map(v => `${VARIANT_LABELS[v]} ×${card.counts[v]}`).join(', ');
-          const title = isOwned
-            ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}${variantSummary ? ` · ${variantSummary}` : ''}`
-            : `#${card.number} ???`;
-          const tileClass = `relative aspect-2/3 rounded-xl overflow-hidden group transition-transform ${
+          const title = isOwned ? undefined : `#${card.number} ???`;
+          const tileClass = `relative aspect-2/3 rounded-xl overflow-hidden transition-transform ${
             isOwned ? 'holo-hover border-2 hover:-translate-y-1 cursor-pointer focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400' : 'border border-dashed border-gray-700 bg-gray-900/40'
           }${isOwned && best !== 'regular' ? ` vfx-${best}` : ''}${isOwned ? ` ${holoClass(card.holo[best])}` : ''}`;
           const tileStyle = isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}`, ...holoVars(card.holo[best]) } : undefined;
           const overlays = (
             <>
-              <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <p className="text-xs text-white truncate leading-none">{isOwned ? card.name : `#${card.number}`}</p>
-              </div>
               {isOwned && <div className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ backgroundColor: rarity?.hex }} />}
               {isOwned && best !== 'regular' && (
                 <div className="absolute bottom-1 right-1 bg-gray-950/85 border border-fuchsia-400/50 text-fuchsia-200 text-[9px] font-extrabold px-1.5 rounded-full leading-tight">
@@ -237,13 +230,13 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
                   ×{count}
                 </div>
               )}
-              {isOwned && lowest && <SerialChip n={lowest.n} bonus={lowest.m} est={lowest.est} className="absolute bottom-1 left-1 bg-gray-950/85 text-[9px]! px-1.5! py-0! leading-tight" />}
+              {isOwned && lowest && <SerialChip n={lowest.n} bonus={lowest.m} est={lowest.est} className={tileChipClass} />}
             </>
           );
 
           if (isOwned && art) {
             return (
-              <CardTile key={card.id} imageUrl={art} still={stillFor(card, art)} alt={card.name} title={title} className={tileClass} style={tileStyle} onActivate={el => open(idx, el)}>
+              <CardTile key={card.id} imageUrl={art} still={stillFor(card, art)} alt={card.name} label={card.name} className={tileClass} style={tileStyle} onActivate={el => open(idx, el)}>
                 {overlays}
               </CardTile>
             );
@@ -252,6 +245,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
             <div
               key={card.id}
               title={title}
+              aria-label={isOwned ? card.name : undefined}
               className={tileClass}
               style={tileStyle}
               {...(isOwned ? { role: 'button', tabIndex: 0, onClick: (e: React.MouseEvent<HTMLElement>) => open(idx, e.currentTarget), onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(idx, e.currentTarget); } } } : {})}
