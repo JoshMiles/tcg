@@ -27,7 +27,7 @@ export function rollDraw(packs: { pack: Pack; cards: Card[] }[], rng: () => numb
   for (const c of chosen.cards) { rp -= c.probability; if (rp <= 0) { card = c; break; } }
 
   let variant: Variant = 'regular';
-  if (chosen.pack.upgradesEnabled && card.upgradesEnabled !== false) {
+  if (chosen.pack.upgradesEnabled && card.kind !== 'trainer' && card.upgradesEnabled !== false) {
     const w = { ...DEFAULT_VARIANT_WEIGHTS, ...chosen.pack.variantWeights };
     const off = [...(chosen.pack.disabledVariants ?? []), ...(card.disabledVariants ?? [])] as Variant[];
     const weight = (v: Variant) => (v !== 'regular' && off.includes(v) ? 0 : Math.max(0, w[v]));

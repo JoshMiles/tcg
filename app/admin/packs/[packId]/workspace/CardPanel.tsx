@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { FramePicker } from '../../../components/FramePicker';
 import { OPTIONAL_VARIANTS } from '../../../components/VariantSwitches';
@@ -7,11 +8,12 @@ import type { PackInput } from '@/lib/pack-clean';
 import { cardProblems } from '@/lib/pack-clean';
 import { shareOf, totalWeight } from '@/lib/card-maths';
 import type { CardFields, WorkCard } from '@/lib/pack-editor-core';
+import { describeBuffDef, type BuffDef } from '@/lib/buffs-core';
 import { ArtDrop, Field, NumberInput, Section, SoundField, Stars, inputCls } from './fields';
 import { cardMarks } from './CardList';
 
 /** The right panel with one card selected: its basics, art, sound, versions and problems. */
-export function CardPanel({ card, cards, pack, locked, changed, onChange, onRemove }: {
+export function CardPanel({ card, cards, pack, locked, changed, onChange, onRemove, buffs }: {
   card: WorkCard;
   cards: WorkCard[];
   pack: PackInput;
@@ -20,16 +22,19 @@ export function CardPanel({ card, cards, pack, locked, changed, onChange, onRemo
   changed: Set<keyof CardFields>;
   onChange: (patch: Partial<CardFields>, key?: string) => void;
   onRemove: () => void;
+  buffs: BuffDef[];
 }) {
+  const isTrainer = card.kind === 'trainer';
+  const selectedBuff = isTrainer ? buffs.find(b => b.id === card.buffId) : undefined;
   const chance = shareOf(card.probability, totalWeight(cards.map(c => c.probability)));
-  const messages = cardProblems({ name: card.name, stars: card.stars, probability: card.probability, number: card.number || 1 }, cards.filter(c => c.id !== card.id && c.number).map(c => c.number));
-  const marks = cardMarks(card, pack).filter(m => m.id !== 'sound' && m.id !== 'versions');
+  const messages = cardProblems({ name: card.name, stars: card.stars, probability: card.probability, number: card.number || 1, kind: card.kind, buffId: card.buffId }, cards.filter(c => c.id !== card.id && c.number).map(c => c.number));
+  const marks = cardMarks(card, pack).filter(m => m.id !== 'sound' && m.id !== 'versions' && m.id !== 'trainer');
   const dot = (...k: (keyof CardFields)[]) => (k.some(x => changed.has(x)) ? 'changed' as const : null);
   const jump = (id: string) => { const el = document.getElementById(id); el?.scrollIntoView({ block: 'center' }); (el?.querySelector('input,button') as HTMLElement | null)?.focus?.(); (el as HTMLElement | null)?.focus?.(); };
 
   return (
     <div>
-      <Section title="Basics" dot={messages.length > 0 ? 'problem' : dot('name', 'number', 'stars', 'probability')}>
+      <Section title="Basics" dot={messages.length > 0 ? 'problem' : dot('name', 'number', 'stars', 'probability', 'kind', 'buffId')}>
         <Field label="Name" htmlFor="cw-name"><input id="cw-name" className={inputCls} value={card.name} maxLength={80} onChange={e => onChange({ name: e.target.value }, 'name')} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Number" htmlFor="cw-number" help={locked ? "Fixed: viewers hold this card and their collections point at its number." : card.number ? undefined : 'Assigned when you save.'}>
@@ -40,6 +45,43 @@ export function CardPanel({ card, cards, pack, locked, changed, onChange, onRemo
         <Field label="Chance (weight)" htmlFor="cw-odds" help={chance > 0 ? <>1 in <strong className="text-gray-300">{Math.round(1 / chance).toLocaleString('en-GB')}</strong> pulls, {(chance * 100).toFixed(chance >= 0.1 ? 1 : 2)}% of the pack</> : 'With 0 this card can never be pulled.'}>
           <NumberInput id="cw-odds" value={card.probability} min={0} onChange={n => onChange({ probability: n }, 'odds')} />
         </Field>
+        <Field label="Kind" htmlFor="cw-kind" help={isTrainer ? 'Trainer cards are Regular only (no versions or upgrades) and grant a buff when used.' : undefined}>
+          <select
+            id="cw-kind"
+            className="select w-full"
+            value={card.kind}
+            onChange={e => {
+              const nextKind = e.target.value === 'trainer' ? 'trainer' : 'collector';
+              if (nextKind === 'trainer') {
+                onChange({ kind: 'trainer', upgradesEnabled: false, disabledVariants: [], buffId: card.buffId || buffs[0]?.id || '' });
+              } else {
+                onChange({ kind: 'collector', buffId: '', upgradesEnabled: true });
+              }
+            }}
+          >
+            <option value="collector">Collector</option>
+            <option value="trainer">Trainer</option>
+          </select>
+        </Field>
+        {isTrainer && (
+          <Field
+            label="Buff"
+            htmlFor="cw-buff"
+            help={selectedBuff ? <>{describeBuffDef(selectedBuff)} · <Link href="/admin/buffs" className="text-yellow-400 hover:text-yellow-300 underline">Edit buffs</Link></> : <Link href="/admin/buffs" className="text-yellow-400 hover:text-yellow-300 underline">Manage buffs in Buff Editor →</Link>}
+          >
+            <select
+              id="cw-buff"
+              className="select w-full"
+              value={card.buffId}
+              onChange={e => onChange({ buffId: e.target.value })}
+            >
+              <option value="">Choose a buff…</option>
+              {buffs.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </Field>
+        )}
       </Section>
 
       <Section title="Art" dot={dot('imageUrl', 'fullArtImageUrl', 'stillUrl', 'fullArtStillUrl')}>
@@ -47,35 +89,39 @@ export function CardPanel({ card, cards, pack, locked, changed, onChange, onRemo
           <ArtDrop label="Card image" value={card.imageUrl} onChange={u => onChange({ imageUrl: u, ...(u !== card.imageUrl ? { stillUrl: '' } : {}) })} />
           <div className="mt-2"><FramePicker artUrl={card.imageUrl} value={card.stillUrl} onChange={u => onChange({ stillUrl: u })} /></div>
         </div>
-        <div id="cw-fullart" tabIndex={-1}>
-          <ArtDrop label="Full art image (Full Art and Shiny)" value={card.fullArtImageUrl} onChange={u => onChange({ fullArtImageUrl: u, ...(u !== card.fullArtImageUrl ? { fullArtStillUrl: '' } : {}) })} />
-          <div className="mt-2"><FramePicker artUrl={card.fullArtImageUrl} value={card.fullArtStillUrl} onChange={u => onChange({ fullArtStillUrl: u })} label="Choose full-art still frame" /></div>
-        </div>
+        {!isTrainer && (
+          <div id="cw-fullart" tabIndex={-1}>
+            <ArtDrop label="Full art image (Full Art and Shiny)" value={card.fullArtImageUrl} onChange={u => onChange({ fullArtImageUrl: u, ...(u !== card.fullArtImageUrl ? { fullArtStillUrl: '' } : {}) })} />
+            <div className="mt-2"><FramePicker artUrl={card.fullArtImageUrl} value={card.fullArtStillUrl} onChange={u => onChange({ fullArtStillUrl: u })} label="Choose full-art still frame" /></div>
+          </div>
+        )}
       </Section>
 
       <Section title="Sound" dot={dot('soundUrl')}>
         <div id="cw-sound" tabIndex={-1}><SoundField value={card.soundUrl} onChange={u => onChange({ soundUrl: u })} defaultUrl={card.number >= 1 && card.number <= 25 ? `/assets/sounds/${card.number}.mp3` : undefined} /></div>
       </Section>
 
-      <Section title="Versions" dot={dot('disabledVariants', 'upgradesEnabled')}>
-        <label className="flex items-center gap-2 text-sm text-gray-200">
-          <input type="checkbox" role="switch" checked={card.upgradesEnabled} onChange={e => onChange({ upgradesEnabled: e.target.checked })} className="toggle toggle-sm toggle-primary" />
-          Allow versions and upgrades for this card
-          {!pack.upgradesEnabled && <span className="text-xs text-gray-600">(the pack has them off)</span>}
-        </label>
-        <div role="group" aria-label="Versions this card can be" className="flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-900/60 px-3 py-1.5 text-sm text-gray-500" title="Regular is always on"><input type="checkbox" checked disabled aria-label="Regular (always on)" className="accent-yellow-400" /> Regular</span>
-          {OPTIONAL_VARIANTS.map(v => {
-            const packOff = (pack.disabledVariants ?? []).includes(v);
-            return (
-              <label key={v} title={packOff ? 'Switched off for the whole pack' : undefined} className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm border-gray-700 text-gray-200 ${packOff ? 'opacity-50' : 'cursor-pointer hover:border-gray-500'}`}>
-                <input type="checkbox" disabled={packOff} checked={!packOff && !card.disabledVariants.includes(v)} onChange={e => onChange({ disabledVariants: e.target.checked ? card.disabledVariants.filter(x => x !== v) : [...card.disabledVariants, v] })} className="accent-yellow-400" />
-                {VARIANT_LABELS[v]}
-              </label>
-            );
-          })}
-        </div>
-      </Section>
+      {!isTrainer && (
+        <Section title="Versions" dot={dot('disabledVariants', 'upgradesEnabled')}>
+          <label className="flex items-center gap-2 text-sm text-gray-200">
+            <input type="checkbox" role="switch" checked={card.upgradesEnabled} onChange={e => onChange({ upgradesEnabled: e.target.checked })} className="toggle toggle-sm toggle-primary" />
+            Allow versions and upgrades for this card
+            {!pack.upgradesEnabled && <span className="text-xs text-gray-600">(the pack has them off)</span>}
+          </label>
+          <div role="group" aria-label="Versions this card can be" className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-900/60 px-3 py-1.5 text-sm text-gray-500" title="Regular is always on"><input type="checkbox" checked disabled aria-label="Regular (always on)" className="accent-yellow-400" /> Regular</span>
+            {OPTIONAL_VARIANTS.map(v => {
+              const packOff = (pack.disabledVariants ?? []).includes(v);
+              return (
+                <label key={v} title={packOff ? 'Switched off for the whole pack' : undefined} className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm border-gray-700 text-gray-200 ${packOff ? 'opacity-50' : 'cursor-pointer hover:border-gray-500'}`}>
+                  <input type="checkbox" disabled={packOff} checked={!packOff && !card.disabledVariants.includes(v)} onChange={e => onChange({ disabledVariants: e.target.checked ? card.disabledVariants.filter(x => x !== v) : [...card.disabledVariants, v] })} className="accent-yellow-400" />
+                  {VARIANT_LABELS[v]}
+                </label>
+              );
+            })}
+          </div>
+        </Section>
+      )}
 
       <Section title="Problems" dot={messages.length > 0 ? 'problem' : null}>
         {messages.length === 0 && marks.length === 0 ? <p className="text-sm text-gray-500 flex items-center gap-2"><Icon name="checkCircle" className="text-emerald-400" />Nothing to fix.</p> : (

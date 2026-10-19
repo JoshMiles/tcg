@@ -30,8 +30,10 @@ function normalizeSeason(raw: unknown): Season {
 // Rewrite stored legacy URLs on read so existing KV data keeps working without a migration.
 function normalizeCard(card: Card): Card {
   const imageUrl = card.imageUrl?.replace(/^\/assets\/GIF\/(.+)\.gif$/i, '/assets/cards/$1.webp');
-  const disabled = cleanDisabled(card.disabledVariants);
-  const next = imageUrl === card.imageUrl ? card : { ...card, imageUrl };
+  const isTrainer = card.kind === 'trainer';
+  const disabled = isTrainer ? [] : cleanDisabled(card.disabledVariants);
+  let next = imageUrl === card.imageUrl ? card : { ...card, imageUrl };
+  if (isTrainer && next.upgradesEnabled !== false) next = { ...next, upgradesEnabled: false };
   // Only carry the field when something is switched off, so existing records are unchanged.
   return disabled.length ? { ...next, disabledVariants: disabled } : next.disabledVariants ? { ...next, disabledVariants: undefined } : next;
 }

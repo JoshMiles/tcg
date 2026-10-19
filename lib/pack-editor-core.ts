@@ -1,8 +1,8 @@
 // The pack workspace's pure core (ROADMAP 20.2): the working state of a pack and its cards, the change set between two states, how the
 // server applies it, the "old -> new" lines of Review, and how a change set is re-applied on top of someone else's save. Client-safe (no
 // database): the workspace shows the result of `applyChanges` and the server saves the result of the SAME function, so they can't differ.
-import type { Card, OptionalVariant, Pack } from './types';
-import { cardProblems, cleanPackInput, int, MAX_CARD_NUMBER, num, str, type PackInput } from './pack-clean';
+import type { Card, CardKind, OptionalVariant, Pack } from './types';
+import { cardProblems, cleanCardKind, cleanPackInput, int, MAX_CARD_NUMBER, num, str, type PackInput } from './pack-clean';
 import { cleanDisabled } from './variants';
 
 /** A card as the workspace edits it: empty strings for "none" so inputs stay controlled. `number` is 0 for a card not saved yet. */
@@ -19,6 +19,8 @@ export interface WorkCard {
   probability: number;
   upgradesEnabled: boolean;
   disabledVariants: OptionalVariant[];
+  kind: CardKind;
+  buffId: string;
 }
 export type CardFields = Omit<WorkCard, 'id'>;
 
@@ -38,18 +40,29 @@ export const packToInput = (p: Pack): PackInput => ({
   variantWeights: { ...p.variantWeights }, upgradeCosts: { ...p.upgradeCosts }, disabledVariants: [...(p.disabledVariants ?? [])],
 });
 
-export const cardToWork = (c: Card): WorkCard => ({
-  id: c.id, number: c.number, name: c.name, imageUrl: c.imageUrl, fullArtImageUrl: c.fullArtImageUrl ?? '', stillUrl: c.stillUrl ?? '',
-  fullArtStillUrl: c.fullArtStillUrl ?? '', soundUrl: c.soundUrl ?? '', stars: c.stars, probability: c.probability,
-  upgradesEnabled: c.upgradesEnabled !== false, disabledVariants: [...(c.disabledVariants ?? [])],
-});
+export const cardToWork = (c: Card): WorkCard => {
+  const kind = cleanCardKind(c.kind);
+  return {
+    id: c.id, number: c.number, name: c.name, imageUrl: c.imageUrl, fullArtImageUrl: c.fullArtImageUrl ?? '', stillUrl: c.stillUrl ?? '',
+    fullArtStillUrl: c.fullArtStillUrl ?? '', soundUrl: c.soundUrl ?? '', stars: c.stars, probability: c.probability,
+    upgradesEnabled: kind === 'trainer' ? false : c.upgradesEnabled !== false,
+    disabledVariants: kind === 'trainer' ? [] : [...(c.disabledVariants ?? [])],
+    kind,
+    buffId: kind === 'trainer' ? (c.buffId ?? '') : '',
+  };
+};
 
 export function newWorkCard(id: string, over: Partial<CardFields> = {}): WorkCard {
-  return { id, number: 0, name: '', imageUrl: '', fullArtImageUrl: '', stillUrl: '', fullArtStillUrl: '', soundUrl: '', stars: 1, probability: 10, upgradesEnabled: true, disabledVariants: [], ...over };
+  const kind = cleanCardKind(over.kind);
+  return {
+    id, number: 0, name: '', imageUrl: '', fullArtImageUrl: '', stillUrl: '', fullArtStillUrl: '', soundUrl: '', stars: 1, probability: 10,
+    upgradesEnabled: kind === 'trainer' ? false : true, disabledVariants: [], kind: 'collector', buffId: '', ...over,
+    ...(kind === 'trainer' ? { upgradesEnabled: false, disabledVariants: [] } : {}),
+  };
 }
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-const CARD_KEYS: (keyof CardFields)[] = ['number', 'name', 'imageUrl', 'fullArtImageUrl', 'stillUrl', 'fullArtStillUrl', 'soundUrl', 'stars', 'probability', 'upgradesEnabled', 'disabledVariants'];
+const CARD_KEYS: (keyof CardFields)[] = ['number', 'name', 'imageUrl', 'fullArtImageUrl', 'stillUrl', 'fullArtStillUrl', 'soundUrl', 'stars', 'probability', 'upgradesEnabled', 'disabledVariants', 'kind', 'buffId'];
 
 export function diffChanges(base: Work, work: Work): ChangeSet {
   const pack: Partial<PackInput> = {};
@@ -72,16 +85,21 @@ export const isEmptyChange = (c: ChangeSet) => Object.keys(c.pack).length === 0 
 
 /** The card the server stores for a working card (the same limits `saveCards` has always applied). */
 function cleanCard(w: WorkCard, number: number): Card {
+  const kind = cleanCardKind(w.kind);
+  const isTrainer = kind === 'trainer';
   const full = str(w.fullArtImageUrl) || undefined;
   const still = str(w.stillUrl) || undefined;
   const fullStill = full ? str(w.fullArtStillUrl) || undefined : undefined;
   const sound = str(w.soundUrl) || undefined;
-  const off = cleanDisabled(w.disabledVariants);
+  const off = isTrainer ? [] : cleanDisabled(w.disabledVariants);
+  const buffId = isTrainer ? (str(w.buffId, 60).trim() || undefined) : undefined;
   return {
     id: w.id, number, name: str(w.name, 80).trim(), imageUrl: str(w.imageUrl),
     ...(sound && { soundUrl: sound }), ...(full && { fullArtImageUrl: full }), ...(still && { stillUrl: still }), ...(fullStill && { fullArtStillUrl: fullStill }),
     ...(off.length > 0 && { disabledVariants: off }),
-    upgradesEnabled: w.upgradesEnabled !== false, probability: num(w.probability, 1, 0), stars: int(w.stars, 1),
+    ...(isTrainer && { kind: 'trainer' as const }),
+    ...(buffId && { buffId }),
+    upgradesEnabled: isTrainer ? false : w.upgradesEnabled !== false, probability: num(w.probability, 1, 0), stars: int(w.stars, 1),
   };
 }
 
@@ -123,7 +141,7 @@ export function applyChanges(pack: Pack, cards: Card[], changes: ChangeSet): App
   const touched = new Set([...Object.keys(changes.update), ...changes.add.map(a => a.id)]);
   for (const c of out) {
     if (!touched.has(c.id)) continue; // an old card nobody edited does not block saving something else
-    const messages = cardProblems({ name: c.name, stars: c.stars, probability: c.probability, number: c.number }, out.filter(o => o !== c).map(o => o.number));
+    const messages = cardProblems({ name: c.name, stars: c.stars, probability: c.probability, number: c.number, kind: c.kind, buffId: c.buffId }, out.filter(o => o !== c).map(o => o.number));
     if (messages.length > 0) problems.push({ id: c.id, name: c.name, messages });
   }
   if (!nextPack.name.trim()) problems.unshift({ id: 'pack', name: 'Pack', messages: ['Give the pack a name.'] });
@@ -141,7 +159,7 @@ const FIELD_LABELS: Record<string, string> = {
   name: 'Name', coverImageUrl: 'Cover', active: 'In draws', weight: 'Draw weight', accentColor: 'Accent colour', tearBorderColor: 'Tear colour', holoMinStars: 'Holo from stars',
   cardTime: 'Card time', cooldownTime: 'Cooldown', soundVolume: 'Volume', upgradesEnabled: 'Variants and upgrades', variantWeights: 'Version weights', upgradeCosts: 'Upgrade costs',
   disabledVariants: 'Versions off', number: 'Number', imageUrl: 'Art', fullArtImageUrl: 'Full art', stillUrl: 'Still frame', fullArtStillUrl: 'Full art still', soundUrl: 'Sound',
-  stars: 'Stars', probability: 'Odds',
+  stars: 'Stars', probability: 'Odds', kind: 'Kind', buffId: 'Buff',
 };
 export const fieldLabel = (k: string) => FIELD_LABELS[k] ?? k;
 

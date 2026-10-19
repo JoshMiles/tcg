@@ -27,6 +27,7 @@ import { OddsView } from './OddsView';
 import { ImportDialog, filesFromDrop } from './ImportDialog';
 import { BulkPanel } from './BulkPanel';
 import type { HoloSpecs } from '@/lib/holo-core';
+import type { BuffDef } from '@/lib/buffs-core';
 
 export type WorkspaceView = 'edit' | 'grid' | 'odds' | 'overview';
 
@@ -37,7 +38,7 @@ interface Base extends WorkspaceState {}
  * Published packs are saved explicitly (Review, then Save) because a change is live on stream at once; drafts autosave. All edits
  * go into one working state with undo / redo; what is sent to the server is the change set against the revision you opened.
  */
-export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBack, overview, initialView, initialSelection, healthCount, holoByStars, onStream }: {
+export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBack, overview, initialView, initialSelection, healthCount, holoByStars, onStream, buffs }: {
   holoByStars: Record<number, HoloSpecs>;
   /** The pack is drawn in the active season (the overlay preview only knows those). */
   onStream: boolean;
@@ -50,6 +51,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
   initialView: WorkspaceView;
   initialSelection: string | null;
   healthCount: number;
+  buffs: BuffDef[];
 }) {
   const [base, setBase] = useState<Base>(initial);
   const baseRef = useRef<Base>(initial);
@@ -108,7 +110,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
   const problemMap = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const c of work.cards) {
-      const msgs = cardProblems({ name: c.name, stars: c.stars, probability: c.probability, number: c.number || 1 }, work.cards.filter(o => o.id !== c.id && o.number).map(o => o.number));
+      const msgs = cardProblems({ name: c.name, stars: c.stars, probability: c.probability, number: c.number || 1, kind: c.kind, buffId: c.buffId }, work.cards.filter(o => o.id !== c.id && o.number).map(o => o.number));
       if (msgs.length > 0) m.set(c.id, msgs);
     }
     return m;
@@ -372,7 +374,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
               <CardPanel
                 card={active} cards={work.cards} pack={work.pack} locked={held.has(active.number)}
                 changed={new Set(Object.keys(changes.update[active.id] ?? {}) as (keyof CardFields)[])}
-                onChange={patchCard(active.id)} onRemove={() => removeCards([active.id])}
+                onChange={patchCard(active.id)} onRemove={() => removeCards([active.id])} buffs={buffs}
               />
             ) : (
               <PackPanel

@@ -66,7 +66,11 @@ export interface CardFields {
   stars: number;
   probability: number;
   number: number;
+  kind?: 'collector' | 'trainer';
+  buffId?: string;
 }
+
+export const cleanCardKind = (v: unknown): 'collector' | 'trainer' => (v === 'trainer' ? 'trainer' : 'collector');
 
 /**
  * What is wrong with a card's fields, in plain words (empty = fine). `otherNumbers` are the numbers of the pack's OTHER cards: a
@@ -79,5 +83,6 @@ export function cardProblems(c: CardFields, otherNumbers: number[]): string[] {
   if (!Number.isFinite(c.probability) || c.probability < 0) out.push('Odds must be a number, 0 or more.');
   if (!Number.isInteger(c.number) || c.number < 1 || c.number > MAX_CARD_NUMBER) out.push(`The card number must be a whole number from 1 to ${MAX_CARD_NUMBER.toLocaleString('en-GB')}.`);
   else if (otherNumbers.includes(c.number)) out.push(`Another card in this pack is already #${c.number}, and viewers' prints would be shared between the two.`);
+  if (c.kind === 'trainer' && !str(c.buffId, 60).trim()) out.push('Choose a buff for this trainer card.');
   return out;
 }

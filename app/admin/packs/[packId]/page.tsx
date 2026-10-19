@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { getPack, getPackCards, getPackRev, listAllPacks, listSeasons } from '@/lib/kv';
+import { getBuffDefs } from '@/lib/buffs';
 import { getPackOverrides } from '@/lib/overlay-settings';
 import { getCardBack } from '@/lib/card-back-store';
 import { heldCardNumbers } from '@/lib/card-held';
@@ -30,9 +31,9 @@ export default async function PackPage({ params, searchParams }: { params: Promi
     if (tab === 'settings') q.set('card', 'pack');
     redirect(`/admin/packs/${packId}${q.size ? `?${q}` : ''}`);
   }
-  const [pack, cards, seasons, overrides, cardBack, allPacks, rev, held, holoFor] = await Promise.all([
+  const [pack, cards, seasons, overrides, cardBack, allPacks, rev, held, holoFor, buffs] = await Promise.all([
     getPack(packId), getPackCards(packId), listSeasons(), getPackOverrides().catch((): Record<string, unknown> => ({})), getCardBack(packId), listAllPacks(), getPackRev(packId),
-    heldCardNumbers(packId).catch(() => new Set<number>()), getHoloResolver(),
+    heldCardNumbers(packId).catch(() => new Set<number>()), getHoloResolver(), getBuffDefs(),
   ]);
   if (!pack) notFound();
   const inSeasons = seasons.filter(s => s.packIds.includes(packId));
@@ -138,6 +139,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
       healthCount={health.length}
       holoByStars={Object.fromEntries([1, 2, 3, 4, 5].map(s => [s, holoFor(pack, s)]))}
       onStream={pack.status === 'published' && pack.active && inSeasons.some(s => s.active)}
+      buffs={buffs}
     />
   );
 }
