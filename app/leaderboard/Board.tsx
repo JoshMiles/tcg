@@ -68,7 +68,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer, badges = {}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <input type="search" value={q} onChange={e => { setQ(e.target.value); setShown(PAGE); }} placeholder="Find a collector" aria-label="Find a collector" className="min-w-0 flex-1 basis-48 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-hidden" />
+        <input type="search" value={q} onChange={e => { setQ(e.target.value); setShown(PAGE); }} placeholder="Find a collector" aria-label="Find a collector" className="input input-sm flex-1 min-w-40" />
         {me && (
           <button type="button" onClick={jumpToMe} className="inline-flex items-center gap-1.5 rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-sm font-bold text-yellow-200 hover:bg-yellow-500/20">
             <Icon name="user" />You are #{me.rank}
@@ -85,7 +85,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer, badges = {}
             const isOpen = open === r.username;
             const mv = metric === 'points' ? moves[r.username] : undefined;
             return (
-              <li key={r.username} ref={mine ? meRef : undefined} className={`tcg-panel rounded-xl ${rank === 1 ? 'ring-1 ring-yellow-500/50' : ''} ${mine ? 'ring-2 ring-yellow-500/80' : ''}`}>
+              <li key={r.username} ref={mine ? meRef : undefined} className={`card tcg-panel rounded-xl ${rank === 1 ? 'ring-1 ring-yellow-500/50' : ''} ${mine ? 'ring-2 ring-yellow-500/80' : ''}`}>
                 <div className="flex items-center gap-3 px-4 py-3">
                   <span className="w-9 text-center font-bold text-gray-500 tabular-nums shrink-0">{rank <= 3 ? <RankMedal rank={rank} /> : rank}</span>
                   <Link href={profileHref(r.username)} className="flex items-center gap-3 min-w-0 flex-1 group">

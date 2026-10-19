@@ -411,6 +411,8 @@ fieldset.card { display: block; }
 .table :is(th, td).pr-5 { padding-inline-end: 1.25rem; }
 .table :is(th, td).pl-3 { padding-inline-start: 0.75rem; }
 .table :is(th, td).pb-1\.5 { padding-bottom: 0.375rem; }
+.table :is(th, td).p-0 { padding: 0; }
+.table :is(th, td).py-6 { padding-block: 1.5rem; }
 
 /* daisyUI modal box: no extra padding (the dialog body brings its own) and the panel surface. */
 .tcg-modal {

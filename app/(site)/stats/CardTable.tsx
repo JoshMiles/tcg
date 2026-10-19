@@ -37,10 +37,10 @@ export function CardTable({ cards, collectors }: { cards: StatCard[]; collectors
     <section className="rind rounded-2xl p-5 space-y-3 lg:col-span-2 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold text-white">Every card</h2>
-        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search name or #" aria-label="Search cards" className="w-56 max-w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
+        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search name or #" aria-label="Search cards" className="input input-sm w-56 max-w-full" />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="table table-sm w-full text-sm">
           <thead className="text-[11px] text-gray-500 bg-gray-950/50"><tr>{head('number', '#')}{head('name', 'Card')}{head('stars', 'Rarity')}{head('copies', 'Prints', true)}{head('collectors', 'Collectors', true)}</tr></thead>
           <tbody className="divide-y divide-gray-800/70">
             {shown.map(c => (
