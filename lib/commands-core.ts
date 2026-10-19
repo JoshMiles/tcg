@@ -5,8 +5,8 @@ export const MAX_COMMANDS = 30;
 export const REPLY_MAX = 400;
 export const COOLDOWN_MAX_S = 3600;
 
-export type CommandActionId = 'showoff' | 'card-stats' | 'my-stats' | 'collection' | 'leaderboard' | 'pulls-left' | 'text';
-export type ErrorKind = 'notFound' | 'notOwned' | 'cooldown' | 'offline';
+export type CommandActionId = 'showoff' | 'card-stats' | 'my-stats' | 'collection' | 'leaderboard' | 'pulls-left' | 'text' | 'use-trainer';
+export type ErrorKind = 'notFound' | 'notOwned' | 'cooldown' | 'offline' | 'notTrainer' | 'alreadyActive';
 
 export interface ChatCommand {
   id: string;
@@ -79,6 +79,12 @@ export const COMMAND_ACTIONS: Record<CommandActionId, ActionInfo> = {
     vars: [v('username', 'cheesefan'), v('args', 'hello')],
     errors: ['cooldown', 'offline'],
   },
+  'use-trainer': {
+    label: 'Use trainer card',
+    description: "Uses one of the viewer's trainer cards to activate its buff. Args: a card name or number.",
+    vars: [v('cardName', 'Pack Surge Card'), v('buff', 'Pack Surge'), v('until', 'for 1 stream'), v('left', '3', 'Pulls left this stream')],
+    errors: ['notFound', 'notOwned', 'notTrainer', 'alreadyActive', 'cooldown', 'offline'],
+  },
 };
 
 /** What a viewer reads in the FAQ about each action (the FAQ lists the enabled commands, so it cannot drift). */
@@ -90,15 +96,18 @@ export const FAQ_LINES: Record<CommandActionId, string> = {
   leaderboard: 'names the top three collectors.',
   'pulls-left': 'tells you how many paid pulls you have left this stream.',
   text: 'answers with a short message.',
+  'use-trainer': 'uses a trainer card from your collection to activate its buff. Add a card name or number.',
 };
 
 export const ACTION_IDS = Object.keys(COMMAND_ACTIONS) as CommandActionId[];
 
 export const ERROR_LABELS: Record<ErrorKind, string> = {
   notFound: 'Not found', notOwned: 'Not theirs', cooldown: 'On cooldown', offline: 'Stream offline',
+  notTrainer: 'Not a trainer card', alreadyActive: 'Already active',
 };
 export const ERROR_DEFAULTS: Record<ErrorKind, string> = {
   notFound: 'I could not find that.', notOwned: 'You do not have that yet.', cooldown: 'Easy there, try again in a few seconds.', offline: 'That only works while the stream is live.',
+  notTrainer: 'That card is not a trainer card.', alreadyActive: 'That buff is already active.',
 };
 
 export const DEFAULT_COMMANDS: ChatCommand[] = [

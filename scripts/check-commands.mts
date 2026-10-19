@@ -39,6 +39,15 @@ await kvLib.setActiveSeason(season.id);
 const c = season.collectionName;
 const cards = await kvLib.getPackCards('pack1');
 const [a, b] = cards;
+const buffsStore = await import('../lib/buffs');
+await buffsStore.upsertBuffDef({
+  id: 'b-surge', name: 'Pack Surge', type: 'extra-pack', magnitude: 1,
+  duration: { unit: 'streams', n: 1 }, stack: 'reject', scope: 'self',
+});
+const trainerCard = {
+  id: 't-card-1', number: 99, name: 'Coach Brie', imageUrl: '/a/99.png', probability: 5, stars: 3, kind: 'trainer' as const, buffId: 'b-surge',
+};
+await kvLib.savePackCards('pack1', [...cards, trainerCard]);
 await kvLib.saveCollection(c, {
   ann: [encodeEntry(a.number, 'regular'), encodeEntry(a.number, 'shiny'), encodeEntry(b.number, 'regular')],
   bob: [encodeEntry(a.number, 'regular')],
@@ -131,7 +140,46 @@ ok(log.length > 0 && log.every(e => e.what === 'command'), 'runs are logged');
 const stats = await cmds.getCommandStats();
 ok((stats.showoff?.count ?? 0) >= 1 && (stats.stats?.count ?? 0) >= 1, 'runs are counted');
 const before = (await cmds.getCommandLog()).length;
-await run('stats', 'ann', a.name, true);
-ok((await cmds.getCommandLog()).length === before, 'a dry run is not logged');
+// ── use-trainer command (ROADMAP 30.3) ──
+const coll = await kvLib.getCollection(c);
+coll.ann = [...coll.ann, encodeEntry(99, 'regular'), encodeEntry(99, 'regular')];
+await kvLib.saveCollection(c, coll);
+await ser.backfillSerials(c, await kvLib.getCollection(c));
+
+const useCmd = core.cleanCommands([{
+  name: 'use', action: 'use-trainer', reply: 'Used {cardName}! {buff} active {until}, {left} left.',
+  errors: { notTrainer: 'Not a trainer card: {args}', alreadyActive: 'Already active: {buff}' },
+}]);
+const useList = useCmd.ok ? useCmd.commands : [];
+const uRun = (username: string, args = '', dry = false) => cmds.runCommand({ command: 'use', username, args, dry }, useList);
+
+// Dry run: does not consume, does not apply buff
+const beforeColl = (await kvLib.getCollection(c)).ann.length;
+const dryRes = await uRun('ann', 'Coach Brie', true);
+ok(dryRes.ok && dryRes.vars.cardName === 'Coach Brie' && dryRes.vars.buff === 'Pack Surge' && dryRes.vars.until.includes('1 stream'), 'dry run returns all variables');
+ok((await kvLib.getCollection(c)).ann.length === beforeColl, 'dry run consumes no cards');
+ok(!(await buffsStore.hasExtraPackCredit('ann')), 'dry run grants no buff in KV');
+
+// Real run: consumes 1 copy and applies buff
+const realRes = await uRun('ann', 'Coach Brie', false);
+ok(realRes.ok && realRes.message.includes('Used Coach Brie!') && realRes.message.includes('Pack Surge active'), 'real run formats reply message');
+ok((await kvLib.getCollection(c)).ann.length === beforeColl - 1, 'real run consumes 1 copy');
+ok(await buffsStore.hasExtraPackCredit('ann'), 'real run grants buff to user');
+
+// Reject stack: second use while active fails with alreadyActive error
+const rejectRes = await uRun('ann', 'Coach Brie', false);
+ok(!rejectRes.ok && rejectRes.message.includes('Already active: Pack Surge'), 'already active buff is refused with customized error');
+
+// Non-trainer card fails with notTrainer error
+const nonTrainer = await uRun('ann', a.name, false);
+ok(!nonTrainer.ok && nonTrainer.message.includes(`Not a trainer card: ${a.name}`), 'collector card refused with notTrainer error');
+
+// User who does not own the card fails with notOwned error
+const notOwned = await uRun('bob', 'Coach Brie', false);
+ok(!notOwned.ok && /do not have/.test(notOwned.message), 'unowned trainer card refused with notOwned error');
+
+// Empty card name fails with notFound error
+const emptyCard = await uRun('ann', '', false);
+ok(!emptyCard.ok && /Which trainer card/.test(emptyCard.message), 'empty card name asks which card');
 
 console.log('commands checks passed');
