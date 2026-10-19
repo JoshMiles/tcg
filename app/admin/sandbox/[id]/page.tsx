@@ -181,11 +181,11 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
               )}
               <label className="block text-xs text-gray-500 space-y-1">User<input name="username" list="sandbox-users" required defaultValue={userParam} className={field} placeholder="alice" /></label>
               <label className="block text-xs text-gray-500 space-y-1">Card
-                <select name="cardNumber" required className={field}>{cards.map(c => <option key={c.number} value={c.number}>#{c.number} {c.name}</option>)}</select>
+                <select name="cardNumber" required className="select w-full">{cards.map(c => <option key={c.number} value={c.number}>#{c.number} {c.name}</option>)}</select>
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block text-xs text-gray-500 space-y-1">Variant
-                  <select name="variant" className={field}>{VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}</select>
+                  <select name="variant" className="select w-full">{VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}</select>
                 </label>
                 <label className="block text-xs text-gray-500 space-y-1">Prints<input name="count" type="number" min={1} max={200} defaultValue={5} className={field} /></label>
               </div>
@@ -204,7 +204,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
               <label className="block text-xs text-gray-500 space-y-1">Fewest pulls<input name="minPulls" type="number" min={1} max={2000} defaultValue={3} className={field} /></label>
               <label className="block text-xs text-gray-500 space-y-1">Most pulls<input name="maxPulls" type="number" min={1} max={2000} defaultValue={150} className={field} /></label>
               <label className="block text-xs text-gray-500 space-y-1">Spread
-                <select name="shape" className={field}>
+                <select name="shape" className="select w-full">
                   <option value="realistic">Realistic: a few heavy collectors, many light ones</option>
                   <option value="even">Even: everyone between fewest and most</option>
                 </select>
@@ -290,7 +290,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         <div className="space-y-6">
           <form action={setExpiryAction.bind(null, id)} className="tcg-panel rounded-2xl p-5 flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-[16rem]"><h2 className="font-semibold text-white">Automatic deletion</h2><p className="text-xs text-gray-500 mt-0.5">{left !== null ? `This sandbox deletes itself in ${left < DAY ? 'under a day' : `${Math.ceil(left / DAY)} days`}. Change or switch it off here.` : 'Old sandboxes clutter the database. Let this one delete itself after a while.'}</p></div>
-            <select name="days" defaultValue="0" className={`${field} w-48`}><option value="0">Never</option><option value="7">In 7 days</option><option value="30">In 30 days</option></select>
+            <select name="days" defaultValue="0" className="select w-48"><option value="0">Never</option><option value="7">In 7 days</option><option value="30">In 30 days</option></select>
             <PendingButton className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Save</PendingButton>
           </form>
           <section className="rounded-2xl border border-red-500/20 p-5 space-y-3">

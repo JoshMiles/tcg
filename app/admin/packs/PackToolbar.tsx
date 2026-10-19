@@ -70,7 +70,7 @@ export function PackToolbar({ counts }: { counts: Record<Filter, number> }) {
             onKeyDown={e => { if (e.key === 'Escape') setQuery(''); }}
             placeholder="Search packs or seasons…  ( / )"
             aria-label="Search packs"
-            className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
+            className="input w-full pl-9"
           />
         </div>
 
@@ -95,7 +95,7 @@ export function PackToolbar({ counts }: { counts: Record<Filter, number> }) {
           <select
             value={sort}
             onChange={e => setSort(e.target.value as Sort)}
-            className="bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-200 focus:outline-hidden focus:border-yellow-500"
+            className="select select-sm"
           >
             {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>

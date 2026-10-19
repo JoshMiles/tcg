@@ -87,6 +87,8 @@ export function Chip({ tone = 'gray', children }: { tone?: keyof typeof CHIP; ch
   return <span className={`text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border ${CHIP[tone]}`}>{children}</span>;
 }
 
-/** Class strings for form controls, so inputs look the same everywhere. */
-export const fieldClass = 'block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-hidden';
-export const selectClass = 'rounded-xl bg-gray-950 border border-gray-700 px-2.5 py-2 text-sm text-gray-300 focus:outline-hidden focus:border-yellow-500';
+/** daisyUI form controls (cheesy theme). Callers keep passing these strings. */
+export const fieldClass = 'input w-full';
+export const selectClass = 'select max-w-full';
+export const areaClass = 'textarea w-full';
+export const toggleClass = 'toggle toggle-primary';

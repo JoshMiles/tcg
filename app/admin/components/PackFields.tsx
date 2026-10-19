@@ -69,7 +69,7 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
           name="active"
           value="true"
           defaultChecked={defaults?.active ?? true}
-          className="w-4 h-4 accent-yellow-400"
+          className="toggle toggle-sm toggle-primary"
         />
         <label htmlFor="pack-active" className="text-sm text-gray-300">
           Pack is active (included in draws)
@@ -83,7 +83,7 @@ export function PackFields({ defaults }: { defaults?: Partial<Pack> }) {
             id="pack-upgrades"
             name="upgradesEnabled"
             defaultChecked={defaults?.upgradesEnabled ?? false}
-            className="w-4 h-4 accent-yellow-400"
+            className="toggle toggle-sm toggle-primary"
           />
           <label htmlFor="pack-upgrades" className="text-sm text-gray-300">
             Enable variants &amp; upgrades
@@ -133,10 +133,10 @@ function Field({
   label: string; name: string; type?: string; required?: boolean; defaultValue?: string; help?: string; min?: number; max?: number; step?: number;
 }) {
   return (
-    <div>
-      <label htmlFor={`pack-${name}`} className="block text-sm text-gray-400 mb-1">
-        {label}{required && <span className="text-red-400 ml-1">*</span>}
-      </label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend">
+        <label htmlFor={`pack-${name}`}>{label}{required && <span className="text-red-400 ml-1">*</span>}</label>
+      </legend>
       <input
         id={`pack-${name}`}
         type={type}
@@ -146,9 +146,9 @@ function Field({
         min={min}
         max={max}
         step={type === 'number' ? (step ?? 'any') : undefined}
-        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500"
+        className="input w-full"
       />
-      {help && <p className="text-xs text-gray-600 mt-1">{help}</p>}
-    </div>
+      {help && <p className="fieldset-label">{help}</p>}
+    </fieldset>
   );
 }

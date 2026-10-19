@@ -7,7 +7,7 @@ import { REVEAL_STYLES, type PropDef, type PropValue } from '@/lib/overlay-props
 
 export const btn = 'px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors';
 export const ghost = `${btn} border border-gray-700 text-gray-200 hover:border-gray-500`;
-export const inputCls = 'rounded-md bg-gray-950 border border-gray-700 px-2 py-1 text-sm text-white focus:border-yellow-500 focus:outline-hidden';
+export const inputCls = 'input input-sm';
 
 /** A button that opens a floating panel; closes on an outside click or Escape. */
 export function Popover({ label, badge, children, align = 'left', up = false, icon, disabled = false }: { label: string; badge?: number; children: React.ReactNode; align?: 'left' | 'right'; up?: boolean; icon?: IconName; disabled?: boolean }) {
@@ -164,21 +164,19 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
     case 'boolean': {
       const on = value === true;
       return (
-        <button
+        <input
           id={id}
-          type="button"
+          type="checkbox"
           role="switch"
-          aria-checked={on}
-          onClick={() => onChange(!on)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${on ? 'bg-yellow-500' : 'bg-gray-700'}`}
-        >
-          <span className={`inline-block h-5 w-5 rounded-full bg-white transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
-        </button>
+          className="toggle toggle-sm toggle-primary"
+          checked={on}
+          onChange={() => onChange(!on)}
+        />
       );
     }
     case 'select':
       return (
-        <select id={id} value={String(value)} onChange={e => onChange(e.target.value)} className={`${inputCls} w-full`}>
+        <select id={id} value={String(value)} onChange={e => onChange(e.target.value)} className="select select-sm w-full">
           {def.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       );

@@ -67,14 +67,14 @@ export function CardList({
       <div className="p-3 space-y-2 border-b border-gray-800">
         <div className="relative">
           <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input ref={searchRef} type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards ( / )" aria-label="Search cards" className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500" />
+          <input ref={searchRef} type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards ( / )" aria-label="Search cards" className="input input-sm w-full pl-8" />
         </div>
         <div className="flex gap-2">
-          <select aria-label="Filter by rarity" value={stars} onChange={e => setStars(Number(e.target.value))} className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white">
+          <select aria-label="Filter by rarity" value={stars} onChange={e => setStars(Number(e.target.value))} className="select select-sm flex-1 min-w-0">
             <option value={0}>All rarities</option>
             {[5, 4, 3, 2, 1].map(s => <option key={s} value={s}>{s} star{s === 1 ? '' : 's'}</option>)}
           </select>
-          <select aria-label="Sort cards" value={sort} onChange={e => setSort(e.target.value as Sort)} className="flex-1 min-w-0 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-xs text-white">
+          <select aria-label="Sort cards" value={sort} onChange={e => setSort(e.target.value as Sort)} className="select select-sm flex-1 min-w-0">
             <option value="number">Number</option><option value="name">Name</option><option value="stars">Stars</option><option value="chance">Chance (rarest)</option><option value="problems">Problems first</option>
           </select>
         </div>

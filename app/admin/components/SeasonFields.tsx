@@ -23,7 +23,7 @@ export function SeasonFields({ defaults }: { defaults?: { name?: string; collect
         <DateTimeField label="Ends (optional)" name="endsAt" defaultValue={defaults?.endsAt} help="At this time an active season is wrapped up: final standings, awards, trading closed." />
       </div>
       <div className="flex items-center gap-3">
-        <input type="checkbox" id="autoStart" name="autoStart" value="true" defaultChecked={defaults?.autoStart} className="w-4 h-4 accent-yellow-400" />
+        <input type="checkbox" id="autoStart" name="autoStart" value="true" defaultChecked={defaults?.autoStart} className="toggle toggle-sm toggle-primary" />
         <label htmlFor="autoStart" className="text-sm text-gray-300">Switch this season on automatically at the start time</label>
       </div>
       {defaults?.canActivate === false ? (
@@ -36,7 +36,7 @@ export function SeasonFields({ defaults }: { defaults?: { name?: string; collect
           name="active"
           value="true"
           defaultChecked={defaults?.active}
-          className="w-4 h-4 accent-yellow-400"
+          className="toggle toggle-sm toggle-primary"
         />
         <label htmlFor="active" className="text-sm text-gray-300">
           Set as active season (deactivates all others)
@@ -53,10 +53,10 @@ function Field({
   label: string; name: string; type?: string; required?: boolean; defaultValue?: string; help?: string;
 }) {
   return (
-    <div>
-      <label htmlFor={`season-${name}`} className="block text-sm text-gray-400 mb-1">
-        {label}{required && <span className="text-red-400 ml-1">*</span>}
-      </label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend">
+        <label htmlFor={`season-${name}`}>{label}{required && <span className="text-red-400 ml-1">*</span>}</label>
+      </legend>
       <input
         id={`season-${name}`}
         type={type}
@@ -65,9 +65,9 @@ function Field({
         defaultValue={defaultValue}
         min={type === 'number' ? 1 : undefined}
         step={type === 'number' ? 1 : undefined}
-        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500"
+        className="input w-full"
       />
-      {help && <p className="text-xs text-gray-600 mt-1">{help}</p>}
-    </div>
+      {help && <p className="fieldset-label">{help}</p>}
+    </fieldset>
   );
 }

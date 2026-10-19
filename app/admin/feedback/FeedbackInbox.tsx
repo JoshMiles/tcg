@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
-import { Chip, EmptyState, Panel, fieldClass, selectClass } from '../components/ui';
+import { Chip, EmptyState, Panel, areaClass, selectClass } from '../components/ui';
 import { PendingButton } from '../components/PendingButton';
 import { declineDeletionAction, deleteViewerForRequestAction, updateFeedbackAction } from '../feedback-actions';
 import { DELETION_OVERDUE_DAYS, FEEDBACK_KINDS, FEEDBACK_LIMITS, FEEDBACK_STATUSES, KIND_LABELS, REPORT_REASON_LABELS, STATUS_LABELS, type FeedbackItem, type FeedbackKind, type FeedbackStatus } from '@/lib/feedback-core';
@@ -65,7 +65,7 @@ export function FeedbackInbox({ items, base, kind, status, viewerHref, canDelete
                     <form action={declineDeletionAction.bind(null, i.id)} className="space-y-2">
                       <label className="block space-y-1">
                         <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Decline, with a reason (they are told)</span>
-                        <textarea name="reason" required minLength={3} maxLength={FEEDBACK_LIMITS.reply} rows={2} className={fieldClass} />
+                        <textarea name="reason" required minLength={3} maxLength={FEEDBACK_LIMITS.reply} rows={2} className={areaClass} />
                       </label>
                       <PendingButton pendingLabel="Saving…" className="rounded-xl border border-gray-600 px-4 py-2 text-sm font-semibold text-gray-200 hover:border-gray-400">Decline</PendingButton>
                     </form>
@@ -77,7 +77,7 @@ export function FeedbackInbox({ items, base, kind, status, viewerHref, canDelete
             <form action={updateFeedbackAction.bind(null, i.id)} className="space-y-2 border-t border-gray-800 pt-3">
               <label className="block space-y-1">
                 <span className="text-xs font-bold uppercase tracking-wide text-gray-500">{i.kind === 'report' ? 'Staff note (the reporter is only told the outcome, never this)' : 'Reply to the sender (shown in their bell and on /feedback)'}</span>
-                <textarea name="reply" defaultValue={i.reply ?? ''} maxLength={FEEDBACK_LIMITS.reply} rows={2} className={fieldClass} />
+                <textarea name="reply" defaultValue={i.reply ?? ''} maxLength={FEEDBACK_LIMITS.reply} rows={2} className={areaClass} />
               </label>
               <div className="flex flex-wrap items-center gap-2">
                 <label className="sr-only" htmlFor={`status-${i.id}`}>Status</label>

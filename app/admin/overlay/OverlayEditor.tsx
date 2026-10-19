@@ -534,7 +534,7 @@ export function OverlayEditor({
           <select
             value={scope}
             onChange={e => setScope(e.target.value)}
-            className="rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-hidden max-w-56"
+            className="select select-sm max-w-56"
           >
             <option value="global">Everything (global)</option>
             {packs.map(p => (
@@ -714,13 +714,13 @@ export function OverlayEditor({
             {mode === 'pack' && (
               <div className="flex items-center gap-1.5">
                 {!isPack && packs.length > 1 && (
-                  <select value={pickPack} onChange={e => { setPickPack(e.target.value); setPickCard(0); }} aria-label="Preview pack" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-36">
+                  <select value={pickPack} onChange={e => { setPickPack(e.target.value); setPickCard(0); }} aria-label="Preview pack" className="select select-sm max-w-36">
                     <option value="">First pack</option>
                     {packs.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                   </select>
                 )}
                 {previewCards.length > 0 && (
-                  <select value={previewCard} onChange={e => setPickCard(Number(e.target.value))} aria-label="Preview card" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-40">
+                  <select value={previewCard} onChange={e => setPickCard(Number(e.target.value))} aria-label="Preview card" className="select select-sm max-w-40">
                     <option value={0}>Rarest card</option>
                     {previewCards.map(c => <option key={c.number} value={c.number}>#{c.number} {c.name}</option>)}
                   </select>
@@ -782,7 +782,7 @@ export function OverlayEditor({
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search every setting…"
                 aria-label="Search settings"
-                className="w-full rounded-md bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-sm text-white placeholder:text-gray-600 focus:border-yellow-500 focus:outline-hidden"
+                className="input input-sm w-full"
               />
               {!searching && layoutCat && (
                 <div className="min-w-0">
@@ -814,7 +814,7 @@ export function OverlayEditor({
                     <select
                       value=""
                       onChange={e => { if (e.target.value) copyVariant(e.target.value as VariantId); }}
-                      className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200"
+                      className="select select-sm"
                     >
                       <option value="">choose a variant…</option>
                       {VARIANT_IDS.filter(v => v !== version).map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}

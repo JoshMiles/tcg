@@ -213,7 +213,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
               <form action={endSeasonAction.bind(null, id)} className="space-y-3">
                 <p className="text-sm text-gray-400 leading-relaxed">Ending the season saves the <strong className="text-gray-200">final standings and awards</strong>, takes it off the air (nothing is drawn until you activate another season) and keeps every collection. Starting another season does this automatically for the one it replaces.</p>
                 <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                  <input type="checkbox" name="freezeTrading" value="on" defaultChecked className="w-4 h-4 accent-yellow-400" />Close trading for this season
+                  <input type="checkbox" name="freezeTrading" value="on" defaultChecked className="toggle toggle-sm toggle-primary" />Close trading for this season
                 </label>
                 <ConfirmButton
                   title={`End ${season.name}?`}
@@ -279,7 +279,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
 
         {availablePacks.length > 0 && (
           <form action={addPack} className="flex gap-2">
-            <select name="packId" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500 transition-colors">
+            <select name="packId" className="select flex-1 min-w-0">
               <option value="">Select a pack to add…</option>
               {availablePacks.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>

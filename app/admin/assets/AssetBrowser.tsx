@@ -149,11 +149,11 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
           <div className="relative">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input ref={searchRef} type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search name, pack or #…  ( / )" aria-label="Search assets"
-              className="bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 w-64" />
+              className="input w-64 pl-9" />
           </div>
           {kindTab && (
             <>
-              <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-hidden focus:border-yellow-500">
+              <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="select select-sm">
                 <option value="default">Default order</option><option value="size">Largest first</option><option value="issues">Flagged first</option>
               </select>
               <button onClick={() => setOnlyIssues(v => !v)} aria-pressed={onlyIssues} className={`px-3 py-2 text-sm font-semibold rounded-xl border transition-colors ${onlyIssues ? 'border-amber-400/50 bg-amber-500/10 text-amber-200' : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}`}>
@@ -169,10 +169,10 @@ export function AssetBrowser({ library, tab, issuesOnly }: { library: AssetLibra
                 )}
                 {kindTab === 'sound' && visible.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <select value={mp3.kbps} onChange={e => setMp3({ ...mp3, kbps: Number(e.target.value) })} aria-label="Sound quality" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-hidden focus:border-yellow-500">
+                    <select value={mp3.kbps} onChange={e => setMp3({ ...mp3, kbps: Number(e.target.value) })} aria-label="Sound quality" className="select select-sm">
                       {BITRATES.map(b => <option key={b} value={b}>{b} kbps</option>)}
                     </select>
-                    <label className="flex items-center gap-1.5 text-sm text-gray-300"><input type="checkbox" checked={mp3.mono} onChange={e => setMp3({ ...mp3, mono: e.target.checked })} className="accent-yellow-500" />Mono</label>
+                    <label className="flex items-center gap-1.5 text-sm text-gray-300"><input type="checkbox" role="switch" checked={mp3.mono} onChange={e => setMp3({ ...mp3, mono: e.target.checked })} className="toggle toggle-xs toggle-primary" />Mono</label>
                     <button onClick={() => opt.optimiseSounds(visible, mp3)} disabled={!!fixing || !!opt.progress} title="Re-encode every sound as an MP3 in your browser; a sound is only replaced when the new file is at least 15% smaller"
                       className="px-3 py-2 text-sm font-bold rounded-xl bg-yellow-500/10 border border-yellow-400/30 text-yellow-200 hover:bg-yellow-500/20 disabled:opacity-50 transition-colors">
                       <Icon name="zap" className="mr-1.5" />Optimise sounds ({visible.length})

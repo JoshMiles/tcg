@@ -57,7 +57,7 @@ const NEW_PACK: PackInput = {
   disabledVariants: [],
 };
 
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors disabled:opacity-40';
+const inputCls = 'input w-full';
 
 export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: PackInput; cards: CardRow[] }; /** The draft's saved card back and the other packs to copy one from (only known when resuming a draft). */ cardBack?: { initial: CardBackStyle | null; others: { id: string; name: string }[] } }) {
   const router = useRouter();
@@ -177,8 +177,8 @@ export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: 
           {step === 'details' && (
             <>
               <StepTitle title="Name your pack" hint="You can change all of this later." />
-              <div>
-                <label htmlFor="pack-name" className="block text-sm font-medium text-gray-300 mb-1.5">Pack name <span className="text-red-400">*</span></label>
+              <fieldset className="fieldset">
+                <legend className="fieldset-legend"><label htmlFor="pack-name">Pack name <span className="text-red-400">*</span></label></legend>
                 <input
                   id="pack-name"
                   value={pack.name}
@@ -188,8 +188,8 @@ export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: 
                   autoFocus
                   className={inputCls}
                 />
-                {nameError && <p className="text-xs text-red-400 mt-1.5">{nameError}</p>}
-              </div>
+                {nameError && <p className="fieldset-label text-red-400">{nameError}</p>}
+              </fieldset>
               <ImageUploadField name="coverImageUrl" defaultValue={pack.coverImageUrl} label="Cover image" onUrlChange={u => set('coverImageUrl', u)} />
             </>
           )}
@@ -377,11 +377,11 @@ function UpgradesStep({ pack, set }: { pack: PackInput; set: <K extends keyof Pa
 function VariantWeight({ label, value, percent, onChange }: { label: string; value: number; percent: string; onChange: (v: number) => void }) {
   const id = useId();
   return (
-    <div>
-      <label htmlFor={id} className="block text-xs text-gray-400 mb-1">{label}</label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend"><label htmlFor={id}>{label}</label></legend>
       <input id={id} type="number" min="0" step="any" value={value} onChange={e => onChange(Number(e.target.value))} className={inputCls + ' px-3!'} />
-      <p className="text-xs text-gray-500 mt-1 tabular-nums">≈ {percent}% of pulls</p>
-    </div>
+      <p className="fieldset-label tabular-nums">≈ {percent}% of pulls</p>
+    </fieldset>
   );
 }
 
@@ -463,11 +463,11 @@ function StepTitle({ title, hint }: { title: string; hint?: string }) {
 function TextField({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
   const id = useId();
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-300 mb-1.5">{label}</label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend"><label htmlFor={id}>{label}</label></legend>
       <input id={id} value={value} onChange={e => onChange(e.target.value)} className={inputCls} />
-      {hint && <p className="text-xs text-gray-600 mt-1">{hint}</p>}
-    </div>
+      {hint && <p className="fieldset-label">{hint}</p>}
+    </fieldset>
   );
 }
 
@@ -478,8 +478,8 @@ function NumberField({
 }) {
   const id = useId();
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-300 mb-1.5">{label}</label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend"><label htmlFor={id}>{label}</label></legend>
       <input
         id={id}
         type="number"
@@ -490,7 +490,7 @@ function NumberField({
         onChange={e => onChange(Number(e.target.value))}
         className={inputCls + (narrow ? ' w-32!' : '')}
       />
-      {hint && <p className="text-xs text-gray-600 mt-1">{hint}</p>}
-    </div>
+      {hint && <p className="fieldset-label">{hint}</p>}
+    </fieldset>
   );
 }

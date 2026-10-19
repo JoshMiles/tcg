@@ -14,7 +14,7 @@ import {
   type UserActionResult,
 } from '../../users-actions';
 
-const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500';
+const field = 'input';
 const btn = 'inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 disabled:opacity-50 transition-colors';
 
 function Result({ r }: { r: UserActionResult | null }) {
@@ -59,8 +59,8 @@ export function ModerationPanel({ username, initial }: { username: string; initi
   const dirty = noTrading !== initial.noTrading || hide !== initial.hideFromBoard || reason !== initial.reason;
   return (
     <div className="space-y-3">
-      <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" checked={noTrading} onChange={e => setNoTrading(e.target.checked)} className="mt-1 accent-yellow-400" /><span><strong className="text-white">Block trading.</strong> They can&apos;t make or accept offers, and nobody can offer to them. Existing offers can still be cancelled.</span></label>
-      <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" checked={hide} onChange={e => setHide(e.target.checked)} className="mt-1 accent-yellow-400" /><span><strong className="text-white">Hide from public boards.</strong> Left out of the leaderboard, the card owner lists and recent pulls. Their own collection page still works.</span></label>
+      <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" role="switch" checked={noTrading} onChange={e => setNoTrading(e.target.checked)} className="toggle toggle-sm toggle-primary mt-0.5" /><span><strong className="text-white">Block trading.</strong> They can&apos;t make or accept offers, and nobody can offer to them. Existing offers can still be cancelled.</span></label>
+      <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" role="switch" checked={hide} onChange={e => setHide(e.target.checked)} className="toggle toggle-sm toggle-primary mt-0.5" /><span><strong className="text-white">Hide from public boards.</strong> Left out of the leaderboard, the card owner lists and recent pulls. Their own collection page still works.</span></label>
       {(noTrading || hide) && <input value={reason} onChange={e => setReason(e.target.value)} maxLength={200} placeholder="Reason (only staff see this)" aria-label="Reason" className={`${field} w-full`} />}
       {initial.at && (initial.noTrading || initial.hideFromBoard) && <p className="text-xs text-gray-600">Set {new Date(initial.at).toLocaleString('en-GB', { timeZone: 'UTC' })}{initial.by ? ` by ${initial.by}` : ''}</p>}
       <div className="flex items-center gap-3">
@@ -169,7 +169,7 @@ export function GrantPanel({ username, cards, upgrades }: { username: string; ca
       <div className="flex flex-wrap items-end gap-3">
         {upgrades && (
           <label className="text-xs text-gray-500 space-y-1 block">Version
-            <select value={variant} onChange={e => setVariant(e.target.value)} className={`${field} block py-1.5`}>{VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}</select>
+            <select value={variant} onChange={e => setVariant(e.target.value)} className="select">{VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}</select>
           </label>
         )}
         <label className="text-xs text-gray-500 space-y-1 block">Prints of each
@@ -178,7 +178,7 @@ export function GrantPanel({ username, cards, upgrades }: { username: string; ca
         <button type="button" disabled={pending || picked.length === 0} onClick={() => run(() => grantManyAction(username, picked, variant, Number(copies)))} className="tcg-btn px-4 py-2 rounded-lg text-sm disabled:opacity-50">{pending && <Spinner />}Grant {picked.length || ''} card{picked.length === 1 ? '' : 's'}</button>
         <span className="mx-1 h-6 w-px bg-gray-800" aria-hidden />
         <label className="text-xs text-gray-500 space-y-1 block">Gift packs
-          <select value={packs} onChange={e => setPacks(e.target.value)} className={`${field} block py-1.5`}>{[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n}</option>)}</select>
+          <select value={packs} onChange={e => setPacks(e.target.value)} className="select w-24">{[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n}</option>)}</select>
         </label>
         <button type="button" disabled={pending} onClick={() => run(() => giftPacksAction(username, Number(packs), true))} className={btn}><Icon name="gift" />Gift</button>
       </div>

@@ -82,7 +82,7 @@ export function ScoringForm({ saved, groups, save, reset }: {
                       <input
                         id={`scoring-${f.name}`} name={f.name} type="number" min={min} max={max} step={step}
                         value={values[f.name] ?? ''} onChange={e => set(f.name, e.target.value)}
-                        className={`w-32 bg-gray-950 border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500 ${changedFromSaved ? 'border-amber-400/60' : 'border-gray-700'}`}
+                        className={`input input-sm w-32 ${changedFromSaved ? 'input-warning' : ''}`}
                       />
                       {!atDefault && <button type="button" onClick={() => set(f.name, String(def))} className="text-xs text-gray-500 hover:text-yellow-300 underline underline-offset-2">Use default</button>}
                       {changedFromSaved && <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">edited</span>}

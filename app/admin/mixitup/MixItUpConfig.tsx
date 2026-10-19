@@ -5,7 +5,7 @@ import { MESSAGE_MAX, MESSAGE_VARS } from '@/lib/mixitup-core';
 import { saveMixItUpAction, checkBalanceAction, sendTestAction } from './mixitup-actions';
 import { MessageField } from './MessageField';
 
-const input = 'w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-hidden';
+const input = 'input w-full';
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
 const help = 'text-[11px] text-gray-500 mt-1';
 const primary = 'rounded-lg bg-yellow-500 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-400 disabled:opacity-60';
@@ -22,7 +22,7 @@ export function MixItUpConfig({ settings: s }: { settings: MixItUpSettings }) {
         </div>
         <div className="px-6 py-5 space-y-5">
           <label className="flex items-center gap-2 text-sm text-white font-semibold">
-            <input type="checkbox" name="enabled" defaultChecked={s.enabled} className="h-4 w-4 accent-yellow-500" />
+            <input type="checkbox" name="enabled" defaultChecked={s.enabled} className="toggle toggle-sm toggle-primary" />
             Charge for pulls
           </label>
 

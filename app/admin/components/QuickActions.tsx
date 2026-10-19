@@ -10,7 +10,7 @@ import { useOverlayStatus } from './OverlayStatusContext';
 export interface QuickCard { number: number; name: string; stars: number }
 
 const inputClass =
-  'bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors';
+  'select w-full';
 const secondaryBtn =
   'px-3.5 py-2 text-sm font-bold bg-gray-800 hover:bg-gray-700 text-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:pointer-events-none';
 
@@ -164,7 +164,7 @@ export function QuickActions({
 
         {shown?.needsForce && (
           <label className="flex items-center gap-2 text-sm text-amber-200 cursor-pointer select-none rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2">
-            <input type="checkbox" name="force" className="accent-yellow-500" />
+            <input type="checkbox" name="force" className="toggle toggle-sm toggle-primary" />
             Queue anyway (it will play the next time an overlay connects)
           </label>
         )}

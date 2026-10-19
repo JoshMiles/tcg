@@ -4,7 +4,7 @@ import { Icon } from '@/app/components/Icon';
 import { uploadAudioFile, uploadImageFile } from '../../../components/upload-client';
 import { cardThumbUrl } from '@/lib/card-art';
 
-export const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500 transition-colors disabled:opacity-50';
+export const inputCls = 'input w-full';
 
 /** A section of the properties panel: collapses, and shows a dot when something in it changed or has a problem. */
 export function Section({ title, children, dot, defaultOpen = true, id }: { title: string; children: ReactNode; dot?: 'changed' | 'problem' | null; defaultOpen?: boolean; id?: string }) {
@@ -22,11 +22,11 @@ export function Section({ title, children, dot, defaultOpen = true, id }: { titl
 
 export function Field({ label, children, help, htmlFor }: { label: string; children: ReactNode; help?: ReactNode; htmlFor?: string }) {
   return (
-    <div>
-      <label htmlFor={htmlFor} className="block text-xs text-gray-400 mb-1">{label}</label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend">{htmlFor ? <label htmlFor={htmlFor}>{label}</label> : label}</legend>
       {children}
-      {help && <p className="text-xs text-gray-600 mt-1">{help}</p>}
-    </div>
+      {help && <p className="fieldset-label">{help}</p>}
+    </fieldset>
   );
 }
 
@@ -70,8 +70,8 @@ export function ArtDrop({ label, value, onChange, hint }: { label: string; value
     finally { setBusy(''); }
   }
   return (
-    <div>
-      <label htmlFor={id} className="block text-xs text-gray-400 mb-1">{label}</label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend"><label htmlFor={id}>{label}</label></legend>
       <div
         onDragOver={e => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
         onDrop={e => { e.preventDefault(); setOver(false); void take(e.dataTransfer.files[0]); }}
@@ -89,9 +89,9 @@ export function ArtDrop({ label, value, onChange, hint }: { label: string; value
         </div>
         {value && <button type="button" onClick={() => onChange('')} className="self-start text-xs text-gray-500 hover:text-white px-1" aria-label={`Remove ${label}`}><Icon name="x" /></button>}
       </div>
-      {error && <p role="alert" className="text-xs text-red-300 mt-1">{error}</p>}
-      {hint && <p className="text-xs text-gray-600 mt-1">{hint}</p>}
-    </div>
+      {error && <p role="alert" className="fieldset-label text-red-300">{error}</p>}
+      {hint && <p className="fieldset-label">{hint}</p>}
+    </fieldset>
   );
 }
 
@@ -107,8 +107,8 @@ export function SoundField({ value, onChange, defaultUrl }: { value: string; onC
     try { onChange(await uploadAudioFile(file)); } catch (e) { setError(e instanceof Error ? e.message : 'Upload failed'); } finally { setBusy(false); }
   }
   return (
-    <div>
-      <span className="block text-xs text-gray-400 mb-1">Sound</span>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend">Sound</legend>
       <div className="flex flex-wrap items-center gap-2">
         <input type="text" aria-label="Sound address" value={value} onChange={e => onChange(e.target.value)} placeholder="none" className={`${inputCls} flex-1 min-w-32 text-xs!`} />
         <button type="button" disabled={busy} onClick={() => input.current?.click()} className="px-2.5 py-2 text-xs font-bold rounded-lg bg-gray-700 hover:bg-gray-600 text-white">{busy ? 'Uploading…' : 'Upload'}</button>
@@ -116,7 +116,7 @@ export function SoundField({ value, onChange, defaultUrl }: { value: string; onC
         <input ref={input} type="file" accept="audio/*" className="hidden" onChange={e => { void take(e.target.files?.[0]); e.target.value = ''; }} />
       </div>
       {defaultUrl && value !== defaultUrl && <button type="button" onClick={() => onChange(defaultUrl)} className="mt-1 text-xs font-bold text-yellow-400 hover:text-yellow-300">Use the default sound</button>}
-      {error && <p role="alert" className="text-xs text-red-300 mt-1">{error}</p>}
-    </div>
+      {error && <p role="alert" className="fieldset-label text-red-300">{error}</p>}
+    </fieldset>
   );
 }

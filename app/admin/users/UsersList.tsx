@@ -125,7 +125,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
   };
 
   const cols = 'grid-cols-[1.75rem_2.25rem_minmax(11rem,1.5fr)_minmax(9rem,1.2fr)_5rem_4.5rem_4rem_5.5rem_3.5rem]';
-  const select = 'rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-200 focus:outline-hidden focus:border-yellow-500';
+  const select = 'select select-sm';
 
   return (
     <div>
@@ -134,7 +134,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-56 max-w-md">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"><Icon name="search" /></span>
-            <input ref={input} type="search" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setQuery(''); }} placeholder="Search viewers, names or tags…  ( / )" aria-label="Search viewers" className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500" />
+            <input ref={input} type="search" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setQuery(''); }} placeholder="Search viewers, names or tags…  ( / )" aria-label="Search viewers" className="input w-full pl-9" />
           </div>
           <label className="flex items-center gap-2 text-xs text-gray-500">Sort
             <select value={sort} onChange={e => setSort(e.target.value as SortKey)} className={select}>{SORTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select>
@@ -179,7 +179,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
             </ConfirmButton>
           </form>
           <form className="flex items-center gap-1.5" onSubmit={e => { e.preventDefault(); if (bulkTag.trim()) run(() => bulkTagAction(chosen, bulkTag, 'add')); }}>
-            <input value={bulkTag} onChange={e => setBulkTag(e.target.value)} list="all-tags" placeholder="tag" aria-label="Tag" maxLength={20} className="w-28 rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-xs text-white focus:outline-hidden focus:border-yellow-500" />
+            <input value={bulkTag} onChange={e => setBulkTag(e.target.value)} list="all-tags" placeholder="tag" aria-label="Tag" maxLength={20} className="input input-sm w-28" />
             <datalist id="all-tags">{allTags.map(t => <option key={t} value={t} />)}</datalist>
             <button type="submit" disabled={pending || !bulkTag.trim()} className={chip(false)}>Add tag</button>
             <button type="button" disabled={pending || !bulkTag.trim()} onClick={() => run(() => bulkTagAction(chosen, bulkTag, 'remove'))} className={chip(false)}>Remove tag</button>

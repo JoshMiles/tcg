@@ -80,7 +80,7 @@ export function OddsView({ pack, cards, baseCards, editCards }: {
             {tiers.map(t => (
               <label key={t.stars} className="text-xs text-gray-500 space-y-1">
                 <span className={getRarity(t.stars)?.text}>{'★'.repeat(t.stars)} <span className="text-gray-600">({t.count})</span></span>
-                <input type="number" min={0} step="any" value={targets[t.stars] ?? ''} onChange={e => setTargets(x => ({ ...x, [t.stars]: e.target.value }))} className="block w-20 rounded-lg bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500" />
+                <input type="number" min={0} step="any" value={targets[t.stars] ?? ''} onChange={e => setTargets(x => ({ ...x, [t.stars]: e.target.value }))} className="input input-sm w-20 block" />
               </label>
             ))}
             <button type="button" onClick={balance} className={btn}>Apply</button>
@@ -143,7 +143,7 @@ export function OddsView({ pack, cards, baseCards, editCards }: {
           <div className="space-y-3 border-t border-gray-800 pt-4">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs uppercase tracking-wider font-bold text-gray-500 mr-auto">Draw simulator</p>
-              <select value={runs} onChange={e => setRuns(Number(e.target.value))} aria-label="Packs to simulate" className="rounded-lg bg-gray-950 border border-gray-700 px-2 py-1.5 text-xs text-white">
+              <select value={runs} onChange={e => setRuns(Number(e.target.value))} aria-label="Packs to simulate" className="select select-sm">
                 {RUNS.map(n => <option key={n} value={n}>{n.toLocaleString()} packs</option>)}
               </select>
               <button type="button" onClick={simulateNow} disabled={simulating || total <= 0} className={btn}>{simulating ? <Spinner /> : <Icon name="play" className="w-3 h-3" />}Run</button>

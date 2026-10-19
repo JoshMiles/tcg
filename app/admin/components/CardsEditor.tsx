@@ -41,7 +41,7 @@ export function cardsSignature(rows: CardRow[]): string {
 const nameFromFile = (file: File) =>
   file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
 
-const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500 transition-colors';
+const inputCls = 'input input-sm';
 
 export function CardsEditor({
   cards,
@@ -219,7 +219,7 @@ export function CardsEditor({
                     <select
                       value={c.stars}
                       onChange={e => setStars(c, Number(e.target.value))}
-                      className={inputCls}
+                      className="select select-sm"
                       aria-label="Rarity"
                       style={{ color: rarity?.hex }}
                     >
@@ -254,9 +254,10 @@ export function CardsEditor({
                         <label className="flex items-center gap-1.5 text-gray-400 cursor-pointer">
                           <input
                             type="checkbox"
+                            role="switch"
                             checked={c.upgradesEnabled}
                             onChange={e => patch(c.id, { upgradesEnabled: e.target.checked })}
-                            className="accent-yellow-400"
+                            className="toggle toggle-xs toggle-primary"
                           />
                           Variants &amp; upgrades
                         </label>

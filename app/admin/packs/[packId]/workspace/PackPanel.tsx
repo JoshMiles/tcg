@@ -43,12 +43,12 @@ export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount
           <ul className="text-xs text-gray-400 space-y-0.5">{seasons.filter(s => s.share !== null).map(s => <li key={s.id}>{s.name}: <strong className="text-gray-200">{Math.round((s.share ?? 0) * 100)}%</strong> of draws</li>)}</ul>
         )}
         {readOnlyStatus === 'published' && (
-          <label className="flex items-center gap-2 text-sm text-gray-200"><input type="checkbox" checked={pack.active} onChange={e => onChange({ active: e.target.checked })} className="accent-yellow-400" />Pack is active (included in draws)</label>
+          <label className="flex items-center gap-2 text-sm text-gray-200"><input type="checkbox" role="switch" checked={pack.active} onChange={e => onChange({ active: e.target.checked })} className="toggle toggle-sm toggle-primary" />Pack is active (included in draws)</label>
         )}
       </Section>
 
       <Section title="Versions and odds" dot={changed('upgradesEnabled', 'disabledVariants', 'variantWeights', 'upgradeCosts', 'holoMinStars')}>
-        <label className="flex items-center gap-2 text-sm text-gray-200"><input type="checkbox" checked={pack.upgradesEnabled} onChange={e => onChange({ upgradesEnabled: e.target.checked })} className="accent-yellow-400" />Enable versions and upgrades</label>
+        <label className="flex items-center gap-2 text-sm text-gray-200"><input type="checkbox" role="switch" checked={pack.upgradesEnabled} onChange={e => onChange({ upgradesEnabled: e.target.checked })} className="toggle toggle-sm toggle-primary" />Enable versions and upgrades</label>
         <div><p className="text-xs text-gray-400 mb-1">Versions in this pack</p>
           <VariantChips disabled={pack.disabledVariants ?? []} onChange={d => onChange({ disabledVariants: d })} compact />
         </div>

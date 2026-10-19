@@ -9,7 +9,7 @@ import { ReverseTrade } from './ReverseTrade';
 import { blockViewerTradingAction, cancelOneTradeAction, extendOpenTradesAction } from '../trade-actions';
 import { ArmedButton } from '../components/ArmedButton';
 
-const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white focus:outline-hidden focus:border-yellow-500';
+const field = 'input input-sm';
 const STATUSES = ['open', 'accepted', 'declined', 'cancelled', 'expired', 'countered', 'failed'] as const;
 const STATUS_STYLE: Record<string, string> = {
   open: 'text-sky-300 border-sky-400/30 bg-sky-500/10',
@@ -81,8 +81,8 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search viewer, card or note…" aria-label="Search trades" className={`${field} w-64`} />
-        <select value={kind} onChange={e => setKind(e.target.value)} aria-label="Kind" className={field}><option value="">Direct + board</option><option value="direct">Direct offers</option><option value="listing">Board listings</option></select>
-        {seasons.length > 1 && <select value={season} onChange={e => setSeason(e.target.value)} aria-label="Season" className={field}><option value="">All seasons</option>{seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}
+        <select value={kind} onChange={e => setKind(e.target.value)} aria-label="Kind" className="select select-sm"><option value="">Direct + board</option><option value="direct">Direct offers</option><option value="listing">Board listings</option></select>
+        {seasons.length > 1 && <select value={season} onChange={e => setSeason(e.target.value)} aria-label="Season" className="select select-sm"><option value="">All seasons</option>{seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}
         <button type="button" onClick={() => setFlaggedOnly(f => !f)} aria-pressed={flaggedOnly} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${flaggedOnly ? 'bg-amber-500/15 border-amber-400/50 text-amber-200' : 'border-gray-700 text-gray-400 hover:text-white'}`}><Icon name="warning" className="mr-1" />Flagged only</button>
         <button type="button" onClick={exportCsv} disabled={shown.length === 0} className="ml-auto px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-700 text-gray-300 hover:text-white disabled:opacity-40"><Icon name="download" className="mr-1" />Export {shown.length}</button>
       </div>

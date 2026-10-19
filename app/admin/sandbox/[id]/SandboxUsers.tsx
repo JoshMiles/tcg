@@ -42,9 +42,9 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
           <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search viewers…" aria-label="Search viewers" className="bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 w-56" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search viewers…" aria-label="Search viewers" className="input w-56 pl-9" />
         </div>
-        <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-hidden focus:border-yellow-500">
+        <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="select select-sm">
           <option value="copies">Most prints</option><option value="rank">Best rank</option><option value="name">Name</option><option value="new">Newest</option>
         </select>
         <span className="text-xs text-gray-500">{list.length} of {rows.length}</span>

@@ -37,7 +37,7 @@ export function UserTesterPicker({ login, current }: { login: string; current: '
             setValue(next);
             start(async () => { const r = await setUserTesterAction(login, next); setMsg({ ok: r.ok, text: r.message }); if (!r.ok) setValue(current); router.refresh(); });
           }}
-          className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-hidden"
+          className="select"
         >
           <option value="none">None</option>
           <option value="beta">Beta tester</option>

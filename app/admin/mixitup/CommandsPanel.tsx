@@ -8,7 +8,7 @@ import {
 } from '@/lib/commands-core';
 import { saveCommandsAction, tryCommandAction } from './commands-actions';
 
-const input = 'w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-hidden';
+const input = 'input w-full';
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
 const help = 'text-[11px] text-gray-500 mt-1';
 const primary = 'rounded-lg bg-yellow-500 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-400 disabled:opacity-60';
@@ -92,7 +92,7 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret }: { initial:
           <section className="tcg-panel rounded-2xl overflow-hidden min-w-0">
             <div className="px-6 py-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-3">
               <label className="flex items-center gap-2 text-sm text-white font-semibold">
-                <input type="checkbox" checked={cmd.enabled} onChange={e => patch({ enabled: e.target.checked })} className="h-4 w-4 accent-yellow-500" />
+                <input type="checkbox" role="switch" checked={cmd.enabled} onChange={e => patch({ enabled: e.target.checked })} className="toggle toggle-sm toggle-primary" />
                 Enabled
               </label>
               <button type="button" onClick={remove} className="text-xs font-semibold text-red-300 hover:text-red-200">Delete this command</button>
@@ -110,14 +110,14 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret }: { initial:
               </div>
               <div>
                 <label className={label} htmlFor="cmd-action">What it does</label>
-                <select id="cmd-action" value={cmd.action} onChange={e => changeAction(e.target.value as CommandActionId)} className={input}>
+                <select id="cmd-action" value={cmd.action} onChange={e => changeAction(e.target.value as CommandActionId)} className="select w-full">
                   {ACTION_IDS.map(a => <option key={a} value={a}>{COMMAND_ACTIONS[a].label}</option>)}
                 </select>
                 <p className={help}>{info.description}</p>
               </div>
               <div>
                 <label className={label} htmlFor="cmd-reply">Reply</label>
-                <textarea id="cmd-reply" ref={replyRef} value={cmd.reply} onChange={e => patch({ reply: e.target.value })} rows={3} className={input} />
+                <textarea id="cmd-reply" ref={replyRef} value={cmd.reply} onChange={e => patch({ reply: e.target.value })} rows={3} className="textarea w-full" />
                 <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Variables you can add">
                   {info.vars.map(x => (
                     <button key={x.name} type="button" onClick={() => insertVar(x.name)} title={x.help || `For example: ${x.sample}`}
@@ -153,7 +153,7 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret }: { initial:
                   <input id="cmd-ucd" type="number" min={0} max={3600} value={cmd.userCooldownS} onChange={e => patch({ userCooldownS: Number(e.target.value) })} className={input} />
                 </div>
                 <label className="flex items-end gap-2 pb-2 text-sm text-white font-semibold">
-                  <input type="checkbox" checked={cmd.liveOnly} onChange={e => patch({ liveOnly: e.target.checked })} className="h-4 w-4 accent-yellow-500" />
+                  <input type="checkbox" role="switch" checked={cmd.liveOnly} onChange={e => patch({ liveOnly: e.target.checked })} className="toggle toggle-sm toggle-primary" />
                   Only while live
                 </label>
               </div>

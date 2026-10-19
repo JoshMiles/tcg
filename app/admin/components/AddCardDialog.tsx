@@ -30,27 +30,27 @@ export function AddCardDialog({
       <form ref={formRef} action={handleSubmit}>
         <div className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label htmlFor="add-card-name" className="block text-sm font-medium text-gray-300 mb-1.5">
-                Card Name <span className="text-red-400">*</span>
-              </label>
+            <fieldset className="fieldset col-span-2">
+              <legend className="fieldset-legend">
+                <label htmlFor="add-card-name">Card Name <span className="text-red-400">*</span></label>
+              </legend>
               <input
                 id="add-card-name"
                 name="name"
                 required
                 autoFocus
                 placeholder="e.g. Golden Cheese Wedge"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
+                className="input w-full"
               />
-            </div>
+            </fieldset>
 
-            <div>
-              <label htmlFor="add-card-stars" className="block text-sm font-medium text-gray-300 mb-1.5">Rarity</label>
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend"><label htmlFor="add-card-stars">Rarity</label></legend>
               <select
                 id="add-card-stars"
                 name="stars"
                 defaultValue="1"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-hidden focus:border-yellow-500 transition-colors appearance-none"
+                className="select w-full"
               >
                 {RARITIES.map(r => (
                   <option key={r.stars} value={r.stars}>
@@ -58,12 +58,12 @@ export function AddCardDialog({
                   </option>
                 ))}
               </select>
-            </div>
+            </fieldset>
 
-            <div>
-              <label htmlFor="add-card-probability" className="block text-sm font-medium text-gray-300 mb-1.5">
-                Probability <span className="text-red-400">*</span>
-              </label>
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend">
+                <label htmlFor="add-card-probability">Probability <span className="text-red-400">*</span></label>
+              </legend>
               <input
                 id="add-card-probability"
                 name="probability"
@@ -71,10 +71,10 @@ export function AddCardDialog({
                 min="1"
                 required
                 placeholder="e.g. 100"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
+                className="input w-full"
               />
-              <p className="text-xs text-gray-600 mt-1">Higher = more common</p>
-            </div>
+              <p className="fieldset-label">Higher = more common</p>
+            </fieldset>
           </div>
 
           <ImageUploadField name="imageUrl" />

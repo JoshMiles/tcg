@@ -7,7 +7,7 @@ import { BLENDS, PATTERN_IDS, PATTERN_LABELS } from '@/lib/card-back-patterns';
 import { plateBackground } from '@/lib/card-back-v1';
 import { makeFree, patchBackground, patchElements, resetElement, returnToStack, type Box } from '@/lib/card-back-edit';
 
-const field = 'w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500';
+const field = 'input input-sm w-full';
 const chip = (on: boolean) => `px-2 py-1 text-xs font-bold rounded-lg border ${on ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300' : 'bg-gray-800 border-gray-700 text-gray-300 hover:text-white'}`;
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
@@ -26,7 +26,7 @@ function Num({ label, value, min, max, step = 1, onChange }: { label: string; va
   );
 }
 function Check({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
-  return <label className="inline-flex items-center gap-1.5 text-xs text-gray-200"><input type="checkbox" checked={on} onChange={e => onChange(e.target.checked)} className="accent-yellow-400" />{label}</label>;
+  return <label className="inline-flex items-center gap-1.5 text-xs text-gray-200"><input type="checkbox" role="switch" checked={on} onChange={e => onChange(e.target.checked)} className="toggle toggle-xs toggle-primary" />{label}</label>;
 }
 /** A colour: the picker and a hex box, plus optional named values (`auto`, `rarity`). */
 function Colour({ label, value, onChange, named = [] }: { label: string; value: string; onChange: (v: string) => void; named?: string[] }) {
@@ -86,12 +86,12 @@ export function Properties({ style, selection, boxes, cardW, onChange }: {
           {free ? (
             <>
               <Row label="Font">
-                <select aria-label="Font" className={field} value={e.font} style={{ fontFamily: BACK_FONTS.find(f => f.id === e.font)?.css }} onChange={ev => set({ font: ev.target.value })}>
+                <select aria-label="Font" className="select select-sm w-full" value={e.font} style={{ fontFamily: BACK_FONTS.find(f => f.id === e.font)?.css }} onChange={ev => set({ font: ev.target.value })}>
                   {BACK_FONTS.map(f => <option key={f.id} value={f.id} style={{ fontFamily: f.css }}>{f.label}</option>)}
                 </select>
               </Row>
               <Num label="Size (%)" value={e.size} min={2} max={30} step={0.5} onChange={v => set({ size: v }, 'size')} />
-              <Row label="Weight"><select aria-label="Weight" className={field} value={e.weight} onChange={ev => set({ weight: Number(ev.target.value) })}>{WEIGHTS.map(w => <option key={w} value={w}>{w}</option>)}</select></Row>
+              <Row label="Weight"><select aria-label="Weight" className="select select-sm w-full" value={e.weight} onChange={ev => set({ weight: Number(ev.target.value) })}>{WEIGHTS.map(w => <option key={w} value={w}>{w}</option>)}</select></Row>
               <div className="flex flex-wrap gap-3"><Check label="Italic" on={e.italic} onChange={v => set({ italic: v })} /><Check label="Underline" on={e.underline} onChange={v => set({ underline: v })} /><Check label="Uppercase" on={e.uppercase} onChange={v => set({ uppercase: v })} /></div>
               <Num label="Spacing" value={e.letterSpacing} min={-2} max={20} step={0.5} onChange={v => set({ letterSpacing: v }, 'ls')} />
               <Num label="Line height" value={e.lineHeight} min={0.8} max={2.5} step={0.05} onChange={v => set({ lineHeight: v }, 'lh')} />
@@ -109,7 +109,7 @@ export function Properties({ style, selection, boxes, cardW, onChange }: {
         <Group title="Content">
           {e.kind === 'text' && (
             <label className="block text-xs text-gray-400">Text <span className="text-gray-600">({e.text.length}/{MAX_TEXT}) {'{pack} {season} {card} {version} {edition} {printNumber} {holder} {date}'}</span>
-              <textarea aria-label="Text" className={`${field} mt-1`} rows={2} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
+              <textarea aria-label="Text" className="textarea w-full mt-1" rows={2} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
             </label>
           )}
           {e.kind === 'logo' && (

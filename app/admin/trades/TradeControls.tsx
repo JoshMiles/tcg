@@ -6,7 +6,7 @@ import { Spinner } from '../components/PendingButton';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { cancelOpenTradesAction, extendOpenTradesAction, setSeasonTradingAction, type TradeActionResult } from '../trade-actions';
 
-const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500';
+const field = 'input';
 const btn = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 disabled:opacity-50 transition-colors';
 
 export interface ControlSeason { id: string; name: string; frozen: boolean; open: number }
@@ -58,7 +58,7 @@ export function TradeControls({ seasons, openTotal }: { seasons: ControlSeason[]
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-white">Cancel &amp; refund</h3>
         <form className="flex flex-wrap items-center gap-2" onSubmit={e => { e.preventDefault(); cancel(); }}>
-          <select value={scope} onChange={e => setScope(e.target.value)} aria-label="Scope" className={field}>
+          <select value={scope} onChange={e => setScope(e.target.value)} aria-label="Scope" className="select">
             <option value="all">Every open offer ({openTotal})</option>
             {seasons.map(s => <option key={s.id} value={s.id}>In {s.name} ({s.open})</option>)}
             <option value="viewer">Involving a viewer…</option>

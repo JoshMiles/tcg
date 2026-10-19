@@ -11,7 +11,7 @@ import type { ActionResult } from '../action-types';
 import { discordAction } from '../actions/settings';
 
 const inputClass =
-  'bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors';
+  'input';
 const secondaryBtn =
   'px-3.5 py-2 text-sm font-bold bg-gray-800 hover:bg-gray-700 text-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:pointer-events-none';
 
@@ -67,7 +67,7 @@ export function DiscordConfig({ settings, logs = {} }: { settings: DiscordSettin
         <input type="hidden" name="settings" value={JSON.stringify({ enabled, channels })} />
 
         <label className="flex items-center gap-3 cursor-pointer select-none">
-          <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} className="accent-yellow-500 w-4 h-4" />
+          <input type="checkbox" role="switch" checked={enabled} onChange={e => setEnabled(e.target.checked)} className="toggle toggle-primary" />
           <span className="text-sm text-white font-semibold">Post to Discord <span className="text-gray-500 font-normal">(master switch for every channel)</span></span>
         </label>
 
@@ -177,7 +177,7 @@ function ChannelCard({ channel: c, log, pending, onChange, onRemove }: {
         <label htmlFor={`${uid}-name`} className="sr-only">Channel name</label>
         <input id={`${uid}-name`} value={c.name} onChange={e => onChange({ name: e.target.value })} maxLength={40} className={`${inputClass} font-semibold w-48`} />
         <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
-          <input type="checkbox" checked={c.enabled} onChange={e => onChange({ enabled: e.target.checked, ...(e.target.checked ? { offReason: undefined } : {}) })} className="accent-yellow-500 w-4 h-4" />
+          <input type="checkbox" role="switch" checked={c.enabled} onChange={e => onChange({ enabled: e.target.checked, ...(e.target.checked ? { offReason: undefined } : {}) })} className="toggle toggle-sm toggle-primary" />
           On
         </label>
         {log[0] && (
@@ -194,8 +194,8 @@ function ChannelCard({ channel: c, log, pending, onChange, onRemove }: {
 
       {c.offReason && <p role="status" className="text-sm rounded-lg px-3 py-2 border text-amber-200 bg-amber-500/10 border-amber-400/30"><Icon name="warning" className="mr-1" />{c.offReason}. Fix the webhook, then tick On and Save.</p>}
 
-      <div className="space-y-1.5">
-        <label htmlFor={`${uid}-url`} className="block text-xs text-gray-500 font-bold uppercase tracking-wider">Webhook URL</label>
+      <fieldset className="fieldset">
+        <legend className="fieldset-legend"><label htmlFor={`${uid}-url`}>Webhook URL</label></legend>
         <div className="flex gap-2">
           <input
             id={`${uid}-url`}
@@ -209,14 +209,14 @@ function ChannelCard({ channel: c, log, pending, onChange, onRemove }: {
           />
           <button type="button" onClick={() => setShowUrl(s => !s)} className={secondaryBtn}>{showUrl ? 'Hide' : 'Show'}</button>
         </div>
-        <p className="text-xs text-gray-600">
+        <p className="fieldset-label">
           In Discord: <strong className="text-gray-400">Channel settings → Integrations → Webhooks → New Webhook → Copy Webhook URL</strong>.
           Treat it like a password. Anyone with it can post to your channel.
         </p>
-      </div>
+      </fieldset>
 
-      <fieldset className="space-y-2">
-        <legend className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">What to post</legend>
+      <fieldset className="fieldset">
+        <legend className="fieldset-legend">What to post</legend>
         {DISCORD_CATEGORIES.map(cat => (
           <div key={cat.key} className="space-y-2">
           <label className="flex items-start gap-3 cursor-pointer select-none">
@@ -262,12 +262,12 @@ function ChannelCard({ channel: c, log, pending, onChange, onRemove }: {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <label className="flex items-center gap-2 text-sm text-gray-300">
             Minimum rarity
-            <select value={String(c.minStars)} onChange={e => onChange({ minStars: Number(e.target.value) })} disabled={!c.categories.pulls} className={`${inputClass} py-1.5`}>
+            <select value={String(c.minStars)} onChange={e => onChange({ minStars: Number(e.target.value) })} disabled={!c.categories.pulls} className="select">
               {MIN_STARS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
           </label>
           <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
-            <input type="checkbox" checked={c.newOnly} onChange={e => onChange({ newOnly: e.target.checked })} disabled={!c.categories.pulls} className="accent-yellow-500 w-4 h-4" />
+            <input type="checkbox" role="switch" checked={c.newOnly} onChange={e => onChange({ newOnly: e.target.checked })} disabled={!c.categories.pulls} className="toggle toggle-sm toggle-primary" />
             Only cards the viewer didn&apos;t have yet
           </label>
         </div>
