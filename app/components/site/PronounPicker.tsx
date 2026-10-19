@@ -1,7 +1,7 @@
 'use client';
 import { PRONOUN_CHOICES, PRONOUN_MODE_LABELS, sanitizePronouns, type PronounMode, type Pronouns } from '@/lib/pronouns';
 
-const select = 'rounded-xl bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-gray-200';
+const select = 'select select-sm w-fit max-w-full';
 
 /** Pronouns: off (the default), one pick from a fixed list, or the ones set on pr.alejo.io. Used in Settings and in the profile editor. */
 export function PronounPicker({ value, onChange, id = 'pronouns' }: { value: Pronouns; onChange: (v: Pronouns) => void; id?: string }) {

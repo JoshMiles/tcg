@@ -15,7 +15,7 @@ type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatc
 
 function Section({ icon, title, hint, children }: { icon: Parameters<typeof Icon>[0]['name']; title: string; hint?: string; children: ReactNode }) {
   return (
-    <section className="tcg-panel rounded-2xl p-5 space-y-4">
+    <section className="card tcg-panel rounded-2xl p-5 space-y-4">
       <div>
         <h2 className="font-display text-xl font-bold text-white"><Icon name={icon} className="mr-2 text-yellow-400" />{title}</h2>
         {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
@@ -32,7 +32,7 @@ function Row({ label, help, checked, onChange, id }: { label: string; help: stri
         <span className="block text-sm font-semibold text-gray-100">{label}</span>
         <span className="block text-xs text-gray-500 mt-0.5">{help}</span>
       </span>
-      <input id={id} type="checkbox" role="switch" checked={checked} onChange={e => onChange(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-yellow-500" />
+      <input id={id} type="checkbox" role="switch" checked={checked} onChange={e => onChange(e.target.checked)} className="toggle toggle-sm toggle-primary mt-1 shrink-0" />
     </label>
   );
 }
@@ -75,12 +75,12 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
   return (
     <form onSubmit={e => { e.preventDefault(); void save(); }} className="space-y-6">
       <Section icon="user" title="Profile" hint="What other collectors see on your page.">
-        <div className="pb-3 space-y-1.5">
-          <label htmlFor="bio" className="block text-sm font-semibold text-gray-100">About you</label>
+        <fieldset className="fieldset pb-3">
+          <legend className="fieldset-legend"><label htmlFor="bio">About you</label></legend>
           <textarea id="bio" value={s.bio} maxLength={BIO_MAX} rows={2} onChange={e => setS(p => ({ ...p, bio: e.target.value }))}
-            placeholder="A line about your collection, favourite card, trading wishes..." className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-hidden" />
+            placeholder="A line about your collection, favourite card, trading wishes..." className="textarea w-full" />
           <p className="text-xs text-gray-500 text-right tabular-nums">{s.bio.length}/{BIO_MAX}</p>
-        </div>
+        </fieldset>
         <div className="py-3 space-y-2">
           <p className="text-sm font-semibold text-gray-100">Header colour</p>
           <AccentPicker id="settings-accent" value={s.accent} onChange={v => setS(p => ({ ...p, accent: v }))} />
@@ -91,14 +91,14 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
           <PronounPicker id="settings-pronouns" value={s.pronouns} onChange={v => setS(p => ({ ...p, pronouns: v }))} />
           <p className="text-xs text-gray-500">Shown after your name on your profile. Off until you choose.</p>
         </div>
-        <div className="py-3 space-y-1.5">
-          <label htmlFor="collection-view" className="block text-sm font-semibold text-gray-100">Show visitors my collection as</label>
-          <select id="collection-view" value={s.collectionView} onChange={e => setS(p => ({ ...p, collectionView: e.target.value === 'binder' ? 'binder' : 'grid' }))} className="rounded-xl bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-gray-200">
+        <fieldset className="fieldset py-3">
+          <legend className="fieldset-legend"><label htmlFor="collection-view">Show visitors my collection as</label></legend>
+          <select id="collection-view" value={s.collectionView} onChange={e => setS(p => ({ ...p, collectionView: e.target.value === 'binder' ? 'binder' : 'grid' }))} className="select select-sm w-fit max-w-full">
             <option value="grid">A card grid</option>
             <option value="binder">My binder</option>
           </select>
           <p className="text-xs text-gray-500">Visitors can still switch views; their own choice wins.</p>
-        </div>
+        </fieldset>
         <div className="py-3 space-y-2" id="looking-for">
           <p className="text-sm font-semibold text-gray-100">Looking for</p>
           <p className="text-xs text-gray-500">Up to 6 cards you want. They show in the Looking for widget on your profile, and collectors who own one get a one-click trade offer.</p>
@@ -109,7 +109,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
             ))}
             <span className="text-xs text-gray-600 self-center">{s.wanted.length}/{WANTED_MAX}</span>
           </div>
-          <input type="search" value={find} onChange={e => setFind(e.target.value)} placeholder="Search a card to add" aria-label="Search cards to add" className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
+          <input type="search" value={find} onChange={e => setFind(e.target.value)} placeholder="Search a card to add" aria-label="Search cards to add" className="input input-sm w-full" />
           {matches.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">
               {matches.map(c => (
@@ -144,8 +144,8 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
           </div>
           <div className="flex flex-wrap gap-2">
             <input type="search" value={watchFind} onChange={e => setWatchFind(e.target.value)} placeholder="Search a card to watch" aria-label="Search a card to watch"
-              className="min-w-0 flex-1 basis-44 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
-            <select value={watchVariant} onChange={e => setWatchVariant(e.target.value as Variant | '')} aria-label="Version to watch for" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
+              className="input input-sm flex-1 min-w-40" />
+            <select value={watchVariant} onChange={e => setWatchVariant(e.target.value as Variant | '')} aria-label="Version to watch for" className="select select-sm w-fit max-w-full">
               <option value="">Any version</option>
               {VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}
             </select>
