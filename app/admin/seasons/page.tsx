@@ -64,9 +64,9 @@ export default async function SeasonsPage({ searchParams }: { searchParams: Prom
               <div
                 key={s.id}
                 className={`rounded-3xl p-[3px] transition-all ${
-                  isDraft ? 'bg-gradient-to-r from-amber-700/60 to-gray-800'
-                  : s.active ? 'bg-gradient-to-r from-yellow-300 via-yellow-500 to-amber-600 shadow-glow'
-                  : 'bg-gradient-to-r from-gray-700 to-gray-800'
+                  isDraft ? 'bg-linear-to-r from-amber-700/60 to-gray-800'
+                  : s.active ? 'bg-linear-to-r from-yellow-300 via-yellow-500 to-amber-600 shadow-glow'
+                  : 'bg-linear-to-r from-gray-700 to-gray-800'
                 }`}
               >
                 <div className="rounded-[1.35rem] bg-gray-900 overflow-hidden">

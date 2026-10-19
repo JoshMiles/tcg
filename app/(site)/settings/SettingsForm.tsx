@@ -78,7 +78,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         <div className="pb-3 space-y-1.5">
           <label htmlFor="bio" className="block text-sm font-semibold text-gray-100">About you</label>
           <textarea id="bio" value={s.bio} maxLength={BIO_MAX} rows={2} onChange={e => setS(p => ({ ...p, bio: e.target.value }))}
-            placeholder="A line about your collection, favourite card, trading wishes..." className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-none" />
+            placeholder="A line about your collection, favourite card, trading wishes..." className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-hidden" />
           <p className="text-xs text-gray-500 text-right tabular-nums">{s.bio.length}/{BIO_MAX}</p>
         </div>
         <div className="py-3 space-y-2">
@@ -109,7 +109,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
             ))}
             <span className="text-xs text-gray-600 self-center">{s.wanted.length}/{WANTED_MAX}</span>
           </div>
-          <input type="search" value={find} onChange={e => setFind(e.target.value)} placeholder="Search a card to add" aria-label="Search cards to add" className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
+          <input type="search" value={find} onChange={e => setFind(e.target.value)} placeholder="Search a card to add" aria-label="Search cards to add" className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
           {matches.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">
               {matches.map(c => (
@@ -144,7 +144,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
           </div>
           <div className="flex flex-wrap gap-2">
             <input type="search" value={watchFind} onChange={e => setWatchFind(e.target.value)} placeholder="Search a card to watch" aria-label="Search a card to watch"
-              className="min-w-0 flex-1 basis-44 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
+              className="min-w-0 flex-1 basis-44 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
             <select value={watchVariant} onChange={e => setWatchVariant(e.target.value as Variant | '')} aria-label="Version to watch for" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
               <option value="">Any version</option>
               {VARIANTS.map(v => <option key={v} value={v}>{VARIANT_LABELS[v]}</option>)}
@@ -182,7 +182,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         </div>
       </Section>
 
-      <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-950/90 backdrop-blur px-4 py-3">
+      <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-950/90 backdrop-blur-sm px-4 py-3">
         <p role="status" aria-live="polite" className={`text-sm ${state.kind === 'error' ? 'text-red-300' : state.kind === 'ok' ? 'text-emerald-300' : 'text-gray-500'}`}>
           {state.kind === 'saving' ? 'Saving...' : state.msg ?? (dirty ? 'Unsaved changes' : 'Up to date')}
         </p>

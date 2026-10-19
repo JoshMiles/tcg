@@ -30,7 +30,7 @@ const ago = (at: number) => {
 
 const Empty = ({ icon, title, children }: { icon: Parameters<typeof Icon>[0]['name']; title: string; children?: React.ReactNode }) => (
   <div className="rind rounded-2xl px-6 py-12 text-center space-y-2">
-    <span className="mx-auto w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] text-gray-500 flex items-center justify-center"><Icon name={icon} className="w-6 h-6" /></span>
+    <span className="mx-auto w-12 h-12 rounded-2xl bg-white/4 border border-white/6 text-gray-500 flex items-center justify-center"><Icon name={icon} className="w-6 h-6" /></span>
     <p className="font-display text-xl font-bold text-white">{title}</p>
     {children && <p className="text-sm text-gray-400 max-w-md mx-auto">{children}</p>}
   </div>
@@ -42,7 +42,7 @@ export function CollectionTab({ b, grid, isOwner, tradeWith, prefs, mine }: { b:
   if (b.allCards.length === 0) return <Empty icon="cards" title="No cards in this season yet">Check back once packs are added.</Empty>;
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(7rem,1fr))]">
+      <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(7rem,1fr))]">
         {b.rarity.map(r => (
           <div key={r.stars} className="tcg-panel rounded-xl p-3 text-center">
             <p className="text-xs font-medium mb-1" style={{ color: r.hex }}>{'★'.repeat(r.stars)}</p>
@@ -98,7 +98,7 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
           {s.topCopies.slice(0, 5).map((t, i) => (
             <li key={`${t.card.number}-${t.variant}-${t.serial ?? 'all'}`}>
               <Link href={printLinks[i] ?? `/cards?card=${t.card.number}`} className="flex items-center gap-3 py-2 -mx-2 px-2 rounded-lg hover:bg-gray-800/60 focus-visible:bg-gray-800/60 transition-colors">
-              <span className="w-8 h-11 rounded overflow-hidden bg-gray-800 shrink-0"><CardTile imageUrl={t.card.imageUrl} alt="" className="relative w-full h-full" /></span>
+              <span className="w-8 h-11 rounded-sm overflow-hidden bg-gray-800 shrink-0"><CardTile imageUrl={t.card.imageUrl} alt="" className="relative w-full h-full" /></span>
               <span className="min-w-0 flex-1"><span className="block text-sm text-white truncate">{t.card.name}</span><span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? ` · #${t.serial}` : ''} <span className={getRarity(t.card.stars)?.text}>{'★'.repeat(t.card.stars)}</span></span></span>
               <span className="font-display font-bold text-yellow-400 tabular-nums">{t.value.toLocaleString()}</span>
               </Link>

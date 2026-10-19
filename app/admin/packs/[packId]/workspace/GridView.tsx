@@ -71,11 +71,11 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
   if (rows.length === 0) return <p className="tcg-panel rounded-2xl px-5 py-12 text-center text-gray-500">No cards yet. Add one in the Edit view.</p>;
 
   const th = 'px-2 py-2 text-left text-[11px] uppercase tracking-wider text-gray-500 font-bold whitespace-nowrap';
-  const cell = `${inputCls} !py-1 !px-2 !text-sm`;
+  const cell = `${inputCls} py-1! px-2! text-sm!`;
   return (
     <div className="tcg-panel rounded-2xl overflow-auto min-h-0 max-h-[75vh] xl:max-h-full">
       {only && <div className="flex items-center justify-between gap-3 px-4 py-2 text-sm bg-sky-950/30 border-b border-sky-500/20 text-sky-200"><span>Showing the {rows.length} card{rows.length === 1 ? '' : 's'} just imported. Set their stars and weights here.</span><button type="button" onClick={onShowAll} className="font-bold underline">Show all cards</button></div>}
-      <table ref={table} className="w-full text-sm min-w-[56rem]">
+      <table ref={table} className="w-full text-sm min-w-4xl">
         <thead className="sticky top-0 z-10 bg-gray-900">
           <tr className="border-b border-gray-800">
             <th className={`${th} w-8`}><span className="sr-only">Select</span></th>
@@ -96,11 +96,11 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
             const on = selected.has(c.id);
             const chance = oneInLabel(c.probability, total);
             return (
-              <tr key={c.id} className={`border-b border-gray-800/60 ${focus === c.id ? 'bg-yellow-500/10' : on ? 'bg-white/[0.05]' : ''}`}>
+              <tr key={c.id} className={`border-b border-gray-800/60 ${focus === c.id ? 'bg-yellow-500/10' : on ? 'bg-white/5' : ''}`}>
                 <td className="px-2"><input type="checkbox" checked={on} aria-label={`Select ${c.name || 'card'}`} onChange={() => onSelect(c.id, 'toggle', ids)} onClick={e => { if (e.shiftKey) { e.preventDefault(); onSelect(c.id, 'range', ids); } }} className="accent-yellow-400" /></td>
                 <td className="px-2 text-gray-500 tabular-nums">{c.number || 'new'}{held.has(c.number) && <span title="Viewers hold this card" className="ml-1 text-gray-600"><Icon name="lock" /></span>}</td>
-                <td className="px-2 py-1"><span className="block w-8 h-11 rounded bg-gray-800 overflow-hidden">{c.imageUrl && <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-full h-full object-cover" />}</span></td>
-                <td className="px-1 py-1 min-w-[10rem]"><input data-col="name" data-row={i} aria-label={`Name of card ${c.number || 'new'}`} className={cell} value={c.name} maxLength={80} onFocus={() => onSelect(c.id, 'replace', ids)} onChange={e => patch(c.id, { name: e.target.value }, 'name')} onKeyDown={e => onKey(e, 'name', i)} onPaste={e => onPaste(e, 'name', i)} /></td>
+                <td className="px-2 py-1"><span className="block w-8 h-11 rounded-sm bg-gray-800 overflow-hidden">{c.imageUrl && <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-full h-full object-cover" />}</span></td>
+                <td className="px-1 py-1 min-w-40"><input data-col="name" data-row={i} aria-label={`Name of card ${c.number || 'new'}`} className={cell} value={c.name} maxLength={80} onFocus={() => onSelect(c.id, 'replace', ids)} onChange={e => patch(c.id, { name: e.target.value }, 'name')} onKeyDown={e => onKey(e, 'name', i)} onPaste={e => onPaste(e, 'name', i)} /></td>
                 <td className="px-1 py-1 w-24">
                   <select data-col="stars" data-row={i} aria-label={`Stars of ${c.name || 'card'}`} className={cell} style={{ color: getRarity(c.stars)?.hex }} value={c.stars} onChange={e => patch(c.id, { stars: Number(e.target.value) })} onKeyDown={e => onKey(e, 'stars', i)} onPaste={e => onPaste(e, 'stars', i)}>
                     {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{'★'.repeat(n)}</option>)}
@@ -118,7 +118,7 @@ export function GridView({ pack, cards, held, selected, focus, problemIds, onSel
                       return (
                         <button key={v} type="button" aria-pressed={isOn} disabled={packOff || !pack.upgradesEnabled} title={`${VARIANT_LABELS[v]}${packOff ? ' (off for the whole pack)' : ''}`}
                           onClick={() => patch(c.id, { disabledVariants: isOn ? [...c.disabledVariants, v] : c.disabledVariants.filter(x => x !== v) })}
-                          className={`px-1.5 py-0.5 rounded text-[11px] font-bold border disabled:opacity-40 ${isOn ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-500'}`}>{v === 'reverse' ? 'RH' : v === 'full' ? 'FA' : 'SH'}</button>
+                          className={`px-1.5 py-0.5 rounded-sm text-[11px] font-bold border disabled:opacity-40 ${isOn ? 'border-yellow-500/50 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-500'}`}>{v === 'reverse' ? 'RH' : v === 'full' ? 'FA' : 'SH'}</button>
                       );
                     })}
                   </span>

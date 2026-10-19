@@ -71,7 +71,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold text-white break-words">{season.name}</h1>
+            <h1 className="text-3xl font-bold text-white wrap-break-word">{season.name}</h1>
             {season.status === 'draft' && <DraftChip />}
             {season.active && <span className="text-xs px-2 py-1 bg-green-900/60 text-green-400 rounded-full">Active</span>}
             {season.endedAt && <span className="text-xs px-2 py-1 bg-gray-800 text-gray-300 rounded-full">Ended {when(season.endedAt)}</span>}
@@ -279,7 +279,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
 
         {availablePacks.length > 0 && (
           <form action={addPack} className="flex gap-2">
-            <select name="packId" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors">
+            <select name="packId" className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500 transition-colors">
               <option value="">Select a pack to add…</option>
               {availablePacks.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>

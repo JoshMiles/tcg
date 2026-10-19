@@ -8,7 +8,7 @@ import {
 } from '@/lib/commands-core';
 import { saveCommandsAction, tryCommandAction } from './commands-actions';
 
-const input = 'w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none';
+const input = 'w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-hidden';
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
 const help = 'text-[11px] text-gray-500 mt-1';
 const primary = 'rounded-lg bg-yellow-500 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-400 disabled:opacity-60';
@@ -68,14 +68,14 @@ export function CommandsPanel({ initial, stats, webhookUrl, secret }: { initial:
         <aside className="tcg-panel rounded-2xl overflow-hidden self-start">
           <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between gap-2">
             <h2 className="font-semibold text-white text-sm">Commands</h2>
-            <button type="button" onClick={add} disabled={commands.length >= MAX_COMMANDS} className={`${secondary} !py-1 !px-2 text-xs`}>New</button>
+            <button type="button" onClick={add} disabled={commands.length >= MAX_COMMANDS} className={`${secondary} py-1! px-2! text-xs`}>New</button>
           </div>
           {commands.length === 0 ? <p className="px-4 py-4 text-sm text-gray-500">No commands yet.</p> : (
             <ul className="divide-y divide-gray-800/70">
               {commands.map(c => (
                 <li key={c.id}>
                   <button type="button" onClick={() => setSelected(c.id)} aria-current={c.id === selected ? 'true' : undefined}
-                    className={`w-full text-left px-4 py-2.5 hover:bg-white/[0.04] ${c.id === selected ? 'bg-yellow-500/10' : ''}`}>
+                    className={`w-full text-left px-4 py-2.5 hover:bg-white/4 ${c.id === selected ? 'bg-yellow-500/10' : ''}`}>
                     <span className="flex items-center gap-2">
                       <span className="font-semibold text-white">!{c.name}</span>
                       {!c.enabled && <Chip tone="gray">off</Chip>}
@@ -200,7 +200,7 @@ function TryIt({ cmd }: { cmd: ChatCommand }) {
         </div>
         <button type="button" onClick={run} disabled={busy} className={secondary}>{busy ? 'Running...' : 'Run'}</button>
       </div>
-      {out && <pre aria-label="Reply" className="max-h-72 overflow-auto rounded-lg border border-gray-800 bg-black/40 p-3 text-xs text-gray-200 whitespace-pre-wrap break-words">{out}</pre>}
+      {out && <pre aria-label="Reply" className="max-h-72 overflow-auto rounded-lg border border-gray-800 bg-black/40 p-3 text-xs text-gray-200 whitespace-pre-wrap wrap-break-word">{out}</pre>}
     </div>
   );
 }

@@ -53,8 +53,8 @@ export function ProvenanceTimeline({ prov, who, plain, seasonId, refs, madeFrom,
   const tile = (label: string, value: ReactNode, sub?: ReactNode) => (
     <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3 min-w-0">
       <p className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{label}</p>
-      <p className="mt-0.5 font-display text-xl font-bold text-white leading-tight break-words">{value}</p>
-      {sub && <p className="text-xs text-gray-500 break-words">{sub}</p>}
+      <p className="mt-0.5 font-display text-xl font-bold text-white leading-tight wrap-break-word">{value}</p>
+      {sub && <p className="text-xs text-gray-500 wrap-break-word">{sub}</p>}
     </div>
   );
 

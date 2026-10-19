@@ -42,7 +42,7 @@ export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, ap
             onChange={e => setPresetName(e.target.value)}
             maxLength={40}
             placeholder="New preset name"
-            className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none"
+            className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-hidden"
           />
           <PendingButton type="submit" disabled={!presetName.trim()} className={`${ghost} disabled:opacity-40`}>Save</PendingButton>
         </form>
@@ -64,7 +64,7 @@ export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, ap
                     setNotice(r.message);
                   }}
                   aria-label={`Look for ${s.name}`}
-                  className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-[9rem]"
+                  className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-36"
                 >
                   <option value="">Global look</option>
                   {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -81,7 +81,7 @@ export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, ap
 export function ScenesMenu({ presets, initialLayout, globalLayout, siteUrl, overlayKey, scope, setScope, setNotice, savePresetAction, presetName, setPresetName, dirty }: { presets: PresetInfo[]; initialLayout: OverlayLayout; globalLayout: OverlayLayout; siteUrl: string; overlayKey: string; scope: string; setScope: (v: string) => void; setNotice: Notify; savePresetAction: FormAction; presetName: string; setPresetName: (v: string) => void; dirty: boolean }) {
   return (
     <Popover label="Scenes" icon="tv" badge={presets.length || undefined}>
-      <div className="w-[26rem] max-w-[85vw] space-y-3 text-sm">
+      <div className="w-104 max-w-[85vw] space-y-3 text-sm">
         <p className="text-xs text-gray-500">
           A scene has its own overlay URL, so each OBS scene (a vertical one, a different canvas size) can use its own size, position and look.
           Put the URL in that scene&apos;s browser source. Everything a scene does not change follows the global look.
@@ -100,7 +100,7 @@ export function ScenesMenu({ presets, initialLayout, globalLayout, siteUrl, over
                   <span className="text-[11px] text-gray-500 shrink-0">{row.size}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <code className="flex-1 min-w-0 truncate rounded bg-gray-950 border border-gray-800 px-1.5 py-1 text-[11px] text-gray-400">{url}</code>
+                  <code className="flex-1 min-w-0 truncate rounded-sm bg-gray-950 border border-gray-800 px-1.5 py-1 text-[11px] text-gray-400">{url}</code>
                   <button type="button" onClick={() => navigator.clipboard.writeText(url).then(() => setNotice(`Copied the URL for "${row.name}".`), () => setNotice('Could not copy. Select the URL instead.'))} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`}>Copy</button>
                   <a href={url} target="_blank" rel="noreferrer" className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`} aria-label={`Open the overlay for ${row.name}`}>Open</a>
                   <button type="button" onClick={() => setScope(key)} disabled={scope === key} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1 disabled:opacity-40`}>Edit</button>
@@ -115,7 +115,7 @@ export function ScenesMenu({ presets, initialLayout, globalLayout, siteUrl, over
           <input type="hidden" name="scope" value={scope} />
           <input type="hidden" name="layout" value={JSON.stringify(globalLayout)} />
           <div className="flex items-center gap-2">
-            <input name="name" value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={40} placeholder="e.g. Vertical, Just chatting" className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none" />
+            <input name="name" value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={40} placeholder="e.g. Vertical, Just chatting" className="flex-1 min-w-0 rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-hidden" />
             <select name="sceneKind" defaultValue="landscape" aria-label="Orientation" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1.5 text-sm text-gray-200">
               <option value="landscape">Landscape</option>
               <option value="vertical">Vertical</option>
@@ -187,7 +187,7 @@ export function ImportExportMenu({ download, copyJson, runImport, importText, se
           onChange={e => { setImportText(e.target.value); setImportError(''); }}
           rows={3}
           placeholder="…or paste exported JSON here"
-          className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-xs font-mono text-white focus:border-yellow-500 focus:outline-none"
+          className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-xs font-mono text-white focus:border-yellow-500 focus:outline-hidden"
         />
         <div className="flex items-center gap-3">
           <button type="button" disabled={!importText.trim()} onClick={() => runImport(importText)} className={`${ghost} disabled:opacity-40`}>Import pasted JSON</button>
@@ -251,7 +251,7 @@ export function PackToolsMenu({ packs, packVals, setPackVals, scope, globalVals,
 export function ReviewMenu({ diffs, dirty }: { diffs: DiffLine[]; dirty: boolean }) {
   return (
     <Popover label={`Review${diffs.length ? ` (${diffs.length})` : ''}`} icon="list" align="right" disabled={!dirty}>
-      <div className="w-[26rem] max-w-[85vw] space-y-2 text-sm">
+      <div className="w-104 max-w-[85vw] space-y-2 text-sm">
         <p className="text-xs text-gray-500">Everything that differs from what is saved. Nothing goes live until you Save.</p>
         <ul className="max-h-80 overflow-y-auto divide-y divide-gray-800/70">
           {diffs.map((d, i) => (
@@ -272,7 +272,7 @@ export function SaveOptionsMenu({ note, setNote, autoReload, setAutoReload }: { 
     <Popover label="Save options" icon="settings" align="right">
       <div className="w-72 space-y-3 text-sm">
         <label className="block text-xs text-gray-400 space-y-1">Version note (optional)
-          <input value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="e.g. Brighter shiny glow" className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none" />
+          <input value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="e.g. Brighter shiny glow" className="w-full rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-hidden" />
         </label>
         <label className="flex items-start gap-2 text-xs text-gray-300"><input type="checkbox" checked={autoReload} onChange={e => setAutoReload(e.target.checked)} className="mt-0.5 accent-yellow-400" /><span>Refresh open overlays after saving. They reload once nothing is animating, so a pack opening is never cut short.</span></label>
       </div>

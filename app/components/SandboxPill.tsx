@@ -12,8 +12,8 @@ export async function SandboxPill() {
   if (isPreview()) {
     return (
       <>
-      <div aria-hidden className="fixed top-0 inset-x-0 h-[3px] z-[70] bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 pointer-events-none" />
-      <div className="fixed bottom-3 lg:bottom-auto lg:top-2 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-950/90 backdrop-blur px-3.5 py-1.5 text-xs font-semibold text-amber-100 shadow-lg shadow-amber-950/50">
+      <div aria-hidden className="fixed top-0 inset-x-0 h-[3px] z-70 bg-linear-to-r from-amber-500 via-orange-400 to-amber-500 pointer-events-none" />
+      <div className="fixed bottom-3 lg:bottom-auto lg:top-2 left-1/2 -translate-x-1/2 z-60 flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-950/90 backdrop-blur-sm px-3.5 py-1.5 text-xs font-semibold text-amber-100 shadow-lg shadow-amber-950/50">
         <Icon name="flask" />
         <span>Preview deployment</span>
         <span className="text-amber-400/60" aria-hidden>·</span>
@@ -28,8 +28,8 @@ export async function SandboxPill() {
   return (
     <>
     {/* A thin bar across the top of every page, so a sandbox is never mistaken for production even when the pill is out of sight. */}
-    <div aria-hidden className="fixed top-0 inset-x-0 h-[3px] z-[70] bg-gradient-to-r from-purple-500 via-fuchsia-400 to-purple-500 pointer-events-none" />
-    <div className="fixed bottom-3 lg:bottom-auto lg:top-2 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 rounded-full border border-purple-400/50 bg-purple-950/90 backdrop-blur px-3.5 py-1.5 text-xs font-semibold text-purple-100 shadow-lg shadow-purple-950/50">
+    <div aria-hidden className="fixed top-0 inset-x-0 h-[3px] z-70 bg-linear-to-r from-purple-500 via-fuchsia-400 to-purple-500 pointer-events-none" />
+    <div className="fixed bottom-3 lg:bottom-auto lg:top-2 left-1/2 -translate-x-1/2 z-60 flex items-center gap-2 rounded-full border border-purple-400/50 bg-purple-950/90 backdrop-blur-sm px-3.5 py-1.5 text-xs font-semibold text-purple-100 shadow-lg shadow-purple-950/50">
       <Icon name="flask" />
       <span>Sandbox: {sandbox?.name ?? 'missing'}{!sandbox && ' (deleted)'}</span>
       <span className="text-purple-400/60" aria-hidden>·</span>

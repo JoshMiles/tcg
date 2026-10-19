@@ -68,7 +68,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer, badges = {}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <input type="search" value={q} onChange={e => { setQ(e.target.value); setShown(PAGE); }} placeholder="Find a collector" aria-label="Find a collector" className="min-w-0 flex-1 basis-48 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-none" />
+        <input type="search" value={q} onChange={e => { setQ(e.target.value); setShown(PAGE); }} placeholder="Find a collector" aria-label="Find a collector" className="min-w-0 flex-1 basis-48 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-hidden" />
         {me && (
           <button type="button" onClick={jumpToMe} className="inline-flex items-center gap-1.5 rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-sm font-bold text-yellow-200 hover:bg-yellow-500/20">
             <Icon name="user" />You are #{me.rank}

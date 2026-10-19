@@ -89,7 +89,7 @@ export function ImportDialog({ files, existing, onClose, onApply }: {
         </p>
         {tooMany && <p role="alert" className="text-sm text-amber-300">Only the first {MAX_IMPORT_FILES} files are used. Import the rest in another drop.</p>}
         <div className="max-h-[50vh] overflow-auto rounded-xl border border-gray-800">
-          <table className="w-full text-sm min-w-[40rem]">
+          <table className="w-full text-sm min-w-160">
             <thead className="sticky top-0 bg-gray-900 text-[11px] uppercase tracking-wider text-gray-500"><tr><th className="px-2 py-2 w-8"><span className="sr-only">Include</span></th><th className="px-2 py-2 w-14" /><th className="px-2 py-2 text-left">What it becomes</th><th className="px-2 py-2 text-left w-20">Number</th><th className="px-2 py-2 text-left">Name</th><th className="px-2 py-2 text-left">Notes</th></tr></thead>
             <tbody className="divide-y divide-gray-800/60">
               {rows.map(r => {
@@ -98,14 +98,14 @@ export function ImportDialog({ files, existing, onClose, onApply }: {
                 return (
                   <tr key={`${r.file}-${r.kind}`} className={st?.state === 'done' ? 'opacity-50' : ''}>
                     <td className="px-2"><input type="checkbox" aria-label={`Import ${used[r.file].name}`} disabled={bad || busy || st?.state === 'done'} checked={on.has(r.file) && !bad} onChange={e => setOn(s => { const n = new Set(s); if (e.target.checked) n.add(r.file); else n.delete(r.file); return n; })} className="accent-yellow-400" /></td>
-                    <td className="px-2 py-1">{urls[r.file] ? <img src={urls[r.file]} alt="" className="w-10 h-14 object-cover rounded" /> : <span className="w-10 h-14 rounded bg-gray-800 flex items-center justify-center text-gray-500"><Icon name="music" /></span>}</td>
+                    <td className="px-2 py-1">{urls[r.file] ? <img src={urls[r.file]} alt="" className="w-10 h-14 object-cover rounded-sm" /> : <span className="w-10 h-14 rounded-sm bg-gray-800 flex items-center justify-center text-gray-500"><Icon name="music" /></span>}</td>
                     <td className="px-2 text-gray-300">
                       {r.skip && r.kind === 'new' ? 'Not used' : r.kind === 'new' ? 'New card' : r.kind === 'fullart' ? 'Full art' : 'Sound'}
                       {r.kind !== 'new' && r.targetName && <span className="block text-xs text-gray-500">of {r.targetName}</span>}
-                      <span className="block text-[11px] text-gray-600 truncate max-w-[10rem]">{used[r.file].name}</span>
+                      <span className="block text-[11px] text-gray-600 truncate max-w-40">{used[r.file].name}</span>
                     </td>
-                    <td className="px-2">{r.kind === 'new' ? <input type="number" aria-label="Number" min={1} className={`${inputCls} !py-1 !px-2`} value={numberOf(r)} disabled={busy} onChange={e => setEdits(x => ({ ...x, [r.file]: { ...x[r.file], number: Number(e.target.value) } }))} /> : null}</td>
-                    <td className="px-2">{r.kind === 'new' ? <input aria-label="Name" className={`${inputCls} !py-1 !px-2`} value={nameOf(r)} maxLength={80} disabled={busy} onChange={e => setEdits(x => ({ ...x, [r.file]: { ...x[r.file], name: e.target.value } }))} /> : <span className="text-gray-500">{r.name}</span>}</td>
+                    <td className="px-2">{r.kind === 'new' ? <input type="number" aria-label="Number" min={1} className={`${inputCls} py-1! px-2!`} value={numberOf(r)} disabled={busy} onChange={e => setEdits(x => ({ ...x, [r.file]: { ...x[r.file], number: Number(e.target.value) } }))} /> : null}</td>
+                    <td className="px-2">{r.kind === 'new' ? <input aria-label="Name" className={`${inputCls} py-1! px-2!`} value={nameOf(r)} maxLength={80} disabled={busy} onChange={e => setEdits(x => ({ ...x, [r.file]: { ...x[r.file], name: e.target.value } }))} /> : <span className="text-gray-500">{r.name}</span>}</td>
                     <td className="px-2 text-xs">
                       {st?.state === 'uploading' && <span className="text-sky-300">{phase || 'Uploading'}…</span>}
                       {st?.state === 'done' && <span className="text-emerald-300">Done</span>}

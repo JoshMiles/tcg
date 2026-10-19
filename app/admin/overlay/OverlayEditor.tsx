@@ -534,7 +534,7 @@ export function OverlayEditor({
           <select
             value={scope}
             onChange={e => setScope(e.target.value)}
-            className="rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-none max-w-[14rem]"
+            className="rounded-md bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-white focus:border-yellow-500 focus:outline-hidden max-w-56"
           >
             <option value="global">Everything (global)</option>
             {packs.map(p => (
@@ -614,10 +614,10 @@ export function OverlayEditor({
         <div className="min-h-0 min-w-0 flex flex-col gap-2">
           <div
             ref={boxRef}
-            className="relative flex-1 min-h-[16rem] h-[55vh] xl:h-auto rounded-xl border border-gray-800 bg-gray-950/70 overflow-auto flex"
+            className="relative flex-1 min-h-64 h-[55vh] xl:h-auto rounded-xl border border-gray-800 bg-gray-950/70 overflow-auto flex"
           >
             <div
-              className="relative overflow-hidden rounded-md border border-gray-700 shrink-0 m-auto outline-none focus-visible:border-yellow-500"
+              className="relative overflow-hidden rounded-md border border-gray-700 shrink-0 m-auto outline-hidden focus-visible:border-yellow-500"
               tabIndex={dragging ? 0 : -1}
               onKeyDown={onKeyDown}
               style={{
@@ -658,8 +658,8 @@ export function OverlayEditor({
               )}
               {showSafe && (
                 <>
-                  <div aria-hidden className="absolute inset-[5%] border border-dashed border-amber-300/50 pointer-events-none"><span className="absolute -top-0 left-1 text-[9px] text-amber-300/70">action safe</span></div>
-                  <div aria-hidden className="absolute inset-[10%] border border-dashed border-rose-300/50 pointer-events-none"><span className="absolute -top-0 left-1 text-[9px] text-rose-300/70">title safe</span></div>
+                  <div aria-hidden className="absolute inset-[5%] border border-dashed border-amber-300/50 pointer-events-none"><span className="absolute top-0 left-1 text-[9px] text-amber-300/70">action safe</span></div>
+                  <div aria-hidden className="absolute inset-[10%] border border-dashed border-rose-300/50 pointer-events-none"><span className="absolute top-0 left-1 text-[9px] text-rose-300/70">title safe</span></div>
                 </>
               )}
               {showSaved && <span className="absolute top-2 left-2 rounded-md bg-gray-950/85 border border-yellow-500/50 px-2 py-0.5 text-[11px] font-bold text-yellow-300 pointer-events-none">Showing the saved look</span>}
@@ -714,13 +714,13 @@ export function OverlayEditor({
             {mode === 'pack' && (
               <div className="flex items-center gap-1.5">
                 {!isPack && packs.length > 1 && (
-                  <select value={pickPack} onChange={e => { setPickPack(e.target.value); setPickCard(0); }} aria-label="Preview pack" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-[9rem]">
+                  <select value={pickPack} onChange={e => { setPickPack(e.target.value); setPickCard(0); }} aria-label="Preview pack" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-36">
                     <option value="">First pack</option>
                     {packs.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                   </select>
                 )}
                 {previewCards.length > 0 && (
-                  <select value={previewCard} onChange={e => setPickCard(Number(e.target.value))} aria-label="Preview card" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-[10rem]">
+                  <select value={previewCard} onChange={e => setPickCard(Number(e.target.value))} aria-label="Preview card" className="rounded-md bg-gray-950 border border-gray-700 px-1.5 py-1 text-xs text-gray-200 max-w-40">
                     <option value={0}>Rarest card</option>
                     {previewCards.map(c => <option key={c.number} value={c.number}>#{c.number} {c.name}</option>)}
                   </select>
@@ -782,7 +782,7 @@ export function OverlayEditor({
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search every setting…"
                 aria-label="Search settings"
-                className="w-full rounded-md bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-sm text-white placeholder:text-gray-600 focus:border-yellow-500 focus:outline-none"
+                className="w-full rounded-md bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-sm text-white placeholder:text-gray-600 focus:border-yellow-500 focus:outline-hidden"
               />
               {!searching && layoutCat && (
                 <div className="min-w-0">

@@ -221,7 +221,7 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-[min(22rem,92vw)] max-h-[26rem] overflow-y-auto rounded-xl border border-gray-700 bg-gray-900 shadow-card z-50">
+        <div className="absolute right-0 mt-2 w-[min(22rem,92vw)] max-h-104 overflow-y-auto rounded-xl border border-gray-700 bg-gray-900 shadow-card z-50">
           <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
             <p className="text-sm font-bold text-white">Notifications</p>
             <Link href="/trade" className="text-xs font-semibold text-yellow-400 hover:text-yellow-300">Open Trade →</Link>
@@ -231,10 +231,10 @@ export function NotificationBell() {
           ) : (
             <ul className="divide-y divide-gray-800/70">
               {notices.map(n => (
-                <li key={n.id} className={`px-3 py-2.5 flex gap-2.5 ${n.at > seen ? 'bg-yellow-500/[0.06]' : ''}`}>
+                <li key={n.id} className={`px-3 py-2.5 flex gap-2.5 ${n.at > seen ? 'bg-yellow-500/6' : ''}`}>
                   <Icon name={NOTICE_ICON[n.kind]} className="w-5 h-5 mt-0.5 text-yellow-400/90" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] leading-snug text-gray-200 break-words">{n.text}</p>
+                    <p className="text-[13px] leading-snug text-gray-200 wrap-break-word">{n.text}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[11px] text-gray-500">
                       <span>{ago(n.at)}</span>
                       {n.kind === 'feedback' && <Link href="/feedback" onClick={() => setOpen(false)} className="font-semibold text-yellow-400 hover:text-yellow-300">See your feedback</Link>}
@@ -255,11 +255,11 @@ export function NotificationBell() {
           </div>
         </div>
       )}
-      {mounted && createPortal(<div aria-live="polite" className="fixed z-[60] top-16 right-4 left-4 sm:left-auto sm:w-80 flex flex-col gap-2 pointer-events-none">
+      {mounted && createPortal(<div aria-live="polite" className="fixed z-60 top-16 right-4 left-4 sm:left-auto sm:w-80 flex flex-col gap-2 pointer-events-none">
         {toasts.map(n => (
           <div key={n.id} className="notice-toast pointer-events-auto flex gap-2.5 rounded-xl border border-yellow-500/40 bg-gray-900 px-3 py-2.5 shadow-card">
             <Icon name={NOTICE_ICON[n.kind]} className="w-5 h-5 mt-0.5 shrink-0 text-yellow-400" />
-            <Link href={n.kind === 'watch' ? '/trade?tab=board' : n.kind === 'feedback' ? '/feedback' : '/trade'} onClick={() => dismiss(n.id)} className="min-w-0 flex-1 text-[13px] leading-snug text-gray-100 break-words hover:text-white">{n.text}</Link>
+            <Link href={n.kind === 'watch' ? '/trade?tab=board' : n.kind === 'feedback' ? '/feedback' : '/trade'} onClick={() => dismiss(n.id)} className="min-w-0 flex-1 text-[13px] leading-snug text-gray-100 wrap-break-word hover:text-white">{n.text}</Link>
             <button type="button" onClick={() => dismiss(n.id)} aria-label="Dismiss" className="shrink-0 self-start text-gray-500 hover:text-white"><Icon name="x" className="w-4 h-4" /></button>
           </div>
         ))}

@@ -46,13 +46,13 @@ export function CollectorFinder() {
           <input
             ref={inputRef} value={q} onChange={e => setQ(e.target.value)} onKeyDown={onKey} autoFocus autoComplete="off" spellCheck={false}
             placeholder="Twitch username…" aria-label="Twitch username" role="combobox" aria-expanded={hits.length > 0} aria-controls="finder-list"
-            className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-11 pr-4 py-3.5 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 focus:shadow-glow transition"
+            className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-11 pr-4 py-3.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 focus:shadow-glow transition"
           />
         </div>
         <button type="submit" className="px-6 tcg-btn rounded-xl text-sm shrink-0">Go →</button>
       </div>
       {hits.length > 0 && (
-        <ul id="finder-list" role="listbox" className="absolute z-10 left-0 right-[5.5rem] mt-2 rounded-xl border border-gray-700 bg-gray-900 shadow-card p-1.5">
+        <ul id="finder-list" role="listbox" className="absolute z-10 left-0 right-22 mt-2 rounded-xl border border-gray-700 bg-gray-900 shadow-card p-1.5">
           {hits.map((h, i) => (
             <li key={h.id} role="option" aria-selected={i === index}>
               <button type="button" onClick={() => router.push(h.href)} onMouseMove={() => setIndex(i)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm ${i === index ? 'bg-yellow-500/10 text-yellow-100' : 'text-gray-300'}`}>

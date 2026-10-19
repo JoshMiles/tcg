@@ -10,7 +10,7 @@ export function PackPreview({ pack, cardCount }: { pack: PackInput; cardCount: n
     <div className="tcg-panel rounded-2xl p-4 space-y-3">
       <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Preview</p>
       <div
-        className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-950 border flex items-center justify-center"
+        className="relative aspect-4/3 rounded-xl overflow-hidden bg-gray-950 border flex items-center justify-center"
         style={{ borderColor: pack.tearBorderColor, boxShadow: `0 0 28px -8px ${pack.accentColor}` }}
       >
         {pack.coverImageUrl ? (

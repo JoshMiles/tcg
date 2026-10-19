@@ -10,7 +10,7 @@ import { useOverlayStatus } from './OverlayStatusContext';
 export interface QuickCard { number: number; name: string; stars: number }
 
 const inputClass =
-  'bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors';
+  'bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors';
 const secondaryBtn =
   'px-3.5 py-2 text-sm font-bold bg-gray-800 hover:bg-gray-700 text-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:pointer-events-none';
 
@@ -96,7 +96,7 @@ export function QuickActions({
               placeholder="their Twitch username"
               autoComplete="off"
               required
-              className="w-full bg-transparent pl-7 pr-2 py-1.5 text-base text-white placeholder-gray-600 focus:outline-none"
+              className="w-full bg-transparent pl-7 pr-2 py-1.5 text-base text-white placeholder-gray-600 focus:outline-hidden"
             />
           </div>
           <span className="hidden sm:block text-xs text-gray-600 shrink-0">applies to the three actions below</span>

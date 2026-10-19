@@ -40,7 +40,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
 
   return (
     <div className="text-gray-200">
-      <div className="border-b border-poke-blue-light/20 bg-gray-950/70 backdrop-blur">
+      <div className="border-b border-poke-blue-light/20 bg-gray-950/70 backdrop-blur-sm">
         <div className="holo-strip" />
         <div className="max-w-3xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
           <div>
@@ -77,7 +77,7 @@ export default async function LeaderboardPage({ params }: { params: Promise<{ se
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
 
         {season.endedAt && (
-          <section className="rounded-2xl border border-yellow-500/30 bg-yellow-500/[0.04] p-4 space-y-3">
+          <section className="rounded-2xl border border-yellow-500/30 bg-yellow-500/4 p-4 space-y-3">
             <p className="text-sm font-bold text-yellow-300"><Icon name="trophy" className="mr-1.5" />Final standings · this season ended {new Date(season.endedAt).toLocaleDateString()}</p>
             {final && <p className="text-xs text-gray-400">The list below is the final ranking saved when the season ended.</p>}
             {snapshot && snapshot.awards.length > 0 && (

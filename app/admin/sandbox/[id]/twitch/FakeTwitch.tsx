@@ -72,7 +72,7 @@ export function FakeTwitch({ sandboxId, users, channel }: { sandboxId: string; u
             className="mt-2 flex items-center gap-2"
             onSubmit={e => { e.preventDefault(); const l = custom.trim().toLowerCase().replace(/[^a-z0-9_]/g, ''); if (l) { choose({ kind: 'viewer', login: l }); setCustom(''); } }}
           >
-            <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="another name (created on first login)" className="w-64 rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white focus:outline-none focus:border-purple-400" />
+            <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="another name (created on first login)" className="w-64 rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white focus:outline-hidden focus:border-purple-400" />
             <button type="submit" className={chip(false)}>Watch as</button>
           </form>
         </div>
@@ -107,19 +107,19 @@ export function FakeTwitch({ sandboxId, users, channel }: { sandboxId: string; u
       <div className="rounded-2xl overflow-hidden border border-purple-500/30 bg-[#0e0e10] text-[#efeff1]">
         <div className="flex items-center gap-3 px-4 h-11 bg-[#18181b] border-b border-black/60">
           <span className="font-black tracking-tight text-[#9146ff] text-lg">twitch</span>
-          <span className="text-[10px] uppercase tracking-wider text-gray-500 border border-gray-700 rounded px-1.5 py-0.5">fake</span>
+          <span className="text-[10px] uppercase tracking-wider text-gray-500 border border-gray-700 rounded-sm px-1.5 py-0.5">fake</span>
           <span className="ml-auto text-xs text-gray-400">{login ? `Logged in as ${login}` : 'Not logged in'}</span>
         </div>
         <div className="p-4 flex flex-col xl:flex-row gap-4 items-start">
           <div className="w-full xl:flex-1 min-w-0 space-y-3">
             {/* Stream */}
-            <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-[#1f1147] via-[#2b1a63] to-[#0b3b4a]">
+            <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-linear-to-br from-[#1f1147] via-[#2b1a63] to-[#0b3b4a]">
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white/30 select-none">
                 <span className="text-5xl"><Icon name="gamepad" className="w-12 h-12" /></span>
                 <span className="mt-2 text-sm font-semibold">{channel}, pretend stream</span>
               </div>
               {showOverlay && <iframe title="Overlay" src={`/overlay.html?sandbox=${encodeURIComponent(sandboxId)}`} style={{ colorScheme: 'light' }} className="absolute inset-0 w-full h-full border-0" />}
-              <span className="absolute top-2 left-2 bg-red-600 text-white text-[11px] font-black rounded px-1.5 py-0.5 tracking-wide">LIVE</span>
+              <span className="absolute top-2 left-2 bg-red-600 text-white text-[11px] font-black rounded-sm px-1.5 py-0.5 tracking-wide">LIVE</span>
               {view === 'video' && src && (
                 <iframe title="Extension (video component)" src={src} className="absolute top-3 right-3 w-[34%] h-[78%] border-0 rounded-lg shadow-2xl" />
               )}

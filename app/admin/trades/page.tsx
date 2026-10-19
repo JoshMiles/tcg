@@ -12,7 +12,7 @@ import { Panel, Tile, PageHeader } from '../components/ui';
 export const metadata = { title: 'Trades · Admin', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
-const field = 'w-28 rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500';
+const field = 'w-28 rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500';
 
 export default async function AdminTradesPage({ searchParams }: { searchParams: Promise<{ saved?: string; flagged?: string; tab?: string }> }) {
   const sp = await searchParams;

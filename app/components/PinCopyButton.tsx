@@ -25,7 +25,7 @@ export function PinCopyButton({ uid, pinned, label = 'Pin to my profile' }: { ui
   return (
     <span className="inline-flex flex-col items-start gap-1">
       <button type="button" onClick={go} disabled={busy} aria-pressed={isPinned}
-        className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border transition-colors disabled:opacity-60 ${isPinned ? 'text-yellow-300 bg-yellow-500/10 border-yellow-500/40 hover:bg-yellow-500/20' : 'text-gray-200 bg-white/[0.06] border-white/10 hover:bg-white/10'}`}>
+        className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border transition-colors disabled:opacity-60 ${isPinned ? 'text-yellow-300 bg-yellow-500/10 border-yellow-500/40 hover:bg-yellow-500/20' : 'text-gray-200 bg-white/6 border-white/10 hover:bg-white/10'}`}>
         <Icon name="pin" />{busy ? 'Saving…' : isPinned ? 'Pinned to your profile · Unpin' : label}
       </button>
       {error && <span className="text-xs text-red-300">{error}</span>}

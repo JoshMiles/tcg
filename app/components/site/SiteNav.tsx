@@ -98,7 +98,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
   const isActive = (href: string, exact?: boolean) => (exact ? pathname === href : pathname === href || pathname.startsWith(href + '/'));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-yellow-500/20 bg-gray-950/80 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-yellow-500/20 bg-gray-950/80 backdrop-blur-sm">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
         <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="The Cheesy TCG, home">
           <img src="/brand/icon.png" alt="" width={34} height={34} className="rounded-lg ring-1 ring-yellow-500/50" />
@@ -146,7 +146,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
                 className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10 transition-colors"
               >
                 <Avatar src={user.avatarUrl} name={user.displayName} className="w-7 h-7 text-xs" />
-                <span className="hidden 2xl:inline text-sm font-semibold text-yellow-100 max-w-[9rem] truncate">{user.displayName}</span>
+                <span className="hidden 2xl:inline text-sm font-semibold text-yellow-100 max-w-36 truncate">{user.displayName}</span>
                 {rank && <RankChip rank={rank} delta={delta} />}
               </button>
               {menuOpen && (

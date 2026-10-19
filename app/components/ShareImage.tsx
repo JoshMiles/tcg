@@ -608,7 +608,7 @@ export function ShareImageButton({ spec, filename, label = 'Share image', classN
   }
 
   return (
-    <button type="button" onClick={go} disabled={state === 'working'} className={className ?? 'inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors disabled:opacity-60'}>
+    <button type="button" onClick={go} disabled={state === 'working'} className={className ?? 'inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors disabled:opacity-60'}>
       <Icon name="image" />{state === 'working' ? 'Making image…' : state === 'error' ? 'Could not make the image, retry' : label}
     </button>
   );

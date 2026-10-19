@@ -24,7 +24,7 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
         {problem?.kind === 'error' ? (
           <>
             <p>Blob storage is configured here, but reading it failed, so unused files can&apos;t be checked.</p>
-            <p className="font-mono text-xs text-amber-300 break-words">{problem.message}</p>
+            <p className="font-mono text-xs text-amber-300 wrap-break-word">{problem.message}</p>
             <p className="text-xs text-gray-500">Check the store is still linked to this project and not suspended (Vercel → Storage). Your cards and covers are unaffected.</p>
           </>
         ) : (
@@ -90,9 +90,9 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
             const previewable = isImage && u.bytes <= 1.5 * 1024 * 1024; // never pull a 25MB original just to preview it
             const on = picked.has(u.url);
             return (
-              <div key={u.url} className={`flex items-center gap-3 px-4 py-2.5 transition-colors ${on ? 'bg-yellow-500/[0.06]' : 'hover:bg-white/[0.02]'}`}>
+              <div key={u.url} className={`flex items-center gap-3 px-4 py-2.5 transition-colors ${on ? 'bg-yellow-500/6' : 'hover:bg-white/2'}`}>
                 <input type="checkbox" checked={on} onChange={() => toggle(u.url)} aria-label={`Select ${u.pathname}`} className="w-4 h-4 accent-yellow-400 shrink-0" />
-                <div className="w-10 h-14 rounded bg-gray-800 flex items-center justify-center overflow-hidden shrink-0 text-lg">
+                <div className="w-10 h-14 rounded-sm bg-gray-800 flex items-center justify-center overflow-hidden shrink-0 text-lg">
                   {previewable ? <img src={u.url} alt="" loading="lazy" className="w-full h-full object-cover" /> : (u.format === 'GIF' ? <Icon name="film" /> : isImage ? <Icon name="image" /> : <Icon name="music" />)}
                 </div>
                 <div className="min-w-0 flex-1">

@@ -23,7 +23,7 @@ export async function DataHealthPanel() {
               <p className="text-white font-semibold">{s.name} {s.active && <Chip tone="green">Active</Chip>}</p>
               <p className="text-gray-300 tabular-nums">{formatBytes(s.collection.bytes)} <Chip tone={TONE[s.level]}>{LABEL[s.level]}</Chip></p>
               <p className="text-xs text-gray-400">{n(s.collection.viewers)} viewers, {n(s.collection.entries)} entries{s.collection.largest ? `, largest ${n(s.collection.largest.entries)} (${s.collection.largest.username})` : ''}</p>
-              <p className="text-xs text-gray-500 break-words">{s.ledger.tracking ? `Print ledger: ${n(s.ledger.live)} live, ${n(s.ledger.retired)} retired, ${n(s.ledger.editions)} editions` : 'Print ledger: not numbered yet'}</p>
+              <p className="text-xs text-gray-500 wrap-break-word">{s.ledger.tracking ? `Print ledger: ${n(s.ledger.live)} live, ${n(s.ledger.retired)} retired, ${n(s.ledger.editions)} editions` : 'Print ledger: not numbered yet'}</p>
             </li>
           ))}
         </ul>

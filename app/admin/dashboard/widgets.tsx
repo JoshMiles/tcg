@@ -30,7 +30,7 @@ function Overview({ d }: { d: DashboardData }) {
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 h-full">
       {stats.map(({ label, accent, value, sub }) => (
         <div key={label} className="tcg-panel holo-hover rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-glow transition-all">
-          <div className={`h-1.5 bg-gradient-to-r ${accent}`} />
+          <div className={`h-1.5 bg-linear-to-r ${accent}`} />
           <div className="p-5 space-y-1">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{label}</p>
             <p className="font-display text-4xl font-bold text-white tabular-nums">{value}</p>
@@ -107,7 +107,7 @@ function Packs({ d }: { d: DashboardData }) {
         <div className="divide-y divide-gray-800/60">
           {d.packs.map(({ pack, cards }) => (
             <Link key={pack.id} href={`/admin/packs/${pack.id}`} className="px-4 py-3 flex items-center gap-3 hover:bg-gray-800/30 transition-colors">
-              {pack.coverImageUrl ? <img src={pack.coverImageUrl} alt="" loading="lazy" className="w-7 h-9 object-cover rounded shrink-0" /> : <div className="w-7 h-9 bg-gray-800 rounded shrink-0" />}
+              {pack.coverImageUrl ? <img src={pack.coverImageUrl} alt="" loading="lazy" className="w-7 h-9 object-cover rounded-sm shrink-0" /> : <div className="w-7 h-9 bg-gray-800 rounded-sm shrink-0" />}
               <div className="flex-1 min-w-0"><p className="text-sm text-white truncate">{pack.name}</p><p className="text-xs text-gray-600">{cards.length} cards{pack.upgradesEnabled ? ' · variants on' : ''}</p></div>
               <span className="text-xs text-gray-700">→</span>
             </Link>
@@ -138,7 +138,7 @@ function CardOwnership({ d }: { d: DashboardData }) {
               return (
                 <tr key={c.id} className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                   <td className="px-5 py-2.5 text-gray-600 tabular-nums text-xs">{c.number}</td>
-                  <td className="px-5 py-2.5"><div className="flex items-center gap-2.5">{c.imageUrl ? <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-5 h-7 object-cover rounded shrink-0" /> : <div className="w-5 h-7 bg-gray-800 rounded shrink-0" />}<span className="text-gray-200">{c.name}</span></div></td>
+                  <td className="px-5 py-2.5"><div className="flex items-center gap-2.5">{c.imageUrl ? <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-5 h-7 object-cover rounded-sm shrink-0" /> : <div className="w-5 h-7 bg-gray-800 rounded-sm shrink-0" />}<span className="text-gray-200">{c.name}</span></div></td>
                   <td className="px-5 py-2.5 text-gray-600 text-xs">{packName}</td>
                   <td className="px-5 py-2.5 text-right"><span className={`text-xs font-medium ${rarity?.text ?? 'text-gray-400'}`}>{'★'.repeat(c.stars)}</span></td>
                   <td className="px-5 py-2.5 text-right text-gray-400 tabular-nums">{c.ownedBy}</td>
@@ -271,7 +271,7 @@ function Valuable({ d }: { d: DashboardData }) {
             const c = d.allCards.find(x => x.number === cv.number);
             return (
               <li key={cv.number} className="px-5 py-2 flex items-center gap-3 text-sm">
-                {c?.imageUrl ? <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-5 h-7 object-cover rounded shrink-0" /> : <div className="w-5 h-7 bg-gray-800 rounded shrink-0" />}
+                {c?.imageUrl ? <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-5 h-7 object-cover rounded-sm shrink-0" /> : <div className="w-5 h-7 bg-gray-800 rounded-sm shrink-0" />}
                 <span className="flex-1 min-w-0 truncate text-gray-200">{c?.name ?? `#${cv.number}`}</span>
                 <span className="text-xs text-gray-600 tabular-nums">{cv.copies} out</span>
                 <span className="font-bold text-yellow-400 tabular-nums w-14 text-right">{cv.values.regular}</span>
@@ -310,7 +310,7 @@ function Live({ d }: { d: DashboardData }) {
       {!l ? <p className="text-sm text-gray-500">Twitch isn&rsquo;t configured or can&rsquo;t be reached, so the live status is unknown.</p> : l.live ? (
         <div className="space-y-1.5">
           <p className="inline-flex items-center gap-2 text-sm font-bold text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> LIVE{typeof l.viewers === 'number' ? ` · ${l.viewers.toLocaleString()} watching` : ''}</p>
-          {l.title && <p className="text-sm text-gray-200 break-words">{l.title}</p>}
+          {l.title && <p className="text-sm text-gray-200 wrap-break-word">{l.title}</p>}
           {l.game && <p className="text-xs text-gray-500">{l.game}</p>}
         </div>
       ) : <p className="text-sm text-gray-400">The channel is offline right now.</p>}

@@ -32,7 +32,7 @@ export function AudioUploadField({ name = 'soundUrl', defaultValue }: { name?: s
           value={url}
           onChange={e => setUrl(e.target.value)}
           placeholder="https://... or upload →"
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500"
+          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500"
         />
         <label className={`px-3 py-2 text-sm rounded-lg cursor-pointer shrink-0 transition-colors ${uploading ? 'bg-gray-600 text-gray-400' : 'bg-gray-700 hover:bg-gray-600 text-white'}`}>
           {uploading ? 'Uploading…' : 'Upload'}

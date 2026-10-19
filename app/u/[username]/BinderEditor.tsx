@@ -21,8 +21,8 @@ type Tab = 'look' | 'layout' | 'pages' | 'cards';
 const total = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0);
 const artOf = (c: GridCard) => cardThumbUrl(c.imageUrl);
 
-const chip = (on: boolean) => `px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${on ? 'bg-yellow-400 text-gray-950 border-yellow-400' : 'bg-white/[0.04] text-gray-300 border-white/10 hover:bg-white/10'}`;
-const input = 'w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500';
+const chip = (on: boolean) => `px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${on ? 'bg-yellow-400 text-gray-950 border-yellow-400' : 'bg-white/4 text-gray-300 border-white/10 hover:bg-white/10'}`;
+const input = 'w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500';
 function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return <fieldset className="space-y-1.5"><legend className="text-[11px] uppercase tracking-wider font-bold text-gray-500">{label}</legend>{children}{hint && <p className="text-xs text-gray-500">{hint}</p>}</fieldset>;
 }
@@ -150,12 +150,12 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-yellow-500/30 bg-yellow-500/[0.06] px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-yellow-500/30 bg-yellow-500/6 px-4 py-3">
         <p className="text-sm text-gray-200"><Icon name="pencil" className="mr-2 text-yellow-400" /><strong className="text-white">Customising your binder.</strong> Changes show here at once; nothing is public until you save.</p>
         <div className="flex flex-wrap items-center gap-2">
           {error && <span role="alert" className="text-xs text-red-400">{error}</span>}
           <button type="button" onClick={() => { if (window.confirm('Go back to the default binder?')) { setDraft(DEFAULT_BINDER); setSelected(null); setArmed(null); } }} className="text-xs font-bold text-gray-400 hover:text-white px-2 py-1.5">Reset to default</button>
-          <button type="button" onClick={cancel} className="text-sm font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2">Cancel</button>
+          <button type="button" onClick={cancel} className="text-sm font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2">Cancel</button>
           <button type="button" onClick={save} disabled={saving || !dirty} className="tcg-btn px-5 py-2 text-sm rounded-xl disabled:opacity-50">{saving ? 'Saving…' : 'Save binder'}</button>
         </div>
       </div>
@@ -265,10 +265,10 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
                       <input className={input} value={p.title} maxLength={BINDER_LIMITS.pageTitle} placeholder="Page title" aria-label={`Title of page ${i + 1}`} onChange={e => setPages(renamePage(draft.pages, i, e.target.value))} />
                     </div>
                     <div className="flex flex-wrap items-center gap-1 text-xs">
-                      <button type="button" onClick={() => goPage(i)} className="px-2 py-1 rounded-md bg-white/[0.06] hover:bg-white/10 text-gray-200">Show</button>
-                      <button type="button" onClick={() => setPages(movePage(draft.pages, i, i - 1))} disabled={i === 0} aria-label="Move up" className="px-2 py-1 rounded-md bg-white/[0.06] hover:bg-white/10 text-gray-200 disabled:opacity-30"><Icon name="arrowUp" /></button>
-                      <button type="button" onClick={() => setPages(movePage(draft.pages, i, i + 1))} disabled={i === draft.pages.length - 1} aria-label="Move down" className="px-2 py-1 rounded-md bg-white/[0.06] hover:bg-white/10 text-gray-200 disabled:opacity-30"><Icon name="arrowDown" /></button>
-                      <button type="button" onClick={() => setPages(clearPage(draft.pages, i))} className="px-2 py-1 rounded-md bg-white/[0.06] hover:bg-white/10 text-gray-200">Empty</button>
+                      <button type="button" onClick={() => goPage(i)} className="px-2 py-1 rounded-md bg-white/6 hover:bg-white/10 text-gray-200">Show</button>
+                      <button type="button" onClick={() => setPages(movePage(draft.pages, i, i - 1))} disabled={i === 0} aria-label="Move up" className="px-2 py-1 rounded-md bg-white/6 hover:bg-white/10 text-gray-200 disabled:opacity-30"><Icon name="arrowUp" /></button>
+                      <button type="button" onClick={() => setPages(movePage(draft.pages, i, i + 1))} disabled={i === draft.pages.length - 1} aria-label="Move down" className="px-2 py-1 rounded-md bg-white/6 hover:bg-white/10 text-gray-200 disabled:opacity-30"><Icon name="arrowDown" /></button>
+                      <button type="button" onClick={() => setPages(clearPage(draft.pages, i))} className="px-2 py-1 rounded-md bg-white/6 hover:bg-white/10 text-gray-200">Empty</button>
                       <button type="button" onClick={() => { if (draft.pages.length === 1) return; setPages(removePage(draft.pages, i)); setSelected(null); }} disabled={draft.pages.length === 1} className="px-2 py-1 rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-300 disabled:opacity-30">Delete</button>
                     </div>
                   </li>
@@ -285,7 +285,7 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
           {view === 'cards' && custom && (
             <div className="space-y-3">
               {slot && slotCard ? (
-                <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/[0.06] p-3 space-y-2">
+                <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/6 p-3 space-y-2">
                   <p className="text-sm text-white font-bold">#{slotCard.number} {slotCard.name}</p>
                   <div className="flex flex-wrap gap-1.5" role="group" aria-label="Version to show">
                     <button type="button" aria-pressed={slot.variant === null} onClick={() => setPages(setSlot(draft.pages, selected!.page, selected!.slot, { card: slot.card, variant: null }))} className={chip(slot.variant === null)}>Best I have</button>
@@ -304,7 +304,7 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
               )}
               <div className="flex items-center gap-2">
                 <input type="search" className={input} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or #" aria-label="Search cards" />
-                <select className={`${input} !w-auto`} value={show} onChange={e => setShow(e.target.value as typeof show)} aria-label="Show">
+                <select className={`${input} w-auto!`} value={show} onChange={e => setShow(e.target.value as typeof show)} aria-label="Show">
                   <option value="all">All</option><option value="owned">I have</option><option value="unplaced">Not placed</option>
                 </select>
               </div>
@@ -321,7 +321,7 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
                         className={`relative block w-full rounded-lg overflow-hidden border-2 ${armed === c.number ? 'border-emerald-400' : 'border-transparent hover:border-yellow-400/60'}`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={artOf(c)} alt="" loading="lazy" decoding="async" className={`w-full aspect-[2/3] object-cover bg-gray-900 ${have ? '' : 'opacity-40 grayscale'}`} />
+                        <img src={artOf(c)} alt="" loading="lazy" decoding="async" className={`w-full aspect-2/3 object-cover bg-gray-900 ${have ? '' : 'opacity-40 grayscale'}`} />
                         <span className="absolute bottom-0 inset-x-0 bg-black/70 text-[10px] text-white text-center truncate px-0.5">#{c.number}</span>
                         {placed > 0 && <span className="absolute top-0.5 right-0.5 rounded-full bg-emerald-500 text-gray-950 w-4 h-4 grid place-items-center text-[10px]"><Icon name="check" /></span>}
                       </button>

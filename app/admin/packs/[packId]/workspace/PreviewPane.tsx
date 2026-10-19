@@ -76,7 +76,7 @@ function Front({ c, v, holo, animated, className = '' }: { c: WorkCard; v: Varia
   const art = artOf(c, v);
   const spec = holo?.[v];
   const style = { borderColor: hexOf(c), boxShadow: `0 0 28px -6px ${hexOf(c)}`, ...holoVars(spec) };
-  const cls = `relative aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v}` : ''} ${holoClass(spec, true)} ${className}`;
+  const cls = `relative aspect-2/3 rounded-xl overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v}` : ''} ${holoClass(spec, true)} ${className}`;
   if (!art) return <div className={`${cls} flex items-center justify-center`} style={style}><Icon name="image" className="w-10 h-10 text-gray-600" /></div>;
   if (animated) return <div className={cls} style={style}><img src={art} alt={c.name} className="w-full h-full object-cover" /></div>;
   return <CardTile imageUrl={art} still={stillFor(c, art)} alt={c.name} className={cls} style={style} />;
@@ -197,7 +197,7 @@ function SizesTab({ pack, shown, holoByStars }: PreviewPaneProps & { shown: Work
         {label('Card dex tile')}
       </div>
       <div className="text-center">
-        <div className="w-20 rounded-md bg-gray-800/80 border border-gray-700 p-1"><Front c={shown} v="regular" holo={holo} animated={false} className="!rounded-md !border" /></div>
+        <div className="w-20 rounded-md bg-gray-800/80 border border-gray-700 p-1"><Front c={shown} v="regular" holo={holo} animated={false} className="rounded-md! border!" /></div>
         {label('Binder slot')}
       </div>
       <div className="text-center w-56">
@@ -212,10 +212,10 @@ function ContactSheet({ cards }: { cards: WorkCard[] }) {
   return (
     <div className="w-full">
       <p className="text-sm text-gray-400 text-center mb-3">{cards.length} cards selected</p>
-      <ul className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(5rem,1fr))]">
+      <ul className="grid gap-2 grid-cols-[repeat(auto-fill,minmax(5rem,1fr))]">
         {cards.map(c => (
           <li key={c.id} className="text-center">
-            <div className="aspect-[2/3] rounded-md overflow-hidden bg-gray-800 border" style={{ borderColor: hexOf(c) }}>
+            <div className="aspect-2/3 rounded-md overflow-hidden bg-gray-800 border" style={{ borderColor: hexOf(c) }}>
               {c.imageUrl ? <img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Icon name="image" className="text-gray-600" /></div>}
             </div>
             <p className="text-[10px] text-gray-400 truncate mt-0.5">{c.name || 'Untitled'}</p>

@@ -42,9 +42,9 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
           <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search viewers…" aria-label="Search viewers" className="bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 w-56" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search viewers…" aria-label="Search viewers" className="bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 w-56" />
         </div>
-        <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-none focus:border-yellow-500">
+        <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2 text-sm text-gray-300 focus:outline-hidden focus:border-yellow-500">
           <option value="copies">Most prints</option><option value="rank">Best rank</option><option value="name">Name</option><option value="new">Newest</option>
         </select>
         <span className="text-xs text-gray-500">{list.length} of {rows.length}</span>
@@ -63,7 +63,7 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
       </div>
 
       <div className="tcg-panel rounded-2xl overflow-x-auto">
-        <table className="w-full text-sm min-w-[40rem]">
+        <table className="w-full text-sm min-w-160">
           <thead>
             <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">
               <th className="w-10 pl-4 py-2.5 text-left"><input type="checkbox" aria-label="Select all shown" checked={shown.length > 0 && shown.every(r => picked.has(r.username))} onChange={e => setPicked(e.target.checked ? new Set(shown.map(r => r.username)) : new Set())} className="accent-yellow-400" /></th>
@@ -74,7 +74,7 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
           </thead>
           <tbody className="divide-y divide-gray-800/60">
             {shown.map(r => (
-              <tr key={r.username} className={picked.has(r.username) ? 'bg-yellow-500/[0.05]' : 'hover:bg-white/[0.02]'}>
+              <tr key={r.username} className={picked.has(r.username) ? 'bg-yellow-500/5' : 'hover:bg-white/2'}>
                 <td className="pl-4 py-2"><input type="checkbox" aria-label={`Select ${r.username}`} checked={picked.has(r.username)} onChange={() => toggle(r.username)} className="accent-yellow-400" /></td>
                 <td className="py-2 font-mono text-gray-100">{r.username}{r.complete && <Icon name="cheese" className="ml-1.5 text-yellow-400" />}</td>
                 <td className="py-2 text-right tabular-nums text-gray-400">{r.rank ? `#${r.rank}` : '-'}</td>

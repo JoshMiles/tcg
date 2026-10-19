@@ -62,7 +62,7 @@ export function CardDetail({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={label}>
-      <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-xs" onClick={onClose} />
 
       <div className="relative w-full max-w-3xl max-h-full overflow-y-auto tcg-panel rounded-2xl shadow-glow">
         <button ref={closeBtn} onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-gray-900/80 text-gray-300 hover:text-white text-xl leading-none">×</button>
@@ -72,7 +72,7 @@ export function CardDetail({
             {canStep && <button onClick={() => onStep(-1)} aria-label="Previous card" className="w-8 h-10 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">‹</button>}
             <div className="min-w-0 flex-1">
               <p className="text-xs text-gray-500">#{card.number} · {card.packName}</p>
-              <h2 className="font-display text-2xl sm:text-3xl font-bold text-white leading-tight break-words">{card.name}</h2>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-white leading-tight wrap-break-word">{card.name}</h2>
               <p className="text-sm font-semibold mt-1" style={{ color: rarity?.hex }}>
                 {'★'.repeat(card.stars)} {rarity?.label}
                 <span className="ml-2 text-gray-400 font-normal">{total.toLocaleString()} print{total === 1 ? '' : 's'}</span>
@@ -96,7 +96,7 @@ export function CardDetail({
 function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCard; dialog: ReturnType<typeof copiesForDialog<DialogCopy>>; seasonId?: string; onPick: (id: string) => void; showAll: () => void }) {
   const rarity = getRarity(card.stars);
   const tileStyle = (v: Variant) => ({ borderColor: rarity?.hex, ...holoVars(card.holo[v]) } as React.CSSProperties);
-  const tileClass = (v: Variant) => `relative aspect-[2/3] w-full rounded-lg overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v} ` : ''}${holoClass(card.holo[v])}`;
+  const tileClass = (v: Variant) => `relative aspect-2/3 w-full rounded-lg overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v} ` : ''}${holoClass(card.holo[v])}`;
   const art = (v: Variant) => <img src={stillFor(card, artFor(card, v))} alt="" loading="lazy" className="w-full h-full object-cover" />;
   return (
     <div className="space-y-4">
@@ -108,10 +108,10 @@ function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCar
               {g.copies.map(c => (
                 <li key={c.id} className="min-w-0">
                   <button type="button" onClick={() => onPick(c.id)} aria-label={`${VARIANT_LABELS[g.variant]} edition #${c.n}${c.uid ? `, print number ${c.uid}` : ''}${c.m ? ', edition bonus' : ''}`}
-                    className="group block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400 rounded-lg">
+                    className="group block w-full text-left focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400 rounded-lg">
                     <span className={`${tileClass(g.variant)} block transition-transform group-hover:-translate-y-0.5`} style={tileStyle(g.variant)}>{art(g.variant)}</span>
                     <span className="mt-1 flex items-center gap-1 min-w-0">
-                      <SerialChip n={c.n} bonus={c.m} est={c.est} className="!text-[10px] !px-1.5 !py-0" />
+                      <SerialChip n={c.n} bonus={c.m} est={c.est} className="text-[10px]! px-1.5! py-0!" />
                     </span>
                     {c.uid ? <span className="block truncate text-[10px] text-gray-500 tabular-nums">Print #{c.uid}</span> : null}
                   </button>
@@ -134,7 +134,7 @@ function PrintsView({ card, dialog, seasonId, onPick, showAll }: { card: GridCar
   );
 }
 
-const pill = 'inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border text-gray-200 bg-white/[0.06] border-white/10 hover:bg-white/10';
+const pill = 'inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border text-gray-200 bg-white/6 border-white/10 hover:bg-white/10';
 
 /** Step 2: one print, turned over on the flip card, with what it is worth and where it has been. */
 function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pinnedUid, favouriteUids, onBack }: { card: GridCard; print: DialogCopy; seasonId: string; ownerName?: string; canUpgrade: boolean; tradeWith?: string; pinnedUid?: number; favouriteUids?: number[]; onBack?: () => void }) {
@@ -153,7 +153,7 @@ function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pi
   const art = artFor(card, v);
   const face = (
     <div
-      className={`relative w-full aspect-[2/3] rounded-xl overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v}` : ''} ${holoClass(card.holo[v], true)}`}
+      className={`relative w-full aspect-2/3 rounded-xl overflow-hidden border-2 bg-gray-900 ${v !== 'regular' ? `vfx-${v}` : ''} ${holoClass(card.holo[v], true)}`}
       style={{
         borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ...holoVars(card.holo[v]),
         ['--art-mask' as string]: cardThumbUrl(art) !== art ? `url("${stillFor(card, art)}")` : 'none',
@@ -183,7 +183,7 @@ function PrintView({ card, print, seasonId, ownerName, canUpgrade, tradeWith, pi
             {print.uid ? <p className="text-sm text-gray-400 tabular-nums">Print #{print.uid}<InfoTip term="printNumber" /></p> : null}
           </div>
           <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-3 gap-y-1 ${print.m ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
-            <SerialChip n={print.n} bonus={print.m} est={print.est} className="text-sm !px-3 !py-1" />
+            <SerialChip n={print.n} bonus={print.m} est={print.est} className="text-sm px-3! py-1!" />
             <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{(print.p ?? card.values[v]).toLocaleString()} pts</strong></span>
             <span className="text-xs text-gray-500">{print.m ? `Edition bonus ×${print.m}` : 'No edition bonus'}<InfoTip term="editionBonus" /></span>
           </div>

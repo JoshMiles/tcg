@@ -68,7 +68,7 @@ export function OverlayStatus({ variant = 'full' }: { variant?: 'compact' | 'ful
       : status.connected > 0 ? (status.streaming === true ? 'Live on stream' : status.streaming === false ? 'Not streaming' : 'Connected to OBS')
       : status.queued > 0 ? `${status.queued} waiting` : 'Open it in OBS';
     return (
-      <div className="aside-item aside-card flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2" title={title}>
+      <div className="aside-item aside-card flex items-center gap-2.5 rounded-xl bg-white/3 border border-white/6 px-3 py-2" title={title}>
         <span className="relative flex w-2.5 h-2.5 shrink-0">
           <span className={`absolute inset-0 rounded-full ${live ? 'bg-red-400' : status?.connected ? 'bg-green-400' : 'bg-gray-600'}`} />
           {(live || status?.connected) && <span className={`absolute inset-0 rounded-full animate-ping opacity-60 ${live ? 'bg-red-400' : 'bg-green-400'}`} />}

@@ -14,7 +14,7 @@ export function MixItUpLog({ log }: { log: MixItUpLogEntry[] }) {
           <li key={i} className="px-6 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
             <span className={`text-[11px] font-bold uppercase tracking-wider ${e.ok ? 'text-emerald-300' : 'text-red-300'}`}>{e.what}</span>
             <span className="font-semibold text-white">{e.username}</span>
-            <span className="text-gray-400 min-w-0 break-words">{e.detail}</span>
+            <span className="text-gray-400 min-w-0 wrap-break-word">{e.detail}</span>
             <time className="ml-auto text-xs text-gray-600 tabular-nums" dateTime={new Date(e.at).toISOString()}>{new Date(e.at).toISOString().replace('T', ' ').slice(0, 19)} UTC</time>
           </li>
         ))}

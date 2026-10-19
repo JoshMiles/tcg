@@ -146,7 +146,7 @@ export function TradeComposer({
     }
   }
 
-  const input = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500';
+  const input = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500';
   return (
     <div className="space-y-6">
       {/* Who */}
@@ -318,7 +318,7 @@ function Side({
       ) : <p className="text-sm text-gray-600 italic">Nothing chosen yet.</p>}
 
       <div className="border-t border-gray-800 pt-3 space-y-2">
-        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards…" aria-label={`Search ${title} cards`} className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
+        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards…" aria-label={`Search ${title} cards`} className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500" />
         {spareOf && cards.length > 0 && (
           <button type="button" onClick={() => setSpares(x => !x)} aria-pressed={spares} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${spares ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-400 hover:text-white'}`}>Spares only (2+ prints)</button>
         )}
@@ -328,8 +328,8 @@ function Side({
               const rarity = getRarity(c.stars);
               return (
                 <li key={c.number} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-gray-950/40 px-2 py-1.5">
-                  <span className="w-7 h-10 rounded overflow-hidden shrink-0 border" style={{ borderColor: rarity?.hex }}><img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-full h-full object-cover" /></span>
-                  <span className="flex-1 min-w-[7rem] text-xs"><span className="block font-semibold text-gray-200 truncate">{c.name}</span><span className="text-gray-600">#{c.number} · {'★'.repeat(c.stars)}</span></span>
+                  <span className="w-7 h-10 rounded-sm overflow-hidden shrink-0 border" style={{ borderColor: rarity?.hex }}><img src={cardThumbUrl(c.imageUrl)} alt="" loading="lazy" className="w-full h-full object-cover" /></span>
+                  <span className="flex-1 min-w-28 text-xs"><span className="block font-semibold text-gray-200 truncate">{c.name}</span><span className="text-gray-600">#{c.number} · {'★'.repeat(c.stars)}</span></span>
                   <span className="flex flex-wrap justify-end gap-1 ml-auto">
                     {c.variants.map(v => {
                       const n = avail(c.number, v);

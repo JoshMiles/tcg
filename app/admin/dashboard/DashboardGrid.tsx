@@ -259,7 +259,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
           <button type="button" onClick={() => { setDraft(saved.widgets); setEdit(true); }} className={ghost}><Icon name="pencil" className="mr-1" />Customize dashboard</button>
         </div>
       ) : (
-        <div className="dash-slide sticky top-0 z-20 rounded-xl border border-yellow-500/40 bg-gray-900/95 backdrop-blur px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
+        <div className="dash-slide sticky top-0 z-20 rounded-xl border border-yellow-500/40 bg-gray-900/95 backdrop-blur-sm px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
           <div className="min-w-0 mr-auto">
             <p className="text-sm font-bold text-yellow-300">Editing the dashboard</p>
             <p className="text-xs text-gray-500">Drag widgets to rearrange, use the arrow buttons to resize and move, the cross to remove. Drag from the library to add.</p>
@@ -283,7 +283,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
           </ul>
           <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Team layouts</span>
           <form className="flex items-center gap-2" onSubmit={e => { e.preventDefault(); savePreset(); }}>
-            <input value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={30} placeholder="Name this layout (e.g. Stream day)" aria-label="Layout name" className="w-64 rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
+            <input value={presetName} onChange={e => setPresetName(e.target.value)} maxLength={30} placeholder="Name this layout (e.g. Stream day)" aria-label="Layout name" className="w-64 rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500" />
             <button type="submit" disabled={pending || !presetName.trim()} className={ghost}>Share as team layout</button>
           </form>
           {presets.length === 0 ? <span className="text-xs text-gray-600">No team layouts yet. Arrange your dashboard, name it, and anyone on staff can switch to it. Your own layout is saved just for you.</span> : (
@@ -342,7 +342,7 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
             <div
               key={w.type}
               ref={el => { if (el) els.current.set(w.type, el); else els.current.delete(w.type); }}
-              className={`${wrapper} dash-item rounded-2xl pt-9 outline outline-2 outline-dashed transition-[outline-color,box-shadow,opacity,scale] duration-200 ${dragging ? 'outline-yellow-500/70 opacity-40 scale-[0.97]' : target ? 'outline-yellow-500' : 'outline-gray-700'} ${target ? (target.after ? 'shadow-[inset_-6px_0_0_0_#eab308]' : 'shadow-[inset_6px_0_0_0_#eab308]') : ''} ${mine === 'pop' ? 'dash-pop' : mine === 'settle' ? 'dash-settle' : ''} ${leaving === w.type ? 'dash-leave' : ''}`}
+              className={`${wrapper} dash-item rounded-2xl pt-9 outline-solid outline-2 outline-dashed transition-[outline-color,box-shadow,opacity,scale] duration-200 ${dragging ? 'outline-yellow-500/70 opacity-40 scale-[0.97]' : target ? 'outline-yellow-500' : 'outline-gray-700'} ${target ? (target.after ? 'shadow-[inset_-6px_0_0_0_#eab308]' : 'shadow-[inset_6px_0_0_0_#eab308]') : ''} ${mine === 'pop' ? 'dash-pop' : mine === 'settle' ? 'dash-settle' : ''} ${leaving === w.type ? 'dash-leave' : ''}`}
               draggable
               onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', w.type); setDrag({ type: w.type, fromLibrary: false }); }}
               onDragEnd={() => { setDrag(null); setDrop(null); }}
@@ -352,13 +352,13 @@ export function DashboardGrid({ layout, nodes, presets: initialPresets }: { layo
               {/* Edit controls */}
               <div className="absolute top-1.5 right-2 z-10 flex items-center gap-1 rounded-lg bg-gray-950/90 border border-gray-700 px-1.5 py-1 shadow-lg">
                 <span className="px-1 text-gray-500 cursor-grab text-sm select-none" title="Drag to move" aria-hidden><Icon name="grip" className="w-4 h-4" /></span>
-                <span className="text-[11px] font-bold text-gray-300 px-1 max-w-[9rem] truncate">{def.title}</span>
-                <button type="button" onClick={() => step(w.type, -1)} disabled={idx === 0} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} earlier`}><Icon name="chevronUp" className="w-4 h-4" /></button>
-                <button type="button" onClick={() => step(w.type, 1)} disabled={idx === shown.length - 1} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} later`}><Icon name="chevronDown" className="w-4 h-4" /></button>
-                <button type="button" onClick={() => widen(w, -1)} disabled={w.span === def.spans[0]} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} narrower`}><Icon name="chevronLeft" className="w-4 h-4" /></button>
+                <span className="text-[11px] font-bold text-gray-300 px-1 max-w-36 truncate">{def.title}</span>
+                <button type="button" onClick={() => step(w.type, -1)} disabled={idx === 0} className="w-6 h-6 rounded-sm text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} earlier`}><Icon name="chevronUp" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => step(w.type, 1)} disabled={idx === shown.length - 1} className="w-6 h-6 rounded-sm text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} later`}><Icon name="chevronDown" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => widen(w, -1)} disabled={w.span === def.spans[0]} className="w-6 h-6 rounded-sm text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} narrower`}><Icon name="chevronLeft" className="w-4 h-4" /></button>
                 <span className="text-[10px] text-gray-500 tabular-nums w-7 text-center" title="Width in twelfths of the page">{w.span}/12</span>
-                <button type="button" onClick={() => widen(w, 1)} disabled={w.span === def.spans[def.spans.length - 1]} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} wider`}><Icon name="chevronRight" className="w-4 h-4" /></button>
-                <button type="button" onClick={() => remove(w.type)} className="w-6 h-6 rounded text-red-300 hover:bg-red-500/20" aria-label={`Remove ${def.title}`}><Icon name="x" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => widen(w, 1)} disabled={w.span === def.spans[def.spans.length - 1]} className="w-6 h-6 rounded-sm text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} wider`}><Icon name="chevronRight" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => remove(w.type)} className="w-6 h-6 rounded-sm text-red-300 hover:bg-red-500/20" aria-label={`Remove ${def.title}`}><Icon name="x" className="w-4 h-4" /></button>
               </div>
               {/* Resize handle: drag the right edge */}
               <div

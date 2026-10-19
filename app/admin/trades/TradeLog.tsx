@@ -9,7 +9,7 @@ import { ReverseTrade } from './ReverseTrade';
 import { blockViewerTradingAction, cancelOneTradeAction, extendOpenTradesAction } from '../trade-actions';
 import { ArmedButton } from '../components/ArmedButton';
 
-const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white focus:outline-none focus:border-yellow-500';
+const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-xs text-white focus:outline-hidden focus:border-yellow-500';
 const STATUSES = ['open', 'accepted', 'declined', 'cancelled', 'expired', 'countered', 'failed'] as const;
 const STATUS_STYLE: Record<string, string> = {
   open: 'text-sky-300 border-sky-400/30 bg-sky-500/10',
@@ -101,7 +101,7 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
                 <span className="text-gray-200 font-medium">{r.from}</span>
                 <span className="text-gray-600">{r.to ? '→' : '→ board'}</span>
                 {(r.to || r.takenBy) && <span className="text-gray-200 font-medium">{r.to ?? r.takenBy}</span>}
-                <span className="text-gray-500 text-xs truncate max-w-[28rem]">{r.giveText} <span className="text-gray-700">for</span> {r.getText}</span>
+                <span className="text-gray-500 text-xs truncate max-w-md">{r.giveText} <span className="text-gray-700">for</span> {r.getText}</span>
                 <span className="flex gap-1">{r.flags.map(f => <span key={f.kind} title={f.label} className={`text-[10px] font-bold rounded-full border px-1.5 ${FLAG_STYLE[f.kind]}`}>{FLAG_LABEL[f.kind]}</span>)}</span>
                 <span className="ml-auto text-xs text-gray-600 tabular-nums">{r.open && now ? left(r.expiresAt, now) : when(r.resolvedAt ?? r.createdAt)}</span>
               </button>

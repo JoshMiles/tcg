@@ -66,7 +66,7 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
     try { await navigator.clipboard.writeText(link); setNote('Link copied.'); } catch { setNote('Could not copy the link.'); }
   }
 
-  const chip = (on: boolean) => `px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${on ? 'bg-yellow-400 text-gray-950 border-yellow-400' : 'bg-white/[0.04] text-gray-300 border-white/10 hover:bg-white/10'}`;
+  const chip = (on: boolean) => `px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${on ? 'bg-yellow-400 text-gray-950 border-yellow-400' : 'bg-white/4 text-gray-300 border-white/10 hover:bg-white/10'}`;
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,280px)_1fr] items-start">
@@ -123,9 +123,9 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
                   <li key={i}>
                     <button type="button" onClick={() => toggle(i)} aria-pressed={on} aria-label={`${c.name}${c.tag ? ` ${c.tag}` : ''}`} className={`relative block w-full rounded-lg overflow-hidden border-2 ${on ? 'border-yellow-400' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.thumb ?? c.src} alt="" loading="lazy" decoding="async" className="w-full aspect-[2/3] object-cover bg-gray-900" />
+                      <img src={c.thumb ?? c.src} alt="" loading="lazy" decoding="async" className="w-full aspect-2/3 object-cover bg-gray-900" />
                       {on && <span className="absolute top-1 right-1 rounded-full bg-yellow-400 text-gray-950 w-5 h-5 grid place-items-center text-[11px]"><Icon name="check" /></span>}
-                      {c.tag && <span className="absolute bottom-1 left-1 rounded bg-black/70 text-yellow-300 text-[10px] font-bold px-1">{c.tag}</span>}
+                      {c.tag && <span className="absolute bottom-1 left-1 rounded-sm bg-black/70 text-yellow-300 text-[10px] font-bold px-1">{c.tag}</span>}
                     </button>
                   </li>
                 );
@@ -138,11 +138,11 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
           <button type="button" onClick={() => go('share')} disabled={!!busy || (!!candidates && picked.length === 0)} className="tcg-btn px-4 py-2 text-sm rounded-xl disabled:opacity-60">
             <Icon name="image" className="mr-1.5" />{busy === 'share' ? 'Making image…' : 'Share image'}
           </button>
-          <button type="button" onClick={() => go('download')} disabled={!!busy || (!!candidates && picked.length === 0)} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2 disabled:opacity-60">
+          <button type="button" onClick={() => go('download')} disabled={!!busy || (!!candidates && picked.length === 0)} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2 disabled:opacity-60">
             <Icon name="download" />Download
           </button>
           {link && (
-            <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2">
+            <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2">
               <Icon name="link" />Copy link
             </button>
           )}

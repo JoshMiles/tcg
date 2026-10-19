@@ -213,15 +213,15 @@ export default async function UserDetailPage({
         <form action={updateProfile} className="grid md:grid-cols-3 gap-4">
           <div>
             <label htmlFor="profile-displayName" className="block text-xs text-gray-500 mb-1.5">Display name</label>
-            <input id="profile-displayName" name="displayName" maxLength={60} defaultValue={profile?.displayName || username} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
+            <input id="profile-displayName" name="displayName" maxLength={60} defaultValue={profile?.displayName || username} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500 transition-colors" />
           </div>
           <div>
             <label htmlFor="profile-twitchId" className="block text-xs text-gray-500 mb-1.5">Twitch username</label>
-            <input id="profile-twitchId" name="twitchId" maxLength={60} defaultValue={profile?.twitchId || ''} placeholder="twitch_username" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors" />
+            <input id="profile-twitchId" name="twitchId" maxLength={60} defaultValue={profile?.twitchId || ''} placeholder="twitch_username" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-hidden focus:border-purple-500 transition-colors" />
           </div>
           <div className="md:col-span-3">
             <label htmlFor="profile-notes" className="block text-xs text-gray-500 mb-1.5">Private notes</label>
-            <textarea id="profile-notes" name="notes" maxLength={2000} rows={3} defaultValue={profile?.notes || ''} placeholder="Anything worth remembering about this viewer" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors" />
+            <textarea id="profile-notes" name="notes" maxLength={2000} rows={3} defaultValue={profile?.notes || ''} placeholder="Anything worth remembering about this viewer" className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500 transition-colors" />
           </div>
           <div className="md:col-span-3"><PendingButton type="submit" className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors">Save Profile</PendingButton></div>
         </form>
@@ -299,9 +299,9 @@ export default async function UserDetailPage({
                           return (
                             <div key={card.id} className="relative group">
                               {owned && card.imageUrl ? (
-                                <CardTile imageUrl={card.imageUrl} alt={card.name} className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 holo-hover border-2" style={{ borderColor: color, boxShadow: `0 0 12px -4px ${color}` }} />
+                                <CardTile imageUrl={card.imageUrl} alt={card.name} className="aspect-2/3 rounded-lg overflow-hidden bg-gray-800 holo-hover border-2" style={{ borderColor: color, boxShadow: `0 0 12px -4px ${color}` }} />
                               ) : (
-                                <div className={`aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 ${owned ? 'holo-hover border-2' : 'border border-dashed border-gray-700'}`} style={owned ? { borderColor: color, boxShadow: `0 0 12px -4px ${color}` } : undefined}>
+                                <div className={`aspect-2/3 rounded-lg overflow-hidden bg-gray-800 ${owned ? 'holo-hover border-2' : 'border border-dashed border-gray-700'}`} style={owned ? { borderColor: color, boxShadow: `0 0 12px -4px ${color}` } : undefined}>
                                   <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs font-bold border border-gray-700/50 rounded-lg">{card.number}</div>
                                 </div>
                               )}

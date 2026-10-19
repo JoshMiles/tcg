@@ -7,7 +7,7 @@ function Spark({ values }: { values: number[] }) {
   return (
     <div className="flex items-end gap-px h-8 w-full" aria-hidden>
       {values.map((v, i) => (
-        <div key={i} className="flex-1 rounded-sm bg-yellow-500/70" style={{ height: `${Math.max(v > 0 ? 12 : 4, (v / max) * 100)}%`, opacity: v > 0 ? 1 : 0.25 }} />
+        <div key={i} className="flex-1 rounded-xs bg-yellow-500/70" style={{ height: `${Math.max(v > 0 ? 12 : 4, (v / max) * 100)}%`, opacity: v > 0 ? 1 : 0.25 }} />
       ))}
     </div>
   );

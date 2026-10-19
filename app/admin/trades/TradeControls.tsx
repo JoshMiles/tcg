@@ -6,7 +6,7 @@ import { Spinner } from '../components/PendingButton';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { cancelOpenTradesAction, extendOpenTradesAction, setSeasonTradingAction, type TradeActionResult } from '../trade-actions';
 
-const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-500';
+const field = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:outline-hidden focus:border-yellow-500';
 const btn = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 hover:bg-white/5 disabled:opacity-50 transition-colors';
 
 export interface ControlSeason { id: string; name: string; frozen: boolean; open: number }

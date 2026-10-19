@@ -41,7 +41,7 @@ export function cardsSignature(rows: CardRow[]): string {
 const nameFromFile = (file: File) =>
   file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
 
-const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors';
+const inputCls = 'bg-gray-800 border border-gray-700 rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500 transition-colors';
 
 export function CardsEditor({
   cards,

@@ -90,8 +90,8 @@ export function UpgradeButton({
           onClose={() => { setCeremony(null); router.refresh(); }}
         />
       )}
-      {armed && state !== 'working' && <span role="status" className="text-[11px] text-gray-400 max-w-[14rem] text-right">Tap again to spend {cost} {VARIANT_LABELS[from]} for 1 {VARIANT_LABELS[to]}.</span>}
-      {state === 'error' && <span className="text-[11px] text-red-400 max-w-[14rem] text-right">{error}</span>}
+      {armed && state !== 'working' && <span role="status" className="text-[11px] text-gray-400 max-w-56 text-right">Tap again to spend {cost} {VARIANT_LABELS[from]} for 1 {VARIANT_LABELS[to]}.</span>}
+      {state === 'error' && <span className="text-[11px] text-red-400 max-w-56 text-right">{error}</span>}
     </span>
   );
 }

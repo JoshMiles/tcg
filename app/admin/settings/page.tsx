@@ -121,7 +121,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {/* OBS overlay */}
       {tab === 'overlay' && (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start [&>*]:min-w-0">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start *:min-w-0">
           <div className="space-y-6">
             <Panel title="Browser source" icon="tv" hint={`Add this as a Browser Source in OBS, sized as recommended in the Overlay Editor (${overlay.layout.width} × ${overlay.layout.height}).`}>
               <CopyableUrl url={overlayUrl(SITE_URL, overlayKey)} />
@@ -179,7 +179,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {/* Twitch & viewers */}
       {tab === 'viewers' && (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start [&>*]:min-w-0">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start *:min-w-0">
           <div className="space-y-6">
             {(['Extension views', 'Policies', 'Allowlists'] as const).map(group => (
               <Panel key={group} title={group === 'Allowlists' ? 'Allowlist' : group === 'Policies' ? 'Policy links' : 'Extension views'} icon={group === 'Extension views' ? 'tv' : group === 'Policies' ? 'book' : 'lock'}
@@ -235,7 +235,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               {' '}Values are never shown here. Change them in Vercel → Project → Settings → Environment Variables, then <strong>redeploy</strong> (changes only apply to new deployments).
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start [&>*]:min-w-0">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start *:min-w-0">
             {ENV_GROUPS.map(group => {
               const rows = env.filter(e => e.group === group);
               if (rows.length === 0) return null;
@@ -263,7 +263,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
       {/* About */}
       {tab === 'about' && (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start [&>*]:min-w-0">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 items-start *:min-w-0">
           <Panel title="Build" icon="info">
             <dl className="grid grid-cols-[7rem_1fr] gap-y-1.5 text-sm">
               <dt className="text-gray-500">Version</dt><dd className="text-white font-mono">v{build.version}</dd>
@@ -286,7 +286,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                   <div className="divide-y divide-gray-800">
                     {result.packs.map(({ pack, cards }) => (
                       <div key={pack.id} className="flex items-center gap-2 text-sm py-2 first:pt-0 last:pb-0">
-                        {pack.coverImageUrl && <img src={pack.coverImageUrl} alt={pack.name} loading="lazy" className="w-6 h-8 object-cover rounded shrink-0" />}
+                        {pack.coverImageUrl && <img src={pack.coverImageUrl} alt={pack.name} loading="lazy" className="w-6 h-8 object-cover rounded-sm shrink-0" />}
                         <span className="text-gray-300 flex-1">{pack.name}</span>
                         <span className="text-gray-600">{cards.length} cards</span>
                         {!pack.active && <span className="text-xs text-gray-700">(inactive)</span>}

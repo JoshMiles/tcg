@@ -77,8 +77,8 @@ export function LineupEditor({ seasonId, initial }: { seasonId: string; initial:
             className={`tcg-panel rounded-xl p-3 flex flex-wrap items-center gap-3 transition-shadow ${overId === pack.id ? 'shadow-[inset_0_3px_0_0_#eab308]' : ''}`}
           >
             <span className="text-gray-600 cursor-grab" title="Drag to reorder" aria-hidden><Icon name="grip" className="w-4 h-4" /></span>
-            {pack.coverImageUrl ? <img src={pack.coverImageUrl} alt="" loading="lazy" className="w-9 h-12 object-cover rounded shrink-0" /> : <div className="w-9 h-12 bg-gray-800 rounded shrink-0" />}
-            <div className="flex-1 min-w-[10rem]">
+            {pack.coverImageUrl ? <img src={pack.coverImageUrl} alt="" loading="lazy" className="w-9 h-12 object-cover rounded-sm shrink-0" /> : <div className="w-9 h-12 bg-gray-800 rounded-sm shrink-0" />}
+            <div className="flex-1 min-w-40">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-white text-sm">{pack.name}</span>
                 {pack.archived ? <span className="text-xs px-1.5 py-0.5 bg-gray-800 text-gray-400 rounded-md">Archived</span>
@@ -102,19 +102,19 @@ export function LineupEditor({ seasonId, initial }: { seasonId: string; initial:
                 onBlur={e => saveWeight(pack.id, e.currentTarget.value)}
                 onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                 aria-label={`Draw weight for ${pack.name}`}
-                className="w-16 rounded-lg bg-gray-950 border border-gray-700 px-2 py-1 text-right text-sm text-white tabular-nums focus:outline-none focus:border-yellow-500"
+                className="w-16 rounded-lg bg-gray-950 border border-gray-700 px-2 py-1 text-right text-sm text-white tabular-nums focus:outline-hidden focus:border-yellow-500"
               />
             </label>
             <div className="flex items-center gap-1 shrink-0">
-              <button type="button" onClick={() => move(pack.id, i - 1)} disabled={i === 0} aria-label={`Move ${pack.name} up`} className="w-7 h-7 rounded text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30"><Icon name="chevronUp" className="w-4 h-4" /></button>
-              <button type="button" onClick={() => move(pack.id, i + 1)} disabled={i === packs.length - 1} aria-label={`Move ${pack.name} down`} className="w-7 h-7 rounded text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30"><Icon name="chevronDown" className="w-4 h-4" /></button>
-              <Link href={`/admin/packs/${pack.id}`} className="px-2.5 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded transition-colors ml-1">Edit</Link>
+              <button type="button" onClick={() => move(pack.id, i - 1)} disabled={i === 0} aria-label={`Move ${pack.name} up`} className="w-7 h-7 rounded-sm text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30"><Icon name="chevronUp" className="w-4 h-4" /></button>
+              <button type="button" onClick={() => move(pack.id, i + 1)} disabled={i === packs.length - 1} aria-label={`Move ${pack.name} down`} className="w-7 h-7 rounded-sm text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30"><Icon name="chevronDown" className="w-4 h-4" /></button>
+              <Link href={`/admin/packs/${pack.id}`} className="px-2.5 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded-sm transition-colors ml-1">Edit</Link>
               <form action={removePackFromSeason.bind(null, seasonId, pack.id)}>
                 <ConfirmButton
                   title="Remove pack from this season?"
                   confirmLabel="Remove"
                   message={<>Remove <strong className="text-white">{pack.name}</strong> from this season? The pack itself is kept and can be added back.</>}
-                  className="px-2.5 py-1 text-xs bg-red-900/50 hover:bg-red-900 text-red-400 rounded transition-colors"
+                  className="px-2.5 py-1 text-xs bg-red-900/50 hover:bg-red-900 text-red-400 rounded-sm transition-colors"
                 >
                   Remove
                 </ConfirmButton>

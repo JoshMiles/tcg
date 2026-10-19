@@ -14,7 +14,7 @@ function inline(text: string, key: string): ReactNode[] {
     if (start > at) out.push(text.slice(at, start));
     const token = m[0];
     const id = `${key}-${n++}`;
-    if (token.startsWith('`')) out.push(<code key={id} className="rounded bg-black/40 px-1 py-0.5 text-[0.85em] text-yellow-100">{token.slice(1, -1)}</code>);
+    if (token.startsWith('`')) out.push(<code key={id} className="rounded-sm bg-black/40 px-1 py-0.5 text-[0.85em] text-yellow-100">{token.slice(1, -1)}</code>);
     else if (token.startsWith('**')) out.push(<strong key={id} className="font-semibold text-white">{token.slice(2, -2)}</strong>);
     else {
       const link = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(token);

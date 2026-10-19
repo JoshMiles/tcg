@@ -32,7 +32,7 @@ export function SoundOptimiser({ asset, onUse, replacing }: { asset: LibraryAsse
   }
 
   const smaller = result ? Math.round((1 - result.bytes / result.original) * 100) : 0;
-  const field = 'bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-yellow-500';
+  const field = 'bg-gray-950 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-200 focus:outline-hidden focus:border-yellow-500';
   return (
     <div className="space-y-2">
       <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Optimise</p>

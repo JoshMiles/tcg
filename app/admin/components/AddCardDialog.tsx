@@ -40,7 +40,7 @@ export function AddCardDialog({
                 required
                 autoFocus
                 placeholder="e.g. Golden Cheese Wedge"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
               />
             </div>
 
@@ -50,7 +50,7 @@ export function AddCardDialog({
                 id="add-card-stars"
                 name="stars"
                 defaultValue="1"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-yellow-500 transition-colors appearance-none"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-hidden focus:border-yellow-500 transition-colors appearance-none"
               >
                 {RARITIES.map(r => (
                   <option key={r.stars} value={r.stars}>
@@ -71,7 +71,7 @@ export function AddCardDialog({
                 min="1"
                 required
                 placeholder="e.g. 100"
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors"
               />
               <p className="text-xs text-gray-600 mt-1">Higher = more common</p>
             </div>

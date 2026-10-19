@@ -15,13 +15,13 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   const accent = accentHex(b.settings.accent);
   return (
-    <header className="rounded-3xl border border-yellow-500/20 bg-gradient-to-br from-gray-900/80 to-gray-950/80" style={accent ? { borderColor: `${accent}88`, boxShadow: `0 0 40px -16px ${accent}` } : undefined}>
+    <header className="rounded-3xl border border-yellow-500/20 bg-linear-to-br from-gray-900/80 to-gray-950/80" style={accent ? { borderColor: `${accent}88`, boxShadow: `0 0 40px -16px ${accent}` } : undefined}>
       <div className="holo-strip rounded-t-3xl" style={accent ? { background: `linear-gradient(90deg, transparent, ${accent}, transparent)` } : undefined} />
       <div className="p-5 sm:p-6 flex flex-wrap items-start justify-between gap-5">
         <div className="flex items-start gap-4 min-w-0">
           <Avatar src={b.avatarUrl} name={b.displayName} className="w-16 h-16 sm:w-20 sm:h-20 text-2xl ring-2 ring-yellow-500/60 shrink-0" />
           <div className="min-w-0">
-            <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight break-words">
+            <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight wrap-break-word">
               {b.displayName}
               {pronouns && <span className="ml-2 align-middle text-sm font-medium text-gray-400">{pronouns}</span>}
               {staffBadge && <span className="ml-2"><StaffBadge badge={staffBadge} /></span>}
@@ -32,7 +32,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
               )}
             </h1>
             <p className="text-sm text-gray-500">@{b.lower}</p>
-            {isOwner ? <ProfileBasicsEditor bio={b.settings.bio} accent={b.settings.accent} pronouns={b.settings.pronouns} /> : b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl break-words">{b.bio}</p>}
+            {isOwner ? <ProfileBasicsEditor bio={b.settings.bio} accent={b.settings.accent} pronouns={b.settings.pronouns} /> : b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl wrap-break-word">{b.bio}</p>}
             {b.awards.length > 0 && (
               <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Season awards">
                 {b.awards.slice(0, 8).map((a, i) => (
@@ -58,7 +58,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
         <div>
           <div className="flex items-baseline justify-between text-xs text-gray-500 mb-1.5"><span>{b.season.name}</span><span className="tabular-nums">{b.pct}% complete{b.owned.length > b.uniqueOwned ? ` · ${b.owned.length} total pulls` : ''}</span></div>
           <div className="h-2.5 bg-gray-950 border border-gray-800 rounded-full overflow-hidden" role="progressbar" aria-valuenow={b.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Collection progress">
-            <div className="h-full bg-gradient-to-r from-yellow-300 to-yellow-600 rounded-full" style={{ width: `${b.pct}%` }} />
+            <div className="h-full bg-linear-to-r from-yellow-300 to-yellow-600 rounded-full" style={{ width: `${b.pct}%` }} />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -72,12 +72,12 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
             <Icon name="trophy" />Leaderboard
           </Link>
           {isOwner && (
-            <Link href="/account" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
+            <Link href="/account" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
               <Icon name="trend" />My stats &amp; upgrades
             </Link>
           )}
           {isOwner && (
-            <Link href="/settings" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
+            <Link href="/settings" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
               <Icon name="settings" />Edit profile &amp; settings
             </Link>
           )}

@@ -31,7 +31,7 @@ export function TradeStacks({ items, cards, className = '', pool, hideCount = fa
               {SHORT[i.variant] && <span className="absolute bottom-0 inset-x-0 bg-black/70 text-[9px] font-bold text-yellow-300 text-center leading-tight">{SHORT[i.variant]}</span>}
             </span>
             <span className="min-w-0 text-xs leading-tight">
-              <span className="block font-semibold text-white truncate max-w-[9rem]">{c?.name ?? `#${i.cardNumber}`}</span>
+              <span className="block font-semibold text-white truncate max-w-36">{c?.name ?? `#${i.cardNumber}`}</span>
               <span className="block text-gray-500">{VARIANT_LABELS[i.variant]}{!hideCount && i.count > 1 && <span className="text-yellow-400 font-bold"> ×{i.count}</span>}</span>
               {wanted?.[i.cardNumber] ? <span className="mt-1 inline-block rounded-full border border-purple-400/30 bg-purple-500/10 px-1.5 text-[10px] font-bold text-purple-300">{wanted[i.cardNumber]} want this</span> : null}
               {anyPrint && !i.ids && <span className="block text-[10px] text-gray-600">any print</span>}
@@ -42,7 +42,7 @@ export function TradeStacks({ items, cards, className = '', pool, hideCount = fa
                     const uid = picked?.find(p => p.n === n)?.uid;
                     return (
                       <span key={n} className="inline-flex items-center gap-1">
-                        <SerialChip n={n} bonus={m > 1 ? Math.round(m * 100) / 100 : undefined} className="!text-[10px] !px-1.5 !py-0" />
+                        <SerialChip n={n} bonus={m > 1 ? Math.round(m * 100) / 100 : undefined} className="text-[10px]! px-1.5! py-0!" />
                         {uid && <span className="text-[10px] text-gray-400">Print #{uid}</span>}
                       </span>
                     );

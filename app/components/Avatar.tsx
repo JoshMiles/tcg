@@ -32,7 +32,7 @@ export function Avatar({ src, name, className = 'w-8 h-8 text-xs' }: { src?: str
   return (
     <div
       aria-hidden
-      className={`${className} rounded-full bg-gradient-to-br from-poke-blue to-poke-blue-light flex items-center justify-center font-extrabold text-white shrink-0 uppercase`}
+      className={`${className} rounded-full bg-linear-to-br from-poke-blue to-poke-blue-light flex items-center justify-center font-extrabold text-white shrink-0 uppercase`}
     >
       {name[0]}
     </div>

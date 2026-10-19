@@ -15,7 +15,7 @@ Syncs the app's self-contained visual primitives (11 components) to the Claude D
 ## Gotchas (already fixed, keep them)
 
 - **Process shim.** `lib/site.ts` reads `process.env` when it loads, so the browser bundle crashed with `process is not defined` and nothing reached `window.CheesyTCG`. `entry.ts` imports `process-shim.ts` first to stop this.
-- **Tailwind purge.** The app CSS is purged to the classes the app uses. `.design-sync/tailwind.config.ts` adds a safelist of common utility families so designs can use classes the app does not. The `buildCmd` compiles it and puts `fonts.css` (Google Fonts: Fredoka and Nunito) in front.
+- **Tailwind purge.** The app CSS only includes classes the app uses. `.design-sync/input.css` imports `app/globals.css` and adds an `@source inline` safelist of common utility families so designs can use classes the app does not. The `buildCmd` compiles that with `npx @tailwindcss/cli@4.3.3` (not a project dependency: the CLI still pulls the unpatched `braces` package) and puts `fonts.css` (Google Fonts: Fredoka and Nunito) in front.
 - **Component discovery.** Automatic discovery found 0 components, so `componentSrcMap` pins each one to its file.
 - **Prop types.** Props came out as `[key: string]: unknown`, so `dtsPropsFor` holds hand-written prop bodies.
   - Do not write `*/` inside a comment in them: the comment "w-*/h-*" broke the d.ts parse once.

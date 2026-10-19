@@ -32,8 +32,8 @@ export function ProfileBasicsEditor({ bio, accent, pronouns }: { bio: string; ac
   if (!open) {
     return (
       <div className="mt-2 flex flex-wrap items-start gap-2">
-        {bio ? <p className="text-sm text-gray-300 max-w-xl break-words">{bio}</p> : <p className="text-sm text-gray-600">No bio yet.</p>}
-        <button type="button" onClick={begin} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/[0.06] border border-white/10 hover:bg-white/10 rounded-full px-3 py-1 transition-colors">
+        {bio ? <p className="text-sm text-gray-300 max-w-xl wrap-break-word">{bio}</p> : <p className="text-sm text-gray-600">No bio yet.</p>}
+        <button type="button" onClick={begin} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1 transition-colors">
           <Icon name="pencil" />Edit profile
         </button>
       </div>
@@ -44,7 +44,7 @@ export function ProfileBasicsEditor({ bio, accent, pronouns }: { bio: string; ac
       <div className="space-y-1.5">
         <label htmlFor="profile-bio" className="block text-sm font-semibold text-gray-100">About you</label>
         <textarea id="profile-bio" value={draftBio} maxLength={BIO_MAX} rows={2} onChange={e => setDraftBio(e.target.value)} placeholder="A line about your collection, favourite card, trading wishes..."
-          className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-none" />
+          className="w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-2 text-sm text-white placeholder-gray-600 outline-hidden" />
         <p className="text-xs text-gray-500 text-right tabular-nums">{draftBio.length}/{BIO_MAX}</p>
       </div>
       <div className="space-y-1.5">

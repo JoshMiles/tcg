@@ -36,11 +36,11 @@ export function RecentPulls({ initial, empty }: { initial: PullItem[]; empty: Re
       {items.map(e => {
         const why = notableReason(e);
         return (
-          <li key={e.seq} className={`px-4 py-2.5 flex items-center gap-3 ${why ? 'bg-yellow-500/[0.06]' : ''}`}>
+          <li key={e.seq} className={`px-4 py-2.5 flex items-center gap-3 ${why ? 'bg-yellow-500/6' : ''}`}>
             {e.thumb ? (
-              <img src={e.thumb} alt="" loading="lazy" className="w-8 h-11 object-cover rounded" style={{ boxShadow: `0 0 0 1.5px ${e.hex}` }} />
+              <img src={e.thumb} alt="" loading="lazy" className="w-8 h-11 object-cover rounded-sm" style={{ boxShadow: `0 0 0 1.5px ${e.hex}` }} />
             ) : (
-              <span className="w-8 h-11 rounded bg-gray-800" />
+              <span className="w-8 h-11 rounded-sm bg-gray-800" />
             )}
             <span className="flex-1 min-w-0 text-sm">
               <Link href={profileHref(e.username)} className="font-semibold text-white hover:text-yellow-300">{e.username}</Link>{' '}

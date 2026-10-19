@@ -5,7 +5,7 @@ import { MESSAGE_MAX, MESSAGE_VARS } from '@/lib/mixitup-core';
 import { saveMixItUpAction, checkBalanceAction, sendTestAction } from './mixitup-actions';
 import { MessageField } from './MessageField';
 
-const input = 'w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-none';
+const input = 'w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-hidden';
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
 const help = 'text-[11px] text-gray-500 mt-1';
 const primary = 'rounded-lg bg-yellow-500 px-4 py-2 text-sm font-bold text-black hover:bg-yellow-400 disabled:opacity-60';

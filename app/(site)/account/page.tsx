@@ -265,8 +265,8 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                     return (
                       <li key={`${u.card.id}-${u.from}`} className="py-2.5 flex items-center gap-3">
                         {u.card.imageUrl ? (
-                          <img src={cardThumbUrl(u.card.imageUrl)} alt="" loading="lazy" className="w-9 h-12 object-cover rounded" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} />
-                        ) : <span className="w-9 h-12 rounded bg-gray-800" />}
+                          <img src={cardThumbUrl(u.card.imageUrl)} alt="" loading="lazy" className="w-9 h-12 object-cover rounded-sm" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} />
+                        ) : <span className="w-9 h-12 rounded-sm bg-gray-800" />}
                         <span className="flex-1 min-w-0 text-sm">
                           <span className="block font-semibold text-white truncate">{u.card.name}</span>
                           <span className="block text-xs text-gray-400">
@@ -303,7 +303,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                   const rarity = getRarity(m.stars);
                   return (
                     <li key={m.number} className="py-2 flex items-center gap-3">
-                      {m.imageUrl ? <img src={cardThumbUrl(m.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded opacity-70" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} /> : <span className="w-8 h-11 rounded bg-gray-800" />}
+                      {m.imageUrl ? <img src={cardThumbUrl(m.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded-sm opacity-70" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} /> : <span className="w-8 h-11 rounded-sm bg-gray-800" />}
                       <Link href={`/cards?card=${m.number}`} className="flex-1 min-w-0 hover:text-yellow-200">
                         <span className="block text-sm font-semibold text-white truncate">{m.name}</span>
                         <span className="block text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(m.stars)} {rarity?.label} · {m.pullRate > 0 ? `1 in ${Math.round(1 / m.pullRate).toLocaleString()}` : '-'}</span>
@@ -344,8 +344,8 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                     <li key={`${t.card.id}-${t.variant}-${t.serial ?? 'all'}`}>
                     <Link href={printLinks[i] ?? `/cards?card=${t.card.number}`} className="py-2 -mx-2 px-2 rounded-lg flex items-center gap-3 hover:bg-gray-800/60 focus-visible:bg-gray-800/60 transition-colors">
                       {t.card.imageUrl ? (
-                        <img src={cardThumbUrl(t.card.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} />
-                      ) : <span className="w-8 h-11 rounded bg-gray-800" />}
+                        <img src={cardThumbUrl(t.card.imageUrl)} alt="" loading="lazy" className="w-8 h-11 object-cover rounded-sm" style={{ boxShadow: `0 0 0 1.5px ${rarity?.hex}` }} />
+                      ) : <span className="w-8 h-11 rounded-sm bg-gray-800" />}
                       <span className="flex-1 min-w-0">
                         <span className="block text-sm font-semibold text-white truncate">{t.card.name}</span>
                         <span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? <span className="text-emerald-300"> · #{t.serial} (×{t.mult?.toFixed(2)} edition bonus)</span> : null}</span>

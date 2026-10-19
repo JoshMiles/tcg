@@ -49,7 +49,7 @@ export function PrintPicker({
                 className={`inline-flex items-center gap-1 rounded-full border px-1 py-0.5 transition-colors ${on ? 'border-yellow-400 bg-yellow-500/15' : 'border-gray-800 hover:border-gray-600'}`}
               >
                 {on && <Icon name="check" className="ml-0.5 text-yellow-300" />}
-                <SerialChip n={p.n} bonus={m > 1 ? Math.round(m * 100) / 100 : undefined} className="!text-[10px] !px-1.5 !py-0" />
+                <SerialChip n={p.n} bonus={m > 1 ? Math.round(m * 100) / 100 : undefined} className="text-[10px]! px-1.5! py-0!" />
                 {p.uid && <span className="pr-1 text-[10px] text-gray-400">Print #{p.uid}</span>}
               </button>
             </li>

@@ -57,7 +57,7 @@ const NEW_PACK: PackInput = {
   disabledVariants: [],
 };
 
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors disabled:opacity-40';
+const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 transition-colors disabled:opacity-40';
 
 export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: PackInput; cards: CardRow[] }; /** The draft's saved card back and the other packs to copy one from (only known when resuming a draft). */ cardBack?: { initial: CardBackStyle | null; others: { id: string; name: string }[] } }) {
   const router = useRouter();
@@ -379,7 +379,7 @@ function VariantWeight({ label, value, percent, onChange }: { label: string; val
   return (
     <div>
       <label htmlFor={id} className="block text-xs text-gray-400 mb-1">{label}</label>
-      <input id={id} type="number" min="0" step="any" value={value} onChange={e => onChange(Number(e.target.value))} className={inputCls + ' !px-3'} />
+      <input id={id} type="number" min="0" step="any" value={value} onChange={e => onChange(Number(e.target.value))} className={inputCls + ' px-3!'} />
       <p className="text-xs text-gray-500 mt-1 tabular-nums">≈ {percent}% of pulls</p>
     </div>
   );
@@ -488,7 +488,7 @@ function NumberField({
         max={max}
         step={step ?? 'any'}
         onChange={e => onChange(Number(e.target.value))}
-        className={inputCls + (narrow ? ' !w-32' : '')}
+        className={inputCls + (narrow ? ' w-32!' : '')}
       />
       {hint && <p className="text-xs text-gray-600 mt-1">{hint}</p>}
     </div>

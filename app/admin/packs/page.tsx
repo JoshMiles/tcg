@@ -97,12 +97,12 @@ export default async function PacksPage() {
                   data-search={`${pack.name} ${inSeasons.map(s => s.name).join(' ')}`.toLowerCase()}
                   className={`rounded-[1.6rem] p-[3px] transition-all hover:-translate-y-1 ${
                     isArchived
-                      ? 'bg-gradient-to-br from-gray-700/60 to-gray-900 opacity-80'
+                      ? 'bg-linear-to-br from-gray-700/60 to-gray-900 opacity-80'
                       : isDraft
-                      ? 'bg-gradient-to-br from-amber-700/60 to-gray-800'
+                      ? 'bg-linear-to-br from-amber-700/60 to-gray-800'
                       : pack.active
-                      ? 'bg-gradient-to-br from-yellow-300 via-yellow-500 to-amber-600 shadow-glow'
-                      : 'bg-gradient-to-br from-gray-600 to-gray-800'
+                      ? 'bg-linear-to-br from-yellow-300 via-yellow-500 to-amber-600 shadow-glow'
+                      : 'bg-linear-to-br from-gray-600 to-gray-800'
                   }`}
                 >
                   <div className="rounded-[1.4rem] bg-gray-900 overflow-hidden flex flex-col h-full">
@@ -111,7 +111,7 @@ export default async function PacksPage() {
                       aria-label={`${isDraft ? 'Continue setting up' : 'Manage'} ${pack.name || 'Untitled pack'}`}
                       className="p-3 pb-0 block"
                     >
-                      <div className="holo-hover relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-950 border border-white/10 flex items-center justify-center">
+                      <div className="holo-hover relative aspect-4/3 rounded-xl overflow-hidden bg-gray-950 border border-white/10 flex items-center justify-center">
                         {pack.coverImageUrl ? (
                           <img src={pack.coverImageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
                         ) : (
@@ -149,7 +149,7 @@ export default async function PacksPage() {
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-1.5 min-h-[1.75rem]">
+                      <div className="flex flex-wrap gap-1.5 min-h-7">
                         {tiers.filter(t => t.pct > 0).map(t => (
                           <span key={t.stars} className={`text-xs font-bold bg-white/5 rounded-md px-2 py-1 ${t.text}`}>
                             {'★'.repeat(t.stars)} <span className="text-gray-400 font-semibold">{t.pct}%</span>

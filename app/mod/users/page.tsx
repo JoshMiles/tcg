@@ -50,7 +50,7 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
               const av = avatars[u.username];
               return (
                 <li key={u.username}>
-                  <Link href={`/mod/users/${encodeURIComponent(u.username)}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-white/[0.03]">
+                  <Link href={`/mod/users/${encodeURIComponent(u.username)}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-white/3">
                     <Avatar src={av ? sizeTwitchAvatar(av, 70) : undefined} name={p?.displayName || u.username} className="w-9 h-9 text-sm shrink-0" />
                     <span className="min-w-0">
                       <span className="block font-semibold text-white truncate">{p?.displayName || u.username}</span>

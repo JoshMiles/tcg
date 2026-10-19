@@ -24,8 +24,8 @@ export function CookieNotice() {
   };
 
   return (
-    <div role="region" aria-label="Cookie notice" className="fixed inset-x-0 bottom-0 z-[80] p-3 sm:p-4 pointer-events-none">
-      <div className="pointer-events-auto mx-auto max-w-3xl rounded-2xl border border-gray-700 bg-gray-900/95 backdrop-blur p-4 shadow-2xl flex flex-col sm:flex-row sm:items-center gap-3">
+    <div role="region" aria-label="Cookie notice" className="fixed inset-x-0 bottom-0 z-80 p-3 sm:p-4 pointer-events-none">
+      <div className="pointer-events-auto mx-auto max-w-3xl rounded-2xl border border-gray-700 bg-gray-900/95 backdrop-blur-sm p-4 shadow-2xl flex flex-col sm:flex-row sm:items-center gap-3">
         <p className="text-sm text-gray-300 leading-relaxed flex-1">
           We only use <strong className="text-white">essential cookies</strong> (to keep you logged in). No advertising or tracking cookies, so there&rsquo;s nothing to switch off.{' '}
           <Link href="/privacy" className="text-yellow-400 hover:text-yellow-300 underline">Privacy Policy</Link>

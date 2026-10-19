@@ -51,7 +51,7 @@ export function PageHeader({ title, subtitle, icon, back, actions }: { title: Re
       {back && <Link href={back.href} className="inline-block text-sm text-gray-500 hover:text-white transition-colors">← {back.label}</Link>}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-3xl font-bold text-white break-words">{icon && <Icon name={icon} className="mr-2 text-yellow-400/90" />}{title}</h1>
+          <h1 className="text-3xl font-bold text-white wrap-break-word">{icon && <Icon name={icon} className="mr-2 text-yellow-400/90" />}{title}</h1>
           {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -71,7 +71,7 @@ export function EmptyState({ icon = 'inbox', title, children, action, asH1 = fal
   const Title = asH1 ? 'h1' : 'p';
   return (
     <div className="tcg-panel rounded-2xl px-6 py-14 text-center">
-      <span className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.06] text-gray-500 flex items-center justify-center"><Icon name={icon} className="w-6 h-6" /></span>
+      <span className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-white/4 border border-white/6 text-gray-500 flex items-center justify-center"><Icon name={icon} className="w-6 h-6" /></span>
       <Title className="font-semibold text-gray-200">{title}</Title>
       {children && <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto leading-relaxed">{children}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
@@ -88,5 +88,5 @@ export function Chip({ tone = 'gray', children }: { tone?: keyof typeof CHIP; ch
 }
 
 /** Class strings for form controls, so inputs look the same everywhere. */
-export const fieldClass = 'block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-none';
-export const selectClass = 'rounded-xl bg-gray-950 border border-gray-700 px-2.5 py-2 text-sm text-gray-300 focus:outline-none focus:border-yellow-500';
+export const fieldClass = 'block w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white focus:border-yellow-500 focus:outline-hidden';
+export const selectClass = 'rounded-xl bg-gray-950 border border-gray-700 px-2.5 py-2 text-sm text-gray-300 focus:outline-hidden focus:border-yellow-500';

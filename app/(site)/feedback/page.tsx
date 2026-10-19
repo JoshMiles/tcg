@@ -55,8 +55,8 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
                   <span className="rounded-full border border-gray-700 px-2 py-0.5 font-bold text-gray-300">{STATUS_LABELS[i.status]}</span>
                   <time className="text-gray-500" dateTime={new Date(i.at).toISOString()}>{dateFmt.format(i.at)}</time>
                 </div>
-                <p className="font-semibold text-white break-words">{i.title}</p>
-                {i.reply && i.kind !== 'report' && <p className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 text-sm text-yellow-100 whitespace-pre-wrap break-words"><span className="font-bold">Reply:</span> {i.reply}</p>}
+                <p className="font-semibold text-white wrap-break-word">{i.title}</p>
+                {i.reply && i.kind !== 'report' && <p className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 text-sm text-yellow-100 whitespace-pre-wrap wrap-break-word"><span className="font-bold">Reply:</span> {i.reply}</p>}
               </li>
             ))}
           </ul>

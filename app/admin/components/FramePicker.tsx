@@ -58,7 +58,7 @@ export function FramePicker({ artUrl, value, onChange, label = 'Choose still fra
             : frames < 2 ? <p className="text-gray-500">This art has a single frame, so there is nothing to choose.</p> : (
               <>
                 <div className="flex gap-3 items-start">
-                  <img src={frameSrc(artUrl, frame, 260)} alt={`Frame ${frame + 1} of ${frames}`} className="w-32 aspect-[2/3] object-cover rounded-lg border border-gray-700 bg-gray-900" />
+                  <img src={frameSrc(artUrl, frame, 260)} alt={`Frame ${frame + 1} of ${frames}`} className="w-32 aspect-2/3 object-cover rounded-lg border border-gray-700 bg-gray-900" />
                   <div className="flex-1 space-y-2 min-w-0">
                     <label className="block text-gray-400">Frame {frame + 1} of {frames}
                       <input type="range" min={0} max={frames - 1} step={1} value={frame} onChange={e => setFrame(Number(e.target.value))} aria-label="Frame" className="w-full accent-yellow-400" />
@@ -72,7 +72,7 @@ export function FramePicker({ artUrl, value, onChange, label = 'Choose still fra
                     {picks.map(n => (
                       <li key={n}>
                         <button type="button" onClick={() => setFrame(n)} aria-label={`Frame ${n + 1}`} aria-pressed={frame === n} className={`block rounded-md overflow-hidden border-2 ${frame === n ? 'border-yellow-400' : 'border-transparent hover:border-gray-600'}`}>
-                          <img src={frameSrc(artUrl, n, 90)} alt="" loading="lazy" className="w-10 aspect-[2/3] object-cover bg-gray-900" />
+                          <img src={frameSrc(artUrl, n, 90)} alt="" loading="lazy" className="w-10 aspect-2/3 object-cover bg-gray-900" />
                         </button>
                       </li>
                     ))}

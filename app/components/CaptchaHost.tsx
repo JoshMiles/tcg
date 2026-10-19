@@ -68,7 +68,7 @@ export function CaptchaHost() {
   return (
     <div
       role="dialog" aria-modal="true" aria-label="Quick check"
-      className={`fixed inset-0 z-[95] grid place-items-center p-4 bg-black/60 backdrop-blur-sm transition-opacity ${visible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      className={`fixed inset-0 z-95 grid place-items-center p-4 bg-black/60 backdrop-blur-xs transition-opacity ${visible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       onKeyDown={e => { if (e.key === 'Escape') cancel(); }}
     >
       <div className="w-full max-w-sm rounded-2xl border border-gray-700 bg-gray-900 p-5 shadow-2xl space-y-4">

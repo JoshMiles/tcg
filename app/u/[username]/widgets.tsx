@@ -127,7 +127,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
               return (
                 <li key={c.number} className="w-24 sm:w-28">
                   <Link href={href} title={`${c.name}${c.variant === 'regular' ? '' : ` (${VARIANT_LABELS[c.variant]})`}`}>
-                    <CardTile imageUrl={(c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl} alt={c.name} className="relative aspect-[2/3] rounded-lg overflow-hidden border-2" style={{ borderColor: getRarity(c.stars)?.hex }} />
+                    <CardTile imageUrl={(c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl} alt={c.name} className="relative aspect-2/3 rounded-lg overflow-hidden border-2" style={{ borderColor: getRarity(c.stars)?.hex }} />
                   </Link>
                   <p className="mt-1 text-xs text-gray-200 truncate">{c.name}</p>
                   <p className="text-[11px] text-yellow-400 tabular-nums">{Math.round(c.points).toLocaleString()} pts{c.variant !== 'regular' ? ` · ${VARIANT_LABELS[c.variant]}` : ''}</p>
@@ -167,7 +167,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
               <CardTile
                 imageUrl={art}
                 alt={label}
-                className={`relative aspect-[2/3] rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''} ${holoClass(holo, true)}`}
+                className={`relative aspect-2/3 rounded-xl overflow-hidden border-2 ${copy.variant !== 'regular' ? `vfx-${copy.variant}` : ''} ${holoClass(holo, true)}`}
                 style={{ borderColor: rarity?.hex, boxShadow: `0 0 24px -6px ${rarity?.hex}`, ...holoVars(holo) }}
               />
             </FlipCard>
@@ -194,7 +194,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
     case 'rarity':
       return (
         <Box type={type} href={profileHref(b.lower, 'collection')} linkLabel="Collection">
-          <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(7rem,1fr))]">
+          <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(7rem,1fr))]">
             {b.rarity.map(r => (
               <div key={r.stars} className="rounded-xl bg-gray-950/50 border border-gray-800 p-3 text-center">
                 <p className="text-xs font-medium mb-1" style={{ color: r.hex }}>{'★'.repeat(r.stars)}</p>
@@ -215,7 +215,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
             {rows.map(r => (
               <li key={r.name} className="space-y-1">
                 <div className="flex justify-between text-sm"><span className="text-gray-300 truncate">{r.name}</span><span className="tabular-nums text-gray-400">{r.owned}/{r.total}</span></div>
-                <div className="h-2 rounded-full bg-gray-950 border border-gray-800 overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-yellow-300 to-yellow-600" style={{ width: `${Math.round((r.owned / r.total) * 100)}%` }} /></div>
+                <div className="h-2 rounded-full bg-gray-950 border border-gray-800 overflow-hidden"><div className="h-full rounded-full bg-linear-to-r from-yellow-300 to-yellow-600" style={{ width: `${Math.round((r.owned / r.total) * 100)}%` }} /></div>
               </li>
             ))}
           </ul>
@@ -249,7 +249,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                   return (
                     <li key={p.id}>
                       <Link href={p.uid ? `/c/${p.uid}` : `/copy/${encodeURIComponent(b.season.id)}/${p.id}`} className="flex items-center gap-3 py-2 hover:text-white text-gray-300">
-                        <span className={`w-8 h-11 rounded overflow-hidden bg-gray-800 shrink-0 ${p.variant !== 'regular' ? `vfx-${p.variant}` : ''} ${holoClass(holo, true)}`} style={holoVars(holo)}><CardTile imageUrl={art} alt="" className="relative w-full h-full" /></span>
+                        <span className={`w-8 h-11 rounded-sm overflow-hidden bg-gray-800 shrink-0 ${p.variant !== 'regular' ? `vfx-${p.variant}` : ''} ${holoClass(holo, true)}`} style={holoVars(holo)}><CardTile imageUrl={art} alt="" className="relative w-full h-full" /></span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm text-white truncate">{p.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[p.variant]}</span>}{c.name}</span>
                           <span className="block text-xs text-gray-500 tabular-nums truncate"><span style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)}</span> {p.uid ? `Print #${p.uid}` : 'Print'}</span>
@@ -275,7 +275,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           <ul className="divide-y divide-gray-800/70">
             {owned.map(({ c, rate }) => (
               <li key={c.number} className="flex items-center gap-3 py-2">
-                <span className="w-8 h-11 rounded overflow-hidden bg-gray-800 shrink-0"><CardTile imageUrl={c.imageUrl} alt="" className="relative w-full h-full" /></span>
+                <span className="w-8 h-11 rounded-sm overflow-hidden bg-gray-800 shrink-0"><CardTile imageUrl={c.imageUrl} alt="" className="relative w-full h-full" /></span>
                 <span className="min-w-0 flex-1"><span className="block text-sm text-white truncate">{c.name}</span><span className="block text-xs" style={{ color: getRarity(c.stars)?.hex }}>{'★'.repeat(c.stars)} {getRarity(c.stars)?.label}</span></span>
                 <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">{rate > 0 ? `1 in ${Math.round(1 / rate).toLocaleString()}` : ''}</span>
               </li>
@@ -373,7 +373,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           {a.earned.length > 0 && (
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Earned achievements">
               {a.earned.map(x => (
-                <li key={x.id} title={x.detail} className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 ${x.seasonId === 'special' ? 'border-purple-400/50 bg-gradient-to-r from-yellow-500/10 to-purple-500/15' : 'border-yellow-500/30 bg-yellow-500/[0.06]'}`}>
+                <li key={x.id} title={x.detail} className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 ${x.seasonId === 'special' ? 'border-purple-400/50 bg-linear-to-r from-yellow-500/10 to-purple-500/15' : 'border-yellow-500/30 bg-yellow-500/6'}`}>
                   <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${x.seasonId === 'special' ? 'bg-purple-500/20 text-purple-200' : 'bg-yellow-500/15 text-yellow-300'}`}><Icon name={x.icon} /></span>
                   <span className="min-w-0 text-sm">
                     <span className="block font-semibold text-white truncate">{x.title}</span>
@@ -390,7 +390,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                 {a.next.slice(0, 4).map(x => (
                   <li key={x.id} className="space-y-1">
                     <div className="flex justify-between text-sm"><span className="text-gray-300 truncate">{x.title}</span><span className="tabular-nums text-gray-500">{x.have}/{x.need}</span></div>
-                    <div className="h-1.5 rounded-full bg-gray-950 border border-gray-800 overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-yellow-300 to-yellow-600" style={{ width: `${Math.round((x.have / x.need) * 100)}%` }} /></div>
+                    <div className="h-1.5 rounded-full bg-gray-950 border border-gray-800 overflow-hidden"><div className="h-full rounded-full bg-linear-to-r from-yellow-300 to-yellow-600" style={{ width: `${Math.round((x.have / x.need) * 100)}%` }} /></div>
                   </li>
                 ))}
               </ul>
@@ -447,7 +447,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           <ul className="flex gap-2 overflow-hidden">
             {owned.slice(0, 14).map(c => (
               <li key={c.number} className="w-14 shrink-0">
-                <Link href={profileHref(b.lower, 'collection')} title={c.name}><img src={cardThumbUrl(c.imageUrl)} alt={c.name} loading="lazy" className="aspect-[2/3] w-full rounded-md border-2 object-cover" style={{ borderColor: getRarity(c.stars)?.hex }} /></Link>
+                <Link href={profileHref(b.lower, 'collection')} title={c.name}><img src={cardThumbUrl(c.imageUrl)} alt={c.name} loading="lazy" className="aspect-2/3 w-full rounded-md border-2 object-cover" style={{ borderColor: getRarity(c.stars)?.hex }} /></Link>
               </li>
             ))}
           </ul>

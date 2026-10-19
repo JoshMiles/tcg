@@ -78,7 +78,7 @@ export function InfoTip({ term, className = '' }: { term: TermId; className?: st
         onClick={() => { clearTimeout(closeTimer.current); setOpen(o => (pointer.current === 'mouse' ? true : !o)); }}
         // Tabbing in opens it; a tap also focuses the button, and the click handler decides that one.
         onFocus={e => { if (e.currentTarget.matches(':focus-visible')) show(); }}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 hover:text-yellow-300 focus-visible:text-yellow-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400/70"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 hover:text-yellow-300 focus-visible:text-yellow-300 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400/70"
       >
         <Icon name="info" className="w-3.5 h-3.5" />
       </button>
@@ -88,7 +88,7 @@ export function InfoTip({ term, className = '' }: { term: TermId; className?: st
           id={id}
           role="tooltip"
           style={pos ? { left: pos.left, top: pos.top, width: pos.width } : { left: 0, top: 0, width: WIDTH, visibility: 'hidden' }}
-          className="fixed z-[60] block rounded-xl border border-gray-700 bg-gray-950 p-3 text-left text-xs font-normal normal-case tracking-normal leading-relaxed text-gray-300 shadow-xl shadow-black/50"
+          className="fixed z-60 block rounded-xl border border-gray-700 bg-gray-950 p-3 text-left text-xs font-normal normal-case tracking-normal leading-relaxed text-gray-300 shadow-xl shadow-black/50"
         >
           <strong className="block text-sm text-white mb-0.5">{entry.title}</strong>
           {entry.body}

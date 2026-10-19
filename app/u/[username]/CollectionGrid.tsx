@@ -129,7 +129,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
             <button key={p.pack} type="button" onClick={() => patch({ pack: view.pack === p.pack ? '' : p.pack })} aria-pressed={view.pack === p.pack}
               className={`text-left rounded-xl border px-3 py-2 transition-colors ${view.pack === p.pack ? 'border-yellow-500 bg-yellow-500/10' : 'border-gray-800 bg-gray-900/40 hover:border-gray-600'}`}>
               <span className="flex items-baseline justify-between gap-2 text-xs"><span className="font-bold text-gray-200 truncate">{p.pack}</span><span className="tabular-nums text-gray-400">{p.owned}/{p.total}</span></span>
-              <span className="mt-1.5 block h-1.5 rounded-full bg-gray-950 overflow-hidden"><span className="block h-full rounded-full bg-gradient-to-r from-yellow-300 to-yellow-600" style={{ width: `${p.pct}%` }} /></span>
+              <span className="mt-1.5 block h-1.5 rounded-full bg-gray-950 overflow-hidden"><span className="block h-full rounded-full bg-linear-to-r from-yellow-300 to-yellow-600" style={{ width: `${p.pct}%` }} /></span>
             </button>
           ))}
         </div>
@@ -163,7 +163,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
 
       {!binder && <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter the collection">
         <input type="search" value={view.q} onChange={e => patch({ q: e.target.value })} placeholder="Search name or #" aria-label="Search cards"
-          className="min-w-0 flex-1 basis-40 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
+          className="min-w-0 flex-1 basis-40 rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
         <select value={view.show} onChange={e => patch({ show: e.target.value as ShowFilter })} aria-label="Show" className="rounded-xl bg-gray-950 border border-gray-700 px-2 py-1.5 text-sm text-gray-200">
           <option value="default">{hiding ? 'Default (collected)' : 'Default (everything)'}</option>
           <option value="all">Everything</option>
@@ -217,13 +217,13 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           const title = isOwned
             ? `#${card.number} ${card.name} · ${'★'.repeat(card.stars)}${count > 1 ? ` · ×${count} pulls` : ''}${variantSummary ? ` · ${variantSummary}` : ''}`
             : `#${card.number} ???`;
-          const tileClass = `relative aspect-[2/3] rounded-xl overflow-hidden group transition-transform ${
-            isOwned ? 'holo-hover border-2 hover:-translate-y-1 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400' : 'border border-dashed border-gray-700 bg-gray-900/40'
+          const tileClass = `relative aspect-2/3 rounded-xl overflow-hidden group transition-transform ${
+            isOwned ? 'holo-hover border-2 hover:-translate-y-1 cursor-pointer focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400' : 'border border-dashed border-gray-700 bg-gray-900/40'
           }${isOwned && best !== 'regular' ? ` vfx-${best}` : ''}${isOwned ? ` ${holoClass(card.holo[best])}` : ''}`;
           const tileStyle = isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}`, ...holoVars(card.holo[best]) } : undefined;
           const overlays = (
             <>
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <p className="text-xs text-white truncate leading-none">{isOwned ? card.name : `#${card.number}`}</p>
               </div>
               {isOwned && <div className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ backgroundColor: rarity?.hex }} />}
@@ -237,7 +237,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
                   ×{count}
                 </div>
               )}
-              {isOwned && lowest && <SerialChip n={lowest.n} bonus={lowest.m} est={lowest.est} className="absolute bottom-1 left-1 bg-gray-950/85 !text-[9px] !px-1.5 !py-0 leading-tight" />}
+              {isOwned && lowest && <SerialChip n={lowest.n} bonus={lowest.m} est={lowest.est} className="absolute bottom-1 left-1 bg-gray-950/85 text-[9px]! px-1.5! py-0! leading-tight" />}
             </>
           );
 

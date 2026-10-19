@@ -1,6 +1,6 @@
 // Shown inside the admin frame while a page's data loads (every admin page reads the database). Roughly the shape of a page:
 // a title, a row of tiles and a couple of panels, so the layout doesn't jump when the real page arrives.
-const Bar = ({ className = '' }: { className?: string }) => <div className={`rounded-lg bg-white/[0.05] animate-pulse ${className}`} />;
+const Bar = ({ className = '' }: { className?: string }) => <div className={`rounded-lg bg-white/5 animate-pulse ${className}`} />;
 
 export default function AdminLoading() {
   return (

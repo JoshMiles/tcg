@@ -125,16 +125,16 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
   };
 
   const cols = 'grid-cols-[1.75rem_2.25rem_minmax(11rem,1.5fr)_minmax(9rem,1.2fr)_5rem_4.5rem_4rem_5.5rem_3.5rem]';
-  const select = 'rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-200 focus:outline-none focus:border-yellow-500';
+  const select = 'rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-200 focus:outline-hidden focus:border-yellow-500';
 
   return (
     <div>
       {/* Search, sort, filters */}
       <div className="px-6 py-4 border-b border-gray-800 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[14rem] max-w-md">
+          <div className="relative flex-1 min-w-56 max-w-md">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"><Icon name="search" /></span>
-            <input ref={input} type="search" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setQuery(''); }} placeholder="Search viewers, names or tags…  ( / )" aria-label="Search viewers" className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500" />
+            <input ref={input} type="search" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setQuery(''); }} placeholder="Search viewers, names or tags…  ( / )" aria-label="Search viewers" className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500" />
           </div>
           <label className="flex items-center gap-2 text-xs text-gray-500">Sort
             <select value={sort} onChange={e => setSort(e.target.value as SortKey)} className={select}>{SORTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select>
@@ -164,7 +164,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
 
       {/* Bulk actions */}
       {chosen.length > 0 && (
-        <div className="dash-slide px-6 py-3 border-b border-yellow-500/30 bg-yellow-500/[0.05] flex flex-wrap items-center gap-3 text-sm">
+        <div className="dash-slide px-6 py-3 border-b border-yellow-500/30 bg-yellow-500/5 flex flex-wrap items-center gap-3 text-sm">
           <strong className="text-yellow-300">{chosen.length} selected</strong>
           <form className="flex items-center gap-1.5" onSubmit={e => { e.preventDefault(); run(() => bulkGiftAction(chosen, Number(giftCount))); }}>
             <select value={giftCount} onChange={e => setGiftCount(e.target.value)} aria-label="Packs" className={select}>{[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n} pack{n === 1 ? '' : 's'}</option>)}</select>
@@ -179,7 +179,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
             </ConfirmButton>
           </form>
           <form className="flex items-center gap-1.5" onSubmit={e => { e.preventDefault(); if (bulkTag.trim()) run(() => bulkTagAction(chosen, bulkTag, 'add')); }}>
-            <input value={bulkTag} onChange={e => setBulkTag(e.target.value)} list="all-tags" placeholder="tag" aria-label="Tag" maxLength={20} className="w-28 rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-yellow-500" />
+            <input value={bulkTag} onChange={e => setBulkTag(e.target.value)} list="all-tags" placeholder="tag" aria-label="Tag" maxLength={20} className="w-28 rounded-lg bg-gray-950 border border-gray-700 px-2.5 py-1.5 text-xs text-white focus:outline-hidden focus:border-yellow-500" />
             <datalist id="all-tags">{allTags.map(t => <option key={t} value={t} />)}</datalist>
             <button type="submit" disabled={pending || !bulkTag.trim()} className={chip(false)}>Add tag</button>
             <button type="button" disabled={pending || !bulkTag.trim()} onClick={() => run(() => bulkTagAction(chosen, bulkTag, 'remove'))} className={chip(false)}>Remove tag</button>
@@ -191,7 +191,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
       {message && <p role="status" className={`px-6 py-2 text-sm ${message.ok ? 'text-green-300 bg-green-500/10' : 'text-amber-200 bg-amber-500/10'}`}>{message.text}</p>}
 
       <div className="overflow-x-auto">
-        <div className="min-w-[60rem]">
+        <div className="min-w-240">
           <div className={`grid ${cols} gap-3 px-6 py-3 border-b border-gray-800 text-xs font-medium text-gray-500 uppercase tracking-wider items-center`}>
             <input type="checkbox" checked={allShownSelected} onChange={toggleAll} aria-label="Select all shown" className="accent-yellow-400" />
             <span>#</span><span>Viewer</span><span>{activeSeason ? 'Collection' : 'Collection'}</span>
@@ -206,7 +206,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
             const bar = pct >= 80 ? 'from-amber-300 to-amber-500' : pct >= 50 ? 'from-green-300 to-green-500' : 'from-gray-500 to-gray-400';
             const dupes = r.pulls - r.unique;
             return (
-              <div key={r.username} className={`relative grid ${cols} gap-3 items-center px-6 py-3 border-t border-gray-800/60 first:border-0 hover:bg-white/[0.03] transition-colors ${selected.has(r.username) ? 'bg-yellow-500/[0.04]' : ''}`}>
+              <div key={r.username} className={`relative grid ${cols} gap-3 items-center px-6 py-3 border-t border-gray-800/60 first:border-0 hover:bg-white/3 transition-colors ${selected.has(r.username) ? 'bg-yellow-500/4' : ''}`}>
                 <Link href={`/admin/users/${r.username}`} aria-label={`Manage ${r.displayName}`} className="absolute inset-0" />
                 <input type="checkbox" checked={selected.has(r.username)} onChange={() => toggleOne(r.username)} aria-label={`Select ${r.username}`} className="relative z-10 accent-yellow-400" />
                 <span className="text-xs text-gray-600 tabular-nums">{i + 1}</span>
@@ -223,7 +223,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
                 <div className="min-w-0">
                   {r.primary ? (
                     <>
-                      <div className="h-1.5 rounded-full bg-gray-800 overflow-hidden"><div className={`h-full rounded-full bg-gradient-to-r ${bar}`} style={{ width: `${pct}%` }} /></div>
+                      <div className="h-1.5 rounded-full bg-gray-800 overflow-hidden"><div className={`h-full rounded-full bg-linear-to-r ${bar}`} style={{ width: `${pct}%` }} /></div>
                       <p className="mt-1 text-xs text-gray-400 truncate"><span className="font-bold text-white tabular-nums">{r.primary.owned}/{r.primary.total}</span><span className="tabular-nums"> · {pct}%</span><span className="text-gray-600"> · {r.primary.name}{r.otherSeasons > 0 ? ` +${r.otherSeasons}` : ''}</span></p>
                     </>
                   ) : <span className="text-xs text-gray-600">-</span>}

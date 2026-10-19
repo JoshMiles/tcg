@@ -113,7 +113,7 @@ export function ProfileGrid({ layout, nodes, isOwner }: { layout: ProfilePlaceme
           <button type="button" onClick={() => { setDraft(saved); setEdit(true); }} className={ghost}><Icon name="pencil" className="mr-1" />Customize profile</button>
         </div>
       ) : (
-        <div className="sticky top-16 z-20 rounded-xl border border-yellow-500/40 bg-gray-900/95 backdrop-blur px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
+        <div className="sticky top-16 z-20 rounded-xl border border-yellow-500/40 bg-gray-900/95 backdrop-blur-sm px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
           <div className="min-w-0 mr-auto">
             <p className="text-sm font-bold text-yellow-300">Editing your profile</p>
             <p className="text-xs text-gray-500">Drag widgets to rearrange, drag a right edge or use the arrows to resize, the cross removes one. Add widgets from the list below.</p>
@@ -160,16 +160,16 @@ export function ProfileGrid({ layout, nodes, isOwner }: { layout: ProfilePlaceme
           return (
             <div key={w.type} draggable onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', w.type); setDrag({ type: w.type, fromLibrary: false }); }} onDragEnd={() => { setDrag(null); setDrop(null); }}
               onDragOver={e => overWidget(e, w)} onDrop={e => { e.preventDefault(); dropOn(drop); }}
-              className={`${wrapper} pg-item rounded-2xl pt-9 outline outline-2 outline-dashed transition-[outline-color,opacity] duration-200 ${dragging ? 'outline-yellow-500/70 opacity-40' : target ? 'outline-yellow-500' : 'outline-gray-700'} ${target ? (target.after ? 'shadow-[inset_-6px_0_0_0_#eab308]' : 'shadow-[inset_6px_0_0_0_#eab308]') : ''}`}>
+              className={`${wrapper} pg-item rounded-2xl pt-9 outline-solid outline-2 outline-dashed transition-[outline-color,opacity] duration-200 ${dragging ? 'outline-yellow-500/70 opacity-40' : target ? 'outline-yellow-500' : 'outline-gray-700'} ${target ? (target.after ? 'shadow-[inset_-6px_0_0_0_#eab308]' : 'shadow-[inset_6px_0_0_0_#eab308]') : ''}`}>
               <div className="absolute top-1.5 right-2 z-10 flex items-center gap-1 rounded-lg bg-gray-950/90 border border-gray-700 px-1.5 py-1 shadow-lg">
                 <span className="px-1 text-gray-500 cursor-grab" title="Drag to move" aria-hidden><Icon name="grip" className="w-4 h-4" /></span>
-                <span className="text-[11px] font-bold text-gray-300 px-1 max-w-[8rem] truncate">{def.title}</span>
-                <button type="button" onClick={() => move(w.type, idx - 1)} disabled={idx === 0} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} earlier`}><Icon name="chevronUp" className="w-4 h-4" /></button>
-                <button type="button" onClick={() => move(w.type, idx + 1)} disabled={idx === shown.length - 1} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} later`}><Icon name="chevronDown" className="w-4 h-4" /></button>
-                <button type="button" onClick={() => widen(w, -1)} disabled={w.span === def.spans[0]} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} narrower`}><Icon name="chevronLeft" className="w-4 h-4" /></button>
+                <span className="text-[11px] font-bold text-gray-300 px-1 max-w-32 truncate">{def.title}</span>
+                <button type="button" onClick={() => move(w.type, idx - 1)} disabled={idx === 0} className="w-6 h-6 rounded-sm text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} earlier`}><Icon name="chevronUp" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => move(w.type, idx + 1)} disabled={idx === shown.length - 1} className="w-6 h-6 rounded-sm text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Move ${def.title} later`}><Icon name="chevronDown" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => widen(w, -1)} disabled={w.span === def.spans[0]} className="w-6 h-6 rounded-sm text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} narrower`}><Icon name="chevronLeft" className="w-4 h-4" /></button>
                 <span className="text-[10px] text-gray-500 tabular-nums w-7 text-center" title="Width in twelfths of the page">{w.span}/12</span>
-                <button type="button" onClick={() => widen(w, 1)} disabled={w.span === def.spans[def.spans.length - 1]} className="w-6 h-6 rounded text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} wider`}><Icon name="chevronRight" className="w-4 h-4" /></button>
-                <button type="button" onClick={() => remove(w.type)} className="w-6 h-6 rounded text-red-300 hover:bg-red-500/20" aria-label={`Remove ${def.title}`}><Icon name="x" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => widen(w, 1)} disabled={w.span === def.spans[def.spans.length - 1]} className="w-6 h-6 rounded-sm text-gray-300 hover:bg-white/10 disabled:opacity-30" aria-label={`Make ${def.title} wider`}><Icon name="chevronRight" className="w-4 h-4" /></button>
+                <button type="button" onClick={() => remove(w.type)} className="w-6 h-6 rounded-sm text-red-300 hover:bg-red-500/20" aria-label={`Remove ${def.title}`}><Icon name="x" className="w-4 h-4" /></button>
               </div>
               <div role="separator" aria-orientation="vertical" aria-label={`Resize ${def.title}`} title="Drag to resize" onPointerDown={e => startResize(e, w)}
                 className="absolute z-10 top-1/2 -right-2 -translate-y-1/2 w-4 h-20 flex items-center justify-center cursor-ew-resize touch-none group">

@@ -261,14 +261,14 @@ export function ActivityFeed({
 
       {/* Search + status + controls */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[14rem] max-w-md">
+        <div className="relative flex-1 min-w-56 max-w-md">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"><Icon name="search" /></span>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search viewers, cards, packs…"
             aria-label="Search activity"
-            className="w-full rounded-xl bg-gray-950 border border-gray-700 pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500"
+            className="w-full rounded-xl bg-gray-950 border border-gray-700 pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500"
           />
         </div>
         {viewer && (
@@ -345,12 +345,12 @@ export function ActivityFeed({
 
       {/* Pinned notable moments */}
       {prefs.pinNotable && notable.length > 0 && (
-        <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/[0.04] overflow-hidden">
+        <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/4 overflow-hidden">
           <p className="px-5 py-2 text-[11px] uppercase tracking-wider font-bold text-yellow-400 border-b border-yellow-500/20"><Icon name="pin" className="mr-1.5" />Notable moments</p>
           <ul className="divide-y divide-yellow-500/10">
             {notable.map(e => (
               <li key={e.seq}>
-                <button type="button" onClick={() => setOpen(e)} className="w-full flex items-center gap-3 px-5 py-2 text-left text-sm hover:bg-white/[0.03]">
+                <button type="button" onClick={() => setOpen(e)} className="w-full flex items-center gap-3 px-5 py-2 text-left text-sm hover:bg-white/3">
                   <Icon name="sparkles" className="text-yellow-400" />
                   <span className="min-w-0 flex-1 truncate text-gray-200">{plainText(e, cardName)}</span>
                   <span className="text-[11px] font-semibold text-yellow-300 shrink-0">{notableReason(e, totalCards)}</span>
@@ -421,14 +421,14 @@ function GroupHeader({ group, now, open, avatar, cardIndex, onToggle }: {
   const isPull = lead.type === 'pull';
   const label = isPull ? `pulled ${group.events.length} cards` : `was gifted ${group.events.reduce((n, e) => n + (e.type === 'trigger' ? e.count ?? 1 : 0), 0)} packs`;
   return (
-    <button type="button" onClick={onToggle} aria-expanded={open} className="w-full flex items-center gap-4 px-5 py-3 border-l-4 border-l-yellow-500/60 text-left hover:bg-white/[0.02]">
+    <button type="button" onClick={onToggle} aria-expanded={open} className="w-full flex items-center gap-4 px-5 py-3 border-l-4 border-l-yellow-500/60 text-left hover:bg-white/2">
       <Avatar src={avatar} name={lead.username} className="w-9 h-9 text-sm" />
       <div className="min-w-0 flex-1">
         <p className="text-sm text-gray-300"><strong className="text-white">{lead.username}</strong> {label}<span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-950 bg-yellow-400 rounded-full px-2 py-0.5">burst</span></p>
         {isPull && (
           <div className="mt-1.5 flex gap-1">
             {group.events.slice(0, 8).map(e => e.type === 'pull' && (
-              <span key={e.seq} className="w-6 h-9 rounded-sm overflow-hidden bg-gray-800 border" style={{ borderColor: getRarity(e.stars)?.hex ?? '#434f7b' }}>
+              <span key={e.seq} className="w-6 h-9 rounded-xs overflow-hidden bg-gray-800 border" style={{ borderColor: getRarity(e.stars)?.hex ?? '#434f7b' }}>
                 {cardIndex(e.cardNumber, e.packName)?.imageUrl && <img src={cardThumbUrl(cardIndex(e.cardNumber, e.packName)!.imageUrl)} alt="" className="w-full h-full object-cover" />}
               </span>
             ))}
@@ -652,7 +652,7 @@ function EventRow({
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(); } }}
-      className={`group flex items-center gap-4 ${compact ? 'px-4 py-1.5' : 'px-5 py-3'} border-l-4 ${accent} ${reason ? 'bg-gradient-to-r from-yellow-500/[0.07] to-transparent' : ''} hover:bg-white/[0.03] transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400`}
+      className={`group flex items-center gap-4 ${compact ? 'px-4 py-1.5' : 'px-5 py-3'} border-l-4 ${accent} ${reason ? 'bg-linear-to-r from-yellow-500/[0.07] to-transparent' : ''} hover:bg-white/3 transition-colors cursor-pointer focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400`}
     >
       {!compact && (e.username ? (
         <Avatar src={avatar} name={e.username} className="w-9 h-9 text-sm" />

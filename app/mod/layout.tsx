@@ -15,7 +15,7 @@ export default async function ModLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-gray-950/90 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-white/6 bg-gray-950/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
           <Link href="/mod" className="flex items-center gap-2.5 shrink-0">
             <BrandMark size={28} />
@@ -32,7 +32,7 @@ export default async function ModLayout({ children }: { children: React.ReactNod
               <Link href="/admin" className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white"><Icon name="settings" />Admin panel</Link>
             )}
             <div className="text-right leading-tight hidden sm:block">
-              <p className="text-xs font-bold text-gray-200 truncate max-w-[10rem]">{staff.displayName}</p>
+              <p className="text-xs font-bold text-gray-200 truncate max-w-40">{staff.displayName}</p>
               <p className="text-[10px] text-gray-500">{ROLE_LABELS[staff.role]}</p>
             </div>
             <form action="/api/auth/logout" method="POST">

@@ -82,7 +82,7 @@ export function ScoringForm({ saved, groups, save, reset }: {
                       <input
                         id={`scoring-${f.name}`} name={f.name} type="number" min={min} max={max} step={step}
                         value={values[f.name] ?? ''} onChange={e => set(f.name, e.target.value)}
-                        className={`w-32 bg-gray-950 border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-yellow-500 ${changedFromSaved ? 'border-amber-400/60' : 'border-gray-700'}`}
+                        className={`w-32 bg-gray-950 border rounded-lg px-3 py-1.5 text-sm text-white focus:outline-hidden focus:border-yellow-500 ${changedFromSaved ? 'border-amber-400/60' : 'border-gray-700'}`}
                       />
                       {!atDefault && <button type="button" onClick={() => set(f.name, String(def))} className="text-xs text-gray-500 hover:text-yellow-300 underline underline-offset-2">Use default</button>}
                       {changedFromSaved && <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">edited</span>}
@@ -96,7 +96,7 @@ export function ScoringForm({ saved, groups, save, reset }: {
           </fieldset>
         ))}
 
-        <div className="sticky bottom-0 z-10 -mx-1 px-1 py-3 bg-gray-950/90 backdrop-blur border-t border-gray-800 flex flex-wrap items-center gap-3">
+        <div className="sticky bottom-0 z-10 -mx-1 px-1 py-3 bg-gray-950/90 backdrop-blur-sm border-t border-gray-800 flex flex-wrap items-center gap-3">
           <PendingButton type="submit" className="tcg-btn px-5 py-2 rounded-xl text-sm">Save scoring</PendingButton>
           <button type="button" disabled={!dirty} onClick={() => setValues(initial)} className="text-sm text-gray-400 hover:text-white disabled:opacity-40 disabled:pointer-events-none">Discard edits</button>
           <span className={`text-xs ${dirty ? 'text-amber-300' : 'text-gray-600'}`}>{dirty ? 'You have unsaved changes. Saving re-scores every season at once.' : 'Values outside the allowed range are clamped when saved.'}</span>

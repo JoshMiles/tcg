@@ -37,18 +37,18 @@ export function CardTable({ cards, collectors }: { cards: StatCard[]; collectors
     <section className="rind rounded-2xl p-5 space-y-3 lg:col-span-2 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-bold text-white">Every card</h2>
-        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search name or #" aria-label="Search cards" className="w-56 max-w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-none" />
+        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search name or #" aria-label="Search cards" className="w-56 max-w-full rounded-xl bg-gray-950 border border-gray-700 focus:border-yellow-500 px-3 py-1.5 text-sm text-white placeholder-gray-600 outline-hidden" />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-[11px] text-gray-500 bg-gray-950/50"><tr>{head('number', '#')}{head('name', 'Card')}{head('stars', 'Rarity')}{head('copies', 'Prints', true)}{head('collectors', 'Collectors', true)}</tr></thead>
           <tbody className="divide-y divide-gray-800/70">
             {shown.map(c => (
-              <tr key={c.number} className="hover:bg-white/[0.02]">
+              <tr key={c.number} className="hover:bg-white/2">
                 <td className="py-2 px-3 text-gray-500 tabular-nums">{c.number}</td>
                 <td className="py-2 px-3">
                   <Link href={`/cards?card=${c.number}`} className="flex items-center gap-3 text-white hover:text-yellow-200">
-                    {c.thumb ? <img src={c.thumb} alt="" loading="lazy" className="w-7 h-10 object-cover rounded" style={{ boxShadow: `0 0 0 1.5px ${c.hex}` }} /> : <span className="w-7 h-10 rounded bg-gray-800" />}
+                    {c.thumb ? <img src={c.thumb} alt="" loading="lazy" className="w-7 h-10 object-cover rounded-sm" style={{ boxShadow: `0 0 0 1.5px ${c.hex}` }} /> : <span className="w-7 h-10 rounded-sm bg-gray-800" />}
                     <span className="truncate font-semibold">{c.name}</span>
                   </Link>
                 </td>
