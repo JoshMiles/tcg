@@ -1190,3 +1190,7 @@ Dropped `.tcg-btn` and `.tcg-panel`. Primary page buttons are `btn btn-primary` 
 ### 25.3 Collectors page rows, and the Bottomgidds name (Done)
 
 `/collection` rows show `unique/total` cards (the season total) and the list header links to the card dex. The seed card is named Bottomgidds, matching its art file. Production card names live in KV, so the live card is renamed in the pack workspace, not by a script.
+
+### 26.1 Profile: one Edit profile, and a separate Settings link (Done)
+
+The owner's profile action row has **Edit profile** (opens the inline bio, header colour and pronouns editor under the name) and **Settings** (`/settings`). The extra Edit profile button by the name is gone. Visitors see neither. Bio still shows for visitors. Save still goes through `saveProfileBasics`.

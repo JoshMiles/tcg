@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -20,7 +20,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 25.1 | Home: Card of the week | Ready | S |
 | 25.2 | A copy is an edition; "24 of 28" is a print | Ready | L |
-| 26.1 | Profile: one Edit profile, and a separate Settings link | Ready | S |
 | 26.2 | Collection tiles: no name overlay, readable edition pill | Ready | S |
 | 26.3 | Collection holo sweeps too fast on Mac | Ready | S |
 | 26.4 | Profile activity: pulls as well as trades, with a link | Ready | S |
@@ -96,7 +95,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Collectors page: Top collectors, collector name, 24/25 cards, Card dex | Done |
 | Text should say Bottomgidds, not bottomygidds | Done |
 | Font change on the card back editor | 28.3 |
-| Edit profile shows twice; remove the one by the name; split Edit profile and settings | 26.1 |
+| Edit profile shows twice; remove the one by the name; split Edit profile and settings | Done |
 | Share image: My best 1, top 3, top 6, top 9, custom; unselected goes grey, not yellow | 26.5 |
 | Share image straight to a Discord channel (channel not created yet) | 26.6 |
 | Profile collection: holo moves very fast on the top 3 cards (Mac only) | 26.3 |
@@ -125,7 +124,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 
 Parallel streams, so no two open PRs edit the same files:
 - **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
-- **Profile header:** 26.1 (`ProfileHeader.tsx`, `ProfileBasicsEditor.tsx`). 26.8 is the admin shell only.
+- **Profile header:** 26.8 is the admin shell only.
 - **Collection grid:** 26.2, then 26.3 (both touch `CollectionGrid.tsx` and `app/globals.css`).
 - **Activity:** 26.4 (`ProfileTabs.tsx`, `lib/activity.ts`, `lib/trade-notify.ts`).
 - **Share:** 26.5, then 26.6 (both touch `ShareStudio.tsx`; 26.6 also touches Discord).
@@ -163,15 +162,6 @@ Decided 2026-10-19. Do not keep the old glossary.
 - Surfaces: FAQ, `SerialChip`, `editionLine` in `lib/flip-back.ts` (the function keeps its name; the string changes), profile, the leaderboard "Prints" count (it becomes "Editions"), activity, share images, overlay labels in `public/widget.js`, admin labels, `docs/serials.md`.
 - **Not in this PR:** `public/twitch-panel/*`. The panel keeps saying print for a copy until the freeze lifts. Say that in the PR.
 - **Checks:** `scripts/check-words.mts`, `npm run verify`, and a pass of a copy page, a profile and the FAQ. The panel is not loaded.
-
-### 26.1 Profile: one Edit profile, and a separate Settings link (Ready, S)
-
-Owners currently get **Edit profile** under the username (`ProfileBasicsEditor` in `app/u/[username]/ProfileBasicsEditor.tsx`: bio, header colour, pronouns) and **Edit profile & settings** in the action row (`ProfileHeader.tsx`), which goes to `/settings`.
-
-- Remove the button that sits by the name.
-- Replace the action-row link with two: **Edit profile** (opens the same inline editor, moved to the action row) and **Settings** (`/settings`).
-- Visitors see neither. Bio still renders for visitors.
-- **Checks:** owner and visitor of `/u/tester` at 390px and 1280px. Save bio still round-trips (`saveProfileBasics`).
 
 ### 26.2 Collection tiles: no name overlay, readable edition pill (Ready, S)
 
