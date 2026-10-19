@@ -1218,3 +1218,7 @@ A collection tile or binder pocket with `holo-fx` does not also take `holo-hover
 ### 27.4 Print bonus cutoff set to 40 (Done)
 
 `DEFAULT_SCORING.serialBonusCutoff` is 40. A saved `scoring:settings` value is left as stored, so a site that already saved 20 keeps 20 until someone saves 40 in Admin → Settings → Scoring. Scores recompute on the next page load after that save. `EVENT_CAP` (how many journey events a copy keeps) stays 40 and is a different setting.
+
+### 28.3 Font control on every card-back text element (Done)
+
+The card back editor shows the same font list on every text element, stacked or free (`BACK_FONTS`: site display, site body, system mono, and the self-hosted faces). A stacked element keeps today's face (site display for the print number, site body for the other lines) until someone picks another. The print number's face goes through `--num-font`; the other lines get `font-family`. Overlay label fonts are 28.4.

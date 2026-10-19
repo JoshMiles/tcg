@@ -135,6 +135,18 @@ ok(big2.find(n => n.id === 't1')!.css.fontSize === 44 && big2.find(n => n.id ===
 ok(lay.fontsNeeded(fn).map(f => `${f.id}:${f.weight}`).join() === 'bangers:700' && fn.find(n => n.id === 'q')!.dark === '#112233' && fn.find(n => n.id === 'q')!.css.width === 44, 'fonts needed are listed; the QR keeps its colour and width');
 ok(lay.resolveTemplate('{pack} {season} {card} {version} {edition} {printNumber} {holder} {date}', PRINT, { ...free, packName: 'P', seasonName: 'S' }) === 'P S Gouda Goat Shiny Full Art 7 1023381 @alice 12 OCT 2026', 'every placeholder resolves');
 ok(cb.BACK_FONTS.filter(f => f.files).every(f => Object.values(f.files!).every(file => existsSync(new URL(`../public/fonts/back/${file}`, import.meta.url)))), 'every curated font file is in public/fonts/back');
+
+// A stacked element keeps the stylesheet's face until someone picks another.
+const stackedClassic = lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'number', place: 'stack', font: 'display' }, { kind: 'edition', place: 'stack', font: 'body' }] }), PRINT, SIZE);
+const classicNum = stackedClassic.find(n => n.kind === 'number')!;
+const classicEd = stackedClassic.find(n => n.kind === 'edition')!;
+ok(!classicNum.vars['--num-font'] && !classicNum.css.fontFamily && !classicNum.font && !classicEd.css.fontFamily && !classicEd.font, 'a stacked element with the classic face sets no font of its own');
+const stackedPicked = lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'number', place: 'stack', font: 'pacifico' }, { kind: 'edition', place: 'stack', font: 'bebas' }] }), PRINT, SIZE);
+const pickedNum = stackedPicked.find(n => n.kind === 'number')!;
+const pickedEd = stackedPicked.find(n => n.kind === 'edition')!;
+ok(pickedNum.vars['--num-font'] === cb.fontCss('pacifico') && pickedNum.font?.id === 'pacifico' && pickedNum.css.fontWeight === 400, 'a stacked print number uses the chosen face, and loads the file at a weight it has');
+ok(pickedEd.css.fontFamily === cb.fontCss('bebas') && pickedEd.font?.id === 'bebas' && pickedEd.css.fontWeight === undefined, 'a stacked print line uses the chosen face');
+ok(lay.fontsNeeded(stackedPicked).map(f => f.id).sort().join() === 'bebas,pacifico', 'the chosen stacked faces are the ones that get loaded');
 ok(readdirSync(new URL('../public/fonts/back/', import.meta.url)).filter(f => f.endsWith('.LICENSE.txt')).every(f => /SIL Open Font License/i.test(readFileSync(new URL(`../public/fonts/back/${f}`, import.meta.url), 'utf8'))), 'every font has a licence file and it is the OFL');
 
 // Storage: its own key, none for the default, removed with the pack.

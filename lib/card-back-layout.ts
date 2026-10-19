@@ -1,7 +1,7 @@
 // The back's layout engine (ROADMAP 20.3a): a design and a print in, positioned nodes with their final styles out. Pure and client-safe.
 // The DOM renderer (FlipCard) draws these nodes; the canvas and overlay renderers of 20.3c draw the same list, so every place shows the
 // same design. STACK nodes are laid out by the plate's own CSS (today's centred column), FREE nodes carry final pixel positions.
-import { BACK_FONTS, fontCss, type BackEl, type CardBackStyle, type Effects } from './card-back';
+import { BACK_FONTS, type BackEl, type CardBackStyle, type Effects } from './card-back';
 import { editionLine, madeLine, type FlipBack } from './flip-back';
 
 export interface BackNode {
@@ -60,6 +60,30 @@ export function effectsCss(fx: Effects, hex: string, cardW: number): Record<stri
   return css;
 }
 
+/** The face a stacked line already has from the stylesheet. Anything else is written onto the node. */
+const STACK_CLASSIC_FONT: Partial<Record<BackEl['kind'], string>> = { number: 'display' };
+const STACK_PAINT_800 = new Set<BackEl['kind']>(['number', 'name', 'date', 'brand', 'link']);
+
+/**
+ * A stacked text element keeps today's face until its font is not that face (site display for the print number, site body for
+ * every other line). The number's face goes through `--num-font`, which the stylesheet already reads; the other lines get
+ * `font-family`. A curated file is named so the page loads it, at the weight the line is painted (or the nearest file).
+ */
+function stackFace(e: BackEl, vars: Record<string, string>, css: Record<string, string | number>): BackNode['font'] {
+  if (e.kind === 'qr' || e.kind === 'logo') return undefined;
+  const classic = STACK_CLASSIC_FONT[e.kind] ?? 'body';
+  if (e.font === classic) return undefined;
+  const f = BACK_FONTS.find(x => x.id === e.font) ?? BACK_FONTS[0];
+  if (e.kind === 'number') vars['--num-font'] = f.css;
+  else css.fontFamily = f.css;
+  if (!f.files) return undefined;
+  const have = Object.keys(f.files).map(Number);
+  const want = STACK_PAINT_800.has(e.kind) ? 800 : 400;
+  const weight = have.reduce((best, n) => (Math.abs(n - want) < Math.abs(best - want) ? n : best), have[0]);
+  if (weight !== want) css.fontWeight = weight;
+  return { id: f.id, weight };
+}
+
 /** What a stack or free element prints for this print; null = nothing to draw (the element is skipped). */
 function content(e: BackEl, back: FlipBack, style: CardBackStyle, compact: boolean): Partial<BackNode> | null {
   switch (e.kind) {
@@ -98,10 +122,10 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
         const { engrave: _g, ...extra } = e.fx; void _g;
         if (Object.keys(extra).length) css = effectsCss(extra, rarity, size.w);
         if (e.scale !== 1 && ['number', 'edition', 'name', 'date', 'origin', 'history', 'qr', 'brand'].includes(e.kind)) vars[`--k-${e.kind}`] = String(e.scale);
-        if (e.kind === 'number' && e.font !== 'display') vars['--num-font'] = fontCss(e.font);
         if (e.kind === 'logo') vars['--logo-px'] = `${e.px}px`;
       }
-      stack.push({ id: e.id, kind: e.kind, mode: 'stack', tag: c?.tag ?? 'empty', cls: c?.cls ?? '', ...c, vars, css, ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}) });
+      const font = c ? stackFace(e, vars, css) : undefined;
+      stack.push({ id: e.id, kind: e.kind, mode: 'stack', tag: c?.tag ?? 'empty', cls: c?.cls ?? '', ...c, vars, css, ...(font ? { font } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}) });
       return;
     }
     // Free: a box placed in percent of the card.

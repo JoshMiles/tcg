@@ -99,7 +99,8 @@ export function placeBack(nodes: BackNode[], ref: { w: number; h: number } = CAN
     const s = stackStyle(n);
     const ink = n.vars['--ink'] ?? n.vars['--accent-ink'] ?? s.ink;
     const base = { id: n.id, kind: n.kind, mode: 'stack' as const, rotate: 0, x: padX, w: inner, opacity: s.opacity ?? 1, shadows: [] as TextShadow[], stroke: null, gradient: null as Gradient | null };
-    const font = (size: number, extra: Partial<BackBox['font']> = {}): BackBox['font'] => ({ size, weight: s.weight, italic: !!s.italic, underline: !!s.underline, upper: !!s.upper, spacing: (s.spacingEm ?? 0) * size, align: 'center', lineHeight: s.lineHeight, ...extra });
+    const family = typeof n.css.fontFamily === 'string' ? n.css.fontFamily : n.vars['--num-font'];
+    const font = (size: number, extra: Partial<BackBox['font']> = {}): BackBox['font'] => ({ size, weight: s.weight, italic: !!s.italic, underline: !!s.underline, upper: !!s.upper, spacing: (s.spacingEm ?? 0) * size, align: 'center', lineHeight: s.lineHeight, ...(family ? { family } : {}), ...extra });
     const extraFx = { shadows: parseTextShadow(n.css.textShadow), stroke: parseStroke(n.css.WebkitTextStroke), gradient: parseGradient(n.css.backgroundImage) };
     if (n.tag === 'img' && n.src) {
       const px = num(n.vars['--logo-px'], 38);
