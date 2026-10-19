@@ -2,8 +2,8 @@
 
 /**
  * Everything that tunes how cards are valued and how the leaderboard is scored. Edited in Admin → Settings → Scoring and
- * stored in one KV key. The defaults reproduce the original hard-coded behaviour exactly, so an untouched install scores
- * the same as before. Settings apply to every season's leaderboard immediately (values are always computed live).
+ * stored in one KV key. The defaults reproduce the original hard-coded behaviour, except the print-bonus cutoff, which is
+ * 40. A saved value is left as stored. Settings apply to every season's leaderboard immediately (values are always computed live).
  */
 export interface ScoringSettings {
   /** Points one Regular copy of an average card (equal pull chance to every other card) is worth. */
@@ -28,7 +28,7 @@ export const DEFAULT_SCORING: ScoringSettings = {
   baseScore: 10,
   rarityExponent: 1,
   serialBonusMax: 3,
-  serialBonusCutoff: 20,
+  serialBonusCutoff: 40,
   upgradeMargin: 1.2,
   completionBonusPct: 25,
   completeSetBonusPct: 50,

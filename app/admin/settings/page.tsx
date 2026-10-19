@@ -61,7 +61,7 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
   ] },
   { title: 'Edition bonus (the first prints of a card are worth more)', fields: [
     { name: 'serialBonusMax', label: 'Edition #1 multiplier (×)', help: 'What the very first print ever made of a card (in each version) is worth compared with a normal print. 3 = triple. 1 = no bonus.' },
-    { name: 'serialBonusCutoff', label: 'Editions that get a bonus', help: 'The bonus fades in a straight line from edition #1 down to nothing after this edition. 20 = editions #1 to #20 earn a bonus. 0 switches the bonus off.' },
+    { name: 'serialBonusCutoff', label: 'Editions that get a bonus', help: 'The bonus fades in a straight line from edition #1 down to nothing after this edition. 40 = editions #1 to #40 earn a bonus. 0 switches the bonus off.' },
   ] },
   { title: 'Upgrades', fields: [
     { name: 'upgradeMargin', label: 'Upgrade margin (×)', help: 'An upgraded print is worth at least this many times the prints spent to make it. 1.2 = 20% more.' },
@@ -171,7 +171,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div className="space-y-4">
           <p className="text-sm text-gray-400 leading-relaxed max-w-4xl">
             Tune how cards are valued and how the leaderboard is scored. Changes apply <strong className="text-white">immediately to every season</strong>: the leaderboard, card values, My Stats and the FAQ all
-            recompute from these numbers. The defaults match the original scoring. The preview shows what the numbers you type would do before anything is saved.
+            recompute from these numbers. The defaults match the original scoring, except the print-bonus cutoff, which starts at 40. A number already saved here is left as it is. The preview shows what the numbers you type would do before anything is saved.
           </p>
           <ScoringForm saved={scoring} groups={SCORING_GROUPS} save={saveScoringSettingsAction} reset={resetScoringSettingsAction} />
         </div>
