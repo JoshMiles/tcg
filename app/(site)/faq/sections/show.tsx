@@ -28,7 +28,7 @@ export function ShowSection() {
         Pages can fill automatically (sorted by number, rarity or name, with or without a fresh page per pack, optionally leaving out cards you don&rsquo;t have) or you can set <strong className="text-white">Placed by hand</strong>: add, rename, reorder and delete pages, then tap a pocket and a card to fill it, or drag cards in. Each pocket can show a particular version, and a pocket can hold a card you don&rsquo;t own yet as a goal.
         Everyone who visits your profile sees your binder the way you set it, and <strong className="text-white">Share this page</strong> makes a picture of the cards on the pages in view.
       </Q>
-      <Q q="How is the edition of the week chosen?">
+      <Q q="How is the card of the week chosen?" id="card-of-the-week">
         Every Sunday evening the game looks through the active season&rsquo;s editions and features the one with the most interesting journey on the home page. An edition earns points for each different collector who has held it, each completed trade it went through, being print #1, being a Shiny or Full Art, its age (up to 8 weeks) and being forged in an upgrade. The highest score wins, an edition is not picked again for 8 weeks, and editions sitting in a trade offer are skipped. Press <em>See its journey</em> to read the whole story. If the featured edition is spent in an upgrade or removed, the section disappears until the next pick.
       </Q>
       <Q q="Can I show off one special edition on my profile?">
