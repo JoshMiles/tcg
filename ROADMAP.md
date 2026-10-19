@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -20,7 +20,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 25.1 | Home: Card of the week | Ready | S |
 | 25.2 | A copy is an edition; "24 of 28" is a print | Ready | L |
-| 26.4 | Profile activity: pulls as well as trades, with a link | Ready | S |
 | 26.5 | Share image: My best 1, Top 3, Top 6, Top 9, Custom | Ready | S |
 | 26.6 | Post a share image straight to Discord | Ready | M |
 | 26.7 | Editable profile showcase, and !showoff uses it | Ready | M |
@@ -81,7 +80,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 **Already on the site (do not rebuild):**
 - **Master set.** `evaluateSeason` in `lib/achievements.ts` already awards `master` ("Master set: {season}", own every card in every version). The FAQ already says so (`app/(site)/faq/sections/profile.tsx`, "What are achievements?"). The goal is omitted when every card has only Regular, because it would be the same as Completed. Season 1's pack has upgrades off, so the goal does not show there. Turning versions on is what makes it appear. No new kind.
 - **How are points worked out?** and **Can I see the exact maths for a card?** already exist in `app/(site)/faq/sections/points.tsx`. 27.1 tightens the wording and the bracket spacing. It does not add a second copy of either question.
-- **Pull history on the profile.** The Activity tab already lists pulls, upgrades and accepted trades (`PUBLIC_ACTIVITY_TYPES` in `app/u/[username]/ProfileTabs.tsx`). 26.4 adds the click-through and makes a pull row read as a pull.
+- **Pull history on the profile.** The Activity tab lists pulls (card, version, sequence, linked to the print or the card dex), upgrades (linked to the print they made) and accepted trades (linked when the event has a trade id). Admin grants and declined offers stay off it.
 - **Public wordmark.** `SiteNav` already links the logo and "The Cheesy TCG" to `/`. 26.8 is the admin wordmark, which is not a link today.
 
 ### Where each Discord line went
@@ -99,7 +98,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Profile collection: holo moves very fast on the top 3 cards (Mac only) | Done |
 | Collection cards do not need text on hover or along the bottom | Done |
 | Print/edition pill cannot be seen (see-through gold/yellow) | Done |
-| Profile activity should show card pull history as well as trades, click for details | 26.4 |
+| Profile activity should show card pull history as well as trades, click for details | Done |
 | FAQ How do I get cards: follow, subscribe, or gifting subs | 27.1 |
 | New FAQ: is there a limit to how many cards per stream (defaults and bonuses) | 27.1 now, 28.1 when roles exist |
 | Trading before upgrading; under upgrades, can I trade upgraded cards | 27.1 |
@@ -123,7 +122,6 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 Parallel streams, so no two open PRs edit the same files:
 - **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
 - **Profile header:** 26.8 is the admin shell only.
-- **Activity:** 26.4 (`ProfileTabs.tsx`, `lib/activity.ts`, `lib/trade-notify.ts`).
 - **Share:** 26.5, then 26.6 (both touch `ShareStudio.tsx`; 26.6 also touches Discord).
 - **Showcase:** 26.7. Start it after 26.5 if both would edit the share candidate list; otherwise it can run beside 26.5. It does not edit `public/widget.js`.
 - **FAQ:** 27.1 after 25.2 (same words). 27.4 only changes the scoring default (`lib/scoring-core.ts`) and can run beside it. 27.3 is the achievement list and does not touch the FAQ.
@@ -159,16 +157,6 @@ Decided 2026-10-19. Do not keep the old glossary.
 - Surfaces: FAQ, `SerialChip`, `editionLine` in `lib/flip-back.ts` (the function keeps its name; the string changes), profile, the leaderboard "Prints" count (it becomes "Editions"), activity, share images, overlay labels in `public/widget.js`, admin labels, `docs/serials.md`.
 - **Not in this PR:** `public/twitch-panel/*`. The panel keeps saying print for a copy until the freeze lifts. Say that in the PR.
 - **Checks:** `scripts/check-words.mts`, `npm run verify`, and a pass of a copy page, a profile and the FAQ. The panel is not loaded.
-
-### 26.4 Profile activity: pulls as well as trades, with a link (Ready, S)
-
-`ActivityTab` in `app/u/[username]/ProfileTabs.tsx` already keeps pulls, upgrades and accepted trades (last 30, via `PUBLIC_ACTIVITY_TYPES` from `lib/profile-url.ts`). Rows are plain text.
-
-- A pull row names the card, the version and the sequence number, and links to that edition's page when `uid` or `copyId` is present (`/c/<uid>` or `/copy/...`, the helpers from 2.1). With neither, link to `/cards?card=<n>`. Use the glossary from 25.2 if it has shipped; do not do a partial rename in this PR.
-- An upgrade row links to the edition it made, the same way.
-- An accepted trade links to `/trade/<id>`. The trade activity detail has no id today (`lib/activity.ts`, written in `lib/trade-notify.ts`). Add optional `tradeId`. New events fill it from `trade.id`. Old events stay text.
-- Do not add pulls that are admin grants, and do not show declined offers. Hidden collectors stay empty.
-- **Checks:** extend the profile or activity check so a pull with a uid links and a trade without `tradeId` does not. Hand pass of the Activity tab: a pull, an upgrade, an accepted trade.
 
 ### 26.5 Share image: My best 1, Top 3, Top 6, Top 9, Custom (Ready, S)
 

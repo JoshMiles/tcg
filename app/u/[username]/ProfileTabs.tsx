@@ -5,14 +5,16 @@ import { CardTile } from '@/app/components/CardTile';
 import { TradeCard } from '@/app/components/trade/TradeCard';
 import { TradeActions } from '@/app/components/trade/TradeActions';
 import { pickPropsFor } from '@/lib/trade-view-core';
+import { SerialChip } from '@/app/components/SerialChip';
 import { getActivity } from '@/lib/activity';
+import { listSeasons } from '@/lib/kv';
 import { getSeasonOverview } from '@/lib/site-data';
 import { computeUserStats } from '@/lib/user-stats';
 import { topPrintLinks } from '@/lib/top-prints';
 import { getTradeSettings, listOpenTrades, tradeHistory } from '@/lib/trades';
 import { describeItems, firstMissing } from '@/lib/trade-core';
 import { getTradeCards, getTradePools } from '@/lib/trade-view';
-import { PUBLIC_ACTIVITY_TYPES, profileHref } from '@/lib/profile-url';
+import { PUBLIC_ACTIVITY_TYPES, profileHref, publicActivityHref, type ActivityLink } from '@/lib/profile-url';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
 import type { ProfileBase } from '@/lib/profile-data';
@@ -139,22 +141,46 @@ export async function TradesTab({ b, viewer }: { b: ProfileBase; viewer?: string
   );
 }
 
+/** The card name, version and sequence, linked to the print when the event has one and to the card dex otherwise. */
+function activityCard(e: ActivityLink & { serial?: number; bonus?: number }, seasonId: string, label: string, version?: string) {
+  const href = publicActivityHref(e, seasonId);
+  const body = (
+    <>
+      <strong>{label}</strong>
+      {version ? <span className="text-purple-300"> ({version})</span> : null}
+      {e.serial ? <SerialChip n={e.serial} bonus={e.bonus} className="ml-1.5 align-middle" /> : null}
+    </>
+  );
+  return href
+    ? <Link href={href} className="text-white hover:text-yellow-200">{body}</Link>
+    : <span className="text-white">{body}</span>;
+}
+
 /** Recent pulls, upgrades and completed trades. Hidden collectors show nothing; admin actions and declined offers are never shown. */
 export async function ActivityTab({ b }: { b: ProfileBase }) {
   if (b.hidden) return <Empty icon="shield" title="Activity is private">This collector's activity isn't shown publicly.</Empty>;
-  const { events } = await getActivity({ limit: 500 });
+  const [{ events }, seasons] = await Promise.all([getActivity({ limit: 500 }), listSeasons()]);
+  const seasonOf = new Map(seasons.map(s => [s.collectionName, s.id]));
   const names = new Map(b.allCards.map(c => [c.number, c.name]));
   const mine = events.filter(e => e.username === b.lower && (PUBLIC_ACTIVITY_TYPES as readonly string[]).includes(e.type) && (e.type !== 'trade' || e.action === 'accepted')).slice(0, 30);
   if (mine.length === 0) return <Empty icon="activity" title="No recent activity">Pulls, upgrades and trades appear here as they happen.</Empty>;
   const name = (n: number, fallback?: string) => fallback || names.get(n) || `Card #${n}`;
+  const seasonFor = (collectionName?: string) => (collectionName && seasonOf.get(collectionName)) || (!collectionName ? b.season.id : '');
   return (
     <ul className="card rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
       {mine.map(e => {
         let icon: Parameters<typeof Icon>[0]['name'] = 'activity'; let text: React.ReactNode = null;
-        if (e.type === 'pull') { icon = 'cards'; text = <>Pulled <strong className="text-white">{name(e.cardNumber, e.cardName)}</strong>{e.variant && e.variant !== 'regular' ? <span className="text-purple-300"> ({VARIANT_LABELS[e.variant]})</span> : null}{e.isNew ? <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wider text-green-300">new</span> : null}</>; }
-        else if (e.type === 'upgrade') { icon = 'sparkles'; text = <>Upgraded <strong className="text-white">{name(e.cardNumber, e.cardName)}</strong> to <span className="text-purple-300">{VARIANT_LABELS[e.to]}</span></>; }
-        else if (e.type === 'trade') { icon = 'trade'; text = <>Traded with {e.partner ? <Link href={profileHref(e.partner)} className="text-yellow-300 hover:text-yellow-200">@{e.partner}</Link> : 'another collector'}</>; }
-        else return null;
+        if (e.type === 'pull') {
+          icon = 'cards';
+          text = <>Pulled {activityCard(e, seasonFor(e.collectionName), name(e.cardNumber, e.cardName), VARIANT_LABELS[e.variant ?? 'regular'])}{e.isNew ? <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wider text-green-300">new</span> : null}</>;
+        } else if (e.type === 'upgrade') {
+          icon = 'sparkles';
+          text = <>Upgraded {activityCard(e, seasonFor(e.collectionName), name(e.cardNumber, e.cardName), VARIANT_LABELS[e.to])}</>;
+        } else if (e.type === 'trade') {
+          icon = 'trade';
+          const tradeHref = publicActivityHref(e, '');
+          text = <>{tradeHref ? <Link href={tradeHref} className="text-yellow-300 hover:text-yellow-200">Traded</Link> : 'Traded'} with {e.partner ? <Link href={profileHref(e.partner)} className="text-yellow-300 hover:text-yellow-200">@{e.partner}</Link> : 'another collector'}</>;
+        } else return null;
         return (
           <li key={e.seq} className="flex items-center gap-3 px-5 py-3 text-sm text-gray-300">
             <Icon name={icon} className="text-gray-500 shrink-0" /><span className="flex-1 min-w-0 truncate">{text}</span><span className="text-xs text-gray-600 shrink-0">{ago(e.at)}</span>

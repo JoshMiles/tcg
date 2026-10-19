@@ -117,7 +117,7 @@ export async function announceTrade(trade: Trade, action: TradeAction, by?: stri
     await recordActivity({
       type: 'trade', action: trade.counterOf && action === 'offered' ? 'countered' : action, username: trade.from, partner, by, kind: trade.kind, give, get,
       givePts: stackPoints(trade.give, cards, pools.give), getPts: stackPoints(trade.get, cards, pools.get), note: trade.note,
-      cardNumber: trade.give[0]?.cardNumber, collectionName: season?.collectionName,
+      cardNumber: trade.give[0]?.cardNumber, collectionName: season?.collectionName, tradeId: trade.id,
     });
 
     const tell = (user: string | undefined, kind: NoticeKind, text: string, swap?: Swap) =>
