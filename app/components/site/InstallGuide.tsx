@@ -65,7 +65,7 @@ export function InstallGuide() {
       {canPrompt && !installed && (
         <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-gray-200">Your browser can install it in one tap.</p>
-          <button type="button" onClick={install} className="tcg-btn px-5 py-2.5 rounded-xl text-sm"><Icon name="download" className="mr-1.5" />Install the app</button>
+          <button type="button" onClick={install} className="btn btn-primary px-5 py-2.5 rounded-xl text-sm"><Icon name="download" className="mr-1.5" />Install the app</button>
         </div>
       )}
       {outcome && <p role="status" className="text-sm text-gray-400">{outcome}</p>}
@@ -78,7 +78,7 @@ export function InstallGuide() {
         ))}
       </div>
 
-      <section role="tabpanel" className="tcg-panel rounded-2xl p-5 sm:p-6 space-y-5">
+      <section role="tabpanel" className="card rounded-2xl p-5 sm:p-6 space-y-5">
         {tab === 'ios' && (
           <>
             <h2 className="font-display text-2xl font-bold text-white">iPhone &amp; iPad</h2>

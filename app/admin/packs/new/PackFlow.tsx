@@ -171,7 +171,7 @@ export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: 
       />
 
       <div className={wide ? '' : 'grid lg:grid-cols-[1fr_280px] gap-6 items-start'}>
-        <div className="card tcg-panel rounded-2xl p-6 space-y-5">
+        <div className="card rounded-2xl p-6 space-y-5">
 
           {/* ── Details ── */}
           {step === 'details' && (
@@ -287,7 +287,7 @@ export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: 
                 </button>
               )}
               {step !== 'review' ? (
-                <button type="button" onClick={goNext} disabled={!!busy} className="px-5 py-2.5 tcg-btn rounded-xl text-sm transition-colors">
+                <button type="button" onClick={goNext} disabled={!!busy} className="px-5 py-2.5 btn btn-primary rounded-xl text-sm transition-colors">
                   {busy === 'create' ? 'Saving…' : step === 'cards' ? 'Review →' : 'Next →'}
                 </button>
               ) : (
@@ -295,7 +295,7 @@ export function PackFlow({ initial, cardBack }: { initial?: { id: string; pack: 
                   <button type="button" onClick={saveAndExit} disabled={!!busy} className="px-4 py-2.5 text-sm font-semibold text-gray-300 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors">
                     {busy === 'exit' ? 'Saving…' : 'Save draft & exit'}
                   </button>
-                  <button type="button" onClick={publish} disabled={!!busy || issues.length > 0} className="px-5 py-2.5 tcg-btn rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                  <button type="button" onClick={publish} disabled={!!busy || issues.length > 0} className="px-5 py-2.5 btn btn-primary rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                     {busy === 'publish' ? 'Publishing…' : 'Publish pack →'}
                   </button>
                 </>

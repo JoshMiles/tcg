@@ -25,7 +25,7 @@ export async function PreviewDataPanel() {
           title="Copy the live setup into this preview?"
           confirmLabel="Copy it"
           message={<>Seasons, packs, cards and the overlay and scoring settings are copied from the live site into this preview&apos;s own data. The live site is only read, never changed. Discord, webhooks and sign-ins are not copied.</>}
-          className="tcg-btn px-4 py-2 text-sm rounded-xl"
+          className="btn btn-primary px-4 py-2 text-sm rounded-xl"
         >
           Copy setup from production
         </ConfirmButton>

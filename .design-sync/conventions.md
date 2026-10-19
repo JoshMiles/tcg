@@ -6,7 +6,7 @@ Cheesy TCG is a trading card game played live on a Twitch stream, with a public 
 
 - Always render on the dark page: wrap screens in `bg-gray-950` (navy, `#0a0f21`) with light text. Components assume a dark background and look wrong on white.
 - Fonts come with `styles.css`: `font-sans` is Nunito (body), `font-display` is Fredoka (headings, big numbers).
-- Styling is Tailwind utility classes. The compiled CSS covers the common families (spacing, sizing, text, rounded, flex/grid, shadows) and the theme colours below; arbitrary values like `w-[123px]` are not compiled in, so stick to the scale.
+- Styling is Tailwind 4 plus daisyUI 5, one theme, `cheesy` (dark only). Prefer the daisyUI primitives `btn`, `card` and `input` (also `select`, `textarea`, `toggle`, `fieldset`, `badge`, `table`, `modal`) over one-off surface utilities. The compiled CSS covers the common families (spacing, sizing, text, rounded, flex/grid, shadows) and the theme colours below; arbitrary values like `w-[123px]` are not compiled in, so stick to the scale.
 
 ## Theme vocabulary
 
@@ -17,9 +17,10 @@ Cheesy TCG is a trading card game played live on a Twitch stream, with a public 
 
 ## House patterns
 
-- Primary button: `tcg-btn` (daisyUI `btn btn-primary` plus the 3D yellow shadow).
+- Primary button: `btn btn-primary` plus a radius utility (`rounded-xl`, `rounded-lg` or `rounded-full`). That is the chunky 3D yellow button. A plain `btn btn-primary` (a dialog confirm) keeps daisyUI's own size.
 - Quiet button: `px-3 py-2 text-sm font-semibold text-gray-300 rounded-xl hover:bg-gray-800`.
-- Panel: `rounded-2xl border border-gray-800 bg-gray-900/70 p-4`.
+- Panel: `card` (navy surface, blue rim, card shadow). Add padding and radius, for example `card rounded-2xl p-4`.
+- Fields: `input`, `select`, `textarea`. A labelled stack is `fieldset`. An on/off control is `toggle`.
 - Destructive or irreversible actions use `ArmedButton` (click once to arm, again to confirm; the armed state is `btn btn-error`), never a plain button.
 - A pending action shows `Spinner` (`loading loading-spinner`) inside the button.
 - Chips (`StatusChip`, `DraftChip`, `StaffBadge`, `SerialChip`) are daisyUI `badge`s. Serial tiers stay: plain, gold bonus, gradient first-ever.

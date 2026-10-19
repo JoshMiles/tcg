@@ -30,7 +30,7 @@ export async function BackupsPanel() {
             title="Back up now?"
             confirmLabel="Back up"
             message={<>Takes a backup of everything right now and stores it as today&apos;s file (replacing the one from earlier today, if any). It reads every key, so it can take a little while.</>}
-            className="tcg-btn px-4 py-2 text-sm rounded-xl"
+            className="btn btn-primary px-4 py-2 text-sm rounded-xl"
           >
             Back up now
           </ConfirmButton>

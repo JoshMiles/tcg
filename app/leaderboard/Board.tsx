@@ -85,7 +85,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer, badges = {}
             const isOpen = open === r.username;
             const mv = metric === 'points' ? moves[r.username] : undefined;
             return (
-              <li key={r.username} ref={mine ? meRef : undefined} className={`card tcg-panel rounded-xl ${rank === 1 ? 'ring-1 ring-yellow-500/50' : ''} ${mine ? 'ring-2 ring-yellow-500/80' : ''}`}>
+              <li key={r.username} ref={mine ? meRef : undefined} className={`card rounded-xl ${rank === 1 ? 'ring-1 ring-yellow-500/50' : ''} ${mine ? 'ring-2 ring-yellow-500/80' : ''}`}>
                 <div className="flex items-center gap-3 px-4 py-3">
                   <span className="w-9 text-center font-bold text-gray-500 tabular-nums shrink-0">{rank <= 3 ? <RankMedal rank={rank} /> : rank}</span>
                   <Link href={profileHref(r.username)} className="flex items-center gap-3 min-w-0 flex-1 group">

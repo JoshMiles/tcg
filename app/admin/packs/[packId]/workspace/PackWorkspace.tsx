@@ -290,8 +290,8 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
           <button type="button" onClick={undo} disabled={past.current.length === 0} aria-label="Undo" title="Undo (Ctrl+Z)" className="p-2 rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40 hover:border-gray-500"><Icon name="undo" /></button>
           <button type="button" onClick={redo} disabled={future.current.length === 0} aria-label="Redo" title="Redo (Ctrl+Shift+Z)" className="p-2 rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40 hover:border-gray-500"><Icon name="redo" /></button>
           {!isDraft && <button type="button" onClick={() => setReviewOpen(true)} disabled={!dirty} className="px-3 py-2 text-sm font-semibold rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40 hover:border-gray-500">Review changes{dirty ? ` (${review.length})` : ''}</button>}
-          {!isDraft && <button type="button" onClick={() => void doSave()} disabled={!dirty || saving || blocked || !!conflict} className="px-4 py-2 tcg-btn rounded-lg text-sm disabled:opacity-50">{saveLabel}</button>}
-          {isDraft && <button type="button" onClick={() => void publish()} disabled={saving || !!conflict} className="px-4 py-2 tcg-btn rounded-lg text-sm disabled:opacity-50">Publish</button>}
+          {!isDraft && <button type="button" onClick={() => void doSave()} disabled={!dirty || saving || blocked || !!conflict} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">{saveLabel}</button>}
+          {isDraft && <button type="button" onClick={() => void publish()} disabled={saving || !!conflict} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">Publish</button>}
           <details className="relative">
             <summary className="list-none cursor-pointer p-2 rounded-lg border border-gray-700 text-gray-200 hover:border-gray-500" aria-label="Pack actions"><Icon name="menu" /></summary>
             <div className="absolute right-0 z-30 mt-1 w-56 rounded-xl border border-gray-700 bg-gray-900 p-1.5 shadow-xl space-y-1">
@@ -337,7 +337,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
       {view === 'grid' && (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] flex-1 min-h-0">
           <GridView pack={work.pack} cards={work.cards} held={held} selected={selected} focus={focus} problemIds={problemIds} onSelect={select} editCards={editCards} only={only} onShowAll={() => setOnly(null)} />
-          {cardIds.length > 0 && <aside aria-label="Bulk edits" className="card tcg-panel rounded-2xl overflow-y-auto min-h-0"><BulkPanel selected={work.cards.filter(c => cardIds.includes(c.id))} held={held} onApply={op => edit(w => ({ ...w, cards: bulkApply(w.cards, new Set(cardIds), op) }))} onRemove={removeCards} /></aside>}
+          {cardIds.length > 0 && <aside aria-label="Bulk edits" className="card rounded-2xl overflow-y-auto min-h-0"><BulkPanel selected={work.cards.filter(c => cardIds.includes(c.id))} held={held} onApply={op => edit(w => ({ ...w, cards: bulkApply(w.cards, new Set(cardIds), op) }))} onRemove={removeCards} /></aside>}
         </div>
       )}
 
@@ -346,7 +346,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
 
       {view === 'edit' && (
         <div className="grid gap-4 xl:grid-cols-[19rem_minmax(0,1fr)_25rem] flex-1 min-h-0">
-          <div className="card tcg-panel rounded-2xl overflow-hidden min-h-0 xl:h-full max-h-[70vh] xl:max-h-none"
+          <div className="card rounded-2xl overflow-hidden min-h-0 xl:h-full max-h-[70vh] xl:max-h-none"
             onDragOver={e => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
             onDrop={async e => { if (!e.dataTransfer.types.includes('Files')) return; e.preventDefault(); const f = await filesFromDrop(e.dataTransfer); if (f.length) setImportFiles(f); }}>
             <CardList
@@ -360,7 +360,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
             <PreviewPane {...previewProps} />
           </div>
 
-          <aside aria-label="Properties" className={`${sheet ? 'fixed inset-0 z-40 bg-gray-950 overflow-y-auto' : 'hidden'} xl:static xl:block xl:z-auto xl:bg-transparent card tcg-panel xl:rounded-2xl xl:overflow-y-auto min-h-0`}>
+          <aside aria-label="Properties" className={`${sheet ? 'fixed inset-0 z-40 bg-gray-950 overflow-y-auto' : 'hidden'} xl:static xl:block xl:z-auto xl:bg-transparent card xl:rounded-2xl xl:overflow-y-auto min-h-0`}>
             <div className="xl:hidden sticky top-0 z-10 bg-gray-950 border-b border-gray-800 p-3 flex items-center gap-3">
               <button type="button" onClick={() => setSheet(false)} className="px-3 py-1.5 text-sm font-bold text-yellow-400"><Icon name="chevronLeft" /> Back to the list</button>
               <span className="text-xs text-gray-500 ml-auto">{saving ? 'Saving…' : dirty ? (isDraft ? 'Saving soon…' : 'Unsaved changes') : 'Saved'}</span>
@@ -410,7 +410,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
           {blocking.length > 0 && <ul className="text-sm text-red-300 space-y-1">{blocking.map(([id, m]) => <li key={id}><strong>{work.cards.find(c => c.id === id)?.name || 'Untitled'}</strong>: {m.join(' ')}</li>)}</ul>}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setReviewOpen(false)} className="px-4 py-2 text-sm text-gray-300 hover:text-white">Cancel</button>
-            <button type="button" disabled={saving || blocked || !dirty || !!conflict} onClick={async () => { if (await doSave(removedHeld.length > 0)) setReviewOpen(false); }} className="px-4 py-2 tcg-btn rounded-lg text-sm disabled:opacity-50">{removedHeld.length > 0 ? 'Save and remove held cards' : 'Save'}</button>
+            <button type="button" disabled={saving || blocked || !dirty || !!conflict} onClick={async () => { if (await doSave(removedHeld.length > 0)) setReviewOpen(false); }} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">{removedHeld.length > 0 ? 'Save and remove held cards' : 'Save'}</button>
           </div>
         </div>
       </Dialog>

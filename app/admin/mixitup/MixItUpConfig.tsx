@@ -15,7 +15,7 @@ const secondary = 'rounded-lg border border-gray-700 px-3 py-2 text-sm font-semi
 export function MixItUpConfig({ settings: s }: { settings: MixItUpSettings }) {
   return (
     <div className="space-y-6">
-      <form action={saveMixItUpAction} className="card tcg-panel rounded-2xl overflow-hidden">
+      <form action={saveMixItUpAction} className="card rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-800">
           <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="coins" className="text-yellow-400" />Pay to pull with Mix It Up</h2>
           <p className="text-xs text-gray-500 mt-0.5">When this is on, a pull from the bot checks the viewer&rsquo;s balance first and takes {s.currency} when the card is revealed. When it is off, pulls work exactly as before. Gifting packs from the dashboard never charges.</p>
@@ -85,7 +85,7 @@ export function MixItUpConfig({ settings: s }: { settings: MixItUpSettings }) {
         </div>
       </form>
 
-      <section className="card tcg-panel rounded-2xl overflow-hidden">
+      <section className="card rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-800">
           <h2 className="font-semibold text-white">Try it</h2>
           <p className="text-xs text-gray-500 mt-0.5">Uses the saved settings. Neither button takes any currency.</p>

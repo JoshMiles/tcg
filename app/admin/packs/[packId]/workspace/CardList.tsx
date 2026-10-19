@@ -120,7 +120,7 @@ export function CardList({
       </ul>
 
       <div className="p-3 border-t border-gray-800 flex items-center gap-2">
-        <button type="button" onClick={onAdd} className="flex-1 px-3 py-2 tcg-btn rounded-lg text-sm"><Icon name="plus" className="mr-1" />Add card</button>
+        <button type="button" onClick={onAdd} className="flex-1 px-3 py-2 btn btn-primary rounded-lg text-sm"><Icon name="plus" className="mr-1" />Add card</button>
         {onImport && (
           <>
             <input ref={pick} type="file" multiple accept="image/*,.gif,audio/*" className="hidden" aria-label="Choose art files" onChange={e => { const f = [...(e.target.files ?? [])]; e.target.value = ''; if (f.length) onImport(f); }} />

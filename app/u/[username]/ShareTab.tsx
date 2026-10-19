@@ -10,7 +10,7 @@ export function ShareTab({ base, candidates, bigStats, link, username }: {
   username: string;
 }) {
   return (
-    <section className="card tcg-panel rounded-2xl p-5 space-y-4">
+    <section className="card rounded-2xl p-5 space-y-4">
       <div>
         <h2 className="font-display text-xl font-bold text-white">Make a share image</h2>
         <p className="text-sm text-gray-400 mt-1">Pick a look and the cards you want to show off. The image is made in your browser and nothing is saved on our side.</p>

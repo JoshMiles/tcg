@@ -34,7 +34,7 @@ export function TradeCard({
   const getPts = stackPoints(trade.get, cards, p.get);
   const st = STATUS[trade.status];
   return (
-    <article className="card tcg-panel rounded-2xl p-4 space-y-3">
+    <article className="card rounded-2xl p-4 space-y-3">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-gray-200">{title}</h3>
         <span className="text-xs text-gray-500">

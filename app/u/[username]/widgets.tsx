@@ -60,7 +60,7 @@ const ago = (at: number) => {
 function Box({ type, children, href, linkLabel }: { type: ProfileWidgetType; children: ReactNode; href?: string; linkLabel?: string }) {
   const def = PROFILE_WIDGETS[type];
   return (
-    <section className="card tcg-panel rounded-2xl p-5 h-full space-y-3" aria-label={def.title}>
+    <section className="card rounded-2xl p-5 h-full space-y-3" aria-label={def.title}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-display text-lg font-bold text-white"><Icon name={def.icon} className="mr-2 text-yellow-400" />{def.title}</h2>
         {href && <Link href={href} className="text-xs text-yellow-500 hover:text-yellow-300 whitespace-nowrap">{linkLabel ?? 'See all'} →</Link>}

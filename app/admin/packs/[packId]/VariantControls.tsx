@@ -33,7 +33,7 @@ export function PackVariantsPanel({
   const rows = (['regular', 'reverse', 'full', 'shiny'] as const).map(v => ({ v, pct: (eff[v] / total) * 100 }));
 
   return (
-    <div className="card tcg-panel rounded-2xl p-5 space-y-3">
+    <div className="card rounded-2xl p-5 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-white">Variants &amp; odds</h3>
         {pending && <span className="text-[11px] text-gray-500">Saving…</span>}

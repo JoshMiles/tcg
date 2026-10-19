@@ -337,7 +337,7 @@ export function ActivityFeed({
       </div>
 
       {status === 'signed-out' && (
-        <div className="card tcg-panel rounded-xl p-4 text-sm text-red-300 border-red-500/30">
+        <div className="card rounded-xl p-4 text-sm text-red-300 border-red-500/30">
           Signed out, so the feed stopped updating.{' '}
           <a href="/auth/staff?returnTo=/admin/activity" className="inline-block rounded-md bg-red-500/20 px-2.5 py-1 font-semibold underline">Sign in again</a>
         </div>
@@ -363,7 +363,7 @@ export function ActivityFeed({
       )}
 
       {/* Feed */}
-      <div className="card tcg-panel rounded-2xl overflow-hidden">
+      <div className="card rounded-2xl overflow-hidden">
         {groups.length === 0 ? (
           <div className="px-6 py-16 text-center space-y-1">
             <p className="text-gray-400 font-semibold">{events.length === 0 ? 'No activity yet' : 'Nothing matches these filters'}</p>

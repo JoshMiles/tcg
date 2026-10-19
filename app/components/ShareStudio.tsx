@@ -135,7 +135,7 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => go('share')} disabled={!!busy || (!!candidates && picked.length === 0)} className="tcg-btn px-4 py-2 text-sm rounded-xl disabled:opacity-60">
+          <button type="button" onClick={() => go('share')} disabled={!!busy || (!!candidates && picked.length === 0)} className="btn btn-primary px-4 py-2 text-sm rounded-xl disabled:opacity-60">
             <Icon name="image" className="mr-1.5" />{busy === 'share' ? 'Making image…' : 'Share image'}
           </button>
           <button type="button" onClick={() => go('download')} disabled={!!busy || (!!candidates && picked.length === 0)} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2 disabled:opacity-60">

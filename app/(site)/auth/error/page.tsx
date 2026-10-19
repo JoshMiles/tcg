@@ -20,7 +20,7 @@ export default async function AuthErrorPage({ searchParams }: { searchParams: Pr
       <h1 className="font-display text-3xl font-bold text-white">{m.title}</h1>
       <p className="text-gray-400 leading-relaxed">{m.text}</p>
       <div className="flex justify-center gap-3 pt-2">
-        {reason !== 'unavailable' && <a href="/auth/twitch" className="tcg-btn px-5 py-2.5 rounded-xl text-sm">Try again</a>}
+        {reason !== 'unavailable' && <a href="/auth/twitch" className="btn btn-primary px-5 py-2.5 rounded-xl text-sm">Try again</a>}
         <Link href="/" className="px-5 py-2.5 rounded-xl text-sm bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold">Back home</Link>
       </div>
     </div>

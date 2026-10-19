@@ -60,7 +60,7 @@ export function SoundOptimiser({ asset, onUse, replacing }: { asset: LibraryAsse
             <div className="flex gap-2">
               <button type="button" disabled={replacing || smaller <= 0}
                 onClick={() => onUse(new File([result.blob], mp3Name(asset.url), { type: 'audio/mpeg' }))}
-                className="tcg-btn px-3 py-1.5 text-sm rounded-lg">{replacing ? 'Replacing…' : 'Use this version'}</button>
+                className="btn btn-primary px-3 py-1.5 text-sm rounded-lg">{replacing ? 'Replacing…' : 'Use this version'}</button>
               <button type="button" onClick={() => setResult(null)} className="px-3 py-1.5 text-sm rounded-lg border border-gray-700 text-gray-400 hover:text-white">Discard</button>
             </div>
           </div>

@@ -39,7 +39,7 @@ export function StaffManager({ staff, viewerRole, viewerLogin }: { staff: Row[];
             {canAddAdmin && <option value="admin">Admin</option>}
           </select>
         </label>
-        <button type="submit" disabled={pending || !login.trim()} className="tcg-btn px-4 py-2 text-sm rounded-xl disabled:opacity-60"><Icon name="check" className="mr-1.5" />Add to staff</button>
+        <button type="submit" disabled={pending || !login.trim()} className="btn btn-primary px-4 py-2 text-sm rounded-xl disabled:opacity-60"><Icon name="check" className="mr-1.5" />Add to staff</button>
       </form>
       {message && <p role="status" className={`text-sm mb-4 ${message.ok ? 'text-emerald-300' : 'text-red-400'}`}>{message.text}</p>}
 

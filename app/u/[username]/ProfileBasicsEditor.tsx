@@ -40,7 +40,7 @@ export function ProfileBasicsEditor({ bio, accent, pronouns }: { bio: string; ac
     );
   }
   return (
-    <form onSubmit={e => { e.preventDefault(); save(); }} className="card tcg-panel mt-3 max-w-xl space-y-3 rounded-2xl p-4">
+    <form onSubmit={e => { e.preventDefault(); save(); }} className="card mt-3 max-w-xl space-y-3 rounded-2xl p-4">
       <fieldset className="fieldset">
         <legend className="fieldset-legend"><label htmlFor="profile-bio">About you</label></legend>
         <textarea id="profile-bio" value={draftBio} maxLength={BIO_MAX} rows={2} onChange={e => setDraftBio(e.target.value)} placeholder="A line about your collection, favourite card, trading wishes..."

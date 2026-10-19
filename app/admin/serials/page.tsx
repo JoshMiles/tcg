@@ -48,7 +48,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
             title={`Number the prints in ${season.name}?`}
             confirmLabel="Number them"
             message={<>Every print that exists now is given an edition number, in the order the collection stores them, marked <strong className="text-white">estimated</strong> because the true pull order wasn&apos;t recorded. Nothing in any collection changes. Do this once, ideally when no packs are being opened.</>}
-            className="tcg-btn px-4 py-2 text-sm rounded-xl"
+            className="btn btn-primary px-4 py-2 text-sm rounded-xl"
           >
             Number existing prints
           </ConfirmButton>
@@ -166,7 +166,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
         <Tile label="Numbering" icon="check" tone="green" value="Tracking" sub="Give print numbers in Settings" href="/admin/settings?tab=viewers" />
       </div>
 
-      <form method="get" className="card tcg-panel rounded-2xl p-4 flex flex-wrap items-end gap-3">
+      <form method="get" className="card rounded-2xl p-4 flex flex-wrap items-end gap-3">
         <input type="hidden" name="season" value={season.id} />
         <label className="text-xs text-gray-500 space-y-1 flex-1 basis-64">Search
           <span className="relative block">
@@ -178,7 +178,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
             <select name="season" defaultValue={season.id} className={`${selectClass} block`}>{seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
           </label>
         )}
-        <button type="submit" className="tcg-btn px-4 py-2 rounded-xl text-sm"><Icon name="search" className="mr-1.5" />Search</button>
+        <button type="submit" className="btn btn-primary px-4 py-2 rounded-xl text-sm"><Icon name="search" className="mr-1.5" />Search</button>
         {(sp.q || card || holder || origin) && <Link href={`/admin/serials?season=${encodeURIComponent(season.id)}`} className="px-3 py-2 text-sm text-gray-400 hover:text-white">Clear</Link>}
       </form>
       {searchNote && <p role="status" className="text-sm text-amber-300">{searchNote}</p>}

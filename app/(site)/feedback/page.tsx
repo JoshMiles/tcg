@@ -27,7 +27,7 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
     return (
       <SiteMessage
         icon="chat" title="Log in to send feedback"
-        actions={<a href={`/auth/twitch?returnTo=${encodeURIComponent(back)}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Log in with Twitch</a>}
+        actions={<a href={`/auth/twitch?returnTo=${encodeURIComponent(back)}`} className="btn btn-primary px-4 py-2 text-sm rounded-xl">Log in with Twitch</a>}
       >
         <p>We ask you to log in so we can answer you and keep spam out. Log in with Twitch to suggest something. To report a problem, <a href={reportProblemUrl()} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300">open an issue on GitHub</a>.</p>
       </SiteMessage>
@@ -49,7 +49,7 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
           <h2 id="mine" className="font-display text-2xl font-bold text-white">Your feedback</h2>
           <ul className="space-y-3">
             {mine.map(i => (
-              <li key={i.id} className="card tcg-panel rounded-2xl p-4 space-y-2">
+              <li key={i.id} className="card rounded-2xl p-4 space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="font-semibold text-gray-400"><Icon name={i.kind === 'bug' ? 'wrench' : i.kind === 'deletion' ? 'trash' : i.kind === 'report' ? 'flag' : 'sparkles'} className="mr-1" />{KIND_LABELS[i.kind]}</span>
                   <span className="rounded-full border border-gray-700 px-2 py-0.5 font-bold text-gray-300">{STATUS_LABELS[i.status]}</span>

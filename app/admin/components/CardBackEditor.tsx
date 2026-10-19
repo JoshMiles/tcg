@@ -116,7 +116,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
 
   const actions = (
     <div className="flex flex-wrap items-center gap-2 pt-1">
-      <button type="button" onClick={() => setOpen(true)} className="px-4 py-2 tcg-btn rounded-xl text-sm"><Icon name="palette" className="mr-1.5" />Edit design</button>
+      <button type="button" onClick={() => setOpen(true)} className="px-4 py-2 btn btn-primary rounded-xl text-sm"><Icon name="palette" className="mr-1.5" />Edit design</button>
       <button type="button" disabled={pending || !dirty} onClick={save} className={`${btn} text-white! bg-gray-700`}>{pending ? 'Working…' : 'Save card back'}</button>
       <button type="button" disabled={pending || (isDefaultCardBack(style) && !dirty && !initial)} onClick={() => exec(resetCardBackAction.bind(null, packId), 'Back to the classic look')} className={btn}>Reset to default</button>
       {others.length > 0 && (
@@ -133,7 +133,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
   );
 
   return (
-    <div id="card-back" className="card tcg-panel rounded-2xl overflow-hidden scroll-mt-20">
+    <div id="card-back" className="card rounded-2xl overflow-hidden scroll-mt-20">
       <div className="px-5 py-4 border-b border-gray-800">
         <h3 className="text-sm font-semibold text-white">Card back</h3>
         <p className="text-xs text-gray-500 mt-0.5">How the back of a print looks for cards from this pack. Until you save a design, it keeps the classic engraved plate.</p>
@@ -159,7 +159,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
               <option value="">Preset…</option>{EDITOR_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
             <span role="status" className="text-xs text-gray-400">{note || (dirty ? 'Unsaved changes' : 'Saved')}</span>
-            <button type="button" disabled={pending || !dirty} onClick={save} className="px-4 py-2 tcg-btn rounded-lg text-sm disabled:opacity-50">{pending ? 'Saving…' : 'Save'}</button>
+            <button type="button" disabled={pending || !dirty} onClick={save} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">{pending ? 'Saving…' : 'Save'}</button>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close the editor" className="p-2 rounded-lg border border-gray-700 text-gray-200"><Icon name="x" /></button>
           </div>
 
@@ -192,7 +192,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
               </div>
             </aside>
           </div>
-          {!sheet && <button type="button" onClick={() => setSheet(true)} className="lg:hidden fixed bottom-3 right-3 z-10 px-4 py-2 tcg-btn rounded-full text-sm shadow-xl">Properties</button>}
+          {!sheet && <button type="button" onClick={() => setSheet(true)} className="lg:hidden fixed bottom-3 right-3 z-10 px-4 py-2 btn btn-primary rounded-full text-sm shadow-xl">Properties</button>}
         </div>
       )}
     </div>

@@ -44,7 +44,7 @@ export function CollectionTab({ b, grid, isOwner, tradeWith, prefs, mine }: { b:
     <div className="space-y-6">
       <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(7rem,1fr))]">
         {b.rarity.map(r => (
-          <div key={r.stars} className="card tcg-panel rounded-xl p-3 text-center">
+          <div key={r.stars} className="card rounded-xl p-3 text-center">
             <p className="text-xs font-medium mb-1" style={{ color: r.hex }}>{'★'.repeat(r.stars)}</p>
             <p className="text-lg font-bold text-white tabular-nums">{r.owned}/{r.total}</p>
             <p className="text-xs text-gray-600">{r.label}</p>
@@ -67,7 +67,7 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
   const maxMix = Math.max(1, ...mix.map(m => m.n));
   return (
     <div className="grid gap-6 lg:grid-cols-2 items-start">
-      <section className="card tcg-panel rounded-2xl p-5 space-y-3 lg:col-span-2">
+      <section className="card rounded-2xl p-5 space-y-3 lg:col-span-2">
         <h2 className="font-display text-xl font-bold text-white">Where the points come from</h2>
         <dl className="text-sm divide-y divide-gray-800/70">
           <div className="flex justify-between py-2"><dt className="text-gray-300">Cards <span className="text-gray-600">· every print</span></dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
@@ -79,7 +79,7 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
         <p className="text-xs text-gray-500"><Link href="/faq#points" className="text-yellow-500 hover:text-yellow-300">How points are worked out →</Link></p>
       </section>
 
-      <section className="card tcg-panel rounded-2xl p-5 space-y-3">
+      <section className="card rounded-2xl p-5 space-y-3">
         <h2 className="font-display text-xl font-bold text-white">Versions owned</h2>
         <ul className="space-y-2.5">
           {mix.map(m => (
@@ -92,7 +92,7 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
         <p className="text-xs text-gray-500">{s.copies} print{s.copies === 1 ? '' : 's'} in total.</p>
       </section>
 
-      <section className="card tcg-panel rounded-2xl p-5 space-y-3">
+      <section className="card rounded-2xl p-5 space-y-3">
         <h2 className="font-display text-xl font-bold text-white">Most valuable prints</h2>
         <ul className="divide-y divide-gray-800/70">
           {s.topCopies.slice(0, 5).map((t, i) => (
@@ -148,7 +148,7 @@ export async function ActivityTab({ b }: { b: ProfileBase }) {
   if (mine.length === 0) return <Empty icon="activity" title="No recent activity">Pulls, upgrades and trades appear here as they happen.</Empty>;
   const name = (n: number, fallback?: string) => fallback || names.get(n) || `Card #${n}`;
   return (
-    <ul className="card tcg-panel rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
+    <ul className="card rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
       {mine.map(e => {
         let icon: Parameters<typeof Icon>[0]['name'] = 'activity'; let text: React.ReactNode = null;
         if (e.type === 'pull') { icon = 'cards'; text = <>Pulled <strong className="text-white">{name(e.cardNumber, e.cardName)}</strong>{e.variant && e.variant !== 'regular' ? <span className="text-purple-300"> ({VARIANT_LABELS[e.variant]})</span> : null}{e.isNew ? <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wider text-green-300">new</span> : null}</>; }

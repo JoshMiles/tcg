@@ -96,7 +96,7 @@ export default async function HomePage() {
                   wrapperClassName="relative flex-1 min-w-0"
                   className="w-full bg-gray-950/80 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-hidden focus:border-yellow-500 text-sm"
                 />
-                <PendingButton type="submit" className="px-5 py-3 tcg-btn rounded-xl text-sm shrink-0">Go →</PendingButton>
+                <PendingButton type="submit" className="px-5 py-3 btn btn-primary rounded-xl text-sm shrink-0">Go →</PendingButton>
               </form>
               )}
             {!session && loginConfigured() && (
@@ -144,7 +144,7 @@ export default async function HomePage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {offers > 0 && <Link href="/trade" className="inline-flex items-center gap-1.5 rounded-xl bg-purple-500/15 border border-purple-400/40 px-4 py-2 text-sm font-bold text-purple-200 hover:bg-purple-500/25"><Icon name="inbox" />{offers} trade offer{offers === 1 ? '' : 's'}</Link>}
-              <Link href={profileHref(session.username)} className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="user" className="mr-1.5" />My profile</Link>
+              <Link href={profileHref(session.username)} className="btn btn-primary px-4 py-2 text-sm rounded-xl"><Icon name="user" className="mr-1.5" />My profile</Link>
               <Link href="/account" className="px-4 py-2 text-sm rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold"><Icon name="trend" className="mr-1.5" />My stats</Link>
             </div>
           </section>
@@ -259,7 +259,7 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/faq" className="tcg-btn px-5 py-2.5 rounded-xl text-sm">How it works →</Link>
+            <Link href="/faq" className="btn btn-primary px-5 py-2.5 rounded-xl text-sm">How it works →</Link>
             <Link href="/faq#points" className="px-5 py-2.5 rounded-xl text-sm bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold">How points work</Link>
           </div>
         </section>

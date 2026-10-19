@@ -84,7 +84,7 @@ export function FeedbackInbox({ items, base, kind, status, viewerHref, canDelete
                 <select id={`status-${i.id}`} name="status" defaultValue={i.status} className={selectClass}>
                   {FEEDBACK_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
                 </select>
-                <PendingButton pendingLabel="Saving…" className="tcg-btn px-4 py-2 text-sm rounded-xl">Save</PendingButton>
+                <PendingButton pendingLabel="Saving…" className="btn btn-primary px-4 py-2 text-sm rounded-xl">Save</PendingButton>
               </div>
             </form>
             )}

@@ -56,7 +56,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
   const me = session?.username.toLowerCase() ?? null;
   const returnTo = `/trade/${encodeURIComponent(trade.id)}`;
   const login = !session && loginConfigured()
-    ? <Link href={`/auth/twitch?returnTo=${encodeURIComponent(returnTo)}`} className="tcg-btn px-5 py-2.5 rounded-xl text-sm inline-block">Log in with Twitch</Link>
+    ? <Link href={`/auth/twitch?returnTo=${encodeURIComponent(returnTo)}`} className="btn btn-primary px-5 py-2.5 rounded-xl text-sm inline-block">Log in with Twitch</Link>
     : null;
 
   if (!tradeVisibleTo(trade, me)) {

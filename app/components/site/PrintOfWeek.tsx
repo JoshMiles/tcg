@@ -64,7 +64,7 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
         <p className="text-sm text-gray-400">
           {inOffer || hidden.has(copy.owner) ? <>Held by {holder}</> : <>Held by <Link href={profileHref(copy.owner)} className="text-yellow-300 hover:text-yellow-200 font-bold">@{copy.owner}</Link></>}
         </p>
-        <Link href={href} className="tcg-btn inline-flex items-center px-4 py-2 rounded-xl text-sm"><Icon name="history" className="mr-1.5" />See its journey</Link>
+        <Link href={href} className="btn btn-primary inline-flex items-center px-4 py-2 rounded-xl text-sm"><Icon name="history" className="mr-1.5" />See its journey</Link>
       </div>
     </section>
   );

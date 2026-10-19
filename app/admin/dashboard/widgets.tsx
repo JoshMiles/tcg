@@ -29,7 +29,7 @@ function Overview({ d }: { d: DashboardData }) {
   return (
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 h-full">
       {stats.map(({ label, accent, value, sub }) => (
-        <div key={label} className="card tcg-panel holo-hover rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-glow transition-all">
+        <div key={label} className="card holo-hover rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-glow transition-all">
           <div className={`h-1.5 bg-linear-to-r ${accent}`} />
           <div className="p-5 space-y-1">
             <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{label}</p>

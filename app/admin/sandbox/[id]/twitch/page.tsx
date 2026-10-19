@@ -36,7 +36,7 @@ export default async function FakeTwitchPage({ params }: { params: Promise<{ id:
       ) : (
         <div className="rounded-2xl border border-purple-500/30 bg-purple-950/20 p-6 space-y-3">
           <p className="text-sm text-gray-300">Enter this sandbox first: the panel reads and writes whichever sandbox this browser is in, so it can never touch production.</p>
-          <form action={enterSandboxAction.bind(null, id)}><PendingButton pendingLabel="Entering…" className="tcg-btn px-4 py-2 text-sm rounded-xl">Enter {sandbox.name}</PendingButton></form>
+          <form action={enterSandboxAction.bind(null, id)}><PendingButton pendingLabel="Entering…" className="btn btn-primary px-4 py-2 text-sm rounded-xl">Enter {sandbox.name}</PendingButton></form>
         </div>
       )}
     </div>

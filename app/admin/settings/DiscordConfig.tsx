@@ -45,7 +45,7 @@ export function DiscordConfig({ settings, logs = {} }: { settings: DiscordSettin
   const full = channels.length >= MAX_DISCORD_CHANNELS;
 
   return (
-    <section className="card tcg-panel rounded-2xl overflow-hidden">
+    <section className="card rounded-2xl overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-800 flex items-start justify-between gap-4">
         <div>
           <h2 className="font-semibold text-white flex items-center gap-2">
@@ -128,7 +128,7 @@ export function DiscordConfig({ settings, logs = {} }: { settings: DiscordSettin
 
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-3">
-          <PendingButton type="submit" name="intent" value="save" disabled={pending} className="px-5 py-2 tcg-btn rounded-xl text-sm">
+          <PendingButton type="submit" name="intent" value="save" disabled={pending} className="px-5 py-2 btn btn-primary rounded-xl text-sm">
             Save
           </PendingButton>
         </div>

@@ -172,7 +172,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
         </div>
       </div>
 
-      <section className="tcg-panel rounded-2xl p-5">
+      <section className="card rounded-2xl p-5">
         <h2 className="font-display text-xl font-bold text-white mb-4"><Icon name="history" className="mr-2 text-yellow-400" />Journey</h2>
         <ProvenanceTimeline
           prov={prov}

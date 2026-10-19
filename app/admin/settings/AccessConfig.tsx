@@ -23,7 +23,7 @@ export function AccessConfig({ settings: s, testers, log, filter }: { settings: 
 
   return (
     <div className="space-y-6">
-      <form action={saveAccessAction} className="card tcg-panel rounded-2xl overflow-hidden">
+      <form action={saveAccessAction} className="card rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-800">
           <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="lock" className="text-yellow-400" />Who can use the site</h2>
           <p className="text-xs text-gray-500 mt-0.5">While the site is closed, only the people on the list below and staff get in. The Twitch panel, the OBS overlay, the FAQ, Privacy and Terms always work.</p>
@@ -65,7 +65,7 @@ export function AccessConfig({ settings: s, testers, log, filter }: { settings: 
         </div>
       </form>
 
-      <section className="card tcg-panel rounded-2xl overflow-hidden">
+      <section className="card rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-800 flex flex-wrap items-center gap-3">
           <div className="mr-auto">
             <h2 className="font-semibold text-white flex items-center gap-2"><Icon name="flask" className="text-purple-300" />Testers</h2>
@@ -105,7 +105,7 @@ export function AccessConfig({ settings: s, testers, log, filter }: { settings: 
       </section>
 
       {log.length > 0 && (
-        <section className="card tcg-panel rounded-2xl overflow-hidden">
+        <section className="card rounded-2xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-800"><h2 className="font-semibold text-white">Recent changes</h2></div>
           <ul className="divide-y divide-gray-800/60 text-sm">
             {log.map((e, i) => (

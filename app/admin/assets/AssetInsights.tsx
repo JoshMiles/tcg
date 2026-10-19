@@ -43,7 +43,7 @@ export function AssetInsights({ assets, onOpen, onFixGifs }: { assets: LibraryAs
           <div className="space-y-3">
             <p className="font-display text-3xl font-bold text-yellow-300 tabular-nums">~{formatBytes(ins.gifs.estimatedSaved)}</p>
             <p className="text-sm text-gray-400">{ins.gifs.files} GIF{ins.gifs.files === 1 ? '' : 's'} totalling {formatBytes(ins.gifs.bytes)} can be converted.</p>
-            <button onClick={onFixGifs} className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="wrench" className="mr-1.5" />Optimize all GIFs</button>
+            <button onClick={onFixGifs} className="btn btn-primary px-4 py-2 text-sm rounded-xl"><Icon name="wrench" className="mr-1.5" />Optimize all GIFs</button>
           </div>
         )}
       </Panel>

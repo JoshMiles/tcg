@@ -106,7 +106,7 @@ export function AssetDetail({ asset, index, total, onClose, onStep, onCopy, copi
                 {asset.issues.map(i => <li key={i} className="text-sm text-amber-100/90 flex gap-2"><Icon name="warning" className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" /><span><strong>{ISSUE_TEXT[i].label}.</strong> {ISSUE_TEXT[i].hint}</span></li>)}
               </ul>
               {isFixable(asset) && (
-                <button onClick={onFix} disabled={fixing} className="tcg-btn px-4 py-2 text-sm rounded-xl">
+                <button onClick={onFix} disabled={fixing} className="btn btn-primary px-4 py-2 text-sm rounded-xl">
                   <Icon name="wrench" className="mr-1.5" />{fixing ? 'Fixing…' : 'Fix automatically'}
                 </button>
               )}

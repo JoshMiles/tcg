@@ -63,7 +63,7 @@ export function ScoringForm({ saved, groups, save, reset }: {
     <div className="grid gap-6 xl:grid-cols-[1.25fr_1fr] items-start">
       <form action={save} className="space-y-5 min-w-0">
         {groups.map(g => (
-          <fieldset key={g.title} className="card tcg-panel rounded-2xl p-5 space-y-4">
+          <fieldset key={g.title} className="card rounded-2xl p-5 space-y-4">
             <legend className="px-2 -ml-2 text-xs font-extrabold text-gray-300 uppercase tracking-wider">{g.title}</legend>
             {g.fields.map(f => {
               const { min, max, step } = SCORING_LIMITS[f.name];
@@ -97,7 +97,7 @@ export function ScoringForm({ saved, groups, save, reset }: {
         ))}
 
         <div className="sticky bottom-0 z-10 -mx-1 px-1 py-3 bg-gray-950/90 backdrop-blur-sm border-t border-gray-800 flex flex-wrap items-center gap-3">
-          <PendingButton type="submit" className="tcg-btn px-5 py-2 rounded-xl text-sm">Save scoring</PendingButton>
+          <PendingButton type="submit" className="btn btn-primary px-5 py-2 rounded-xl text-sm">Save scoring</PendingButton>
           <button type="button" disabled={!dirty} onClick={() => setValues(initial)} className="text-sm text-gray-400 hover:text-white disabled:opacity-40 disabled:pointer-events-none">Discard edits</button>
           <span className={`text-xs ${dirty ? 'text-amber-300' : 'text-gray-600'}`}>{dirty ? 'You have unsaved changes. Saving re-scores every season at once.' : 'Values outside the allowed range are clamped when saved.'}</span>
           <span className="ml-auto">
@@ -109,7 +109,7 @@ export function ScoringForm({ saved, groups, save, reset }: {
       <form id="scoring-reset" action={reset} className="hidden" />
 
       {/* Preview */}
-      <aside className="card tcg-panel rounded-2xl p-5 space-y-4 xl:sticky xl:top-4 min-w-0" aria-live="polite">
+      <aside className="card rounded-2xl p-5 space-y-4 xl:sticky xl:top-4 min-w-0" aria-live="polite">
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold text-white"><Icon name="eye" className="mr-1.5 text-yellow-400" />Preview{result && 'season' in result ? <span className="text-gray-500 font-normal"> · {result.season}</span> : null}</h3>
           {busy ? <span className="text-xs text-gray-500">Updating…</span> : dirty ? <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">not saved</span> : <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500">same as saved</span>}

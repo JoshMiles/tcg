@@ -14,7 +14,7 @@ export default function PublicError({ error, reset }: { error: Error & { digest?
       <SiteMessage
         icon="warning" tone="red" title="Something went wrong"
         actions={<>
-          <button onClick={reset} className="tcg-btn px-4 py-2 text-sm rounded-xl">Try again</button>
+          <button onClick={reset} className="btn btn-primary px-4 py-2 text-sm rounded-xl">Try again</button>
           <a href={reportProblemUrl(path)} target="_blank" rel="noopener noreferrer" className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Report this</a>
           <Link href="/" className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Back home</Link>
         </>}

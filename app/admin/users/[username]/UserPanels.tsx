@@ -175,7 +175,7 @@ export function GrantPanel({ username, cards, upgrades }: { username: string; ca
         <label className="text-xs text-gray-500 space-y-1 block">Prints of each
           <input type="number" min={1} max={20} value={copies} onChange={e => setCopies(e.target.value)} className={`${field} block w-20 py-1.5`} />
         </label>
-        <button type="button" disabled={pending || picked.length === 0} onClick={() => run(() => grantManyAction(username, picked, variant, Number(copies)))} className="tcg-btn px-4 py-2 rounded-lg text-sm disabled:opacity-50">{pending && <Spinner />}Grant {picked.length || ''} card{picked.length === 1 ? '' : 's'}</button>
+        <button type="button" disabled={pending || picked.length === 0} onClick={() => run(() => grantManyAction(username, picked, variant, Number(copies)))} className="btn btn-primary px-4 py-2 rounded-lg text-sm disabled:opacity-50">{pending && <Spinner />}Grant {picked.length || ''} card{picked.length === 1 ? '' : 's'}</button>
         <span className="mx-1 h-6 w-px bg-gray-800" aria-hidden />
         <label className="text-xs text-gray-500 space-y-1 block">Gift packs
           <select value={packs} onChange={e => setPacks(e.target.value)} className="select w-24">{[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n}</option>)}</select>
