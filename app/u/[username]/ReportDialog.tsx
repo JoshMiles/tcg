@@ -4,8 +4,6 @@ import { Icon } from '@/app/components/Icon';
 import { postJson } from '@/app/components/captcha-client';
 import { FEEDBACK_LIMITS, REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/feedback-core';
 
-const field = 'w-full rounded-xl border border-gray-700 bg-gray-950/70 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-yellow-500 focus:outline-hidden';
-
 /** The report form, opened from the profile's menu. Staff see who sent it; the reported person never does. */
 export function ReportDialog({ target, name, onClose }: { target: string; name: string; onClose: () => void }) {
   const [reason, setReason] = useState<ReportReason>('offensive');
@@ -40,7 +38,7 @@ export function ReportDialog({ target, name, onClose }: { target: string; name: 
 
   return (
     <div role="dialog" aria-modal="true" aria-label={`Report ${name}`} className="fixed inset-0 z-90 grid place-items-center overflow-y-auto p-4 bg-black/60 backdrop-blur-xs" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-full max-w-md rounded-2xl border border-gray-700 bg-gray-900 p-5 shadow-2xl">
+      <div className="card tcg-panel w-full max-w-md rounded-2xl p-5">
         {sent ? (
           <div className="space-y-3 text-center" role="status">
             <Icon name="check" className="w-8 h-8 text-green-400 mx-auto" />
@@ -54,22 +52,22 @@ export function ReportDialog({ target, name, onClose }: { target: string; name: 
               <h2 className="font-display text-xl font-bold text-white"><Icon name="flag" className="mr-2 text-yellow-400" />Report {name}</h2>
               <p className="text-xs text-gray-500 mt-1">Only staff see this, and they see who sent it. {name} is never told.</p>
             </div>
-            <fieldset className="space-y-1.5">
-              <legend className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">Reason</legend>
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend">Reason</legend>
               {REPORT_REASONS.map(r => (
                 <label key={r} className="flex items-center gap-2 text-sm text-gray-200 cursor-pointer">
                   <input type="radio" name="reason" value={r} checked={reason === r} onChange={() => setReason(r)} className="accent-yellow-500" />{REPORT_REASON_LABELS[r]}
                 </label>
               ))}
             </fieldset>
-            <label className="block space-y-1">
-              <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Details{reason === 'other' ? ' (required)' : ' (optional)'}</span>
-              <textarea value={details} onChange={e => setDetails(e.target.value)} rows={4} maxLength={FEEDBACK_LIMITS.reportDetails} required={reason === 'other'} minLength={reason === 'other' ? FEEDBACK_LIMITS.reportDetailsMin : undefined} className={field} placeholder="What happened?" />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Link to a trade or print (optional)</span>
-              <input value={link} onChange={e => setLink(e.target.value)} maxLength={200} className={field} placeholder="/trade/..." />
-            </label>
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend">Details{reason === 'other' ? ' (required)' : ' (optional)'}</legend>
+              <textarea value={details} onChange={e => setDetails(e.target.value)} rows={4} maxLength={FEEDBACK_LIMITS.reportDetails} required={reason === 'other'} minLength={reason === 'other' ? FEEDBACK_LIMITS.reportDetailsMin : undefined} className="textarea w-full" placeholder="What happened?" />
+            </fieldset>
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend">Link to a trade or print (optional)</legend>
+              <input value={link} onChange={e => setLink(e.target.value)} maxLength={200} className="input w-full" placeholder="/trade/..." />
+            </fieldset>
             {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
             <div className="flex items-center gap-3">
               <button type="submit" disabled={busy} className="tcg-btn px-4 py-2 text-sm rounded-xl disabled:opacity-60">{busy ? 'Sending…' : 'Send report'}</button>
