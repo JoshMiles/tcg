@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (25.2 shipped: a copy is an edition, Edition #uid is the game-wide id, Print #n of N is the sequence, and the points bonus is the print bonus. The Twitch panel still says print for a copy. The home block is Edition of the week until 25.1. 27.3 shipped: Settings → Achievements can switch a built-in goal off or replace its title and detail. A goal already earned stays. 28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (25.1 shipped: the home block is Card of the week, with the card name, Edition #uid, Print #n of N, who holds it, and a link to its journey. 25.2 shipped: a copy is an edition, Edition #uid is the game-wide id, Print #n of N is the sequence, and the points bonus is the print bonus. The Twitch panel still says print for a copy. The home block is Edition of the week until 25.1. 27.3 shipped: Settings → Achievements can switch a built-in goal off or replace its title and detail. A goal already earned stays. 28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -18,7 +18,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 23.2 | Overlay Editor: split the rest | Needs design | M |
 | 4.4 | Link a Discord account for DMs | Needs a decision | L |
 | Ext | Next extension version | Blocked (panel freeze) | L |
-| 25.1 | Home: Card of the week | Ready | S |
 | 27.1 | FAQ pass: cards, commands, trading, points, brackets | Ready | M |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
 | 28.1 | Pull limits per role, editable, plus a this-stream buff | Ready | M |
@@ -78,7 +77,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 
 | Discord line | Item |
 |---|---|
-| Home layout: Card of the week, card name, print, edition, held by, See its journey | 25.1 |
+| Home layout: Card of the week, card name, print, edition, held by, See its journey | Done |
 | Change the name of print to edition (swap the names round) | Done |
 | Collectors page: Top collectors, collector name, 24/25 cards, Card dex | Done |
 | Text should say Bottomgidds, not bottomygidds | Done |
@@ -111,7 +110,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 ### Tracks 25 to 30: order
 
 Parallel streams, so no two open PRs edit the same files:
-- **Glossary:** 25.2 shipped. 25.1 and 27.1 come next and use edition and print as 25.2 defines them.
+- **Glossary:** 25.2 and 25.1 shipped. 27.1 is next and uses edition and print as 25.2 defines them.
 - **FAQ:** 27.1 after 25.2 (same words).
 - **Fonts:** 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 28.4, then 29.1, then 29.4.
 - **Mix It Up:** 28.1 edits `lib/pull-limit-core.ts`. Do not run it beside 30.2.
@@ -120,17 +119,6 @@ Parallel streams, so no two open PRs edit the same files:
 - **Nothing on tracks 25 to 30 is waiting for an answer.** Trainer cards are tradable until used (30.2).
 
 **Twitch panel freeze:** nothing in a Ready item edits `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the behaviour or response shape of `/api/twitch/*`, or the CORS rules in `middleware.ts`. 29.5, 30.4, and the panel's copy of the edition/print words (25.2) are the exceptions and they are blocked.
-
-### 25.1 Home: Card of the week (Ready, S)
-
-After 25.2, so the labels below are the new ones. The home block is "Edition of the week" (`app/components/site/PrintOfWeek.tsx`, data from `potw:current`, docs in `docs/serials.md` and `docs/public-site/home.md`). Keep the pick, the KV keys and the admin feature button. Change the player-facing layout only.
-
-- Title: **Card of the week**.
-- Lines, in this order: **card name** (version + name, as today), **Edition #**`uid` (the copy), **Print #n of N** (the sequence, from `editionLine`), **Held by** `@name` (same masking as today: private collector, or a trade offer), **See its journey** to `/copy/{seasonId}/{copyId}`.
-- Keep the short reason line under those, in smaller type. It is how the pick is explained.
-- The FAQ question "How is the edition of the week chosen?" becomes "How is the card of the week chosen?" and the answer says an edition is featured. Anchor id can stay so old links work; add `id="card-of-the-week"` as well if the old id moves.
-- Internal names (`potw`, `PrintOfWeek`, admin "Feature as print of the week") stay.
-- **Checks:** `npm run verify`. Hand pass of `/` with a featured edition and with none (the block hides when the edition was spent).
 
 ### 27.1 FAQ pass (Ready, M)
 

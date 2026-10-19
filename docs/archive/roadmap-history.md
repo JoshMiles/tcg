@@ -1219,6 +1219,10 @@ A collection tile or binder pocket with `holo-fx` does not also take `holo-hover
 
 `DEFAULT_SCORING.serialBonusCutoff` is 40. A saved `scoring:settings` value is left as stored, so a site that already saved 20 keeps 20 until someone saves 40 in Admin → Settings → Scoring. Scores recompute on the next page load after that save. `EVENT_CAP` (how many journey events a copy keeps) stays 40 and is a different setting.
 
+### 25.1 Home: Card of the week (Done)
+
+The home block is titled Card of the week. Under the card name it shows Edition #uid, the print line, who holds it (a private collector or a trade offer when that applies), and See its journey. The reason sits under those in smaller type. The block still hides when there is no pick or the edition was spent. The FAQ question is "How is the card of the week chosen?" (`id="card-of-the-week"`). The pick, the KV keys and the admin button "Feature as print of the week" stay.
+
 ### 25.2 A copy is an edition; "24 of 28" is a print (Done)
 
 A person's copy is an edition. Edition #uid is the game-wide id (it was Print #uid). Print #n of N is the sequence (it was Edition #n of N), and the points bonus on that number is the print bonus. Code, KV, URLs and the card-back tokens `{printNumber}` and `{edition}` keep their names: `{printNumber}` still renders the uid and `{edition}` still renders n. Saved overlay values `edition`, `uid` and `both` still select the same number; the menu labels swapped. The admin button stays "Feature as print of the week". The home block is "Edition of the week" until 25.1 renames it. The Twitch panel still says print for a copy. Achievement titles earned before this change keep the words they were given.

@@ -17,7 +17,7 @@ import { profileHref } from '@/lib/profile-url';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { SITE_URL } from '@/lib/site';
 
-/** The home page's "Edition of the week". Shows nothing when there is no pick or the edition was spent since. Holders are masked like the edition page. */
+/** The home page's "Card of the week". Shows nothing when there is no pick or the edition was spent since. Holders are masked like the edition page. */
 export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) {
   const f = await loadFeatured().catch(() => null);
   if (!f) return null;
@@ -34,7 +34,7 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
   const href = `/copy/${encodeURIComponent(season.id)}/${copy.id}`;
 
   return (
-    <section aria-label="Edition of the week" className="rind rounded-2xl p-5 sm:p-8 grid gap-6 sm:grid-cols-[220px_1fr] items-center">
+    <section aria-label="Card of the week" className="rind rounded-2xl p-5 sm:p-8 grid gap-6 sm:grid-cols-[220px_1fr] items-center">
       <div className="mx-auto w-full max-w-[220px]">
         <FlipCard
           back={flipBackFor({
@@ -52,19 +52,15 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
         </FlipCard>
       </div>
       <div className="space-y-3 min-w-0">
-        <h2 className="font-display text-3xl font-bold text-white"><Icon name="sparkles" className="mr-2 text-yellow-400" />Edition of the week</h2>
-        <div>
-          <p className="font-display text-2xl font-bold text-white wrap-break-word">{label}</p>
-          <p className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="font-display text-xl font-bold text-yellow-400 tabular-nums">Edition #{pick.uid}</span>
-            <span className="text-sm text-gray-300">{editionLine(copy.n, total)}</span>
-          </p>
-        </div>
-        <p className="text-sm text-gray-300">{pick.reason}.</p>
+        <h2 className="font-display text-3xl font-bold text-white"><Icon name="sparkles" className="mr-2 text-yellow-400" />Card of the week</h2>
+        <p className="font-display text-2xl font-bold text-white wrap-break-word">{label}</p>
+        <p className="font-display text-xl font-bold text-yellow-400 tabular-nums">Edition #{pick.uid}</p>
+        <p className="text-sm text-gray-300">{editionLine(copy.n, total)}</p>
         <p className="text-sm text-gray-400">
           {inOffer || hidden.has(copy.owner) ? <>Held by {holder}</> : <>Held by <Link href={profileHref(copy.owner)} className="text-yellow-300 hover:text-yellow-200 font-bold">@{copy.owner}</Link></>}
         </p>
         <Link href={href} className="btn btn-primary inline-flex items-center px-4 py-2 rounded-xl text-sm"><Icon name="history" className="mr-1.5" />See its journey</Link>
+        <p className="text-xs text-gray-500">{pick.reason}.</p>
       </div>
     </section>
   );
