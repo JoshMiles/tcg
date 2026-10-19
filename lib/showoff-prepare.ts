@@ -2,6 +2,7 @@ import { kv } from './db';
 import { getActiveSeasonWithPacks, getCollection } from './kv';
 import { getSeasonLeaderboardCached } from './leaderboard';
 import { getOwnerCopies } from './serials';
+import { getUserSettings } from './user-settings-store';
 import { serialMultiplier } from './scoring-core';
 import { countVariants, VARIANTS, VARIANT_LABELS } from './variants';
 import { parseShowQuery, pickShowVariant, resolveCard, type ShowCard } from './showoff';
@@ -40,6 +41,18 @@ export async function prepareShowOff(username: string, text: unknown, opts: { dr
   const board = await getSeasonLeaderboardCached(season).catch(() => null);
 
   const q = parseShowQuery(text);
+  // No card named: the pinned print, else the first showcase pick they still hold, else the best card below.
+  let forced: { card: ShowCard; variant: Variant; serial: number; uid: number } | null = null;
+  if (q.number === null && !q.name) {
+    const [settings, mine] = await Promise.all([
+      getUserSettings(user).catch(() => null),
+      getOwnerCopies(season.collectionName, user).catch(() => []),
+    ]);
+    const byUid = (uid: number | null | undefined) => (uid ? mine.find(c => c.uid === uid) : undefined);
+    const hit = byUid(settings?.pinned) ?? settings?.showcaseUids.map(byUid).find(c => c);
+    const card = hit ? cards.find(c => c.number === hit.card) : undefined;
+    if (hit?.uid && card && (owned.get(card.number)?.[hit.variant] ?? 0) > 0) forced = { card, variant: hit.variant, serial: hit.n, uid: hit.uid };
+  }
   // "My best card": the copy worth the most points right now (falls back to the rarest owned).
   const best = (): ShowCard | null => {
     let top: { card: ShowCard; value: number } | null = null;
@@ -53,29 +66,35 @@ export async function prepareShowOff(username: string, text: unknown, opts: { dr
     return top?.card ?? null;
   };
 
-  const resolved = resolveCard(q, cards, new Set(owned.keys()), best);
-  if (!resolved.ok) return { ok: false, error: resolved.reason, message: resolved.message };
-  const card = resolved.card;
-  const pick = pickShowVariant(owned.get(card.number)!, q.variant);
-  if (!pick.ok) return { ok: false, error: 'not-owned', message: pick.message };
-
-  // The viewer's own copy with the lowest serial number, when the season's copies are numbered.
+  let card: ShowCard;
+  let variant: Variant;
   let serial: number | undefined;
   let uid: number | undefined;
-  try {
-    const mine = (await getOwnerCopies(season.collectionName, user)).filter(c => c.card === card.number && c.variant === pick.variant);
-    if (mine.length > 0) {
-      const lowest = mine.reduce((a, c) => (c.n < a.n ? c : a));
-      serial = lowest.n;
-      uid = lowest.uid;
-    }
-  } catch { /* no serial shown */ }
+  if (forced) {
+    card = forced.card; variant = forced.variant; serial = forced.serial; uid = forced.uid;
+  } else {
+    const resolved = resolveCard(q, cards, new Set(owned.keys()), best);
+    if (!resolved.ok) return { ok: false, error: resolved.reason, message: resolved.message };
+    card = resolved.card;
+    const pick = pickShowVariant(owned.get(card.number)!, q.variant);
+    if (!pick.ok) return { ok: false, error: 'not-owned', message: pick.message };
+    variant = pick.variant;
+    // The viewer's own copy with the lowest serial number, when the season's copies are numbered.
+    try {
+      const mine = (await getOwnerCopies(season.collectionName, user)).filter(c => c.card === card.number && c.variant === variant);
+      if (mine.length > 0) {
+        const lowest = mine.reduce((a, c) => (c.n < a.n ? c : a));
+        serial = lowest.n;
+        uid = lowest.uid;
+      }
+    } catch { /* no serial shown */ }
+  }
   const serialMult = serial && board ? serialMultiplier(serial, board.values.settings) : undefined;
 
   // Cooldown last, so a refused request (not their card, a typo) does not use up their turn.
   const taken = opts.dry ? 'OK' : await kv.set(`showoff:cd:${user}`, 1, { nx: true, ex: SHOWOFF_COOLDOWN_S }).catch(() => 'OK');
   if (taken === null) return { ok: false, error: 'cooldown', message: `Easy there, try again in a few seconds.`, retryAfter: SHOWOFF_COOLDOWN_S };
 
-  const label = `${pick.variant === 'regular' ? '' : `${VARIANT_LABELS[pick.variant]} `}${card.name}${serial ? ` #${serial}` : ''}`;
-  return { ok: true, plan: { username: user, cardNumber: card.number, cardName: card.name, variant: pick.variant, serial, serialMult, uid, message: `Showing off your ${label}!` } };
+  const label = `${variant === 'regular' ? '' : `${VARIANT_LABELS[variant]} `}${card.name}${serial ? ` #${serial}` : ''}`;
+  return { ok: true, plan: { username: user, cardNumber: card.number, cardName: card.name, variant, serial, serialMult, uid, message: `Showing off your ${label}!` } };
 }

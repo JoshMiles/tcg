@@ -22,7 +22,7 @@ export interface ProfileWidgetDef {
 
 export const PROFILE_WIDGETS: Record<ProfileWidgetType, ProfileWidgetDef> = {
   stats: { type: 'stats', title: 'Score breakdown', icon: 'trend', description: 'Points from cards and bonuses, version mix and total prints.', defaultSpan: 4, spans: [4, 6, 8] },
-  showcase: { type: 'showcase', title: 'Showcase', icon: 'gem', description: 'Your three most valuable cards, front and centre. Each opens the print that earned its place.', defaultSpan: 8, spans: [4, 6, 8, 12] },
+  showcase: { type: 'showcase', title: 'Showcase', icon: 'gem', description: 'Up to three prints you picked. Leave it empty and it shows your three most valuable.', defaultSpan: 8, spans: [4, 6, 8, 12] },
   pinned: { type: 'pinned', title: 'Showcase print', icon: 'pin', description: 'One print you picked, shown as a card you can flip over to see its engraved print number. Pin it from the print\'s own page.', defaultSpan: 4, spans: [3, 4, 6, 8] },
   rarity: { type: 'rarity', title: 'Rarity progress', icon: 'award', description: 'How much of each rarity you have collected.', defaultSpan: 12, spans: [6, 8, 12] },
   progress: { type: 'progress', title: 'Pack progress', icon: 'cards', description: 'How complete each pack is.', defaultSpan: 6, spans: [4, 6, 8, 12] },
