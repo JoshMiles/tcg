@@ -13,6 +13,8 @@ import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl } from '@/lib/card-art';
 import { VARIANT_LABELS } from '@/lib/variants';
 import { topCopies, type ProfileBase } from '@/lib/profile-data';
+import { copyPoints } from '@/lib/leaderboard';
+import { ShowcaseEditor, type ShowcaseChoice } from './ShowcaseEditor';
 import { bestPrintOf, rarestPrints } from '@/lib/collection-view';
 import type { Copy } from '@/lib/serials-core';
 import { syncAchievements, type AchievementsView } from '@/lib/achievements-store';
@@ -115,19 +117,39 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
     }
 
     case 'showcase': {
-      const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, 3, { held: b.board.values.serials?.held.get(b.lower), settings: b.board.values.settings });
-      if (top.length === 0) return none('Your three most valuable cards appear here once you have some.');
+      const serialOpts = { held: b.board.values.serials?.held.get(b.lower), settings: b.board.values.settings };
+      const held = ctx.copies.filter(x => x.owner === b.lower);
+      const owned = new Set(held.flatMap(c => c.uid ? [c.uid] : []));
+      const pickedIds = b.settings.showcaseUids.filter(u => owned.has(u)).slice(0, 3);
+      const top = topCopies(b.allCards, b.variantMap, b.board.values.cards, pickedIds.length ? 18 : 3, serialOpts);
+      const artOf = (imageUrl: string, fullArtImageUrl: string | undefined, variant: typeof top[number]['variant']) => (variant === 'full' || variant === 'shiny') && fullArtImageUrl ? fullArtImageUrl : imageUrl;
+      const choices: ShowcaseChoice[] = topCopies(b.allCards, b.variantMap, b.board.values.cards, 18, serialOpts).flatMap(c => {
+        const print = held.filter(x => x.card === c.number && x.variant === c.variant).sort((a, z) => a.n - z.n)[0];
+        if (!print?.uid) return [];
+        const art = artOf(c.imageUrl, c.fullArtImageUrl, c.variant);
+        return [{ uid: print.uid, name: c.name, thumb: cardThumbUrl(art), tag: [c.variant === 'regular' ? '' : VARIANT_LABELS[c.variant], `#${print.n}`].filter(Boolean).join(' ') || undefined }];
+      });
+      const rows = pickedIds.length
+        ? pickedIds.flatMap(uid => {
+            const print = held.find(c => c.uid === uid);
+            const card = print && b.allCards.find(c => c.number === print.card);
+            if (!print || !card) return [];
+            const cv = b.board.values.cards.get(print.card);
+            const points = cv ? copyPoints(cv, print.variant, print.n, b.board.values.settings) : 0;
+            return [{ number: print.card, name: card.name, imageUrl: card.imageUrl, fullArtImageUrl: card.fullArtImageUrl, stars: card.stars, variant: print.variant, points, print }];
+          })
+        : top.map(c => ({ ...c, print: bestPrintOf(held, c.number, c.variant) }));
+      if (rows.length === 0) return none('Your three most valuable cards appear here once you have some.');
       return (
         <Box type={type}>
           <ul className="flex flex-wrap gap-4">
-            {top.map(c => {
-              // The print that earned the place: their best edition of it (untracked seasons have no prints, so the tile opens the dex).
-              const print = bestPrintOf(ctx.copies.filter(x => x.owner === b.lower), c.number, c.variant);
+            {rows.map(c => {
+              const print = c.print;
               const href = print?.uid ? `/c/${print.uid}` : print ? `/copy/${encodeURIComponent(b.season.id)}/${print.id}` : `/cards?card=${c.number}`;
               return (
-                <li key={c.number} className="w-24 sm:w-28">
+                <li key={print?.uid ?? c.number} className="w-24 sm:w-28">
                   <Link href={href} title={`${c.name}${c.variant === 'regular' ? '' : ` (${VARIANT_LABELS[c.variant]})`}`}>
-                    <CardTile imageUrl={(c.variant === 'full' || c.variant === 'shiny') && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl} alt={c.name} className="relative aspect-2/3 rounded-lg overflow-hidden border-2" style={{ borderColor: getRarity(c.stars)?.hex }} />
+                    <CardTile imageUrl={artOf(c.imageUrl, c.fullArtImageUrl, c.variant)} alt={c.name} className="relative aspect-2/3 rounded-lg overflow-hidden border-2" style={{ borderColor: getRarity(c.stars)?.hex }} />
                   </Link>
                   <p className="mt-1 text-xs text-gray-200 truncate">{c.name}</p>
                   <p className="text-[11px] text-yellow-400 tabular-nums">{Math.round(c.points).toLocaleString()} pts{c.variant !== 'regular' ? ` · ${VARIANT_LABELS[c.variant]}` : ''}</p>
@@ -136,6 +158,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
               );
             })}
           </ul>
+          {isOwner && choices.length > 0 && <ShowcaseEditor candidates={choices} selected={pickedIds} />}
         </Box>
       );
     }

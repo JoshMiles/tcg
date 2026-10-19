@@ -64,6 +64,8 @@ export interface UserSettings {
   watches: Watch[];
   /** The unique number (Copy.uid) of the copy they pinned as their profile's Showcase copy, or null. Checked against the live owner whenever it is shown. */
   pinned: number | null;
+  /** Up to 3 print uids on the Showcase widget, in the order they picked. Empty means the three most valuable. */
+  showcaseUids: number[];
   /** Unique numbers (Copy.uid) of prints they marked as favourites: these can't be traded or spent in an upgrade. Checked against the live owner whenever used. */
   favourites: number[];
   /** Pronouns shown after their name: nothing until they choose (see lib/pronouns.ts). */
@@ -79,6 +81,7 @@ export interface UserSettings {
 }
 
 export const FAVOURITES_MAX = 50;
+export const SHOWCASE_MAX = 3;
 
 export const DEFAULT_SETTINGS: UserSettings = {
   bio: '',
@@ -100,6 +103,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   wanted: [],
   watches: [],
   pinned: null,
+  showcaseUids: [],
   favourites: [],
   profileLayout: null,
   binder: null,
@@ -117,8 +121,8 @@ const EXPERIMENT_IDS = new Set(EXPERIMENTS.map(e => e.id));
 
 export const BOOLEAN_KEYS = ['privateProfile', 'notifyOffers', 'notifyResults', 'notifyWatch', 'notifyFeedback', 'noticeSound', 'allowOffers', 'hideStaffBadge', 'hideUncollected', 'compactGrids'] as const;
 
-/** Anything → a complete, valid settings object. Unknown keys are dropped, bad values fall back to the default. */
-export function sanitizeUserSettings(input: unknown): UserSettings {
+/** Anything → a complete, valid settings object. Unknown keys are dropped, bad values fall back to the default. Pass the uids they still hold to drop showcase picks they no longer own. */
+export function sanitizeUserSettings(input: unknown, ownedUids?: ReadonlySet<number>): UserSettings {
   const o = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
   const out: UserSettings = { ...DEFAULT_SETTINGS, experiments: [], watches: [], favourites: [] };
   if (typeof o.bio === 'string') out.bio = o.bio.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, BIO_MAX);
@@ -141,6 +145,10 @@ export function sanitizeUserSettings(input: unknown): UserSettings {
     }
   }
   if (typeof o.pinned === 'number' && Number.isInteger(o.pinned) && o.pinned > UID_BASE && o.pinned < 1_000_000_000) out.pinned = o.pinned;
+  if (Array.isArray(o.showcaseUids)) {
+    const ids = [...new Set(o.showcaseUids.filter((n): n is number => Number.isInteger(n) && n > UID_BASE && n < 1_000_000_000))];
+    out.showcaseUids = (ownedUids ? ids.filter(n => ownedUids.has(n)) : ids).slice(0, SHOWCASE_MAX);
+  }
   if (Array.isArray(o.favourites)) out.favourites = [...new Set(o.favourites.filter((n): n is number => Number.isInteger(n) && n > UID_BASE && n < 1_000_000_000))].slice(0, FAVOURITES_MAX);
   if (Array.isArray(o.profileLayout)) out.profileLayout = sanitizeProfileLayout(o.profileLayout);
   if (o.binder && typeof o.binder === 'object') out.binder = sanitizeBinder(o.binder);

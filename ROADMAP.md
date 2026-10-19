@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -20,7 +20,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 25.1 | Home: Card of the week | Ready | S |
 | 25.2 | A copy is an edition; "24 of 28" is a print | Ready | L |
-| 26.7 | Editable profile showcase, and !showoff uses it | Ready | M |
 | 27.1 | FAQ pass: cards, commands, trading, points, brackets | Ready | M |
 | 27.3 | Achievement list: on/off, rename, edit the text | Ready | M |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
@@ -106,8 +105,8 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Spacing looks weird on some of the brackets | 27.1 |
 | Cheesy TCG logo goes to the homepage, or the dashboard in admin | Done |
 | Default limits for subscribers, mods, broadcaster, VIPs and regular | 28.1 |
-| !showoff pulls from the user's profile showcase | 26.7 |
-| Option to edit the showcase on a person's profile | 26.7 |
+| !showoff pulls from the user's profile showcase | Done |
+| Option to edit the showcase on a person's profile | Done |
 | Generate a Mix It Up command from settings (commands and pulls) | 28.2 |
 | Align variant with rarity, plus a Golden variant (Joshua) | 29.1, 29.3, 29.4, 29.5 |
 | Trainer cards and a Buff Editor (Joshua) | 30.1 to 30.4 |
@@ -116,7 +115,6 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 
 Parallel streams, so no two open PRs edit the same files:
 - **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
-- **Showcase:** 26.7. It does not edit `public/widget.js`.
 - **FAQ:** 27.1 after 25.2 (same words). 27.3 is the achievement list and does not touch the FAQ.
 - **Fonts:** 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 25.2, 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 25.2, then 28.4, then 29.1, then 29.4.
 - **Mix It Up:** 28.2 can start now. 28.1 is Ready and edits `lib/pull-limit-core.ts`: do not run it beside 30.2.
@@ -150,16 +148,6 @@ Decided 2026-10-19. Do not keep the old glossary.
 - Surfaces: FAQ, `SerialChip`, `editionLine` in `lib/flip-back.ts` (the function keeps its name; the string changes), profile, the leaderboard "Prints" count (it becomes "Editions"), activity, share images, overlay labels in `public/widget.js`, admin labels, `docs/serials.md`.
 - **Not in this PR:** `public/twitch-panel/*`. The panel keeps saying print for a copy until the freeze lifts. Say that in the PR.
 - **Checks:** `scripts/check-words.mts`, `npm run verify`, and a pass of a copy page, a profile and the FAQ. The panel is not loaded.
-
-### 26.7 Editable profile showcase, and !showoff uses it (Ready, M)
-
-Two different things today. The showcase widget is the three most valuable prints, computed (`topCopies` in `app/u/[username]/widgets.tsx`). A pinned print is `UserSettings.pinned`, chosen on the print page. `!showoff` with no arguments shows the most valuable owned card (`prepareShowOff` in `lib/showoff-prepare.ts`). It does not read the profile.
-
-- `UserSettings.showcaseUids: number[]`, max 3, print uids the owner still holds. Empty means "compute the top 3", which is today's widget. Sanitizer drops uids they no longer own. Export includes it.
-- On the owner's profile, the showcase widget gets **Edit showcase**: pick up to 3 of their prints (same candidate idea as the share image). Save through a server action, viewer from the session, `revalidatePath`. Not a settings-page-only control.
-- `!showoff` with no card argument: the pinned print if they have one, otherwise the first showcase pick, otherwise today's most valuable card. Arguments (`!showoff <card>`) stay as they are. Cooldown, live gate and the overlay event stay. This does not edit `public/widget.js` or `/api/twitch/*`.
-- **Checks:** `scripts/check-user-settings.mts` for the sanitizer. A showoff check (or `scripts/check-commands.mts`) for: pinned wins, else showcase, else best card; a dry run queues nothing.
-- **Docs:** `docs/public-site/profiles.md`, `docs/overlay.md` (show off), `docs/admin/mixitup.md` only if the command text changes.
 
 ### 27.1 FAQ pass (Ready, M)
 

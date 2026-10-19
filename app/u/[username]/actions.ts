@@ -4,6 +4,8 @@ import { getSession } from '@/lib/session';
 import { getUserSettings, saveUserSettings } from '@/lib/user-settings-store';
 import { sanitizeProfileLayout, type ProfilePlacement } from '@/lib/profile-widgets';
 import { sanitizeUserSettings, type CollectionView } from '@/lib/user-settings';
+import { getActiveSeasonWithPacks } from '@/lib/kv';
+import { getOwnerCopies } from '@/lib/serials';
 import type { Pronouns } from '@/lib/pronouns';
 import { DEFAULT_BINDER, sanitizeBinder, type BinderConfig } from '@/lib/binder-config';
 
@@ -57,4 +59,20 @@ export async function saveCollectionViewAction(view: unknown): Promise<Collectio
   await saveUserSettings(session.username, { ...current, collectionView: clean });
   revalidatePath(`/u/${session.username}`);
   return clean;
+}
+
+/** The signed-in viewer picks up to 3 of their own prints for the Showcase widget. Empty goes back to the three most valuable. */
+export async function saveShowcaseAction(uids: unknown): Promise<{ ok: true; uids: number[] } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Log in to edit your showcase.' };
+  if (!Array.isArray(uids)) return { ok: false, error: 'Pick up to 3 prints.' };
+  const active = await getActiveSeasonWithPacks();
+  if (!active) return { ok: false, error: 'There is no season running right now.' };
+  const copies = await getOwnerCopies(active.season.collectionName, session.username);
+  const owned = new Set(copies.flatMap(c => c.uid ? [c.uid] : []));
+  const current = await getUserSettings(session.username);
+  const clean = sanitizeUserSettings({ ...current, showcaseUids: uids }, owned);
+  await saveUserSettings(session.username, clean);
+  revalidatePath(`/u/${session.username}`);
+  return { ok: true, uids: clean.showcaseUids };
 }

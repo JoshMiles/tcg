@@ -1219,6 +1219,10 @@ A collection tile or binder pocket with `holo-fx` does not also take `holo-hover
 
 `DEFAULT_SCORING.serialBonusCutoff` is 40. A saved `scoring:settings` value is left as stored, so a site that already saved 20 keeps 20 until someone saves 40 in Admin → Settings → Scoring. Scores recompute on the next page load after that save. `EVENT_CAP` (how many journey events a copy keeps) stays 40 and is a different setting.
 
+### 26.7 Editable profile showcase, and !showoff uses it (Done)
+
+`UserSettings.showcaseUids` holds up to 3 print uids. Empty still means the three most valuable. The owner edits them on the Showcase widget. A bare `!showoff` shows the pinned print, else the first showcase pick they still hold, else the best card. A named card is unchanged. A dry run still queues nothing.
+
 ### 26.6 Post a share image straight to Discord (Done)
 
 Category `shares` stays off until a channel is saved with it ticked. The owner's Share tab posts the PNG (multipart, 4 MB cap) and one line naming the collector, the site and the channel. No enabled channel means no request. One post per collector per minute. A sandbox refuses. The delivery log records it. The Discord channel itself is still a user step.

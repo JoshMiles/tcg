@@ -39,6 +39,10 @@ eq(c.sparse(c.sanitizeUserSettings({ collectionView: 'grid' })).collectionView, 
 ok(c.sanitizeUserSettings({ pinned: 1000042 }).pinned === 1000042, 'a unique copy number can be pinned');
 ok(c.sanitizeUserSettings({ pinned: 'x' }).pinned === null && c.sanitizeUserSettings({ pinned: 5 }).pinned === null && c.sanitizeUserSettings({ pinned: 1.5e9 }).pinned === null && c.sanitizeUserSettings({ pinned: 1000000.5 }).pinned === null, 'anything else is dropped');
 ok(c.sparse(c.DEFAULT_SETTINGS).pinned === undefined, 'nothing pinned stores nothing');
+eq(c.DEFAULT_SETTINGS.showcaseUids, [], 'an empty showcase means the three most valuable');
+eq(c.sanitizeUserSettings({ showcaseUids: [1000001, 1000001, 5, 1000002, 1000003, 1000004] }).showcaseUids, [1000001, 1000002, 1000003], 'up to 3 unique print numbers');
+eq(c.sanitizeUserSettings({ showcaseUids: [1000001, 1000009] }, new Set([1000009])).showcaseUids, [1000009], 'a print they no longer hold is dropped');
+ok(c.sparse(c.sanitizeUserSettings({ showcaseUids: [] })).showcaseUids === undefined, 'an empty showcase stores nothing');
 const pw = await import('../lib/profile-widgets');
 ok(pw.withPinnedWidget(null)[0].type === 'pinned' && pw.withPinnedWidget(null).length === pw.DEFAULT_PROFILE_LAYOUT.length + 1, 'pinning adds the widget to the default layout');
 ok(pw.withPinnedWidget([{ type: 'stats', span: 4 }]).map(w => w.type).join() === 'pinned,stats', 'and to a custom one, at the top');
