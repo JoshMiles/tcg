@@ -6,7 +6,7 @@ import { getRarity } from '@/lib/rarity';
 import type { PackInput } from '@/lib/pack-clean';
 import { cardProblems } from '@/lib/pack-clean';
 import {
-  bulkApply, diffChanges, isEmptyChange, newWorkCard, rebase, reviewLines, type CardFields, type Work, type WorkCard,
+  bulkApply, diffChanges, isEmptyChange, newWorkCard, publishChecklist, rebase, reviewLines, type CardFields, type Work, type WorkCard,
 } from '@/lib/pack-editor-core';
 import { DraftChip, StatusChip } from '../../../components/StatusChip';
 import { ConfirmButton } from '../../../components/ConfirmButton';
@@ -77,6 +77,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
   const [conflict, setConflict] = useState('');
   const [clashes, setClashes] = useState<string[]>([]);
   const [publishIssues, setPublishIssues] = useState<string[]>([]);
+  const [acceptWarnings, setAcceptWarnings] = useState(false);
   const [problemsShown, setProblemsShown] = useState<{ id: string; name: string; messages: string[] }[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const isDraft = base.status === 'draft';
@@ -259,16 +260,21 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
   const packChanged = Object.keys(changes.pack).length > 0;
   const saveLabel = saving ? 'Saving…' : 'Save';
 
+  // Imported cards keep their "set stars and odds" mark until either changes from the starting 1 and 1.
+  const needsOdds = useMemo(() => new Set(work.cards.filter(c => fresh.has(c.id) && c.stars === 1 && c.probability === 1).map(c => c.id)), [fresh, work.cards]);
+  const checklist = useMemo(
+    () => publishChecklist(work, { inSeason: seasons.length > 0, needsOddsCount: needsOdds.size, warningsAccepted: acceptWarnings }),
+    [work, seasons.length, needsOdds.size, acceptWarnings],
+  );
+
   async function publish() {
     setPublishIssues([]);
+    if (!checklist.canPublish) return;
     if (!(await doSave())) return;
     const r = await publishPack(packId, work.pack.active);
     if (!r.ok) { setPublishIssues(r.issues.map(i => i.message)); return; }
     window.location.reload();
   }
-
-  // Imported cards keep their "set stars and odds" mark until either changes from the starting 1 and 1.
-  const needsOdds = useMemo(() => new Set(work.cards.filter(c => fresh.has(c.id) && c.stars === 1 && c.probability === 1).map(c => c.id)), [fresh, work.cards]);
   const sampleCard = work.cards.find(c => c.imageUrl) ?? null;
   const previewProps = {
     packId, pack: work.pack, card: showPack ? null : active, selection: work.cards.filter(c => cardIds.includes(c.id)), cards: work.cards, holoByStars,
@@ -291,7 +297,75 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
           <button type="button" onClick={redo} disabled={future.current.length === 0} aria-label="Redo" title="Redo (Ctrl+Shift+Z)" className="p-2 rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40 hover:border-gray-500"><Icon name="redo" /></button>
           {!isDraft && <button type="button" onClick={() => setReviewOpen(true)} disabled={!dirty} className="px-3 py-2 text-sm font-semibold rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40 hover:border-gray-500">Review changes{dirty ? ` (${review.length})` : ''}</button>}
           {!isDraft && <button type="button" onClick={() => void doSave()} disabled={!dirty || saving || blocked || !!conflict} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">{saveLabel}</button>}
-          {isDraft && <button type="button" onClick={() => void publish()} disabled={saving || !!conflict} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">Publish</button>}
+          {isDraft && (
+            <details className="relative">
+              <summary
+                aria-label="Publish checklist"
+                className="list-none cursor-pointer flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg border border-gray-700 text-gray-200 hover:border-gray-500"
+              >
+                <Icon
+                  name={checklist.blocking.length === 0 && checklist.warnings.length === 0 ? 'checkCircle' : 'warning'}
+                  className={checklist.blocking.length > 0 ? 'text-red-400' : checklist.warnings.length > 0 ? 'text-amber-400' : 'text-emerald-400'}
+                />
+                <span>Publish checklist</span>
+                <span className="text-[11px] font-bold rounded-full bg-white/10 px-1.5 py-0.5 tabular-nums">
+                  {checklist.items.filter(i => i.ok).length}/{checklist.items.length}
+                </span>
+              </summary>
+              <div className="absolute right-0 z-30 mt-1 w-80 sm:w-96 rounded-xl border border-gray-700 bg-gray-900 p-4 shadow-xl space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Publish checklist</p>
+                <ul className="space-y-2 text-xs">
+                  {checklist.items.map(item => (
+                    <li key={item.id} className="flex items-start gap-2">
+                      <Icon
+                        name={item.ok ? 'checkCircle' : 'warning'}
+                        className={`w-4 h-4 mt-0.5 shrink-0 ${item.ok ? 'text-emerald-400' : item.kind === 'blocking' ? 'text-red-400' : 'text-amber-400'}`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className={item.ok ? 'text-gray-200 font-semibold' : item.kind === 'blocking' ? 'text-red-200 font-semibold' : 'text-amber-200 font-semibold'}>
+                          {item.label}
+                          {!item.ok && <span className="ml-1.5 text-[10px] uppercase tracking-wider opacity-80">({item.kind === 'blocking' ? 'required' : 'warning'})</span>}
+                        </p>
+                        <p className="text-gray-400">{item.detail}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {checklist.warnings.length > 0 && (
+                  <label className="flex items-start gap-2 pt-2 border-t border-gray-800 text-xs text-amber-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={acceptWarnings}
+                      onChange={e => setAcceptWarnings(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>{seasons.length === 0 ? 'Accept warnings and publish without a season' : 'Accept warnings and allow publishing'}</span>
+                  </label>
+                )}
+                <label className="flex items-center gap-2 pt-2 border-t border-gray-800 text-xs text-gray-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={work.pack.active}
+                    onChange={e => patchPack({ active: e.target.checked })}
+                    className="toggle toggle-xs toggle-primary"
+                  />
+                  <span>Include in draws as soon as it&apos;s published</span>
+                </label>
+              </div>
+            </details>
+          )}
+          {isDraft && (
+            <button
+              type="button"
+              onClick={() => void publish()}
+              disabled={saving || !!conflict || !checklist.canPublish}
+              title={!checklist.canPublish ? (checklist.blocking[0]?.detail ?? 'Accept warnings in the publish checklist first') : 'Publish this pack'}
+              className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50"
+            >
+              Publish
+            </button>
+          )}
           <details className="relative">
             <summary className="list-none cursor-pointer p-2 rounded-lg border border-gray-700 text-gray-200 hover:border-gray-500" aria-label="Pack actions"><Icon name="menu" /></summary>
             <div className="absolute right-0 z-30 mt-1 w-56 rounded-xl border border-gray-700 bg-gray-900 p-1.5 shadow-xl space-y-1">

@@ -2,7 +2,9 @@
 // server applies it, the "old -> new" lines of Review, and how a change set is re-applied on top of someone else's save. Client-safe (no
 // database): the workspace shows the result of `applyChanges` and the server saves the result of the SAME function, so they can't differ.
 import type { Card, OptionalVariant, Pack } from './types';
+import { validatePack } from './draft-validation';
 import { cardProblems, cleanPackInput, int, MAX_CARD_NUMBER, num, str, type PackInput } from './pack-clean';
+import { packHealth } from './pack-health';
 import { cleanDisabled } from './variants';
 
 /** A card as the workspace edits it: empty strings for "none" so inputs stay controlled. `number` is 0 for a card not saved yet. */
@@ -239,3 +241,112 @@ export function pastedColumn(text: string): string[] {
   if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
   return lines.map(l => l.split('\t')[0].trim());
 }
+
+// ── Draft publish checklist (20.2f) ──────────────────────
+
+export interface PublishCheckItem {
+  id: 'name' | 'cards' | 'card-fields' | 'regular-weight' | 'cover' | 'imported-odds' | 'full-art' | 'season';
+  kind: 'blocking' | 'warning';
+  ok: boolean;
+  label: string;
+  detail: string;
+}
+
+export interface PublishChecklist {
+  items: PublishCheckItem[];
+  blocking: PublishCheckItem[];
+  warnings: PublishCheckItem[];
+  /** True when all blocking items pass and either there are no warnings or `warningsAccepted` is true. */
+  canPublish: boolean;
+}
+
+/**
+ * The draft publish checklist in the pack workspace top bar (ROADMAP 20.2f), derived from `validatePack` (blocking items)
+ * and `packHealth` plus imported card state (warning items that can be accepted).
+ */
+export function publishChecklist(
+  work: Work,
+  opts: { inSeason: boolean; needsOddsCount?: number; warningsAccepted?: boolean },
+): PublishChecklist {
+  const validationIssues = validatePack(work.pack, work.cards);
+  const asPack: Pack = { id: 'draft', createdAt: 0, status: 'published', ...cleanPackInput(work.pack) };
+  const asCards: Card[] = work.cards.map((c, i) => cleanCard(c, c.number || i + 1));
+  const healthIssues = packHealth(asPack, asCards, { inSeason: opts.inSeason });
+
+  const nameOk = work.pack.name.trim().length > 0;
+  const cardsOk = work.cards.length > 0;
+  const cardFieldIssues = validationIssues.filter(i => i.step === 'cards' && i.message !== 'Add at least one card.');
+  const cardFieldsOk = cardsOk && cardFieldIssues.length === 0;
+  const regIssue = validationIssues.find(i => i.step === 'upgrades');
+  const regOk = !regIssue;
+
+  const noCover = healthIssues.find(h => h.id === 'no-cover');
+  const needsOdds = opts.needsOddsCount ?? 0;
+  const noFullArt = healthIssues.find(h => h.id === 'no-full-art');
+  const noSeason = healthIssues.find(h => h.id === 'no-season');
+
+  const items: PublishCheckItem[] = [
+    {
+      id: 'name',
+      kind: 'blocking',
+      ok: nameOk,
+      label: 'Has a pack name',
+      detail: nameOk ? work.pack.name.trim() : 'Give the pack a name.',
+    },
+    {
+      id: 'cards',
+      kind: 'blocking',
+      ok: cardsOk,
+      label: 'At least one card',
+      detail: cardsOk ? `${work.cards.length} card${work.cards.length === 1 ? '' : 's'}` : 'Add at least one card.',
+    },
+    {
+      id: 'card-fields',
+      kind: 'blocking',
+      ok: cardFieldsOk,
+      label: 'Every card has art, a name and odds above 0',
+      detail: !cardsOk ? 'Add at least one card first.' : cardFieldsOk ? 'All cards complete' : cardFieldIssues.map(i => i.message).join(' '),
+    },
+    {
+      id: 'regular-weight',
+      kind: 'blocking',
+      ok: regOk,
+      label: 'Regular version weight is above 0',
+      detail: !work.pack.upgradesEnabled ? 'Versions are off' : regIssue ? regIssue.message : `Weight ${work.pack.variantWeights.regular}`,
+    },
+    {
+      id: 'cover',
+      kind: 'warning',
+      ok: !noCover,
+      label: 'Pack has a cover image',
+      detail: noCover ? noCover.text : 'Cover image set',
+    },
+    {
+      id: 'imported-odds',
+      kind: 'warning',
+      ok: needsOdds === 0,
+      label: 'Stars and odds set on imported cards',
+      detail: needsOdds === 0 ? 'All set' : `${needsOdds} imported card${needsOdds === 1 ? ' still has' : 's still have'} the starting 1★ and weight 1.`,
+    },
+    {
+      id: 'full-art',
+      kind: 'warning',
+      ok: !noFullArt,
+      label: 'Full Art cards have Full Art artwork',
+      detail: noFullArt ? noFullArt.text : 'All Full Art cards have artwork',
+    },
+    {
+      id: 'season',
+      kind: 'warning',
+      ok: !noSeason,
+      label: 'In at least one season',
+      detail: noSeason ? 'Not in any season yet (you can publish without a season and add it later).' : 'Attached to a season',
+    },
+  ];
+
+  const blocking = items.filter(i => i.kind === 'blocking' && !i.ok);
+  const warnings = items.filter(i => i.kind === 'warning' && !i.ok);
+  const canPublish = blocking.length === 0 && (warnings.length === 0 || !!opts.warningsAccepted);
+  return { items, blocking, warnings, canPublish };
+}
+

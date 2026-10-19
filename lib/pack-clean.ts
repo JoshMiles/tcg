@@ -28,6 +28,25 @@ export const num = (v: unknown, fallback: number, min = 0, max = Infinity) => {
 export const int = (v: unknown, fallback: number, min = 1) => Math.max(min, Math.floor(num(v, fallback)));
 export const str = (v: unknown, max = 500) => (typeof v === 'string' ? v.slice(0, max) : '');
 
+export function defaultPackInput(name = ''): PackInput {
+  return {
+    name,
+    coverImageUrl: '',
+    active: true,
+    weight: 1,
+    accentColor: 'rgb(241,187,6)',
+    tearBorderColor: 'rgb(218,163,18)',
+    holoMinStars: 5,
+    cardTime: 3,
+    cooldownTime: 1,
+    soundVolume: 1,
+    upgradesEnabled: false,
+    variantWeights: { ...DEFAULT_VARIANT_WEIGHTS },
+    upgradeCosts: { ...DEFAULT_UPGRADE_COSTS },
+    disabledVariants: [],
+  };
+}
+
 export function cleanPackInput(i: PackInput): Omit<Pack, 'id' | 'createdAt' | 'status'> {
   const w = i.variantWeights ?? DEFAULT_VARIANT_WEIGHTS;
   const c = i.upgradeCosts ?? DEFAULT_UPGRADE_COSTS;

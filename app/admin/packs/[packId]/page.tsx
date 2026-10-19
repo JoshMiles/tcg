@@ -39,7 +39,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
   const overrideCount = Object.keys((overrides[packId] ?? {}) as Record<string, unknown>).length;
   const sorted = [...cards].sort((a, b) => a.number - b.number);
   const isDraft = pack.status === 'draft';
-  const health = isDraft || pack.archived ? [] : packHealth(pack, cards, { inSeason: inSeasons.length > 0 });
+  const health = pack.archived ? [] : packHealth(isDraft ? { ...pack, status: 'published' } : pack, cards, { inSeason: inSeasons.length > 0 });
   const rarityBreakdown = rarityStats(cards);
   const byId = new Map(allPacks.map(p => [p.id, p]));
   const seasonUse = inSeasons.map(s => {
@@ -48,13 +48,13 @@ export default async function PackPage({ params, searchParams }: { params: Promi
     return { id: s.id, name: s.name, active: s.active, share: pack.active && !isDraft && sum > 0 ? pack.weight / sum : null };
   });
   const view: WorkspaceView = viewParam === 'grid' || viewParam === 'odds' || viewParam === 'overview' ? viewParam : 'edit';
-  const state = { work: workOf(pack, cards), rev, held: [...held], status: pack.status, archived: !!pack.archived };
+  const state = { work: workOf(pack, sorted), rev, held: [...held], status: pack.status, archived: !!pack.archived };
 
   const overviewView = (
       <div className="grid xl:grid-cols-2 gap-6 items-start">
         <div className="space-y-6">
         {/* Health */}
-        {!isDraft && !pack.archived && (
+        {!pack.archived && (
           <div id="health" className="card rounded-2xl p-5 space-y-3 scroll-mt-20">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               {health.length === 0 ? <Icon name="checkCircle" className="text-emerald-400" /> : <Icon name="warning" className="text-amber-400" />}Pack health
