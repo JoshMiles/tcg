@@ -17,8 +17,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 20.2f | One flow for new packs; the pack wizard goes | Ready | M |
-| 23.2 | Overlay Editor: split the rest | Needs design | M |
-| 4.4 | Link a Discord account for DMs | Needs a decision | L |
+| 23.2 | Overlay Editor: split the rest | Ready | M |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
 | 29.4 | Variant styles, per pack, including Golden | Ready | M |
@@ -40,18 +39,9 @@ Last part of the pack workspace (20.2a to 20.2e are done; the workspace is descr
 - **Not changed:** card and pack data shapes, KV keys, the public site, the overlay, the Twitch panel.
 - **Checks:** `npm run verify`, `scripts/check-pack-editor.mts` grown for the draft and publish path, and a hand pass against the mock KV at 1280px and 390px. Blob uploads can't be checked locally; say so in the PR.
 
-### 23.2 Overlay Editor: split the rest (Needs design)
+### 23.2 Overlay Editor: split the rest (Ready, M)
 
-23.1 split the five largest files. `OverlayEditor.tsx` is still ~50 KB: the top bar shell, the preview stage (~21 props: refs, fit and frame size, guide flags, drag handlers), the preview toolbar and the properties panel header and body (`renderRow`, `renderSection`) stay inline because each would need more than ~15 props. Splitting them needs a state design first, for example a `useOverlayEditor` hook or a small context for the editor's state and actions. Planning pass needed; not urgent.
-
-### 4.4 Link a Discord account for DMs (Needs a decision)
-
-DMs need a **Discord bot**, not a webhook. The open question for the user: is a bot in the server acceptable (it shows in the member list, and its token is one more secret)? Revisit once push notifications (4.3) have been live for a while.
-
-Sketch, if yes:
-- User setup: a Discord application with a bot, invited to the Cheesygidds server (it can only DM people who share a server and allow DMs). Env: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN`.
-- Linking: Settings → Notifications → **Link Discord** runs Discord OAuth with `identify` only (code → token → read the id → revoke, never stored). Saved as `user:<u>:discord` `{ id, username, linkedAt }` plus `discord:user:<discordId>` → login (one Discord account per viewer). Unlink button; the export and Privacy Policy include it.
-- Sending: `notify()` → for kinds ticked for Discord, "create DM channel" then "create message" with the bot token, in `after()`. On 50007 (DMs closed) record it and show "We couldn't DM you, check your privacy settings for the server" in Settings. One retry after `retry_after` on rate limits.
+23.1 split the five largest files. Split `OverlayEditor.tsx` using `useOverlayEditor` + `OverlayEditorContext` into `EditorTopBar`, `PreviewStage`, `PreviewToolbar`, and `PropertiesDock`.
 
 ### Next extension version (Blocked until the freeze lifts)
 

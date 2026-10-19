@@ -10,10 +10,60 @@ process.env.KV_REST_API_URL = url; process.env.KV_REST_API_TOKEN ??= 'dev'; proc
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
 
 const hits: { path: string; raw: string; body: { allowed_mentions: unknown; embeds: { title?: string; description?: string }[] } }[] = [];
+const dmHits: { path: string; body: string }[] = [];
+let rateLimitNext = false;
 const server = createServer((req, res) => {
   let data = '';
   req.on('data', d => (data += d));
   req.on('end', () => {
+    if (req.url?.includes('/oauth2/token/revoke')) {
+      dmHits.push({ path: req.url, body: data });
+      res.statusCode = 200;
+      res.end();
+      return;
+    }
+    if (req.url?.includes('/oauth2/token')) {
+      dmHits.push({ path: req.url, body: data });
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ access_token: 'fake_access_token', token_type: 'Bearer' }));
+      return;
+    }
+    if (req.url?.includes('/users/@me/channels')) {
+      dmHits.push({ path: req.url, body: data });
+      const parsed = data ? JSON.parse(data) : {};
+      if (parsed.recipient_id === 'blocked_user') {
+        res.statusCode = 403;
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ code: 50007, message: 'Cannot send messages to this user' }));
+        return;
+      }
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ id: 'dm-chan-456' }));
+      return;
+    }
+    if (req.url?.includes('/users/@me')) {
+      dmHits.push({ path: req.url, body: data });
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ id: '1122334455', username: 'discorder', global_name: 'Discorder', avatar: null }));
+      return;
+    }
+    if (req.url?.includes('/channels/dm-chan-456/messages')) {
+      dmHits.push({ path: req.url, body: data });
+      if (rateLimitNext) {
+        rateLimitNext = false;
+        res.statusCode = 429;
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ retry_after: 0.05, message: 'Rate limited' }));
+        return;
+      }
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ id: 'msg-789' }));
+      return;
+    }
     if (req.url?.includes('/999/')) { res.statusCode = 404; res.end(JSON.stringify({ message: 'Unknown Webhook' })); return; }
     const multipart = (req.headers['content-type'] ?? '').includes('multipart/');
     hits.push({ path: req.url ?? '', raw: data, body: multipart ? { allowed_mentions: {}, embeds: [] } : JSON.parse(data) });
@@ -304,6 +354,86 @@ ok(lc.categories.listings === false, 'an old channel does not start posting list
   ok(!again.ok && again.error.includes('minute') && hits.length === 0, 'a second post in the same minute makes no request');
   const log = await d.getDiscordLog('sh');
   ok(log[0]?.kind === 'shares' && log[0].ok, 'the send is on the delivery log');
+}
+
+// ── Discord User Linking and DM alerts (ROADMAP 4.4) ──
+{
+  process.env.DISCORD_CLIENT_ID = 'test-client-id';
+  process.env.DISCORD_CLIENT_SECRET = 'test-client-secret';
+  process.env.DISCORD_BOT_TOKEN = 'test-bot-token';
+  process.env.DISCORD_API_BASE = `http://localhost:${port}/api/v10`;
+
+  const dmCore = await import('../lib/discord-dm-core');
+  const discordUser = await import('../lib/discord-user');
+  const userExport = await import('../lib/user-export');
+  const accountDeletion = await import('../lib/account-deletion');
+  const tradeNotify = await import('../lib/trade-notify');
+
+  // Payload formatting
+  const testPayload = dmCore.buildDiscordDmPayload({ id: 'n1', kind: 'offer', text: 'Alice offered you a trade', tradeId: 't1' }, 'https://cheesytcg.app');
+  ok(testPayload.embeds.length === 1, 'embed is built');
+  ok(testPayload.embeds[0].title === 'New trade offer', 'title matches kind');
+  ok(testPayload.embeds[0].color === 0xeab308, 'embed color is yellow');
+  ok(testPayload.embeds[0].url === 'https://cheesytcg.app/trade', 'url points to /trade');
+
+  // Filtering
+  const linkSample = { id: '112233', username: 'DiscUser', linkedAt: Date.now(), kinds: ['offers' as const], dmStatus: 'ok' as const };
+  ok(dmCore.discordWants(linkSample, 'offer'), 'wants offer');
+  ok(!dmCore.discordWants(linkSample, 'accepted'), 'does not want accepted when results unchecked');
+  ok(!dmCore.discordWants({ ...linkSample, dmStatus: 'closed' }, 'offer'), 'does not want when dmStatus is closed');
+
+  // Configuration check
+  ok(discordUser.isDiscordDmConfigured(), 'discord DM is configured with env');
+
+  // Auth URL
+  const authUrl = discordUser.getDiscordAuthUrl('random-state', 'http://localhost/callback');
+  ok(authUrl.includes('client_id=test-client-id') && authUrl.includes('scope=identify') && authUrl.includes('state=random-state'), 'auth url is formatted');
+
+  // Code exchange & token revoke
+  dmHits.length = 0;
+  const user = await discordUser.exchangeDiscordCode('test-code', 'http://localhost/callback');
+  ok(user.id === '1122334455' && user.username === 'Discorder', 'code exchange returns user');
+  ok(dmHits.some(h => h.path.includes('/oauth2/token/revoke')), 'token is revoked immediately');
+
+  // KV storage: save, get, update, unlink
+  await discordUser.saveDiscordLink('viewer1', { id: '1122334455', username: 'Discorder', linkedAt: 1000, dmStatus: 'ok', kinds: ['offers', 'results'] });
+  const readLink = await discordUser.getDiscordLink('viewer1');
+  ok(readLink?.id === '1122334455' && readLink.username === 'Discorder' && readLink.kinds.length === 2, 'stored link is read');
+  ok((await discordUser.getTwitchUserByDiscordId('1122334455')) === 'viewer1', 'twitch user is looked up by discord id');
+
+  await discordUser.updateDiscordKinds('viewer1', ['watch']);
+  ok((await discordUser.getDiscordLink('viewer1'))?.kinds[0] === 'watch', 'kinds updated');
+
+  await discordUser.unlinkDiscord('viewer1');
+  ok((await discordUser.getDiscordLink('viewer1')) === null, 'link deleted');
+  ok((await discordUser.getTwitchUserByDiscordId('1122334455')) === null, 'id lookup cleared');
+
+  // Send DM & rate-limit retry
+  await discordUser.saveDiscordLink('viewer2', { id: '1122334455', username: 'Discorder', linkedAt: 1000, dmStatus: 'ok', kinds: ['offers', 'results'] });
+  rateLimitNext = true;
+  const dmRes = await discordUser.sendTestDiscordDm('viewer2');
+  ok(dmRes.ok, 'test DM succeeds after 429 retry');
+
+  // Closed DMs (error 50007)
+  await discordUser.saveDiscordLink('viewer3', { id: 'blocked_user', username: 'BlockedUser', linkedAt: 1000, dmStatus: 'ok', kinds: ['offers'] });
+  const blockedRes = await discordUser.sendTestDiscordDm('viewer3');
+  ok(!blockedRes.ok && blockedRes.error === 'closed', 'closed DM returns closed error');
+  const blockedLink = await discordUser.getDiscordLink('viewer3');
+  ok(blockedLink?.dmStatus === 'closed', 'dmStatus is set to closed');
+
+  // trade-notify integration
+  dmHits.length = 0;
+  await tradeNotify.notify('viewer2', { kind: 'offer', text: 'You received a new trade offer!' });
+  ok(dmHits.some(h => h.path.includes('/channels/dm-chan-456/messages')), 'notify sends discord DM to linked account');
+
+  // Export
+  const exp = await userExport.buildExport('viewer2');
+  ok(exp.discord?.id === '1122334455' && exp.discord.username === 'Discorder', 'export contains discord info');
+
+  // Account deletion
+  await accountDeletion.deleteViewerAccount('viewer2');
+  ok((await discordUser.getDiscordLink('viewer2')) === null, 'account deletion unlinks discord');
+  ok((await discordUser.getTwitchUserByDiscordId('1122334455')) === null, 'account deletion removes id lookup');
 }
 
 server.close();

@@ -7,6 +7,7 @@ import { cancelOpenTrades } from './trades';
 import { deleteUserSettings } from './user-settings-store';
 import { deleteAllDevices } from './push';
 import { deleteEmail } from './email';
+import { unlinkDiscord } from './discord-user';
 import { recordAudit } from './audit';
 import { recordActivity } from './activity';
 import { deleteFeedbackOf } from './feedback';
@@ -45,12 +46,13 @@ export async function deleteViewerAccount(username: string): Promise<DeletionRep
   await deleteTesterRecord(user);
   await deleteAllDevices(user);
   await deleteEmail(user);
+  await unlinkDiscord(user);
   await kv.del(`notif:${user}`, `notif:${user}:seen`, `notif:${user}:v`, `user:${user}:ach`, ...seasons.map(s => `user:${user}:scorehist:${s.id}`));
   const hidden = (await kv.get<string[]>('users:hidden').catch(() => null)) ?? [];
   if (hidden.includes(user)) await kv.set('users:hidden', hidden.filter(u => u !== user));
   const feedbackDeleted = await deleteFeedbackOf(user);
   const opaqueRemoved = await removeOpaqueLinks(user);
-  await recordAudit(user, 'Account deleted', `cards, profile, settings, notices, alert devices and email address removed${profile ? '' : ' (there was no profile)'}; a restore point is kept for 14 days`);
+  await recordAudit(user, 'Account deleted', `cards, profile, settings, notices, alert devices, email and Discord links removed${profile ? '' : ' (there was no profile)'}; a restore point is kept for 14 days`);
   await recordActivity({ type: 'delete', username: user });
   return { snapshot, tradesCancelled, feedbackDeleted, opaqueRemoved };
 }
