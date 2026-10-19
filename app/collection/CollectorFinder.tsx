@@ -49,7 +49,7 @@ export function CollectorFinder() {
             className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-11 pr-4 py-3.5 text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500 focus:shadow-glow transition"
           />
         </div>
-        <button type="submit" className="px-6 tcg-btn rounded-xl text-sm shrink-0">Go →</button>
+        <button type="submit" className="px-6 btn btn-primary rounded-xl text-sm shrink-0">Go →</button>
       </div>
       {hits.length > 0 && (
         <ul id="finder-list" role="listbox" className="absolute z-10 left-0 right-22 mt-2 rounded-xl border border-gray-700 bg-gray-900 shadow-card p-1.5">

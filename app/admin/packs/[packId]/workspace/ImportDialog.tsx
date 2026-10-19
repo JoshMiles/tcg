@@ -123,7 +123,7 @@ export function ImportDialog({ files, existing, onClose, onApply }: {
           <p className="text-xs text-gray-500">{pending.length} to import{failedCount > 0 ? `, ${failedCount} failed (press Import to retry them)` : ''}. Nothing is added to the pack for a file that did not upload.</p>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} disabled={busy} className="px-4 py-2 text-sm text-gray-300 hover:text-white disabled:opacity-40">{doneCount > 0 ? 'Close' : 'Cancel'}</button>
-            <button type="button" onClick={() => void run()} disabled={busy || pending.length === 0 || pending.every(r => blocked(r))} className="px-4 py-2 tcg-btn rounded-lg text-sm disabled:opacity-50">{busy ? 'Importing…' : `Import ${pending.length}`}</button>
+            <button type="button" onClick={() => void run()} disabled={busy || pending.length === 0 || pending.every(r => blocked(r))} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">{busy ? 'Importing…' : `Import ${pending.length}`}</button>
           </div>
         </div>
       </div>

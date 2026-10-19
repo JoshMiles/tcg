@@ -223,7 +223,7 @@ export default async function UserDetailPage({
             <legend className="fieldset-legend"><label htmlFor="profile-notes">Private notes</label></legend>
             <textarea id="profile-notes" name="notes" maxLength={2000} rows={3} defaultValue={profile?.notes || ''} placeholder="Anything worth remembering about this viewer" className="textarea w-full" />
           </fieldset>
-          <div className="md:col-span-3"><PendingButton type="submit" className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors">Save Profile</PendingButton></div>
+          <div className="md:col-span-3"><PendingButton type="submit" className="px-4 py-2 btn btn-primary rounded-xl text-sm transition-colors">Save Profile</PendingButton></div>
         </form>
       </Panel>
 
@@ -261,7 +261,7 @@ export default async function UserDetailPage({
           const pct = totalSeasonCards > 0 ? Math.round(countMap.size / totalSeasonCards * 100) : 0;
           const resetSeason = resetUserSeason.bind(null, username, season.collectionName);
           return (
-            <section key={season.id} className="card tcg-panel rounded-2xl overflow-hidden">
+            <section key={season.id} className="card rounded-2xl overflow-hidden">
               <div className="holo-strip" />
               <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between gap-4">
                 <div>
@@ -334,7 +334,7 @@ export default async function UserDetailPage({
             </section>
           );
         })}
-        {!hasAnyCards && <div className="card tcg-panel rounded-2xl py-16 text-center"><p className="text-gray-500 text-sm">No cards pulled yet</p></div>}
+        {!hasAnyCards && <div className="card rounded-2xl py-16 text-center"><p className="text-gray-500 text-sm">No cards pulled yet</p></div>}
       </div>
 
         </>

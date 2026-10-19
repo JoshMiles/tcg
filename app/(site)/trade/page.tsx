@@ -82,8 +82,8 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
             </p>
           </div>
           {session
-            ? <Link href="/trade/new" className="tcg-btn px-5 py-2.5 rounded-xl text-sm">+ New offer</Link>
-            : loginConfigured() && <Link href="/auth/twitch?returnTo=/trade" className="tcg-btn px-5 py-2.5 rounded-xl text-sm">Log in with Twitch to trade</Link>}
+            ? <Link href="/trade/new" className="btn btn-primary px-5 py-2.5 rounded-xl text-sm">+ New offer</Link>
+            : loginConfigured() && <Link href="/auth/twitch?returnTo=/trade" className="btn btn-primary px-5 py-2.5 rounded-xl text-sm">Log in with Twitch to trade</Link>}
         </div>
         {seasons.length > 1 && (
           <p className="text-xs text-gray-500">

@@ -102,8 +102,9 @@
   }
 }
 
-@utility tcg-panel {
-  /* Card-frame surface: navy panel with a soft blue rim and a faint top sheen. */
+/* House panel surface on daisyUI `card`: navy, soft blue rim, faint top sheen.
+   Utilities layer, so a border, background or shadow utility on the same element still wins. */
+@utility card {
   position: relative;
   background-color: var(--color-gray-900);
   background-image: linear-gradient(
@@ -113,34 +114,6 @@
   );
   border: 1px solid rgba(107, 124, 255, 0.18);
   box-shadow: var(--shadow-card);
-}
-
-@utility tcg-btn {
-  /* daisyUI primary button, with the chunky 3D press kept on top. */
-  @apply btn btn-primary;
-  height: auto;
-  min-height: 0;
-  border-color: transparent;
-  font-weight: 800;
-  background-image: linear-gradient(180deg, #ffe14d, #ffcb05);
-  box-shadow:
-    0 3px 0 0 #b88a00,
-    0 6px 14px -4px rgba(255, 203, 5, 0.45);
-  transition:
-    transform 0.08s,
-    box-shadow 0.08s,
-    filter 0.15s;
-  &:hover {
-    filter: brightness(1.06);
-  }
-  &:active {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 0 #b88a00;
-  }
-  &:disabled {
-    opacity: 0.5;
-    pointer-events: none;
-  }
 }
 
 @utility holo-strip {
@@ -383,12 +356,41 @@ fieldset.card { display: block; }
 .card.rounded-lg { border-radius: 0.5rem; }
 .card.rounded-xl { border-radius: 0.75rem; }
 .card.rounded-2xl { border-radius: 1rem; }
+.card.rounded-3xl { border-radius: 1.5rem; }
 .card.xl\:rounded-2xl { border-radius: 0; }
 @media (min-width: 1280px) {
   .card.xl\:rounded-2xl { border-radius: 1rem; }
   .card.hidden.xl\:block { display: block; }
 }
 .card-title.text-base { font-size: 1rem; line-height: 1.5rem; }
+
+/* House primary button: daisyUI btn-primary plus the chunky 3D press.
+   A radius utility marks the page buttons. A plain btn btn-primary (a dialog confirm) keeps daisyUI's own size and colour. */
+.btn.btn-primary:is(.rounded-lg, .rounded-xl, .rounded-full) {
+  height: auto;
+  min-height: 0;
+  border-color: transparent;
+  font-weight: 800;
+  background-image: linear-gradient(180deg, #ffe14d, #ffcb05);
+  box-shadow:
+    0 3px 0 0 #b88a00,
+    0 6px 14px -4px rgba(255, 203, 5, 0.45);
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s,
+    filter 0.15s;
+}
+.btn.btn-primary:is(.rounded-lg, .rounded-xl, .rounded-full):hover {
+  filter: brightness(1.06);
+}
+.btn.btn-primary:is(.rounded-lg, .rounded-xl, .rounded-full):active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 #b88a00;
+}
+.btn.btn-primary:is(.rounded-lg, .rounded-xl, .rounded-full):disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
 
 /* daisyUI table paints its own type size, header colour and cell padding. A utility on the same cell decides. */
 .table.text-xs { font-size: 0.75rem; }

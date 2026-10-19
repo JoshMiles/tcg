@@ -136,7 +136,7 @@ export default async function SeasonsPage({ searchParams }: { searchParams: Prom
                           </ConfirmButton>
                         </form>
                       )}
-                      <Link href={isDraft ? `/admin/seasons/new?draft=${s.id}` : `/admin/seasons/${s.id}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">
+                      <Link href={isDraft ? `/admin/seasons/new?draft=${s.id}` : `/admin/seasons/${s.id}`} className="btn btn-primary px-4 py-2 text-sm rounded-xl">
                         {isDraft ? 'Continue setup →' : 'Manage →'}
                       </Link>
                       <form action={duplicateSeasonAction.bind(null, s.id)}>

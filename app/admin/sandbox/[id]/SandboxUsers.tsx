@@ -35,7 +35,7 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
   const names = [...picked];
   const hidden = <>{names.map(n => <input key={n} type="hidden" name="username" value={n} />)}</>;
 
-  if (rows.length === 0) return <p className="card tcg-panel rounded-2xl p-8 text-center text-sm text-gray-500">No viewers yet. Add a test user below, or set up a scenario on the Simulate tab.</p>;
+  if (rows.length === 0) return <p className="card rounded-2xl p-8 text-center text-sm text-gray-500">No viewers yet. Add a test user below, or set up a scenario on the Simulate tab.</p>;
 
   return (
     <div className="space-y-3">
@@ -62,7 +62,7 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
         )}
       </div>
 
-      <div className="card tcg-panel rounded-2xl overflow-x-auto">
+      <div className="card rounded-2xl overflow-x-auto">
         <table className="table table-sm w-full text-sm min-w-160">
           <thead>
             <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-800">

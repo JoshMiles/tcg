@@ -133,7 +133,7 @@ export function SeasonFlow({
 
       <Stepper steps={STEPS} current={step} onSelect={id => { setStep(id); setPublishIssues([]); }} locked={!draftId} issuesByStep={issuesByStep} />
 
-      <div className="card tcg-panel rounded-2xl p-6 space-y-5">
+      <div className="card rounded-2xl p-6 space-y-5">
 
         {/* ── Details ── */}
         {step === 'details' && (
@@ -203,7 +203,7 @@ export function SeasonFlow({
             {packs.length === 0 ? (
               <div className="text-center py-8 space-y-3">
                 <p className="text-gray-500 text-sm">You don&apos;t have any packs yet.</p>
-                <Link href="/admin/packs/new" target="_blank" className="tcg-btn inline-block px-4 py-2 text-sm rounded-xl">Create a pack →</Link>
+                <Link href="/admin/packs/new" target="_blank" className="btn btn-primary inline-block px-4 py-2 text-sm rounded-xl">Create a pack →</Link>
               </div>
             ) : (
               <ul className="space-y-2">
@@ -301,7 +301,7 @@ export function SeasonFlow({
               </button>
             )}
             {step !== 'review' ? (
-              <button type="button" onClick={goNext} disabled={!!busy} className="px-5 py-2.5 tcg-btn rounded-xl text-sm transition-colors">
+              <button type="button" onClick={goNext} disabled={!!busy} className="px-5 py-2.5 btn btn-primary rounded-xl text-sm transition-colors">
                 {busy === 'create' ? 'Saving…' : 'Next →'}
               </button>
             ) : (
@@ -309,7 +309,7 @@ export function SeasonFlow({
                 <button type="button" onClick={() => publish(false)} disabled={!!busy || issues.length > 0} className="px-4 py-2.5 text-sm font-semibold text-gray-200 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                   {busy === 'publish' ? 'Creating…' : 'Create season'}
                 </button>
-                <button type="button" onClick={() => publish(true)} disabled={!!busy || issues.length > 0} className="px-5 py-2.5 tcg-btn rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                <button type="button" onClick={() => publish(true)} disabled={!!busy || issues.length > 0} className="px-5 py-2.5 btn btn-primary rounded-xl text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                   Create &amp; activate →
                 </button>
               </>

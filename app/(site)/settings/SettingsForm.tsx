@@ -15,7 +15,7 @@ type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatc
 
 function Section({ icon, title, hint, children }: { icon: Parameters<typeof Icon>[0]['name']; title: string; hint?: string; children: ReactNode }) {
   return (
-    <section className="card tcg-panel rounded-2xl p-5 space-y-4">
+    <section className="card rounded-2xl p-5 space-y-4">
       <div>
         <h2 className="font-display text-xl font-bold text-white"><Icon name={icon} className="mr-2 text-yellow-400" />{title}</h2>
         {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
@@ -188,7 +188,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         </p>
         <div className="flex gap-2">
           <button type="button" disabled={!dirty} onClick={() => { setS(saved); setState({ kind: 'idle' }); }} className="rounded-xl px-3 py-2 text-sm text-gray-300 hover:text-white disabled:opacity-40">Discard</button>
-          <button type="submit" disabled={!dirty || state.kind === 'saving'} className="tcg-btn rounded-xl px-5 py-2 text-sm disabled:opacity-50">Save</button>
+          <button type="submit" disabled={!dirty || state.kind === 'saving'} className="btn btn-primary rounded-xl px-5 py-2 text-sm disabled:opacity-50">Save</button>
         </div>
       </div>
     </form>

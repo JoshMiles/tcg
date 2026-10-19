@@ -92,7 +92,7 @@ export function AddCardDialog({
           </button>
           <button
             type="submit"
-            className="px-5 py-2.5 tcg-btn rounded-xl text-sm transition-colors"
+            className="px-5 py-2.5 btn btn-primary rounded-xl text-sm transition-colors"
           >
             Add Card
           </button>

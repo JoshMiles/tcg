@@ -8,7 +8,7 @@ export function AddCardButton({ packId }: { packId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-4 py-2 tcg-btn rounded-xl text-sm transition-colors"
+        className="px-4 py-2 btn btn-primary rounded-xl text-sm transition-colors"
       >
         + Add Card
       </button>

@@ -22,7 +22,7 @@ export default async function ClosedPage({ searchParams }: { searchParams: Promi
 
   return (
     <main id="main" className="min-h-screen flex items-center justify-center p-4">
-      <div className="tcg-panel rounded-3xl w-full max-w-md overflow-hidden shadow-glow">
+      <div className="card rounded-3xl w-full max-w-md overflow-hidden shadow-glow">
         <div className="holo-strip" />
         <div className="p-8 space-y-5 text-center">
           <div className="flex flex-col items-center gap-2">

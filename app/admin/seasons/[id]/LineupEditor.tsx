@@ -59,7 +59,7 @@ export function LineupEditor({ seasonId, initial }: { seasonId: string; initial:
     if (id && id !== targetId) move(id, packs.findIndex(p => p.id === targetId));
   };
 
-  if (packs.length === 0) return <div className="card tcg-panel rounded-xl p-8 text-center text-gray-600">No packs assigned. Add packs from your library below.</div>;
+  if (packs.length === 0) return <div className="card rounded-xl p-8 text-center text-gray-600">No packs assigned. Add packs from your library below.</div>;
 
   return (
     <div className="space-y-2">
@@ -74,7 +74,7 @@ export function LineupEditor({ seasonId, initial }: { seasonId: string; initial:
             onDragLeave={() => setOverId(o => (o === pack.id ? null : o))}
             onDrop={e => onDrop(e, pack.id)}
             onDragEnd={() => { dragId.current = null; setOverId(null); }}
-            className={`card tcg-panel rounded-xl p-3 flex flex-wrap items-center gap-3 transition-shadow ${overId === pack.id ? 'shadow-[inset_0_3px_0_0_#eab308]' : ''}`}
+            className={`card rounded-xl p-3 flex flex-wrap items-center gap-3 transition-shadow ${overId === pack.id ? 'shadow-[inset_0_3px_0_0_#eab308]' : ''}`}
           >
             <span className="text-gray-600 cursor-grab" title="Drag to reorder" aria-hidden><Icon name="grip" className="w-4 h-4" /></span>
             {pack.coverImageUrl ? <img src={pack.coverImageUrl} alt="" loading="lazy" className="w-9 h-12 object-cover rounded-sm shrink-0" /> : <div className="w-9 h-12 bg-gray-800 rounded-sm shrink-0" />}

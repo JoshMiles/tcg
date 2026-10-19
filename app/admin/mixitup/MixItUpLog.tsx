@@ -3,7 +3,7 @@ import type { MixItUpLogEntry } from '@/lib/mixitup';
 /** Mix It Up → Log: the last requests to and refusals for Mix It Up. */
 export function MixItUpLog({ log }: { log: MixItUpLogEntry[] }) {
   return (
-  <section className="card tcg-panel rounded-2xl overflow-hidden">
+  <section className="card rounded-2xl overflow-hidden">
     <div className="px-6 py-5 border-b border-gray-800">
       <h2 className="font-semibold text-white">Recent requests</h2>
       <p className="text-xs text-gray-500 mt-0.5">The last 20 calls to and refusals for Mix It Up, and the last 20 chat commands. A <em>revoked</em> line is a pull taken back; refund that viewer by hand if Mix It Up did take the currency.</p>

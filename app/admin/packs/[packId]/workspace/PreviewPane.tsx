@@ -179,7 +179,7 @@ function StreamTab({ packId, pack, shown, onStream }: PreviewPaneProps & { shown
             <button key={x} type="button" aria-pressed={v === x} onClick={() => setVariant(x)} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${v === x ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300' : 'border-gray-700 text-gray-400 hover:text-white'}`}>{VARIANT_LABELS[x]}</button>
           ))}
         </div>
-        <button type="button" onClick={() => post({ type: 'pack' })} disabled={!ready} className="px-3 py-1.5 text-xs font-bold tcg-btn rounded-lg disabled:opacity-50"><Icon name="play" className="mr-1" />Play the reveal</button>
+        <button type="button" onClick={() => post({ type: 'pack' })} disabled={!ready} className="px-3 py-1.5 text-xs font-bold btn btn-primary rounded-lg disabled:opacity-50"><Icon name="play" className="mr-1" />Play the reveal</button>
         <button type="button" onClick={() => post({ type: 'static', mode: 'pack' })} disabled={!ready} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-700 text-gray-200 hover:border-gray-500">Reset</button>
       </div>
     </div>

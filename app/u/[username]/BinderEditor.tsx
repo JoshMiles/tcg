@@ -157,7 +157,7 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
           {error && <span role="alert" className="text-xs text-red-400">{error}</span>}
           <button type="button" onClick={() => { if (window.confirm('Go back to the default binder?')) { setDraft(DEFAULT_BINDER); setSelected(null); setArmed(null); } }} className="text-xs font-bold text-gray-400 hover:text-white px-2 py-1.5">Reset to default</button>
           <button type="button" onClick={cancel} className="text-sm font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2">Cancel</button>
-          <button type="button" onClick={save} disabled={saving || !dirty} className="tcg-btn px-5 py-2 text-sm rounded-xl disabled:opacity-50">{saving ? 'Saving…' : 'Save binder'}</button>
+          <button type="button" onClick={save} disabled={saving || !dirty} className="btn btn-primary px-5 py-2 text-sm rounded-xl disabled:opacity-50">{saving ? 'Saving…' : 'Save binder'}</button>
         </div>
       </div>
 
@@ -171,7 +171,7 @@ export function BinderEditor({ cards, initial, seasonId, ownerLabel, onClose, vi
           )}
         </div>
 
-        <aside className="card tcg-panel rounded-2xl p-4 space-y-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto" aria-label="Binder settings">
+        <aside className="card rounded-2xl p-4 space-y-4 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto" aria-label="Binder settings">
           <div role="tablist" aria-label="Binder settings" className="flex flex-wrap gap-1.5">
             {tabs.map(t => {
               const off = !!t.needsCustom && !custom;

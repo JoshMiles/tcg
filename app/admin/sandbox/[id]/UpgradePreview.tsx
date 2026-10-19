@@ -20,7 +20,7 @@ export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: 
   const sel = 'select w-full';
 
   return (
-    <div className="card tcg-panel rounded-2xl p-5 space-y-3">
+    <div className="card rounded-2xl p-5 space-y-3">
       <h2 className="font-semibold text-white">Preview the upgrade animation</h2>
       <p className="text-xs text-gray-500">What a viewer sees when they upgrade on the website. Nothing is saved.</p>
       <div className="grid grid-cols-2 gap-3">
@@ -35,7 +35,7 @@ export function UpgradePreview({ cards, costs }: { cards: PreviewCard[]; costs: 
           </select>
         </label>
       </div>
-      <button type="button" onClick={() => setPlaying(true)} className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="play" className="mr-1" />Play</button>
+      <button type="button" onClick={() => setPlaying(true)} className="btn btn-primary px-4 py-2 text-sm rounded-xl"><Icon name="play" className="mr-1" />Play</button>
       {playing && <UpgradeCeremony card={card} holo={card.holo} from={from} to={to} cost={cost} gain={Math.round(40 + Math.random() * 400)} onClose={() => setPlaying(false)} />}
     </div>
   );

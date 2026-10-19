@@ -210,7 +210,7 @@ export default async function PacksPage() {
                     <div className="px-4 pb-4 flex items-center gap-2">
                       <Link
                         href={isDraft ? `/admin/packs/new?draft=${pack.id}` : `/admin/packs/${pack.id}`}
-                        className="tcg-btn flex-1 text-center px-3 py-2 text-sm rounded-xl"
+                        className="btn btn-primary flex-1 text-center px-3 py-2 text-sm rounded-xl"
                       >
                         {isDraft ? 'Continue setup →' : 'Manage →'}
                       </Link>

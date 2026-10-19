@@ -254,7 +254,7 @@ export function TradeComposer({
           <input value={note} maxLength={140} onChange={e => setNote(e.target.value)} placeholder="e.g. my last Shiny for your Full Art?" className={`${input} w-full`} />
         </fieldset>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={send} disabled={!ready || busy} className="tcg-btn inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm disabled:opacity-50">{busy ? <><Spinner /> Sending…</> : counter ? 'Send counter-offer' : kind === 'listing' ? 'Post to the board' : 'Send offer'}</button>
+          <button type="button" onClick={send} disabled={!ready || busy} className="btn btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm disabled:opacity-50">{busy ? <><Spinner /> Sending…</> : counter ? 'Send counter-offer' : kind === 'listing' ? 'Post to the board' : 'Send offer'}</button>
           <span className="text-xs text-gray-500">Lasts {expiryHours}h. You can cancel any time to get your cards back.</span>
         </div>
         {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
@@ -284,7 +284,7 @@ function Side({
   const [spares, setSpares] = useState(false);
   const shown = cards.filter(c => (!q.trim() || `${c.name} ${c.number}`.toLowerCase().includes(q.trim().toLowerCase())) && (!spares || !spareOf || spareOf(c)));
   return (
-    <section className="card tcg-panel rounded-2xl p-4 space-y-3 min-w-0">
+    <section className="card rounded-2xl p-4 space-y-3 min-w-0">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="font-display text-lg font-bold text-white">{title}</h2>
         <span className="text-xs text-gray-500">≈ {points.toLocaleString()} pts · {items.length}/{maxStacks} stacks</span>

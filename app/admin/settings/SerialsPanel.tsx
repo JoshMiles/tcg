@@ -24,7 +24,7 @@ export async function SerialsPanel() {
                     title={`Number the prints in ${s.name}?`}
                     confirmLabel="Number them"
                     message={<>Every print that exists now is given an edition number, in the order the collection stores them, marked <strong className="text-white">estimated</strong> because the true pull order wasn&apos;t recorded. Nothing in any collection changes. Do this once, ideally when no packs are being opened.</>}
-                    className="tcg-btn px-4 py-2 text-sm rounded-xl"
+                    className="btn btn-primary px-4 py-2 text-sm rounded-xl"
                   >
                     Number existing prints
                   </ConfirmButton>

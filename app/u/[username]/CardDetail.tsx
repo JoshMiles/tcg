@@ -64,7 +64,7 @@ export function CardDetail({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={label}>
       <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-xs" onClick={onClose} />
 
-      <div className="card tcg-panel relative w-full max-w-3xl max-h-full overflow-y-auto rounded-2xl shadow-glow">
+      <div className="card relative w-full max-w-3xl max-h-full overflow-y-auto rounded-2xl shadow-glow">
         <button ref={closeBtn} onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-gray-900/80 text-gray-300 hover:text-white text-xl leading-none">×</button>
 
         <div className="p-5 sm:p-6 space-y-5">

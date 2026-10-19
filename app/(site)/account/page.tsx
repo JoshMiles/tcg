@@ -138,7 +138,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         {header}
         <div className="flex flex-wrap gap-2">
           {offers > 0 && <Link href="/trade" className="inline-flex items-center whitespace-nowrap gap-1.5 rounded-xl bg-purple-500/15 border border-purple-400/40 px-4 py-2 text-sm font-bold text-purple-200 hover:bg-purple-500/25"><Icon name="inbox" />{offers} offer{offers === 1 ? '' : 's'}</Link>}
-          <Link href={profileHref(session.username)} className="tcg-btn whitespace-nowrap px-4 py-2 text-sm rounded-xl"><Icon name="user" className="mr-1.5" />My profile</Link>
+          <Link href={profileHref(session.username)} className="btn btn-primary whitespace-nowrap px-4 py-2 text-sm rounded-xl"><Icon name="user" className="mr-1.5" />My profile</Link>
           <Link href={`/leaderboard/${season.id}`} className="whitespace-nowrap px-4 py-2 text-sm rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold"><Icon name="trophy" className="mr-1.5" />Leaderboard</Link>
         </div>
       </div>

@@ -1182,3 +1182,7 @@ Public trade panels (`TradeCard` and each side of the composer) use daisyUI `car
 ### 24.3 Account and settings (#275)
 
 Settings sections, the feedback form and list, and notification day lists use daisyUI `card` and keep `.tcg-panel`. Settings switches, push kinds and email kinds are `toggle`. Bio, feedback, the delete confirmation, searches and the accent hex field use `input` and `textarea`; collection view, watch version and pronouns use `select` and `fieldset`. `/account` stays on cheese `.rind`. Filter chips, looking-for chips, accent swatches, the colour box, the sticky save bar and the red delete section stay. Saving, export and deletion are unchanged. The Twitch panel is untouched. 24.4 cleanup is what remains of item 24.
+
+### 24.4 Clean-up (Done)
+
+Dropped `.tcg-btn` and `.tcg-panel`. Primary page buttons are `btn btn-primary` with a radius utility (`rounded-xl`, `rounded-lg` or `rounded-full`), and the 3D yellow press stays on that combination. A dialog confirm stays a plain `btn btn-primary`. Panels are `card`; the navy surface, blue rim and card shadow live on `card`. House notes updated in `.design-sync/conventions.md`, the Tailwind line in `CLAUDE.md` and `GROK.md`, `docs/admin/ux-conventions.md` and `docs/public-site.md`. The overlay, the Twitch panel, card effects and `Icon` were not changed. Nothing in a frozen area used the two classes, so both are gone.

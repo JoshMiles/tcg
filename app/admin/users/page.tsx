@@ -124,7 +124,7 @@ export default async function UsersPage() {
         </div>
       )}
 
-      <div className="card tcg-panel rounded-2xl overflow-hidden">
+      <div className="card rounded-2xl overflow-hidden">
         {rows.length === 0 ? (
           <EmptyState icon="users" title="No collectors yet">Viewers appear here when they pull cards on stream.</EmptyState>
         ) : (

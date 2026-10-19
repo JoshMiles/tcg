@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="tcg-panel rounded-3xl w-full max-w-sm overflow-hidden shadow-glow">
+      <div className="card rounded-3xl w-full max-w-sm overflow-hidden shadow-glow">
         <div className="holo-strip" />
         <div className="p-8 space-y-5">
           <div className="flex flex-col items-center gap-2">

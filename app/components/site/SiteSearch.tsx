@@ -106,7 +106,7 @@ export function SiteSearch() {
   return createPortal(
     <div className="fixed inset-0 z-80" role="dialog" aria-modal="true" aria-label="Search">
       <div className="absolute inset-0 bg-gray-950/70 backdrop-blur-xs" onClick={close} />
-      <div className="relative mx-auto mt-[10vh] w-[calc(100%-2rem)] max-w-xl tcg-panel rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
+      <div className="relative mx-auto mt-[10vh] w-[calc(100%-2rem)] max-w-xl card rounded-2xl shadow-2xl shadow-black/60 overflow-hidden">
         <div className="flex items-center gap-3 px-4 border-b border-gray-800">
           <Icon name="search" className="text-gray-500 shrink-0" />
           <input

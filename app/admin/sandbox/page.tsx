@@ -55,7 +55,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
           <>
             <p className="text-sm text-purple-200">You are in the sandbox <strong>{active.name}</strong>. Everything you do in the admin and on the website (in this browser) uses its data.</p>
             <div className="flex items-center gap-2">
-              <Link href={`/admin/sandbox/${active.id}`} className="tcg-btn px-4 py-2 text-sm rounded-xl">Open tools →</Link>
+              <Link href={`/admin/sandbox/${active.id}`} className="btn btn-primary px-4 py-2 text-sm rounded-xl">Open tools →</Link>
               <form action={exitSandboxAction}><PendingButton className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Exit to production</PendingButton></form>
             </div>
           </>
@@ -73,12 +73,12 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
         {/* Existing */}
         <section className="space-y-3">
           <h2 className="font-semibold text-white">Your sandboxes <span className="text-gray-600 font-normal">({sandboxes.length})</span></h2>
-          {sandboxes.length === 0 && <p className="card tcg-panel rounded-xl p-6 text-sm text-gray-500 text-center">None yet. Create one to start testing.</p>}
+          {sandboxes.length === 0 && <p className="card rounded-xl p-6 text-sm text-gray-500 text-center">None yet. Create one to start testing.</p>}
           <ul className="space-y-3">
             {details.map(({ s, stats, keys }) => {
               const left = s.expiresAt ? s.expiresAt - now : null;
               return (
-                <li key={s.id} className={`card tcg-panel rounded-2xl p-4 space-y-3 ${s.id === activeId ? 'ring-1 ring-purple-400/40' : ''}`}>
+                <li key={s.id} className={`card rounded-2xl p-4 space-y-3 ${s.id === activeId ? 'ring-1 ring-purple-400/40' : ''}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-semibold text-white flex flex-wrap items-center gap-2">
@@ -90,7 +90,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
                     </div>
                     <div className="flex items-center gap-2">
                       <Link href={`/admin/sandbox/${s.id}`} className="px-3.5 py-2 text-sm font-semibold rounded-xl border border-gray-700 text-gray-200 hover:border-gray-500">Tools</Link>
-                      {s.id !== activeId && <form action={enterSandboxAction.bind(null, s.id)}><PendingButton pendingLabel="Entering…" className="tcg-btn px-3.5 py-2 text-sm rounded-xl">Enter</PendingButton></form>}
+                      {s.id !== activeId && <form action={enterSandboxAction.bind(null, s.id)}><PendingButton pendingLabel="Entering…" className="btn btn-primary px-3.5 py-2 text-sm rounded-xl">Enter</PendingButton></form>}
                     </div>
                   </div>
                   <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-xs">
@@ -107,7 +107,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
         </section>
 
         {/* Create */}
-        <form action={createSandboxAction} className="card tcg-panel rounded-2xl p-5 space-y-4 xl:sticky xl:top-4">
+        <form action={createSandboxAction} className="card rounded-2xl p-5 space-y-4 xl:sticky xl:top-4">
           <h2 className="font-semibold text-white">New sandbox</h2>
           <label className="block space-y-1 text-sm text-gray-300">
             Name
@@ -131,12 +131,12 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
             </select>
           </label>
           <p className="text-xs text-gray-600">Copying reads production but only ever writes into the new sandbox. Discord and webhook settings are never copied.</p>
-          <PendingButton pendingLabel="Creating…" className="tcg-btn px-5 py-2.5 text-sm rounded-xl w-full">Create and enter</PendingButton>
+          <PendingButton pendingLabel="Creating…" className="btn btn-primary px-5 py-2.5 text-sm rounded-xl w-full">Create and enter</PendingButton>
         </form>
       </div>
 
       {/* How it keeps production safe */}
-      <details className="card tcg-panel rounded-2xl p-5 text-sm text-gray-400 leading-relaxed">
+      <details className="card rounded-2xl p-5 text-sm text-gray-400 leading-relaxed">
         <summary className="cursor-pointer text-gray-200 font-semibold">How a sandbox keeps production safe</summary>
         <ul className="mt-3 space-y-1.5 list-disc pl-5">
           <li>Its data lives in a separate namespace of the same database: every read and write is prefixed with the sandbox id, so it cannot see or change production records.</li>

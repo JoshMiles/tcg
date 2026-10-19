@@ -2,6 +2,8 @@
 
 > Index. Read only the topic file that matches what you are changing.
 
+House styling is Tailwind 4 with daisyUI 5 and one theme, `cheesy` (dark navy, yellow primary, `color-scheme: dark`). Shared pieces are the daisyUI primitives: `btn`, `card`, `input`, `select`, `textarea`, `toggle`, `fieldset`, `table`, `badge` and `modal`. Use those instead of one-off surface utilities. The cheese sections (`.rind`, `.cheese-hero`) stay hand-written. Theme detail is in [public-site/basics.md](public-site/basics.md).
+
 | Doc | Read it when you touch |
 |-----|------------------------|
 | [public-site/basics.md](public-site/basics.md) | branding, theme, install, the FAQ, the changelog page, legal pages, the top bar and search, SEO, share images, error pages, the leaderboard cache |

@@ -89,7 +89,7 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
             ))}
           </nav>
 
-          <ul className="tcg-panel rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
+          <ul className="card rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
             {copies.map(r => {
               const last = r.ev[r.ev.length - 1];
               const ended = last?.type === 'upgraded' ? 'spent in an upgrade' : last?.type === 'removed' ? 'removed from the game' : 'no longer exists';

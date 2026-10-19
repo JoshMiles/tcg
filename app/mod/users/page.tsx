@@ -37,7 +37,7 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
         <select name="show" defaultValue={show ?? ''} aria-label="Show" className="select">
           <option value="">Everyone</option><option value="restricted">Restricted only</option>
         </select>
-        <button type="submit" className="tcg-btn px-4 py-2 text-sm rounded-xl"><Icon name="search" className="mr-1.5" />Search</button>
+        <button type="submit" className="btn btn-primary px-4 py-2 text-sm rounded-xl"><Icon name="search" className="mr-1.5" />Search</button>
       </form>
 
       {shown.length === 0 ? (

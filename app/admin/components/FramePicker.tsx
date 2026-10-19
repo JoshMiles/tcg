@@ -63,7 +63,7 @@ export function FramePicker({ artUrl, value, onChange, label = 'Choose still fra
                     <label className="block text-gray-400">Frame {frame + 1} of {frames}
                       <input type="range" min={0} max={frames - 1} step={1} value={frame} onChange={e => setFrame(Number(e.target.value))} aria-label="Frame" className="w-full accent-yellow-400" />
                     </label>
-                    <button type="button" onClick={use} disabled={busy} className="px-3 py-1.5 tcg-btn rounded-lg disabled:opacity-50">{busy ? 'Saving…' : 'Use this frame'}</button>
+                    <button type="button" onClick={use} disabled={busy} className="px-3 py-1.5 btn btn-primary rounded-lg disabled:opacity-50">{busy ? 'Saving…' : 'Use this frame'}</button>
                   </div>
                 </div>
                 <div>

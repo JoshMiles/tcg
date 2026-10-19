@@ -53,7 +53,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   const tab = pickProfileTab(tabParam, isOwner);
   if (!isOwner && (await getUserSettings(lower).catch(() => null))?.privateProfile) {
     return (
-      <SiteMessage icon="lock" title="This profile is private" actions={<Link href="/collection" className="tcg-btn px-4 py-2 text-sm rounded-xl">Find a collector</Link>}>
+      <SiteMessage icon="lock" title="This profile is private" actions={<Link href="/collection" className="btn btn-primary px-4 py-2 text-sm rounded-xl">Find a collector</Link>}>
         This collector keeps their profile to themselves, so there is nothing to show here. Their cards still appear on stream when they are shown.
       </SiteMessage>
     );
@@ -67,7 +67,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   // Someone we have never seen (no profile, nothing collected): say so instead of showing an empty grid under a made-up name.
   if (!b.profile && b.owned.length === 0) {
     return (
-      <SiteMessage icon="search" title={`We haven't seen ${lower} yet`} actions={<Link href="/collection" className="tcg-btn px-4 py-2 text-sm rounded-xl">Find a collector</Link>}>
+      <SiteMessage icon="search" title={`We haven't seen ${lower} yet`} actions={<Link href="/collection" className="btn btn-primary px-4 py-2 text-sm rounded-xl">Find a collector</Link>}>
         There is no collection under that name this season. Check the spelling, or watch the stream and pull some cards.
       </SiteMessage>
     );

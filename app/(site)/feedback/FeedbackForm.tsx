@@ -28,17 +28,17 @@ export function FeedbackForm({ left }: { left: number }) {
 
   if (sent) {
     return (
-      <div className="card tcg-panel items-center rounded-2xl p-6 space-y-3 text-center" role="status">
+      <div className="card items-center rounded-2xl p-6 space-y-3 text-center" role="status">
         <Icon name="check" className="w-8 h-8 text-green-400 mx-auto" />
         <p className="font-display text-xl font-bold text-white">Thank you, that is sent</p>
         <p className="text-sm text-gray-400">The team reads everything. If we answer, you will get a notice in the bell.</p>
-        <button type="button" onClick={() => setSent(false)} className="tcg-btn px-4 py-2 text-sm rounded-xl">Send another</button>
+        <button type="button" onClick={() => setSent(false)} className="btn btn-primary px-4 py-2 text-sm rounded-xl">Send another</button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={send} className="card tcg-panel rounded-2xl p-5 space-y-4">
+    <form onSubmit={send} className="card rounded-2xl p-5 space-y-4">
       <fieldset className="fieldset">
         <legend className="fieldset-legend"><label htmlFor="feedback-title">Title</label></legend>
         <input id="feedback-title" value={title} onChange={e => setTitle(e.target.value)} maxLength={FEEDBACK_LIMITS.title} required className="input w-full" placeholder="A short name for your idea" />
@@ -49,7 +49,7 @@ export function FeedbackForm({ left }: { left: number }) {
       </fieldset>
       {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={busy} className="tcg-btn px-5 py-2 text-sm rounded-xl disabled:opacity-60">{busy ? 'Sending…' : 'Send'}</button>
+        <button type="submit" disabled={busy} className="btn btn-primary px-5 py-2 text-sm rounded-xl disabled:opacity-60">{busy ? 'Sending…' : 'Send'}</button>
         <span className="text-xs text-gray-500">{left} of {FEEDBACK_LIMITS.perDay} sends left today</span>
       </div>
     </form>

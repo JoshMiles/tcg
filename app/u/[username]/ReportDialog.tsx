@@ -38,13 +38,13 @@ export function ReportDialog({ target, name, onClose }: { target: string; name: 
 
   return (
     <div role="dialog" aria-modal="true" aria-label={`Report ${name}`} className="fixed inset-0 z-90 grid place-items-center overflow-y-auto p-4 bg-black/60 backdrop-blur-xs" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="card tcg-panel w-full max-w-md rounded-2xl p-5">
+      <div className="card w-full max-w-md rounded-2xl p-5">
         {sent ? (
           <div className="space-y-3 text-center" role="status">
             <Icon name="check" className="w-8 h-8 text-green-400 mx-auto" />
             <p className="font-display text-xl font-bold text-white">Thanks, staff will look at it</p>
             <p className="text-sm text-gray-400">The person you reported is not told it was you. You will get a notice when staff have closed it.</p>
-            <button type="button" onClick={onClose} className="tcg-btn px-4 py-2 text-sm rounded-xl">Close</button>
+            <button type="button" onClick={onClose} className="btn btn-primary px-4 py-2 text-sm rounded-xl">Close</button>
           </div>
         ) : (
           <form onSubmit={send} className="space-y-4">
@@ -70,7 +70,7 @@ export function ReportDialog({ target, name, onClose }: { target: string; name: 
             </fieldset>
             {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
             <div className="flex items-center gap-3">
-              <button type="submit" disabled={busy} className="tcg-btn px-4 py-2 text-sm rounded-xl disabled:opacity-60">{busy ? 'Sending…' : 'Send report'}</button>
+              <button type="submit" disabled={busy} className="btn btn-primary px-4 py-2 text-sm rounded-xl disabled:opacity-60">{busy ? 'Sending…' : 'Send report'}</button>
               <button type="button" onClick={onClose} className="text-sm text-gray-400 hover:text-white">Cancel</button>
             </div>
           </form>

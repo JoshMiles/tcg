@@ -84,7 +84,7 @@ export function OverlayStatus({ variant = 'full' }: { variant?: 'compact' | 'ful
   return (
     <div
       title={title}
-      className="inline-flex flex-wrap items-center gap-2 card tcg-panel rounded-xl px-3 py-1.5 text-xs font-bold text-gray-200"
+      className="inline-flex flex-wrap items-center gap-2 card rounded-xl px-3 py-1.5 text-xs font-bold text-gray-200"
     >
       <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
       <span>{label}</span>

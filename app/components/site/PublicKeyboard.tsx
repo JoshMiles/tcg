@@ -26,7 +26,7 @@ export function PublicKeyboard({ username }: { username?: string }) {
   if (!help) return null;
   return (
     <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 p-4" onClick={() => setHelp(false)}>
-      <div role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" onClick={e => e.stopPropagation()} className="tcg-panel rounded-2xl p-5 w-full max-w-sm">
+      <div role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" onClick={e => e.stopPropagation()} className="card rounded-2xl p-5 w-full max-w-sm">
         <h2 className="font-display text-xl font-bold text-white mb-3">Keyboard shortcuts</h2>
         <ul className="space-y-1.5 text-sm">
           {PUBLIC_GO_KEYS.filter(k => username || !k.needsLogin).map(k => (
