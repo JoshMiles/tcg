@@ -2,7 +2,9 @@
 // first. Split out so a script can test the revision check, the held-number rules and the audit entry against the mock KV.
 import { recordAudit } from './audit';
 import { heldCardNumbers } from './card-held';
+import { validatePack, type Issue } from './draft-validation';
 import { getPack, getPackCards, getPackRev, savePack, savePackCards } from './kv';
+import { cleanPackInput, defaultPackInput, type PackInput } from './pack-clean';
 import { applyChanges, reviewLines, workOf, type ChangeSet, type Work } from './pack-editor-core';
 import type { Pack } from './types';
 
@@ -51,3 +53,24 @@ export async function savePackChangesCore(packId: string, rev: number, changes: 
   }
   return { ok: true, state: (await loadWorkspaceState(packId))!, assigned: applied.assigned, changed: lines.length };
 }
+
+/** Creates a draft pack with default fields (active: true by default) and returns its id. */
+export async function createDraftPackCore(input: Partial<PackInput> | string): Promise<{ id: string }> {
+  const base = typeof input === 'string' ? defaultPackInput(input) : { ...defaultPackInput(), ...input };
+  const id = crypto.randomUUID();
+  await savePack({ id, createdAt: Date.now(), status: 'draft', ...cleanPackInput(base) });
+  return { id };
+}
+
+/** Validates and publishes a draft pack (`active` = include in draws straight away). */
+export async function publishPackCore(id: string, active: boolean): Promise<{ ok: true; pack: Pack } | { ok: false; issues: Issue[] }> {
+  const pack = await getPack(id);
+  if (!pack) return { ok: false, issues: [{ step: 'details', message: 'This draft no longer exists.' }] };
+  const cards = await getPackCards(id);
+  const issues = validatePack(pack, cards);
+  if (issues.length > 0) return { ok: false, issues };
+  const published: Pack = { ...pack, status: 'published', active };
+  await savePack(published);
+  return { ok: true, pack: published };
+}
+

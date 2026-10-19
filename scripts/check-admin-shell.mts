@@ -26,7 +26,7 @@ eq(new Set(pal.STATIC_ITEMS.map(i => i.id)).size, pal.STATIC_ITEMS.length, 'pale
 const combos = sc.ALL_SHORTCUTS.map(s => s.keys.join('+'));
 eq(new Set(combos).size, combos.length, 'no two shortcuts share the same keys');
 ok(NAV_GROUPS.every(g => g.items.length > 0), 'no empty nav group');
-ok(pal.STATIC_ITEMS.filter(i => i.action).every(i => ['copy-overlay', 'open-preview', 'exit-sandbox', 'logout'].includes(i.action!)), 'palette actions are known');
+ok(pal.STATIC_ITEMS.filter(i => i.action).every(i => ['new-pack', 'copy-overlay', 'open-preview', 'exit-sandbox', 'logout'].includes(i.action!)), 'palette actions are known');
 
 // ── active item ──
 const dash = NAV_ITEMS.find(i => i.href === '/admin')!, packs = NAV_ITEMS.find(i => i.href === '/admin/packs')!;

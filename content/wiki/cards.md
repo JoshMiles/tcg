@@ -20,7 +20,7 @@ Wrapping a season up and turning another one on is done from the season list. Pu
 
 [Packs](/admin/packs) is the library. A tile shows which seasons use it, whether upgrades are on, and a health badge (no cards, a card with 0 odds, missing art or a name, duplicate numbers, full art with no full-art image, no cover, not in any season). A published pack in no season can never be drawn.
 
-**New pack** still opens the pack wizard (`/admin/packs/new`). The pack page after that is where you edit settings, the card table, odds, and the danger zone (move to drafts, or delete).
+**New pack** asks for a name, creates a draft, and opens the pack workspace (`/admin/packs/<id>`). That workspace is where you edit settings, the card table, odds, the publish checklist on drafts, and the danger zone (move to drafts, or delete).
 
 On a pack you can:
 

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SaveIndicator, Stepper } from '../../components/Stepper';
 import { BrandMark } from '../../components/BrandMark';
+import { NewPackButton } from '../../components/NewPackButton';
 import { useAutosave } from '../../components/use-autosave';
 import { createDraftSeason, saveDraftSeason, publishSeason, discardDraftSeason, type SeasonInput } from '../../draft-actions';
 import { suggestCollectionName, validateSeason, type Issue } from '@/lib/draft-validation';
@@ -203,7 +204,7 @@ export function SeasonFlow({
             {packs.length === 0 ? (
               <div className="text-center py-8 space-y-3">
                 <p className="text-gray-500 text-sm">You don&apos;t have any packs yet.</p>
-                <Link href="/admin/packs/new" target="_blank" className="btn btn-primary inline-block px-4 py-2 text-sm rounded-xl">Create a pack →</Link>
+                <NewPackButton label="Create a pack →" className="btn btn-primary inline-block px-4 py-2 text-sm rounded-xl" />
               </div>
             ) : (
               <ul className="space-y-2">
@@ -246,7 +247,7 @@ export function SeasonFlow({
             )}
             <p className="text-xs text-gray-600">
               Draw weight belongs to the pack (shared by every season using it), change it in the pack&apos;s settings.{' '}
-              <Link href="/admin/packs/new" target="_blank" className="text-yellow-500 hover:text-yellow-400">Create another pack ↗</Link>
+              <NewPackButton label="Create another pack →" className="text-yellow-500 hover:text-yellow-400" />
             </p>
           </>
         )}
