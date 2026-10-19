@@ -1150,3 +1150,11 @@ Original design:
 `@plugin "daisyui" { themes: cheesy --default; }` and a `@plugin "daisyui/theme"` block: `base-100/200/300` = gray-950/900/800, `base-content` = gray-100, `primary` = `#ffcb05` on `#1a1400`, `secondary` = poke-blue, `error` = poke-red, `success`/`warning`/`info` = the green/amber/sky in use, `--radius-field` xl, `--radius-box` 2xl, `color-scheme: dark`. Keep the gray/yellow scales. Sweep again: daisyUI's base layer touches the page background, `<dialog>` and form controls.
 
 Shipped as daisyUI 5 with only the `cheesy` theme. Built-in light and dark themes stay off. Pages still use the hand-written utilities.
+
+### 24.2 Shared primitives (Done, #269)
+
+Original design:
+
+Props unchanged so callers don't move: `.tcg-btn` to `btn btn-primary` (keep the 3D shadow as an override), `ArmedButton`/`ConfirmButton` armed state to `btn-error`, `Spinner` to `loading loading-spinner`, `StatusChip`/`DraftChip`/`StaffBadge`/`SerialChip` to `badge` (SerialChip keeps its tiers), `Dialog` to a `<dialog>`-based `modal` (native focus trap and Esc; check the thin open/close wrappers), `PageTab`/`AdminNav` to `tabs`/`menu`. Re-sync the design system.
+
+Shipped that way. `Dialog` uses `showModal()` so Esc and the focus trap stay the browser's, and a wrapper that ignores `onClose` (a busy import) keeps the dialog open. The design-sync conventions and compiled CSS match the primitives. The remote design project was not uploaded from this environment (the resync script is not in the repo).

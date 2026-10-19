@@ -17,11 +17,13 @@ Cheesy TCG is a trading card game played live on a Twitch stream, with a public 
 
 ## House patterns
 
-- Primary button: `rounded-xl bg-yellow-500 hover:bg-yellow-400 px-3 py-1.5 text-sm font-bold text-gray-950`.
+- Primary button: `tcg-btn` (daisyUI `btn btn-primary` plus the 3D yellow shadow).
 - Quiet button: `px-3 py-2 text-sm font-semibold text-gray-300 rounded-xl hover:bg-gray-800`.
 - Panel: `rounded-2xl border border-gray-800 bg-gray-900/70 p-4`.
-- Destructive or irreversible actions use `ArmedButton` (click once to arm, again to confirm), never a plain button.
-- A pending action shows `Spinner` inside the button.
+- Destructive or irreversible actions use `ArmedButton` (click once to arm, again to confirm; the armed state is `btn btn-error`), never a plain button.
+- A pending action shows `Spinner` (`loading loading-spinner`) inside the button.
+- Chips (`StatusChip`, `DraftChip`, `StaffBadge`, `SerialChip`) are daisyUI `badge`s. Serial tiers stay: plain, gold bonus, gradient first-ever.
+- `Dialog` is a native `<dialog class="modal">`. Admin section links are `tabs tabs-border`. The admin sidebar is a `menu`.
 
 ## Component notes
 

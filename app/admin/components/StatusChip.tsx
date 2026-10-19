@@ -4,24 +4,13 @@ export function StatusChip({ active, activeLabel = 'Active', inactiveLabel = 'In
   inactiveLabel?: string;
 }) {
   return active ? (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-green-300 bg-green-500/10 border border-green-400/30 rounded-full px-2.5 py-0.5">
-      <span className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-sm shadow-green-400/60" />
-      {activeLabel}
-    </span>
+    <span className="badge badge-sm badge-success">{activeLabel}</span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-gray-500 bg-gray-800/60 border border-gray-700/60 rounded-full px-2.5 py-0.5">
-      <span className="w-1.5 h-1.5 rounded-full bg-gray-600" />
-      {inactiveLabel}
-    </span>
+    <span className="badge badge-sm badge-ghost">{inactiveLabel}</span>
   );
 }
 
 /** Marks a pack or season that is saved but not yet published. */
 export function DraftChip() {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-amber-300 bg-amber-500/10 border border-amber-400/30 rounded-full px-2.5 py-0.5">
-      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-      Draft
-    </span>
-  );
+  return <span className="badge badge-sm badge-warning">Draft</span>;
 }

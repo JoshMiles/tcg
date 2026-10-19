@@ -1,6 +1,6 @@
 import { Dialog } from 'cheesy-tcg';
 
-// Dialog is position: fixed; the transform makes the frame its containing block so the card can show it.
+// The dialog is a native modal. The transform keeps a non-modal first paint inside this card.
 export const Open = () => (
   <div className="bg-gray-950" style={{ transform: 'translateZ(0)', height: 360 }}>
     <Dialog open title="Upgrade this print?" onClose={() => {}} size="sm">

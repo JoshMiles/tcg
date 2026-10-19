@@ -86,7 +86,7 @@ export function ConfirmButton({
                   type="button"
                   onClick={confirm}
                   disabled={!armed}
-                  className={`px-4 py-2 text-sm font-bold rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${tone === 'primary' ? 'bg-yellow-500 hover:bg-yellow-400 text-gray-950' : 'bg-red-600 hover:bg-red-500 text-white'}`}
+                  className={`btn ${tone === 'primary' ? 'btn-primary' : 'btn-error'} disabled:opacity-40 disabled:cursor-not-allowed`}
                 >
                   {confirmLabel}
                 </button>

@@ -21,8 +21,8 @@
 | `app/admin/actions/*.ts` | Server actions (mutations) by domain: `seasons`, `packs`, `cards`, `users` (also the dashboard quick actions), `settings` (webhooks, scoring, Discord, overlay, assets); non-exported form parsers and shared types live in `form-helpers.ts`. No data fetching here |
 | `app/admin/layout.tsx` | Admin layout: fills the slots of `AdminShell` (brand, `AdminNav`, overlay status, footer actions) |
 | `app/admin/components/AdminShell.tsx` | Client frame that owns the sidebar state: off-canvas **drawer + top bar below `lg`**, **collapsible icon rail on `lg+`** (remembered in `localStorage` `tcg_admin_sidebar`). Parts that must vanish when collapsed carry the `aside-label` class, centred items `aside-item`, rows that stack into a column on the rail `aside-stack`, cards `aside-card`, and group dividers `aside-rule` (CSS in `globals.css`). Add them to any new sidebar content. The nav is grouped (Overview / Game / Community / System in `AdminNav`); the bottom is a status card (`OverlayStatus` compact), Copy URL / Preview buttons, and an account row with log out + build badge; the collapse handle is a round button on the sidebar's edge |
-| `app/admin/components/AdminNav.tsx` | Client component, uses `usePathname()` for active nav state |
-| `app/admin/components/Dialog.tsx` | Base modal with blur backdrop, ESC-to-close |
+| `app/admin/components/AdminNav.tsx` | Client component, a daisyUI `menu`. Uses `usePathname()` for the active item (`aria-current`) |
+| `app/admin/components/Dialog.tsx` | Native `<dialog class="modal">` (`showModal`, so Esc and the focus trap are the browser's). Backdrop and the close button call `onClose` |
 | `app/admin/packs/new/PackFlow.tsx` | Full-page pack wizard (Details → Look & feel → Upgrades → Timing → Cards → Review). Autosaves a draft; see Drafts & wizards |
 | `app/admin/seasons/new/SeasonFlow.tsx` | Full-page season wizard (Details → Packs → Review); also autosaves a draft |
 | `app/admin/components/CardsEditor.tsx` | Controlled bulk card editor (drag-drop many images → rows with inline name/stars/odds/sound/full-art). Used by the pack wizard and `/admin/packs/[id]/cards` |
