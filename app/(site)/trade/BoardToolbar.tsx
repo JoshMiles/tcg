@@ -46,10 +46,10 @@ export function BoardToolbar({ total, signedIn }: { total: number; signedIn: boo
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-56 max-w-sm">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"><Icon name="search" /></span>
-          <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search a card or collector" aria-label="Search the board" className="w-full bg-gray-950 border border-gray-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500" />
+          <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search a card or collector" aria-label="Search the board" className="input input-sm w-full pl-9" />
         </div>
         <label className="ml-auto flex items-center gap-2 text-xs text-gray-500">Sort
-          <select value={sort} onChange={e => setSort(e.target.value as Sort)} className="bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-sm text-gray-200">
+          <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort the board" className="select select-sm w-fit max-w-full">
             <option value="newest">Newest</option>
             <option value="expiring">Ending soon</option>
             {signedIn && <option value="gain">Best for me (points)</option>}

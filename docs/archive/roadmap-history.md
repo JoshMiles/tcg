@@ -1174,3 +1174,7 @@ Profile and binder panels (`ProfileTabs`, overview widgets, the share tab, the b
 ### 24.3 Public dex and leaderboard (#273)
 
 The card dex filters use daisyUI `input` and `select`. The dex dialog is a `card` (navy surface stays on `.tcg-panel`) and its version table is `table table-sm`. Leaderboard rows are the same `card`, and the collector search is an `input`. The season-stats Every card search and table use `input` and `table` too. Rarity chips, rank-by chips, `.rind` sections, `holo-hover` and `vfx-*` on dex tiles stay. Trading, account and settings are the remaining 24.3 slices.
+
+### 24.3 Public trading (#274)
+
+Public trade panels (`TradeCard` and each side of the composer) use daisyUI `card` and keep `.tcg-panel` for the navy surface. The board search and sort, the composer name, note and card search use `input`, `select` and `fieldset`. Cheese `.rind` sections, filter chips, the lopsided-offer tick, print chips and the second-tap actions stay. Escrow, locks and the trade engine are unchanged. The Twitch panel is untouched. Account and settings are the remaining 24.3 slice.

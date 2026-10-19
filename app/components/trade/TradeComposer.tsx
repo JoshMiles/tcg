@@ -146,7 +146,7 @@ export function TradeComposer({
     }
   }
 
-  const input = 'rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500';
+  const input = 'input input-sm';
   return (
     <div className="space-y-6">
       {/* Who */}
@@ -249,9 +249,10 @@ export function TradeComposer({
             <span>You are giving much more than you get. I understand and want to send it anyway.</span>
           </label>
         )}
-        <label className="block text-xs text-gray-500 space-y-1">Note (optional)
+        <fieldset className="fieldset">
+          <legend className="fieldset-legend">Note (optional)</legend>
           <input value={note} maxLength={140} onChange={e => setNote(e.target.value)} placeholder="e.g. my last Shiny for your Full Art?" className={`${input} w-full`} />
-        </label>
+        </fieldset>
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={send} disabled={!ready || busy} className="tcg-btn inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm disabled:opacity-50">{busy ? <><Spinner /> Sending…</> : counter ? 'Send counter-offer' : kind === 'listing' ? 'Post to the board' : 'Send offer'}</button>
           <span className="text-xs text-gray-500">Lasts {expiryHours}h. You can cancel any time to get your cards back.</span>
@@ -283,7 +284,7 @@ function Side({
   const [spares, setSpares] = useState(false);
   const shown = cards.filter(c => (!q.trim() || `${c.name} ${c.number}`.toLowerCase().includes(q.trim().toLowerCase())) && (!spares || !spareOf || spareOf(c)));
   return (
-    <section className="rounded-2xl border border-gray-800 bg-gray-900/70 p-4 space-y-3 min-w-0">
+    <section className="card tcg-panel rounded-2xl p-4 space-y-3 min-w-0">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="font-display text-lg font-bold text-white">{title}</h2>
         <span className="text-xs text-gray-500">≈ {points.toLocaleString()} pts · {items.length}/{maxStacks} stacks</span>
@@ -318,7 +319,7 @@ function Side({
       ) : <p className="text-sm text-gray-600 italic">Nothing chosen yet.</p>}
 
       <div className="border-t border-gray-800 pt-3 space-y-2">
-        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards…" aria-label={`Search ${title} cards`} className="w-full rounded-lg bg-gray-950 border border-gray-700 px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-hidden focus:border-yellow-500" />
+        <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search cards…" aria-label={`Search ${title} cards`} className="input input-sm w-full" />
         {spareOf && cards.length > 0 && (
           <button type="button" onClick={() => setSpares(x => !x)} aria-pressed={spares} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${spares ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-400 hover:text-white'}`}>Spares only (2+ prints)</button>
         )}
