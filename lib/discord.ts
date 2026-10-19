@@ -10,9 +10,9 @@ import type { Variant } from './types';
 import type { StreamRecap } from './stream-recap';
 import type { WeeklyDigest } from './weekly-digest';
 import { REPORT_REASON_LABELS, discordText, type FeedbackItem } from './feedback-core';
-import { SITE_URL } from './site';
+import { CHANNEL_NAME, CHANNEL_URL, SITE_URL } from './site';
 import { copyHrefFor } from './copy-link';
-import { FEEDBACK_FILTER_KINDS, type FeedbackFilterKind, DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
+import { FEEDBACK_FILTER_KINDS, type FeedbackFilterKind, DEFAULT_CATEGORIES, DEFAULT_DISCORD, MAX_DISCORD_CHANNELS, SHARE_OFF_MESSAGE, type DiscordCategory, type DiscordChannel, type DiscordLogEntry, type DiscordSettings, DISCORD_LOG_CAP } from './discord-config';
 
 export { DISCORD_CATEGORIES, DEFAULT_DISCORD } from './discord-config';
 export type { DiscordCategory, DiscordChannel, DiscordSettings } from './discord-config';
@@ -419,6 +419,77 @@ export async function postToDiscord(url: string, body: DiscordPayload): Promise<
     }
   }
   return { ok: false, status: 429, error: 'Rate limited by Discord' };
+}
+
+/** Share images are small; stay well under Discord's webhook file limit (about 8 MB). */
+export const SHARE_MAX_BYTES = 4 * 1024 * 1024;
+
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+export function isPng(bytes: Uint8Array): boolean {
+  return bytes.byteLength >= PNG_MAGIC.length && PNG_MAGIC.every((b, i) => bytes[i] === b);
+}
+
+/** Multipart webhook post: one line of text plus a PNG. This category only. Same retry as the JSON posts. Never throws. */
+async function postDiscordFile(url: string, png: Uint8Array, content: string): Promise<SendResult> {
+  if (!isValidDiscordWebhookUrl(url)) return { ok: false, status: 0, error: 'That is not a Discord webhook URL.' };
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const body = new FormData();
+    body.append('payload_json', JSON.stringify({ content, username: 'TCG Activity', allowed_mentions: { parse: [] } }));
+    body.append('files[0]', new Blob([png.slice()], { type: 'image/png' }), 'share.png');
+    try {
+      const res = await fetch(url, { method: 'POST', body, signal: AbortSignal.timeout(15000) });
+      if (res.ok) return { ok: true, status: res.status };
+      const text = await res.text().catch(() => '');
+      if (res.status === 429 && attempt === 0) {
+        const retry = Number(JSON.parse(text || '{}').retry_after);
+        if (retry > 0 && retry <= 5) { await new Promise(r => setTimeout(r, retry * 1000)); continue; }
+      }
+      let message = text.slice(0, 200);
+      try { message = JSON.parse(text).message ?? message; } catch { /* not JSON */ }
+      return { ok: false, status: res.status, error: message || `HTTP ${res.status}` };
+    } catch (err) {
+      return { ok: false, status: 0, error: err instanceof Error ? err.message : 'Request failed' };
+    }
+  }
+  return { ok: false, status: 429, error: 'Rate limited by Discord' };
+}
+
+export type SharePostResult = { ok: true } | { ok: false; error: string };
+
+/** True when the master switch is on and some channel will accept a share image. */
+export async function sharesPostingOn(): Promise<boolean> {
+  try {
+    if (await inSandbox()) return false;
+    const settings = await getDiscordSettings();
+    return settings.enabled && settings.channels.some(c => c.enabled && !!c.url && c.categories.shares);
+  } catch { return false; }
+}
+
+/**
+ * Posts one collector's share image to every channel with Shares ticked.
+ * No such channel, a sandbox, or a second post inside a minute: no request leaves.
+ * The result is counted on the channel's delivery log, not the staff audit log.
+ */
+export async function postShareImage(username: string, png: Uint8Array, name?: string): Promise<SharePostResult> {
+  const user = username.trim().toLowerCase();
+  if (!user) return { ok: false, error: 'Log in with Twitch first.' };
+  if (await inSandbox()) return { ok: false, error: 'Share posts are off in a test copy of the site.' };
+  if (!isPng(png)) return { ok: false, error: 'Send a PNG image.' };
+  if (png.byteLength > SHARE_MAX_BYTES) return { ok: false, error: 'That image is too large to post.' };
+  const settings = await getDiscordSettings();
+  const targets = settings.enabled ? settings.channels.filter(c => c.enabled && c.url && c.categories.shares) : [];
+  if (targets.length === 0) return { ok: false, error: SHARE_OFF_MESSAGE };
+  if (!(await kv.set(`discord:share:${user}`, 1, { nx: true, ex: 60 }))) return { ok: false, error: 'Wait a minute before posting another image.' };
+  const content = `${esc(name?.trim() || user)} shared an image on The Cheesy TCG (${SITE_URL}). Watch ${CHANNEL_NAME}: ${CHANNEL_URL}`;
+  const results = await Promise.all(targets.map(async c => {
+    const result = await postDiscordFile(c.url, png, content);
+    await recordDelivery(c, 'shares', result);
+    return result;
+  }));
+  if (results.some(r => r.ok)) return { ok: true };
+  return { ok: false, error: results[0]?.error || 'Discord did not accept the image.' };
 }
 
 // ── Delivery log ──────────────────────────────────────────
