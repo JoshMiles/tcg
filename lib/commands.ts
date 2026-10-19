@@ -23,6 +23,8 @@ import {
   DEFAULT_COMMANDS, ERROR_DEFAULTS, cleanCommands, interpolate, matchCommand, renderReply, tidyReply,
   type ChatCommand, type ErrorKind,
 } from './commands-core';
+import { getBuffDef, useTrainerCard, getUserBuffs, getCommunityBuffs, currentBuffStreamKey } from './buffs';
+import { describeBuffDef, isBuffActiveFor } from './buffs-core';
 
 // Chat commands (ROADMAP 19.2): the configured commands in KV and the code that runs one. The webhook (`/api/webhooks/command`) and the
 // builder's Try it box both call runCommand; Try it passes `dry`, which checks everything but queues no overlay event and spends no cooldown.
@@ -77,9 +79,9 @@ export interface RunOutput {
   vars: Record<string, string>;
 }
 
-type Fail = { fail: true; kind?: ErrorKind; message: string };
+type Fail = { fail: true; kind?: ErrorKind; message: string; vars?: Record<string, string> };
 type Done = { fail?: false; vars: Record<string, string> };
-const fail = (message: string, kind?: ErrorKind): Fail => ({ fail: true, kind, message });
+const fail = (message: string, kind?: ErrorKind, vars?: Record<string, string>): Fail => ({ fail: true, kind, message, vars });
 
 interface Ctx { user: string; args: string; dry: boolean; sandbox: boolean; role?: unknown }
 
@@ -227,6 +229,74 @@ async function doPullsLeft(c: Ctx): Promise<Done | Fail> {
   } };
 }
 
+async function doUseTrainer(c: Ctx): Promise<Done | Fail> {
+  const s = await season();
+  if (!s) return fail(NO_SEASON);
+  const text = c.args.trim();
+  if (!text) return fail('Which trainer card? Try the name or the number.', 'notFound');
+  const num = /^#?(\d{1,6})$/.exec(text);
+  const all = asCards(s.overview.cards);
+  const r = resolveCard({ number: num ? Number(num[1]) : null, name: num ? '' : text, variant: null }, all, new Set(all.map(x => x.number)), () => null);
+  if (!r.ok) return fail(r.reason === 'ambiguous' ? r.message : `I could not find a card called "${text}".`, 'notFound');
+  const n = r.card.number;
+  const card = s.overview.cards.find(x => x.number === n)!;
+
+  if (card.kind !== 'trainer' || !card.buffId) {
+    return fail(ERROR_DEFAULTS.notTrainer, 'notTrainer', { cardName: card.name, args: c.args });
+  }
+
+  const owned = s.collection[c.user] ?? [];
+  const regularCount = owned.filter(e => decodeEntry(e).cardNumber === n && decodeEntry(e).variant === 'regular').length;
+  if (regularCount === 0) {
+    return fail(ERROR_DEFAULTS.notOwned, 'notOwned', { cardName: card.name, args: c.args });
+  }
+
+  const buffDef = await getBuffDef(card.buffId);
+  if (!buffDef) {
+    return fail(ERROR_DEFAULTS.notTrainer, 'notTrainer', { cardName: card.name, args: c.args });
+  }
+
+  const durSummary = describeBuffDef(buffDef);
+
+  if (buffDef.stack === 'reject') {
+    const stream = await currentBuffStreamKey().catch(() => undefined);
+    const evalCtx = { now: Date.now(), streamKey: stream, seasonId: s.season.id, username: c.user };
+    const userBuffs = await getUserBuffs(c.user);
+    const commBuffs = await getCommunityBuffs();
+    const active = userBuffs.some(b => b.buffId === buffDef.id && isBuffActiveFor(b, evalCtx)) ||
+                   commBuffs.some(b => b.buffId === buffDef.id && isBuffActiveFor(b, evalCtx));
+    if (active) return fail(ERROR_DEFAULTS.alreadyActive, 'alreadyActive', { cardName: card.name, buff: buffDef.name, until: durSummary });
+  }
+
+  if (!c.dry) {
+    const res = await useTrainerCard(c.user, n, s.season.id);
+    if (!res.ok) {
+      const err = res.error || 'Failed to use trainer card.';
+      if (err.includes('already active')) return fail(err, 'alreadyActive', { cardName: card.name, buff: buffDef.name, until: durSummary });
+      if (err.includes('favourite')) return fail(err, 'notOwned', { cardName: card.name, buff: buffDef.name });
+      return fail(err, undefined, { cardName: card.name, buff: buffDef.name });
+    }
+  }
+
+  let left = 'unlimited';
+  const m = await getMixItUpSettings();
+  if (m.enabled) {
+    const extra = streamBuffAmount(await getStreamBuff(), await currentStreamKey());
+    const eff = effectiveLimit(roleLimitOf(m, pullRole(c.role, c.user)), await getUserPullLimit(c.user), Date.now(), extra);
+    const used = await pullsUsedThisStream(c.user);
+    if (eff.limit > 0) left = String(Math.max(0, eff.limit - used));
+  }
+
+  return {
+    vars: {
+      cardName: card.name,
+      buff: buffDef.name,
+      until: durSummary,
+      left,
+    },
+  };
+}
+
 const doText = async (c: Ctx): Promise<Done> => ({ vars: { username: c.user, args: c.args } });
 
 /**
@@ -240,10 +310,10 @@ export async function runCommand(input: RunInput, commands?: ChatCommand[]): Pro
   const user = input.username.toLowerCase().replace(/^@/, '').trim();
   const ctx: Ctx = { user, args: input.args, dry: !!input.dry, sandbox: await inSandbox(), role: input.role };
   const base = { username: user, args: input.args };
-  const refuse = async (kind: ErrorKind | undefined, message: string): Promise<RunOutput> => {
-    const text = tidyReply(interpolate((kind && cmd.errors[kind]) || message, base));
+  const refuse = async (kind: ErrorKind | undefined, message: string, extraVars?: Record<string, string>): Promise<RunOutput> => {
+    const text = tidyReply(interpolate((kind && cmd.errors[kind]) || message, { ...base, ...extraVars }));
     if (!ctx.dry) await noteRun(cmd, user, false, `refused: ${kind ?? 'error'}`);
-    return { known: true, ok: false, message: text, vars: {} };
+    return { known: true, ok: false, message: text, vars: extraVars ?? {} };
   };
 
   if (cmd.liveOnly) {
@@ -263,11 +333,12 @@ export async function runCommand(input: RunInput, commands?: ChatCommand[]): Pro
       : cmd.action === 'collection' ? await doCollection(ctx)
       : cmd.action === 'leaderboard' ? await doLeaderboard()
       : cmd.action === 'pulls-left' ? await doPullsLeft(ctx)
+      : cmd.action === 'use-trainer' ? await doUseTrainer(ctx)
       : await doText(ctx);
   } catch {
     r = fail('Something went wrong, try again in a moment.');
   }
-  if (r.fail) return refuse(r.kind, r.message);
+  if (r.fail) return refuse(r.kind, r.message, r.vars);
 
   if (!ctx.dry) {
     if (cmd.cooldownS > 0) await kv.set(cdKey, 1, { ex: cmd.cooldownS }).catch(() => {});
