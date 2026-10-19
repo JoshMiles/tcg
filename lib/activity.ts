@@ -26,7 +26,8 @@ export type ActivityDetail =
   | { type: 'delete' }
   // something asked the overlay to draw / show a collection: an incoming webhook, or an admin quick action
   | { type: 'trigger'; kind: 'pull' | 'collection' | 'card'; source?: 'webhook' | 'admin'; count?: number; cardName?: string }
-  | { type: 'collection_shown' };                      // overlay displayed a viewer's collection
+  | { type: 'collection_shown' }                      // overlay displayed a viewer's collection
+  | { type: 'buff'; cardNumber: number; cardName: string; buffName: string; buffType: string; magnitude: number; duration?: string; copyId?: string; uid?: number };
 
 export type ActivityEvent = ActivityDetail & {
   seq: number;

@@ -17,6 +17,7 @@ export function categoryOf(e: ActivityEvent): Category {
   switch (e.type) {
     case 'pull': return 'pulls';
     case 'upgrade': return 'upgrades';
+    case 'buff': return 'upgrades';
     case 'grant': return e.source === 'webhook' ? 'pulls' : 'grants'; // a webhook reward reads as a pull
     case 'remove': return 'grants';
     case 'trade': return 'trades';
@@ -45,6 +46,7 @@ function plainBase(e: ActivityEvent, cardName: CardNamer): string {
       : `${name(e.cardNumber)}${v(e.variant)} granted to ${e.username} (${e.source})`;
     case 'remove': return `${name(e.cardNumber)}${v(e.variant)} removed from ${e.username}`;
     case 'upgrade': return `${e.username} upgraded ${e.cardName || name(e.cardNumber)} to ${VARIANT_LABELS[e.to]} (${e.cost}x ${VARIANT_LABELS[e.from]})`;
+    case 'buff': return `${e.username} used trainer card ${e.cardName || name(e.cardNumber)} (${e.buffName})`;
     case 'trade': {
       const what = { offered: e.kind === 'listing' ? 'posted a listing' : `offered ${e.partner ?? '?'} a trade`, countered: `countered ${e.partner ?? '?'}'s offer`, accepted: `traded with ${e.partner ?? '?'}`, declined: 'had an offer declined', cancelled: e.by === 'admin' ? 'had an offer cancelled by an admin' : 'cancelled an offer', expired: 'had an offer expire', reversed: `had a trade with ${e.partner ?? '?'} reversed by staff` }[e.action];
       return `${e.username} ${what}: ${e.give.join(', ')} for ${e.get.join(', ')}`;
@@ -85,6 +87,7 @@ export function notableReason(e: ActivityEvent, totalCards: number): string | nu
     if (totalCards > 0 && p.isNew && (p.uniqueOwned ?? 0) >= totalCards) return 'Collection completed';
   }
   if (e.type === 'upgrade' && (e.to === 'shiny' || e.to === 'full')) return `Upgraded to ${VARIANT_LABELS[e.to]}`;
+  if (e.type === 'buff') return 'Trainer card used';
   if (e.type === 'trade' && e.action === 'cancelled' && e.by === 'admin') return 'Trade cancelled by an admin';
   if (e.type === 'reset' && e.scope === 'everyone') return 'Everyone reset';
   return null;

@@ -21,7 +21,7 @@ eq(p.pickProfileTab('trades'), 'trades', 'a known tab');
 eq(p.pickProfileTab('nope'), 'overview', 'an unknown tab falls back');
 eq(p.pickProfileTab(undefined), 'overview', 'no tab falls back');
 eq(new Set(p.PROFILE_TABS.map(t => t.id)).size, p.PROFILE_TABS.length, 'tab ids are unique');
-ok(p.PUBLIC_ACTIVITY_TYPES.every(t => ['pull', 'upgrade', 'trade'].includes(t)) && !(p.PUBLIC_ACTIVITY_TYPES as readonly string[]).includes('grant'), 'the public activity feed never includes admin grants / removals / resets');
+ok(p.PUBLIC_ACTIVITY_TYPES.every(t => ['pull', 'upgrade', 'trade', 'buff'].includes(t)) && !(p.PUBLIC_ACTIVITY_TYPES as readonly string[]).includes('grant'), 'the public activity feed never includes admin grants / removals / resets');
 eq(p.publicActivityHref({ type: 'pull', cardNumber: 4, uid: 1000007 }, 'season2'), '/c/1000007', 'a pull with a print number opens that print');
 eq(p.publicActivityHref({ type: 'upgrade', cardNumber: 4, copyId: '4.2.1' }, 'season2'), '/copy/season2/4.2.1', 'an upgrade with only a print id opens that print');
 eq(p.publicActivityHref({ type: 'pull', cardNumber: 4 }, 'season2'), '/cards?card=4', 'a pull with neither a print number nor a print id opens the card dex');

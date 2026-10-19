@@ -42,7 +42,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
   const variant = 'variant' in e && e.variant ? e.variant : 'regular';
   const hasViewer = !!e.username;
   const printHref = usePrintHref(e, mod);
-  const printNo = e.type === 'pull' || e.type === 'grant' || e.type === 'upgrade' ? e.uid : undefined;
+  const printNo = e.type === 'pull' || e.type === 'grant' || e.type === 'upgrade' || e.type === 'buff' ? e.uid : undefined;
 
   const run = (fn: () => Promise<Outcome>) => startTransition(async () => {
     try { setOutcome(await fn()); } catch (err) { setOutcome({ ok: false, message: err instanceof Error ? err.message : 'That did not work.' }); }
@@ -140,7 +140,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
               </select>
               <button type="button" onClick={gift} disabled={pending} className={`${act} flex-1`}><Icon name="gift" />Gift {packs} pack{packs === '1' ? '' : 's'}</button>
             </div>
-            {cardNumber !== undefined && (e.type === 'pull' || e.type === 'grant' || e.type === 'upgrade' || e.type === 'remove') && (
+            {cardNumber !== undefined && (e.type === 'pull' || e.type === 'grant' || e.type === 'upgrade' || e.type === 'remove' || e.type === 'buff') && (
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" onClick={grantAgain} disabled={pending} className={act}><Icon name="cards" />Grant again</button>
                 <button type="button" onClick={removeCopy} disabled={pending || !e.collectionName} className={`${act} hover:border-red-400/60 hover:text-red-300`}><Icon name="trash" />Remove an edition</button>
