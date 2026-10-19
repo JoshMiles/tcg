@@ -74,6 +74,9 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   ok(DEFAULT_PROPS['variant.golden.holoSpeed'] === 14, 'golden shimmer sweep time 14s');
   ok(DEFAULT_PROPS['variant.golden.holoLoop'] === true, 'golden shimmer loop on');
   ok(DEFAULT_PROPS['variant.golden.glow'] === true && DEFAULT_PROPS['variant.golden.rock'] === true, 'golden glow and rock enabled');
+  ok(DEFAULT_PROPS['variant.golden.sparkles'] === true, 'golden sparkles enabled');
+  ok(DEFAULT_PROPS['variant.golden.sparkleCount'] === 32, 'golden sparkle amount 32');
+  ok(DEFAULT_PROPS['variant.golden.sparkleColor'] === '#ffe14d', 'golden sparkle colour #ffe14d');
   ok(DEFAULT_PROPS['variant.golden.burstColor'] === '#f59e0b', 'golden burst color #f59e0b');
 
   // Verify buildHoloSpecs resolves glow and rock custom properties
@@ -84,10 +87,17 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   ok(specs.golden.style['--rock-amt'] === '2deg' && specs.golden.style['--rock-speed'] === '3.4s', 'golden rock vars in style');
 
   // Pack override resolution
-  const packOverrides = { ...DEFAULT_PROPS, 'variant.golden.rockAmount': 4, 'variant.golden.glowColorA': '#ffffff' };
+  const packOverrides = { ...DEFAULT_PROPS, 'variant.golden.rockAmount': 4, 'variant.golden.glowColorA': '#ffffff', 'variant.reverse.glow': true, 'variant.reverse.glowColorA': '#a855f7' };
   const overridden = buildHoloSpecs(packOverrides, 1, 3);
   ok(overridden.golden.style['--rock-amt'] === '4deg', 'pack override rock amount applied');
   ok(overridden.golden.style['--glow-color-a'] === '#ffffff', 'pack override glow color applied');
+  ok(overridden.reverse.style['--glow-color-a'] === '#a855f7', 'pack override reverse glow enabled');
+
+  // Disabling glow or rock removes the custom property
+  const disabledProps = { ...DEFAULT_PROPS, 'variant.golden.rock': false, 'variant.golden.glow': false };
+  const disabledSpecs = buildHoloSpecs(disabledProps, 1, 3);
+  ok(disabledSpecs.golden.style['--rock-amt'] === undefined, 'disabled rock omits --rock-amt');
+  ok(disabledSpecs.golden.style['--glow-color-a'] === undefined, 'disabled glow omits --glow-color-a');
 }
 
 // ── Pure: overlay text fonts (ROADMAP 28.4) ──
