@@ -175,7 +175,7 @@ console.log('switched-off variant checks passed');
 import { computeUserStats } from '../lib/user-stats';
 {
   const c = { a: [1, 1, 2] };
-  const sidx = buildSerialIndex({ '1.0.1': 'a', '1.0.40': 'a', '2.0.3': 'a' }, new Map([[encodeEntry(1, 'regular'), 40], [encodeEntry(2, 'regular'), 3]]));
+  const sidx = buildSerialIndex({ '1.0.1': 'a', '1.0.41': 'a', '2.0.3': 'a' }, new Map([[encodeEntry(1, 'regular'), 41], [encodeEntry(2, 'regular'), 3]]));
   const sv = csv(packs, c, DEFAULT_SCORING, sidx);
   const seasonCards = cards.map(k => ({ ...k, id: String(k.number), packName: 'p', pack: pack() }));
   const overview = { rows: buildLeaderboard(sv, c), values: sv, cards: seasonCards } as never;

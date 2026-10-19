@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -24,7 +24,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 26.7 | Editable profile showcase, and !showoff uses it | Ready | M |
 | 27.1 | FAQ pass: cards, commands, trading, points, brackets | Ready | M |
 | 27.3 | Achievement list: on/off, rename, edit the text | Ready | M |
-| 27.4 | Print bonus cutoff set to 40 | Ready | S |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
 | 28.1 | Pull limits per role, editable, plus a this-stream buff | Ready | M |
 | 28.2 | Generate a Mix It Up command from the saved settings | Ready | M |
@@ -102,7 +101,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Trading before upgrading; under upgrades, can I trade upgraded cards | 27.1 |
 | Chat commands under Getting started; move !pack there; link from How do I get cards | 27.1 |
 | FAQ Points and leaderboard: how are points worked out | 27.1 (question already exists) |
-| "Edition #1 is worth 3x ... until the 40th edition" | Superseded by the swap: 27.1 says print #1 ... the 40th print. 27.4 sets the cutoff to 40 |
+| "Edition #1 is worth 3x ... until the 40th edition" | Superseded: 27.1 says print #1 ... the 40th print, from the live cutoff. The default cutoff is 40 |
 | Master set achievement: every variant of every card | Already shipped (see above) |
 | Achievement editor? | 27.3 |
 | FAQ: can I see the exact maths for a card | 27.1 (question already exists) |
@@ -121,7 +120,7 @@ Parallel streams, so no two open PRs edit the same files:
 - **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
 - **Share:** 26.6 (`ShareStudio.tsx` and Discord).
 - **Showcase:** 26.7. It does not edit `public/widget.js`.
-- **FAQ:** 27.1 after 25.2 (same words). 27.4 only changes the scoring default (`lib/scoring-core.ts`) and can run beside it. 27.3 is the achievement list and does not touch the FAQ.
+- **FAQ:** 27.1 after 25.2 (same words). 27.3 is the achievement list and does not touch the FAQ.
 - **Fonts:** 28.3 is the card back editor only. 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 25.2, 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 25.2, then 28.4, then 29.1, then 29.4.
 - **Mix It Up:** 28.2 can start now. 28.1 is Ready and edits `lib/pull-limit-core.ts`: do not run it beside 30.2.
 - **Variants:** 29.1 (includes the audit and the dry-run script), then 29.4. There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
@@ -200,7 +199,7 @@ Files: `app/(site)/faq/page.tsx` (the `SECTIONS` jump list and the body order, w
 
 **Upgrades.** Add **Can I trade upgraded cards?** Yes. Any edition of any version can be traded, including an upgraded one (`docs/trading.md`, FAQ trading section). A favourite, or an edition already in an offer, cannot. Link to `#trading`. Keep the existing pointer that you can trade duplicates instead of upgrading them. This item comes after 25.2, so it uses edition and print as 25.2 defines them.
 
-**Points sentence.** The bonus is on the print sequence (25.2). Replace the fade sentence with: "Print #1 is worth {serialBonusMax}× and the bonus decreases until the {serialBonusCutoff}th print of that card is created." Use the live settings. Do not hardcode 40 or 3. When the cutoff is 0, keep today's "switched off" sentence. 27.4 is what changes the stored cutoff to 40, after which this sentence says 40th by itself.
+**Points sentence.** The bonus is on the print sequence (25.2). Replace the fade sentence with: "Print #1 is worth {serialBonusMax}× and the bonus decreases until the {serialBonusCutoff}th print of that card is created." Use the live settings. Do not hardcode 40 or 3. When the cutoff is 0, keep today's "switched off" sentence. The default cutoff is 40. A saved value is left alone, so this sentence says 40th only after that save, or on an install that has never saved scoring.
 
 **Brackets.** The monospace maths block has a space after `round(` and cramped brackets. Tighten so a function call has no space inside the brackets (`round(10 × rarity × version × print bonus)`) and binary operators keep a single space. Scan the FAQ sections for the same ` ( ` gap inside formulas. The commands line `(or !alias)` is fine.
 
@@ -217,15 +216,6 @@ Decided 2026-10-19: a small editor for the built-in list, not a way to invent ne
 - Stored at `achievements:settings`. `evaluateSeason` skips a switched-off kind. Achievements already stored on a user stay (they are never revoked). No icon upload, no per-season overrides, no custom rules ("own 10 shinies") in this item.
 - **Checks:** a small `scripts/check-achievements.mts` case, or the existing one: a switched-off kind is absent from a fresh evaluation, and a stored earned row is left in place. Hand pass of the settings page at 1280px and 390px.
 - **Docs:** `docs/public-site/dex-leaderboard-stats.md` (achievements).
-
-### 27.4 Print bonus cutoff set to 40 (Ready, S)
-
-Decided 2026-10-19. `serialBonusCutoff` defaults to **20** today (`DEFAULT_SCORING` in `lib/scoring-core.ts`). Print #1 (the sequence, after 25.2) is worth `serialBonusMax` (default 3). The bonus is `1 + (max − 1) × (1 − (n − 1) / cutoff)` for n from 1 through the cutoff, then 1 (`serialMultiplier`). Scores are computed live, so the change moves every score on the next page load.
-
-- Set `DEFAULT_SCORING.serialBonusCutoff` to **40**. Update checks that assume the default is 20.
-- A saved `scoring:settings` value is not overwritten by the new default (`getScoringSettings` returns the saved object). This PR does not write production KV. **User step:** Admin → Settings → Scoring, set the cutoff to 40 if the saved value is still 20, and save.
-- The FAQ sentence (27.1) reads the live cutoff, so it says "40th print" only after that save (or on an install that has never saved scoring).
-- 40 is also `EVENT_CAP` in `lib/serials-core.ts` (how many journey events a copy keeps). Do not change that cap in this PR. It is a coincidence, not the same setting.
 
 ### 27.5 An achievement can grant a bonus (Ready after 30.1, M)
 

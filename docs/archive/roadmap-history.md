@@ -1214,3 +1214,7 @@ A pull row names the card, the version and the sequence chip. It opens `/c/<uid>
 ### 26.3 Collection holo sweeps too fast on Mac (Done)
 
 A collection tile or binder pocket with `holo-fx` does not also take `holo-hover`, so the 0.7s wipe no longer fights the shimmer's `::after`. The grid and binder raise a saved sweep faster than 8 seconds up to 8. Overlay, ceremony and the panel keep the saved time. Reduced motion still turns the sweep off.
+
+### 27.4 Print bonus cutoff set to 40 (Done)
+
+`DEFAULT_SCORING.serialBonusCutoff` is 40. A saved `scoring:settings` value is left as stored, so a site that already saved 20 keeps 20 until someone saves 40 in Admin → Settings → Scoring. Scores recompute on the next page load after that save. `EVENT_CAP` (how many journey events a copy keeps) stays 40 and is a different setting.
