@@ -12,6 +12,7 @@ import {
   describeItems, hasPickedPrints, moveOf, withChosenPrints, type Trade, type TradeItem, type TradeSettings, type TradeStatus,
 } from './trade-core';
 import type { Card, Pack } from './types';
+import { parseAuditCopy, refundEvidence } from './trade-ledger-audit';
 
 // Trading engine (server). See lib/trade-core.ts for the model. Storage (all through the namespaced `kv`, so sandboxes work):
 //   trades:open     Trade[]  every open offer (one blob, mutated under the 'trades' lock, like a collection)
@@ -522,6 +523,57 @@ export async function releaseStuckEscrow(id: string): Promise<TradeResult<{ trad
     trade.escrowed = false;
     await persist(open, history);
     return { ok: true, trade, cleared: true };
+  });
+}
+
+/**
+ * True when a closed offer's prints already came back: escrow is empty and a returned event confirms it.
+ * Reads only. The caller takes the trades lock afterwards and checks the escrow hash again before clearing the flag.
+ */
+async function refundAlreadyHome(id: string): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const open = await readOpen();
+  const history = await readHistory();
+  const trade = history.find(t => t.id === id);
+  if (!trade) return fail(404, "That offer isn't in the history.");
+  if (open.some(t => t.id === id)) return fail(400, 'That offer is still open.');
+  if (!trade.escrowed) return { ok: true };
+  const season = await getSeason(trade.seasonId);
+  if (!season) return fail(400, 'That season no longer exists. The flag stays set.');
+  if (!(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered, so the flag was not cleared.');
+  const held = await getOwnerCopies(season.collectionName, escrowOwner(trade.id));
+  if (held.length > 0) return fail(400, 'Escrow still holds prints. Return those instead of only clearing the flag.');
+  const data = await getCollection(season.collectionName);
+  const live = (await Promise.all(Object.keys(data).map(u => getOwnerCopies(season.collectionName, u)))).flat();
+  const retiredRaw = (await kv.hgetall(`copies:${season.collectionName}:ret`).catch(() => null)) as Record<string, unknown> | null;
+  const retired = Object.values(retiredRaw ?? {}).map(parseAuditCopy).filter(c => !!c);
+  if (!refundEvidence(trade, [...live, ...retired])) return fail(400, 'No returned event confirms the prints came back. The flag stays set.');
+  return { ok: true };
+}
+
+/**
+ * Clears the escrow flag on one closed offer whose escrow hash is empty and whose prints have a returned event.
+ * Does not append cards. Refuses when anything is still under `escrow:<id>`, when the season is missing, or when
+ * the season is not numbered (there is then no way to see that the prints already came back). The collection scan
+ * happens before the trades lock, so it does not block other offers; the lock only re-checks that escrow is still empty.
+ */
+export async function clearEscrowFlagIfEmpty(id: string): Promise<TradeResult<{ trade: Trade }>> {
+  const prior = await refundAlreadyHome(id);
+  if (!prior.ok) return prior;
+  return locked(async () => {
+    const open = await readOpen();
+    const history = await readHistory();
+    const trade = history.find(t => t.id === id);
+    if (!trade) return fail(404, "That offer isn't in the history.");
+    if (open.some(t => t.id === id)) return fail(400, 'That offer is still open.');
+    if (!trade.escrowed) return { ok: true, trade };
+    const season = await getSeason(trade.seasonId);
+    if (!season) return fail(400, 'That season no longer exists. The flag stays set.');
+    if (!(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered, so the flag was not cleared.');
+    const held = await getOwnerCopies(season.collectionName, escrowOwner(trade.id));
+    if (held.length > 0) return fail(400, 'Escrow still holds prints. Return those instead of only clearing the flag.');
+    trade.escrowed = false;
+    await persist(open, history);
+    return { ok: true, trade };
   });
 }
 
