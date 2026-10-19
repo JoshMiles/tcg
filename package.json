@@ -36,6 +36,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "daisyui": "^5.7.50",
     "postcss": "^8.4.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
