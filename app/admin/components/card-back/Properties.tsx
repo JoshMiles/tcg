@@ -77,19 +77,19 @@ export function Properties({ style, selection, boxes, cardW, onChange }: {
             <Num label="Width (%)" value={e.w} min={10} max={100} step={1} onChange={v => set({ w: v }, 'w')} />
             <Num label="Rotate" value={e.rotate} min={-45} max={45} step={1} onChange={v => set({ rotate: v }, 'rot')} />
           </>
-        ) : <p className="text-xs text-gray-500">In the stack the element sits in the classic centred column, in list order. Place it freely to move it, rotate it and style its type.</p>}
+        ) : <p className="text-xs text-gray-500">In the stack the element sits in the classic centred column, in list order. Its face stays the classic one until you pick a font. Place it freely to move it, rotate it and set the rest of its type.</p>}
         <Check label="Locked (the canvas can't drag it)" on={e.locked} onChange={v => set({ locked: v })} />
       </Group>
 
       {text && (
         <Group title="Text">
+          <Row label="Font">
+            <select aria-label="Font" className="select select-sm w-full" value={e.font} style={{ fontFamily: BACK_FONTS.find(f => f.id === e.font)?.css }} onChange={ev => set({ font: ev.target.value })}>
+              {BACK_FONTS.map(f => <option key={f.id} value={f.id} style={{ fontFamily: f.css }}>{f.label}</option>)}
+            </select>
+          </Row>
           {free ? (
             <>
-              <Row label="Font">
-                <select aria-label="Font" className="select select-sm w-full" value={e.font} style={{ fontFamily: BACK_FONTS.find(f => f.id === e.font)?.css }} onChange={ev => set({ font: ev.target.value })}>
-                  {BACK_FONTS.map(f => <option key={f.id} value={f.id} style={{ fontFamily: f.css }}>{f.label}</option>)}
-                </select>
-              </Row>
               <Num label="Size (%)" value={e.size} min={2} max={30} step={0.5} onChange={v => set({ size: v }, 'size')} />
               <Row label="Weight"><select aria-label="Weight" className="select select-sm w-full" value={e.weight} onChange={ev => set({ weight: Number(ev.target.value) })}>{WEIGHTS.map(w => <option key={w} value={w}>{w}</option>)}</select></Row>
               <div className="flex flex-wrap gap-3"><Check label="Italic" on={e.italic} onChange={v => set({ italic: v })} /><Check label="Underline" on={e.underline} onChange={v => set({ underline: v })} /><Check label="Uppercase" on={e.uppercase} onChange={v => set({ uppercase: v })} /></div>
