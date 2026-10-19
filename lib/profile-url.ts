@@ -1,4 +1,5 @@
 import type { IconName } from '@/app/components/Icon';
+import { copyHrefFor } from './copy-link';
 
 // Where a viewer's profile lives and what tabs it has (pure, client-safe). The old /collection/<name> address still works: it
 // redirects here, so links in Discord posts, the Twitch panel and old bookmarks keep working.
@@ -33,3 +34,25 @@ export function pickProfileTab(raw: string | undefined, isOwner = false): Profil
 
 /** Event types the public Activity tab may show: pulls, upgrades and completed trades only (never admin actions or declined offers). */
 export const PUBLIC_ACTIVITY_TYPES = ['pull', 'upgrade', 'trade'] as const;
+
+/** The facts a public activity row needs in order to link somewhere. */
+export type ActivityLink = {
+  type: string;
+  cardNumber?: number;
+  uid?: number;
+  copyId?: string;
+  tradeId?: string;
+};
+
+/**
+ * Where a public Activity row opens. A pull or upgrade with a print number goes to `/c/<uid>` (`copyHrefFor`); one that only has a
+ * print id goes to `/copy/<season>/<id>`. With neither, it goes to the card dex. An accepted trade goes to `/trade/<id>` only when
+ * the event recorded one. Older trades, and anything else, stay plain text (null).
+ */
+export function publicActivityHref(e: ActivityLink, seasonId: string): string | null {
+  if (e.type === 'trade') return e.tradeId ? `/trade/${encodeURIComponent(e.tradeId)}` : null;
+  if (e.type !== 'pull' && e.type !== 'upgrade') return null;
+  if (e.uid) return copyHrefFor({ type: e.type, uid: e.uid, cardNumber: e.cardNumber }, seasonId);
+  if (e.copyId && seasonId) return `/copy/${encodeURIComponent(seasonId)}/${e.copyId}`;
+  return e.cardNumber != null ? `/cards?card=${e.cardNumber}` : null;
+}
