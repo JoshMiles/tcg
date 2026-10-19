@@ -1,0 +1,942 @@
+'use client';
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+  type RefObject,
+} from 'react';
+import {
+  PROPS,
+  PROP_BY_KEY,
+  PROP_GROUPS,
+  SECTION_ORDER,
+  cleanValue,
+  exportProps,
+  importProps,
+  type PropDef,
+  type PropValue,
+  type PropValues,
+  type VariantId,
+} from '@/lib/overlay-props';
+import { DEFAULT_LAYOUT, sanitizeLayout, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
+import {
+  VARIANT_LABELS,
+  type Bg,
+  type CardInfo,
+  type Mode,
+  type MomentPick,
+  type PackInfo,
+  type PresetInfo,
+  type SeasonInfo,
+  type SidebarWindow,
+  type Snap,
+  type VersionInfo,
+} from './editor-types';
+
+const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
+const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
+const snapKey = (x: Snap) => JSON.stringify([canon(x.g), Object.keys(x.p).sort().map(k => [k, canon(x.p[k])]), x.l]);
+const sectionRank = (s: string) => {
+  const i = SECTION_ORDER.indexOf(s);
+  return i < 0 ? 99 : i;
+};
+
+export interface OverlayEditorProps {
+  siteUrl: string;
+  overlayKey: string;
+  versions: VersionInfo[];
+  seasons: SeasonInfo[];
+  seasonLooks: Record<string, string>;
+  packCards: Record<string, CardInfo[]>;
+  initialAutoReload: boolean;
+  initialGlobal: PropValues;
+  initialPacks: Record<string, PropValues>;
+  packs: PackInfo[];
+  presets: PresetInfo[];
+  initialLayout: OverlayLayout;
+  initialScope: string;
+  initialCategory?: string;
+  saveAction: (formData: FormData) => void | Promise<void>;
+  savePresetAction: (formData: FormData) => void | Promise<void>;
+  deletePresetAction: (formData: FormData) => void | Promise<void>;
+}
+
+export interface OverlayEditorContextValue {
+  // Config & Props
+  siteUrl: string;
+  overlayKey: string;
+  packs: PackInfo[];
+  presets: PresetInfo[];
+  seasons: SeasonInfo[];
+  packCards: Record<string, CardInfo[]>;
+  initialLayout: OverlayLayout;
+  saveAction: (formData: FormData) => void | Promise<void>;
+  savePresetAction: (formData: FormData) => void | Promise<void>;
+  deletePresetAction: (formData: FormData) => void | Promise<void>;
+
+  // Scopes & Status
+  scope: string;
+  setScope: (s: string) => void;
+  isPack: boolean;
+  isScene: boolean;
+  isOver: boolean;
+  scene: PresetInfo | null;
+  dirty: boolean;
+  payload: string;
+  revert: () => void;
+  notice: string;
+  setNotice: (n: string) => void;
+  refreshing: boolean;
+  startRefresh: (fn: () => Promise<void>) => void;
+  changedLayout: boolean;
+  changedGlobal: boolean;
+  changedPacks: string[];
+  changedScenes: PresetInfo[];
+  diffs: DiffLine[];
+
+  // Layout & Placement
+  layout: OverlayLayout;
+  layoutVals: OverlayLayout;
+  setLayoutVals: (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout)) => void;
+  setPlacement: (patch: Partial<Placement> | ((p: Placement) => Partial<Placement>)) => void;
+  layoutMoved: number;
+  placement: Placement;
+  layoutCat: boolean;
+  dragging: boolean;
+  layoutOf: (k: string) => OverlayLayout;
+
+  // Navigation & Category
+  category: string;
+  setCategory: (c: string) => void;
+  catId: string;
+  version: VariantId;
+  setVersion: (v: VariantId) => void;
+  variantOpen: boolean;
+  setVariantOpen: (o: boolean) => void;
+  mode: Mode;
+  setMode: (m: Mode) => void;
+  moment: MomentPick;
+  setMoment: (m: MomentPick) => void;
+  showOff: boolean;
+  setShowOff: (s: boolean) => void;
+  query: string;
+  setQuery: (q: string) => void;
+  searching: boolean;
+  openMap: Record<string, boolean>;
+  setOpenMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+
+  // View tools & Stage
+  boxRef: RefObject<HTMLDivElement | null>;
+  frameRef: RefObject<HTMLIFrameElement | null>;
+  fit: number;
+  frameW: number;
+  frameH: number;
+  shownLayout: OverlayLayout;
+  ready: boolean;
+  setReady: (r: boolean) => void;
+  setLoadedCount: React.Dispatch<React.SetStateAction<number>>;
+  playing: boolean;
+  play: () => void;
+  showGrid: boolean;
+  setShowGrid: React.Dispatch<React.SetStateAction<boolean>>;
+  showThirds: boolean;
+  setShowThirds: React.Dispatch<React.SetStateAction<boolean>>;
+  showSafe: boolean;
+  setShowSafe: React.Dispatch<React.SetStateAction<boolean>>;
+  snapOn: boolean;
+  setSnapOn: React.Dispatch<React.SetStateAction<boolean>>;
+  zoom: number;
+  setZoom: React.Dispatch<React.SetStateAction<number>>;
+  bg: Bg;
+  setBg: React.Dispatch<React.SetStateAction<Bg>>;
+  bgImage: string | null;
+  setBgImage: React.Dispatch<React.SetStateAction<string | null>>;
+  showSaved: boolean;
+  setShowSaved: React.Dispatch<React.SetStateAction<boolean>>;
+  pickPack: string;
+  setPickPack: (p: string) => void;
+  pickCard: number;
+  setPickCard: (c: number) => void;
+  previewCards: CardInfo[];
+  previewCard: number;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onPointerMove: (e: React.PointerEvent) => void;
+  onPointerUp: () => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+
+  // History & Presets
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  presetName: string;
+  setPresetName: (n: string) => void;
+  importText: string;
+  setImportText: (t: string) => void;
+  importError: string;
+  setImportError: (e: string) => void;
+  download: () => void;
+  copyJson: () => Promise<void>;
+  runImport: (t: string) => void;
+  applyPreset: (p: PresetInfo) => void;
+  versionList: VersionInfo[];
+  setVersionList: React.Dispatch<React.SetStateAction<VersionInfo[]>>;
+  versionDistance: (v: VersionInfo) => number;
+  loadVersion: (v: VersionInfo) => void;
+  looks: Record<string, string>;
+  setLooks: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  note: string;
+  setNote: (n: string) => void;
+  autoReload: boolean;
+  setAutoReload: (a: boolean) => void;
+  copyTargets: string[];
+  setCopyTargets: React.Dispatch<React.SetStateAction<string[]>>;
+  copyFrom: string;
+  setCopyFrom: (s: string) => void;
+  replaceCurrent: (next: PropValues) => void;
+  copyVariant: (from: VariantId) => void;
+  packVals: Record<string, PropValues>;
+  setPackVals: React.Dispatch<React.SetStateAction<Record<string, PropValues>>>;
+  globalVals: PropValues;
+
+  // Properties & Values
+  current: PropValues;
+  valueOf: (key: string) => PropValue;
+  setValue: (key: string, raw: unknown) => void;
+  resetKeys: (keys: string[]) => void;
+  effectiveSparse: PropValues;
+  modifiedCount: (cat: string) => number;
+  defsFor: (cat: string) => PropDef[];
+  groupSections: (defs: PropDef[]) => [string, PropDef[]][];
+  matches: (d: PropDef) => boolean;
+  hiddenInScope: (d: PropDef) => boolean;
+}
+
+const OverlayEditorContext = createContext<OverlayEditorContextValue | null>(null);
+
+export function useOverlayEditor() {
+  const ctx = useContext(OverlayEditorContext);
+  if (!ctx) throw new Error('useOverlayEditor must be used within an OverlayEditorProvider');
+  return ctx;
+}
+
+export function OverlayEditorProvider({
+  children,
+  initialGlobal,
+  initialPacks,
+  packs,
+  presets,
+  initialLayout,
+  initialScope,
+  initialCategory,
+  saveAction,
+  savePresetAction,
+  deletePresetAction,
+  versions,
+  seasons,
+  seasonLooks,
+  packCards,
+  initialAutoReload,
+  siteUrl,
+  overlayKey,
+}: OverlayEditorProps & { children: ReactNode }) {
+  const [globalVals, setGlobalVals] = useState<PropValues>(initialGlobal);
+  const initialPackMap = useMemo<Record<string, PropValues>>(
+    () => ({ ...initialPacks, ...Object.fromEntries(presets.map(x => ['scene:' + x.id, x.props])) }),
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const initialLayoutMap = useMemo<Record<string, OverlayLayout>>(
+    () => ({ global: initialLayout, ...Object.fromEntries(presets.map(x => ['scene:' + x.id, x.layout ?? initialLayout])) }),
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const [layoutMap, setLayoutMap] = useState<Record<string, OverlayLayout>>(initialLayoutMap);
+  const [packVals, setPackVals] = useState<Record<string, PropValues>>(initialPackMap);
+  const [scope, setScope] = useState<string>(
+    initialScope === 'global' || packs.some(p => p.id === initialScope) || presets.some(x => 'scene:' + x.id === initialScope)
+      ? initialScope
+      : 'global',
+  );
+
+  const isScene = scope.startsWith('scene:');
+  const scene = isScene ? presets.find(x => 'scene:' + x.id === scope) ?? null : null;
+  const layoutKey = isScene ? scope : 'global';
+  const layoutVals = layoutMap[layoutKey] ?? layoutMap.global;
+  const setLayoutVals = useCallback(
+    (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout)) =>
+      setLayoutMap(m => ({ ...m, [layoutKey]: typeof u === 'function' ? u(m[layoutKey] ?? m.global) : u })),
+    [layoutKey],
+  );
+  const layout = useMemo(() => sanitizeLayout(layoutVals), [layoutVals]);
+  const initialActiveLayout = initialLayoutMap[layoutKey] ?? initialLayout;
+
+  const [category, setCategory] = useState(
+    initialCategory && (PROP_GROUPS.some(g => g.id === initialCategory) || initialCategory === 'layout')
+      ? initialCategory
+      : 'pack',
+  );
+  const [version, setVersion] = useState<VariantId>('regular');
+  const [moment, setMoment] = useState<MomentPick>('');
+  const [showOff, setShowOff] = useState(false);
+  const [mode, setMode] = useState<Mode>('pack');
+  const [variantOpen, setVariantOpen] = useState(false);
+  const [focusKey, setFocusKey] = useState('');
+  const [query, setQuery] = useState('');
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  const [ready, setReady] = useState(false);
+  const [loadedCount, setLoadedCount] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [presetName, setPresetName] = useState('');
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState('');
+  const [notice, setNotice] = useState('');
+  const boxRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  const [zoom, setZoom] = useState(1);
+  const [showThirds, setShowThirds] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
+  const [showSafe, setShowSafe] = useState(false);
+  const [snapOn, setSnapOn] = useState(true);
+  const [bg, setBg] = useState<Bg>('checker');
+  const [bgImage, setBgImage] = useState<string | null>(null);
+  const [showSaved, setShowSaved] = useState(false);
+  const [pickPack, setPickPack] = useState('');
+  const [pickCard, setPickCard] = useState(0);
+  const [versionList, setVersionList] = useState(versions);
+  const [looks, setLooks] = useState(seasonLooks);
+  const [note, setNote] = useState('');
+  const [autoReload, setAutoReload] = useState(initialAutoReload);
+  const [refreshing, startRefresh] = useTransition();
+  const [copyTargets, setCopyTargets] = useState<string[]>([]);
+  const [copyFrom, setCopyFrom] = useState('');
+
+  const isPack = scope !== 'global' && !isScene;
+  const isOver = scope !== 'global';
+  const current: PropValues = isOver ? packVals[scope] ?? {} : globalVals;
+
+  useEffect(() => {
+    const w = window as SidebarWindow;
+    w.__tcgSidebarForce = true;
+    window.dispatchEvent(new CustomEvent('tcg:sidebar', { detail: true }));
+    return () => {
+      w.__tcgSidebarForce = false;
+      window.dispatchEvent(new CustomEvent('tcg:sidebar', { detail: false }));
+    };
+  }, []);
+
+  const valueOf = useCallback(
+    (key: string): PropValue => {
+      const def = PROP_BY_KEY[key];
+      if (current[key] !== undefined) return current[key];
+      if (isOver && globalVals[key] !== undefined) return globalVals[key];
+      return def.default;
+    },
+    [current, isOver, globalVals],
+  );
+
+  const setValue = (key: string, raw: unknown) => {
+    const def = PROP_BY_KEY[key];
+    const v = cleanValue(def, raw);
+    if (v === undefined) return;
+    if (!isOver) {
+      setGlobalVals(g => {
+        const next = { ...g };
+        if (eq(v, def.default)) delete next[key];
+        else next[key] = v;
+        return next;
+      });
+    } else {
+      setPackVals(p => {
+        const own = { ...(p[scope] ?? {}) };
+        const inherited = globalVals[key] !== undefined ? globalVals[key] : def.default;
+        if (eq(v, inherited)) delete own[key];
+        else own[key] = v;
+        return { ...p, [scope]: own };
+      });
+    }
+  };
+
+  const resetKeys = (keys: string[]) => {
+    const drop = (m: PropValues) => {
+      const n = { ...m };
+      keys.forEach(k => delete n[k]);
+      return n;
+    };
+    if (!isOver) setGlobalVals(drop);
+    else setPackVals(p => ({ ...p, [scope]: drop(p[scope] ?? {}) }));
+  };
+
+  const replaceCurrent = (next: PropValues) => {
+    if (!isOver) setGlobalVals(next);
+    else setPackVals(p => ({ ...p, [scope]: next }));
+  };
+
+  // Undo / redo
+  const stateRef = useRef<Snap>({ g: globalVals, p: packVals, l: layoutMap });
+  stateRef.current = { g: globalVals, p: packVals, l: layoutMap };
+  const hist = useRef<{ list: Snap[]; i: number; timer: ReturnType<typeof setTimeout> | null; skip: boolean }>({
+    list: [{ g: initialGlobal, p: initialPackMap, l: initialLayoutMap }],
+    i: 0,
+    timer: null,
+    skip: false,
+  });
+  const [, bump] = useState(0);
+
+  const commit = useCallback(() => {
+    const h = hist.current;
+    if (h.timer) {
+      clearTimeout(h.timer);
+      h.timer = null;
+    }
+    const cur = stateRef.current;
+    if (snapKey(cur) === snapKey(h.list[h.i])) return;
+    h.list = [...h.list.slice(0, h.i + 1), cur].slice(-60);
+    h.i = h.list.length - 1;
+    bump(n => n + 1);
+  }, []);
+
+  useEffect(() => {
+    const h = hist.current;
+    if (h.skip) {
+      h.skip = false;
+      return;
+    }
+    if (h.timer) clearTimeout(h.timer);
+    h.timer = setTimeout(commit, 500);
+  }, [globalVals, packVals, layoutMap, commit]);
+
+  const restoreSnap = (x: Snap) => {
+    hist.current.skip = true;
+    setGlobalVals(x.g);
+    setPackVals(x.p);
+    setLayoutMap(x.l);
+    bump(n => n + 1);
+  };
+
+  const undo = () => {
+    commit();
+    const h = hist.current;
+    if (h.i > 0) {
+      h.i--;
+      restoreSnap(h.list[h.i]);
+    }
+  };
+
+  const redo = () => {
+    commit();
+    const h = hist.current;
+    if (h.i < h.list.length - 1) {
+      h.i++;
+      restoreSnap(h.list[h.i]);
+    }
+  };
+
+  const undoRef = useRef(undo);
+  undoRef.current = undo;
+  const redoRef = useRef(redo);
+  redoRef.current = redo;
+  const canUndo = hist.current.i > 0 || snapKey(stateRef.current) !== snapKey(hist.current.list[hist.current.i]);
+  const canRedo = hist.current.i < hist.current.list.length - 1;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === 'TEXTAREA' ||
+          (t.tagName === 'INPUT' && ['text', 'search', 'number', 'url', ''].includes((t as HTMLInputElement).type)))
+      )
+        return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undoRef.current();
+      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+        e.preventDefault();
+        redoRef.current();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const changedGlobal = canon(globalVals) !== canon(initialGlobal);
+  const keys = (m: Record<string, unknown>) => Object.keys(m);
+  const changedPacks = keys({ ...initialPackMap, ...packVals }).filter(
+    id => !id.startsWith('scene:') && canon(packVals[id] ?? {}) !== canon(initialPackMap[id] ?? {}),
+  );
+  const layoutOf = useCallback(
+    (k: string) => sanitizeLayout(layoutMap[k] ?? layoutMap.global),
+    [layoutMap],
+  );
+  const changedLayout = JSON.stringify(layoutOf('global')) !== JSON.stringify(initialLayout);
+  const changedScenes = presets.filter(x => {
+    const k = 'scene:' + x.id;
+    return (
+      canon(packVals[k] ?? {}) !== canon(initialPackMap[k] ?? {}) ||
+      JSON.stringify(layoutOf(k)) !== JSON.stringify(sanitizeLayout(initialLayoutMap[k]))
+    );
+  });
+  const dirty = changedGlobal || changedPacks.length > 0 || changedLayout || changedScenes.length > 0;
+  const payload = JSON.stringify({
+    ...(changedLayout ? { layout: layoutOf('global') } : {}),
+    ...(changedGlobal ? { global: globalVals } : {}),
+    packs: Object.fromEntries(changedPacks.map(id => [id, packVals[id] ?? {}])),
+    scenes: Object.fromEntries(
+      changedScenes.map(x => [x.id, { props: packVals['scene:' + x.id] ?? {}, layout: layoutOf('scene:' + x.id) }]),
+    ),
+  });
+
+  const revert = () => {
+    setGlobalVals(initialGlobal);
+    setPackVals(initialPackMap);
+    setLayoutMap(initialLayoutMap);
+  };
+
+  const diffs = useMemo(
+    () => [
+      ...diffLayout(initialLayout, layoutOf('global')),
+      ...diffProps('Everything', initialGlobal, globalVals, k => PROP_BY_KEY[k]?.default),
+      ...changedPacks.flatMap(id =>
+        diffProps(`Pack: ${packs.find(x => x.id === id)?.name ?? id}`, initialPacks[id] ?? {}, packVals[id] ?? {}, () => '(follows global)'),
+      ),
+      ...changedScenes.flatMap(x => [
+        ...diffLayout(sanitizeLayout(initialLayoutMap['scene:' + x.id]), layoutOf('scene:' + x.id)).map(d => ({
+          ...d,
+          scope: `Scene: ${x.name}`,
+        })),
+        ...diffProps(`Scene: ${x.name}`, initialPackMap['scene:' + x.id] ?? {}, packVals['scene:' + x.id] ?? {}, () => '(follows global)'),
+      ]),
+    ],
+    [initialLayout, layoutOf, initialGlobal, globalVals, changedPacks, packs, initialPacks, packVals, changedScenes, initialLayoutMap, initialPackMap],
+  );
+
+  useEffect(() => {
+    if (!dirty) setShowSaved(false);
+  }, [dirty]);
+
+  const shownLayout = showSaved ? initialActiveLayout : layout;
+  const savedEffective: PropValues = isOver ? { ...initialGlobal, ...(initialPackMap[scope] ?? {}) } : initialGlobal;
+  const versionDistance = (v: VersionInfo) =>
+    diffLayout(v.layout, layout).length +
+    diffProps('', v.props, globalVals, k => PROP_BY_KEY[k]?.default).length +
+    [...new Set([...Object.keys(v.packs), ...Object.keys(packVals)])].reduce(
+      (n, id) => n + diffProps('', v.packs[id] ?? {}, packVals[id] ?? {}, () => '(follows global)').length,
+      0,
+    );
+
+  const loadVersion = (v: VersionInfo) => {
+    setGlobalVals(v.props);
+    setPackVals(m => ({ ...Object.fromEntries(Object.entries(m).filter(([k]) => k.startsWith('scene:'))), ...v.packs }));
+    setLayoutMap(m => ({ ...m, global: v.layout }));
+    setNotice(`Loaded the version from ${new Date(v.at).toLocaleString('en-GB', { timeZone: 'UTC' })}. Review, then Save.`);
+  };
+
+  const effectiveSparse: PropValues = useMemo(
+    () => (isOver ? { ...globalVals, ...(packVals[scope] ?? {}) } : globalVals),
+    [isOver, globalVals, packVals, scope],
+  );
+  const shownProps = showSaved ? savedEffective : effectiveSparse;
+
+  const hiddenInScope = useCallback((d: PropDef) => isPack && d.group === 'collection', [isPack]);
+  const defsFor = useCallback(
+    (cat: string): PropDef[] =>
+      PROPS.filter(d => {
+        if (d.group !== cat || hiddenInScope(d)) return false;
+        if (cat === 'variants') return d.variant === version;
+        return true;
+      }),
+    [hiddenInScope, version],
+  );
+  const modifiedCount = useCallback(
+    (cat: string) => PROPS.filter(d => d.group === cat && !hiddenInScope(d) && current[d.key] !== undefined).length,
+    [hiddenInScope, current],
+  );
+
+  const q = query.trim().toLowerCase();
+  const searching = q.length > 0;
+  const matches = useCallback(
+    (d: PropDef) => `${d.label} ${d.help ?? ''} ${d.section ?? ''} ${d.key}`.toLowerCase().includes(q),
+    [q],
+  );
+
+  const groupSections = useCallback(
+    (defs: PropDef[]) => {
+      const m = new Map<string, PropDef[]>();
+      defs.forEach(d => m.set(d.section ?? '', [...(m.get(d.section ?? '') ?? []), d]));
+      return [...m.entries()].sort((a, b) => sectionRank(a[0]) - sectionRank(b[0]));
+    },
+    [],
+  );
+
+  const post = useCallback((message: object) => {
+    frameRef.current?.contentWindow?.postMessage(message, window.location.origin);
+  }, []);
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    setBox({ w: el.clientWidth, h: el.clientHeight });
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const d = frameRef.current?.contentDocument;
+    if (d && d.readyState === 'complete' && d.location.href !== 'about:blank') {
+      setReady(true);
+      setLoadedCount(c => c + 1);
+    }
+  }, []);
+
+  const previewVariant = version === 'regular' ? '' : version;
+  const previewPackId = isPack ? scope : pickPack;
+  const previewCards = packCards[previewPackId || packs[0]?.id || ''] ?? [];
+  const previewCard = previewCards.some(c => c.number === pickCard) ? pickCard : 0;
+
+  useEffect(() => {
+    if (ready) post({ type: 'layout', layout: shownLayout });
+  }, [ready, loadedCount, shownLayout, post]);
+
+  useEffect(() => {
+    if (ready) post({ type: 'variant', variant: previewVariant });
+  }, [ready, loadedCount, previewVariant, post]);
+
+  useEffect(() => {
+    if (ready) post({ type: 'props', props: shownProps, packId: previewPackId, cardNumber: previewCard });
+  }, [ready, loadedCount, shownProps, previewPackId, previewCard, post]);
+
+  useEffect(() => {
+    if (ready) post({ type: 'static', mode, showoff: showOff });
+  }, [ready, loadedCount, mode, showOff, post]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  const fitBase = box.w > 0 && box.h > 0 ? Math.min(box.w / shownLayout.width, box.h / shownLayout.height) : 0.3;
+  const fit = fitBase * zoom;
+  const frameW = shownLayout.width * fit,
+    frameH = shownLayout.height * fit;
+
+  const play = () => {
+    if (!ready || playing) return;
+    setPlaying(true);
+    post(
+      showOff && mode === 'pack'
+        ? { type: 'showoff' }
+        : { type: mode, moment: mode === 'pack' ? moment : undefined },
+    );
+    setTimeout(() => setPlaying(false), mode === 'pack' ? 13000 : 9000);
+  };
+
+  const download = () => {
+    const blob = new Blob([JSON.stringify(exportProps(effectiveSparse), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `cheesy-overlay-${isPack ? packs.find(p => p.id === scope)?.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? 'pack' : 'global'}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const copyJson = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(exportProps(effectiveSparse), null, 2));
+      setNotice('Copied to the clipboard.');
+    } catch {
+      setNotice('Could not copy. Use Download instead.');
+    }
+  };
+
+  const runImport = (text: string) => {
+    try {
+      const values = importProps(text);
+      replaceCurrent(values);
+      setImportError('');
+      setImportText('');
+      setNotice(`Imported ${Object.keys(values).length} setting${Object.keys(values).length === 1 ? '' : 's'}. Review, then Save.`);
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : 'Could not import that.');
+    }
+  };
+
+  const applyPreset = (p: PresetInfo) => {
+    replaceCurrent(isPack ? { ...(packVals[scope] ?? {}), ...p.props } : { ...p.props });
+    setNotice(`Applied "${p.name}". Review, then Save.`);
+  };
+
+  const copyVariant = (from: VariantId) => {
+    const next: PropValues = { ...current };
+    for (const d of PROPS.filter(x => x.variant === version)) {
+      const src = PROP_BY_KEY[d.key.replace(`variant.${version}.`, `variant.${from}.`)];
+      if (!src) continue;
+      const v = valueOf(src.key);
+      if (!isOver && eq(v, d.default)) delete next[d.key];
+      else next[d.key] = v;
+    }
+    replaceCurrent(next);
+    setNotice(`Copied the ${VARIANT_LABELS[from]} look onto ${VARIANT_LABELS[version]}. Review, then Save.`);
+  };
+
+  const placement = layout[mode];
+  const setPlacement = (patch: Partial<Placement> | ((p: Placement) => Partial<Placement>)) =>
+    setLayoutVals(l => ({ ...l, [mode]: { ...l[mode], ...(typeof patch === 'function' ? patch(l[mode]) : patch) } }));
+  const moved = (p: Placement) => p.scale !== 1 || p.offsetX !== 0 || p.offsetY !== 0;
+  const layoutMoved =
+    (moved(layout.pack) ? 1 : 0) +
+    (moved(layout.collection) ? 1 : 0) +
+    (layout.width !== DEFAULT_LAYOUT.width || layout.height !== DEFAULT_LAYOUT.height ? 1 : 0);
+  const layoutCat = category === 'layout' && !isPack;
+  const dragging = layoutCat && !query.trim();
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    drag.current = { x: e.clientX, y: e.clientY, ox: placement.offsetX, oy: placement.offsetY };
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    let nx = Math.round(d.ox + (e.clientX - d.x) / fit);
+    let ny = Math.round(d.oy + (e.clientY - d.y) / fit);
+    if (snapOn && !e.altKey) {
+      const near = Math.max(2, Math.round(8 / fit));
+      nx = Math.abs(nx) <= near ? 0 : Math.round(nx / 10) * 10;
+      ny = Math.abs(ny) <= near ? 0 : Math.round(ny / 10) * 10;
+    }
+    setPlacement({ offsetX: nx, offsetY: ny });
+  };
+
+  const onPointerUp = () => {
+    drag.current = null;
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!dragging) return;
+    const step = e.shiftKey ? 10 : 1;
+    const moves: Record<string, [number, number]> = {
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+    };
+    const m = moves[e.key];
+    if (!m) return;
+    e.preventDefault();
+    setPlacement(p => ({ offsetX: p.offsetX + m[0], offsetY: p.offsetY + m[1] }));
+  };
+
+  const catId = isPack && category === 'collection' ? 'pack' : category;
+
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.source !== frameRef.current?.contentWindow) return;
+      const data = e.data as { type?: string; target?: string } | null;
+      if (data?.type !== 'select' || !data.target) return;
+      const go = (c: string, section?: string) => {
+        setCategory(c);
+        setQuery('');
+        setMode(c === 'collection' ? 'collection' : 'pack');
+        setShowOff(c === 'showoff');
+        if (c === 'variants') setVariantOpen(true);
+        if (section) {
+          const k = `${c}${c === 'variants' ? '.' + version : ''}/${section}`;
+          setOpenMap(m => ({ ...m, [k]: true }));
+          setFocusKey(k);
+        }
+      };
+      switch (data.target) {
+        case 'card':
+          go('variants');
+          break;
+        case 'label':
+          go('variants', 'Label');
+          break;
+        case 'bar':
+          go('pack', 'Name and stars bar');
+          break;
+        case 'got':
+          go('pack', '"got:" line');
+          break;
+        case 'showlabel':
+          go('showoff', 'Label');
+          break;
+        case 'strip':
+          go('pack', 'Cards under the card');
+          break;
+        case 'heading':
+          if (!isPack) go('collection', 'What to show');
+          break;
+        case 'collection':
+          if (!isPack) go('collection', 'Layout');
+          break;
+      }
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [version, isPack]);
+
+  useEffect(() => {
+    if (!focusKey) return;
+    document.querySelector(`[data-section="${CSS.escape(focusKey)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    setFocusKey('');
+  }, [focusKey]);
+
+  const value: OverlayEditorContextValue = {
+    siteUrl,
+    overlayKey,
+    packs,
+    presets,
+    seasons,
+    packCards,
+    initialLayout,
+    saveAction,
+    savePresetAction,
+    deletePresetAction,
+    scope,
+    setScope,
+    isPack,
+    isScene,
+    isOver,
+    scene,
+    dirty,
+    payload,
+    revert,
+    notice,
+    setNotice,
+    refreshing,
+    startRefresh,
+    changedLayout,
+    changedGlobal,
+    changedPacks,
+    changedScenes,
+    diffs,
+    layout,
+    layoutVals,
+    setLayoutVals,
+    setPlacement,
+    layoutMoved,
+    placement,
+    layoutCat,
+    dragging,
+    layoutOf,
+    category,
+    setCategory,
+    catId,
+    version,
+    setVersion,
+    variantOpen,
+    setVariantOpen,
+    mode,
+    setMode,
+    moment,
+    setMoment,
+    showOff,
+    setShowOff,
+    query,
+    setQuery,
+    searching,
+    openMap,
+    setOpenMap,
+    boxRef,
+    frameRef,
+    fit,
+    frameW,
+    frameH,
+    shownLayout,
+    ready,
+    setReady,
+    setLoadedCount,
+    playing,
+    play,
+    showGrid,
+    setShowGrid,
+    showThirds,
+    setShowThirds,
+    showSafe,
+    setShowSafe,
+    snapOn,
+    setSnapOn,
+    zoom,
+    setZoom,
+    bg,
+    setBg,
+    bgImage,
+    setBgImage,
+    showSaved,
+    setShowSaved,
+    pickPack,
+    setPickPack,
+    pickCard,
+    setPickCard,
+    previewCards,
+    previewCard,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onKeyDown,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    presetName,
+    setPresetName,
+    importText,
+    setImportText,
+    importError,
+    setImportError,
+    download,
+    copyJson,
+    runImport,
+    applyPreset,
+    versionList,
+    setVersionList,
+    versionDistance,
+    loadVersion,
+    looks,
+    setLooks,
+    note,
+    setNote,
+    autoReload,
+    setAutoReload,
+    copyTargets,
+    setCopyTargets,
+    copyFrom,
+    setCopyFrom,
+    replaceCurrent,
+    copyVariant,
+    packVals,
+    setPackVals,
+    globalVals,
+    current,
+    valueOf,
+    setValue,
+    resetKeys,
+    effectiveSparse,
+    modifiedCount,
+    defsFor,
+    groupSections,
+    matches,
+    hiddenInScope,
+  };
+
+  return <OverlayEditorContext.Provider value={value}>{children}</OverlayEditorContext.Provider>;
+}

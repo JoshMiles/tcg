@@ -17,7 +17,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 20.2f | One flow for new packs; the pack wizard goes | Ready | M |
-| 23.2 | Overlay Editor: split the rest | Ready | M |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
 | 29.4 | Variant styles, per pack, including Golden | Ready | M |
@@ -38,10 +37,6 @@ Last part of the pack workspace (20.2a to 20.2e are done; the workspace is descr
 - Update `docs/admin/packs-and-seasons.md` ("Drafts & wizards"), `docs/admin/routes.md` (the pack routes), `docs/admin/ux-conventions.md` (widths: the pack workspace is the second full-width workspace after the Overlay Editor) and `CLAUDE.md`'s wizards convention (packs use the workspace; seasons keep the wizard).
 - **Not changed:** card and pack data shapes, KV keys, the public site, the overlay, the Twitch panel.
 - **Checks:** `npm run verify`, `scripts/check-pack-editor.mts` grown for the draft and publish path, and a hand pass against the mock KV at 1280px and 390px. Blob uploads can't be checked locally; say so in the PR.
-
-### 23.2 Overlay Editor: split the rest (Ready, M)
-
-23.1 split the five largest files. Split `OverlayEditor.tsx` using `useOverlayEditor` + `OverlayEditorContext` into `EditorTopBar`, `PreviewStage`, `PreviewToolbar`, and `PropertiesDock`.
 
 ### Next extension version (Blocked until the freeze lifts)
 
