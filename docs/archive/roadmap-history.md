@@ -1198,3 +1198,7 @@ The owner's profile action row has **Edit profile** (opens the inline bio, heade
 ### 26.2 Collection tiles: no name overlay, readable edition pill (Done)
 
 Collection tiles no longer print the card name on hover, and the long tooltip is gone. The accessible name is the card name. The sequence chip on a tile, and the same chip on a binder pocket, is a solid dark plate with yellow text and a yellow border. The card dialog keeps the usual gold `SerialChip`.
+
+### 26.3 Collection holo sweeps too fast on Mac (Done)
+
+A collection tile or binder pocket with `holo-fx` does not also take `holo-hover`, so the 0.7s wipe no longer fights the shimmer's `::after`. The grid and binder raise a saved sweep faster than 8 seconds up to 8. Overlay, ceremony and the panel keep the saved time. Reduced motion still turns the sweep off.

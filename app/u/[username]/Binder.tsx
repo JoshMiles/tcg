@@ -7,7 +7,7 @@ import { SerialChip, tileChipClass } from '@/app/components/SerialChip';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { getRarity } from '@/lib/rarity';
 import { stillFor } from '@/lib/card-art';
-import { holoClass, holoVars } from '@/lib/holo-core';
+import { holoClass, siteHoloVars } from '@/lib/holo-core';
 import { VARIANTS, VARIANT_LABELS, type VariantCounts } from '@/lib/variants';
 import { buildBinderPages, buildCustomPages, buildSpreads, clampSpread, spreadOfPage, type BinderPage, type Spread } from '@/lib/binder';
 import { DEFAULT_BINDER, capacity, coverColour, isLightColour, pageColour, type BinderConfig } from '@/lib/binder-config';
@@ -297,8 +297,9 @@ function Pocket({ card, pin, cfg, onOpen }: { card: GridCard; pin: Variant | nul
   }
   const best: Variant = pin ?? bestOf(card.counts);
   const art = artOf(card, best);
-  const className = `bn-pocket bn-owned ${cfg.holo ? `holo-hover ${holoClass(card.holo[best])}` : ''} ${best !== 'regular' ? `vfx-${best}` : ''}`;
-  const style = { borderColor: rarity?.hex, ...(cfg.holo ? holoVars(card.holo[best]) : {}) } as React.CSSProperties;
+  const fx = cfg.holo ? holoClass(card.holo[best]) : '';
+  const className = `bn-pocket bn-owned ${cfg.holo ? `${fx || 'holo-hover'} ` : ''}${best !== 'regular' ? `vfx-${best}` : ''}`;
+  const style = { borderColor: rarity?.hex, ...(cfg.holo ? siteHoloVars(card.holo[best]) : {}) } as React.CSSProperties;
   const lowest = (card.copies ?? []).filter(c => c.variant === best).sort((a, b) => a.n - b.n)[0];
   const badges = cfg.badges ? (
     <>

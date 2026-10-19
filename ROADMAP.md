@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -20,7 +20,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 25.1 | Home: Card of the week | Ready | S |
 | 25.2 | A copy is an edition; "24 of 28" is a print | Ready | L |
-| 26.3 | Collection holo sweeps too fast on Mac | Ready | S |
 | 26.4 | Profile activity: pulls as well as trades, with a link | Ready | S |
 | 26.5 | Share image: My best 1, Top 3, Top 6, Top 9, Custom | Ready | S |
 | 26.6 | Post a share image straight to Discord | Ready | M |
@@ -97,7 +96,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Edit profile shows twice; remove the one by the name; split Edit profile and settings | Done |
 | Share image: My best 1, top 3, top 6, top 9, custom; unselected goes grey, not yellow | 26.5 |
 | Share image straight to a Discord channel (channel not created yet) | 26.6 |
-| Profile collection: holo moves very fast on the top 3 cards (Mac only) | 26.3 |
+| Profile collection: holo moves very fast on the top 3 cards (Mac only) | Done |
 | Collection cards do not need text on hover or along the bottom | Done |
 | Print/edition pill cannot be seen (see-through gold/yellow) | Done |
 | Profile activity should show card pull history as well as trades, click for details | 26.4 |
@@ -124,7 +123,6 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 Parallel streams, so no two open PRs edit the same files:
 - **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
 - **Profile header:** 26.8 is the admin shell only.
-- **Collection grid:** 26.3 (`CollectionGrid.tsx` and `app/globals.css`).
 - **Activity:** 26.4 (`ProfileTabs.tsx`, `lib/activity.ts`, `lib/trade-notify.ts`).
 - **Share:** 26.5, then 26.6 (both touch `ShareStudio.tsx`; 26.6 also touches Discord).
 - **Showcase:** 26.7. Start it after 26.5 if both would edit the share candidate list; otherwise it can run beside 26.5. It does not edit `public/widget.js`.
@@ -161,16 +159,6 @@ Decided 2026-10-19. Do not keep the old glossary.
 - Surfaces: FAQ, `SerialChip`, `editionLine` in `lib/flip-back.ts` (the function keeps its name; the string changes), profile, the leaderboard "Prints" count (it becomes "Editions"), activity, share images, overlay labels in `public/widget.js`, admin labels, `docs/serials.md`.
 - **Not in this PR:** `public/twitch-panel/*`. The panel keeps saying print for a copy until the freeze lifts. Say that in the PR.
 - **Checks:** `scripts/check-words.mts`, `npm run verify`, and a pass of a copy page, a profile and the FAQ. The panel is not loaded.
-
-### 26.3 Collection holo sweeps too fast on Mac (Ready, S)
-
-After 26.2. There is no special case for the first three tiles. The fast sweep is on tiles that have a holo, which is the stronger versions (what reads as the top cards).
-
-Collection tiles take both `holo-hover` (a 0.7s `::after` wipe in `app/globals.css`) and `holo-fx` (another `::after`, timed by `--holo-time` from the pack's overlay settings, default 10.5s, `lib/holo-core.ts`). One element has one `::after`, so the two rules fight. Safari on Mac is the report.
-
-- A tile that has `holo-fx` does not also take `holo-hover`.
-- On the site grid and binder, the sweep time is at least 8 seconds even if the overlay setting is lower. Overlay, ceremony and panel keep their own time. `prefers-reduced-motion` already disables the sweep.
-- **Checks:** hover a Reverse, a Full Art and a Shiny in the grid. This environment cannot stand in for macOS Safari: say so in the PR, and note the CSS change that removes the 0.7s wipe from holo tiles.
 
 ### 26.4 Profile activity: pulls as well as trades, with a link (Ready, S)
 

@@ -11,7 +11,7 @@ import { DEFAULT_BINDER, type BinderConfig } from '@/lib/binder-config';
 import { getRarity } from '@/lib/rarity';
 import { stillFor } from '@/lib/card-art';
 import { VARIANTS, type VariantCounts } from '@/lib/variants';
-import { holoClass, holoVars, type HoloSpecs } from '@/lib/holo-core';
+import { holoClass, siteHoloVars, type HoloSpecs } from '@/lib/holo-core';
 import type { CardMaths } from '@/lib/card-maths';
 import type { UpgradeCosts, Variant } from '@/lib/types';
 import { DEFAULT_VIEW, SHOW_LABELS, SORT_LABELS, applyView, compareCollections, packProgress, type ShowFilter, type SortKey, type ViewState } from '@/lib/collection-view';
@@ -213,10 +213,12 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
           // The lowest-numbered copy of the version shown on the tile.
           const lowest = (card.copies ?? []).filter(c => c.variant === best).sort((a, b) => a.n - b.n)[0];
           const title = isOwned ? undefined : `#${card.number} ???`;
+          // holo-fx paints its own ::after. Adding holo-hover as well makes the 0.7s wipe fight that sweep.
+          const fx = isOwned ? holoClass(card.holo[best]) : '';
           const tileClass = `relative aspect-2/3 rounded-xl overflow-hidden transition-transform ${
-            isOwned ? 'holo-hover border-2 hover:-translate-y-1 cursor-pointer focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400' : 'border border-dashed border-gray-700 bg-gray-900/40'
-          }${isOwned && best !== 'regular' ? ` vfx-${best}` : ''}${isOwned ? ` ${holoClass(card.holo[best])}` : ''}`;
-          const tileStyle = isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}`, ...holoVars(card.holo[best]) } : undefined;
+            isOwned ? `${fx || 'holo-hover'} border-2 hover:-translate-y-1 cursor-pointer focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400` : 'border border-dashed border-gray-700 bg-gray-900/40'
+          }${isOwned && best !== 'regular' ? ` vfx-${best}` : ''}`;
+          const tileStyle = isOwned ? { borderColor: rarity?.hex, boxShadow: `0 0 14px -4px ${rarity?.hex}`, ...siteHoloVars(card.holo[best]) } : undefined;
           const overlays = (
             <>
               {isOwned && <div className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ backgroundColor: rarity?.hex }} />}

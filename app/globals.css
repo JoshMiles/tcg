@@ -203,7 +203,8 @@
 /* Holographic shimmer = the same look as the OBS overlay, from the same per-variant settings (Overlay Editor -> Variants).
    lib/holo.ts turns those settings into the --holo-* variables set on the art; this only draws them. Geometry mirrors
    the overlay: an 8-band gradient tile 5 card-widths wide and tall, sliding 8 card-widths in one sweep (a loop slides one tile).
-   Detail views and the upgrade animation add .holo-live (sweeps on its own); grid tiles sweep on hover only. */
+   Detail views and the upgrade animation add .holo-live (sweeps on its own); grid tiles sweep on hover only.
+   Do not also add .holo-hover to a .holo-fx tile: both paint ::after, and the 0.7s wipe then wins on some browsers. */
 .holo-fx { position: relative; }
 .holo-fx::after {
   content: '';
