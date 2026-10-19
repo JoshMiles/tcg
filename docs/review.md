@@ -11,7 +11,7 @@
   KV_REST_API_URL=http://localhost:4111
   KV_REST_API_TOKEN=dev
   KV_URL=redis://dev
-  ADMIN_SECRET=testsecret-0123456789
+  ADMIN_COOKIE_SECRET=testsecret-0123456789
   ADMIN_PASSWORD=pw
   SESSION_SECRET=any-random-string-of-48-characters-or-so-0123456789
   TWITCH_CLIENT_ID=x

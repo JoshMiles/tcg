@@ -128,7 +128,7 @@ say('Activity: 300 pulls and two staff events');
 
 say(`
 Review data is ready.
-  Admin ......... emergency password login (ADMIN_PASSWORD in .env.local, 'pw' in the documented setup)
+  Admin ......... emergency password login (ADMIN_PASSWORD and ADMIN_COOKIE_SECRET in .env.local, 'pw' in the documented setup)
   Admin (Twitch)  fake Twitch user "review_admin"
   Mod ........... fake Twitch user "review_mod"      (curl "http://localhost:4222/__as?login=review_mod")
   Viewer ........ "alice" (full set, bio, VIP), "tester" (new viewer), "trader_a", "completionist", "hoarder" (3,000 copies)

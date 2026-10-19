@@ -86,12 +86,20 @@ ok(await tok.verifyStaffToken(roleless!, 1_000_000_000_000) === null, 'a token w
 // ── the emergency password switch ──
 ok(adminToken.isPasswordLoginEnabled({}) && adminToken.isPasswordLoginEnabled({ ADMIN_PASSWORD_LOGIN: 'on' }), 'password login is on by default');
 ok(['off', 'OFF', 'false', '0', 'no', ' off '].every(v => !adminToken.isPasswordLoginEnabled({ ADMIN_PASSWORD_LOGIN: v })), 'and can be switched off');
-const adminEnv = { ADMIN_SECRET: 'the-admin-secret' };
-const adminCookie = await adminToken.adminCookieValue(adminEnv);
-ok(adminCookie && adminCookie !== adminEnv.ADMIN_SECRET && !adminCookie.includes(adminEnv.ADMIN_SECRET), 'the admin cookie does not hold the secret');
-ok(await adminToken.isValidAdminToken(adminCookie!, adminEnv), 'the admin cookie is accepted');
-ok(!(await adminToken.isValidAdminToken(adminEnv.ADMIN_SECRET, adminEnv)), 'the raw secret is not a valid cookie');
-ok(!(await adminToken.isValidAdminToken(undefined, adminEnv)) && !(await adminToken.isValidAdminToken(adminCookie!, {})), 'no cookie, or no secret configured, fails closed');
+const leaked = 'the-admin-secret';
+const key = 'cookie-signing-key-16';
+const now = 1_700_000_000_000;
+const adminCookie = await adminToken.signAdminCookie(key, 4, now);
+ok(adminCookie && !adminCookie.includes(leaked) && !adminCookie.includes(key), 'the admin cookie holds neither secret');
+ok(await adminToken.isValidAdminToken(adminCookie!, key, 4, now), 'the admin cookie is accepted');
+ok(!(await adminToken.isValidAdminToken(leaked, key, 4, now)), 'the raw secret is not a valid cookie');
+ok(!(await adminToken.isValidAdminToken(await adminToken.signAdminCookie(leaked, 4, now), key, 4, now)), 'a cookie signed with the leaked secret is rejected');
+ok(!(await adminToken.isValidAdminToken('ab'.repeat(32), key, 4, now)), 'the old permanent cookie is rejected');
+ok(!(await adminToken.isValidAdminToken(adminCookie!, key, 4, now + adminToken.ADMIN_COOKIE_TTL_S * 1000 + 1000)), 'an expired cookie is rejected');
+ok(!(await adminToken.isValidAdminToken(adminCookie!, key, 5, now)), 'a cookie from an older generation is rejected');
+ok(!(await adminToken.isValidAdminToken(undefined, key, 4, now)) && !(await adminToken.isValidAdminToken(adminCookie!, undefined, 4, now)) && !(await adminToken.isValidAdminToken(adminCookie!, 'short', 4, now)), 'no cookie, or no proper key, fails closed');
+ok(adminToken.adminCookieKey({ ADMIN_COOKIE_SECRET: key }) === key && adminToken.adminCookieKey({ ADMIN_SECRET: leaked }) === null && adminToken.adminCookieKey({ ADMIN_COOKIE_SECRET: 'short' }) === null, 'ADMIN_SECRET is not the cookie key');
+ok(adminToken.adminGenKey({}) === 'admin:auth-gen:development' && adminToken.adminGenKey({ VERCEL_ENV: 'production' }) === 'admin:auth-gen:production' && adminToken.adminGenKey({ VERCEL_ENV: 'preview' }) === 'sbx:preview:admin:auth-gen', 'the generation key is per environment');
 ok(adminToken.sameString('abc', 'abc') && !adminToken.sameString('abc', 'abd') && !adminToken.sameString('abc', 'abcd'), 'sameString compares whole strings');
 
 // ── the staff list ──

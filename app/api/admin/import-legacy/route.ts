@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAuthenticated } from '@/lib/auth';
 import { getCollection, saveCollection, getUserProfile, saveUserProfile } from '@/lib/kv';
 import { LEGACY_DATA, LEGACY_COLLECTION_NAME as COLLECTION_NAME } from '@/lib/legacy-data';
-import { sameString } from '@/lib/admin-token';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/admin/import-legacy?secret=<ADMIN_SECRET>
-// One-time endpoint to seed Season 1 legacy collection data.
-// Pass ?dry=1 to preview without writing.
-// Pass ?overwrite=1 to replace existing user data (default: skip users that already have cards).
-export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret');
-  if (!secret || !process.env.ADMIN_SECRET || !sameString(secret, process.env.ADMIN_SECRET)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const NO_STORE = { 'Cache-Control': 'no-store' };
+
+// The old import was a GET that took the admin secret in the query string. That value also signed the emergency
+// cookie, so a log line was enough to mint a super-admin session. This is a POST for a signed-in admin only.
+// ?dry=1 previews. ?overwrite=1 replaces viewers who already have cards (default: skip them).
+export function GET() {
+  return NextResponse.json({ error: 'Use POST while signed in as an admin.' }, { status: 405, headers: NO_STORE });
+}
+
+export async function POST(req: NextRequest) {
+  if (!(await isAuthenticated().catch(() => false))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: NO_STORE });
   }
 
   const dry = req.nextUrl.searchParams.get('dry') === '1';
@@ -68,7 +72,7 @@ export async function GET(req: NextRequest) {
       usersSkipped: Object.values(results).filter(r => r.action.startsWith('skipped')).length,
       details: results,
       profiles: profileResults,
-    });
+    }, { headers: NO_STORE });
   }
 
   return NextResponse.json({
@@ -76,5 +80,5 @@ export async function GET(req: NextRequest) {
     dry: true,
     collectionName: COLLECTION_NAME,
     preview: results,
-  });
+  }, { headers: NO_STORE });
 }

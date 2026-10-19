@@ -8,11 +8,17 @@ import { decodeEntry, VARIANT_LABELS } from '@/lib/variants';
 import { isAuthenticated } from '@/lib/auth';
 import { claimDraw } from '@/lib/draw';
 import { getMixItUpSettings, claimPaidPull, chargePaidPull, releaseCount, revokePrint, noticeRevoked } from '@/lib/mixitup';
+import { isOverlayRequest } from '@/lib/overlay-key';
 
+const NO_STORE = { 'Cache-Control': 'no-store' };
+
+// The overlay (OBS, with the overlay key) and a signed-in staff session. Not a public dump: the body is every
+// viewer's pulls, including private profiles, which the on-stream collection needs.
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get('name');
-  if (!name) return NextResponse.json({ error: 'missing name' }, { status: 400 });
-  return NextResponse.json(await getCollection(name));
+  if (!name) return NextResponse.json({ error: 'missing name' }, { status: 400, headers: NO_STORE });
+  if (!(await isOverlayRequest(req))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: NO_STORE });
+  return NextResponse.json(await getCollection(name), { headers: NO_STORE });
 }
 
 export async function POST(req: NextRequest) {
