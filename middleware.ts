@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AUTH_COOKIE, isPasswordLoginEnabled, isValidAdminToken } from '@/lib/admin-token';
+import { readAdminGenEdge } from '@/lib/admin-auth-edge';
+import { AUTH_COOKIE, adminCookieKey, isPasswordLoginEnabled, isValidAdminToken } from '@/lib/admin-token';
 import { homePath, roleCan, type StaffRole } from '@/lib/staff-core';
 import { STAFF_COOKIE, verifyStaffToken } from '@/lib/staff-token';
 import { ACCESS_COOKIE, verifyAccessToken } from '@/lib/access-token';
@@ -7,8 +8,9 @@ import { gateDecision } from '@/lib/access-gate';
 import { readAccessSettings } from '@/lib/access-edge';
 import { isExemptPath } from '@/lib/access-core';
 
-// The first gate for the admin (/admin) and mod (/mod) panels (and, for the extension's endpoints, the CORS answers below). It reads only the signed cookies (no database), so it can send
-// the wrong person away early and keep the panels out of reach of anyone signed out. The real check is done again, against the
+// The first gate for the admin (/admin) and mod (/mod) panels (and, for the extension's endpoints, the CORS answers below). The staff
+// cookie is checked from the signature alone (no database). The emergency password cookie is also checked here, including its
+// server-side expiry and generation (one KV read, and only when that cookie is present). The real check is done again, against the
 // live staff list, by the panel layouts, every server action and every API route (lib/staff-guard.ts).
 //
 //   staff cookie valid (or the emergency admin password cookie)  -> pick the panel by role: admins and the super admin may open
@@ -20,6 +22,16 @@ import { isExemptPath } from '@/lib/access-core';
 // calls to our API are cross-origin. Only the extension's own endpoints answer them, and only for those origins.
 const EXTENSION_ORIGIN = /^https:\/\/([a-z0-9]+\.ext-twitch\.tv|localhost\.rig\.twitch\.tv(:\d+)?)$/;
 const DEV_ORIGIN = /^http:\/\/localhost:\d+$/;
+
+/** The emergency password cookie, checked for signature, expiry and the current generation. No cookie, or a failed read, is a no. */
+async function emergencyAdmin(req: NextRequest): Promise<boolean> {
+  if (!isPasswordLoginEnabled()) return false;
+  const token = req.cookies.get(AUTH_COOKIE)?.value;
+  const key = adminCookieKey();
+  if (!token || !key) return false;
+  const gen = await readAdminGenEdge();
+  return gen !== null && await isValidAdminToken(token, key, gen);
+}
 
 function extensionCors(req: NextRequest): NextResponse {
   const origin = req.headers.get('origin') ?? '';
@@ -33,7 +45,8 @@ function extensionCors(req: NextRequest): NextResponse {
   return res;
 }
 
-// The closed alpha / beta gate for the public site (ROADMAP Track 16). Coarse and database-free apart from one cached read of the mode:
+// The closed alpha / beta gate for the public site (ROADMAP Track 16). Coarse and database-free apart from one cached read of the mode
+// and, only when the emergency password cookie is present, one read of its generation:
 // a signed `tcg_access` cookie says the visitor is a tester or staff. /auth/access issues it; the layouts and signed-in APIs re-check the
 // live lists (lib/access.ts). Mode Open passes everything, and so does a failed read of the mode. The extension's API never meets it.
 async function publicGate(req: NextRequest): Promise<NextResponse> {
@@ -49,8 +62,7 @@ async function publicGate(req: NextRequest): Promise<NextResponse> {
   const access = await verifyAccessToken(req.cookies.get(ACCESS_COOKIE)?.value);
   // A cookie issued after our remembered copy means the copy is out of date: look again before judging it.
   if (access && access.v > settings.v) settings = (await readAccessSettings(true)) ?? settings;
-  const staffCookie = !!(await verifyStaffToken(req.cookies.get(STAFF_COOKIE)?.value))
-    || (isPasswordLoginEnabled() && await isValidAdminToken(req.cookies.get(AUTH_COOKIE)?.value));
+  const staffCookie = !!(await verifyStaffToken(req.cookies.get(STAFF_COOKIE)?.value)) || await emergencyAdmin(req);
   const outcome = gateDecision({ pathname, settings, access, staffCookie, hasSession: !!req.cookies.get('tcg_session')?.value });
   if (outcome === 'pass') return pass();
   if (outcome === 'forbidden') return NextResponse.json({ ok: false, error: 'closed' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
@@ -68,7 +80,7 @@ export async function middleware(req: NextRequest) {
   let role: StaffRole | null = null;
   const staff = await verifyStaffToken(req.cookies.get(STAFF_COOKIE)?.value);
   if (staff) role = staff.role;
-  else if (isPasswordLoginEnabled() && await isValidAdminToken(req.cookies.get(AUTH_COOKIE)?.value)) role = 'super';
+  else if (await emergencyAdmin(req)) role = 'super';
 
   if (!role) {
     const here = pathname + search;

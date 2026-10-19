@@ -8,7 +8,8 @@ export interface EnvSpec { name: string; group: EnvGroup; level: EnvLevel; unloc
 export interface EnvCheck extends EnvSpec { set: boolean; weak: boolean }
 
 export const ENV_SPECS: EnvSpec[] = [
-  { name: 'ADMIN_SECRET', group: 'Admin', level: 'required', unlocks: 'The admin panel itself: with it unset nobody can log in.', minLength: 12 },
+  { name: 'ADMIN_SECRET', group: 'Admin', level: 'optional', unlocks: 'No longer signs the emergency cookie. It used to be that cookie\'s key and the legacy import URL secret. Rotate it if that URL was ever opened, then you can remove it. A leaked value cannot mint a cookie.', minLength: 12 },
+  { name: 'ADMIN_COOKIE_SECRET', group: 'Admin', level: 'recommended', unlocks: 'Signs the emergency password cookie. Not ADMIN_SECRET. Without it the password login cannot start a session. Generate a new one (16+ characters), different from ADMIN_SECRET and SESSION_SECRET. Twitch staff sign-in does not need it.', minLength: 16 },
   { name: 'ADMIN_PASSWORD_LOGIN', group: 'Admin', level: 'optional', unlocks: 'Set to off to switch off the emergency admin password login once staff sign in with Twitch. Left unset, the password still works as a break-glass full-admin login.' },
   { name: 'SUPER_ADMIN_TWITCH_IDS', group: 'Admin', level: 'optional', unlocks: 'Extra super admins, as comma-separated numeric Twitch account IDs. joshmiles is always a super admin (fixed in the code).' },
   { name: 'ADMIN_PASSWORD', group: 'Admin', level: 'required', unlocks: 'The password you type on the admin login page.', minLength: 8 },

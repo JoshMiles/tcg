@@ -5,7 +5,8 @@
 ## Environment variables
 | Variable | Purpose |
 |----------|---------|
-| `ADMIN_SECRET` | Keys the emergency password login's cookie (an HMAC of it, never the secret itself; the password login does not work if unset). Password attempts are limited to 10 wrong ones per address every 15 minutes. Staff sign-in uses `SESSION_SECRET` instead |
+| `ADMIN_SECRET` | No longer signs the emergency cookie. It used to be that cookie's HMAC key and the secret on `GET /api/admin/import-legacy`. Rotate it if that URL was ever requested, then remove it. A leaked value cannot mint a cookie |
+| `ADMIN_COOKIE_SECRET` | Signs the emergency password cookie (16+ characters, not `ADMIN_SECRET` and not `SESSION_SECRET`). Without it the password login cannot start a session. Set it on Production, and a different value on Preview if the password is used there. Twitch staff sign-in does not need it. Password attempts are still limited to 10 wrong ones per address every 15 minutes |
 | `ADMIN_PASSWORD` | Password checked by `/api/auth/login` (the emergency login) |
 | `ADMIN_PASSWORD_LOGIN` | Optional. `off` switches the emergency password login off |
 | `SUPER_ADMIN_TWITCH_IDS` | Optional. Extra super admins (comma-separated numeric Twitch IDs); joshmiles is hard-coded |

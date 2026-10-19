@@ -9,11 +9,11 @@ const PACK = 'pack-wheel', SEASON = 'season2';
 const ADMIN_PAGES = ['/admin', '/admin/activity', '/admin/seasons', '/admin/seasons/new', `/admin/seasons/${SEASON}`, '/admin/packs', '/admin/packs/new', `/admin/packs/${PACK}`,
   `/admin/packs/${PACK}/cards`, `/admin/packs/${PACK}/cards/w1`, '/admin/users', '/admin/users/alice', '/admin/staff', '/admin/trades', '/admin/serials', '/admin/overlay',
   '/admin/assets', '/admin/settings', '/admin/settings?tab=environment', '/admin/sandbox'];
-// GET API routes and what they should answer a mod / a stranger. import-legacy has its own secret and is only probed without one.
+// GET API routes and what they should answer a mod / a stranger. import-legacy is POST for a signed-in admin, so GET is 405.
 const ADMIN_API = [
   { path: '/api/admin/overlay-status', mod: [401, 403] },
   { path: '/api/admin/palette', mod: [401, 403] },
-  { path: '/api/admin/import-legacy', mod: [401, 403], admin: [401] }, // checks its own ?secret=, so even an admin gets 401 without it
+  { path: '/api/admin/import-legacy', mod: [405], admin: [405], stranger: [405] }, // POST only; GET does not take a secret
   { path: '/api/admin/activity?after=0', mod: [200] }, // the one admin route mods may read
 ];
 const POST_API = ['/api/admin/sandbox/ext-token'];
@@ -33,7 +33,7 @@ async function probe(label, ctx, { expectPages }) {
   await p.close();
   for (const r of ADMIN_API) {
     const res = await ctx.request.get(BASE + r.path, { maxRedirects: 0 });
-    const allowed = label === 'stranger' ? [401, 403, 307, 308] : label === 'admin' ? (r.admin ?? [200]) : r.mod;
+    const allowed = label === 'stranger' ? (r.stranger ?? [401, 403, 307, 308]) : label === 'admin' ? (r.admin ?? [200]) : r.mod;
     report(allowed.includes(res.status()), `${label} GET ${r.path} -> ${res.status()}`);
   }
   for (const path of POST_API) {

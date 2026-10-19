@@ -85,9 +85,7 @@ ok(routes.length >= 4, `found the admin API routes (${routes.length})`);
 const modRoutes: string[] = [];
 for (const f of routes) {
   const src = readFileSync(f, 'utf8');
-  // import-legacy checks its own secret (one-time utility); everything else uses the staff guards.
-  const own = /import-legacy/.test(rel(f)) ? /ADMIN_SECRET|secret/.test(src) : ADMIN_GUARD.test(src);
-  ok(own, `${rel(f)}: admin route never checks who is calling`);
+  ok(ADMIN_GUARD.test(src), `${rel(f)}: admin route never checks who is calling`);
   if (/hasStaffCapability\(\s*['"]mod['"]\s*\)/.test(src)) modRoutes.push(rel(f));
 }
 ok(JSON.stringify(modRoutes) === JSON.stringify(['app/api/admin/activity/route.ts']), `only the activity feed lets a mod read an admin route (found: ${modRoutes.join(', ') || 'none'})`);
