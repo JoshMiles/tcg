@@ -25,7 +25,7 @@ for (const s of shots) {
 ok(shots.length >= 3, 'at least three screenshots');
 
 // The text blocks in the submission pack.
-const doc = readFileSync(join(dir, 'SUBMISSION.md'), 'utf8');
+const doc = readFileSync(join(dir, 'SUBMISSION.md'), 'utf8').replace(/\r\n/g, '\n');
 const blocks = [...doc.matchAll(/```[a-z]*\n([\s\S]*?)\n```/g)].map(m => m[1]); // every fenced block, with or without a language tag
 const name = blocks.find(b => b === 'The Cheesy TCG');
 const summary = blocks.find(b => b.startsWith('Collect trading cards'));
