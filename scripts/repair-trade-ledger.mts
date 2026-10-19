@@ -47,16 +47,14 @@ for (const a of manual) console.log(`  - ${a.tradeId}: ${a.reason}`);
 
 if (!apply) {
   console.log('Dry run. No keys were written. To apply the safe writes: TCG_REPAIR_CONFIRM=yes npx tsx scripts/repair-trade-ledger.mts --apply');
-  process.exit(0);
-}
-if (!confirm) {
+} else if (!confirm) {
   console.error('Refusing to write. Set TCG_REPAIR_CONFIRM=yes as well as --apply.');
-  process.exit(1);
+  process.exitCode = 1;
+} else {
+  console.log('Applying safe writes.');
+  for (const a of writes) {
+    const res = a.action === 'clear-flag' ? await trades.clearEscrowFlagIfEmpty(a.tradeId) : await trades.releaseStuckEscrow(a.tradeId);
+    console.log(res.ok ? `  ok ${a.action} ${a.tradeId}` : `  skipped ${a.tradeId}: ${res.error}`);
+  }
+  console.log('Done. Run the audit again before doing anything by hand.');
 }
-
-console.log('Applying safe writes.');
-for (const a of writes) {
-  const res = a.action === 'clear-flag' ? await trades.clearEscrowFlagIfEmpty(a.tradeId) : await trades.releaseStuckEscrow(a.tradeId);
-  console.log(res.ok ? `  ok ${a.action} ${a.tradeId}` : `  skipped ${a.tradeId}: ${res.error}`);
-}
-console.log('Done. Run the audit again before doing anything by hand.');
