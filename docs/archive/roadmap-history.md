@@ -1171,6 +1171,6 @@ Admin panels use daisyUI `card` and keep `.tcg-panel` for the navy surface, shad
 
 Profile and binder panels (`ProfileTabs`, overview widgets, the share tab, the binder settings aside, the card dialog, the report dialog and the inline profile editor) use daisyUI `card` and keep `.tcg-panel` for the navy surface. Collection filters, the binder editor, the bio and the report form use `input`, `select`, `textarea`, `toggle` and `fieldset`. The print dialog's version table is `table table-sm`. The leather binder (`.bn-*`), `holo-hover` on card tiles, the Grid / Binder switch, and the accent and pronoun pickers (shared with Settings) are unchanged. Dex, leaderboard, trading, account and settings are the remaining 24.3 slices.
 
-### 24.3 Public dex and leaderboard
+### 24.3 Public dex and leaderboard (#273)
 
 The card dex filters use daisyUI `input` and `select`. The dex dialog is a `card` (navy surface stays on `.tcg-panel`) and its version table is `table table-sm`. Leaderboard rows are the same `card`, and the collector search is an `input`. The season-stats Every card search and table use `input` and `table` too. Rarity chips, rank-by chips, `.rind` sections, `holo-hover` and `vfx-*` on dex tiles stay. Trading, account and settings are the remaining 24.3 slices.
