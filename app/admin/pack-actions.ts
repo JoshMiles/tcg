@@ -24,7 +24,7 @@ export async function duplicatePackAction(packId: string) {
   const back = await getCardBack(packId);
   if (back) await saveCardBack(id, back);
   revalidatePath('/admin/packs');
-  redirect(`/admin/packs/new?draft=${id}`);
+  redirect(`/admin/packs/${id}`);
 }
 
 /** Retires a pack: hidden from the library by default, never drawn. Its cards stay, so collections keep working. */

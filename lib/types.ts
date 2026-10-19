@@ -54,6 +54,8 @@ export interface Pack {
   archivedAt?: number;
 }
 
+export type CardKind = 'collector' | 'trainer';
+
 export interface Card {
   id: string;
   number: number;
@@ -68,6 +70,10 @@ export interface Card {
   stillUrl?: string;
   fullArtStillUrl?: string;   // the same for the full-art image
   disabledVariants?: OptionalVariant[];   // variants this card can't be (on top of the pack's own switches)
+  /** Card kind: absent or 'collector' is an ordinary card; 'trainer' grants a buff when used (ROADMAP 30.1). */
+  kind?: CardKind;
+  /** The buff definition id from `trainer:buffs` when `kind === 'trainer'`. */
+  buffId?: string;
 }
 
 export interface UserProfile {

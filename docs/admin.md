@@ -4,8 +4,8 @@
 
 | Doc | Read it when you touch |
 |-----|------------------------|
-| [admin/packs-and-seasons.md](admin/packs-and-seasons.md) | drafts, the season lifecycle, the pack workspace, pack and card validation, held card numbers, still frames |
-| [admin/routes.md](admin/routes.md) | which admin page lives where, the pack library and pack page extras, the Settings tabs |
+| [admin/packs-and-seasons.md](admin/packs-and-seasons.md) | drafts, the season lifecycle, the pack workspace, card kinds (collector vs trainer) and buffs, pack and card validation, held card numbers, still frames |
+| [admin/routes.md](admin/routes.md) | which admin page lives where, the Buff Editor, the pack library and pack page extras, the Settings tabs |
 | [admin/users.md](admin/users.md) | tags and moderation, restore points, the audit trail, the user detail page, avatars |
 | [admin/assets.md](admin/assets.md) | card image processing, GIF uploads, thumbnails, the Assets page |
 | [admin/activity-and-dashboard.md](admin/activity-and-dashboard.md) | the live activity feed or the widget dashboard |

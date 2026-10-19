@@ -105,7 +105,7 @@ Three tiers in Vercel KV: **Seasons → Packs → Cards**.
 - Admin pages: `force-dynamic` on every page; `revalidatePath` after every mutation; `requireAdmin()` guards every admin server action (staff sign in with Twitch and have a role, see `docs/staff.md`; the emergency password login uses `ADMIN_PASSWORD` and `ADMIN_COOKIE_SECRET`, not `ADMIN_SECRET`).
 - Server actions take fixed arguments via `.bind(null, arg)` before going into `<form action={}>`.
 - Image uploads go through `ImageUploadField` → Vercel Blob.
-- **Multi-step creation uses full-page wizards** (`PackFlow`, `SeasonFlow`), not modals. Dialogs are for small one-shot forms: the page stays a server component, a thin client wrapper (e.g. `NewPackButton`) owns the open/close state, and the dialog uses `<form action={serverAction}>`.
+- **Packs use the pack workspace (`/admin/packs/[packId]`); multi-step season creation uses the full-page wizard** (`SeasonFlow`), not a modal. Dialogs are for small one-shot forms (e.g. `NewPackButton` asks only for a pack name, calls `createDraftPack`, and opens the workspace): the page stays a server component, and a thin client wrapper owns the open/close state.
 
 ## Git and PRs
 

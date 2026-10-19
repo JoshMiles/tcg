@@ -28,6 +28,25 @@ export const num = (v: unknown, fallback: number, min = 0, max = Infinity) => {
 export const int = (v: unknown, fallback: number, min = 1) => Math.max(min, Math.floor(num(v, fallback)));
 export const str = (v: unknown, max = 500) => (typeof v === 'string' ? v.slice(0, max) : '');
 
+export function defaultPackInput(name = ''): PackInput {
+  return {
+    name,
+    coverImageUrl: '',
+    active: true,
+    weight: 1,
+    accentColor: 'rgb(241,187,6)',
+    tearBorderColor: 'rgb(218,163,18)',
+    holoMinStars: 5,
+    cardTime: 3,
+    cooldownTime: 1,
+    soundVolume: 1,
+    upgradesEnabled: false,
+    variantWeights: { ...DEFAULT_VARIANT_WEIGHTS },
+    upgradeCosts: { ...DEFAULT_UPGRADE_COSTS },
+    disabledVariants: [],
+  };
+}
+
 export function cleanPackInput(i: PackInput): Omit<Pack, 'id' | 'createdAt' | 'status'> {
   const w = i.variantWeights ?? DEFAULT_VARIANT_WEIGHTS;
   const c = i.upgradeCosts ?? DEFAULT_UPGRADE_COSTS;
@@ -68,7 +87,11 @@ export interface CardFields {
   stars: number;
   probability: number;
   number: number;
+  kind?: 'collector' | 'trainer';
+  buffId?: string;
 }
+
+export const cleanCardKind = (v: unknown): 'collector' | 'trainer' => (v === 'trainer' ? 'trainer' : 'collector');
 
 /**
  * What is wrong with a card's fields, in plain words (empty = fine). `otherNumbers` are the numbers of the pack's OTHER cards: a
@@ -81,5 +104,6 @@ export function cardProblems(c: CardFields, otherNumbers: number[]): string[] {
   if (!Number.isFinite(c.probability) || c.probability < 0) out.push('Odds must be a number, 0 or more.');
   if (!Number.isInteger(c.number) || c.number < 1 || c.number > MAX_CARD_NUMBER) out.push(`The card number must be a whole number from 1 to ${MAX_CARD_NUMBER.toLocaleString('en-GB')}.`);
   else if (otherNumbers.includes(c.number)) out.push(`Another card in this pack is already #${c.number}, and viewers' prints would be shared between the two.`);
+  if (c.kind === 'trainer' && !str(c.buffId, 60).trim()) out.push('Choose a buff for this trainer card.');
   return out;
 }

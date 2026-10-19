@@ -107,7 +107,7 @@ export default async function PacksPage() {
                 >
                   <div className="rounded-[1.4rem] bg-gray-900 overflow-hidden flex flex-col h-full">
                     <Link
-                      href={isDraft ? `/admin/packs/new?draft=${pack.id}` : `/admin/packs/${pack.id}`}
+                      href={`/admin/packs/${pack.id}`}
                       aria-label={`${isDraft ? 'Continue setting up' : 'Manage'} ${pack.name || 'Untitled pack'}`}
                       className="p-3 pb-0 block"
                     >
@@ -209,7 +209,7 @@ export default async function PacksPage() {
 
                     <div className="px-4 pb-4 flex items-center gap-2">
                       <Link
-                        href={isDraft ? `/admin/packs/new?draft=${pack.id}` : `/admin/packs/${pack.id}`}
+                        href={`/admin/packs/${pack.id}`}
                         className="btn btn-primary flex-1 text-center px-3 py-2 text-sm rounded-xl"
                       >
                         {isDraft ? 'Continue setup →' : 'Manage →'}

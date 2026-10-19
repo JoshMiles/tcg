@@ -58,9 +58,9 @@ export function nextVariant(variant: Variant): Variant | null {
   return VARIANTS[VARIANTS.indexOf(variant) + 1] ?? null;
 }
 
-/** Whether pulls roll variants and the card can be upgraded. */
-export function upgradesAllowed(pack: Pick<Pack, 'upgradesEnabled'>, card: Pick<Card, 'upgradesEnabled'>): boolean {
-  return pack.upgradesEnabled && card.upgradesEnabled !== false;
+/** Whether pulls roll variants and the card can be upgraded. Trainer cards never roll variants or upgrade. */
+export function upgradesAllowed(pack: Pick<Pack, 'upgradesEnabled'>, card: Pick<Card, 'upgradesEnabled' | 'kind'>): boolean {
+  return pack.upgradesEnabled && card.kind !== 'trainer' && card.upgradesEnabled !== false;
 }
 
 /** Keeps only real, switch-off-able variant ids (unknown values and "regular" are dropped), in ladder order, no repeats. */
@@ -70,13 +70,14 @@ export function cleanDisabled(input: unknown): OptionalVariant[] {
 }
 
 /** The variants this card can be pulled as / upgraded to in this pack: Regular plus whatever neither the pack nor the card switched off. */
-export function allowedVariants(pack: Pick<Pack, 'disabledVariants'>, card?: Pick<Card, 'disabledVariants'>): Variant[] {
+export function allowedVariants(pack: Pick<Pack, 'disabledVariants'>, card?: Pick<Card, 'disabledVariants' | 'kind' | 'upgradesEnabled'>): Variant[] {
+  if (card?.kind === 'trainer' || card?.upgradesEnabled === false) return ['regular'];
   const off = new Set<string>([...(pack.disabledVariants ?? []), ...(card?.disabledVariants ?? [])]);
   return VARIANTS.filter(v => v === 'regular' || !off.has(v));
 }
 
 /** The pack's roll weights with the variants that are off for this pack / card zeroed. */
-export function effectiveWeights(pack: Pick<Pack, 'variantWeights' | 'disabledVariants'>, card?: Pick<Card, 'disabledVariants'>): VariantWeights {
+export function effectiveWeights(pack: Pick<Pack, 'variantWeights' | 'disabledVariants'>, card?: Pick<Card, 'disabledVariants' | 'kind' | 'upgradesEnabled'>): VariantWeights {
   const allowed = allowedVariants(pack, card);
   const w = { ...pack.variantWeights };
   for (const v of VARIANTS) if (!allowed.includes(v)) w[v] = 0;
@@ -91,9 +92,10 @@ export function effectiveWeights(pack: Pick<Pack, 'variantWeights' | 'disabledVa
  */
 export function upgradeStep(
   pack: Pick<Pack, 'disabledVariants' | 'upgradeCosts'>,
-  card: Pick<Card, 'disabledVariants'> | undefined,
+  card: Pick<Card, 'disabledVariants' | 'kind' | 'upgradesEnabled'> | undefined,
   from: Variant,
 ): { to: Variant; cost: number } | null {
+  if (card?.kind === 'trainer' || card?.upgradesEnabled === false) return null;
   const allowed = allowedVariants(pack, card).filter(v => GOLDEN_PULLS || v !== 'golden');
   let cost = 1;
   for (let i = VARIANTS.indexOf(from) + 1; i < VARIANTS.length; i++) {

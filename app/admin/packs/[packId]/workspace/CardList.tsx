@@ -14,10 +14,11 @@ type Sort = 'number' | 'name' | 'stars' | 'chance' | 'problems';
 export function cardMarks(c: WorkCard, pack: PackInput): { id: string; label: string }[] {
   const out: { id: string; label: string }[] = [];
   if (!c.imageUrl) out.push({ id: 'art', label: 'No art' });
-  if (pack.upgradesEnabled && !c.fullArtImageUrl && allowedVariants(pack, c).some(usesFullArt)) out.push({ id: 'full', label: 'No full art' });
+  if (pack.upgradesEnabled && c.kind !== 'trainer' && !c.fullArtImageUrl && allowedVariants(pack, c).some(usesFullArt)) out.push({ id: 'full', label: 'No full art' });
   if (!c.soundUrl) out.push({ id: 'sound', label: 'No sound' });
   if (!(c.probability > 0)) out.push({ id: 'odds', label: '0 odds' });
-  if (pack.upgradesEnabled && (c.disabledVariants.length > 0 || !c.upgradesEnabled)) out.push({ id: 'versions', label: 'Versions off' });
+  if (c.kind === 'trainer') out.push({ id: 'trainer', label: 'Trainer' });
+  else if (pack.upgradesEnabled && (c.disabledVariants.length > 0 || !c.upgradesEnabled)) out.push({ id: 'versions', label: 'Versions off' });
   return out;
 }
 
