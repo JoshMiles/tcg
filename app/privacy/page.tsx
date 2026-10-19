@@ -77,6 +77,9 @@ export default function PrivacyPage() {
             collectors, it is included in your data download, and you can remove it in Settings at any time or with the unsubscribe link in any email. Notices waiting to be sent are kept only until they go out.
           </li>
           <li>
+            <strong className="text-white">Your Discord account</strong> only if you choose to link Discord for notifications: your Discord user ID and username, when you linked it, and your notification preferences. We request only the identify permission to verify your account, and revoke the access token immediately. We never store your token or have access to your server messages or servers. It is included in your data download, and you can unlink it in Settings at any time.
+          </li>
+          <li>
             <strong className="text-white">Your settings and profile choices</strong> if you set any: a short bio, the pronouns you chose to show (if any), your Looking for list, display and notification
             preferences, how you arranged your profile and binder, a card you pinned, the achievements you have earned, your newest bell notices (offers and how they ended), and a few samples of your score and rank (taken when you open My Stats) for the history chart.
           </li>
