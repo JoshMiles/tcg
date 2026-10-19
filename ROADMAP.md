@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -20,7 +20,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 25.1 | Home: Card of the week | Ready | S |
 | 25.2 | A copy is an edition; "24 of 28" is a print | Ready | L |
-| 26.5 | Share image: My best 1, Top 3, Top 6, Top 9, Custom | Ready | S |
 | 26.6 | Post a share image straight to Discord | Ready | M |
 | 26.7 | Editable profile showcase, and !showoff uses it | Ready | M |
 | 26.8 | Wordmark links home, or to the dashboard in admin | Ready | S |
@@ -93,7 +92,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Text should say Bottomgidds, not bottomygidds | Done |
 | Font change on the card back editor | 28.3 |
 | Edit profile shows twice; remove the one by the name; split Edit profile and settings | Done |
-| Share image: My best 1, top 3, top 6, top 9, custom; unselected goes grey, not yellow | 26.5 |
+| Share image: My best 1, top 3, top 6, top 9, custom; unselected goes grey, not yellow | Done |
 | Share image straight to a Discord channel (channel not created yet) | 26.6 |
 | Profile collection: holo moves very fast on the top 3 cards (Mac only) | Done |
 | Collection cards do not need text on hover or along the bottom | Done |
@@ -122,8 +121,8 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 Parallel streams, so no two open PRs edit the same files:
 - **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
 - **Profile header:** 26.8 is the admin shell only.
-- **Share:** 26.5, then 26.6 (both touch `ShareStudio.tsx`; 26.6 also touches Discord).
-- **Showcase:** 26.7. Start it after 26.5 if both would edit the share candidate list; otherwise it can run beside 26.5. It does not edit `public/widget.js`.
+- **Share:** 26.6 (`ShareStudio.tsx` and Discord).
+- **Showcase:** 26.7. It does not edit `public/widget.js`.
 - **FAQ:** 27.1 after 25.2 (same words). 27.4 only changes the scoring default (`lib/scoring-core.ts`) and can run beside it. 27.3 is the achievement list and does not touch the FAQ.
 - **Fonts:** 28.3 is the card back editor only. 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 25.2, 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 25.2, then 28.4, then 29.1, then 29.4.
 - **Mix It Up:** 28.2 can start now. 28.1 is Ready and edits `lib/pull-limit-core.ts`: do not run it beside 30.2.
@@ -158,18 +157,9 @@ Decided 2026-10-19. Do not keep the old glossary.
 - **Not in this PR:** `public/twitch-panel/*`. The panel keeps saying print for a copy until the freeze lifts. Say that in the PR.
 - **Checks:** `scripts/check-words.mts`, `npm run verify`, and a pass of a copy page, a profile and the FAQ. The panel is not loaded.
 
-### 26.5 Share image: My best 1, Top 3, Top 6, Top 9, Custom (Ready, S)
-
-`ShareStudio.tsx`. Theme chips already go grey when not selected (`chip()`). The card shortcuts do not: "Just my best" and "Top {defaultCount}" are always `text-yellow-400`.
-
-- Replace those shortcuts with one single-select row: **My best 1**, **Top 3**, **Top 6**, **Top 9**, **Custom**.
-- Selected chip: yellow (`bg-yellow-400 text-gray-950`). The others: grey (`bg-white/4 text-gray-300`), including hover. Never a yellow unselected chip.
-- The four counts take the first N of `candidates` (already best-first). **Custom** leaves the per-card toggles active. Toggling a card switches the row to Custom. Default remains Top 6 (`defaultCount` is 6).
-- **Checks:** hand pass of the profile Share tab. One preset selected, the other four grey.
-
 ### 26.6 Post a share image straight to Discord (Ready, M)
 
-After 26.5. The channel does not exist yet. Build the pipe; it stays quiet until a webhook URL is saved.
+The channel does not exist yet. Build the pipe; it stays quiet until a webhook URL is saved.
 
 - New Discord category `shares` in `lib/discord-config.ts` (`DISCORD_CATEGORIES`, presets, `sampleMessage` in `lib/discord-samples.ts`, the ticks in `DiscordConfig.tsx`, `scripts/check-discord.mts`, `docs/admin/discord.md`). Off for existing channels.
 - `lib/discord.ts` can only post JSON embeds today (card-art thumbnails). Add a file post for this category only: multipart webhook, the PNG plus a one-line content string (collector name, site name, channel from `lib/site.ts`). Cap the file (well under Discord's webhook limit; share images are already small). No bot. 4.4 (DMs) stays a separate decision.

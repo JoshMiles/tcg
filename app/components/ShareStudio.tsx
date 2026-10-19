@@ -5,6 +5,17 @@ import { exportShare, renderShare } from './ShareImage';
 import { FORMATS, SHARE_THEMES, type BigStat, type ShareCard, type ShareFormat, type ShareSpec } from '@/lib/share-image';
 
 type Template = 'cards' | 'stats';
+const CARD_COUNTS = [1, 3, 6, 9] as const;
+type CardCount = (typeof CARD_COUNTS)[number];
+type CardPreset = CardCount | 'custom';
+
+function firstCards(n: number, total: number): number[] {
+  return Array.from({ length: Math.min(n, total) }, (_, i) => i);
+}
+
+function presetFor(count: number): CardPreset {
+  return (CARD_COUNTS as readonly number[]).includes(count) ? count as CardCount : 'custom';
+}
 
 /**
  * Pick a look, a shape and (for a profile) which cards go in, see the image, then share, download or copy the link.
@@ -25,7 +36,8 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
   const [theme, setTheme] = useState(base.theme ?? 'classic');
   const [format, setFormat] = useState<ShareFormat>(base.format ?? 'post');
   const [template, setTemplate] = useState<Template>('cards');
-  const [picked, setPicked] = useState<number[]>(() => (candidates ?? []).slice(0, defaultCount).map((_, i) => i));
+  const [preset, setPreset] = useState<CardPreset>(presetFor(defaultCount));
+  const [picked, setPicked] = useState<number[]>(() => firstCards(defaultCount, candidates?.length ?? 0));
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState<'share' | 'download' | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -50,7 +62,12 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [specKey]);
 
+  function chooseCount(n: CardCount) {
+    setPreset(n);
+    setPicked(firstCards(n, candidates?.length ?? 0));
+  }
   function toggle(i: number) {
+    setPreset('custom');
     setPicked(p => (p.includes(i) ? p.filter(x => x !== i) : p.length >= maxCards ? p : [...p, i]));
   }
   async function go(kind: 'share' | 'download') {
@@ -111,10 +128,13 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
         {candidates && (
           <fieldset>
             <legend className="text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-2">Cards in the image ({picked.length}/{Math.min(maxCards, candidates.length)})</legend>
-            <div className="flex gap-2 mb-2">
-              <button type="button" onClick={() => setPicked(candidates.slice(0, 1).map((_, i) => i))} className="text-xs text-yellow-400 hover:text-yellow-300">Just my best</button>
-              <button type="button" onClick={() => setPicked(candidates.slice(0, defaultCount).map((_, i) => i))} className="text-xs text-yellow-400 hover:text-yellow-300">Top {defaultCount}</button>
-              <button type="button" onClick={() => setPicked([])} className="text-xs text-gray-400 hover:text-white">Clear</button>
+            <div className="flex flex-wrap gap-2 mb-2" role="group" aria-label="How many cards">
+              {CARD_COUNTS.map(n => (
+                <button key={n} type="button" onClick={() => chooseCount(n)} aria-pressed={preset === n} className={chip(preset === n)}>
+                  {n === 1 ? 'My best 1' : `Top ${n}`}
+                </button>
+              ))}
+              <button type="button" onClick={() => setPreset('custom')} aria-pressed={preset === 'custom'} className={chip(preset === 'custom')}>Custom</button>
             </div>
             <ul className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {candidates.map((c, i) => {
