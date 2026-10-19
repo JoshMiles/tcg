@@ -42,6 +42,8 @@ export async function sampleMessage(category: DiscordCategory): Promise<DiscordP
       return withFooter(buildListingMessage({ id: 'sample', from: 'sample_viewer', expiresAt: Date.now() + 2 * 86_400_000, give: ['Sample Card (Shiny)'], get: ['Other Card'], givePts: 120, getPts: 90, wanted: ['3 collectors are looking for Sample Card (Shiny)'] }), FAKE);
     case 'system':
       return withFooter(buildSystemMessage({ title: 'System test', text: 'A made-up system notice: backups, data health and live status post here.', tone: 'info' }), FAKE);
+    case 'shares':
+      return withFooter(buildSystemMessage({ title: 'Share image', text: 'A collector posted their share image here. A real post is the picture itself. This test is only a message.', tone: 'info' }), FAKE);
     default: {
       const { events } = await getActivity({ limit: 200 }).catch(() => ({ events: [] as ActivityEvent[] }));
       const real = events.find(e => category === 'admin' ? !!e.staff : categoryOf(e) === category);

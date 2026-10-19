@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { exportShare, renderShare } from './ShareImage';
+import { SHARE_OFF_MESSAGE } from '@/lib/discord-config';
 import { FORMATS, SHARE_THEMES, type BigStat, type ShareCard, type ShareFormat, type ShareSpec } from '@/lib/share-image';
 
 type Template = 'cards' | 'stats';
@@ -21,7 +22,7 @@ function presetFor(count: number): CardPreset {
  * Pick a look, a shape and (for a profile) which cards go in, see the image, then share, download or copy the link.
  * Used on a profile's Share tab (with `candidates`) and under a single card copy (without).
  */
-export function ShareStudio({ base, candidates, bigStats, link, filename, shareText, defaultCount = 6, maxCards = 9 }: {
+export function ShareStudio({ base, candidates, bigStats, link, filename, shareText, defaultCount = 6, maxCards = 9, discordOn }: {
   base: ShareSpec;
   /** Cards the viewer can choose from, best first. Leave out when the image has a fixed card (a single copy). */
   candidates?: ShareCard[];
@@ -32,6 +33,8 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
   shareText?: string;
   defaultCount?: number;
   maxCards?: number;
+  /** Set on the owner's share tab. Omit on a single copy, which has no Discord button. */
+  discordOn?: boolean;
 }) {
   const [theme, setTheme] = useState(base.theme ?? 'classic');
   const [format, setFormat] = useState<ShareFormat>(base.format ?? 'post');
@@ -39,7 +42,7 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
   const [preset, setPreset] = useState<CardPreset>(presetFor(defaultCount));
   const [picked, setPicked] = useState<number[]>(() => firstCards(defaultCount, candidates?.length ?? 0));
   const [preview, setPreview] = useState<string | null>(null);
-  const [busy, setBusy] = useState<'share' | 'download' | null>(null);
+  const [busy, setBusy] = useState<'share' | 'download' | 'discord' | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const run = useRef(0);
 
@@ -75,6 +78,19 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
     try {
       const r = await exportShare(spec, filename, { text: shareText, url: link, download: kind === 'download' });
       if (r === 'downloaded') setNote('Saved to your downloads.');
+    } catch { setNote('Could not make the image. Try again.'); }
+    setBusy(null);
+  }
+  async function postDiscord() {
+    setBusy('discord'); setNote(null);
+    if (!discordOn) { setNote(SHARE_OFF_MESSAGE); setBusy(null); return; }
+    try {
+      const canvas = await renderShare(spec);
+      const blob: Blob | null = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      if (!blob) throw new Error('no image');
+      const res = await fetch('/api/account/share', { method: 'POST', headers: { 'Content-Type': 'image/png' }, body: blob });
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      setNote(data?.error ?? (res.ok ? 'Posted to Discord.' : 'Could not post the image. Try again.'));
     } catch { setNote('Could not make the image. Try again.'); }
     setBusy(null);
   }
@@ -161,6 +177,11 @@ export function ShareStudio({ base, candidates, bigStats, link, filename, shareT
           <button type="button" onClick={() => go('download')} disabled={!!busy || (!!candidates && picked.length === 0)} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2 disabled:opacity-60">
             <Icon name="download" />Download
           </button>
+          {discordOn !== undefined && (
+            <button type="button" onClick={postDiscord} disabled={!!busy || (!!candidates && picked.length === 0)} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2 disabled:opacity-60">
+              <Icon name="send" />{busy === 'discord' ? 'Posting…' : 'Post to Discord'}
+            </button>
+          )}
           {link && (
             <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-xl px-4 py-2">
               <Icon name="link" />Copy link

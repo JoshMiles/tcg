@@ -9,13 +9,14 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1)[:/]/.test(url)) throw new Error(`Refusi
 process.env.KV_REST_API_URL = url; process.env.KV_REST_API_TOKEN ??= 'dev'; process.env.KV_URL ??= 'redis://dev';
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
 
-const hits: { path: string; body: { allowed_mentions: unknown; embeds: { title?: string; description?: string }[] } }[] = [];
+const hits: { path: string; raw: string; body: { allowed_mentions: unknown; embeds: { title?: string; description?: string }[] } }[] = [];
 const server = createServer((req, res) => {
   let data = '';
   req.on('data', d => (data += d));
   req.on('end', () => {
     if (req.url?.includes('/999/')) { res.statusCode = 404; res.end(JSON.stringify({ message: 'Unknown Webhook' })); return; }
-    hits.push({ path: req.url ?? '', body: JSON.parse(data) });
+    const multipart = (req.headers['content-type'] ?? '').includes('multipart/');
+    hits.push({ path: req.url ?? '', raw: data, body: multipart ? { allowed_mentions: {}, embeds: [] } : JSON.parse(data) });
     res.statusCode = 204; res.end();
   });
 });
@@ -264,6 +265,44 @@ ok(lc.categories.listings === false, 'an old channel does not start posting list
   const up = await sampleMessage('upgrades');
   ok(footer(up).includes('real') && JSON.stringify(up).includes('realviewer'), 'with an upgrade in the log the upgrades test uses it');
   ok(footer(await sampleMessage('pulls')).includes('made-up'), 'other categories still fall back to made-up data');
+}
+
+// ── Shares: off until a channel is ticked, and no channel means no request ──
+{
+  const cfg = await import('../lib/discord-config');
+  const { presetChannel } = await import('../lib/discord-config');
+  ok(cfg.DEFAULT_CATEGORIES.shares === false, 'shares starts off');
+  ok(presetChannel('shares').categories.shares && !presetChannel('pulls').categories.shares, 'the Shares preset is the one that ticks it');
+  const oldCh = d.normalize({ url: hook(1), enabled: true, categories: { pulls: true, cards: true, stream: false, resets: false } } as never).channels[0];
+  ok(oldCh.categories.shares === false, 'a channel saved before shares stays off');
+  const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+  hits.length = 0;
+  await d.saveDiscordSettings({ enabled: true, channels: [] });
+  const none = await d.postShareImage('alice', png);
+  ok(!none.ok && none.error.includes('not turned this on') && hits.length === 0, 'no channel means no request');
+  await d.saveDiscordSettings({ enabled: false, channels: [{ id: 'sh', name: 'Shares', url: hook(30), enabled: true, categories: cats({ shares: true }), minStars: 1, newOnly: false }] });
+  const master = await d.postShareImage('alice', png);
+  ok(!master.ok && hits.length === 0, 'the master switch means no request');
+  await d.saveDiscordSettings({ enabled: true, channels: [{ id: 'sh', name: 'Shares', url: hook(30), enabled: false, categories: cats({ shares: true }), minStars: 1, newOnly: false }] });
+  const quiet = await d.postShareImage('alice', png);
+  ok(!quiet.ok && hits.length === 0, 'a switched-off shares channel means no request');
+  await d.saveDiscordSettings({ enabled: true, channels: [{ id: 'sh', name: 'Shares', url: hook(30), enabled: true, categories: cats({ shares: true }), minStars: 1, newOnly: false }] });
+  const bad = await d.postShareImage('alice', Uint8Array.from([1, 2, 3, 4]));
+  ok(!bad.ok && hits.length === 0, 'a non-png is refused before any request');
+  const big = new Uint8Array(d.SHARE_MAX_BYTES + 1);
+  big.set(png.subarray(0, 8));
+  const tooBig = await d.postShareImage('alice', big);
+  ok(!tooBig.ok && hits.length === 0, 'an image over the cap is refused before any request');
+  const sent = await d.postShareImage('alice', png, 'Ann *');
+  ok(sent.ok && hits.length === 1 && hits[0].path.includes('/30/'), 'an enabled shares channel gets the file');
+  const raw = hits[0].raw;
+  ok(raw.includes('payload_json') && raw.includes('Ann') && raw.includes('\\\\*') && raw.includes('The Cheesy TCG') && raw.includes('Cheesygidds') && raw.includes('https://www.twitch.tv/cheesygidds') && raw.includes('image/png'), 'the post is one line plus the png, with the name escaped');
+  ok(JSON.stringify({ parse: [] }) && raw.includes('"parse":[]'), 'share mentions stay empty');
+  hits.length = 0;
+  const again = await d.postShareImage('alice', png);
+  ok(!again.ok && again.error.includes('minute') && hits.length === 0, 'a second post in the same minute makes no request');
+  const log = await d.getDiscordLog('sh');
+  ok(log[0]?.kind === 'shares' && log[0].ok, 'the send is on the delivery log');
 }
 
 server.close();

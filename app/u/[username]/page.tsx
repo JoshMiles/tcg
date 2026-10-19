@@ -18,6 +18,7 @@ import { ProfileHeader } from './ProfileHeader';
 import { ProfileTabBar } from './ProfileTabBar';
 import { OverviewTab } from './OverviewTab';
 import { ShareTab } from './ShareTab';
+import { sharesPostingOn } from '@/lib/discord';
 import { ActivityTab, CollectionTab, StatsTab, TradesTab } from './ProfileTabs';
 
 export const dynamic = 'force-dynamic';
@@ -78,6 +79,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
   const mine = session && !isOwner && (tab === 'collection' || tab === 'overview') ? Object.fromEntries(countPulls(b.collection[session.username] ?? [])) : undefined;
   const SITE_SHORT = SITE_URL.replace(/^https?:\/\//, '');
   const copies = await getOwnerCopies(b.season.collectionName, lower);
+  const discordOn = tab === 'share' && isOwner ? await sharesPostingOn() : false;
   const pronouns = await pronounsFor(lower, b.settings.pronouns);
   const grid = tab === 'collection' ? await buildGridCards(b, copies) : [];
   return (
@@ -89,7 +91,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
       {tab === 'stats' && <StatsTab b={b} />}
       {tab === 'trades' && <TradesTab b={b} viewer={session?.username} />}
       {tab === 'activity' && <ActivityTab b={b} />}
-      {tab === 'share' && isOwner && <ShareTab base={buildShareBase(b, SITE_SHORT)} candidates={buildShareCandidates(b, copies, 18)} bigStats={buildBigStats(b)} link={`${SITE_URL}${profileHref(lower)}`} username={lower} />}
+      {tab === 'share' && isOwner && <ShareTab base={buildShareBase(b, SITE_SHORT)} candidates={buildShareCandidates(b, copies, 18)} bigStats={buildBigStats(b)} link={`${SITE_URL}${profileHref(lower)}`} username={lower} discordOn={discordOn} />}
       <p className="text-center text-xs text-gray-600 pt-2">
         Pull cards live on stream · <Link href="/collection" className="hover:text-gray-400"><Icon name="search" className="mr-1" />find another collector</Link>
       </p>
