@@ -36,9 +36,11 @@ export interface AchievementRowSetting {
   title: string;
   /** Empty means the built-in detail. */
   detail: string;
+  /** Optional bonus buff definition id (from trainer:buffs, scope: self). */
+  buffId?: string;
 }
 
-/** Only rows that differ from the default (on, blank title, blank detail). */
+/** Only rows that differ from the default (on, blank title, blank detail, no bonus). */
 export type AchievementSettings = Record<string, AchievementRowSetting>;
 
 const clip = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -55,8 +57,9 @@ export function normalizeAchievementSettings(input: unknown): AchievementSetting
     const on = r.on !== false;
     const title = clip(r.title, TITLE_MAX);
     const detail = clip(r.detail, DETAIL_MAX);
-    if (on && !title && !detail) continue;
-    out[kind] = { on, title, detail };
+    const buffId = typeof r.buffId === 'string' && r.buffId.trim() ? r.buffId.trim().slice(0, 60) : undefined;
+    if (on && !title && !detail && !buffId) continue;
+    out[kind] = { on, title, detail, ...(buffId ? { buffId } : {}) };
   }
   return out;
 }
@@ -65,10 +68,13 @@ export function normalizeAchievementSettings(input: unknown): AchievementSetting
 export function achievementSettingsFromForm(formData: FormData): AchievementSettings {
   const raw: Record<string, AchievementRowSetting> = {};
   for (const kind of KNOWN) {
+    const buffVal = formData.get(`buff:${kind}`);
+    const buffId = typeof buffVal === 'string' && buffVal.trim() ? buffVal.trim().slice(0, 60) : undefined;
     raw[kind] = {
       on: formData.get(`on:${kind}`) === 'on',
       title: String(formData.get(`title:${kind}`) ?? ''),
       detail: String(formData.get(`detail:${kind}`) ?? ''),
+      ...(buffId ? { buffId } : {}),
     };
   }
   return normalizeAchievementSettings(raw);

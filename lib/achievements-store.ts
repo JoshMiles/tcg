@@ -3,6 +3,7 @@ import { getCollection, getPackCards, getPacksForSeason, listSeasons } from './k
 import { countVariants, allowedVariants } from './variants';
 import { evaluateSeason, sortAchievements, type AchCard, type Achievement } from './achievements';
 import { applyAchievementText, disabledKinds, getAchievementSettings } from './achievement-settings';
+import { applyBuff } from './buffs';
 import { loadSerialIndex } from './serials';
 import { getScoringSettings } from './scoring';
 
@@ -61,7 +62,21 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
   const fresh = live.filter(a => a.earned && !stored[a.id]);
   if (fresh.length > 0) {
     const add = Object.fromEntries(fresh.map(a => [a.id, { ...a, earnedAt: now } satisfies EarnedAchievement]));
-    try { await kv.hset(key(u), add); } catch { /* try again next view */ }
+    try {
+      await kv.hset(key(u), add);
+      for (const a of fresh) {
+        const kind = a.id.slice(a.seasonId.length + 1);
+        const row = settings[kind];
+        if (row?.buffId) {
+          await applyBuff(u, row.buffId, {
+            source: `achievement:${a.id}`,
+            seasonId: a.seasonId,
+            now,
+            disallowCommunity: true,
+          }).catch(() => {});
+        }
+      }
+    } catch { /* try again next view */ }
     Object.assign(stored, add);
   }
 
