@@ -19,6 +19,14 @@ ok(!c.cleanMixItUpInput({ balanceUrl: 'https://hook.example/a', cost: 0 }).ok, '
 const good = c.cleanMixItUpInput({ enabled: 'on', balanceUrl: 'https://hook.example/a', limit: '3', cost: '50' });
 ok(good.ok && good.settings.enabled && good.settings.limit === 3 && good.settings.cost === 50, 'a good form is cleaned');
 
+const setup = await import('../lib/mixitup-setup');
+const paid = setup.paidPullSetup({ ...c.DEFAULT_MIXITUP, secret: 's3cret', currency: 'Gouda Coins', cost: 40, balanceUrl: 'https://hook.example/bal', deductUrl: '', message: c.DEFAULT_MESSAGE, balanceField: 'balance' });
+ok(paid.balanceBody.includes('Gouda Coins') && paid.deductBody.includes('Gouda Coins') && paid.deductBody.includes('40'), 'the paid-pull bodies use the saved currency and price');
+ok(paid.balanceBody.includes('s3cret') && !paid.balanceBody.includes('"secret": ""'), 'a set secret is not printed empty');
+ok(paid.sameAddress && paid.deductUrl === 'https://hook.example/bal' && paid.balanceAnswer.includes('"balance"'), 'an empty deduct address is the balance address, and the balance action answers that field');
+const blocks = setup.commandSetups([{ name: 'showoff', enabled: true }, { name: 'stats', enabled: false }], 'https://cheesytcg.app/api/webhooks/command', 's3cret');
+ok(blocks.length === 1 && blocks[0].command === '!showoff' && blocks[0].body.includes('"command": "showoff"') && blocks[0].body.includes('s3cret') && blocks[0].replyField === 'message', 'only an enabled command is listed, with its name and the secret');
+
 // ── Pure: message, replies, windows ──
 ok(c.renderMessage('{username} paid {amount} {currency} {nope}!', { username: 'ann', amount: 100, currency: 'Brie Bucks' }) === 'ann paid 100 Brie Bucks !', 'placeholders fill and unknown ones vanish');
 ok(c.renderMessage('x'.repeat(900), {}).length === c.MESSAGE_MAX, 'the message is capped');

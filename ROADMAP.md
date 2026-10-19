@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -24,7 +24,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 27.3 | Achievement list: on/off, rename, edit the text | Ready | M |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
 | 28.1 | Pull limits per role, editable, plus a this-stream buff | Ready | M |
-| 28.2 | Generate a Mix It Up command from the saved settings | Ready | M |
 | 28.4 | Font control in the Overlay Editor | Ready | M |
 | 29.1 | Variant ladder gains Golden; labels; read-only audit | Ready | M |
 | 29.4 | Variant styles, per pack, including Golden | Ready (after 29.1) | M |
@@ -107,7 +106,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Default limits for subscribers, mods, broadcaster, VIPs and regular | 28.1 |
 | !showoff pulls from the user's profile showcase | Done |
 | Option to edit the showcase on a person's profile | Done |
-| Generate a Mix It Up command from settings (commands and pulls) | 28.2 |
+| Generate a Mix It Up command from settings (commands and pulls) | Done |
 | Align variant with rarity, plus a Golden variant (Joshua) | 29.1, 29.3, 29.4, 29.5 |
 | Trainer cards and a Buff Editor (Joshua) | 30.1 to 30.4 |
 
@@ -117,7 +116,7 @@ Parallel streams, so no two open PRs edit the same files:
 - **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
 - **FAQ:** 27.1 after 25.2 (same words). 27.3 is the achievement list and does not touch the FAQ.
 - **Fonts:** 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 25.2, 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 25.2, then 28.4, then 29.1, then 29.4.
-- **Mix It Up:** 28.2 can start now. 28.1 is Ready and edits `lib/pull-limit-core.ts`: do not run it beside 30.2.
+- **Mix It Up:** 28.1 edits `lib/pull-limit-core.ts`. Do not run it beside 30.2.
 - **Variants:** 29.1 (includes the audit and the dry-run script), then 29.4. There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
 - **Trainers and achievement bonuses:** 30.1, then 30.2, then 30.3, and 27.5 after 30.1 (it picks a buff from that catalogue). 30.4 waits for the freeze.
 - **Nothing on tracks 25 to 30 is waiting for an answer.** Trainer cards are tradable until used (30.2).
@@ -216,15 +215,6 @@ Decided 2026-10-19. There are no per-role limits today. `MixItUpSettings.limit` 
 - Same PR updates the FAQ answer from 27.1: no limit until staff set one, and staff can add extra pulls for everyone for the current stream.
 - **Not touched:** `/api/twitch/*`, the panel, `middleware.ts`.
 - **Checks:** `scripts/check-pull-limit.mts` for each role at 0 (no limit), a changed role limit, a personal override, a personal buff, the stream buff added and then ignored after the stream key changes, and a missing role.
-- **Docs:** `docs/admin/mixitup.md`.
-
-### 28.2 Generate a Mix It Up command from the saved settings (Ready, M)
-
-The Commands tab already shows a paste-ready URL and JSON body for the selected command (`SetupPanel` in `app/admin/mixitup/CommandsPanel.tsx`). Paid pulls do not. Mix It Up has no API we should call to create commands inside it. Generate text the owner pastes.
-
-- **Commands:** for each enabled command, a **Copy setup** block: command name (with `!`), webhook URL (`/api/webhooks/command`), JSON body `{ secret, command, username: "$username", args: "$allargs" }` using the real incoming secret, and which response field to send to chat (`message`). This is the existing panel, extended from "the one command you are editing" to "every enabled command".
-- **Paid pulls:** on the Paid pulls tab, a **Copy setup** block built from `MixItUpSettings`: the balance request and the deduct request the site already sends (`action`, `currency`, `cost`, `message`, the URL fields). Say which Mix It Up action should answer `{ "balance": n }` and which should take the currency. Do not invent Mix It Up click-paths beyond what `docs/admin/mixitup.md` already tells the owner.
-- **Checks:** a pure helper (next to `lib/mixitup-core.ts` or `lib/commands-core.ts`) covered by the existing Mix It Up check: the body contains the saved currency and the command name, and a secret is not printed as empty when one is set. Hand pass of both tabs.
 - **Docs:** `docs/admin/mixitup.md`.
 
 ### 28.4 Font control in the Overlay Editor (Ready, M)

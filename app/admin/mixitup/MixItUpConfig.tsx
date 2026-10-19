@@ -4,6 +4,7 @@ import type { MixItUpSettings } from '@/lib/mixitup-core';
 import { MESSAGE_MAX, MESSAGE_VARS } from '@/lib/mixitup-core';
 import { saveMixItUpAction, checkBalanceAction, sendTestAction } from './mixitup-actions';
 import { MessageField } from './MessageField';
+import { PaidPullSetup } from './PaidPullSetup';
 
 const input = 'input w-full';
 const label = 'block text-xs font-semibold text-gray-300 mb-1';
@@ -84,6 +85,8 @@ export function MixItUpConfig({ settings: s }: { settings: MixItUpSettings }) {
           <PendingButton type="submit" className={primary}>Save Mix It Up</PendingButton>
         </div>
       </form>
+
+      <PaidPullSetup settings={s} />
 
       <section className="card rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-800">

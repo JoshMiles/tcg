@@ -1219,6 +1219,10 @@ A collection tile or binder pocket with `holo-fx` does not also take `holo-hover
 
 `DEFAULT_SCORING.serialBonusCutoff` is 40. A saved `scoring:settings` value is left as stored, so a site that already saved 20 keeps 20 until someone saves 40 in Admin → Settings → Scoring. Scores recompute on the next page load after that save. `EVENT_CAP` (how many journey events a copy keeps) stays 40 and is a different setting.
 
+### 28.2 Generate a Mix It Up command from the saved settings (Done)
+
+The Commands tab lists a Copy setup block for every switched-on command (the `!` name, the webhook, the JSON, and the `message` field). Paid pulls show the balance and deduct requests from the saved settings. Mix It Up is not called to create them.
+
 ### 26.7 Editable profile showcase, and !showoff uses it (Done)
 
 `UserSettings.showcaseUids` holds up to 3 print uids. Empty still means the three most valuable. The owner edits them on the Showcase widget. A bare `!showoff` shows the pinned print, else the first showcase pick they still hold, else the best card. A named card is unchanged. A dry run still queues nothing.
