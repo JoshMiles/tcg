@@ -7,8 +7,8 @@ const v = await import('../lib/collection-view');
 const s = await import('../lib/user-settings');
 const pd = await import('../lib/profile-data');
 
-const none = { regular: 0, reverse: 0, full: 0, shiny: 0 };
-const vals = { regular: 10, reverse: 30, full: 80, shiny: 300 };
+const none = { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0 };
+const vals = { regular: 10, reverse: 30, full: 80, shiny: 300, golden: 1000 };
 const mk = (number: number, name: string, stars: number, packName: string, counts: Partial<typeof none>) => ({ number, name, stars, packName, counts: { ...none, ...counts }, values: vals });
 const cards = [
   mk(1, 'Cheesy Cat', 1, 'A', { regular: 3 }),
@@ -78,7 +78,7 @@ console.log('profile widget checks passed');
 
 // ── The card dialog's print tiles ──
 {
-  const counts = { regular: 3, reverse: 0, full: 1, shiny: 0 };
+  const counts = { regular: 3, reverse: 0, full: 1, shiny: 0, golden: 0 };
   const cp = (variant: 'regular' | 'reverse' | 'full' | 'shiny', n: number) => ({ variant, n, id: `${variant}.${n}` });
   const list = [cp('full', 2), cp('regular', 9), cp('regular', 1), cp('regular', 4)];
   const d = v.copiesForDialog(list, counts);
