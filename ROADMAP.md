@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (Joshua answered the open questions: edition/print swap, achievement editor with a bonus, cutoff 40, fonts, Golden look editable per pack, trainer buff list. Role-limit numbers and the points rule are still open. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -33,12 +33,11 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 27.3 | Achievement list: on/off, rename, edit the text | Ready | M |
 | 27.4 | Print bonus cutoff set to 40 | Ready | S |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
-| 28.1 | Default pull limits per Twitch role | Needs a decision | M |
+| 28.1 | Pull limits per role, editable, plus a this-stream buff | Ready | M |
 | 28.2 | Generate a Mix It Up command from the saved settings | Ready | M |
 | 28.3 | Font control on every card-back text element | Ready | S |
 | 28.4 | Font control in the Overlay Editor | Ready | M |
 | 29.1 | Variant ladder gains Golden; labels; read-only audit | Ready | M |
-| 29.3 | Which number points use: stars, version, or both | Needs a decision | M |
 | 29.4 | Variant styles, per pack, including Golden | Ready (after 29.1) | M |
 | 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
 | 30.1 | Trainer cards: buff model and Buff Editor | Ready | L |
@@ -46,7 +45,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 30.3 | Chat command to use a trainer card | Ready (after 30.2) | S |
 | 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
 
-27.2 is unused on purpose: the master set achievement is already shipped (see "Already on the site" under tracks 25 to 30). 29.2 is unused on purpose: the read-only audit and the dry-run script ship inside 29.1.
+27.2 is unused on purpose: the master set achievement is already shipped (see "Already on the site" under tracks 25 to 30). 29.2 is unused on purpose: the read-only audit and the dry-run script ship inside 29.1. 29.3 is not in the table: stars keep setting the value, so there is no PR.
 
 ### 20.2f One flow for new packs; the wizard goes (Ready, M)
 
@@ -134,10 +133,10 @@ Parallel streams, so no two open PRs edit the same files:
 - **Showcase:** 26.7. Start it after 26.5 if both would edit the share candidate list; otherwise it can run beside 26.5. It does not edit `public/widget.js`.
 - **FAQ:** 27.1 after 25.2 (same words). 27.4 only changes the scoring default (`lib/scoring-core.ts`) and can run beside it. 27.3 is the achievement list and does not touch the FAQ.
 - **Fonts:** 28.3 is the card back editor only. 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 25.2, 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 25.2, then 28.4, then 29.1, then 29.4.
-- **Mix It Up:** 28.2 can start now. 28.1 still waits for the five numbers. 30.2 also writes pull-limit rows: do not run 28.1 and 30.2 at the same time (`lib/pull-limit-core.ts`).
-- **Variants:** 29.1 (includes the audit and the dry-run script), then 29.4. 29.3 waits for the points answer. 29.5 waits for the freeze.
+- **Mix It Up:** 28.2 can start now. 28.1 is Ready and edits `lib/pull-limit-core.ts`: do not run it beside 30.2.
+- **Variants:** 29.1 (includes the audit and the dry-run script), then 29.4. There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
 - **Trainers and achievement bonuses:** 30.1, then 30.2, then 30.3, and 27.5 after 30.1 (it picks a buff from that catalogue). 30.4 waits for the freeze.
-- **Left until answered:** 28.1 (the five limits) and 29.3 (which number points use). Trainer cards are tradable until used unless he says otherwise before 30.2.
+- **Nothing on tracks 25 to 30 is waiting for an answer.** Trainer cards are tradable until used (30.2).
 
 **Twitch panel freeze:** nothing in a Ready item edits `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the behaviour or response shape of `/api/twitch/*`, or the CORS rules in `middleware.ts`. 29.5, 30.4, and the panel's copy of the edition/print words (25.2) are the exceptions and they are blocked.
 
@@ -313,22 +312,21 @@ Decided with 27.3. The list editor ships first. This item adds the bonus, and it
 - **Checks:** extend `scripts/check-achievements.mts`: a new earn writes one buff; a second sync does not write another; a disabled kind grants nothing new.
 - **Docs:** the achievements section from 27.3.
 
-### 28.1 Default pull limits per Twitch role (Needs a decision, M)
+### 28.1 Pull limits per role, editable, plus a this-stream buff (Ready, M)
 
-There are no per-role limits. `MixItUpSettings.limit` is one number for everyone (default 0 = no limit). A viewer can have their own base (`UserPullLimit.limit`) and temporary bonuses (`PullBuff`, admin-granted only). Gifted subs, bits and cheers do not grant pulls in code.
+Decided 2026-10-19. There are no per-role limits today. `MixItUpSettings.limit` is one number for everyone (default 0 = no limit). A viewer can have their own base (`UserPullLimit.limit`) and temporary bonuses (`PullBuff`, admin-granted only).
 
-**Gifted subs (decided):** they only earn a pack. They do not add a pull-limit bonus. 27.1 already says gifting subs is a way to get a pack. This item must not add a gifted-sub buff.
+**Defaults:** regular, subscriber, VIP, moderator and broadcaster all start at **0** (no limit). Staff change them in the admin panel whenever they want. Gifted subs only earn a pack. They do not add a pull-limit bonus.
 
-**Still needs five integers** (0 = no limit, same meaning as today): regular, subscriber, VIP, moderator, broadcaster. A starting point to accept or replace, not a guess to ship in silence: regular 1, subscriber 2, VIP 2, moderator 3, broadcaster 0.
-
-Design, once the numbers are yes:
-- `MixItUpSettings.roleLimits` on the Paid pulls tab (`app/admin/mixitup/MixItUpConfig.tsx`). The old `limit` stays as the fallback when a role is missing, so existing settings keep working.
-- The paid-pull webhook may send `role`: `regular | subscriber | vip | moderator | broadcaster`. Missing or unknown counts as regular. Do not call Twitch to look the role up.
-- `CHANNEL_LOGIN` is always the broadcaster.
-- A personal base limit still replaces the role default. Active buffs still add (`effectiveLimit`). Base 0 still means no limit.
-- Same PR updates the FAQ answer from 27.1.
+- `MixItUpSettings.roleLimits` on the Paid pulls tab (`app/admin/mixitup/MixItUpConfig.tsx`), five number fields. The old `limit` stays as the fallback when a role is missing, so existing settings keep working. 0 still means no limit.
+- The paid-pull webhook may send `role`: `regular | subscriber | vip | moderator | broadcaster`. Missing or unknown counts as regular. Do not call Twitch to look the role up. `CHANNEL_LOGIN` is always the broadcaster.
+- A personal base limit still replaces the role default. Active personal buffs still add (`effectiveLimit`).
+- **This stream, everyone:** on the same tab, an extra number of pulls for every viewer, and **Set** / **Clear**. Stored as one record `{ amount, streamKey, by, at }` (KV `pulls:stream-buff`). It counts only while `streamKey()` (`lib/mixitup-core.ts`) still matches. When the stream ends, the next read ignores it. No cron. `effectiveLimit` adds it for every viewer on top of their role or personal base. `requireAdmin`, `recordAudit`. Amount 0 clears it.
+- Trainer-card community buffs (30.1) are a later way to grant the same kind of extra. They add as well. Build 28.1 first so 30.2 extends `effectiveLimit` instead of rewriting it.
+- Same PR updates the FAQ answer from 27.1: no limit until staff set one, and staff can add extra pulls for everyone for the current stream.
 - **Not touched:** `/api/twitch/*`, the panel, `middleware.ts`.
-- **Checks:** `scripts/check-pull-limit.mts` for each role, a personal override, a buff on top, and a missing role.
+- **Checks:** `scripts/check-pull-limit.mts` for each role at 0 (no limit), a changed role limit, a personal override, a personal buff, the stream buff added and then ignored after the stream key changes, and a missing role.
+- **Docs:** `docs/admin/mixitup.md`.
 
 ### 28.2 Generate a Mix It Up command from the saved settings (Ready, M)
 
@@ -379,28 +377,19 @@ Short labels: RH, FA, FH, GD. `Card.stars` stays in KV. This PR does **not** cha
 
 **Pulls.** `rollDraw` (`lib/draw.ts`) never returns `golden` while 29.5 is blocked. Weight 0 is not enough on its own if a pack later sets a weight: also refuse Golden in `rollVariant` until a constant `GOLDEN_PULLS` is turned on in 29.5. Existing packs do not change.
 
-**Admin.** Pack workspace variant chips, the weights row and the upgrade cost row grow a Golden column. The public site shows the new labels wherever `VARIANT_LABELS` is used (dex, profile, FAQ, overlay). Achievement titles that say "Shiny Full Art" follow the label; the stored kind `all-shiny` / `first-shiny` does not rename. `docs/variants-and-scoring.md` describes the ladder and states that points still use `Card.stars` until 29.3, and that Golden is not pulled until 29.5.
+**Admin.** Pack workspace variant chips, the weights row and the upgrade cost row grow a Golden column. The public site shows the new labels wherever `VARIANT_LABELS` is used (dex, profile, FAQ, overlay). Achievement titles that say "Shiny Full Art" follow the label; the stored kind `all-shiny` / `first-shiny` does not rename. `docs/variants-and-scoring.md` describes the ladder and states that points still use `Card.stars` (29.3), and that Golden is not pulled until 29.5.
 
 **Audit (read-only).** `scripts/audit-variant-rarity.mts`, same shape as `scripts/audit-trade-ledger.mts`: require `KV_REST_API_URL` and `KV_REST_API_READ_ONLY_TOKEN`, set the URL before the dynamic `import()`, load via `lib/db`, print a report, exit 0, first line "No keys were written." Report: cards by star count, holdings by variant index, copy ids `parseCopyId` would reject, any collection entry with index >= 4. Expected on today's data: zero index-4 entries, zero bad copy ids. Never writes.
 
-**Dry-run migration.** `scripts/migrate-variant-rarity.mts`, same opt-in shape as `scripts/repair-trade-ledger.mts`: default dry-run, writes only with `--apply` and `TCG_REPAIR_CONFIRM=yes`, and only against the KV the env points at. The plan for this ladder is **empty** (ids did not move). The script prints "0 writes" and refuses `--apply` while the plan is empty, so it cannot be pointed at production by mistake. A later rewrite (only if 29.3 needs one) extends this script; it still defaults to dry-run.
+**Dry-run migration.** `scripts/migrate-variant-rarity.mts`, same opt-in shape as `scripts/repair-trade-ledger.mts`: default dry-run, writes only with `--apply` and `TCG_REPAIR_CONFIRM=yes`, and only against the KV the env points at. The plan for this ladder is **empty** (ids did not move). The script prints "0 writes" and refuses `--apply` while the plan is empty, so it cannot be pointed at production by mistake. Holdings do not need a rewrite (29.3 keeps the score formula).
 
 **Checks:** `scripts/check-upgrades.mts` for index 4 encode/decode, `parseCopyId`, and "rollDraw never returns golden". `npm run verify`.
 
-### 29.3 Which number points use (Needs a decision, M)
+### 29.3 Stars keep setting the value (decided, no PR)
 
-Left open on purpose. The earlier wording was hard to answer. Plain version:
+Decided 2026-10-19. The stars on a card keep setting its value. The version multiplier stays as it is today (`baseScore × rarity from Card.stars × variantMultiplier × print bonus` in `lib/leaderboard.ts`). A Golden edition, once it exists, gets a version multiplier the same way a Shiny does. It does not replace the stars.
 
-Every card has **stars** (1 to 5, named Common up to Legendary) and a **version** (Regular, Reverse Holo, Full Art, Full Art Holo, and soon Golden). Points today multiply both (`lib/leaderboard.ts`): the stars make a rare card worth more, and the version makes a Reverse Holo worth more than a Regular of the same card. The print bonus (27.4) is a third factor, on top.
-
-29.1 names the versions Common through Legendary. If points stay as they are, a 5-star Regular and a Golden edition are both "Legendary", and the Regular still gets the 5-star bonus as well.
-
-Pick one, before this PR:
-
-- **A.** Points follow the version only. A Regular edition is worth the least, a Golden edition the most, even when the card's stars say Legendary. Stars stay stored on the card and stop changing the score.
-- **B.** Points stay as they are. Stars still set the card's value. The version, including Golden, only adds the extra it already adds. The new names are labels. Stars keep their own names too, so "Legendary" can mean two different things.
-
-Do not ship either until he picks. 29.1 does not change scores. When he picks, the audit from 29.1 should print a read-only before/after (each collector's score today vs the chosen rule, no writes) in the same PR that changes `copyPoints`. Scores move on the next page load. No production script.
+The names in 29.1 (Regular/Common through Golden/Legendary) are labels on the versions. The star names (Common through Legendary) stay too. Do not change `copyPoints`. Do not open a PR for this.
 
 ### 29.4 Variant styles, per pack, including Golden (Ready after 29.1, M)
 
@@ -446,7 +435,7 @@ Decided 2026-10-19. A trainer card grants one buff when its holder uses it, then
 
 Magnitude for pulls and packs is 1 to 10. **Stacking:** `refresh` moves the expiry out and does not add the amount again; `reject` refuses the use while that buff is active. Two different buffs both apply, up to `MAX_BUFFS` (20).
 
-**Trade.** Until he says otherwise, a trainer card can be traded before it is used, like any other edition (favourites and escrow still block). Using it consumes it, so the new holder is the one who can use it. Say so before 30.2 if it must be untradable instead.
+**Trade (decided).** A trainer card can be traded until someone uses it, like any other edition. Favourites and escrow still block a trade. Using it consumes it, so the new holder is the one who can use it. 30.2 does not add a trade ban.
 
 **Model (pure, `lib/buffs-core.ts`):** `BuffDef`: `id`, `name`, `type`, `magnitude`, `duration: { unit: 'hours' | 'streams' | 'season' | 'pulls'; n?: number }`, `stack: 'refresh' | 'reject'`, `scope: 'self' | 'community'`, and `achievementId` when the type grants an achievement. KV `trainer:buffs` holds the definitions. A card gains `kind?: 'collector' | 'trainer'` (absent means collector) and `buffId?: string`, through the normal card save. A trainer is a Regular collection entry, so the frozen panel shows it as an ordinary card and needs no new key.
 
@@ -465,7 +454,7 @@ Magnitude for pulls and packs is 1 to 10. **Stacking:** `refresh` moves the expi
 - Applies the buff from 30.1: a personal `PullBuff` or pack credit on `user:<u>:pulllimit`, a row on `buffs:community`, or an achievement award. Source `card:<number>`.
 - Consumes one edition: remove one collection entry (newest first, same choice as an upgrade spend) and retire that ledger copy. The card is gone. A timed buff can outlive it.
 - `recordAudit(username, 'Trainer card used', '<card name>, <buff name>, until ...')`. New activity type `buff` on the site log only. Do not add it to any `/api/twitch/*` response.
-- Tradable until used, unless he has said otherwise. Favourites and escrow still cannot be used.
+- Tradable until used. Favourites and escrow still cannot be used or traded away by the usual rules. No new trade ban.
 - **Checks:** `scripts/check-buffs.mts`: refresh does not double the amount, reject blocks, each duration drops the buff, a pull credit is consumed by one pull, a second copy is required for a second use, a favourite cannot be used.
 - **Docs:** FAQ "What is a trainer card?" under Cards & versions.
 
@@ -492,13 +481,7 @@ Ready items above were checked against this list. Showoff, paid-pull limits, sha
 
 ## Open questions for Joshua
 
-Answered 2026-10-19: the copy is an edition and "24 of 28" is a print (25.2); achievement list plus a bonus (27.3, 27.5); cutoff 40 (27.4); gifted subs only earn a pack (28.1); font on every card-back text element and in the Overlay Editor (28.3, 28.4); Golden's amber look is the default and every version's style is editable per pack (29.4); trainer buffs are extra pull, extra pack, an achievement, and community, for a time, a number of streams, the season, or the next N pulls (30.1).
-
-Still open:
-
-1. **28.1.** Five pull limits, as integers (0 means no limit): regular, subscriber, VIP, moderator, broadcaster. Starting point, not yet accepted: 1, 2, 2, 3, 0.
-2. **29.3.** Points. **A:** the version sets the score (Regular least, Golden most) and the card's stars stop changing it. **B:** leave points as they are, stars and version both still count, and the new names are only labels. 29.1 does not change scores either way.
-3. **30.2.** A trainer card can be traded until someone uses it. Say if it must be untradable instead. 30.2 will allow trades unless you say otherwise.
+None on tracks 25 to 30. The last three answers (2026-10-19): every role's pull limit starts at no limit and staff edit the five numbers in admin, plus a this-stream extra for everyone (28.1); stars keep setting the card's value and the score formula does not change (29.3); a trainer card can be traded until someone uses it (30.2).
 
 ## User steps still open
 
