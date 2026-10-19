@@ -1151,7 +1151,7 @@ Original design:
 
 Shipped as daisyUI 5 with only the `cheesy` theme. Built-in light and dark themes stay off. Pages still use the hand-written utilities.
 
-### 24.2 Shared primitives (Done)
+### 24.2 Shared primitives (Done, #269)
 
 Original design:
 
