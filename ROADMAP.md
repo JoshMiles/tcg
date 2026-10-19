@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -20,7 +20,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 25.1 | Home: Card of the week | Ready | S |
 | 25.2 | A copy is an edition; "24 of 28" is a print | Ready | L |
-| 25.3 | Collectors page rows, and the Bottomgidds name | Ready | S |
 | 26.1 | Profile: one Edit profile, and a separate Settings link | Ready | S |
 | 26.2 | Collection tiles: no name overlay, readable edition pill | Ready | S |
 | 26.3 | Collection holo sweeps too fast on Mac | Ready | S |
@@ -94,8 +93,8 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 |---|---|
 | Home layout: Card of the week, card name, print, edition, held by, See its journey | 25.1 |
 | Change the name of print to edition (swap the names round) | 25.2 |
-| Collectors page: Top collectors, collector name, 24/25 cards, Card dex | 25.3 |
-| Text should say Bottomgidds, not bottomygidds | 25.3 |
+| Collectors page: Top collectors, collector name, 24/25 cards, Card dex | Done |
+| Text should say Bottomgidds, not bottomygidds | Done |
 | Font change on the card back editor | 28.3 |
 | Edit profile shows twice; remove the one by the name; split Edit profile and settings | 26.1 |
 | Share image: My best 1, top 3, top 6, top 9, custom; unselected goes grey, not yellow | 26.5 |
@@ -125,7 +124,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 ### Tracks 25 to 30: order
 
 Parallel streams, so no two open PRs edit the same files:
-- **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten. 25.3 does not use those words and can run beside 25.2.
+- **Glossary first:** 25.2 (`scripts/check-words.mts`, FAQ, profile, overlay `public/widget.js` labels). 25.1 and 27.1 come after it so they are not rewritten.
 - **Profile header:** 26.1 (`ProfileHeader.tsx`, `ProfileBasicsEditor.tsx`). 26.8 is the admin shell only.
 - **Collection grid:** 26.2, then 26.3 (both touch `CollectionGrid.tsx` and `app/globals.css`).
 - **Activity:** 26.4 (`ProfileTabs.tsx`, `lib/activity.ts`, `lib/trade-notify.ts`).
@@ -164,15 +163,6 @@ Decided 2026-10-19. Do not keep the old glossary.
 - Surfaces: FAQ, `SerialChip`, `editionLine` in `lib/flip-back.ts` (the function keeps its name; the string changes), profile, the leaderboard "Prints" count (it becomes "Editions"), activity, share images, overlay labels in `public/widget.js`, admin labels, `docs/serials.md`.
 - **Not in this PR:** `public/twitch-panel/*`. The panel keeps saying print for a copy until the freeze lifts. Say that in the PR.
 - **Checks:** `scripts/check-words.mts`, `npm run verify`, and a pass of a copy page, a profile and the FAQ. The panel is not loaded.
-
-### 25.3 Collectors page rows, and the Bottomgidds name (Ready, S)
-
-`/collection` (`app/collection/page.tsx`) is the Collectors page (the nav already says Collectors). The list heading is already "Top collectors". Each row shows `{uniqueCards} cards` and the points.
-
-- Row subtitle becomes `{uniqueCards}/{values.totalCards} cards` (24/25). `getSeasonLeaderboardCached` already returns `values.totalCards` (`SeasonValues` in `lib/leaderboard.ts`). The row type does not have its own total; use the season total.
-- In the list header, next to "Full leaderboard", add **Card dex** linking to `/cards`.
-- **Bottomgidds.** The seed card is `name: 'Bottomygidds'` while the file is `/assets/cards/Bottomgidds.webp` (`lib/seed.ts`, card 9). Rename the seed to `Bottomgidds`. That does not rename the live card: production names live in KV. Staff rename card 9 in the pack workspace (user step). No script writes production.
-- **Checks:** `npm run verify`. Home and `/collection` at 1280px and 390px against the mock KV. Search tests for `Bottomygidds` and update the only hit.
 
 ### 26.1 Profile: one Edit profile, and a separate Settings link (Ready, S)
 

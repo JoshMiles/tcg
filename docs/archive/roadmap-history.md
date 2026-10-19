@@ -1186,3 +1186,7 @@ Settings sections, the feedback form and list, and notification day lists use da
 ### 24.4 Clean-up (Done)
 
 Dropped `.tcg-btn` and `.tcg-panel`. Primary page buttons are `btn btn-primary` with a radius utility (`rounded-xl`, `rounded-lg` or `rounded-full`), and the 3D yellow press stays on that combination. A dialog confirm stays a plain `btn btn-primary`. Panels are `card`; the navy surface, blue rim and card shadow live on `card`. House notes updated in `.design-sync/conventions.md`, the Tailwind line in `CLAUDE.md` and `GROK.md`, `docs/admin/ux-conventions.md` and `docs/public-site.md`. The overlay, the Twitch panel, card effects and `Icon` were not changed. Nothing in a frozen area used the two classes, so both are gone.
+
+### 25.3 Collectors page rows, and the Bottomgidds name (Done)
+
+`/collection` rows show `unique/total` cards (the season total) and the list header links to the card dex. The seed card is named Bottomgidds, matching its art file. Production card names live in KV, so the live card is renamed in the pack workspace, not by a script.

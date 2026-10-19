@@ -40,7 +40,7 @@ export const SEED_CARDS: Card[] = [
   { id: 'c6',  number: 6,  name: 'Suitygidds',   imageUrl: '/assets/cards/Suitygidds.webp',    soundUrl: '/assets/sounds/6.mp3',  probability: 7,  stars: 4 },
   { id: 'c7',  number: 7,  name: 'Cringygidds',  imageUrl: '/assets/cards/Cringygidds.webp',   soundUrl: '/assets/sounds/7.mp3',  probability: 7,  stars: 4 },
   { id: 'c8',  number: 8,  name: 'Mysterygidds', imageUrl: '/assets/cards/Mysterygidds.webp',  soundUrl: '/assets/sounds/8.mp3',  probability: 8,  stars: 4 },
-  { id: 'c9',  number: 9,  name: 'Bottomygidds', imageUrl: '/assets/cards/Bottomgidds.webp',   soundUrl: '/assets/sounds/9.mp3',  probability: 15, stars: 3 },
+  { id: 'c9',  number: 9,  name: 'Bottomgidds',  imageUrl: '/assets/cards/Bottomgidds.webp',   soundUrl: '/assets/sounds/9.mp3',  probability: 15, stars: 3 },
   { id: 'c10', number: 10, name: 'Goatlygidds',  imageUrl: '/assets/cards/Goatlygidds.webp',   soundUrl: '/assets/sounds/10.mp3', probability: 25, stars: 3 },
   { id: 'c11', number: 11, name: 'Pokegidds',    imageUrl: '/assets/cards/PokegiddsV2.webp',   soundUrl: '/assets/sounds/11.mp3', probability: 25, stars: 3 },
   { id: 'c12', number: 12, name: 'UWUgidds',     imageUrl: '/assets/cards/UWUgidds.webp',      soundUrl: '/assets/sounds/12.mp3', probability: 11, stars: 3 },
