@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (25.1 shipped: the home block is Card of the week, with the card name, Edition #uid, Print #n of N, who holds it, and a link to its journey. 25.2 shipped: a copy is an edition, Edition #uid is the game-wide id, Print #n of N is the sequence, and the points bonus is the print bonus. The Twitch panel still says print for a copy. The home block is Edition of the week until 25.1. 27.3 shipped: Settings → Achievements can switch a built-in goal off or replace its title and detail. A goal already earned stays. 28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
+Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked **Ready**; **Needs design** or **Needs a decision** goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item. Last updated 2026-10-19 (27.1 shipped: the FAQ jump list and body share one order, Getting started covers follow, subscribe and gift subs plus one paid-pull limit, chat commands include a fixed !pack line, an upgraded edition can be traded, and the print bonus sentence uses the live cutoff. 25.1 shipped: the home block is Card of the week, with the card name, Edition #uid, Print #n of N, who holds it, and a link to its journey. 25.2 shipped: a copy is an edition, Edition #uid is the game-wide id, Print #n of N is the sequence, and the points bonus is the print bonus. The Twitch panel still says print for a copy. The home block is Edition of the week until 25.1. 27.3 shipped: Settings → Achievements can switch a built-in goal off or replace its title and detail. A goal already earned stays. 28.2 shipped: Mix It Up shows a copy-setup block for every switched-on command and for the paid-pull requests. 26.7 shipped: the owner can pick up to 3 showcase prints, and a bare !showoff uses the pin, then that pick, then the best card. 26.6 shipped: the share tab can post its image to a Discord channel, and stays quiet until a Shares webhook is saved. 28.3 shipped: every card-back text element, stacked or free, can pick a font. A stacked element keeps today's face until someone picks one. 27.4 shipped: the print-bonus cutoff default is 40. A saved value is left alone. 26.8 shipped: the admin wordmark opens the dashboard. 26.5 shipped: share images pick My best 1, Top 3, Top 6, Top 9 or Custom. 26.4 shipped: activity rows link to the print or the trade. 26.3 shipped: holo tiles drop the 0.7s wipe and sweep for at least 8 seconds. 26.2 shipped: collection tiles drop the name overlay and use a solid edition chip. 26.1 shipped: one Edit profile in the action row, plus Settings. 25.3 shipped: collectors rows show unique/total and link to the card dex. Limits default to no limit and are editable, plus a this-stream buff for everyone. Stars keep setting the card value. Trainer cards can be traded until used. 24 shipped. Panel freeze still on).
 
 **Status legend:** Ready (the design here is enough to build) · Needs design · Needs a decision (the user chooses) · Blocked (waiting on something outside the repo).
 
@@ -18,7 +18,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 23.2 | Overlay Editor: split the rest | Needs design | M |
 | 4.4 | Link a Discord account for DMs | Needs a decision | L |
 | Ext | Next extension version | Blocked (panel freeze) | L |
-| 27.1 | FAQ pass: cards, commands, trading, points, brackets | Ready | M |
 | 27.5 | An achievement can grant a bonus | Ready (after 30.1) | M |
 | 28.1 | Pull limits per role, editable, plus a this-stream buff | Ready | M |
 | 28.4 | Font control in the Overlay Editor | Ready | M |
@@ -69,7 +68,7 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 
 **Already on the site (do not rebuild):**
 - **Master set.** `evaluateSeason` in `lib/achievements.ts` already awards `master` ("Master set: {season}", own every card in every version). The FAQ already says so (`app/(site)/faq/sections/profile.tsx`, "What are achievements?"). The goal is omitted when every card has only Regular, because it would be the same as Completed. Season 1's pack has upgrades off, so the goal does not show there. Turning versions on is what makes it appear. No new kind.
-- **How are points worked out?** and **Can I see the exact maths for a card?** already exist in `app/(site)/faq/sections/points.tsx`. 27.1 tightens the wording and the bracket spacing. It does not add a second copy of either question.
+- **How are points worked out?** and **Can I see the exact maths for a card?** are in `app/(site)/faq/sections/points.tsx`. The print-bonus sentence uses the live cutoff, and the formula calls have no space inside the brackets. Do not add a second copy of either question.
 - **Pull history on the profile.** The Activity tab lists pulls (card, version, sequence, linked to the print or the card dex), upgrades (linked to the print they made) and accepted trades (linked when the event has a trade id). Admin grants and declined offers stay off it.
 - **Public wordmark.** `SiteNav` links the logo and "The Cheesy TCG" to `/`. The admin sidebar brand and the phone top-bar title link to `/admin`. The mod bar links to `/mod`.
 
@@ -89,16 +88,16 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Collection cards do not need text on hover or along the bottom | Done |
 | Print/edition pill cannot be seen (see-through gold/yellow) | Done |
 | Profile activity should show card pull history as well as trades, click for details | Done |
-| FAQ How do I get cards: follow, subscribe, or gifting subs | 27.1 |
-| New FAQ: is there a limit to how many cards per stream (defaults and bonuses) | 27.1 now, 28.1 when roles exist |
-| Trading before upgrading; under upgrades, can I trade upgraded cards | 27.1 |
-| Chat commands under Getting started; move !pack there; link from How do I get cards | 27.1 |
-| FAQ Points and leaderboard: how are points worked out | 27.1 (question already exists) |
-| "Edition #1 is worth 3x ... until the 40th edition" | Superseded: 27.1 says print #1 ... the 40th print, from the live cutoff. The default cutoff is 40 |
+| FAQ How do I get cards: follow, subscribe, or gifting subs | Done |
+| New FAQ: is there a limit to how many cards per stream (defaults and bonuses) | Done for today's one default; 28.1 rewrites it when roles exist |
+| Trading before upgrading; under upgrades, can I trade upgraded cards | Done |
+| Chat commands under Getting started; move !pack there; link from How do I get cards | Done |
+| FAQ Points and leaderboard: how are points worked out | Done |
+| "Edition #1 is worth 3x ... until the 40th edition" | Done: print #1 through the live cutoff (40th when the cutoff is 40) |
 | Master set achievement: every variant of every card | Already shipped (see above) |
 | Achievement editor? | Done |
-| FAQ: can I see the exact maths for a card | 27.1 (question already exists) |
-| Spacing looks weird on some of the brackets | 27.1 |
+| FAQ: can I see the exact maths for a card | Done |
+| Spacing looks weird on some of the brackets | Done |
 | Cheesy TCG logo goes to the homepage, or the dashboard in admin | Done |
 | Default limits for subscribers, mods, broadcaster, VIPs and regular | 28.1 |
 | !showoff pulls from the user's profile showcase | Done |
@@ -110,8 +109,8 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 ### Tracks 25 to 30: order
 
 Parallel streams, so no two open PRs edit the same files:
-- **Glossary:** 25.2 and 25.1 shipped. 27.1 is next and uses edition and print as 25.2 defines them.
-- **FAQ:** 27.1 after 25.2 (same words).
+- **Glossary:** 25.2, 25.1 and 27.1 shipped.
+- **FAQ:** 27.1 shipped. 28.1 rewrites the per-stream limit answer when role limits exist.
 - **Fonts:** 28.4 is the Overlay Editor and `public/widget.js`. Do not run 28.4 beside 29.1 or 29.4: those also edit `public/widget.js`. Order for that file: 28.4, then 29.1, then 29.4.
 - **Mix It Up:** 28.1 edits `lib/pull-limit-core.ts`. Do not run it beside 30.2.
 - **Variants:** 29.1 (includes the audit and the dry-run script), then 29.4. There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
@@ -119,39 +118,6 @@ Parallel streams, so no two open PRs edit the same files:
 - **Nothing on tracks 25 to 30 is waiting for an answer.** Trainer cards are tradable until used (30.2).
 
 **Twitch panel freeze:** nothing in a Ready item edits `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the behaviour or response shape of `/api/twitch/*`, or the CORS rules in `middleware.ts`. 29.5, 30.4, and the panel's copy of the edition/print words (25.2) are the exceptions and they are blocked.
-
-### 27.1 FAQ pass (Ready, M)
-
-Files: `app/(site)/faq/page.tsx` (the `SECTIONS` jump list and the body order, which already disagree: the body puts commands before show, the jump list puts show before commands), `sections/start.tsx`, `sections/commands.tsx`, `sections/upgrades.tsx`, `sections/points.tsx`. Keep `scripts/check-words.mts` green. Bump nothing legal (no Privacy or Terms change).
-
-**Order**, jump list and body the same:
-
-1. Getting started
-2. Chat commands
-3. Cards & versions
-4. Trading
-5. Upgrading
-6. Your profile
-7. Showing off
-8. Points & leaderboard
-9. Seasons
-10. Twitch extension
-11. Privacy & data
-12. Something not working?
-
-**How do I get cards** (`sections/start.tsx`): follow, subscribe, or gift subs. Remove the `!pack` bullet. In its place, a link to the commands section (`#commands`) for the chat commands. Do not invent how many packs a follow, a sub or a gifted sub gives: keep the line that the exact numbers change by season and stream.
-
-**Commands.** The commands section moves under Getting started (the order above). It keeps the generated list from `getCommands()`. Add a fixed line for `!pack`: it asks the stream to open a pack, and it is set up in Mix It Up rather than in the command builder. `!pack` is not in `COMMAND_ACTIONS` today; do not pretend the builder owns it (28.2 can print a recipe for it later).
-
-**Upgrades.** Add **Can I trade upgraded cards?** Yes. Any edition of any version can be traded, including an upgraded one (`docs/trading.md`, FAQ trading section). A favourite, or an edition already in an offer, cannot. Link to `#trading`. Keep the existing pointer that you can trade duplicates instead of upgrading them. This item comes after 25.2, so it uses edition and print as 25.2 defines them.
-
-**Points sentence.** The bonus is on the print sequence (25.2). Replace the fade sentence with: "Print #1 is worth {serialBonusMax}× and the bonus decreases until the {serialBonusCutoff}th print of that card is created." Use the live settings. Do not hardcode 40 or 3. When the cutoff is 0, keep today's "switched off" sentence. The default cutoff is 40. A saved value is left alone, so this sentence says 40th only after that save, or on an install that has never saved scoring.
-
-**Brackets.** The monospace maths block has a space after `round(` and cramped brackets. Tighten so a function call has no space inside the brackets (`round(10 × rarity × version × print bonus)`) and binary operators keep a single space. Scan the FAQ sections for the same ` ( ` gap inside formulas. The commands line `(or !alias)` is fine.
-
-**Limits, a true sentence for today.** New question under Getting started: **Is there a limit to how many cards I can get per stream?** Today: one default for everyone, set for paid pulls (0 means no limit), plus a personal limit staff can set, plus bonuses staff can grant (`PullBuff` in `lib/pull-limit-core.ts`). Do not describe per-role numbers until 28.1 ships; that PR rewrites this answer.
-
-**Checks:** `scripts/check-words.mts` and `npm run verify`. Read the rendered FAQ at 390px and 1280px, including the maths block.
 
 ### 27.5 An achievement can grant a bonus (Ready after 30.1, M)
 

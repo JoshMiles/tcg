@@ -28,12 +28,17 @@ export function StartSection() {
           In short:
         </p>
         <ul className="list-disc pl-5 space-y-1 marker:text-gray-600 mt-2">
-          <li><strong className="text-white">Follow</strong> and <strong className="text-white">subscribe</strong> to the channel: both are ways to earn packs.</li>
-          <li><strong className="text-white">Use the <code className="text-yellow-300">!pack</code> command</strong> in chat to get a pack opened on stream for you.</li>
+          <li><strong className="text-white">Follow</strong>, <strong className="text-white">subscribe</strong>, or <strong className="text-white">gift subs</strong>: each is a way to earn packs.</li>
         </ul>
+        <p className="mt-2">
+          The chat commands, including how to ask for a pack, are under <a href="#commands" className="text-yellow-400 hover:text-yellow-300">Chat commands</a>.
+        </p>
         <p className="mt-2">
           Exactly how many packs each of these gives can change from season to season and stream to stream, so watch the channel (and its chat commands) for what is running right now.
         </p>
+      </Q>
+      <Q q="Is there a limit to how many cards I can get per stream?">
+        Paid pulls have one default for everyone. 0 means no limit. Staff can set a personal limit for you instead of that default, and they can grant bonuses that add extra pulls until the bonus ends or they remove it. A limit of 0 stays unlimited, and a bonus does not change that.
       </Q>
       <Q q="Where can I see my cards?">
         <ul className="list-disc pl-5 space-y-1 marker:text-gray-600">

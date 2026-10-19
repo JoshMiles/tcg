@@ -14,7 +14,7 @@ export function UpgradesSection({ costs, upgradesOn }: { costs: UpgradeCosts; up
               <li><strong className="text-white">{costs.shiny}</strong> Full Art → 1 <strong className="text-amber-300">Shiny Full Art</strong></li>
             </ul>
             <p className="mt-2">
-              That&rsquo;s {costs.reverse} Regulars for a Reverse Holo, {costs.reverse * costs.full} for a Full Art and {costs.reverse * costs.full * costs.shiny} for a Shiny, counted from Regular prints alone.
+              That&rsquo;s {costs.reverse} Regulars for a Reverse Holo, {costs.reverse * costs.full} for a Full Art and {costs.reverse * costs.full * costs.shiny} for a Shiny, counted from Regular editions alone.
             </p>
           </Q>
           <Q q="Where do I upgrade?">
@@ -38,6 +38,9 @@ export function UpgradesSection({ costs, upgradesOn }: { costs: UpgradeCosts; up
       )}
       <Q q="Can I trade cards with other people?">
         Yes. See <a href="#trading" className="text-yellow-400 hover:text-yellow-300">Trading</a>. You can also trade duplicates for the version you&rsquo;re missing instead of upgrading them.
+      </Q>
+      <Q q="Can I trade upgraded cards?">
+        Yes. Any edition of any version can be traded, including an upgraded one. A favourite, or an edition already in an offer, cannot. See <a href="#trading" className="text-yellow-400 hover:text-yellow-300">Trading</a>.
       </Q>
     </Section>
   );

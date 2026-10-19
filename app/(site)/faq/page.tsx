@@ -27,12 +27,12 @@ export const metadata: Metadata = {
 
 const SECTIONS = [
   { id: 'start', label: 'Getting started' },
+  { id: 'commands', label: 'Chat commands' },
   { id: 'cards', label: 'Cards & versions' },
-  { id: 'upgrades', label: 'Upgrading' },
   { id: 'trading', label: 'Trading' },
+  { id: 'upgrades', label: 'Upgrading' },
   { id: 'profile', label: 'Your profile' },
   { id: 'show', label: 'Showing off' },
-  { id: 'commands', label: 'Chat commands' },
   { id: 'points', label: 'Points & leaderboard' },
   { id: 'seasons', label: 'Seasons' },
   { id: 'extension', label: 'Twitch extension' },
@@ -88,20 +88,20 @@ export default async function FaqPage() {
       {/* ── Getting started ── */}
       <StartSection />
 
+      {/* ── Chat commands ── */}
+      <CommandsSection chatCommands={chatCommands} />
+
       {/* ── Cards & versions ── */}
       <CardsSection pct={pct} upgradesOn={upgradesOn} />
-
-      {/* ── Upgrading ── */}
-      <UpgradesSection costs={costs} upgradesOn={upgradesOn} />
 
       {/* ── Trading ── */}
       <TradingSection trade={trade} />
 
+      {/* ── Upgrading ── */}
+      <UpgradesSection costs={costs} upgradesOn={upgradesOn} />
+
       {/* ── Your profile ── */}
       <ProfileSection />
-
-      {/* ── Chat commands ── */}
-      <CommandsSection chatCommands={chatCommands} />
 
       {/* ── Showing off ── */}
       <ShowSection />
