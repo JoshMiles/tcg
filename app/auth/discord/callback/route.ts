@@ -6,7 +6,6 @@ import {
   isDiscordDmConfigured,
   exchangeDiscordCode,
   getDiscordLink,
-  getTwitchUserByDiscordId,
   saveDiscordLink,
 } from '@/lib/discord-user';
 import { DISCORD_DEFAULT_KINDS } from '@/lib/discord-dm-core';
@@ -52,14 +51,8 @@ export async function GET(req: NextRequest) {
     return fail(req, 'failed');
   }
 
-  // Check if this Discord user is already linked to another Twitch account
-  const existingTwitch = await getTwitchUserByDiscordId(discordUser.id);
-  if (existingTwitch && existingTwitch !== session.username.toLowerCase()) {
-    return fail(req, 'in_use');
-  }
-
   const existingLink = await getDiscordLink(session.username);
-  await saveDiscordLink(session.username, {
+  const saved = await saveDiscordLink(session.username, {
     id: discordUser.id,
     username: discordUser.username,
     avatar: discordUser.avatar ?? null,
@@ -67,6 +60,7 @@ export async function GET(req: NextRequest) {
     dmStatus: 'ok',
     kinds: existingLink?.kinds?.length ? existingLink.kinds : [...DISCORD_DEFAULT_KINDS],
   });
+  if (!saved) return fail(req, 'in_use');
 
   const res = NextResponse.redirect(new URL('/settings?discord=linked#discord', req.url));
   res.cookies.delete(DISCORD_OAUTH_COOKIE);

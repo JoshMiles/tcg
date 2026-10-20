@@ -17,7 +17,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 32.2 | Variant glow and rock CSS regressions | Ready | S |
-| 32.4 | Discord link: relink and one-account claim | Ready | S |
 | 32.5 | New pack flow leftovers | Ready | S |
 | 32.6 | Variant scripts and the Shiny label leftovers (after 32.2) | Ready | S |
 | Ext | Next extension version | Blocked (panel freeze) | L |
@@ -35,10 +34,6 @@ Those PRs were merged without a review. Findings were checked against `main`. On
 - `buildHoloSpecs` (`lib/holo-core.ts`) sets `on: true` when only glow or rock is on, so `holoClass()` adds the default shimmer to a variant whose shimmer is off. Add a separate shimmer flag, used by `holoClass`, while `holoVars` keeps the glow and rock variables.
 - `app/globals.css` (#308) added `.vfx-reverse` to the `!important` glow rule, the rock animation and the `.ug-art` / `.tr-art` rules. That overrides the rarity box shadow on the copy page, Card Dex, `CardDetail` and `PrintOfWeek`. Take `.vfx-reverse` out, restore the old blue and amber glow fallbacks and the 1.6deg Full Art Holo rock, and only animate when `--rock-amt` is set.
 - Add a check: shimmer off with glow on gives `holoClass() === ''`.
-
-### 32.4 Discord link (Ready, S)
-- `saveDiscordLink` (`lib/discord-user.ts`) leaves the old `discord:user:<id>` index when a collector links a different Discord account, so that account can never be linked again. Delete the old index.
-- Claim the index with `set nx` before writing the link, so two collectors cannot link one Discord account. Add a 30 second cooldown on the test DM. Log only the status code of Discord errors.
 
 ### 32.5 New pack flow leftovers (Ready, S)
 - The dashboard "New pack" shortcut (`app/admin/dashboard/widgets.tsx`) still links `/admin/packs/new`, which only redirects. Use `NewPackButton`.
