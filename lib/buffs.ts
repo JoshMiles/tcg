@@ -1,6 +1,6 @@
 import { kv } from './db';
 import { getActiveSeason, getCollection, getPackCards, getPacksForSeason, getSeason, listAllPacks, listSeasons, saveCollection, withCollectionLock, withLock } from './kv';
-import { ACHIEVEMENT_KINDS } from './achievement-settings';
+import { ACHIEVEMENT_KINDS, getCustomGoals } from './achievement-settings';
 import {
   consumeBuffPull, describeBuffDef, extraPackCreditsLeft, normalizeBuffDef, applyBuffToList, totalExtraPullsFromBuffs,
   type ActiveBuff, type BuffDef, type BuffEvalContext, type BuffUsage,
@@ -94,6 +94,9 @@ export async function findBuffUsage(buffId: string): Promise<BuffUsage> {
         }
       }
     }
+  } catch { /* ignore */ }
+  try {
+    for (const g of await getCustomGoals()) if (g.buffId === buffId) achievements.push({ kind: `custom-${g.id}`, label: g.title });
   } catch { /* ignore */ }
 
   return { cards, achievements };

@@ -602,6 +602,12 @@ export async function tradeCountsByUser(): Promise<Record<string, { total: numbe
   return out;
 }
 
+/** How many accepted trades (either side, every season, in the kept history) a viewer has been part of. Counted like `completed` above. */
+export async function completedTradeCount(username: string): Promise<number> {
+  const user = username.toLowerCase();
+  return (await readHistory()).filter(t => t.status === 'accepted' && (t.from === user || (t.to ?? t.resolvedBy) === user)).length;
+}
+
 // ── admin bulk controls ───────────────────────────────────
 
 /** Cancels (and refunds) every open offer that matches, in one locked pass. Returns how many ended. */

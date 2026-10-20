@@ -196,7 +196,7 @@ export function BuffEditorClient({
                           {u.achievements.map(a => (
                             <Link
                               key={a.kind}
-                              href="/admin/settings?tab=achievements"
+                              href="/admin/achievements"
                               className="inline-flex items-center gap-1 rounded-md border border-gray-800 bg-gray-900/70 px-2 py-0.5 text-xs text-amber-300 hover:border-amber-500/40"
                             >
                               <Icon name="trophy" className="w-3 h-3" />
