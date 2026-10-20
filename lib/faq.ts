@@ -3,6 +3,7 @@ import {
   DEFAULT_FAQ_SECTIONS,
   getDefaultFaqStore,
   normalizeFaqStore,
+  type FaqOverride,
   type FaqQuestion,
   type FaqSectionMeta,
   type FaqStoreData,
@@ -27,6 +28,14 @@ export async function resetFaqStore(): Promise<FaqStoreData> {
   const defaults = getDefaultFaqStore();
   await kv.set(FAQ_KV_KEY, defaults);
   return defaults;
+}
+
+/** Sets a built-in question's override (null clears it, so the question shows its built-in text again). */
+export async function setFaqOverride(id: string, override: FaqOverride | null): Promise<void> {
+  const store = await getFaqStore();
+  if (override) store.overrides[id] = override;
+  else delete store.overrides[id];
+  await saveFaqStore(store);
 }
 
 /** Finds a custom question by ID. */

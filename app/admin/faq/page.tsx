@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getFaqStore } from '@/lib/faq';
 import { Icon } from '@/app/components/Icon';
+import { getFaqContext } from '@/app/(site)/faq/context';
 import { PageHeader, Tile } from '../components/ui';
 import { FaqEditorClient } from './FaqEditorClient';
 
@@ -8,7 +9,7 @@ export const metadata = { title: 'FAQ Editor · Admin', robots: { index: false }
 export const dynamic = 'force-dynamic';
 
 export default async function FaqAdminPage() {
-  const store = await getFaqStore();
+  const [store, { values }] = await Promise.all([getFaqStore(), getFaqContext()]);
   const visibleSections = store.sections.filter(s => !s.hidden).length;
 
   return (
@@ -35,7 +36,7 @@ export default async function FaqAdminPage() {
         <Tile label="Active questions" value={store.questions.filter(q => q.enabled).length} sub="Published to /faq" icon="checkCircle" tone="green" />
       </div>
 
-      <FaqEditorClient store={store} />
+      <FaqEditorClient store={store} values={values} />
     </div>
   );
 }

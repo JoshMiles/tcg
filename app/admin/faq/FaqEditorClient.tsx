@@ -1,19 +1,21 @@
 'use client';
 
-import { useState, useTransition, type ReactNode } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { Icon, type IconName } from '@/app/components/Icon';
 import {
   DEFAULT_FAQ_SECTIONS,
-  parseFaqAnswerBlocks,
-  parseInlineTokens,
+  FAQ_BLOCK_NAMES,
+  findFaqProblems,
   QUESTION_ANSWER_MAX,
   QUESTION_TITLE_MAX,
   SECTION_TITLE_MAX,
   type FaqQuestion,
-  type FaqSectionMeta,
   type FaqStoreData,
+  type FaqValues,
 } from '@/lib/faq-core';
+import { FAQ_BUILTINS, type FaqBuiltin } from '@/lib/faq-builtins';
+import { FaqAnswer } from '@/app/(site)/faq/parts';
 import { ArmedButton } from '../components/ArmedButton';
 import {
   Chip,
@@ -31,6 +33,9 @@ import {
   reorderFaqQuestionsAction,
   reorderFaqSectionsAction,
   resetFaqAction,
+  resetFaqBuiltinAction,
+  saveFaqBuiltinAction,
+  setFaqBuiltinHiddenAction,
   toggleFaqSectionAction,
   updateFaqQuestionAction,
 } from '../faq-actions';
@@ -55,54 +60,22 @@ const EMPTY_QUESTION_FORM: QuestionFormData = {
   enabled: true,
 };
 
-function AnswerPreview({ answer }: { answer: string }) {
-  const blocks = parseFaqAnswerBlocks(answer);
-  if (!blocks.length) {
+function AnswerPreview({ answer, values }: { answer: string; values: FaqValues }) {
+  if (!answer.trim()) {
     return <p className="text-gray-500 italic text-xs">Preview will appear here...</p>;
   }
-
   return (
-    <div className="space-y-2 text-xs text-gray-300 leading-relaxed">
-      {blocks.map((block, i) => {
-        if (block.type === 'ul') {
-          return (
-            <ul key={i} className="list-disc pl-4 space-y-1 marker:text-gray-600">
-              {block.items.map((item, j) => (
-                <li key={j}>{renderTokens(item)}</li>
-              ))}
-            </ul>
-          );
-        }
-        return <p key={i}>{renderTokens(block.text)}</p>;
-      })}
+    <div className="text-xs text-gray-300 leading-relaxed">
+      <FaqAnswer
+        answer={answer}
+        values={values}
+        renderBlock={name => <span className="inline-block rounded bg-gray-800 px-2 py-0.5 text-gray-400">Live block: {name}</span>}
+      />
     </div>
   );
 }
 
-function renderTokens(text: string): ReactNode {
-  const tokens = parseInlineTokens(text);
-  return tokens.map((t, idx) => {
-    if (t.type === 'bold') {
-      return <strong key={idx} className="text-white font-semibold">{t.content}</strong>;
-    }
-    if (t.type === 'link') {
-      return (
-        <a
-          key={idx}
-          href={t.href}
-          target={t.href.startsWith('http') ? '_blank' : undefined}
-          rel={t.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-          className="text-yellow-400 hover:text-yellow-300 underline"
-        >
-          {t.content}
-        </a>
-      );
-    }
-    return t.content;
-  });
-}
-
-export function FaqEditorClient({ store }: { store: FaqStoreData }) {
+export function FaqEditorClient({ store, values }: { store: FaqStoreData; values: FaqValues }) {
   const [activeTab, setActiveTab] = useState<'questions' | 'sections'>('questions');
   const [selectedSectionFilter, setSelectedSectionFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,6 +85,7 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
 
   // Question editing modal state
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [editingBuiltin, setEditingBuiltin] = useState<FaqBuiltin | null>(null);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [questionForm, setQuestionForm] = useState<QuestionFormData>(EMPTY_QUESTION_FORM);
 
@@ -123,6 +97,7 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
 
   function openCreateQuestion(defaultSectionId?: string) {
     setEditingQuestionId(null);
+    setEditingBuiltin(null);
     setQuestionForm({
       ...EMPTY_QUESTION_FORM,
       sectionId: defaultSectionId || store.sections[0]?.id || 'start',
@@ -131,7 +106,30 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
     setIsQuestionModalOpen(true);
   }
 
+  function openEditBuiltin(b: FaqBuiltin) {
+    const o = store.overrides[b.id];
+    setEditingQuestionId(null);
+    setEditingBuiltin(b);
+    setQuestionForm({ sectionId: b.sectionId, question: o?.question ?? b.question, answer: o?.answer ?? b.answer, enabled: true });
+    setError('');
+    setIsQuestionModalOpen(true);
+  }
+
+  function runBuiltin(run: () => Promise<{ ok: boolean; message?: string }>, done: string) {
+    setError('');
+    setNotice('');
+    startTransition(async () => {
+      const res = await run();
+      if (!res.ok) {
+        setError(res.message ?? 'Something went wrong.');
+        return;
+      }
+      setNotice(done);
+    });
+  }
+
   function openEditQuestion(q: FaqQuestion) {
+    setEditingBuiltin(null);
     setEditingQuestionId(q.id);
     setQuestionForm({
       sectionId: q.sectionId,
@@ -154,16 +152,18 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
         enabled: questionForm.enabled,
       };
 
-      const res = editingQuestionId
-        ? await updateFaqQuestionAction(editingQuestionId, payload)
-        : await createFaqQuestionAction(payload);
+      const res = editingBuiltin
+        ? await saveFaqBuiltinAction(editingBuiltin.id, { question: payload.question, answer: payload.answer })
+        : editingQuestionId
+          ? await updateFaqQuestionAction(editingQuestionId, payload)
+          : await createFaqQuestionAction(payload);
 
       if (!res.ok) {
         setError(res.message);
         return;
       }
 
-      setNotice(editingQuestionId ? 'Question updated.' : 'Question created.');
+      setNotice(editingBuiltin || editingQuestionId ?'Question updated.' : 'Question created.');
       setIsQuestionModalOpen(false);
     });
   }
@@ -393,7 +393,14 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
             .filter(s => selectedSectionFilter === 'all' || s.id === selectedSectionFilter)
             .map(section => {
               const sectionQuestions = filteredQuestions.filter(q => q.sectionId === section.id);
-              if (selectedSectionFilter === 'all' && searchQuery && sectionQuestions.length === 0) {
+              const term = searchQuery.trim().toLowerCase();
+              const sectionBuiltins = FAQ_BUILTINS.filter(b => {
+                if (b.sectionId !== section.id) return false;
+                if (!term) return true;
+                const o = store.overrides[b.id];
+                return `${o?.question ?? b.question} ${o?.answer ?? b.answer} ${b.id}`.toLowerCase().includes(term);
+              });
+              if (selectedSectionFilter === 'all' && searchQuery && sectionQuestions.length === 0 && sectionBuiltins.length === 0) {
                 return null;
               }
 
@@ -418,9 +425,53 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
                     </button>
                   }
                 >
-                  {section.builtin && (
-                    <div className="text-xs text-gray-500 bg-gray-900/50 rounded-lg p-2.5 border border-gray-800/80 mb-2">
-                      <span className="text-gray-400 font-medium">Built-in section:</span> contains standard questions in code. Custom questions added here render directly alongside them on the live page.
+                  {sectionBuiltins.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {sectionBuiltins.map(b => {
+                        const o = store.overrides[b.id];
+                        const edited = !!(o?.question || o?.answer);
+                        const problems = findFaqProblems(o?.answer ?? b.answer, values);
+                        return (
+                          <div key={b.id} className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 p-3 rounded-xl bg-gray-900/50 border border-gray-800">
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold text-white text-sm">{o?.question ?? b.question}</span>
+                                <Chip tone="gray">Built-in</Chip>
+                                {edited && <Chip tone="purple">Edited</Chip>}
+                                {o?.hidden && <Chip tone="amber">Hidden</Chip>}
+                                {b.when && <Chip tone="gray">{b.when === 'no_upgrades' ? 'Only without upgrades' : b.when === 'upgrades' ? 'Only with upgrades' : 'Only with card values'}</Chip>}
+                                {problems.placeholders.length + problems.blocks.length > 0 && <Chip tone="amber">Unknown placeholder</Chip>}
+                                <span className="text-xs text-gray-500 font-mono">#{b.id}</span>
+                              </div>
+                              <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{o?.answer ?? b.answer}</p>
+                            </div>
+                            <div className="shrink-0 flex items-center gap-1 self-end sm:self-center">
+                              <button type="button" disabled={pending} onClick={() => openEditBuiltin(b)} className="btn btn-ghost btn-xs text-yellow-400 hover:text-yellow-300">
+                                <Icon name="pencil" /> Edit
+                              </button>
+                              <button
+                                type="button"
+                                disabled={pending}
+                                onClick={() => runBuiltin(() => setFaqBuiltinHiddenAction(b.id, !o?.hidden), o?.hidden ? 'Question shown.' : 'Question hidden.')}
+                                className="btn btn-ghost btn-xs text-gray-300"
+                              >
+                                <Icon name="eye" /> {o?.hidden ? 'Show' : 'Hide'}
+                              </button>
+                              {edited && (
+                                <ArmedButton
+                                  disabled={pending}
+                                  onConfirm={() => runBuiltin(() => resetFaqBuiltinAction(b.id), 'Question reset to the built-in text.')}
+                                  armedLabel="Sure?"
+                                  className="btn btn-ghost btn-xs text-gray-400 hover:text-red-400"
+                                  title="Reset to built-in"
+                                >
+                                  Reset to built-in
+                                </ArmedButton>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -587,7 +638,7 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Icon name="help" className="text-yellow-400" />
-                {editingQuestionId ? 'Edit Question' : 'Add Question'}
+                {editingBuiltin ? 'Edit Built-in Question' : editingQuestionId ? 'Edit Question' : 'Add Question'}
               </h3>
               <button
                 type="button"
@@ -602,6 +653,7 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
               <div>
                 <label className="text-xs font-semibold text-gray-400 mb-1 block">Target section</label>
                 <select
+                  disabled={!!editingBuiltin}
                   value={questionForm.sectionId}
                   onChange={e => setQuestionForm(prev => ({ ...prev, sectionId: e.target.value }))}
                   className={selectClass}
@@ -633,7 +685,7 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
                   Answer ({questionForm.answer.length}/{QUESTION_ANSWER_MAX})
                 </label>
                 <p className="text-[11px] text-gray-500 mb-2">
-                  Supports paragraphs, bullet lists (<code className="text-yellow-400">- item</code>), bold (<code className="text-yellow-400">**bold**</code>), and links (<code className="text-yellow-400">[label](url)</code>).
+                  Supports paragraphs, bullet lists (<code className="text-yellow-400">- item</code>), bold (<code className="text-yellow-400">**bold**</code>), italic (<code className="text-yellow-400">*italic*</code>), code (<code className="text-yellow-400">`code`</code>) and links (<code className="text-yellow-400">[label](url)</code>). A <code className="text-yellow-400">{'{name}'}</code> is replaced by today&apos;s value; a line that is only <code className="text-yellow-400">{'{{block}}'}</code> shows a live block. See the reference below.
                 </p>
                 <textarea
                   rows={6}
@@ -650,10 +702,17 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
                 <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold block">
                   Live Preview
                 </span>
-                <AnswerPreview answer={questionForm.answer} />
+                <AnswerPreview answer={questionForm.answer} values={values} />
               </div>
+              {(() => {
+                const p = findFaqProblems(`${questionForm.question}\n${questionForm.answer}`, values);
+                const bad = [...p.placeholders.map(x => `{${x}}`), ...p.blocks.map(x => `{{${x}}}`)];
+                return bad.length > 0 ? (
+                  <p className="text-xs text-amber-400">Unknown, shown as typed: {bad.join(', ')}</p>
+                ) : null;
+              })()}
 
-              <div className="flex items-center gap-2 pt-1">
+              <div className={`flex items-center gap-2 pt-1 ${editingBuiltin ? 'hidden' : ''}`}>
                 <input
                   type="checkbox"
                   id="enabled-toggle"
@@ -773,6 +832,20 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
         </div>
       )}
 
+      {/* ── PLACEHOLDER REFERENCE ── */}
+      <details className="rounded-xl border border-gray-800 bg-gray-900/50 p-3 text-xs text-gray-400">
+        <summary className="cursor-pointer font-semibold text-gray-300">Placeholders and live blocks</summary>
+        <p className="mt-2">Write a placeholder as <code className="text-yellow-400">{'{name}'}</code> in any question or answer; it is replaced by the value shown here when the page loads. Put a block on a line of its own.</p>
+        <ul className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2">
+          {Object.entries(values).map(([k, v]) => (
+            <li key={k} className="min-w-0 truncate"><code className="text-yellow-400">{`{${k}}`}</code> <span className="text-gray-500">{v || '(empty right now)'}</span></li>
+          ))}
+        </ul>
+        <p className="mt-2">Blocks: {FAQ_BLOCK_NAMES.map(n => <code key={n} className="text-yellow-400 mr-2">{`{{${n}}}`}</code>)}</p>
+      </details>
+
+      <p className="text-xs text-gray-500">Privacy and Terms are legal pages and are not edited here.</p>
+
       {/* ── FOOTER ACTIONS ── */}
       <div className="pt-6 border-t border-gray-800 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500">
         <div>
@@ -780,7 +853,7 @@ export function FaqEditorClient({ store }: { store: FaqStoreData }) {
           <ArmedButton
             disabled={pending}
             onConfirm={handleResetFaq}
-            armedLabel="Sure? Clears custom FAQ"
+            armedLabel="Sure? Clears custom questions and built-in edits"
             className="btn btn-ghost btn-xs text-gray-400 hover:text-red-400"
           >
             Reset FAQ to defaults
