@@ -58,7 +58,7 @@ export function FeedbackInbox({ items, base, kind, status, viewerHref, canDelete
                     <details className="rounded-xl border border-red-500/30 bg-red-950/10 p-3">
                       <summary className="cursor-pointer text-sm font-bold text-red-300">Delete this viewer…</summary>
                       <form action={deleteViewerForRequestAction.bind(null, i.id)} className="mt-3 space-y-2">
-                        <p className="text-gray-300">Deletes @{i.user}: collection (their prints are retired), profile, settings, notices, alert devices, feedback and watch alerts. Their open offers are cancelled first. A restore point is kept for 14 days. This cannot be undone from the site.</p>
+                        <p className="text-gray-300">Deletes @{i.user}: collection (their editions are retired), profile, settings, notices, alert devices, feedback and watch alerts. Their open offers are cancelled first. A restore point is kept for 14 days. This cannot be undone from the site.</p>
                         <PendingButton pendingLabel="Deleting…" className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500">Delete @{i.user} for good</PendingButton>
                       </form>
                     </details>

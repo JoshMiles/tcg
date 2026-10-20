@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
   const wanted = (await getUserSettings(username)).wanted;
   // The serial numbers they hold (the newest move first in a trade), so the composer can price the bonuses.
   const pool = poolOf((await loadSerialIndex(season.collectionName))?.held.get(username));
-  // Their exact prints (id, edition, print number) by collection entry, so a direct offer can ask for one; {} while prints are not numbered.
+  // Their exact prints (id, edition, edition number) by collection entry, so a direct offer can ask for one; {} while prints are not numbered.
   const prints = await getPrintPool(season, username);
   return NextResponse.json({ username, holdings, wanted, pool, prints }, { headers: NO_STORE });
 }

@@ -8,7 +8,7 @@ export type PrintSearch =
   | { kind: 'uid'; uid: number }
   | { kind: 'text'; text: string };
 
-/** A typed search: a print number ("#1023381" or "1023381"), or free text (a login or a card name, decided by the page). */
+/** A typed search: a serial number ("#1023381" or "1023381"), or free text (a login or a card name, decided by the page). */
 export function parsePrintSearch(raw: string | undefined): PrintSearch {
   const q = (raw ?? '').trim().slice(0, 60);
   if (!q) return { kind: 'none' };

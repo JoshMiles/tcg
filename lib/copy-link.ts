@@ -6,7 +6,7 @@ import type { Variant } from './types';
 type EventLike = { type: string; uid?: number; copyId?: string; serial?: number; variant?: Variant; cardNumber?: number };
 
 /**
- * The page of the print an activity event made: `/c/<print number>` when the event carries one; for older pull events that only have
+ * The page of the print an activity event made: `/c/<edition number>` when the event carries one; for older pull events that only have
  * an edition (`serial`) the print's id is derived (`<card>.<version index>.<n>`) and opened as `/copy/<season>/<id>`; otherwise null
  * (the caller falls back to the card dex link). The season id is the one the event's collection belongs to.
  */

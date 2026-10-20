@@ -220,7 +220,7 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
         values.length === 0 ? <p className="card rounded-2xl p-8 text-center text-sm text-gray-500">No active season, so there are no cards to value.</p> : (
           <section className="card rounded-2xl p-5 space-y-3">
             <p className="text-xs text-gray-500 leading-relaxed">
-              Points per edition = base × <strong className="text-gray-400">rarity</strong> (how unlikely the card is to be pulled) × the variant multiplier. These are the base values: an edition with a low print number (see Settings → Scoring) is worth more.
+              Points per edition = base × <strong className="text-gray-400">rarity</strong> (how unlikely the card is to be pulled) × the variant multiplier. These are the base values: an edition with a low edition number (see Settings → Scoring) is worth more.
             </p>
             <div className="overflow-x-auto">
               <table className="table table-xs w-full text-xs">

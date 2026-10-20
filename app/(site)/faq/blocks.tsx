@@ -46,9 +46,9 @@ function Rarities() {
 function PointsFormula({ scoring }: FaqBlockData) {
   return (
     <p className="font-mono text-[12px] text-gray-300 leading-relaxed">
-      points = max(1, round({scoring.baseScore} × rarity × version × print bonus))<br />
+      points = max(1, round({scoring.baseScore} × rarity × version × edition bonus))<br />
       rarity = (1 ÷ (pull chance × cards in the season)) ^ {scoring.rarityExponent}<br />
-      print bonus = 1 + ({scoring.serialBonusMax} − 1) × (1 − (print − 1) ÷ {scoring.serialBonusCutoff}) for print 1 to {scoring.serialBonusCutoff}, otherwise 1<br />
+      edition bonus = 1 + ({scoring.serialBonusMax} − 1) × (1 − (edition − 1) ÷ {scoring.serialBonusCutoff}) for edition 1 to {scoring.serialBonusCutoff}, otherwise 1<br />
       version = max(Regular weight ÷ version weight, previous version × upgrade cost × {scoring.upgradeMargin})
     </p>
   );

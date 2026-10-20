@@ -10,7 +10,7 @@ export type BackSize = (typeof SIZES)[number];
 export const ELEMENTS = ['number', 'edition', 'name', 'date', 'origin', 'history', 'qr'] as const;
 export type BackElement = (typeof ELEMENTS)[number];
 export const ELEMENT_LABELS: Record<BackElement, string> = {
-  number: 'Print number', edition: 'Edition line', name: 'Name line', date: 'Date', origin: 'Origin and holder', history: 'History', qr: 'QR code',
+  number: 'Edition number', edition: 'Edition line', name: 'Name line', date: 'Date', origin: 'Origin and holder', history: 'History', qr: 'QR code',
 };
 
 export const BACKGROUNDS = ['steel', 'solid', 'gradient'] as const;

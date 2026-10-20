@@ -17,10 +17,10 @@ export interface ViewState { show: ShowFilter; q: string; stars: number; pack: s
 export const DEFAULT_VIEW: ViewState = { show: 'default', q: '', stars: 0, pack: '', sort: 'number', dir: 1 };
 
 export const SHOW_LABELS: Record<ShowFilter, string> = {
-  default: 'Collected', all: 'Everything', owned: 'Collected', missing: 'Still missing', dupes: 'Duplicates (2+ prints)', versions: 'Special versions',
+  default: 'Collected', all: 'Everything', owned: 'Collected', missing: 'Still missing', dupes: 'Duplicates (2+ editions)', versions: 'Special versions',
   theyHave: 'They have, I lack', iHave: 'I have, they lack', shared: 'We both have',
 };
-export const SORT_LABELS: Record<SortKey, string> = { number: 'Card number', rarity: 'Rarity', value: 'Points', copies: 'Prints', name: 'Name' };
+export const SORT_LABELS: Record<SortKey, string> = { number: 'Card number', rarity: 'Rarity', value: 'Points', copies: 'Editions', name: 'Name' };
 
 export const copiesOf = (c: VariantCounts) => VARIANTS.reduce((s, v) => s + c[v], 0);
 export const pointsOf = (c: ViewCard) => VARIANTS.reduce((s, v) => s + c.counts[v] * c.values[v], 0) + (c.serial?.points ?? 0);

@@ -7,7 +7,7 @@ import { saveShowcaseAction } from './actions';
 
 export interface ShowcaseChoice { uid: number; name: string; thumb: string; tag?: string }
 
-/** Owner-only: pick up to 3 prints for the Showcase widget. */
+/** Owner-only: pick up to 3 editions for the Showcase widget. */
 export function ShowcaseEditor({ candidates, selected }: { candidates: ShowcaseChoice[]; selected: number[] }) {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState(selected);

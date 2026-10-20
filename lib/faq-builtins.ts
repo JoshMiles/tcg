@@ -29,7 +29,7 @@ export const FAQ_BUILTINS: FaqBuiltin[] = [
   {
     id: 'not-nfts', sectionId: 'start',
     question: 'Are the cards NFTs or worth real money?',
-    answer: `No. The cards are **virtual trading cards for fun**: entries in this game’s own database, not NFTs, tokens, crypto or anything on a blockchain. They aren’t assets or property, have no cash value, and can’t be bought, sold or cashed out, here or anywhere else. Edition numbers and rarities are just part of the game. If anyone offers to sell you our cards, or to “mint” them, it isn’t us. See the [Terms](/terms).`,
+    answer: `No. The cards are **virtual trading cards for fun**: entries in this game’s own database, not NFTs, tokens, crypto or anything on a blockchain. They aren’t assets or property, have no cash value, and can’t be bought, sold or cashed out, here or anywhere else. Serial numbers and rarities are just part of the game. If anyone offers to sell you our cards, or to “mint” them, it isn’t us. See the [Terms](/terms).`,
   },
   {
     id: 'where-to-play', sectionId: 'start',
@@ -122,8 +122,8 @@ Rarer cards are pulled less often and are worth more points. The [Card dex](/car
   },
   {
     id: 'serials', sectionId: 'cards', open: true, anchors: ['prints'],
-    question: 'What are editions, edition numbers and prints?',
-    answer: `Every card you own is an **edition**, and every edition has two numbers. Its **edition number** (like Edition #1023381) is different for every edition in the whole game and is how you refer to it: type it in the search box or open \`/p/1023381\`. Its **print number** is counted per card and per version of that card, and is the one that earns the print bonus. For example, your Full Art Holo Gouda Goat print #3 is the third Full Art Holo Gouda Goat drawn. Open a card in your collection to see your editions, and press one to see its page and its journey: who pulled it, who has held it and for how long, and where it has been traded or forged in an upgrade. Editions that existed before prints were numbered were numbered afterwards, so their order is an estimate (shown with a ~). On an edition’s page and in your card details the card can be turned over: move the pointer over it to tilt it, then tap it or press *Flip* to see the engraved back with the edition number and the date. When you upgrade, the spent editions are retired and the new edition remembers what it was made from.`,
+    question: 'What are editions and serial numbers?',
+    answer: `Every card you own is an **edition**, and every edition has two numbers. Its **serial number** (like Serial #1023381) is different for every edition in the whole game and is how you refer to it: type it in the search box or open \`/p/1023381\`. Its **edition number** is counted per card and per version of that card, and is the one that earns the edition bonus. For example, your Full Art Holo Gouda Goat edition #3 is the third Full Art Holo Gouda Goat drawn. Open a card in your collection to see your editions, and press one to see its page and its journey: who pulled it, who has held it and for how long, and where it has been traded or forged in an upgrade. Editions that existed before editions were numbered were numbered afterwards, so their order is an estimate (shown with a ~). On an edition’s page and in your card details the card can be turned over: move the pointer over it to tilt it, then tap it or press *Flip* to see the engraved back with the serial number and the date. When you upgrade, the spent editions are retired and the new edition remembers what it was made from.`,
   },
   {
     id: 'trainer-cards', sectionId: 'cards',
@@ -185,7 +185,7 @@ When someone accepts, the swap happens instantly and both collections update. Th
   {
     id: 'which-editions', sectionId: 'trading',
     question: 'Which of my editions get traded?',
-    answer: `Unless you choose, trades move your **newest** editions of a card first, so the low print numbers you pulled earliest stay with you. If you hold more editions of a card than the trade needs, **Choose editions** in the offer lets you tick exactly which ones to give (a warning appears for Print #1 and editions that earn a print bonus). You can ask for a specific edition of someone’s when you offer them a trade directly, and when you take a listing or accept an offer that asks for a card you have spares of, you pick which of yours to hand over before the final tap. See [editions and prints](#serials).`,
+    answer: `Unless you choose, trades move your **newest** editions of a card first, so the low edition numbers you pulled earliest stay with you. If you hold more editions of a card than the trade needs, **Choose editions** in the offer lets you tick exactly which ones to give (a warning appears for Edition #1 and editions that earn a edition bonus). You can ask for a specific edition of someone’s when you offer them a trade directly, and when you take a listing or accept an offer that asks for a card you have spares of, you pick which of yours to hand over before the final tap. See [editions and prints](#serials).`,
   },
   {
     id: 'protect-edition', sectionId: 'trading',
@@ -195,7 +195,7 @@ When someone accepts, the swap happens instantly and both collections update. Th
   {
     id: 'fair-trade', sectionId: 'trading',
     question: 'Is a trade fair? How do I know what a card is worth?',
-    answer: `Every offer shows the approximate points on each side, using today’s card values (see [Points & leaderboard](#points)). It’s a guide, not a rule. You can trade anything for anything. Remember that an edition’s print number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.`,
+    answer: `Every offer shows the approximate points on each side, using today’s card values (see [Points & leaderboard](#points)). It’s a guide, not a rule. You can trade anything for anything. Remember that an edition’s edition number goes with it, so a low number is worth more to whoever holds it, and the person giving up a rare version may care about more than the points.`,
   },
   {
     id: 'listing-alerts', sectionId: 'trading',
@@ -274,7 +274,7 @@ That’s {cost_reverse} Regulars for a Reverse Holo, {regulars_for_full} for a F
   {
     id: 'achievements', sectionId: 'profile',
     question: 'What are achievements?',
-    answer: `Goals for collecting. They show on your profile and are earned per season, for example **Completed Season 1** (one of every card), **All Common**, **All Rare** and so on for each rarity, **All Reverse Holo**, **All Full Art**, **All Shiny** and the **Master set** (every card in every version). There are goals about print numbers too: **First print** (hold print #1 of any card), **First shiny print**, **Five firsts** (print #1 of five different cards) and **Early bird** (an edition with a low enough print number to earn the print bonus). Your profile also shows how close you are to the next ones. Once you earn an achievement it is yours to keep, even if you later trade cards away. They are different from *awards*, which are the prizes given for finishing high on a season’s leaderboard.`,
+    answer: `Goals for collecting. They show on your profile and are earned per season, for example **Completed Season 1** (one of every card), **All Common**, **All Rare** and so on for each rarity, **All Reverse Holo**, **All Full Art**, **All Shiny** and the **Master set** (every card in every version). There are goals about edition numbers too: **First edition** (hold edition #1 of any card), **First shiny edition**, **Five firsts** (edition #1 of five different cards) and **Early bird** (an edition with a low enough edition number to earn the edition bonus). Your profile also shows how close you are to the next ones. Once you earn an achievement it is yours to keep, even if you later trade cards away. They are different from *awards*, which are the prizes given for finishing high on a season’s leaderboard.`,
   },
   {
     id: 'share-image', sectionId: 'profile',
@@ -296,15 +296,15 @@ That’s {cost_reverse} Regulars for a Reverse Holo, {regulars_for_full} for a F
   {
     id: 'show-off-cards', sectionId: 'show', open: true,
     question: 'How do I show off my cards?',
-    answer: `- **Share** on a profile has the link and a quick picture of that collector's best cards, with their version and print number, plus rank and progress. On your own profile, the **Share** tab lets you choose a theme, a post or story shape, a stats poster, and exactly which cards go in.
+    answer: `- **Share** on a profile has the link and a quick picture of that collector's best cards, with their version and edition number, plus rank and progress. On your own profile, the **Share** tab lets you choose a theme, a post or story shape, a stats poster, and exactly which cards go in.
 - **Share my stats** on My Stats makes a picture of your rank and score, a few key figures (cards, editions, best edition, rarest edition, trades) and your three most valuable editions.
-- **Share this card** on a card in the Card Dex, or on an edition’s own page, makes a picture of that one card. On an edition’s page you can pick a theme and shape, and the picture carries a slim engraved plate with its edition number and a QR code.
+- **Share this card** on a card in the Card Dex, or on an edition’s own page, makes a picture of that one card. On an edition’s page you can pick a theme and shape, and the picture carries a slim engraved plate with its serial number and a QR code.
 - The **Share** button on your profile copies its link, so anyone can open it.`,
   },
   {
     id: 'show-on-stream', sectionId: 'show',
     question: 'Can I show a card on stream?',
-    answer: `Yes, when {channel} is live you can use the show-off command in chat and your card appears on the stream with its version and print number. Name the card (or its number) and, if you like, the version first, for example *shiny gouda goat*; with nothing after the command it shows your most valuable card. You can only show cards you own, and once every {showoff_cooldown} seconds. If the card has more than one match, be a little more specific.`,
+    answer: `Yes, when {channel} is live you can use the show-off command in chat and your card appears on the stream with its version and edition number. Name the card (or its number) and, if you like, the version first, for example *shiny gouda goat*; with nothing after the command it shows your most valuable card. You can only show cards you own, and once every {showoff_cooldown} seconds. If the card has more than one match, be a little more specific.`,
   },
   {
     id: 'download-pictures', sectionId: 'show',
@@ -324,12 +324,12 @@ That’s {cost_reverse} Regulars for a Reverse Holo, {regulars_for_full} for a F
   {
     id: 'card-of-the-week', sectionId: 'show',
     question: 'How is the card of the week chosen?',
-    answer: `Every Sunday evening the game looks through the active season’s editions and features the one with the most interesting journey on the home page. An edition earns points for each different collector who has held it, each completed trade it went through, being print #1, being a Shiny or Full Art, its age (up to 8 weeks) and being forged in an upgrade. The highest score wins, an edition is not picked again for 8 weeks, and editions sitting in a trade offer are skipped. Press *See its journey* to read the whole story. If the featured edition is spent in an upgrade or removed, the section disappears until the next pick.`,
+    answer: `Every Sunday evening the game looks through the active season’s editions and features the one with the most interesting journey on the home page. An edition earns points for each different collector who has held it, each completed trade it went through, being edition #1, being a Shiny or Full Art, its age (up to 8 weeks) and being forged in an upgrade. The highest score wins, an edition is not picked again for 8 weeks, and editions sitting in a trade offer are skipped. Press *See its journey* to read the whole story. If the featured edition is spent in an upgrade or removed, the section disappears until the next pick.`,
   },
   {
     id: 'pin-edition', sectionId: 'show',
     question: 'Can I show off one special edition on my profile?',
-    answer: `Yes. Open one of your editions (click its number in your card details) and press **Pin to my profile**. It appears as a card on your profile that visitors can flip over to see its engraved edition number, and you can share a picture of it. If you trade the edition away it stops being shown.`,
+    answer: `Yes. Open one of your editions (click its number in your card details) and press **Pin to my profile**. It appears as a card on your profile that visitors can flip over to see its engraved serial number, and you can share a picture of it. If you trade the edition away it stops being shown.`,
   },
   {
     id: 'profile-look', sectionId: 'show',
@@ -346,7 +346,7 @@ That’s {cost_reverse} Regulars for a Reverse Holo, {regulars_for_full} for a F
 **{score_formula}**
 
 - **Rarity**: how hard the card is to pull compared with an average card. A card that comes up half as often is worth twice as much.
-- **Print bonus**: {print_bonus_text}
+- **Edition bonus**: {print_bonus_text}
 {version_point}
 
 Add up all your editions, then add the [collection bonuses](#bonuses) below, and that’s your score on the [leaderboard](/leaderboard).`,
@@ -364,7 +364,7 @@ Duplicates and rarer versions don’t count towards completeness. Only having at
   {
     id: 'card-maths', sectionId: 'points',
     question: 'Can I see the exact maths for a card?',
-    answer: `Yes. Click any card on the [card dex](/cards) or in a collection to open its details, then open **Advanced information (for nerds)**. It shows every step with the real numbers filled in, for each version: the pull chance, rarity, the version multiplier and the final rounding, plus the pull odds, how many packs you’d expect to need, and what the print bonus is worth at different numbers. In short:
+    answer: `Yes. Click any card on the [card dex](/cards) or in a collection to open its details, then open **Advanced information (for nerds)**. It shows every step with the real numbers filled in, for each version: the pull chance, rarity, the version multiplier and the final rounding, plus the pull odds, how many packs you’d expect to need, and what the edition bonus is worth at different numbers. In short:
 
 {{points_formula}}
 
@@ -373,12 +373,12 @@ The {base_score}, the limits and the margin are settings the streamer can change
   {
     id: 'points-changed', sectionId: 'points',
     question: 'Why did my points change?',
-    answer: `An edition’s own points only change if the streamer edits the scoring settings or the card’s pull odds change. What moves most is your rank, because other collectors keep pulling and the completion bonus is measured against the set value. A print bonus never changes: it is fixed by the print number on the edition.`,
+    answer: `An edition’s own points only change if the streamer edits the scoring settings or the card’s pull odds change. What moves most is your rank, because other collectors keep pulling and the completion bonus is measured against the set value. A edition bonus never changes: it is fixed by the edition number on the edition.`,
   },
   {
     id: 'upgrade-score', sectionId: 'points', when: 'upgrades',
     question: 'Does upgrading raise my score?',
-    answer: `Usually, yes. A higher version is worth much more. But upgrades **use cards up**: the editions you spend are destroyed (the newest print numbers go first, so your lowest numbers are the last to go), and the new edition gets the next free print of its version, which is only worth a bonus while it is still early in that version’s count. [My stats](/account) shows a projected change for each upgrade with all of this included, so occasionally it can be negative.`,
+    answer: `Usually, yes. A higher version is worth much more. But upgrades **use cards up**: the editions you spend are destroyed (the newest edition numbers go first, so your lowest numbers are the last to go), and the new edition gets the next free edition number of its version, which is only worth a bonus while it is still early in that version’s count. [My stats](/account) shows a projected change for each upgrade with all of this included, so occasionally it can be negative.`,
   },
   {
     id: 'upgrade-score-none', sectionId: 'points', when: 'no_upgrades',
@@ -426,7 +426,7 @@ The {base_score}, the limits and the margin are settings the streamer can change
   {
     id: 'what-others-see', sectionId: 'privacy', open: true,
     question: 'What can other people see?',
-    answer: `Collections, the leaderboard, season stats, recent pulls and each print’s history are public, and your username appears on stream when your cards are shown. A private profile hides you from the boards and feeds. The full details are in the [Privacy Policy](/privacy); the rules of the game are in the [Terms](/terms).`,
+    answer: `Collections, the leaderboard, season stats, recent pulls and each edition’s history are public, and your username appears on stream when your cards are shown. A private profile hides you from the boards and feeds. The full details are in the [Privacy Policy](/privacy); the rules of the game are in the [Terms](/terms).`,
   },
   {
     id: 'what-we-store', sectionId: 'privacy',
@@ -463,7 +463,7 @@ The {base_score}, the limits and the margin are settings the streamer can change
   {
     id: 'find-things', sectionId: 'help',
     question: 'How do I find things quickly?',
-    answer: `Press \`/\` (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, prints or shinies, and shows who moved up or down since you last looked.`,
+    answer: `Press \`/\` (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, editions or shinies, and shows who moved up or down since you last looked.`,
   },
   {
     id: 'feedback', sectionId: 'help',
@@ -473,7 +473,7 @@ The {base_score}, the limits and the margin are settings the streamer can change
   {
     id: 'report', sectionId: 'help',
     question: 'How do I report someone?',
-    answer: `Open their profile, press *Share* and choose *Report*. Pick a reason (an offensive name, bio or picture, cheating or abuse, a scam or unfair trade, or something else), add details and, if it helps, a link to the trade or print. You must be logged in, you can send {reports_per_day} reports a day and one open report per person. Only staff see it, along with who sent it. The person you report is never told it was you, and you get a notice when staff have looked at it. Reports are kept like other feedback: until they are dealt with and for {feedback_keep_days} days after, then deleted.`,
+    answer: `Open their profile, press *Share* and choose *Report*. Pick a reason (an offensive name, bio or picture, cheating or abuse, a scam or unfair trade, or something else), add details and, if it helps, a link to the trade or edition. You must be logged in, you can send {reports_per_day} reports a day and one open report per person. Only staff see it, along with who sent it. The person you report is never told it was you, and you get a notice when staff have looked at it. Reports are kept like other feedback: until they are dealt with and for {feedback_keep_days} days after, then deleted.`,
   },
   {
     id: 'looks-wrong', sectionId: 'help',

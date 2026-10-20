@@ -334,7 +334,7 @@ function Digest({ d }: { d: DashboardData }) {
           <p className="text-gray-300">Movers: {g.movers === null ? <span className="text-gray-500">start next week</span> : g.movers.length ? g.movers.map(m => `${m.username} (+${m.gained})`).join(', ') : <span className="text-gray-500">none</span>}</p>
           {g.mostTraded[0] && <p className="text-gray-300">Most traded{g.tradedAtLeast ? ' (at least)' : ''}: {g.mostTraded[0].name} <span className="text-gray-500">({g.mostTraded[0].count}×)</span></p>}
           {g.mostWanted && <p className="text-gray-300">Most wanted: {g.mostWanted.name} <span className="text-gray-500">({g.mostWanted.watchers})</span></p>}
-          {g.print && <p className="text-gray-300">Edition of the week: <Link href={g.print.href} className="text-yellow-400 hover:underline">{g.print.name}{g.print.uid ? `, Edition #${g.print.uid}` : ''}</Link></p>}
+          {g.print && <p className="text-gray-300">Edition of the week: <Link href={g.print.href} className="text-yellow-400 hover:underline">{g.print.name}{g.print.uid ? `, Serial #${g.print.uid}` : ''}</Link></p>}
         </div>
       )}
     </Panel>
@@ -355,7 +355,7 @@ function Recap({ d }: { d: DashboardData }) {
           </dl>
           {r.rarest && (
             <p className="text-gray-300">Rarest: {r.rarest.href ? <Link href={r.rarest.href} className="text-yellow-400 hover:underline">{'★'.repeat(r.rarest.stars)} {r.rarest.cardName}</Link> : <span>{'★'.repeat(r.rarest.stars)} {r.rarest.cardName}</span>}
-              {r.rarest.serial ? ', Print #' + r.rarest.serial : ''} <span className="text-gray-500">by {r.rarest.username}</span></p>
+              {r.rarest.serial ? ', Edition #' + r.rarest.serial : ''} <span className="text-gray-500">by {r.rarest.username}</span></p>
           )}
           {r.topPuller && <p className="text-gray-300">Top puller: <span className="text-white font-medium">{r.topPuller.username}</span> <span className="text-gray-500">({r.topPuller.packs} pulls)</span></p>}
         </div>

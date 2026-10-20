@@ -17,7 +17,7 @@ ok(wild.serialBonusMax >= 1 && Number.isInteger(wild.serialBonusCutoff), 'the se
 ok(Number.isInteger(wild.leaderboardSize), 'leaderboard size is a whole number');
 eq(wild.completionBonusPct, DEFAULT_SCORING.completionBonusPct, 'junk falls back to the default');
 eq(sanitizeScoring({ baseScore: '25' }).baseScore, 25, 'numeric strings from a form are accepted');
-eq(DEFAULT_SCORING.serialBonusCutoff, 40, 'the print-bonus cutoff default is 40');
+eq(DEFAULT_SCORING.serialBonusCutoff, 40, 'the edition-bonus cutoff default is 40');
 eq(sanitizeScoring(undefined).serialBonusCutoff, 40, 'an empty store uses the new default');
 eq(sanitizeScoring({ ...DEFAULT_SCORING, serialBonusCutoff: 20 }).serialBonusCutoff, 20, 'a saved cutoff is not replaced by the new default');
 

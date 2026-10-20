@@ -106,7 +106,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
         <Box type={type} href={`/leaderboard/${b.season.id}`} linkLabel="Leaderboard">
           <dl className="text-sm divide-y divide-gray-800/70">
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Cards</dt><dd className="tabular-nums text-white">{Math.round(s.cardPoints - s.serialPoints).toLocaleString()}</dd></div>
-            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Print bonus<InfoTip term="editionBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '-'}</dd></div>
+            <div className="flex justify-between py-1.5"><dt className="text-gray-400">Edition bonus<InfoTip term="editionBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.serialPoints > 0 ? `+${Math.round(s.serialPoints).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Progress bonus<InfoTip term="progressBonus" /></dt><dd className="tabular-nums text-emerald-300">+{Math.round(s.completionBonus).toLocaleString()}</dd></div>
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Full set bonus<InfoTip term="fullSetBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
@@ -153,7 +153,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                   </Link>
                   <p className="mt-1 text-xs text-gray-200 truncate">{c.name}</p>
                   <p className="text-[11px] text-yellow-400 tabular-nums">{Math.round(c.points).toLocaleString()} pts{c.variant !== 'regular' ? ` · ${VARIANT_LABELS[c.variant]}` : ''}</p>
-                  {edition && <p className="text-[11px] text-gray-500 tabular-nums truncate">{edition.uid ? `Edition #${edition.uid}` : `Print #${edition.n}`}</p>}
+                  {edition && <p className="text-[11px] text-gray-500 tabular-nums truncate">{edition.uid ? `Serial #${edition.uid}` : `Edition #${edition.n}`}</p>}
                 </li>
               );
             })}
@@ -197,7 +197,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           </div>
           <div className="text-center space-y-1">
             <p className="font-bold text-white leading-tight">{label}</p>
-            <p className="text-sm text-yellow-300 tabular-nums">#{copy.uid ?? copy.n}<span className="text-gray-500"> · print #{copy.n} of {total.toLocaleString()}</span></p>
+            <p className="text-sm text-yellow-300 tabular-nums">#{copy.uid ?? copy.n}<span className="text-gray-500"> · edition #{copy.n} of {total.toLocaleString()}</span></p>
             <p className="text-xs">
               <Link href={`/copy/${encodeURIComponent(season.id)}/${copy.id}`} className="text-yellow-500 hover:text-yellow-300">Full journey →</Link>
             </p>
@@ -275,7 +275,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                         <span className={`w-8 h-11 rounded-sm overflow-hidden bg-gray-800 shrink-0 ${p.variant !== 'regular' ? `vfx-${p.variant}` : ''} ${holoClass(holo, true)}`} style={holoVars(holo)}><CardTile imageUrl={art} alt="" className="relative w-full h-full" /></span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm text-white truncate">{p.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[p.variant]}</span>}{c.name}</span>
-                          <span className="block text-xs text-gray-500 tabular-nums truncate"><span style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)}</span> {p.uid ? `Edition #${p.uid}` : 'Edition'}</span>
+                          <span className="block text-xs text-gray-500 tabular-nums truncate"><span style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)}</span> {p.uid ? `Serial #${p.uid}` : 'Edition'}</span>
                         </span>
                         <SerialChip n={p.n} est={p.est} />
                         <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">1 in {Math.round(1 / p.chance).toLocaleString()}</span>
@@ -328,7 +328,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
                     <Link href={copyHrefFor({ type: 'pull', uid: p.uid, serial: p.n, variant: p.variant, cardNumber: p.card }, b.season.id) ?? `/copy/${encodeURIComponent(b.season.id)}/${p.id}`} className="flex items-center gap-2 py-2 text-sm hover:text-white text-gray-300">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{p.variant !== 'regular' && <span className="text-fuchsia-300 mr-1">{VARIANT_LABELS[p.variant]}</span>}{names.get(p.card) ?? `Card #${p.card}`}</span>
-                        <span className="block text-xs text-gray-500 tabular-nums truncate">{p.uid ? `Edition #${p.uid}` : 'Edition'}{p.origin === 'grant' && p.fate === 'held' ? ' · Granted' : FATE[p.fate] ? ` · ${p.origin === 'grant' ? 'Granted, ' : ''}${FATE[p.fate]}` : ''}</span>
+                        <span className="block text-xs text-gray-500 tabular-nums truncate">{p.uid ? `Serial #${p.uid}` : 'Edition'}{p.origin === 'grant' && p.fate === 'held' ? ' · Granted' : FATE[p.fate] ? ` · ${p.origin === 'grant' ? 'Granted, ' : ''}${FATE[p.fate]}` : ''}</span>
                       </span>
                       <SerialChip n={p.n} est={p.est} />
                       <span className="text-xs text-gray-600 tabular-nums whitespace-nowrap w-14 text-right">{ago(p.at)}</span>
@@ -340,7 +340,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
           );
         }
       }
-      // Before prints are tracked (or nothing pulled yet): the owner sees their pull events, which carry no print numbers.
+      // Before prints are tracked (or nothing pulled yet): the owner sees their pull events, which carry no edition numbers.
       if (!isOwner || mine.length === 0) return none('Your latest pulls appear here as you open packs.');
       return (
         <Box type={type}>

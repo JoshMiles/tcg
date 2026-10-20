@@ -6,7 +6,7 @@ ok(engravedDate(Date.UTC(2026, 0, 1, 0, 0)) === '1 JAN 2026', 'no zero padding')
 ok(madeLine(7, 1234) === 'of 1,234 made', 'total is grouped');
 ok(madeLine(7) === '' && madeLine(9, 4) === '', 'unknown or impossible totals print nothing');
 const { editionLine } = await import('../lib/flip-back');
-ok(editionLine(7, 12) === 'Print #7 of 12 made' && editionLine(7) === 'Print #7', 'print line');
+ok(editionLine(7, 12) === 'Edition 7 of 12' && editionLine(7) === 'Edition #7', 'print line');
 const core = await import('../lib/serials-core');
 ok(core.parseUid('#1023381') === 1023381 && core.parseUid(' 1023381 ') === 1023381, 'unique numbers parse with or without #');
 ok(core.parseUid('12') === null && core.parseUid('1000000') === null && core.parseUid('12345678901') === null && core.parseUid('abc') === null, 'short, base and huge numbers are not copy numbers');

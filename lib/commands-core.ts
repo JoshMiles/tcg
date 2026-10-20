@@ -40,25 +40,25 @@ export const COMMAND_ACTIONS: Record<CommandActionId, ActionInfo> = {
   showoff: {
     label: 'Show off a card',
     description: "Puts one of the viewer's own cards on stream (the overlay show-off). Args: a card name or number, optionally with a version.",
-    vars: [v('username', 'cheesefan'), v('cardName', 'Gouda Goat'), v('variant', 'Shiny'), v('edition', '#12', 'Print number, empty when the copy has none'), v('printNumber', '#1023381', 'Unique edition number'), v('points', '480'), v('stars', '4')],
+    vars: [v('username', 'cheesefan'), v('cardName', 'Gouda Goat'), v('variant', 'Shiny'), v('edition', '#12', 'Edition number, empty when the edition has none'), v('printNumber', '#1023381', 'Unique serial number'), v('points', '480'), v('stars', '4')],
     errors: ['notFound', 'notOwned', 'cooldown', 'offline'],
   },
   'card-stats': {
     label: 'Card stats',
     description: 'Public facts about one card of the running season. Args: a card name or number.',
-    vars: [v('cardName', 'Gouda Goat'), v('number', '12'), v('stars', '4'), v('rarity', 'Epic'), v('pullChance', '1 in 40'), v('printsMade', '57'), v('collectors', '31'), v('topHolder', 'cheesefan', 'Private collectors show as "a private collector"'), v('firstPulledBy', 'brielover'), v('points', '120', 'One Regular edition'), v('yourPrints', '2'), v('url', 'https://cheesytcg.app/cards?card=12', 'The card dex link')],
+    vars: [v('cardName', 'Gouda Goat'), v('number', '12'), v('stars', '4'), v('rarity', 'Epic'), v('pullChance', '1 in 40'), v('editionsMade', '57'), v('collectors', '31'), v('topHolder', 'cheesefan', 'Private collectors show as "a private collector"'), v('firstPulledBy', 'brielover'), v('points', '120', 'One Regular edition'), v('yourEditions', '2'), v('url', 'https://cheesytcg.app/cards?card=12', 'The card dex link')],
     errors: ['notFound', 'cooldown', 'offline'],
   },
   'my-stats': {
     label: 'My stats',
     description: "The viewer's own standing, or @someone's when given in the args. Private collectors keep their stats private.",
-    vars: [v('rank', '7'), v('score', '5230'), v('cards', '18'), v('totalCards', '25'), v('prints', '41'), v('progressBonus', '310'), v('bestEdition', 'Gouda Goat #3'), v('rarestPrint', 'Gouda Goat'), v('profileUrl', 'https://cheesytcg.app/u/cheesefan')],
+    vars: [v('rank', '7'), v('score', '5230'), v('cards', '18'), v('totalCards', '25'), v('editions', '41'), v('progressBonus', '310'), v('bestEdition', 'Gouda Goat #3'), v('rarestEdition', 'Gouda Goat'), v('profileUrl', 'https://cheesytcg.app/u/cheesefan')],
     errors: ['notFound', 'cooldown', 'offline'],
   },
   collection: {
     label: 'Show collection',
     description: "Shows the viewer's collection on the overlay.",
-    vars: [v('cards', '18'), v('prints', '41')],
+    vars: [v('cards', '18'), v('editions', '41')],
     errors: ['cooldown', 'offline'],
   },
   leaderboard: {
@@ -90,7 +90,7 @@ export const COMMAND_ACTIONS: Record<CommandActionId, ActionInfo> = {
 /** What a viewer reads in the FAQ about each action (the FAQ lists the enabled commands, so it cannot drift). */
 export const FAQ_LINES: Record<CommandActionId, string> = {
   showoff: 'shows one of your cards on stream. Add a card name or number, and a version if you like.',
-  'card-stats': 'tells you about a card: how rare it is, how many prints were made and how many collectors have it. Add a card name or number.',
+  'card-stats': 'tells you about a card: how rare it is, how many editions were made and how many collectors have it. Add a card name or number.',
   'my-stats': 'tells you your rank, score and progress. Add @someone to look at another collector.',
   collection: 'shows your collection on stream.',
   leaderboard: 'names the top three collectors.',
@@ -112,7 +112,7 @@ export const ERROR_DEFAULTS: Record<ErrorKind, string> = {
 
 export const DEFAULT_COMMANDS: ChatCommand[] = [
   { id: 'showoff', name: 'showoff', aliases: [], enabled: true, action: 'showoff', reply: 'Showing off your {variant} {cardName} {edition}!', errors: {}, cooldownS: 0, userCooldownS: 0, liveOnly: false },
-  { id: 'stats', name: 'stats', aliases: [], enabled: true, action: 'card-stats', reply: '{cardName}: {stars} stars, {pullChance}, {printsMade} prints made, {collectors} collectors. {url}', errors: {}, cooldownS: 5, userCooldownS: 0, liveOnly: false },
+  { id: 'stats', name: 'stats', aliases: [], enabled: true, action: 'card-stats', reply: '{cardName}: {stars} stars, {pullChance}, {editionsMade} editions made, {collectors} collectors. {url}', errors: {}, cooldownS: 5, userCooldownS: 0, liveOnly: false },
 ];
 
 /** Replaces {name} with its value; unknown placeholders are dropped. */

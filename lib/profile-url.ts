@@ -45,7 +45,7 @@ export type ActivityLink = {
 };
 
 /**
- * Where a public Activity row opens. A pull or upgrade with a print number goes to `/c/<uid>` (`copyHrefFor`); one that only has a
+ * Where a public Activity row opens. A pull or upgrade with a edition number goes to `/c/<uid>` (`copyHrefFor`); one that only has a
  * print id goes to `/copy/<season>/<id>`. With neither, it goes to the card dex. An accepted trade goes to `/trade/<id>` only when
  * the event recorded one. Older trades, and anything else, stay plain text (null).
  */

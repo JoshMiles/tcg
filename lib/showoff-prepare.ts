@@ -17,7 +17,7 @@ export interface ShowPlan {
   variant: Variant;
   serial?: number;
   serialMult?: number;
-  /** The print number of that copy. */
+  /** The edition number of that copy. */
   uid?: number;
   /** A sentence a bot can say back in chat. */
   message: string;

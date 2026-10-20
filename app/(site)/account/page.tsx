@@ -222,7 +222,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 <dd className="font-semibold text-white tabular-nums">{(s.cardPoints - s.serialPoints).toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
-                <dt className="text-gray-300">Print bonus<InfoTip term="editionBonus" /> <span className="text-gray-600">· low-numbered editions are worth extra (<Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how it works</Link>)</span></dt>
+                <dt className="text-gray-300">Edition bonus<InfoTip term="editionBonus" /> <span className="text-gray-600">· low-numbered editions are worth extra (<Link href="/faq#points" className="text-yellow-400 hover:text-yellow-300">how it works</Link>)</span></dt>
                 <dd className={`font-semibold tabular-nums ${s.serialPoints > 0 ? 'text-emerald-300' : 'text-gray-600'}`}>{s.serialPoints > 0 ? '+' : ''}{s.serialPoints.toLocaleString()}</dd>
               </div>
               <div className="py-2.5 flex items-center justify-between gap-4">
@@ -282,7 +282,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                         </span>
                         <span
                           className={`text-xs font-bold tabular-nums shrink-0 ${u.gain >= 0 ? 'text-emerald-300' : 'text-red-300'}`}
-                          title="Projected change to your score, including the print bonuses it spends"
+                          title="Projected change to your score, including the edition bonuses it spends"
                         >
                           {u.gain >= 0 ? '+' : '−'}{Math.abs(u.gain).toLocaleString()} pts
                         </span>
@@ -293,7 +293,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 </ul>
               )}
               <p className="text-xs text-gray-500 leading-relaxed">
-                Upgrades are permanent. The editions you spend are destroyed. The newest print numbers are spent first, and the new edition gets the next free print of its version. The points shown are projected with the print bonus included, so they can occasionally be negative.
+                Upgrades are permanent. The editions you spend are destroyed. The newest edition numbers are spent first, and the new edition gets the next free edition number of its version. The points shown are projected with the edition bonus included, so they can occasionally be negative.
               </p>
             </section>
           )}
@@ -354,7 +354,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                       ) : <span className="w-8 h-11 rounded-sm bg-gray-800" />}
                       <span className="flex-1 min-w-0">
                         <span className="block text-sm font-semibold text-white truncate">{t.card.name}</span>
-                        <span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? <span className="text-emerald-300"> · #{t.serial} (×{t.mult?.toFixed(2)} print bonus)</span> : null}</span>
+                        <span className="block text-xs text-gray-500">{VARIANT_LABELS[t.variant]}{t.count > 1 ? ` ×${t.count}` : ''}{t.serial ? <span className="text-emerald-300"> · #{t.serial} (×{t.mult?.toFixed(2)} edition bonus)</span> : null}</span>
                       </span>
                       <span className="font-display text-lg font-bold text-yellow-400 tabular-nums">{t.value.toLocaleString()}</span>
                     </Link>

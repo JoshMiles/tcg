@@ -64,8 +64,8 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
         )}
 
         <div className="rounded-lg bg-gray-900/70 border border-gray-800 p-3">
-          <Eq>points = max(1, round( <Hi>base</Hi> × <Hi>rarity</Hi> × <Hi>version</Hi> × <Hi>print bonus</Hi> ))</Eq>
-          <Eq>{label}, no print bonus: round( {n(m.baseScore, 4)} × {n(m.rarity, 4)} × {n(m.multiplier[v], 4)} ) = round({n(m.raw[v], 3)}) = <Hi>{m.values[v].toLocaleString()} pts</Hi></Eq>
+          <Eq>points = max(1, round( <Hi>base</Hi> × <Hi>rarity</Hi> × <Hi>version</Hi> × <Hi>edition bonus</Hi> ))</Eq>
+          <Eq>{label}, no edition bonus: round( {n(m.baseScore, 4)} × {n(m.rarity, 4)} × {n(m.multiplier[v], 4)} ) = round({n(m.raw[v], 3)}) = <Hi>{m.values[v].toLocaleString()} pts</Hi></Eq>
         </div>
 
         <ol className="space-y-4">
@@ -97,16 +97,16 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
             )}
           </Step>
 
-          <Step no={4} title={<>Print bonus<InfoTip term="editionBonus" /></>}>
-            <Eq>bonus = 1 + (max − 1) × (1 − (print − 1) ÷ cutoff), for print 1 to cutoff; 1 after that</Eq>
-            <Eq>= 1 + ({n(m.serialBonusMax)} − 1) × (1 − (print − 1) ÷ {m.serialBonusCutoff})</Eq>
+          <Step no={4} title={<>Edition bonus<InfoTip term="editionBonus" /></>}>
+            <Eq>bonus = 1 + (max − 1) × (1 − (edition − 1) ÷ cutoff), for edition 1 to cutoff; 1 after that</Eq>
+            <Eq>= 1 + ({n(m.serialBonusMax)} − 1) × (1 − (edition − 1) ÷ {m.serialBonusCutoff})</Eq>
             {m.serialBonusCutoff > 0 && m.serialBonusMax > 1 ? (
               <>
                 {samples.map(x => <Eq key={x}>{label} #{x}: ×{n(bonusAt(x), 3)} → <Hi>{pointsAt(x).toLocaleString()} pts</Hi></Eq>)}
-                <Note>The number is counted per card and version, from the first print ever made, so a Full Art Holo #1 is the first Full Art Holo of this card. Only editions with a low print number earn the bonus, and it stays with the edition when it is traded. {m.copies[v].toLocaleString()} {label} edition{m.copies[v] === 1 ? ' exists' : 's exist'} now.</Note>
+                <Note>The number is counted per card and version, from the first edition ever made, so a Full Art Holo #1 is the first Full Art Holo of this card. Only editions with a low edition number earn the bonus, and it stays with the edition when it is traded. {m.copies[v].toLocaleString()} {label} edition{m.copies[v] === 1 ? ' exists' : 's exist'} now.</Note>
               </>
             ) : (
-              <Note>The print bonus is switched off in the scoring settings, so every edition of a version is worth the same.</Note>
+              <Note>The edition bonus is switched off in the scoring settings, so every edition of a version is worth the same.</Note>
             )}
           </Step>
         </ol>

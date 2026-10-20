@@ -13,12 +13,12 @@ const SEQ_KEY = 'activity:seq';
 const LOG_CAP = 500;
 
 export type ActivityDetail =
-  | { type: 'pull'; cardNumber: number; cardName: string; stars: number; packName: string; variant?: Variant; isNew: boolean; copies: number; uniqueOwned: number; /** The serial number this copy got, and its points multiplier when that is above 1. */ serial?: number; bonus?: number; /** The print's id (`<card>.<version>.<n>`) and its unique print number, when the collection is numbered. */ copyId?: string; uid?: number }
+  | { type: 'pull'; cardNumber: number; cardName: string; stars: number; packName: string; variant?: Variant; isNew: boolean; copies: number; uniqueOwned: number; /** The serial number this copy got, and its points multiplier when that is above 1. */ serial?: number; bonus?: number; /** The print's id (`<card>.<version>.<n>`) and its unique edition number, when the collection is numbered. */ copyId?: string; uid?: number }
   | { type: 'grant'; source: 'admin' | 'webhook'; cardNumber: number; variant?: Variant; copyId?: string; uid?: number;
       /** A webhook grant (a reward from Mix It Up and the like) is recorded with the same facts as a pull, so it reads and posts like one. Older events lack them. */
       cardName?: string; stars?: number; packName?: string; isNew?: boolean; copies?: number; uniqueOwned?: number; serial?: number; bonus?: number }
   | { type: 'remove'; cardNumber: number; variant?: Variant }
-  | { type: 'upgrade'; cardNumber: number; cardName: string; from: Variant; to: Variant; cost: number; /** The print the upgrade made. */ copyId?: string; uid?: number }
+  | { type: 'upgrade'; cardNumber: number; cardName: string; from: Variant; to: Variant; cost: number; /** The edition the upgrade made. */ copyId?: string; uid?: number }
   // something that happened to a trade offer. `username` is the viewer who made the offer, `partner` the other side (who it was
   // offered to / who accepted), `by` who did it ('admin' for an admin cancel). give/get are readable lines ("2× Card (Shiny Full Art)")
   | { type: 'trade'; action: 'offered' | 'countered' | 'accepted' | 'declined' | 'cancelled' | 'expired' | 'reversed'; partner?: string; by?: string; kind: 'direct' | 'listing'; give: string[]; get: string[]; givePts: number; getPts: number; note?: string; cardNumber?: number; /** Set on new events so the public Activity tab can open the offer. Older events omit it and stay plain text. */ tradeId?: string }

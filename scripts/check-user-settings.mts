@@ -40,7 +40,7 @@ ok(c.sanitizeUserSettings({ pinned: 1000042 }).pinned === 1000042, 'a unique cop
 ok(c.sanitizeUserSettings({ pinned: 'x' }).pinned === null && c.sanitizeUserSettings({ pinned: 5 }).pinned === null && c.sanitizeUserSettings({ pinned: 1.5e9 }).pinned === null && c.sanitizeUserSettings({ pinned: 1000000.5 }).pinned === null, 'anything else is dropped');
 ok(c.sparse(c.DEFAULT_SETTINGS).pinned === undefined, 'nothing pinned stores nothing');
 eq(c.DEFAULT_SETTINGS.showcaseUids, [], 'an empty showcase means the three most valuable');
-eq(c.sanitizeUserSettings({ showcaseUids: [1000001, 1000001, 5, 1000002, 1000003, 1000004] }).showcaseUids, [1000001, 1000002, 1000003], 'up to 3 unique print numbers');
+eq(c.sanitizeUserSettings({ showcaseUids: [1000001, 1000001, 5, 1000002, 1000003, 1000004] }).showcaseUids, [1000001, 1000002, 1000003], 'up to 3 unique edition numbers');
 eq(c.sanitizeUserSettings({ showcaseUids: [1000001, 1000009] }, new Set([1000009])).showcaseUids, [1000009], 'a print they no longer hold is dropped');
 ok(c.sparse(c.sanitizeUserSettings({ showcaseUids: [] })).showcaseUids === undefined, 'an empty showcase stores nothing');
 const pw = await import('../lib/profile-widgets');
@@ -53,7 +53,7 @@ eq(pw.PROFILE_PRESETS[0].layout, pw.DEFAULT_PROFILE_LAYOUT, 'Collector is the de
 ok(pw.PROFILE_PRESETS.every(p => p.layout.length > 0 && p.label && p.description), 'presets are named and not empty');
 const cs = await import('../lib/copy-share');
 const spec = cs.copyShareSpec({ copy: { id: '1.3.2', uid: 1000042, card: 1, variant: 'shiny', n: 2, owner: 'ann', at: Date.UTC(2026, 9, 12), origin: 'pull', ev: [] }, cardName: 'Gouda', seasonId: 's1', seasonName: 'Season 1', packName: 'Starter', total: 5, mult: 2.9, art: '/a.webp', privateHolder: false, siteUrl: 'https://cheesytcg.app' });
-ok(spec.plate?.number === '#1000042' && spec.plate.gold && spec.plate.edition === 'Print #2 of 5 made' && spec.footer === 'cheesytcg.app/c/1000042', 'copy share spec: number, gold, print line, short link');
+ok(spec.plate?.number === '#1000042' && spec.plate.gold && spec.plate.edition === 'Edition 2 of 5' && spec.footer === 'cheesytcg.app/c/1000042', 'copy share spec: number, gold, print line, short link');
 ok(spec.plate?.lines?.[0] === 'Held by @ann' && spec.plate.qrUrl === 'https://cheesytcg.app/copy/s1/1.3.2' && spec.title === 'Full Art Holo Gouda', 'holder, QR link and title');
 ok(cs.copyShareSpec({ copy: { id: '1.0.1', card: 1, variant: 'regular', n: 1, owner: 'ann', at: 0, origin: 'pull', ev: [] }, cardName: 'G', seasonId: 's', seasonName: 'S', packName: 'P', total: 1, mult: 1, art: '', privateHolder: true, siteUrl: 'https://x.y' }).plate?.lines?.[0] === 'Held by a private collector', 'private holders are not named');
 

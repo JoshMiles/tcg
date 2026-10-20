@@ -34,7 +34,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const seasons = (await listSeasons()).filter(s => s.status !== 'draft');
   const season = seasons.find(s => s.id === sp.season) ?? (await getActiveSeason()) ?? seasons[0];
-  if (!season) return <div className="space-y-6"><PageHeader title="Editions" icon="cheese" /><EmptyState icon="cheese" title="No published seasons yet">Edition numbers belong to a season&rsquo;s cards.</EmptyState></div>;
+  if (!season) return <div className="space-y-6"><PageHeader title="Editions" icon="cheese" /><EmptyState icon="cheese" title="No published seasons yet">Serial numbers belong to a season&rsquo;s cards.</EmptyState></div>;
 
   const c = season.collectionName;
   const stats = await serialStats(c);
@@ -47,7 +47,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
           <ConfirmButton
             title={`Number the editions in ${season.name}?`}
             confirmLabel="Number them"
-            message={<>Every edition that exists now is given a print number, in the order the collection stores them, marked <strong className="text-white">estimated</strong> because the true pull order wasn&apos;t recorded. Nothing in any collection changes. Do this once, ideally when no packs are being opened.</>}
+            message={<>Every edition that exists now is given a edition number, in the order the collection stores them, marked <strong className="text-white">estimated</strong> because the true pull order wasn&apos;t recorded. Nothing in any collection changes. Do this once, ideally when no packs are being opened.</>}
             className="btn btn-primary px-4 py-2 text-sm rounded-xl"
           >
             Number existing editions
@@ -63,7 +63,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
   const cardOf = (n: number) => cards.find(x => x.number === n);
   const nameOf = (n: number) => cardOf(n)?.name ?? `#${n}`;
 
-  // ── The search box: a print number jumps to that print, a login lists that viewer's editions, a card name narrows the list ──
+  // ── The search box: a edition number jumps to that print, a login lists that viewer's editions, a card name narrows the list ──
   const search = parsePrintSearch(sp.q);
   const card = Number(sp.card) || 0;
   const vParam = sp.v ?? sp.variant ?? '';
@@ -95,7 +95,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
     if (Object.prototype.hasOwnProperty.call(owners, text)) searchHolder = text;
     else {
       nameMatches = cards.filter(x => x.name.toLowerCase().includes(text) || String(x.number) === text).map(x => x.number);
-      if (nameMatches.length === 0) searchNote = `Nothing matches "${search.text}": no edition number, viewer or card name.`;
+      if (nameMatches.length === 0) searchNote = `Nothing matches "${search.text}": no serial number, viewer or card name.`;
     }
   }
   // A viewer's login in the search lists their prints; a holder filter inside an open card only narrows that card's editions.
@@ -140,7 +140,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
           className={`block rounded-lg border px-2 py-1.5 min-w-0 transition-colors ${active ? 'border-yellow-500 bg-yellow-500/10' : 'border-gray-800 bg-gray-950/60 hover:border-gray-600'}`}>
           <span className="flex items-center justify-between gap-1">
             <span className={`font-display font-bold tabular-nums text-sm ${bonus ? 'text-yellow-300' : 'text-gray-100'}`}>#{r.n}{r.est ? '~' : ''}</span>
-            {bonus && <span title="Earns a print bonus" aria-label="Earns a print bonus" className="text-yellow-400 text-xs">★</span>}
+            {bonus && <span title="Earns a edition bonus" aria-label="Earns a edition bonus" className="text-yellow-400 text-xs">★</span>}
           </span>
           {withName && <span className="block truncate text-[11px] text-gray-300">{VARIANTS.indexOf(r.variant) > 0 ? `${VARIANT_LABELS[r.variant]} ` : ''}{nameOf(r.card)}</span>}
           {r.uid ? <span className="block text-[10px] text-gray-500 tabular-nums">{r.uid}</span> : null}
@@ -162,8 +162,8 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
         <Tile label="Held" icon="users" value={(stats.live - offers).toLocaleString()} sub="in collections" />
         <Tile label="In offers" icon="trade" value={offers.toLocaleString()} sub="held by open trades" />
         <Tile label="Retired" icon="trash" value={stats.retired.toLocaleString()} sub="spent, traded away or removed" />
-        <Tile label="Last numbered" icon="cheese" value={last ? `#${last}` : '-'} sub="newest edition number" />
-        <Tile label="Numbering" icon="check" tone="green" value="Tracking" sub="Give edition numbers in Settings" href="/admin/settings?tab=viewers" />
+        <Tile label="Last numbered" icon="cheese" value={last ? `#${last}` : '-'} sub="newest serial number" />
+        <Tile label="Numbering" icon="check" tone="green" value="Tracking" sub="Give serial numbers in Settings" href="/admin/settings?tab=viewers" />
       </div>
 
       <form method="get" className="card rounded-2xl p-4 flex flex-wrap items-end gap-3">
@@ -200,7 +200,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
           {editions.length > 600 && <p className="text-[11px] text-gray-600">Showing the first 600.</p>}
         </Panel>
       ) : (
-        <Panel title="Every card" icon="cards" hint="Prints made of each version, with how many are held right now in brackets. Open a card to see its editions.">
+        <Panel title="Every card" icon="cards" hint="Editions made of each version, with how many are held right now in brackets. Open a card to see its editions.">
           {listed.length === 0 ? <p className="text-sm text-gray-500 py-6 text-center">No cards to show.</p> : (
             <ul className="divide-y divide-gray-800/60">
               {listed.map(x => {
@@ -244,7 +244,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
                           <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-1.5">{editions.map(r => chip(r, false))}</ul>
                         )}
                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-                          <span>{totalEditions.toLocaleString()} {holder || origin ? 'match' : `${VARIANT_LABELS[variant]} made`}. Oldest first. A &ldquo;~&rdquo; marks an estimated number; a star earns a print bonus.{capped && ` Filters look at the first ${FILTER_CAP} only.`}</span>
+                          <span>{totalEditions.toLocaleString()} {holder || origin ? 'match' : `${VARIANT_LABELS[variant]} made`}. Oldest first. A &ldquo;~&rdquo; marks an estimated number; a star earns a edition bonus.{capped && ` Filters look at the first ${FILTER_CAP} only.`}</span>
                           {pages > 1 && (
                             <span className="flex items-center gap-2">
                               <span>Page {pageNo + 1} of {pages}</span>
@@ -267,7 +267,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-gray-300 min-w-0 flex-1 basis-64">
             {potw
-              ? <><Link href={mk({ season: potw.seasonId, print: potw.copyId, card: String(potw.copyId.split('.')[0]), v: VARIANTS[Number(potw.copyId.split('.')[1])] })} className="font-bold text-yellow-300 hover:text-yellow-200 tabular-nums">Edition #{potw.uid}</Link> · {potw.reason} · score {potw.score} · chosen {when(potw.chosenAt)} by {potw.by === 'auto' ? 'the weekly job' : ['password', 'admin'].includes(potw.by) ? 'an admin' : `@${potw.by}`}</>
+              ? <><Link href={mk({ season: potw.seasonId, print: potw.copyId, card: String(potw.copyId.split('.')[0]), v: VARIANTS[Number(potw.copyId.split('.')[1])] })} className="font-bold text-yellow-300 hover:text-yellow-200 tabular-nums">Serial #{potw.uid}</Link> · {potw.reason} · score {potw.score} · chosen {when(potw.chosenAt)} by {potw.by === 'auto' ? 'the weekly job' : ['password', 'admin'].includes(potw.by) ? 'an admin' : `@${potw.by}`}</>
               : <span className="text-gray-500">Nothing is featured. The home page shows no edition of the week.</span>}
           </p>
           <form action={pickPotwAgainAction}><PendingButton type="submit" className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-600 text-gray-100 hover:border-yellow-500/60"><Icon name="refresh" className="mr-1.5" />Pick again now</PendingButton></form>
@@ -275,7 +275,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
         </div>
       </Panel>
 
-      {/* The open print: a side panel, a full-screen sheet on phones. Closing is a plain link, so the view (and its filters) stays as it was. */}
+      {/* The open edition: a side panel, a full-screen sheet on phones. Closing is a plain link, so the view (and its filters) stays as it was. */}
       {printId && (
         <>
           <Link href={listUrl} aria-label="Close the edition" className="fixed inset-0 z-40 bg-black/50 hidden sm:block" />
@@ -283,7 +283,7 @@ export default async function SerialsPage({ searchParams }: { searchParams: Prom
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-display text-lg font-bold text-white truncate">{printCopy ? <>{printLabel} <span className="text-yellow-400 tabular-nums">#{printCopy.n}</span></> : 'Edition not found'}</p>
-                {printCopy?.uid ? <p className="text-sm text-gray-400 tabular-nums">Edition #{printCopy.uid}</p> : null}
+                {printCopy?.uid ? <p className="text-sm text-gray-400 tabular-nums">Serial #{printCopy.uid}</p> : null}
               </div>
               <span className="flex items-center gap-2 shrink-0">
                 {printCopy && <Link href={`/admin/serials/${encodeURIComponent(season.id)}/${printCopy.id}`} className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-700 text-gray-300 hover:text-white">Full page</Link>}

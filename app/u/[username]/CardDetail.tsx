@@ -59,7 +59,7 @@ export function CardDetail({
 
   const total = dialog.total;
   const best = bestVariant(card.counts);
-  const label = edition ? `${card.name}, ${VARIANT_LABELS[edition.variant]} print #${edition.n}` : `${card.name} details`;
+  const label = edition ? `${card.name}, ${VARIANT_LABELS[edition.variant]} edition #${edition.n}` : `${card.name} details`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={label}>
@@ -109,13 +109,13 @@ function EditionsView({ card, dialog, seasonId, onPick, showAll }: { card: GridC
             <ul className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 gap-2">
               {g.copies.map(c => (
                 <li key={c.id} className="min-w-0">
-                  <button type="button" onClick={() => onPick(c.id)} aria-label={`${VARIANT_LABELS[g.variant]} print #${c.n}${c.uid ? `, edition number ${c.uid}` : ''}${c.m ? ', print bonus' : ''}`}
+                  <button type="button" onClick={() => onPick(c.id)} aria-label={`${VARIANT_LABELS[g.variant]} edition #${c.n}${c.uid ? `, serial number ${c.uid}` : ''}${c.m ? ', edition bonus' : ''}`}
                     className="group block w-full text-left focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400 rounded-lg">
                     <span className={`${tileClass(g.variant)} block transition-transform group-hover:-translate-y-0.5`} style={tileStyle(g.variant)}>{art(g.variant)}</span>
                     <span className="mt-1 flex items-center gap-1 min-w-0">
                       <SerialChip n={c.n} bonus={c.m} est={c.est} className="text-[10px]! px-1.5! py-0!" />
                     </span>
-                    {c.uid ? <span className="block truncate text-[10px] text-gray-500 tabular-nums">Edition #{c.uid}</span> : null}
+                    {c.uid ? <span className="block truncate text-[10px] text-gray-500 tabular-nums">Serial #{c.uid}</span> : null}
                   </button>
                 </li>
               ))}
@@ -130,7 +130,7 @@ function EditionsView({ card, dialog, seasonId, onPick, showAll }: { card: GridC
         </section>
       ))}
       {dialog.more > 0 && <button type="button" onClick={showAll} className="text-xs text-yellow-400 hover:text-yellow-300">Show all {dialog.total.toLocaleString()}</button>}
-      {seasonId && dialog.tracked && <p className="text-[11px] text-gray-600">Choose an edition to see its print, edition number, points and history. The first editions ever made of a card are worth extra points.</p>}
+      {seasonId && dialog.tracked && <p className="text-[11px] text-gray-600">Choose an edition to see its edition number, serial number, points and history. The first editions ever made of a card are worth extra points.</p>}
       {!dialog.tracked && <p className="text-[11px] text-gray-600">This season does not number its editions, so each version shows as one tile.</p>}
     </div>
   );
@@ -181,13 +181,13 @@ function PrintView({ card, edition, seasonId, ownerName, canUpgrade, tradeWith, 
         <div className="space-y-3 min-w-0">
           <div>
             <p className="font-display text-xl font-bold text-white">{VARIANT_LABELS[v]} {card.name}</p>
-            <p className="text-sm text-gray-300 mt-0.5">Print<InfoTip term="edition" /> <strong className="text-white tabular-nums">#{edition.n}</strong>{edition.made && edition.made >= edition.n ? <> of {edition.made.toLocaleString()} made</> : null}{edition.est && <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}</p>
-            {edition.uid ? <p className="text-sm text-gray-400 tabular-nums">Edition #{edition.uid}<InfoTip term="printNumber" /></p> : null}
+            <p className="text-sm text-gray-300 mt-0.5">Edition<InfoTip term="edition" /> <strong className="text-white tabular-nums">#{edition.n}</strong>{edition.made && edition.made >= edition.n ? <> of {edition.made.toLocaleString()} made</> : null}{edition.est && <span className="ml-2 text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}</p>
+            {edition.uid ? <p className="text-sm text-gray-400 tabular-nums">Serial #{edition.uid}<InfoTip term="printNumber" /></p> : null}
           </div>
           <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-3 gap-y-1 ${edition.m ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
             <SerialChip n={edition.n} bonus={edition.m} est={edition.est} className="text-sm px-3! py-1!" />
             <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{(edition.p ?? card.values[v]).toLocaleString()} pts</strong></span>
-            <span className="text-xs text-gray-500">{edition.m ? `Print bonus ×${edition.m}` : 'No print bonus'}<InfoTip term="editionBonus" /></span>
+            <span className="text-xs text-gray-500">{edition.m ? `Edition bonus ×${edition.m}` : 'No edition bonus'}<InfoTip term="editionBonus" /></span>
           </div>
           <div>
             <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Journey</p>
@@ -249,8 +249,8 @@ function CardInfo({ card, totalScore, canUpgrade, ownerName, tradeWith, shown }:
         </div>
 
         <p className="text-xs text-gray-500">
-          {card.serial.points > 0 && <span className="text-emerald-300">Print bonuses add +{card.serial.points.toLocaleString()} pts to this card. </span>}
-          {(!card.copies || card.copies.length === 0) && card.serial.mult <= 1 && 'Low print numbers earn a bonus; none of these editions qualify. '}
+          {card.serial.points > 0 && <span className="text-emerald-300">Edition bonuses add +{card.serial.points.toLocaleString()} pts to this card. </span>}
+          {(!card.copies || card.copies.length === 0) && card.serial.mult <= 1 && 'Low edition numbers earn a bonus; none of these editions qualify. '}
           {outThere.toLocaleString()} edition{outThere === 1 ? '' : 's'} of {VARIANT_LABELS[shown]} out there
         </p>
 
@@ -303,7 +303,7 @@ function CardInfo({ card, totalScore, canUpgrade, ownerName, tradeWith, shown }:
         {card.maths && <CardMathsPanel maths={card.maths} variants={rows} shown={shown} />}
 
         <p className="text-xs text-gray-500">
-          {canUpgrade && card.upgradable ? 'Upgrades are permanent: the editions you spend are destroyed. The newest print numbers go first, so an edition with a low print number is safe. ' : ''}Card values change as the season goes on; print bonuses never do.{' '}
+          {canUpgrade && card.upgradable ? 'Upgrades are permanent: the editions you spend are destroyed. The newest edition numbers go first, so an edition with a low edition number is safe. ' : ''}Card values change as the season goes on; edition bonuses never do.{' '}
           <a href="/faq#points" className="text-yellow-500 hover:text-yellow-300">How are points worked out? →</a>
         </p>
       </div>

@@ -43,7 +43,7 @@ export interface ShareCard {
 export interface SharePlate {
   /** The unique copy number ("#1000342"); the edition is shown instead when a copy has none. */
   number: string;
-  /** "Edition #7 of 12 made". */
+  /** "Edition 7 of 12". */
   edition: string;
   /** "PULLED 12 OCT 2026". */
   date?: string;

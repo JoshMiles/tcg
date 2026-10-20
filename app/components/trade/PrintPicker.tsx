@@ -7,7 +7,7 @@ import { newestIds, type PrintInfo, type TradeCardInfo } from '@/lib/trade-view-
 /**
  * Tick exactly `count` of the prints you could trade of one card + version (the newest are ticked to start with, which is what a trade
  * moves when you pick nothing). Clicking another print when `count` are ticked swaps out the oldest tick. `giving` adds a warning for
- * an edition that earns a print bonus or is Print #1.
+ * an edition that earns an edition bonus or is Edition #1.
  */
 export function PrintPicker({
   prints, count, selected, onChange, card, giving = false,
@@ -45,12 +45,12 @@ export function PrintPicker({
                 type="button"
                 aria-pressed={on}
                 onClick={() => toggle(p.id)}
-                title={`${p.uid ? `Edition #${p.uid}, ` : ''}Print #${p.n}`}
+                title={`${p.uid ? `Serial #${p.uid}, ` : ''}Edition #${p.n}`}
                 className={`inline-flex items-center gap-1 rounded-full border px-1 py-0.5 transition-colors ${on ? 'border-yellow-400 bg-yellow-500/15' : 'border-gray-800 hover:border-gray-600'}`}
               >
                 {on && <Icon name="check" className="ml-0.5 text-yellow-300" />}
                 <SerialChip n={p.n} bonus={m > 1 ? Math.round(m * 100) / 100 : undefined} className="text-[10px]! px-1.5! py-0!" />
-                {p.uid && <span className="pr-1 text-[10px] text-gray-400">Edition #{p.uid}</span>}
+                {p.uid && <span className="pr-1 text-[10px] text-gray-400">Serial #{p.uid}</span>}
               </button>
             </li>
           );
@@ -59,7 +59,7 @@ export function PrintPicker({
       {giving && (first || bonus) && (
         <p role="note" className="flex items-start gap-1.5 text-[11px] text-amber-300">
           <Icon name="alert" className="mt-0.5 shrink-0" />
-          <span>{first ? 'You are giving away Print #1, the first edition ever made.' : 'One of these editions earns a print bonus. The points go with it.'}</span>
+          <span>{first ? 'You are giving away Edition #1, the first edition ever made.' : 'One of these editions earns a edition bonus. The points go with it.'}</span>
         </p>
       )}
     </div>

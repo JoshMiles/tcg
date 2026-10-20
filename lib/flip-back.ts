@@ -49,10 +49,9 @@ export function madeLine(n: number, total?: number): string {
   return total && total >= n ? `of ${total.toLocaleString('en-GB')} made` : '';
 }
 
-/** The edition line under the engraved number: "Print #7 of 12 made" (just "Print #7" when the total is unknown). */
+/** The edition line under the engraved number: "Edition 7 of 12" (just "Edition #7" when the total is unknown). */
 export function editionLine(n: number, total?: number): string {
-  const made = madeLine(n, total);
-  return `Print #${n}${made ? ` ${made}` : ''}`;
+  return madeLine(n, total) ? `Edition ${n} of ${total!.toLocaleString('en-GB')}` : `Edition #${n}`;
 }
 
 /** One short line of a print's history ("Traded to @bob"), for the engraved back and the card dialog. Private collectors stay private. */

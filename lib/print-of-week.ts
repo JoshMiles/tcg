@@ -1,7 +1,7 @@
 import { buildProvenance } from './provenance';
 import { isEscrow, type Copy } from './serials-core';
 
-// Print of the week (pure, client-safe): how interesting a print's journey is, and which print to feature. The cron and the admin
+// Edition of the week (pure, client-safe): how interesting a print's journey is, and which print to feature. The cron and the admin
 // buttons that store the pick live in lib/print-of-week-store.ts.
 
 const WEEK_MS = 7 * 24 * 3_600_000;
@@ -40,7 +40,7 @@ export function reasonText(p: PotwParts): string {
 
 /**
  * Points for a print's journey: distinct holders x3, completed trades x2, edition #1 +5, Shiny / Full Art +2, age in weeks (cap 8) x1,
- * forged from other prints +2. Null when it cannot be featured: spent, in a trade offer, or without a print number.
+ * forged from other prints +2. Null when it cannot be featured: spent, in a trade offer, or without a edition number.
  */
 export function scorePrint(copy: Pick<Copy, 'ev' | 'owner' | 'at' | 'n' | 'variant' | 'origin' | 'madeFrom' | 'uid'>, now = Date.now()): Scored | null {
   if (!copy.uid || !copy.owner || isEscrow(copy.owner)) return null;
@@ -59,7 +59,7 @@ export function scorePrint(copy: Pick<Copy, 'ev' | 'owner' | 'at' | 'n' | 'varia
 
 export interface Candidate extends Scored { uid: number; copyId: string; at: number }
 
-/** The best candidate that was not picked recently: highest score, the older print on a tie (then the lower print number). */
+/** The best candidate that was not picked recently: highest score, the older print on a tie (then the lower edition number). */
 export function pickPrintOfWeek(candidates: Candidate[], recentUids: number[]): Candidate | null {
   const skip = new Set(recentUids);
   const pool = candidates.filter(c => !skip.has(c.uid));

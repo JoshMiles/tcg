@@ -51,7 +51,7 @@ export interface AuditReport {
   openDeletedSeason: LedgerFinding[];
   /** A second set may have been minted by a count-based restore. Confirm before removing anything. */
   restoreDuplicates: LedgerFinding[];
-  /** Flag is honest: the prints are still in escrow. */
+  /** Flag is honest: the editions are still in escrow. */
   stillHeld: LedgerFinding[];
   /** Some of the give side is still in escrow and some is not. */
   partial: LedgerFinding[];
@@ -143,7 +143,7 @@ export function auditLedger(input: AuditInput): AuditReport {
       continue;
     }
     if (!season.tracking) {
-      report.unnumbered.push(finding(trade, season, 'season is not numbered, so the audit cannot see whether the prints are still in escrow'));
+      report.unnumbered.push(finding(trade, season, 'season is not numbered, so the audit cannot see whether the editions are still in escrow'));
       continue;
     }
     const bucket = input.copies[season.collectionName] ?? {};
@@ -186,7 +186,7 @@ export function auditLedger(input: AuditInput): AuditReport {
         const have = entryCount(collection[trade.from], entry);
         pushDup(`${season.id}|${trade.from}|${entry}|${trade.id}`, {
           tradeId: trade.id, username: trade.from, seasonId: season.id, seasonName: season.name,
-          detail: `#${item.cardNumber} ${item.variant}: escrow on ${trade.id} holds ${inEscrow}, and ${trade.from} holds ${extras.length} other print${extras.length === 1 ? '' : 's'} minted after the offer (collection has ${have})`,
+          detail: `#${item.cardNumber} ${item.variant}: escrow on ${trade.id} holds ${inEscrow}, and ${trade.from} holds ${extras.length} other edition${extras.length === 1 ? '' : 's'} minted after the offer (collection has ${have})`,
         });
       }
     }
@@ -208,7 +208,7 @@ export function auditLedger(input: AuditInput): AuditReport {
         if (retiredMine.length >= extras.length && mintedAt + 2_000 >= retiredAt) {
           pushDup(`${season.id}|${user}|${entry}|retired`, {
             username: user, seasonId: season.id, seasonName: season.name,
-            detail: `#${cardNumber} ${variant}: ${user} holds ${extras.length} print${extras.length === 1 ? '' : 's'} minted as other, and ${retiredMine.length} retired print${retiredMine.length === 1 ? '' : 's'} of that card were removed from them first (collection has ${entryCount(owned, entry)})`,
+            detail: `#${cardNumber} ${variant}: ${user} holds ${extras.length} edition${extras.length === 1 ? '' : 's'} minted as other, and ${retiredMine.length} retired edition${retiredMine.length === 1 ? '' : 's'} of that card were removed from them first (collection has ${entryCount(owned, entry)})`,
           });
           continue;
         }
@@ -218,7 +218,7 @@ export function auditLedger(input: AuditInput): AuditReport {
         if (returned.length > 0 && later.length > 0) {
           pushDup(`${season.id}|${user}|${entry}|returned`, {
             username: user, seasonId: season.id, seasonName: season.name,
-            detail: `#${cardNumber} ${variant}: ${user} holds ${returned.length} print${returned.length === 1 ? '' : 's'} that came back from a trade and ${later.length} later print${later.length === 1 ? '' : 's'} minted as other (collection has ${entryCount(owned, entry)})`,
+            detail: `#${cardNumber} ${variant}: ${user} holds ${returned.length} edition${returned.length === 1 ? '' : 's'} that came back from a trade and ${later.length} later edition${later.length === 1 ? '' : 's'} minted as other (collection has ${entryCount(owned, entry)})`,
           });
         }
       }
@@ -257,7 +257,7 @@ export function formatReport(report: AuditReport, host: string): string {
     section('possible restore duplicates', report.restoreDuplicates),
     '',
     'The rows below are not counted as already-affected. They need a person.',
-    section('still in escrow (flag matches the prints)', report.stillHeld),
+    section('still in escrow (flag matches the editions)', report.stillHeld),
     section('partial escrow', report.partial),
     section('escrow empty, refund not confirmed', report.unconfirmed),
     section('unnumbered, cannot tell', report.unnumbered),

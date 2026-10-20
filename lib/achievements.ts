@@ -15,7 +15,7 @@ export interface AchSeason {
   cards: AchCard[];
   /** The viewer's copies per card number, by version. */
   counts: Map<number, VariantCounts>;
-  /** The print numbers they hold, by entry (card + version), when the season's copies are numbered. Switches on the serial milestones. */
+  /** The edition numbers they hold, by entry (card + version), when the season's copies are numbered. Switches on the serial milestones. */
   held?: Map<number, number[]>;
   /** The serial bonus cutoff (editions up to this number earn extra points; 0 = none). */
   bonusCutoff?: number;
@@ -45,10 +45,10 @@ export const DEFAULT_TEXT: Record<string, { title: string; detail: string }> = {
   master: { title: 'Master set: {season}', detail: 'Own every card in every version in {season}.' },
   tier: { title: 'All {rarity}', detail: 'Own every {rarity} card in {season}.' },
   all: { title: 'All {version}', detail: 'Own the {version} version of every card that has one in {season}.' },
-  'first-edition': { title: 'First print', detail: 'Hold print #1 of any card in {season}: the very first edition ever made.' },
-  'first-shiny': { title: 'First Full Art Holo print', detail: 'Hold print #1 of a Full Art Holo card in {season}.' },
-  'five-firsts': { title: 'Five firsts', detail: 'Hold print #1 of {need} different cards in {season}.' },
-  'early-bird': { title: 'Early bird', detail: 'Hold an edition with a low enough print number (#{cutoff} or lower) to earn the print bonus in {season}.' },
+  'first-edition': { title: 'First edition', detail: 'Hold edition #1 of any card in {season}: the very first edition ever made.' },
+  'first-shiny': { title: 'First Full Art Holo edition', detail: 'Hold edition #1 of a Full Art Holo card in {season}.' },
+  'five-firsts': { title: 'Five firsts', detail: 'Hold edition #1 of {need} different cards in {season}.' },
+  'early-bird': { title: 'Early bird', detail: 'Hold an edition with a low enough edition number (#{cutoff} or lower) to earn the edition bonus in {season}.' },
   'first-trade': { title: 'First trade', detail: 'Complete your first trade.' },
   'ten-trades': { title: 'Ten trades', detail: 'Complete {need} trades.' },
 };
@@ -62,7 +62,7 @@ export const PLACEHOLDERS: { word: string; means: string }[] = [
   { word: 'need', means: 'the goal target' },
   { word: 'rarity', means: 'the rarity name (rarity goals)' },
   { word: 'version', means: 'the version name (version goals)' },
-  { word: 'cutoff', means: 'the print bonus cutoff (Early bird)' },
+  { word: 'cutoff', means: 'the edition bonus cutoff (Early bird)' },
 ];
 
 /** Fills `{word}` from `vars`; a word with no value is left as typed. */
@@ -97,7 +97,7 @@ export const CUSTOM_RULES = {
   editions: 'Hold N editions in total (duplicates count)',
   rarity: 'Own N different cards of a rarity',
   version: 'Own N different cards in a version',
-  firsts: 'Hold print #1 of N different cards',
+  firsts: 'Hold edition #1 of N different cards',
   trades: 'Complete N trades (all seasons)',
 } as const;
 export type CustomRuleType = keyof typeof CUSTOM_RULES;
@@ -233,7 +233,7 @@ export function serialGoals(s: AchSeason): Achievement[] {
     return { id: `${s.seasonId}:${kind}`, seasonId: s.seasonId, seasonName: s.seasonName, ...words(kind, { ...s, need, cutoff }), icon, have: Math.min(have, need), need, earned: have >= need, ...(cutoff ? { cutoff } : {}) };
   };
 
-  const firsts = new Map<number, Set<Variant>>(); // card -> versions whose print #1 they hold
+  const firsts = new Map<number, Set<Variant>>(); // card -> versions whose edition #1 they hold
   let early = 0;
   for (const [entry, list] of s.held) {
     const { cardNumber, variant } = decodeEntry(entry);

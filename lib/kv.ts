@@ -125,7 +125,7 @@ export async function deleteSeason(id: string): Promise<void> {
   // Open offers still name this season. Deleting it makes the later refund find no collection and, if the flag were cleared, drop the prints.
   const open = (await kv.get<{ seasonId?: string }[]>('trades:open').catch(() => null)) ?? [];
   if (open.some(t => t.seasonId === id)) {
-    throw new Error('This season still has open trade offers. Cancel them first so those prints can be returned.');
+    throw new Error('This season still has open trade offers. Cancel them first so those editions can be returned.');
   }
   await kv.del(`season:${id}`);
   const ids = await listSeasonIds();

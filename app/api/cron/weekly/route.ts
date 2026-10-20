@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const steps: Record<string, unknown> = {};
 
   try { steps.printOfTheWeek = await pickOncePerWeek(); }
-  catch (e) { steps.printOfTheWeek = { status: 'error', error: e instanceof Error ? e.message : 'Pick failed.' }; console.error('print of the week failed:', e); }
+  catch (e) { steps.printOfTheWeek = { status: 'error', error: e instanceof Error ? e.message : 'Pick failed.' }; console.error('edition of the week failed:', e); }
 
   // The digest links to the print picked above, so it runs second.
   try { steps.digest = await digestOncePerWeek(); }

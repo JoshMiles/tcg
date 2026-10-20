@@ -5,7 +5,7 @@ import type { Copy } from './serials-core';
 import { isoWeekKey, pickPrintOfWeek, pushHistory, recentUids, scorePrint, type Candidate, type PotwHistoryEntry, type PotwPick } from './print-of-week';
 import type { Card, Pack, Season } from './types';
 
-// Print of the week, server side. KV: `potw:current` (the pick), `potw:history` (newest 20 {uid, at}), `potw:week:<yyyy-Www>` (the
+// Edition of the week, server side. KV: `potw:current` (the pick), `potw:history` (newest 20 {uid, at}), `potw:week:<yyyy-Www>` (the
 // once-a-week lock). Sandboxes get their own copies of these keys like everything else (lib/db.ts).
 
 const CURRENT = 'potw:current';
@@ -87,7 +87,7 @@ export async function pickOncePerWeek(now = Date.now()): Promise<WeeklyOutcome> 
 /** An admin features one specific print. Returns why not, or null when done. */
 export async function featureCopy(season: Season, copy: Copy, by: string, now = Date.now()): Promise<string | null> {
   if (!copy.owner) return 'That print no longer exists.';
-  if (!copy.uid) return 'It has no print number yet.';
+  if (!copy.uid) return 'It has no edition number yet.';
   const s = scorePrint(copy, now);
   if (!s) return 'It is in a trade offer right now.';
   await store({ uid: copy.uid, seasonId: season.id, copyId: copy.id, score: s.score, reason: s.reason, chosenAt: now, by }, now);

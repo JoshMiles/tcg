@@ -275,7 +275,7 @@ await kvLib.savePackCards('p-train', [
 
 // 1. Cannot use if viewer holds 0 copies
 const noCopies = await buffsStore.useTrainerCard('dan', 10, sId);
-ok(!noCopies.ok && noCopies.error.includes('do not hold a Regular copy'), 'refused when viewer holds no copy');
+ok(!noCopies.ok && noCopies.error.includes('do not hold a Regular edition'), 'refused when viewer holds no copy');
 
 // 2. Set up alice with 2 regular copies of card 10
 await kvLib.saveCollection(cName, { alice: [variants.encodeEntry(10, 'regular'), variants.encodeEntry(10, 'regular')] });

@@ -16,7 +16,7 @@ export async function pinCopyAction(uid: number | null): Promise<{ ok: true; pin
     const saved = await saveUserSettings(session.username, { ...s, pinned: null });
     return { ok: true, pinned: saved.pinned };
   }
-  if (!Number.isInteger(uid)) return { ok: false, error: 'Unknown print.' };
+  if (!Number.isInteger(uid)) return { ok: false, error: 'Unknown edition.' };
   const found = await loadCopyByUid(uid);
   if (!found || found.copy.owner !== session.username) return { ok: false, error: 'You can only pin an edition you hold.' };
   const saved = await saveUserSettings(session.username, { ...s, pinned: uid, profileLayout: withPinnedWidget(s.profileLayout) });
@@ -27,7 +27,7 @@ export async function pinCopyAction(uid: number | null): Promise<{ ok: true; pin
 export async function favouriteCopyAction(uid: number, on: boolean): Promise<{ ok: true; favourite: boolean } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Log in to favourite an edition.' };
-  if (!Number.isInteger(uid)) return { ok: false, error: 'Unknown print.' };
+  if (!Number.isInteger(uid)) return { ok: false, error: 'Unknown edition.' };
   const s = await getUserSettings(session.username);
   const rest = s.favourites.filter(n => n !== uid);
   if (!on) {
@@ -38,7 +38,7 @@ export async function favouriteCopyAction(uid: number, on: boolean): Promise<{ o
   if (!found || found.copy.owner !== session.username) {
     return { ok: false, error: found && isEscrow(found.copy.owner) ? 'It is in an open offer.' : 'You can only favourite an edition you hold.' };
   }
-  if (rest.length >= FAVOURITES_MAX) return { ok: false, error: `You can favourite up to ${FAVOURITES_MAX} prints. Unfavourite one first.` };
+  if (rest.length >= FAVOURITES_MAX) return { ok: false, error: `You can favourite up to ${FAVOURITES_MAX} editions. Unfavourite one first.` };
   const saved = await saveUserSettings(session.username, { ...s, favourites: [...rest, uid] });
   return { ok: true, favourite: saved.favourites.includes(uid) };
 }

@@ -100,7 +100,7 @@ export function FlipCard({ children, back, compact = false, className = '', defa
         </div>
       </div>
       <button type="button" className="flip-btn" aria-pressed={flipped} onClick={flip}>
-        {flipped ? 'Show the front' : 'Flip to see the edition number'}
+        {flipped ? 'Show the front' : 'Flip to see the serial number'}
       </button>
     </div>
   );

@@ -39,7 +39,7 @@ export interface QueuedEvent {
   variant?: Variant;
   serial?: number;
   serialMult?: number;
-  /** The print number of that copy. */
+  /** The edition number of that copy. */
   uid?: number;
 }
 

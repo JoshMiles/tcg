@@ -7,7 +7,7 @@ export const MOMENT_IDS = ['firstEver', 'firstPull', 'newCard'] as const;
 export type MomentId = (typeof MOMENT_IDS)[number];
 
 export const MOMENT_LABELS: Record<MomentId, string> = {
-  firstEver: 'First-ever print',
+  firstEver: 'First-ever edition',
   firstPull: "A viewer's first pull",
   newCard: 'A new card for them',
 };

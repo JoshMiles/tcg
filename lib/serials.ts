@@ -222,7 +222,7 @@ async function readRetired(c: string): Promise<Copy[]> {
   return h ? Object.values(h).map(parse).filter((x): x is Copy => !!x) : [];
 }
 
-/** Brings retired copies back to `owner` with their identity (same id, edition and print number). */
+/** Brings retired copies back to `owner` with their identity (same id, edition and edition number). */
 async function revive(c: string, owner: string, copies: Copy[]): Promise<void> {
   if (copies.length === 0) return;
   const now = Date.now();
@@ -348,7 +348,7 @@ export async function backfillSerials(c: string, data: Record<string, number[]>)
 
 /**
  * Gives a unique number to every copy of this collection that has none (live and retired), oldest first (by when it was made, then by
- * card, version and edition number, which is the best order we have for copies numbered after the fact). Safe to run again.
+ * card, version and serial number, which is the best order we have for copies numbered after the fact). Safe to run again.
  */
 export async function assignMissingUids(c: string): Promise<number> {
   const idx = ((await kv.hgetall(key.idx(c)).catch(() => null)) ?? {}) as Record<string, string>;
@@ -410,12 +410,12 @@ export async function firstNotHeld(c: string, owners: string[], ids: string[]): 
   return null;
 }
 
-/** "Edition #1023381" for a copy id (the edition when the copy has no unique number yet). */
+/** "Serial #1023381" for a copy id (the edition when the copy has no unique number yet). */
 export async function printLabel(c: string, id: string): Promise<string> {
   const copy = await getCopy(c, id);
-  if (copy?.uid) return `Edition #${copy.uid}`;
+  if (copy?.uid) return `Serial #${copy.uid}`;
   const p = parseCopyId(id);
-  return p ? `Print #${p.n}` : 'that edition';
+  return p ? `Edition #${p.n}` : 'that edition';
 }
 
 /** The unique number most recently handed out, game-wide (null before any). */

@@ -6,9 +6,9 @@ type Copy = import('../lib/serials-core').Copy;
 
 // ── search ──
 ok(v.parsePrintSearch(undefined).kind === 'none' && v.parsePrintSearch('  ').kind === 'none', 'an empty search is nothing');
-ok(JSON.stringify(v.parsePrintSearch('#1023381')) === '{"kind":"uid","uid":1023381}', '#1023381 is a print number');
-ok(JSON.stringify(v.parsePrintSearch('1023381')) === '{"kind":"uid","uid":1023381}', '1023381 is a print number');
-ok(v.parsePrintSearch('12').kind === 'text' && v.parsePrintSearch('999999').kind === 'text', 'short numbers are card numbers, not print numbers');
+ok(JSON.stringify(v.parsePrintSearch('#1023381')) === '{"kind":"uid","uid":1023381}', '#1023381 is a edition number');
+ok(JSON.stringify(v.parsePrintSearch('1023381')) === '{"kind":"uid","uid":1023381}', '1023381 is a edition number');
+ok(v.parsePrintSearch('12').kind === 'text' && v.parsePrintSearch('999999').kind === 'text', 'short numbers are card numbers, not edition numbers');
 ok(v.parsePrintSearch('@Sam').kind === 'text', 'a login is free text');
 
 // ── filters ──

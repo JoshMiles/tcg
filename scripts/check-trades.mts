@@ -425,7 +425,7 @@ await runInSandbox(box2.id, async () => {
   const away = await trades.createTrade({ seasonId: season.id, from: 'pb', kind: 'listing', give: [sk(9, 1, ['9.0.1'])], get: [sk(2)] });
   ok(away.ok, 'pb puts 9.0.1 in another offer');
   const late = await trades.acceptTrade(o1.trade.id, 'pb');
-  ok(!late.ok && /no longer hold/.test(late.error) && /Edition #\d{7}/.test(late.error), 'accept fails when the pinned edition has moved: ' + JSON.stringify(late));
+  ok(!late.ok && /no longer hold/.test(late.error) && /Serial #[0-9]{7}/.test(late.error), 'accept fails when the pinned edition has moved: ' + JSON.stringify(late));
   ok((await trades.getTrade(o1.trade.id))?.status === 'open', 'the offer stays open for a counter');
   if (away.ok) ok((await trades.cancelTrade(away.trade.id, 'pb')).ok, 'pb withdraws that listing');
   eq(await holds('pb'), ['9.0.1', '9.0.2', '9.0.3'], 'the refund returned the very same print');
