@@ -64,6 +64,7 @@ export function PropertiesDock() {
     selectTarget,
     selectView,
     hoverElement,
+    openLayerMenu,
   } = useOverlayEditor();
 
   const rail = isPack ? PROP_GROUPS.filter(g => g.id !== 'collection') : [LAYOUT_CAT, ...PROP_GROUPS];
@@ -324,6 +325,7 @@ export function PropertiesDock() {
               selectTarget={selectTarget}
               selectView={selectView}
               hoverElement={hoverElement}
+              openLayerMenu={openLayerMenu}
             />
           )}
           {searching ? (

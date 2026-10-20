@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { Icon } from '@/app/components/Icon';
+import { LayerMenu } from './LayerMenu';
 import { useOverlayEditor } from './OverlayEditorContext';
 
 export function PreviewStage() {
@@ -21,7 +24,18 @@ export function PreviewStage() {
     showSafe,
     showSaved,
     ready,
+    isPack,
   } = useOverlayEditor();
+  // First-use hint: gone for good once dismissed (localStorage may be blocked, then it just shows again next time).
+  const HINT_KEY = 'tcg:overlay-editor-hint';
+  const [hintGone, setHintGone] = useState(true);
+  useEffect(() => {
+    try { setHintGone(localStorage.getItem(HINT_KEY) === '1'); } catch { setHintGone(false); }
+  }, []);
+  const dismissHint = () => {
+    setHintGone(true);
+    try { localStorage.setItem(HINT_KEY, '1'); } catch { /* ignore */ }
+  };
 
   return (
     <div
@@ -111,10 +125,19 @@ export function PreviewStage() {
             <div className="absolute inset-x-0 top-1/2 h-px bg-yellow-400/25 pointer-events-none" />
           </>
         )}
+        {!hintGone && !isPack && ready && (
+          <p className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-md bg-gray-950/90 border border-gray-700 px-2.5 py-1 text-[11px] text-gray-300">
+            Click anything to edit it, drag to move it
+            <button type="button" onClick={dismissHint} aria-label="Dismiss hint" className="text-gray-500 hover:text-white">
+              <Icon name="x" />
+            </button>
+          </p>
+        )}
         {!ready && (
           <p className="absolute inset-0 flex items-center justify-center text-sm text-gray-500">Loading preview…</p>
         )}
       </div>
+      <LayerMenu />
     </div>
   );
 }
