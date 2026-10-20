@@ -20,14 +20,8 @@ export function PreviewStage() {
     showThirds,
     showSafe,
     showSaved,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp,
-    mode,
     ready,
   } = useOverlayEditor();
-
-  const viewName = mode === 'pack' ? 'pack opening' : 'collection view';
 
   return (
     <div
@@ -36,7 +30,7 @@ export function PreviewStage() {
     >
       <div
         className="relative overflow-hidden rounded-md border border-gray-700 shrink-0 m-auto outline-hidden focus-visible:border-yellow-500"
-        tabIndex={dragging ? 0 : -1}
+        tabIndex={0}
         onKeyDown={onKeyDown}
         style={{
           width: frameW,
@@ -115,14 +109,6 @@ export function PreviewStage() {
             {/* Centre guides: the middle of the browser source */}
             <div className="absolute inset-y-0 left-1/2 w-px bg-yellow-400/25 pointer-events-none" />
             <div className="absolute inset-x-0 top-1/2 h-px bg-yellow-400/25 pointer-events-none" />
-            <div
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-              className="absolute inset-0 cursor-move touch-none"
-              aria-label={`Drag to move the ${viewName}`}
-            />
           </>
         )}
         {!ready && (

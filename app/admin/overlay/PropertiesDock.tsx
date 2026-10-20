@@ -8,7 +8,7 @@ import { PropRow } from './editor-controls';
 import { PROPS, PROP_GROUPS, VARIANT_IDS, type PropDef, type VariantId } from '@/lib/overlay-props';
 import { PERF_LABEL, variantPerf } from '@/lib/overlay-perf';
 import { PERF_STYLE, VARIANT_LABELS, dependsOn } from './editor-types';
-import { useOverlayEditor } from './OverlayEditorContext';
+import { targetForSection, useOverlayEditor } from './OverlayEditorContext';
 
 // "Layout" sits in the rail beside the registry categories but is not registry-driven: it edits the stage size and where each
 // view is placed. Layout is global (not per pack), so it is hidden while editing a pack.
@@ -43,6 +43,7 @@ export function PropertiesDock() {
     query,
     openMap,
     setOpenMap,
+    setSelected,
     defsFor,
     groupSections,
     hiddenInScope,
@@ -136,7 +137,11 @@ export function PropertiesDock() {
         <div className="flex items-center gap-1 pr-2">
           <button
             type="button"
-            onClick={() => setOpenMap(m => ({ ...m, [k]: !open }))}
+            onClick={() => {
+              setOpenMap(m => ({ ...m, [k]: !open }));
+              const t = targetForSection(k);
+              if (t && !open) setSelected(t);
+            }}
             aria-expanded={open}
             className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2.5 text-left hover:bg-white/5"
           >
