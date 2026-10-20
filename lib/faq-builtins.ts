@@ -274,7 +274,7 @@ That’s {cost_reverse} Regulars for a Reverse Holo, {regulars_for_full} for a F
   {
     id: 'achievements', sectionId: 'profile',
     question: 'What are achievements?',
-    answer: `Goals for collecting. They show on your profile and are earned per season, for example **Completed Season 1** (one of every card), **All Common**, **All Rare** and so on for each rarity, **All Reverse Holo**, **All Full Art**, **All Shiny** and the **Master set** (every card in every version). There are goals about edition numbers too: **First edition** (hold edition #1 of any card), **First shiny edition**, **Five firsts** (edition #1 of five different cards) and **Early bird** (an edition with a low enough edition number to earn the edition bonus). Your profile also shows how close you are to the next ones. Once you earn an achievement it is yours to keep, even if you later trade cards away. They are different from *awards*, which are the prizes given for finishing high on a season’s leaderboard.`,
+    answer: `Goals for collecting. They show on your profile and are earned per season, for example **Completed Season 1** (one of every card), **All Common**, **All Rare** and so on for each rarity, **All Reverse Holo**, **All Full Art**, **All Full Art Holo** and the **Master set** (every card in every version). There are goals about edition numbers too: **First edition** (hold edition #1 of any card), **First shiny edition**, **Five firsts** (edition #1 of five different cards) and **Early bird** (an edition with a low enough edition number to earn the edition bonus). Your profile also shows how close you are to the next ones. Once you earn an achievement it is yours to keep, even if you later trade cards away. They are different from *awards*, which are the prizes given for finishing high on a season’s leaderboard.`,
   },
   {
     id: 'share-image', sectionId: 'profile',
@@ -324,7 +324,7 @@ That’s {cost_reverse} Regulars for a Reverse Holo, {regulars_for_full} for a F
   {
     id: 'card-of-the-week', sectionId: 'show',
     question: 'How is the card of the week chosen?',
-    answer: `Every Sunday evening the game looks through the active season’s editions and features the one with the most interesting journey on the home page. An edition earns points for each different collector who has held it, each completed trade it went through, being edition #1, being a Shiny or Full Art, its age (up to 8 weeks) and being forged in an upgrade. The highest score wins, an edition is not picked again for 8 weeks, and editions sitting in a trade offer are skipped. Press *See its journey* to read the whole story. If the featured edition is spent in an upgrade or removed, the section disappears until the next pick.`,
+    answer: `Every Sunday evening the game looks through the active season’s editions and features the one with the most interesting journey on the home page. An edition earns points for each different collector who has held it, each completed trade it went through, being edition #1, being a Full Art Holo or Full Art, its age (up to 8 weeks) and being forged in an upgrade. The highest score wins, an edition is not picked again for 8 weeks, and editions sitting in a trade offer are skipped. Press *See its journey* to read the whole story. If the featured edition is spent in an upgrade or removed, the section disappears until the next pick.`,
   },
   {
     id: 'pin-edition', sectionId: 'show',

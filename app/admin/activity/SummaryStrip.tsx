@@ -30,7 +30,7 @@ export function SummaryStrip({ rates, onFilterRare }: { rates: Rates; onFilterRa
         <button type="button" onClick={onFilterRare} className="text-left rounded-xl border border-gray-800 bg-gray-900/70 hover:border-yellow-500/40 px-4 py-3 transition-colors" title="Show only the rare pulls">
           <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Rare (hour)</p>
           <p className="font-display text-2xl font-bold text-yellow-300 tabular-nums leading-tight">{rates.rareLastHour}</p>
-          <p className="text-[11px] text-gray-500">5★, Full Art or Shiny</p>
+          <p className="text-[11px] text-gray-500">5★, Full Art or Full Art Holo</p>
         </button>
         <div className="rounded-xl border border-gray-800 bg-gray-900/70 px-4 py-3 col-span-2 lg:col-span-1">
           <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">Last 30 minutes</p>

@@ -23,5 +23,5 @@ ok(withGrants.spark.reduce((a, b) => a + b, 0) === 4, 'the sparkline includes th
 ok(rateStats([grant(90)], NOW).lastHour === 0, 'old ones age out like pulls');
 ok(rateStats([grant(1, { stars: undefined, isNew: undefined })], NOW).lastHour === 1, 'an older grant without the extra facts still counts');
 
-ok(notableReason(grant(1), 25) === '5-star pull' && notableReason(grant(1, { variant: 'shiny' }), 25) === 'Shiny pull' && notableReason(adminGrant(1), 25) === null, 'a rare webhook grant is highlighted like a pull');
+ok(notableReason(grant(1), 25) === '5-star pull' && notableReason(grant(1, { variant: 'shiny' }), 25) === 'Full Art Holo pull' && notableReason(adminGrant(1), 25) === null, 'a rare webhook grant is highlighted like a pull');
 console.log('activity view checks passed');

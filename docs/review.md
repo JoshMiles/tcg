@@ -34,7 +34,7 @@ On Windows Git Bash, prefix commands that take paths starting with `/` with `MSY
 
 - **Seasons:** Cheesy Starter Deck (`season1`, ended: wrap-up snapshot, awards, trading frozen) and Aged Cheddar (`season2`, active, collection `AgedCheddar`).
 - **Packs:** Cheese Wheel Pack (`pack-wheel`: variants and upgrades on, 20 cards with full art), Work In Progress Pack (`pack-draft`, a draft in Season 2), Retired Promo Pack (`pack-old`, archived).
-- **Viewers:** 300 per season from the sandbox crowd generator, plus `alice` (every card, spares, Reverse / Full Art / Shiny copies, bio, tags), `hoarder` (3,000 copies), the scenario viewers (`upgrade_ready`, `upgrade_one_short`, `one_card_short`, `completionist`, `trader_a`, `trader_b`, `shiny_hunter`), `hidden_hank` (hidden from public boards), `private_pat` (private profile), `blocked_bob` (no trading), `a_very_long_username_25c`.
+- **Viewers:** 300 per season from the sandbox crowd generator, plus `alice` (every card, spares, Reverse / Full Art / Full Art Holo copies, bio, tags), `hoarder` (3,000 copies), the scenario viewers (`upgrade_ready`, `upgrade_one_short`, `one_card_short`, `completionist`, `trader_a`, `trader_b`, `shiny_hunter`), `hidden_hank` (hidden from public boards), `private_pat` (private profile), `blocked_bob` (no trading), `a_very_long_username_25c`.
 - **Serials:** every existing copy numbered, with unique copy numbers (copy ids like `1.0.1`).
 - **Trades:** an open listing (`trader_a`), an open direct offer (`alice` to `trader_b`) and a finished swap.
 - **Achievements** synced for `alice`, `completionist`, `shiny_hunter`, `one_card_short`.
