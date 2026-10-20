@@ -19,14 +19,14 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
 | 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
-| 32.1 | Buff credits: free pulls, dead extra-pulls buff, races | Ready | M |
 | 32.2 | Variant glow and rock CSS regressions | Ready | S |
-| 32.3 | FAQ editor hardening | Ready | S |
 | 32.4 | Discord link: relink and one-account claim | Ready | S |
 | 32.5 | New pack flow leftovers | Ready | S |
 | 32.6 | Variant scripts and the Shiny label leftovers | Ready | S |
 | 32.7 | GEMINI.md becomes a pointer to CLAUDE.md | Ready | XS |
-| 32.8 | Tabbed staff What's new and issue form links | In progress | S |
+| 33.1 | Discord variables on the Environment tab | Ready | XS |
+| 33.2 | Achievement Editor: own page, stats, placeholders, custom goals | Ready | L |
+| 33.3 | FAQ Editor: built-in questions become editable templates (includes 32.3) | Ready | L |
 
 27.2 is unused on purpose: the master set achievement is already shipped (see "Already on the site" under tracks 25 to 30). 29.2 is unused on purpose: the read-only audit and the dry-run script shipped inside 29.1. 29.3 is not in the table: stars keep setting the value, so there is no PR.
 
@@ -85,26 +85,12 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 
 ## Track 32: review of PRs #297 to #310 (2026-10-20)
 
-Those PRs were merged without a review. Findings were checked against `main`. One PR per item, each from up-to-date `origin/main`. Each fix adds a regression case to the matching `scripts/check-*.mts`. 32.1 to 32.6 touch different files and can run in parallel, except that 32.2 and 32.6 both touch variant labels: run 32.6 after 32.2.
-
-### 32.1 Buff credits (Ready, M, do first)
-- **Free pulls forever.** `app/api/collection/route.ts` calls `consumePullOnSave(..., { seasonId: name })` with the collection name, but buffs store `season.id` (`lib/buffs.ts` `useTrainerCard`, `lib/achievements-store.ts`). `stepActiveBuff` then drops the buff before taking a credit, and `hasExtraPackCredit` passes no season, so it keeps returning true. Pass the active `season.id` on both sides. `scripts/check-buffs.mts` uses one id for both, so give it different season and collection ids.
-- **Extra pulls per stream does nothing.** `totalExtraPullsFromBuffs` (`lib/buffs-core.ts`) is never called. Add it to `extra` in `reservePaidPull` (`lib/mixitup.ts`) and `doPullsLeft` (`lib/commands.ts`).
-- **One credit, many pulls.** `reservePaidPull` checks the credit but reserves nothing, so pulls queued before the first save all skip the fee. Reserve the credit at reservation time and give it back in `releasePaidPull`.
-- **Lost writes.** Buff lists (`user:<u>:buffs`, `buffs:community`) are read, changed and written with no lock. Wrap the writes in `withLock` on the buff key. `useTrainerCard` applies the buff before `saveCollection`, so save the collection first or undo the buff on error.
-- **Achievement bonus.** `syncAchievements` marks the goal earned before applying the buff, and a failed apply is swallowed. Two page views can both apply it. Claim each goal with a set-if-absent, then apply, then log a skipped grant. Decided 2026-10-20 (Joshua): achievements earned before 27.5 pay out their bonus once, on the first sync after deploy.
-- **Smaller.** Save `streamKeys` updates even when no credit was used. Return a reason code from `useTrainerCard` instead of the string match in `lib/commands.ts`. A `grant-achievement` buff can never be applied (`invalid_type`): wire it or hide it in the Buff Editor.
+Those PRs were merged without a review. Findings were checked against `main`. One PR per item, each from up-to-date `origin/main`. Each fix adds a regression case to the matching `scripts/check-*.mts`. 32.2 to 32.6 touch different files and can run in parallel, except that 32.2 and 32.6 both touch variant labels: run 32.6 after 32.2.
 
 ### 32.2 Variant glow and rock CSS (Ready, S)
 - `buildHoloSpecs` (`lib/holo-core.ts`) sets `on: true` when only glow or rock is on, so `holoClass()` adds the default shimmer to a variant whose shimmer is off. Add a separate shimmer flag, used by `holoClass`, while `holoVars` keeps the glow and rock variables.
 - `app/globals.css` (#308) added `.vfx-reverse` to the `!important` glow rule, the rock animation and the `.ug-art` / `.tr-art` rules. That overrides the rarity box shadow on the copy page, Card Dex, `CardDetail` and `PrintOfWeek`. Take `.vfx-reverse` out, restore the old blue and amber glow fallbacks and the 1.6deg Full Art Holo rock, and only animate when `--rock-amt` is set.
 - Add a check: shimmer off with glow on gives `holoClass() === ''`.
-
-### 32.3 FAQ editor hardening (Ready, S)
-- Section icons are cast, not checked (`lib/faq-core.ts` `cleanSectionInput`, `normalizeFaqStore`). An unknown icon crashes `/faq`. Check against the `ICONS` keys and fall back to `help`.
-- `updateFaqQuestionAction` drops `order` and `createdAt`, so an edited question jumps to the top. Keep the existing values.
-- Reject a question whose `sectionId` is not a section, and toggle or reorder calls for an unknown section.
-- The link parser accepts `//host` as a site path. Use `\/(?!\/)`.
 
 ### 32.4 Discord link (Ready, S)
 - `saveDiscordLink` (`lib/discord-user.ts`) leaves the old `discord:user:<id>` index when a collector links a different Discord account, so that account can never be linked again. Delete the old index.
@@ -123,12 +109,37 @@ Those PRs were merged without a review. Findings were checked against `main`. On
 ### 32.7 GEMINI.md (Ready, XS)
 GEMINI.md is a hand-kept copy of CLAUDE.md and has already drifted. Replace it with a short pointer: follow CLAUDE.md, the only rules file.
 
-### 32.8 Tabbed staff What's new and issue form links (In progress)
-- `/admin/changelog` gets Admin, Mod and Players tabs. The PR `Audience:` line takes players, admin, mod, staff (admin and mod) or all. Each generated entry has an Edit link to its PR on GitHub, and an edit shows after the next deploy. `/mod/changelog` shows the mod list.
-- "Report a problem" opens the bug report issue form (`?template=bug_report.yml`, page in the steps field). Idea links can also open the feature request form.
-
 ### PR descriptions fixed (2026-10-20)
 `scripts/build-changelog.mjs` publishes only the bullets under `## Changelog`. #301 has no section, and #302 and #306 have prose only, so the Golden labels, variant styles and Discord DM alerts are missing from What's new. #303 had no Audience or Tags lines. Joshua approved the rewrites on 2026-10-20; the edited bodies show after the next deploy.
+
+## Track 33: admin editors (Joshua, 2026-10-20)
+
+One PR per item, each from up-to-date `origin/main`. They touch different files and can run in parallel. Each adds or extends a `scripts/check-*.mts`.
+
+### 33.1 Discord variables on the Environment tab (Ready, XS)
+`lib/env-health.ts` lists no Discord variables, so Admin → Settings → Environment cannot say why the Discord DM option is hidden. Add an `EnvGroup` `'Discord'` (and to `ENV_GROUPS`) with `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN`, all `recommended`. The `unlocks` text says what `lib/discord-user.ts` does with each: linking a Discord account in Settings and DM alerts; all three are needed or the option stays hidden; the redirect `<site>/auth/discord/callback` goes in the Discord developer portal. `DISCORD_API_BASE` is a test hook and is not listed. Discord channel webhooks live in KV (Settings → Webhooks), not env, so they are not listed either. Extend `scripts/check-settings.mts` and the env table in `docs/hosting.md`.
+
+### 33.2 Achievement Editor (Ready, L)
+Decided 2026-10-20 (Joshua): its own page on the sidebar, built-in goals editable with their real wording, a clearer buff reward, stats, placeholders and custom goals.
+- **Page.** `/admin/achievements` (server page, `force-dynamic`, `requireAdmin` on every action), added to `NAV_GROUPS` in `lib/admin-nav.ts` under Game, next to the Buff Editor, icon `award`, an unused shortcut letter (`scripts/check-admin-shell.mts` checks it). Remove the Settings tab; `/admin/settings?tab=achievements` redirects to the new page. Update `docs/admin.md`'s topic file and the staff wiki entry if one names the tab.
+- **Built-in goals prefilled.** Each built-in kind gets its default title and detail as a template in `lib/achievement-settings.ts` (the sentences `evaluateSeason` and `serialGoals` use today, with `{season}` etc. in place of the live values). The editor shows the template (or the saved override), not a blank box. Saving text equal to the default stores nothing. A Reset button per row. Stored earned rows keep working: text is still applied on the way out (`applyAchievementText`).
+- **Placeholders.** `{season}`, `{need}` (the goal's target), `{rarity}` (tier goals), `{version}` (version goals), `{cutoff}` (print bonus cutoff). Filled when the text is shown, from the achievement's own fields. An unknown `{word}` is shown as typed, and the editor warns about it. A small reference list under the form.
+- **Buff reward wording.** The "Bonus reward" select becomes "Buff given when earned", with one line under it: a buff from the Buff Editor, given once, the first time a player earns this goal (link to `/admin/buffs`). The option text says what the buff does (`describeBuffDef`).
+- **Stats.** When `syncAchievements` stores a newly earned goal, also `hincrby achievements:earned <kind> 1` and push `{ username, id, title, earnedAt }` to `achievements:recent` (trim to 25). The page shows the count per goal and a recent-earners list linked to profiles. A "Recount" button rebuilds the counts by scanning every user's `user:<u>:ach` hash (users from `getAllCollectionUsers()`), for goals earned before this ships.
+- **Custom goals.** KV `achievements:custom`, a list of `{ id, on, title, detail, icon, rule, buffId? }`, normalized on read like the settings. `rule` is one of: `unique` (own N different cards), `editions` (hold N editions in total, duplicates count), `rarity` (own N different cards of a star tier), `version` (own N different cards in a version), `firsts` (hold print #1 of N different cards; needs numbered copies, like `serialGoals`). Every rule is per season and computed from `AchSeason`, so `evaluateSeason` takes the custom list as an extra argument; ids are `<seasonId>:custom-<id>`. N is capped at the cards that qualify (a goal with 0 qualifying cards is left out, like the built-ins). Create, edit, switch off and delete in the editor; deleting or switching off never removes it from profiles that earned it. Custom goals can carry a buff, applied by the same claim-then-apply path as built-ins. Icon picked from a short list of `IconName`s.
+- **Trade goals (decided 2026-10-20, Joshua).** Goals for completed trades, counted across all seasons: a trade counts once it is `accepted` (a reversed trade does not), for both the offerer and the taker (`from`, and `to ?? resolvedBy`, as in `tradeCountsByUser` in `lib/trades.ts`). Add `completedTradeCount(username)` next to it. Built-in kinds `first-trade` (1) and `ten-trades` (10) in a new `Trading` group, and a custom rule `trades` (complete N trades). They are not per season: stored under the pseudo-season id `trading` (like `special`), so ids are `trading:first-trade` and `trading:custom-<id>`; `{season}` is empty there and `{need}` works. `syncAchievements` reads the count once per sync. Earned stays earned, even if a trade is later reversed.
+- **Checks.** Extend the achievements check: placeholder fill, default-equals-blank, each rule type at N-1 and N, a deleted custom goal stays earned, the stat counter goes up once per goal.
+
+### 33.3 FAQ Editor: built-in questions as templates (Ready, L, includes 32.3)
+Decided 2026-10-20 (Joshua): the built-in questions are editable with their real wording prefilled, using placeholders for live values.
+- **Built-ins become data.** Move every built-in question in `app/(site)/faq/sections/*.tsx` into `lib/faq-builtins.ts`: `{ id, sectionId, question, answer, open? }`, `answer` in the custom-answer syntax `lib/faq-core.ts` already parses (paragraphs, `- ` lists, `**bold**`, `[text](href)`). Keep every existing anchor id (`#not-nfts`, `#app`, ...); give the rest a stable slug. The wording stays the same apart from what the syntax cannot express.
+- **Placeholders.** `{channel}`, `{channel_url}` (`lib/site.ts`), `{season}`, `{print_cutoff}`, `{pct_<variant>}` and `{cost_<variant>}` for each variant, the trade settings the trading section prints today, and any other live number the sections use now. Filled on render in `page.tsx`; custom questions get them too. Unknown `{word}` is left as typed.
+- **Live blocks.** What text cannot hold (the card values table, the chat commands list, other tables or lists built from data) becomes a block placeholder: a line that is only `{{block_name}}` renders the matching component (moved out of the section files into one blocks file). Sentences that change with state today (for example upgrades off this season) become a placeholder whose value is the right sentence.
+- **Overrides.** The store gains `overrides: Record<builtinId, { question?, answer?, hidden? }>`, normalized on read (unknown ids dropped). Defaults stay in code, so a later copy fix still reaches questions nobody edited. The editor lists the built-ins per section next to the custom ones, prefilled with the override or the default, with Hide and Reset to built-in, a placeholder reference (with today's values) and a warning on unknown placeholders or blocks. Saving the default text stores nothing.
+- **Rendering.** One renderer for built-ins and custom questions; the section `.tsx` files go. Section order, titles, icons and hiding stay as they are in the store.
+- **From 32.3.** Check section icons against the `ICONS` keys and fall back to `help` (`cleanSectionInput`, `normalizeFaqStore`). `updateFaqQuestionAction` keeps `order` and `createdAt`. Reject a question whose `sectionId` is not a section, and toggle or reorder calls for an unknown section. The link parser treats `//host` as external, not a site path (`\/(?!\/)`).
+- **Words check.** `scripts/check-words.mts` reads the FAQ wording from the new builtins file. The FAQ, Privacy and Terms stay in step: the check covers the defaults, and the editor shows one line reminding staff that the Privacy and Terms are not edited here.
+- **Checks.** A faq check: every built-in has a unique id and a known section, every placeholder used by a default is defined, every block named exists, an override of the default text normalizes to nothing, `//host` is not a site link. Run the public-site sweep on `/faq` against the mock KV and compare it with the old page.
 
 ## Standing decisions
 
