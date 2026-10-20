@@ -396,6 +396,24 @@ export function consumeBuffPull(
   return { buffs: out, consumedCredit };
 }
 
+/** Extra-pack credits `username` can still spend across personal + community buffs. */
+export function extraPackCreditsLeft(
+  personal: readonly ActiveBuff[],
+  community: readonly ActiveBuff[],
+  ctx: BuffEvalContext & { username: string },
+): number {
+  const u = ctx.username.toLowerCase();
+  const evalCtx = { ...ctx, username: u };
+  let sum = 0;
+  for (const b of personal) {
+    if (b.type === 'extra-pack' && isBuffActiveFor(b, evalCtx)) sum += b.pullsLeft ?? 1;
+  }
+  for (const b of community) {
+    if (b.type === 'extra-pack' && isBuffActiveFor(b, evalCtx)) sum += b.pullsMax !== undefined ? Math.max(0, b.pullsMax - (b.usedBy?.[u] ?? 0)) : 1;
+  }
+  return sum;
+}
+
 /** Total extra pulls per stream granted to `username` by personal + community buffs. */
 export function totalExtraPullsFromBuffs(
   personal: readonly ActiveBuff[],

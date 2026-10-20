@@ -4,6 +4,7 @@ import { countVariants, allowedVariants } from './variants';
 import { evaluateSeason, sortAchievements, type AchCard, type Achievement } from './achievements';
 import { applyAchievementText, disabledKinds, getAchievementSettings } from './achievement-settings';
 import { applyBuff } from './buffs';
+import { recordAudit } from './audit';
 import { loadSerialIndex } from './serials';
 import { getScoringSettings } from './scoring';
 
@@ -64,21 +65,26 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
     const add = Object.fromEntries(fresh.map(a => [a.id, { ...a, earnedAt: now } satisfies EarnedAchievement]));
     try {
       await kv.hset(key(u), add);
-      for (const a of fresh) {
-        const kind = a.id.slice(a.seasonId.length + 1);
-        const row = settings[kind];
-        if (row?.buffId) {
-          await applyBuff(u, row.buffId, {
-            source: `achievement:${a.id}`,
-            seasonId: a.seasonId,
-            now,
-            disallowCommunity: true,
-          }).catch(() => {});
-        }
-      }
     } catch { /* try again next view */ }
     Object.assign(stored, add);
   }
+
+  // Pay each earned goal's bonus once. The marker is the record of payment, so goals stored before buffs existed (27.5) pay out
+  // on the first sync too, and two page views that both reach a goal cannot both pay it (set-if-absent).
+  try {
+    for (const a of live.filter(g => g.earned)) {
+      const row = settings[a.id.slice(a.seasonId.length + 1)];
+      if (!row?.buffId) continue;
+      if (!(await kv.set(`${key(u)}:paid:${a.id}`, 1, { nx: true }))) continue;
+      const res = await applyBuff(u, row.buffId, {
+        source: `achievement:${a.id}`,
+        seasonId: a.seasonId,
+        now,
+        disallowCommunity: true,
+      }).catch((e: unknown) => ({ ok: false as const, reason: e instanceof Error ? e.message : 'error' }));
+      if (!res.ok) await recordAudit(u, 'Achievement buff not applied', `${a.id}: ${res.reason}`).catch(() => {});
+    }
+  } catch { /* best effort */ }
 
   // Tester achievements (pseudo-season `special`, written by lib/access.ts) are kept as they are and listed first.
   const sorted = sortAchievements(Object.values(stored).map(a => ({ ...a, earned: true })));

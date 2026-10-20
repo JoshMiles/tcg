@@ -23,7 +23,7 @@ import {
   DEFAULT_COMMANDS, ERROR_DEFAULTS, cleanCommands, interpolate, matchCommand, renderReply, tidyReply,
   type ChatCommand, type ErrorKind,
 } from './commands-core';
-import { getBuffDef, useTrainerCard, getUserBuffs, getCommunityBuffs, currentBuffStreamKey } from './buffs';
+import { getBuffDef, useTrainerCard, getUserBuffs, getCommunityBuffs, currentBuffStreamKey, extraPullsFromBuffs } from './buffs';
 import { describeBuffDef, isBuffActiveFor } from './buffs-core';
 
 // Chat commands (ROADMAP 19.2): the configured commands in KV and the code that runs one. The webhook (`/api/webhooks/command`) and the
@@ -220,7 +220,7 @@ async function doLeaderboard(): Promise<Done | Fail> {
 async function doPullsLeft(c: Ctx): Promise<Done | Fail> {
   const m = await getMixItUpSettings();
   if (!m.enabled) return fail('Paid pulls are off right now.', 'notFound');
-  const extra = streamBuffAmount(await getStreamBuff(), await currentStreamKey());
+  const extra = streamBuffAmount(await getStreamBuff(), await currentStreamKey()) + await extraPullsFromBuffs(c.user);
   const eff = effectiveLimit(roleLimitOf(m, pullRole(c.role, c.user)), await getUserPullLimit(c.user), Date.now(), extra);
   const used = await pullsUsedThisStream(c.user);
   return { vars: {
@@ -272,8 +272,8 @@ async function doUseTrainer(c: Ctx): Promise<Done | Fail> {
     const res = await useTrainerCard(c.user, n, s.season.id);
     if (!res.ok) {
       const err = res.error || 'Failed to use trainer card.';
-      if (err.includes('already active')) return fail(err, 'alreadyActive', { cardName: card.name, buff: buffDef.name, until: durSummary });
-      if (err.includes('favourite')) return fail(err, 'notOwned', { cardName: card.name, buff: buffDef.name });
+      if (res.code === 'already_active') return fail(err, 'alreadyActive', { cardName: card.name, buff: buffDef.name, until: durSummary });
+      if (res.code === 'favourite') return fail(err, 'notOwned', { cardName: card.name, buff: buffDef.name });
       return fail(err, undefined, { cardName: card.name, buff: buffDef.name });
     }
   }
@@ -281,7 +281,7 @@ async function doUseTrainer(c: Ctx): Promise<Done | Fail> {
   let left = 'unlimited';
   const m = await getMixItUpSettings();
   if (m.enabled) {
-    const extra = streamBuffAmount(await getStreamBuff(), await currentStreamKey());
+    const extra = streamBuffAmount(await getStreamBuff(), await currentStreamKey()) + await extraPullsFromBuffs(c.user);
     const eff = effectiveLimit(roleLimitOf(m, pullRole(c.role, c.user)), await getUserPullLimit(c.user), Date.now(), extra);
     const used = await pullsUsedThisStream(c.user);
     if (eff.limit > 0) left = String(Math.max(0, eff.limit - used));

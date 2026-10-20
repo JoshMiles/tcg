@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCollection, saveCollection, deleteCollection, addCollectionEntryWithSerial, removeUserFromCollection, withCollectionLock } from '@/lib/kv';
+import { getCollection, saveCollection, deleteCollection, addCollectionEntryWithSerial, listSeasons, removeUserFromCollection, withCollectionLock } from '@/lib/kv';
 import { getScoringSettings } from '@/lib/scoring';
 import { serialMultiplier } from '@/lib/scoring-core';
 import { getWebhookSettings, fireOutgoing } from '@/lib/webhooks';
@@ -75,7 +75,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  await consumePullOnSave(username, { wasCredit: paid?.credit, seasonId: name }).catch(() => {});
+  // Buffs store the season's id, which is not the collection name the ticket carries.
+  const seasonId = (await listSeasons().catch(() => [])).find(s => s.collectionName === name)?.id;
+  await consumePullOnSave(username, { wasCredit: paid?.credit, seasonId }).catch(() => {});
 
   // The serial the new copy got and what it is worth (the overlay shows it on the reveal).
   const mult = serial ? serialMultiplier(serial, await getScoringSettings()) : 1;
