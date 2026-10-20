@@ -204,7 +204,7 @@ export function SeasonFlow({
             {packs.length === 0 ? (
               <div className="text-center py-8 space-y-3">
                 <p className="text-gray-500 text-sm">You don&apos;t have any packs yet.</p>
-                <NewPackButton label="Create a pack →" className="btn btn-primary inline-block px-4 py-2 text-sm rounded-xl" />
+                <NewPackButton newTab label="Create a pack →" className="btn btn-primary inline-block px-4 py-2 text-sm rounded-xl" />
               </div>
             ) : (
               <ul className="space-y-2">
@@ -247,7 +247,7 @@ export function SeasonFlow({
             )}
             <p className="text-xs text-gray-600">
               Draw weight belongs to the pack (shared by every season using it), change it in the pack&apos;s settings.{' '}
-              <NewPackButton label="Create another pack →" className="text-yellow-500 hover:text-yellow-400" />
+              <NewPackButton newTab label="Create another pack →" className="text-yellow-500 hover:text-yellow-400" />
             </p>
           </>
         )}

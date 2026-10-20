@@ -17,12 +17,8 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 32.2 | Variant glow and rock CSS regressions | Ready | S |
-| 32.5 | New pack flow leftovers | Ready | S |
 | 32.6 | Variant scripts and the Shiny label leftovers (after 32.2) | Ready | S |
-| Ext | Next extension version | Blocked (panel freeze) | L |
-| 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
-| 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
-| 25.2p | The panel still says print for a copy (edition / print words) | Blocked (panel freeze) | XS |
+| 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 31 and 33 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -35,11 +31,6 @@ Those PRs were merged without a review. Findings were checked against `main`. On
 - `app/globals.css` (#308) added `.vfx-reverse` to the `!important` glow rule, the rock animation and the `.ug-art` / `.tr-art` rules. That overrides the rarity box shadow on the copy page, Card Dex, `CardDetail` and `PrintOfWeek`. Take `.vfx-reverse` out, restore the old blue and amber glow fallbacks and the 1.6deg Full Art Holo rock, and only animate when `--rock-amt` is set.
 - Add a check: shimmer off with glow on gives `holoClass() === ''`.
 
-### 32.5 New pack flow leftovers (Ready, S)
-- The dashboard "New pack" shortcut (`app/admin/dashboard/widgets.tsx`) still links `/admin/packs/new`, which only redirects. Use `NewPackButton`.
-- `SeasonFlow` "Create a pack" now leaves the wizard in the same tab and can drop unsaved season edits. Open the new pack in a new tab, or flush the autosave first.
-- `createDraftPack` has no `revalidatePath`. `PackWorkspace` reloads the page after publish: use `router.refresh()`. Fix `docs/admin/packs-and-seasons.md` ("the wizard's").
-
 ### 32.6 Variant scripts and labels (Ready, S, after 32.2)
 - `scripts/migrate-variant-rarity.mts` and `scripts/audit-variant-rarity.mts` cannot run. They import functions that are not exported, read `cardId` instead of `cardNumber`, compare string ids with numbers, and use a 100000 offset instead of `VARIANT_OFFSET`. Delete them unless someone needs the remap. If it is kept, rewrite it against the real APIs with a mock-KV check.
 - Rename the leftover user-visible "Shiny" labels to Full Art Holo or FH: `app/admin/seasons/[id]/page.tsx`, `app/admin/dashboard/widgets-extra.tsx`, `lib/dashboard.ts`, `lib/activity-view.ts`, `app/admin/activity/SummaryStrip.tsx`, `app/admin/users/UsersList.tsx`, `app/admin/components/AddCardDialog.tsx`, and docs. The internal id stays `shiny`.
@@ -49,23 +40,25 @@ Those PRs were merged without a review. Findings were checked against `main`. On
 
 Nothing in a Ready item edits the frozen paths listed under "Rules in force".
 
-### Ext: next extension version
+### Track 34: next extension version (Blocked until the freeze lifts)
 
-**Security, panel collection (ship with the next panel version, not before the freeze lifts).** `GET /api/twitch/collection` takes `username` and returns that viewer's card numbers for every season they have cards in, including drafts, with no session, extension JWT or private-profile check. The released panel calls it that way (`public/twitch-panel/panel.js`, no `Authorization` header). When the freeze lifts: drop draft seasons; for a private profile return cards only when the caller is that viewer (a Twitch extension JWT checked with `verifyExtensionAuth`, or a website session); keep the JSON shape `{ username, collections: [{ seasonId, seasonName, active, ownedNumbers }] }`. Public profiles can keep answering without a token so the panel already under review still loads. Do not change this route, `public/twitch-panel/*`, the package builder or the extension CORS while the freeze is on.
+All of it ships as one reviewed panel version. Every item edits `public/twitch-panel/panel.js`, so run them **one at a time** in the order below, each its own PR from `origin/main`; the version is submitted only after 34.8. Read `docs/twitch-extension.md` first. Rules for the whole track: never rename or remove a JSON key on `/api/twitch/*` (the released panel keeps working against new responses until viewers update); new data goes in new fields; reuse the website's existing APIs and `lib/` helpers rather than copying logic into the panel.
 
-Ship as one reviewed panel version: the pack card back on the panel's flip backs (20.3), choosing prints when trading (6.4: composer and accept picker, exact serial preview), favourite prints (9.1: hearts and disabled picks), "Reversed by staff" on reversed trades (9.2), staff and tester badges, achievements, Looking for / listing alerts, the binder, share images, the copies-first dialog (2.5), unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. When the freeze lifts, also take 29.5 and 30.4 from the blocked list below.
+**34.1 Collection security (Ready once lifted, S).** `GET /api/twitch/collection` takes `username` and returns that viewer's card numbers for every season, drafts included, with no session, extension JWT or private-profile check. Drop draft seasons; for a private profile return cards only when the caller is that viewer (extension JWT via `verifyExtensionAuth`, or a website session); keep `{ username, collections: [{ seasonId, seasonName, active, ownedNumbers }] }`. Public profiles answer without a token so old panels still load. Make the new panel send its `Authorization` header. Check: private profile without a token gets no cards; drafts never appear.
 
-### 29.5 Let Golden be pulled, including the Twitch panel (Blocked, panel freeze)
+**34.2 Edition words (Ready once lifted, XS).** Panel copy says "print" for a card copy; switch to "edition" and "serial number" (glossary 25.2).
 
-When the freeze lifts, in the same panel version as Ext:
-- Turn `GOLDEN_PULLS` on. Packs opt in by setting a Golden weight (default stays 0, so nothing changes until a pack is edited).
-- Teach `public/twitch-panel/panel.js` (and its CSS) the five-id list and index 4, or Golden entries render as a bad card number. Collection, season and upgrade responses may gain the new variant in existing arrays; do not change the JSON keys. `/api/twitch/upgrade` must understand a step up to Golden once the ladder includes it.
-- Overlay already learned Golden in 29.1 and 29.4.
-- Rebuild the extension zip (`scripts/lib/twitch-package.mjs` is in the freeze too). Bump `version`, screenshots, `twitch-extension/SUBMISSION.md`.
+**34.3 Golden (Ready once lifted, M).** Was 29.5. Turn `GOLDEN_PULLS` on; packs opt in with a Golden weight (default 0). Teach the panel and its CSS the five-id list and index 4. `/api/twitch/upgrade` understands a step up to Golden. Overlay already knows Golden (29.1, 29.4).
 
-### 30.4 Use a trainer card from the Twitch panel (Blocked, panel freeze)
+**34.4 Trainer card Use (Ready once lifted, S).** Was 30.4. A Use button next to Upgrade on trainer cards only, through a new field on an existing authenticated route or a new `/api/twitch` route. Same two-tap and consume rules as 30.2.
 
-The panel can already show the card as a normal collection entry (Regular encoding). It has no Use button, and it must not grow one during the freeze. When the freeze lifts, add Use next to Upgrade on that card only, calling a new field on an existing authenticated route or a new `/api/twitch` route in that panel version (not before). Same two-tap, same consume rules as 30.2.
+**34.5 Trades tab (Ready once lifted, M).** Choosing editions when trading (6.4: composer and accept picker, exact serial preview), "Reversed by staff" on reversed trades (9.2), a link to `/trade/<id>`.
+
+**34.6 Collection view (Ready once lifted, M).** Pack card back on flip backs (20.3), favourite editions (9.1: hearts, disabled picks), serial numbers on tiles (2.1), the copies-first dialog (2.5), staff and tester badges.
+
+**34.7 New panel sections (Needs design, L).** Achievements, the binder, Looking for / listing alerts, share images. Planning pass first: which fit a 318px panel, which are a link out to the site instead, and whether this splits into its own panel version.
+
+**34.8 Release (Ready once lifted, S).** Anything Twitch reviewers asked for; bump `version` in `package.json`, rebuild the zip (`scripts/lib/twitch-package.mjs`), refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. A new freeze starts at submission.
 
 
 ## Standing decisions

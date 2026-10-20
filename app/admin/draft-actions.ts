@@ -24,7 +24,9 @@ export type { PackInput };
 /** Creates a draft pack and returns its id so the caller can open the pack workspace on it. */
 export async function createDraftPack(input: Partial<PackInput> | string): Promise<{ id: string }> {
   await requireAdmin();
-  return createDraftPackCore(input);
+  const r = await createDraftPackCore(input);
+  revalidatePath('/admin/packs');
+  return r;
 }
 
 /** Publishes a draft once it passes validation. `active` = include in draws straight away. */
