@@ -83,7 +83,7 @@ export function LayoutPanel({
           wrap
         />
         <p className="text-xs text-gray-500 leading-relaxed">
-          The size and position of the {viewName} are independent of the other view. <strong className="text-gray-400">Drag the canvas</strong>, or click it and use the arrow keys (Shift for bigger steps).
+          The size and position of the {viewName} are independent of the other view. <strong className="text-gray-400">Drag it on the canvas</strong>, or select it and use the arrow keys (Shift for bigger steps).
         </p>
         <label className="block space-y-1 text-sm text-gray-300">
           Size <span className="text-white font-semibold">{Math.round(placement.scale * 100)}%</span>

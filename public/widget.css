@@ -571,6 +571,15 @@
 /* Admin editor preview: the elements you can click to edit light up on hover. */
 .preview-edit [data-edit] { cursor: pointer; }
 .preview-edit [data-edit]:hover { outline: 2px dashed rgba(250, 204, 21, .9); outline-offset: 3px; }
+.preview-edit { touch-action: none; user-select: none; }
+.preview-edit[data-selected="card"] [data-edit="card"], .preview-edit[data-selected="label"] [data-edit="label"],
+.preview-edit[data-selected="bar"] [data-edit="bar"], .preview-edit[data-selected="got"] [data-edit="got"],
+.preview-edit[data-selected="strip"] [data-edit="strip"], .preview-edit[data-selected="showlabel"] [data-edit="showlabel"],
+.preview-edit[data-selected="heading"] [data-edit="heading"], .preview-edit[data-selected="collection"] [data-edit="collection"] {
+  outline: 2px solid rgba(250, 204, 21, 1); outline-offset: 3px;
+}
+.edit-tag { display: none; position: fixed; z-index: 99999; pointer-events: none; padding: 1px 6px; border-radius: 4px;
+  background: #facc15; color: #111; font: 700 11px/16px system-ui, sans-serif; }
 
 /* Sparkle burst (variant.*.sparkles): particles fly out from the middle of the card and fade. */
 .spark-layer { position: absolute; left: 0; right: 0; top: 40px; height: 380px; pointer-events: none; z-index: 2000; }

@@ -167,9 +167,6 @@ export interface OverlayEditorContextValue {
   setPickCard: (c: number) => void;
   previewCards: CardInfo[];
   previewCard: number;
-  onPointerDown: (e: React.PointerEvent) => void;
-  onPointerMove: (e: React.PointerEvent) => void;
-  onPointerUp: () => void;
   onKeyDown: (e: React.KeyboardEvent) => void;
 
   // History & Presets
@@ -300,7 +297,8 @@ export function OverlayEditorProvider({
   const [notice, setNotice] = useState('');
   const boxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const drag = useRef<{ view: Mode; ox: number; oy: number } | null>(null);
+  const [selected, setSelected] = useState('');
 
   const [zoom, setZoom] = useState(1);
   const [showThirds, setShowThirds] = useState(false);
@@ -411,6 +409,7 @@ export function OverlayEditorProvider({
       h.skip = false;
       return;
     }
+    if (drag.current) return; // a drag is one step: committed when it ends
     if (h.timer) clearTimeout(h.timer);
     h.timer = setTimeout(commit, 500);
   }, [globalVals, packVals, layoutMap, commit]);
@@ -705,52 +704,79 @@ export function OverlayEditorProvider({
     (moved(layout.collection) ? 1 : 0) +
     (layout.width !== DEFAULT_LAYOUT.width || layout.height !== DEFAULT_LAYOUT.height ? 1 : 0);
   const layoutCat = category === 'layout' && !isPack;
-  const dragging = layoutCat && !query.trim();
+  // The selected thing can be moved when layout is editable (global or a scene), not in a pack override.
+  const dragging = !!selected && !isPack;
+  const viewOf = (t: string): Mode => (t === 'heading' || t === 'collection' ? 'collection' : 'pack');
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    drag.current = { x: e.clientX, y: e.clientY, ox: placement.offsetX, oy: placement.offsetY };
-  };
+  const moveView = (view: Mode, ox: number, oy: number) =>
+    setLayoutVals(l => ({ ...l, [view]: { ...l[view], offsetX: ox, offsetY: oy } }));
 
-  const onPointerMove = (e: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d) return;
-    let nx = Math.round(d.ox + (e.clientX - d.x) / fit);
-    let ny = Math.round(d.oy + (e.clientY - d.y) / fit);
-    if (snapOn && !e.altKey) {
+  const dragTo = (target: string, dx: number, dy: number, alt: boolean) => {
+    if (isPack) return;
+    if (!drag.current) {
+      const view = viewOf(target);
+      commit();
+      drag.current = { view, ox: layout[view].offsetX, oy: layout[view].offsetY };
+    }
+    let nx = Math.round(drag.current.ox + dx);
+    let ny = Math.round(drag.current.oy + dy);
+    if (snapOn && !alt) {
       const near = Math.max(2, Math.round(8 / fit));
       nx = Math.abs(nx) <= near ? 0 : Math.round(nx / 10) * 10;
       ny = Math.abs(ny) <= near ? 0 : Math.round(ny / 10) * 10;
     }
-    setPlacement({ offsetX: nx, offsetY: ny });
+    moveView(drag.current.view, nx, ny);
   };
 
-  const onPointerUp = () => {
+  const dragEnd = () => {
+    if (!drag.current) return;
     drag.current = null;
+    commit();
+  };
+
+  // Arrow keys nudge the selected thing (Shift = 10 px); Esc clears the selection.
+  const pressKey = (key: string, shift: boolean): boolean => {
+    if (key === 'Escape') {
+      setSelected('');
+      return true;
+    }
+    const step = shift ? 10 : 1;
+    const m = ({ ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] } as Record<string, [number, number]>)[key];
+    if (!m) return false;
+    if (!dragging) return true;
+    const view = viewOf(selected);
+    setLayoutVals(l => ({ ...l, [view]: { ...l[view], offsetX: l[view].offsetX + m[0], offsetY: l[view].offsetY + m[1] } }));
+    return true;
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (!dragging) return;
-    const step = e.shiftKey ? 10 : 1;
-    const moves: Record<string, [number, number]> = {
-      ArrowLeft: [-step, 0],
-      ArrowRight: [step, 0],
-      ArrowUp: [0, -step],
-      ArrowDown: [0, step],
-    };
-    const m = moves[e.key];
-    if (!m) return;
-    e.preventDefault();
-    setPlacement(p => ({ offsetX: p.offsetX + m[0], offsetY: p.offsetY + m[1] }));
+    if (pressKey(e.key, e.shiftKey)) e.preventDefault();
   };
+
+  const live = useRef({ dragTo, dragEnd, pressKey });
+  live.current = { dragTo, dragEnd, pressKey };
+
+  useEffect(() => {
+    if (ready) post({ type: 'selected', target: selected });
+  }, [ready, loadedCount, selected, post]);
 
   const catId = isPack && category === 'collection' ? 'pack' : category;
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.source !== frameRef.current?.contentWindow) return;
-      const data = e.data as { type?: string; target?: string } | null;
+      const data = e.data as { type?: string; target?: string; dx?: number; dy?: number; alt?: boolean; key?: string; shift?: boolean } | null;
+      if (data?.type === 'drag' && data.target && Number.isFinite(data.dx) && Number.isFinite(data.dy)) {
+        live.current.dragTo(data.target, data.dx as number, data.dy as number, !!data.alt);
+        return;
+      }
+      if (data?.type === 'dragend') return live.current.dragEnd();
+      if (data?.type === 'key' && typeof data.key === 'string') {
+        live.current.pressKey(data.key, !!data.shift);
+        return;
+      }
       if (data?.type !== 'select' || !data.target) return;
+      setSelected(data.target);
       const go = (c: string, section?: string) => {
         setCategory(c);
         setQuery('');
@@ -889,9 +915,6 @@ export function OverlayEditorProvider({
     setPickCard,
     previewCards,
     previewCard,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp,
     onKeyDown,
     undo,
     redo,

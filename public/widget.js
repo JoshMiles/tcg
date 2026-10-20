@@ -291,13 +291,60 @@ function showStatic(mode) {
 if (PREVIEW) {
   // Clicking an element in the editor's preview asks the editor to open that element's settings.
   document.body.classList.add('preview-edit');
-  document.addEventListener('click', (e) => {
+  // Pointer down selects; dragging past 3 px moves that element's view (design px, cumulative from the press).
+  const toParent = (msg) => { if (window.parent !== window) window.parent.postMessage(msg, window.location.origin); };
+  let press = null;
+  document.addEventListener('pointerdown', (e) => {
     const el = e.target.closest && e.target.closest('[data-edit]');
-    if (el && window.parent !== window) window.parent.postMessage({ type: 'select', target: el.dataset.edit }, window.location.origin);
+    if (!el || e.button !== 0) return;
+    press = { id: e.pointerId, target: el.dataset.edit, x: e.clientX, y: e.clientY, moved: false };
+    toParent({ type: 'select', target: press.target });
   });
+  document.addEventListener('pointermove', (e) => {
+    if (!press || e.pointerId !== press.id) return;
+    if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 3) return;
+    press.moved = true;
+    const fit = parseFloat(document.documentElement.style.getPropertyValue('--stage-scale')) || 1;
+    toParent({ type: 'drag', target: press.target, dx: (e.clientX - press.x) / fit, dy: (e.clientY - press.y) / fit, alt: e.altKey });
+  });
+  const endPress = (e) => {
+    if (!press || e.pointerId !== press.id) return;
+    if (press.moved) toParent({ type: 'dragend' });
+    press = null;
+  };
+  // Focus sits in this frame after a click, so hand the nudge / clear keys to the editor.
+  document.addEventListener('keydown', (e) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Escape'].includes(e.key)) return;
+    e.preventDefault();
+    toParent({ type: 'key', key: e.key, shift: e.shiftKey });
+  });
+  document.addEventListener('pointerup', endPress);
+  document.addEventListener('pointercancel', endPress);
+  // Selected element: a solid outline (CSS, by body[data-selected]) plus a name tag kept on top of it.
+  const TAG_NAMES = { card: 'Card', label: 'Label', bar: 'Name bar', got: 'Got line', strip: 'Card strip', showlabel: 'Show-off label', heading: 'Heading', collection: 'Collection' };
+  const selTag = document.createElement('div');
+  selTag.className = 'edit-tag';
+  document.body.appendChild(selTag);
+  const placeTag = () => {
+    const t = document.body.dataset.selected;
+    const el = t && document.querySelector('[data-edit="' + t + '"]');
+    if (el) {
+      const r = el.getBoundingClientRect();
+      selTag.textContent = TAG_NAMES[t] || t;
+      selTag.style.display = 'block';
+      selTag.style.left = Math.max(0, r.left) + 'px';
+      selTag.style.top = Math.max(0, r.top - 22) + 'px';
+    } else selTag.style.display = 'none';
+    requestAnimationFrame(placeTag);
+  };
+  requestAnimationFrame(placeTag);
   window.addEventListener('message', (e) => {
-    if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return;
-    if (e.data.type === 'layout') applyLayout(e.data.layout);
+    if (e.origin !== window.location.origin || e.source !== window.parent || !e.data || typeof e.data !== 'object') return;
+    if (e.data.type === 'selected') {
+      if (typeof e.data.target === 'string' && e.data.target) document.body.dataset.selected = e.data.target;
+      else delete document.body.dataset.selected;
+    }
+    else if (e.data.type === 'layout') applyLayout(e.data.layout);
     else if (e.data.type === 'props') {
       PREVIEW_PROPS = e.data.props && typeof e.data.props === 'object' ? e.data.props : null;
       previewPackId = typeof e.data.packId === 'string' ? e.data.packId : '';
