@@ -1,12 +1,12 @@
 import { kv } from './db';
 import { RARITIES } from './rarity';
 import { GOLDEN_PULLS, VARIANTS, VARIANT_LABELS } from './variants';
+import { DETAIL_MAX, TITLE_MAX, achVars, defaultText, fillText, normalizeCustomGoals, type CustomGoal } from './achievements';
 
-// Staff list of the built-in achievement kinds (Admin → Settings → Achievements). KV `achievements:settings`.
-// A missing row means on, with the built-in title and detail. There is no way to invent a new goal here.
+// Staff list of the built-in achievement kinds (Admin → Achievements). KV `achievements:settings`.
+// A missing row means on, with the built-in title and detail (templates in lib/achievements.ts). Staff-made goals live in KV `achievements:custom`.
 
-export const TITLE_MAX = 80;
-export const DETAIL_MAX = 200;
+export { DETAIL_MAX, TITLE_MAX };
 
 const KEY = 'achievements:settings';
 
@@ -14,7 +14,7 @@ export interface AchievementKind {
   kind: string;
   /** The row name in the editor. The player-facing title is separate, and includes the season name. */
   label: string;
-  group: 'Set' | 'Rarity' | 'Version' | 'Edition number';
+  group: 'Set' | 'Rarity' | 'Version' | 'Edition number' | 'Trading';
 }
 
 export const ACHIEVEMENT_KINDS: readonly AchievementKind[] = [
@@ -26,6 +26,8 @@ export const ACHIEVEMENT_KINDS: readonly AchievementKind[] = [
   { kind: 'first-shiny', label: 'First Full Art Holo edition', group: 'Edition number' },
   { kind: 'five-firsts', label: 'Five firsts', group: 'Edition number' },
   { kind: 'early-bird', label: 'Early bird', group: 'Edition number' },
+  { kind: 'first-trade', label: 'First trade', group: 'Trading' },
+  { kind: 'ten-trades', label: 'Ten trades', group: 'Trading' },
 ];
 
 const KNOWN = new Set(ACHIEVEMENT_KINDS.map(k => k.kind));
@@ -55,8 +57,11 @@ export function normalizeAchievementSettings(input: unknown): AchievementSetting
     if (!row || typeof row !== 'object') continue;
     const r = row as Record<string, unknown>;
     const on = r.on !== false;
-    const title = clip(r.title, TITLE_MAX);
-    const detail = clip(r.detail, DETAIL_MAX);
+    const def = defaultText(kind);
+    let title = clip(r.title, TITLE_MAX);
+    let detail = clip(r.detail, DETAIL_MAX);
+    if (title === def.title) title = ''; // text equal to the default stores nothing
+    if (detail === def.detail) detail = '';
     const buffId = typeof r.buffId === 'string' && r.buffId.trim() ? r.buffId.trim().slice(0, 60) : undefined;
     if (on && !title && !detail && !buffId) continue;
     out[kind] = { on, title, detail, ...(buffId ? { buffId } : {}) };
@@ -84,13 +89,14 @@ export function disabledKinds(settings: AchievementSettings): Set<string> {
   return new Set(Object.entries(settings).filter(([, row]) => !row.on).map(([kind]) => kind));
 }
 
-/** Shows a saved title or detail in place of the built-in words. A blank override keeps what the achievement already says. */
-export function applyAchievementText<T extends { id: string; seasonId: string; title: string; detail: string }>(a: T, settings: AchievementSettings): T {
+/** Shows a saved title or detail in place of the built-in words, with its placeholders filled from the achievement. A blank override keeps what the achievement already says. */
+export function applyAchievementText<T extends { id: string; seasonId: string; seasonName: string; title: string; detail: string; need: number; cutoff?: number }>(a: T, settings: AchievementSettings): T {
   if (a.seasonId === 'special') return a;
   const row = settings[a.id.slice(a.seasonId.length + 1)];
   if (!row) return a;
-  const title = row.title || a.title;
-  const detail = row.detail || a.detail;
+  const vars = achVars(a);
+  const title = row.title ? fillText(row.title, vars) : a.title;
+  const detail = row.detail ? fillText(row.detail, vars) : a.detail;
   if (title === a.title && detail === a.detail) return a;
   return { ...a, title, detail };
 }
@@ -111,4 +117,22 @@ export async function saveAchievementSettings(settings: AchievementSettings): Pr
   const clean = normalizeAchievementSettings(settings);
   if (Object.keys(clean).length === 0) await kv.del(KEY);
   else await kv.set(KEY, clean);
+}
+
+// ── Custom goals ──
+
+const CUSTOM_KEY = 'achievements:custom';
+
+export async function getCustomGoals(): Promise<CustomGoal[]> {
+  try {
+    return normalizeCustomGoals(await kv.get(CUSTOM_KEY));
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCustomGoals(goals: CustomGoal[]): Promise<void> {
+  const clean = normalizeCustomGoals(goals);
+  if (clean.length === 0) await kv.del(CUSTOM_KEY);
+  else await kv.set(CUSTOM_KEY, clean);
 }

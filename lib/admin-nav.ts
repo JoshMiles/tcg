@@ -26,6 +26,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     { href: '/admin/seasons', label: 'Seasons', icon: 'trophy', key: 's', keywords: ['wrap up', 'activate'] },
     { href: '/admin/packs', label: 'Packs', icon: 'cards', key: 'p', keywords: ['cards', 'odds'] },
     { href: '/admin/buffs', label: 'Buff Editor', icon: 'zap', key: 'r', keywords: ['trainer', 'trainer cards', 'buffs', 'bonuses', 'extra pulls', 'extra pack'] },
+    { href: '/admin/achievements', label: 'Achievement Editor', icon: 'award', key: 'l', keywords: ['achievements', 'goals', 'badges', 'milestones', 'custom goals', 'trophies'] },
     { href: '/admin/assets', label: 'Assets', icon: 'image', key: 'e', keywords: ['images', 'sounds', 'media', 'storage'] },
     { href: '/admin/overlay', label: 'Overlay Editor', icon: 'palette', key: 'o', keywords: ['obs', 'look', 'layout', 'holo'] },
     { href: '/admin/mixitup', label: 'Mix It Up', icon: 'coins', key: 'm', keywords: ['brie bucks', 'paid pulls', 'chat bot', 'commands', 'currency', 'price', 'webhook'] },

@@ -177,5 +177,78 @@ await store.syncAchievements('dan', 30000);
 const danBuffs = await buffsLib.getUserBuffs('dan');
 eq(danBuffs.length, 0, 'a disabled kind grants nothing new');
 
+// ── Achievement Editor (ROADMAP 33.2) ──
+{
+  const { kv } = await import('../lib/db');
+  // Placeholders
+  eq(a.fillText('{season}: {need} of {rarity} {nope}', { season: 'S1', need: 3, rarity: 'Rare' }), 'S1: 3 of Rare {nope}', 'placeholders fill, unknown words stay as typed');
+  const live = by(half, 'tier-3');
+  eq(a.achVars(live).rarity, live.title.replace('All ', ''), 'the rarity word comes from the kind');
+  ok(!!live.title && !live.title.includes('{'), 'built-in text has no placeholders left');
+  const early = by(a.evaluateSeason({ ...season([]), held: new Map(), bonusCutoff: 20 }), 'early-bird');
+  ok(early.detail.includes('#20 or lower'), 'Early bird fills the cutoff');
+  // Default equals blank
+  const def = a.defaultText('complete');
+  eq(settingsLib.normalizeAchievementSettings({ complete: { on: true, title: def.title, detail: def.detail } }), {}, 'saving the default words stores nothing');
+  eq(Object.keys(settingsLib.normalizeAchievementSettings({ complete: { on: true, title: def.title, detail: 'Mine' } }).complete), ['on', 'title', 'detail'], 'one changed field keeps the row');
+  await settingsLib.saveAchievementSettings(settingsLib.normalizeAchievementSettings({ complete: { on: true, title: 'Done: {season} ({need})', detail: '' } }));
+  const stored = await store.syncAchievements('amy', 40000);
+  eq(stored.earned.find(x => x.id.endsWith(':complete'))!.title, 'Done: ' + season1.name + ' (' + nums.length + ')', 'an override on a stored row is filled on the way out');
+  await settingsLib.saveAchievementSettings({});
+
+  // Custom rules at N-1 and N
+  const g = (type: string, n: number, extra: object = {}) => a.normalizeCustomGoals([{ id: 'g1', title: 'Goal {n} {rarity} {version}', icon: 'star', rule: { type, n, ...extra } }]);
+  const ev = (goals: ReturnType<typeof g>, s: ReturnType<typeof season>) => a.evaluateSeason(s, undefined, goals).find(x => x.id === 's1:custom-g1');
+  const own3 = season([[1, { regular: 1 }], [2, { regular: 1 }], [3, { regular: 2, shiny: 1 }]]);
+  ok(!ev(g('unique', 4), own3)!.earned && ev(g('unique', 3), own3)!.earned, 'unique: 3 different cards earns N=3, not N=4');
+  eq(ev(g('unique', 99), own3)!.need, 4, 'N is capped at the qualifying cards');
+  ok(!ev(g('editions', 6), own3)!.earned && ev(g('editions', 5), own3)!.earned, 'editions: duplicates count (5 held)');
+  ok(!ev(g('rarity', 2, { stars: 1 }), season([[1, { regular: 1 }]]))!.earned && ev(g('rarity', 2, { stars: 1 }), own3)!.earned, 'rarity: two different 1-star cards');
+  ok(!ev(g('rarity', 2, { stars: 1 }), own3)!.title.includes('{n}') && ev(g('rarity', 2, { stars: 1 }), own3)!.title.startsWith('Goal 2 '), 'custom text fills placeholders');
+  ok(ev(g('rarity', 1, { stars: 2 }), own3) === undefined, 'a rarity with no cards leaves the goal out');
+  ok(!ev(g('version', 2, { variant: 'shiny' }), own3)!.earned && ev(g('version', 1, { variant: 'shiny' }), own3)!.earned, 'version: one shiny card');
+  ok(ev(g('firsts', 1), own3) === undefined, 'firsts needs numbered copies');
+  const { encodeEntry } = await import('../lib/variants');
+  const heldS = (list: number[][]) => ({ ...season([]), held: new Map(list.map((l, i) => [encodeEntry(i + 1, 'regular'), l] as [number, number[]])) });
+  ok(!ev(g('firsts', 2), heldS([[1], [2]]))!.earned && ev(g('firsts', 2), heldS([[1], [1]]))!.earned, 'firsts: print #1 of 2 different cards');
+  ok(!ev(g('trades', 2), own3), 'a trades goal is not evaluated per season');
+  ok(a.normalizeCustomGoals([{ id: 'x', title: 't', rule: { type: 'bogus', n: 1 } }, { id: 'y', title: 't', rule: { type: 'rarity', n: 1 } }]).length === 0, 'unknown rules (and a rarity goal with no rarity) are dropped');
+
+  // Stats: once per goal, even with concurrent syncs
+  await kv.del('achievements:earned'); await kv.del('achievements:recent');
+  await settingsLib.saveCustomGoals(g('unique', 1));
+  await kvLib.saveCollection(season1.collectionName, { ...(await kvLib.getCollection(season1.collectionName)), fay: [nums[0]] });
+  await Promise.all([store.syncAchievements('fay', 50000), store.syncAchievements('fay', 50001), store.syncAchievements('fay', 50002)]);
+  await store.syncAchievements('fay', 50003);
+  const st = await store.getAchievementStats();
+  eq(st.counts['custom-g1'], 1, 'a goal is counted once for a player, even with concurrent syncs');
+  ok(st.recent.filter(r => r.username === 'fay' && r.id.endsWith(':custom-g1')).length === 1, 'and listed once in recent');
+  await store.recountAchievements();
+  ok((await store.getAchievementStats()).counts['custom-g1'] >= 1, 'Recount rebuilds counts from the stored rows');
+  // A deleted custom goal stays earned
+  await settingsLib.saveCustomGoals([]);
+  ok((await store.syncAchievements('fay', 60000)).earned.some(x => x.id.endsWith(':custom-g1')), 'a deleted custom goal stays on the profile');
+
+  // Trade goals
+  const { completedTradeCount } = await import('../lib/trades');
+  const t = (status: string, from: string, to?: string, resolvedBy?: string) => ({ id: Math.random().toString(36), status, from, to, resolvedBy });
+  const history = [t('accepted', 'gus', 'hal'), t('accepted', 'gus', 'hal'), t('cancelled', 'gus', 'hal'), t('declined', 'gus', 'hal'), t('accepted', 'ivy', undefined, 'gus')];
+  await kv.set('trades:history', history);
+  eq([await completedTradeCount('gus'), await completedTradeCount('HAL'), await completedTradeCount('ivy')], [3, 2, 1], 'both sides count, resolvedBy stands in for a listing taker, other statuses do not');
+  const tg = (n: number, goals: ReturnType<typeof g> = []) => a.tradingGoals(n, new Set(), goals);
+  const tid = (list: ReturnType<typeof tg>, k: string) => list.find(x => x.id === 'trading:' + k)!;
+  ok(!tid(tg(0), 'first-trade').earned && tid(tg(1), 'first-trade').earned, 'first trade is earned at 1');
+  ok(!tid(tg(9), 'ten-trades').earned && tid(tg(10), 'ten-trades').earned, 'ten trades at 9 vs 10');
+  ok(!tid(tg(2, g('trades', 3)), 'custom-g1').earned && tid(tg(3, g('trades', 3)), 'custom-g1').earned, 'custom trades rule at N-1 and N');
+  ok(!a.tradingGoals(1, new Set(['first-trade'])).some(x => x.id.endsWith('first-trade')), 'a switched-off trade goal is absent');
+  eq(tid(tg(0), 'ten-trades').detail, 'Complete 10 trades.', 'trade text fills {need}');
+  const gus = await store.syncAchievements('gus', 70000);
+  const gusFirst = gus.earned.find(x => x.id === 'trading:first-trade');
+  ok(!!gusFirst && gusFirst.seasonName === 'Trading', 'syncAchievements stores trade goals');
+  ok(gus.next.some(x => x.id === 'trading:ten-trades' && x.have === 3), 'trade progress is listed as next');
+  await kv.set('trades:history', []); // every trade reversed or gone
+  ok((await store.syncAchievements('gus', 71000)).earned.some(x => x.id === 'trading:first-trade'), 'a trade goal stays earned when the trades are gone');
+}
+
 console.log('achievement checks passed');
 process.exit(0);
