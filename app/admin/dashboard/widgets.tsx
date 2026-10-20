@@ -1,5 +1,6 @@
 import { Icon } from '@/app/components/Icon';
 import Link from 'next/link';
+import { NewPackButton } from '../components/NewPackButton';
 import type { ReactNode } from 'react';
 import { Avatar } from '@/app/components/Avatar';
 import { sizeTwitchAvatar } from '@/lib/avatars';
@@ -365,7 +366,7 @@ function Recap({ d }: { d: DashboardData }) {
 }
 
 const SHORTCUTS: [string, IconName, string][] = [
-  ['/admin/packs/new', 'cards', 'New pack'], ['/admin/seasons/new', 'trophy', 'New season'], ['/admin/overlay', 'palette', 'Overlay editor'],
+  ['/admin/seasons/new', 'trophy', 'New season'], ['/admin/overlay', 'palette', 'Overlay editor'],
   ['/admin/trades', 'trade', 'Trades'], ['/admin/serials', 'cheese', 'Editions'], ['/admin/sandbox', 'flask', 'Sandbox'], ['/admin/users', 'users', 'Users'], ['/admin/assets', 'image', 'Assets'], ['/admin/settings', 'settings', 'Settings'],
 ];
 function Shortcuts() {
