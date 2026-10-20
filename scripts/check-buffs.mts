@@ -355,5 +355,49 @@ ok(buffAct && buffAct.cardName === 'Pulls Card' && buffAct.buffName === 'Two Ext
 const audits = await (await import('../lib/audit')).getUserAudit('alice', 10);
 ok(audits.some(a => a.action === 'Trainer card used' && a.detail?.includes('Pack Surge Card')), 'audit recorded for trainer card use');
 
+// ── 8. ROADMAP 32.1: credits are spent, held per queued pull, and extra pulls count ──
+await buffsStore.saveCommunityBuffs([]); // section 3 left a community +2 pulls buff behind
+const mixitup = await import('../lib/mixitup');
+const { normalizeMixItUp } = await import('../lib/mixitup-core');
+const fakeMix: typeof fetch = async () => new Response(JSON.stringify({ balance: 100000 }), { status: 200 });
+const mix = normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 10, limit: 1, secret: 's' });
+const limitOf1 = { ...mix, limit: 1, roleLimits: { regular: 1, subscriber: 1, vip: 1, moderator: 1, broadcaster: 1 } };
+
+// A season-scoped credit is stored with the season id (sId), which differs from the collection name (cName).
+ok(sId !== cName, 'the season id and its collection name differ in this check');
+await buffsStore.upsertBuffDef({ id: 't-season', name: 'Season Pack', type: 'extra-pack', magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope: 'self' });
+ok((await buffsStore.applyBuff('erin', 't-season', { seasonId: sId })).ok, 'season-scoped credit applied');
+ok(await buffsStore.hasExtraPackCredit('erin', { seasonId: sId }), 'credit is live in its own season');
+ok(!(await buffsStore.hasExtraPackCredit('erin', { seasonId: 'another-season' })), 'credit is not live in another season');
+await buffsStore.consumePullOnSave('erin', { wasCredit: true, seasonId: sId });
+ok(!(await buffsStore.hasExtraPackCredit('erin', { seasonId: sId })), 'a season-scoped credit is spent by the save, not kept forever');
+
+// Two pulls queued before either is saved share one credit: only one gets it.
+ok((await buffsStore.applyBuff('frank', 't-pk', { seasonId: sId })).ok, 'frank holds one credit');
+const reserved = await Promise.all(['par-1', 'par-2'].map(id => mixitup.reservePaidPull(limitOf1, 'frank', id, fakeMix)));
+const claims = await Promise.all(['par-1', 'par-2'].map(id => mixitup.claimPaidPull(id, 'frank')));
+eq(claims.filter(c => c?.credit).length, 1, 'two pulls reserved in parallel take only one credit');
+eq(reserved.filter(r => r.ok).length, 2, 'the other pull is a normal paid pull');
+await buffsStore.consumePullOnSave('frank', { wasCredit: true, seasonId: sId });
+ok(!(await buffsStore.hasExtraPackCredit('frank', { seasonId: sId })), 'frank spent his credit');
+
+// A reservation that is released hands the credit back.
+ok((await buffsStore.applyBuff('gwen', 't-pk', { seasonId: sId })).ok, 'gwen holds one credit');
+ok((await mixitup.reservePaidPull(limitOf1, 'gwen', 'rel-1', fakeMix)).ok, 'gwen reserves with her credit');
+await mixitup.releasePaidPull('rel-1');
+ok(await buffsStore.reserveExtraPackCredit('gwen', { seasonId: sId }), 'releasing the reservation gave the credit back');
+
+// An extra-pulls buff raises the limit.
+ok((await mixitup.reservePaidPull(limitOf1, 'hank', 'xp-1', fakeMix)).ok, 'hank is under a limit of 1');
+ok(!(await mixitup.reservePaidPull(limitOf1, 'hank', 'xp-2', fakeMix)).ok, 'hank is stopped at 1');
+await buffsStore.upsertBuffDef({ id: 't-xp', name: 'Two More', type: 'extra-pulls', magnitude: 2, duration: { unit: 'hours', n: 5 }, stack: 'refresh', scope: 'self' });
+ok((await buffsStore.applyBuff('hank', 't-xp', { seasonId: sId })).ok, 'hank gets +2 pulls');
+ok((await mixitup.reservePaidPull(limitOf1, 'hank', 'xp-3', fakeMix)).ok && (await mixitup.reservePaidPull(limitOf1, 'hank', 'xp-4', fakeMix)).ok, 'the buff lets hank pull twice more');
+ok(!(await mixitup.reservePaidPull(limitOf1, 'hank', 'xp-5', fakeMix)).ok, 'and no further than 1 + 2');
+
+// Buff lists written in parallel do not lose updates.
+await Promise.all(['t-rej', 't-xp'].map(id => buffsStore.applyBuff('ivy', id, { seasonId: sId })));
+eq((await buffsStore.getUserBuffs('ivy')).length, 2, 'two buffs applied at once are both kept');
+
 console.log('trainer buff checks passed');
 

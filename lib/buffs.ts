@@ -1,8 +1,8 @@
 import { kv } from './db';
-import { getCollection, getPackCards, getPacksForSeason, getSeason, listAllPacks, listSeasons, saveCollection, withCollectionLock } from './kv';
+import { getActiveSeason, getCollection, getPackCards, getPacksForSeason, getSeason, listAllPacks, listSeasons, saveCollection, withCollectionLock, withLock } from './kv';
 import { ACHIEVEMENT_KINDS } from './achievement-settings';
 import {
-  consumeBuffPull, describeBuffDef, isBuffActiveFor, normalizeBuffDef, applyBuffToList,
+  consumeBuffPull, describeBuffDef, extraPackCreditsLeft, normalizeBuffDef, applyBuffToList, totalExtraPullsFromBuffs,
   type ActiveBuff, type BuffDef, type BuffEvalContext, type BuffUsage,
 } from './buffs-core';
 import { encodeEntry, removeEntries } from './variants';
@@ -158,6 +158,19 @@ export async function saveUserBuffs(username: string, buffs: ActiveBuff[]): Prom
   else await kv.set(k, buffs);
 }
 
+/**
+ * Reads a buff list (`user` = a viewer, null = the community list), lets `fn` change it and saves it back when it changed, all
+ * under that list's lock so two requests cannot overwrite each other.
+ */
+async function editBuffs<T>(user: string | null, fn: (list: ActiveBuff[]) => { buffs: ActiveBuff[]; out: T }): Promise<T> {
+  return withLock(user ? `buffs:${user}` : 'buffs:community', async () => {
+    const list = user ? await getUserBuffs(user) : await getCommunityBuffs();
+    const { buffs, out } = fn(list);
+    if (JSON.stringify(buffs) !== JSON.stringify(list)) await (user ? saveUserBuffs(user, buffs) : saveCommunityBuffs(buffs));
+    return out;
+  });
+}
+
 export type ApplyBuffOutcome =
   | { ok: true; buffs: ActiveBuff[]; refreshed: boolean }
   | { ok: false; reason: 'not_found' | 'already_active' | 'max_buffs' | 'invalid_type' | 'community_disallowed' };
@@ -175,17 +188,19 @@ export async function applyBuff(
     seasonId?: string;
     now?: number;
     disallowCommunity?: boolean;
+    /** Check the rules (already active, too many buffs) without saving anything. */
+    dryRun?: boolean;
   },
 ): Promise<ApplyBuffOutcome> {
   const def = await getBuffDef(buffId);
   if (!def) return { ok: false, reason: 'not_found' };
   if (def.type === 'grant-achievement') return { ok: false, reason: 'invalid_type' };
 
-  if (def.scope === 'community') {
-    if (options?.disallowCommunity) return { ok: false, reason: 'community_disallowed' };
-    const community = await getCommunityBuffs();
-    const now = options?.now ?? Date.now();
-    const res = applyBuffToList(community, def, {
+  if (def.scope === 'community' && options?.disallowCommunity) return { ok: false, reason: 'community_disallowed' };
+
+  const now = options?.now ?? Date.now();
+  return editBuffs(def.scope === 'community' ? null : username.toLowerCase(), existing => {
+    const res = applyBuffToList(existing, def, {
       id: crypto.randomUUID(),
       now,
       streamKey: options?.streamKey,
@@ -193,26 +208,8 @@ export async function applyBuff(
       source: options?.source ?? 'admin',
       username,
     });
-    if (res.ok) {
-      await saveCommunityBuffs(res.buffs);
-    }
-    return res;
-  }
-
-  const existing = await getUserBuffs(username);
-  const now = options?.now ?? Date.now();
-  const res = applyBuffToList(existing, def, {
-    id: crypto.randomUUID(),
-    now,
-    streamKey: options?.streamKey,
-    seasonId: options?.seasonId,
-    source: options?.source ?? 'admin',
-    username,
+    return { buffs: res.ok && !options?.dryRun ? res.buffs : existing, out: res };
   });
-  if (res.ok) {
-    await saveUserBuffs(username, res.buffs);
-  }
-  return res;
 }
 
 export async function currentBuffStreamKey(): Promise<string> {
@@ -223,24 +220,51 @@ export async function currentBuffStreamKey(): Promise<string> {
 
 /** Whether the viewer has an active extra-pack credit (personal or community). */
 export async function hasExtraPackCredit(username: string, ctx?: BuffEvalContext): Promise<boolean> {
+  return (await creditsLeft(username.toLowerCase(), ctx)) > 0;
+}
+
+async function creditsLeft(u: string, ctx?: BuffEvalContext): Promise<number> {
+  const [personal, community] = await Promise.all([getUserBuffs(u), getCommunityBuffs()]);
+  return extraPackCreditsLeft(personal, community, { now: Date.now(), ...ctx, username: u });
+}
+
+// Credits a queued pull has been promised but not yet spent (a pull is queued first and saved later), so pulls queued
+// back to back cannot all ride on one credit.
+const holdKey = (u: string) => `buffs:credit-hold:${u}`;
+const HOLD_TTL_S = 12 * 3600; // as long as a draw ticket (lib/draw.ts)
+
+/** Holds one extra-pack credit for a queued pull. False = the viewer has none that another queued pull has not already claimed. */
+export async function reserveExtraPackCredit(username: string, ctx?: BuffEvalContext): Promise<boolean> {
   const u = username.toLowerCase();
-  const now = ctx?.now ?? Date.now();
-  const evalCtx = { now, ...ctx, username: u };
-  const personal = await getUserBuffs(u);
-  for (const b of personal) {
-    if (b.type === 'extra-pack' && isBuffActiveFor(b, evalCtx)) return true;
-  }
-  const community = await getCommunityBuffs();
-  for (const b of community) {
-    if (b.type === 'extra-pack' && isBuffActiveFor(b, evalCtx)) return true;
-  }
+  const left = await creditsLeft(u, ctx);
+  if (left <= 0) return false;
+  const held = await kv.incr(holdKey(u));
+  await kv.expire(holdKey(u), HOLD_TTL_S);
+  if (held <= left) return true;
+  await releaseExtraPackCredit(u);
   return false;
+}
+
+/** Gives back a hold from `reserveExtraPackCredit`: the pull was never queued, or its credit has been spent. */
+export async function releaseExtraPackCredit(username: string): Promise<void> {
+  const k = holdKey(username.toLowerCase());
+  if ((await kv.decr(k).catch(() => 0)) <= 0) await kv.del(k).catch(() => {});
+}
+
+/** Extra pulls per stream that `username` gets from active buffs (personal + community). */
+export async function extraPullsFromBuffs(username: string): Promise<number> {
+  const u = username.toLowerCase();
+  const [personal, community, streamKey, season] = await Promise.all([
+    getUserBuffs(u), getCommunityBuffs(), currentBuffStreamKey().catch(() => undefined), getActiveSeason().catch(() => null),
+  ]);
+  return totalExtraPullsFromBuffs(personal, community, { now: Date.now(), streamKey, seasonId: season?.id, username: u });
 }
 
 /**
  * Called when a card pull is successfully saved:
- * 1. Consumes 1 extra-pack credit if `options.wasCredit` is true.
+ * 1. Spends 1 extra-pack credit if `options.wasCredit` is true (and drops the hold taken when the pull was queued).
  * 2. Decrements any `pulls`-duration buffs for `username` (both personal and community).
+ * `seasonId` is the season's id (what buffs store), not its collection name.
  */
 export async function consumePullOnSave(
   username: string,
@@ -250,33 +274,22 @@ export async function consumePullOnSave(
   const now = options?.now ?? Date.now();
   const stream = options?.streamKey ?? (await currentBuffStreamKey().catch(() => undefined));
   const ctx = { now, streamKey: stream, seasonId: options?.seasonId, username: u };
+  // Saves the list whenever it changed, not only when a credit went (stream keys seen and expired buffs are kept too).
+  const consume = (user: string | null, type: 'extra-pulls' | 'extra-pack', onlyOneCredit?: boolean) =>
+    editBuffs(user, list => {
+      const r = consumeBuffPull(list, { ...ctx, type, onlyOneCredit });
+      return { buffs: r.buffs, out: r.consumedCredit };
+    });
 
-  // 1. Consume 1 extra-pack credit if this was a credit pull
+  // 1. Spend 1 extra-pack credit if this was a credit pull
   if (options?.wasCredit) {
-    const personal = await getUserBuffs(u);
-    const pRes = consumeBuffPull(personal, { ...ctx, type: 'extra-pack', onlyOneCredit: true });
-    if (pRes.consumedCredit) {
-      await saveUserBuffs(u, pRes.buffs);
-    } else {
-      const comm = await getCommunityBuffs();
-      const cRes = consumeBuffPull(comm, { ...ctx, type: 'extra-pack', onlyOneCredit: true });
-      if (cRes.consumedCredit) {
-        await saveCommunityBuffs(cRes.buffs);
-      }
-    }
+    if (!(await consume(u, 'extra-pack', true))) await consume(null, 'extra-pack', true);
+    await releaseExtraPackCredit(u); // after the spend, so the credit never looks free in between
   }
 
   // 2. Decrement pulls-duration buffs (personal & community)
-  const personal = await getUserBuffs(u);
-  const pPulls = consumeBuffPull(personal, { ...ctx, type: 'extra-pulls' });
-  if (pPulls.consumedCredit) {
-    await saveUserBuffs(u, pPulls.buffs);
-  }
-  const comm = await getCommunityBuffs();
-  const cPulls = consumeBuffPull(comm, { ...ctx, type: 'extra-pulls' });
-  if (cPulls.consumedCredit) {
-    await saveCommunityBuffs(cPulls.buffs);
-  }
+  await consume(u, 'extra-pulls');
+  await consume(null, 'extra-pulls');
 }
 
 export interface UseTrainerResult {
@@ -284,6 +297,8 @@ export interface UseTrainerResult {
   status: number;
   message?: string;
   error?: string;
+  /** Set for refusals callers react to, so they need not match the message text. */
+  code?: 'already_active' | 'favourite';
   cardName?: string;
   buffName?: string;
 }
@@ -336,7 +351,7 @@ export async function useTrainerCard(
     if (await isTracking(season.collectionName)) {
       const favs = await favouriteIdsOf(season.collectionName, u);
       const r = await spendablePrints(season.collectionName, u, fromEntry, 1, undefined, favs, 'spend');
-      if (!r.ok) return { ok: false, status: 400, error: r.text };
+      if (!r.ok) return { ok: false, status: 400, code: 'favourite', error: r.text };
       spendIds = r.ids ?? undefined;
       if (spendIds?.[0]) {
         retiredCopyId = spendIds[0];
@@ -347,26 +362,27 @@ export async function useTrainerCard(
 
     const now = Date.now();
     const stream = await currentBuffStreamKey().catch(() => undefined);
-    const buffRes = await applyBuff(u, buffDef.id, {
-      source: `card:${cardNumber}`,
-      seasonId: season.id,
-      streamKey: stream,
-      now,
-    });
-    if (!buffRes.ok) {
-      if (buffRes.reason === 'already_active') {
-        return { ok: false, status: 400, error: `Buff "${buffDef.name}" is already active.` };
-      }
-      if (buffRes.reason === 'max_buffs') {
-        return { ok: false, status: 400, error: 'You have reached the maximum number of active buffs.' };
-      }
-      return { ok: false, status: 400, error: 'Could not apply buff.' };
-    }
+    const buffOpts = { source: `card:${cardNumber}`, seasonId: season.id, streamKey: stream, now };
+    const refusal = (r: Extract<ApplyBuffOutcome, { ok: false }>): UseTrainerResult =>
+      r.reason === 'already_active' ? { ok: false, status: 400, code: 'already_active', error: `Buff "${buffDef.name}" is already active.` }
+      : r.reason === 'max_buffs' ? { ok: false, status: 400, error: 'You have reached the maximum number of active buffs.' }
+      : { ok: false, status: 400, error: 'Could not apply buff.' };
+
+    // Check the buff can be applied first, then take the card, then apply it: a failed save then leaves no buff behind.
+    const check = await applyBuff(u, buffDef.id, { ...buffOpts, dryRun: true });
+    if (!check.ok) return refusal(check);
 
     coll[u] = remaining;
     await saveCollection(season.collectionName, coll, {
       retire: spendIds ? { owner: u, ids: spendIds, who: u, note: 'trainer card used' } : undefined,
     });
+
+    const buffRes = await applyBuff(u, buffDef.id, buffOpts);
+    if (!buffRes.ok) {
+      // Only a rare race (another grant filled the list since the check); the card is already spent, so leave a trail.
+      await recordAudit(u, 'Trainer card buff not applied', `${trainerCard.name}, ${buffDef.name}: ${buffRes.reason}`);
+      return refusal(buffRes);
+    }
 
     const durSummary = describeBuffDef(buffDef);
     await recordAudit(u, 'Trainer card used', `${trainerCard.name}, ${buffDef.name}, ${durSummary}`);

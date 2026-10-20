@@ -272,7 +272,8 @@ export function BuffEditorClient({
               }}
               className={`${selectClass} w-full`}
             >
-              {BUFF_TYPES.map(t => (
+              {/* grant-achievement cannot be applied yet (applyBuff refuses it), so it is only listed for a buff already saved with it */}
+              {BUFF_TYPES.filter(t => t !== 'grant-achievement' || form.type === t).map(t => (
                 <option key={t} value={t}>{BUFF_TYPE_LABELS[t]}</option>
               ))}
             </select>

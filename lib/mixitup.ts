@@ -3,14 +3,14 @@
 // not confirm the charge, the print is revoked.
 import { kv, inSandbox } from './db';
 import { checkWebhookUrl } from './webhook-clean';
-import { getCollection, saveCollection, withCollectionLock } from './kv';
+import { getActiveSeason, getCollection, saveCollection, withCollectionLock } from './kv';
 import { getCopy } from './serials';
 import { entryOf, isEscrow } from './serials-core';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
 import { getStreamBuff, getUserPullLimit } from './pull-limit';
 import { effectiveLimit, streamBuffAmount } from './pull-limit-core';
-import { hasExtraPackCredit } from './buffs';
+import { extraPullsFromBuffs, releaseExtraPackCredit, reserveExtraPackCredit } from './buffs';
 import {
   normalizeMixItUp, parseBalance, pullRole, refusalMessage, renderMessage, replyApplied, roleLimitOf, streamKey, decide,
   type MixItUpSettings, type RefusalReason,
@@ -98,14 +98,16 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
   const user = username.toLowerCase();
   const stream = await currentStreamKey();
 
-  // If the viewer has an active extra-pack credit, bypass limit and fee (ROADMAP 30.2 / Decision 4).
-  if (await hasExtraPackCredit(user, { now: Date.now(), streamKey: stream })) {
+  // If the viewer has an active extra-pack credit, bypass limit and fee (ROADMAP 30.2 / Decision 4). The credit is held for this
+  // pull until it is saved (consumePullOnSave) or released, so pulls queued together cannot all use the same one.
+  const season = await getActiveSeason().catch(() => null);
+  if (await reserveExtraPackCredit(user, { now: Date.now(), streamKey: stream, seasonId: season?.id })) {
     await kv.set(payKey(payId), { username: user, amount: 0, stream, at: Date.now(), credit: true } satisfies PayRecord, { ex: PAY_TTL_S });
     return { ok: true };
   }
 
   // Their own limit replaces the role default. A this-stream bonus adds on top. 0 = no limit, and bonuses cannot change that.
-  const extra = streamBuffAmount(await getStreamBuff(), stream);
+  const extra = streamBuffAmount(await getStreamBuff(), stream) + await extraPullsFromBuffs(user);
   const limit = effectiveLimit(roleLimitOf(s, pullRole(role, user)), await getUserPullLimit(user), Date.now(), extra).limit;
   const refuse = async (reason: RefusalReason, balance?: number, why?: string): Promise<Reservation> => {
     await logMixItUp({ username: user, what: 'refused', ok: false, detail: `${reason}${why ? `: ${why}` : ''}` });
@@ -171,6 +173,7 @@ export async function releasePaidPull(payId: string): Promise<void> {
   const rec = await kv.get<PayRecord>(payKey(payId)).catch(() => null);
   if (!rec || (await kv.del(payKey(payId))) !== 1) return;
   await kv.decr(pendKey(rec.username)).catch(() => {});
+  if (rec.credit) await releaseExtraPackCredit(rec.username);
   await releaseCount({ payId, username: rec.username, amount: rec.amount, stream: rec.stream, credit: rec.credit });
 }
 

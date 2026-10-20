@@ -4,6 +4,7 @@ import { countVariants, allowedVariants } from './variants';
 import { evaluateSeason, sortAchievements, type AchCard, type Achievement } from './achievements';
 import { applyAchievementText, disabledKinds, getAchievementSettings } from './achievement-settings';
 import { applyBuff } from './buffs';
+import { recordAudit } from './audit';
 import { loadSerialIndex } from './serials';
 import { getScoringSettings } from './scoring';
 
@@ -67,14 +68,16 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
       for (const a of fresh) {
         const kind = a.id.slice(a.seasonId.length + 1);
         const row = settings[kind];
-        if (row?.buffId) {
-          await applyBuff(u, row.buffId, {
-            source: `achievement:${a.id}`,
-            seasonId: a.seasonId,
-            now,
-            disallowCommunity: true,
-          }).catch(() => {});
-        }
+        if (!row?.buffId) continue;
+        // Set-if-absent: two page views can both see a goal as new, but only the one that wins this marker pays the bonus.
+        if (!(await kv.set(`${key(u)}:paid:${a.id}`, 1, { nx: true }))) continue;
+        const res = await applyBuff(u, row.buffId, {
+          source: `achievement:${a.id}`,
+          seasonId: a.seasonId,
+          now,
+          disallowCommunity: true,
+        }).catch((e: unknown) => ({ ok: false as const, reason: e instanceof Error ? e.message : 'error' }));
+        if (!res.ok) await recordAudit(u, 'Achievement buff not applied', `${a.id}: ${res.reason}`).catch(() => {});
       }
     } catch { /* try again next view */ }
     Object.assign(stored, add);
