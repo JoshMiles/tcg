@@ -92,7 +92,7 @@ Those PRs were merged without a review. Findings were checked against `main`. On
 - **Extra pulls per stream does nothing.** `totalExtraPullsFromBuffs` (`lib/buffs-core.ts`) is never called. Add it to `extra` in `reservePaidPull` (`lib/mixitup.ts`) and `doPullsLeft` (`lib/commands.ts`).
 - **One credit, many pulls.** `reservePaidPull` checks the credit but reserves nothing, so pulls queued before the first save all skip the fee. Reserve the credit at reservation time and give it back in `releasePaidPull`.
 - **Lost writes.** Buff lists (`user:<u>:buffs`, `buffs:community`) are read, changed and written with no lock. Wrap the writes in `withLock` on the buff key. `useTrainerCard` applies the buff before `saveCollection`, so save the collection first or undo the buff on error.
-- **Achievement bonus.** `syncAchievements` marks the goal earned before applying the buff, and a failed apply is swallowed. Two page views can both apply it. Claim each goal with a set-if-absent, then apply, then log a skipped grant. Decide before shipping whether achievements earned before 27.5 should pay out on first sync (today they all do).
+- **Achievement bonus.** `syncAchievements` marks the goal earned before applying the buff, and a failed apply is swallowed. Two page views can both apply it. Claim each goal with a set-if-absent, then apply, then log a skipped grant. Decided 2026-10-20 (Joshua): achievements earned before 27.5 pay out their bonus once, on the first sync after deploy.
 - **Smaller.** Save `streamKeys` updates even when no credit was used. Return a reason code from `useTrainerCard` instead of the string match in `lib/commands.ts`. A `grant-achievement` buff can never be applied (`invalid_type`): wire it or hide it in the Buff Editor.
 
 ### 32.2 Variant glow and rock CSS (Ready, S)
@@ -127,8 +127,8 @@ GEMINI.md is a hand-kept copy of CLAUDE.md and has already drifted. Replace it w
 - `/admin/changelog` gets Admin, Mod and Players tabs. The PR `Audience:` line takes players, admin, mod, staff (admin and mod) or all. Each generated entry has an Edit link to its PR on GitHub, and an edit shows after the next deploy. `/mod/changelog` shows the mod list.
 - "Report a problem" opens the bug report issue form (`?template=bug_report.yml`, page in the steps field). Idea links can also open the feature request form.
 
-### PR descriptions to fix (needs Joshua's OK, they are public)
-`scripts/build-changelog.mjs` publishes only the bullets under `## Changelog`. #301 has no section, and #302 and #306 have prose only, so the Golden labels, variant styles and Discord DM alerts are missing from What's new. #303 has no Audience or Tags lines. Edited bodies show after the next deploy.
+### PR descriptions fixed (2026-10-20)
+`scripts/build-changelog.mjs` publishes only the bullets under `## Changelog`. #301 has no section, and #302 and #306 have prose only, so the Golden labels, variant styles and Discord DM alerts are missing from What's new. #303 had no Audience or Tags lines. Joshua approved the rewrites on 2026-10-20; the edited bodies show after the next deploy.
 
 ## Standing decisions
 
