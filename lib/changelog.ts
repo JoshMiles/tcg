@@ -14,8 +14,8 @@ export interface ChangelogEntry {
   tags?: ChangeTag[];
   /** The pull request the entry was built from (generated entries only). */
   pr?: number;
-  /** Who it is for, from the PR's "Audience:" line: absent = players, `staff` = the staff What's new page only, `both` = both pages. */
-  audience?: 'staff' | 'both';
+  /** Who it is for, from the PR's "Audience:" line: absent = players only; otherwise the pages it shows on (players, admin, mod). */
+  audience?: ('players' | 'admin' | 'mod')[];
 }
 
 const HAND_WRITTEN: ChangelogEntry[] = [
@@ -174,11 +174,16 @@ const HAND_WRITTEN: ChangelogEntry[] = [
 
 const GENERATED = generated as ChangelogEntry[];
 
-/** The public What's new: generated player entries first (newest first), then the hand-written history. Staff-only entries never appear. */
-export const CHANGELOG: ChangelogEntry[] = [...GENERATED.filter(e => e.audience !== 'staff'), ...HAND_WRITTEN];
+const forAudience = (e: ChangelogEntry, who: 'players' | 'admin' | 'mod') => !e.audience || e.audience.includes(who);
 
-/** The staff What's new (admin and mod panels): entries for staff, and those marked for both. */
-export const STAFF_CHANGELOG: ChangelogEntry[] = GENERATED.filter(e => e.audience === 'staff' || e.audience === 'both');
+/** The public What's new: generated player entries first (newest first), then the hand-written history. */
+export const CHANGELOG: ChangelogEntry[] = [...GENERATED.filter(e => forAudience(e, 'players')), ...HAND_WRITTEN];
+
+/** The admin panel's What's new: entries whose audience includes admin. */
+export const ADMIN_CHANGELOG: ChangelogEntry[] = GENERATED.filter(e => e.audience?.includes('admin'));
+
+/** The mod panel's What's new: entries whose audience includes mod. */
+export const MOD_CHANGELOG: ChangelogEntry[] = GENERATED.filter(e => e.audience?.includes('mod'));
 
 /** The date of the newest entry (empty when there are none). */
 export function newestChangelogDate(entries: ChangelogEntry[] = CHANGELOG): string {

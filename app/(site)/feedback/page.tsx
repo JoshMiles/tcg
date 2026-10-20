@@ -6,7 +6,7 @@ import { SiteMessage } from '@/app/components/site/SiteMessage';
 import { getSession } from '@/lib/session';
 import { feedbackOf, sentToday } from '@/lib/feedback';
 import { FEEDBACK_LIMITS, KIND_LABELS, STATUS_LABELS, cleanFrom } from '@/lib/feedback-core';
-import { reportProblemUrl } from '@/lib/site';
+import { featureRequestUrl, reportProblemUrl } from '@/lib/site';
 import { FeedbackForm } from './FeedbackForm';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +39,7 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
     <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
       <header className="space-y-3">
         <h1 className="font-display text-4xl sm:text-5xl font-bold text-white">Feedback</h1>
-        <p className="text-gray-400 leading-relaxed">Got an idea? Tell us here. We read all of it and answer in your bell when we can. Something not working? <a href={reportProblemUrl()} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300">Report a problem on GitHub</a>. See also the <Link href="/faq#help" className="text-yellow-400 hover:text-yellow-300">FAQ</Link>.</p>
+        <p className="text-gray-400 leading-relaxed">Got an idea? Tell us here. We read all of it and answer in your bell when we can. You can also <a href={featureRequestUrl()} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300">open a feature request on GitHub</a>. Something not working? <a href={reportProblemUrl()} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300">Report a problem on GitHub</a>. See also the <Link href="/faq#help" className="text-yellow-400 hover:text-yellow-300">FAQ</Link>.</p>
       </header>
 
       <FeedbackForm left={Math.max(0, FEEDBACK_LIMITS.perDay - used)} />
