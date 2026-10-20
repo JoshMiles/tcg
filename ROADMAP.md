@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-**Last updated 2026-10-19**
+**Last updated 2026-10-20**
 
 Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked Ready; Needs design or Needs a decision goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item.
 
@@ -19,6 +19,14 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
 | 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
+| 32.1 | Buff credits: free pulls, dead extra-pulls buff, races | Ready | M |
+| 32.2 | Variant glow and rock CSS regressions | Ready | S |
+| 32.3 | FAQ editor hardening | Ready | S |
+| 32.4 | Discord link: relink and one-account claim | Ready | S |
+| 32.5 | New pack flow leftovers | Ready | S |
+| 32.6 | Variant scripts and the Shiny label leftovers | Ready | S |
+| 32.7 | GEMINI.md becomes a pointer to CLAUDE.md | Ready | XS |
+| 32.8 | Tabbed staff What's new and issue form links | In progress | S |
 
 27.2 is unused on purpose: the master set achievement is already shipped (see "Already on the site" under tracks 25 to 30). 29.2 is unused on purpose: the read-only audit and the dry-run script shipped inside 29.1. 29.3 is not in the table: stars keep setting the value, so there is no PR.
 
@@ -75,13 +83,52 @@ From Cheesygidds and Joshua in Discord (the two screenshots), checked against `m
 | Align variant with rarity, plus a Golden variant (Joshua) | 29.1 (done), 29.3, 29.4, 29.5 |
 | Trainer cards and a Buff Editor (Joshua) | 30.1 to 30.4 |
 
-### Tracks 25 to 30: order
+## Track 32: review of PRs #297 to #310 (2026-10-20)
 
-Parallel streams, so no two open PRs edit the same files:
-- **widget.js:** 29.4 (29.1 is done).
-- **Mix It Up:** 30.2 extends `effectiveLimit` after 30.1. Do not run 30.2 beside another edit of `lib/pull-limit-core.ts`.
-- **Variants:** 29.4 (29.1 is done). There is no points PR: stars keep setting the value (see 29.3). 29.5 waits for the freeze.
-- **Trainers and achievement bonuses:** 30.1, then 30.2, then 30.3, and 27.5 after 30.1 (it picks a buff from that catalogue). 30.4 waits for the freeze.
+Those PRs were merged without a review. Findings were checked against `main`. One PR per item, each from up-to-date `origin/main`. Each fix adds a regression case to the matching `scripts/check-*.mts`. 32.1 to 32.6 touch different files and can run in parallel, except that 32.2 and 32.6 both touch variant labels: run 32.6 after 32.2.
+
+### 32.1 Buff credits (Ready, M, do first)
+- **Free pulls forever.** `app/api/collection/route.ts` calls `consumePullOnSave(..., { seasonId: name })` with the collection name, but buffs store `season.id` (`lib/buffs.ts` `useTrainerCard`, `lib/achievements-store.ts`). `stepActiveBuff` then drops the buff before taking a credit, and `hasExtraPackCredit` passes no season, so it keeps returning true. Pass the active `season.id` on both sides. `scripts/check-buffs.mts` uses one id for both, so give it different season and collection ids.
+- **Extra pulls per stream does nothing.** `totalExtraPullsFromBuffs` (`lib/buffs-core.ts`) is never called. Add it to `extra` in `reservePaidPull` (`lib/mixitup.ts`) and `doPullsLeft` (`lib/commands.ts`).
+- **One credit, many pulls.** `reservePaidPull` checks the credit but reserves nothing, so pulls queued before the first save all skip the fee. Reserve the credit at reservation time and give it back in `releasePaidPull`.
+- **Lost writes.** Buff lists (`user:<u>:buffs`, `buffs:community`) are read, changed and written with no lock. Wrap the writes in `withLock` on the buff key. `useTrainerCard` applies the buff before `saveCollection`, so save the collection first or undo the buff on error.
+- **Achievement bonus.** `syncAchievements` marks the goal earned before applying the buff, and a failed apply is swallowed. Two page views can both apply it. Claim each goal with a set-if-absent, then apply, then log a skipped grant. Decide before shipping whether achievements earned before 27.5 should pay out on first sync (today they all do).
+- **Smaller.** Save `streamKeys` updates even when no credit was used. Return a reason code from `useTrainerCard` instead of the string match in `lib/commands.ts`. A `grant-achievement` buff can never be applied (`invalid_type`): wire it or hide it in the Buff Editor.
+
+### 32.2 Variant glow and rock CSS (Ready, S)
+- `buildHoloSpecs` (`lib/holo-core.ts`) sets `on: true` when only glow or rock is on, so `holoClass()` adds the default shimmer to a variant whose shimmer is off. Add a separate shimmer flag, used by `holoClass`, while `holoVars` keeps the glow and rock variables.
+- `app/globals.css` (#308) added `.vfx-reverse` to the `!important` glow rule, the rock animation and the `.ug-art` / `.tr-art` rules. That overrides the rarity box shadow on the copy page, Card Dex, `CardDetail` and `PrintOfWeek`. Take `.vfx-reverse` out, restore the old blue and amber glow fallbacks and the 1.6deg Full Art Holo rock, and only animate when `--rock-amt` is set.
+- Add a check: shimmer off with glow on gives `holoClass() === ''`.
+
+### 32.3 FAQ editor hardening (Ready, S)
+- Section icons are cast, not checked (`lib/faq-core.ts` `cleanSectionInput`, `normalizeFaqStore`). An unknown icon crashes `/faq`. Check against the `ICONS` keys and fall back to `help`.
+- `updateFaqQuestionAction` drops `order` and `createdAt`, so an edited question jumps to the top. Keep the existing values.
+- Reject a question whose `sectionId` is not a section, and toggle or reorder calls for an unknown section.
+- The link parser accepts `//host` as a site path. Use `\/(?!\/)`.
+
+### 32.4 Discord link (Ready, S)
+- `saveDiscordLink` (`lib/discord-user.ts`) leaves the old `discord:user:<id>` index when a collector links a different Discord account, so that account can never be linked again. Delete the old index.
+- Claim the index with `set nx` before writing the link, so two collectors cannot link one Discord account. Add a 30 second cooldown on the test DM. Log only the status code of Discord errors.
+
+### 32.5 New pack flow leftovers (Ready, S)
+- The dashboard "New pack" shortcut (`app/admin/dashboard/widgets.tsx`) still links `/admin/packs/new`, which only redirects. Use `NewPackButton`.
+- `SeasonFlow` "Create a pack" now leaves the wizard in the same tab and can drop unsaved season edits. Open the new pack in a new tab, or flush the autosave first.
+- `createDraftPack` has no `revalidatePath`. `PackWorkspace` reloads the page after publish: use `router.refresh()`. Fix `docs/admin/packs-and-seasons.md` ("the wizard's").
+
+### 32.6 Variant scripts and labels (Ready, S, after 32.2)
+- `scripts/migrate-variant-rarity.mts` and `scripts/audit-variant-rarity.mts` cannot run. They import functions that are not exported, read `cardId` instead of `cardNumber`, compare string ids with numbers, and use a 100000 offset instead of `VARIANT_OFFSET`. Delete them unless someone needs the remap. If it is kept, rewrite it against the real APIs with a mock-KV check.
+- Rename the leftover user-visible "Shiny" labels to Full Art Holo or FH: `app/admin/seasons/[id]/page.tsx`, `app/admin/dashboard/widgets-extra.tsx`, `lib/dashboard.ts`, `lib/activity-view.ts`, `app/admin/activity/SummaryStrip.tsx`, `app/admin/users/UsersList.tsx`, `app/admin/components/AddCardDialog.tsx`, and docs. The internal id stays `shiny`.
+- Small: drop the unused `GuidesMenu` import in `app/admin/overlay/EditorTopBar.tsx`.
+
+### 32.7 GEMINI.md (Ready, XS)
+GEMINI.md is a hand-kept copy of CLAUDE.md and has already drifted. Replace it with a short pointer: follow CLAUDE.md, the only rules file.
+
+### 32.8 Tabbed staff What's new and issue form links (In progress)
+- `/admin/changelog` gets Admin, Mod and Players tabs. The PR `Audience:` line takes players, admin, mod, staff (admin and mod) or all. Each generated entry has an Edit link to its PR on GitHub, and an edit shows after the next deploy. `/mod/changelog` shows the mod list.
+- "Report a problem" opens the bug report issue form (`?template=bug_report.yml`, page in the steps field). Idea links can also open the feature request form.
+
+### PR descriptions to fix (needs Joshua's OK, they are public)
+`scripts/build-changelog.mjs` publishes only the bullets under `## Changelog`. #301 has no section, and #302 and #306 have prose only, so the Golden labels, variant styles and Discord DM alerts are missing from What's new. #303 has no Audience or Tags lines. Edited bodies show after the next deploy.
 
 ## Standing decisions
 
@@ -140,4 +187,5 @@ Outside the repo; tick off or delete when done (listed as of 2026-10-16).
 - [ ] **Card name (25.3):** in the pack workspace, rename the live card Bottomygidds to Bottomgidds. The seed fix does not rewrite production.
 - [ ] **Print bonus cutoff (27.4):** after that PR is deployed, open Admin → Settings → Scoring and set the cutoff to 40 if the saved value is still 20, then save. The new default does not overwrite a saved value, and scores move when you save.
 - [ ] **iPhone icon (1.1, 7.1):** remove the home-screen app, delete `cheesytcg.app` under Settings > Apps > Safari > Advanced > Website Data, add it again from Safari; confirm the cheese logo shows.
+- [ ] **Discord DM alerts (4.4):** create a Discord application and bot, invite the bot to the Cheesygidds server, add the redirect `https://cheesytcg.app/auth/discord/callback` in the Discord developer portal, and set `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` in Vercel. The option stays hidden until then.
 - [ ] **Email (22.1):** if not done yet, set `RESEND_API_KEY`, `EMAIL_FROM` and `RESEND_WEBHOOK_SECRET` in Vercel (see `docs/hosting.md`) to switch email notifications on.
