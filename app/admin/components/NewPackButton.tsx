@@ -1,11 +1,12 @@
 'use client';
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { createDraftPack } from '../draft-actions';
 import { Dialog } from './Dialog';
 import { fieldClass } from './ui';
 
-export function NewPackDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** `newTab` opens the pack in a new tab and leaves this page alone (the season wizard has unsaved edits). */
+export function NewPackDialog({ open, onClose, newTab = false }: { open: boolean; onClose: () => void; newTab?: boolean }) {
   const router = useRouter();
   const inputId = useId();
   const [name, setName] = useState('');
@@ -26,14 +27,20 @@ export function NewPackDialog({ open, onClose }: { open: boolean; onClose: () =>
       setError('Give the pack a name.');
       return;
     }
+    // Open the tab now: browsers block a window.open that comes after an await.
+    const tab = newTab ? window.open('', '_blank') : null;
     setBusy(true);
     setError('');
     try {
       const { id } = await createDraftPack({ name: trimmed });
       setName('');
       onClose();
-      router.push(`/admin/packs/${id}`);
+      if (newTab) {
+        if (tab) tab.location.href = `/admin/packs/${id}`; else window.open(`/admin/packs/${id}`, '_blank');
+        setBusy(false);
+      } else router.push(`/admin/packs/${id}`);
     } catch (err) {
+      tab?.close();
       setError(err instanceof Error ? err.message : 'Could not create the pack.');
       setBusy(false);
     }
@@ -72,9 +79,11 @@ export function NewPackDialog({ open, onClose }: { open: boolean; onClose: () =>
 export function NewPackButton({
   label = '+ New Pack',
   className = 'px-4 py-2 btn btn-primary rounded-xl text-sm transition-colors',
+  newTab = false,
 }: {
-  label?: string;
+  label?: ReactNode;
   className?: string;
+  newTab?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -82,7 +91,7 @@ export function NewPackButton({
       <button type="button" onClick={() => setOpen(true)} className={className}>
         {label}
       </button>
-      <NewPackDialog open={open} onClose={() => setOpen(false)} />
+      <NewPackDialog open={open} onClose={() => setOpen(false)} newTab={newTab} />
     </>
   );
 }
