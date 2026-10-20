@@ -54,7 +54,7 @@ Viewers on the [Cheesygidds Twitch channel](https://www.twitch.tv/cheesygidds) p
 | **Styling** | Tailwind CSS 4 with daisyUI 5 |
 | **Hosting and data** | [Vercel](https://vercel.com), Vercel KV (Upstash Redis), Vercel Blob for images and backups |
 | **Twitch** | Twitch OAuth for sign-in, a Twitch Extension for the channel panel |
-| **Optional** | Resend (email alerts), Web Push, Discord webhooks |
+| **Optional** | Web Push, Discord webhooks |
 
 Data is three tiers in KV: **Seasons → Packs → Cards**. Each viewer's pulls are stored per season; duplicates are kept on purpose, because each entry is one pull. More in [`CLAUDE.md`](CLAUDE.md#data-architecture).
 

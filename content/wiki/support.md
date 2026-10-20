@@ -35,7 +35,7 @@ They have to request it themselves (Account, Request deletion, type their login)
 
 ## Alerts never arrive
 
-Bell notices on the site do not need extra setup. Email needs the Resend variables. Phone alerts need the Web Push variables. Until those are set, the section is hidden in the viewer's Settings. [Settings, Environment](/admin/settings?tab=environment) shows which names are set, never the values.
+Bell notices on the site do not need extra setup. Phone alerts need the Web Push variables. Until those are set, the section is hidden in the viewer's Settings. [Settings, Environment](/admin/settings?tab=environment) shows which names are set, never the values.
 
 An iPhone only gets push after they install the site as an app. A desktop browser can subscribe directly. Three "not now" taps hide the prompt.
 

@@ -178,11 +178,6 @@ When someone accepts, the swap happens instantly and both collections update. Th
     answer: `In [Settings](/settings#push), under notifications, tap *Turn on alerts for this device* and allow notifications when your phone or browser asks. Then an offer, a counter or the result of your offer reaches you even when the site is closed. On an iPhone or iPad you first need to [add the app to your Home Screen](/install) and open it from there (iOS 16.4 or newer). You can choose which kinds of alert you want, send yourself a test, and remove a device at any time. If you blocked notifications by mistake, allow them again in your browser or phone settings for this site. The option only shows once the site has alerts set up.`,
   },
   {
-    id: 'email-alerts', sectionId: 'trading',
-    question: 'Can I get notifications by email?',
-    answer: `Yes, once the site has email set up. In [Settings](/settings#email), under notifications, type your address and press *Send confirmation*, then open the link we email you. Nothing else is sent until you do. By default you get trade offers, counters and how your offers ended; you can add listing alerts and messages from the admins. You get at most one email every 15 minutes: anything that happens in between is sent together in one email. Every email has a link to stop them with one click, and you can remove your address in Settings at any time. Your address is never shown to other collectors.`,
-  },
-  {
     id: 'which-editions', sectionId: 'trading',
     question: 'Which of my editions get traded?',
     answer: `Unless you choose, trades move your **newest** editions of a card first, so the low edition numbers you pulled earliest stay with you. If you hold more editions of a card than the trade needs, **Choose editions** in the offer lets you tick exactly which ones to give (a warning appears for Edition #1 and editions that earn a edition bonus). You can ask for a specific edition of someone’s when you offer them a trade directly, and when you take a listing or accept an offer that asks for a card you have spares of, you pick which of yours to hand over before the final tap. See [editions and prints](#serials).`,
@@ -436,12 +431,12 @@ The {base_score}, the limits and the margin are settings the streamer can change
   {
     id: 'download-data', sectionId: 'privacy',
     question: 'Can I download my data?',
-    answer: `Yes: [Settings](/settings) has a *Download my data* button that gives you your profile, settings, collections, trade offers, notices, alert devices and email address as a file.`,
+    answer: `Yes: [Settings](/settings) has a *Download my data* button that gives you your profile, settings, collections, trade offers, notices, alert devices as a file.`,
   },
   {
     id: 'delete-data', sectionId: 'privacy',
     question: 'How do I get my data deleted?',
-    answer: `Go to [Settings](/settings#delete-account) and press *Request deletion* at the bottom (you type your login name to confirm). The team deletes your account, usually within about a month: your collection, settings, notices, alert devices and email address are removed, the editions you held are retired, and your open trade offers are cancelled. It cannot be undone. A restore point is kept for 14 days only so a mistake can be fixed. Until it is handled you can cancel the request there. You can also ask the person who runs the game: {contact}. Logging out only ends your session; it doesn’t delete your collection.`,
+    answer: `Go to [Settings](/settings#delete-account) and press *Request deletion* at the bottom (you type your login name to confirm). The team deletes your account, usually within about a month: your collection, settings, notices, alert devices are removed, the editions you held are retired, and your open trade offers are cancelled. It cannot be undone. A restore point is kept for 14 days only so a mistake can be fixed. Until it is handled you can cancel the request there. You can also ask the person who runs the game: {contact}. Logging out only ends your session; it doesn’t delete your collection.`,
   },
 
   // ---- Something not working? ----

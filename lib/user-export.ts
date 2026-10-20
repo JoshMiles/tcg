@@ -5,13 +5,12 @@ import { tradesForUser } from './trades';
 import { listDevices } from './push';
 import { feedbackOf } from './feedback';
 import { getTester } from './access';
-import { getEmail } from './email';
 import { getDiscordLink } from './discord-user';
 
 /** Everything stored about one viewer (their profile, settings, collections per season, trades and notices). Never other people's data. */
 export async function buildExport(username: string) {
   const u = username.toLowerCase();
-  const [profile, settings, seasons, notices, trades, pushDevices, feedback, tester, email, discord] = await Promise.all([
+  const [profile, settings, seasons, notices, trades, pushDevices, feedback, tester, discord] = await Promise.all([
     getUserProfile(u).catch(() => null),
     getUserSettings(u),
     listSeasons().catch(() => []),
@@ -20,7 +19,6 @@ export async function buildExport(username: string) {
     listDevices(u).catch(() => []),
     feedbackOf(u).catch(() => []),
     getTester(u).catch(() => null),
-    getEmail(u).catch(() => null),
     getDiscordLink(u).catch(() => null),
   ]);
   const collections = (await Promise.all(seasons.map(async s => {
@@ -35,7 +33,6 @@ export async function buildExport(username: string) {
     collections,
     notices: notices.notices,
     alertDevices: pushDevices,
-    email: email ? { address: email.address, confirmedAt: email.verifiedAt ? new Date(email.verifiedAt).toISOString() : null, kinds: email.kinds, off: email.off ?? null } : null,
     discord: discord ? { id: discord.id, username: discord.username, linkedAt: new Date(discord.linkedAt).toISOString(), kinds: discord.kinds, dmStatus: discord.dmStatus ?? 'ok' } : null,
     feedback,
     tester: tester ? { tier: tester.tier, addedAt: tester.addedAt, note: tester.note ?? null } : null,

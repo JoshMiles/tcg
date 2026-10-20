@@ -12,7 +12,7 @@ order: 70
 
 **Local** is your machine against a fake database (the mock KV described in `docs/local-dev.md`). It must not be pointed at production. A saved pull writes a real card for a real viewer. The overlay test panel's Reset buttons write too.
 
-Sandboxes inside production (Admin, Sandbox) are named copies for trying a trade or an upgrade. They do not call Discord, send email, or charge Mix It Up. Leaving a sandbox returns you to live data. Check the sandbox pill before you grant or delete.
+Sandboxes inside production (Admin, Sandbox) are named copies for trying a trade or an upgrade. They do not call Discord or charge Mix It Up. Leaving a sandbox returns you to live data. Check the sandbox pill before you grant or delete.
 
 ## Deploys
 
@@ -42,13 +42,12 @@ The Environment tab lists every variable as set or not set. It never shows the v
 | --- | --- |
 | `ADMIN_SECRET` and `ADMIN_PASSWORD` | The emergency password login. The cookie is a signature of the secret, not the secret itself. |
 | `ADMIN_PASSWORD_LOGIN=off` | Switches that password door off. |
-| `SESSION_SECRET` | Website login, the staff cookie, and email confirm links. |
+| `SESSION_SECRET` | Website login, and the staff cookie. |
 | `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` | Twitch login and profile pictures. |
 | `TWITCH_EXTENSION_SECRET` | The panel's signed requests. |
 | `KV_REST_API_URL` and `KV_REST_API_TOKEN` | The database. Preview has these too, and is fenced in code. |
 | `BLOB_READ_WRITE_TOKEN` | Uploads and the Assets page. |
 | `BACKUP_ENCRYPTION_KEY` and `CRON_SECRET` | Nightly backups and the weekly job. Both refuse a short or missing secret. |
-| `RESEND_API_KEY`, `EMAIL_FROM`, `RESEND_WEBHOOK_SECRET` | Email alerts. Hidden in viewer Settings until the key is set. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Phone and browser push. Hidden until the pair is set. |
 | `SUPER_ADMIN_TWITCH_IDS` | Extra super admins, by numeric Twitch id, besides the owner baked into the code. |
 

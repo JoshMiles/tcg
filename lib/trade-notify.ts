@@ -16,7 +16,6 @@ import { matchingAlerts } from './watch-core';
 import { notifyListing } from './discord';
 import { encodeEntry } from './variants';
 import { pushNotice } from './push';
-import { emailNotice } from './email';
 import { discordNotice } from './discord-user';
 
 // Notifications and activity records for trade events. Everything here is best-effort: a failure must never undo or block
@@ -44,7 +43,6 @@ export async function notify(username: string, notice: Omit<Notice, 'id' | 'at'>
     await kv.ltrim(noticesKey(user), 0, NOTICE_CAP - 1);
     await kv.incr(versionKey(user)); // the bell asks "has anything changed since version N?"
     await pushNotice(user, full); // and, if they turned alerts on, their phone or browser hears about it too
-    await emailNotice(user, full); // and, if they confirmed an email address, it is queued for the next email
     await discordNotice(user, full); // and, if they linked Discord, a direct message is sent
   } catch { /* best effort */ }
 }
