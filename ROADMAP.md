@@ -16,72 +16,17 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 | # | Item | Status | Size |
 |---|------|--------|------|
-| Ext | Next extension version | Blocked (panel freeze) | L |
-| 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
-| 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
 | 32.2 | Variant glow and rock CSS regressions | Ready | S |
 | 32.4 | Discord link: relink and one-account claim | Ready | S |
 | 32.5 | New pack flow leftovers | Ready | S |
-| 32.6 | Variant scripts and the Shiny label leftovers | Ready | S |
+| 32.6 | Variant scripts and the Shiny label leftovers (after 32.2) | Ready | S |
 | 32.7 | GEMINI.md becomes a pointer to CLAUDE.md | Ready | XS |
-| 33.1 | Discord variables on the Environment tab | Ready | XS |
-| 33.2 | Achievement Editor: own page, stats, placeholders, custom goals | Ready | L |
-| 33.3 | FAQ Editor: built-in questions become editable templates (includes 32.3) | Ready | L |
+| Ext | Next extension version | Blocked (panel freeze) | L |
+| 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
+| 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
+| 25.2p | The panel still says print for a copy (edition / print words) | Blocked (panel freeze) | XS |
 
-27.2 is unused on purpose: the master set achievement is already shipped (see "Already on the site" under tracks 25 to 30). 29.2 is unused on purpose: the read-only audit and the dry-run script shipped inside 29.1. 29.3 is not in the table: stars keep setting the value, so there is no PR.
-
-
-### Next extension version (Blocked until the freeze lifts)
-
-**Security, panel collection (ship with the next panel version, not before the freeze lifts).** `GET /api/twitch/collection` takes `username` and returns that viewer's card numbers for every season they have cards in, including drafts, with no session, extension JWT or private-profile check. The released panel calls it that way (`public/twitch-panel/panel.js`, no `Authorization` header). When the freeze lifts: drop draft seasons; for a private profile return cards only when the caller is that viewer (a Twitch extension JWT checked with `verifyExtensionAuth`, or a website session); keep the JSON shape `{ username, collections: [{ seasonId, seasonName, active, ownedNumbers }] }`. Public profiles can keep answering without a token so the panel already under review still loads. Do not change this route, `public/twitch-panel/*`, the package builder or the extension CORS while the freeze is on.
-
-Ship as one reviewed panel version: the pack card back on the panel's flip backs (20.3), choosing prints when trading (6.4: composer and accept picker, exact serial preview), favourite prints (9.1: hearts and disabled picks), "Reversed by staff" on reversed trades (9.2), staff and tester badges, achievements, Looking for / listing alerts, the binder, share images, the copies-first dialog (2.5), unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. When the freeze lifts, also take 29.5 and 30.4 from the blocked list below.
-
-## Tracks 25 to 30: Discord list of 2026-10-19, plus two new card features
-
-From Cheesygidds and Joshua in Discord (the two screenshots), checked against `main` on 2026-10-19. One PR per item, each branched from up-to-date `origin/main`. New UI uses the daisyUI 5 `cheesy` primitives (`btn`, `card`, `input`, `select`, `badge`, `fieldset`). No em dashes. Public copy uses `CHANNEL_NAME` / `CHANNEL_URL` from `lib/site.ts`.
-
-**Glossary (decided 2026-10-19, built in 25.2).** A person's copy of a card is an **edition**, not a print ("your recent editions"). The game-wide id is **Edition #1023381** (`Copy.uid`). The line that today says "Edition #24 of 28" is the sequence, and it becomes **Print #24 of 28** (`Copy.n`). That sequence is what the points bonus uses. Code, KV and URLs keep saying copy, serial and uid. `scripts/check-words.mts` requires these words. The Twitch panel still says print for a copy.
-
-**Already on the site (do not rebuild):**
-- **Master set.** `evaluateSeason` in `lib/achievements.ts` already awards `master` ("Master set: {season}", own every card in every version). The FAQ already says so (`app/(site)/faq/sections/profile.tsx`, "What are achievements?"). The goal is omitted when every card has only Regular, because it would be the same as Completed. Season 1's pack has upgrades off, so the goal does not show there. Turning versions on is what makes it appear. No new kind.
-- **How are points worked out?** and **Can I see the exact maths for a card?** are in `app/(site)/faq/sections/points.tsx`. The print-bonus sentence uses the live cutoff, and the formula calls have no space inside the brackets. Do not add a second copy of either question.
-- **Pull history on the profile.** The Activity tab lists pulls (card, version, sequence, linked to the print or the card dex), upgrades (linked to the print they made) and accepted trades (linked when the event has a trade id). Admin grants and declined offers stay off it.
-- **Public wordmark.** `SiteNav` links the logo and "The Cheesy TCG" to `/`. The admin sidebar brand and the phone top-bar title link to `/admin`. The mod bar links to `/mod`.
-
-### Where each Discord line went
-
-| Discord line | Item |
-|---|---|
-| Home layout: Card of the week, card name, print, edition, held by, See its journey | Done |
-| Change the name of print to edition (swap the names round) | Done |
-| Collectors page: Top collectors, collector name, 24/25 cards, Card dex | Done |
-| Text should say Bottomgidds, not bottomygidds | Done |
-| Font change on the card back editor | Done |
-| Edit profile shows twice; remove the one by the name; split Edit profile and settings | Done |
-| Share image: My best 1, top 3, top 6, top 9, custom; unselected goes grey, not yellow | Done |
-| Share image straight to a Discord channel (channel not created yet) | Done |
-| Profile collection: holo moves very fast on the top 3 cards (Mac only) | Done |
-| Collection cards do not need text on hover or along the bottom | Done |
-| Print/edition pill cannot be seen (see-through gold/yellow) | Done |
-| Profile activity should show card pull history as well as trades, click for details | Done |
-| FAQ How do I get cards: follow, subscribe, or gifting subs | Done |
-| New FAQ: is there a limit to how many cards per stream (defaults and bonuses) | Done |
-| Trading before upgrading; under upgrades, can I trade upgraded cards | Done |
-| Chat commands under Getting started; move !pack there; link from How do I get cards | Done |
-| FAQ Points and leaderboard: how are points worked out | Done |
-| "Edition #1 is worth 3x ... until the 40th edition" | Done: print #1 through the live cutoff (40th when the cutoff is 40) |
-| Master set achievement: every variant of every card | Already shipped (see above) |
-| Achievement editor? | Done |
-| FAQ: can I see the exact maths for a card | Done |
-| Spacing looks weird on some of the brackets | Done |
-| Cheesy TCG logo goes to the homepage, or the dashboard in admin | Done |
-| Default limits for subscribers, mods, broadcaster, VIPs and regular | Done |
-| !showoff pulls from the user's profile showcase | Done |
-| Option to edit the showcase on a person's profile | Done |
-| Generate a Mix It Up command from settings (commands and pulls) | Done |
-| Align variant with rarity, plus a Golden variant (Joshua) | 29.1 (done), 29.3, 29.4, 29.5 |
-| Trainer cards and a Buff Editor (Joshua) | 30.1 to 30.4 |
+Tracks 25 to 31 and 33 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
 ## Track 32: review of PRs #297 to #310 (2026-10-20)
 
@@ -109,52 +54,15 @@ Those PRs were merged without a review. Findings were checked against `main`. On
 ### 32.7 GEMINI.md (Ready, XS)
 GEMINI.md is a hand-kept copy of CLAUDE.md and has already drifted. Replace it with a short pointer: follow CLAUDE.md, the only rules file.
 
-### PR descriptions fixed (2026-10-20)
-`scripts/build-changelog.mjs` publishes only the bullets under `## Changelog`. #301 has no section, and #302 and #306 have prose only, so the Golden labels, variant styles and Discord DM alerts are missing from What's new. #303 had no Audience or Tags lines. Joshua approved the rewrites on 2026-10-20; the edited bodies show after the next deploy.
+## Blocked by the Twitch panel freeze
 
-## Track 33: admin editors (Joshua, 2026-10-20)
+Nothing in a Ready item edits the frozen paths listed under "Rules in force".
 
-One PR per item, each from up-to-date `origin/main`. They touch different files and can run in parallel. Each adds or extends a `scripts/check-*.mts`.
+### Ext: next extension version
 
-### 33.1 Discord variables on the Environment tab (Ready, XS)
-`lib/env-health.ts` lists no Discord variables, so Admin → Settings → Environment cannot say why the Discord DM option is hidden. Add an `EnvGroup` `'Discord'` (and to `ENV_GROUPS`) with `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN`, all `recommended`. The `unlocks` text says what `lib/discord-user.ts` does with each: linking a Discord account in Settings and DM alerts; all three are needed or the option stays hidden; the redirect `<site>/auth/discord/callback` goes in the Discord developer portal. `DISCORD_API_BASE` is a test hook and is not listed. Discord channel webhooks live in KV (Settings → Webhooks), not env, so they are not listed either. Extend `scripts/check-settings.mts` and the env table in `docs/hosting.md`.
+**Security, panel collection (ship with the next panel version, not before the freeze lifts).** `GET /api/twitch/collection` takes `username` and returns that viewer's card numbers for every season they have cards in, including drafts, with no session, extension JWT or private-profile check. The released panel calls it that way (`public/twitch-panel/panel.js`, no `Authorization` header). When the freeze lifts: drop draft seasons; for a private profile return cards only when the caller is that viewer (a Twitch extension JWT checked with `verifyExtensionAuth`, or a website session); keep the JSON shape `{ username, collections: [{ seasonId, seasonName, active, ownedNumbers }] }`. Public profiles can keep answering without a token so the panel already under review still loads. Do not change this route, `public/twitch-panel/*`, the package builder or the extension CORS while the freeze is on.
 
-### 33.2 Achievement Editor (Ready, L)
-Decided 2026-10-20 (Joshua): its own page on the sidebar, built-in goals editable with their real wording, a clearer buff reward, stats, placeholders and custom goals.
-- **Page.** `/admin/achievements` (server page, `force-dynamic`, `requireAdmin` on every action), added to `NAV_GROUPS` in `lib/admin-nav.ts` under Game, next to the Buff Editor, icon `award`, an unused shortcut letter (`scripts/check-admin-shell.mts` checks it). Remove the Settings tab; `/admin/settings?tab=achievements` redirects to the new page. Update `docs/admin.md`'s topic file and the staff wiki entry if one names the tab.
-- **Built-in goals prefilled.** Each built-in kind gets its default title and detail as a template in `lib/achievement-settings.ts` (the sentences `evaluateSeason` and `serialGoals` use today, with `{season}` etc. in place of the live values). The editor shows the template (or the saved override), not a blank box. Saving text equal to the default stores nothing. A Reset button per row. Stored earned rows keep working: text is still applied on the way out (`applyAchievementText`).
-- **Placeholders.** `{season}`, `{need}` (the goal's target), `{rarity}` (tier goals), `{version}` (version goals), `{cutoff}` (print bonus cutoff). Filled when the text is shown, from the achievement's own fields. An unknown `{word}` is shown as typed, and the editor warns about it. A small reference list under the form.
-- **Buff reward wording.** The "Bonus reward" select becomes "Buff given when earned", with one line under it: a buff from the Buff Editor, given once, the first time a player earns this goal (link to `/admin/buffs`). The option text says what the buff does (`describeBuffDef`).
-- **Stats.** When `syncAchievements` stores a newly earned goal, also `hincrby achievements:earned <kind> 1` and push `{ username, id, title, earnedAt }` to `achievements:recent` (trim to 25). The page shows the count per goal and a recent-earners list linked to profiles. A "Recount" button rebuilds the counts by scanning every user's `user:<u>:ach` hash (users from `getAllCollectionUsers()`), for goals earned before this ships.
-- **Custom goals.** KV `achievements:custom`, a list of `{ id, on, title, detail, icon, rule, buffId? }`, normalized on read like the settings. `rule` is one of: `unique` (own N different cards), `editions` (hold N editions in total, duplicates count), `rarity` (own N different cards of a star tier), `version` (own N different cards in a version), `firsts` (hold print #1 of N different cards; needs numbered copies, like `serialGoals`). Every rule is per season and computed from `AchSeason`, so `evaluateSeason` takes the custom list as an extra argument; ids are `<seasonId>:custom-<id>`. N is capped at the cards that qualify (a goal with 0 qualifying cards is left out, like the built-ins). Create, edit, switch off and delete in the editor; deleting or switching off never removes it from profiles that earned it. Custom goals can carry a buff, applied by the same claim-then-apply path as built-ins. Icon picked from a short list of `IconName`s.
-- **Trade goals (decided 2026-10-20, Joshua).** Goals for completed trades, counted across all seasons: a trade counts once it is `accepted` (a reversed trade does not), for both the offerer and the taker (`from`, and `to ?? resolvedBy`, as in `tradeCountsByUser` in `lib/trades.ts`). Add `completedTradeCount(username)` next to it. Built-in kinds `first-trade` (1) and `ten-trades` (10) in a new `Trading` group, and a custom rule `trades` (complete N trades). They are not per season: stored under the pseudo-season id `trading` (like `special`), so ids are `trading:first-trade` and `trading:custom-<id>`; `{season}` is empty there and `{need}` works. `syncAchievements` reads the count once per sync. Earned stays earned, even if a trade is later reversed.
-- **Checks.** Extend the achievements check: placeholder fill, default-equals-blank, each rule type at N-1 and N, a deleted custom goal stays earned, the stat counter goes up once per goal.
-
-### 33.3 FAQ Editor: built-in questions as templates (Ready, L, includes 32.3)
-Decided 2026-10-20 (Joshua): the built-in questions are editable with their real wording prefilled, using placeholders for live values.
-- **Built-ins become data.** Move every built-in question in `app/(site)/faq/sections/*.tsx` into `lib/faq-builtins.ts`: `{ id, sectionId, question, answer, open? }`, `answer` in the custom-answer syntax `lib/faq-core.ts` already parses (paragraphs, `- ` lists, `**bold**`, `[text](href)`). Keep every existing anchor id (`#not-nfts`, `#app`, ...); give the rest a stable slug. The wording stays the same apart from what the syntax cannot express.
-- **Placeholders.** `{channel}`, `{channel_url}` (`lib/site.ts`), `{season}`, `{print_cutoff}`, `{pct_<variant>}` and `{cost_<variant>}` for each variant, the trade settings the trading section prints today, and any other live number the sections use now. Filled on render in `page.tsx`; custom questions get them too. Unknown `{word}` is left as typed.
-- **Live blocks.** What text cannot hold (the card values table, the chat commands list, other tables or lists built from data) becomes a block placeholder: a line that is only `{{block_name}}` renders the matching component (moved out of the section files into one blocks file). Sentences that change with state today (for example upgrades off this season) become a placeholder whose value is the right sentence.
-- **Overrides.** The store gains `overrides: Record<builtinId, { question?, answer?, hidden? }>`, normalized on read (unknown ids dropped). Defaults stay in code, so a later copy fix still reaches questions nobody edited. The editor lists the built-ins per section next to the custom ones, prefilled with the override or the default, with Hide and Reset to built-in, a placeholder reference (with today's values) and a warning on unknown placeholders or blocks. Saving the default text stores nothing.
-- **Rendering.** One renderer for built-ins and custom questions; the section `.tsx` files go. Section order, titles, icons and hiding stay as they are in the store.
-- **From 32.3.** Check section icons against the `ICONS` keys and fall back to `help` (`cleanSectionInput`, `normalizeFaqStore`). `updateFaqQuestionAction` keeps `order` and `createdAt`. Reject a question whose `sectionId` is not a section, and toggle or reorder calls for an unknown section. The link parser treats `//host` as external, not a site path (`\/(?!\/)`).
-- **Words check.** `scripts/check-words.mts` reads the FAQ wording from the new builtins file. The FAQ, Privacy and Terms stay in step: the check covers the defaults, and the editor shows one line reminding staff that the Privacy and Terms are not edited here.
-- **Checks.** A faq check: every built-in has a unique id and a known section, every placeholder used by a default is defined, every block named exists, an override of the default text normalizes to nothing, `//host` is not a site link. Run the public-site sweep on `/faq` against the mock KV and compare it with the old page.
-
-## Standing decisions
-
-- Paid-pull limits default to no limit and stay editable. Staff can add extra pulls for everyone for the current stream.
-- Stars keep setting the card value.
-- Trainer cards can be traded until used.
-- The Twitch panel freeze is still on. The panel still says print for a copy.
-
-**Twitch panel freeze:** nothing in a Ready item edits `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the behaviour or response shape of `/api/twitch/*`, or the CORS rules in `middleware.ts`. 29.5, 30.4, and the panel's copy of the edition/print words (25.2) are the exceptions and they are blocked.
-
-### 29.3 Stars keep setting the value (decided, no PR)
-
-Decided 2026-10-19. The stars on a card keep setting its value. The version multiplier stays as it is today (`baseScore × rarity from Card.stars × variantMultiplier × print bonus` in `lib/leaderboard.ts`). A Golden edition, once it exists, gets a version multiplier the same way a Full Art Holo does. It does not replace the stars.
-
-The names in 29.1 (Regular/Common through Golden/Legendary) are labels on the versions. The star names (Common through Legendary) stay too. Do not change `copyPoints`. Do not open a PR for this.
+Ship as one reviewed panel version: the pack card back on the panel's flip backs (20.3), choosing prints when trading (6.4: composer and accept picker, exact serial preview), favourite prints (9.1: hearts and disabled picks), "Reversed by staff" on reversed trades (9.2), staff and tester badges, achievements, Looking for / listing alerts, the binder, share images, the copies-first dialog (2.5), unique numbers on tiles (2.1), a link to `/trade/<id>` from the Trades tab, anything Twitch reviewers asked for. Bump `version` in `package.json`, rebuild the zip, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. When the freeze lifts, also take 29.5 and 30.4 from the blocked list below.
 
 ### 29.5 Let Golden be pulled, including the Twitch panel (Blocked, panel freeze)
 
@@ -169,22 +77,11 @@ When the freeze lifts, in the same panel version as Ext:
 The panel can already show the card as a normal collection entry (Regular encoding). It has no Use button, and it must not grow one during the freeze. When the freeze lifts, add Use next to Upgrade on that card only, calling a new field on an existing authenticated route or a new `/api/twitch` route in that panel version (not before). Same two-tap, same consume rules as 30.2.
 
 
-## Blocked by the Twitch freeze
+## Standing decisions
 
-Do not touch `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the behaviour or response shape of `/api/twitch/*`, or the CORS rules in `middleware.ts` until Joshua lifts the freeze.
-
-| Item | What waits |
-|---|---|
-| Ext | The whole next panel version, including the collection privacy fix already written above |
-| 29.5 | Decoding and drawing Golden. Until then `GOLDEN_PULLS` stays off, so no index-4 number is ever written |
-| 30.4 | A Use button in the panel. Website use (30.2) and the chat command (30.3) do not wait |
-| 25.2 panel strings | The website and the overlay changed in 25.2. The panel still says print for a copy until the freeze lifts |
-
-Ready items above were checked against this list. Showoff, paid-pull limits, share images, the FAQ and the card back editor do not go through the frozen paths.
-
-## Open questions for Joshua
-
-None on tracks 25 to 30. The last three answers (2026-10-19): every role's pull limit starts at no limit and staff edit the five numbers in admin, plus a this-stream extra for everyone (28.1); stars keep setting the card's value and the score formula does not change (29.3); a trainer card can be traded until someone uses it (30.2).
+- Paid-pull limits default to no limit and stay editable. Staff can add extra pulls for everyone for the current stream.
+- Stars keep setting the card value (29.3); `copyPoints` does not change.
+- Trainer cards can be traded until used.
 
 ## User steps still open
 
