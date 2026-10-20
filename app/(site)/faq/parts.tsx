@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from '@/app/components/Icon';
-import { parseFaqAnswerBlocks, parseInlineTokens } from '@/lib/faq-core';
+import { parseFaqAnswerBlocks, parseInlineTokens, splitFaqAnswer, type FaqValues } from '@/lib/faq-core';
 
 export function Section({ id, title, icon, children }: { id: string; title: string; icon: IconName; children: ReactNode }) {
   return (
@@ -32,6 +32,8 @@ function renderFaqTokens(text: string): ReactNode {
     if (t.type === 'bold') {
       return <strong key={idx} className="text-white font-semibold">{t.content}</strong>;
     }
+    if (t.type === 'italic') return <em key={idx}>{t.content}</em>;
+    if (t.type === 'code') return <kbd key={idx} className="kbd">{t.content}</kbd>;
     if (t.type === 'link') {
       return (
         <a
@@ -49,31 +51,25 @@ function renderFaqTokens(text: string): ReactNode {
   });
 }
 
-export function FaqAnswer({ answer }: { answer: string }) {
-  const blocks = parseFaqAnswerBlocks(answer);
+/** One renderer for built-in and custom answers: placeholders are filled from `values`, and a {{block}} line is drawn by `renderBlock`. */
+export function FaqAnswer({ answer, values, renderBlock }: { answer: string; values: FaqValues; renderBlock: (name: string) => ReactNode }) {
   return (
     <div className="space-y-2">
-      {blocks.map((block, i) => {
-        if (block.type === 'ul') {
-          return (
-            <ul key={i} className="list-disc pl-5 space-y-1 marker:text-gray-600">
-              {block.items.map((item, j) => (
-                <li key={j}>{renderFaqTokens(item)}</li>
-              ))}
-            </ul>
-          );
-        }
-        return <p key={i}>{renderFaqTokens(block.text)}</p>;
+      {splitFaqAnswer(answer, values).map((part, n) => {
+        if (part.type === 'block') return <div key={n}>{renderBlock(part.name)}</div>;
+        return parseFaqAnswerBlocks(part.text).map((block, i) => {
+          if (block.type === 'ul') {
+            return (
+              <ul key={`${n}-${i}`} className="list-disc pl-5 space-y-1 marker:text-gray-600">
+                {block.items.map((item, j) => (
+                  <li key={j}>{renderFaqTokens(item)}</li>
+                ))}
+              </ul>
+            );
+          }
+          return <p key={`${n}-${i}`}>{renderFaqTokens(block.text)}</p>;
+        });
       })}
     </div>
   );
 }
-
-export function CustomQ({ q, answer, id }: { q: string; answer: string; id?: string }) {
-  return (
-    <Q q={q} id={id}>
-      <FaqAnswer answer={answer} />
-    </Q>
-  );
-}
-

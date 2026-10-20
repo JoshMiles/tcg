@@ -14,10 +14,10 @@ const fromCode = (file: string, re: RegExp): number => {
 };
 
 const privacy = read('app/privacy/page.tsx');
-// The FAQ is split: page.tsx holds the order and the data, parts.tsx the Section / Q shells, sections/*.tsx one section each. Read them all as one text.
+// The FAQ wording is data in lib/faq-builtins.ts (placeholders like {feedback_keep_days} are filled from code in app/(site)/faq/context.ts); page.tsx, parts.tsx and blocks.tsx draw it. Read them all as one text.
 const FAQ_DIR = 'app/(site)/faq';
-const faqFiles = [FAQ_DIR + '/page.tsx', FAQ_DIR + '/parts.tsx', ...readdirSync(join(root, FAQ_DIR, 'sections')).filter(f => f.endsWith('.tsx')).sort().map(f => FAQ_DIR + '/sections/' + f)];
-const faq = faqFiles.map(read).join('\n');
+const faqBuiltins = read('lib/faq-builtins.ts');
+const faq = [faqBuiltins, ...['page.tsx', 'parts.tsx', 'blocks.tsx'].map(f => read(FAQ_DIR + '/' + f))].join('\n');
 const terms = read('app/terms/page.tsx');
 const has = (text: string, phrase: string, label: string) => ok(text.includes(phrase), `${label}: the page says "${phrase}"`);
 
@@ -31,7 +31,8 @@ ok(faq.includes('14 days') && privacy.includes('restore point'), 'the 14-day res
 // The feedback wording reads its numbers from the limits themselves, so it cannot drift; check it still does.
 has(privacy, 'FEEDBACK_LIMITS.keepDaysAfterResolved} days after that, then deleted', 'feedback retention comes from the limit');
 has(privacy, 'You can send {FEEDBACK_LIMITS.perDay} a day', 'feedback daily limit comes from the limit');
-has(faq, 'FEEDBACK_LIMITS.keepDaysAfterResolved} days after', 'the FAQ feedback retention comes from the limit');
+has(faq, '{feedback_keep_days} days after', 'the FAQ feedback retention comes from the limit');
+has(read(FAQ_DIR + '/context.ts'), 'feedback_keep_days: String(FEEDBACK_LIMITS.keepDaysAfterResolved)', 'the FAQ placeholder reads the limit');
 has(privacy, `kept for ${fromCode('lib/user-admin.ts', /const SNAP_TTL = (\d+) \* 24/)} days`, 'restore points');
 has(privacy, `up to ${fromCode('lib/avatars.ts', /const TTL_FOUND = (\d+) \* 24/)} days`, 'cached profile pictures');
 has(privacy, `up to ${fromCode('lib/session.ts', /const MAX_AGE_S = 60 \* 60 \* 24 \* (\d+)/)} days`, 'login cookie lifetime');
@@ -41,7 +42,7 @@ has(faq, `about ${passMinutes} minutes`, 'Turnstile pass in the FAQ');
 has(faq, `(up to ${fromCode('lib/user-settings.ts', /export const WATCH_MAX = (\d+)/)})`, 'saved alerts');
 
 // ---- the channel-only rule is stated in all three places ----
-ok(faq.includes('Only on <a href={CHANNEL_URL}') && /run anywhere el/.test(faq), 'the FAQ says the game runs only on the channel');
+ok(faq.includes('Only on [{channel}') && faq.includes('({channel_url})') && /run anywhere el/.test(faq), 'the FAQ says the game runs only on the channel');
 ok(terms.includes('runs only on the {CHANNEL_NAME} Twitch channel'), 'the Terms say the game runs only on the channel');
 ok(privacy.includes('played only on the {CHANNEL_NAME} Twitch channel'), 'the Privacy Policy says the game is played only on the channel');
 
@@ -88,11 +89,16 @@ const oldBonusNames = /completion bonus|complete[- ](set|collection) bonus/i;
 for (const file of userFacing.filter(f => !f.startsWith(FAQ_DIR + '/'))) ok(!oldBonusNames.test(withoutComments(read(file))), `${file} uses an old bonus name: say "progress bonus" or "full set bonus"`);
 ok(faq.includes('it used to be called the completion bonus'), 'the FAQ keeps the old progress bonus name findable');
 ok(faq.includes('it used to be called the complete collection bonus'), 'the FAQ keeps the old full set bonus name findable');
-ok(faq.includes('id="serials"') && faq.includes('id="prints"'), 'the FAQ keeps the #serials anchor and adds #prints');
+const builtinIds = new Set([...faqBuiltins.matchAll(/\bid: '([^']+)'/g)].map(m => m[1]));
+ok(builtinIds.has('serials') && /anchors: \['prints'\]/.test(faqBuiltins), 'the FAQ keeps the #serials anchor and adds #prints');
 
 // ---- the info tooltips (ROADMAP 7.9): every glossary link lands on a real FAQ anchor, and the wording follows the house rules ----
 const glossary = read('lib/glossary.ts');
-const faqAnchors = new Set([...faq.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
+const faqAnchors = new Set([
+  ...builtinIds,
+  ...[...faqBuiltins.matchAll(/anchors: \[([^\]]*)\]/g)].flatMap(m => [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1])),
+  ...[...read('lib/faq-core.ts').matchAll(/\bid: '([^']+)', title:/g)].map(m => m[1]),
+]);
 const entries = [...glossary.matchAll(/^  (\w+): \{\n([\s\S]*?)\n  \},$/gm)];
 ok(entries.length >= 15, `the glossary has its first terms (found ${entries.length})`);
 for (const [, term, block] of entries) {

@@ -43,17 +43,45 @@ eq(partial.sections[1].title, 'Points Custom Name', 'custom title applied to bui
 eq(partial.questions.length, 1, 'valid question normalized');
 
 // ── 3. Question validation ──
-const emptyQ = core.cleanQuestionInput({ sectionId: 'start', question: '', answer: 'ans' }, 'id-1');
+const secIds = defaults.sections.map(s => s.id);
+const emptyQ = core.cleanQuestionInput({ sectionId: 'start', question: '', answer: 'ans' }, 'id-1', secIds);
 ok(!emptyQ.ok, 'empty question title rejected');
 
-const longQ = core.cleanQuestionInput({ sectionId: 'start', question: 'a'.repeat(201), answer: 'ans' }, 'id-2');
+const longQ = core.cleanQuestionInput({ sectionId: 'start', question: 'a'.repeat(201), answer: 'ans' }, 'id-2', secIds);
 ok(!longQ.ok, 'question title > 200 chars rejected');
 
-const emptyAns = core.cleanQuestionInput({ sectionId: 'start', question: 'Valid?', answer: '' }, 'id-3');
+const emptyAns = core.cleanQuestionInput({ sectionId: 'start', question: 'Valid?', answer: '' }, 'id-3', secIds);
 ok(!emptyAns.ok, 'empty answer rejected');
 
-const validQ = core.cleanQuestionInput({ sectionId: 'start', question: 'Valid Question?', answer: 'Valid answer.' }, 'id-4');
+const validQ = core.cleanQuestionInput({ sectionId: 'start', question: 'Valid Question?', answer: 'Valid answer.' }, 'id-4', secIds);
 ok(validQ.ok && validQ.question.question === 'Valid Question?' && validQ.question.enabled, 'valid question cleaned successfully');
+
+const noSec = core.cleanQuestionInput({ sectionId: 'nope', question: 'Valid?', answer: 'ans' }, 'id-5', secIds);
+ok(!noSec.ok, 'a question for an unknown section is rejected');
+
+// ── 3b. Built-in questions: ids, sections, placeholders, blocks, overrides ──
+const { FAQ_BUILTINS } = await import('../lib/faq-builtins');
+const { getFaqContext } = await import('../app/(site)/faq/context');
+const { values } = await getFaqContext();
+const ids = FAQ_BUILTINS.map(b => b.id);
+eq(new Set(ids).size, ids.length, 'built-in ids are unique');
+ok(ids.every(id => !secIds.includes(id)), 'no built-in id collides with a section id');
+ok(FAQ_BUILTINS.every(b => secIds.includes(b.sectionId)), 'every built-in is in a known section');
+for (const b of FAQ_BUILTINS) {
+  const p = core.findFaqProblems(`${b.question}\n${b.answer}`, values);
+  eq(p, { placeholders: [], blocks: [] }, `built-in ${b.id} uses only defined placeholders and blocks`);
+}
+ok(Object.values(values).every(v => typeof v === 'string'), 'every placeholder value is a string');
+
+const sample = FAQ_BUILTINS[0];
+eq(core.normalizeFaqOverride(sample.id, { question: sample.question, answer: sample.answer }), null, 'an override equal to the default stores nothing');
+ok(core.normalizeFaqOverride(sample.id, { answer: 'Different.' })?.answer === 'Different.', 'a changed answer is kept');
+eq(core.normalizeFaqOverride('no-such-id', { answer: 'x' }), null, 'an override for an unknown id is dropped');
+eq(core.normalizeFaqStore({ overrides: { 'no-such-id': { answer: 'x' } } }).overrides, {}, 'unknown override ids are dropped on read');
+
+eq(core.fillFaqPlaceholders('{channel} {nope}', { channel: 'X' }), 'X {nope}', 'an unknown placeholder is left as typed');
+eq(core.parseInlineTokens('[a](//evil.example)').some(t => t.type === 'link'), false, '//host is not a site link');
+eq(core.normalizeFaqStore({ sections: [{ id: 'z', title: 'Z', icon: 'not-an-icon' }] }).sections.find(s => s.id === 'z')?.icon, 'help', 'an unknown section icon falls back to help');
 
 // ── 4. Section validation ──
 const badSlug = core.cleanSectionInput({ id: 'INVALID SLUG!', title: 'Title' });

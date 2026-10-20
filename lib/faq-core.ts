@@ -1,4 +1,5 @@
-import type { IconName } from '@/app/components/Icon';
+import { ICONS, type IconName } from '@/app/components/Icon';
+import { FAQ_BUILTINS, getFaqBuiltin } from './faq-builtins';
 
 export interface FaqSectionMeta {
   id: string;
@@ -19,9 +20,29 @@ export interface FaqQuestion {
   updatedAt?: number;
 }
 
+/** Staff changes to a built-in question. A field that is missing means "use the built-in text". */
+export interface FaqOverride {
+  question?: string;
+  answer?: string;
+  hidden?: boolean;
+}
+
 export interface FaqStoreData {
   sections: FaqSectionMeta[];
   questions: FaqQuestion[];
+  /** Keyed by built-in question id (lib/faq-builtins.ts). */
+  overrides: Record<string, FaqOverride>;
+}
+
+/** Live blocks an answer can show on a line of its own as {{name}} (rendered by app/(site)/faq/blocks.tsx). */
+export const FAQ_BLOCK_NAMES = ['chat_commands', 'rarities', 'points_formula', 'card_values'] as const;
+export type FaqBlockName = (typeof FAQ_BLOCK_NAMES)[number];
+
+export type FaqValues = Record<string, string>;
+
+/** A stored icon name that is not in the icon set would crash the page, so anything unknown becomes the fallback. */
+export function cleanIconName(value: unknown, fallback: IconName = 'help'): IconName {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(ICONS, value) ? (value as IconName) : fallback;
 }
 
 export const QUESTION_TITLE_MAX = 200;
@@ -48,7 +69,24 @@ export function getDefaultFaqStore(): FaqStoreData {
   return {
     sections: DEFAULT_FAQ_SECTIONS.map(s => ({ ...s })),
     questions: [],
+    overrides: {},
   };
+}
+
+const sameText = (a: string, b: string) => a.replace(/\r\n/g, '\n').trim() === b.replace(/\r\n/g, '\n').trim();
+
+/** Cleans one override: unknown ids give null, text equal to the built-in text is dropped, and an override with nothing left is null. */
+export function normalizeFaqOverride(id: string, raw: unknown): FaqOverride | null {
+  const builtin = getFaqBuiltin(id);
+  if (!builtin || !raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const out: FaqOverride = {};
+  const question = typeof r.question === 'string' ? r.question.trim().slice(0, QUESTION_TITLE_MAX) : '';
+  const answer = typeof r.answer === 'string' ? r.answer.replace(/\r\n/g, '\n').trim().slice(0, QUESTION_ANSWER_MAX) : '';
+  if (question && !sameText(question, builtin.question)) out.question = question;
+  if (answer && !sameText(answer, builtin.answer)) out.answer = answer;
+  if (r.hidden === true) out.hidden = true;
+  return Object.keys(out).length ? out : null;
 }
 
 export function normalizeFaqStore(raw: unknown): FaqStoreData {
@@ -73,9 +111,7 @@ export function normalizeFaqStore(raw: unknown): FaqStoreData {
     const title = typeof item.title === 'string' && item.title.trim()
       ? item.title.trim().slice(0, SECTION_TITLE_MAX)
       : (builtinDefault?.title ?? id);
-    const icon = typeof item.icon === 'string'
-      ? (item.icon as IconName)
-      : (builtinDefault?.icon ?? 'help');
+    const icon = cleanIconName(item.icon, builtinDefault?.icon ?? 'help');
     const builtin = !!builtinDefault;
     const hidden = item.hidden === true;
 
@@ -122,13 +158,21 @@ export function normalizeFaqStore(raw: unknown): FaqStoreData {
   // Stable sort by order
   questions.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-  return { sections, questions };
+  const overrides: Record<string, FaqOverride> = {};
+  const rawOverrides = r.overrides && typeof r.overrides === 'object' && !Array.isArray(r.overrides) ? (r.overrides as Record<string, unknown>) : {};
+  for (const b of FAQ_BUILTINS) {
+    const o = normalizeFaqOverride(b.id, rawOverrides[b.id]);
+    if (o) overrides[b.id] = o;
+  }
+
+  return { sections, questions, overrides };
 }
 
 export function cleanQuestionInput(
   input: unknown,
   id: string,
-): { ok: true; question: FaqQuestion } | { ok: false; message: string } {
+  sectionIds: readonly string[],
+):{ ok: true; question: FaqQuestion } | { ok: false; message: string } {
   if (!input || typeof input !== 'object') {
     return { ok: false, message: 'Invalid question payload.' };
   }
@@ -139,6 +183,7 @@ export function cleanQuestionInput(
   const enabled = r.enabled !== false;
 
   if (!sectionId) return { ok: false, message: 'Section is required.' };
+  if (!sectionIds.includes(sectionId)) return { ok: false, message: 'That section does not exist.' };
   if (!question) return { ok: false, message: 'Question cannot be empty.' };
   if (question.length > QUESTION_TITLE_MAX) {
     return { ok: false, message: `Question must be ${QUESTION_TITLE_MAX} characters or fewer.` };
@@ -173,7 +218,7 @@ export function cleanSectionInput(
   const r = input as Record<string, unknown>;
   const rawId = typeof r.id === 'string' ? r.id.trim().toLowerCase() : '';
   const title = typeof r.title === 'string' ? r.title.trim() : '';
-  const icon = (typeof r.icon === 'string' ? r.icon.trim() : 'help') as IconName;
+  const icon = cleanIconName(typeof r.icon === 'string' ? r.icon.trim() : '');
 
   if (!rawId) return { ok: false, message: 'Section identifier is required.' };
   if (!/^[a-z0-9_-]{2,40}$/.test(rawId)) {
@@ -252,11 +297,14 @@ export function parseFaqAnswerBlocks(text: string): ParsedBlock[] {
 export type InlineToken =
   | { type: 'text'; content: string }
   | { type: 'bold'; content: string }
+  | { type: 'italic'; content: string }
+  | { type: 'code'; content: string }
   | { type: 'link'; content: string; href: string };
 
 export function parseInlineTokens(text: string): InlineToken[] {
   const tokens: InlineToken[] = [];
-  const re = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]*)\)|\*\*([^*]+)\*\*/g;
+  // Links go to a full URL, a site path (one slash: //host is another site), an in-page #anchor or a mailto: address.
+  const re = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/(?!\/)[^\s)]*|#[\w-]+|mailto:[^\s)]+)\)|\*\*([^*]+)\*\*|\*([^*\s][^*]*)\*|`([^`]+)`/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -268,6 +316,10 @@ export function parseInlineTokens(text: string): InlineToken[] {
       tokens.push({ type: 'link', content: match[1], href: match[2] });
     } else if (match[3] !== undefined) {
       tokens.push({ type: 'bold', content: match[3] });
+    } else if (match[4] !== undefined) {
+      tokens.push({ type: 'italic', content: match[4] });
+    } else if (match[5] !== undefined) {
+      tokens.push({ type: 'code', content: match[5] });
     }
     lastIndex = re.lastIndex;
   }
@@ -277,5 +329,59 @@ export function parseInlineTokens(text: string): InlineToken[] {
   }
 
   return tokens;
+}
+
+const BLOCK_LINE = /^\s*\{\{([a-z][a-z0-9_]*)\}\}\s*$/;
+const PLACEHOLDER = /\{([a-z][a-z0-9_]*)\}/g;
+const has = (values: FaqValues, key: string) => Object.prototype.hasOwnProperty.call(values, key);
+
+export type FaqAnswerPart = { type: 'text'; text: string } | { type: 'block'; name: string };
+
+/** Fills {placeholders}. An unknown {word} stays as typed, and a line holding only a placeholder whose value is empty is dropped. */
+export function fillFaqPlaceholders(text: string, values: FaqValues): string {
+  return text
+    .split('\n')
+    .filter(line => {
+      const m = /^\s*\{([a-z][a-z0-9_]*)\}\s*$/.exec(line);
+      return !(m && has(values, m[1]) && values[m[1]] === '');
+    })
+    .join('\n')
+    .replace(PLACEHOLDER, (all, key: string) => (has(values, key) ? values[key] : all));
+}
+
+/** Splits an answer at its {{block}} lines and fills the placeholders in the text between them. */
+export function splitFaqAnswer(answer: string, values: FaqValues): FaqAnswerPart[] {
+  const parts: FaqAnswerPart[] = [];
+  let run: string[] = [];
+  const flush = () => {
+    if (run.length) parts.push({ type: 'text', text: fillFaqPlaceholders(run.join('\n'), values) });
+    run = [];
+  };
+  for (const line of answer.replace(/\r\n/g, '\n').split('\n')) {
+    const m = BLOCK_LINE.exec(line);
+    if (m) {
+      flush();
+      parts.push({ type: 'block', name: m[1] });
+    } else {
+      run.push(line);
+    }
+  }
+  flush();
+  return parts;
+}
+
+/** The {placeholders} and {{blocks}} in a text that nothing defines, so the editor can warn before they show up as typed. */
+export function findFaqProblems(text: string, values: FaqValues): { placeholders: string[]; blocks: string[] } {
+  const placeholders = new Set<string>();
+  const blocks = new Set<string>();
+  for (const line of text.replace(/\r\n/g, '\n').split('\n')) {
+    const m = BLOCK_LINE.exec(line);
+    if (m) {
+      if (!(FAQ_BLOCK_NAMES as readonly string[]).includes(m[1])) blocks.add(m[1]);
+      continue;
+    }
+    for (const p of line.matchAll(PLACEHOLDER)) if (!has(values, p[1])) placeholders.add(p[1]);
+  }
+  return { placeholders: [...placeholders], blocks: [...blocks] };
 }
 
