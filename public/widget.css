@@ -591,6 +591,17 @@
 .preview-edit[data-selected="heading"] [data-edit="heading"], .preview-edit[data-selected="grid"] [data-edit="grid"] {
   outline: 2px solid rgba(250, 204, 21, 1); outline-offset: 3px;
 }
+.preview-edit[data-hover="card"] [data-edit="card"],
+.preview-edit[data-hover="label"] [data-edit="label"],
+.preview-edit[data-hover="serial"] [data-edit="serial"],
+.preview-edit[data-hover="bar"] [data-edit="bar"],
+.preview-edit[data-hover="got"] [data-edit="got"],
+.preview-edit[data-hover="strip"] [data-edit="strip"],
+.preview-edit[data-hover="showlabel"] [data-edit="showlabel"],
+.preview-edit[data-hover="heading"] [data-edit="heading"],
+.preview-edit[data-hover="grid"] [data-edit="grid"] {
+  outline: 2px dashed rgba(250, 204, 21, .9); outline-offset: 3px;
+}
 .edit-tag { display: none; position: fixed; z-index: 99999; pointer-events: none; padding: 1px 6px; border-radius: 4px;
   background: #facc15; color: #111; font: 700 11px/16px system-ui, sans-serif; }
 

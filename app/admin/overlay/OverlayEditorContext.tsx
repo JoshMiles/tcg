@@ -130,6 +130,9 @@ export interface OverlayEditorContextValue {
   layoutCat: boolean;
   dragging: boolean;
   selected: string;
+  selectTarget: (target: string) => void;
+  selectView: (view: Mode) => void;
+  hoverElement: (target: string) => void;
   layoutOf: (k: string) => OverlayLayout;
 
   // Navigation & Category
@@ -794,8 +797,35 @@ export function OverlayEditorProvider({
     if (pressKey(e.key, e.shiftKey)) e.preventDefault();
   };
 
-  const live = useRef({ dragTo, dragEnd, pressKey });
-  live.current = { dragTo, dragEnd, pressKey };
+  // Select one element and open its category and section; the preview click and the Layers panel share this.
+  const selectTarget = (target: string) => {
+    setSelected(target);
+    const t = TARGET_SECTIONS[target];
+    if (!t || (isPack && t[0] === 'collection')) return;
+    const [c, section] = t;
+    setCategory(c);
+    setQuery('');
+    setMode(c === 'collection' ? 'collection' : 'pack');
+    setShowOff(c === 'showoff');
+    if (c === 'variants') setVariantOpen(true);
+    if (section) {
+      const k = `${c}${c === 'variants' ? '.' + version : ''}/${section}`;
+      setOpenMap(m => ({ ...m, [k]: true }));
+      setFocusKey(k);
+    }
+  };
+  // Select a whole view: nothing picked, the Layout category showing that view.
+  const selectView = (view: Mode) => {
+    setSelected('');
+    setCategory('layout');
+    setQuery('');
+    setMode(view);
+    setShowOff(false);
+  };
+  const hoverElement = (target: string) => post({ type: 'hover', target });
+
+  const live = useRef({ dragTo, dragEnd, pressKey, selectTarget });
+  live.current = { dragTo, dragEnd, pressKey, selectTarget };
 
   useEffect(() => {
     if (ready) post({ type: 'selected', target: selected });
@@ -817,25 +847,11 @@ export function OverlayEditorProvider({
         return;
       }
       if (data?.type !== 'select' || !data.target) return;
-      setSelected(data.target);
-      const go = (c: string, section?: string) => {
-        setCategory(c);
-        setQuery('');
-        setMode(c === 'collection' ? 'collection' : 'pack');
-        setShowOff(c === 'showoff');
-        if (c === 'variants') setVariantOpen(true);
-        if (section) {
-          const k = `${c}${c === 'variants' ? '.' + version : ''}/${section}`;
-          setOpenMap(m => ({ ...m, [k]: true }));
-          setFocusKey(k);
-        }
-      };
-      const t = TARGET_SECTIONS[data.target];
-      if (t && !(isPack && t[0] === 'collection')) go(t[0], t[1]);
+      live.current.selectTarget(data.target);
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
-  }, [version, isPack]);
+  }, []);
 
   useEffect(() => {
     if (!focusKey) return;
@@ -881,6 +897,9 @@ export function OverlayEditorProvider({
     layoutCat,
     dragging,
     selected,
+    selectTarget,
+    selectView,
+    hoverElement,
     layoutOf,
     category,
     setCategory,
