@@ -2,6 +2,7 @@
   "version": 2,
   "crons": [
     { "path": "/api/cron/backup", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/weekly", "schedule": "0 20 * * 0" }
+    { "path": "/api/cron/weekly", "schedule": "0 20 * * 0" },
+    { "path": "/api/cron/minute", "schedule": "* * * * *" }
   ]
 }

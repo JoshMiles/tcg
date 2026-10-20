@@ -1,7 +1,6 @@
-import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { cronAuthorised } from '@/lib/cron-auth';
 import { runBackup } from '@/lib/backup';
-import { flushDueEmails } from '@/lib/email';
 import { reportBackup, reportDataHealth } from '@/lib/system-notices';
 
 export const dynamic = 'force-dynamic';
@@ -9,18 +8,10 @@ export const maxDuration = 300;
 
 // GET /api/cron/backup, called daily by Vercel Cron (vercel.json). Vercel sends `Authorization: Bearer ${CRON_SECRET}`; with
 // CRON_SECRET unset (or short) the route refuses everyone. runBackup itself refuses outside production and inside a sandbox.
-function authorised(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET ?? '';
-  if (secret.length < 16) return false;
-  const given = Buffer.from(req.headers.get('authorization') ?? '');
-  const want = Buffer.from(`Bearer ${secret}`);
-  return given.length === want.length && timingSafeEqual(given, want);
-}
 
 export async function GET(req: NextRequest) {
-  if (!authorised(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!cronAuthorised(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
-    await flushDueEmails().catch(() => 0); // emails the 15 minute window held back
     const run = await runBackup();
     await reportBackup(run);
     await reportDataHealth();
