@@ -40,7 +40,7 @@ export const COMMAND_ACTIONS: Record<CommandActionId, ActionInfo> = {
   showoff: {
     label: 'Show off a card',
     description: "Puts one of the viewer's own cards on stream (the overlay show-off). Args: a card name or number, optionally with a version.",
-    vars: [v('username', 'cheesefan'), v('cardName', 'Gouda Goat'), v('variant', 'Shiny'), v('edition', '#12', 'Print number, empty when the copy has none'), v('printNumber', '#1023381', 'Unique edition number'), v('points', '480'), v('stars', '4')],
+    vars: [v('username', 'cheesefan'), v('cardName', 'Gouda Goat'), v('variant', 'Shiny'), v('edition', '#12', 'Edition number, empty when the edition has none'), v('printNumber', '#1023381', 'Unique serial number'), v('points', '480'), v('stars', '4')],
     errors: ['notFound', 'notOwned', 'cooldown', 'offline'],
   },
   'card-stats': {
@@ -90,7 +90,7 @@ export const COMMAND_ACTIONS: Record<CommandActionId, ActionInfo> = {
 /** What a viewer reads in the FAQ about each action (the FAQ lists the enabled commands, so it cannot drift). */
 export const FAQ_LINES: Record<CommandActionId, string> = {
   showoff: 'shows one of your cards on stream. Add a card name or number, and a version if you like.',
-  'card-stats': 'tells you about a card: how rare it is, how many prints were made and how many collectors have it. Add a card name or number.',
+  'card-stats': 'tells you about a card: how rare it is, how many editions were made and how many collectors have it. Add a card name or number.',
   'my-stats': 'tells you your rank, score and progress. Add @someone to look at another collector.',
   collection: 'shows your collection on stream.',
   leaderboard: 'names the top three collectors.',
@@ -112,7 +112,7 @@ export const ERROR_DEFAULTS: Record<ErrorKind, string> = {
 
 export const DEFAULT_COMMANDS: ChatCommand[] = [
   { id: 'showoff', name: 'showoff', aliases: [], enabled: true, action: 'showoff', reply: 'Showing off your {variant} {cardName} {edition}!', errors: {}, cooldownS: 0, userCooldownS: 0, liveOnly: false },
-  { id: 'stats', name: 'stats', aliases: [], enabled: true, action: 'card-stats', reply: '{cardName}: {stars} stars, {pullChance}, {printsMade} prints made, {collectors} collectors. {url}', errors: {}, cooldownS: 5, userCooldownS: 0, liveOnly: false },
+  { id: 'stats', name: 'stats', aliases: [], enabled: true, action: 'card-stats', reply: '{cardName}: {stars} stars, {pullChance}, {printsMade} editions made, {collectors} collectors. {url}', errors: {}, cooldownS: 5, userCooldownS: 0, liveOnly: false },
 ];
 
 /** Replaces {name} with its value; unknown placeholders are dropped. */

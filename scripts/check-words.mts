@@ -74,16 +74,16 @@ const userFacing = [...walkSrc('app', /\.tsx$/), 'public/widget.js', 'public/wid
 const banned: [RegExp, string][] = [[/unique copy number/i, 'unique copy number'], [/unique number/i, 'unique number'], [/copy page/i, 'copy page'], [/ID #/, 'ID #']];
 for (const file of userFacing) {
   const src = withoutComments(read(file));
-  for (const [re, label] of banned) ok(!re.test(src), `${file} says "${label}": say "edition number", "edition page" or "Edition #1023381"`);
+  for (const [re, label] of banned) ok(!re.test(src), `${file} says "${label}": say "serial number", "edition page" or "Serial #1023381"`);
 }
-// A copy is an edition. The n-of-N line is a print (Print #7 of 12). The game-wide id is an edition number (Edition #1023381). The points bonus is the print bonus.
-const glossaryBanned: [RegExp, string][] = [[/edition bonus/i, 'edition bonus'], [/Edition #\d+ of/, 'Edition #n of N'], [/Print #\d{6,}/, 'Print # with a long id']];
+// A copy is an edition. Its number within a card + version is the edition number (Edition 7 of 12). The game-wide id is the serial number (Serial #1023381). The points bonus is the edition bonus.
+const glossaryBanned: [RegExp, string][] = [[/Print #/, 'Print #'], [/print bonus/i, 'print bonus'], [/Edition #(\d{7,}|\$?\{[^}]*uid)/, 'Edition # in front of a serial number']];
 for (const file of userFacing.filter(f => f !== 'lib/changelog.ts')) {
   const src = withoutComments(read(file));
-  for (const [re, label] of glossaryBanned) ok(!re.test(src), `${file} says "${label}": a copy is an edition and the n-of-N line is a print (ROADMAP 25.2)`);
+  for (const [re, label] of glossaryBanned) ok(!re.test(src), `${file} says "${label}": a copy is an edition, its number in the card is the edition number and its game-wide id is the serial number (ROADMAP 25.2)`);
 }
-ok(faq.includes('Edition #1023381'), 'the FAQ shows an edition number as Edition #1023381');
-ok(/print bonus/i.test(faq) && !/edition bonus/i.test(faq), 'the FAQ calls the points bonus the print bonus');
+ok(faq.includes('Serial #1023381'), 'the FAQ shows a serial number as Serial #1023381');
+ok(/edition bonus/i.test(faq) && !/print bonus/i.test(faq), 'the FAQ calls the points bonus the edition bonus');
 // ---- the two set bonuses are the "progress bonus" and the "full set bonus" (ROADMAP 7.8); the FAQ alone may name the old words ("it used to be called") ----
 const oldBonusNames = /completion bonus|complete[- ](set|collection) bonus/i;
 for (const file of userFacing.filter(f => !f.startsWith(FAQ_DIR + '/'))) ok(!oldBonusNames.test(withoutComments(read(file))), `${file} uses an old bonus name: say "progress bonus" or "full set bonus"`);

@@ -2,7 +2,7 @@
 
 /**
  * Everything that tunes how cards are valued and how the leaderboard is scored. Edited in Admin → Settings → Scoring and
- * stored in one KV key. The defaults reproduce the original hard-coded behaviour, except the print-bonus cutoff, which is
+ * stored in one KV key. The defaults reproduce the original hard-coded behaviour, except the edition-bonus cutoff, which is
  * 40. A saved value is left as stored. Settings apply to every season's leaderboard immediately (values are always computed live).
  */
 export interface ScoringSettings {

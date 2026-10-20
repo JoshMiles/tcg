@@ -23,11 +23,11 @@ export interface ProfileWidgetDef {
 export const PROFILE_WIDGETS: Record<ProfileWidgetType, ProfileWidgetDef> = {
   stats: { type: 'stats', title: 'Score breakdown', icon: 'trend', description: 'Points from cards and bonuses, version mix and total editions.', defaultSpan: 4, spans: [4, 6, 8] },
   showcase: { type: 'showcase', title: 'Showcase', icon: 'gem', description: 'Up to three editions you picked. Leave it empty and it shows your three most valuable.', defaultSpan: 8, spans: [4, 6, 8, 12] },
-  pinned: { type: 'pinned', title: 'Showcase edition', icon: 'pin', description: 'One edition you picked, shown as a card you can flip over to see its engraved edition number. Pin it from the edition\'s own page.', defaultSpan: 4, spans: [3, 4, 6, 8] },
+  pinned: { type: 'pinned', title: 'Showcase edition', icon: 'pin', description: 'One edition you picked, shown as a card you can flip over to see its engraved serial number. Pin it from the edition\'s own page.', defaultSpan: 4, spans: [3, 4, 6, 8] },
   rarity: { type: 'rarity', title: 'Rarity progress', icon: 'award', description: 'How much of each rarity you have collected.', defaultSpan: 12, spans: [6, 8, 12] },
   progress: { type: 'progress', title: 'Pack progress', icon: 'cards', description: 'How complete each pack is.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   rarest: { type: 'rarest', title: 'Rarest editions', icon: 'sparkles', description: 'The hardest-to-pull editions you own, by the chance of that card in that version. Each opens its page.', defaultSpan: 6, spans: [4, 6, 8, 12] },
-  recent: { type: 'recent', title: 'Recent pulls', icon: 'history', description: 'The editions you pulled or were granted most recently, with their print number and edition number, each opening its page. An edition you traded away or upgraded still shows.', defaultSpan: 6, spans: [4, 6, 8, 12] },
+  recent: { type: 'recent', title: 'Recent pulls', icon: 'history', description: 'The editions you pulled or were granted most recently, with their edition number and serial number, each opening its page. An edition you traded away or upgraded still shows.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   activity: { type: 'activity', title: 'Recent activity', icon: 'activity', description: 'Pulls, upgrades and trades as they happen.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   trades: { type: 'trades', title: 'Trading', icon: 'trade', description: 'Completed trades and your open board listings.', defaultSpan: 6, spans: [4, 6, 8, 12] },
   awards: { type: 'awards', title: 'Awards', icon: 'trophy', description: 'Season awards you have earned.', defaultSpan: 6, spans: [4, 6, 8, 12] },

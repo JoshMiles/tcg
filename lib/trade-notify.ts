@@ -77,7 +77,7 @@ export function stackLines(items: TradeItem[], cards: Record<number, TradeCardIn
   return items.map(i => `${i.count}× ${cards[i.cardNumber]?.name ?? `#${i.cardNumber}`}${i.variant === 'regular' ? '' : ` (${VARIANT_LABELS[i.variant]})`}`);
 }
 
-/** The stack lines with the edition numbers of the copies that move ("... · #7, #3"): the newest copies leave first, like on the trade page. */
+/** The stack lines with the serial numbers of the copies that move ("... · #7, #3"): the newest copies leave first, like on the trade page. */
 function withEditions(items: TradeItem[], lines: string[], pool?: SerialPool): string[] {
   return lines.map((line, i) => {
     const picked = items[i].ids?.map(id => parseCopyId(id)?.n ?? 0).filter(n => n > 0).sort((a, b) => b - a);

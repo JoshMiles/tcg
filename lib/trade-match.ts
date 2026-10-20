@@ -43,7 +43,7 @@ export function matchTrade(trade: Trade, viewer: MatchViewer, cards: Record<numb
   const reasons: string[] = [];
   if (offersWanted.length > 0) reasons.push('Offers a card you are looking for');
   if (offersNew.length > 0) reasons.push('Offers a card you do not have yet');
-  if (asksOnlySpares) reasons.push('Asks only for your spare prints');
+  if (asksOnlySpares) reasons.push('Asks only for your spare editions');
   if (gain > 0) reasons.push(`You gain about ${gain.toLocaleString()} points`);
 
   const score = offersWanted.length * 100 + offersNew.length * 30 + (asksOnlySpares ? 25 : 0) + (canTake ? 20 : -50) + Math.max(-20, Math.min(20, gain / 10));

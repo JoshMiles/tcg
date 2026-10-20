@@ -90,7 +90,7 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
     spaced(ctx, 0);
   };
 
-  engrave('THE CHEESY TCG  ·  PRINT', left, r.y + 46, 16, 800, pl.ink, textW, font, 3);
+  engrave('THE CHEESY TCG  ·  EDITION', left, r.y + 46, 16, 800, pl.ink, textW, font, 3);
   // A fine rule under the label.
   ctx.fillStyle = pl.lo; ctx.fillRect(left, r.y + 58, textW, 1);
   ctx.fillStyle = pl.hi; ctx.fillRect(left, r.y + 59, textW, 1);
@@ -404,7 +404,7 @@ async function drawStatsCard(ctx: CanvasRenderingContext2D, spec: ShareSpec, H: 
   // Their most valuable prints, small.
   if (L.thumbs.length > 0 && L.thumbs[0].h > 60) {
     ctx.textAlign = 'center';
-    ctx.fillStyle = t.subtitle; ctx.font = `700 22px ${font}`; spaced(ctx, 3); ctx.fillText('MOST VALUABLE PRINTS', L.strip.x + L.strip.w / 2, L.stripLabelY); spaced(ctx, 0);
+    ctx.fillStyle = t.subtitle; ctx.font = `700 22px ${font}`; spaced(ctx, 3); ctx.fillText('MOST VALUABLE EDITIONS', L.strip.x + L.strip.w / 2, L.stripLabelY); spaced(ctx, 0);
     ctx.textAlign = 'left';
     L.thumbs.forEach((r, i) => {
       const card = spec.cards[i], img = imgs[i], hex = card?.hex ?? '#facc15';

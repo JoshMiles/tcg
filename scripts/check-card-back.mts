@@ -144,7 +144,7 @@ ok(!classicNum.vars['--num-font'] && !classicNum.css.fontFamily && !classicNum.f
 const stackedPicked = lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'number', place: 'stack', font: 'pacifico' }, { kind: 'edition', place: 'stack', font: 'bebas' }] }), PRINT, SIZE);
 const pickedNum = stackedPicked.find(n => n.kind === 'number')!;
 const pickedEd = stackedPicked.find(n => n.kind === 'edition')!;
-ok(pickedNum.vars['--num-font'] === cb.fontCss('pacifico') && pickedNum.font?.id === 'pacifico' && pickedNum.css.fontWeight === 400, 'a stacked print number uses the chosen face, and loads the file at a weight it has');
+ok(pickedNum.vars['--num-font'] === cb.fontCss('pacifico') && pickedNum.font?.id === 'pacifico' && pickedNum.css.fontWeight === 400, 'a stacked edition number uses the chosen face, and loads the file at a weight it has');
 ok(pickedEd.css.fontFamily === cb.fontCss('bebas') && pickedEd.font?.id === 'bebas' && pickedEd.css.fontWeight === undefined, 'a stacked print line uses the chosen face');
 ok(lay.fontsNeeded(stackedPicked).map(f => f.id).sort().join() === 'bebas,pacifico', 'the chosen stacked faces are the ones that get loaded');
 ok(readdirSync(new URL('../public/fonts/back/', import.meta.url)).filter(f => f.endsWith('.LICENSE.txt')).every(f => /SIL Open Font License/i.test(readFileSync(new URL(`../public/fonts/back/${f}`, import.meta.url), 'utf8'))), 'every font has a licence file and it is the OFL');

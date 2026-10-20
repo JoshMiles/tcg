@@ -36,8 +36,8 @@ export async function releaseStuckEscrowAction(id: string) {
   const res = await releaseStuckEscrow(id);
   revalidatePath('/admin/settings');
   if (!res.ok) redirect(`/admin/settings?tab=environment&error=${encodeURIComponent(res.error)}`);
-  if (res.cleared) await recordAudit(res.trade.from, 'Stuck trade returned', `${res.trade.id}: prints returned and the escrow flag cleared`);
-  redirect(`/admin/settings?tab=environment&note=${encodeURIComponent(res.cleared ? 'Prints returned and the escrow flag cleared.' : 'That offer was not marked escrowed.')}`);
+  if (res.cleared) await recordAudit(res.trade.from, 'Stuck trade returned', `${res.trade.id}: editions returned and the escrow flag cleared`);
+  redirect(`/admin/settings?tab=environment&note=${encodeURIComponent(res.cleared ? 'Editions returned and the escrow flag cleared.' : 'That offer was not marked escrowed.')}`);
 }
 
 /** Cancels an open offer and returns the escrowed cards to their owner. Works while trading is paused. */
@@ -112,5 +112,5 @@ export async function reverseTradeAction(id: string, reason: string): Promise<Tr
   revalidatePath('/admin/trades');
   revalidatePath('/mod/trades');
   revalidatePath(`/trade/${id}`);
-  return { ok: true, message: 'Trade reversed: every print went back where it started.' };
+  return { ok: true, message: 'Trade reversed: every edition went back where it started.' };
 }

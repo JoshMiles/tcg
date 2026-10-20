@@ -33,14 +33,14 @@ export async function transferCopyAction(seasonId: string, copyId: string, formD
   const ret = safeSerialsReturn(formData.get('ret'));
   const go = (msg: string, ok = true) => back(seasonId, copyId, msg, ok, ret);
   const ctx = await load(seasonId, copyId);
-  if (!ctx) return go('That print or season does not exist.', false);
+  if (!ctx) return go('That edition or season does not exist.', false);
   const to = String(formData.get('to') ?? '').trim().replace(/^@/, '').toLowerCase();
   if (!/^[a-z0-9_]{1,25}$/.test(to)) return go('Enter a valid Twitch username to give it to.', false);
   const c = ctx.season.collectionName;
 
   const result = await withCollectionLock(c, async (): Promise<string | null> => {
     const copy = await getCopy(c, copyId);
-    if (!copy || !copy.owner) return 'That print no longer exists.';
+    if (!copy || !copy.owner) return 'That edition no longer exists.';
     if (isEscrow(copy.owner)) return 'It is held by an open trade offer. Cancel the offer first.';
     if (copy.owner === to) return 'They already have it.';
     const data = await getCollection(c);
@@ -57,7 +57,7 @@ export async function transferCopyAction(seasonId: string, copyId: string, formD
 
   await ensureUserProfile(to).catch(() => { /* a profile is a convenience */ });
   const label = `${ctx.parsed.variant === 'regular' ? '' : `${VARIANT_LABELS[ctx.parsed.variant]} `}#${ctx.parsed.card} edition ${ctx.parsed.n}`;
-  await recordAudit(to, 'Print received from an admin', label);
+  await recordAudit(to, 'Edition received from an admin', label);
   revalidatePath('/admin/serials');
   return go(`Given to @${to}.`);
 }
@@ -68,13 +68,13 @@ export async function removeCopyAction(seasonId: string, copyId: string, formDat
   const ret = safeSerialsReturn(formData?.get('ret'));
   const go = (msg: string, ok = true) => back(seasonId, copyId, msg, ok, ret);
   const ctx = await load(seasonId, copyId);
-  if (!ctx) return go('That print or season does not exist.', false);
+  if (!ctx) return go('That edition or season does not exist.', false);
   const c = ctx.season.collectionName;
 
   let holder = '';
   const result = await withCollectionLock(c, async (): Promise<string | null> => {
     const copy = await getCopy(c, copyId);
-    if (!copy || !copy.owner) return 'That print no longer exists.';
+    if (!copy || !copy.owner) return 'That edition no longer exists.';
     if (isEscrow(copy.owner)) return 'It is held by an open trade offer. Cancel the offer first.';
     const data = await getCollection(c);
     const entry = entryOf(copy);
@@ -89,12 +89,12 @@ export async function removeCopyAction(seasonId: string, copyId: string, formDat
   if (result) return go(result, false);
 
   await recordActivity({ type: 'remove', username: holder, cardNumber: ctx.parsed.card, variant: ctx.parsed.variant, collectionName: c });
-  await recordAudit(holder, 'Edition removed', `#${ctx.parsed.card} ${VARIANT_LABELS[ctx.parsed.variant]} print #${ctx.parsed.n}`);
+  await recordAudit(holder, 'Edition removed', `#${ctx.parsed.card} ${VARIANT_LABELS[ctx.parsed.variant]} edition #${ctx.parsed.n}`);
   revalidatePath('/admin/serials');
   return go(`Removed from @${holder}'s collection.`);
 }
 
-// ── Print of the week (ROADMAP 6.2) ──
+// ── Edition of the week (ROADMAP 6.2) ──
 
 const potwBack = (msg: string, ok = true): never => redirect(`/admin/serials?${ok ? 'done' : 'err'}=${encodeURIComponent(msg)}`);
 
@@ -104,12 +104,12 @@ export async function featurePrintAction(seasonId: string, copyId: string, formD
   const ret = safeSerialsReturn(formData?.get('ret'));
   const go = (msg: string, ok = true) => back(seasonId, copyId, msg, ok, ret);
   const ctx = await load(seasonId, copyId);
-  if (!ctx) return go('That print or season does not exist.', false);
+  if (!ctx) return go('That edition or season does not exist.', false);
   const copy = await getCopy(ctx.season.collectionName, copyId);
-  if (!copy) return go('That print no longer exists.', false);
+  if (!copy) return go('That edition no longer exists.', false);
   const refused = await featureCopy(ctx.season, copy, (await currentStaffLogin()) ?? 'admin');
   if (refused) return go(refused, false);
-  await recordAudit(copy.owner, 'Print featured as print of the week', `Edition #${copy.uid}`);
+  await recordAudit(copy.owner, 'Edition featured as edition of the week', `Serial #${copy.uid}`);
   revalidatePath('/');
   revalidatePath('/admin/serials');
   return go('Featured as the edition of the week. It is on the home page now.');
@@ -121,17 +121,17 @@ export async function pickPotwAgainAction(): Promise<void> {
   const out = await pickNow((await currentStaffLogin()) ?? 'admin');
   if (!out.ok) return potwBack(out.reason, false);
   const picked = await getSeason(out.pick.seasonId).then(se => (se ? getCopy(se.collectionName, out.pick.copyId) : null)).catch(() => null);
-  await recordAudit(picked?.owner || 'unknown', 'Print of the week picked again', `Edition #${out.pick.uid}, ${out.pick.reason}`);
+  await recordAudit(picked?.owner || 'unknown', 'Edition of the week picked again', `Serial #${out.pick.uid}, ${out.pick.reason}`);
   revalidatePath('/');
   revalidatePath('/admin/serials');
-  return potwBack(`Picked Edition #${out.pick.uid} (scanned ${out.scan.prints.toLocaleString()} editions in ${out.scan.ms} ms).`);
+  return potwBack(`Picked Serial #${out.pick.uid} (scanned ${out.scan.prints.toLocaleString()} editions in ${out.scan.ms} ms).`);
 }
 
-/** Takes the print of the week off the home page until the next pick. */
+/** Takes the edition of the week off the home page until the next pick. */
 export async function clearPotwAction(): Promise<void> {
   await requireAdmin();
   await clearPotw();
   revalidatePath('/');
   revalidatePath('/admin/serials');
-  return potwBack('Print of the week cleared.');
+  return potwBack('Edition of the week cleared.');
 }

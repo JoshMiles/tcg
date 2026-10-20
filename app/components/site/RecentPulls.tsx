@@ -56,7 +56,7 @@ export function RecentPulls({ initial, empty }: { initial: PullItem[]; empty: Re
             {e.serial || e.uid ? (
               <span className="flex flex-col items-end gap-0.5 shrink-0">
                 {e.serial ? <SerialChip n={e.serial} bonus={e.bonus} /> : null}
-                {e.uid ? <span className="text-[11px] text-gray-500 tabular-nums">Edition #{e.uid}</span> : null}
+                {e.uid ? <span className="text-[11px] text-gray-500 tabular-nums">Serial #{e.uid}</span> : null}
               </span>
             ) : null}
             <span className="text-xs text-gray-600 shrink-0">{agoShort(e.at, now)}</span>

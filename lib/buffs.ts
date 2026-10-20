@@ -386,7 +386,7 @@ export async function useTrainerCard(
     const fromEntry = encodeEntry(cardNumber, 'regular');
     const remaining = removeEntries(owned, fromEntry, 1);
     if (!remaining) {
-      return { ok: false, status: 400, error: `You do not hold a Regular copy of ${trainerCard.name}.` };
+      return { ok: false, status: 400, error: `You do not hold a Regular edition of ${trainerCard.name}.` };
     }
 
     let spendIds: string[] | undefined;

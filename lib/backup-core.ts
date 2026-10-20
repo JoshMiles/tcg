@@ -24,7 +24,7 @@ export const DENY_PREFIXES = [
   'twitch:',        // Helix caches: live status, avatars
   'activity:',      // the live activity log and its sequence counter
   'lock:',          // short-lived locks
-  'potw:week:',     // the print of the week's once-a-week lock
+  'potw:week:',     // the edition of the week's once-a-week lock
   'captcha:',       // short-lived pass tokens
   'showoff:cd:',    // cooldowns
   'trade:cd:',

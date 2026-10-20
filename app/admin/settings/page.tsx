@@ -45,7 +45,7 @@ const TABS: (PageTab & { hint: string })[] = [
 const SAVED_MESSAGES: Record<string, string> = {
   scoring: 'Scoring saved. The leaderboard and card values now use the new numbers.',
   'scoring-reset': 'Scoring reset to the defaults.',
-  serials: 'Done. Existing editions are numbered, and every edition has an edition number.',
+  serials: 'Done. Existing editions are numbered, and every edition has an serial number.',
   'preview-seeded': 'Copied the live setup into this preview.',
   'preview-wiped': 'Preview data wiped.',
   backup: 'Backup finished.',
@@ -59,9 +59,9 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
     { name: 'baseScore', label: 'Base score', help: 'Points one Regular edition of an average card is worth. Scales every card value (and the bonuses, which are measured against card values).' },
     { name: 'rarityExponent', label: 'Rarity strength', help: 'How strongly rarity counts. 1 = a card half as likely is worth twice as much; below 1 flattens the gap between common and rare, above 1 widens it.' },
   ] },
-  { title: 'Print bonus (the first editions of a card are worth more)', fields: [
-    { name: 'serialBonusMax', label: 'Print #1 multiplier (×)', help: 'What the very first edition ever made of a card (in each version) is worth compared with a normal edition. 3 = triple. 1 = no bonus.' },
-    { name: 'serialBonusCutoff', label: 'Prints that get a bonus', help: 'The bonus fades in a straight line from print #1 down to nothing after this print. 40 = prints #1 to #40 earn a bonus. 0 switches the bonus off.' },
+  { title: 'Edition bonus (the first editions of a card are worth more)', fields: [
+    { name: 'serialBonusMax', label: 'Edition #1 multiplier (×)', help: 'What the very first edition ever made of a card (in each version) is worth compared with a normal edition. 3 = triple. 1 = no bonus.' },
+    { name: 'serialBonusCutoff', label: 'Editions that get a bonus', help: 'The bonus fades in a straight line from edition #1 down to nothing after this edition. 40 = editions #1 to #40 earn a bonus. 0 switches the bonus off.' },
   ] },
   { title: 'Upgrades', fields: [
     { name: 'upgradeMargin', label: 'Upgrade margin (×)', help: 'An upgraded edition is worth at least this many times the editions spent to make it. 1.2 = 20% more.' },
@@ -172,7 +172,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div className="space-y-4">
           <p className="text-sm text-gray-400 leading-relaxed max-w-4xl">
             Tune how cards are valued and how the leaderboard is scored. Changes apply <strong className="text-white">immediately to every season</strong>: the leaderboard, card values, My Stats and the FAQ all
-            recompute from these numbers. The defaults match the original scoring, except the print-bonus cutoff, which starts at 40. A number already saved here is left as it is. The preview shows what the numbers you type would do before anything is saved.
+            recompute from these numbers. The defaults match the original scoring, except the edition-bonus cutoff, which starts at 40. A number already saved here is left as it is. The preview shows what the numbers you type would do before anything is saved.
           </p>
           <ScoringForm saved={scoring} groups={SCORING_GROUPS} save={saveScoringSettingsAction} reset={resetScoringSettingsAction} />
         </div>

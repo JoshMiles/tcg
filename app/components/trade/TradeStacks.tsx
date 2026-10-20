@@ -43,7 +43,7 @@ export function TradeStacks({ items, cards, className = '', pool, hideCount = fa
                     return (
                       <span key={n} className="inline-flex items-center gap-1">
                         <SerialChip n={n} bonus={m > 1 ? Math.round(m * 100) / 100 : undefined} className="text-[10px]! px-1.5! py-0!" />
-                        {uid && <span className="text-[10px] text-gray-400">Edition #{uid}</span>}
+                        {uid && <span className="text-[10px] text-gray-400">Serial #{uid}</span>}
                       </span>
                     );
                   })}

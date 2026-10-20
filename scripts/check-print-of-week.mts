@@ -1,4 +1,4 @@
-// Checks the print of the week (ROADMAP 6.2): scoring, the pick rules, the weekly cron (once per ISO week, closed without the secret,
+// Checks the edition of the week (ROADMAP 6.2): scoring, the pick rules, the weekly cron (once per ISO week, closed without the secret,
 // nothing in a sandbox or outside production) and the admin store functions.
 // Needs the mock KV (node scripts/mock-kv.cjs); refuses anything non-local.  Run: npx tsx scripts/check-print-of-week.mts
 const url = process.env.KV_REST_API_URL ?? 'http://localhost:4111';
@@ -163,4 +163,4 @@ process.env.VERCEL_ENV = 'production';
   });
 }
 
-console.log('print of the week checks passed');
+console.log('edition of the week checks passed');

@@ -66,7 +66,7 @@ export async function saveCollectionViewAction(view: unknown): Promise<Collectio
 export async function saveShowcaseAction(uids: unknown): Promise<{ ok: true; uids: number[] } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Log in to edit your showcase.' };
-  if (!Array.isArray(uids)) return { ok: false, error: 'Pick up to 3 prints.' };
+  if (!Array.isArray(uids)) return { ok: false, error: 'Pick up to 3 editions.' };
   const active = await getActiveSeasonWithPacks();
   if (!active) return { ok: false, error: 'There is no season running right now.' };
   const copies = await getOwnerCopies(active.season.collectionName, session.username);

@@ -534,8 +534,8 @@ function showSerial(theater, P, info) {
   el.className = 'serial-badge' + (info.mult > 1 ? ' bonus' : '') + (info.n === 1 ? ' first' : '');
   const num = document.createElement('span');
   num.className = 'serial-num';
-  // Print (#7, the default), the edition number (#1023381) or both (the print pill with a small "Edition #" line under it).
-  // Without an edition number (older server, untracked ledger) the print is shown whatever the format says.
+  // Print (#7, the default), the serial number (#1023381) or both (the print pill with a small "Serial #" line under it).
+  // Without a serial number (older server, untracked ledger) the print is shown whatever the format says.
   const fmt = info.uid ? String(pv(P, 'reveal.serialFormat', 'edition')) : 'edition';
   num.textContent = '#' + (fmt === 'uid' ? info.uid : info.n);
   el.appendChild(num);
@@ -549,7 +549,7 @@ function showSerial(theater, P, info) {
     el.classList.add('has-print');
     const print = document.createElement('span');
     print.className = 'serial-print';
-    print.textContent = 'Edition #' + info.uid;
+    print.textContent = 'Serial #' + info.uid;
     el.appendChild(print);
   }
   cardBox.appendChild(el);
@@ -580,7 +580,7 @@ function momentFill(text, ctx) {
 /** Everything one moment's banner needs, read from the effective properties. */
 function momentSpec(P, id, ctx) {
   const g = (name, d) => pv(P, momentKey(id, name), d);
-  const auto = id === 'firstEver' ? 'print #1' + (ctx.variant === 'regular' ? '' : ' · ' + VARIANT_LABELS[ctx.variant]) : id === 'firstPull' ? 'their first card' : 'new to their collection';
+  const auto = id === 'firstEver' ? 'edition #1' + (ctx.variant === 'regular' ? '' : ' · ' + VARIANT_LABELS[ctx.variant]) : id === 'firstPull' ? 'their first card' : 'new to their collection';
   const sub = String(g('subText', ''));
   return {
     id,
@@ -1064,7 +1064,7 @@ function drawCard(username, opts) {
   const P = show ? showOffProps(effectiveProps(packId), variant) : effectiveProps(packId);
   const S = Math.max(0.25, pv(P, 'reveal.speed', 1));
 
-  // A first-ever moment with its own entrance style has to know the edition number before the reveal starts, so that pull
+  // A first-ever moment with its own entrance style has to know the serial number before the reveal starts, so that pull
   // is saved first and played when the server has answered (a fraction of a second; nothing changes while the style is "inherit").
   if (!show && !opts.dry && opts.ticket && !opts._pre && !PREVIEW && !opts.moment
       && pv(P, 'reveal.firstEver', true) && pv(P, 'moment.firstEver.style', 'inherit') !== 'inherit') {

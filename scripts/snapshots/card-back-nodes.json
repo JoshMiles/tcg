@@ -26,7 +26,7 @@
    "mode": "stack",
    "tag": "p",
    "cls": "flip-line",
-   "text": "Print #7 of 12 made",
+   "text": "Edition 7 of 12",
    "vars": {},
    "css": {}
   },
@@ -132,7 +132,7 @@
    "mode": "stack",
    "tag": "p",
    "cls": "flip-line",
-   "text": "Print #7 of 12 made",
+   "text": "Edition 7 of 12",
    "vars": {
     "--ink": "#f3f4f6",
     "--ink-shadow": "none"
@@ -236,7 +236,7 @@
    "mode": "stack",
    "tag": "p",
    "cls": "flip-line",
-   "text": "Print #7 of 12 made",
+   "text": "Edition 7 of 12",
    "vars": {
     "--ink": "#3c2604",
     "--ink-shadow": "none"
@@ -370,7 +370,7 @@
    "mode": "stack",
    "tag": "p",
    "cls": "flip-line",
-   "text": "Print #7 of 12 made",
+   "text": "Edition 7 of 12",
    "vars": {
     "--ink": "#f9fafb",
     "--ink-shadow": "none"
@@ -492,7 +492,7 @@
    "mode": "stack",
    "tag": "p",
    "cls": "flip-line",
-   "text": "Print #7 of 12 made",
+   "text": "Edition 7 of 12",
    "vars": {
     "--ink": "#112233",
     "--ink-shadow": "none"
@@ -610,7 +610,7 @@
    "mode": "stack",
    "tag": "p",
    "cls": "flip-line",
-   "text": "Print #7 of 12 made",
+   "text": "Edition 7 of 12",
    "vars": {},
    "css": {}
   },
@@ -713,7 +713,7 @@
    "mode": "stack",
    "tag": "p",
    "cls": "flip-line",
-   "text": "Print #7 of 12 made",
+   "text": "Edition 7 of 12",
    "vars": {
     "--k-edition": "0.8"
    },
@@ -813,7 +813,7 @@
    "mode": "stack",
    "tag": "p",
    "cls": "flip-line",
-   "text": "Print #7 of 12 made",
+   "text": "Edition 7 of 12",
    "vars": {},
    "css": {}
   },
@@ -897,7 +897,7 @@
    "mode": "stack",
    "tag": "p",
    "cls": "flip-line",
-   "text": "Print #7 of 12 made",
+   "text": "Edition 7 of 12",
    "vars": {},
    "css": {}
   },

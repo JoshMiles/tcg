@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         if (body.getIds !== undefined && body.getIds !== null) {
           const g = body.getIds as unknown;
           const okShape = typeof g === 'object' && !Array.isArray(g) && Object.values(g as object).every(v => Array.isArray(v) && v.every(x => typeof x === 'string'));
-          if (!okShape) return NextResponse.json({ error: 'getIds must map each card to a list of print ids' }, { status: 400 });
+          if (!okShape) return NextResponse.json({ error: 'getIds must map each card to a list of edition ids' }, { status: 400 });
           getIds = g as Record<string, string[]>;
         }
         const result = await acceptTrade(id, user, getIds);

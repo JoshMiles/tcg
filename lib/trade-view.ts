@@ -35,7 +35,7 @@ export async function getTradePools(season: Season, trades: Trade[], viewer?: st
   const idx = await loadSerialIndex(season.collectionName);
   const give: Record<string, SerialPool> = {};
   for (const t of trades) if (t.seasonId === season.id && t.escrowed) give[t.id] = poolOf(idx?.escrow.get(t.id));
-  // Exact prints named by the trades shown: their unique numbers, for "Print #1023381".
+  // Exact prints named by the trades shown: their unique numbers, for "Edition #1023381".
   const uids: Record<string, number> = {};
   const picked = trades.filter(t => t.seasonId === season.id).flatMap(t => [...t.give, ...t.get]).flatMap(i => i.ids ?? []);
   await Promise.all([...new Set(picked)].slice(0, 120).map(async id => { const u = (await getCopy(season.collectionName, id).catch(() => null))?.uid; if (u) uids[id] = u; }));

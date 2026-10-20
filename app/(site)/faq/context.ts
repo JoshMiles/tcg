@@ -73,12 +73,12 @@ export async function getFaqContext(): Promise<FaqContext> {
     print_cutoff: String(scoring.serialBonusCutoff),
     rarity_exponent: String(scoring.rarityExponent),
     upgrade_margin: String(scoring.upgradeMargin),
-    score_formula: `${scoring.baseScore} × rarity${upgradesOn ? ' × version' : ''} × print bonus`,
+    score_formula: `${scoring.baseScore} × rarity${upgradesOn ? ' × version' : ''} × edition bonus`,
     version_point: upgradesOn
-      ? '- **Version**: Reverse Holo, Full Art, Full Art Holo and Golden editions are worth far more than a Regular. An upgraded card is normally worth more than the editions you spend to make it, though the print bonus on the editions you spend can change that.'
+      ? '- **Version**: Reverse Holo, Full Art, Full Art Holo and Golden editions are worth far more than a Regular. An upgraded card is normally worth more than the editions you spend to make it, though the edition bonus on the editions you spend can change that.'
       : '',
     print_bonus_text: scoring.serialBonusCutoff > 0
-      ? `every edition has a [print number](#serials), and the first editions ever made of a card (in each version) are worth extra. Print #1 is worth **${scoring.serialBonusMax}×** and the bonus decreases until the ${scoring.serialBonusCutoff}th print of that card is created. The bonus belongs to the edition, so it moves with it if you trade it.`
+      ? `every edition has an [edition number](#serials), and the first editions ever made of a card (in each version) are worth extra. Edition #1 is worth **${scoring.serialBonusMax}×** and the bonus decreases until the ${scoring.serialBonusCutoff}th edition of that card is created. The bonus belongs to the edition, so it moves with it if you trade it.`
       : 'switched off in this game, so every edition of a version is worth the same.',
     set_value_clause: overview ? ` (currently **${n(overview.values.setValue)}** points)` : '',
     completion_bonus_pct: String(scoring.completionBonusPct),

@@ -61,7 +61,7 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   ok(DEFAULT_PROPS['show.showPrint'] === true && DEFAULT_PROPS['show.printFormat'] === 'inherit' && DEFAULT_PROPS['show.cardScale'] === 1 && DEFAULT_PROPS['show.glow'] === 'inherit' && DEFAULT_PROPS['show.sparkles'] === 'inherit', 'print, size and effects follow the pack opening');
   ok(DEFAULT_PROPS['show.sound'] === 'on' && DEFAULT_PROPS['show.soundUrl'] === '' && DEFAULT_PROPS['show.volume'] === 1, 'the card sound plays as before');
   ok(PROPS.filter(d => d.key.startsWith('show.')).every(d => d.group === 'showoff'), 'every show.* key is in the Show off group');
-  eq([...new Set(PROPS.filter(d => d.group === 'showoff').map(d => d.section))], ['Entrance and timing', 'Label', 'Print number', 'Card and effects', 'Sound'], 'five sections');
+  eq([...new Set(PROPS.filter(d => d.group === 'showoff').map(d => d.section))], ['Entrance and timing', 'Label', 'Edition number', 'Card and effects', 'Sound'], 'five sections');
   ok(PROP_BY_KEY['show.style'].options!.every(o => !['classic', 'rip-shake', 'rip-peel', 'rip-slice', 'rip-explode'].includes(o.value)), 'entrances are the pack-less styles only');
 }
 

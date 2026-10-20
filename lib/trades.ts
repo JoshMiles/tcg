@@ -275,7 +275,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
 
   // Exact prints need a numbered ledger, and only a direct offer can ask for the other person's exact prints (a listing is taken by a stranger who picks at accept).
   if (hasPickedPrints(give) || hasPickedPrints(get)) {
-    if (!(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered yet, so you can\'t choose which ones to trade.');
+    if (!(await isTracking(season.collectionName))) return fail(400, 'Editions in this season are not numbered yet, so you can\'t choose which ones to trade.');
     if (input.kind === 'listing' && hasPickedPrints(get)) return fail(400, 'A listing can\'t ask for exact editions: whoever takes it chooses theirs.');
   }
 
@@ -396,7 +396,7 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
     // Prints the taker chose for what the offer asks (the offerer may have pinned some already).
     let get = withChosenPrints(trade.get, getIds);
     if (!get) return fail(400, 'Those editions don\'t match what the offer asks for.');
-    if (hasPickedPrints(get) && !(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered yet, so they can\'t be chosen.');
+    if (hasPickedPrints(get) && !(await isTracking(season.collectionName))) return fail(400, 'Editions in this season are not numbered yet, so they can\'t be chosen.');
 
     // Read the serials on both sides before the copies change hands (picked prints are priced from their own ids).
     const pools = await snapshotPools(trade.seasonId, { give: escrowOwner(trade.id), get: taker });
@@ -539,9 +539,9 @@ async function refundAlreadyHome(id: string): Promise<{ ok: true } | { ok: false
   if (!trade.escrowed) return { ok: true };
   const season = await getSeason(trade.seasonId);
   if (!season) return fail(400, 'That season no longer exists. The flag stays set.');
-  if (!(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered, so the flag was not cleared.');
+  if (!(await isTracking(season.collectionName))) return fail(400, 'Editions in this season are not numbered, so the flag was not cleared.');
   const held = await getOwnerCopies(season.collectionName, escrowOwner(trade.id));
-  if (held.length > 0) return fail(400, 'Escrow still holds prints. Return those instead of only clearing the flag.');
+  if (held.length > 0) return fail(400, 'Escrow still holds editions. Return those instead of only clearing the flag.');
   const data = await getCollection(season.collectionName);
   const live = (await Promise.all(Object.keys(data).map(u => getOwnerCopies(season.collectionName, u)))).flat();
   const retiredRaw = (await kv.hgetall(`copies:${season.collectionName}:ret`).catch(() => null)) as Record<string, unknown> | null;
@@ -568,9 +568,9 @@ export async function clearEscrowFlagIfEmpty(id: string): Promise<TradeResult<{ 
     if (!trade.escrowed) return { ok: true, trade };
     const season = await getSeason(trade.seasonId);
     if (!season) return fail(400, 'That season no longer exists. The flag stays set.');
-    if (!(await isTracking(season.collectionName))) return fail(400, 'Prints in this season are not numbered, so the flag was not cleared.');
+    if (!(await isTracking(season.collectionName))) return fail(400, 'Editions in this season are not numbered, so the flag was not cleared.');
     const held = await getOwnerCopies(season.collectionName, escrowOwner(trade.id));
-    if (held.length > 0) return fail(400, 'Escrow still holds prints. Return those instead of only clearing the flag.');
+    if (held.length > 0) return fail(400, 'Escrow still holds editions. Return those instead of only clearing the flag.');
     trade.escrowed = false;
     await persist(open, history);
     return { ok: true, trade };

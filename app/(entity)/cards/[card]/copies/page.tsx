@@ -97,7 +97,7 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
               return (
                 <li key={r.id} className="relative flex items-center gap-4 px-4 py-3 hover:bg-white/4">
                   {/* The number is the row's link (stretched over the whole row); the holder is its own link above it, so no link sits inside another. */}
-                  <Link href={`/copy/${encodeURIComponent(season.id)}/${r.id}`} aria-label={`Print #${r.n}`} className="font-display text-2xl font-bold text-yellow-400 tabular-nums w-16 shrink-0 after:absolute after:inset-0">#{r.n}{r.est ? '~' : ''}</Link>
+                  <Link href={`/copy/${encodeURIComponent(season.id)}/${r.id}`} aria-label={`Edition #${r.n}`} className="font-display text-2xl font-bold text-yellow-400 tabular-nums w-16 shrink-0 after:absolute after:inset-0">#{r.n}{r.est ? '~' : ''}</Link>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-gray-200 truncate">{r.owner ? who(r.owner) : <span className="text-gray-500">{ended}</span>}</p>
                     <p className="text-xs text-gray-500">

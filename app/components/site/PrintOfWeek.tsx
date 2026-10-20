@@ -54,7 +54,7 @@ export async function PrintOfWeek({ settings }: { settings?: ScoringSettings }) 
       <div className="space-y-3 min-w-0">
         <h2 className="font-display text-3xl font-bold text-white"><Icon name="sparkles" className="mr-2 text-yellow-400" />Card of the week</h2>
         <p className="font-display text-2xl font-bold text-white wrap-break-word">{label}</p>
-        <p className="font-display text-xl font-bold text-yellow-400 tabular-nums">Edition #{pick.uid}</p>
+        <p className="font-display text-xl font-bold text-yellow-400 tabular-nums">Serial #{pick.uid}</p>
         <p className="text-sm text-gray-300">{editionLine(copy.n, total)}</p>
         <p className="text-sm text-gray-400">
           {inOffer || hidden.has(copy.owner) ? <>Held by {holder}</> : <>Held by <Link href={profileHref(copy.owner)} className="text-yellow-300 hover:text-yellow-200 font-bold">@{copy.owner}</Link></>}

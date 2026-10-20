@@ -226,7 +226,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
       fields: [
         { name: 'Pack', value: esc(packName) || '-', inline: true },
         ...(e.uniqueOwned !== undefined ? [{ name: 'Collected', value: totalCards ? `${e.uniqueOwned}/${totalCards}` : String(e.uniqueOwned), inline: true }] : []),
-        ...(e.serial ? [{ name: 'Print', value: `**#${e.serial}**${e.serial === 1 ? ' (the first ever)' : ''}${e.bonus ? ` · ×${e.bonus} points` : ''}`, inline: true }] : []),
+        ...(e.serial ? [{ name: 'Edition', value: `**#${e.serial}**${e.serial === 1 ? ' (the first ever)' : ''}${e.bonus ? ` · ×${e.bonus} points` : ''}`, inline: true }] : []),
       ],
     });
   };
@@ -252,7 +252,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
           { name: 'From', value: VARIANT_LABELS[e.from], inline: true },
           { name: 'To', value: VARIANT_LABELS[e.to], inline: true },
           { name: 'Cost', value: `${e.cost}×`, inline: true },
-          ...(e.uid ? [{ name: 'New edition', value: `**Edition #${e.uid}**`, inline: true }] : []),
+          ...(e.uid ? [{ name: 'New edition', value: `**Serial #${e.uid}**`, inline: true }] : []),
         ] });
     }
     case 'buff': {
@@ -268,7 +268,7 @@ async function buildBase(e: ActivityEvent, opts: { footer?: string } = {}): Prom
           { name: 'Buff', value: e.buffName, inline: true },
           { name: 'Type', value: e.buffType, inline: true },
           ...(e.duration ? [{ name: 'Duration', value: e.duration, inline: true }] : []),
-          ...(e.uid ? [{ name: 'Edition consumed', value: `**Edition #${e.uid}**`, inline: true }] : []),
+          ...(e.uid ? [{ name: 'Edition consumed', value: `**Serial #${e.uid}**`, inline: true }] : []),
         ],
       });
     }
@@ -329,7 +329,7 @@ export function buildRecapMessage(r: StreamRecap, opts: { footer?: string } = {}
   const length = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
   const printLine = (p: NonNullable<StreamRecap['rarest']>) => {
     const name = `${'★'.repeat(p.stars)} ${esc(p.cardName)}${p.variant && p.variant !== 'regular' ? ` (${VARIANT_LABELS[p.variant]})` : ''}`;
-    return `${p.href ? `[${name}](${SITE_URL}${p.href})` : name}${p.serial ? `, Print #${p.serial}` : ''}
+    return `${p.href ? `[${name}](${SITE_URL}${p.href})` : name}${p.serial ? `, Edition #${p.serial}` : ''}
 pulled by **${esc(p.username)}**`;
   };
   const fields: { name: string; value: string; inline?: boolean }[] = [
@@ -379,7 +379,7 @@ export function buildDigestMessage(d: WeeklyDigest, opts: { footer?: string } = 
   });
   if (d.mostTraded.length) fields.push({ name: `Most traded cards${d.tradedAtLeast ? ' (at least)' : ''}`, value: d.mostTraded.map(c => `${esc(c.name)}, ${c.count}×`).join('\n'), inline: true });
   if (d.mostWanted) fields.push({ name: 'Most wanted card', value: `${esc(d.mostWanted.name)}, ${d.mostWanted.watchers} collector${d.mostWanted.watchers === 1 ? '' : 's'} want it`, inline: true });
-  if (d.print) fields.push({ name: 'Edition of the week', value: `[${esc(d.print.name)}${d.print.label ? ` (${esc(d.print.label)})` : ''}${d.print.uid ? `, Edition #${d.print.uid}` : ''}](${SITE_URL}${d.print.href})\n${esc(d.print.reason)}` });
+  if (d.print) fields.push({ name: 'Edition of the week', value: `[${esc(d.print.name)}${d.print.label ? ` (${esc(d.print.label)})` : ''}${d.print.uid ? `, Serial #${d.print.uid}` : ''}](${SITE_URL}${d.print.href})\n${esc(d.print.reason)}` });
   fields.push({ name: 'Leaderboard', value: `[See the full board](${SITE_URL}/leaderboard)` });
   return payload({
     color: GOLD, title: '🧀 The week in Cheesy TCG',

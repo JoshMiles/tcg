@@ -47,7 +47,7 @@ export function ProvenanceTimeline({ prov, who, plain, seasonId, refs, madeFrom,
   const total = segments.reduce((n, s) => n + (s.heldMs ?? 0), 0);
   const ref = (id: string) => {
     const r = refs[id];
-    return <Link href={`/copy/${encodeURIComponent(seasonId)}/${id}`} className="text-yellow-300 hover:text-yellow-200 tabular-nums">{r?.uid ? `Edition #${r.uid}` : r ? `print #${r.n}` : 'an edition'}</Link>;
+    return <Link href={`/copy/${encodeURIComponent(seasonId)}/${id}`} className="text-yellow-300 hover:text-yellow-200 tabular-nums">{r?.uid ? `Serial #${r.uid}` : r ? `edition #${r.n}` : 'an edition'}</Link>;
   };
 
   const tile = (label: string, value: ReactNode, sub?: ReactNode) => (

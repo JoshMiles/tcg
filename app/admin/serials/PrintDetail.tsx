@@ -87,7 +87,7 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
                 title="Give this edition away?"
                 confirmLabel="Give it"
                 tone="primary"
-                message={<>This moves the edition, with any print bonus it earns, from <strong className="text-white">@{copy.owner}</strong> to the viewer you typed. It is logged as an admin transfer in the edition&rsquo;s history. If nobody has used that name yet, it becomes a new account, so check the spelling.</>}
+                message={<>This moves the edition, with any edition bonus it earns, from <strong className="text-white">@{copy.owner}</strong> to the viewer you typed. It is logged as an admin transfer in the edition&rsquo;s history. If nobody has used that name yet, it becomes a new account, so check the spelling.</>}
                 className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-600 text-gray-100 hover:border-yellow-500/60"
               >
                 <Icon name="send" className="mr-1.5" />Give
@@ -96,7 +96,7 @@ export async function PrintDetail({ seasonId, copy, label, ret, hrefFor }: { sea
             <form action={featurePrintAction.bind(null, seasonId, copy.id)} className="flex flex-wrap items-center gap-3">
               {hidden}
               <PendingButton type="submit" disabled={isFeatured || !copy.uid} className="px-4 py-2 text-sm font-bold rounded-lg border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50">
-                <Icon name="sparkles" className="mr-1.5" />Feature as print of the week
+                <Icon name="sparkles" className="mr-1.5" />Feature as edition of the week
               </PendingButton>
               <span className="text-xs text-gray-500">{isFeatured ? 'It is the edition of the week now.' : 'Shows it on the home page in place of the current pick.'}</span>
             </form>

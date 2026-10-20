@@ -33,7 +33,7 @@ export function copyValue(card: TradeCardInfo | undefined, variant: Variant, ser
   return mult === 1 ? card.values[i] ?? 0 : Math.max(1, Math.round((card.raw[i] ?? 0) * mult));
 }
 
-/** One print a viewer holds, for the print pickers: its copy id, edition number and unique print number. */
+/** One print a viewer holds, for the print pickers: its copy id, edition number and serial number. */
 export interface PrintInfo { id: string; n: number; uid?: number }
 /** A holder's prints by collection entry (card + version), lowest edition first. Empty where the season's prints are not numbered. */
 export type PrintPool = Record<number, PrintInfo[]>;
@@ -66,7 +66,7 @@ export interface TradePools {
   give: Record<string, SerialPool>;
   /** What the viewer holds: the pool their side of an offer is taken from. */
   mine: SerialPool;
-  /** Unique print numbers of the exact prints named by open trades (copy id -> uid), so a picked print can be shown as "Print #1023381". */
+  /** Unique edition numbers of the exact prints named by open trades (copy id -> uid), so a picked print can be shown as "Edition #1023381". */
   uids?: Record<string, number>;
 }
 

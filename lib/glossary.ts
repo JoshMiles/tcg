@@ -25,23 +25,23 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
     faq: 'bonuses',
   },
   editionBonus: {
-    title: 'Print bonus',
-    body: 'The first editions ever made of a card are worth extra. Print #1 is worth the most, and the bonus fades away as the print number goes up. It belongs to the edition, so it moves with it if you trade it.',
+    title: 'Edition bonus',
+    body: 'The first editions ever made of a card are worth extra. Edition #1 is worth the most, and the bonus fades away as the edition number goes up. It belongs to the edition, so it moves with it if you trade it.',
     faq: 'points',
   },
   edition: {
-    title: 'Print',
-    body: 'The count of an edition among all editions of the same card and version. Your Full Art Holo Gouda Goat print #3 is the third Full Art Holo Gouda Goat ever drawn. Low print numbers earn the print bonus.',
+    title: 'Edition number',
+    body: 'The count of an edition among all editions of the same card and version. Your Full Art Holo Gouda Goat edition #3 is the third Full Art Holo Gouda Goat ever drawn. Low edition numbers earn the edition bonus.',
     faq: 'serials',
   },
   printNumber: {
-    title: 'Edition number',
-    body: 'A number that belongs to one edition only, across the whole game. Use it to refer to an edition: type it in the search box or open its page. It is not the same as the print number.',
+    title: 'Serial number',
+    body: 'A number that belongs to one edition only, across the whole game. Use it to refer to an edition: type it in the search box or open its page. It is not the same as the edition number.',
     faq: 'serials',
   },
   points: {
     title: 'Points',
-    body: 'What an edition is worth. Rarer cards, shinier versions and low print numbers are worth more. Card values shift a little as cards are pulled, so the numbers are a guide.',
+    body: 'What an edition is worth. Rarer cards, shinier versions and low edition numbers are worth more. Card values shift a little as cards are pulled, so the numbers are a guide.',
     faq: 'points',
   },
   pullChance: {
@@ -61,7 +61,7 @@ export const GLOSSARY: Record<TermId, GlossaryEntry> = {
   },
   fairness: {
     title: 'Fairness label',
-    body: 'A rough guide comparing the points on each side of the offer. It only looks at points, so a low print number or a card you simply want can matter more to you. You are never stopped from making a lopsided offer, only asked to confirm it.',
+    body: 'A rough guide comparing the points on each side of the offer. It only looks at points, so a low edition number or a card you simply want can matter more to you. You are never stopped from making a lopsided offer, only asked to confirm it.',
     faq: 'fair-trade',
   },
   escrow: {

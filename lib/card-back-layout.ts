@@ -65,7 +65,7 @@ const STACK_CLASSIC_FONT: Partial<Record<BackEl['kind'], string>> = { number: 'd
 const STACK_PAINT_800 = new Set<BackEl['kind']>(['number', 'name', 'date', 'brand', 'link']);
 
 /**
- * A stacked text element keeps today's face until its font is not that face (site display for the print number, site body for
+ * A stacked text element keeps today's face until its font is not that face (site display for the edition number, site body for
  * every other line). The number's face goes through `--num-font`, which the stylesheet already reads; the other lines get
  * `font-family`. A curated file is named so the page loads it, at the weight the line is painted (or the nearest file).
  */

@@ -71,7 +71,7 @@ ok(r.vars.topHolder === 'a private collector', 'a hidden top holder is not named
 ok(r.vars.collectors === '2', `collectors leave out the hidden one (${r.vars.collectors})`);
 ok(r.vars.firstPulledBy !== 'priv' && r.vars.url.includes(`card=${a.number}`), 'the first puller and link are filled');
 ok(!JSON.stringify(r).includes('"priv"'), 'the private collector never appears by name');
-ok(r.message.includes(a.name) && r.message.includes('prints made'), 'the reply is built from the template');
+ok(r.message.includes(a.name) && r.message.includes('editions made'), 'the reply is built from the template');
 r = await run('stats', 'ann', `#${b.number}`);
 ok(r.ok && r.vars.cardName === b.name, 'a card number works too');
 r = await run('stats', 'ann', 'zzzz not a card');

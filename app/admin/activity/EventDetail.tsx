@@ -103,7 +103,7 @@ export function EventDetail({ event: e, avatar, card, totalCards, cardName, onCl
 
         {e.type === 'pull' && (
           <dl className="grid grid-cols-2 gap-2 text-sm">
-            {e.serial ? <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2 col-span-2"><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Print</dt><dd className="text-white font-semibold">#{e.serial}{e.bonus ? <span className="text-yellow-300"> · ×{e.bonus} points bonus</span> : <span className="text-gray-500"> · no bonus</span>}</dd></div> : null}
+            {e.serial ? <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2 col-span-2"><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Edition</dt><dd className="text-white font-semibold">#{e.serial}{e.bonus ? <span className="text-yellow-300"> · ×{e.bonus} points bonus</span> : <span className="text-gray-500"> · no bonus</span>}</dd></div> : null}
             <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Editions now</dt><dd className="text-white font-semibold tabular-nums">{e.copies}</dd></div>
             <div className="rounded-lg bg-gray-950/50 border border-gray-800 px-3 py-2"><dt className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Collected</dt><dd className="text-white font-semibold tabular-nums">{e.uniqueOwned}{totalCards > 0 ? `/${totalCards}` : ''}</dd></div>
           </dl>
