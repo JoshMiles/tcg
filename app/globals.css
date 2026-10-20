@@ -235,8 +235,11 @@
 @keyframes holoSite     { from { background-position: 0% 100%; } to { background-position: 200% 100%; } }
 @keyframes holoSiteLoop { from { background-position: 0% 100%; } to { background-position: 125% 100%; } }
 @media (prefers-reduced-motion: reduce) { .holo-fx:hover::after, .holo-fx.holo-live::after { animation: none; } }
-.vfx-reverse, .vfx-full, .vfx-shiny, .vfx-golden {
-  box-shadow: 0 0 var(--glow-blur, 18px) calc(var(--glow-spread, 0px) - 2px) var(--glow-color-a, transparent) !important;
+.vfx-full {
+  box-shadow: 0 0 var(--glow-blur, 16px) calc(var(--glow-spread, 0px) - 2px) var(--glow-color-a, rgba(96,190,255,.85)) !important;
+}
+.vfx-shiny, .vfx-golden {
+  box-shadow: 0 0 var(--glow-blur, 18px) calc(var(--glow-spread, 0px) - 2px) var(--glow-color-a, rgba(255,190,60,.95)) !important;
 }
 
 /* ── The Cheesy TCG: public-site theme ── */
@@ -278,11 +281,11 @@
 /* Cards rock gently left to right. Uses `rotate` (not `transform`) so the hover lift still works. */
 @keyframes shiny-rock {
   0%, 100% { rotate: 0deg; }
-  25%      { rotate: var(--rock-amt, 0deg); }
-  75%      { rotate: calc(var(--rock-amt, 0deg) * -1); }
+  25%      { rotate: var(--rock-amt, 1.6deg); }
+  75%      { rotate: calc(var(--rock-amt, 1.6deg) * -1); }
 }
-.vfx-reverse, .vfx-full, .vfx-shiny, .vfx-golden { animation: shiny-rock var(--rock-speed, 3.6s) ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .vfx-reverse, .vfx-full, .vfx-shiny, .vfx-golden { animation: none; } }
+.vfx-shiny, .vfx-golden, .vfx-full[style*="--rock-amt"] { animation: shiny-rock var(--rock-speed, 5s) ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .vfx-shiny, .vfx-golden, .vfx-full[style*="--rock-amt"] { animation: none; } }
 
 /* The little pulsing dot in the Live badge / banner. */
 @keyframes live-pulse {
@@ -475,7 +478,8 @@ fieldset.card { display: block; }
 .ug-serial.bonus { color: #ffe27a; border-color: #f1bb06; box-shadow: 0 0 14px rgba(241,187,6,.55); }
 .ug-serial.first { color: #1a1205; background: linear-gradient(90deg, #ffe27a, #f1bb06, #ffe27a); border-color: #fff2b0; box-shadow: 0 0 20px rgba(255,220,90,.9); }
 .ug-anim-on { opacity: 1; }
-.ug-art.vfx-reverse, .ug-art.vfx-full, .ug-art.vfx-shiny, .ug-art.vfx-golden { box-shadow: 0 0 var(--glow-blur, 60px) calc(var(--glow-spread, 0px) + 8px) var(--glow-color-a, transparent) !important; }
+.ug-art.vfx-full { box-shadow: 0 0 var(--glow-blur, 46px) calc(var(--glow-spread, 0px) + 6px) var(--glow-color-a, rgba(96,190,255,.9)) !important; }
+.ug-art.vfx-shiny, .ug-art.vfx-golden { box-shadow: 0 0 var(--glow-blur, 60px) calc(var(--glow-spread, 0px) + 10px) var(--glow-color-a, rgba(255,200,60,.95)) !important; }
 .ug-spark { position: absolute; left: 50%; top: 184px; font-size: 20px; line-height: 1; opacity: 0; text-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
   animation: ugSpark 1.5s ease-out 1.6s forwards; }
 @keyframes ugSpark { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1.2) rotate(120deg); } }
@@ -506,7 +510,8 @@ fieldset.card { display: block; }
 .tr-card { position: relative; width: min(104px, 27vw); aspect-ratio: 600 / 891; flex: none; }
 .tr-art { position: relative; width: 100%; height: 100%; border-radius: 9px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,.6); }
 .tr-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.tr-art.vfx-reverse, .tr-art.vfx-full, .tr-art.vfx-shiny, .tr-art.vfx-golden { box-shadow: 0 0 var(--glow-blur, 40px) calc(var(--glow-spread, 0px) + 4px) var(--glow-color-a, transparent) !important; }
+.tr-art.vfx-full { box-shadow: 0 0 var(--glow-blur, 30px) calc(var(--glow-spread, 0px) + 3px) var(--glow-color-a, rgba(96,190,255,.85)) !important; }
+.tr-art.vfx-shiny, .tr-art.vfx-golden { box-shadow: 0 0 var(--glow-blur, 40px) calc(var(--glow-spread, 0px) + 6px) var(--glow-color-a, rgba(255,200,60,.9)) !important; }
 .tr-count { position: absolute; top: -6px; right: -6px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: #facc15; color: #111827; font-weight: 900; font-size: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,.6); }
 .tr-var { position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); white-space: nowrap; padding: 1px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
 .tr-more { align-self: center; font-weight: 800; color: #cbd5e1; }

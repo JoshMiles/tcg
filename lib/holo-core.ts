@@ -10,12 +10,15 @@ import { effectiveProps, type PropValue, type PropValues } from './overlay-props
 
 /** What a client needs to draw one variant's shimmer on one card. `style` holds CSS custom properties to set on the art. */
 export interface HoloSpec {
+  /** Any of shimmer, glow or rock is on: `holoVars` applies the style. */
   on: boolean;
+  /** The shimmer itself is on: `holoClass` adds the sweep. */
+  shimmer: boolean;
   style: Record<string, string>;
 }
 export type HoloSpecs = Record<Variant, HoloSpec>;
 
-const NONE: HoloSpec = { on: false, style: {} };
+const NONE: HoloSpec = { on: false, shimmer: false, style: {} };
 export const NO_HOLO: HoloSpecs = { regular: NONE, reverse: NONE, full: NONE, shiny: NONE, golden: NONE };
 
 /** The overlay's gradient: 8 colour bands (cycling through the palette) separated by transparent gaps. */
@@ -68,7 +71,7 @@ export function buildHoloSpecs(props: PropValues, stars: number, holoMinStars: n
       style['--rock-speed'] = `${Number(g('rockSpeed') ?? 3.6)}s`;
     }
 
-    out[v] = { on: true, style };
+    out[v] = { on: true, shimmer: on, style };
   }
   return out;
 }
@@ -88,5 +91,5 @@ export function siteHoloVars(spec: HoloSpec | undefined): React.CSSProperties {
 
 /** Class names to add to a card's art for its shimmer: always the base class, plus .holo-live where it should sweep by itself. */
 export function holoClass(spec: HoloSpec | undefined, live = false): string {
-  return spec?.on ? (live ? 'holo-fx holo-live' : 'holo-fx') : '';
+  return spec?.shimmer ? (live ? 'holo-fx holo-live' : 'holo-fx') : '';
 }

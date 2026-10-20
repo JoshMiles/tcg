@@ -67,7 +67,7 @@ const { runInSandbox, prodKv } = await import('../lib/db');
 
 // ── Pure: Golden variant overlay defaults and holo/glow/rock resolution (ROADMAP 29.4) ──
 {
-  const { buildHoloSpecs } = await import('../lib/holo-core');
+  const { buildHoloSpecs, holoClass } = await import('../lib/holo-core');
   ok(DEFAULT_PROPS['variant.golden.labelText'] === 'Golden', 'golden label text default');
   eq(DEFAULT_PROPS['variant.golden.labelColors'], ['#fbbf24', '#f59e0b', '#d97706'], 'golden label colors');
   eq(DEFAULT_PROPS['variant.golden.holoColors'], ['#ffb703', '#ffe14d', '#fff6c2'], 'golden shimmer colors');
@@ -95,6 +95,8 @@ const { runInSandbox, prodKv } = await import('../lib/db');
 
   // Disabling glow or rock removes the custom property
   const disabledProps = { ...DEFAULT_PROPS, 'variant.golden.rock': false, 'variant.golden.glow': false };
+  const shimmerOff = buildHoloSpecs({ ...DEFAULT_PROPS, 'variant.full.holoMode': 'off', 'variant.full.glow': true }, 1, 3);
+  ok(shimmerOff.full.on && holoClass(shimmerOff.full) === '', 'shimmer off with glow on adds no holo class');
   const disabledSpecs = buildHoloSpecs(disabledProps, 1, 3);
   ok(disabledSpecs.golden.style['--rock-amt'] === undefined, 'disabled rock omits --rock-amt');
   ok(disabledSpecs.golden.style['--glow-color-a'] === undefined, 'disabled glow omits --glow-color-a');
