@@ -67,6 +67,9 @@ const sectionRank = (s: string) => {
   return i < 0 ? 99 : i;
 };
 
+/** The right-click menu on a layer: `id` null = the whole view; x / y are screen pixels. */
+export interface LayerMenuState { view: Mode; id: string | null; x: number; y: number }
+
 export interface OverlayEditorProps {
   siteUrl: string;
   overlayKey: string;
@@ -133,6 +136,13 @@ export interface OverlayEditorContextValue {
   selectTarget: (target: string) => void;
   selectView: (view: Mode) => void;
   hoverElement: (target: string) => void;
+  layerMenu: LayerMenuState | null;
+  openLayerMenu: (view: Mode, id: string | null, x: number, y: number) => void;
+  closeLayerMenu: () => void;
+  resetLayer: (view: Mode, id: string | null) => void;
+  centerLayer: (view: Mode) => void;
+  copyLayerToScenes: (view: Mode, id: string | null) => void;
+  sceneCount: number;
   layoutOf: (k: string) => OverlayLayout;
 
   // Navigation & Category
@@ -320,8 +330,10 @@ export function OverlayEditorProvider({
   const [notice, setNotice] = useState('');
   const boxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const drag = useRef<{ view: Mode; id: string | null; ox: number; oy: number } | null>(null);
+  // A drag or a corner-handle resize in progress (one undo step): `s0` is the scale a resize started from.
+  const drag = useRef<{ view: Mode; id: string | null; ox: number; oy: number; s0?: number } | null>(null);
   const [selected, setSelected] = useState('');
+  const [layerMenu, setLayerMenu] = useState<LayerMenuState | null>(null);
 
   const [zoom, setZoom] = useState(1);
   const [showThirds, setShowThirds] = useState(false);
@@ -738,17 +750,61 @@ export function OverlayEditorProvider({
 
   // One part of a view (the label, the bar...) moved on its own; back at its normal spot it is dropped from the layout.
   const elementAt = (view: Mode, id: string) => layout[view].elements?.[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 };
-  const moveElement = (view: Mode, id: string, ox: number, oy: number) =>
+  const setElement = (view: Mode, id: string, patch: Partial<Pick<Placement, 'scale' | 'offsetX' | 'offsetY'>>) =>
     setLayoutVals(l => {
       const elements = { ...l[view].elements };
-      const cur = elements[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 };
-      if (ox === 0 && oy === 0 && cur.scale === 1) delete elements[id as ElementId];
-      else elements[id as ElementId] = { ...cur, offsetX: ox, offsetY: oy };
+      const next = { ...(elements[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 }), ...patch };
+      if (next.offsetX === 0 && next.offsetY === 0 && next.scale === 1) delete elements[id as ElementId];
+      else elements[id as ElementId] = next;
       return { ...l, [view]: { ...l[view], elements } };
     });
+  const moveElement = (view: Mode, id: string, ox: number, oy: number) => setElement(view, id, { offsetX: ox, offsetY: oy });
+
+  // Corner-handle resize: `factor` is the pointer's distance from the centre against where the press began (aspect kept).
+  const resizeTo = (target: string, wholeView: boolean, factor: number) => {
+    if (isPack) return;
+    if (!drag.current) {
+      const view = wholeView ? mode : viewOf(target);
+      const id = wholeView ? null : target;
+      commit();
+      drag.current = { view, id, ox: 0, oy: 0, s0: (id ? elementAt(view, id) : layout[view]).scale };
+    }
+    const { view, id, s0 = 1 } = drag.current;
+    const scale = Math.round(Math.min(3, Math.max(0.25, s0 * factor)) * 100) / 100;
+    if (id) setElement(view, id, { scale });
+    else setLayoutVals(l => ({ ...l, [view]: { ...l[view], scale } }));
+  };
+
+  // Right-click menu on a layer (a preview part, a Layers row or a view heading); `id` null = the whole view.
+  const sceneKeys = presets.map(x => 'scene:' + x.id).filter(k => k !== layoutKey);
+  const resetLayer = (view: Mode, id: string | null) =>
+    setLayoutVals(l => {
+      if (!id) return { ...l, [view]: { ...l[view], scale: 1, offsetX: 0, offsetY: 0 } };
+      const { [id as ElementId]: _gone, ...elements } = l[view].elements ?? {};
+      return { ...l, [view]: { ...l[view], elements } };
+    });
+  // Only a whole view can be centred: a part's offset is relative to its normal spot, which is not the stage centre.
+  const centerLayer = (view: Mode) => setLayoutVals(l => ({ ...l, [view]: { ...l[view], offsetX: 0, offsetY: 0 } }));
+  const copyLayerToScenes = (view: Mode, id: string | null) => {
+    const src = id ? layout[view].elements?.[id as ElementId] : { scale: layout[view].scale, offsetX: layout[view].offsetX, offsetY: layout[view].offsetY };
+    setLayoutMap(m => {
+      const out = { ...m };
+      for (const k of sceneKeys) {
+        const l = sanitizeLayout(m[k] ?? m.global);
+        if (!id) out[k] = { ...l, [view]: { ...l[view], ...src } };
+        else {
+          const { [id as ElementId]: _gone, ...elements } = l[view].elements ?? {};
+          out[k] = { ...l, [view]: { ...l[view], elements: src ? { ...elements, [id]: src } : elements } };
+        }
+      }
+      return out;
+    });
+    setNotice(`Copied to ${sceneKeys.length} scene${sceneKeys.length === 1 ? '' : 's'}. Review, then Save.`);
+  };
 
   // Shift+drag moves the whole view; a plain drag moves just the part that was grabbed.
-  const dragTo = (target: string, dx: number, dy: number, alt: boolean, shift: boolean) => {
+  // `sx` / `sy`: the preview already snapped that axis to a guide, so the grid snap below skips it.
+  const dragTo = (target: string, dx: number, dy: number, alt: boolean, shift: boolean, sx = false, sy = false) => {
     if (isPack) return;
     if (!drag.current) {
       const view = viewOf(target);
@@ -764,8 +820,8 @@ export function OverlayEditorProvider({
     let ny = Math.round(drag.current.oy + dy / k);
     if (snapOn && !alt) {
       const near = Math.max(2, Math.round(8 / fit));
-      nx = Math.abs(nx) <= near ? 0 : Math.round(nx / 10) * 10;
-      ny = Math.abs(ny) <= near ? 0 : Math.round(ny / 10) * 10;
+      if (!sx) nx = Math.abs(nx) <= near ? 0 : Math.round(nx / 10) * 10;
+      if (!sy) ny = Math.abs(ny) <= near ? 0 : Math.round(ny / 10) * 10;
     }
     if (id) moveElement(view, id, nx, ny);
     else moveView(view, nx, ny);
@@ -824,21 +880,42 @@ export function OverlayEditorProvider({
   };
   const hoverElement = (target: string) => post({ type: 'hover', target });
 
-  const live = useRef({ dragTo, dragEnd, pressKey, selectTarget });
-  live.current = { dragTo, dragEnd, pressKey, selectTarget };
+  // Moving things is off in a pack override, so the menu is too.
+  const openLayerMenu = (view: Mode, id: string | null, x: number, y: number) => { if (!isPack) setLayerMenu({ view, id, x, y }); };
+  const closeLayerMenu = () => setLayerMenu(null);
+  // A right-click inside the preview: x / y are in the frame's own pixels, so scale them by the fit to get screen position.
+  const contextAt = (target: string, x: number, y: number) => {
+    const r = frameRef.current?.getBoundingClientRect();
+    if (!r) return;
+    selectTarget(target);
+    openLayerMenu(viewOf(target), target, r.left + x * fit, r.top + y * fit);
+  };
 
+  const live = useRef({ dragTo, resizeTo, dragEnd, pressKey, selectTarget, contextAt });
+  live.current = { dragTo, resizeTo, dragEnd, pressKey, selectTarget, contextAt };
+
+  // Tell the preview what is selected (a part, or a whole view in the Layout panel), whether it may be edited, and the snap switch.
+  const viewSelected = !selected && category === 'layout';
   useEffect(() => {
-    if (ready) post({ type: 'selected', target: selected });
-  }, [ready, loadedCount, selected, post]);
+    if (ready) post({ type: 'selected', target: selected, view: viewSelected && !isPack, canEdit: dragging || (viewSelected && !isPack), snap: snapOn });
+  }, [ready, loadedCount, selected, viewSelected, dragging, isPack, snapOn, post]);
 
   const catId = isPack && category === 'collection' ? 'pack' : category;
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.source !== frameRef.current?.contentWindow) return;
-      const data = e.data as { type?: string; target?: string; dx?: number; dy?: number; alt?: boolean; shift?: boolean; key?: string } | null;
+      const data = e.data as { type?: string; target?: string; dx?: number; dy?: number; alt?: boolean; shift?: boolean; key?: string; sx?: boolean; sy?: boolean; view?: boolean; factor?: number; x?: number; y?: number } | null;
       if (data?.type === 'drag' && data.target && Number.isFinite(data.dx) && Number.isFinite(data.dy)) {
-        live.current.dragTo(data.target, data.dx as number, data.dy as number, !!data.alt, !!data.shift);
+        live.current.dragTo(data.target, data.dx as number, data.dy as number, !!data.alt, !!data.shift, !!data.sx, !!data.sy);
+        return;
+      }
+      if (data?.type === 'resize' && typeof data.factor === 'number' && Number.isFinite(data.factor) && data.factor > 0) {
+        live.current.resizeTo(data.target ?? '', !!data.view, data.factor);
+        return;
+      }
+      if (data?.type === 'context' && data.target && Number.isFinite(data.x) && Number.isFinite(data.y)) {
+        live.current.contextAt(data.target, data.x as number, data.y as number);
         return;
       }
       if (data?.type === 'dragend') return live.current.dragEnd();
@@ -900,6 +977,13 @@ export function OverlayEditorProvider({
     selectTarget,
     selectView,
     hoverElement,
+    layerMenu,
+    openLayerMenu,
+    closeLayerMenu,
+    resetLayer,
+    centerLayer,
+    copyLayerToScenes,
+    sceneCount: sceneKeys.length,
     layoutOf,
     category,
     setCategory,

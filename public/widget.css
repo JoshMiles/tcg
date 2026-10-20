@@ -604,6 +604,12 @@
 }
 .edit-tag { display: none; position: fixed; z-index: 99999; pointer-events: none; padding: 1px 6px; border-radius: 4px;
   background: #facc15; color: #111; font: 700 11px/16px system-ui, sans-serif; }
+.edit-readout { white-space: pre; background: rgba(17, 17, 17, .9); color: #facc15; }
+.edit-guide { display: none; position: fixed; z-index: 99998; pointer-events: none; background: #22d3ee; }
+.edit-handle { display: none; position: fixed; z-index: 99999; width: 10px; height: 10px; margin: -5px 0 0 -5px;
+  background: #facc15; border: 1px solid #111; border-radius: 2px; touch-action: none; }
+.edit-handle.nw, .edit-handle.se { cursor: nwse-resize; }
+.edit-handle.ne, .edit-handle.sw { cursor: nesw-resize; }
 
 /* Sparkle burst (variant.*.sparkles): particles fly out from the middle of the card and fade. */
 .spark-layer { position: absolute; left: 0; right: 0; top: 40px; height: 380px; pointer-events: none; z-index: 2000; }

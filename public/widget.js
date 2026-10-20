@@ -307,24 +307,70 @@ if (PREVIEW) {
   // Pointer down selects; dragging past 3 px moves that element's view (design px, cumulative from the press).
   const toParent = (msg) => { if (window.parent !== window) window.parent.postMessage(msg, window.location.origin); };
   let press = null;
+  let resizing = null;
+  const stageFit = () => parseFloat(document.documentElement.style.getPropertyValue('--stage-scale')) || 1;
+  const boxOf = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+  const visibleEdits = () => [...document.querySelectorAll('[data-edit]')].filter(el => el.getBoundingClientRect().width > 0);
+  const unionOf = (boxes) => boxes.length ? { l: Math.min(...boxes.map(b => b.l)), t: Math.min(...boxes.map(b => b.t)), r: Math.max(...boxes.map(b => b.r)), b: Math.max(...boxes.map(b => b.b)) } : null;
+  // Snap guides (lines drawn over the stage while a drag is locked to the stage or another element) and the size / position readout.
+  const guideEls = [];
+  const showGuides = (list) => {
+    list.forEach((g, i) => {
+      const d = guideEls[i] || (guideEls[i] = document.body.appendChild(Object.assign(document.createElement('div'), { className: 'edit-guide' })));
+      d.style.display = 'block';
+      d.style.left = ('x' in g ? g.x : 0) + 'px'; d.style.top = ('y' in g ? g.y : 0) + 'px';
+      d.style.width = 'x' in g ? '1px' : '100vw'; d.style.height = 'x' in g ? '100vh' : '1px';
+    });
+    for (let i = list.length; i < guideEls.length; i++) guideEls[i].style.display = 'none';
+  };
+  const SNAP_PX = 6;
+  // The closest of `lines` to any of the moving edges (start, middle, end), within SNAP_PX: { d: shift to apply, line }.
+  const snapAxis = (vals, lines) => {
+    let best = null;
+    for (const v of vals) for (const ln of lines) { const d = ln - v; if (Math.abs(d) <= SNAP_PX && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, line: ln }; }
+    return best;
+  };
   document.addEventListener('pointerdown', (e) => {
     const el = e.target.closest && e.target.closest('[data-edit]');
     if (!el || e.button !== 0) return;
-    press = { id: e.pointerId, target: el.dataset.edit, x: e.clientX, y: e.clientY, moved: false };
+    const others = visibleEdits().filter(o => o !== el).map(boxOf);
+    press = { id: e.pointerId, target: el.dataset.edit, x: e.clientX, y: e.clientY, moved: false, rect: boxOf(el), others, all: unionOf(others.concat(boxOf(el))) };
     toParent({ type: 'select', target: press.target });
   });
   document.addEventListener('pointermove', (e) => {
     if (!press || e.pointerId !== press.id) return;
     if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 3) return;
     press.moved = true;
-    const fit = parseFloat(document.documentElement.style.getPropertyValue('--stage-scale')) || 1;
-    toParent({ type: 'drag', target: press.target, dx: (e.clientX - press.x) / fit, dy: (e.clientY - press.y) / fit, alt: e.altKey, shift: e.shiftKey });
+    let sdx = e.clientX - press.x, sdy = e.clientY - press.y;
+    let sx = false, sy = false;
+    const guides = [];
+    if (document.body.dataset.snap && !e.altKey) {
+      // Snap the moving box's edges and middle to the stage and (for a single part) to the other parts.
+      const b = e.shiftKey ? press.all : press.rect;
+      const xs = [0, innerWidth / 2, innerWidth], ys = [0, innerHeight / 2, innerHeight];
+      if (!e.shiftKey) for (const o of press.others) { xs.push(o.l, (o.l + o.r) / 2, o.r); ys.push(o.t, (o.t + o.b) / 2, o.b); }
+      const bx = snapAxis([b.l + sdx, (b.l + b.r) / 2 + sdx, b.r + sdx], xs);
+      const by = snapAxis([b.t + sdy, (b.t + b.b) / 2 + sdy, b.b + sdy], ys);
+      if (bx) { sdx += bx.d; sx = true; guides.push({ x: bx.line }); }
+      if (by) { sdy += by.d; sy = true; guides.push({ y: by.line }); }
+    }
+    showGuides(guides);
+    const fit = stageFit();
+    toParent({ type: 'drag', target: press.target, dx: sdx / fit, dy: sdy / fit, alt: e.altKey, shift: e.shiftKey, sx, sy });
   });
   const endPress = (e) => {
     if (!press || e.pointerId !== press.id) return;
     if (press.moved) toParent({ type: 'dragend' });
     press = null;
+    showGuides([]);
   };
+  // Right-click on a part opens the editor's layer menu there.
+  document.addEventListener('contextmenu', (e) => {
+    const el = e.target.closest && e.target.closest('[data-edit]');
+    if (!el) return;
+    e.preventDefault();
+    toParent({ type: 'context', target: el.dataset.edit, x: e.clientX, y: e.clientY });
+  });
   // Focus sits in this frame after a click, so hand the nudge / clear keys to the editor.
   document.addEventListener('keydown', (e) => {
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Escape'].includes(e.key)) return;
@@ -338,6 +384,41 @@ if (PREVIEW) {
   const selTag = document.createElement('div');
   selTag.className = 'edit-tag';
   document.body.appendChild(selTag);
+  // Four corner handles resize the selected part (or, with a view selected, the whole view): the factor is the
+  // pointer's distance from the scaling centre against where the press began.
+  const readout = document.body.appendChild(Object.assign(document.createElement('div'), { className: 'edit-tag edit-readout' }));
+  const handles = ['nw', 'ne', 'sw', 'se'].map(c => {
+    const h = document.body.appendChild(Object.assign(document.createElement('div'), { className: 'edit-handle ' + c }));
+    h.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault(); e.stopPropagation();
+      const wholeView = !document.body.dataset.selected;
+      const wrap = document.querySelector('.is-pack, .is-collection');
+      const b = wholeView && wrap ? boxOf(wrap) : curBox();
+      if (!b) return;
+      const cx = (b.l + b.r) / 2, cy = (b.t + b.b) / 2;
+      resizing = { id: e.pointerId, cx, cy, d0: Math.hypot(e.clientX - cx, e.clientY - cy) || 1, target: document.body.dataset.selected || '', view: wholeView };
+      h.setPointerCapture(e.pointerId);
+    });
+    h.addEventListener('pointermove', (e) => {
+      if (!resizing || e.pointerId !== resizing.id) return;
+      toParent({ type: 'resize', target: resizing.target, view: resizing.view, factor: Math.hypot(e.clientX - resizing.cx, e.clientY - resizing.cy) / resizing.d0 });
+    });
+    const end = (e) => {
+      if (!resizing || e.pointerId !== resizing.id) return;
+      resizing = null;
+      toParent({ type: 'dragend' });
+    };
+    h.addEventListener('pointerup', end);
+    h.addEventListener('pointercancel', end);
+    return h;
+  });
+  // The box the handles and readout wrap: the selected part, or all parts together when a view is selected.
+  const curBox = () => {
+    const t = document.body.dataset.selected;
+    if (t) { const el = document.querySelector('[data-edit="' + t + '"]'); return el ? boxOf(el) : null; }
+    return document.body.dataset.view ? unionOf(visibleEdits().map(boxOf)) : null;
+  };
   const placeTag = () => {
     const t = document.body.dataset.selected;
     const el = t && document.querySelector('[data-edit="' + t + '"]');
@@ -348,6 +429,22 @@ if (PREVIEW) {
       selTag.style.left = Math.max(0, r.left) + 'px';
       selTag.style.top = Math.max(0, r.top - 22) + 'px';
     } else selTag.style.display = 'none';
+    const b = document.body.dataset.canedit ? curBox() : null;
+    handles.forEach(h => {
+      h.style.display = b ? 'block' : 'none';
+      if (!b) return;
+      h.style.left = (h.classList.contains('nw') || h.classList.contains('sw') ? b.l : b.r) + 'px';
+      h.style.top = (h.classList.contains('nw') || h.classList.contains('ne') ? b.t : b.b) + 'px';
+    });
+    if (b && ((press && press.moved) || resizing)) {
+      const fit = stageFit();
+      const w = b.r - b.l, h = b.b - b.t;
+      readout.textContent = 'X ' + Math.round(b.l / fit) + '  Y ' + Math.round(b.t / fit) + '  ' + Math.round(w / fit) + ' x ' + Math.round(h / fit)
+        + ' (' + Math.round(w / innerWidth * 100) + '% x ' + Math.round(h / innerHeight * 100) + '%)';
+      readout.style.display = 'block';
+      readout.style.left = Math.max(0, Math.min(innerWidth - 220, b.l)) + 'px';
+      readout.style.top = Math.min(innerHeight - 20, b.b + 6) + 'px';
+    } else readout.style.display = 'none';
     requestAnimationFrame(placeTag);
   };
   requestAnimationFrame(placeTag);
@@ -356,6 +453,9 @@ if (PREVIEW) {
     if (e.data.type === 'selected') {
       if (typeof e.data.target === 'string' && e.data.target) document.body.dataset.selected = e.data.target;
       else delete document.body.dataset.selected;
+      // `view`: a whole view is selected (handles wrap all its parts); canEdit / snap come from the editor.
+      const flag = (k, on) => { if (on) document.body.dataset[k] = '1'; else delete document.body.dataset[k]; };
+      flag('view', !!e.data.view); flag('canedit', !!e.data.canEdit); flag('snap', !!e.data.snap);
     }
     else if (e.data.type === 'hover') {
       if (typeof e.data.target === 'string' && e.data.target) document.body.dataset.hover = e.data.target;

@@ -20,7 +20,7 @@ const VIEWS: { view: Mode; label: string }[] = [
 ];
 
 // The preview's elements as a list: select, hover-highlight, hide (where a show/hide setting exists) and reset a moved one.
-export function LayersPanel({ layout, selected, valueOf, setValue, setLayoutVals, selectTarget, selectView, hoverElement }: {
+export function LayersPanel({ layout, selected, valueOf, setValue, setLayoutVals, selectTarget, selectView, hoverElement, openLayerMenu }: {
   layout: OverlayLayout;
   selected: string;
   valueOf: (key: string) => PropValue;
@@ -29,7 +29,12 @@ export function LayersPanel({ layout, selected, valueOf, setValue, setLayoutVals
   selectTarget: (target: string) => void;
   selectView: (view: Mode) => void;
   hoverElement: (target: string) => void;
+  openLayerMenu: (view: Mode, id: string | null, x: number, y: number) => void;
 }) {
+  const menuOn = (view: Mode, id: string | null) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    openLayerMenu(view, id, e.clientX, e.clientY);
+  };
   const [open, setOpen] = useState(true);
   const reset = (view: Mode, id: ElementId) =>
     setLayoutVals(l => {
@@ -47,7 +52,7 @@ export function LayersPanel({ layout, selected, valueOf, setValue, setLayoutVals
         <div className="px-3 pb-3 space-y-2" onMouseLeave={() => hoverElement('')}>
           {VIEWS.map(({ view, label }) => (
             <div key={view}>
-              <button type="button" onClick={() => selectView(view)} className="text-xs uppercase tracking-wide text-gray-500 font-semibold hover:text-white">
+              <button type="button" onClick={() => selectView(view)} onContextMenu={menuOn(view, null)} className="text-xs uppercase tracking-wide text-gray-500 font-semibold hover:text-white">
                 {label}
               </button>
               <ul>
@@ -59,6 +64,7 @@ export function LayersPanel({ layout, selected, valueOf, setValue, setLayoutVals
                     <li
                       key={id}
                       onMouseEnter={() => hoverElement(id)}
+                      onContextMenu={menuOn(view, id)}
                       className={`flex items-center gap-1 rounded ${selected === id ? 'bg-yellow-500/15' : 'hover:bg-white/5'}`}
                     >
                       <button
