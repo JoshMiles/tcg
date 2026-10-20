@@ -20,7 +20,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 32.4 | Discord link: relink and one-account claim | Ready | S |
 | 32.5 | New pack flow leftovers | Ready | S |
 | 32.6 | Variant scripts and the Shiny label leftovers (after 32.2) | Ready | S |
-| 32.7 | GEMINI.md becomes a pointer to CLAUDE.md | Ready | XS |
 | Ext | Next extension version | Blocked (panel freeze) | L |
 | 29.5 | Let Golden be pulled, including the Twitch panel | Blocked (panel freeze) | M |
 | 30.4 | Use a trainer card from the Twitch panel | Blocked (panel freeze) | S |
@@ -50,9 +49,6 @@ Those PRs were merged without a review. Findings were checked against `main`. On
 - `scripts/migrate-variant-rarity.mts` and `scripts/audit-variant-rarity.mts` cannot run. They import functions that are not exported, read `cardId` instead of `cardNumber`, compare string ids with numbers, and use a 100000 offset instead of `VARIANT_OFFSET`. Delete them unless someone needs the remap. If it is kept, rewrite it against the real APIs with a mock-KV check.
 - Rename the leftover user-visible "Shiny" labels to Full Art Holo or FH: `app/admin/seasons/[id]/page.tsx`, `app/admin/dashboard/widgets-extra.tsx`, `lib/dashboard.ts`, `lib/activity-view.ts`, `app/admin/activity/SummaryStrip.tsx`, `app/admin/users/UsersList.tsx`, `app/admin/components/AddCardDialog.tsx`, and docs. The internal id stays `shiny`.
 - Small: drop the unused `GuidesMenu` import in `app/admin/overlay/EditorTopBar.tsx`.
-
-### 32.7 GEMINI.md (Ready, XS)
-GEMINI.md is a hand-kept copy of CLAUDE.md and has already drifted. Replace it with a short pointer: follow CLAUDE.md, the only rules file.
 
 ## Blocked by the Twitch panel freeze
 
