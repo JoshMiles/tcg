@@ -357,6 +357,10 @@ if (PREVIEW) {
       if (typeof e.data.target === 'string' && e.data.target) document.body.dataset.selected = e.data.target;
       else delete document.body.dataset.selected;
     }
+    else if (e.data.type === 'hover') {
+      if (typeof e.data.target === 'string' && e.data.target) document.body.dataset.hover = e.data.target;
+      else delete document.body.dataset.hover;
+    }
     else if (e.data.type === 'layout') applyLayout(e.data.layout);
     else if (e.data.type === 'props') {
       PREVIEW_PROPS = e.data.props && typeof e.data.props === 'object' ? e.data.props : null;

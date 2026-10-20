@@ -2,6 +2,7 @@
 
 import { Icon, type IconName } from '@/app/components/Icon';
 import { CategoryRail } from './CategoryRail';
+import { LayersPanel } from './LayersPanel';
 import { LayoutPanel } from './LayoutPanel';
 import { VariantPicker } from './VariantPicker';
 import { PropRow } from './editor-controls';
@@ -60,6 +61,9 @@ export function PropertiesDock() {
     setLayoutVals,
     setPlacement,
     setNotice,
+    selectTarget,
+    selectView,
+    hoverElement,
   } = useOverlayEditor();
 
   const rail = isPack ? PROP_GROUPS.filter(g => g.id !== 'collection') : [LAYOUT_CAT, ...PROP_GROUPS];
@@ -310,6 +314,18 @@ export function PropertiesDock() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
+          {!isPack && !searching && (
+            <LayersPanel
+              layout={layout}
+              selected={selected}
+              valueOf={valueOf}
+              setValue={setValue}
+              setLayoutVals={setLayoutVals}
+              selectTarget={selectTarget}
+              selectView={selectView}
+              hoverElement={hoverElement}
+            />
+          )}
           {searching ? (
             searchResults.length === 0 ? (
               <p className="p-4 text-sm text-gray-500">No settings match &ldquo;{query}&rdquo;.</p>
