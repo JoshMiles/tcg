@@ -85,7 +85,13 @@ export function achVars(a: { id: string; seasonId: string; seasonName: string; n
 
 // ── Custom goals (staff-made, KV `achievements:custom`) ──
 
-export const CUSTOM_ICONS: IconName[] = ['award', 'trophy', 'star', 'gem', 'sparkles', 'cheese', 'crown', 'medal', 'zap', 'heart', 'target', 'trade'];
+export const CUSTOM_ICONS: IconName[] = ['award', 'trophy', 'star', 'gem', 'sparkles', 'cheese', 'crown', 'medal', 'zap', 'heart', 'target', 'trade', 'gift', 'flag', 'bell', 'shield', 'flask', 'party', 'gamepad', 'book'];
+
+/** The icon a built-in kind uses unless staff pick another (settings `icon`). */
+export const defaultIcon = (kind: string): IconName =>
+  kind === 'complete' ? 'cheese' : kind === 'master' ? 'trophy' : kind.startsWith('tier-') || kind === 'five-firsts' ? 'award'
+  : kind === 'all-shiny' || kind === 'all-golden' || kind === 'first-shiny' ? 'sparkles' : kind.startsWith('all-') || kind === 'first-edition' ? 'gem'
+  : kind === 'early-bird' ? 'zap' : 'trade';
 export const CUSTOM_RULES = {
   unique: 'Own N different cards',
   editions: 'Hold N editions in total (duplicates count)',
