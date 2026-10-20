@@ -20,7 +20,6 @@ import { ORIGIN_LABELS, ORIGIN_VERB, entryOf, isEscrow, parseCopyId } from '@/li
 import { getHiddenUsers } from '@/lib/user-admin';
 import { copyPoints, getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { serialMultiplier } from '@/lib/scoring-core';
-import { SerialChip } from '@/app/components/SerialChip';
 import { getHoloResolver } from '@/lib/holo';
 import { holoClass, holoVars } from '@/lib/holo-core';
 import { getRarity } from '@/lib/rarity';
@@ -123,30 +122,24 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
           <div>
             <p className="text-xs text-gray-500">#{card.number} · {pack.name} · {season.name}</p>
             <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight wrap-break-word">{label}</h1>
-            {copy.uid && (
-              <p className="mt-2 flex flex-wrap items-baseline gap-2">
-                <span className="font-display text-xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.uid}</span>
-                <span className="text-xs uppercase tracking-wider text-gray-500 font-bold">Serial number<InfoTip term="printNumber" /></span>
-              </p>
-            )}
-            <p className="mt-2 flex flex-wrap items-center gap-2">
-              {copy.uid
-                ? <span className="text-sm text-gray-300">Edition<InfoTip term="edition" /> <strong className="text-white tabular-nums">#{copy.n}</strong> of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span>
-                : <><span className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-none">#{copy.n}</span>
-                  <span className="text-sm text-gray-400">of {total.toLocaleString()} {VARIANT_LABELS[copy.variant]} {card.name} made</span></>}
-              {copy.est && <span title="This edition existed before editions were numbered. Edition numbers within a version were assigned afterwards, so the order is an estimate." className="text-[10px] font-extrabold uppercase tracking-wider rounded-full px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-500/10">estimated number</span>}
-            </p>
           </div>
 
-          {worth !== null && !gone && (
-            <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-4 gap-y-1 ${mult > 1 ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
-              <SerialChip n={copy.n} bonus={mult > 1 ? Math.round(mult * 100) / 100 : undefined} est={copy.est} className="text-sm px-3! py-1!" />
-              <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{worth.toLocaleString()} pts</strong>{cv && worth !== cv.values[copy.variant] ? <span className="text-gray-500"> instead of {cv.values[copy.variant].toLocaleString()}</span> : null}</span>
-              <span className="text-xs text-gray-500">{mult > 1 ? `Its edition number earns a ×${Math.round(mult * 100) / 100} points bonus: the first editions ever made of a card are worth extra.` : 'No bonus: only the first editions ever made of a card earn one.'}</span>
-            </div>
-          )}
-
           <dl className="grid grid-cols-2 gap-3 text-sm">
+            {copy.uid && (
+              <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3"><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Serial number<InfoTip term="printNumber" /></dt><dd className="mt-0.5 font-display text-xl font-bold text-yellow-400 tabular-nums">#{copy.uid}</dd></div>
+            )}
+            <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3">
+              <dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Edition<InfoTip term="edition" /></dt>
+              <dd className="mt-0.5 text-gray-200"><span className="font-display text-xl font-bold text-white tabular-nums">#{copy.n}</span> of {total.toLocaleString()}</dd>
+              <dd className="text-xs text-gray-500">{VARIANT_LABELS[copy.variant]} {card.name}{copy.est && <span title="This edition existed before editions were numbered. Edition numbers within a version were assigned afterwards, so the order is an estimate." className="text-amber-300"> · estimated</span>}</dd>
+            </div>
+            {worth !== null && !gone && (
+              <div className={`col-span-2 rounded-xl border p-3 ${mult > 1 ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
+                <dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Worth</dt>
+                <dd className="mt-0.5 text-gray-200"><strong className="text-white tabular-nums">{worth.toLocaleString()} pts</strong>{cv && worth !== cv.values[copy.variant] ? <span className="text-gray-500"> instead of {cv.values[copy.variant].toLocaleString()}</span> : null}{mult > 1 && <span className="text-yellow-300 font-bold"> · ×{Math.round(mult * 100) / 100} early edition bonus</span>}</dd>
+                <dd className="text-xs text-gray-500">{mult > 1 ? 'The first editions ever made of a card are worth extra.' : 'No bonus: only the first editions ever made of a card earn one.'}</dd>
+              </div>
+            )}
             <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3"><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{gone ? 'Status' : 'Held by'}</dt><dd className="mt-0.5 text-gray-200">{gone ? 'No longer exists' : who(copy.owner)}</dd></div>
             <div className="rounded-xl bg-gray-950/60 border border-gray-800 p-3"><dt className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">{ORIGIN_VERB[copy.origin]}</dt><dd className="mt-0.5 text-gray-200">{when(copy.at)}</dd><dd className="text-xs text-gray-500">{ORIGIN_LABELS[copy.origin]}</dd></div>
           </dl>
