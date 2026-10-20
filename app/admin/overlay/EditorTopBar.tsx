@@ -4,7 +4,6 @@ import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import { btn } from './editor-controls';
 import {
-  GuidesMenu as _GuidesMenu, // not in topbar
   ImportExportMenu,
   PackToolsMenu,
   PresetsMenu,

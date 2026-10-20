@@ -81,7 +81,7 @@ export function notableReason(e: ActivityEvent, totalCards: number): string | nu
   const p = pullFacts(e);
   if (p) {
     if (p.serial === 1) return 'First ever pull';
-    if (p.variant === 'shiny') return 'Shiny pull';
+    if (p.variant === 'shiny') return 'Full Art Holo pull';
     if (p.variant === 'full') return 'Full Art pull';
     if (p.stars >= 5) return '5-star pull';
     if (totalCards > 0 && p.isNew && (p.uniqueOwned ?? 0) >= totalCards) return 'Collection completed';

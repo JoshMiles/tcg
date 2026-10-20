@@ -17,7 +17,7 @@ export const SCENARIOS: ScenarioInfo[] = [
   { id: 'nearly-complete', title: 'One card short of a full set', description: 'one_card_short owns every card in the season except one. Pull it, or grant it, to see the full set bonus appear.', needsUpgrades: false, icon: 'target' },
   { id: 'complete-set', title: 'Complete collection', description: 'completionist owns one of every card, for the Complete chip, the set bonus and the end-of-season awards.', needsUpgrades: false, icon: 'cheese' },
   { id: 'trade-pair', title: 'Trade-ready pair', description: 'trader_a and trader_b each have spare editions of cards the other lacks, so a one-for-one trade helps both.', needsUpgrades: false, icon: 'trade' },
-  { id: 'shiny-showcase', title: 'Shiny showcase', description: 'shiny_hunter owns Full Art and Shiny editions of three cards, to look at the rarest versions and their points.', needsUpgrades: true, icon: 'gem' },
+  { id: 'shiny-showcase', title: 'Full Art Holo showcase', description: 'shiny_hunter owns Full Art and Full Art Holo editions of three cards, to look at the rarest versions and their points.', needsUpgrades: true, icon: 'gem' },
   { id: 'crowd', title: 'Busy leaderboard', description: '100 realistic viewers with a long tail of light collectors and a few heavy ones.', needsUpgrades: false, icon: 'users' },
 ];
 
@@ -69,7 +69,7 @@ export function planScenario(id: Exclude<ScenarioId, 'crowd'>, ctx: PlanContext)
     }
     case 'shiny-showcase': {
       const three = nums.slice(0, 3);
-      return { ok: true, grants: [{ user: 'shiny_hunter', entries: [...copies(three[0], 1), ...three.flatMap(n => [...copies(n, 1, 'full'), ...copies(n, 1, 'shiny')])] }], note: `shiny_hunter owns Full Art and Shiny ${three.map(n => `#${n}`).join(', ')}.` };
+      return { ok: true, grants: [{ user: 'shiny_hunter', entries: [...copies(three[0], 1), ...three.flatMap(n => [...copies(n, 1, 'full'), ...copies(n, 1, 'shiny')])] }], note: `shiny_hunter owns Full Art and Full Art Holo ${three.map(n => `#${n}`).join(', ')}.` };
     }
   }
 }

@@ -134,7 +134,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
             <div className="card rounded-2xl p-5 space-y-3">
               <div className="flex items-baseline justify-between gap-3">
                 <h3 className="text-sm font-semibold text-white">Pulls per day</h3>
-                <span className="text-xs text-gray-500">{sumArr(series?.data.pull ?? []).toLocaleString()} pulls · {sumArr(series?.data['v:shiny'] ?? [])} Shiny</span>
+                <span className="text-xs text-gray-500">{sumArr(series?.data.pull ?? []).toLocaleString()} pulls · {sumArr(series?.data['v:shiny'] ?? [])} FH</span>
               </div>
               {series && sumArr(series.data.pull) > 0 ? (
                 <StackedBars
@@ -143,7 +143,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
                     { label: 'Regular', color: '#64748b', values: series.data.pull.map((n, i) => Math.max(0, n - series.data['v:reverse'][i] - series.data['v:full'][i] - series.data['v:shiny'][i])) },
                     { label: 'Reverse Holo', color: '#8b5cf6', values: series.data['v:reverse'] },
                     { label: 'Full Art', color: '#0ea5e9', values: series.data['v:full'] },
-                    { label: 'Shiny', color: '#f59e0b', values: series.data['v:shiny'] },
+                    { label: 'Full Art Holo', color: '#f59e0b', values: series.data['v:shiny'] },
                   ]}
                 />
               ) : <p className="text-sm text-gray-600 py-6">No pulls counted yet{series?.since ? '' : ' (charts fill in from the first pull after tracking started)'}.</p>}

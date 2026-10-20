@@ -60,7 +60,7 @@ export function PullsChart({ d }: { d: DashboardData }) {
     { label: 'Regular', color: '#64748b', values: regular },
     { label: 'Reverse Holo', color: '#8b5cf6', values: reverse },
     { label: 'Full Art', color: '#0ea5e9', values: full },
-    { label: 'Shiny', color: '#f59e0b', values: shiny },
+    { label: 'Full Art Holo', color: '#f59e0b', values: shiny },
   ];
   return (
     <Panel title="Pulls over time" icon="chart" action={<span className="text-xs text-gray-500">{RANGE_WORD[d.range]}</span>}>

@@ -36,7 +36,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   trades: { type: 'trades', title: 'Trading', icon: 'trade', description: 'Open offers, cards held in escrow and recent completed trades.', defaultSpan: 6, spans: [4, 6, 8] },
   overlay: { type: 'overlay', title: 'Overlay status', icon: 'monitor', description: 'Whether OBS has the overlay open, and shortcuts to edit it.', defaultSpan: 4, spans: [3, 4, 6] },
   pulse: { type: 'pulse', title: 'Activity pulse', icon: 'trend', description: 'Pulls and active viewers over the last hour, day and week.', defaultSpan: 4, spans: [3, 4, 6] },
-  variants: { type: 'variants', title: 'Variant mix', icon: 'sparkles', description: 'How many Regular, Reverse Holo, Full Art and Shiny editions exist.', defaultSpan: 4, spans: [3, 4, 6] },
+  variants: { type: 'variants', title: 'Variant mix', icon: 'sparkles', description: 'How many Regular, Reverse Holo, Full Art and Full Art Holo editions exist.', defaultSpan: 4, spans: [3, 4, 6] },
   valuable: { type: 'valuable', title: 'Most valuable cards', icon: 'coins', description: 'The cards worth the most points per edition right now.', defaultSpan: 4, spans: [4, 6, 8] },
   unowned: { type: 'unowned', title: 'Cards nobody owns', icon: 'hole', description: 'Cards no viewer has pulled yet.', defaultSpan: 4, spans: [3, 4, 6] },
   live: { type: 'live', title: 'Stream status', icon: 'radio', description: 'Whether the channel is live on Twitch, with the title and viewer count.', defaultSpan: 4, spans: [3, 4, 6] },

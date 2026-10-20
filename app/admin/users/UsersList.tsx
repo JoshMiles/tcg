@@ -54,7 +54,7 @@ function ago(at: number | null, now: number): string {
 const csvCell = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
 /**
- * The users table: search (press /), sort, filters (activity, completion, Shiny / Full Art, tag, restricted, has notes), bulk actions on a
+ * The users table: search (press /), sort, filters (activity, completion, Full Art Holo / Full Art, tag, restricted, has notes), bulk actions on a
  * selection (gift packs, add / remove a tag) and CSV export of what is shown (or of the selection). Rows are plain data from the server.
  */
 export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; allTags: string[]; activeSeason: string | null }) {
@@ -153,7 +153,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setComplete(c => !c)} aria-pressed={complete} className={chip(complete)}><Icon name="cheese" className="mr-1" />Complete collection</button>
-          <button type="button" onClick={() => setShiny(c => !c)} aria-pressed={shiny} className={chip(shiny)}><Icon name="sparkles" className="mr-1" />Has a Shiny</button>
+          <button type="button" onClick={() => setShiny(c => !c)} aria-pressed={shiny} className={chip(shiny)}><Icon name="sparkles" className="mr-1" />Has a Full Art Holo</button>
           <button type="button" onClick={() => setFull(c => !c)} aria-pressed={full} className={chip(full)}><Icon name="gem" className="mr-1" />Has Full Art</button>
           <button type="button" onClick={() => setRestricted(c => !c)} aria-pressed={restricted} className={chip(restricted)}><Icon name="shield" className="mr-1" />Restricted</button>
           <button type="button" onClick={() => setNotes(c => !c)} aria-pressed={notes} className={chip(notes)}><Icon name="note" className="mr-1" />Has notes</button>

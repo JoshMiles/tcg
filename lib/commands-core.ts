@@ -40,7 +40,7 @@ export const COMMAND_ACTIONS: Record<CommandActionId, ActionInfo> = {
   showoff: {
     label: 'Show off a card',
     description: "Puts one of the viewer's own cards on stream (the overlay show-off). Args: a card name or number, optionally with a version.",
-    vars: [v('username', 'cheesefan'), v('cardName', 'Gouda Goat'), v('variant', 'Shiny'), v('edition', '#12', 'Edition number, empty when the edition has none'), v('printNumber', '#1023381', 'Unique serial number'), v('points', '480'), v('stars', '4')],
+    vars: [v('username', 'cheesefan'), v('cardName', 'Gouda Goat'), v('variant', 'Full Art Holo'), v('edition', '#12', 'Edition number, empty when the edition has none'), v('printNumber', '#1023381', 'Unique serial number'), v('points', '480'), v('stars', '4')],
     errors: ['notFound', 'notOwned', 'cooldown', 'offline'],
   },
   'card-stats': {
