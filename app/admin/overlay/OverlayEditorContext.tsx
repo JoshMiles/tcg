@@ -44,6 +44,23 @@ import {
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
 const snapKey = (x: Snap) => JSON.stringify([canon(x.g), Object.keys(x.p).sort().map(k => [k, canon(x.p[k])]), x.l]);
+// Preview element (data-edit) -> the category and section that edit it; read both ways.
+const TARGET_SECTIONS: Record<string, [string, string?]> = {
+  card: ['variants'],
+  label: ['variants', 'Label'],
+  bar: ['pack', 'Name and stars bar'],
+  got: ['pack', '"got:" line'],
+  showlabel: ['showoff', 'Label'],
+  strip: ['pack', 'Cards under the card'],
+  heading: ['collection', 'What to show'],
+  collection: ['collection', 'Layout'],
+};
+/** The preview element a panel section edits, or '' (section keys look like `pack/Label` or `variants.shiny/Label`). */
+export const targetForSection = (sectionKey: string) => {
+  const [cat, name] = sectionKey.split('/');
+  const c = cat.split('.')[0];
+  return Object.keys(TARGET_SECTIONS).find(t => TARGET_SECTIONS[t][0] === c && TARGET_SECTIONS[t][1] === name) ?? '';
+};
 const sectionRank = (s: string) => {
   const i = SECTION_ORDER.indexOf(s);
   return i < 0 ? 99 : i;
@@ -132,6 +149,7 @@ export interface OverlayEditorContextValue {
   searching: boolean;
   openMap: Record<string, boolean>;
   setOpenMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  setSelected: (target: string) => void;
 
   // View tools & Stage
   boxRef: RefObject<HTMLDivElement | null>;
@@ -789,32 +807,8 @@ export function OverlayEditorProvider({
           setFocusKey(k);
         }
       };
-      switch (data.target) {
-        case 'card':
-          go('variants');
-          break;
-        case 'label':
-          go('variants', 'Label');
-          break;
-        case 'bar':
-          go('pack', 'Name and stars bar');
-          break;
-        case 'got':
-          go('pack', '"got:" line');
-          break;
-        case 'showlabel':
-          go('showoff', 'Label');
-          break;
-        case 'strip':
-          go('pack', 'Cards under the card');
-          break;
-        case 'heading':
-          if (!isPack) go('collection', 'What to show');
-          break;
-        case 'collection':
-          if (!isPack) go('collection', 'Layout');
-          break;
-      }
+      const t = TARGET_SECTIONS[data.target];
+      if (t && !(isPack && t[0] === 'collection')) go(t[0], t[1]);
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
@@ -882,6 +876,7 @@ export function OverlayEditorProvider({
     searching,
     openMap,
     setOpenMap,
+    setSelected,
     boxRef,
     frameRef,
     fit,
