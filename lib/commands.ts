@@ -158,9 +158,9 @@ async function doCardStats(c: Ctx): Promise<Done | Fail> {
   return { vars: {
     cardName: card.name, number: String(n), stars: String(card.stars), rarity: getRarity(card.stars)?.label ?? '',
     pullChance: cv && cv.pullRate > 0 ? `1 in ${Math.max(1, Math.round(1 / cv.pullRate)).toLocaleString('en-US')}` : 'never',
-    printsMade: String(made), collectors: String(collectors),
+    editionsMade: String(made), collectors: String(collectors),
     topHolder: top ? (hidden.has(top.username) ? PRIVATE : top.username) : 'nobody yet',
-    firstPulledBy: first, points: String(Math.round(cv?.values.regular ?? 0)), yourPrints: String(mine),
+    firstPulledBy: first, points: String(Math.round(cv?.values.regular ?? 0)), yourEditions: String(mine),
     url: `${SITE_URL}/cards?card=${n}&season=${encodeURIComponent(s.season.id)}`,
   } };
 }
@@ -192,8 +192,8 @@ async function doMyStats(c: Ctx): Promise<Done | Fail> {
     if (rate < rarestRate) { rarestRate = rate; rarest = s.overview.cards.find(x => x.number === cardNumber)?.name ?? ''; }
   }
   return { vars: {
-    rank: String(rank), score: String(score), cards: String(held.unique.size), totalCards: String(values.totalCards), prints: String(held.copies),
-    progressBonus: String(Math.round(b.completion + b.set)), bestEdition: best, rarestPrint: rarest || 'none yet', profileUrl: `${SITE_URL}${profileHref(target)}`,
+    rank: String(rank), score: String(score), cards: String(held.unique.size), totalCards: String(values.totalCards), editions: String(held.copies),
+    progressBonus: String(Math.round(b.completion + b.set)), bestEdition: best, rarestEdition: rarest || 'none yet', profileUrl: `${SITE_URL}${profileHref(target)}`,
   } };
 }
 
@@ -205,7 +205,7 @@ async function doCollection(c: Ctx): Promise<Done | Fail> {
     await enqueueEvent({ id: crypto.randomUUID(), type: 'collection', username: c.user, queuedAt: Date.now() });
     await recordActivity({ type: 'trigger', kind: 'collection', username: c.user });
   }
-  return { vars: { cards: String(countVariants(entries).size), prints: String(entries.length) } };
+  return { vars: { cards: String(countVariants(entries).size), editions: String(entries.length) } };
 }
 
 async function doLeaderboard(): Promise<Done | Fail> {

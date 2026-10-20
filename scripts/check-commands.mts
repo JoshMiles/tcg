@@ -66,7 +66,7 @@ ok(!unknown.known && !unknown.ok && unknown.message === '', 'an unknown command 
 // card-stats
 let r = await run('stats', 'ann', a.name);
 ok(r.ok && r.vars.cardName === a.name && r.vars.number === String(a.number) && /^1 in \d/.test(r.vars.pullChance), '!stats answers with the card');
-ok(r.vars.yourPrints === '2' && r.vars.printsMade === '7', `!stats counts prints (${r.vars.printsMade}) and the caller's own (${r.vars.yourPrints})`);
+ok(r.vars.yourEditions === '2' && r.vars.editionsMade === '7', `!stats counts editions (${r.vars.editionsMade}) and the caller's own (${r.vars.yourEditions})`);
 ok(r.vars.topHolder === 'a private collector', 'a hidden top holder is not named');
 ok(r.vars.collectors === '2', `collectors leave out the hidden one (${r.vars.collectors})`);
 ok(r.vars.firstPulledBy !== 'priv' && r.vars.url.includes(`card=${a.number}`), 'the first puller and link are filled');
@@ -84,13 +84,13 @@ const mine = core.cleanCommands([{ name: 'me', action: 'my-stats', reply: '#{ran
 const withMe = mine.ok ? mine.commands : [];
 const ms = (u: string, args = '') => cmds.runCommand({ command: 'me', username: u, args }, withMe);
 let m = await ms('ann');
-ok(m.ok && m.vars.cards === '2' && m.vars.prints === '3' && Number(m.vars.score) > 0 && /^\d+$/.test(m.vars.rank), 'my-stats reports the caller');
+ok(m.ok && m.vars.cards === '2' && m.vars.editions === '3' && Number(m.vars.score) > 0 && /^\d+$/.test(m.vars.rank), 'my-stats reports the caller');
 m = await ms('bob', '@priv');
 ok(!m.ok && /keeps their stats private/.test(m.message), "someone else's private stats are refused");
 m = await ms('priv');
-ok(m.ok && m.vars.prints === '4', 'a private collector can see their own stats');
+ok(m.ok && m.vars.editions === '4', 'a private collector can see their own stats');
 m = await ms('ann', '@bob');
-ok(m.ok && m.vars.prints === '1', '@someone looks at another collector');
+ok(m.ok && m.vars.editions === '1', '@someone looks at another collector');
 m = await ms('ghost');
 ok(!m.ok, 'a viewer with no cards gets a refusal');
 
