@@ -29,6 +29,7 @@ export function PropertiesDock() {
     setCategory,
     catId,
     layoutMoved,
+    selected,
     modifiedCount,
     searching,
     layoutCat,
@@ -101,6 +102,7 @@ export function PropertiesDock() {
       isScene={isScene}
       sceneName={scene?.name ?? ''}
       isPack={isPack}
+      selected={selected}
       mode={mode}
       setMode={setMode}
       setLayoutVals={setLayoutVals}

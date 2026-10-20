@@ -25,7 +25,7 @@ import {
   type PropValues,
   type VariantId,
 } from '@/lib/overlay-props';
-import { DEFAULT_LAYOUT, sanitizeLayout, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { DEFAULT_LAYOUT, sanitizeLayout, type ElementId, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import {
   VARIANT_LABELS,
@@ -53,7 +53,8 @@ const TARGET_SECTIONS: Record<string, [string, string?]> = {
   showlabel: ['showoff', 'Label'],
   strip: ['pack', 'Cards under the card'],
   heading: ['collection', 'What to show'],
-  collection: ['collection', 'Layout'],
+  serial: ['variants', 'Label'],
+  grid: ['collection', 'Layout'],
 };
 /** The preview element a panel section edits, or '' (section keys look like `pack/Label` or `variants.shiny/Label`). */
 export const targetForSection = (sectionKey: string) => {
@@ -128,6 +129,7 @@ export interface OverlayEditorContextValue {
   placement: Placement;
   layoutCat: boolean;
   dragging: boolean;
+  selected: string;
   layoutOf: (k: string) => OverlayLayout;
 
   // Navigation & Category
@@ -315,7 +317,7 @@ export function OverlayEditorProvider({
   const [notice, setNotice] = useState('');
   const boxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const drag = useRef<{ view: Mode; ox: number; oy: number } | null>(null);
+  const drag = useRef<{ view: Mode; id: string | null; ox: number; oy: number } | null>(null);
   const [selected, setSelected] = useState('');
 
   const [zoom, setZoom] = useState(1);
@@ -720,30 +722,50 @@ export function OverlayEditorProvider({
   const layoutMoved =
     (moved(layout.pack) ? 1 : 0) +
     (moved(layout.collection) ? 1 : 0) +
+    Object.keys(layout.pack.elements ?? {}).length +
+    Object.keys(layout.collection.elements ?? {}).length +
     (layout.width !== DEFAULT_LAYOUT.width || layout.height !== DEFAULT_LAYOUT.height ? 1 : 0);
   const layoutCat = category === 'layout' && !isPack;
   // The selected thing can be moved when layout is editable (global or a scene), not in a pack override.
   const dragging = !!selected && !isPack;
-  const viewOf = (t: string): Mode => (t === 'heading' || t === 'collection' ? 'collection' : 'pack');
+  const viewOf = (t: string): Mode => (t === 'heading' || t === 'grid' ? 'collection' : 'pack');
 
   const moveView = (view: Mode, ox: number, oy: number) =>
     setLayoutVals(l => ({ ...l, [view]: { ...l[view], offsetX: ox, offsetY: oy } }));
 
-  const dragTo = (target: string, dx: number, dy: number, alt: boolean) => {
+  // One part of a view (the label, the bar...) moved on its own; back at its normal spot it is dropped from the layout.
+  const elementAt = (view: Mode, id: string) => layout[view].elements?.[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 };
+  const moveElement = (view: Mode, id: string, ox: number, oy: number) =>
+    setLayoutVals(l => {
+      const elements = { ...l[view].elements };
+      const cur = elements[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 };
+      if (ox === 0 && oy === 0 && cur.scale === 1) delete elements[id as ElementId];
+      else elements[id as ElementId] = { ...cur, offsetX: ox, offsetY: oy };
+      return { ...l, [view]: { ...l[view], elements } };
+    });
+
+  // Shift+drag moves the whole view; a plain drag moves just the part that was grabbed.
+  const dragTo = (target: string, dx: number, dy: number, alt: boolean, shift: boolean) => {
     if (isPack) return;
     if (!drag.current) {
       const view = viewOf(target);
       commit();
-      drag.current = { view, ox: layout[view].offsetX, oy: layout[view].offsetY };
+      const id = shift ? null : target;
+      const start = id ? elementAt(view, id) : layout[view];
+      drag.current = { view, id, ox: start.offsetX, oy: start.offsetY };
     }
-    let nx = Math.round(drag.current.ox + dx);
-    let ny = Math.round(drag.current.oy + dy);
+    const { view, id } = drag.current;
+    // A part sits inside the view's scale, so the pointer's distance is divided by it to keep the part under the cursor.
+    const k = id ? layout[view].scale || 1 : 1;
+    let nx = Math.round(drag.current.ox + dx / k);
+    let ny = Math.round(drag.current.oy + dy / k);
     if (snapOn && !alt) {
       const near = Math.max(2, Math.round(8 / fit));
       nx = Math.abs(nx) <= near ? 0 : Math.round(nx / 10) * 10;
       ny = Math.abs(ny) <= near ? 0 : Math.round(ny / 10) * 10;
     }
-    moveView(drag.current.view, nx, ny);
+    if (id) moveElement(view, id, nx, ny);
+    else moveView(view, nx, ny);
   };
 
   const dragEnd = () => {
@@ -763,7 +785,8 @@ export function OverlayEditorProvider({
     if (!m) return false;
     if (!dragging) return true;
     const view = viewOf(selected);
-    setLayoutVals(l => ({ ...l, [view]: { ...l[view], offsetX: l[view].offsetX + m[0], offsetY: l[view].offsetY + m[1] } }));
+    const cur = elementAt(view, selected);
+    moveElement(view, selected, cur.offsetX + m[0], cur.offsetY + m[1]);
     return true;
   };
 
@@ -783,9 +806,9 @@ export function OverlayEditorProvider({
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.source !== frameRef.current?.contentWindow) return;
-      const data = e.data as { type?: string; target?: string; dx?: number; dy?: number; alt?: boolean; key?: string; shift?: boolean } | null;
+      const data = e.data as { type?: string; target?: string; dx?: number; dy?: number; alt?: boolean; shift?: boolean; key?: string } | null;
       if (data?.type === 'drag' && data.target && Number.isFinite(data.dx) && Number.isFinite(data.dy)) {
-        live.current.dragTo(data.target, data.dx as number, data.dy as number, !!data.alt);
+        live.current.dragTo(data.target, data.dx as number, data.dy as number, !!data.alt, !!data.shift);
         return;
       }
       if (data?.type === 'dragend') return live.current.dragEnd();
@@ -857,6 +880,7 @@ export function OverlayEditorProvider({
     placement,
     layoutCat,
     dragging,
+    selected,
     layoutOf,
     category,
     setCategory,

@@ -6,10 +6,19 @@
 // pack opening and for the collection view, because they are different shapes: each has its own `scale`
 // and offsets, in design-stage pixels, applied on top of that fit.
 
+/** Movable parts of each view. They match the widget's `data-edit` tags (the collection grid is `grid`). */
+export const ELEMENT_IDS = {
+  pack: ['card', 'label', 'serial', 'bar', 'got', 'strip', 'showlabel'],
+  collection: ['heading', 'grid'],
+} as const;
+export type ElementId = (typeof ELEMENT_IDS)[keyof typeof ELEMENT_IDS][number];
+
 export interface Placement {
   scale: number;     // 1 = as designed; 0.9 = 10% smaller
   offsetX: number;   // design px, + = right
   offsetY: number;   // design px, + = down
+  /** Single parts moved on their own, relative to where the part normally sits. Absent = every part at its normal spot. */
+  elements?: Partial<Record<ElementId, Omit<Placement, 'elements'>>>;
 }
 
 export interface OverlayLayout {
@@ -80,10 +89,30 @@ export function sanitizePlacement(input: unknown, fallback: Placement = DEFAULT_
 export function sanitizeLayout(input: unknown): OverlayLayout {
   const i = (input && typeof input === 'object' ? input : {}) as Loose;
   const legacy = sanitizePlacement(i); // flat scale/offsetX/offsetY from before the split (defaults if absent)
+  const width = Math.round(clamp(num(i.width, DEFAULT_LAYOUT.width), 320, 3840));
+  const height = Math.round(clamp(num(i.height, DEFAULT_LAYOUT.height), 240, 2160));
   return {
-    width:  Math.round(clamp(num(i.width,  DEFAULT_LAYOUT.width),  320, 3840)),
-    height: Math.round(clamp(num(i.height, DEFAULT_LAYOUT.height), 240, 2160)),
-    pack:       sanitizePlacement(i.pack, legacy),
-    collection: sanitizePlacement(i.collection, legacy),
+    width,
+    height,
+    pack:       withElements(sanitizePlacement(i.pack, legacy), i.pack, 'pack', width, height),
+    collection: withElements(sanitizePlacement(i.collection, legacy), i.collection, 'collection', width, height),
   };
+}
+
+/** Adds the view's moved parts: unknown ids and ids of the other view are dropped, untouched (default) parts are omitted. */
+function withElements(p: Placement, raw: unknown, view: LayoutMode, width: number, height: number): Placement {
+  const src = ((raw && typeof raw === 'object' ? (raw as Loose).elements : null) ?? {}) as Loose;
+  const out: NonNullable<Placement['elements']> = {};
+  for (const id of ELEMENT_IDS[view]) {
+    const e = src[id];
+    if (!e || typeof e !== 'object') continue;
+    const i = e as Loose;
+    const el = {
+      scale:   Math.round(clamp(num(i.scale, 1), 0.25, 3) * 100) / 100,
+      offsetX: Math.round(clamp(num(i.offsetX, 0), -width, width)),
+      offsetY: Math.round(clamp(num(i.offsetY, 0), -height, height)),
+    };
+    if (el.scale !== 1 || el.offsetX !== 0 || el.offsetY !== 0) out[id] = el;
+  }
+  return Object.keys(out).length ? { ...p, elements: out } : p;
 }
