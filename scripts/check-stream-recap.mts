@@ -117,6 +117,14 @@ await kv.set('twitch:live:since', Date.now() - H);
 await live.finishStream(); await sleep(200);
 ok(hits.length === 0 && !(await live.getLatestRecap()), 'a stream with no pulls posts nothing');
 
+// Mix It Up's stream start / end hint (POST /api/webhooks/stream)
+await reset();
+await kv.del('twitch:live', 'twitch:live:hint');
+ok((await live.setLiveFromHint(true)).live && (await kv.get<{ live: boolean }>('twitch:live'))?.live === true, 'a live hint marks the stream live at once');
+ok(typeof (await kv.get('twitch:live:since')) === 'number', 'a live hint records the stream start');
+ok((await kv.get<{ live: boolean }>('twitch:live:hint'))?.live === true, 'a live hint is stored for Helix to respect');
+ok(!(await live.setLiveFromHint(false)).live && !(await kv.get('twitch:live:since')), 'an offline hint ends the stream and clears the marker');
+
 server.close();
 console.log('stream recap ok');
 process.exit(0);

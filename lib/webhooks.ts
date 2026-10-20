@@ -113,11 +113,15 @@ function sameSecret(given: string, expected: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/** Whether a body's `secret` is the incoming webhook secret. */
+export async function incomingSecretValid(secret: unknown): Promise<boolean> {
+  return typeof secret === 'string' && sameSecret(secret, (await getWebhookSettings()).incomingSecret);
+}
+
 /** Validates the shared secret and normalizes `username` for MixItUp-style incoming webhooks. */
 export async function parseIncomingWebhook(req: Request): Promise<IncomingWebhook> {
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-  const settings = await getWebhookSettings();
-  if (typeof body.secret !== 'string' || !sameSecret(body.secret, settings.incomingSecret)) {
+  if (!(await incomingSecretValid(body.secret))) {
     return { ok: false, response: NextResponse.json({ error: 'Invalid secret' }, { status: 401 }) };
   }
   const username = typeof body.username === 'string' ? body.username.toLowerCase().trim() : '';

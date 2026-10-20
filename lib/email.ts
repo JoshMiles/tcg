@@ -216,7 +216,7 @@ export async function emailNotice(user: string, notice: Notice): Promise<void> {
   } catch { /* best effort */ }
 }
 
-/** Daily cron: send what the 15 minute window held back. */
+/** Minute cron: send what the 15 minute window held back. */
 export async function flushDueEmails(): Promise<number> {
   if (!emailConfigured()) return 0;
   let sent = 0;
