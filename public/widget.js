@@ -50,6 +50,12 @@ let PLACEMENTS = {
   collection: { scale: 1, offsetX: 0, offsetY: 0 },
 };
 
+// Parts moved on their own, per id (see lib/overlay-layout.ts ELEMENT_IDS); offsets are relative to the part's normal spot.
+const EL_IDS = ['card', 'label', 'serial', 'bar', 'got', 'strip', 'showlabel', 'heading', 'grid'];
+let ELEMENTS = {};
+
+const n0 = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+
 function applyLayout(layout) {
   if (layout) {
     const n = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
@@ -67,6 +73,7 @@ function applyLayout(layout) {
         offsetY: n(p.offsetY, PLACEMENTS[mode].offsetY),
       };
     }
+    ELEMENTS = Object.assign({}, layout.pack && layout.pack.elements, layout.collection && layout.collection.elements);
   }
   const fit = Math.min(window.innerWidth / STAGE.width, window.innerHeight / STAGE.height);
   const root = document.documentElement.style;
@@ -74,6 +81,12 @@ function applyLayout(layout) {
   root.setProperty('--stage-h', STAGE.height + 'px');
   root.setProperty('--stage-scale', String(fit));
   // Offsets are in design pixels and applied inside the scaled stage, so they scale with the fit automatically.
+  for (const id of EL_IDS) {
+    const e = ELEMENTS[id] || {};
+    root.setProperty('--el-' + id + '-x', n0(e.offsetX) + 'px');
+    root.setProperty('--el-' + id + '-y', n0(e.offsetY) + 'px');
+    root.setProperty('--el-' + id + '-s', String(typeof e.scale === 'number' && e.scale > 0.05 ? e.scale : 1));
+  }
   root.setProperty('--pack-scale', String(PLACEMENTS.pack.scale));
   root.setProperty('--pack-x', PLACEMENTS.pack.offsetX + 'px');
   root.setProperty('--pack-y', PLACEMENTS.pack.offsetY + 'px');
@@ -247,7 +260,7 @@ function showStatic(mode) {
       cardLabel.style.opacity = '1';
       cardLabel.style.visibility = 'visible';
       showSerial(theater, PS, { n: 3, mult: 2.8, uid: 1023381 });
-      editable(theater.cardBox.querySelector('.serial-badge'), 'label', 'Click to edit the label and edition badge');
+      editable(theater.cardBox.querySelector('.serial-badge'), 'serial', 'Click to edit the edition badge');
       const burst = burstSpec(PS, variant);
       radialContainer.style.opacity = String(burst.opacity);
       if (!burst.on) radialContainer.style.display = 'none';
@@ -280,7 +293,7 @@ function showStatic(mode) {
     cardInfo.style.transform = 'scale(1)';
     userText.textContent = headingText(P, 'Preview');
     editable(userText, 'heading', 'Click to edit the heading');
-    editable(miniList, 'collection', 'Click to edit the collection grid');
+    editable(miniList, 'grid', 'Click to edit the collection grid');
     if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
     const opts = listOpts(P, false);
     if (opts.perRow > 0) wrapper.style.maxWidth = 'none';
@@ -305,7 +318,7 @@ if (PREVIEW) {
     if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 3) return;
     press.moved = true;
     const fit = parseFloat(document.documentElement.style.getPropertyValue('--stage-scale')) || 1;
-    toParent({ type: 'drag', target: press.target, dx: (e.clientX - press.x) / fit, dy: (e.clientY - press.y) / fit, alt: e.altKey });
+    toParent({ type: 'drag', target: press.target, dx: (e.clientX - press.x) / fit, dy: (e.clientY - press.y) / fit, alt: e.altKey, shift: e.shiftKey });
   });
   const endPress = (e) => {
     if (!press || e.pointerId !== press.id) return;
@@ -321,7 +334,7 @@ if (PREVIEW) {
   document.addEventListener('pointerup', endPress);
   document.addEventListener('pointercancel', endPress);
   // Selected element: a solid outline (CSS, by body[data-selected]) plus a name tag kept on top of it.
-  const TAG_NAMES = { card: 'Card', label: 'Label', bar: 'Name bar', got: 'Got line', strip: 'Card strip', showlabel: 'Show-off label', heading: 'Heading', collection: 'Collection' };
+  const TAG_NAMES = { card: 'Card', label: 'Label', bar: 'Name bar', got: 'Got line', strip: 'Card strip', showlabel: 'Show-off label', serial: 'Edition badge', heading: 'Heading', grid: 'Collection' };
   const selTag = document.createElement('div');
   selTag.className = 'edit-tag';
   document.body.appendChild(selTag);
@@ -943,7 +956,9 @@ function styleShowLabel(el, P) {
   el.style.fontSize = pv(P, 'show.labelSize', 14) + 'px';
   applyTextFont(el, pv(P, 'show.labelFont', 'display'));
   const x = pv(P, 'show.labelX', 0), y = pv(P, 'show.labelY', 0);
-  if (x || y) el.style.translate = x + 'px ' + y + 'px';
+  // The Overlay Editor's own move of this label (the pack opening's "showlabel" part) adds to the nudge above.
+  el.style.translate = 'calc(' + x + 'px + var(--el-showlabel-x, 0px)) calc(' + y + 'px + var(--el-showlabel-y, 0px))';
+  el.style.scale = 'var(--el-showlabel-s, 1)';
 }
 const headingText = (P, user) => String(pv(P, 'collection.headingText', "{user}'s collection:")).split('{user}').join(user || 'Someone');
 

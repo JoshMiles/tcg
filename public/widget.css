@@ -186,6 +186,18 @@
    standalone translate / scale properties, so they stack with the animations' own transforms instead of fighting them. */
 .card-wrapper.is-pack       { translate: var(--pack-x, 0px) var(--pack-y, 0px); scale: var(--pack-scale, 1); }
 .card-wrapper.is-collection { translate: var(--col-x, 0px)  var(--col-y, 0px);  scale: var(--col-scale, 1); }
+
+/* Parts moved on their own in the Overlay Editor (widget.js applyLayout sets --el-<id>-x / -y / -s, design px). Standalone
+   translate / scale, so they stack with each reveal's keyframes (which animate transform and rotate, never these).
+   Parts inside .card-box divide by --card-scale so an offset is design px, matching the pointer. */
+.main-card         { translate: calc(var(--el-card-x, 0px) / var(--card-scale, 1))  calc(var(--el-card-y, 0px) / var(--card-scale, 1));  scale: var(--el-card-s, 1); }
+.card-label        { translate: calc(var(--el-label-x, 0px) / var(--card-scale, 1)) calc(var(--el-label-y, 0px) / var(--card-scale, 1)); scale: var(--el-label-s, 1); }
+.serial-badge      { translate: calc(var(--el-serial-x, 0px) / var(--card-scale, 1)) calc(var(--el-serial-y, 0px) / var(--card-scale, 1)); scale: var(--el-serial-s, 1); }
+.card-info-overlay { translate: calc(var(--el-bar-x, 0px) / var(--card-scale, 1))   calc(var(--el-bar-y, 0px) / var(--card-scale, 1));   scale: var(--el-bar-s, 1); }
+.is-pack .user-text      { translate: var(--el-got-x, 0px)   var(--el-got-y, 0px);   scale: var(--el-got-s, 1); }
+.is-pack .card-mini-list { translate: var(--el-strip-x, 0px) var(--el-strip-y, 0px); scale: var(--el-strip-s, 1); }
+.is-collection .user-text      { translate: var(--el-heading-x, 0px) var(--el-heading-y, 0px); scale: var(--el-heading-s, 1); }
+.is-collection .card-mini-list { translate: var(--el-grid-x, 0px)    var(--el-grid-y, 0px);    scale: var(--el-grid-s, 1); }
 /* The pack opening isn't symmetric around the wrapper's centre: at its peak the card and tear strip swing
    ~425px above it but only ~208px below. Nudge pack draws down so the animation (measured -425..+208px)
    sits in the middle of the stage. Collections aren't affected. */
@@ -575,7 +587,8 @@
 .preview-edit[data-selected="card"] [data-edit="card"], .preview-edit[data-selected="label"] [data-edit="label"],
 .preview-edit[data-selected="bar"] [data-edit="bar"], .preview-edit[data-selected="got"] [data-edit="got"],
 .preview-edit[data-selected="strip"] [data-edit="strip"], .preview-edit[data-selected="showlabel"] [data-edit="showlabel"],
-.preview-edit[data-selected="heading"] [data-edit="heading"], .preview-edit[data-selected="collection"] [data-edit="collection"] {
+.preview-edit[data-selected="serial"] [data-edit="serial"],
+.preview-edit[data-selected="heading"] [data-edit="heading"], .preview-edit[data-selected="grid"] [data-edit="grid"] {
   outline: 2px solid rgba(250, 204, 21, 1); outline-offset: 3px;
 }
 .edit-tag { display: none; position: fixed; z-index: 99999; pointer-events: none; padding: 1px 6px; border-radius: 4px;

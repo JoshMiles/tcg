@@ -1,17 +1,18 @@
 'use client';
-import { DEFAULT_LAYOUT, DEFAULT_PLACEMENT, LAYOUT_PRESETS, VERTICAL_LAYOUT_PRESETS, isVertical, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { DEFAULT_LAYOUT, DEFAULT_PLACEMENT, ELEMENT_IDS, LAYOUT_PRESETS, VERTICAL_LAYOUT_PRESETS, isVertical, type ElementId, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
 import { Segmented, btn, ghost, inputCls } from './editor-controls';
 import type { Mode } from './editor-types';
 
 // The Layout category: stage size and where each view sits. `layoutVals` is the raw (still being typed) layout, `layout` the sanitized copy.
 export function LayoutPanel({
-  layout, layoutVals, isScene, sceneName, isPack, mode, setMode, setLayoutVals, setPlacement, setValue, setNotice,
+  layout, layoutVals, isScene, sceneName, isPack, selected, mode, setMode, setLayoutVals, setPlacement, setValue, setNotice,
 }: {
   layout: OverlayLayout;
   layoutVals: OverlayLayout;
   isScene: boolean;
   sceneName: string;
   isPack: boolean;
+  selected: string;
   mode: Mode;
   setMode: (m: Mode) => void;
   setLayoutVals: (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout)) => void;
@@ -21,7 +22,10 @@ export function LayoutPanel({
 }) {
   const placement = layout[mode];
   const setSize = (patch: Partial<Pick<OverlayLayout, 'width' | 'height'>>) => setLayoutVals(l => ({ ...l, ...patch }));
-  const moved = (p: Placement) => p.scale !== 1 || p.offsetX !== 0 || p.offsetY !== 0;
+  const moved = (p: Placement) => p.scale !== 1 || p.offsetX !== 0 || p.offsetY !== 0 || !!Object.keys(p.elements ?? {}).length;
+  const elements = placement.elements ?? {};
+  const selectedMoved = (ELEMENT_IDS[mode] as readonly string[]).includes(selected) && !!elements[selected as ElementId];
+  const setElements = (next: Placement['elements']) => setLayoutVals(l => ({ ...l, [mode]: { ...l[mode], elements: next } }));
   const viewName = mode === 'pack' ? 'pack opening' : 'collection view';
   return (
     <div className="p-3 space-y-5">
@@ -101,7 +105,12 @@ export function LayoutPanel({
             <input type="number" value={placement.offsetY} onChange={e => setPlacement({ offsetY: Number(e.target.value) })} className={`${inputCls} block w-24`} />
           </label>
         </div>
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Each part (label, bar, card strip...) also moves on its own: drag it, or select it and use the arrow keys. <strong className="text-gray-400">Shift+drag</strong> moves the whole view.
+        </p>
         <div className="flex flex-wrap gap-2">
+          {selectedMoved && <button type="button" onClick={() => { const { [selected as ElementId]: _gone, ...rest } = elements; setElements(rest); }} className={ghost}>Reset {selected}</button>}
+          {Object.keys(elements).length > 0 && <button type="button" onClick={() => setElements({})} className={ghost}>Reset all elements</button>}
           <button type="button" onClick={() => setPlacement({ offsetX: 0, offsetY: 0 })} className={ghost}>Center</button>
           <button type="button" onClick={() => setPlacement({ ...DEFAULT_PLACEMENT })} className={`${btn} text-gray-400 hover:text-white`}>Reset {viewName}</button>
         </div>

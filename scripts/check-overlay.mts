@@ -13,7 +13,7 @@ const versions = await import('../lib/overlay-versions');
 const diff = await import('../lib/overlay-diff');
 const perf = await import('../lib/overlay-perf');
 const { DEFAULT_PROPS, PROP_BY_KEY } = await import('../lib/overlay-props');
-const { DEFAULT_LAYOUT } = await import('../lib/overlay-layout');
+const { DEFAULT_LAYOUT, sanitizeLayout } = await import('../lib/overlay-layout');
 const kvLib = await import('../lib/kv');
 const sbx = await import('../lib/sandbox');
 const { runInSandbox, prodKv } = await import('../lib/db');
@@ -134,6 +134,12 @@ ok(d.length === 1 && d[0].to === 'off' && d[0].from === 'on', 'diff shows a swit
 eq(diff.diffProps('x', { 'variant.shiny.glow': false }, { 'variant.shiny.glow': false }, () => undefined), [], 'identical values do not differ');
 const lay = diff.diffLayout(DEFAULT_LAYOUT, { ...DEFAULT_LAYOUT, width: 1920, pack: { ...DEFAULT_LAYOUT.pack, offsetX: 40 } });
 ok(lay.length === 2, 'layout diff lists size and offset');
+// element layers
+eq(sanitizeLayout({ width: 1280, height: 720, pack: { scale: 1, offsetX: 5, offsetY: 0 } }).pack, { scale: 1, offsetX: 5, offsetY: 0 }, 'an old layout reads back with no elements');
+const el = sanitizeLayout({ pack: { elements: { label: { offsetX: 12.4, offsetY: -3 }, bar: { scale: 1, offsetX: 0, offsetY: 0 }, heading: { offsetX: 9 }, nope: { offsetX: 9 }, got: { scale: 9, offsetX: 99999, offsetY: 0 } } }, collection: { elements: { heading: { offsetY: 4 }, card: { offsetX: 1 } } } });
+eq(el.pack.elements, { label: { scale: 1, offsetX: 12, offsetY: -3 }, got: { scale: 3, offsetX: 1280, offsetY: 0 } }, 'unknown and wrong-view ids are dropped, defaults omitted, values clamped');
+eq(el.collection.elements, { heading: { scale: 1, offsetX: 0, offsetY: 4 } }, 'the collection view keeps only its own parts');
+ok(diff.diffLayout(DEFAULT_LAYOUT, el).some(l => l.label.includes('label')), 'layout diff lists a moved element');
 eq(diff.diffProps('x', { 'bogus.key': 1 }, {}, () => undefined), [], 'unknown keys are ignored');
 
 // ── Engine, in a sandbox namespace ──
@@ -197,6 +203,8 @@ await runInSandbox(box.id, async () => {
     scene = (await settings.getPreset(id))!;
     eq(scene.props['collection.cardWidth'], 48, 'a scene override equal to the default survives');
     eq(scene.layout?.pack, { scale: 1.3, offsetX: 0, offsetY: -50 }, 'updateScene stores the new layout');
+    await settings.updateScene(id, { props: { 'collection.cardWidth': 48 }, layout: { ...vertical, pack: { ...vertical.pack, elements: { label: { scale: 1, offsetX: 7, offsetY: 0 } } } } });
+    eq((await settings.getPreset(id))!.layout?.pack.elements, { label: { scale: 1, offsetX: 7, offsetY: 0 } }, 'a scene layout keeps its own elements');
     ok(!(await settings.updateScene('nope', { props: {} })), 'updating a scene that does not exist does nothing');
 
     // The overlay's config: global by default, the scene's layout and values on top with ?preset=.

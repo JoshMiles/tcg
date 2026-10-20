@@ -1,5 +1,5 @@
 import { PROP_BY_KEY, type PropDef, type PropValue, type PropValues } from './overlay-props';
-import type { OverlayLayout } from './overlay-layout';
+import type { OverlayLayout, Placement } from './overlay-layout';
 
 // Client-safe "what changed" helpers for the Overlay Editor: the Review changes list, and how far a saved version is from the current edit.
 
@@ -46,6 +46,11 @@ export function diffLayout(before: OverlayLayout, after: OverlayLayout): DiffLin
     add(`${name} size`, `${Math.round(before[view].scale * 100)}%`, `${Math.round(after[view].scale * 100)}%`);
     add(`${name} offset X`, before[view].offsetX, after[view].offsetX);
     add(`${name} offset Y`, before[view].offsetY, after[view].offsetY);
+    const [be, ae] = [before[view].elements ?? {}, after[view].elements ?? {}] as Record<string, Placement | undefined>[];
+    for (const id of new Set([...Object.keys(be), ...Object.keys(ae)])) {
+      const fmt = (e?: Placement) => (e ? `${e.offsetX}, ${e.offsetY} at ${Math.round(e.scale * 100)}%` : 'normal spot');
+      add(`${name} ${id}`, fmt(be[id]), fmt(ae[id]));
+    }
   }
   return out;
 }
