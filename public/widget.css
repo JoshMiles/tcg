@@ -188,11 +188,12 @@
 .card-wrapper.is-collection { translate: var(--col-x, 0px)  var(--col-y, 0px);  scale: var(--col-scale, 1); }
 
 /* Parts moved on their own in the Overlay Editor (widget.js applyLayout sets --el-<id>-x / -y / -s, design px). Standalone
-   translate / scale, so they stack with each reveal's keyframes (which animate transform and rotate, never these). */
-.main-card         { translate: var(--el-card-x, 0px)  var(--el-card-y, 0px);  scale: var(--el-card-s, 1); }
-.card-label        { translate: var(--el-label-x, 0px) var(--el-label-y, 0px); scale: var(--el-label-s, 1); }
-.serial-badge      { translate: var(--el-serial-x, 0px) var(--el-serial-y, 0px); scale: var(--el-serial-s, 1); }
-.card-info-overlay { translate: var(--el-bar-x, 0px)   var(--el-bar-y, 0px);   scale: var(--el-bar-s, 1); }
+   translate / scale, so they stack with each reveal's keyframes (which animate transform and rotate, never these).
+   Parts inside .card-box divide by --card-scale so an offset is design px, matching the pointer. */
+.main-card         { translate: calc(var(--el-card-x, 0px) / var(--card-scale, 1))  calc(var(--el-card-y, 0px) / var(--card-scale, 1));  scale: var(--el-card-s, 1); }
+.card-label        { translate: calc(var(--el-label-x, 0px) / var(--card-scale, 1)) calc(var(--el-label-y, 0px) / var(--card-scale, 1)); scale: var(--el-label-s, 1); }
+.serial-badge      { translate: calc(var(--el-serial-x, 0px) / var(--card-scale, 1)) calc(var(--el-serial-y, 0px) / var(--card-scale, 1)); scale: var(--el-serial-s, 1); }
+.card-info-overlay { translate: calc(var(--el-bar-x, 0px) / var(--card-scale, 1))   calc(var(--el-bar-y, 0px) / var(--card-scale, 1));   scale: var(--el-bar-s, 1); }
 .is-pack .user-text      { translate: var(--el-got-x, 0px)   var(--el-got-y, 0px);   scale: var(--el-got-s, 1); }
 .is-pack .card-mini-list { translate: var(--el-strip-x, 0px) var(--el-strip-y, 0px); scale: var(--el-strip-s, 1); }
 .is-collection .user-text      { translate: var(--el-heading-x, 0px) var(--el-heading-y, 0px); scale: var(--el-heading-s, 1); }
