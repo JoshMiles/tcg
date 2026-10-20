@@ -16,7 +16,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 | # | Item | Status | Size |
 |---|------|--------|------|
-| 32.4 | Discord link: relink and one-account claim | Ready | S |
 | 32.6 | Variant scripts and the Shiny label leftovers | Ready | S |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
@@ -24,11 +23,7 @@ Tracks 25 to 31 and 33 are done and archived in `docs/archive/roadmap-history.md
 
 ## Track 32: review of PRs #297 to #310 (2026-10-20)
 
-Those PRs were merged without a review. Findings were checked against `main`. One PR per item, each from up-to-date `origin/main`. Each fix adds a regression case to the matching `scripts/check-*.mts`. 32.4 to 32.6 touch different files and can run in parallel.
-
-### 32.4 Discord link (Ready, S)
-- `saveDiscordLink` (`lib/discord-user.ts`) leaves the old `discord:user:<id>` index when a collector links a different Discord account, so that account can never be linked again. Delete the old index.
-- Claim the index with `set nx` before writing the link, so two collectors cannot link one Discord account. Add a 30 second cooldown on the test DM. Log only the status code of Discord errors.
+Those PRs were merged without a review. Findings were checked against `main`. One PR per item, each from up-to-date `origin/main`. Each fix adds a regression case to the matching `scripts/check-*.mts`. 32.6 is the last item.
 
 ### 32.6 Variant scripts and labels (Ready, S)
 - `scripts/migrate-variant-rarity.mts` and `scripts/audit-variant-rarity.mts` cannot run. They import functions that are not exported, read `cardId` instead of `cardNumber`, compare string ids with numbers, and use a 100000 offset instead of `VARIANT_OFFSET`. Delete them unless someone needs the remap. If it is kept, rewrite it against the real APIs with a mock-KV check.
