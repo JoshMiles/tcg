@@ -177,33 +177,34 @@ async function editBuffs<T>(user: string | null, fn: (list: ActiveBuff[]) => { b
 }
 
 export type ApplyBuffOutcome =
-  | { ok: true; buffs: ActiveBuff[]; refreshed: boolean }
+  | { ok: true; buffs: ActiveBuff[]; refreshed: boolean; /** A Brie Bucks grant that left some viewers unpaid: finish it with Retry unpaid. */ partial?: { grantId: string; unpaid: number; total: number } }
   | { ok: false; reason: 'not_found' | 'already_active' | 'max_buffs' | 'invalid_type' | 'community_disallowed' | 'no_season' | 'mixitup_off' | 'mixitup_failed' };
 
-/** A one-shot buff (score-bonus, currency-grant) acts now on the viewer, or on every current-season player for community scope. */
+/** A one-shot buff (score-bonus, currency-grant) acts now on the viewer, or on everyone in stream chat for community scope. */
 async function applyInstantBuff(def: BuffDef, username: string, options?: { seasonId?: string; dryRun?: boolean }): Promise<ApplyBuffOutcome> {
-  const mix = def.type === 'currency-grant' ? await import('./mixitup') : null;
-  const settings = mix ? await mix.getMixItUpSettings() : null;
-  if (mix && settings && (!settings.enabled || !settings.addUrl)) return { ok: false, reason: 'mixitup_off' };
-  const season = options?.seasonId ? await getSeason(options.seasonId) : await getActiveSeason();
-  if (!season) return { ok: false, reason: 'no_season' };
+  const community = def.scope === 'community';
+  const mix = await import('./mixitup');
+  const settings = await mix.getMixItUpSettings();
+  if (def.type === 'currency-grant' && (!settings.enabled || !settings.addUrl)) return { ok: false, reason: 'mixitup_off' };
+  if (community && (!settings.enabled || !settings.viewersUrl)) return { ok: false, reason: 'mixitup_off' };
+  const season = def.type === 'score-bonus' ? (options?.seasonId ? await getSeason(options.seasonId) : await getActiveSeason()) : null;
+  if (def.type === 'score-bonus' && !season) return { ok: false, reason: 'no_season' };
   const done: ApplyBuffOutcome = { ok: true, buffs: [], refreshed: false };
   if (options?.dryRun) return done;
 
   const amount = def.points ?? POINTS_DEFAULT;
-  const players = def.scope === 'community'
-    ? Object.entries(await getCollection(season.collectionName)).filter(([, e]) => e.length > 0).map(([u]) => u)
-    : [username.toLowerCase()];
-  if (def.type === 'score-bonus') {
+  let players = [username.toLowerCase()];
+  if (community) {
+    const v = await mix.fetchChatViewers(settings);
+    if (v.error) return { ok: false, reason: 'mixitup_failed' };
+    players = v.users;
+  }
+  if (season) {
     await addScoreBonus(season.collectionName, players, amount);
     return done;
   }
-  let failed = false;
-  for (let i = 0; i < players.length; i += 10) {
-    const rs = await Promise.all(players.slice(i, i + 10).map(u => mix!.grantCurrency(settings!, u, amount)));
-    if (rs.some(r => !r.applied)) failed = true;
-  }
-  return failed ? { ok: false, reason: 'mixitup_failed' } : done;
+  const g = await mix.startGrant(settings, def.name, amount, players);
+  return g.unpaid > 0 ? { ...done, partial: { grantId: g.id, unpaid: g.unpaid, total: g.total } } : done;
 }
 
 /**
@@ -410,8 +411,8 @@ export async function useTrainerCard(
     const refusal = (r: Extract<ApplyBuffOutcome, { ok: false }>): UseTrainerResult =>
       r.reason === 'already_active' ? { ok: false, status: 400, code: 'already_active', error: `Buff "${buffDef.name}" is already active.` }
       : r.reason === 'max_buffs' ? { ok: false, status: 400, error: 'You have reached the maximum number of active buffs.' }
-      : r.reason === 'mixitup_off' ? { ok: false, status: 400, error: 'This buff gives Brie Bucks, but Mix It Up is off or has no add address.' }
-      : r.reason === 'mixitup_failed' ? { ok: false, status: 502, error: 'Mix It Up did not accept the Brie Bucks, so the buff was not applied.' }
+      : r.reason === 'mixitup_off' ? { ok: false, status: 400, error: 'This buff needs Mix It Up, which is off or is missing an address it needs (add or chat viewers).' }
+      : r.reason === 'mixitup_failed' ? { ok: false, status: 502, error: 'Mix It Up did not answer, so the buff was not applied.' }
       : { ok: false, status: 400, error: 'Could not apply buff.' };
 
     // Check the buff can be applied first, then take the card, then apply it: a failed save then leaves no buff behind.
@@ -431,7 +432,7 @@ export async function useTrainerCard(
     }
 
     const durSummary = describeBuffDef(buffDef);
-    await recordAudit(u, 'Trainer card used', `${trainerCard.name}, ${buffDef.name}, ${durSummary}`);
+    await recordAudit(u, 'Trainer card used', `${trainerCard.name}, ${buffDef.name}, ${durSummary}${buffRes.partial ? `, ${buffRes.partial.unpaid} of ${buffRes.partial.total} unpaid (grant ${buffRes.partial.grantId})` : ''}`);
 
     await recordActivity({
       type: 'buff',
@@ -450,7 +451,9 @@ export async function useTrainerCard(
     return {
       ok: true,
       status: 200,
-      message: `Used ${trainerCard.name}! ${buffDef.name} is now active.`,
+      message: buffRes.partial
+        ? `Used ${trainerCard.name}! ${buffDef.name} reached some viewers; ${buffRes.partial.unpaid} are still unpaid and staff can retry them.`
+        : `Used ${trainerCard.name}! ${buffDef.name} is now active.`,
       cardName: trainerCard.name,
       buffName: buffDef.name,
     };

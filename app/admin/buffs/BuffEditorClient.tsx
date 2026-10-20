@@ -31,7 +31,7 @@ import {
 } from '@/lib/buffs-core';
 import { ArmedButton } from '../components/ArmedButton';
 import { Chip, EmptyState, Panel, fieldClass, selectClass } from '../components/ui';
-import { createBuffAction, deleteBuffAction, updateBuffAction } from '../buff-actions';
+import { createBuffAction, deleteBuffAction, retryGrantAction, updateBuffAction } from '../buff-actions';
 
 interface FormState {
   name: string;
@@ -84,11 +84,14 @@ export function BuffEditorClient({
   buffs,
   usages,
   mixItUpReady,
+  openGrants,
 }: {
   buffs: BuffDef[];
   usages: Record<string, BuffUsage>;
   /** Mix It Up is on and has an add address (needed by the Bonus Brie Bucks buff). */
   mixItUpReady: boolean;
+  /** Brie Bucks grants with viewers still unpaid. */
+  openGrants: { id: string; name: string; amount: number; unpaid: number; total: number }[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -178,6 +181,26 @@ export function BuffEditorClient({
             <Icon name="checkCircle" className="text-emerald-400 shrink-0" />
             <span>{notice}</span>
           </div>
+        )}
+
+        {openGrants.length > 0 && (
+          <Panel title="Unpaid Brie Bucks" icon="warning" hint="Retry pays only the viewers not marked paid, so nobody is paid twice.">
+            <ul className="divide-y divide-gray-800/70">
+              {openGrants.map(g => (
+                <li key={g.id} className="py-2 flex items-center justify-between gap-3 text-sm text-gray-200">
+                  <span>{g.name}: {g.unpaid} of {g.total} unpaid ({g.amount.toLocaleString('en-US')} each)</span>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => { setError(''); setNotice(''); startTransition(async () => { const r = await retryGrantAction(g.id); if (r.ok) setNotice('Everyone is paid.'); else setError(r.message); }); }}
+                    className="btn btn-xs border border-gray-700 bg-gray-900 text-gray-200 hover:border-gray-500"
+                  >
+                    Retry unpaid
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Panel>
         )}
 
         {buffs.length === 0 ? (
@@ -311,15 +334,15 @@ export function BuffEditorClient({
               {form.type === 'extra-pulls' && 'Raises per-stream pull limit by the magnitude while active. A base limit of 0 still means no limit.'}
               {form.type === 'extra-pack' && 'Grants pack credits. One credit is used instead of counting against the stream limit and waives the Brie Bucks cost for that pull.'}
               {form.type === 'rarity-boost' && 'Raises the draw weight of every rarity with 3 or more stars by 10% per magnitude point. Other rarities keep their weight, so their share drops.'}
-              {form.type === 'score-bonus' && 'Adds flat leaderboard points once, when applied: to the holder (self) or every player in the current season (community). Duration does not apply.'}
-              {form.type === 'currency-grant' && 'Adds Brie Bucks once, when applied, through the Mix It Up add address: to the holder (self) or every current-season player (community). Duration does not apply.'}
+              {form.type === 'score-bonus' && 'Adds flat leaderboard points once, when applied: to the holder (self) or everyone in stream chat (community, needs the Mix It Up chat viewers address). Duration does not apply.'}
+              {form.type === 'currency-grant' && 'Adds Brie Bucks once, when applied, through the Mix It Up add address: to the holder (self) or everyone in stream chat (community, needs the chat viewers address). Unpaid viewers can be retried. Duration does not apply.'}
               {form.type === 'grant-achievement' && 'Awards one built-in achievement permanently. Always personal (self), with no duration.'}
             </p>
           </fieldset>
 
           {form.type === 'currency-grant' && !mixItUpReady && (
             <p role="alert" className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
-              Mix It Up is off or has no add address, so this buff cannot be applied yet. Set it up on the <Link href="/admin/mixitup" className="underline">Mix It Up page</Link>.
+              Mix It Up is off or has no add address, so this buff cannot be applied yet (community scope also needs the chat viewers address). Set it up on the <Link href="/admin/mixitup" className="underline">Mix It Up page</Link>.
             </p>
           )}
 

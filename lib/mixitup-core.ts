@@ -18,6 +18,8 @@ export interface MixItUpSettings {
   deductUrl: string;
   /** Command that adds currency (the currency-grant buff). Empty = that buff cannot be applied. */
   addUrl: string;
+  /** Command that answers `{ users: string[] }`: who is in stream chat now. Community one-shot buffs go to them. */
+  viewersUrl: string;
   /** Sent as `secret` in every request so the command can check where it came from. */
   secret: string;
   currency: string;
@@ -40,7 +42,7 @@ export const MESSAGE_MAX = 400;
 const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vip: 0, moderator: 0, broadcaster: 0 };
 
 export const DEFAULT_MIXITUP: MixItUpSettings = {
-  enabled: false, balanceUrl: '', deductUrl: '', addUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
+  enabled: false, balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
   roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance',
 };
 
@@ -84,6 +86,7 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
     balanceUrl: text(r.balanceUrl, 500),
     deductUrl: text(r.deductUrl, 500),
     addUrl: text(r.addUrl, 500),
+    viewersUrl: text(r.viewersUrl, 500),
     secret: text(r.secret, 200),
     currency: text(r.currency, 40, d.currency) || d.currency,
     cost: num(r.cost, d.cost, 1, 1_000_000),
@@ -97,7 +100,7 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
 /** Checks the settings form. Returns the cleaned settings, or the first problem in words. */
 export function cleanMixItUpInput(raw: Record<string, unknown>): { ok: true; settings: MixItUpSettings } | { ok: false; message: string } {
   const s = normalizeMixItUp(raw);
-  for (const [key, label] of [['balanceUrl', 'balance address'], ['deductUrl', 'deduct address'], ['addUrl', 'add address']] as const) {
+  for (const [key, label] of [['balanceUrl', 'balance address'], ['deductUrl', 'deduct address'], ['addUrl', 'add address'], ['viewersUrl', 'chat viewers address']] as const) {
     const t = checkWebhookUrl(s[key]);
     if (!t.ok) return { ok: false, message: `The ${label}: ${t.error}` };
     s[key] = t.url;
@@ -124,6 +127,20 @@ export function parseBalance(body: unknown, field: string): number | null {
   let v = (body as Record<string, unknown>)[field];
   if (typeof v === 'string') v = Number(v.replace(/[,\s]/g, ''));
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : null;
+}
+
+export const VIEWERS_MAX = 5000;
+
+/** Chat viewers from a reply: `{ users: [...] }` or a bare array; lowercased, without @, deduplicated, capped. Null when the shape is wrong. */
+export function parseViewers(body: unknown): string[] | null {
+  const list = Array.isArray(body) ? body : body && typeof body === 'object' ? (body as Record<string, unknown>).users : null;
+  if (!Array.isArray(list)) return null;
+  const out = new Set<string>();
+  for (const v of list) {
+    const name = typeof v === 'string' ? v.replace(/^@/, '').trim().toLowerCase() : '';
+    if (name && out.size < VIEWERS_MAX) out.add(name);
+  }
+  return [...out];
 }
 
 /** Did Mix It Up say it applied the deduction? A 2xx answer counts unless the body sets ok / success / applied to false. */

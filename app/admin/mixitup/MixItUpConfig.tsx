@@ -44,6 +44,11 @@ export function MixItUpConfig({ settings: s, streamExtra }: { settings: MixItUpS
               <p className={help}>The command that gives currency. We send <code>{'{ action: "add", username, amount, currency, secret }'}</code>. Used by the Bonus Brie Bucks buff in the Buff Editor; without it that buff cannot be applied.</p>
             </div>
             <div>
+              <label className={label} htmlFor="mx-viewers">Chat viewers address (optional)</label>
+              <input id="mx-viewers" name="viewersUrl" defaultValue={s.viewersUrl} placeholder="Only needed for community buffs that pay out" className={input} />
+              <p className={help}>A command that answers <code>{'{ "users": ["name", ...] }'}</code> (or a plain list): who is in chat now. We send <code>{'{ action: "viewers", currency, secret }'}</code>. Community score and Brie Bucks buffs go to these viewers.</p>
+            </div>
+            <div>
               <label className={label} htmlFor="mx-secret">Shared secret (optional)</label>
               <input id="mx-secret" name="secret" defaultValue={s.secret} autoComplete="off" className={input} />
               <p className={help}>Sent as <code>secret</code> in every request, so the command can check it came from here.</p>
