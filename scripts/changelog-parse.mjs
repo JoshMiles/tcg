@@ -41,7 +41,7 @@ export function parseChangelogBody(body) {
   // Only the bulleted list counts: prose before it is skipped, and the first plain line after it ends the section, so a PR's own
   // description can never leak onto the public page.
   let title;
-  let audience = 'players';
+  let audience = ['players'];
   const tags = [];
   const items = [];
   let last = -1;
@@ -68,14 +68,18 @@ export function parseChangelogBody(body) {
 }
 
 /**
- * Who a PR's changelog is for, from its "Audience:" line: players (the public What's new page, the default), staff (the admin and mod
- * What's new page only) or both. "public" / "everyone" and "admin" / "mod" / "mods" / "admins" are accepted too.
+ * Who a PR's changelog is for, from its "Audience:" line: a sorted subset of players (the public What's new page, the default), admin
+ * and mod. "staff" means admin and mod; "both" / "all" / "everyone" mean all three.
  */
 export function parseAudience(v) {
   const words = String(v ?? '').toLowerCase().split(/[\s,/+&]+|\band\b/).filter(Boolean);
-  const players = words.some(w => ['players', 'player', 'public', 'viewers', 'everyone', 'both', 'all'].includes(w));
-  const staff = words.some(w => ['staff', 'admin', 'admins', 'mod', 'mods', 'moderators', 'both', 'all', 'everyone'].includes(w));
-  return players && staff ? 'both' : staff ? 'staff' : 'players';
+  const has = (...ws) => words.some(w => ws.includes(w));
+  const all = has('both', 'all', 'everyone');
+  const out = [];
+  if (all || has('admin', 'admins', 'staff')) out.push('admin');
+  if (all || has('mod', 'mods', 'moderators', 'staff')) out.push('mod');
+  if (all || has('players', 'player', 'public', 'viewers')) out.push('players');
+  return out.length ? out.sort() : ['players'];
 }
 
 /** Markdown a player would see as symbols: bold / italic markers, inline code and links (keeps the link text). */
@@ -107,7 +111,7 @@ export function entryFromPr(pr) {
   const tags = TAGS.filter(t => labels.includes(t) || parsed.tags.includes(t));
   const entry = { date: String(pr.merged_at).slice(0, 10), title, items: parsed.items };
   if (tags.length) entry.tags = tags;
-  if (parsed.audience !== 'players') entry.audience = parsed.audience;
+  if (parsed.audience.join() !== 'players') entry.audience = parsed.audience;
   entry.pr = pr.number;
   return entry;
 }

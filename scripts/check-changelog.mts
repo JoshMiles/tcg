@@ -1,6 +1,7 @@
 // The changelog: entries are well formed, newest-first order is not required in the file (the page sorts), no em dashes or old print
 // wording, and the "new since your last visit" dot logic. Pure. Run: npx tsx scripts/check-changelog.mts
-import { CHANGELOG, hasUnseenChanges, newestChangelogDate } from '../lib/changelog';
+import { ADMIN_CHANGELOG, CHANGELOG, MOD_CHANGELOG, hasUnseenChanges, newestChangelogDate } from '../lib/changelog';
+import { SITE_URL, featureRequestUrl, reportProblemUrl } from '../lib/site';
 
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
 
@@ -62,15 +63,26 @@ ok(prose && prose.items.join('|') === 'Cards flip faster.|Binder pages turn smoo
 ok(parseChangelogBody('## Changelog\nJust a paragraph, no list.') === null, 'a section without a list yields nothing');
 const md = parseChangelogBody('## Changelog\nTitle: **Faster** binder\n- **Bold** text, `code`, a [link](https://x.test) and *italic* words.');
 ok(md && md.title === 'Faster binder' && md.items[0] === 'Bold text, code, a link and italic words.', 'markdown is turned into plain text');
-// Audience: players (default), staff or both
+// Audience: any of players, admin, mod (sorted; players only is the default and is omitted from entries)
 const { parseAudience } = await import('./changelog-parse.mjs');
-ok(parseAudience('players') === 'players' && parseAudience('public') === 'players' && parseAudience('') === 'players', 'players is the default audience');
-ok(parseAudience('staff') === 'staff' && parseAudience('admin / mod') === 'staff' && parseAudience('Mods') === 'staff', 'staff, admin and mod mean staff');
-ok(parseAudience('both') === 'both' && parseAudience('players and staff') === 'both' && parseAudience('players, admins') === 'both', 'both, or players with staff, mean both');
+const aud = (v: string) => parseAudience(v).join();
+ok(aud('players') === 'players' && aud('public') === 'players' && aud('') === 'players' && aud('nonsense') === 'players', 'players is the default audience');
+ok(aud('staff') === 'admin,mod', 'staff means admin and mod');
+ok(aud('admin') === 'admin' && aud('Admins') === 'admin', 'admin is admin only');
+ok(aud('mod') === 'mod' && aud('Mods') === 'mod', 'mod is mod only');
+ok(aud('both') === 'admin,mod,players' && aud('all') === 'admin,mod,players', 'both and all mean all three');
+ok(aud('players, admin') === 'admin,players' && aud('players and staff') === 'admin,mod,players', 'players with staff words combine');
 const staffEntry = entryFromPr(pr(40, 'Pack workspace grid (20.2c)', '## Changelog\nAudience: staff\nTitle: Edit many cards at once\nTags: new\n- Packs have a spreadsheet view.'));
-ok(staffEntry && staffEntry.audience === 'staff' && staffEntry.title === 'Edit many cards at once' && staffEntry.tags?.join() === 'new', 'a staff entry keeps its audience, title and tags');
+ok(staffEntry && staffEntry.audience?.join() === 'admin,mod' && staffEntry.title === 'Edit many cards at once' && staffEntry.tags?.join() === 'new', 'a staff entry keeps its audience, title and tags');
 ok(entryFromPr(pr(41, 'Faster binder', '## Changelog\n- Pages turn faster.'))?.audience === undefined, 'a player entry has no audience field');
-ok(entryFromPr(pr(42, 'Both', '## Changelog\nAudience: both\n- Something everyone sees.'))?.audience === 'both', 'both is kept');
+ok(entryFromPr(pr(43, 'Nonsense', '## Changelog\nAudience: banana\n- x is better.'))?.audience === undefined, 'an unknown audience is omitted (players)');
+ok(entryFromPr(pr(42, 'Both', '## Changelog\nAudience: both\n- Something everyone sees.'))?.audience?.join() === 'admin,mod,players', 'both is kept as all three');
+ok(ADMIN_CHANGELOG.every(e => e.audience?.includes('admin')) && MOD_CHANGELOG.every(e => e.audience?.includes('mod')), 'the admin and mod lists hold only their own entries');
+ok(CHANGELOG.every(e => !e.audience || e.audience.includes('players')), 'the public list never holds staff-only entries');
+// Problem and feature links open the GitHub issue forms
+const bug = new URL(reportProblemUrl('/x'));
+ok(bug.searchParams.get('template') === 'bug_report.yml' && bug.searchParams.get('steps')?.includes(`${SITE_URL}/x`), 'reportProblemUrl picks the bug form and prefills the page');
+ok(featureRequestUrl().endsWith('/issues/new?template=feature_request.yml'), 'featureRequestUrl picks the feature form');
 ok(parseChangelogBody('## Changelog\nAudience: players\nTitle: \nTags: new\n- ')  === null, 'the untouched new template yields nothing');
 const tagged = entryFromPr(pr(34, 'Binder speed', '## Changelog\nTitle: A faster binder\nTags: fixed, Improved, shiny\n- Pages turn faster.'));
 ok(tagged && tagged.tags?.join() === 'improved,fixed' && tagged.items.length === 1, 'a Tags: line gives the pills (known tags only, page order)');

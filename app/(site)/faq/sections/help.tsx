@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { FEEDBACK_LIMITS } from '@/lib/feedback-core';
-import { CHANNEL_NAME, CHANNEL_URL, reportProblemUrl } from '@/lib/site';
+import { CHANNEL_NAME, CHANNEL_URL, featureRequestUrl, reportProblemUrl } from '@/lib/site';
 import { Section, Q } from '../parts';
 
 export function HelpSection({ title = 'Something not working?', extra }: { title?: string; extra?: ReactNode } = {}) {
@@ -22,7 +22,7 @@ export function HelpSection({ title = 'Something not working?', extra }: { title
         Press <kbd className="kbd">/</kbd> (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, prints or shinies, and shows who moved up or down since you last looked.
       </Q>
       <Q q="I have an idea, or something is broken. Where do I say?" id="feedback">
-        For an idea, use <Link href="/feedback" className="text-yellow-400 hover:text-yellow-300">Feedback</Link> (also in the footer and the bell), log in with Twitch and send it. You can send {FEEDBACK_LIMITS.perDay} a day. If we answer, you get a notice in the bell, and you can see your sent items and our replies on the same page. If something is broken, <a href={reportProblemUrl()} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300">report a problem on GitHub</a> (also in the footer). You need a free GitHub account, there is no limit, and the report is public, so leave out anything private. We keep a suggestion until it is dealt with and for {FEEDBACK_LIMITS.keepDaysAfterResolved} days after, then delete it.
+        For an idea, use <Link href="/feedback" className="text-yellow-400 hover:text-yellow-300">Feedback</Link> (also in the footer and the bell), log in with Twitch and send it, or <a href={featureRequestUrl()} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300">open a feature request on GitHub</a>. You can send {FEEDBACK_LIMITS.perDay} a day in the app. If we answer, you get a notice in the bell, and you can see your sent items and our replies on the same page. If something is broken, <a href={reportProblemUrl()} target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300">report a problem on GitHub</a> (also in the footer). You need a free GitHub account, there is no limit, and the report is public, so leave out anything private. We keep a suggestion until it is dealt with and for {FEEDBACK_LIMITS.keepDaysAfterResolved} days after, then delete it.
       </Q>
       <Q q="How do I report someone?" id="report">
         Open their profile, press <em>Share</em> and choose <em>Report</em>. Pick a reason (an offensive name, bio or picture, cheating or abuse, a scam or unfair trade, or something else), add details and, if it helps, a link to the trade or print. You must be logged in, you can send {FEEDBACK_LIMITS.reportsPerDay} reports a day and one open report per person. Only staff see it, along with who sent it. The person you report is never told it was you, and you get a notice when staff have looked at it. Reports are kept like other feedback: until they are dealt with and for {FEEDBACK_LIMITS.keepDaysAfterResolved} days after, then deleted.
