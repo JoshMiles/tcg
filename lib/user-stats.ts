@@ -26,6 +26,8 @@ export interface UserStats {
   serialPoints: number;
   completionBonus: number;
   setBonus: number;
+  /** Flat points from score-bonus buffs. */
+  bonusPoints: number;
   complete: boolean;
   /** What the bonuses are worth at 100% / when complete, right now (to show what's still on offer). */
   maxCompletionBonus: number;
@@ -112,6 +114,7 @@ export function computeUserStats(
     serialPoints: row?.serialPoints ?? 0,
     completionBonus: row?.completionBonus ?? 0,
     setBonus: row?.setBonus ?? 0,
+    bonusPoints: row?.bonusPoints ?? 0,
     complete: row?.complete ?? false,
     maxCompletionBonus: collectionBonuses(o.values, o.values.totalCards).completion,
     completeSetBonusValue: collectionBonuses(o.values, o.values.totalCards).set,

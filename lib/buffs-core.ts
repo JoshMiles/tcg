@@ -26,12 +26,30 @@ export const BUFF_ACHIEVEMENT_KINDS: readonly BuffAchievementKind[] = [
 
 export { MAX_BUFFS };
 
-export const BUFF_TYPES = ['extra-pulls', 'extra-pack', 'grant-achievement'] as const;
+export const BUFF_TYPES = ['extra-pulls', 'extra-pack', 'rarity-boost', 'score-bonus', 'currency-grant', 'grant-achievement'] as const;
 export type BuffType = (typeof BUFF_TYPES)[number];
+
+/** One-shot buffs: they act when applied (nothing is stored as an active buff), so duration, stacking and magnitude do not apply. */
+export const INSTANT_BUFF_TYPES = ['score-bonus', 'currency-grant'] as const;
+export type InstantBuffType = (typeof INSTANT_BUFF_TYPES)[number];
+export const isInstantBuffType = (t: BuffType): t is InstantBuffType => (INSTANT_BUFF_TYPES as readonly string[]).includes(t);
+/** Types that live as an ActiveBuff for a while. */
+export type TimedBuffType = Exclude<BuffType, InstantBuffType | 'grant-achievement'>;
+
+export const POINTS_MIN = 1;
+export const POINTS_MAX = 10000;
+export const POINTS_DEFAULT = 100;
+/** Rarities with at least this many stars get the rarity boost. */
+export const RARITY_BOOST_MIN_STARS = 3;
+/** Each magnitude point of rarity-boost adds this much to the draw weight of those rarities. */
+export const RARITY_BOOST_STEP = 0.1;
 
 export const BUFF_TYPE_LABELS: Record<BuffType, string> = {
   'extra-pulls': 'Extra pulls per stream',
   'extra-pack': 'Free pack credits',
+  'rarity-boost': 'Better chance of rare cards',
+  'score-bonus': 'Bonus leaderboard points',
+  'currency-grant': 'Bonus Brie Bucks',
   'grant-achievement': 'Grant an achievement',
 };
 
@@ -80,6 +98,8 @@ export interface BuffDef {
   scope: BuffScope;
   /** Built-in achievement kind when type === 'grant-achievement'. */
   achievementId?: string;
+  /** Flat amount (POINTS_MIN..POINTS_MAX) for score-bonus (points) and currency-grant (currency). */
+  points?: number;
 }
 
 /** An applied personal or community buff instance (stored on a viewer or in `buffs:community`). */
@@ -87,7 +107,7 @@ export interface ActiveBuff {
   id: string;
   buffId: string;
   name: string;
-  type: 'extra-pulls' | 'extra-pack';
+  type: TimedBuffType;
   magnitude: number;
   stack: BuffStackMode;
   scope: BuffScope;
@@ -152,6 +172,9 @@ export function normalizeBuffDef(raw: unknown): BuffDef | null {
       achievementId,
     };
   }
+  if (isInstantBuffType(type)) {
+    return { id, name, type, magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope: r.scope === 'community' ? 'community' : 'self', points: clampInt(r.points, POINTS_MIN, POINTS_MAX, POINTS_DEFAULT) };
+  }
   const magnitude = clampInt(r.magnitude, MAGNITUDE_MIN, MAGNITUDE_MAX, 1);
   const durRaw = (r.duration && typeof r.duration === 'object' ? r.duration : {}) as Record<string, unknown>;
   const duration = clampDuration(durRaw.unit ?? r.durationUnit, durRaw.n ?? r.durationN);
@@ -191,6 +214,10 @@ export function cleanBuffDefInput(raw: Record<string, unknown>, existingId?: str
     };
   }
 
+  if (isInstantBuffType(type)) {
+    const scope: BuffScope = raw.scope === 'community' ? 'community' : 'self';
+    return { ok: true, def: { id, name, type, magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope, points: clampInt(raw.points, POINTS_MIN, POINTS_MAX, POINTS_DEFAULT) } };
+  }
   const magnitude = clampInt(raw.magnitude, MAGNITUDE_MIN, MAGNITUDE_MAX, 1);
   const durObj = (raw.duration && typeof raw.duration === 'object' ? raw.duration : null) as Record<string, unknown> | null;
   const duration = clampDuration(durObj ? durObj.unit : raw.durationUnit, durObj ? durObj.n : raw.durationN);
@@ -207,9 +234,15 @@ export function describeBuffDef(def: BuffDef): string {
     const kind = BUFF_ACHIEVEMENT_KINDS.find(k => k.kind === def.achievementId);
     return `Grants achievement "${kind?.label ?? def.achievementId ?? 'Unknown'}" (self)`;
   }
+  if (isInstantBuffType(def.type)) {
+    const n = (def.points ?? POINTS_DEFAULT).toLocaleString('en-US');
+    return `${def.type === 'score-bonus' ? `+${n} leaderboard points` : `+${n} Brie Bucks`}, once when applied · ${def.scope === 'community' ? 'community' : 'self'}`;
+  }
   const what = def.type === 'extra-pulls'
     ? `+${def.magnitude} pull${def.magnitude === 1 ? '' : 's'}/stream`
-    : `${def.magnitude} free pack credit${def.magnitude === 1 ? '' : 's'} (waives limit & Brie Bucks)`;
+    : def.type === 'rarity-boost'
+      ? `+${Math.round(def.magnitude * RARITY_BOOST_STEP * 100)}% chance of ${RARITY_BOOST_MIN_STARS}+ star cards`
+      : `${def.magnitude} free pack credit${def.magnitude === 1 ? '' : 's'} (waives limit & Brie Bucks)`;
   const dur = def.duration.unit === 'season'
     ? 'for the active season'
     : def.duration.unit === 'hours'
@@ -277,7 +310,7 @@ export function isBuffActiveFor(buff: ActiveBuff, ctx: BuffEvalContext): boolean
 
 /** Builds a fresh ActiveBuff instance from a BuffDef (for extra-pulls or extra-pack). */
 export function createActiveBuff(def: BuffDef, ctx: { id: string; now: number; streamKey?: string; seasonId?: string; source: string }): ActiveBuff | null {
-  if (def.type === 'grant-achievement') return null;
+  if (def.type === 'grant-achievement' || isInstantBuffType(def.type)) return null;
   const base: ActiveBuff = {
     id: ctx.id,
     buffId: def.id,
@@ -336,7 +369,7 @@ export function applyBuffToList(
   def: BuffDef,
   ctx: { id: string; now: number; streamKey?: string; seasonId?: string; source: string; username?: string },
 ): ApplyBuffResult {
-  if (def.type === 'grant-achievement') return { ok: false, reason: 'invalid_type' };
+  if (def.type === 'grant-achievement' || isInstantBuffType(def.type)) return { ok: false, reason: 'invalid_type' };
   const live = pruneActiveBuffs(existing, ctx);
   const fresh = createActiveBuff(def, ctx);
   if (!fresh) return { ok: false, reason: 'invalid_type' };
@@ -360,7 +393,7 @@ export function applyBuffToList(
  */
 export function consumeBuffPull(
   buffs: readonly ActiveBuff[],
-  ctx: BuffEvalContext & { username: string; type?: 'extra-pulls' | 'extra-pack'; onlyOneCredit?: boolean },
+  ctx: BuffEvalContext & { username: string; type?: TimedBuffType; onlyOneCredit?: boolean },
 ): { buffs: ActiveBuff[]; consumedCredit: boolean } {
   const u = ctx.username.toLowerCase();
   const live = pruneActiveBuffs(buffs, ctx);
@@ -431,3 +464,24 @@ export function totalExtraPullsFromBuffs(
   }
   return sum;
 }
+
+/**
+ * Draw-weight multiplier for rarities with RARITY_BOOST_MIN_STARS or more stars: 1 + 10% per magnitude point, summed over every
+ * active rarity-boost (personal + community). Other rarities keep their weight, so their share of the draw drops.
+ */
+export function rarityBoostFactor(
+  personal: readonly ActiveBuff[],
+  community: readonly ActiveBuff[],
+  ctx: BuffEvalContext & { username: string },
+): number {
+  const evalCtx = { ...ctx, username: ctx.username.toLowerCase() };
+  let points = 0;
+  for (const b of [...personal, ...community]) {
+    if (b.type === 'rarity-boost' && isBuffActiveFor(b, evalCtx)) points += b.magnitude;
+  }
+  return 1 + points * RARITY_BOOST_STEP;
+}
+
+/** A card's draw weight after the boost. */
+export const boostedWeight = (probability: number, stars: number, factor: number): number =>
+  stars >= RARITY_BOOST_MIN_STARS ? probability * factor : probability;

@@ -358,7 +358,7 @@ ok(audits.some(a => a.action === 'Trainer card used' && a.detail?.includes('Pack
 // ── 8. ROADMAP 32.1: credits are spent, held per queued pull, and extra pulls count ──
 await buffsStore.saveCommunityBuffs([]); // section 3 left a community +2 pulls buff behind
 const mixitup = await import('../lib/mixitup');
-const { normalizeMixItUp } = await import('../lib/mixitup-core');
+const { normalizeMixItUp, parseViewers } = await import('../lib/mixitup-core');
 const fakeMix: typeof fetch = async () => new Response(JSON.stringify({ balance: 100000 }), { status: 200 });
 const mix = normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 10, limit: 1, secret: 's' });
 const limitOf1 = { ...mix, limit: 1, roleLimits: { regular: 1, subscriber: 1, vip: 1, moderator: 1, broadcaster: 1 } };
@@ -398,6 +398,119 @@ ok(!(await mixitup.reservePaidPull(limitOf1, 'hank', 'xp-5', fakeMix)).ok, 'and 
 // Buff lists written in parallel do not lose updates.
 await Promise.all(['t-rej', 't-xp'].map(id => buffsStore.applyBuff('ivy', id, { seasonId: sId })));
 eq((await buffsStore.getUserBuffs('ivy')).length, 2, 'two buffs applied at once are both kept');
+
+// ── 9. Buff types: rarity-boost, score-bonus, currency-grant ──
+// Earlier sections leave a community +2 pulls buff in KV: clear the list so the checks below start from nothing.
+await buffsStore.saveCommunityBuffs([]);
+const mk = (type: 'rarity-boost' | 'extra-pulls', magnitude: number, id: string) =>
+  core.createActiveBuff({ id: 'x', name: id, type, magnitude, duration: { unit: 'season' }, stack: 'refresh', scope: 'self' }, { id, now: 1, seasonId: sId, source: 't' })!;
+eq(core.rarityBoostFactor([mk('rarity-boost', 5, 'a'), mk('extra-pulls', 9, 'b')], [], { now: 1, seasonId: sId, username: 'x' }), 1.5, 'rarity boost: +10% per point, other buff types ignored');
+eq(core.rarityBoostFactor([], [], { now: 1, username: 'x' }), 1, 'no boost is a factor of 1');
+eq([core.boostedWeight(10, 2, 2), core.boostedWeight(10, 3, 2)], [10, 20], 'only 3+ star cards gain weight');
+{
+  const cards = [{ number: 1, stars: 1, probability: 50 }, { number: 2, stars: 3, probability: 50 }] as never[];
+  const pk = [{ pack: { id: 'bp', weight: 1 } as never, cards }];
+  const seq = (...v: number[]) => { let i = 0; return () => v[i++] ?? 0; };
+  eq(draw.rollDraw(pk, seq(0, 0.4))!.card.number, 1, 'without a boost 0.4 lands on the common card');
+  eq(draw.rollDraw(pk, seq(0, 0.4), 2)!.card.number, 2, 'a x2 boost moves the same roll to the 3 star card');
+}
+// the editor input is clamped and instant types ignore duration and stack
+const inst = core.cleanBuffDefInput({ name: 'Pts', type: 'score-bonus', points: 999999, duration: { unit: 'hours', n: 5 }, stack: 'reject', scope: 'community' }, 'i1');
+ok(inst.ok && inst.def.points === 10000 && inst.def.duration.unit === 'season' && inst.def.stack === 'refresh' && inst.def.scope === 'community', 'score-bonus: points clamped, duration and stack fixed');
+const instLow = core.cleanBuffDefInput({ name: 'Pts', type: 'currency-grant', points: 0 }, 'i2');
+ok(instLow.ok && instLow.def.points === 1, 'currency-grant: points clamped to at least 1');
+
+// rarity-boost through the store: applied, and its pulls duration is spent per saved pull
+await buffsStore.upsertBuffDef({ id: 't-rb', name: 'Lucky', type: 'rarity-boost', magnitude: 3, duration: { unit: 'pulls', n: 1 }, stack: 'refresh', scope: 'self' });
+ok((await buffsStore.applyBuff('rita', 't-rb', { seasonId: sId })).ok, 'rarity-boost applied');
+eq(await buffsStore.rarityBoostFor('rita'), 1.3, 'rita draws with a x1.3 boost');
+await buffsStore.consumePullOnSave('rita', { seasonId: sId });
+eq(await buffsStore.rarityBoostFor('rita'), 1, 'the boost ends with its pull');
+
+// score-bonus: self and community, shown on the leaderboard, kept by a recompute
+const lb = await import('../lib/leaderboard');
+const sb = await import('../lib/score-bonus');
+await kvLib.saveCollection(cName, { ...(await kvLib.getCollection(cName)), sam: [variants.encodeEntry(10, 'regular')], nobody: [] });
+const season = (await kvLib.getSeason(sId))!;
+const rowOf = async (u: string) => (await lb.getSeasonLeaderboard(season)).rows.find(r => r.username === u);
+const before = (await rowOf('sam'))!;
+await buffsStore.upsertBuffDef({ id: 't-sb', name: 'Plus 100', type: 'score-bonus', magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope: 'self', points: 100 });
+ok((await buffsStore.applyBuff('sam', 't-sb', { seasonId: sId })).ok, 'score-bonus applied to self');
+const after = (await rowOf('sam'))!;
+eq([after.score - before.score, after.bonusPoints], [100, 100], 'the leaderboard row gains the 100 points');
+ok((await buffsStore.applyBuff('sam', 't-sb', { seasonId: sId })).ok, 'a score-bonus can be applied again');
+eq((await rowOf('sam'))!.bonusPoints, 200, 'bonuses add up');
+eq((await buffsStore.getUserBuffs('sam')).length, 0, 'a score-bonus stores no active buff');
+await buffsStore.upsertBuffDef({ id: 't-sbc', name: 'Plus 10 all', type: 'score-bonus', magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope: 'community', points: 10 });
+const noViewers = await buffsStore.applyBuff('sam', 't-sbc', { seasonId: sId });
+ok(!noViewers.ok && noViewers.reason === 'mixitup_off', 'a community one-shot fails clearly while Mix It Up has no chat viewers address');
+eq(parseViewers({ users: ['Sam', '@alice', 'sam', ' ', 7] }), ['sam', 'alice'], 'viewers: lowercased, @ dropped, deduplicated, junk skipped');
+eq(parseViewers(['A', 'b']), ['a', 'b'], 'viewers: a bare array is accepted');
+eq([parseViewers({ nope: 1 }), parseViewers(null)], [null, null], 'viewers: a wrong shape is null');
+eq(parseViewers({ users: Array.from({ length: 6000 }, (_, i) => 'u' + i) })!.length, 5000, 'viewers: capped at 5000');
+await mixitup.saveMixItUpSettings(normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', addUrl: 'https://hook.example/add', viewersUrl: 'https://hook.example/viewers', secret: 's' }));
+// Mix It Up stand-in: the chat list, and an add command that refuses the names in `refused`
+const realFetch = globalThis.fetch;
+const paidLog: string[] = [];
+const refused = new Set<string>();
+let chat: unknown = { users: ['Sam', '@Alice', 'zed', 'sam'] };
+globalThis.fetch = (async (u: unknown, init?: RequestInit) => {
+  if (!String(u).startsWith('https://hook.example/')) return realFetch(u as never, init); // the mock KV
+  if (String(u).endsWith('/viewers')) return chat === null ? new Response('no', { status: 500 }) : new Response(JSON.stringify(chat), { status: 200 });
+  const who = JSON.parse(String(init?.body)).username as string;
+  if (refused.has(who)) return new Response('{"ok":false}', { status: 200 });
+  paidLog.push(who);
+  return new Response('{"ok":true}', { status: 200 });
+}) as typeof fetch;
+ok((await buffsStore.applyBuff('sam', 't-sbc', { seasonId: sId })).ok, 'community score-bonus applied to the chat viewers');
+const bonuses = await sb.getScoreBonuses(cName);
+eq([bonuses.sam, bonuses.alice, bonuses.zed, bonuses.nobody], [210, 10, 10, undefined], 'chat viewers get it, including one with no cards; nobody else does');
+ok(!(await buffsStore.applyBuff('sam', 't-sbc', { seasonId: sId, disallowCommunity: true })).ok, 'community score-bonus is refused where community is not allowed');
+chat = null;
+const noChat = await buffsStore.applyBuff('sam', 't-sbc', { seasonId: sId });
+ok(!noChat.ok && noChat.reason === 'mixitup_failed' && (await sb.getScoreBonuses(cName)).sam === 210, 'a failed chat call fails the apply and pays nothing');
+chat = { users: ['Sam', '@Alice', 'zed', 'sam'] };
+
+// currency-grant: needs Mix It Up on with an add address
+await buffsStore.upsertBuffDef({ id: 't-cg', name: 'Bucks', type: 'currency-grant', magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope: 'self', points: 50 });
+await mixitup.saveMixItUpSettings(normalizeMixItUp({}));
+const noMix = await buffsStore.applyBuff('sam', 't-cg', { seasonId: sId });
+ok(!noMix.ok && noMix.reason === 'mixitup_off', 'currency-grant fails clearly while Mix It Up is off');
+await mixitup.saveMixItUpSettings(normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', addUrl: 'https://hook.example/add', viewersUrl: 'https://hook.example/viewers', secret: 's' }));
+ok((await buffsStore.applyBuff('sam', 't-cg', { seasonId: sId, dryRun: true })).ok, 'currency-grant passes the dry run once an add address is saved');
+{
+  let sent: Record<string, unknown> | null = null;
+  const addFetch: typeof fetch = async (_u, init) => { sent = JSON.parse(String(init?.body)); return new Response('{"ok":true}', { status: 200 }); };
+  const s = await mixitup.getMixItUpSettings();
+  eq((await mixitup.grantCurrency(s, 'sam', 50, addFetch)).applied, true, 'the add address is called');
+  eq([sent!.action, sent!.username, sent!.amount, sent!.secret], ['add', 'sam', 50, 's'], 'the add request carries action, username, amount and secret');
+  const refuse: typeof fetch = async () => new Response('{"ok":false}', { status: 200 });
+  eq((await mixitup.grantCurrency(s, 'sam', 50, refuse)).applied, false, 'a refusal from Mix It Up is a failure');
+}
+eq(normalizeMixItUp({ addUrl: ' https://a.example/x ' }).addUrl, 'https://a.example/x', 'addUrl is kept by the normalizer');
+eq(normalizeMixItUp({ viewersUrl: ' https://a.example/v ' }).viewersUrl, 'https://a.example/v', 'viewersUrl is kept by the normalizer');
+
+// currency-grant to chat: a partial payout, then Retry unpaid pays only the rest
+await buffsStore.upsertBuffDef({ id: 't-cgc', name: 'Bucks for all', type: 'currency-grant', magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope: 'community', points: 25 });
+paidLog.length = 0;
+refused.add('alice');
+const part = await buffsStore.applyBuff('sam', 't-cgc', { seasonId: sId });
+ok(part.ok && part.partial?.unpaid === 1 && part.partial.total === 3, 'a partly paid grant reports how many are unpaid');
+eq([...paidLog].sort(), ['sam', 'zed'], 'only the accepted viewers were paid');
+const open = await mixitup.getOpenGrants();
+eq(open.map(g => [g.unpaid, g.total]), [[1, 3]], 'the grant is listed as open');
+paidLog.length = 0;
+const s2 = await mixitup.getMixItUpSettings();
+eq(await mixitup.runGrant(s2, open[0].id), { total: 3, unpaid: 1 }, 'a retry while Mix It Up still refuses leaves it open');
+eq(paidLog, [], 'the retry does not pay anyone already paid');
+refused.clear();
+eq(await mixitup.runGrant(s2, open[0].id), { total: 3, unpaid: 0 }, 'the retry finishes the grant');
+eq(paidLog, ['alice'], 'only the unpaid viewer is paid on retry');
+eq(await mixitup.runGrant(s2, open[0].id), { total: 3, unpaid: 0 }, 'running a finished grant again');
+eq(paidLog, ['alice'], 'nobody is paid twice');
+eq((await mixitup.getOpenGrants()).length, 0, 'a fully paid grant is no longer open');
+globalThis.fetch = realFetch;
+await buffsStore.saveCommunityBuffs([]);
 
 console.log('trainer buff checks passed');
 

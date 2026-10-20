@@ -3,7 +3,7 @@
 // not confirm the charge, the print is revoked.
 import { kv, inSandbox } from './db';
 import { checkWebhookUrl } from './webhook-clean';
-import { getActiveSeason, getCollection, saveCollection, withCollectionLock } from './kv';
+import { getActiveSeason, getCollection, saveCollection, withCollectionLock, withLock } from './kv';
 import { getCopy } from './serials';
 import { entryOf, isEscrow } from './serials-core';
 import { getLiveStatus } from './twitch-live';
@@ -12,7 +12,7 @@ import { getStreamBuff, getUserPullLimit } from './pull-limit';
 import { effectiveLimit, streamBuffAmount } from './pull-limit-core';
 import { extraPullsFromBuffs, releaseExtraPackCredit, reserveExtraPackCredit } from './buffs';
 import {
-  normalizeMixItUp, parseBalance, pullRole, refusalMessage, renderMessage, replyApplied, roleLimitOf, streamKey, decide,
+  normalizeMixItUp, parseBalance, parseViewers, pullRole, refusalMessage, renderMessage, replyApplied, roleLimitOf, streamKey, decide,
   type MixItUpSettings, type RefusalReason,
 } from './mixitup-core';
 
@@ -30,7 +30,7 @@ export async function saveMixItUpSettings(s: MixItUpSettings): Promise<void> {
 }
 
 // ── The request log (last 20) ──
-export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'test' | 'revoked' | 'refused' | 'command'; ok: boolean; detail: string }
+export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command'; ok: boolean; detail: string }
 export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>): Promise<void> {
   try { await kv.lpush(LOG, { ...e, at: Date.now() }); await kv.ltrim(LOG, 0, 19); } catch { /* the log never breaks a pull */ }
 }
@@ -68,6 +68,69 @@ export async function fetchBalance(s: MixItUpSettings, username: string, doFetch
   if (!r.ok) return { balance: null, error: r.error ?? `HTTP ${r.status}` };
   const balance = parseBalance(r.body, s.balanceField);
   return balance === null ? { balance: null, error: `no number at "${s.balanceField}" in the reply` } : { balance };
+}
+
+/** Gives a viewer currency through the add address (the currency-grant buff). Applied = Mix It Up said so. */
+export async function grantCurrency(s: MixItUpSettings, username: string, amount: number, doFetch?: Fetch): Promise<{ applied: boolean; error?: string }> {
+  if (!s.enabled || !s.addUrl) return { applied: false, error: 'Mix It Up is off or has no add address.' };
+  if (await inSandbox()) return { applied: true };
+  const r = await callMixItUp(s.addUrl, { action: 'add', secret: s.secret, username, amount, currency: s.currency }, doFetch);
+  const applied = replyApplied(r.status, r.body);
+  await logMixItUp({ username, what: 'add', ok: applied, detail: applied ? `+${amount} ${s.currency}` : r.error ?? `HTTP ${r.status}, not applied` });
+  return applied ? { applied } : { applied, error: r.error ?? `HTTP ${r.status}` };
+}
+
+/** Who is in stream chat now, from the viewers address. */
+export async function fetchChatViewers(s: MixItUpSettings, doFetch?: Fetch): Promise<{ users: string[]; error?: string }> {
+  if (!s.enabled || !s.viewersUrl) return { users: [], error: 'Mix It Up is off or has no chat viewers address.' };
+  const r = await callMixItUp(s.viewersUrl, { action: 'viewers', secret: s.secret, currency: s.currency }, doFetch);
+  if (!r.ok) return { users: [], error: r.error ?? `HTTP ${r.status}` };
+  const users = parseViewers(r.body);
+  if (!users) return { users: [], error: 'no users list in the reply' };
+  return users.length ? { users } : { users, error: 'nobody is in chat' };
+}
+
+// ── Currency grants (the currency-grant buff): a record per grant so a partial payout can be finished without paying anyone twice ──
+export interface GrantRecord { id: string; name: string; amount: number; at: number; users: Record<string, 'pending' | 'paid' | 'failed'> }
+const grantKey = (id: string) => `buffgrant:${id}`;
+const GRANT_INDEX = 'buffgrants:open';
+
+const unpaidOf = (r: GrantRecord) => Object.values(r.users).filter(v => v !== 'paid').length;
+
+/** Pays every user of the grant not yet marked paid, one at a time, saving after each so a crash never repays anyone. */
+export async function runGrant(s: MixItUpSettings, id: string, doFetch?: Fetch): Promise<{ total: number; unpaid: number } | null> {
+  return withLock(grantKey(id), async () => {
+    const rec = await kv.get<GrantRecord>(grantKey(id));
+    if (!rec) return null;
+    for (const u of Object.keys(rec.users)) {
+      if (rec.users[u] === 'paid') continue;
+      rec.users[u] = (await grantCurrency(s, u, rec.amount, doFetch)).applied ? 'paid' : 'failed';
+      await kv.set(grantKey(id), rec);
+    }
+    const unpaid = unpaidOf(rec);
+    await withLock('buffgrants:index', async () => {
+      const ids = (await kv.get<string[]>(GRANT_INDEX)) ?? [];
+      const next = unpaid > 0 ? [...new Set([...ids, id])].slice(-50) : ids.filter(x => x !== id);
+      await kv.set(GRANT_INDEX, next);
+    });
+    return { total: Object.keys(rec.users).length, unpaid };
+  });
+}
+
+/** Records the target list, then pays it. The record stays open (see getOpenGrants) while anyone is unpaid. */
+export async function startGrant(s: MixItUpSettings, name: string, amount: number, users: string[], doFetch?: Fetch): Promise<{ id: string; total: number; unpaid: number }> {
+  const id = crypto.randomUUID();
+  const rec: GrantRecord = { id, name, amount, at: Date.now(), users: Object.fromEntries(users.map(u => [u, 'pending' as const])) };
+  await kv.set(grantKey(id), rec);
+  const r = (await runGrant(s, id, doFetch)) ?? { total: users.length, unpaid: users.length };
+  return { id, ...r };
+}
+
+/** Grants with someone still unpaid. */
+export async function getOpenGrants(): Promise<{ id: string; name: string; amount: number; unpaid: number; total: number }[]> {
+  const ids = (await kv.get<string[]>(GRANT_INDEX).catch(() => null)) ?? [];
+  const recs = await Promise.all(ids.map(id => kv.get<GrantRecord>(grantKey(id)).catch(() => null)));
+  return recs.filter((r): r is GrantRecord => !!r && unpaidOf(r) > 0).map(r => ({ id: r.id, name: r.name, amount: r.amount, unpaid: unpaidOf(r), total: Object.keys(r.users).length }));
 }
 
 /** Sends a message that deducts nothing, so the command can be tried without a real pull. */
