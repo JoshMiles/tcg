@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { CUSTOM_ICONS, CUSTOM_RULES, DETAIL_MAX, PLACEHOLDERS, TITLE_MAX, defaultText, type CustomGoal, type CustomRuleType } from '@/lib/achievements';
+import { CUSTOM_ICONS, CUSTOM_RULES, DETAIL_MAX, PLACEHOLDERS, TITLE_MAX, defaultIcon, defaultText, type CustomGoal, type CustomRuleType } from '@/lib/achievements';
 import { describeBuffDef, type BuffDef } from '@/lib/buffs-core';
 import { RARITIES } from '@/lib/rarity';
 import { GOLDEN_PULLS, VARIANTS, VARIANT_LABELS } from '@/lib/variants';
-import { Icon } from '@/app/components/Icon';
+import { Icon, type IconName } from '@/app/components/Icon';
 import { Panel } from '../components/ui';
 import { ConfirmButton } from '../components/ConfirmButton';
 
@@ -23,6 +23,35 @@ function Warn({ text, extra }: { text: string; extra?: string[] }) {
   return <span className="block text-[11px] text-amber-400 mt-1">Not a placeholder, shown as typed: {bad.map(w => `{${w}}`).join(' ')}</span>;
 }
 
+/** A square tile: the icon, large, and the name. Clicking opens the editor next to it. */
+function Tile({ icon, name, open, off, onClick }: { icon: IconName; name: string; open: boolean; off?: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} aria-expanded={open}
+      className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center min-h-[7rem] ${open ? 'border-primary bg-gray-800' : 'border-gray-800 hover:border-gray-600'} ${off ? 'opacity-50' : ''}`}>
+      <Icon name={icon} className="w-9 h-9" />
+      <span className="text-xs font-semibold text-white break-words w-full">{name}</span>
+    </button>
+  );
+}
+
+/** A grid of icon buttons; submits the chosen icon under `name`. */
+function IconPicker({ name, value, onChange }: { name: string; value: IconName; onChange: (i: IconName) => void }) {
+  return (
+    <div className="text-xs text-gray-500">
+      Icon
+      <input type="hidden" name={name} value={value} />
+      <div role="group" aria-label="Icon" className="flex flex-wrap gap-1 mt-1">
+        {CUSTOM_ICONS.map(i => (
+          <button key={i} type="button" aria-label={i} aria-pressed={i === value} onClick={() => onChange(i)}
+            className={`btn btn-sm btn-square ${i === value ? 'btn-primary' : 'btn-ghost'}`}>
+            <Icon name={i} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BuffSelect({ name, value, buffs }: { name: string; value?: string; buffs: BuffDef[] }) {
   const available = buffs.filter(b => b.scope === 'self' && b.type !== 'grant-achievement');
   return (
@@ -38,12 +67,16 @@ function BuffSelect({ name, value, buffs }: { name: string; value?: string; buff
   );
 }
 
-function BuiltInRow({ kind, label, row, buffs, earned }: { kind: string; label: string; row: { on: boolean; title: string; detail: string; buffId?: string }; buffs: BuffDef[]; earned: number }) {
+function BuiltInRow({ kind, label, row, buffs, earned }: { kind: string; label: string; row: { on: boolean; title: string; detail: string; buffId?: string; icon?: IconName }; buffs: BuffDef[]; earned: number }) {
   const def = defaultText(kind);
   const [title, setTitle] = useState(row.title || def.title);
   const [detail, setDetail] = useState(row.detail || def.detail);
+  const [icon, setIcon] = useState<IconName>(row.icon ?? defaultIcon(kind));
+  const [open, setOpen] = useState(false);
   return (
-    <fieldset className="rounded-xl border border-gray-800 p-3 space-y-2">
+    <>
+    <Tile icon={icon} name={label} open={open} off={!row.on} onClick={() => setOpen(o => !o)} />
+    <fieldset hidden={!open} className="col-span-full rounded-xl border border-gray-800 p-3 space-y-2 [&:not([hidden])]:block">
       <div className="flex items-center justify-between gap-2">
         <legend className="px-1 text-sm font-semibold text-white">{label}</legend>
         <span className="text-xs text-gray-500">Earned {earned}x</span>
@@ -67,14 +100,16 @@ function BuiltInRow({ kind, label, row, buffs, earned }: { kind: string; label: 
       <button type="button" className="btn btn-xs btn-ghost" disabled={title === def.title && detail === def.detail} onClick={() => { setTitle(def.title); setDetail(def.detail); }}>
         <Icon name="redo" /> Reset to the default words
       </button>
+      <IconPicker name={`icon:${kind}`} value={icon} onChange={setIcon} />
       <BuffSelect name={`buff:${kind}`} value={row.buffId} buffs={buffs} />
     </fieldset>
+    </>
   );
 }
 
 /** One row per built-in kind, with the built-in words filled in. Saving words equal to the default stores nothing. */
 export function AchievementsForm({ items, buffDefs, counts, save }: {
-  items: { kind: string; label: string; group: string; row: { on: boolean; title: string; detail: string; buffId?: string } }[];
+  items: { kind: string; label: string; group: string; row: { on: boolean; title: string; detail: string; buffId?: string; icon?: IconName } }[];
   buffDefs: BuffDef[];
   counts: Record<string, number>;
   save: (formData: FormData) => Promise<void>;
@@ -83,7 +118,7 @@ export function AchievementsForm({ items, buffDefs, counts, save }: {
     <form action={save} className="space-y-4">
       {GROUPS.map(group => (
         <Panel key={group} title={group} icon="award">
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             {items.filter(k => k.group === group).map(k => (
               <BuiltInRow key={k.kind} kind={k.kind} label={k.label} row={k.row} buffs={buffDefs} earned={counts[k.kind] ?? 0} />
             ))}
@@ -108,8 +143,12 @@ export function CustomGoalForm({ goal, buffDefs, earned, save, remove }: {
   const [detail, setDetail] = useState(goal?.detail ?? '');
   const versions = VARIANTS.filter(v => v !== 'regular' && (GOLDEN_PULLS || v !== 'golden'));
   const formId = `del-${goal?.id ?? 'new'}`;
+  const [icon, setIcon] = useState<IconName>(goal?.icon ?? 'award');
+  const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-xl border border-gray-800 p-3 space-y-2">
+    <>
+    <Tile icon={goal ? icon : 'plus'} name={goal ? goal.title : 'New goal'} open={open} off={goal ? !goal.on : false} onClick={() => setOpen(o => !o)} />
+    <div hidden={!open} className="col-span-full rounded-xl border border-gray-800 p-3 space-y-2 [&:not([hidden])]:block">
       <form action={save} className="space-y-2">
         {goal && <input type="hidden" name="id" value={goal.id} />}
         <div className="flex items-center justify-between gap-2">
@@ -132,6 +171,7 @@ export function CustomGoalForm({ goal, buffDefs, earned, save, remove }: {
             <Warn text={detail} extra={['n']} />
           </label>
         </div>
+        <IconPicker name="icon" value={icon} onChange={setIcon} />
         <div className="grid gap-2 sm:grid-cols-4">
           <label className="block text-xs text-gray-500 sm:col-span-2">
             Rule
@@ -142,12 +182,6 @@ export function CustomGoalForm({ goal, buffDefs, earned, save, remove }: {
           <label className="block text-xs text-gray-500">
             N
             <input name="n" type="number" min={1} max={1000} defaultValue={goal?.rule.n ?? 5} className="input input-sm w-full mt-1" />
-          </label>
-          <label className="block text-xs text-gray-500">
-            Icon
-            <select name="icon" defaultValue={goal?.icon ?? 'award'} className="select select-sm w-full mt-1 bg-gray-900 border-gray-700 text-gray-200">
-              {CUSTOM_ICONS.map(i => <option key={i} value={i}>{i}</option>)}
-            </select>
           </label>
         </div>
         {rule === 'rarity' && (
@@ -178,5 +212,6 @@ export function CustomGoalForm({ goal, buffDefs, earned, save, remove }: {
         <form id={formId} action={remove}><input type="hidden" name="id" value={goal.id} /></form>
       )}
     </div>
+    </>
   );
 }

@@ -1,7 +1,8 @@
 import { kv } from './db';
 import { RARITIES } from './rarity';
 import { GOLDEN_PULLS, VARIANTS, VARIANT_LABELS } from './variants';
-import { DETAIL_MAX, TITLE_MAX, achVars, defaultText, fillText, normalizeCustomGoals, type CustomGoal } from './achievements';
+import type { IconName } from '@/app/components/Icon';
+import { CUSTOM_ICONS, DETAIL_MAX, TITLE_MAX, achVars, defaultIcon, defaultText, fillText, normalizeCustomGoals, type CustomGoal } from './achievements';
 
 // Staff list of the built-in achievement kinds (Admin → Achievements). KV `achievements:settings`.
 // A missing row means on, with the built-in title and detail (templates in lib/achievements.ts). Staff-made goals live in KV `achievements:custom`.
@@ -40,6 +41,8 @@ export interface AchievementRowSetting {
   detail: string;
   /** Optional bonus buff definition id (from trainer:buffs, scope: self). */
   buffId?: string;
+  /** Icon override (one of CUSTOM_ICONS); missing means the built-in icon. */
+  icon?: IconName;
 }
 
 /** Only rows that differ from the default (on, blank title, blank detail, no bonus). */
@@ -63,8 +66,9 @@ export function normalizeAchievementSettings(input: unknown): AchievementSetting
     if (title === def.title) title = ''; // text equal to the default stores nothing
     if (detail === def.detail) detail = '';
     const buffId = typeof r.buffId === 'string' && r.buffId.trim() ? r.buffId.trim().slice(0, 60) : undefined;
-    if (on && !title && !detail && !buffId) continue;
-    out[kind] = { on, title, detail, ...(buffId ? { buffId } : {}) };
+    const icon = CUSTOM_ICONS.find(i => i === r.icon && i !== defaultIcon(kind));
+    if (on && !title && !detail && !buffId && !icon) continue;
+    out[kind] = { on, title, detail, ...(buffId ? { buffId } : {}), ...(icon ? { icon } : {}) };
   }
   return out;
 }
@@ -79,6 +83,7 @@ export function achievementSettingsFromForm(formData: FormData): AchievementSett
       on: formData.get(`on:${kind}`) === 'on',
       title: String(formData.get(`title:${kind}`) ?? ''),
       detail: String(formData.get(`detail:${kind}`) ?? ''),
+      icon: String(formData.get(`icon:${kind}`) ?? '') as IconName,
       ...(buffId ? { buffId } : {}),
     };
   }
@@ -90,15 +95,16 @@ export function disabledKinds(settings: AchievementSettings): Set<string> {
 }
 
 /** Shows a saved title or detail in place of the built-in words, with its placeholders filled from the achievement. A blank override keeps what the achievement already says. */
-export function applyAchievementText<T extends { id: string; seasonId: string; seasonName: string; title: string; detail: string; need: number; cutoff?: number }>(a: T, settings: AchievementSettings): T {
+export function applyAchievementText<T extends { id: string; seasonId: string; seasonName: string; title: string; detail: string; icon: IconName; need: number; cutoff?: number }>(a: T, settings: AchievementSettings): T {
   if (a.seasonId === 'special') return a;
   const row = settings[a.id.slice(a.seasonId.length + 1)];
   if (!row) return a;
   const vars = achVars(a);
   const title = row.title ? fillText(row.title, vars) : a.title;
   const detail = row.detail ? fillText(row.detail, vars) : a.detail;
-  if (title === a.title && detail === a.detail) return a;
-  return { ...a, title, detail };
+  const icon = row.icon ?? a.icon;
+  if (title === a.title && detail === a.detail && icon === a.icon) return a;
+  return { ...a, title, detail, icon };
 }
 
 export function rowSetting(settings: AchievementSettings, kind: string): AchievementRowSetting {

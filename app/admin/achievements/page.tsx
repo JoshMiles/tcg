@@ -46,7 +46,7 @@ export default async function AchievementsPage({ searchParams }: { searchParams:
       <AchievementsForm items={items} buffDefs={buffDefs} counts={stats.counts} save={saveAchievementSettingsAction} />
 
       <Panel title="Custom goals" icon="star" hint="Worked out per season from each player's collection (trade goals count across all seasons). The target is capped at the cards that qualify, and a goal with no qualifying cards is left out.">
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           {custom.map(g => <CustomGoalForm key={g.id} goal={g} buffDefs={buffDefs} earned={stats.counts[`custom-${g.id}`] ?? 0} save={saveCustomGoalAction} remove={deleteCustomGoalAction} />)}
           <CustomGoalForm buffDefs={buffDefs} save={saveCustomGoalAction} />
         </div>
