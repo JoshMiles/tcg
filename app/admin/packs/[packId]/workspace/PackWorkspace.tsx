@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { getRarity } from '@/lib/rarity';
 import type { PackInput } from '@/lib/pack-clean';
@@ -53,6 +54,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
   healthCount: number;
   buffs: BuffDef[];
 }) {
+  const router = useRouter();
   const [base, setBase] = useState<Base>(initial);
   const baseRef = useRef<Base>(initial);
   const [work, setWorkState] = useState<Work>(initial.work);
@@ -275,7 +277,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
     if (!(await doSave())) return;
     const r = await publishPack(packId, work.pack.active);
     if (!r.ok) { setPublishIssues(r.issues.map(i => i.message)); return; }
-    window.location.reload();
+    router.refresh();
   }
   const sampleCard = work.cards.find(c => c.imageUrl) ?? null;
   const previewProps = {

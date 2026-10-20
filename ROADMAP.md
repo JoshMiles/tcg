@@ -17,7 +17,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 32.4 | Discord link: relink and one-account claim | Ready | S |
-| 32.5 | New pack flow leftovers | Ready | S |
 | 32.6 | Variant scripts and the Shiny label leftovers | Ready | S |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
@@ -30,11 +29,6 @@ Those PRs were merged without a review. Findings were checked against `main`. On
 ### 32.4 Discord link (Ready, S)
 - `saveDiscordLink` (`lib/discord-user.ts`) leaves the old `discord:user:<id>` index when a collector links a different Discord account, so that account can never be linked again. Delete the old index.
 - Claim the index with `set nx` before writing the link, so two collectors cannot link one Discord account. Add a 30 second cooldown on the test DM. Log only the status code of Discord errors.
-
-### 32.5 New pack flow leftovers (Ready, S)
-- The dashboard "New pack" shortcut (`app/admin/dashboard/widgets.tsx`) still links `/admin/packs/new`, which only redirects. Use `NewPackButton`.
-- `SeasonFlow` "Create a pack" now leaves the wizard in the same tab and can drop unsaved season edits. Open the new pack in a new tab, or flush the autosave first.
-- `createDraftPack` has no `revalidatePath`. `PackWorkspace` reloads the page after publish: use `router.refresh()`. Fix `docs/admin/packs-and-seasons.md` ("the wizard's").
 
 ### 32.6 Variant scripts and labels (Ready, S)
 - `scripts/migrate-variant-rarity.mts` and `scripts/audit-variant-rarity.mts` cannot run. They import functions that are not exported, read `cardId` instead of `cardNumber`, compare string ids with numbers, and use a 100000 offset instead of `VARIANT_OFFSET`. Delete them unless someone needs the remap. If it is kept, rewrite it against the real APIs with a mock-KV check.
