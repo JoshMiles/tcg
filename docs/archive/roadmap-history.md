@@ -1264,3 +1264,90 @@ Shipped log moved out of `ROADMAP.md`:
 ### 28.4 Font control in the Overlay Editor (Done)
 
 The Overlay Editor has a font select on the reveal label (`reveal.labelFont`), the show-off label (`show.labelFont`) and each special-moment banner (`moment.firstEver.font`, `moment.firstPull.font`, `moment.newCard.font`). Options are the card-back faces. Site display is the default and leaves today's stylesheet face; any other face loads that card-back file. A pack override can set its own face. The Twitch panel is unchanged.
+
+## Tracks 25 to 30: Discord list of 2026-10-19, plus two new card features
+
+From Cheesygidds and Joshua in Discord (the two screenshots), checked against `main` on 2026-10-19. One PR per item, each branched from up-to-date `origin/main`. New UI uses the daisyUI 5 `cheesy` primitives (`btn`, `card`, `input`, `select`, `badge`, `fieldset`). No em dashes. Public copy uses `CHANNEL_NAME` / `CHANNEL_URL` from `lib/site.ts`.
+
+**Glossary (decided 2026-10-19, built in 25.2).** A person's copy of a card is an **edition**, not a print ("your recent editions"). The game-wide id is **Edition #1023381** (`Copy.uid`). The line that today says "Edition #24 of 28" is the sequence, and it becomes **Print #24 of 28** (`Copy.n`). That sequence is what the points bonus uses. Code, KV and URLs keep saying copy, serial and uid. `scripts/check-words.mts` requires these words. The Twitch panel still says print for a copy.
+
+**Already on the site (do not rebuild):**
+- **Master set.** `evaluateSeason` in `lib/achievements.ts` already awards `master` ("Master set: {season}", own every card in every version). The FAQ already says so (`app/(site)/faq/sections/profile.tsx`, "What are achievements?"). The goal is omitted when every card has only Regular, because it would be the same as Completed. Season 1's pack has upgrades off, so the goal does not show there. Turning versions on is what makes it appear. No new kind.
+- **How are points worked out?** and **Can I see the exact maths for a card?** are in `app/(site)/faq/sections/points.tsx`. The print-bonus sentence uses the live cutoff, and the formula calls have no space inside the brackets. Do not add a second copy of either question.
+- **Pull history on the profile.** The Activity tab lists pulls (card, version, sequence, linked to the print or the card dex), upgrades (linked to the print they made) and accepted trades (linked when the event has a trade id). Admin grants and declined offers stay off it.
+- **Public wordmark.** `SiteNav` links the logo and "The Cheesy TCG" to `/`. The admin sidebar brand and the phone top-bar title link to `/admin`. The mod bar links to `/mod`.
+
+### Where each Discord line went
+
+| Discord line | Item |
+|---|---|
+| Home layout: Card of the week, card name, print, edition, held by, See its journey | Done |
+| Change the name of print to edition (swap the names round) | Done |
+| Collectors page: Top collectors, collector name, 24/25 cards, Card dex | Done |
+| Text should say Bottomgidds, not bottomygidds | Done |
+| Font change on the card back editor | Done |
+| Edit profile shows twice; remove the one by the name; split Edit profile and settings | Done |
+| Share image: My best 1, top 3, top 6, top 9, custom; unselected goes grey, not yellow | Done |
+| Share image straight to a Discord channel (channel not created yet) | Done |
+| Profile collection: holo moves very fast on the top 3 cards (Mac only) | Done |
+| Collection cards do not need text on hover or along the bottom | Done |
+| Print/edition pill cannot be seen (see-through gold/yellow) | Done |
+| Profile activity should show card pull history as well as trades, click for details | Done |
+| FAQ How do I get cards: follow, subscribe, or gifting subs | Done |
+| New FAQ: is there a limit to how many cards per stream (defaults and bonuses) | Done |
+| Trading before upgrading; under upgrades, can I trade upgraded cards | Done |
+| Chat commands under Getting started; move !pack there; link from How do I get cards | Done |
+| FAQ Points and leaderboard: how are points worked out | Done |
+| "Edition #1 is worth 3x ... until the 40th edition" | Done: print #1 through the live cutoff (40th when the cutoff is 40) |
+| Master set achievement: every variant of every card | Already shipped (see above) |
+| Achievement editor? | Done |
+| FAQ: can I see the exact maths for a card | Done |
+| Spacing looks weird on some of the brackets | Done |
+| Cheesy TCG logo goes to the homepage, or the dashboard in admin | Done |
+| Default limits for subscribers, mods, broadcaster, VIPs and regular | Done |
+| !showoff pulls from the user's profile showcase | Done |
+| Option to edit the showcase on a person's profile | Done |
+| Generate a Mix It Up command from settings (commands and pulls) | Done |
+| Align variant with rarity, plus a Golden variant (Joshua) | 29.1 (done), 29.3, 29.4, 29.5 |
+| Trainer cards and a Buff Editor (Joshua) | 30.1 to 30.4 |
+
+## Track 32 notes (2026-10-20)
+
+### PR descriptions fixed (2026-10-20)
+`scripts/build-changelog.mjs` publishes only the bullets under `## Changelog`. #301 has no section, and #302 and #306 have prose only, so the Golden labels, variant styles and Discord DM alerts are missing from What's new. #303 had no Audience or Tags lines. Joshua approved the rewrites on 2026-10-20; the edited bodies show after the next deploy.
+
+## Track 33: admin editors (Joshua, 2026-10-20; shipped in #315, #316, #317)
+
+One PR per item, each from up-to-date `origin/main`. They touch different files and can run in parallel. Each adds or extends a `scripts/check-*.mts`.
+
+### 33.1 Discord variables on the Environment tab (Ready, XS)
+`lib/env-health.ts` lists no Discord variables, so Admin → Settings → Environment cannot say why the Discord DM option is hidden. Add an `EnvGroup` `'Discord'` (and to `ENV_GROUPS`) with `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN`, all `recommended`. The `unlocks` text says what `lib/discord-user.ts` does with each: linking a Discord account in Settings and DM alerts; all three are needed or the option stays hidden; the redirect `<site>/auth/discord/callback` goes in the Discord developer portal. `DISCORD_API_BASE` is a test hook and is not listed. Discord channel webhooks live in KV (Settings → Webhooks), not env, so they are not listed either. Extend `scripts/check-settings.mts` and the env table in `docs/hosting.md`.
+
+### 33.2 Achievement Editor (Ready, L)
+Decided 2026-10-20 (Joshua): its own page on the sidebar, built-in goals editable with their real wording, a clearer buff reward, stats, placeholders and custom goals.
+- **Page.** `/admin/achievements` (server page, `force-dynamic`, `requireAdmin` on every action), added to `NAV_GROUPS` in `lib/admin-nav.ts` under Game, next to the Buff Editor, icon `award`, an unused shortcut letter (`scripts/check-admin-shell.mts` checks it). Remove the Settings tab; `/admin/settings?tab=achievements` redirects to the new page. Update `docs/admin.md`'s topic file and the staff wiki entry if one names the tab.
+- **Built-in goals prefilled.** Each built-in kind gets its default title and detail as a template in `lib/achievement-settings.ts` (the sentences `evaluateSeason` and `serialGoals` use today, with `{season}` etc. in place of the live values). The editor shows the template (or the saved override), not a blank box. Saving text equal to the default stores nothing. A Reset button per row. Stored earned rows keep working: text is still applied on the way out (`applyAchievementText`).
+- **Placeholders.** `{season}`, `{need}` (the goal's target), `{rarity}` (tier goals), `{version}` (version goals), `{cutoff}` (print bonus cutoff). Filled when the text is shown, from the achievement's own fields. An unknown `{word}` is shown as typed, and the editor warns about it. A small reference list under the form.
+- **Buff reward wording.** The "Bonus reward" select becomes "Buff given when earned", with one line under it: a buff from the Buff Editor, given once, the first time a player earns this goal (link to `/admin/buffs`). The option text says what the buff does (`describeBuffDef`).
+- **Stats.** When `syncAchievements` stores a newly earned goal, also `hincrby achievements:earned <kind> 1` and push `{ username, id, title, earnedAt }` to `achievements:recent` (trim to 25). The page shows the count per goal and a recent-earners list linked to profiles. A "Recount" button rebuilds the counts by scanning every user's `user:<u>:ach` hash (users from `getAllCollectionUsers()`), for goals earned before this ships.
+- **Custom goals.** KV `achievements:custom`, a list of `{ id, on, title, detail, icon, rule, buffId? }`, normalized on read like the settings. `rule` is one of: `unique` (own N different cards), `editions` (hold N editions in total, duplicates count), `rarity` (own N different cards of a star tier), `version` (own N different cards in a version), `firsts` (hold print #1 of N different cards; needs numbered copies, like `serialGoals`). Every rule is per season and computed from `AchSeason`, so `evaluateSeason` takes the custom list as an extra argument; ids are `<seasonId>:custom-<id>`. N is capped at the cards that qualify (a goal with 0 qualifying cards is left out, like the built-ins). Create, edit, switch off and delete in the editor; deleting or switching off never removes it from profiles that earned it. Custom goals can carry a buff, applied by the same claim-then-apply path as built-ins. Icon picked from a short list of `IconName`s.
+- **Trade goals (decided 2026-10-20, Joshua).** Goals for completed trades, counted across all seasons: a trade counts once it is `accepted` (a reversed trade does not), for both the offerer and the taker (`from`, and `to ?? resolvedBy`, as in `tradeCountsByUser` in `lib/trades.ts`). Add `completedTradeCount(username)` next to it. Built-in kinds `first-trade` (1) and `ten-trades` (10) in a new `Trading` group, and a custom rule `trades` (complete N trades). They are not per season: stored under the pseudo-season id `trading` (like `special`), so ids are `trading:first-trade` and `trading:custom-<id>`; `{season}` is empty there and `{need}` works. `syncAchievements` reads the count once per sync. Earned stays earned, even if a trade is later reversed.
+- **Checks.** Extend the achievements check: placeholder fill, default-equals-blank, each rule type at N-1 and N, a deleted custom goal stays earned, the stat counter goes up once per goal.
+
+### 33.3 FAQ Editor: built-in questions as templates (Ready, L, includes 32.3)
+Decided 2026-10-20 (Joshua): the built-in questions are editable with their real wording prefilled, using placeholders for live values.
+- **Built-ins become data.** Move every built-in question in `app/(site)/faq/sections/*.tsx` into `lib/faq-builtins.ts`: `{ id, sectionId, question, answer, open? }`, `answer` in the custom-answer syntax `lib/faq-core.ts` already parses (paragraphs, `- ` lists, `**bold**`, `[text](href)`). Keep every existing anchor id (`#not-nfts`, `#app`, ...); give the rest a stable slug. The wording stays the same apart from what the syntax cannot express.
+- **Placeholders.** `{channel}`, `{channel_url}` (`lib/site.ts`), `{season}`, `{print_cutoff}`, `{pct_<variant>}` and `{cost_<variant>}` for each variant, the trade settings the trading section prints today, and any other live number the sections use now. Filled on render in `page.tsx`; custom questions get them too. Unknown `{word}` is left as typed.
+- **Live blocks.** What text cannot hold (the card values table, the chat commands list, other tables or lists built from data) becomes a block placeholder: a line that is only `{{block_name}}` renders the matching component (moved out of the section files into one blocks file). Sentences that change with state today (for example upgrades off this season) become a placeholder whose value is the right sentence.
+- **Overrides.** The store gains `overrides: Record<builtinId, { question?, answer?, hidden? }>`, normalized on read (unknown ids dropped). Defaults stay in code, so a later copy fix still reaches questions nobody edited. The editor lists the built-ins per section next to the custom ones, prefilled with the override or the default, with Hide and Reset to built-in, a placeholder reference (with today's values) and a warning on unknown placeholders or blocks. Saving the default text stores nothing.
+- **Rendering.** One renderer for built-ins and custom questions; the section `.tsx` files go. Section order, titles, icons and hiding stay as they are in the store.
+- **From 32.3.** Check section icons against the `ICONS` keys and fall back to `help` (`cleanSectionInput`, `normalizeFaqStore`). `updateFaqQuestionAction` keeps `order` and `createdAt`. Reject a question whose `sectionId` is not a section, and toggle or reorder calls for an unknown section. The link parser treats `//host` as external, not a site path (`\/(?!\/)`).
+- **Words check.** `scripts/check-words.mts` reads the FAQ wording from the new builtins file. The FAQ, Privacy and Terms stay in step: the check covers the defaults, and the editor shows one line reminding staff that the Privacy and Terms are not edited here.
+- **Checks.** A faq check: every built-in has a unique id and a known section, every placeholder used by a default is defined, every block named exists, an override of the default text normalizes to nothing, `//host` is not a site link. Run the public-site sweep on `/faq` against the mock KV and compare it with the old page.
+
+### 29.3 (archived) Stars keep setting the value (decided, no PR)
+
+Decided 2026-10-19. The stars on a card keep setting its value. The version multiplier stays as it is today (`baseScore × rarity from Card.stars × variantMultiplier × print bonus` in `lib/leaderboard.ts`). A Golden edition, once it exists, gets a version multiplier the same way a Full Art Holo does. It does not replace the stars.
+
+The names in 29.1 (Regular/Common through Golden/Legendary) are labels on the versions. The star names (Common through Legendary) stay too. Do not change `copyPoints`. Do not open a PR for this.
+
