@@ -238,6 +238,12 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                   {s.complete ? '+' : ''}{s.setBonus.toLocaleString()}
                 </dd>
               </div>
+              {s.bonusPoints > 0 && (
+                <div className="py-2.5 flex items-center justify-between gap-4">
+                  <dt className="text-gray-300">Bonus points <span className="text-gray-600">· from trainer cards and rewards</span></dt>
+                  <dd className="font-semibold text-emerald-300 tabular-nums">+{s.bonusPoints.toLocaleString()}</dd>
+                </div>
+              )}
               <div className="py-2.5 flex items-center justify-between gap-4">
                 <dt className="font-semibold text-white">Total</dt>
                 <dd className="font-display text-xl font-bold text-yellow-400 tabular-nums">{s.score.toLocaleString()}</dd>

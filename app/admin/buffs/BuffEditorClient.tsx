@@ -13,11 +13,15 @@ import {
   HOURS_MIN,
   MAGNITUDE_MAX,
   MAGNITUDE_MIN,
+  POINTS_DEFAULT,
+  POINTS_MAX,
+  POINTS_MIN,
   PULLS_MAX,
   PULLS_MIN,
   STREAMS_MAX,
   STREAMS_MIN,
   describeBuffDef,
+  isInstantBuffType,
   type BuffDef,
   type BuffScope,
   type BuffStackMode,
@@ -38,6 +42,7 @@ interface FormState {
   stack: BuffStackMode;
   scope: BuffScope;
   achievementId: string;
+  points: number;
 }
 
 const EMPTY_FORM: FormState = {
@@ -49,7 +54,17 @@ const EMPTY_FORM: FormState = {
   stack: 'refresh',
   scope: 'self',
   achievementId: BUFF_ACHIEVEMENT_KINDS[0].kind,
+  points: POINTS_DEFAULT,
 };
+
+// One-click starting points: they only fill the form, nothing is saved until Create buff.
+const PRESETS: { label: string; form: Partial<FormState> }[] = [
+  { label: 'Free bonus pack (self)', form: { name: 'Free bonus pack', type: 'extra-pack', magnitude: 1, scope: 'self', durationUnit: 'season' } },
+  { label: 'Everyone +1 pull', form: { name: 'Everyone gets an extra pull', type: 'extra-pulls', magnitude: 1, scope: 'community', durationUnit: 'streams', durationN: 1 } },
+  { label: 'Rarer pulls', form: { name: 'Rarer pulls', type: 'rarity-boost', magnitude: 5, scope: 'self', durationUnit: 'pulls', durationN: 5 } },
+  { label: '+100 leaderboard points', form: { name: 'Bonus +100 points', type: 'score-bonus', points: 100, scope: 'self' } },
+  { label: 'Brie Bucks for all', form: { name: 'Bonus Brie Bucks for all', type: 'currency-grant', points: 100, scope: 'community' } },
+];
 
 function defToForm(def: BuffDef): FormState {
   return {
@@ -61,15 +76,19 @@ function defToForm(def: BuffDef): FormState {
     stack: def.stack,
     scope: def.type === 'grant-achievement' ? 'self' : def.scope,
     achievementId: def.achievementId ?? BUFF_ACHIEVEMENT_KINDS[0].kind,
+    points: def.points ?? POINTS_DEFAULT,
   };
 }
 
 export function BuffEditorClient({
   buffs,
   usages,
+  mixItUpReady,
 }: {
   buffs: BuffDef[];
   usages: Record<string, BuffUsage>;
+  /** Mix It Up is on and has an add address (needed by the Bonus Brie Bucks buff). */
+  mixItUpReady: boolean;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -104,6 +123,7 @@ export function BuffEditorClient({
         stack: form.stack,
         scope: form.type === 'grant-achievement' ? 'self' : form.scope,
         achievementId: form.achievementId,
+        points: form.points,
       };
       const res = editingId ? await updateBuffAction(editingId, payload) : await createBuffAction(payload);
       if (!res.ok) {
@@ -137,6 +157,7 @@ export function BuffEditorClient({
   }
 
   const isGrantAch = form.type === 'grant-achievement';
+  const isInstant = isInstantBuffType(form.type);
   const durationCap = form.durationUnit === 'hours'
     ? { min: HOURS_MIN, max: HOURS_MAX, label: `Hours (${HOURS_MIN} to ${HOURS_MAX})` }
     : form.durationUnit === 'streams'
@@ -243,6 +264,15 @@ export function BuffEditorClient({
         ) : undefined}
       >
         <form onSubmit={onSubmit} className="space-y-3">
+          {!editingId && (
+            <div className="flex flex-wrap gap-1.5" aria-label="Start from an example">
+              {PRESETS.map(p => (
+                <button key={p.label} type="button" onClick={() => setForm({ ...EMPTY_FORM, ...p.form })} className="btn btn-xs border border-gray-700 bg-gray-900 text-gray-200 hover:border-gray-500">
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
           <fieldset className="fieldset">
             <legend className="fieldset-legend"><label htmlFor="buff-name">Name</label></legend>
             <input
@@ -280,9 +310,18 @@ export function BuffEditorClient({
             <p className="fieldset-label">
               {form.type === 'extra-pulls' && 'Raises per-stream pull limit by the magnitude while active. A base limit of 0 still means no limit.'}
               {form.type === 'extra-pack' && 'Grants pack credits. One credit is used instead of counting against the stream limit and waives the Brie Bucks cost for that pull.'}
+              {form.type === 'rarity-boost' && 'Raises the draw weight of every rarity with 3 or more stars by 10% per magnitude point. Other rarities keep their weight, so their share drops.'}
+              {form.type === 'score-bonus' && 'Adds flat leaderboard points once, when applied: to the holder (self) or every player in the current season (community). Duration does not apply.'}
+              {form.type === 'currency-grant' && 'Adds Brie Bucks once, when applied, through the Mix It Up add address: to the holder (self) or every current-season player (community). Duration does not apply.'}
               {form.type === 'grant-achievement' && 'Awards one built-in achievement permanently. Always personal (self), with no duration.'}
             </p>
           </fieldset>
+
+          {form.type === 'currency-grant' && !mixItUpReady && (
+            <p role="alert" className="rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+              Mix It Up is off or has no add address, so this buff cannot be applied yet. Set it up on the <Link href="/admin/mixitup" className="underline">Mix It Up page</Link>.
+            </p>
+          )}
 
           {isGrantAch ? (
             <fieldset className="fieldset">
@@ -302,17 +341,35 @@ export function BuffEditorClient({
             <>
               <div className="grid grid-cols-2 gap-3">
                 <fieldset className="fieldset">
-                  <legend className="fieldset-legend"><label htmlFor="buff-mag">{form.type === 'extra-pack' ? 'Pack credits (1 to 10)' : 'Extra pulls (1 to 10)'}</label></legend>
-                  <input
-                    id="buff-mag"
-                    type="number"
-                    min={MAGNITUDE_MIN}
-                    max={MAGNITUDE_MAX}
-                    step={1}
-                    value={form.magnitude}
-                    onChange={e => setForm(f => ({ ...f, magnitude: Number(e.target.value) }))}
-                    className={fieldClass}
-                  />
+                  {isInstant ? (
+                    <>
+                      <legend className="fieldset-legend"><label htmlFor="buff-points">{form.type === 'score-bonus' ? 'Points' : 'Brie Bucks'} ({POINTS_MIN} to {POINTS_MAX.toLocaleString('en-US')})</label></legend>
+                      <input
+                        id="buff-points"
+                        type="number"
+                        min={POINTS_MIN}
+                        max={POINTS_MAX}
+                        step={1}
+                        value={form.points}
+                        onChange={e => setForm(f => ({ ...f, points: Number(e.target.value) }))}
+                        className={fieldClass}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <legend className="fieldset-legend"><label htmlFor="buff-mag">{form.type === 'extra-pack' ? 'Pack credits (1 to 10)' : form.type === 'rarity-boost' ? 'Boost (1 to 10, +10% each)' : 'Extra pulls (1 to 10)'}</label></legend>
+                      <input
+                        id="buff-mag"
+                        type="number"
+                        min={MAGNITUDE_MIN}
+                        max={MAGNITUDE_MAX}
+                        step={1}
+                        value={form.magnitude}
+                        onChange={e => setForm(f => ({ ...f, magnitude: Number(e.target.value) }))}
+                        className={fieldClass}
+                      />
+                    </>
+                  )}
                 </fieldset>
 
                 <fieldset className="fieldset">
@@ -329,7 +386,7 @@ export function BuffEditorClient({
                 </fieldset>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {!isInstant && <div className="grid grid-cols-2 gap-3">
                 <fieldset className="fieldset">
                   <legend className="fieldset-legend"><label htmlFor="buff-dur-unit">Duration</label></legend>
                   <select
@@ -359,11 +416,11 @@ export function BuffEditorClient({
                     />
                   </fieldset>
                 )}
-              </div>
+              </div>}
             </>
           )}
 
-          <fieldset className="fieldset">
+          {!isInstant && <fieldset className="fieldset">
             <legend className="fieldset-legend"><label htmlFor="buff-stack">When used while already active (stacking)</label></legend>
             <select
               id="buff-stack"
@@ -374,7 +431,7 @@ export function BuffEditorClient({
               <option value="refresh">Refresh expiry (keep magnitude, reset timer/count)</option>
               <option value="reject">Reject use while active (keep the card)</option>
             </select>
-          </fieldset>
+          </fieldset>}
 
           <div className="pt-2 flex items-center justify-end gap-2">
             {editingId && (

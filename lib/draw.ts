@@ -4,6 +4,8 @@
 // probability, then (where the pack and card have variants on) a version by the pack's weights.
 import { kv } from './db';
 import { getActiveSeasonWithPacks } from './kv';
+import { rarityBoostFor } from './buffs';
+import { boostedWeight } from './buffs-core';
 import { DEFAULT_VARIANT_WEIGHTS, GOLDEN_PULLS, VARIANTS, encodeEntry } from './variants';
 import type { Card, Pack, Variant } from './types';
 
@@ -13,7 +15,7 @@ const ticketKey = (id: string) => `draw:${id}`;
 export interface DrawResult { pack: Pack; card: Card; variant: Variant }
 
 /** Rolls one pull from the given packs. Pure apart from `rng` (so a script can test the odds). Null when there is nothing to draw. */
-export function rollDraw(packs: { pack: Pack; cards: Card[] }[], rng: () => number = Math.random): DrawResult | null {
+export function rollDraw(packs: { pack: Pack; cards: Card[] }[], rng: () => number = Math.random, rarityBoost = 1): DrawResult | null {
   const usable = packs.filter(p => p.cards.length > 0);
   if (usable.length === 0) return null;
   const totalWeight = usable.reduce((s, { pack }) => s + (pack.weight || 1), 0);
@@ -21,10 +23,12 @@ export function rollDraw(packs: { pack: Pack; cards: Card[] }[], rng: () => numb
   let chosen = usable[usable.length - 1];
   for (const p of usable) { rw -= p.pack.weight || 1; if (rw <= 0) { chosen = p; break; } }
 
-  const totalProb = chosen.cards.reduce((s, c) => s + c.probability, 0);
+  // A rarity-boost buff multiplies the weight of 3+ star cards; the rest keep theirs, so their share drops.
+  const cardWeight = (c: Card) => boostedWeight(c.probability, c.stars, rarityBoost);
+  const totalProb = chosen.cards.reduce((s, c) => s + cardWeight(c), 0);
   let rp = rng() * totalProb;
   let card = chosen.cards[chosen.cards.length - 1];
-  for (const c of chosen.cards) { rp -= c.probability; if (rp <= 0) { card = c; break; } }
+  for (const c of chosen.cards) { rp -= cardWeight(c); if (rp <= 0) { card = c; break; } }
 
   let variant: Variant = 'regular';
   if (chosen.pack.upgradesEnabled && card.kind !== 'trainer' && card.upgradesEnabled !== false) {
@@ -61,7 +65,7 @@ export interface QueuedDraw { packId: string; cardNumber: number; variant: Varia
 /** Rolls a pull for a viewer and stores its ticket under `id`. Null when the active season has nothing to draw. */
 export async function issueDraw(id: string, username: string, paid = false): Promise<QueuedDraw | null> {
   const active = await getActiveSeasonWithPacks();
-  const rolled = active ? rollDraw(active.packs) : null;
+  const rolled = active ? rollDraw(active.packs, Math.random, await rarityBoostFor(username).catch(() => 1)) : null;
   if (!active || !rolled) return null;
   const { pack, card, variant } = rolled;
   const ticket: DrawTicket = {

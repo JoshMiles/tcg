@@ -2,7 +2,8 @@ import { kv } from './db';
 import { getActiveSeason, getCollection, getPackCards, getPacksForSeason, getSeason, listAllPacks, listSeasons, saveCollection, withCollectionLock, withLock } from './kv';
 import { ACHIEVEMENT_KINDS, getCustomGoals } from './achievement-settings';
 import {
-  consumeBuffPull, describeBuffDef, extraPackCreditsLeft, normalizeBuffDef, applyBuffToList, totalExtraPullsFromBuffs,
+  consumeBuffPull, describeBuffDef, extraPackCreditsLeft, normalizeBuffDef, applyBuffToList, totalExtraPullsFromBuffs, rarityBoostFactor,
+  isInstantBuffType, POINTS_DEFAULT, type TimedBuffType,
   type ActiveBuff, type BuffDef, type BuffEvalContext, type BuffUsage,
 } from './buffs-core';
 import { encodeEntry, removeEntries } from './variants';
@@ -10,6 +11,7 @@ import { favouriteIdsOf, spendablePrints } from './favourites';
 import { getCopy, isTracking } from './serials';
 import { recordAudit } from './audit';
 import { recordActivity } from './activity';
+import { addScoreBonus } from './score-bonus';
 import { getLiveStatus } from './twitch-live';
 import { streamKey } from './mixitup-core';
 import type { Card } from './types';
@@ -176,7 +178,33 @@ async function editBuffs<T>(user: string | null, fn: (list: ActiveBuff[]) => { b
 
 export type ApplyBuffOutcome =
   | { ok: true; buffs: ActiveBuff[]; refreshed: boolean }
-  | { ok: false; reason: 'not_found' | 'already_active' | 'max_buffs' | 'invalid_type' | 'community_disallowed' };
+  | { ok: false; reason: 'not_found' | 'already_active' | 'max_buffs' | 'invalid_type' | 'community_disallowed' | 'no_season' | 'mixitup_off' | 'mixitup_failed' };
+
+/** A one-shot buff (score-bonus, currency-grant) acts now on the viewer, or on every current-season player for community scope. */
+async function applyInstantBuff(def: BuffDef, username: string, options?: { seasonId?: string; dryRun?: boolean }): Promise<ApplyBuffOutcome> {
+  const mix = def.type === 'currency-grant' ? await import('./mixitup') : null;
+  const settings = mix ? await mix.getMixItUpSettings() : null;
+  if (mix && settings && (!settings.enabled || !settings.addUrl)) return { ok: false, reason: 'mixitup_off' };
+  const season = options?.seasonId ? await getSeason(options.seasonId) : await getActiveSeason();
+  if (!season) return { ok: false, reason: 'no_season' };
+  const done: ApplyBuffOutcome = { ok: true, buffs: [], refreshed: false };
+  if (options?.dryRun) return done;
+
+  const amount = def.points ?? POINTS_DEFAULT;
+  const players = def.scope === 'community'
+    ? Object.entries(await getCollection(season.collectionName)).filter(([, e]) => e.length > 0).map(([u]) => u)
+    : [username.toLowerCase()];
+  if (def.type === 'score-bonus') {
+    await addScoreBonus(season.collectionName, players, amount);
+    return done;
+  }
+  let failed = false;
+  for (let i = 0; i < players.length; i += 10) {
+    const rs = await Promise.all(players.slice(i, i + 10).map(u => mix!.grantCurrency(settings!, u, amount)));
+    if (rs.some(r => !r.applied)) failed = true;
+  }
+  return failed ? { ok: false, reason: 'mixitup_failed' } : done;
+}
 
 /**
  * Applies a configured buff definition to a user (or community).
@@ -200,6 +228,8 @@ export async function applyBuff(
   if (def.type === 'grant-achievement') return { ok: false, reason: 'invalid_type' };
 
   if (def.scope === 'community' && options?.disallowCommunity) return { ok: false, reason: 'community_disallowed' };
+
+  if (isInstantBuffType(def.type)) return applyInstantBuff(def, username, options);
 
   const now = options?.now ?? Date.now();
   return editBuffs(def.scope === 'community' ? null : username.toLowerCase(), existing => {
@@ -263,6 +293,15 @@ export async function extraPullsFromBuffs(username: string): Promise<number> {
   return totalExtraPullsFromBuffs(personal, community, { now: Date.now(), streamKey, seasonId: season?.id, username: u });
 }
 
+/** Draw-weight multiplier for 3+ star cards from the viewer's active rarity-boost buffs (1 = none). */
+export async function rarityBoostFor(username: string): Promise<number> {
+  const u = username.toLowerCase();
+  const [personal, community, streamKey, season] = await Promise.all([
+    getUserBuffs(u), getCommunityBuffs(), currentBuffStreamKey().catch(() => undefined), getActiveSeason().catch(() => null),
+  ]);
+  return rarityBoostFactor(personal, community, { now: Date.now(), streamKey, seasonId: season?.id, username: u });
+}
+
 /**
  * Called when a card pull is successfully saved:
  * 1. Spends 1 extra-pack credit if `options.wasCredit` is true (and drops the hold taken when the pull was queued).
@@ -278,7 +317,7 @@ export async function consumePullOnSave(
   const stream = options?.streamKey ?? (await currentBuffStreamKey().catch(() => undefined));
   const ctx = { now, streamKey: stream, seasonId: options?.seasonId, username: u };
   // Saves the list whenever it changed, not only when a credit went (stream keys seen and expired buffs are kept too).
-  const consume = (user: string | null, type: 'extra-pulls' | 'extra-pack', onlyOneCredit?: boolean) =>
+  const consume = (user: string | null, type: TimedBuffType, onlyOneCredit?: boolean) =>
     editBuffs(user, list => {
       const r = consumeBuffPull(list, { ...ctx, type, onlyOneCredit });
       return { buffs: r.buffs, out: r.consumedCredit };
@@ -293,6 +332,8 @@ export async function consumePullOnSave(
   // 2. Decrement pulls-duration buffs (personal & community)
   await consume(u, 'extra-pulls');
   await consume(null, 'extra-pulls');
+  await consume(u, 'rarity-boost');
+  await consume(null, 'rarity-boost');
 }
 
 export interface UseTrainerResult {
@@ -369,6 +410,8 @@ export async function useTrainerCard(
     const refusal = (r: Extract<ApplyBuffOutcome, { ok: false }>): UseTrainerResult =>
       r.reason === 'already_active' ? { ok: false, status: 400, code: 'already_active', error: `Buff "${buffDef.name}" is already active.` }
       : r.reason === 'max_buffs' ? { ok: false, status: 400, error: 'You have reached the maximum number of active buffs.' }
+      : r.reason === 'mixitup_off' ? { ok: false, status: 400, error: 'This buff gives Brie Bucks, but Mix It Up is off or has no add address.' }
+      : r.reason === 'mixitup_failed' ? { ok: false, status: 502, error: 'Mix It Up did not accept the Brie Bucks, so the buff was not applied.' }
       : { ok: false, status: 400, error: 'Could not apply buff.' };
 
     // Check the buff can be applied first, then take the card, then apply it: a failed save then leaves no buff behind.

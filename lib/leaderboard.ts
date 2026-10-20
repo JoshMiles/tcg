@@ -4,6 +4,7 @@ import { VARIANTS, decodeEntry, effectiveWeights, emptyCounts, encodeEntry, type
 import { DEFAULT_SCORING, getScoringSettings, type ScoringSettings } from './scoring';
 import { serialMultiplier } from './scoring-core';
 import { loadSerialIndex } from './serials';
+import { getScoreBonuses } from './score-bonus';
 import type { SerialIndex } from './serials-core';
 import { currentSandboxId, kv } from './db';
 import { createTtlCache } from './ttl-cache';
@@ -37,7 +38,7 @@ export interface CardValue {
 
 export interface LeaderboardRow {
   username: string;
-  /** Total: card points + progress bonus + full set bonus. */
+  /** Total: card points + progress bonus + full set bonus + bonus points. */
   score: number;
   /** Value of every copy owned, serial bonuses included. */
   cardPoints: number;
@@ -45,6 +46,8 @@ export interface LeaderboardRow {
   serialPoints: number;
   completionBonus: number;
   setBonus: number;
+  /** Flat points from score-bonus buffs (lib/score-bonus.ts). */
+  bonusPoints: number;
   /** Owns at least one of every card in the season. */
   complete: boolean;
   uniqueCards: number;
@@ -62,6 +65,8 @@ export interface SeasonValues {
   settings: ScoringSettings;
   /** Who holds which serial numbers. Absent (or a viewer missing from it) = no serial bonus. */
   serials?: SerialIndex | null;
+  /** Flat points per viewer from score-bonus buffs; absent = none. */
+  bonus?: Record<string, number>;
 }
 
 export interface Bonuses {
@@ -225,7 +230,7 @@ export function computeSeasonValues(
 export function scoreFor(values: SeasonValues, entries: number[], username?: string): number {
   const held = pointsFor(values, entries, username);
   const b = collectionBonuses(values, held.unique.size);
-  return held.points + b.completion + b.set;
+  return held.points + b.completion + b.set + (username !== undefined ? values.bonus?.[username] ?? 0 : 0);
 }
 
 /**
@@ -273,9 +278,11 @@ export function buildLeaderboard(values: SeasonValues, collection: Record<string
     const held = pointsFor(values, entries, username);
     if (held.copies > 0) {
       const b = collectionBonuses(values, held.unique.size);
+      const bonusPoints = values.bonus?.[username.toLowerCase()] ?? 0;
       rows.push({
         username: username.toLowerCase(),
-        score: held.points + b.completion + b.set,
+        score: held.points + b.completion + b.set + bonusPoints,
+        bonusPoints,
         cardPoints: held.points,
         serialPoints: held.serialPoints,
         completionBonus: b.completion,
@@ -305,7 +312,7 @@ export async function getSeasonLeaderboard(season: Season): Promise<{
   // A draft pack attached to a published season is never drawn, so nobody can own its cards: counting them would dilute every
   // card's rarity and make a complete collection impossible. (An inactive published pack still counts: its cards can be held.)
   const packs = await Promise.all(packList.filter(p => p.status !== 'draft').map(async pack => ({ pack, cards: await getPackCards(pack.id) })));
-  const values = computeSeasonValues(packs, collection, settings, serials);
+  const values = { ...computeSeasonValues(packs, collection, settings, serials), bonus: await getScoreBonuses(season.collectionName) };
   // Viewers an admin has hidden from public rankings are left out of the rows (their cards still count in the season's copy totals).
   const hidden = await getHiddenUsersSafe();
   const rows = buildLeaderboard(values, collection).filter(r => !hidden.has(r.username));

@@ -1,4 +1,5 @@
 import { findBuffUsage, getBuffDefs, type BuffUsage } from '@/lib/buffs';
+import { getMixItUpSettings } from '@/lib/mixitup';
 import { PageHeader, Tile } from '../components/ui';
 import { BuffEditorClient } from './BuffEditorClient';
 
@@ -7,6 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function BuffsPage() {
   const buffs = await getBuffDefs();
+  const mix = await getMixItUpSettings();
   const usageEntries = await Promise.all(
     buffs.map(async b => [b.id, await findBuffUsage(b.id)] as const),
   );
@@ -28,7 +30,7 @@ export default async function BuffsPage() {
         <Tile label="Trainer cards linked" value={cardRefCount} sub="Across all packs" icon="cards" />
       </div>
 
-      <BuffEditorClient buffs={buffs} usages={usages} />
+      <BuffEditorClient buffs={buffs} usages={usages} mixItUpReady={mix.enabled && !!mix.addUrl} />
     </div>
   );
 }

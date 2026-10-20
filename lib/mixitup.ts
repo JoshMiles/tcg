@@ -30,7 +30,7 @@ export async function saveMixItUpSettings(s: MixItUpSettings): Promise<void> {
 }
 
 // ── The request log (last 20) ──
-export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'test' | 'revoked' | 'refused' | 'command'; ok: boolean; detail: string }
+export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command'; ok: boolean; detail: string }
 export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>): Promise<void> {
   try { await kv.lpush(LOG, { ...e, at: Date.now() }); await kv.ltrim(LOG, 0, 19); } catch { /* the log never breaks a pull */ }
 }
@@ -68,6 +68,16 @@ export async function fetchBalance(s: MixItUpSettings, username: string, doFetch
   if (!r.ok) return { balance: null, error: r.error ?? `HTTP ${r.status}` };
   const balance = parseBalance(r.body, s.balanceField);
   return balance === null ? { balance: null, error: `no number at "${s.balanceField}" in the reply` } : { balance };
+}
+
+/** Gives a viewer currency through the add address (the currency-grant buff). Applied = Mix It Up said so. */
+export async function grantCurrency(s: MixItUpSettings, username: string, amount: number, doFetch?: Fetch): Promise<{ applied: boolean; error?: string }> {
+  if (!s.enabled || !s.addUrl) return { applied: false, error: 'Mix It Up is off or has no add address.' };
+  if (await inSandbox()) return { applied: true };
+  const r = await callMixItUp(s.addUrl, { action: 'add', secret: s.secret, username, amount, currency: s.currency }, doFetch);
+  const applied = replyApplied(r.status, r.body);
+  await logMixItUp({ username, what: 'add', ok: applied, detail: applied ? `+${amount} ${s.currency}` : r.error ?? `HTTP ${r.status}, not applied` });
+  return applied ? { applied } : { applied, error: r.error ?? `HTTP ${r.status}` };
 }
 
 /** Sends a message that deducts nothing, so the command can be tried without a real pull. */

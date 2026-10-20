@@ -399,5 +399,71 @@ ok(!(await mixitup.reservePaidPull(limitOf1, 'hank', 'xp-5', fakeMix)).ok, 'and 
 await Promise.all(['t-rej', 't-xp'].map(id => buffsStore.applyBuff('ivy', id, { seasonId: sId })));
 eq((await buffsStore.getUserBuffs('ivy')).length, 2, 'two buffs applied at once are both kept');
 
+// ── 9. Buff types: rarity-boost, score-bonus, currency-grant ──
+// Earlier sections leave a community +2 pulls buff in KV: clear the list so the checks below start from nothing.
+await buffsStore.saveCommunityBuffs([]);
+const mk = (type: 'rarity-boost' | 'extra-pulls', magnitude: number, id: string) =>
+  core.createActiveBuff({ id: 'x', name: id, type, magnitude, duration: { unit: 'season' }, stack: 'refresh', scope: 'self' }, { id, now: 1, seasonId: sId, source: 't' })!;
+eq(core.rarityBoostFactor([mk('rarity-boost', 5, 'a'), mk('extra-pulls', 9, 'b')], [], { now: 1, seasonId: sId, username: 'x' }), 1.5, 'rarity boost: +10% per point, other buff types ignored');
+eq(core.rarityBoostFactor([], [], { now: 1, username: 'x' }), 1, 'no boost is a factor of 1');
+eq([core.boostedWeight(10, 2, 2), core.boostedWeight(10, 3, 2)], [10, 20], 'only 3+ star cards gain weight');
+{
+  const cards = [{ number: 1, stars: 1, probability: 50 }, { number: 2, stars: 3, probability: 50 }] as never[];
+  const pk = [{ pack: { id: 'bp', weight: 1 } as never, cards }];
+  const seq = (...v: number[]) => { let i = 0; return () => v[i++] ?? 0; };
+  eq(draw.rollDraw(pk, seq(0, 0.4))!.card.number, 1, 'without a boost 0.4 lands on the common card');
+  eq(draw.rollDraw(pk, seq(0, 0.4), 2)!.card.number, 2, 'a x2 boost moves the same roll to the 3 star card');
+}
+// the editor input is clamped and instant types ignore duration and stack
+const inst = core.cleanBuffDefInput({ name: 'Pts', type: 'score-bonus', points: 999999, duration: { unit: 'hours', n: 5 }, stack: 'reject', scope: 'community' }, 'i1');
+ok(inst.ok && inst.def.points === 10000 && inst.def.duration.unit === 'season' && inst.def.stack === 'refresh' && inst.def.scope === 'community', 'score-bonus: points clamped, duration and stack fixed');
+const instLow = core.cleanBuffDefInput({ name: 'Pts', type: 'currency-grant', points: 0 }, 'i2');
+ok(instLow.ok && instLow.def.points === 1, 'currency-grant: points clamped to at least 1');
+
+// rarity-boost through the store: applied, and its pulls duration is spent per saved pull
+await buffsStore.upsertBuffDef({ id: 't-rb', name: 'Lucky', type: 'rarity-boost', magnitude: 3, duration: { unit: 'pulls', n: 1 }, stack: 'refresh', scope: 'self' });
+ok((await buffsStore.applyBuff('rita', 't-rb', { seasonId: sId })).ok, 'rarity-boost applied');
+eq(await buffsStore.rarityBoostFor('rita'), 1.3, 'rita draws with a x1.3 boost');
+await buffsStore.consumePullOnSave('rita', { seasonId: sId });
+eq(await buffsStore.rarityBoostFor('rita'), 1, 'the boost ends with its pull');
+
+// score-bonus: self and community, shown on the leaderboard, kept by a recompute
+const lb = await import('../lib/leaderboard');
+const sb = await import('../lib/score-bonus');
+await kvLib.saveCollection(cName, { ...(await kvLib.getCollection(cName)), sam: [variants.encodeEntry(10, 'regular')], nobody: [] });
+const season = (await kvLib.getSeason(sId))!;
+const rowOf = async (u: string) => (await lb.getSeasonLeaderboard(season)).rows.find(r => r.username === u);
+const before = (await rowOf('sam'))!;
+await buffsStore.upsertBuffDef({ id: 't-sb', name: 'Plus 100', type: 'score-bonus', magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope: 'self', points: 100 });
+ok((await buffsStore.applyBuff('sam', 't-sb', { seasonId: sId })).ok, 'score-bonus applied to self');
+const after = (await rowOf('sam'))!;
+eq([after.score - before.score, after.bonusPoints], [100, 100], 'the leaderboard row gains the 100 points');
+ok((await buffsStore.applyBuff('sam', 't-sb', { seasonId: sId })).ok, 'a score-bonus can be applied again');
+eq((await rowOf('sam'))!.bonusPoints, 200, 'bonuses add up');
+eq((await buffsStore.getUserBuffs('sam')).length, 0, 'a score-bonus stores no active buff');
+await buffsStore.upsertBuffDef({ id: 't-sbc', name: 'Plus 10 all', type: 'score-bonus', magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope: 'community', points: 10 });
+ok((await buffsStore.applyBuff('sam', 't-sbc', { seasonId: sId })).ok, 'community score-bonus applied');
+const bonuses = await sb.getScoreBonuses(cName);
+eq([bonuses.sam, bonuses.alice, bonuses.nobody], [210, 10, undefined], 'every current-season player with cards gets it, empty collections do not');
+ok(!(await buffsStore.applyBuff('sam', 't-sbc', { seasonId: sId, disallowCommunity: true })).ok, 'community score-bonus is refused where community is not allowed');
+
+// currency-grant: needs Mix It Up on with an add address
+await buffsStore.upsertBuffDef({ id: 't-cg', name: 'Bucks', type: 'currency-grant', magnitude: 1, duration: { unit: 'season' }, stack: 'refresh', scope: 'self', points: 50 });
+const noMix = await buffsStore.applyBuff('sam', 't-cg', { seasonId: sId });
+ok(!noMix.ok && noMix.reason === 'mixitup_off', 'currency-grant fails clearly while Mix It Up is off');
+await mixitup.saveMixItUpSettings(normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', addUrl: 'https://hook.example/add', secret: 's' }));
+ok((await buffsStore.applyBuff('sam', 't-cg', { seasonId: sId, dryRun: true })).ok, 'currency-grant passes the dry run once an add address is saved');
+{
+  let sent: Record<string, unknown> | null = null;
+  const addFetch: typeof fetch = async (_u, init) => { sent = JSON.parse(String(init?.body)); return new Response('{"ok":true}', { status: 200 }); };
+  const s = await mixitup.getMixItUpSettings();
+  eq((await mixitup.grantCurrency(s, 'sam', 50, addFetch)).applied, true, 'the add address is called');
+  eq([sent!.action, sent!.username, sent!.amount, sent!.secret], ['add', 'sam', 50, 's'], 'the add request carries action, username, amount and secret');
+  const refuse: typeof fetch = async () => new Response('{"ok":false}', { status: 200 });
+  eq((await mixitup.grantCurrency(s, 'sam', 50, refuse)).applied, false, 'a refusal from Mix It Up is a failure');
+}
+eq(normalizeMixItUp({ addUrl: ' https://a.example/x ' }).addUrl, 'https://a.example/x', 'addUrl is kept by the normalizer');
+await buffsStore.saveCommunityBuffs([]);
+
 console.log('trainer buff checks passed');
 
