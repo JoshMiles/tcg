@@ -1,6 +1,7 @@
 import { Icon } from '@/app/components/Icon';
 import { InfoTip } from '@/app/components/InfoTip';
 import { PushPrompt } from '@/app/components/site/PushPrompt';
+import { DiscordPrompt } from '@/app/components/site/DiscordPrompt';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -134,6 +135,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
       <PushPrompt />
+      <DiscordPrompt />
       <div className="flex flex-wrap items-center justify-between gap-4">
         {header}
         <div className="flex flex-wrap gap-2">
