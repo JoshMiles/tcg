@@ -151,6 +151,19 @@ await store.syncAchievements('cora', 25000);
 const coraBuffsResync = await buffsLib.getUserBuffs('cora');
 eq(coraBuffsResync.length, 1, 'second sync does not write another buff');
 
+// A goal stored before the bonus existed (eve earned it with no bonus set) pays out once, on the first sync after, never twice
+await settingsLib.saveAchievementSettings({});
+await kvLib.saveCollection(season1.collectionName, { ...(await kvLib.getCollection(season1.collectionName)), eve: [...nums] });
+await store.syncAchievements('eve', 26000);
+await settingsLib.saveAchievementSettings(settingsLib.normalizeAchievementSettings({
+  complete: { on: true, title: '', detail: '', buffId: 'ach-bonus' },
+}));
+eq((await buffsLib.getUserBuffs('eve')).length, 0, 'eve has no buff before a bonus is set');
+await store.syncAchievements('eve', 27000);
+eq((await buffsLib.getUserBuffs('eve')).length, 1, 'an old stored goal pays its bonus on the first sync');
+await store.syncAchievements('eve', 28000);
+eq((await buffsLib.getUserBuffs('eve')).length, 1, 'and only once');
+
 // A disabled kind grants nothing new
 await settingsLib.saveAchievementSettings(settingsLib.normalizeAchievementSettings({
   complete: { on: false, title: '', detail: '', buffId: 'ach-bonus' },
