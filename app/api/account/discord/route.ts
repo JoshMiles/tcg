@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
     const testRes = await sendTestDiscordDm(session.username);
     if (!testRes.ok) {
       return NextResponse.json(
-        { error: testRes.error === 'closed' ? 'closed' : testRes.error || 'Failed to send test message' },
-        { status: testRes.error === 'closed' ? 403 : 500 },
+        { error: testRes.error === 'closed' ? 'closed' : testRes.error === 'cooldown' ? 'Wait 30 seconds before sending another test message' : testRes.error || 'Failed to send test message' },
+        { status: testRes.error === 'closed' ? 403 : testRes.error === 'cooldown' ? 429 : 500 },
       );
     }
     const link = await getDiscordLink(session.username);

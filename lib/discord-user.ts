@@ -63,8 +63,7 @@ export async function exchangeDiscordCode(
   });
 
   if (!tokenRes.ok) {
-    const err = await tokenRes.text().catch(() => '');
-    throw new Error(`Discord token exchange failed (${tokenRes.status}): ${err}`);
+    throw new Error(`Discord token exchange failed (${tokenRes.status})`);
   }
 
   const tokenData = (await tokenRes.json()) as { access_token: string; token_type: string };
@@ -169,10 +168,16 @@ export async function getTwitchUserByDiscordId(discordId: string): Promise<strin
   return typeof u === 'string' && u.trim() ? u.trim().toLowerCase() : null;
 }
 
-export async function saveDiscordLink(username: string, link: DiscordLink): Promise<void> {
+/** Links `link.id` to the collector. False when another collector already holds that Discord account (nothing is written). */
+export async function saveDiscordLink(username: string, link: DiscordLink): Promise<boolean> {
   const u = username.toLowerCase();
+  // Claim the index first: KV has no transactions, so SET NX decides who wins a race.
+  const claimed = await kv.set(discordIdKey(link.id), u, { nx: true });
+  if (!claimed && (await getTwitchUserByDiscordId(link.id)) !== u) return false;
+  const previous = await getDiscordLink(u);
   await kv.set(discordUserKey(u), link);
-  await kv.set(discordIdKey(link.id), u);
+  if (previous && previous.id !== link.id) await kv.del(discordIdKey(previous.id));
+  return true;
 }
 
 export async function unlinkDiscord(username: string): Promise<void> {
@@ -231,6 +236,9 @@ export async function sendTestDiscordDm(user: string): Promise<{ ok: boolean; er
   if (await inSandbox()) return { ok: false, error: 'Disabled in sandboxes' };
   const link = await getDiscordLink(user);
   if (!link) return { ok: false, error: 'No Discord account linked' };
+  if (!(await kv.set(`discord:testdm:${user.toLowerCase()}`, 1, { nx: true, ex: 30 }))) {
+    return { ok: false, error: 'cooldown' };
+  }
   const payload: DiscordDmPayload = {
     embeds: [
       {

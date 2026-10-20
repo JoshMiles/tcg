@@ -413,6 +413,18 @@ ok(lc.categories.listings === false, 'an old channel does not start posting list
   rateLimitNext = true;
   const dmRes = await discordUser.sendTestDiscordDm('viewer2');
   ok(dmRes.ok, 'test DM succeeds after 429 retry');
+  const again = await discordUser.sendTestDiscordDm('viewer2');
+  ok(!again.ok && again.error === 'cooldown', 'second test DM inside 30 seconds is refused');
+
+  // Second collector is refused a held id; relink frees the old id
+  const link9 = { id: '1122334455', username: 'X', linkedAt: 1, dmStatus: 'ok' as const, kinds: [] };
+  ok(!(await discordUser.saveDiscordLink('viewer9', link9)), 'second collector is refused a held discord id');
+  ok((await discordUser.getTwitchUserByDiscordId('1122334455')) === 'viewer2' && (await discordUser.getDiscordLink('viewer9')) === null, 'refused link writes nothing');
+  ok(await discordUser.saveDiscordLink('viewer2', { ...link9, id: 'second_acct' }), 'collector relinks to another account');
+  ok((await discordUser.getTwitchUserByDiscordId('1122334455')) === null, 'relink frees the old discord id');
+  ok(await discordUser.saveDiscordLink('viewer9', link9), 'freed id can be linked by someone else');
+  await discordUser.unlinkDiscord('viewer9');
+  await discordUser.saveDiscordLink('viewer2', { ...link9, username: 'Discorder', kinds: ['offers', 'results'] });
 
   // Closed DMs (error 50007)
   await discordUser.saveDiscordLink('viewer3', { id: 'blocked_user', username: 'BlockedUser', linkedAt: 1000, dmStatus: 'ok', kinds: ['offers'] });
