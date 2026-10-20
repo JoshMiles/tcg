@@ -35,7 +35,7 @@ ok(icons.some(i => i.sizes === '192x192') && icons.some(i => i.sizes === '512x51
 ok(icons.some(i => i.purpose === 'maskable'), 'manifest has a maskable icon');
 for (const i of icons) ok(existsSync(join(process.cwd(), 'public', i.src)), `icon file exists: ${i.src}`);
 for (const s of manifest.shortcuts ?? []) ok(s.url.startsWith('/'), `shortcut is a local path: ${s.url}`);
-ok(existsSync(join(process.cwd(), 'app', 'apple-icon.png')), 'the iOS home-screen icon exists');
+ok(existsSync(join(process.cwd(), 'public', 'apple-touch-icon-v3.png')), 'the iOS home-screen icon exists');
 
 // The service worker never touches the admin, API or login, and only ever answers page loads.
 const sw = readFileSync(join(process.cwd(), 'public', 'sw.js'), 'utf8');
