@@ -96,13 +96,13 @@ ok(cache.size() <= 3, 'the cache stays within its size limit');
 cache.clear(); eq(cache.size(), 0, 'clear empties it');
 
 // ── apple icons: opaque PNGs (colour type 2, no alpha), or iOS falls back to a letter ──
-for (const f of ['app/apple-icon.png', 'public/apple-touch-icon.png', 'public/apple-touch-icon-precomposed.png', 'public/icons/icon-192.png', 'public/icons/icon-512.png', 'public/icons/maskable-192.png', 'public/icons/maskable-512.png']) {
+for (const f of ['public/apple-touch-icon-v3.png', 'public/apple-touch-icon.png', 'public/apple-touch-icon-precomposed.png', 'public/icons/icon-192.png', 'public/icons/icon-512.png', 'public/icons/maskable-192.png', 'public/icons/maskable-512.png']) {
   ok(existsSync(f), `${f} exists`);
   const png = readFileSync(f);
   ok(png.subarray(1, 4).toString() === 'PNG', `${f} is a PNG`);
   eq(png[25], 2, `${f} has no alpha channel (PNG colour type)`);
 }
-eq(readFileSync('public/apple-touch-icon.png').equals(readFileSync('app/apple-icon.png')), true, 'apple-touch-icon.png matches app/apple-icon.png');
+eq(readFileSync('public/apple-touch-icon.png').equals(readFileSync('public/apple-touch-icon-v3.png')), true, 'apple-touch-icon.png matches apple-touch-icon-v3.png');
 
 // ── favicon: layout lists a rel=icon (metadata.icons replaces a file-based app/icon.png), and the files exist ──
 const layoutSrc = readFileSync('app/layout.tsx', 'utf8');

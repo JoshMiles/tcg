@@ -18,16 +18,16 @@ export const metadata: Metadata = {
   // Link previews (Discord, Twitter, iMessage...). Pages inherit these; the share image is app/opengraph-image.tsx.
   openGraph: { type: 'website', siteName: SITE_NAME },
   twitter: { card: 'summary_large_image' },
-  // iOS: open without Safari's toolbars once added (the home-screen icon is app/apple-icon.png).
+  // iOS: open without Safari's toolbars once added (the home-screen icon is public/apple-touch-icon-v3.png).
   appleWebApp: { capable: true, title: 'Cheesy TCG', statusBarStyle: 'black' },
-  // A plain, hash-free apple-touch link (the opaque PNG in public/); iOS has been seen to keep a stale icon behind a ?query.
+  // A plain, hash-free apple-touch link (the opaque PNG in public/). iOS caches the icon per URL and has kept a stale one behind a ?query, so a changed icon gets a new file name (-v3); the root apple-touch-icon.png and -precomposed.png stay for iOS's direct probes.
   // The tab icon is listed here too: setting `icons` switches off a file-based app/icon.png, so the favicon lives in public/ (favicon.ico is also fetched directly by Discord and RSS readers).
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
       { url: '/favicon.png', type: 'image/png', sizes: '224x224' },
     ],
-    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: '/apple-touch-icon-v3.png', sizes: '180x180', type: 'image/png' }],
   },
   formatDetection: { telephone: false },
 };
