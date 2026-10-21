@@ -120,7 +120,7 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   ok(sanitizePropValues({ 'reveal.labelFont': 'inherit', 'show.labelFont': 'display', 'text.font': 'inherit' })['show.labelFont'] === 'display', 'saved display still valid; inherit is the default and drops');
   const fonts = overlayFontCatalog();
   const fredoka = fonts.find(f => f.id === 'fredoka');
-  ok(fredoka?.file === 'fredoka-var.woff2' && fredoka.family === 'BackFredoka' && fredoka.weight === 700, 'catalog prefers the 700 weight (a variable font's one file)');
+  ok(fredoka?.file === 'fredoka-var.woff2' && fredoka.family === 'BackFredoka' && fredoka.weight === 700, 'catalog prefers the 700 weight (a variable font has one file)');
   ok(!fonts.find(f => f.id === 'display')?.file && fonts.find(f => f.id === 'bebas')?.file === 'bebas-neue-400.woff2', 'site display has no file; a 400-only face uses that file');
   const w = readFileSync('public/widget.js', 'utf8');
   ok(w.includes("id === 'display'") && w.includes('text.font') && layerKeys.every(k => w.includes("'" + k + "'") || k.startsWith('moment.')), 'display leaves the stylesheet font; every layer key is read by the widget');
