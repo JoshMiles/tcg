@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-**Last updated 2026-10-20**
+**Last updated 2026-10-21**
 
 Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked Ready; Needs design or Needs a decision goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item.
 
@@ -20,6 +20,8 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 36.2 | Overlay Editor: element layers (per-element placement) | Ready | L |
 | 36.3 | Overlay Editor: Layers panel | Ready (after 36.2) | M |
 | 36.4 | Overlay Editor: on-canvas handles and smaller polish | Ready (after 36.2) | M |
+| 36.5 | Overlay Editor: a font on every text layer | Ready | M |
+| 37.1 | Collection words: collected, pulls, edition | Ready | S |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -73,6 +75,23 @@ Goal: every visible part of the overlay is a layer you can click, drag and size 
 - Show a short first-use hint on the canvas ("Click anything to edit it, drag to move it"), dismissed for good once closed (localStorage).
 - Update `docs/overlay.md` (layout and editor sections) to describe layers.
 
+### 36.5 A font on every text layer (Ready, M)
+Independent of 36.1 to 36.4. Like a design tool's character panel: select any text and pick its font.
+- **One catalogue:** reuse `BACK_FONTS` / `FONT_OPTIONS` (`lib/card-back.ts`, `lib/overlay-props.ts`) and the widget's `FONT_CATALOG` + `applyTextFont()`. No new fonts, no weight or size controls in this item.
+- **Overlay font:** a new global property `text.font` (default `display`, so today's look), in the Text or General group. It is the font every text layer uses unless the layer picks its own.
+- **Per layer:** every visible text element gets a `<group>.font` select (card label, "got:" line, bar text, serial pill, moment banners, show-off label, collection heading and counters, and any other text the widget draws; list them from `widget.js`). Options are `Overlay font` (value `inherit`, the new default) followed by `FONT_OPTIONS`. The three existing keys (`reveal.labelFont`, `show.labelFont`, `<moment>.font`) switch their default to `inherit` too; saved values stay as they are, so nothing migrates. Same scope rules as the group each key sits in (pack override where the group already allows it).
+- **Widget:** `applyTextFont(el, id)` resolves `inherit` to `text.font` before applying; call it for every text layer where the layout is applied and on preview updates.
+- Verify: change the overlay font and one layer's font in the editor against the mock KV and see both update live; old saved props read back unchanged; `npm run verify`; update `docs/overlay.md` (properties).
+
+## Track 37: collection words (2026-10-21)
+
+**Decided (user, 2026-10-21):** one word per idea. **Collected** is how many different cards of a set you own (`23/25 collected`). **Pulls** is every card you have pulled, repeats included (`194 pulls`), and is the leaderboard's big number. **Edition** is only one numbered copy of a card (`Edition #12`, the early-edition bonus); never a count. Repeats keep the `×N` badge. Replaces the "N editions" total from #321.
+
+### 37.1 Rename on the site (Ready, S)
+- Leaderboard rows and their big number, profile, binder, dex, home, account, share images, FAQ and any other public copy that shows a total as "editions" or "copies": say "pulls". "N/M cards" for set progress: say "N/M collected". Leave "edition" wherever it names one numbered copy.
+- Copy only: no KV keys, API field names or function names change. Keep FAQ / Privacy / Terms in step (`scripts/check-words.mts`) and update `docs/public-site.md` / `docs/serials.md` where they spell out the words.
+- The panel keeps its words until the freeze lifts (see 34.2).
+
 ## Blocked by the Twitch panel freeze
 
 Nothing in a Ready item edits the frozen paths listed under "Rules in force".
@@ -83,7 +102,7 @@ All of it ships as one reviewed panel version. Every item edits `public/twitch-p
 
 **34.1 Collection security (Ready once lifted, S).** `GET /api/twitch/collection` takes `username` and returns that viewer's card numbers for every season, drafts included, with no session, extension JWT or private-profile check. Drop draft seasons; for a private profile return cards only when the caller is that viewer (extension JWT via `verifyExtensionAuth`, or a website session); keep `{ username, collections: [{ seasonId, seasonName, active, ownedNumbers }] }`. Public profiles answer without a token so old panels still load. Make the new panel send its `Authorization` header. Check: private profile without a token gets no cards; drafts never appear.
 
-**34.2 Edition words (Ready once lifted, XS).** Panel copy says "print" for a card copy; switch to "edition" and "serial number" (glossary 25.2).
+**34.2 Edition words (Ready once lifted, XS).** Panel copy says "print" for a card copy; switch to "edition" and "serial number" (glossary 25.2), and "collected" / "pulls" for counts (Track 37).
 
 **34.3 Golden (Ready once lifted, M).** Was 29.5. Turn `GOLDEN_PULLS` on; packs opt in with a Golden weight (default 0). Teach the panel and its CSS the five-id list and index 4. `/api/twitch/upgrade` understands a step up to Golden. Overlay already knows Golden (29.1, 29.4).
 
@@ -103,6 +122,7 @@ All of it ships as one reviewed panel version. Every item edits `public/twitch-p
 - Paid-pull limits default to no limit and stay editable. Staff can add extra pulls for everyone for the current stream.
 - Stars keep setting the card value (29.3); `copyPoints` does not change.
 - Trainer cards can be traded until used.
+- Collection words (Track 37): collected = different cards of a set, pulls = every pull, edition = one numbered copy.
 
 ## User steps still open
 
