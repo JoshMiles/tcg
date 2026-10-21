@@ -1,5 +1,5 @@
 'use client';
-import { Icon } from '@/app/components/Icon';
+import { Icon, type IconName } from '@/app/components/Icon';
 import { ELEMENT_IDS, type ElementId, type OverlayLayout } from '@/lib/overlay-layout';
 import type { PropValue } from '@/lib/overlay-props';
 import type { Mode } from './editor-types';
@@ -7,7 +7,11 @@ import type { Mode } from './editor-types';
 // Readable names, and the existing show/hide property of each element (none for the card and the collection grid).
 export const LAYER_NAMES: Record<ElementId, string> = {
   card: 'Card', label: 'Label', serial: 'Edition badge', bar: 'Name and stars bar', got: '"got:" line',
-  strip: 'Card strip', showlabel: 'Show-off label', heading: 'Heading', grid: 'Collection grid',
+  strip: 'Card strip', showlabel: 'Show-off label', banner: 'Moment banner', heading: 'Heading', grid: 'Collection grid',
+};
+// What each part is, for the icon beside its name in Layers.
+const LAYER_KINDS: Record<ElementId, IconName> = {
+  card: 'image', label: 'text', serial: 'text', bar: 'layers', got: 'text', strip: 'layers', showlabel: 'text', banner: 'text', heading: 'text', grid: 'layers',
 };
 const VISIBLE_KEY: Partial<Record<ElementId, string>> = {
   label: 'reveal.showLabel', serial: 'reveal.showSerial', bar: 'reveal.showInfoBar', got: 'reveal.showGotLine',
@@ -59,6 +63,7 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
                 <li
                   key={id}
                   onMouseEnter={() => hoverElement(id)}
+                  onDoubleClick={() => selectTarget(id)}
                   onContextMenu={menuOn(view, id)}
                   className={`flex items-center gap-1 rounded ${selection.includes(id) ? 'bg-yellow-500/15' : 'hover:bg-white/5'}`}
                 >
@@ -68,6 +73,7 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
                     aria-current={selected === id}
                     className={`flex-1 min-w-0 flex items-center gap-2 px-2 py-1 text-left text-sm truncate ${visible ? 'text-gray-200' : 'text-gray-500 line-through'}`}
                   >
+                    <Icon name={LAYER_KINDS[id]} className="text-gray-500 shrink-0" />
                     {LAYER_NAMES[id]}
                     {moved && <span role="img" aria-label="moved" title="Moved from its normal spot" className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />}
                   </button>

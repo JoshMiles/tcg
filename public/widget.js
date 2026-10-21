@@ -53,7 +53,7 @@ let PLACEMENTS = {
 };
 
 // Parts moved on their own, per id (see lib/overlay-layout.ts ELEMENT_IDS); offsets are relative to the part's normal spot.
-const EL_IDS = ['card', 'label', 'serial', 'bar', 'got', 'strip', 'showlabel', 'heading', 'grid'];
+const EL_IDS = ['card', 'label', 'serial', 'bar', 'got', 'strip', 'showlabel', 'banner', 'heading', 'grid'];
 let ELEMENTS = {};
 
 const n0 = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
@@ -413,7 +413,7 @@ if (PREVIEW) {
   document.addEventListener('pointerup', endPress);
   document.addEventListener('pointercancel', endPress);
   // Selected element: a solid outline (CSS, by body[data-selected]) plus a name tag kept on top of it.
-  const TAG_NAMES = { card: 'Card', label: 'Label', bar: 'Name bar', got: 'Got line', strip: 'Card strip', showlabel: 'Show-off label', serial: 'Edition badge', heading: 'Heading', grid: 'Collection' };
+  const TAG_NAMES = { card: 'Card', label: 'Label', bar: 'Name bar', got: 'Got line', strip: 'Card strip', showlabel: 'Show-off label', serial: 'Edition badge', banner: 'Moment banner', heading: 'Heading', grid: 'Collection' };
   const selTag = document.createElement('div');
   selTag.className = 'edit-tag';
   document.body.appendChild(selTag);
@@ -842,6 +842,7 @@ function momentBanner(theater, P, spec, S, extendHold) {
   banner.style.color = spec.textColor;
   main.style.fontSize = spec.textSize + 'px';
   applyTextFont(banner, spec.font, P);
+  if (PREVIEW) { banner.dataset.edit = 'banner'; banner.title = 'Click to edit the moment banner'; }
   cardBox.appendChild(banner);
   requestAnimationFrame(() => banner.classList.add('on'));
   if (spec.sparkles > 0) {

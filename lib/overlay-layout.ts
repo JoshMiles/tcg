@@ -8,7 +8,7 @@
 
 /** Movable parts of each view. They match the widget's `data-edit` tags (the collection grid is `grid`). */
 export const ELEMENT_IDS = {
-  pack: ['card', 'label', 'serial', 'bar', 'got', 'strip', 'showlabel'],
+  pack: ['card', 'label', 'serial', 'bar', 'got', 'strip', 'showlabel', 'banner'],
   collection: ['heading', 'grid'],
 } as const;
 export type ElementId = (typeof ELEMENT_IDS)[keyof typeof ELEMENT_IDS][number];
