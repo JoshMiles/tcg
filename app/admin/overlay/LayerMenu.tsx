@@ -5,7 +5,7 @@ import { useOverlayEditor } from './OverlayEditorContext';
 
 // The right-click menu on a layer (a preview part, a Layers row or a view heading).
 export function LayerMenu() {
-  const { layerMenu, closeLayerMenu, resetLayer, centerLayer, copyLayerToScenes, sceneCount } = useOverlayEditor();
+  const { layerMenu, closeLayerMenu, resetLayer, centerLayer, copyLayerToScenes, sceneCount, locked, toggleLock } = useOverlayEditor();
   useEffect(() => {
     if (!layerMenu) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeLayerMenu();
@@ -16,6 +16,7 @@ export function LayerMenu() {
   const { view, id, x, y } = layerMenu;
   const items: { label: string; icon: IconName; run: () => void }[] = [
     { label: 'Reset position', icon: 'undo', run: () => resetLayer(view, id) },
+    ...(id ? [{ label: locked.includes(id) ? 'Unlock' : 'Lock', icon: (locked.includes(id) ? 'unlock' : 'lock') as IconName, run: () => toggleLock([id]) }] : []),
     // A part's offset is relative to its normal spot, so only a whole view has a meaningful "centre".
     ...(id ? [] : [{ label: 'Center', icon: 'target' as IconName, run: () => centerLayer(view) }]),
     ...(sceneCount > 0 ? [{ label: 'Copy position to other scenes', icon: 'copy' as IconName, run: () => copyLayerToScenes(view, id) }] : []),

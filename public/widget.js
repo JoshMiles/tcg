@@ -333,6 +333,8 @@ if (PREVIEW) {
   };
   const SNAP_PX = 6;
   let userGuides = { x: [], y: [] }; // the editor's own guide lines (design px), sent as { type: 'guides' }
+  let selSet = new Set();    // every selected part (the editor's multi-select) and the locked ones, sent with { type: 'selected' }
+  let lockedSet = new Set();
   // The closest of `lines` to any of the moving edges (start, middle, end), within SNAP_PX: { d: shift to apply, line }.
   const snapAxis = (vals, lines) => {
     let best = null;
@@ -342,12 +344,19 @@ if (PREVIEW) {
   document.addEventListener('pointerdown', (e) => {
     const el = e.target.closest && e.target.closest('[data-edit]');
     if (!el || e.button !== 0) return;
-    const others = visibleEdits().filter(o => o !== el).map(boxOf);
-    press = { id: e.pointerId, target: el.dataset.edit, x: e.clientX, y: e.clientY, moved: false, rect: boxOf(el), others, all: unionOf(others.concat(boxOf(el))) };
-    toParent({ type: 'select', target: press.target });
+    const t = el.dataset.edit;
+    // Shift+click toggles a part in the selection; Shift+drag still moves the whole view when nothing is selected yet.
+    const toggle = e.shiftKey && selSet.size > 0;
+    // A press on one of several selected parts drags them all; a click without a drag then picks just that part.
+    const inGroup = !toggle && selSet.size > 1 && selSet.has(t);
+    const edits = visibleEdits();
+    const others = edits.filter(o => inGroup ? !selSet.has(o.dataset.edit) : o !== el).map(boxOf);
+    const rect = inGroup ? unionOf(edits.filter(o => selSet.has(o.dataset.edit)).map(boxOf)) : boxOf(el);
+    press = { id: e.pointerId, target: t, x: e.clientX, y: e.clientY, moved: false, rect, others, all: unionOf(others.concat(rect)), locked: lockedSet.has(t), toggle, inGroup };
+    if (!inGroup) toParent({ type: 'select', target: t, shift: toggle });
   });
   document.addEventListener('pointermove', (e) => {
-    if (!press || e.pointerId !== press.id) return;
+    if (!press || e.pointerId !== press.id || press.locked) return;
     if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 3) return;
     press.moved = true;
     let sdx = e.clientX - press.x, sdy = e.clientY - press.y;
@@ -355,9 +364,10 @@ if (PREVIEW) {
     const guides = [];
     if (document.body.dataset.snap && !e.altKey) {
       // Snap the moving box's edges and middle to the stage and (for a single part) to the other parts.
-      const b = e.shiftKey ? press.all : press.rect;
+      const viewMove = e.shiftKey && !press.toggle;
+      const b = viewMove ? press.all : press.rect;
       const xs = [0, innerWidth / 2, innerWidth, ...userGuides.x], ys = [0, innerHeight / 2, innerHeight, ...userGuides.y];
-      if (!e.shiftKey) for (const o of press.others) { xs.push(o.l, (o.l + o.r) / 2, o.r); ys.push(o.t, (o.t + o.b) / 2, o.b); }
+      if (!viewMove) for (const o of press.others) { xs.push(o.l, (o.l + o.r) / 2, o.r); ys.push(o.t, (o.t + o.b) / 2, o.b); }
       const bx = snapAxis([b.l + sdx, (b.l + b.r) / 2 + sdx, b.r + sdx], xs);
       const by = snapAxis([b.t + sdy, (b.t + b.b) / 2 + sdy, b.b + sdy], ys);
       if (bx) { sdx += bx.d; sx = true; guides.push({ x: bx.line }); }
@@ -365,11 +375,12 @@ if (PREVIEW) {
     }
     showGuides(guides);
     const fit = stageFit();
-    toParent({ type: 'drag', target: press.target, dx: sdx / fit, dy: sdy / fit, alt: e.altKey, shift: e.shiftKey, sx, sy });
+    toParent({ type: 'drag', target: press.target, dx: sdx / fit, dy: sdy / fit, alt: e.altKey, shift: e.shiftKey && !press.toggle, sx, sy });
   });
   const endPress = (e) => {
     if (!press || e.pointerId !== press.id) return;
     if (press.moved) toParent({ type: 'dragend' });
+    else if (press.inGroup) toParent({ type: 'select', target: press.target });
     press = null;
     showGuides([]);
   };
@@ -438,6 +449,7 @@ if (PREVIEW) {
   // The box the handles and readout wrap: the selected part, or all parts together when a view is selected.
   const curBox = () => {
     const t = document.body.dataset.selected;
+    if (t && selSet.size > 1) return unionOf(visibleEdits().filter(o => selSet.has(o.dataset.edit)).map(boxOf));
     if (t) { const el = document.querySelector('[data-edit="' + t + '"]'); return el ? boxOf(el) : null; }
     return document.body.dataset.view ? unionOf(visibleEdits().map(boxOf)) : null;
   };
@@ -446,11 +458,12 @@ if (PREVIEW) {
     const el = t && document.querySelector('[data-edit="' + t + '"]');
     if (el) {
       const r = el.getBoundingClientRect();
-      selTag.textContent = TAG_NAMES[t] || t;
+      selTag.textContent = selSet.size > 1 ? selSet.size + ' layers' : TAG_NAMES[t] || t;
       selTag.style.display = 'block';
       selTag.style.left = Math.max(0, r.left) + 'px';
       selTag.style.top = Math.max(0, r.top - 22) + 'px';
     } else selTag.style.display = 'none';
+    document.querySelectorAll('[data-edit]').forEach(o => { o.classList.toggle('edit-sel', selSet.has(o.dataset.edit)); o.classList.toggle('edit-locked', lockedSet.has(o.dataset.edit)); });
     const b = document.body.dataset.canedit ? curBox() : null;
     handles.forEach(h => {
       h.style.display = b ? 'block' : 'none';
@@ -475,6 +488,9 @@ if (PREVIEW) {
     if (e.data.type === 'selected') {
       if (typeof e.data.target === 'string' && e.data.target) document.body.dataset.selected = e.data.target;
       else delete document.body.dataset.selected;
+      const ids = (a) => new Set(Array.isArray(a) ? a.filter((x) => typeof x === 'string') : []);
+      selSet = ids(e.data.selection); if (document.body.dataset.selected) selSet.add(document.body.dataset.selected);
+      lockedSet = ids(e.data.locked);
       // `view`: a whole view is selected (handles wrap all its parts); canEdit / snap come from the editor.
       const flag = (k, on) => { if (on) document.body.dataset[k] = '1'; else delete document.body.dataset[k]; };
       flag('view', !!e.data.view); flag('canedit', !!e.data.canEdit); flag('snap', !!e.data.snap);
