@@ -591,6 +591,8 @@
 .preview-edit[data-selected="heading"] [data-edit="heading"], .preview-edit[data-selected="grid"] [data-edit="grid"] {
   outline: 2px solid rgba(250, 204, 21, 1); outline-offset: 3px;
 }
+.preview-edit .edit-sel { outline: 2px solid rgba(250, 204, 21, 1); outline-offset: 3px; }
+.preview-edit .edit-locked { cursor: not-allowed; }
 .preview-edit[data-hover="card"] [data-edit="card"],
 .preview-edit[data-hover="label"] [data-edit="label"],
 .preview-edit[data-hover="serial"] [data-edit="serial"],

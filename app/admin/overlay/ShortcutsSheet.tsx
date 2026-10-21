@@ -32,6 +32,7 @@ const GROUPS: { title: string; rows: [string, string][] }[] = [
       ['Ctrl+Z', 'Undo'],
       ['Ctrl+Shift+Z / Ctrl+Y', 'Redo'],
       ['Arrow keys (Shift = 10 px)', 'Nudge the selected part'],
+      ['Shift+click', 'Add a part to the selection, or take it out (canvas or Layers); drag, arrows and resize then act on all of them'],
       ['Esc / Ctrl+D', 'Deselect'],
       ['?', 'This list'],
     ],

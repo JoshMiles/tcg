@@ -8,7 +8,7 @@ import { HistoryPanel } from './HistoryPanel';
 import { LayerBlock } from './LayerBlock';
 import { LayoutPanel } from './LayoutPanel';
 import { VariantPicker } from './VariantPicker';
-import { PropRow } from './editor-controls';
+import { PropRow, ghost } from './editor-controls';
 import { PROPS, PROP_GROUPS, VARIANT_IDS, type PropDef, type VariantId } from '@/lib/overlay-props';
 import { PERF_LABEL, variantPerf } from '@/lib/overlay-perf';
 import { PERF_STYLE, VARIANT_LABELS, dependsOn } from './editor-types';
@@ -24,6 +24,11 @@ export function PropertiesDock() {
     openCat,
     setOpenCat,
     selected,
+    selection,
+    locked,
+    toggleSelect,
+    toggleLock,
+    resetSelection,
     modifiedCount,
     searching,
     setQuery,
@@ -63,7 +68,8 @@ export function PropertiesDock() {
   // A category opened from that list is a sub-page of the document and never selects anything on the canvas.
   useEffect(() => { if (selected) setOpenCat(null); }, [selected]);
   const target = selected ? sectionForTarget(selected) : undefined;
-  const layer = target && !(isPack && target[0] === 'collection') ? target : undefined;
+  const multi = selection.length > 1;
+  const layer = !multi && target && !(isPack && target[0] === 'collection') ? target : undefined;
   const layerName = (LAYER_NAMES as Record<string, string>)[selected] ?? selected;
   const cat = PROP_GROUPS.find(g => g.id === (layer ? layer[0] : isPack && openCat === 'collection' ? null : openCat));
   const categories = isPack ? PROP_GROUPS.filter(g => g.id !== 'collection') : PROP_GROUPS;
@@ -296,7 +302,17 @@ export function PropertiesDock() {
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         {layer && !searching && <LayerBlock />}
-        {searching ? (
+        {multi && (
+          <section aria-label="Selection" className="p-3 space-y-2">
+            <h3 className="text-sm font-bold text-yellow-300">{selection.length} layers selected</h3>
+            <p className="text-xs text-gray-500 leading-snug">Drag, arrow keys and the corner handles move or resize them together. Shift+click a part to take it out.</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => toggleLock(selection)} className={ghost}>{selection.every(i => locked.includes(i)) ? 'Unlock' : 'Lock'}</button>
+              <button type="button" onClick={resetSelection} className={ghost}>Reset position</button>
+            </div>
+          </section>
+        )}
+        {multi && !searching ? null : searching ? (
           searchResults.length === 0 ? (
             <p className="p-4 text-sm text-gray-500">No settings match &ldquo;{query}&rdquo;.</p>
           ) : (
@@ -365,6 +381,10 @@ export function PropertiesDock() {
                 setValue={setValue}
                 setLayoutVals={setLayoutVals}
                 selectTarget={selectTarget}
+                selection={selection}
+                locked={locked}
+                toggleSelect={toggleSelect}
+                toggleLock={toggleLock}
                 selectView={selectView}
                 hoverElement={hoverElement}
                 openLayerMenu={openLayerMenu}

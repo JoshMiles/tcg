@@ -50,6 +50,7 @@ export type Tool = 'move' | 'hand' | 'zoom';
 export type Guides = { x: number[]; y: number[] };
 const RULERS_KEY = 'tcg:overlay-rulers';
 const GUIDES_KEY = 'tcg:overlay-guides:';
+const LOCKS_KEY = 'tcg:overlay-locks:';
 const DRAFT_KEY = 'overlay-editor-draft';
 const VIEW_NAMES: Record<Mode, string> = { pack: 'pack opening', collection: 'collection view' };
 const snapKey = (x: Snap) => JSON.stringify([canon(x.g), Object.keys(x.p).sort().map(k => [k, canon(x.p[k])]), x.l]);
@@ -163,6 +164,13 @@ export interface OverlayEditorContextValue {
   layoutCat: boolean;
   dragging: boolean;
   selected: string;
+  /** Every selected part (same view); `selected` is the last one added. */
+  selection: string[];
+  /** Parts locked against canvas edits (an editor aid, kept in localStorage per scope). */
+  locked: string[];
+  toggleSelect: (target: string) => void;
+  toggleLock: (ids: string[]) => void;
+  resetSelection: () => void;
   selectTarget: (target: string) => void;
   selectView: (view: Mode) => void;
   hoverElement: (target: string) => void;
@@ -393,8 +401,27 @@ export function OverlayEditorProvider({
   const boxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
   // A drag or a corner-handle resize in progress (one undo step): `s0` is the scale a resize started from.
-  const drag = useRef<{ view: Mode; id: string | null; ox: number; oy: number; s0?: number } | null>(null);
-  const [selected, setSelected] = useState('');
+  // `id` / `ox` / `oy` / `s0` are the primary part's start; `group` holds every moved part's start (one entry unless several are selected).
+  const drag = useRef<{ view: Mode; id: string | null; ox: number; oy: number; s0?: number; group?: { id: string; ox: number; oy: number; s0: number }[] } | null>(null);
+  const [selection, setSelection] = useState<string[]>([]);
+  const selected = selection[selection.length - 1] ?? '';
+  const setSelected = useCallback((t: string) => setSelection(t ? [t] : []), []);
+  const [locked, setLocked] = useState<string[]>([]);
+  const locksFor = useRef('');
+  useEffect(() => {
+    let l: string[] = [];
+    try {
+      const d = JSON.parse(localStorage.getItem(LOCKS_KEY + layoutKey) ?? 'null');
+      if (Array.isArray(d)) l = d.filter((x): x is string => typeof x === 'string');
+    } catch { /* storage blocked or corrupt */ }
+    locksFor.current = layoutKey;
+    setLocked(l);
+  }, [layoutKey]);
+  useEffect(() => {
+    if (locksFor.current !== layoutKey) return;
+    try { localStorage.setItem(LOCKS_KEY + layoutKey, JSON.stringify(locked)); } catch { /* storage blocked */ }
+  }, [locked]); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggleLock = (ids: string[]) => setLocked(l => (ids.every(i => l.includes(i)) ? l.filter(i => !ids.includes(i)) : [...new Set([...l, ...ids])]));
   const [layerMenu, setLayerMenu] = useState<LayerMenuState | null>(null);
 
   const [zoom, setZoom] = useState(1);
@@ -949,16 +976,22 @@ export function OverlayEditorProvider({
 
   // One part of a view (the label, the bar...) moved on its own; back at its normal spot it is dropped from the layout.
   const elementAt = (view: Mode, id: string) => layout[view].elements?.[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 };
-  const setElement = (view: Mode, id: string, patch: Partial<ElementPlacement>) =>
+  // Several parts in one layout update (so one History step), each patched the way a single one is.
+  const setElements = (view: Mode, patches: Record<string, Partial<ElementPlacement>>) =>
     setLayoutVals(l => {
       const elements = { ...l[view].elements };
-      const next = { ...(elements[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 }), ...patch };
-      if (next.opacity === undefined || next.opacity >= 1) delete next.opacity;
-      if (next.offsetX === 0 && next.offsetY === 0 && next.scale === 1 && next.opacity === undefined) delete elements[id as ElementId];
-      else elements[id as ElementId] = next;
+      for (const [id, patch] of Object.entries(patches)) {
+        const next = { ...(elements[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 }), ...patch };
+        if (next.opacity === undefined || next.opacity >= 1) delete next.opacity;
+        if (next.offsetX === 0 && next.offsetY === 0 && next.scale === 1 && next.opacity === undefined) delete elements[id as ElementId];
+        else elements[id as ElementId] = next;
+      }
       return { ...l, [view]: { ...l[view], elements } };
     });
-  const moveElement = (view: Mode, id: string, ox: number, oy: number) => setElement(view, id, { offsetX: ox, offsetY: oy });
+  const setElement = (view: Mode, id: string, patch: Partial<ElementPlacement>) => setElements(view, { [id]: patch });
+  // The parts an edit on `target` acts on: the whole selection when it is part of it, else just that part; locked parts are skipped.
+  const editable = (target: string) => (selection.includes(target) ? selection : [target]).filter(id => !locked.includes(id));
+  const layersLabel = (verb: string, ids: string[]) => (ids.length > 1 ? `${verb} ${ids.length} layers` : `${verb} ${LAYER_NAMES[ids[0] as ElementId] ?? ids[0]}`);
   // The Layer block's fields: the same clamps as dragging, resizing and sanitizeLayout, one labelled History step per edit.
   const editLayer = (view: Mode, id: string, patch: Partial<ElementPlacement>) => {
     const name = LAYER_NAMES[id as ElementId];
@@ -976,15 +1009,18 @@ export function OverlayEditorProvider({
     if (isPack) return;
     if (!drag.current) {
       const view = wholeView ? mode : viewOf(target);
-      const id = wholeView ? null : target;
+      const ids = wholeView ? [] : editable(target);
+      if (!wholeView && !ids.length) return;
+      const id = wholeView ? null : ids.includes(target) ? target : ids[0];
       commit();
-      tagEdit(`Resize ${id ? LAYER_NAMES[id as ElementId] : VIEW_NAMES[view]}`);
-      drag.current = { view, id, ox: 0, oy: 0, s0: (id ? elementAt(view, id) : layout[view]).scale };
+      tagEdit(wholeView ? `Resize ${VIEW_NAMES[view]}` : layersLabel('Resize', ids));
+      const group = ids.map(i => ({ id: i, ox: 0, oy: 0, s0: elementAt(view, i).scale }));
+      drag.current = { view, id, ox: 0, oy: 0, s0: (id ? elementAt(view, id) : layout[view]).scale, group };
     }
-    const { view, id, s0 = 1 } = drag.current;
-    const scale = Math.round(Math.min(3, Math.max(0.25, s0 * factor)) * 100) / 100;
-    if (id) setElement(view, id, { scale });
-    else setLayoutVals(l => ({ ...l, [view]: { ...l[view], scale } }));
+    const { view, id, s0 = 1, group } = drag.current;
+    const clampScale = (s: number) => Math.round(Math.min(3, Math.max(0.25, s)) * 100) / 100;
+    if (id) setElements(view, Object.fromEntries((group ?? []).map(g => [g.id, { scale: clampScale(g.s0 * factor) }])));
+    else setLayoutVals(l => ({ ...l, [view]: { ...l[view], scale: clampScale(s0 * factor) } }));
   };
 
   // Right-click menu on a layer (a preview part, a Layers row or a view heading); `id` null = the whole view.
@@ -1023,11 +1059,14 @@ export function OverlayEditorProvider({
     if (isPack) return;
     if (!drag.current) {
       const view = viewOf(target);
+      const ids = shift ? [] : editable(target);
+      if (!shift && !ids.length) return;
+      const id = shift ? null : ids.includes(target) ? target : ids[0];
       commit();
-      const id = shift ? null : target;
-      tagEdit(`Move ${id ? LAYER_NAMES[id as ElementId] : VIEW_NAMES[view]}`);
+      tagEdit(shift ? `Move ${VIEW_NAMES[view]}` : layersLabel('Move', ids));
       const start = id ? elementAt(view, id) : layout[view];
-      drag.current = { view, id, ox: start.offsetX, oy: start.offsetY };
+      const group = ids.map(i => ({ id: i, ox: elementAt(view, i).offsetX, oy: elementAt(view, i).offsetY, s0: 1 }));
+      drag.current = { view, id, ox: start.offsetX, oy: start.offsetY, group };
     }
     const { view, id } = drag.current;
     // A part sits inside the view's scale, so the pointer's distance is divided by it to keep the part under the cursor.
@@ -1039,7 +1078,7 @@ export function OverlayEditorProvider({
       if (!sx) nx = Math.abs(nx) <= near ? 0 : Math.round(nx / 10) * 10;
       if (!sy) ny = Math.abs(ny) <= near ? 0 : Math.round(ny / 10) * 10;
     }
-    if (id) moveElement(view, id, nx, ny);
+    if (id) setElements(view, Object.fromEntries((drag.current.group ?? []).map(g => [g.id, { offsetX: g.ox + nx - drag.current!.ox, offsetY: g.oy + ny - drag.current!.oy }])));
     else moveView(view, nx, ny);
   };
 
@@ -1060,9 +1099,10 @@ export function OverlayEditorProvider({
     if (!m) return false;
     if (!dragging) return true;
     const view = viewOf(selected);
-    const cur = elementAt(view, selected);
-    tagEdit(`Nudge ${LAYER_NAMES[selected as ElementId] ?? selected}`);
-    moveElement(view, selected, cur.offsetX + m[0], cur.offsetY + m[1]);
+    const ids = editable(selected);
+    if (!ids.length) return true;
+    tagEdit(layersLabel('Nudge', ids));
+    setElements(view, Object.fromEntries(ids.map(i => { const cur = elementAt(view, i); return [i, { offsetX: cur.offsetX + m[0], offsetY: cur.offsetY + m[1] }]; })));
     return true;
   };
 
@@ -1088,6 +1128,22 @@ export function OverlayEditorProvider({
       setOpenMap(m => ({ ...Object.fromEntries(Object.entries(m).filter(([key]) => !key.startsWith(prefix))), [k]: true }));
       setFocusKey(k);
     }
+  };
+  // Shift+click: add a part to the selection, or take a selected one out. Only one view's parts can be selected together.
+  const toggleSelect = (target: string) => {
+    if (selection.includes(target)) setSelection(selection.filter(t => t !== target));
+    else if (!selected || viewOf(selected) !== viewOf(target)) selectTarget(target);
+    else setSelection([...selection, target]);
+  };
+  const resetSelection = () => {
+    if (!selection.length) return;
+    tagEdit(layersLabel('Reset', selection));
+    setLayoutVals(l => {
+      const view = viewOf(selected);
+      const elements = { ...l[view].elements };
+      for (const id of selection) delete elements[id as ElementId];
+      return { ...l, [view]: { ...l[view], elements } };
+    });
   };
   // Select a whole view: nothing picked, the Layout category showing that view.
   const selectView = (view: Mode) => {
@@ -1163,8 +1219,8 @@ export function OverlayEditorProvider({
     if (r) wheel(dx, dy, ctrl, shift, r.left + x * fit, r.top + y * fit);
   };
 
-  const live = useRef({ dragTo, resizeTo, dragEnd, pressKey, selectTarget, contextAt, shortcut, wheel, wheelFromFrame });
-  live.current = { dragTo, resizeTo, dragEnd, pressKey, selectTarget, contextAt, shortcut, wheel, wheelFromFrame };
+  const live = useRef({ dragTo, resizeTo, dragEnd, pressKey, selectTarget, toggleSelect, contextAt, shortcut, wheel, wheelFromFrame });
+  live.current = { dragTo, resizeTo, dragEnd, pressKey, selectTarget, toggleSelect, contextAt, shortcut, wheel, wheelFromFrame };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (live.current.shortcut(e.key, e.ctrlKey || e.metaKey, e.shiftKey, e.target as HTMLElement | null, e.type === 'keyup')) e.preventDefault();
@@ -1190,8 +1246,8 @@ export function OverlayEditorProvider({
   // Tell the preview what is selected (a part, or a whole view in the Layout panel), whether it may be edited, and the snap switch.
   const viewSelected = !selected && category === 'layout';
   useEffect(() => {
-    if (ready) post({ type: 'selected', target: selected, view: viewSelected && !isPack, canEdit: dragging || (viewSelected && !isPack), snap: snapOn });
-  }, [ready, loadedCount, selected, viewSelected, dragging, isPack, snapOn, post]);
+    if (ready) post({ type: 'selected', target: selected, selection, locked, view: viewSelected && !isPack, canEdit: (dragging && selection.some(id => !locked.includes(id))) || (viewSelected && !isPack), snap: snapOn });
+  }, [ready, loadedCount, selected, selection, locked, viewSelected, dragging, isPack, snapOn, post]);
   // The preview snaps a dragged part to the user's guides too.
   useEffect(() => {
     if (ready) post({ type: 'guides', x: guides.x, y: guides.y });
@@ -1225,7 +1281,8 @@ export function OverlayEditorProvider({
         return;
       }
       if (data?.type !== 'select' || !data.target) return;
-      live.current.selectTarget(data.target);
+      if (data.shift) live.current.toggleSelect(data.target);
+      else live.current.selectTarget(data.target);
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
@@ -1288,6 +1345,11 @@ export function OverlayEditorProvider({
     layoutCat,
     dragging,
     selected,
+    selection,
+    locked,
+    toggleSelect,
+    toggleLock,
+    resetSelection,
     selectTarget,
     selectView,
     hoverElement,
