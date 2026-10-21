@@ -44,6 +44,48 @@ if (OVERLAY_KEY) {
 const PREVIEW = new URLSearchParams(window.location.search).has('preview');
 // The Overlay Editor loads ?preview&editor; the pack workspace preview (plain ?preview) keeps only the nudge and clear keys.
 const EDITOR = PREVIEW && new URLSearchParams(window.location.search).has('editor');
+// Editor timeline (preview only): the reveal's phase timers go through phaseTimer so Pause can hold them, and the editor scrubs the
+// CSS animations meanwhile. Outside the editor phaseTimer / phaseClear ARE setTimeout / clearTimeout, so live behaviour is unchanged.
+const TL = { timers: new Set(), paused: false, start: 0, at: 0, pausedAt: 0, anims: new Map(), dur: 0, markers: null, active: false, tick: 0 };
+const tlElapsed = () => (TL.paused ? TL.at : performance.now() - TL.start);
+const tlReport = () => window.parent.postMessage({ type: 'timeline', active: TL.active, paused: TL.paused, t: tlElapsed() / 1000, dur: TL.dur / 1000, markers: TL.markers }, window.location.origin);
+const editorTimer = (fn, ms) => {
+  const h = { id: 0, due: performance.now() + ms, remain: ms };
+  h.run = () => { TL.timers.delete(h); fn(); };
+  if (!TL.paused) h.id = setTimeout(h.run, ms);
+  TL.timers.add(h);
+  return h;
+};
+const editorClear = (h) => { if (h && typeof h === 'object') { clearTimeout(h.id); TL.timers.delete(h); } else clearTimeout(h); };
+const phaseTimer = EDITOR ? editorTimer : setTimeout;
+const phaseClear = EDITOR ? editorClear : clearTimeout;
+const tlBegin = (dur, markers) => {
+  TL.timers.clear(); TL.anims.clear(); TL.paused = false; TL.start = performance.now(); TL.dur = dur; TL.markers = markers; TL.active = true;
+  clearInterval(TL.tick); TL.tick = setInterval(tlReport, 100); tlReport();
+};
+const tlEnd = () => { TL.active = false; TL.paused = false; clearInterval(TL.tick); tlReport(); };
+const tlCommand = (action, t) => {
+  if (!TL.active) return;
+  if (action === 'pause' && !TL.paused) {
+    const now = performance.now();
+    TL.at = TL.pausedAt = now - TL.start; TL.paused = true;
+    TL.timers.forEach(h => { clearTimeout(h.id); h.remain = Math.max(0, h.due - now); });
+    TL.anims.clear();
+    for (const a of document.getAnimations()) { TL.anims.set(a, (a.startTime == null ? now : a.startTime) - TL.start); a.pause(); }
+  } else if (action === 'seek' && TL.paused && Number.isFinite(t)) {
+    const ms = Math.min(TL.dur, Math.max(0, t * 1000));
+    TL.anims.forEach((off, a) => { a.currentTime = Math.max(0, ms - off); a.pause(); });
+    TL.at = ms;
+  } else if (action === 'resume' && TL.paused) {
+    const now = performance.now();
+    const shift = TL.at - TL.pausedAt;   // how far the scrubber moved while paused: pending timers move with it
+    TL.start = now - TL.at; TL.paused = false;
+    TL.timers.forEach(h => { h.remain = Math.max(0, h.remain - shift); h.due = now + h.remain; h.id = setTimeout(h.run, h.remain); });
+    TL.anims.forEach((off, a) => { try { a.play(); } catch (e) { /* finished or removed */ } });
+    TL.anims.clear();
+  }
+  tlReport();
+};
 // The stage is the browser source's size; scale/offset are set separately for the pack opening and the collection
 // view (each theater wrapper gets .is-pack or .is-collection, which picks up its own --pack-* / --col-* variables).
 let STAGE = { width: 1280, height: 720 };
@@ -495,6 +537,7 @@ if (PREVIEW) {
       const flag = (k, on) => { if (on) document.body.dataset[k] = '1'; else delete document.body.dataset[k]; };
       flag('view', !!e.data.view); flag('canedit', !!e.data.canEdit); flag('snap', !!e.data.snap);
     }
+    else if (EDITOR && e.data.type === 'timeline') tlCommand(e.data.action, e.data.t);
     else if (EDITOR && e.data.type === 'measure') {
       // The editor's Align / Distribute asks where parts sit now: reply with each part's box in design px.
       const fit = stageFit();
@@ -1340,7 +1383,7 @@ function drawCard(username, opts) {
   const cardVol = Math.min(1, vol * pv(P, 'variant.' + variant + '.volume', 1));
 
   if (R.sounds && pv(P, 'reveal.packSounds', true)) {
-    for (const s of PACK_SOUNDS) setTimeout(() => playAudio(s.src, vol), s.delay / S + D * 1000);
+    for (const s of PACK_SOUNDS) phaseTimer(() => playAudio(s.src, vol), s.delay / S + D * 1000);
   }
 
   // Reset state
@@ -1382,7 +1425,7 @@ function drawCard(username, opts) {
   if (tilt) cardBox.style.animation = cardBox.style.animation + ', ' + tilt;
 
   // Card reveal sound + radial burst
-  setTimeout(() => {
+  phaseTimer(() => {
     const so = show ? pv(P, 'show.sound', 'on') : 'on';
     if (so === 'custom') { const u = String(pv(P, 'show.soundUrl', '')); if (u) playAudio(u, Math.min(1, vol * pv(P, 'show.volume', 1))); }
     else if (so !== 'off') playAudio(card.soundUrl || `assets/sounds/${card.number}.mp3`, show ? Math.min(1, cardVol * pv(P, 'show.volume', 1)) : cardVol);
@@ -1395,7 +1438,7 @@ function drawCard(username, opts) {
   }, at(R.reveal));
 
   // Label
-  setTimeout(() => {
+  phaseTimer(() => {
     cardLabel.style.opacity    = '1';
     cardLabel.style.visibility = 'visible';
     // The serial the server gave this copy (the reply is normally in long before the label shows).
@@ -1415,7 +1458,7 @@ function drawCard(username, opts) {
   }, at(R.label));
 
   // User text
-  setTimeout(() => {
+  phaseTimer(() => {
     cardInfo.style.opacity   = '1';
     cardInfo.style.transform = 'scale(1)';
     userText.textContent     = show ? showText(P, username, { cardName: card.name, variant }) : gotText(P, username);
@@ -1468,16 +1511,18 @@ function drawCard(username, opts) {
     wrapper.classList.add('hid');
     setTimeout(() => {
       wrapper.remove();
+      if (EDITOR) tlEnd();
       activeDraws--;
       setTimeout(processCardQueue, cfg.cooldownTime * 1000);
     }, 500);
   };
-  hideTimer = setTimeout(hide, showDuration);
+  hideTimer = phaseTimer(hide, showDuration);
+  if (EDITOR) tlBegin(showDuration, { reveal: at(R.reveal) / 1000, label: at(R.label) / 1000, info: at(R.info) / 1000 });
   function extendHold(ms) {
     if (!hideTimer || Date.now() >= hideAt) return;
-    clearTimeout(hideTimer);
+    phaseClear(hideTimer);
     hideAt += ms;
-    hideTimer = setTimeout(hide, Math.max(0, hideAt - Date.now()));
+    hideTimer = phaseTimer(hide, Math.max(0, hideAt - Date.now()));
   }
 }
 

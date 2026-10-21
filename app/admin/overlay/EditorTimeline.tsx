@@ -1,12 +1,17 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { Icon } from '@/app/components/Icon';
 import { Segmented, btn } from './editor-controls';
 import { VARIANT_IDS, type VariantId } from '@/lib/overlay-props';
 import { MOMENT_IDS } from '@/lib/overlay-moments';
 import { VARIANT_LABELS, type MomentPick } from './editor-types';
 import { useOverlayEditor } from './OverlayEditorContext';
 
-export function PreviewToolbar() {
+const KEY = 'tcg:overlay-timeline';
+
+// The area under the canvas: the preview controls in its header row, the reveal scrubber below (collapsible to the header alone).
+export function EditorTimeline() {
   const {
     showOff,
     setShowOff,
@@ -32,10 +37,26 @@ export function PreviewToolbar() {
     play,
     ready,
     playing,
+    timeline,
+    timelineCmd,
   } = useOverlayEditor();
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem(KEY) === 'collapsed'); } catch { /* storage blocked */ }
+  }, []);
+  const toggle = () => setCollapsed(c => {
+    try { localStorage.setItem(KEY, c ? 'open' : 'collapsed'); } catch { /* storage blocked */ }
+    return !c;
+  });
+
+  const canScrub = !!timeline && mode === 'pack';
+  const dur = timeline?.dur ?? 0;
+  const t = Math.min(dur, timeline?.t ?? 0);
+  const MARKERS: [string, string][] = [['reveal', 'Card'], ['label', 'Label'], ['info', 'Text']];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-2">
+    <div className="rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Segmented
         label="View"
         value={showOff && mode === 'pack' ? 'showoff' : mode}
@@ -123,6 +144,46 @@ export function PreviewToolbar() {
       >
         {playing ? '… playing' : mode === 'collection' ? 'Play collection' : showOff ? 'Play show off' : 'Play pack opening'}
       </button>
+      <button type="button" onClick={toggle} aria-expanded={!collapsed} aria-label={collapsed ? 'Show the timeline' : 'Hide the timeline'} title={collapsed ? 'Show the timeline' : 'Hide the timeline'} className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-white/10">
+        <Icon name={collapsed ? 'chevronUp' : 'chevronDown'} />
+      </button>
+    </div>
+    {!collapsed && (
+      <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-800">
+        <button
+          type="button"
+          onClick={() => timelineCmd(timeline?.paused ? 'resume' : 'pause')}
+          disabled={!canScrub}
+          aria-label={timeline?.paused ? 'Resume' : 'Pause'}
+          title={canScrub ? (timeline?.paused ? 'Resume' : 'Pause the reveal') : 'Play a pull to scrub it'}
+          className="p-1.5 rounded-md border border-gray-700 text-gray-200 hover:border-gray-500 disabled:opacity-40"
+        >
+          <Icon name={timeline?.paused ? 'play' : 'pause'} />
+        </button>
+        <div className="relative flex-1 min-w-0">
+          <input
+            type="range"
+            min={0}
+            max={Math.max(dur, 0.01)}
+            step={0.01}
+            value={t}
+            disabled={!canScrub || !timeline?.paused}
+            onChange={e => timelineCmd('seek', Number(e.target.value))}
+            aria-label="Reveal time"
+            title={timeline?.paused ? 'Drag to scrub the reveal' : canScrub ? 'Pause to scrub' : 'Play a pull to scrub it'}
+            className="w-full accent-yellow-400 disabled:opacity-50"
+          />
+          {canScrub && dur > 0 && timeline?.markers && (
+            <div className="relative h-4 text-[10px] text-gray-500" aria-hidden>
+              {MARKERS.map(([k, name]) => timeline.markers && timeline.markers[k] !== undefined && (
+                <span key={k} className="absolute -translate-x-1/2" style={{ left: `${Math.min(100, (timeline.markers[k] / dur) * 100)}%` }}>| {name}</span>
+              ))}
+            </div>
+          )}
+        </div>
+        <span className="text-xs text-gray-300 tabular-nums w-24 text-right">{canScrub ? `${t.toFixed(2)} / ${dur.toFixed(2)} s` : '- / - s'}</span>
+      </div>
+    )}
     </div>
   );
 }

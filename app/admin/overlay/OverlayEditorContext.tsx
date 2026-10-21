@@ -80,6 +80,7 @@ const sectionRank = (s: string) => {
   return i < 0 ? 99 : i;
 };
 
+export interface TimelineState { paused: boolean; t: number; dur: number; markers: Record<string, number> | null }
 /** The right-click menu on a layer: `id` null = the whole view; x / y are screen pixels. */
 export interface LayerMenuState { view: Mode; id: string | null; x: number; y: number }
 
@@ -222,6 +223,10 @@ export interface OverlayEditorContextValue {
   setReady: (r: boolean) => void;
   setLoadedCount: React.Dispatch<React.SetStateAction<number>>;
   playing: boolean;
+  /** The preview's reveal clock while a pull plays (null when none is): seconds, phase markers, paused or running. */
+  timeline: TimelineState | null;
+  /** Pause, resume or seek (seconds) the playing reveal. */
+  timelineCmd: (action: 'pause' | 'resume' | 'seek', t?: number) => void;
   play: () => void;
   showGrid: boolean;
   setShowGrid: React.Dispatch<React.SetStateAction<boolean>>;
@@ -397,6 +402,7 @@ export function OverlayEditorProvider({
   const [ready, setReady] = useState(false);
   const [loadedCount, setLoadedCount] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [timeline, setTimeline] = useState<TimelineState | null>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [presetName, setPresetName] = useState('');
   const [importText, setImportText] = useState('');
@@ -898,6 +904,12 @@ export function OverlayEditorProvider({
     return true;
   };
 
+  const timelineCmd = (action: 'pause' | 'resume' | 'seek', t?: number) => {
+    post({ type: 'timeline', action, t });
+    if (action === 'pause') setTimeline(s => s && { ...s, paused: true });
+    else if (action === 'resume') setTimeline(s => s && { ...s, paused: false });
+    else setTimeline(s => s && { ...s, t: t ?? s.t });
+  };
   const play = () => {
     if (!ready || playing) return;
     setPlaying(true);
@@ -1298,6 +1310,12 @@ export function OverlayEditorProvider({
         live.current.contextAt(data.target, data.x as number, data.y as number);
         return;
       }
+      if (data?.type === 'timeline') {
+        const m = data as unknown as { active: boolean; paused: boolean; t: number; dur: number; markers: Record<string, number> | null };
+        setTimeline(m.active ? { paused: m.paused, t: m.t, dur: m.dur, markers: m.markers } : null);
+        if (!m.active) setPlaying(false);
+        return;
+      }
       if (data?.type === 'boxes') { boxesWait.current?.((data as { boxes?: Record<string, DesignBox> }).boxes ?? {}); return; }
       if (data?.type === 'dragend') return live.current.dragEnd();
       if (data?.type === 'key' && typeof data.key === 'string') {
@@ -1423,6 +1441,8 @@ export function OverlayEditorProvider({
     setReady,
     setLoadedCount,
     playing,
+    timeline,
+    timelineCmd,
     play,
     showGrid,
     setShowGrid,

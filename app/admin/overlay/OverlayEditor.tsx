@@ -6,7 +6,7 @@ import { EditorStatusBar } from './EditorStatusBar';
 import { EditorToolStrip } from './EditorToolStrip';
 import { EditorTopBar } from './EditorTopBar';
 import { PreviewStage } from './PreviewStage';
-import { PreviewToolbar } from './PreviewToolbar';
+import { EditorTimeline } from './EditorTimeline';
 import { PropertiesDock } from './PropertiesDock';
 import { ShortcutsSheet } from './ShortcutsSheet';
 
@@ -33,7 +33,7 @@ function Workspace() {
             <PreviewStage />
           </div>
           <div className={hide}>
-            <PreviewToolbar />
+            <EditorTimeline />
           </div>
         </div>
         <div className={focusMode ? 'hidden' : 'contents'}>
