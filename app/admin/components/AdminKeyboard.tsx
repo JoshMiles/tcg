@@ -65,7 +65,7 @@ export function AdminKeyboard({ overlayKey }: { overlayKey?: string }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setOpen(o => !o); return; }
-      if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented || isTypingTarget(e.target)) return; // a page (the Overlay Editor) may have used the key
       if (e.key === '?') { e.preventDefault(); setHelp(h => !h); return; }
       if (e.key.length !== 1) return;
       const r = stepSequence(seq.current, e.key, Date.now());

@@ -1,7 +1,7 @@
 'use client';
 
 import { Icon } from '@/app/components/Icon';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { PendingButton } from '../components/PendingButton';
 import { Menu, MenuBar, MenuItem, MenuSeparator } from '../components/workspace/MenuBar';
 import { btn } from './editor-controls';
@@ -103,8 +103,21 @@ export function EditorTopBar() {
     bgImage,
     setBgImage,
     showHint,
+    activeTool,
+    fit,
+    zoomFit,
+    zoomActual,
+    setFocusMode,
+    setShortcutsOpen,
+    saveSignal,
   } = useOverlayEditor();
   const saveForm = useRef<HTMLFormElement>(null);
+  // Ctrl+S (anywhere in the editor) bumps saveSignal; save then, if there is anything to save.
+  useEffect(() => {
+    if (saveSignal && dirty) saveForm.current?.requestSubmit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveSignal]);
+  const handTool = activeTool !== 'move';
 
   return (
     <div className="flex flex-col gap-1.5 rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-1.5">
@@ -141,7 +154,7 @@ export function EditorTopBar() {
         }
       >
         <Menu label="File">
-          <MenuItem label="Save" icon="check" disabled={!dirty} onSelect={() => saveForm.current?.requestSubmit()} />
+          <MenuItem label="Save" icon="check" shortcut="Ctrl+S" disabled={!dirty} onSelect={() => saveForm.current?.requestSubmit()} />
           <MenuItem label="Revert" icon="undo" disabled={!dirty} onSelect={revert} />
           <MenuSeparator />
           <PresetsMenu
@@ -200,6 +213,9 @@ export function EditorTopBar() {
           )}
         </Menu>
         <Menu label="View">
+          <MenuItem label="Fit to the space" icon="search" shortcut="Ctrl+0" onSelect={zoomFit} />
+          <MenuItem label="100%" icon="search" shortcut="Ctrl+1" onSelect={zoomActual} />
+          <MenuItem label="Canvas only" icon="eye" shortcut="Tab" onSelect={() => setFocusMode(true)} />
           <MenuItem label="Before / after" icon="eye" checked={showSaved} disabled={!dirty} onSelect={() => setShowSaved(v => !v)} />
           <GuidesMenu
             showThirds={showThirds}
@@ -235,38 +251,49 @@ export function EditorTopBar() {
           />
         </Menu>
         <Menu label="Help">
+          <MenuItem label="Keyboard shortcuts" icon="keyboard" shortcut="?" onSelect={() => setShortcutsOpen(true)} />
           <MenuItem label="Show the editing hint again" icon="help" onSelect={showHint} />
         </Menu>
       </MenuBar>
 
       <div className="flex flex-wrap items-center gap-2">
-        {isPack && (
-          <span className="text-xs text-yellow-300/80 hidden md:inline">
-            Only what you change applies to this pack; the rest follows global.
-          </span>
-        )}
-        {isScene && (
-          <span className="text-xs text-sky-300/80 hidden md:inline">
-            This scene has its own overlay URL and layout; only what you change differs from the global look.
-          </span>
-        )}
+        {handTool ? (
+          <>
+            <button type="button" onClick={zoomFit} className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500">Fit</button>
+            <button type="button" onClick={zoomActual} className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500">100%</button>
+            <span className="text-sm text-gray-300">{Math.round(fit * 100)}%</span>
+          </>
+        ) : (
+          <>
+          {isPack && (
+            <span className="text-xs text-yellow-300/80 hidden md:inline">
+              Only what you change applies to this pack; the rest follows global.
+            </span>
+          )}
+          {isScene && (
+            <span className="text-xs text-sky-300/80 hidden md:inline">
+              This scene has its own overlay URL and layout; only what you change differs from the global look.
+            </span>
+          )}
 
-        <button
-          type="button"
-          disabled={refreshing}
-          onClick={() =>
-            startRefresh(async () => {
-              const r = await refreshOverlayAction();
-              setNotice(r.message);
-            })
-          }
-          title="Ask every open overlay (OBS) to reload the saved look"
-          className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 disabled:opacity-50"
-        >
-          <Icon name="refresh" className={`mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh overlay
-        </button>
+          <button
+            type="button"
+            disabled={refreshing}
+            onClick={() =>
+              startRefresh(async () => {
+                const r = await refreshOverlayAction();
+                setNotice(r.message);
+              })
+            }
+            title="Ask every open overlay (OBS) to reload the saved look"
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 disabled:opacity-50"
+          >
+            <Icon name="refresh" className={`mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh overlay
+          </button>
 
+          </>
+        )}
         {conflict && <ConflictBanner version={conflict} diffs={versionDiffs(conflict)} overwrite={overwrite} loadTheirs={loadTheirs} />}
         {draftOffer && <DraftBanner at={draftOffer.at} stale={draftOffer.stale} restore={restoreDraft} discard={discardDraft} />}
       </div>

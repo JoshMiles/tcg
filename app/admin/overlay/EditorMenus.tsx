@@ -331,6 +331,7 @@ export function GuidesMenu({ showThirds, setShowThirds, showGrid, setShowGrid, s
         <label className="block text-xs text-gray-400 space-y-1">Zoom
           <select value={zoom} onChange={e => setZoom(Number(e.target.value))} className="select select-sm w-full block">
             <option value={1}>Fit to the space</option><option value={1.5}>150%</option><option value={2}>200%</option><option value={3}>300%</option>
+            {![1, 1.5, 2, 3].includes(zoom) && <option value={zoom}>Custom (see the status bar)</option>}
           </select>
         </label>
         <div className="space-y-1.5">

@@ -40,7 +40,7 @@ export function LayersPanel({ layout, selected, valueOf, setValue, setLayoutVals
       return { ...l, [view]: { ...l[view], elements: rest } };
     });
   return (
-    <div className="px-3 py-2 space-y-2" onMouseLeave={() => hoverElement('')}>
+    <div data-layers className="px-3 py-2 space-y-2" onMouseLeave={() => hoverElement('')}>
       {VIEWS.map(({ view, label }) => (
         <div key={view}>
           <button type="button" onClick={() => selectView(view)} onContextMenu={menuOn(view, null)} className="text-xs uppercase tracking-wide text-gray-500 font-semibold hover:text-white">

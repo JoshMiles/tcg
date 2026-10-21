@@ -374,12 +374,23 @@ if (PREVIEW) {
     e.preventDefault();
     toParent({ type: 'context', target: el.dataset.edit, x: e.clientX, y: e.clientY });
   });
-  // Focus sits in this frame after a click, so hand the nudge / clear keys to the editor.
+  // Focus sits in this frame after a click, so hand the nudge / clear keys and the editor's shortcuts (tools, zoom, save) to the editor.
+  const FWD_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Escape', 'v', 'h', 'z', 'Tab', '?', ' '];
+  const FWD_CTRL = ['s', 'd', '0', '1', '=', '+', '-', 'z', 'y'];
   document.addEventListener('keydown', (e) => {
-    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Escape'].includes(e.key)) return;
+    const mod = e.ctrlKey || e.metaKey;
+    if (!(mod ? FWD_CTRL.includes(e.key.toLowerCase()) : FWD_KEYS.includes(e.key))) return;
     e.preventDefault();
-    toParent({ type: 'key', key: e.key, shift: e.shiftKey });
+    toParent({ type: 'key', key: e.key, shift: e.shiftKey, ctrl: mod });
   });
+  document.addEventListener('keyup', (e) => {
+    if (e.key === ' ') toParent({ type: 'key', key: ' ', up: true });
+  });
+  // The frame swallows wheel turns, so the editor pans and zooms from them (x / y are in this frame's pixels).
+  document.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    toParent({ type: 'wheel', dx: e.deltaX, dy: e.deltaY, ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey, x: e.clientX, y: e.clientY });
+  }, { passive: false });
   document.addEventListener('pointerup', endPress);
   document.addEventListener('pointercancel', endPress);
   // Selected element: a solid outline (CSS, by body[data-selected]) plus a name tag kept on top of it.
