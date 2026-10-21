@@ -5,13 +5,14 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { SITE_DESCRIPTION, SITE_NAME } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
+import screens from '@/lib/iphone-screens.json';
 import { ServiceWorker } from './components/ServiceWorker';
 
 const display = Fredoka({ subsets: ['latin'], variable: '--font-display-family', weight: ['500', '600', '700'] });
 const body = Nunito({ subsets: ['latin'], variable: '--font-body' });
 
-// [CSS width, CSS height, pixel ratio]; keep in step with SPLASH in scripts/make-pwa-icons.mjs.
-const IPHONE_SCREENS = [[375, 667, 2], [414, 896, 2], [375, 812, 3], [414, 896, 3], [390, 844, 3], [428, 926, 3], [393, 852, 3], [430, 932, 3], [402, 874, 3], [440, 956, 3]];
+// [CSS width, CSS height, pixel ratio] per iPhone screen.
+const IPHONE_SCREENS = screens as [number, number, number][];
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

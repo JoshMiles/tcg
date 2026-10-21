@@ -40,9 +40,9 @@ ok(existsSync(join(process.cwd(), 'public', 'apple-touch-icon-v3.png')), 'the iO
 // iOS launch screens: listed in the layout's metadata, and every listed file exists.
 const layout = readFileSync(join(process.cwd(), 'app', 'layout.tsx'), 'utf8');
 ok(layout.includes('startupImage: IPHONE_SCREENS.map'), 'the layout lists the iPhone startup images');
-const screens = [...(layout.match(/IPHONE_SCREENS = (\[\[.*\]\]);/)?.[1] ?? '[]').matchAll(/\[(\d+), (\d+), (\d)\]/g)];
-ok(screens.length >= 10, 'the layout has the iPhone screen sizes');
-for (const [, w, h, r] of screens) ok(existsSync(join(process.cwd(), 'public', 'splash', `${w}x${h}@${r}.png`)), `startup image exists: ${w}x${h}@${r}`);
+const screens: number[][] = JSON.parse(readFileSync(join(process.cwd(), 'lib', 'iphone-screens.json'), 'utf8'));
+ok(screens.length >= 10, 'there are iPhone screen sizes');
+for (const [w, h, r] of screens) ok(existsSync(join(process.cwd(), 'public', 'splash', `${w}x${h}@${r}.png`)), `startup image exists: ${w}x${h}@${r}`);
 
 // The service worker never touches the admin, API or login, and only ever answers page loads.
 const sw = readFileSync(join(process.cwd(), 'public', 'sw.js'), 'utf8');
