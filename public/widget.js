@@ -413,7 +413,7 @@ if (PREVIEW) {
   document.addEventListener('pointerup', endPress);
   document.addEventListener('pointercancel', endPress);
   // Selected element: a solid outline (CSS, by body[data-selected]) plus a name tag kept on top of it.
-  const TAG_NAMES = { card: 'Card', label: 'Label', bar: 'Name bar', got: 'Got line', strip: 'Card strip', showlabel: 'Show-off label', serial: 'Edition badge', banner: 'Moment banner', heading: 'Heading', grid: 'Collection' };
+  const TAG_NAMES = { card: 'Card', label: 'Label', bar: 'Name and stars bar', got: '"got:" line', strip: 'Card strip', showlabel: 'Show-off label', serial: 'Edition badge', banner: 'Moment banner', heading: 'Heading', grid: 'Collection grid' };
   const selTag = document.createElement('div');
   selTag.className = 'edit-tag';
   document.body.appendChild(selTag);
