@@ -9,6 +9,7 @@ import {
   PresetsMenu,
   ReviewMenu,
   ConflictBanner,
+  DraftBanner,
   SaveOptionsMenu,
   ScenesMenu,
   VersionsMenu,
@@ -82,6 +83,10 @@ export function EditorTopBar() {
     versionDiffs,
     overwrite,
     loadTheirs,
+    draftOffer,
+    restoreDraft,
+    discardDraft,
+    reviewSignal,
   } = useOverlayEditor();
 
   return (
@@ -245,7 +250,8 @@ export function EditorTopBar() {
       </button>
 
       {conflict && <ConflictBanner version={conflict} diffs={versionDiffs(conflict)} overwrite={overwrite} loadTheirs={loadTheirs} />}
-      <ReviewMenu diffs={diffs} dirty={dirty} />
+      {draftOffer && <DraftBanner at={draftOffer.at} stale={draftOffer.stale} restore={restoreDraft} discard={discardDraft} />}
+      <ReviewMenu diffs={diffs} dirty={dirty} openSignal={reviewSignal} />
 
       <form action={saveAction} className="flex items-center gap-2">
         <input type="hidden" name="payload" value={payload} />

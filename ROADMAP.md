@@ -31,7 +31,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.10 | Overlay Editor: styled words inside one text (rich text) | Ready | M |
 | 38.11 | Font library: more fonts, real weights, a proper font picker | Ready | M |
 | 38.12 | Card back editor: full text tool (sizes, fitting, boxes, effects) | Ready | L |
-| 38.14 | Overlay Editor: unsaved draft recovery | Ready | S |
 | 38.15 | Overlay Editor: timeline scrubber | Ready | M |
 | 38.16 | Overlay Editor: stream rehearsal | Ready | S |
 | 38.17 | Overlay Editor: artboards (scenes side by side) | Ready | M |
@@ -209,8 +208,6 @@ Today the workspace is an options bar crowded with popovers (scope, Presets, Sce
 
 ### Safety first (do these before 38.1)
 
-### 38.14 Unsaved draft recovery (Ready, S)
-Only a `beforeunload` warning exists. Keep the unsaved editor state (global, pack, scene and layout changes) in localStorage, debounced 1 s, keyed by the loaded version id; on open offer "Restore unsaved changes from 14:02?" (Restore / Discard). Drop the draft on Save, Revert or Discard, and when it was made against an older version, say so and open Review after restoring. Wrap storage in try / catch (it may be blocked).
 
 ### More Photoshop habits
 

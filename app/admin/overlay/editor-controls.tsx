@@ -10,8 +10,9 @@ export const ghost = `${btn} border border-gray-700 text-gray-200 hover:border-g
 export const inputCls = 'input input-sm';
 
 /** A button that opens a floating panel; closes on an outside click or Escape. */
-export function Popover({ label, badge, children, align = 'left', up = false, icon, disabled = false }: { label: string; badge?: number; children: React.ReactNode; align?: 'left' | 'right'; up?: boolean; icon?: IconName; disabled?: boolean }) {
+export function Popover({ label, badge, children, align = 'left', up = false, icon, disabled = false, openSignal = 0 }: { label: string; badge?: number; children: React.ReactNode; align?: 'left' | 'right'; up?: boolean; icon?: IconName; disabled?: boolean; openSignal?: number }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => { if (openSignal) setOpen(true); }, [openSignal]);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
