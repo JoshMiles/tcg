@@ -21,7 +21,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 36.3 | Overlay Editor: Layers panel | Ready (after 36.2) | M |
 | 36.4 | Overlay Editor: on-canvas handles and smaller polish | Ready (after 36.2) | M |
 | 36.5 | Overlay Editor: a font on every text layer | Ready | M |
-| 37.1 | Collection words: collected, pulls, edition | Ready | S |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -82,15 +81,6 @@ Independent of 36.1 to 36.4. Like a design tool's character panel: select any te
 - **Per layer:** every visible text element gets a `<group>.font` select (card label, "got:" line, bar text, serial pill, moment banners, show-off label, collection heading and counters, and any other text the widget draws; list them from `widget.js`). Options are `Overlay font` (value `inherit`, the new default) followed by `FONT_OPTIONS`. The three existing keys (`reveal.labelFont`, `show.labelFont`, `<moment>.font`) switch their default to `inherit` too; saved values stay as they are, so nothing migrates. Same scope rules as the group each key sits in (pack override where the group already allows it).
 - **Widget:** `applyTextFont(el, id)` resolves `inherit` to `text.font` before applying; call it for every text layer where the layout is applied and on preview updates.
 - Verify: change the overlay font and one layer's font in the editor against the mock KV and see both update live; old saved props read back unchanged; `npm run verify`; update `docs/overlay.md` (properties).
-
-## Track 37: collection words (2026-10-21)
-
-**Decided (user, 2026-10-21):** one word per idea. **Collected** is how many different cards of a set you own (`23/25 collected`). **Pulls** is every card you have pulled, repeats included (`194 pulls`), and is the leaderboard's big number. **Edition** is only one numbered copy of a card (`Edition #12`, the early-edition bonus); never a count. Repeats keep the `×N` badge. Replaces the "N editions" total from #321.
-
-### 37.1 Rename on the site (Ready, S)
-- Leaderboard rows and their big number, profile, binder, dex, home, account, share images, FAQ and any other public copy that shows a total as "editions" or "copies": say "pulls". "N/M cards" for set progress: say "N/M collected". Leave "edition" wherever it names one numbered copy.
-- Copy only: no KV keys, API field names or function names change. Keep FAQ / Privacy / Terms in step (`scripts/check-words.mts`) and update `docs/public-site.md` / `docs/serials.md` where they spell out the words.
-- The panel keeps its words until the freeze lifts (see 34.2).
 
 ## Blocked by the Twitch panel freeze
 
