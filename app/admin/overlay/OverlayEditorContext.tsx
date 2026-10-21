@@ -57,6 +57,8 @@ const TARGET_SECTIONS: Record<string, [string, string?]> = {
   serial: ['variants', 'Label'],
   grid: ['collection', 'Layout'],
 };
+/** The category and section (if any) that edit a preview element. */
+export const sectionForTarget = (target: string) => TARGET_SECTIONS[target];
 /** The preview element a panel section edits, or '' (section keys look like `pack/Label` or `variants.shiny/Label`). */
 export const targetForSection = (sectionKey: string) => {
   const [cat, name] = sectionKey.split('/');
@@ -952,7 +954,9 @@ export function OverlayEditorProvider({
     if (c === 'variants') setVariantOpen(true);
     if (section) {
       const k = `${c}${c === 'variants' ? '.' + version : ''}/${section}`;
-      setOpenMap(m => ({ ...m, [k]: true }));
+      // Drop earlier open/closed choices in this category so only the picked section starts open.
+      const prefix = k.slice(0, k.indexOf('/') + 1);
+      setOpenMap(m => ({ ...Object.fromEntries(Object.entries(m).filter(([key]) => !key.startsWith(prefix))), [k]: true }));
       setFocusKey(k);
     }
   };
