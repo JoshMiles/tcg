@@ -23,7 +23,7 @@ import { Attention, Changes, Economy, OverlayControlsWidget, Progress, PulseWidg
 function Overview({ d }: { d: DashboardData }) {
   const stats = [
     { label: 'Players', accent: 'from-poke-blue-light to-poke-blue', value: d.totalUsers, sub: 'unique collectors' },
-    { label: 'Cards pulled', accent: 'from-yellow-300 to-yellow-600', value: d.totalOwned, sub: 'total across all players' },
+    { label: 'Pulls', accent: 'from-yellow-300 to-yellow-600', value: d.totalOwned, sub: 'total across all players' },
     { label: 'Card pool', accent: 'from-red-400 to-poke-red', value: d.allCards.length, sub: `across ${d.packs.length} pack${d.packs.length !== 1 ? 's' : ''}` },
     { label: 'Avg complete', accent: 'from-emerald-300 to-emerald-600', value: `${d.avgCompletion}%`, sub: d.totalUsers > 0 ? `${d.topCollectors[0]?.pct ?? 0}% best` : 'no players yet' },
   ];

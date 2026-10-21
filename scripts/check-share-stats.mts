@@ -20,8 +20,8 @@ eq(rarestPrint({ prints: [{ card: 4, variant: 'full', n: 1 }], chance: base.chan
 
 const c = buildStatsCard(base);
 eq([c.rank, c.score, c.accent], ['#7', '18,673', '#ff00aa'], 'rank, score and the rarest print\'s colour');
-eq(c.figures.map(f => f.label), ['Different cards', 'Editions', 'Progress bonus', 'Best edition', 'Rarest edition', 'Trades'], 'six figures');
-eq(c.figures[0], { label: 'Different cards', value: '12/20', progress: 0.6 }, 'cards with a progress bar');
+eq(c.figures.map(f => f.label), ['Collected', 'Pulls', 'Progress bonus', 'Best edition', 'Rarest edition', 'Trades'], 'six figures');
+eq(c.figures[0], { label: 'Collected', value: '12/20', progress: 0.6 }, 'cards with a progress bar');
 eq(c.figures[2].value, '+6.0%', 'progress bonus is the setting scaled by how much of the set they have');
 eq(c.figures[3].value, '#2', 'best edition is the lowest number held');
 eq([c.figures[4].value, c.figures[4].sub], ['Card 3', 'Regular · 1 in 5,000'], 'rarest print with its version and odds');

@@ -45,7 +45,7 @@ export function SandboxUsers({ id, rows, loginAs, clear, remove }: {
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search viewers…" aria-label="Search viewers" className="input w-56 pl-9" />
         </div>
         <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort" className="select select-sm">
-          <option value="copies">Most editions</option><option value="rank">Best rank</option><option value="name">Name</option><option value="new">Newest</option>
+          <option value="copies">Most pulls</option><option value="rank">Best rank</option><option value="name">Name</option><option value="new">Newest</option>
         </select>
         <span className="text-xs text-gray-500">{list.length} of {rows.length}</span>
         {picked.size > 0 && (

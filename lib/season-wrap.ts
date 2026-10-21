@@ -86,9 +86,9 @@ export function buildAwards(rows: LeaderboardRow[]): Award[] {
     return top;
   };
   const mostCards = best(r => r.uniqueCards);
-  if (mostCards) out.push({ id: 'most-cards', title: 'Biggest collection', icon: 'cards', username: mostCards.username, detail: `${mostCards.uniqueCards} different cards` });
+  if (mostCards) out.push({ id: 'most-cards', title: 'Biggest collection', icon: 'cards', username: mostCards.username, detail: `${mostCards.uniqueCards} cards collected` });
   const mostPulls = best(r => r.copies);
-  if (mostPulls) out.push({ id: 'most-pulls', title: 'Most cards pulled', icon: 'zap', username: mostPulls.username, detail: `${mostPulls.copies.toLocaleString()} editions` });
+  if (mostPulls) out.push({ id: 'most-pulls', title: 'Most pulls', icon: 'zap', username: mostPulls.username, detail: `${mostPulls.copies.toLocaleString()} pulls` });
   const shiny = best(r => r.variants.shiny);
   if (shiny) out.push({ id: 'shiny-hunter', title: 'Full Art Holo hunter', icon: 'sparkles', username: shiny.username, detail: `${shiny.variants.shiny} FH` });
   const full = best(r => r.variants.full);

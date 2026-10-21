@@ -124,7 +124,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
         <section className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
             <Tile label="Viewers" value={stats.viewers} />
-            <Tile label="Cards pulled" value={stats.copies.toLocaleString()} sub={stats.days > 0 ? `${Math.round(stats.copies / stats.days).toLocaleString()} per day` : undefined} />
+            <Tile label="Pulls" value={stats.copies.toLocaleString()} sub={stats.days > 0 ? `${Math.round(stats.copies / stats.days).toLocaleString()} per day` : undefined} />
             <Tile label="Cards found" value={`${stats.found}/${stats.pool}`} sub={stats.pool > 0 ? `${Math.round((stats.found / stats.pool) * 100)}% of the pool` : undefined} />
             <Tile label="Complete sets" value={stats.complete} />
             <Tile label="Avg completion" value={`${stats.avgCompletion}%`} sub={stats.top ? `best: ${stats.top.username}` : undefined} />
@@ -159,7 +159,7 @@ export default async function SeasonPage({ params, searchParams }: { params: Pro
                     <li key={r.username} className="px-5 py-2 flex items-center gap-3 text-sm">
                       <span className="w-5 text-gray-600 tabular-nums">{i + 1}</span>
                       <Link href={`/admin/users/${r.username}`} className="flex-1 min-w-0 truncate font-mono text-gray-200 hover:text-white">{r.username}{r.complete && <Icon name="cheese" className="ml-1 text-yellow-400" />}</Link>
-                      <span className="text-xs text-gray-500 tabular-nums">{r.uniqueCards} cards</span>
+                      <span className="text-xs text-gray-500 tabular-nums">{r.uniqueCards} collected</span>
                       <span className="font-bold text-yellow-400 tabular-nums">{r.score.toLocaleString()}</span>
                     </li>
                   ))}

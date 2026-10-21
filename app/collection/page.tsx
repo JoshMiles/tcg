@@ -41,7 +41,7 @@ export default async function FindCollector() {
                 <Link href={profileHref(r.username)} className="rind rounded-xl px-4 py-3 flex items-center gap-3 hover:brightness-110 transition">
                   <span className="w-6 flex justify-center text-gray-500 text-sm tabular-nums">{i < 3 ? <RankMedal rank={i + 1} /> : i + 1}</span>
                   <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
-                  <span className="min-w-0 flex-1"><span className="block font-semibold text-white truncate">{r.username}</span><span className="block text-xs text-gray-500">{r.uniqueCards}/{totalCards} cards</span></span>
+                  <span className="min-w-0 flex-1"><span className="block font-semibold text-white truncate">{r.username}</span><span className="block text-xs text-gray-500">{r.uniqueCards}/{totalCards} collected</span></span>
                   <span className="font-display font-bold text-yellow-400 tabular-nums">{Math.round(r.score).toLocaleString()}</span>
                 </Link>
               </li>

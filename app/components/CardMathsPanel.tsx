@@ -117,7 +117,7 @@ export function CardMathsPanel({ maths: m, variants, shown }: { maths: CardMaths
           {m.upgradesEnabled && <Eq>chance per pack of a {label}: {pct(variantRate)} ({label} weight {n(m.weights[v])} of {n(wTotal)}) · expected packs: {variantRate > 0 ? n(1 / variantRate, 1) : '∞'}</Eq>}
           <Eq>at least one {label} within 10 / 50 / 100 packs: {variantRate > 0 ? `${pct(within(10, variantRate))} / ${pct(within(50, variantRate))} / ${pct(within(100, variantRate))}` : '-'}</Eq>
           {m.upgradesEnabled && v !== 'regular' && <Eq>crafting a {label} from Regulars costs {craft} editions (each step&rsquo;s cost multiplied)</Eq>}
-          <Eq>season: {m.totalCards} cards · {m.totalCopies.toLocaleString()} editions pulled · set value {m.setValue.toLocaleString()} pts (one Regular of every card)</Eq>
+          <Eq>season: {m.totalCards} cards · {m.totalCopies.toLocaleString()} pulls · set value {m.setValue.toLocaleString()} pts (one Regular of every card)</Eq>
           <Note>Your score is the points of every edition you own, plus a progress bonus ({n(m.completionBonusPct, 1)}% of the set value × the share of cards you own) and a full set bonus ({n(m.completeSetBonusPct, 1)}% of the set value once you own every card). Values are live, so these numbers drift as the season goes on.</Note>
         </div>
       </div>

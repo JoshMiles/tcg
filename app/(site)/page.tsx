@@ -135,7 +135,7 @@ export default async function HomePage() {
                   </p>
                   <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
                     <div className="h-2 w-40 max-w-full rounded-full bg-gray-950 border border-gray-800 overflow-hidden" role="progressbar" aria-valuenow={standing.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Cards collected"><div className="h-full bg-linear-to-r from-yellow-300 to-yellow-600" style={{ width: `${standing.pct}%` }} /></div>
-                    <span className="tabular-nums">{standing.uniqueCards}/{standing.totalCards} cards · {standing.totalCards - standing.uniqueCards} to find</span>
+                    <span className="tabular-nums">{standing.uniqueCards}/{standing.totalCards} collected · {standing.totalCards - standing.uniqueCards} to find</span>
                   </div>
                 </>
               ) : (
@@ -172,7 +172,7 @@ export default async function HomePage() {
                     <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-14 h-14 text-xl" />
                     <span className="font-semibold text-white truncate max-w-full">{r.username}</span>
                     <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums">{Math.round(r.score).toLocaleString()}</span>
-                    <span className="text-xs text-gray-500">{r.uniqueCards} cards{r.complete ? ' · complete' : ''}</span>
+                    <span className="text-xs text-gray-500">{r.uniqueCards} collected{r.complete ? ' · complete' : ''}</span>
                   </Link>
                 </li>
               ))}
@@ -184,7 +184,7 @@ export default async function HomePage() {
           <div className="space-y-6">
             <ul className="flex flex-wrap gap-2 text-xs" aria-label="Season snapshot">
               <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.rows.length}</strong> collector{overview.rows.length === 1 ? '' : 's'}</li>
-              <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.rows.reduce((n, r) => n + r.copies, 0).toLocaleString()}</strong> cards pulled</li>
+              <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.rows.reduce((n, r) => n + r.copies, 0).toLocaleString()}</strong> pulls</li>
               <li className="rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-gray-400"><strong className="text-white tabular-nums">{overview.values.totalCards}</strong> cards to find</li>
               {countdown && !season.endedAt && <li className="rounded-full border border-yellow-500/30 bg-yellow-500/5 px-3 py-1 text-yellow-300">{countdown}</li>}
             </ul>
@@ -207,7 +207,7 @@ export default async function HomePage() {
                           <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
                           <span className="flex-1 min-w-0">
                             <span className="block font-semibold text-white truncate">{r.username}</span>
-                            <span className="block text-xs text-gray-500">{r.uniqueCards}/{overview.values.totalCards} cards</span>
+                            <span className="block text-xs text-gray-500">{r.uniqueCards}/{overview.values.totalCards} collected</span>
                           </span>
                           <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums">{r.score.toLocaleString()}</span>
                         </Link>
@@ -218,7 +218,7 @@ export default async function HomePage() {
                         <Link href={profileHref(session!.username)} className="rind rounded-xl px-4 py-3 flex items-center gap-4 ring-2 ring-yellow-500/70 hover:brightness-125 transition">
                           <span className="w-8 text-center font-bold text-yellow-300 tabular-nums">#{standing.rank}</span>
                           <Avatar src={avatars[session!.username] && sizeTwitchAvatar(avatars[session!.username], 70)} name={session!.displayName} className="w-9 h-9 text-sm" />
-                          <span className="flex-1 min-w-0"><span className="block font-semibold text-white truncate">You</span><span className="block text-xs text-gray-500">{standing.uniqueCards}/{standing.totalCards} cards</span></span>
+                          <span className="flex-1 min-w-0"><span className="block font-semibold text-white truncate">You</span><span className="block text-xs text-gray-500">{standing.uniqueCards}/{standing.totalCards} collected</span></span>
                           <span className="font-display text-2xl font-bold text-yellow-400 tabular-nums">{standing.score.toLocaleString()}</span>
                         </Link>
                       </li>

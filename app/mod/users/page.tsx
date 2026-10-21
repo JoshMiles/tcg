@@ -54,7 +54,7 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
                     <Avatar src={av ? sizeTwitchAvatar(av, 70) : undefined} name={p?.displayName || u.username} className="w-9 h-9 text-sm shrink-0" />
                     <span className="min-w-0">
                       <span className="block font-semibold text-white truncate">{p?.displayName || u.username}</span>
-                      <span className="block text-xs text-gray-500">@{u.username} · {unique} different cards</span>
+                      <span className="block text-xs text-gray-500">@{u.username} · {unique} collected</span>
                     </span>
                     <span className="ml-auto flex flex-wrap items-center gap-1.5">
                       {p?.flags?.noTrading && <Chip tone="red">No trading</Chip>}

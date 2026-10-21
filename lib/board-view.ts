@@ -2,7 +2,7 @@
 
 export type BoardMetric = 'points' | 'cards' | 'copies' | 'shiny';
 
-export const METRIC_LABELS: Record<BoardMetric, string> = { points: 'Points', cards: 'Different cards', copies: 'Editions', shiny: 'Full Art Holos' };
+export const METRIC_LABELS: Record<BoardMetric, string> = { points: 'Points', cards: 'Collected', copies: 'Pulls', shiny: 'Full Art Holos' };
 
 export interface BoardRow {
   username: string;

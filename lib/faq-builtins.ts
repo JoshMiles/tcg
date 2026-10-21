@@ -292,7 +292,7 @@ That’s {cost_reverse} Regulars for a Reverse Holo, {regulars_for_full} for a F
     id: 'show-off-cards', sectionId: 'show', open: true,
     question: 'How do I show off my cards?',
     answer: `- **Share** on a profile has the link and a quick picture of that collector's best cards, with their version and edition number, plus rank and progress. On your own profile, the **Share** tab lets you choose a theme, a post or story shape, a stats poster, and exactly which cards go in.
-- **Share my stats** on My Stats makes a picture of your rank and score, a few key figures (cards, editions, best edition, rarest edition, trades) and your three most valuable editions.
+- **Share my stats** on My Stats makes a picture of your rank and score, a few key figures (collected, pulls, best edition, rarest edition, trades) and your three most valuable editions.
 - **Share this card** on a card in the Card Dex, or on an edition’s own page, makes a picture of that one card. On an edition’s page you can pick a theme and shape, and the picture carries a slim engraved plate with its serial number and a QR code.
 - The **Share** button on your profile copies its link, so anyone can open it.`,
   },
@@ -458,7 +458,7 @@ The {base_score}, the limits and the margin are settings the streamer can change
   {
     id: 'find-things', sectionId: 'help',
     question: 'How do I find things quickly?',
-    answer: `Press \`/\` (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, different cards, editions or shinies, and shows who moved up or down since you last looked.`,
+    answer: `Press \`/\` (or Ctrl/⌘ + K) anywhere to search for a collector, a card or a page. The leaderboard can be searched and ranked by points, cards collected, pulls or shinies, and shows who moved up or down since you last looked.`,
   },
   {
     id: 'feedback', sectionId: 'help',

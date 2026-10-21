@@ -281,7 +281,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
             <div className="grid grid-cols-3 gap-3">
               <Stat label="Pull chance" tip="pullChance" value={oneIn(card.pullRate)} sub="per pack" />
-              <Stat label="Editions out there" value={card.copies.toLocaleString()} sub="across everyone" />
+              <Stat label="Pulls" value={card.copies.toLocaleString()} sub="across everyone" />
               <Stat label="Collectors" value={card.collectors.toLocaleString()} sub="own at least one" />
             </div>
 
@@ -358,7 +358,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
                   })}
                 </ol>
               )}
-              <p className="text-[11px] text-gray-600">Ranked by how many editions of this card they own, across all versions.</p>
+              <p className="text-[11px] text-gray-600">Ranked by how many of this card they own, across all versions.</p>
             </div>
           </div>
         </div>
