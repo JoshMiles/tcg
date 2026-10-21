@@ -186,8 +186,9 @@ function PrintView({ card, edition, seasonId, ownerName, canUpgrade, tradeWith, 
           </div>
           <div className={`rounded-xl border p-3 flex flex-wrap items-center gap-x-3 gap-y-1 ${edition.m ? 'border-yellow-500/50 bg-yellow-500/[0.07]' : 'border-gray-800 bg-gray-950/60'}`}>
             <SerialChip n={edition.n} bonus={edition.m} est={edition.est} className="text-sm px-3! py-1!" />
-            <span className="text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{(edition.p ?? card.values[v]).toLocaleString()} pts</strong></span>
-            <span className="text-xs text-gray-500">{edition.m ? `Edition bonus ×${edition.m}` : 'No edition bonus'}<InfoTip term="editionBonus" /></span>
+            <span className="inline-flex items-center gap-1 text-sm text-gray-200">Worth <strong className="text-white tabular-nums">{(edition.p ?? card.values[v]).toLocaleString()} pts</strong></span>
+            {/* the chip already shows the multiplier, so this only names it */}
+            <span className="inline-flex items-center text-xs text-gray-500 sm:ml-auto">{edition.m ? 'Edition bonus' : 'No edition bonus'}<InfoTip term="editionBonus" /></span>
           </div>
           <div>
             <p className="text-[11px] uppercase tracking-wider text-gray-400 font-bold mb-1">Journey</p>
