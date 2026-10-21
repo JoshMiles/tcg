@@ -1,9 +1,9 @@
 'use client';
 
-import { Icon } from '@/app/components/Icon';
+import { Icon, type IconName } from '@/app/components/Icon';
 import { useEffect, useRef } from 'react';
 import { PendingButton } from '../components/PendingButton';
-import { Menu, MenuBar, MenuItem, MenuSeparator } from '../components/workspace/MenuBar';
+import { Menu, MenuBar, MenuItem, MenuSeparator, SubMenu } from '../components/workspace/MenuBar';
 import { btn } from './editor-controls';
 import {
   ImportExportMenu,
@@ -19,6 +19,7 @@ import {
 } from './EditorMenus';
 import { refreshOverlayAction } from '../overlay-actions';
 import { useOverlayEditor } from './OverlayEditorContext';
+import type { AlignMode } from '@/lib/overlay-layout';
 
 export function EditorTopBar() {
   const {
@@ -116,6 +117,12 @@ export function EditorTopBar() {
     setFocusMode,
     setShortcutsOpen,
     saveSignal,
+    selection,
+    locked,
+    alignSelection,
+    distributeSelection,
+    toggleLock,
+    resetSelection,
   } = useOverlayEditor();
   const saveForm = useRef<HTMLFormElement>(null);
   // Ctrl+S (anywhere in the editor) bumps saveSignal; save then, if there is anything to save.
@@ -124,6 +131,18 @@ export function EditorTopBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveSignal]);
   const handTool = activeTool !== 'move';
+  const free = selection.filter(id => !locked.includes(id));
+  const canAlign = !isPack && free.length > 0;
+  const canDistribute = !isPack && free.length > 2;
+  const allLocked = selection.length > 0 && selection.every(id => locked.includes(id));
+  const ALIGNS: { mode: AlignMode; label: string; icon: IconName }[] = [
+    { mode: 'left', label: 'Align left', icon: 'alignLeft' }, { mode: 'center', label: 'Align centre', icon: 'alignCenter' }, { mode: 'right', label: 'Align right', icon: 'alignRight' },
+    { mode: 'top', label: 'Align top', icon: 'alignTop' }, { mode: 'middle', label: 'Align middle', icon: 'alignMiddle' }, { mode: 'bottom', label: 'Align bottom', icon: 'alignBottom' },
+  ];
+  const DISTRIBUTES: { axis: 'x' | 'y'; label: string; icon: IconName }[] = [
+    { axis: 'x', label: 'Distribute horizontally', icon: 'distributeH' }, { axis: 'y', label: 'Distribute vertically', icon: 'distributeV' },
+  ];
+  const alignTip = (label: string, ok: boolean, need: string) => (ok ? label : `${label} (${need})`);
 
   return (
     <div className="flex flex-col gap-1.5 rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-1.5">
@@ -218,6 +237,17 @@ export function EditorTopBar() {
             </>
           )}
         </Menu>
+        <Menu label="Layer">
+          <SubMenu label="Align" icon="alignLeft" disabled={!canAlign}>
+            <div className="whitespace-nowrap">{ALIGNS.map(a => <MenuItem key={a.mode} label={a.label} icon={a.icon} onSelect={() => alignSelection(a.mode)} />)}</div>
+          </SubMenu>
+          <SubMenu label="Distribute" icon="distributeH" disabled={!canDistribute}>
+            <div className="whitespace-nowrap">{DISTRIBUTES.map(d => <MenuItem key={d.axis} label={d.label} icon={d.icon} onSelect={() => distributeSelection(d.axis)} />)}</div>
+          </SubMenu>
+          <MenuSeparator />
+          <MenuItem label={allLocked ? 'Unlock' : 'Lock'} icon={allLocked ? 'unlock' : 'lock'} disabled={!selection.length} onSelect={() => toggleLock(selection)} />
+          <MenuItem label="Reset position" icon="undo" disabled={!selection.length || isPack} onSelect={resetSelection} />
+        </Menu>
         <Menu label="View">
           <MenuItem label="Fit to the space" icon="search" shortcut="Ctrl+0" onSelect={zoomFit} />
           <MenuItem label="100%" icon="search" shortcut="Ctrl+1" onSelect={zoomActual} />
@@ -274,6 +304,21 @@ export function EditorTopBar() {
           </>
         ) : (
           <>
+          {canAlign && (
+            <div className="flex items-center gap-0.5" role="group" aria-label="Align and distribute">
+              {ALIGNS.map(a => (
+                <button key={a.mode} type="button" onClick={() => alignSelection(a.mode)} title={alignTip(a.label, true, '')} aria-label={a.label} className="p-1.5 rounded-md text-gray-200 hover:bg-white/10">
+                  <Icon name={a.icon} />
+                </button>
+              ))}
+              <span className="mx-1 h-4 border-l border-gray-700" />
+              {DISTRIBUTES.map(d => (
+                <button key={d.axis} type="button" disabled={!canDistribute} onClick={() => distributeSelection(d.axis)} title={alignTip(d.label, canDistribute, 'select 3 or more unlocked parts')} aria-label={d.label} className="p-1.5 rounded-md text-gray-200 hover:bg-white/10 disabled:opacity-40">
+                  <Icon name={d.icon} />
+                </button>
+              ))}
+            </div>
+          )}
           {isPack && (
             <span className="text-xs text-yellow-300/80 hidden md:inline">
               Only what you change applies to this pack; the rest follows global.

@@ -1,5 +1,6 @@
 import type { ComponentType, SVGProps } from 'react';
 import {
+  AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignHorizontalSpaceAround, AlignVerticalSpaceAround,
   Hand, Keyboard, Move, ZoomIn, Plus, Bug, Flag, Activity, Share2, Smartphone, Bell, BellOff, Filter, List, Pin, Heart, ArrowDown, ArrowUp, Award, Ban, BookOpen, Bomb, CalendarDays, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   CircleAlert, CircleCheck, CircleDashed, CircleHelp, ClipboardList, Clock, Coins, Compass, Copy, Crown, Download, Film, FlaskConical, Gamepad2, Gem,
   Gift, GripVertical, Handshake, History, Hourglass, Image, Inbox, Info, Layers, Link, Lock, LockOpen, Medal, Menu, MessageSquare, Monitor, Music,
@@ -39,7 +40,7 @@ export const ICONS = {
   target: Target, pencil: Pencil, puzzle: Puzzle, gem: Gem, monitor: Monitor, trend: TrendingUp, chart: ChartColumn, coins: Coins,
   hole: CircleDashed, party: PartyPopper, compass: Compass, note: StickyNote, ruler: Ruler, search: Search, gamepad: Gamepad2,
   chat: MessageSquare, link: Link, share: Share2, phone: Smartphone, shield: Shield, database: Database, home: House, stop: Square, bomb: Bomb, grip: GripVertical, download: Download, copy: Copy,
-  pause: Pause, play: Play, filter: Filter, bell: Bell, bellOff: BellOff, list: List, pin: Pin, heart: Heart, activity: Activity, calendar: CalendarDays, tv: Tv, lock: Lock, unlock: LockOpen, wrench: Wrench, nerd: Sigma, clock: Clock, cheese: CheeseGlyph, redo: Redo2, logout: LogOut, panelClose: PanelLeftClose, panelOpen: PanelLeftOpen, external: ExternalLink, eye: Eye, eyeOff: EyeOff, layers: Layers, grid: Grid3x3, help: CircleHelp,
+  pause: Pause, play: Play, filter: Filter, bell: Bell, bellOff: BellOff, list: List, pin: Pin, heart: Heart, activity: Activity, calendar: CalendarDays, tv: Tv, lock: Lock, unlock: LockOpen, alignLeft: AlignHorizontalJustifyStart, alignCenter: AlignHorizontalJustifyCenter, alignRight: AlignHorizontalJustifyEnd, alignTop: AlignVerticalJustifyStart, alignMiddle: AlignVerticalJustifyCenter, alignBottom: AlignVerticalJustifyEnd, distributeH: AlignHorizontalSpaceAround, distributeV: AlignVerticalSpaceAround, wrench: Wrench, nerd: Sigma, clock: Clock, cheese: CheeseGlyph, redo: Redo2, logout: LogOut, panelClose: PanelLeftClose, panelOpen: PanelLeftOpen, external: ExternalLink, eye: Eye, eyeOff: EyeOff, layers: Layers, grid: Grid3x3, help: CircleHelp,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

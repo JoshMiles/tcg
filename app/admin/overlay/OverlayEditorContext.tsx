@@ -26,7 +26,7 @@ import {
   type PropValues,
   type VariantId,
 } from '@/lib/overlay-props';
-import { DEFAULT_LAYOUT, sanitizeLayout, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import {
   VARIANT_LABELS,
@@ -170,6 +170,9 @@ export interface OverlayEditorContextValue {
   locked: string[];
   toggleSelect: (target: string) => void;
   toggleLock: (ids: string[]) => void;
+  /** Line the unlocked selected parts up (one part: to the stage; several: to their bounding box), or space them evenly (3 or more). */
+  alignSelection: (mode: AlignMode) => void;
+  distributeSelection: (axis: 'x' | 'y') => void;
   resetSelection: () => void;
   selectTarget: (target: string) => void;
   selectView: (view: Mode) => void;
@@ -1135,6 +1138,29 @@ export function OverlayEditorProvider({
     else if (!selected || viewOf(selected) !== viewOf(target)) selectTarget(target);
     else setSelection([...selection, target]);
   };
+  // Align / distribute: the preview measures the parts, the editor turns each box move into an offset change (one History step).
+  const boxesWait = useRef<((b: Record<string, DesignBox>) => void) | null>(null);
+  const arrange = async (label: string, minParts: number, plan: (boxes: Record<string, DesignBox>, viewScale: number) => Record<string, { dx: number; dy: number }>) => {
+    const ids = selection.filter(id => !locked.includes(id));
+    if (isPack || ids.length < minParts) return;
+    const view = viewOf(selected);
+    const boxes = await new Promise<Record<string, DesignBox>>(resolve => {
+      const timer = setTimeout(() => { boxesWait.current = null; resolve({}); }, 1500);
+      boxesWait.current = b => { clearTimeout(timer); boxesWait.current = null; resolve(b); };
+      post({ type: 'measure', ids });
+    });
+    const moves = plan(Object.fromEntries(Object.entries(boxes).filter(([id]) => ids.includes(id))), layout[view].scale || 1);
+    const patches = Object.fromEntries(Object.entries(moves).map(([id, m]) => {
+      const at = elementAt(view, id);
+      return [id, { offsetX: Math.round(at.offsetX + m.dx), offsetY: Math.round(at.offsetY + m.dy) }];
+    }));
+    if (!Object.keys(patches).length) return;
+    tagEdit(label);
+    setElements(view, patches);
+  };
+  const ALIGN_LABELS: Record<AlignMode, string> = { left: 'Align left', center: 'Align centre', right: 'Align right', top: 'Align top', middle: 'Align middle', bottom: 'Align bottom' };
+  const alignSelection = (mode: AlignMode) => arrange(ALIGN_LABELS[mode], 1, (b, k) => (Object.keys(b).length ? alignOffsets(b, mode, { w: layout.width, h: layout.height }, k) : {}));
+  const distributeSelection = (axis: 'x' | 'y') => arrange(axis === 'x' ? 'Distribute horizontally' : 'Distribute vertically', 3, (b, k) => distributeOffsets(b, axis, k));
   const resetSelection = () => {
     if (!selection.length) return;
     tagEdit(layersLabel('Reset', selection));
@@ -1271,6 +1297,7 @@ export function OverlayEditorProvider({
         live.current.contextAt(data.target, data.x as number, data.y as number);
         return;
       }
+      if (data?.type === 'boxes') { boxesWait.current?.((data as { boxes?: Record<string, DesignBox> }).boxes ?? {}); return; }
       if (data?.type === 'dragend') return live.current.dragEnd();
       if (data?.type === 'key' && typeof data.key === 'string') {
         if (!live.current.pressKey(data.key, !!data.shift)) live.current.shortcut(data.key, !!data.ctrl, !!data.shift, null, !!data.up);
@@ -1349,6 +1376,8 @@ export function OverlayEditorProvider({
     locked,
     toggleSelect,
     toggleLock,
+    alignSelection,
+    distributeSelection,
     resetSelection,
     selectTarget,
     selectView,

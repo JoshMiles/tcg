@@ -121,3 +121,42 @@ function withElements(p: Placement, raw: unknown, view: LayoutMode, width: numbe
   }
   return Object.keys(out).length ? { ...p, elements: out } : p;
 }
+
+/** A part's box on the stage in design px (what the preview measures). */
+export interface DesignBox { x: number; y: number; w: number; h: number }
+export type AlignMode = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom';
+
+/**
+ * Offset changes that line parts up (the same maths as the card-back editor): a lone part aligns to the stage, several to the
+ * bounding box of the selection. Box moves are divided by the view's scale (a part sits inside it), like dragging does.
+ */
+export function alignOffsets(boxes: Record<string, DesignBox>, mode: AlignMode, stage: { w: number; h: number }, viewScale = 1): Record<string, { dx: number; dy: number }> {
+  const list = Object.values(boxes);
+  const area = list.length === 1 ? { l: 0, t: 0, r: stage.w, b: stage.h } : {
+    l: Math.min(...list.map(b => b.x)), t: Math.min(...list.map(b => b.y)),
+    r: Math.max(...list.map(b => b.x + b.w)), b: Math.max(...list.map(b => b.y + b.h)),
+  };
+  const out: Record<string, { dx: number; dy: number }> = {};
+  for (const [id, b] of Object.entries(boxes)) {
+    const want = mode === 'left' ? area.l - b.x : mode === 'right' ? area.r - b.w - b.x : mode === 'center' ? (area.l + area.r) / 2 - b.w / 2 - b.x
+      : mode === 'top' ? area.t - b.y : mode === 'bottom' ? area.b - b.h - b.y : (area.t + area.b) / 2 - b.h / 2 - b.y;
+    const horizontal = mode === 'left' || mode === 'center' || mode === 'right';
+    out[id] = { dx: horizontal ? want / (viewScale || 1) : 0, dy: horizontal ? 0 : want / (viewScale || 1) };
+  }
+  return out;
+}
+
+/** Offset changes that space part centres evenly between the two outermost ones (needs 3 or more parts). */
+export function distributeOffsets(boxes: Record<string, DesignBox>, axis: 'x' | 'y', viewScale = 1): Record<string, { dx: number; dy: number }> {
+  const centre = (b: DesignBox) => (axis === 'x' ? b.x + b.w / 2 : b.y + b.h / 2);
+  const sorted = Object.entries(boxes).sort((a, b) => centre(a[1]) - centre(b[1]));
+  const out: Record<string, { dx: number; dy: number }> = {};
+  if (sorted.length < 3) return out;
+  const first = centre(sorted[0][1]);
+  const step = (centre(sorted[sorted.length - 1][1]) - first) / (sorted.length - 1);
+  sorted.forEach(([id, b], i) => {
+    const d = (first + step * i - centre(b)) / (viewScale || 1);
+    out[id] = axis === 'x' ? { dx: d, dy: 0 } : { dx: 0, dy: d };
+  });
+  return out;
+}

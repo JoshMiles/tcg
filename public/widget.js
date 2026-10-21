@@ -495,6 +495,18 @@ if (PREVIEW) {
       const flag = (k, on) => { if (on) document.body.dataset[k] = '1'; else delete document.body.dataset[k]; };
       flag('view', !!e.data.view); flag('canedit', !!e.data.canEdit); flag('snap', !!e.data.snap);
     }
+    else if (EDITOR && e.data.type === 'measure') {
+      // The editor's Align / Distribute asks where parts sit now: reply with each part's box in design px.
+      const fit = stageFit();
+      const boxes = {};
+      for (const el of visibleEdits()) {
+        const id = el.dataset.edit;
+        if (!Array.isArray(e.data.ids) || !e.data.ids.includes(id)) continue;
+        const b = boxOf(el);
+        boxes[id] = { x: b.l / fit, y: b.t / fit, w: (b.r - b.l) / fit, h: (b.b - b.t) / fit };
+      }
+      toParent({ type: 'boxes', boxes, seq: e.data.seq });
+    }
     else if (e.data.type === 'guides') {
       const nums = (a) => (Array.isArray(a) ? a.filter((n) => Number.isFinite(n)) : []);
       userGuides = { x: nums(e.data.x), y: nums(e.data.y) };
