@@ -1,4 +1,5 @@
 'use client';
+import { Icon } from '@/app/components/Icon';
 
 // Document tabs above a canvas (one per thing being edited); knows nothing about what they are.
 // The first tab is never closable. `add` is a native select of the tabs that are not open yet (keyboard reachable).
@@ -15,7 +16,7 @@ export function DocTabs({ tabs, active, onSelect, onClose, add }: { tabs: DocTab
             {t.dirty && <span role="img" aria-label="unsaved changes" className="ml-1.5 text-yellow-400">●</span>}
           </button>
           {t.closable && (
-            <button type="button" onClick={() => onClose(t.id)} aria-label={`Close ${t.label}`} className="pr-2 pl-1 text-gray-500 hover:text-white">×</button>
+            <button type="button" onClick={() => onClose(t.id)} aria-label={`Close ${t.label}`} className="pr-2 pl-1 text-gray-500 hover:text-white"><Icon name="x" /></button>
           )}
         </div>
       ))}

@@ -12,31 +12,33 @@ export function EditorScopeTabs() {
   const [open, setOpen] = useState<string[]>([]);
   const all = [
     { id: 'global', label: 'Everything' },
-    ...packs.map(p => ({ id: p.id, label: `Pack: ${p.name}${Object.keys(packVals[p.id] ?? {}).length ? ' ●' : ''}` })),
+    ...packs.map(p => ({ id: p.id, label: `Pack: ${p.name}` })),
     ...presets.map(x => ({ id: 'scene:' + x.id, label: `Scene: ${x.name}` })),
   ];
   const exists = (id: string) => all.some(a => a.id === id);
   useEffect(() => {
     try {
       const v = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-      if (Array.isArray(v)) setOpen(v.filter((x): x is string => typeof x === 'string'));
+      if (Array.isArray(v)) setOpen(prev => [...new Set([...v.filter((x): x is string => typeof x === 'string'), ...prev])]);
     } catch { /* storage blocked or corrupt */ }
   }, []);
   const ids = [...new Set(['global', ...open.filter(exists), scope])];
   const dirtyOf = (id: string) => id === 'global' ? changedGlobal || changedLayout : id.startsWith('scene:') ? changedScenes.some(x => 'scene:' + x.id === id) : changedPacks.includes(id);
-  const save = (next: string[]) => {
-    setOpen(next);
+  // An updater, so the load and the scope effects on mount build on each other instead of overwriting the stored list.
+  const save = (fn: (prev: string[]) => string[]) => setOpen(prev => {
+    const next = fn(prev);
     try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* ignore */ }
-  };
+    return next;
+  });
   // Opening a scope by any route (a menu, a Scenes row, the URL) also opens its tab.
-  useEffect(() => { if (scope !== 'global' && !open.includes(scope)) save([...open, scope]); }, [scope]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (scope !== 'global') save(prev => (prev.includes(scope) ? prev : [...prev, scope])); }, [scope]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <DocTabs
       tabs={ids.map(id => ({ id, label: all.find(a => a.id === id)?.label ?? id, dirty: dirtyOf(id), closable: id !== 'global' }))}
       active={scope}
       onSelect={setScope}
-      onClose={id => { save(open.filter(x => x !== id)); if (scope === id) setScope('global'); }}
-      add={{ label: 'Open another scope', options: all.filter(a => !ids.includes(a.id)), onAdd: id => { save([...open, id]); setScope(id); } }}
+      onClose={id => { save(prev => prev.filter(x => x !== id)); if (scope === id) setScope('global'); }}
+      add={{ label: 'Open another scope', options: all.filter(a => !ids.includes(a.id)).map(a => ({ ...a, label: a.label + (Object.keys(packVals[a.id] ?? {}).length ? ' ●' : '') })), onAdd: id => { save(prev => (prev.includes(id) ? prev : [...prev, id])); setScope(id); } }}
     />
   );
 }
