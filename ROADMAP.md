@@ -48,6 +48,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
 | 38.29 | Overlay Editor: workspace redesign (menu bar, panels, contextual Properties) | Ready | L |
+| 38.30 | Card back editor: the same workspace, plus shapes and images | Ready | L |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -197,6 +198,15 @@ Today the workspace is an options bar crowded with popovers (scope, Presets, Sce
 - **Look:** a tighter, darker workspace (panel headers 28 px, 12 px labels, number fields with drag-to-scrub labels as in Photoshop: drag on a field's label to change its value), the daisyUI `cheesy` colours kept; icons from `Icon.tsx`, no emoji. Below `xl` the right column moves under the canvas as tabs (Properties / Layers / History).
 - **Keep:** every existing behaviour and message to the iframe; the auto-collapsed admin sidebar; no page scroll at `xl`.
 - **Split, behaviour unchanged until (d):** (a) menu bar + status bar, moving the popovers' contents into menus as is; (b) scope tabs; (c) the right panel stack, Layers full height, History / Swatches / Navigator slots; (d) contextual Properties replacing the rail; (e) tool strip + contextual options bar (with 38.1); (f) timeline area absorbing `PreviewToolbar` (with 38.15); (g) resizable / collapsible panels and the compact look. Update `docs/overlay.md` (Editor section) in each.
+- **Build the shell to be shared:** the menu bar, document tabs, tool strip, options bar, panel stack, status bar, History, Swatches, Navigator, `CharacterPanel` and font picker go in `app/admin/components/workspace/` with no overlay imports (the overlay feeds them its state), because the card back editor moves onto the same shell in 38.30.
+
+### 38.30 Card back editor on the same workspace (Ready, L)
+**Decided (user, 2026-10-21):** the card back editor gets the same redesign, so both editors feel like one app. Today it is a full-screen dialog (`CardBackEditor.tsx`, opened by **Edit design** in the pack workspace) with Layers on the left, the canvas in the middle (`card-back/Canvas.tsx`) with the three-size preview, and Properties on the right; undo / redo, but no menu bar, history list, zoom, rulers, status bar or tools.
+- **Same shell (from 38.29):** menu bar (File: Save, Presets, Copy from another pack, Reset to classic, Export PNG; Edit: undo / redo, copy / paste style, Find a setting; View: zoom, fit, rulers, guides, snap, the three-size preview, background; Layer: add text / image / shape, duplicate, group, lock, align / distribute, arrange; Window; Help), tool strip (Move, Hand, Zoom, Text, Shape, Image), contextual options bar, the right panel stack (contextual Properties on top, Layers under it, History / Swatches / Navigator tabs) and the status bar (zoom, pointer X / Y in % of the card and pt, unsaved state). It stays a full-screen view opened from the pack, as now, and keeps its own save action.
+- **Contextual Properties:** a selected element shows Layer (position, size, rotation, opacity), Character / Paragraph / Effects (38.12) for text, its kind's own fields (QR, logo, history lines); nothing selected shows the back itself (background, gradient, pattern, edge, alignment) where today's top-level settings live.
+- **Shapes and images (with 38.7's model):** the back gets the same Shape tool (rectangle, ellipse, line, polygon, star; fill, gradient, stroke, effects) and free Image layers (Blob upload; the existing logo element stays). Add `shape` and `image` to `ELEMENT_KINDS` with optional fields so saved backs don't change, and draw both in the DOM back and in `lib/card-back-canvas.ts` (share images); the 38.12 parity rule applies. Share the shape and gradient types with the overlay in `lib/shapes.ts`.
+- **Keep:** reduced-motion behaviour (the bare editor back keeps `data-flipped="true"`), the stacked layout in the narrow pack panel for the preview card and the **Edit design** button, `MAX_ELEMENTS` / `MAX_TEXT_BOXES` (raise them only with the canvas renderer checked), every saved back reading back unchanged (`scripts/check-card-back.mts`).
+- **Order:** after 38.29 (a) to (d) and 38.12 (a). Split: (a) shell around today's panels, no behaviour change; (b) contextual Properties; (c) tools, zoom, rulers, status bar; (d) shapes and images, DOM and canvas. Update the card back part of `docs/admin/packs-and-seasons.md` in each.
 
 ### Safety first (do these before 38.1)
 
@@ -252,7 +262,7 @@ Saving a preset or version captures a still of the preview (the widget draws its
 ### 38.28 Scheduled looks (Ready, M)
 A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
 
-**Build order for the track:** 38.13, 38.14 (safety) → 38.29 (a) to (d) (the new workspace, so later items are built into their final home) → 38.1 with 38.29 (e) → 38.2 to 38.6 → 38.15 with 38.29 (f), 38.16 → text work (38.11, 38.12, 38.8, 38.9, 38.10) → 38.7 → 38.29 (g) → 38.17 to 38.28 in any order.
+**Build order for the track:** 38.13, 38.14 (safety) → 38.29 (a) to (d) (the new workspace, so later items are built into their final home) → 38.1 with 38.29 (e) → 38.2 to 38.6 → 38.15 with 38.29 (f), 38.16 → text work (38.11, 38.12, 38.8, 38.9, 38.10) → 38.7 → 38.29 (g) → 38.30 (after 38.12 (a)) → 38.17 to 38.28 in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 
