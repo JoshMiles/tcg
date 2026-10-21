@@ -18,8 +18,11 @@ export interface Placement {
   offsetX: number;   // design px, + = right
   offsetY: number;   // design px, + = down
   /** Single parts moved on their own, relative to where the part normally sits. Absent = every part at its normal spot. */
-  elements?: Partial<Record<ElementId, Omit<Placement, 'elements'>>>;
+  elements?: Partial<Record<ElementId, ElementPlacement>>;
 }
+
+/** One part's spot, plus how see-through it is (0 to 1). Absent opacity = fully solid, as before. */
+export type ElementPlacement = Omit<Placement, 'elements'> & { opacity?: number };
 
 export interface OverlayLayout {
   width: number;     // design stage = the browser source size, px
@@ -107,12 +110,14 @@ function withElements(p: Placement, raw: unknown, view: LayoutMode, width: numbe
     const e = src[id];
     if (!e || typeof e !== 'object') continue;
     const i = e as Loose;
-    const el = {
+    const opacity = Math.round(clamp(num(i.opacity, 1), 0, 1) * 100) / 100;
+    const el: ElementPlacement = {
       scale:   Math.round(clamp(num(i.scale, 1), 0.25, 3) * 100) / 100,
       offsetX: Math.round(clamp(num(i.offsetX, 0), -width, width)),
       offsetY: Math.round(clamp(num(i.offsetY, 0), -height, height)),
     };
-    if (el.scale !== 1 || el.offsetX !== 0 || el.offsetY !== 0) out[id] = el;
+    if (opacity < 1) el.opacity = opacity;
+    if (el.scale !== 1 || el.offsetX !== 0 || el.offsetY !== 0 || opacity < 1) out[id] = el;
   }
   return Object.keys(out).length ? { ...p, elements: out } : p;
 }

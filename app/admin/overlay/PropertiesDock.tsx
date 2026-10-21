@@ -5,6 +5,7 @@ import { Icon } from '@/app/components/Icon';
 import { PanelStack } from '../components/workspace/PanelStack';
 import { LAYER_NAMES, LayersPanel } from './LayersPanel';
 import { HistoryPanel } from './HistoryPanel';
+import { LayerBlock } from './LayerBlock';
 import { LayoutPanel } from './LayoutPanel';
 import { VariantPicker } from './VariantPicker';
 import { PropRow } from './editor-controls';
@@ -294,6 +295,7 @@ export function PropertiesDock() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
+        {layer && !searching && <LayerBlock />}
         {searching ? (
           searchResults.length === 0 ? (
             <p className="p-4 text-sm text-gray-500">No settings match &ldquo;{query}&rdquo;.</p>
