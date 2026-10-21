@@ -14,6 +14,9 @@ export function PreviewToolbar() {
     setMode,
     category,
     setCategory,
+    openCat,
+    setOpenCat,
+    selected,
     isPack,
     version,
     setVersion,
@@ -39,9 +42,11 @@ export function PreviewToolbar() {
         onChange={v => {
           setShowOff(v === 'showoff');
           setMode(v === 'collection' ? 'collection' : 'pack');
-          if (v === 'showoff') setCategory('showoff');
-          else if (!isPack && category !== 'layout') {
-            setCategory(v === 'collection' ? 'collection' : category === 'collection' || category === 'showoff' ? 'pack' : category);
+          // The dock follows the view: the same category the rail used to highlight, opened on the Document page.
+          const next = v === 'showoff' ? 'showoff' : !isPack && category !== 'layout' ? (v === 'collection' ? 'collection' : category === 'collection' || category === 'showoff' ? 'pack' : category) : null;
+          if (next) {
+            setCategory(next);
+            if (!selected && (v === 'showoff' || openCat)) setOpenCat(next);
           }
         }}
         options={[

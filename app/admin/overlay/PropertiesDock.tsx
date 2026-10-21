@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { PanelStack } from '../components/workspace/PanelStack';
 import { LAYER_NAMES, LayersPanel } from './LayersPanel';
@@ -19,6 +19,8 @@ export function PropertiesDock() {
     isScene,
     scene,
     setCategory,
+    openCat,
+    setOpenCat,
     selected,
     modifiedCount,
     searching,
@@ -57,12 +59,11 @@ export function PropertiesDock() {
 
   // Two modes: a selected layer shows just its own settings; with nothing selected the panel is the document (layout plus the category list).
   // A category opened from that list is a sub-page of the document and never selects anything on the canvas.
-  const [openCat, setOpenCat] = useState<string | null>(null);
   useEffect(() => { if (selected) setOpenCat(null); }, [selected]);
   const target = selected ? sectionForTarget(selected) : undefined;
   const layer = target && !(isPack && target[0] === 'collection') ? target : undefined;
   const layerName = (LAYER_NAMES as Record<string, string>)[selected] ?? selected;
-  const cat = PROP_GROUPS.find(g => g.id === (layer ? layer[0] : openCat));
+  const cat = PROP_GROUPS.find(g => g.id === (layer ? layer[0] : isPack && openCat === 'collection' ? null : openCat));
   const categories = isPack ? PROP_GROUPS.filter(g => g.id !== 'collection') : PROP_GROUPS;
   const catDefs = cat ? defsFor(cat.id) : [];
   const scopeKey = cat ? `${cat.id}${cat.id === 'variants' ? '.' + version : ''}` : '';

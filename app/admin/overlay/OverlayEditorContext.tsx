@@ -170,6 +170,8 @@ export interface OverlayEditorContextValue {
   // Navigation & Category
   category: string;
   setCategory: (c: string) => void;
+  openCat: string | null;
+  setOpenCat: (c: string | null) => void;
   catId: string;
   version: VariantId;
   setVersion: (v: VariantId) => void;
@@ -329,6 +331,10 @@ export function OverlayEditorProvider({
   const layout = useMemo(() => sanitizeLayout(layoutVals), [layoutVals]);
   const initialActiveLayout = initialLayoutMap[layoutKey] ?? initialLayout;
 
+  // The category opened on the Document page (null = the Document page itself); a deep link (?group=) starts it open.
+  const [openCat, setOpenCat] = useState<string | null>(
+    initialCategory && PROP_GROUPS.some(g => g.id === initialCategory) ? initialCategory : null,
+  );
   const [category, setCategory] = useState(
     initialCategory && (PROP_GROUPS.some(g => g.id === initialCategory) || initialCategory === 'layout')
       ? initialCategory
@@ -1090,6 +1096,8 @@ export function OverlayEditorProvider({
     layoutOf,
     category,
     setCategory,
+    openCat,
+    setOpenCat,
     catId,
     version,
     setVersion,
