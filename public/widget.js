@@ -91,7 +91,8 @@ function tlSeek(t) {
   }
   // Fire the timers the scrubber passed, in order; what they start (a banner) is timed from the moment they fired.
   const due = [...TL.timers].filter(h => h.at <= ms).sort((a, b) => a.at - b.at);
-  due.forEach(h => { TL.virtual = h.at; h.run(); });
+  // Each timer's new animations are held right after it fires, so they are offset from its time, not the target's.
+  due.forEach(h => { TL.virtual = h.at; h.run(); TL.at = h.at; tlHoldNew(); });
   Promise.resolve().then(() => { TL.virtual = null; });
   TL.at = ms;
   tlHoldNew();
