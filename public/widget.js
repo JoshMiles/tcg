@@ -48,10 +48,11 @@ const EDITOR = PREVIEW && new URLSearchParams(window.location.search).has('edito
 // is a timer on ONE pull clock (PREVIEW_CLOCK: milliseconds since the pull began, `at`). Pause holds that clock, Seek fires the
 // timers it passes and sets the CSS animations, and going back past a fired timer re-runs the pull and fast-forwards it.
 // Outside the editor phaseTimer / phaseClear ARE setTimeout / clearTimeout, so live behaviour is unchanged.
-const TL = { timers: new Set(), paused: false, start: 0, at: 0, anims: new Map(), dur: 0, markers: null, active: false, tick: 0, firedMax: 0, virtual: null, replayTo: null, redo: null, wrapper: null };
+let stopGen = 0;   // bumped by the editor's Stop so a pull that was cut short does not run its tail
+const TL = { timers: new Set(), paused: false, start: 0, at: 0, anims: new Map(), dur: 0, markers: null, active: false, tick: 0, firedMax: 0, cooldown: 0, virtual: null, replayTo: null, redo: null, wrapper: null };
 const tlElapsed = () => (TL.paused ? TL.at : performance.now() - TL.start);
 const tlNow = () => (TL.virtual !== null ? TL.virtual : TL.active ? tlElapsed() : 0);
-const tlReport = () => window.parent.postMessage({ type: 'timeline', active: TL.active, paused: TL.paused, t: tlElapsed() / 1000, dur: TL.dur / 1000, markers: TL.markers }, window.location.origin);
+const tlReport = () => window.parent.postMessage({ type: 'timeline', active: TL.active, paused: TL.paused, t: tlElapsed() / 1000, dur: TL.dur / 1000, markers: TL.markers, cooldown: TL.cooldown }, window.location.origin);
 const editorTimer = (fn, ms) => {
   const h = { id: 0, at: tlNow() + ms };
   h.run = () => { TL.timers.delete(h); TL.firedMax = Math.max(TL.firedMax, h.at); fn(); };
@@ -65,7 +66,8 @@ const phaseClear = EDITOR ? editorClear : clearTimeout;
 // A new draw starts: forget the last one's clock (the preview plays one pull at a time).
 const tlPrep = () => { TL.timers.forEach(h => clearTimeout(h.id)); TL.timers.clear(); TL.active = false; TL.firedMax = 0; };
 // The draw's timers are already scheduled when tlBegin runs (same tick), so it must not clear them; tlEnd does.
-const tlBegin = (dur, markers, redo, wrapper) => {
+const tlBegin = (dur, markers, redo, wrapper, cooldown) => {
+  TL.cooldown = cooldown;
   TL.anims.clear(); TL.paused = false; TL.start = performance.now(); TL.dur = dur; TL.markers = markers; TL.active = true; TL.redo = redo; TL.wrapper = wrapper;
   clearInterval(TL.tick); TL.tick = setInterval(tlTick, 100);
   if (TL.replayTo !== null) { const to = TL.replayTo; TL.replayTo = null; tlPause(); tlSeek(to); }
@@ -563,6 +565,14 @@ if (PREVIEW) {
       flag('view', !!e.data.view); flag('canedit', !!e.data.canEdit); flag('snap', !!e.data.snap);
     }
     else if (EDITOR && e.data.type === 'timeline') tlCommand(e.data.action, e.data.t);
+    else if (EDITOR && e.data.type === 'stop') {
+      // The editor's Stop on a rehearsal: end whatever plays at once and go back to the still.
+      stopGen++;
+      tlPrep(); tlEnd();
+      cardQueue.length = 0; activeDraws = 0;
+      document.querySelectorAll('#stage .card-wrapper').forEach(el => el.remove());
+      showStatic();
+    }
     else if (EDITOR && e.data.type === 'measure') {
       // The editor's Align / Distribute asks where parts sit now: reply with each part's box in design px.
       const fit = stageFit();
@@ -602,7 +612,7 @@ if (PREVIEW) {
       const c = chosen && (chosen.cards.find(x => x.number === previewCardNumber) || [...chosen.cards].sort((x, y) => y.stars - x.stars)[0]);
       if (c) queueShowCard('preview', { cardNumber: c.number, variant: PREVIEW_VARIANT || 'regular', serial: 3, serialMult: 2.8, uid: 1023381 });
     }
-    else if (e.data.type === 'pack') { clearStatic(); queueDraw('preview', { dry: true, packId: previewPackId || undefined, cardNumber: previewCardNumber || undefined, variant: PREVIEW_VARIANT || undefined, moment: MOMENT_IDS.includes(e.data.moment) ? e.data.moment : undefined }); }
+    else if (e.data.type === 'pack') { clearStatic(); const ov = EDITOR && typeof e.data.packId === 'string'; queueDraw('preview', { dry: true, packId: ov ? e.data.packId : previewPackId || undefined, cardNumber: ov ? undefined : previewCardNumber || undefined, variant: ov ? e.data.variant || undefined : PREVIEW_VARIANT || undefined, moment: MOMENT_IDS.includes(e.data.moment) ? e.data.moment : undefined }); }
     else if (e.data.type === 'collection') { clearStatic(); queueCollection('preview', { dry: true }); }
   });
 }
@@ -1532,11 +1542,13 @@ function drawCard(username, opts) {
   const startedAt = EDITOR ? 0 : Date.now();
   let hideAt = startedAt + showDuration;
   let hideTimer = null;
+  const gen = stopGen;
   const hide = () => {
     radialContainer.style.opacity   = '0';
     radialContainer.style.animation = 'none';
     wrapper.classList.add('hid');
     setTimeout(() => {
+      if (gen !== stopGen) return;
       wrapper.remove();
       if (EDITOR) tlEnd();
       activeDraws--;
@@ -1549,7 +1561,7 @@ function drawCard(username, opts) {
     if (R.pack) markers.pack = D;
     // The pick is fixed so a replay (scrubbing back) shows the same card.
     const again = show ? opts : Object.assign({}, opts, { packId, cardNumber: card.number, variant });
-    tlBegin(showDuration, markers, () => drawCard(username, again), wrapper);
+    tlBegin(showDuration, markers, () => drawCard(username, again), wrapper, cfg.cooldownTime);
   }
   function extendHold(ms) {
     if (!hideTimer || nowMs() >= hideAt) return;

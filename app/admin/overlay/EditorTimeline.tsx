@@ -37,6 +37,9 @@ export function EditorTimeline() {
     play,
     ready,
     playing,
+    rehearsing,
+    rehearse,
+    stopRehearsal,
     timeline,
     timelineCmd,
   } = useOverlayEditor();
@@ -49,7 +52,7 @@ export function EditorTimeline() {
     return !c;
   });
 
-  const canScrub = !!timeline && mode === 'pack';
+  const canScrub = !!timeline && mode === 'pack' && !rehearsing;
   const dur = timeline?.dur ?? 0;
   const t = Math.min(dur, timeline?.t ?? 0);
   const MARKERS: [string, string][] = [['pack', 'Pack'], ['reveal', 'Card'], ['info', 'Text'], ['label', 'Label']];
@@ -139,11 +142,22 @@ export function EditorTimeline() {
       <button
         type="button"
         onClick={play}
-        disabled={!ready || playing}
+        disabled={!ready || playing || rehearsing}
         className={`${btn} ml-auto bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}
       >
         {playing ? '… playing' : mode === 'collection' ? 'Play collection' : showOff ? 'Play show off' : 'Play pack opening'}
       </button>
+      {mode === 'pack' && (
+        <button
+          type="button"
+          onClick={rehearsing ? stopRehearsal : rehearse}
+          disabled={!ready || (playing && !rehearsing)}
+          title="Play 5 pulls and a show-off back to back with the real gaps (nothing is saved or queued)"
+          className={`${btn} disabled:opacity-40`}
+        >
+          {rehearsing ? 'Stop rehearsal' : 'Play a stream'}
+        </button>
+      )}
       <button type="button" onClick={toggle} aria-expanded={!collapsed} aria-label={collapsed ? 'Show the timeline' : 'Hide the timeline'} title={collapsed ? 'Show the timeline' : 'Hide the timeline'} className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-white/10">
         <Icon name={collapsed ? 'chevronUp' : 'chevronDown'} />
       </button>
