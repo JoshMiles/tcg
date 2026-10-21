@@ -560,6 +560,7 @@ export function OverlayEditorProvider({
   // `base` is the newest saved version id the draft was made against. Storage may be blocked, so every access is guarded.
   const baseVersion = versions[0]?.id ?? '';
   const [draftOffer, setDraftOffer] = useState<{ at: number; stale: boolean; snap: Snap } | null>(null);
+  const [draftChecked, setDraftChecked] = useState(false); // storage is only written once the stored draft has been read
   const [reviewSignal, setReviewSignal] = useState(0);
   const storeDraft = (v: { base: string; at: number; snap: Snap } | null) => {
     try { if (v) localStorage.setItem(DRAFT_KEY, JSON.stringify(v)); else localStorage.removeItem(DRAFT_KEY); } catch { /* storage blocked */ }
@@ -571,14 +572,14 @@ export function OverlayEditorProvider({
       // A draft that already matches what is saved (it was saved just before the page closed) is not worth offering.
       if (snapKey(d.snap) === snapKey({ g: initialGlobal, p: initialPackMap, l: initialLayoutMap })) { storeDraft(null); return; }
       setDraftOffer({ at: d.at, stale: d.base !== baseVersion, snap: d.snap });
-    } catch { /* storage blocked or a corrupt draft */ }
+    } catch { /* storage blocked or a corrupt draft */ } finally { setDraftChecked(true); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (draftOffer) return; // an unanswered offer is kept as it is
+    if (!draftChecked || draftOffer) return; // an unanswered offer is kept as it is
     if (!dirty) { storeDraft(null); return; }
     const t = setTimeout(() => storeDraft({ base: baseVersion, at: Date.now(), snap: { g: globalVals, p: packVals, l: layoutMap } }), 1000);
     return () => clearTimeout(t);
-  }, [dirty, draftOffer, globalVals, packVals, layoutMap, baseVersion]);
+  }, [dirty, draftChecked, draftOffer, globalVals, packVals, layoutMap, baseVersion]);
   const restoreDraft = () => {
     if (!draftOffer) return;
     const { snap, stale } = draftOffer;
