@@ -2,7 +2,7 @@
 import { useState, type ReactNode } from 'react';
 import { ImageUploadField } from '../image-upload';
 import { PRINT_W } from './Canvas';
-import { BACK_FONTS, KIND_LABELS, MAX_TEXT, WEIGHTS, type BackEl, type CardBackStyle, type Effects } from '@/lib/card-back';
+import { BACK_FONTS, KIND_LABELS, MAX_TEXT, WEIGHT_NAMES, nearestWeight, type BackEl, type CardBackStyle, type Effects } from '@/lib/card-back';
 import { BLENDS, PATTERN_IDS, PATTERN_LABELS } from '@/lib/card-back-patterns';
 import { plateBackground } from '@/lib/card-back-v1';
 import { makeFree, patchBackground, patchElements, resetElement, returnToStack, type Box } from '@/lib/card-back-edit';
@@ -91,7 +91,7 @@ export function Properties({ style, selection, boxes, cardW, onChange }: {
           {free ? (
             <>
               <Num label="Size (%)" value={e.size} min={2} max={30} step={0.5} onChange={v => set({ size: v }, 'size')} />
-              <Row label="Weight"><select aria-label="Weight" className="select select-sm w-full" value={e.weight} onChange={ev => set({ weight: Number(ev.target.value) })}>{WEIGHTS.map(w => <option key={w} value={w}>{w}</option>)}</select></Row>
+              <Row label="Weight"><select aria-label="Weight" className="select select-sm w-full" value={nearestWeight(BACK_FONTS.find(f => f.id === e.font) ?? BACK_FONTS[0], e.weight)} onChange={ev => set({ weight: Number(ev.target.value) })}>{(BACK_FONTS.find(f => f.id === e.font) ?? BACK_FONTS[0]).weights.map(w => <option key={w} value={w}>{WEIGHT_NAMES[w]} ({w})</option>)}</select></Row>
               <div className="flex flex-wrap gap-3"><Check label="Italic" on={e.italic} onChange={v => set({ italic: v })} /><Check label="Underline" on={e.underline} onChange={v => set({ underline: v })} /><Check label="Uppercase" on={e.uppercase} onChange={v => set({ uppercase: v })} /></div>
               <Num label="Spacing" value={e.letterSpacing} min={-2} max={20} step={0.5} onChange={v => set({ letterSpacing: v }, 'ls')} />
               <Num label="Line height" value={e.lineHeight} min={0.8} max={2.5} step={0.05} onChange={v => set({ lineHeight: v }, 'lh')} />

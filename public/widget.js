@@ -178,13 +178,13 @@ let PACK_OVERRIDES = {};
 let BACKS = {};   // each pack's designed card back, laid out at a reference size (lib/card-back-overlay.ts)
 let FONT_CATALOG = [];   // card-back faces (lib/card-back-overlay.ts overlayFontCatalog); display leaves the stylesheet alone
 const loadedFaces = new Set();
-function loadFace(family, weight, file) {
+function loadFace(family, weight, file, italic) {
   if (!family || !file) return;
-  const k = family + ':' + weight;
+  const k = family + ':' + weight + (italic ? ':i' : '');
   if (loadedFaces.has(k)) return;
   loadedFaces.add(k);
   try {
-    const face = new FontFace(family, "url('/fonts/back/" + file + "') format('woff2')", { weight: String(weight), display: 'swap' });
+    const face = new FontFace(family, "url('/fonts/back/" + file + "') format('woff2')", { weight: String(weight), style: italic ? 'italic' : 'normal', display: 'swap' });
     document.fonts.add(face); face.load().catch(() => {});
   } catch { /* the fallback font shows */ }
 }
@@ -236,7 +236,7 @@ function backNodeEl(spec) {
 function mountDesignBack(host, design) {
   const w = host.offsetWidth;
   if (!design || !design.nodes || !w) return false;
-  for (const f of design.fonts || []) loadFace(f.family, f.weight, f.file);
+  for (const f of design.fonts || []) loadFace(f.family, f.weight, f.file, f.italic);
   const root = document.createElement('div');
   root.className = 'tcg-back';
   root.style.width = design.w + 'px'; root.style.height = design.h + 'px';

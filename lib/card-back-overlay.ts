@@ -1,7 +1,7 @@
 // The pack's designed back as the OBS overlay draws it (ROADMAP 20.3c). widget.js is plain JavaScript and cannot import layoutBack, so
 // GET /api/overlay/config sends each pack's nodes already laid out, at one reference card size; the widget draws them as DOM (the same
 // classes and rules as FlipCard, scoped under .tcg-back in widget.css) and scales the whole plate to the card. Pure and client-safe.
-import { BACK_FONTS, DEFAULT_CARD_BACK, plateVars, type BackEl, type CardBackStyle } from './card-back';
+import { BACK_FONTS, DEFAULT_CARD_BACK, nearestWeight, plateVars, type BackEl, type CardBackStyle } from './card-back';
 import { fontsNeeded, layoutBack, type BackNode } from './card-back-layout';
 import { flipBackFor } from './flip-back';
 
@@ -20,7 +20,7 @@ export interface OverlayBack {
   vars: Record<string, string>;
   nodes: BackNode[];
   /** Files for the curated fonts the nodes use. */
-  fonts: { family: string; weight: number; file: string }[];
+  fonts: { family: string; weight: number; file: string; italic?: true }[];
 }
 
 /** Every card-back face, for overlay text. A file is the 700 cut when one exists, else the only cut. Site faces have no file. */
@@ -42,8 +42,8 @@ export function overlayBack(style: CardBackStyle = DEFAULT_CARD_BACK): OverlayBa
     const def = BACK_FONTS.find(x => x.id === f.id);
     const family = def && /'([^']+)'/.exec(def.css)?.[1];
     if (!def?.files || !family) return [];
-    const have = Object.keys(def.files).map(Number);
-    const weight = have.reduce((best, n) => (Math.abs(n - f.weight) < Math.abs(best - f.weight) ? n : best), have[0]);
+    const weight = nearestWeight(def, f.weight);
+    if (f.italic && def.italicFile) return [{ family, weight, file: def.italicFile, italic: true as const }];
     return [{ family, weight, file: def.files[weight] }];
   });
   return { ...OVERLAY_BACK_REF, vars: plateVars(shown, OVERLAY_RARITY), nodes, fonts };
