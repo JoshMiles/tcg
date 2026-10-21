@@ -3,8 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { FlipCard } from '@/app/components/FlipCard';
 import { Icon } from '@/app/components/Icon';
 import { saveCardBackAction, resetCardBackAction, loadCardBackAction } from '../card-back-actions';
-import { BACK_FONTS, DEFAULT_CARD_BACK, isDefaultCardBack, resolveCardBack, type CardBackStyle } from '@/lib/card-back';
-import { loadBackFont } from '@/lib/card-back-fonts';
+import { DEFAULT_CARD_BACK, isDefaultCardBack, resolveCardBack, type CardBackStyle } from '@/lib/card-back';
 import { EDITOR_PRESETS, tinyText, type Box } from '@/lib/card-back-edit';
 import { sampleFlipBack, type FlipBack } from '@/lib/flip-back';
 import { Canvas, type Boxes } from './card-back/Canvas';
@@ -80,8 +79,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
   const back: FlipBack = useMemo(() => ({ ...sampleFlipBack(sample.name, hex), href: '#' }), [sample.name, hex]);
   const tiny = tinyText(style);
 
-  // The editor: fonts for the previews in the font list, the canvas width, Escape and the undo keys.
-  useEffect(() => { if (open) for (const f of BACK_FONTS) if (f.files) void loadBackFont(f.id, 400); }, [open]);
+  // The editor: the canvas width, Escape and the undo keys (the font picker loads each font as its row scrolls into view).
   useEffect(() => {
     const el = stage.current;
     if (!open || !el) return;
