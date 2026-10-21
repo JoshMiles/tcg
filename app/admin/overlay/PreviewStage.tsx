@@ -80,7 +80,7 @@ export function PreviewStage() {
       >
         <iframe
           ref={frameRef}
-          src="/overlay.html?preview"
+          src="/overlay.html?preview&editor"
           title="Overlay preview"
           onLoad={() => {
             setReady(true);
