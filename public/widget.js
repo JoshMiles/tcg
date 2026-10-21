@@ -44,14 +44,17 @@ if (OVERLAY_KEY) {
 const PREVIEW = new URLSearchParams(window.location.search).has('preview');
 // The Overlay Editor loads ?preview&editor; the pack workspace preview (plain ?preview) keeps only the nudge and clear keys.
 const EDITOR = PREVIEW && new URLSearchParams(window.location.search).has('editor');
-// Editor timeline (preview only): the reveal's phase timers go through phaseTimer so Pause can hold them, and the editor scrubs the
-// CSS animations meanwhile. Outside the editor phaseTimer / phaseClear ARE setTimeout / clearTimeout, so live behaviour is unchanged.
-const TL = { timers: new Set(), paused: false, start: 0, at: 0, pausedAt: 0, anims: new Map(), dur: 0, markers: null, active: false, tick: 0 };
+// Editor timeline (preview only): every timer of a pull (phases, moment banner, hold) goes through phaseTimer, which in the editor
+// is a timer on ONE pull clock (PREVIEW_CLOCK: milliseconds since the pull began, `at`). Pause holds that clock, Seek fires the
+// timers it passes and sets the CSS animations, and going back past a fired timer re-runs the pull and fast-forwards it.
+// Outside the editor phaseTimer / phaseClear ARE setTimeout / clearTimeout, so live behaviour is unchanged.
+const TL = { timers: new Set(), paused: false, start: 0, at: 0, anims: new Map(), dur: 0, markers: null, active: false, tick: 0, firedMax: 0, virtual: null, replayTo: null, redo: null, wrapper: null };
 const tlElapsed = () => (TL.paused ? TL.at : performance.now() - TL.start);
+const tlNow = () => (TL.virtual !== null ? TL.virtual : TL.active ? tlElapsed() : 0);
 const tlReport = () => window.parent.postMessage({ type: 'timeline', active: TL.active, paused: TL.paused, t: tlElapsed() / 1000, dur: TL.dur / 1000, markers: TL.markers }, window.location.origin);
 const editorTimer = (fn, ms) => {
-  const h = { id: 0, due: performance.now() + ms, remain: ms };
-  h.run = () => { TL.timers.delete(h); fn(); };
+  const h = { id: 0, at: tlNow() + ms };
+  h.run = () => { TL.timers.delete(h); TL.firedMax = Math.max(TL.firedMax, h.at); fn(); };
   if (!TL.paused) h.id = setTimeout(h.run, ms);
   TL.timers.add(h);
   return h;
@@ -59,29 +62,48 @@ const editorTimer = (fn, ms) => {
 const editorClear = (h) => { if (h && typeof h === 'object') { clearTimeout(h.id); TL.timers.delete(h); } else clearTimeout(h); };
 const phaseTimer = EDITOR ? editorTimer : setTimeout;
 const phaseClear = EDITOR ? editorClear : clearTimeout;
-// The phase timers are already scheduled when tlBegin runs (same tick), so it must not clear them; tlEnd does.
-const tlBegin = (dur, markers) => {
-  TL.anims.clear(); TL.paused = false; TL.start = performance.now(); TL.dur = dur; TL.markers = markers; TL.active = true;
-  clearInterval(TL.tick); TL.tick = setInterval(tlReport, 100); tlReport();
+// A new draw starts: forget the last one's clock (the preview plays one pull at a time).
+const tlPrep = () => { TL.timers.forEach(h => clearTimeout(h.id)); TL.timers.clear(); TL.active = false; TL.firedMax = 0; };
+// The draw's timers are already scheduled when tlBegin runs (same tick), so it must not clear them; tlEnd does.
+const tlBegin = (dur, markers, redo, wrapper) => {
+  TL.anims.clear(); TL.paused = false; TL.start = performance.now(); TL.dur = dur; TL.markers = markers; TL.active = true; TL.redo = redo; TL.wrapper = wrapper;
+  clearInterval(TL.tick); TL.tick = setInterval(tlTick, 100);
+  if (TL.replayTo !== null) { const to = TL.replayTo; TL.replayTo = null; tlPause(); tlSeek(to); }
+  tlReport();
 };
 const tlEnd = () => { TL.timers.clear(); TL.active = false; TL.paused = false; clearInterval(TL.tick); tlReport(); };
+// While paused, animations that appeared since (a banner's shine, a sparkle layer) are held too, at the time they would be on.
+const tlHoldNew = () => { for (const a of document.getAnimations()) if (!TL.anims.has(a)) { TL.anims.set(a, TL.at - (a.currentTime || 0)); a.pause(); } };
+const tlTick = () => { if (TL.paused) tlHoldNew(); tlReport(); };
+function tlPause() {
+  if (TL.paused) return;
+  TL.at = performance.now() - TL.start; TL.paused = true;
+  TL.timers.forEach(h => clearTimeout(h.id));
+  TL.anims.clear(); tlHoldNew();
+}
+function tlSeek(t) {
+  const ms = Math.min(TL.dur - 1, Math.max(0, t));   // the very end is the hide, which cannot be rewound
+  if (ms < TL.firedMax && TL.redo && TL.wrapper && !TL.wrapper.classList.contains('hid')) {
+    // Something already happened after this time and cannot be undone: play the pull again from the start and fast-forward it.
+    TL.replayTo = ms; TL.timers.forEach(h => clearTimeout(h.id)); TL.timers.clear(); clearInterval(TL.tick);
+    TL.wrapper.remove(); TL.wrapper = null; TL.redo();
+    return;
+  }
+  // Fire the timers the scrubber passed, in order; what they start (a banner) is timed from the moment they fired.
+  const due = [...TL.timers].filter(h => h.at <= ms).sort((a, b) => a.at - b.at);
+  due.forEach(h => { TL.virtual = h.at; h.run(); });
+  Promise.resolve().then(() => { TL.virtual = null; });
+  TL.at = ms;
+  tlHoldNew();
+  TL.anims.forEach((off, a) => { a.currentTime = Math.max(0, ms - off); a.pause(); });
+}
 const tlCommand = (action, t) => {
   if (!TL.active) return;
-  if (action === 'pause' && !TL.paused) {
-    const now = performance.now();
-    TL.at = TL.pausedAt = now - TL.start; TL.paused = true;
-    TL.timers.forEach(h => { clearTimeout(h.id); h.remain = Math.max(0, h.due - now); });
-    TL.anims.clear();
-    for (const a of document.getAnimations()) { TL.anims.set(a, (a.startTime == null ? now : a.startTime) - TL.start); a.pause(); }
-  } else if (action === 'seek' && TL.paused && Number.isFinite(t)) {
-    const ms = Math.min(TL.dur, Math.max(0, t * 1000));
-    TL.anims.forEach((off, a) => { a.currentTime = Math.max(0, ms - off); a.pause(); });
-    TL.at = ms;
-  } else if (action === 'resume' && TL.paused) {
-    const now = performance.now();
-    const shift = TL.at - TL.pausedAt;   // how far the scrubber moved while paused: pending timers move with it
-    TL.start = now - TL.at; TL.paused = false;
-    TL.timers.forEach(h => { h.remain = Math.max(0, h.remain - shift); h.due = now + h.remain; h.id = setTimeout(h.run, h.remain); });
+  if (action === 'pause') tlPause();
+  else if (action === 'seek' && TL.paused && Number.isFinite(t)) tlSeek(t * 1000);
+  else if (action === 'resume' && TL.paused) {
+    TL.start = performance.now() - TL.at; TL.paused = false;
+    TL.timers.forEach(h => { h.id = setTimeout(h.run, Math.max(0, h.at - TL.at)); });
     // play() on a finished animation rewinds it to 0, so ones at or past their end stay paused (holding their end frame).
     TL.anims.forEach((off, a) => { try { if ((a.currentTime ?? 0) < a.effect.getComputedTiming().endTime) a.play(); } catch (e) { /* removed */ } });
     TL.anims.clear();
@@ -895,7 +917,7 @@ function momentBanner(theater, P, spec, S, extendHold) {
     fx['variant.' + spec.variant + '.sparkleCount'] = spec.sparkles;
     fx['variant.' + spec.variant + '.sparkleColor'] = spec.sparkleColor;
     burstSparkles(cardBox, fx, spec.variant, S);
-    setTimeout(() => burstSparkles(cardBox, fx, spec.variant, S), 650 / S);
+    phaseTimer(() => burstSparkles(cardBox, fx, spec.variant, S), 650 / S);
   }
   if (spec.sound) playAudio(spec.sound, Math.min(1, spec.vol * spec.volume));
   extendHold(spec.hold * 1000);
@@ -1313,7 +1335,7 @@ function burstSparkles(cardBox, P, variant, speed) {
     layer.appendChild(el);
   }
   cardBox.appendChild(layer);
-  setTimeout(() => layer.remove(), 2200 / speed);
+  phaseTimer(() => layer.remove(), 2200 / speed);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1326,6 +1348,7 @@ function drawCard(username, opts) {
 
   // Show-off (chat command): a card the viewer owns, pinned by the server. Nothing is rolled or saved.
   const show = opts.show || null;
+  if (EDITOR) tlPrep();
   const pick = pickPackAndCard(show ? { cardNumber: show.cardNumber, variant: show.variant } : opts);
   if (!pick) {
     showAlert('No cards available. Check your active season has packs with cards.');
@@ -1504,7 +1527,8 @@ function drawCard(username, opts) {
   // Hide + cleanup. The hold can be extended (a first-ever pull stays up longer) until it has run out.
   const holdFor = show ? pv(P, 'show.hold', 6) * 1000 : cfg.cardTime * 1000;
   const showDuration = at(R.label) + 800 + holdFor + pv(P, 'variant.' + variant + '.holdExtra', 0) * 1000;
-  const startedAt = Date.now();
+  const nowMs = EDITOR ? tlNow : Date.now;   // the editor's pull clock replaces the wall clock
+  const startedAt = EDITOR ? 0 : Date.now();
   let hideAt = startedAt + showDuration;
   let hideTimer = null;
   const hide = () => {
@@ -1519,12 +1543,19 @@ function drawCard(username, opts) {
     }, 500);
   };
   hideTimer = phaseTimer(hide, showDuration);
-  if (EDITOR) tlBegin(showDuration, { reveal: at(R.reveal) / 1000, label: at(R.label) / 1000, info: at(R.info) / 1000 });
+  if (EDITOR) {
+    const markers = { reveal: at(R.reveal) / 1000, info: at(R.info) / 1000, label: at(R.label) / 1000 };
+    if (R.pack) markers.pack = D;
+    // The pick is fixed so a replay (scrubbing back) shows the same card.
+    const again = show ? opts : Object.assign({}, opts, { packId, cardNumber: card.number, variant });
+    tlBegin(showDuration, markers, () => drawCard(username, again), wrapper);
+  }
   function extendHold(ms) {
-    if (!hideTimer || Date.now() >= hideAt) return;
+    if (!hideTimer || nowMs() >= hideAt) return;
     phaseClear(hideTimer);
     hideAt += ms;
-    hideTimer = phaseTimer(hide, Math.max(0, hideAt - Date.now()));
+    hideTimer = phaseTimer(hide, Math.max(0, hideAt - nowMs()));
+    if (EDITOR) TL.dur = hideAt;
   }
 }
 

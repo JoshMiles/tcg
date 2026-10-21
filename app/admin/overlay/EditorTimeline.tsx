@@ -52,7 +52,7 @@ export function EditorTimeline() {
   const canScrub = !!timeline && mode === 'pack';
   const dur = timeline?.dur ?? 0;
   const t = Math.min(dur, timeline?.t ?? 0);
-  const MARKERS: [string, string][] = [['reveal', 'Card'], ['label', 'Label'], ['info', 'Text']];
+  const MARKERS: [string, string][] = [['pack', 'Pack'], ['reveal', 'Card'], ['info', 'Text'], ['label', 'Label']];
 
   return (
     <div className="rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-2">
