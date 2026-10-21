@@ -18,7 +18,7 @@ export function EditorStatusBar() {
   ].filter(Boolean).join(', ');
   return (
     <StatusBar>
-      <StatusItem title="The canvas scale (Fit, 150%, ... is set under View > Guides, zoom and background)">Zoom {Math.round(fit * 100)}%</StatusItem>
+      <StatusItem title="The real canvas scale (Ctrl+0 fits, Ctrl+1 is 100%; the Zoom tool and Ctrl+wheel zoom)">Zoom {Math.round(fit * 100)}%</StatusItem>
       <StatusItem title="The stage size, in design pixels">{shownLayout.width} × {shownLayout.height}</StatusItem>
       <span
         title={`${VARIANT_LABELS[worst.v]} is the heaviest version${worst.r.reasons.length ? ': ' + worst.r.reasons.join(', ') : ''}. A rough guide to how hard the overlay works in OBS.`}

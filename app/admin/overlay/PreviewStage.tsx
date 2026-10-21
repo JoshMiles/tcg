@@ -26,7 +26,12 @@ export function PreviewStage() {
     ready,
     isPack,
     hintSignal,
+    activeTool,
+    zoomStep,
   } = useOverlayEditor();
+  // Hand / Zoom put a clear sheet over the preview so presses never reach the widget; the Alt key flips Zoom to zoom out.
+  const [panning, setPanning] = useState(false);
+  const [zoomOut, setZoomOut] = useState(false);
   // First-use hint: gone for good once dismissed (localStorage may be blocked, then it just shows again next time).
   const HINT_KEY = 'tcg:overlay-editor-hint';
   const [hintGone, setHintGone] = useState(true);
@@ -47,7 +52,8 @@ export function PreviewStage() {
   return (
     <div
       ref={boxRef}
-      className="relative flex-1 min-h-64 h-[55vh] xl:h-auto rounded-xl border border-gray-800 bg-gray-950/70 overflow-auto flex"
+      data-canvas
+      className="relative flex-1 min-w-0 rounded-xl border border-gray-800 bg-gray-950/70 overflow-auto flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <div
         className="relative overflow-hidden rounded-md border border-gray-700 shrink-0 m-auto outline-hidden focus-visible:border-yellow-500"
@@ -74,7 +80,7 @@ export function PreviewStage() {
       >
         <iframe
           ref={frameRef}
-          src="/overlay.html?preview"
+          src="/overlay.html?preview&editor"
           title="Overlay preview"
           onLoad={() => {
             setReady(true);
@@ -90,6 +96,27 @@ export function PreviewStage() {
             transformOrigin: 'top left',
           }}
         />
+        {activeTool !== 'move' && (
+          <div
+            aria-hidden
+            className="absolute inset-0 z-10 touch-none"
+            style={{ cursor: activeTool === 'hand' ? (panning ? 'grabbing' : 'grab') : zoomOut ? 'zoom-out' : 'zoom-in' }}
+            onPointerDown={e => {
+              if (activeTool !== 'hand') return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              setPanning(true);
+            }}
+            onPointerMove={e => {
+              setZoomOut(e.altKey);
+              if (panning) boxRef.current?.scrollBy(-e.movementX, -e.movementY);
+            }}
+            onPointerUp={() => setPanning(false)}
+            onPointerCancel={() => setPanning(false)}
+            onClick={e => {
+              if (activeTool === 'zoom') zoomStep(e.altKey ? -1 : 1, e.clientX, e.clientY);
+            }}
+          />
+        )}
         {/* Guides (never part of the overlay, only drawn over the preview) */}
         {showGrid && (
           <div

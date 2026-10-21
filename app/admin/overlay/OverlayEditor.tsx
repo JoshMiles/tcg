@@ -1,32 +1,57 @@
 'use client';
 
-import { OverlayEditorProvider, type OverlayEditorProps } from './OverlayEditorContext';
+import { OverlayEditorProvider, useOverlayEditor, type OverlayEditorProps } from './OverlayEditorContext';
 import { EditorScopeTabs } from './EditorScopeTabs';
 import { EditorStatusBar } from './EditorStatusBar';
+import { EditorToolStrip } from './EditorToolStrip';
 import { EditorTopBar } from './EditorTopBar';
 import { PreviewStage } from './PreviewStage';
 import { PreviewToolbar } from './PreviewToolbar';
 import { PropertiesDock } from './PropertiesDock';
+import { ShortcutsSheet } from './ShortcutsSheet';
 
 // The Overlay Editor: one Photoshop-style workspace for where the overlay sits (Layout) and how it looks and moves.
 // Everything is generated from the registry in lib/overlay-props.ts.
-// Layout: a menu bar (File, Edit, View, Scene, Help; Revert / Save at its right) and a scope row over a fixed canvas (the real overlay
-// in an iframe) and a docked properties panel (category rail, version tabs, collapsible sections, search), with a status bar below.
+// Layout: a menu bar (File, Edit, View, Scene, Help; Revert / Save at its right) and an options bar over a tool strip and a fixed
+// canvas (the real overlay in an iframe), a docked properties panel (document / layer settings, search) and a status bar below.
+// Tab hides everything but the canvas (hidden, not unmounted: the top bar owns the save form).
+function Workspace() {
+  const { focusMode } = useOverlayEditor();
+  const hide = focusMode ? 'hidden' : '';
+  return (
+    <div data-workspace className="flex flex-col gap-3 xl:h-full min-h-0">
+      <div className={hide}>
+        <EditorTopBar />
+      </div>
+      <div className={`flex-1 min-h-0 grid gap-3 ${focusMode ? '' : 'xl:grid-cols-[minmax(0,1fr)_26rem]'}`}>
+        <div className="min-h-0 min-w-0 flex flex-col gap-2">
+          <div className={hide}>
+            <EditorScopeTabs />
+          </div>
+          <div className="flex-1 min-h-64 h-[55vh] xl:h-auto flex gap-2">
+            <EditorToolStrip />
+            <PreviewStage />
+          </div>
+          <div className={hide}>
+            <PreviewToolbar />
+          </div>
+        </div>
+        <div className={focusMode ? 'hidden' : 'contents'}>
+          <PropertiesDock />
+        </div>
+      </div>
+      <div className={hide}>
+        <EditorStatusBar />
+      </div>
+      <ShortcutsSheet />
+    </div>
+  );
+}
+
 export function OverlayEditor(props: OverlayEditorProps) {
   return (
     <OverlayEditorProvider {...props}>
-      <div data-workspace className="flex flex-col gap-3 xl:h-full min-h-0">
-        <EditorTopBar />
-        <div className="flex-1 min-h-0 grid gap-3 xl:grid-cols-[minmax(0,1fr)_26rem]">
-          <div className="min-h-0 min-w-0 flex flex-col gap-2">
-            <EditorScopeTabs />
-            <PreviewStage />
-            <PreviewToolbar />
-          </div>
-          <PropertiesDock />
-        </div>
-        <EditorStatusBar />
-      </div>
+      <Workspace />
     </OverlayEditorProvider>
   );
 }

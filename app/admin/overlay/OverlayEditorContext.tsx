@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -43,6 +44,7 @@ import {
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
+export type Tool = 'move' | 'hand' | 'zoom';
 const DRAFT_KEY = 'overlay-editor-draft';
 const snapKey = (x: Snap) => JSON.stringify([canon(x.g), Object.keys(x.p).sort().map(k => [k, canon(x.p[k])]), x.l]);
 // Preview element (data-edit) -> the category and section that edit it; read both ways.
@@ -212,6 +214,16 @@ export interface OverlayEditorContextValue {
   setSnapOn: React.Dispatch<React.SetStateAction<boolean>>;
   zoom: number;
   setZoom: React.Dispatch<React.SetStateAction<number>>;
+  activeTool: Tool;
+  setTool: (t: Tool) => void;
+  zoomStep: (dir: 1 | -1, cx?: number, cy?: number) => void;
+  zoomFit: () => void;
+  zoomActual: () => void;
+  focusMode: boolean;
+  setFocusMode: React.Dispatch<React.SetStateAction<boolean>>;
+  shortcutsOpen: boolean;
+  setShortcutsOpen: (open: boolean) => void;
+  saveSignal: number;
   bg: Bg;
   setBg: React.Dispatch<React.SetStateAction<Bg>>;
   bgImage: string | null;
@@ -364,6 +376,12 @@ export function OverlayEditorProvider({
   const [layerMenu, setLayerMenu] = useState<LayerMenuState | null>(null);
 
   const [zoom, setZoom] = useState(1);
+  const [tool, setTool] = useState<Tool>('move');
+  const [spaceDown, setSpaceDown] = useState(false); // Space held: a temporary Hand
+  const [focusMode, setFocusMode] = useState(false); // Tab: only the canvas shows
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [saveSignal, setSaveSignal] = useState(0); // Ctrl+S: the top bar owns the save form and submits it when this changes
+  const zoomAnchor = useRef<{ dx: number; dy: number; x: number; y: number } | null>(null);
   const [showThirds, setShowThirds] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [showSafe, setShowSafe] = useState(false);
@@ -506,35 +524,8 @@ export function OverlayEditorProvider({
     }
   };
 
-  const undoRef = useRef(undo);
-  undoRef.current = undo;
-  const redoRef = useRef(redo);
-  redoRef.current = redo;
   const canUndo = hist.current.i > 0 || snapKey(stateRef.current) !== snapKey(hist.current.list[hist.current.i]);
   const canRedo = hist.current.i < hist.current.list.length - 1;
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-      const t = e.target as HTMLElement | null;
-      if (
-        t &&
-        (t.tagName === 'TEXTAREA' ||
-          (t.tagName === 'INPUT' && ['text', 'search', 'number', 'url', ''].includes((t as HTMLInputElement).type)))
-      )
-        return;
-      const k = e.key.toLowerCase();
-      if (k === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undoRef.current();
-      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
-        e.preventDefault();
-        redoRef.current();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
 
   const changedGlobal = canon(globalVals) !== canon(initialGlobal);
   const keys = (m: Record<string, unknown>) => Object.keys(m);
@@ -764,6 +755,50 @@ export function OverlayEditorProvider({
   const fit = fitBase * zoom;
   const frameW = shownLayout.width * fit,
     frameH = shownLayout.height * fit;
+  const activeTool: Tool = spaceDown ? 'hand' : tool;
+
+  // Zoom is a multiple of "Fit" (1 = fit); the real scale is `fit`, clamped to 10% to 800%. The point under (cx, cy) stays put.
+  const ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8];
+  const zoomTo = (z: number, cx?: number, cy?: number) => {
+    const box = boxRef.current;
+    const stage = box?.firstElementChild;
+    if (!box || !stage || fitBase <= 0) return;
+    const nz = Math.min(8 / fitBase, Math.max(Math.min(0.1 / fitBase, 1), z));
+    if (nz === zoom) return;
+    const br = box.getBoundingClientRect(),
+      sr = stage.getBoundingClientRect();
+    const x = cx ?? br.left + br.width / 2,
+      y = cy ?? br.top + br.height / 2;
+    const scale = sr.width / shownLayout.width || fit;
+    zoomAnchor.current = { dx: (x - sr.left) / scale, dy: (y - sr.top) / scale, x, y };
+    setZoom(nz);
+  };
+  useLayoutEffect(() => {
+    const a = zoomAnchor.current;
+    zoomAnchor.current = null;
+    const box = boxRef.current,
+      stage = box?.firstElementChild;
+    if (!a || !box || !stage) return;
+    const r = stage.getBoundingClientRect();
+    box.scrollLeft += r.left + a.dx * fit - a.x;
+    box.scrollTop += r.top + a.dy * fit - a.y;
+  }, [fit]);
+  const zoomStep = (dir: 1 | -1, cx?: number, cy?: number) => {
+    const next = dir > 0 ? ZOOM_STEPS.find(s => s > zoom * 1.001) : [...ZOOM_STEPS].reverse().find(s => s < zoom / 1.001);
+    if (next) zoomTo(next, cx, cy);
+  };
+  const zoomFit = () => zoomTo(1);
+  const zoomActual = () => zoomTo(1 / fitBase);
+  // Wheel over the canvas: Ctrl zooms at the pointer; past fit it pans (Shift = sideways). True when it was used.
+  const wheel = (dx: number, dy: number, ctrl: boolean, shift: boolean, cx: number, cy: number): boolean => {
+    if (ctrl) {
+      zoomTo(zoom * Math.exp(-dy * 0.002), cx, cy);
+      return true;
+    }
+    if (zoom <= 1.001) return false;
+    boxRef.current?.scrollBy(dx || (shift ? dy : 0), shift ? 0 : dy);
+    return true;
+  };
 
   const play = () => {
     if (!ready || playing) return;
@@ -987,8 +1022,81 @@ export function OverlayEditorProvider({
     openLayerMenu(viewOf(target), target, r.left + x * fit, r.top + y * fit);
   };
 
-  const live = useRef({ dragTo, resizeTo, dragEnd, pressKey, selectTarget, contextAt });
-  live.current = { dragTo, resizeTo, dragEnd, pressKey, selectTarget, contextAt };
+  // Editor shortcuts, from this window and forwarded from the preview frame (t is null then). True when one was used.
+  const shortcut = (key: string, ctrl: boolean, shift: boolean, t: HTMLElement | null, up = false): boolean => {
+    const k = key.length === 1 ? key.toLowerCase() : key;
+    if (up) {
+      if (k === ' ') setSpaceDown(false);
+      return false;
+    }
+    // Never while typing.
+    if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable || (t.tagName === 'INPUT' && ['text', 'search', 'number', 'url', ''].includes((t as HTMLInputElement).type)))) return false;
+    if (ctrl) {
+      if (k === 'z' && !shift) undo();
+      else if (k === 'z' || k === 'y') redo();
+      else if (k === 's') setSaveSignal(n => n + 1);
+      else if (k === 'd') setSelected('');
+      else if (k === '0') zoomFit();
+      else if (k === '1') zoomActual();
+      else if (k === '=' || k === '+') zoomStep(1);
+      else if (k === '-') zoomStep(-1);
+      else return false;
+      return true;
+    }
+    // In the Layers panel H is the layer's eye, not the Hand tool.
+    if (k === 'h' && t?.closest('[data-layers]')) {
+      t.closest('li')?.querySelector<HTMLButtonElement>('button[aria-pressed]')?.click();
+      return true;
+    }
+    if (k === 'v' || k === 'h' || k === 'z') {
+      setTool(k === 'v' ? 'move' : k === 'h' ? 'hand' : 'zoom');
+      return true;
+    }
+    if (k === '?') {
+      setShortcutsOpen(true);
+      return true;
+    }
+    if (t?.closest('button,a,summary,[role=menuitem]')) return false; // Space and Tab keep their normal job on controls
+    if (k === ' ') {
+      setSpaceDown(true);
+      return true;
+    }
+    // Tab only toggles from the canvas, so keyboard users can still tab through the panels.
+    if (k === 'Tab' && !shift && (!t || t.closest('[data-canvas]'))) {
+      setFocusMode(v => !v);
+      return true;
+    }
+    return false;
+  };
+  // A wheel turn forwarded from the preview frame: x / y are the frame's own pixels, so scale them by the fit to get screen position.
+  const wheelFromFrame = (dx: number, dy: number, ctrl: boolean, shift: boolean, x: number, y: number) => {
+    const r = frameRef.current?.getBoundingClientRect();
+    if (r) wheel(dx, dy, ctrl, shift, r.left + x * fit, r.top + y * fit);
+  };
+
+  const live = useRef({ dragTo, resizeTo, dragEnd, pressKey, selectTarget, contextAt, shortcut, wheel, wheelFromFrame });
+  live.current = { dragTo, resizeTo, dragEnd, pressKey, selectTarget, contextAt, shortcut, wheel, wheelFromFrame };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (live.current.shortcut(e.key, e.ctrlKey || e.metaKey, e.shiftKey, e.target as HTMLElement | null, e.type === 'keyup')) e.preventDefault();
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (live.current.wheel(e.deltaX, e.deltaY, e.ctrlKey || e.metaKey, e.shiftKey, e.clientX, e.clientY)) e.preventDefault();
+    };
+    const dropSpace = () => setSpaceDown(false);
+    const box = boxRef.current;
+    // Capture, so the admin-wide keyboard layer (which also listens for ?) sees a key the editor used as already handled.
+    window.addEventListener('keydown', onKey, true);
+    window.addEventListener('keyup', onKey, true);
+    window.addEventListener('blur', dropSpace);
+    box?.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('keyup', onKey, true);
+      window.removeEventListener('blur', dropSpace);
+      box?.removeEventListener('wheel', onWheel);
+    };
+  }, []);
 
   // Tell the preview what is selected (a part, or a whole view in the Layout panel), whether it may be edited, and the snap switch.
   const viewSelected = !selected && category === 'layout';
@@ -1001,7 +1109,7 @@ export function OverlayEditorProvider({
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.source !== frameRef.current?.contentWindow) return;
-      const data = e.data as { type?: string; target?: string; dx?: number; dy?: number; alt?: boolean; shift?: boolean; key?: string; sx?: boolean; sy?: boolean; view?: boolean; factor?: number; x?: number; y?: number } | null;
+      const data = e.data as { type?: string; target?: string; dx?: number; dy?: number; alt?: boolean; shift?: boolean; key?: string; ctrl?: boolean; up?: boolean; sx?: boolean; sy?: boolean; view?: boolean; factor?: number; x?: number; y?: number } | null;
       if (data?.type === 'drag' && data.target && Number.isFinite(data.dx) && Number.isFinite(data.dy)) {
         live.current.dragTo(data.target, data.dx as number, data.dy as number, !!data.alt, !!data.shift, !!data.sx, !!data.sy);
         return;
@@ -1016,7 +1124,11 @@ export function OverlayEditorProvider({
       }
       if (data?.type === 'dragend') return live.current.dragEnd();
       if (data?.type === 'key' && typeof data.key === 'string') {
-        live.current.pressKey(data.key, !!data.shift);
+        if (!live.current.pressKey(data.key, !!data.shift)) live.current.shortcut(data.key, !!data.ctrl, !!data.shift, null, !!data.up);
+        return;
+      }
+      if (data?.type === 'wheel' && Number.isFinite(data.dx) && Number.isFinite(data.dy) && Number.isFinite(data.x) && Number.isFinite(data.y)) {
+        live.current.wheelFromFrame(data.dx as number, data.dy as number, !!data.ctrl, !!data.shift, data.x as number, data.y as number);
         return;
       }
       if (data?.type !== 'select' || !data.target) return;
@@ -1136,6 +1248,16 @@ export function OverlayEditorProvider({
     setSnapOn,
     zoom,
     setZoom,
+    activeTool,
+    setTool,
+    zoomStep,
+    zoomFit,
+    zoomActual,
+    focusMode,
+    setFocusMode,
+    shortcutsOpen,
+    setShortcutsOpen,
+    saveSignal,
     bg,
     setBg,
     bgImage,
