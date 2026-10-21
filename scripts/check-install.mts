@@ -37,6 +37,13 @@ for (const i of icons) ok(existsSync(join(process.cwd(), 'public', i.src)), `ico
 for (const s of manifest.shortcuts ?? []) ok(s.url.startsWith('/'), `shortcut is a local path: ${s.url}`);
 ok(existsSync(join(process.cwd(), 'public', 'apple-touch-icon-v3.png')), 'the iOS home-screen icon exists');
 
+// iOS launch screens: listed in the layout's metadata, and every listed file exists.
+const layout = readFileSync(join(process.cwd(), 'app', 'layout.tsx'), 'utf8');
+ok(layout.includes('startupImage: IPHONE_SCREENS.map'), 'the layout lists the iPhone startup images');
+const screens = [...(layout.match(/IPHONE_SCREENS = (\[\[.*\]\]);/)?.[1] ?? '[]').matchAll(/\[(\d+), (\d+), (\d)\]/g)];
+ok(screens.length >= 10, 'the layout has the iPhone screen sizes');
+for (const [, w, h, r] of screens) ok(existsSync(join(process.cwd(), 'public', 'splash', `${w}x${h}@${r}.png`)), `startup image exists: ${w}x${h}@${r}`);
+
 // The service worker never touches the admin, API or login, and only ever answers page loads.
 const sw = readFileSync(join(process.cwd(), 'public', 'sw.js'), 'utf8');
 ok(sw.includes("req.mode !== 'navigate'") && /admin\|api\|auth/.test(sw), 'service worker only handles public page loads');

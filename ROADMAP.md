@@ -36,10 +36,6 @@ Steps 2 to 4 shipped in #330 (`apple-touch-icon-v3.png`, the 180 px manifest ent
 4. Delete `app/apple-icon.png`. `metadata.icons` switches it off (the head has no link to it), so it is a dead third copy. Update the layout comment that names it.
 5. Verify: `npm run verify`, then check the head and each URL on the preview deploy. The user then removes the app, clears Website Data and adds it again (see the user step below). Close this item once the mascot shows.
 
-### 35.2 Launch screen on iPhone (Ready, S)
-- iOS shows a white flash on launch with no `apple-touch-startup-image`. Add startup images for the common iPhone sizes: the mascot centred on `#0a0f1e`, made once with a script into `public/splash/` and listed in `metadata.appleWebApp.startupImage` with media queries. No runtime generation.
-- Leave `statusBarStyle: 'black'` as it is. `black-translucent` would need safe-area padding on every page.
-
 ### 35.3 Richer Android install (Ready, S)
 - Add 2 or 3 `screenshots` (phone size, `form_factor: 'narrow'`) to the manifest so Chrome shows the bigger install sheet. Take them from the seeded local site (`docs/local-dev.md`), never production data with real usernames.
 

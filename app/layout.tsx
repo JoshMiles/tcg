@@ -10,6 +10,9 @@ import { ServiceWorker } from './components/ServiceWorker';
 const display = Fredoka({ subsets: ['latin'], variable: '--font-display-family', weight: ['500', '600', '700'] });
 const body = Nunito({ subsets: ['latin'], variable: '--font-body' });
 
+// [CSS width, CSS height, pixel ratio]; keep in step with SPLASH in scripts/make-pwa-icons.mjs.
+const IPHONE_SCREENS = [[375, 667, 2], [414, 896, 2], [375, 812, 3], [414, 896, 3], [390, 844, 3], [428, 926, 3], [393, 852, 3], [430, 932, 3], [402, 874, 3], [440, 956, 3]];
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
@@ -19,7 +22,16 @@ export const metadata: Metadata = {
   openGraph: { type: 'website', siteName: SITE_NAME },
   twitter: { card: 'summary_large_image' },
   // iOS: open without Safari's toolbars once added (the home-screen icon is public/apple-touch-icon-v3.png).
-  appleWebApp: { capable: true, title: 'Cheesy TCG', statusBarStyle: 'black' },
+  // startupImage is the launch screen (no white flash): one portrait image per iPhone screen, made by scripts/make-pwa-icons.mjs.
+  appleWebApp: {
+    capable: true,
+    title: 'Cheesy TCG',
+    statusBarStyle: 'black',
+    startupImage: IPHONE_SCREENS.map(([w, h, r]) => ({
+      url: `/splash/${w}x${h}@${r}.png`,
+      media: `(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${r}) and (orientation: portrait)`,
+    })),
+  },
   // A plain, hash-free apple-touch link (the opaque PNG in public/). iOS caches the icon per URL and has kept a stale one behind a ?query, so a changed icon gets a new file name (-v3); the root apple-touch-icon.png and -precomposed.png stay for iOS's direct probes.
   // The tab icon is listed here too: setting `icons` switches off a file-based app/icon.png, so the favicon lives in public/ (favicon.ico is also fetched directly by Discord and RSS readers).
   icons: {
