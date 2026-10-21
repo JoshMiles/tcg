@@ -2,6 +2,7 @@
 
 import { Icon, type IconName } from '@/app/components/Icon';
 import { CategoryRail } from './CategoryRail';
+import { PanelStack } from '../components/workspace/PanelStack';
 import { LayersPanel } from './LayersPanel';
 import { LayoutPanel } from './LayoutPanel';
 import { VariantPicker } from './VariantPicker';
@@ -181,8 +182,9 @@ export function PropertiesDock() {
     );
   };
 
-  return (
-    <div className="min-h-0 flex rounded-xl border border-gray-800 bg-gray-900/80 overflow-hidden h-[75vh] xl:h-auto">
+  // Properties is still category-driven; Layers sits under it and takes the rest of the column (hidden in a pack override).
+  const properties = (
+    <div className="min-h-0 flex-1 flex">
       <CategoryRail
         rail={rail}
         countOf={id => (id === 'layout' ? layoutMoved : modifiedCount(id))}
@@ -315,19 +317,6 @@ export function PropertiesDock() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {!isPack && !searching && (
-            <LayersPanel
-              layout={layout}
-              selected={selected}
-              valueOf={valueOf}
-              setValue={setValue}
-              setLayoutVals={setLayoutVals}
-              selectTarget={selectTarget}
-              selectView={selectView}
-              hoverElement={hoverElement}
-              openLayerMenu={openLayerMenu}
-            />
-          )}
           {searching ? (
             searchResults.length === 0 ? (
               <p className="p-4 text-sm text-gray-500">No settings match &ldquo;{query}&rdquo;.</p>
@@ -350,6 +339,36 @@ export function PropertiesDock() {
           )}
         </div>
       </div>
+    </div>
+  );
+  return (
+    <div className="min-h-0 h-[75vh] xl:h-auto">
+      <PanelStack
+        storageKey="tcg:overlay-panels"
+        panels={[
+          { id: 'properties', title: 'Properties', icon: 'settings', weight: 3, content: properties },
+          {
+            id: 'layers',
+            title: 'Layers',
+            icon: 'layers',
+            weight: 2,
+            hidden: isPack,
+            content: (
+              <LayersPanel
+                layout={layout}
+                selected={selected}
+                valueOf={valueOf}
+                setValue={setValue}
+                setLayoutVals={setLayoutVals}
+                selectTarget={selectTarget}
+                selectView={selectView}
+                hoverElement={hoverElement}
+                openLayerMenu={openLayerMenu}
+              />
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }
