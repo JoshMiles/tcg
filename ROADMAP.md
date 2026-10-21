@@ -97,6 +97,34 @@ Photoshop's fx: **Drop shadow**, **Outline** (stroke) and **Outer glow** on each
 
 Not planned: free-floating or re-dockable panels, blend modes, masks, rotating the card itself (its tilt / rock animations own `rotate`).
 
+### Ideas for Track 38 (Needs a decision: the user picks, then each becomes a numbered item)
+Recommended first are marked ★. Sizes are rough.
+
+**Safety (the editor can lose work today)**
+- ★ **Save conflict guard (S).** Two staff editing at once: the second Save silently overwrites the first. Send the loaded version id with Save; if `overlay:versions` has a newer one, refuse and offer Review / Overwrite / Load theirs.
+- ★ **Unsaved draft recovery (S).** Only a `beforeunload` warning exists. Keep the unsaved state in localStorage per scope (debounced) and offer "Restore unsaved changes from 14:02?" on open; cleared on Save or Revert.
+
+**Photoshop habits**
+- ★ **Timeline scrubber (M).** Photoshop / After Effects style: pause the reveal at any moment and scrub it, instead of only Play. The preview can drive `document.getAnimations()` (`pause()`, `currentTime`); the widget sequences phases with 15 `setTimeout`s, so the first version scrubs within the reveal phase, and a second pass moves the phase timings onto one clock. Makes tuning start delays, label timing and variant effects far quicker.
+- **Artboards (M).** Show every scene side by side on the canvas (landscape and vertical) and click one to edit it, like Photoshop artboards, instead of switching scope.
+- **Groups and linked layers (M).** Link label + serial + bar so they move together; collapse groups in Layers. Builds on 38.5's multi-select.
+- **Measure with Alt (S).** Alt+hover over another layer shows the gap in px between it and the selected one (Photoshop's distance readout); a status bar shows pointer X / Y in design px.
+- **Navigator (S).** A mini-map of the stage while zoomed in; drag its box to pan (after 38.1).
+- **Swatches and eyedropper (S).** A Swatches row on every colour field: the active packs' accent colours, the site theme and recently used colours; an eyedropper button using the browser's `EyeDropper` (Chromium only, hidden elsewhere) to pick from the preview or the background screenshot.
+- **Copy / paste layer look (S).** Right-click a text layer: Copy style, Paste style onto another (font, colour, size; and 38.8's effects if built).
+- **Anchor point for resize (S).** A 9-point reference in the Layer section (38.4), so scaling grows from the centre or a corner instead of the CSS origin.
+
+**Overlay-specific**
+- ★ **Stream rehearsal (S).** "Play a stream": queue 5 dry pulls in the preview back to back with the real cooldowns and a mix of variants, packs and a moment, to judge pacing. Preview only; nothing saved.
+- **Real frame-rate meter (S).** Measure frames in the preview with `requestAnimationFrame` during Play and show the worst stretch next to the load rating (a real number on the staff member's own machine, still not OBS).
+- **Paste a screenshot as background (XS).** Ctrl+V an OBS screenshot onto the canvas as the background (today: a file picker). Never saved, like now.
+- **Twitch UI zones (S).** Optional guide overlays for where a webcam box, chat overlay or alerts usually sit, set once per scene as editor-only rectangles, so layers can be kept clear of them.
+- **Text readability check (S).** Warn in Layers when a text layer's colour is low contrast against its own background or the canvas background screenshot.
+- **Preset and version thumbnails (M).** Capture a still of the preview when saving a preset or version, and show thumbnails in the Presets and versions lists, plus side-by-side compare of two versions.
+- **Scheduled looks (M).** Season looks exist; add a look that switches on at a date and time (a Halloween stream) and back after, through the same config layering.
+
+**Not suggested:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job).
+
 ## Blocked by the Twitch panel freeze
 
 Nothing in a Ready item edits the frozen paths listed under "Rules in force".
