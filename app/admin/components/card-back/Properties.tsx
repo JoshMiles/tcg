@@ -2,7 +2,9 @@
 import { useState, type ReactNode } from 'react';
 import { ImageUploadField } from '../image-upload';
 import { PRINT_W } from './Canvas';
-import { BACK_FONTS, KIND_LABELS, MAX_TEXT, WEIGHT_NAMES, nearestWeight, type BackEl, type CardBackStyle, type Effects } from '@/lib/card-back';
+import { FontPicker } from '../workspace/FontPicker';
+import { loadBackFont } from '@/lib/card-back-fonts';
+import { BACK_FONTS, FONT_CATEGORIES, KIND_LABELS, MAX_TEXT, WEIGHT_NAMES, nearestWeight, type BackEl, type CardBackStyle, type Effects } from '@/lib/card-back';
 import { BLENDS, PATTERN_IDS, PATTERN_LABELS } from '@/lib/card-back-patterns';
 import { plateBackground } from '@/lib/card-back-v1';
 import { makeFree, patchBackground, patchElements, resetElement, returnToStack, type Box } from '@/lib/card-back-edit';
@@ -43,12 +45,14 @@ function Colour({ label, value, onChange, named = [] }: { label: string; value: 
 }
 
 /** The properties of the selection: the element's placement, type, content and effects, or the background when nothing (or the background) is selected. */
-export function Properties({ style, selection, boxes, cardW, onChange }: {
+export function Properties({ style, selection, boxes, cardW, onChange, onPreview }: {
   style: CardBackStyle;
   selection: Set<string>;
   boxes: Record<string, Box & { fontPx: number }>;
   cardW: number;
   onChange: (next: CardBackStyle, key?: string) => void;
+  /** Shows a style on the canvas without changing the design (the font picker's hover); null restores. */
+  onPreview?: (next: CardBackStyle | null) => void;
 }) {
   const ids = style.elements.filter(e => selection.has(e.id)).map(e => e.id);
   if (selection.has('bg') || ids.length === 0) return <BackgroundPanel style={style} onChange={onChange} />;
@@ -84,9 +88,15 @@ export function Properties({ style, selection, boxes, cardW, onChange }: {
       {text && (
         <Group title="Text">
           <Row label="Font">
-            <select aria-label="Font" className="select select-sm w-full" value={e.font} style={{ fontFamily: BACK_FONTS.find(f => f.id === e.font)?.css }} onChange={ev => set({ font: ev.target.value })}>
-              {BACK_FONTS.map(f => <option key={f.id} value={f.id} style={{ fontFamily: f.css }}>{f.label}</option>)}
-            </select>
+            <FontPicker
+              fonts={BACK_FONTS}
+              categories={FONT_CATEGORIES}
+              value={e.font}
+              sample={e.kind === 'text' ? e.text : ''}
+              onChange={id => set({ font: id })}
+              onNeedFont={id => { void loadBackFont(id, 400); }}
+              onPreview={id => onPreview?.(id ? patchElements(style, ids, { font: id }) : null)}
+            />
           </Row>
           {free ? (
             <>
