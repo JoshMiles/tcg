@@ -33,10 +33,17 @@ export function FlipCard({ children, back, compact = false, className = '', defa
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const nodes = useMemo(() => layoutBack(st ?? DEFAULT_CARD_BACK, back, size, { compact }), [st, back, size, compact]);
+  // Auto-fit text is measured with the real font, so lay out again once the fonts a design needs have loaded.
+  const [fontsReady, setFontsReady] = useState(0);
+  const nodes = useMemo(() => layoutBack(st ?? DEFAULT_CARD_BACK, back, size, { compact }), [st, back, size, compact, fontsReady]); // eslint-disable-line react-hooks/exhaustive-deps
   const stackNodes = nodes.filter(n => n.mode === 'stack');
   const freeNodes = nodes.filter(n => n.mode === 'free');
-  useEffect(() => { for (const f of fontsNeeded(nodes)) void loadBackFont(f.id, f.weight, f.italic); }, [nodes]);
+  const fits = (st ?? DEFAULT_CARD_BACK).elements.some(e => e.fit);
+  const fontKey = JSON.stringify(fontsNeeded(nodes));
+  useEffect(() => {
+    const loads = fontsNeeded(nodes).map(f => loadBackFont(f.id, f.weight, f.italic));
+    if (fits) void Promise.all(loads).then(() => setFontsReady(n => n + 1));
+  }, [fontKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const qrs = useMemo(() => new Map(nodes.filter(n => n.qrUrl).map(n => [n.id, qrPath(n.qrUrl!)])), [nodes]);
   const qrOf = (n: BackNode) => qrs.get(n.id) ?? null;
 

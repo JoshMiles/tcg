@@ -340,4 +340,31 @@ ok((cp({ pattern: 'lines', patternOpacity: 0.5 }) as { kind: string }).kind === 
 ok(cp({ pattern: 'grain', patternBlend: 'overlay' }).kind === 'svg' && (cp({ pattern: 'grain', patternBlend: 'overlay' }) as { blend: string }).blend === 'overlay', 'every blend maps to a canvas operation');
 for (const id of pat.PATTERN_IDS) if (!['none', 'cover'].includes(id)) ok(['svg', 'lines', 'holes'].includes(cp({ pattern: id, patternScale: 1.5 }).kind), id + ': has a canvas drawing');
 
+// ── 38.12 a: the text style model, sizes in pt and auto-fit ──
+const ts = await import('../lib/text-style');
+const el1 = (over: Record<string, unknown>) => cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 't', place: 'free', text: 'Hello', ...over }] }).elements[0] as Record<string, unknown>;
+ok(!('fit' in el1({})) && !('minSize' in el1({})), 'no fit by default: a saved back is unchanged');
+ok(el1({ fit: 'width' }).fit === 'width' && el1({ fit: 'width' }).minSize === ts.DEFAULT_MIN_SIZE, 'fit is kept with the default minimum');
+ok(!('fit' in el1({ fit: 'huge', minSize: 5 })) && !('minSize' in el1({ fit: 'huge', minSize: 5 })), 'a bad fit mode is dropped with its minimum');
+ok(el1({ fit: 'shrink', minSize: 99 }).minSize === 30 && el1({ fit: 'shrink', minSize: -4 }).minSize === 1 && el1({ fit: 'shrink', minSize: 'x' }).minSize === ts.DEFAULT_MIN_SIZE, 'minSize is clamped');
+ok(el1({ size: 99 }).size === 30 && el1({ size: 0 }).size === 2, 'size is still clamped');
+ok(ts.pctToPt(10) === 18 && ts.ptToPct(18) === 10 && ts.pctToPt(ts.ptToPct(10)) === 10, 'pt and % convert (2.5 in card, 1 % = 1.8 pt)');
+ok(ts.SIZE_PRESETS.map(p => p[1]).join() === '6,8,10,14,20,32', 'size presets');
+// fitFontPx with a stub measurer: every character is 50 (0.5 em) wide at 100 px.
+const stub = (t: string) => t.length * 50;
+const fit = (over: Record<string, unknown>) => lay.fitFontPx({ mode: 'width', text: '10 chars!!', boxW: 100, setPx: 12, minPx: 6, maxPx: 60, spacingEm: 0, upper: false, face: { family: 'x', weight: 400, italic: false }, measure: stub, ...over } as Parameters<typeof lay.fitFontPx>[0]);
+ok(Math.abs(fit({}) - 19.8) < 0.01, 'Fit width: one line spans the box (100 * .99 / (10 * .5))');
+ok(fit({ boxW: 1000 }) === 60, 'Fit width stops at the maximum');
+ok(fit({ boxW: 10 }) === 6, 'Fit width stops at the minimum');
+ok(fit({ mode: 'shrink' }) === 12, 'Shrink never grows past the set size');
+ok(fit({ mode: 'shrink', boxW: 50 }) === 9.9, 'Shrink makes it smaller until it fits');
+ok(fit({ mode: 'shrink', boxW: 5 }) === 6, 'Shrink stops at the minimum');
+ok(fit({ spacingEm: 0.1 }) < fit({}) && fit({ boxW: 20, upper: true, measure: (t: string) => (t === t.toUpperCase() ? 100 : 50) }) < fit({ boxW: 20, measure: () => 50 }), 'spacing and uppercase are part of the measure');
+const fitted = lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'name', id: 'n', place: 'free', w: 80, size: 8, fit: 'width' }] }), PRINT, SIZE, { measure: stub });
+const fitPx = Number(fitted.find(n => n.id === 'n')?.css.fontSize);
+const textLen = (fitted.find(n => n.id === 'n')?.text ?? '').length;
+ok(fitted.find(n => n.id === 'n')?.css.whiteSpace === 'nowrap' && Math.abs(fitPx * textLen * 0.5 - 0.8 * SIZE.w * 0.99) < 0.5, 'layoutBack sizes a fitted free text so its line spans the box');
+const plain = lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'name', id: 'n', place: 'free', w: 80, size: 8 }] }), PRINT, SIZE, { measure: stub });
+ok(plain.find(n => n.id === 'n')?.css.fontSize === Math.round((8 / 100) * SIZE.w * 100) / 100 && !plain.find(n => n.id === 'n')?.css.whiteSpace, 'without fit the size is today\'s');
+
 console.log('card back checks passed');

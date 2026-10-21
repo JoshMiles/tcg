@@ -213,8 +213,9 @@ function drawBackPattern(ctx: CanvasRenderingContext2D, r: Rect, p: ReturnType<t
 async function drawBackCard(ctx: CanvasRenderingContext2D, r: Rect, spec: NonNullable<NonNullable<ShareSpec['plate']>['back']>, rarityEdge: string, font: string, t: ShareTheme) {
   const style = spec.style ?? DEFAULT_CARD_BACK;
   const ref = CANVAS_BACK_REF;
-  const nodes = layoutBack(style, spec, { ...ref });
+  let nodes = layoutBack(style, spec, { ...ref });
   await loadBackFonts(fontsNeeded(nodes));
+  if (style.elements.some(e => e.fit)) nodes = layoutBack(style, spec, { ...ref }); // auto-fit measures the loaded fonts
   const images = new Map<string, HTMLImageElement | null>();
   await Promise.all(nodes.filter(n => n.src).map(async n => { images.set(n.src!, await loadImage(n.src!)); }));
   const pattern = canvasPattern(style);

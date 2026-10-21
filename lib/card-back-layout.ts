@@ -2,6 +2,7 @@
 // The DOM renderer (FlipCard) draws these nodes; the canvas and overlay renderers of 20.3c draw the same list, so every place shows the
 // same design. STACK nodes are laid out by the plate's own CSS (today's centred column), FREE nodes carry final pixel positions.
 import { BACK_FONTS, nearestWeight, type BackEl, type CardBackStyle, type Effects } from './card-back';
+import { DEFAULT_MIN_SIZE } from './text-style';
 import { editionLine, madeLine, type FlipBack } from './flip-back';
 
 export interface BackNode {
@@ -28,7 +29,45 @@ export interface BackNode {
   font?: { id: string; weight: number; italic?: boolean };
 }
 
-export interface LayoutOptions { compact?: boolean }
+/** Text width at a 100 px font size with no letter spacing; auto-fit scales it to the box. */
+export type Measure = (text: string, face: { family: string; weight: number; italic: boolean }) => number;
+export interface LayoutOptions { compact?: boolean; /** Measures text for auto-fit; defaults to the browser canvas, or a rough estimate without a DOM (the overlay's server side). */ measure?: Measure }
+
+/** A rough width (0.55 em a character) for places with no canvas; fitted text there is approximate. */
+const estimateMeasure: Measure = text => text.length * 55;
+
+let measureCtx: CanvasRenderingContext2D | null | undefined;
+/** Measures with a canvas 2D context; undefined where there is no DOM. Fonts must be loaded first for exact widths. */
+export function canvasMeasure(): Measure | undefined {
+  if (typeof document === 'undefined') return undefined;
+  if (measureCtx === undefined) measureCtx = document.createElement('canvas').getContext('2d');
+  const ctx = measureCtx;
+  if (!ctx) return undefined;
+  return (text, face) => {
+    let family = face.family;
+    if (/^var\(|^inherit$/.test(face.family)) {
+      const cs = getComputedStyle(document.body);
+      const name = /^var\(([^,)]+)/.exec(face.family)?.[1];
+      family = (name && cs.getPropertyValue(name).trim()) || cs.fontFamily;
+    }
+    ctx.font = `${face.italic ? 'italic ' : ''}${face.weight} 100px ${family}`;
+    return ctx.measureText(text).width;
+  };
+}
+
+/**
+ * The font size (px) auto-fit gives a text: `width` = one line exactly as wide as the box (between the minimum and 30 % of the card width),
+ * `shrink` = the set size, made smaller until one line fits the box (never below the minimum). Single line only until text boxes get a
+ * height and max lines (38.12 b).
+ */
+export function fitFontPx(o: { mode: 'shrink' | 'width'; text: string; boxW: number; setPx: number; minPx: number; maxPx: number; spacingEm: number; upper: boolean; face: { family: string; weight: number; italic: boolean }; measure: Measure }): number {
+  const t = o.upper ? o.text.toUpperCase() : o.text;
+  const unit = o.measure(t, o.face) / 100 + t.length * o.spacingEm;
+  if (!(unit > 0) || !(o.boxW > 0)) return o.setPx;
+  const ideal = (o.boxW * 0.99) / unit;
+  const hi = o.mode === 'width' ? o.maxPx : o.setPx;
+  return Math.round(Math.max(Math.min(o.minPx, hi), Math.min(hi, ideal)) * 100) / 100;
+}
 
 const hexOr = (c: string, rarity: string, auto: string) => (c === 'rarity' ? rarity : c === 'auto' ? auto : c);
 const AUTO_INK = '#1c1c24';
@@ -144,6 +183,10 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
         lineHeight: e.lineHeight, textAlign: e.align, color: hexOr(e.color, rarity, AUTO_INK), overflowWrap: 'anywhere',
       });
       if (f.files) font = { id: f.id, weight: e.weight, ...(e.italic ? { italic: true } : {}) };
+      if (e.fit && c.text) {
+        css.fontSize = fitFontPx({ mode: e.fit, text: c.text, boxW: w, setPx: Number(css.fontSize), minPx: ((e.minSize ?? DEFAULT_MIN_SIZE) / 100) * size.w, maxPx: 0.3 * size.w, spacingEm: e.letterSpacing / 10, upper: e.uppercase, face: { family: f.css, weight: e.weight, italic: e.italic }, measure: opts.measure ?? canvasMeasure() ?? estimateMeasure });
+        css.whiteSpace = 'nowrap';
+      }
     } else {
       css.height = e.kind === 'qr' ? Math.round(w * 100) / 100 : 'auto';
     }

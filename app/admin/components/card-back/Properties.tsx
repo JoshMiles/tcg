@@ -5,6 +5,7 @@ import { PRINT_W } from './Canvas';
 import { FontPicker } from '../workspace/FontPicker';
 import { loadBackFont } from '@/lib/card-back-fonts';
 import { BACK_FONTS, FONT_CATEGORIES, KIND_LABELS, MAX_TEXT, WEIGHT_NAMES, nearestWeight, type BackEl, type CardBackStyle, type Effects } from '@/lib/card-back';
+import { DEFAULT_MIN_SIZE, SIZE_PRESETS, pctToPt, ptToPct } from '@/lib/text-style';
 import { BLENDS, PATTERN_IDS, PATTERN_LABELS } from '@/lib/card-back-patterns';
 import { plateBackground } from '@/lib/card-back-v1';
 import { makeFree, patchBackground, patchElements, resetElement, returnToStack, type Box } from '@/lib/card-back-edit';
@@ -25,6 +26,26 @@ function Num({ label, value, min, max, step = 1, onChange }: { label: string; va
       <input type="number" aria-label={label} className={field} min={min} max={max} step={step} value={text !== null && Number(text) === value ? text : String(Math.round(value * 100) / 100)}
         onChange={e => { setText(e.target.value); const n = Number(e.target.value); if (e.target.value.trim() !== '' && Number.isFinite(n)) onChange(n); }} onBlur={() => setText(null)} />
     </Row>
+  );
+}
+/** Size in pt as if printed on a 2.5 in card (stored as % of the card width): a number (arrows 0.5, Shift 5), a slider and presets. */
+function SizeField({ value, onChange }: { value: number; onChange: (pct: number) => void }) {
+  const pt = pctToPt(value);
+  const setPt = (n: number) => onChange(ptToPct(Math.min(54, Math.max(3.6, n))));
+  return (
+    <>
+      <Row label="Size (pt)">
+        <span className="flex items-center gap-2">
+          <input type="number" aria-label="Size (pt)" className={`${field} w-20!`} min={4} max={54} step={0.5} value={pt}
+            onKeyDown={ev => { if (ev.shiftKey && (ev.key === 'ArrowUp' || ev.key === 'ArrowDown')) { ev.preventDefault(); setPt(pt + (ev.key === 'ArrowUp' ? 5 : -5)); } }}
+            onChange={ev => { const n = Number(ev.target.value); if (ev.target.value.trim() !== '' && Number.isFinite(n)) setPt(n); }} />
+          <input type="range" aria-label="Size slider" className="range range-xs flex-1" min={4} max={54} step={0.5} value={pt} onChange={ev => setPt(Number(ev.target.value))} />
+        </span>
+      </Row>
+      <div className="flex flex-wrap gap-1 pl-[5.5rem]">
+        {SIZE_PRESETS.map(([l, n]) => <button key={l} type="button" aria-pressed={pt === n} title={`${n} pt`} onClick={() => setPt(n)} className={chip(pt === n)}>{l}</button>)}
+      </div>
+    </>
   );
 }
 function Check({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
@@ -100,7 +121,15 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
           </Row>
           {free ? (
             <>
-              <Num label="Size (%)" value={e.size} min={2} max={30} step={0.5} onChange={v => set({ size: v }, 'size')} />
+              <SizeField value={e.size} onChange={v => set({ size: v }, 'size')} />
+              <Row label="Auto-fit">
+                <span className="flex gap-1">
+                  {([[undefined, 'Off'], ['shrink', 'Shrink to fit'], ['width', 'Fit width']] as const).map(([m, l]) => (
+                    <button key={l} type="button" aria-pressed={e.fit === m} onClick={() => set(m ? { fit: m, minSize: e.minSize ?? DEFAULT_MIN_SIZE } : { fit: undefined, minSize: undefined })} className={chip(e.fit === m)}>{l}</button>
+                  ))}
+                </span>
+              </Row>
+              {e.fit && <Num label="Min size (pt)" value={pctToPt(e.minSize ?? DEFAULT_MIN_SIZE)} min={1.8} max={54} step={0.5} onChange={v => set({ minSize: ptToPct(v) }, 'min')} />}
               <Row label="Weight"><select aria-label="Weight" className="select select-sm w-full" value={nearestWeight(BACK_FONTS.find(f => f.id === e.font) ?? BACK_FONTS[0], e.weight)} onChange={ev => set({ weight: Number(ev.target.value) })}>{(BACK_FONTS.find(f => f.id === e.font) ?? BACK_FONTS[0]).weights.map(w => <option key={w} value={w}>{WEIGHT_NAMES[w]} ({w})</option>)}</select></Row>
               <div className="flex flex-wrap gap-3"><Check label="Italic" on={e.italic} onChange={v => set({ italic: v })} /><Check label="Underline" on={e.underline} onChange={v => set({ underline: v })} /><Check label="Uppercase" on={e.uppercase} onChange={v => set({ uppercase: v })} /></div>
               <Num label="Spacing" value={e.letterSpacing} min={-2} max={20} step={0.5} onChange={v => set({ letterSpacing: v }, 'ls')} />
