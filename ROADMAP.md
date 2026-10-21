@@ -16,19 +16,20 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 | # | Item | Status | Size |
 |---|------|--------|------|
-| 36.1 | Overlay Editor: select and drag in one mode | Ready | M |
-| 36.2 | Overlay Editor: element layers (per-element placement) | Ready | L |
-| 36.3 | Overlay Editor: Layers panel | Ready (after 36.2) | M |
-| 36.4 | Overlay Editor: on-canvas handles and smaller polish | Ready (after 36.2) | M |
+| 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
+| 35.2 | Launch screen on iPhone | Ready | S |
+| 35.3 | Richer Android install | Ready | S |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
-Tracks 25 to 33 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
+Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
 ## Track 35: home-screen app (2026-10-20)
 
 Production checked on 2026-10-20: `/apple-touch-icon.png` serves the opaque 180 px cheese mascot (200, `image/png`), the head has one plain `apple-touch-icon` link, the manifest icons serve, and the middleware matcher skips dotted paths, so the closed gate never touches icons. The "C" is iOS's letter fallback, meaning the phone didn't take the icon when the app was added, or kept an old failure. The server side is already right, so 35.1 starts on the device. Read `docs/public-site.md` (install topic) first. One PR per item.
 
-### 35.1 iPhone icon still a "C" (Ready, S)
+### 35.1 iPhone icon still a "C" (Blocked on the user step, S)
+Steps 2 to 4 shipped in #330 (`apple-touch-icon-v3.png`, the 180 px manifest entry, `app/apple-icon.png` removed). Left: step 1 on the phone and the user step at the bottom; close this once the mascot shows.
+
 1. **Diagnose on the phone first (user, with a Mac):** iPhone Settings > Apps > Safari > Advanced > Web Inspector on, plug into the Mac, Safari > Develop > the iPhone. Open `cheesytcg.app`, open the Network tab, then Share > Add to Home Screen. Note whether `/apple-touch-icon.png` is requested and what comes back. Also note the iOS version, and whether "Open as Web App" was on.
 2. **Give the icon a new URL.** Copy the PNG to `public/apple-touch-icon-v3.png` and point `metadata.icons.apple` (`app/layout.tsx`) at it. iOS caches per URL and clearing Website Data doesn't always clear it, but a new filename forces a fresh fetch. Keep the root `apple-touch-icon.png` and `-precomposed.png` (iOS probes those by name). Don't use a `?v=` query (see the layout comment).
 3. **Cover iOS 26 using the manifest.** Add a 180 px `purpose: 'any'` entry (the same PNG) to `app/manifest.ts`, so a web app added from the manifest gets the mascot too.
@@ -43,35 +44,6 @@ Production checked on 2026-10-20: `/apple-touch-icon.png` serves the opaque 180 
 - Add 2 or 3 `screenshots` (phone size, `form_factor: 'narrow'`) to the manifest so Chrome shows the bigger install sheet. Take them from the seeded local site (`docs/local-dev.md`), never production data with real usernames.
 
 Not planned: offline caching of pages or data. `public/sw.js` deliberately caches only the offline page so nobody sees stale cards or scores.
-
-## Track 36: Overlay Editor layers (2026-10-20)
-
-Goal: every visible part of the overlay is a layer you can click, drag and size on the canvas, like a design tool, without switching to a separate Layout mode. Today only two things move (`layout.pack` and `layout.collection`, each a `Placement`), the Layout category puts a drag surface over the iframe that blocks click-to-select, and everything inside a view (label, bar, "got:" line, strip, serial pill, moment banner, collection heading) sits where the CSS puts it. Read `docs/overlay.md` (layout, properties, editor) first. One PR per item; 36.1 can ship alone.
-
-### 36.1 Select and drag in one mode (Ready, M)
-- Drop the full-canvas drag surface (`PreviewStage.tsx`, `onPointerDown` in `OverlayEditorContext.tsx`). Instead the widget (preview only) handles pointer events on `[data-edit]` elements: pointerdown selects (the existing `select` message), a drag past 3 px sends `{ type: 'drag', target, dx, dy }` in design pixels (the iframe already knows its fit). The editor maps the target to its view (`card`/`label`/... → `pack`, `collection`/`heading` → `collection`) and moves that view's `Placement` with the existing snap and undo coalescing.
-- Selection is shown in the iframe: a solid outline and a small name tag on the selected element (hover keeps the dashed one). The editor sends `{ type: 'selected', target }` so the outline follows selections made from the panel too.
-- Arrow keys nudge the selected thing whenever the canvas has focus (not only in Layout); Esc clears selection. The Layout category stays for stage size, presets and numeric X/Y/size, but no longer changes how the canvas behaves.
-- Keep the rule: preview mode never touches the queue, heartbeat or collections.
-- Verify: drag the pack and the collection in the editor against the mock KV, undo/redo a drag, `npm run verify`.
-
-### 36.2 Element layers (Ready, L)
-- **Data:** add `elements?: Partial<Record<ElementId, Placement>>` to each view's placement in `OverlayLayout` (`lib/overlay-layout.ts`). `ElementId` is a fixed list matching the `data-edit` tags: pack view `card`, `label`, `bar`, `got`, `strip`, `serial`, `banner`; collection view `heading`, `grid`. Offsets are relative to the element's normal spot (its CSS position), so empty = today's look and nothing migrates. `sanitizeLayout()` drops unknown ids and clamps (offset within the stage, scale 0.25 to 3). Scenes get it for free because they carry a whole layout.
-- **Widget:** `applyLayout()` writes `--el-<id>-x/-y/-s` on the theater wrapper; each element reads them through the standalone `translate` and `scale` properties (same trick as `.is-pack`), so they stack with the reveal keyframes' `transform`. Elements inside `.main-card` (label, serial, banner) move relative to the card, so they still ride its entrance animation. Check every reveal style and the show-off still look right with moved elements.
-- **Editor:** dragging an element (36.1) moves that element's placement; dragging with Shift (or selecting the view in the Layers panel) moves the whole view. Per-element reset and "reset all elements".
-- **Decided (user, 2026-10-20):** element positions are global plus per scene only, never per pack (the Layers panel and handles are hidden in pack scope, like Layout). The show-off reuses the pack opening's element positions.
-- Add a `scripts/check-overlay.mts` case: an old layout reads back with no elements, unknown ids are dropped, values clamp.
-
-### 36.3 Layers panel (Ready after 36.2, M)
-- A Layers list in the properties dock (`PropertiesDock.tsx`), above the category content: the two views as groups with their elements under them. Click selects (same path as a canvas click, opens that element's settings section), hover highlights it in the preview, an eye toggle hides it (`reveal.showLabel` etc. where a switch already exists, so hiding is a real setting, not a separate flag), a dot marks moved elements, and a reset icon per row.
-- No reordering or z-index in this item: the stacking is fixed by the animation. Revisit only if someone asks.
-
-### 36.4 On-canvas handles and polish (Ready after 36.2, M)
-- Corner handles on the selected element or view resize it (its `scale`, aspect kept); a small readout shows X, Y and size while dragging.
-- Snap to the stage centre and edges and to other elements' edges, with the guide line drawn while snapping (Alt = free, as now).
-- Right-click on a layer: Reset position, Center, Copy position to other scenes.
-- Show a short first-use hint on the canvas ("Click anything to edit it, drag to move it"), dismissed for good once closed (localStorage).
-- Update `docs/overlay.md` (layout and editor sections) to describe layers.
 
 ## Blocked by the Twitch panel freeze
 
