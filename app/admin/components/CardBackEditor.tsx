@@ -47,6 +47,8 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
   const [selection, setSelection] = useState<Set<string>>(new Set(['bg']));
   const [boxes, setBoxes] = useState<Boxes>({});
   const [open, setOpen] = useState(false);
+  /** A style shown on the canvas without being part of the design (the font picker's hover). */
+  const [preview, setPreview] = useState<CardBackStyle | null>(null);
   const [sheet, setSheet] = useState(true);
   const [note, setNote] = useState('');
   const [from, setFrom] = useState('');
@@ -169,7 +171,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
             </div>
 
             <div ref={stage} className="order-1 lg:order-2 p-3 lg:overflow-y-auto flex flex-col items-center gap-5 min-w-0">
-              <Canvas style={live} back={back} width={canvasW} selection={selection} onSelect={setSelection} onGesture={gesture} onChange={setStyle} onBoxes={setBoxes} />
+              <Canvas style={preview ?? live} back={back} width={canvasW} selection={selection} onSelect={setSelection} onGesture={gesture} onChange={setStyle} onBoxes={setBoxes} />
               {tiny.length > 0 && (
                 <p role="alert" className="text-xs text-amber-300 rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 max-w-md">
                   Some text will be very small on a tile ({tiny.length} {tiny.length === 1 ? 'element is' : 'elements are'} under 9 px at tile size). Make it bigger or leave it out.
@@ -178,7 +180,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
               <div className="flex flex-wrap items-end justify-center gap-6">
                 {([['Tile', 120, true], ['Edition page', 240, false], ['Large', 360, false]] as const).map(([label, w, compact]) => (
                   <figure key={label} className="text-center">
-                    <div style={{ width: Math.min(w, canvasW + 40) }}><FlipCard bare compact={compact} back={{ ...back, style: live }}>{null}</FlipCard></div>
+                    <div style={{ width: Math.min(w, canvasW + 40) }}><FlipCard bare compact={compact} back={{ ...back, style: preview ?? live }}>{null}</FlipCard></div>
                     <figcaption className="text-[11px] text-gray-500 mt-1">{label}</figcaption>
                   </figure>
                 ))}
@@ -188,7 +190,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
             <aside aria-label="Properties" className={`order-3 border-t lg:border-t-0 lg:border-l border-gray-800 bg-gray-950 lg:overflow-y-auto ${sheet ? '' : 'max-lg:hidden'} max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:max-h-[55vh] max-lg:overflow-y-auto max-lg:z-10 max-lg:shadow-2xl`}>
               <div className="lg:hidden flex justify-end px-3 pt-2"><button type="button" onClick={() => setSheet(false)} className="text-xs font-bold text-gray-400">Hide properties</button></div>
               <div className="p-3" onFocusCapture={() => setSheet(true)}>
-                <Properties style={live} selection={selection} boxes={boxes} cardW={canvasW} onChange={change} />
+                <Properties style={live} selection={selection} boxes={boxes} cardW={canvasW} onChange={change} onPreview={setPreview} />
               </div>
             </aside>
           </div>

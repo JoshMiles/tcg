@@ -231,6 +231,8 @@ export interface OverlayEditorContextValue {
   timeline: TimelineState | null;
   /** Pause, resume or seek (seconds) the playing reveal. */
   timelineCmd: (action: 'pause' | 'resume' | 'seek', t?: number) => void;
+  /** Shows one setting's value in the preview without changing it (no undo step); null restores. Used by the font picker's hover. */
+  previewProp: (key: string, value: string | null) => void;
   play: () => void;
   showGrid: boolean;
   setShowGrid: React.Dispatch<React.SetStateAction<boolean>>;
@@ -912,6 +914,9 @@ export function OverlayEditorProvider({
     return true;
   };
 
+  const previewProp = (key: string, value: string | null) => {
+    if (ready) post({ type: 'props', props: value === null ? shownProps : { ...shownProps, [key]: value }, packId: previewPackId, cardNumber: previewCard });
+  };
   const timelineCmd = (action: 'pause' | 'resume' | 'seek', t?: number) => {
     post({ type: 'timeline', action, t });
     if (action === 'pause') setTimeline(s => s && { ...s, paused: true });
@@ -1500,6 +1505,7 @@ export function OverlayEditorProvider({
     stopRehearsal,
     timeline,
     timelineCmd,
+    previewProp,
     play,
     showGrid,
     setShowGrid,

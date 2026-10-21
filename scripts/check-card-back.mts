@@ -154,6 +154,7 @@ ok(fontFiles.every(file => existsSync(fontDir(file.replace(/-(var(-italic)?|\d+)
 ok(cb.BACK_FONTS.length >= 40 && new Set(cb.FONT_IDS).size === cb.FONT_IDS.length, 'about 40 fonts, ids unique');
 ok(cb.BACK_FONTS.every(f => f.weights.length > 0 && f.weights.includes(400) && (!f.files || (f.weights.every(w => w in f.files!) && Object.keys(f.files).length === f.weights.length))) && cb.BACK_FONTS.filter(f => f.italic).every(f => f.variable && f.italicFile), 'each font lists the weights it has (a file per weight); italics are variable files');
 ok(cb.fontCss('no-such-font') === cb.BACK_FONTS[0].css && cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', place: 'free', font: 'no-such-font' }] }).elements[0].font === 'body', 'an unknown font id falls back');
+ok(cb.BACK_FONTS.every(f => (cb.FONT_CATEGORIES as readonly string[]).includes(f.category)) && cb.BACK_FONTS.filter(f => f.category === 'Site').length === 3, 'every font has a category (the 3 site ones are Site)');
 const inter = cb.BACK_FONTS.find(f => f.id === 'inter')!, bebasF = cb.BACK_FONTS.find(f => f.id === 'bebas')!;
 ok(cb.nearestWeight(inter, 650) === 600 || cb.nearestWeight(inter, 650) === 700, 'a weight snaps to one the font has') ;
 ok(cb.nearestWeight(bebasF, 900) === 400 && cb.nearestWeight(inter, 900) === 900, 'a saved weight a font lacks snaps to its nearest; a real one is kept');

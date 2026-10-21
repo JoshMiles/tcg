@@ -1,7 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/app/components/Icon';
+import { FontPicker } from '@/app/admin/components/workspace/FontPicker';
+import { BACK_FONTS, FONT_CATEGORIES } from '@/lib/card-back';
+import { loadBackFont } from '@/lib/card-back-fonts';
 import { REVEAL_STYLES, type PropDef, type PropValue } from '@/lib/overlay-props';
+import { useOverlayEditor } from './OverlayEditorContext';
 
 // Small building blocks of the Overlay Editor: the popover, the segmented control, one property row and the value controls.
 
@@ -130,6 +134,24 @@ export function formatValue(def: PropDef, v: PropValue): string {
   return `${v}${def.unit ?? ''}`;
 }
 
+/** The font picker for a font-typed setting; hovering a font previews it in the overlay without an edit. */
+function FontControl({ def, value, onChange }: { def: PropDef; value: PropValue; onChange: (v: unknown) => void }) {
+  const { previewProp } = useOverlayEditor();
+  const inherit = def.options?.find(o => o.value === 'inherit');
+  return (
+    <FontPicker
+      label={def.label}
+      fonts={BACK_FONTS}
+      categories={FONT_CATEGORIES}
+      extra={inherit ? [{ id: 'inherit', label: inherit.label, css: 'inherit', category: 'Site' }] : undefined}
+      value={String(value)}
+      onChange={onChange}
+      onNeedFont={id => { void loadBackFont(id, 700); }}
+      onPreview={v => previewProp(def.key, v)}
+    />
+  );
+}
+
 export function Control({ def, id, value, onChange }: { def: PropDef; id: string; value: PropValue; onChange: (v: unknown) => void }) {
   switch (def.type) {
     case 'number': {
@@ -176,6 +198,7 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
       );
     }
     case 'select':
+      if (def.font) return <FontControl def={def} value={value} onChange={onChange} />;
       return (
         <select id={id} value={String(value)} onChange={e => onChange(e.target.value)} className="select select-sm w-full">
           {def.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

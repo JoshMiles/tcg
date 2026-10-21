@@ -33,6 +33,8 @@ export interface PropDef {
   unit?: string;
   // select
   options?: { value: string; label: string }[];
+  /** A font choice (option values are `BACK_FONTS` ids): the editor shows the font picker instead of a select. */
+  font?: true;
   // colors: how many entries are allowed
   minItems?: number;
   maxItems?: number;
@@ -202,7 +204,7 @@ const FONT_OPTIONS = BACK_FONTS.map(f => ({ value: f.id, label: f.label }));
 // Every text layer picks its own face; `inherit` (the default) follows the overlay font `text.font`.
 const LAYER_FONT_OPTIONS = [{ value: 'inherit', label: 'Overlay font' }, ...FONT_OPTIONS];
 const layerFont = (key: string, group: string, label = 'Font', help = 'Overlay font follows the "Overlay font" setting under Pack opening.'): PropDef =>
-  ({ key, group, label, type: 'select', default: 'inherit', options: LAYER_FONT_OPTIONS, help });
+  ({ key, group, label, type: 'select', default: 'inherit', options: LAYER_FONT_OPTIONS, font: true, help });
 
 function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
   const m = `moment.${id}`;
@@ -260,7 +262,7 @@ const SHOW_PROPS: PropDef[] = [
 
 export const PROPS: PropDef[] = [
   // ── Overlay font (every text layer that doesn't pick its own) ──
-  { key: 'text.font', group: 'pack', label: 'Overlay font', type: 'select', default: 'display', options: FONT_OPTIONS, help: "Used by every text layer that doesn't pick its own font. Site display keeps today's faces. A pack can override this." },
+  { key: 'text.font', group: 'pack', label: 'Overlay font', type: 'select', default: 'display', options: FONT_OPTIONS, font: true, help: "Used by every text layer that doesn't pick its own font. Site display keeps today's faces. A pack can override this." },
 
   // ── Pack opening ──
   { key: 'reveal.style', group: 'pack', label: 'Reveal animation', type: 'select', default: 'classic', options: REVEAL_STYLES.map(s => ({ value: s.value, label: s.label + (s.experimental ? ' (experimental)' : '') })), help: 'How the pulled card appears.' },
