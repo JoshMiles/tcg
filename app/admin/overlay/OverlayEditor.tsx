@@ -1,6 +1,7 @@
 'use client';
 
 import { OverlayEditorProvider, type OverlayEditorProps } from './OverlayEditorContext';
+import { EditorStatusBar } from './EditorStatusBar';
 import { EditorTopBar } from './EditorTopBar';
 import { PreviewStage } from './PreviewStage';
 import { PreviewToolbar } from './PreviewToolbar';
@@ -8,8 +9,8 @@ import { PropertiesDock } from './PropertiesDock';
 
 // The Overlay Editor: one Photoshop-style workspace for where the overlay sits (Layout) and how it looks and moves.
 // Everything is generated from the registry in lib/overlay-props.ts.
-// Layout: an options bar (scope, presets, import/export, save) over a fixed canvas (the real overlay in an iframe)
-// and a docked properties panel (category rail, version tabs, collapsible sections, search).
+// Layout: a menu bar (File, Edit, View, Scene, Help; Revert / Save at its right) and a scope row over a fixed canvas (the real overlay
+// in an iframe) and a docked properties panel (category rail, version tabs, collapsible sections, search), with a status bar below.
 export function OverlayEditor(props: OverlayEditorProps) {
   return (
     <OverlayEditorProvider {...props}>
@@ -22,6 +23,7 @@ export function OverlayEditor(props: OverlayEditorProps) {
           </div>
           <PropertiesDock />
         </div>
+        <EditorStatusBar />
       </div>
     </OverlayEditorProvider>
   );

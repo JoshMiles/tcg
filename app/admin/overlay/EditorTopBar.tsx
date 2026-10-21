@@ -1,11 +1,14 @@
 'use client';
 
 import { Icon } from '@/app/components/Icon';
+import { useRef } from 'react';
 import { PendingButton } from '../components/PendingButton';
+import { Menu, MenuBar, MenuItem, MenuSeparator } from '../components/workspace/MenuBar';
 import { btn } from './editor-controls';
 import {
   ImportExportMenu,
   PackToolsMenu,
+  GuidesMenu,
   PresetsMenu,
   ReviewMenu,
   ConflictBanner,
@@ -64,10 +67,6 @@ export function EditorTopBar() {
     canUndo,
     canRedo,
     notice,
-    changedLayout,
-    changedGlobal,
-    changedPacks,
-    changedScenes,
     refreshing,
     startRefresh,
     diffs,
@@ -87,195 +86,211 @@ export function EditorTopBar() {
     restoreDraft,
     discardDraft,
     reviewSignal,
+    showSaved,
+    setShowSaved,
+    showThirds,
+    setShowThirds,
+    showGrid,
+    setShowGrid,
+    showSafe,
+    setShowSafe,
+    snapOn,
+    setSnapOn,
+    zoom,
+    setZoom,
+    bg,
+    setBg,
+    bgImage,
+    setBgImage,
+    showHint,
   } = useOverlayEditor();
+  const saveForm = useRef<HTMLFormElement>(null);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-2">
-      <label className="flex items-center gap-2 text-xs text-gray-400 font-semibold">
-        Editing
-        <select value={scope} onChange={e => setScope(e.target.value)} className="select select-sm max-w-56">
-          <option value="global">Everything (global)</option>
-          {packs.map(p => (
-            <option key={p.id} value={p.id}>
-              Pack: {p.name}
-              {Object.keys(packVals[p.id] ?? {}).length ? ' ●' : ''}
-            </option>
-          ))}
-          {presets.length > 0 && (
-            <optgroup label="Scenes (own overlay URL)">
-              {presets.map(x => (
-                <option key={x.id} value={'scene:' + x.id}>
-                  Scene: {x.name}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
-      </label>
-      {isPack && (
-        <span className="text-xs text-yellow-300/80 hidden md:inline">
-          Only what you change applies to this pack; the rest follows global.
-        </span>
-      )}
-      {isScene && (
-        <span className="text-xs text-sky-300/80 hidden md:inline">
-          This scene has its own overlay URL and layout; only what you change differs from the global look.
-        </span>
-      )}
-
-      <PresetsMenu
-        presets={presets}
-        isPack={isPack}
-        scope={scope}
-        dirty={dirty}
-        effectiveSparse={effectiveSparse}
-        applyPreset={applyPreset}
-        deletePresetAction={deletePresetAction}
-        savePresetAction={savePresetAction}
-        presetName={presetName}
-        setPresetName={setPresetName}
-        seasons={seasons}
-        looks={looks}
-        setLooks={setLooks}
-        setNotice={setNotice}
-      />
-
-      <ScenesMenu
-        presets={presets}
-        initialLayout={initialLayout}
-        globalLayout={layoutOf('global')}
-        siteUrl={siteUrl}
-        overlayKey={overlayKey}
-        scope={scope}
-        setScope={setScope}
-        setNotice={setNotice}
-        savePresetAction={savePresetAction}
-        presetName={presetName}
-        setPresetName={setPresetName}
-        dirty={dirty}
-      />
-
-      <VersionsMenu
-        versionList={versionList}
-        setVersionList={setVersionList}
-        versionDistance={versionDistance}
-        loadVersion={loadVersion}
-      />
-
-      <ImportExportMenu
-        download={download}
-        copyJson={copyJson}
-        runImport={runImport}
-        importText={importText}
-        setImportText={setImportText}
-        importError={importError}
-        setImportError={setImportError}
-      />
-
-      {isPack && (
-        <PackToolsMenu
-          packs={packs}
-          packVals={packVals}
-          setPackVals={setPackVals}
-          scope={scope}
-          globalVals={globalVals}
-          copyTargets={copyTargets}
-          setCopyTargets={setCopyTargets}
-          copyFrom={copyFrom}
-          setCopyFrom={setCopyFrom}
-          replaceCurrent={replaceCurrent}
-          setNotice={setNotice}
-        />
-      )}
-
-      <div className="flex items-center gap-1" role="group" aria-label="History">
-        <button
-          type="button"
-          onClick={undo}
-          disabled={!canUndo}
-          title="Undo (Ctrl+Z)"
-          aria-label="Undo"
-          className="p-2 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500 disabled:opacity-35"
-        >
-          <Icon name="undo" />
-        </button>
-        <button
-          type="button"
-          onClick={redo}
-          disabled={!canRedo}
-          title="Redo (Ctrl+Shift+Z)"
-          aria-label="Redo"
-          className="p-2 rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500 disabled:opacity-35"
-        >
-          <Icon name="redo" />
-        </button>
-      </div>
-
-      <span role="status" className="flex-1 min-w-0 truncate text-xs text-green-300 px-2">
-        {notice}
-      </span>
-
-      <span className="text-xs text-gray-500 hidden md:inline">
-        {dirty ? (
-          <span className="text-yellow-500">
-            Unsaved:{' '}
-            {[
-              changedLayout && 'layout',
-              changedGlobal && 'look',
-              ...changedPacks.map(id => packs.find(p => p.id === id)?.name ?? id),
-              ...changedScenes.map(x => `scene ${x.name}`),
-            ]
-              .filter(Boolean)
-              .join(', ')}
-          </span>
-        ) : (
-          'Saved.'
-        )}
-      </span>
-
-      <button
-        type="button"
-        disabled={refreshing}
-        onClick={() =>
-          startRefresh(async () => {
-            const r = await refreshOverlayAction();
-            setNotice(r.message);
-          })
+    <div className="flex flex-col gap-1.5 rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-1.5">
+      <MenuBar
+        end={
+          <>
+            <span role="status" className="min-w-0 max-w-md truncate text-xs text-green-300 px-2">
+              {notice}
+            </span>
+            <ReviewMenu diffs={diffs} dirty={dirty} openSignal={reviewSignal} />
+            <form ref={saveForm} action={saveAction} className="flex items-center gap-2">
+              <input type="hidden" name="payload" value={payload} />
+              <input type="hidden" name="scope" value={scope} />
+              <input type="hidden" name="note" value={note} />
+              <input type="hidden" name="expectedVersion" value={knownVersion} />
+              <input type="hidden" name="autoReload" value={autoReload ? 'on' : ''} />
+              <button
+                type="button"
+                disabled={!dirty}
+                onClick={revert}
+                className={`${btn} text-gray-400 hover:text-white disabled:opacity-40`}
+              >
+                Revert
+              </button>
+              <PendingButton
+                type="submit"
+                disabled={!dirty}
+                className={`${btn} bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}
+              >
+                Save
+              </PendingButton>
+            </form>
+          </>
         }
-        title="Ask every open overlay (OBS) to reload the saved look"
-        className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 disabled:opacity-50"
       >
-        <Icon name="refresh" className={`mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
-        Refresh overlay
-      </button>
+        <Menu label="File">
+          <MenuItem label="Save" icon="check" disabled={!dirty} onSelect={() => saveForm.current?.requestSubmit()} />
+          <MenuItem label="Revert" icon="undo" disabled={!dirty} onSelect={revert} />
+          <MenuSeparator />
+          <PresetsMenu
+            presets={presets}
+            isPack={isPack}
+            scope={scope}
+            dirty={dirty}
+            effectiveSparse={effectiveSparse}
+            applyPreset={applyPreset}
+            deletePresetAction={deletePresetAction}
+            savePresetAction={savePresetAction}
+            presetName={presetName}
+            setPresetName={setPresetName}
+            seasons={seasons}
+            looks={looks}
+            setLooks={setLooks}
+            setNotice={setNotice}
+          />
+          <VersionsMenu
+            versionList={versionList}
+            setVersionList={setVersionList}
+            versionDistance={versionDistance}
+            loadVersion={loadVersion}
+          />
+          <ImportExportMenu
+            download={download}
+            copyJson={copyJson}
+            runImport={runImport}
+            importText={importText}
+            setImportText={setImportText}
+            importError={importError}
+            setImportError={setImportError}
+          />
+          <SaveOptionsMenu note={note} setNote={setNote} autoReload={autoReload} setAutoReload={setAutoReload} />
+        </Menu>
+        <Menu label="Edit">
+          <MenuItem label="Undo" icon="undo" shortcut="Ctrl+Z" disabled={!canUndo} onSelect={undo} />
+          <MenuItem label="Redo" icon="redo" shortcut="Ctrl+Shift+Z" disabled={!canRedo} onSelect={redo} />
+          {isPack && (
+            <>
+              <MenuSeparator />
+              <PackToolsMenu
+                packs={packs}
+                packVals={packVals}
+                setPackVals={setPackVals}
+                scope={scope}
+                globalVals={globalVals}
+                copyTargets={copyTargets}
+                setCopyTargets={setCopyTargets}
+                copyFrom={copyFrom}
+                setCopyFrom={setCopyFrom}
+                replaceCurrent={replaceCurrent}
+                setNotice={setNotice}
+              />
+            </>
+          )}
+        </Menu>
+        <Menu label="View">
+          <MenuItem label="Before / after" icon="eye" checked={showSaved} disabled={!dirty} onSelect={() => setShowSaved(v => !v)} />
+          <GuidesMenu
+            showThirds={showThirds}
+            setShowThirds={setShowThirds}
+            showGrid={showGrid}
+            setShowGrid={setShowGrid}
+            showSafe={showSafe}
+            setShowSafe={setShowSafe}
+            snapOn={snapOn}
+            setSnapOn={setSnapOn}
+            zoom={zoom}
+            setZoom={setZoom}
+            bg={bg}
+            setBg={setBg}
+            bgImage={bgImage}
+            setBgImage={setBgImage}
+          />
+        </Menu>
+        <Menu label="Scene">
+          <ScenesMenu
+            presets={presets}
+            initialLayout={initialLayout}
+            globalLayout={layoutOf('global')}
+            siteUrl={siteUrl}
+            overlayKey={overlayKey}
+            scope={scope}
+            setScope={setScope}
+            setNotice={setNotice}
+            savePresetAction={savePresetAction}
+            presetName={presetName}
+            setPresetName={setPresetName}
+            dirty={dirty}
+          />
+        </Menu>
+        <Menu label="Help">
+          <MenuItem label="Show the editing hint again" icon="help" onSelect={showHint} />
+        </Menu>
+      </MenuBar>
 
-      {conflict && <ConflictBanner version={conflict} diffs={versionDiffs(conflict)} overwrite={overwrite} loadTheirs={loadTheirs} />}
-      {draftOffer && <DraftBanner at={draftOffer.at} stale={draftOffer.stale} restore={restoreDraft} discard={discardDraft} />}
-      <ReviewMenu diffs={diffs} dirty={dirty} openSignal={reviewSignal} />
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 text-xs text-gray-400 font-semibold">
+          Editing
+          <select value={scope} onChange={e => setScope(e.target.value)} className="select select-sm max-w-56">
+            <option value="global">Everything (global)</option>
+            {packs.map(p => (
+              <option key={p.id} value={p.id}>
+                Pack: {p.name}
+                {Object.keys(packVals[p.id] ?? {}).length ? ' ●' : ''}
+              </option>
+            ))}
+            {presets.length > 0 && (
+              <optgroup label="Scenes (own overlay URL)">
+                {presets.map(x => (
+                  <option key={x.id} value={'scene:' + x.id}>
+                    Scene: {x.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </label>
+        {isPack && (
+          <span className="text-xs text-yellow-300/80 hidden md:inline">
+            Only what you change applies to this pack; the rest follows global.
+          </span>
+        )}
+        {isScene && (
+          <span className="text-xs text-sky-300/80 hidden md:inline">
+            This scene has its own overlay URL and layout; only what you change differs from the global look.
+          </span>
+        )}
 
-      <form action={saveAction} className="flex items-center gap-2">
-        <input type="hidden" name="payload" value={payload} />
-        <input type="hidden" name="scope" value={scope} />
-        <input type="hidden" name="note" value={note} />
-        <input type="hidden" name="expectedVersion" value={knownVersion} />
-        <input type="hidden" name="autoReload" value={autoReload ? 'on' : ''} />
         <button
           type="button"
-          disabled={!dirty}
-          onClick={revert}
-          className={`${btn} text-gray-400 hover:text-white disabled:opacity-40`}
+          disabled={refreshing}
+          onClick={() =>
+            startRefresh(async () => {
+              const r = await refreshOverlayAction();
+              setNotice(r.message);
+            })
+          }
+          title="Ask every open overlay (OBS) to reload the saved look"
+          className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500 disabled:opacity-50"
         >
-          Revert
+          <Icon name="refresh" className={`mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh overlay
         </button>
-        <PendingButton
-          type="submit"
-          disabled={!dirty}
-          className={`${btn} bg-yellow-500 text-gray-950 hover:bg-yellow-400 disabled:opacity-40`}
-        >
-          Save
-        </PendingButton>
-      </form>
-      <SaveOptionsMenu note={note} setNote={setNote} autoReload={autoReload} setAutoReload={setAutoReload} />
+
+        {conflict && <ConflictBanner version={conflict} diffs={versionDiffs(conflict)} overwrite={overwrite} loadTheirs={loadTheirs} />}
+        {draftOffer && <DraftBanner at={draftOffer.at} stale={draftOffer.stale} restore={restoreDraft} discard={discardDraft} />}
+      </div>
     </div>
   );
 }

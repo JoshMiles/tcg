@@ -1,12 +1,9 @@
 'use client';
 
-import { Icon } from '@/app/components/Icon';
 import { Segmented, btn } from './editor-controls';
-import { GuidesMenu } from './EditorMenus';
 import { VARIANT_IDS, type VariantId } from '@/lib/overlay-props';
 import { MOMENT_IDS } from '@/lib/overlay-moments';
-import { PERF_LABEL, variantPerf } from '@/lib/overlay-perf';
-import { PERF_STYLE, VARIANT_LABELS, type MomentPick } from './editor-types';
+import { VARIANT_LABELS, type MomentPick } from './editor-types';
 import { useOverlayEditor } from './OverlayEditorContext';
 
 export function PreviewToolbar() {
@@ -29,24 +26,6 @@ export function PreviewToolbar() {
     setPickCard,
     previewCards,
     previewCard,
-    showSaved,
-    setShowSaved,
-    dirty,
-    showThirds,
-    setShowThirds,
-    showGrid,
-    setShowGrid,
-    showSafe,
-    setShowSafe,
-    snapOn,
-    setSnapOn,
-    zoom,
-    setZoom,
-    bg,
-    setBg,
-    bgImage,
-    setBgImage,
-    valueOf,
     play,
     ready,
     playing,
@@ -131,48 +110,6 @@ export function PreviewToolbar() {
           )}
         </div>
       )}
-      <button
-        type="button"
-        onClick={() => setShowSaved(v => !v)}
-        disabled={!dirty}
-        aria-pressed={showSaved}
-        title="Flip the preview between your edit and what is saved"
-        className={`px-2.5 py-1 rounded-md text-xs font-semibold border disabled:opacity-35 ${
-          showSaved
-            ? 'border-yellow-500 bg-yellow-500/10 text-yellow-300'
-            : 'border-gray-700 text-gray-400 hover:border-gray-500'
-        }`}
-      >
-        <Icon name="eye" className="mr-1" />
-        Before / after
-      </button>
-      <GuidesMenu
-        showThirds={showThirds}
-        setShowThirds={setShowThirds}
-        showGrid={showGrid}
-        setShowGrid={setShowGrid}
-        showSafe={showSafe}
-        setShowSafe={setShowSafe}
-        snapOn={snapOn}
-        setSnapOn={setSnapOn}
-        zoom={zoom}
-        setZoom={setZoom}
-        bg={bg}
-        setBg={setBg}
-        bgImage={bgImage}
-        setBgImage={setBgImage}
-      />
-      {(() => {
-        const worst = VARIANT_IDS.map(v => ({ v, r: variantPerf(valueOf, v) })).sort((a, b) => b.r.score - a.r.score)[0];
-        return (
-          <span
-            title={`${VARIANT_LABELS[worst.v]} is the heaviest version${worst.r.reasons.length ? ': ' + worst.r.reasons.join(', ') : ''}. A rough guide to how hard the overlay works in OBS.`}
-            className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${PERF_STYLE[worst.r.level]}`}
-          >
-            Load: {PERF_LABEL[worst.r.level]}
-          </span>
-        );
-      })()}
       <button
         type="button"
         onClick={play}
