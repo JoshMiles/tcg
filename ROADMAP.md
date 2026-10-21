@@ -17,7 +17,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
-| 35.2 | Launch screen on iPhone | Ready | S |
 | 35.3 | Richer Android install | Ready | S |
 | 38.1 | Overlay Editor: tools, pan and shortcuts | Ready | M |
 | 38.2 | Overlay Editor: History panel | Ready | S |
