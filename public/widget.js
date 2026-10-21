@@ -114,9 +114,11 @@ function loadFace(family, weight, file) {
     document.fonts.add(face); face.load().catch(() => {});
   } catch { /* the fallback font shows */ }
 }
-// Site display (the default) clears any inline family so today's stylesheet face stays. Any other id sets one.
-function applyTextFont(el, id) {
+// `inherit` follows the overlay font (text.font). Site display (the default) clears any inline family so today's stylesheet face stays. Any other id sets one.
+function textFontId(P, id) { return !id || id === 'inherit' ? (P && P['text.font']) || 'display' : id; }
+function applyTextFont(el, id, P) {
   if (!el) return;
+  id = textFontId(P, id);
   if (!id || id === 'display') { el.style.fontFamily = ''; return; }
   const f = FONT_CATALOG.find(x => x.id === id);
   if (!f || !f.css) return;
@@ -292,6 +294,7 @@ function showStatic(mode) {
     cardInfo.style.opacity = '1';
     cardInfo.style.transform = 'scale(1)';
     userText.textContent = headingText(P, 'Preview');
+    applyTextFont(userText, pv(P, 'collection.headingFont', 'inherit'), P);
     editable(userText, 'heading', 'Click to edit the heading');
     editable(miniList, 'grid', 'Click to edit the collection grid');
     if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
@@ -716,6 +719,7 @@ function showSerial(theater, P, info) {
     print.textContent = 'Serial #' + info.uid;
     el.appendChild(print);
   }
+  applyTextFont(el, pv(P, 'reveal.serialFont', 'inherit'), P);
   cardBox.appendChild(el);
   requestAnimationFrame(() => el.classList.add('on'));
 }
@@ -753,7 +757,7 @@ function momentSpec(P, id, ctx) {
     bg: g('bgColors', id === 'firstEver' ? MOMENT_DEFAULT_BG : ['#8b5cf6', '#ec4899']),
     textColor: g('textColor', id === 'firstEver' ? '#1a1205' : '#ffffff'),
     textSize: g('textSize', 26),
-    font: g('font', 'display'),
+    font: g('font', 'inherit'),
     position: g('position', 'top'),
     sparkles: Math.round(g('sparkles', id === 'firstEver' ? 44 : 0)),
     sparkleColor: g('sparkleColor', '#ffe27a'),
@@ -786,7 +790,7 @@ function momentBanner(theater, P, spec, S, extendHold) {
   }
   banner.style.color = spec.textColor;
   main.style.fontSize = spec.textSize + 'px';
-  applyTextFont(banner, spec.font);
+  applyTextFont(banner, spec.font, P);
   cardBox.appendChild(banner);
   requestAnimationFrame(() => banner.classList.add('on'));
   if (spec.sparkles > 0) {
@@ -860,6 +864,7 @@ function listOpts(P, strip) {
     placeholder:     strip ? pv(P, 'reveal.stripPlaceholderColor', '#f1bb06') : pv(P, 'collection.placeholderColor', '#f1bb06'),
     radius:          strip ? pv(P, 'reveal.stripCardRadius', 2) : pv(P, 'collection.cardRadius', 2),
     sort:            strip ? pv(P, 'reveal.stripSort', 'number') : pv(P, 'collection.sort', 'number'),
+    font:            textFontId(P, strip ? pv(P, 'reveal.stripFont', 'inherit') : pv(P, 'collection.cardFont', 'inherit')),
   };
 }
 
@@ -916,6 +921,7 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg, opts) {
       q.classList.add('mini-question');
       q.textContent = '?';
       q.style.fontSize = Math.round(20 * k) + 'px';
+      applyTextFont(q, opts.font);
       div.appendChild(q);
     }
 
@@ -923,6 +929,7 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg, opts) {
       const badge = document.createElement('div');
       badge.style.cssText = 'position:absolute;bottom:1px;right:1px;background:rgba(0,0,0,0.8);color:#f59e0b;font-weight:700;padding:0 2px;border-radius:2px;line-height:1.4;pointer-events:none;font-size:' + Math.max(7, Math.round(7 * k)) + 'px;';
       badge.textContent = '×' + count;
+      applyTextFont(badge, opts.font);
       div.appendChild(badge);
     }
 
@@ -1058,7 +1065,7 @@ function styleShowLabel(el, P) {
     el.style.color = pv(P, 'show.labelTextColor', '#fffefe');
   }
   el.style.fontSize = pv(P, 'show.labelSize', 14) + 'px';
-  applyTextFont(el, pv(P, 'show.labelFont', 'display'));
+  applyTextFont(el, pv(P, 'show.labelFont', 'inherit'), P);
   const x = pv(P, 'show.labelX', 0), y = pv(P, 'show.labelY', 0);
   // The Overlay Editor's own move of this label (the pack opening's "showlabel" part) adds to the nudge above.
   el.style.translate = 'calc(' + x + 'px + var(--el-showlabel-x, 0px)) calc(' + y + 'px + var(--el-showlabel-y, 0px))';
@@ -1150,7 +1157,10 @@ function applyLook(theater, P, variant, card, cfg, owned) {
   st.setProperty('--pack-size', String(pv(P, 'reveal.packScale', 1)));
   buildRays(theater.radialContainer, burstSpec(P, variant));
   st.setProperty('--label-size', pv(P, 'reveal.labelSize', 14) + 'px');
-  applyTextFont(cardLabel, pv(P, 'reveal.labelFont', 'display'));
+  applyTextFont(cardLabel, pv(P, 'reveal.labelFont', 'inherit'), P);
+  applyTextFont(userText, pv(P, 'reveal.gotFont', 'inherit'), P);
+  applyTextFont(cardInfoOverlay.querySelector('.card-name'), pv(P, 'reveal.nameFont', 'inherit'), P);
+  theater.mainCard.querySelectorAll('.card-number-1, .card-number-2').forEach(e => applyTextFont(e, pv(P, 'reveal.cardNumberFont', 'inherit'), P));
   st.setProperty('--name-color', pv(P, 'reveal.nameColor', '#f1bb06'));
   st.setProperty('--star-color', pv(P, 'reveal.starColor', '#f1bb06'));
   st.setProperty('--info-bg', pv(P, 'reveal.infoBg', '#fffefe'));
@@ -1444,6 +1454,7 @@ function showCollection(username, opts) {
   cardInfo.style.opacity   = '1';
   cardInfo.style.transform = 'scale(1)';
   userText.textContent     = headingText(P, username);
+  applyTextFont(userText, pv(P, 'collection.headingFont', 'inherit'), P);
   if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
 
   if (!PREVIEW && !opts.dry) fetch('/api/webhooks/notify', {

@@ -44,8 +44,11 @@ export function dependsOn(key: string): { key: string; when: (v: PropValue) => b
   if (key === 'show.printFormat') return { key: 'show.showPrint', when: v => v === true };
   if (key === 'show.soundUrl') return { key: 'show.sound', when: v => v === 'custom' };
   if (key === 'show.volume') return { key: 'show.sound', when: v => v !== 'off' };
-  if (key === 'reveal.gotText') return { key: 'reveal.showGotLine', when: v => v === true };
-  if (key === 'collection.headingText') return { key: 'collection.showHeading', when: v => v === true };
+  if (key === 'reveal.gotText' || key === 'reveal.gotFont') return { key: 'reveal.showGotLine', when: v => v === true };
+  if (key === 'reveal.serialFont') return { key: 'reveal.showSerial', when: v => v === true };
+  if (key === 'reveal.nameFont') return { key: 'reveal.showInfoBar', when: v => v === true };
+  if (key === 'reveal.stripFont') return { key: 'reveal.showMiniList', when: v => v === true };
+  if (key === 'collection.headingText' || key === 'collection.headingFont') return { key: 'collection.showHeading', when: v => v === true };
   return null;
 }
 

@@ -199,6 +199,10 @@ export const MOMENT_BANNER_DEFAULT_BG = ['#ffe27a', '#f1bb06', '#fff2b0', '#f1bb
 
 const MOMENT_STYLE_OPTIONS = [{ value: 'inherit', label: 'Same as the pack opening' }, ...REVEAL_STYLES.map(x => ({ value: x.value, label: x.label + (x.experimental ? ' (experimental)' : '') }))];
 const FONT_OPTIONS = BACK_FONTS.map(f => ({ value: f.id, label: f.label }));
+// Every text layer picks its own face; `inherit` (the default) follows the overlay font `text.font`.
+const LAYER_FONT_OPTIONS = [{ value: 'inherit', label: 'Overlay font' }, ...FONT_OPTIONS];
+const layerFont = (key: string, group: string, label = 'Font', help = 'Overlay font follows the "Overlay font" setting under Pack opening.'): PropDef =>
+  ({ key, group, label, type: 'select', default: 'inherit', options: LAYER_FONT_OPTIONS, help });
 
 function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
   const m = `moment.${id}`;
@@ -216,7 +220,7 @@ function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
     { key: `${m}.bgColors`, group: g, label: 'Banner colours', type: 'colors', default: first ? MOMENT_BANNER_DEFAULT_BG : ['#8b5cf6', '#ec4899'], minItems: 1, maxItems: 4, help: 'One colour is solid; more make a gradient.' },
     { key: `${m}.textColor`, group: g, label: 'Text colour', type: 'color', default: first ? '#1a1205' : '#ffffff' },
     { key: `${m}.textSize`, group: g, label: 'Text size', type: 'number', default: 26, min: 12, max: 60, step: 1, unit: 'px' },
-    { key: `${m}.font`, group: g, label: 'Font', type: 'select', default: 'display', options: FONT_OPTIONS, help: 'Site display keeps today\'s banner face.' },
+    layerFont(`${m}.font`, g),
     { key: `${m}.position`, group: g, label: 'Position on the card', type: 'select', default: 'top', options: [{ value: 'top', label: 'Top' }, { value: 'middle', label: 'Middle' }, { value: 'bottom', label: 'Bottom' }] },
     { key: `${m}.sparkles`, group: g, label: 'Sparkle amount', type: 'number', default: first ? 44 : 0, min: 0, max: 80, step: 1, help: 'A burst of sparkles when the banner appears. 0 for none.' },
     { key: `${m}.sparkleColor`, group: g, label: 'Sparkle colour', type: 'color', default: '#ffe27a' },
@@ -241,7 +245,7 @@ const SHOW_PROPS: PropDef[] = [
   { key: 'show.labelColor', label: 'Label colour', type: 'color', default: '#f1bb06' },
   { key: 'show.labelTextColor', label: 'Label text colour', type: 'color', default: '#fffefe' },
   { key: 'show.labelSize', label: 'Label text size', type: 'number', default: 14, min: 10, max: 40, step: 1, unit: 'px' },
-  { key: 'show.labelFont', label: 'Label font', type: 'select', default: 'display', options: FONT_OPTIONS, help: 'Site display keeps today\'s face.' },
+  layerFont('show.labelFont', 'showoff', 'Label font'),
   { key: 'show.labelX', label: 'Label nudge across', type: 'number', default: 0, min: -300, max: 300, step: 2, unit: 'px', help: 'Moves the label sideways from where it sits.' },
   { key: 'show.labelY', label: 'Label nudge up / down', type: 'number', default: 0, min: -400, max: 300, step: 2, unit: 'px', help: 'Moves the label down (positive) or up (negative), for example over the card.' },
   { key: 'show.showPrint', label: 'Edition number pill', type: 'boolean', default: true, help: 'The number on the card. Also needs "Edition number on the card" in Pack opening to be on, and the season\'s editions to be numbered.' },
@@ -255,6 +259,9 @@ const SHOW_PROPS: PropDef[] = [
 ].map(p => ({ ...p, group: 'showoff' }) as PropDef);
 
 export const PROPS: PropDef[] = [
+  // ── Overlay font (every text layer that doesn't pick its own) ──
+  { key: 'text.font', group: 'pack', label: 'Overlay font', type: 'select', default: 'display', options: FONT_OPTIONS, help: "Used by every text layer that doesn't pick its own font. Site display keeps today's faces. A pack can override this." },
+
   // ── Pack opening ──
   { key: 'reveal.style', group: 'pack', label: 'Reveal animation', type: 'select', default: 'classic', options: REVEAL_STYLES.map(s => ({ value: s.value, label: s.label + (s.experimental ? ' (experimental)' : '') })), help: 'How the pulled card appears.' },
   { key: 'reveal.flipBack', group: 'pack', label: 'Flip reveal: card back', type: 'select', default: 'cover', options: [{ value: 'cover', label: 'The pack cover' }, { value: 'design', label: "The pack's designed back" }], help: "What the card shows before it turns over in the Flip reveal and the show-off flip. The designed back is the one made in the pack's Card back editor, without the facts about the edition (it isn't known yet): logo, text boxes and pattern stay." },
@@ -264,7 +271,12 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.packSounds', group: 'pack', label: 'Pack-opening sounds', type: 'boolean', default: true, help: 'The rip and shake sounds for the pack styles. (Card sounds are set on each card.)' },
   { key: 'reveal.cardScale', group: 'pack', label: 'Revealed card size', type: 'number', default: 1, min: 0.5, max: 1.5, step: 0.05, unit: '×', help: 'Scales the card itself (the pack and the strip stay as they are).' },
   { key: 'reveal.labelSize', group: 'pack', label: 'Label text size', type: 'number', default: 14, min: 10, max: 30, step: 1, unit: 'px' },
-  { key: 'reveal.labelFont', group: 'pack', label: 'Label font', type: 'select', default: 'display', options: FONT_OPTIONS, help: 'Site display keeps today\'s face. A pack can override this.' },
+  layerFont('reveal.labelFont', 'pack', 'Label font'),
+  layerFont('reveal.serialFont', 'pack', 'Edition number font'),
+  layerFont('reveal.cardNumberFont', 'pack', 'Card corner number font'),
+  layerFont('reveal.nameFont', 'pack', 'Card name font'),
+  layerFont('reveal.gotFont', 'pack', '"got:" line font'),
+  layerFont('reveal.stripFont', 'pack', 'Strip text font'),
   { key: 'reveal.nameColor', group: 'pack', label: 'Card name colour', type: 'color', default: '#f1bb06' },
   { key: 'reveal.starColor', group: 'pack', label: 'Star colour', type: 'color', default: '#f1bb06' },
   { key: 'reveal.infoBg', group: 'pack', label: 'Name & stars bar colour', type: 'color', default: '#fffefe' },
@@ -313,6 +325,8 @@ export const PROPS: PropDef[] = [
   { key: 'collection.showVariantMarkers', group: 'collection', label: 'Show a sparkle on upgraded cards', type: 'boolean', default: true },
   { key: 'collection.showHeading', group: 'collection', label: 'Show the heading', type: 'boolean', default: true, help: 'The "name\'s collection:" line.' },
   { key: 'collection.headingText', group: 'collection', label: 'Heading wording', type: 'text', default: "{user}'s collection:", maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
+  layerFont('collection.headingFont', 'collection', 'Heading font'),
+  layerFont('collection.cardFont', 'collection', 'Card text font', 'The "?" on uncollected cards and the ×N counts. Overlay font follows the "Overlay font" setting under Pack opening.'),
   { key: 'collection.hold', group: 'collection', label: 'Time on screen', type: 'number', default: 4, min: 1, max: 30, step: 0.5, unit: 's' },
   {
     key: 'collection.appear', group: 'collection', label: 'Entrance', type: 'select', default: 'fade',
@@ -343,13 +357,14 @@ function sectionFor(key: string): string {
   }
   const r: [RegExp, string][] = [
     [/^reveal.(style|speed|startDelay|packScale|packSounds)$/, 'Animation'],
-    [/^reveal.cardScale$/, 'Card'],
-    [/^reveal.(showLabel|labelSize|labelFont|labelOwned|showSerial|serialFormat)$/, 'Label'],
+    [/^text\./, 'Text'],
+    [/^reveal.(cardScale|cardNumberFont)$/, 'Card'],
+    [/^reveal.(showLabel|labelSize|labelFont|labelOwned|showSerial|serialFormat|serialFont)$/, 'Label'],
     [/^(reveal\.firstEver|moment\.firstEver\.)/, 'First-ever edition'],
     [/^moment\.firstPull\./, "A viewer's first pull"],
     [/^moment\.newCard\./, 'A new card for them'],
-    [/^reveal.(showInfoBar|nameColor|starColor|infoBg)$/, 'Name and stars bar'],
-    [/^reveal.(showGotLine|gotText|gotColor|gotTextColor)$/, '"got:" line'],
+    [/^reveal.(showInfoBar|nameColor|starColor|infoBg|nameFont)$/, 'Name and stars bar'],
+    [/^reveal.(showGotLine|gotText|gotColor|gotTextColor|gotFont)$/, '"got:" line'],
     [/^show\.(style|hold)$/, 'Entrance and timing'],
     [/^show\.(showLabel|text|ownLabelLook|label.*)$/, 'Label'],
     [/^show\.(showPrint|printFormat)$/, 'Edition number'],
@@ -359,7 +374,7 @@ function sectionFor(key: string): string {
     [/^reveal.(stripPerRow|stripCardWidth|stripGap|stripSort)$/, 'Strip layout'],
     [/^reveal.strip/, 'Strip card look'],
     [/^collection.(perRow|cardWidth|gap|sort)$/, 'Layout'],
-    [/^collection.(showUncollected|showCounts|showVariantMarkers|showHeading|headingText)$/, 'What to show'],
+    [/^collection.(showUncollected|showCounts|showVariantMarkers|showHeading|headingText|headingFont)$/, 'What to show'],
     [/^collection.(hold|appear)$/, 'Timing'],
     [/^collection./, 'Card look'],
   ];
@@ -368,7 +383,7 @@ function sectionFor(key: string): string {
 
 /** The order sections appear in within a category (anything unlisted follows). */
 export const SECTION_ORDER = [
-  'Animation', 'Card', 'Label', 'Name and stars bar', '"got:" line',
+  'Text', 'Animation', 'Card', 'Label', 'Name and stars bar', '"got:" line',
   'Entrance and timing', 'Edition number', 'Card and effects', 'Sound', 'Reveal animation', 'Holographic shimmer', 'Glow', 'Pop-in', '3D tilt', 'Rocking', 'Light burst', 'Sparkles', 'Time and sound',
   'Cards under the card', 'Strip layout', 'Strip card look',
   'First-ever edition', "A viewer's first pull", 'A new card for them',
