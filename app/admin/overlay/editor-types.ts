@@ -1,4 +1,3 @@
-import type { IconName } from '@/app/components/Icon';
 import type { PropValue, PropValues, VariantId } from '@/lib/overlay-props';
 import type { OverlayLayout } from '@/lib/overlay-layout';
 import type { MomentId } from '@/lib/overlay-moments';
@@ -17,7 +16,6 @@ export const PERF_STYLE: Record<PerfLevel, string> = { light: 'text-emerald-300 
 export type Mode = 'pack' | 'collection';
 export type MomentPick = '' | MomentId;
 /** One entry of the category rail (the registry's groups plus the Layout pseudo-category). */
-export interface RailItem { id: string; label: string; icon: IconName; description: string }
 
 export const VARIANT_LABELS: Record<VariantId, string> = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };
 

@@ -57,6 +57,8 @@ const TARGET_SECTIONS: Record<string, [string, string?]> = {
   serial: ['variants', 'Label'],
   grid: ['collection', 'Layout'],
 };
+/** The category and section (if any) that edit a preview element. */
+export const sectionForTarget = (target: string) => TARGET_SECTIONS[target];
 /** The preview element a panel section edits, or '' (section keys look like `pack/Label` or `variants.shiny/Label`). */
 export const targetForSection = (sectionKey: string) => {
   const [cat, name] = sectionKey.split('/');
@@ -168,6 +170,8 @@ export interface OverlayEditorContextValue {
   // Navigation & Category
   category: string;
   setCategory: (c: string) => void;
+  openCat: string | null;
+  setOpenCat: (c: string | null) => void;
   catId: string;
   version: VariantId;
   setVersion: (v: VariantId) => void;
@@ -327,6 +331,10 @@ export function OverlayEditorProvider({
   const layout = useMemo(() => sanitizeLayout(layoutVals), [layoutVals]);
   const initialActiveLayout = initialLayoutMap[layoutKey] ?? initialLayout;
 
+  // The category opened on the Document page (null = the Document page itself); a deep link (?group=) starts it open.
+  const [openCat, setOpenCat] = useState<string | null>(
+    initialCategory && PROP_GROUPS.some(g => g.id === initialCategory) ? initialCategory : null,
+  );
   const [category, setCategory] = useState(
     initialCategory && (PROP_GROUPS.some(g => g.id === initialCategory) || initialCategory === 'layout')
       ? initialCategory
@@ -952,7 +960,9 @@ export function OverlayEditorProvider({
     if (c === 'variants') setVariantOpen(true);
     if (section) {
       const k = `${c}${c === 'variants' ? '.' + version : ''}/${section}`;
-      setOpenMap(m => ({ ...m, [k]: true }));
+      // Drop earlier open/closed choices in this category so only the picked section starts open.
+      const prefix = k.slice(0, k.indexOf('/') + 1);
+      setOpenMap(m => ({ ...Object.fromEntries(Object.entries(m).filter(([key]) => !key.startsWith(prefix))), [k]: true }));
       setFocusKey(k);
     }
   };
@@ -1086,6 +1096,8 @@ export function OverlayEditorProvider({
     layoutOf,
     category,
     setCategory,
+    openCat,
+    setOpenCat,
     catId,
     version,
     setVersion,

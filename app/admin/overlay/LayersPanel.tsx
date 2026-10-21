@@ -5,7 +5,7 @@ import type { PropValue } from '@/lib/overlay-props';
 import type { Mode } from './editor-types';
 
 // Readable names, and the existing show/hide property of each element (none for the card and the collection grid).
-const NAMES: Record<ElementId, string> = {
+export const LAYER_NAMES: Record<ElementId, string> = {
   card: 'Card', label: 'Label', serial: 'Edition badge', bar: 'Name and stars bar', got: '"got:" line',
   strip: 'Card strip', showlabel: 'Show-off label', heading: 'Heading', grid: 'Collection grid',
 };
@@ -64,11 +64,11 @@ export function LayersPanel({ layout, selected, valueOf, setValue, setLayoutVals
                     aria-current={selected === id}
                     className={`flex-1 min-w-0 flex items-center gap-2 px-2 py-1 text-left text-sm truncate ${visible ? 'text-gray-200' : 'text-gray-500 line-through'}`}
                   >
-                    {NAMES[id]}
+                    {LAYER_NAMES[id]}
                     {moved && <span role="img" aria-label="moved" title="Moved from its normal spot" className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />}
                   </button>
                   {moved && (
-                    <button type="button" onClick={() => reset(view, id)} aria-label={`Reset ${NAMES[id]} position`} title="Put back in its normal spot" className="px-1 text-gray-500 hover:text-white">
+                    <button type="button" onClick={() => reset(view, id)} aria-label={`Reset ${LAYER_NAMES[id]} position`} title="Put back in its normal spot" className="px-1 text-gray-500 hover:text-white">
                       <Icon name="undo" />
                     </button>
                   )}
@@ -77,7 +77,7 @@ export function LayersPanel({ layout, selected, valueOf, setValue, setLayoutVals
                       type="button"
                       onClick={() => setValue(key, !visible)}
                       aria-pressed={!visible}
-                      aria-label={`Hide ${NAMES[id]}`}
+                      aria-label={`Hide ${LAYER_NAMES[id]}`}
                       title={visible ? 'Hide' : 'Show'}
                       className="px-1 text-gray-500 hover:text-white"
                     >
