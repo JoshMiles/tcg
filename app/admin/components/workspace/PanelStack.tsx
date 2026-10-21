@@ -8,11 +8,12 @@ import { Icon, type IconName } from '@/app/components/Icon';
 
 export interface PanelDef { id: string; title: string; icon: IconName; content: React.ReactNode; weight?: number; hidden?: boolean }
 
-export function PanelStack({ panels, storageKey }: { panels: PanelDef[]; storageKey: string }) {
-  const [collapsed, setCollapsed] = useState<string[]>([]);
+export function PanelStack({ panels, storageKey, defaultCollapsed = [] }: { panels: PanelDef[]; storageKey: string; defaultCollapsed?: string[] }) {
+  const [collapsed, setCollapsed] = useState<string[]>(defaultCollapsed);
   useEffect(() => {
     try {
-      const v = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
+      const raw = localStorage.getItem(storageKey);
+      const v = raw === null ? null : JSON.parse(raw); // nothing stored yet: keep the defaults
       if (Array.isArray(v)) setCollapsed(v.filter((x): x is string => typeof x === 'string'));
     } catch { /* storage blocked or corrupt */ }
   }, [storageKey]);
