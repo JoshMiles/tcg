@@ -13,7 +13,7 @@ const versions = await import('../lib/overlay-versions');
 const diff = await import('../lib/overlay-diff');
 const perf = await import('../lib/overlay-perf');
 const { DEFAULT_PROPS, PROP_BY_KEY } = await import('../lib/overlay-props');
-const { DEFAULT_LAYOUT, sanitizeLayout } = await import('../lib/overlay-layout');
+const { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets } = await import('../lib/overlay-layout');
 const kvLib = await import('../lib/kv');
 const sbx = await import('../lib/sandbox');
 const { runInSandbox, prodKv } = await import('../lib/db');
@@ -148,6 +148,14 @@ ok(diff.diffLayout(DEFAULT_LAYOUT, el).some(l => l.label.includes('label')), 'la
 const op = sanitizeLayout({ pack: { elements: { label: { opacity: 0.6 }, bar: { opacity: 1 }, got: { opacity: 7 }, strip: { opacity: -2 }, serial: { opacity: 'x', offsetX: 3 }, card: { opacity: 0.456 } } } }).pack.elements;
 eq(op, { card: { scale: 1, offsetX: 0, offsetY: 0, opacity: 0.46 }, label: { scale: 1, offsetX: 0, offsetY: 0, opacity: 0.6 }, serial: { scale: 1, offsetX: 3, offsetY: 0 }, strip: { scale: 1, offsetX: 0, offsetY: 0, opacity: 0 } }, 'opacity is clamped to 0..1 and omitted at 1 or when invalid');
 ok(diff.diffLayout(DEFAULT_LAYOUT, sanitizeLayout({ pack: { elements: { label: { opacity: 0.6 } } } })).some(l => l.label === 'Pack opening label opacity' && l.from === '100%' && l.to === '60%'), 'layout diff lists an opacity change');
+// Align / distribute: box moves become offset moves (divided by the view scale), a lone part aligns to the stage.
+const bx = { a: { x: 100, y: 50, w: 100, h: 40 }, b: { x: 300, y: 80, w: 50, h: 20 }, c: { x: 700, y: 10, w: 100, h: 60 } };
+eq(alignOffsets(bx, 'left', { w: 1280, h: 720 }), { a: { dx: 0, dy: 0 }, b: { dx: -200, dy: 0 }, c: { dx: -600, dy: 0 } }, 'align left to the selection box');
+eq(alignOffsets(bx, 'bottom', { w: 1280, h: 720 }, 2).c, { dx: 0, dy: 15 }, 'align bottom, offsets divided by the view scale');
+eq(alignOffsets({ a: bx.a }, 'center', { w: 1280, h: 720 }), { a: { dx: 490, dy: 0 } }, 'one part centres on the stage');
+eq(alignOffsets({ a: bx.a }, 'middle', { w: 1280, h: 720 }), { a: { dx: 0, dy: 290 } }, 'one part middles on the stage');
+eq(distributeOffsets(bx, 'x'), { a: { dx: 0, dy: 0 }, b: { dx: 125, dy: 0 }, c: { dx: 0, dy: 0 } }, 'distribute spaces centres evenly');
+eq(distributeOffsets({ a: bx.a, c: bx.c }, 'x'), {}, 'distribute needs three parts');
 eq(diff.diffProps('x', { 'bogus.key': 1 }, {}, () => undefined), [], 'unknown keys are ignored');
 
 // ── Engine, in a sandbox namespace ──
