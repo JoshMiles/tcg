@@ -87,6 +87,12 @@ export function EditorTopBar() {
     discardDraft,
     reviewSignal,
     showSaved,
+    showRulers,
+    toggleRulers,
+    guides,
+    setGuides,
+    guidesLocked,
+    setGuidesLocked,
     setShowSaved,
     showThirds,
     setShowThirds,
@@ -217,6 +223,9 @@ export function EditorTopBar() {
           <MenuItem label="100%" icon="search" shortcut="Ctrl+1" onSelect={zoomActual} />
           <MenuItem label="Canvas only" icon="eye" shortcut="Tab" onSelect={() => setFocusMode(true)} />
           <MenuItem label="Before / after" icon="eye" checked={showSaved} disabled={!dirty} onSelect={() => setShowSaved(v => !v)} />
+          <MenuItem label="Rulers" icon="ruler" shortcut="Ctrl+R" checked={showRulers} onSelect={toggleRulers} />
+          <MenuItem label="Lock guides" icon="lock" checked={guidesLocked} onSelect={() => setGuidesLocked(v => !v)} />
+          <MenuItem label="Clear guides" icon="x" disabled={guides.x.length + guides.y.length === 0} onSelect={() => setGuides({ x: [], y: [] })} />
           <GuidesMenu
             showThirds={showThirds}
             setShowThirds={setShowThirds}

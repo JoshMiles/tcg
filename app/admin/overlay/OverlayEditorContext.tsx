@@ -46,6 +46,10 @@ import { LAYER_NAMES } from './LayersPanel';
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
 export type Tool = 'move' | 'hand' | 'zoom';
+/** The user's own guide lines, in design px (an editor aid: kept in localStorage per scope, never saved to the overlay). */
+export type Guides = { x: number[]; y: number[] };
+const RULERS_KEY = 'tcg:overlay-rulers';
+const GUIDES_KEY = 'tcg:overlay-guides:';
 const DRAFT_KEY = 'overlay-editor-draft';
 const VIEW_NAMES: Record<Mode, string> = { pack: 'pack opening', collection: 'collection view' };
 const snapKey = (x: Snap) => JSON.stringify([canon(x.g), Object.keys(x.p).sort().map(k => [k, canon(x.p[k])]), x.l]);
@@ -208,6 +212,12 @@ export interface OverlayEditorContextValue {
   play: () => void;
   showGrid: boolean;
   setShowGrid: React.Dispatch<React.SetStateAction<boolean>>;
+  showRulers: boolean;
+  toggleRulers: () => void;
+  guides: Guides;
+  setGuides: React.Dispatch<React.SetStateAction<Guides>>;
+  guidesLocked: boolean;
+  setGuidesLocked: React.Dispatch<React.SetStateAction<boolean>>;
   showThirds: boolean;
   setShowThirds: React.Dispatch<React.SetStateAction<boolean>>;
   showSafe: boolean;
@@ -394,6 +404,30 @@ export function OverlayEditorProvider({
   const [saveSignal, setSaveSignal] = useState(0); // Ctrl+S: the top bar owns the save form and submits it when this changes
   const zoomAnchor = useRef<{ dx: number; dy: number; x: number; y: number } | null>(null);
   const [showThirds, setShowThirds] = useState(false);
+  const [showRulers, setShowRulers] = useState(false);
+  useEffect(() => { try { setShowRulers(localStorage.getItem(RULERS_KEY) === '1'); } catch { /* storage blocked */ } }, []);
+  const toggleRulers = () => setShowRulers(v => {
+    try { localStorage.setItem(RULERS_KEY, v ? '0' : '1'); } catch { /* storage blocked */ }
+    return !v;
+  });
+  // Guides follow the layout scope (a pack uses the global ones); `guidesFor` is the key they were loaded for, so a scope switch never saves the old ones under the new key.
+  const [guides, setGuides] = useState<Guides>({ x: [], y: [] });
+  const [guidesLocked, setGuidesLocked] = useState(false);
+  const guidesFor = useRef('');
+  useEffect(() => {
+    let g: Guides = { x: [], y: [] };
+    try {
+      const d = JSON.parse(localStorage.getItem(GUIDES_KEY + layoutKey) ?? 'null');
+      const nums = (a: unknown) => (Array.isArray(a) ? a.filter((n): n is number => typeof n === 'number' && Number.isFinite(n)) : []);
+      if (d) g = { x: nums(d.x), y: nums(d.y) };
+    } catch { /* storage blocked or corrupt */ }
+    guidesFor.current = layoutKey;
+    setGuides(g);
+  }, [layoutKey]);
+  useEffect(() => {
+    if (guidesFor.current !== layoutKey) return;
+    try { localStorage.setItem(GUIDES_KEY + layoutKey, JSON.stringify(guides)); } catch { /* storage blocked */ }
+  }, [guides]); // eslint-disable-line react-hooks/exhaustive-deps
   const [showGrid, setShowGrid] = useState(false);
   const [showSafe, setShowSafe] = useState(false);
   const [snapOn, setSnapOn] = useState(true);
@@ -1077,6 +1111,7 @@ export function OverlayEditorProvider({
       else if (k === 'z' || k === 'y') redo();
       else if (k === 's') setSaveSignal(n => n + 1);
       else if (k === 'd') setSelected('');
+      else if (k === 'r') toggleRulers();
       else if (k === '0') zoomFit();
       else if (k === '1') zoomActual();
       else if (k === '=' || k === '+') zoomStep(1);
@@ -1144,6 +1179,10 @@ export function OverlayEditorProvider({
   useEffect(() => {
     if (ready) post({ type: 'selected', target: selected, view: viewSelected && !isPack, canEdit: dragging || (viewSelected && !isPack), snap: snapOn });
   }, [ready, loadedCount, selected, viewSelected, dragging, isPack, snapOn, post]);
+  // The preview snaps a dragged part to the user's guides too.
+  useEffect(() => {
+    if (ready) post({ type: 'guides', x: guides.x, y: guides.y });
+  }, [ready, loadedCount, guides, post]);
 
   const catId = isPack && category === 'collection' ? 'pack' : category;
 
@@ -1287,6 +1326,12 @@ export function OverlayEditorProvider({
     setShowSafe,
     snapOn,
     setSnapOn,
+    showRulers,
+    toggleRulers,
+    guides,
+    setGuides,
+    guidesLocked,
+    setGuidesLocked,
     zoom,
     setZoom,
     activeTool,
