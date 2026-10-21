@@ -26,7 +26,7 @@ import {
   type PropValues,
   type VariantId,
 } from '@/lib/overlay-props';
-import { DEFAULT_LAYOUT, sanitizeLayout, type ElementId, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { DEFAULT_LAYOUT, sanitizeLayout, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import {
   VARIANT_LABELS,
@@ -170,6 +170,7 @@ export interface OverlayEditorContextValue {
   openLayerMenu: (view: Mode, id: string | null, x: number, y: number) => void;
   closeLayerMenu: () => void;
   resetLayer: (view: Mode, id: string | null) => void;
+  editLayer: (view: Mode, id: string, patch: Partial<ElementPlacement>) => void;
   centerLayer: (view: Mode) => void;
   copyLayerToScenes: (view: Mode, id: string | null) => void;
   sceneCount: number;
@@ -948,15 +949,27 @@ export function OverlayEditorProvider({
 
   // One part of a view (the label, the bar...) moved on its own; back at its normal spot it is dropped from the layout.
   const elementAt = (view: Mode, id: string) => layout[view].elements?.[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 };
-  const setElement = (view: Mode, id: string, patch: Partial<Pick<Placement, 'scale' | 'offsetX' | 'offsetY'>>) =>
+  const setElement = (view: Mode, id: string, patch: Partial<ElementPlacement>) =>
     setLayoutVals(l => {
       const elements = { ...l[view].elements };
       const next = { ...(elements[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 }), ...patch };
-      if (next.offsetX === 0 && next.offsetY === 0 && next.scale === 1) delete elements[id as ElementId];
+      if (next.opacity === undefined || next.opacity >= 1) delete next.opacity;
+      if (next.offsetX === 0 && next.offsetY === 0 && next.scale === 1 && next.opacity === undefined) delete elements[id as ElementId];
       else elements[id as ElementId] = next;
       return { ...l, [view]: { ...l[view], elements } };
     });
   const moveElement = (view: Mode, id: string, ox: number, oy: number) => setElement(view, id, { offsetX: ox, offsetY: oy });
+  // The Layer block's fields: the same clamps as dragging, resizing and sanitizeLayout, one labelled History step per edit.
+  const editLayer = (view: Mode, id: string, patch: Partial<ElementPlacement>) => {
+    const name = LAYER_NAMES[id as ElementId];
+    const next: Partial<ElementPlacement> = {};
+    if (patch.offsetX !== undefined) next.offsetX = Math.round(Math.min(layout.width, Math.max(-layout.width, patch.offsetX)));
+    if (patch.offsetY !== undefined) next.offsetY = Math.round(Math.min(layout.height, Math.max(-layout.height, patch.offsetY)));
+    if (patch.scale !== undefined) next.scale = Math.round(Math.min(3, Math.max(0.25, patch.scale)) * 100) / 100;
+    if (patch.opacity !== undefined) next.opacity = Math.round(Math.min(1, Math.max(0, patch.opacity)) * 100) / 100;
+    tagEdit(next.scale !== undefined ? `Resize ${name}` : next.opacity !== undefined ? `Fade ${name}` : `Move ${name}`);
+    setElement(view, id, next);
+  };
 
   // Corner-handle resize: `factor` is the pointer's distance from the centre against where the press began (aspect kept).
   const resizeTo = (target: string, wholeView: boolean, factor: number) => {
@@ -1282,6 +1295,7 @@ export function OverlayEditorProvider({
     openLayerMenu,
     closeLayerMenu,
     resetLayer,
+    editLayer,
     centerLayer,
     copyLayerToScenes,
     sceneCount: sceneKeys.length,

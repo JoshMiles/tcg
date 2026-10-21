@@ -190,14 +190,14 @@
 /* Parts moved on their own in the Overlay Editor (widget.js applyLayout sets --el-<id>-x / -y / -s, design px). Standalone
    translate / scale, so they stack with each reveal's keyframes (which animate transform and rotate, never these).
    Parts inside .card-box divide by --card-scale so an offset is design px, matching the pointer. */
-.main-card         { translate: calc(var(--el-card-x, 0px) / var(--card-scale, 1))  calc(var(--el-card-y, 0px) / var(--card-scale, 1));  scale: var(--el-card-s, 1); }
-.card-label        { translate: calc(var(--el-label-x, 0px) / var(--card-scale, 1)) calc(var(--el-label-y, 0px) / var(--card-scale, 1)); scale: var(--el-label-s, 1); }
-.serial-badge      { translate: calc(var(--el-serial-x, 0px) / var(--card-scale, 1)) calc(var(--el-serial-y, 0px) / var(--card-scale, 1)); scale: var(--el-serial-s, 1); }
-.card-info-overlay { translate: calc(var(--el-bar-x, 0px) / var(--card-scale, 1))   calc(var(--el-bar-y, 0px) / var(--card-scale, 1));   scale: var(--el-bar-s, 1); }
-.is-pack .user-text      { translate: var(--el-got-x, 0px)   var(--el-got-y, 0px);   scale: var(--el-got-s, 1); }
-.is-pack .card-mini-list { translate: var(--el-strip-x, 0px) var(--el-strip-y, 0px); scale: var(--el-strip-s, 1); }
-.is-collection .user-text      { translate: var(--el-heading-x, 0px) var(--el-heading-y, 0px); scale: var(--el-heading-s, 1); }
-.is-collection .card-mini-list { translate: var(--el-grid-x, 0px)    var(--el-grid-y, 0px);    scale: var(--el-grid-s, 1); }
+.main-card         { translate: calc(var(--el-card-x, 0px) / var(--card-scale, 1))  calc(var(--el-card-y, 0px) / var(--card-scale, 1));  scale: var(--el-card-s, 1); filter: var(--el-card-f, none); }
+.card-label        { translate: calc(var(--el-label-x, 0px) / var(--card-scale, 1)) calc(var(--el-label-y, 0px) / var(--card-scale, 1)); scale: var(--el-label-s, 1); filter: var(--el-label-f, none); }
+.serial-badge      { translate: calc(var(--el-serial-x, 0px) / var(--card-scale, 1)) calc(var(--el-serial-y, 0px) / var(--card-scale, 1)); scale: var(--el-serial-s, 1); filter: var(--el-serial-f, none); }
+.card-info-overlay { translate: calc(var(--el-bar-x, 0px) / var(--card-scale, 1))   calc(var(--el-bar-y, 0px) / var(--card-scale, 1));   scale: var(--el-bar-s, 1); filter: var(--el-bar-f, none); }
+.is-pack .user-text      { translate: var(--el-got-x, 0px)   var(--el-got-y, 0px);   scale: var(--el-got-s, 1); filter: var(--el-got-f, none); }
+.is-pack .card-mini-list { translate: var(--el-strip-x, 0px) var(--el-strip-y, 0px); scale: var(--el-strip-s, 1); filter: var(--el-strip-f, none); }
+.is-collection .user-text      { translate: var(--el-heading-x, 0px) var(--el-heading-y, 0px); scale: var(--el-heading-s, 1); filter: var(--el-heading-f, none); }
+.is-collection .card-mini-list { translate: var(--el-grid-x, 0px)    var(--el-grid-y, 0px);    scale: var(--el-grid-s, 1); filter: var(--el-grid-f, none); }
 /* The pack opening isn't symmetric around the wrapper's centre: at its peak the card and tear strip swing
    ~425px above it but only ~208px below. Nudge pack draws down so the animation (measured -425..+208px)
    sits in the middle of the stage. Collections aren't affected. */

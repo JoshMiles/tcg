@@ -88,6 +88,9 @@ function applyLayout(layout) {
     root.setProperty('--el-' + id + '-x', n0(e.offsetX) + 'px');
     root.setProperty('--el-' + id + '-y', n0(e.offsetY) + 'px');
     root.setProperty('--el-' + id + '-s', String(typeof e.scale === 'number' && e.scale > 0.05 ? e.scale : 1));
+    // Opacity goes through filter, which never touches the opacity the reveal animations and the fade-ins drive on these nodes.
+    if (typeof e.opacity === 'number' && e.opacity >= 0 && e.opacity < 1) root.setProperty('--el-' + id + '-f', 'opacity(' + e.opacity + ')');
+    else root.removeProperty('--el-' + id + '-f');
   }
   root.setProperty('--pack-scale', String(PLACEMENTS.pack.scale));
   root.setProperty('--pack-x', PLACEMENTS.pack.offsetX + 'px');
@@ -1090,6 +1093,7 @@ function styleShowLabel(el, P) {
   // The Overlay Editor's own move of this label (the pack opening's "showlabel" part) adds to the nudge above.
   el.style.translate = 'calc(' + x + 'px + var(--el-showlabel-x, 0px)) calc(' + y + 'px + var(--el-showlabel-y, 0px))';
   el.style.scale = 'var(--el-showlabel-s, 1)';
+  el.style.filter = 'var(--el-showlabel-f, none)';
 }
 const headingText = (P, user) => String(pv(P, 'collection.headingText', "{user}'s collection:")).split('{user}').join(user || 'Someone');
 

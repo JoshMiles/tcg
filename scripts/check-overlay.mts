@@ -145,6 +145,9 @@ const el = sanitizeLayout({ pack: { elements: { label: { offsetX: 12.4, offsetY:
 eq(el.pack.elements, { label: { scale: 1, offsetX: 12, offsetY: -3 }, got: { scale: 3, offsetX: 1280, offsetY: 0 } }, 'unknown and wrong-view ids are dropped, defaults omitted, values clamped');
 eq(el.collection.elements, { heading: { scale: 1, offsetX: 0, offsetY: 4 } }, 'the collection view keeps only its own parts');
 ok(diff.diffLayout(DEFAULT_LAYOUT, el).some(l => l.label.includes('label')), 'layout diff lists a moved element');
+const op = sanitizeLayout({ pack: { elements: { label: { opacity: 0.6 }, bar: { opacity: 1 }, got: { opacity: 7 }, strip: { opacity: -2 }, serial: { opacity: 'x', offsetX: 3 }, card: { opacity: 0.456 } } } }).pack.elements;
+eq(op, { card: { scale: 1, offsetX: 0, offsetY: 0, opacity: 0.46 }, label: { scale: 1, offsetX: 0, offsetY: 0, opacity: 0.6 }, serial: { scale: 1, offsetX: 3, offsetY: 0 }, strip: { scale: 1, offsetX: 0, offsetY: 0, opacity: 0 } }, 'opacity is clamped to 0..1 and omitted at 1 or when invalid');
+ok(diff.diffLayout(DEFAULT_LAYOUT, sanitizeLayout({ pack: { elements: { label: { opacity: 0.6 } } } })).some(l => l.label === 'Pack opening label opacity' && l.from === '100%' && l.to === '60%'), 'layout diff lists an opacity change');
 eq(diff.diffProps('x', { 'bogus.key': 1 }, {}, () => undefined), [], 'unknown keys are ignored');
 
 // ── Engine, in a sandbox namespace ──
