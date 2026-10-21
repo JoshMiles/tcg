@@ -18,10 +18,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
 | 35.3 | Richer Android install | Ready | S |
-| 38.2 | Overlay Editor: History panel | Ready | S |
-| 38.3 | Overlay Editor: rulers and your own guides | Ready | S |
-| 38.4 | Overlay Editor: layer Properties (transform, opacity) | Ready | M |
-| 38.5 | Overlay Editor: multi-select, lock, align and distribute | Ready | M |
 | 38.6 | Overlay Editor: every part a layer (moment banner) | Ready | S |
 | 38.7 | Overlay Editor: add your own layers (text, image, shape) | Ready | L |
 | 38.8 | Overlay Editor: text formatting (a Character panel on every text layer) | Ready | L |
@@ -74,25 +70,6 @@ Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers
 **Reuse the card back editor.** `app/admin/components/card-back/` (`Canvas`, `Layers`, `Properties`) and `lib/card-back-edit.ts` already do multi-select, lock, show / hide, reorder, duplicate, Add text and `alignElements` / `distributeElements`. Lift what fits into shared code rather than writing it twice; the overlay differs only in that its layers live in an iframe and report their boxes by `postMessage`.
 
 **Rules for the whole track.** Preview mode never touches the queue, heartbeat or collections. Layer edits stay global or per scene, never per pack (handles, Layers and these tools stay hidden in pack scope). Reveal keyframes animate `transform` / `rotate` / `opacity` / `filter`; layer settings use the standalone `translate` / `scale` properties or a wrapper so they stack with them, never the animated property itself. Every new stored field goes through `sanitizeLayout()` with an empty default that equals today's look (no migration), plus a `scripts/check-overlay.mts` case.
-
-### 38.2 History panel (Ready, S)
-- A collapsible **History** section in the dock under Layers, listing the undo stack newest last ("Move label", "Resize card", "Reveal animation: Flip", "Load version 'Halloween'"), with the saved state as the first row. Click a row to jump there; steps after it grey out until a new edit drops them (Photoshop's model).
-- Each undo snapshot gets a short `label`, set where the snapshot is taken (drag, resize, a property change by its `PropDef.label`, reset, load). The 60-step cap and 500 ms coalescing stay.
-
-### 38.3 Rulers and your own guides (Ready, S)
-- **Rulers** along the top and left of the canvas in design px (they follow zoom and pan), toggled with **Ctrl+R** and the Guides menu.
-- Drag from a ruler to make a **guide**; drag it back off to delete; Guides menu: Clear guides, Lock guides. Snapping (36.4) includes them.
-- Guides are an editor aid and are not saved to the overlay: keep them in localStorage per scope (`tcg:overlay-guides:<global|scene:id>`), like the canvas background.
-
-### 38.4 Layer Properties (Ready, M)
-- When a layer is selected, the dock shows a **Layer** section at the top (Photoshop's Properties panel): X, Y, size % as number fields for that part's `Placement.elements` entry (or the view's own placement when a view is selected), Reset, and a link "Look settings" that jumps to its category section, as a click does today.
-- Add **opacity** (0 to 100%) to element placements: `opacity?: number` in the element entry, clamped, default omitted. Opacity is animated by the reveals, so apply it on a wrapper or through `filter: opacity()` only where `filter` isn't animated on that part; check every reveal style and the show-off with a faded part before shipping.
-- Not in this item: rotation. `.main-card` animates `rotate` (tilt, rock); rotating other parts needs the same per-part check and goes in only if the user asks.
-
-### 38.5 Multi-select, lock, align and distribute (Ready, M)
-- **Shift+click** (canvas or Layers) adds to the selection; drag, arrows and corner handles move or scale all selected parts as one undo step. Selection state becomes a set; the widget outlines each.
-- **Align** (left, centre, right, top, middle, bottom) to the selection, or to the stage when one part is selected, and **Distribute** horizontally / vertically with three or more, in the options bar while something is selected. Offsets are relative to each part's CSS spot, so the widget reports each selected part's on-stage box (`{ type: 'boxes', boxes }`, design px; it already measures them for snapping) and the editor turns the target box into new offsets. Reuse the maths in `lib/card-back-edit.ts`.
-- **Lock** per layer (lock icon in Layers): a locked part can't be dragged, nudged or resized on the canvas (clicking still opens its settings). Locks are an editor aid kept in localStorage per scope, not saved to the overlay.
 
 ### 38.6 Every part a layer (Ready, S)
 - Give the **moment banner** an element id (`banner`, pack view) with its `data-edit` tag, so it can be selected, moved and sized like the rest (docs/overlay.md notes it has none). Check the first-ever / first-pull / new-card banners and the show-off.
@@ -245,7 +222,7 @@ Saving a preset or version captures a still of the preview (the widget draws its
 ### 38.28 Scheduled looks (Ready, M)
 A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
 
-**Build order for the track:** 38.2 to 38.6 → 38.15 with 38.29 (f), 38.16 → text work (38.11, 38.12, 38.8, 38.9, 38.10) → 38.7 → 38.29 (g) → 38.30 (after 38.12 (a)) → 38.17 to 38.28 in any order.
+**Build order for the track:** 38.6 → 38.15 with 38.29 (f), 38.16 → text work (38.11, 38.12, 38.8, 38.9, 38.10) → 38.7 → 38.29 (g) → 38.30 (after 38.12 (a)) → 38.17 to 38.28 in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 
