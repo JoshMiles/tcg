@@ -105,20 +105,25 @@ const { runInSandbox, prodKv } = await import('../lib/db');
 // ── Pure: overlay text fonts (ROADMAP 28.4) ──
 {
   const { FONT_IDS } = await import('../lib/card-back');
+  const { PROPS, sanitizePropValues } = await import('../lib/overlay-props');
   const { overlayFontCatalog } = await import('../lib/card-back-overlay');
   const { readFileSync } = await import('node:fs');
-  const fontKeys = ['reveal.labelFont', 'show.labelFont', 'moment.firstEver.font', 'moment.firstPull.font', 'moment.newCard.font'];
-  ok(fontKeys.every(k => DEFAULT_PROPS[k] === 'display'), 'overlay text fonts default to site display');
-  ok(fontKeys.every(k => {
+  const layerKeys = PROPS.filter(p => /Font$|^moment\.\w+\.font$/.test(p.key)).map(p => p.key);
+  ok(layerKeys.length === 12 && ['reveal.labelFont', 'show.labelFont', 'moment.firstEver.font', 'reveal.gotFont', 'collection.headingFont'].every(k => layerKeys.includes(k)), 'every text layer has a font key');
+  ok(DEFAULT_PROPS['text.font'] === 'display', 'the overlay font defaults to site display');
+  ok(layerKeys.every(k => DEFAULT_PROPS[k] === 'inherit'), 'text layer fonts default to the overlay font');
+  ok(layerKeys.every(k => {
     const opts = (PROP_BY_KEY[k].options ?? []).map(o => o.value);
-    return opts.length === FONT_IDS.length && FONT_IDS.every((id, i) => opts[i] === id);
-  }), 'font selects use the card-back faces');
+    return opts.length === FONT_IDS.length + 1 && opts[0] === 'inherit' && FONT_IDS.every((id, i) => opts[i + 1] === id);
+  }), 'layer font selects are the overlay font plus the card-back faces');
+  ok(PROP_BY_KEY['text.font'].options?.map(o => o.value).join() === FONT_IDS.join(), 'overlay font select is the card-back faces');
+  ok(sanitizePropValues({ 'reveal.labelFont': 'inherit', 'show.labelFont': 'display', 'text.font': 'inherit' })['show.labelFont'] === 'display', 'saved display still valid; inherit is the default and drops');
   const fonts = overlayFontCatalog();
   const fredoka = fonts.find(f => f.id === 'fredoka');
   ok(fredoka?.file === 'fredoka-700.woff2' && fredoka.family === 'BackFredoka' && fredoka.weight === 700, 'catalog prefers the 700 card-back file');
   ok(!fonts.find(f => f.id === 'display')?.file && fonts.find(f => f.id === 'bebas')?.file === 'bebas-neue-400.woff2', 'site display has no file; a 400-only face uses that file');
   const w = readFileSync('public/widget.js', 'utf8');
-  ok(w.includes("id === 'display'") && w.includes('reveal.labelFont') && w.includes('show.labelFont'), 'display leaves the stylesheet font');
+  ok(w.includes("id === 'display'") && w.includes('text.font') && layerKeys.every(k => w.includes("'" + k + "'") || k.startsWith('moment.')), 'display leaves the stylesheet font; every layer key is read by the widget');
 }
 
 // ── Pure: perf ──

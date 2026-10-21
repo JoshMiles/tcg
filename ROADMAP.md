@@ -20,7 +20,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 36.2 | Overlay Editor: element layers (per-element placement) | Ready | L |
 | 36.3 | Overlay Editor: Layers panel | Ready (after 36.2) | M |
 | 36.4 | Overlay Editor: on-canvas handles and smaller polish | Ready (after 36.2) | M |
-| 36.5 | Overlay Editor: a font on every text layer | Ready | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -73,14 +72,6 @@ Goal: every visible part of the overlay is a layer you can click, drag and size 
 - Right-click on a layer: Reset position, Center, Copy position to other scenes.
 - Show a short first-use hint on the canvas ("Click anything to edit it, drag to move it"), dismissed for good once closed (localStorage).
 - Update `docs/overlay.md` (layout and editor sections) to describe layers.
-
-### 36.5 A font on every text layer (Ready, M)
-Independent of 36.1 to 36.4. Like a design tool's character panel: select any text and pick its font.
-- **One catalogue:** reuse `BACK_FONTS` / `FONT_OPTIONS` (`lib/card-back.ts`, `lib/overlay-props.ts`) and the widget's `FONT_CATALOG` + `applyTextFont()`. No new fonts, no weight or size controls in this item.
-- **Overlay font:** a new global property `text.font` (default `display`, so today's look), in the Text or General group. It is the font every text layer uses unless the layer picks its own.
-- **Per layer:** every visible text element gets a `<group>.font` select (card label, "got:" line, bar text, serial pill, moment banners, show-off label, collection heading and counters, and any other text the widget draws; list them from `widget.js`). Options are `Overlay font` (value `inherit`, the new default) followed by `FONT_OPTIONS`. The three existing keys (`reveal.labelFont`, `show.labelFont`, `<moment>.font`) switch their default to `inherit` too; saved values stay as they are, so nothing migrates. Same scope rules as the group each key sits in (pack override where the group already allows it).
-- **Widget:** `applyTextFont(el, id)` resolves `inherit` to `text.font` before applying; call it for every text layer where the layout is applied and on preview updates.
-- Verify: change the overlay font and one layer's font in the editor against the mock KV and see both update live; old saved props read back unchanged; `npm run verify`; update `docs/overlay.md` (properties).
 
 ## Blocked by the Twitch panel freeze
 
