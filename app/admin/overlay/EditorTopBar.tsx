@@ -8,6 +8,7 @@ import {
   PackToolsMenu,
   PresetsMenu,
   ReviewMenu,
+  ConflictBanner,
   SaveOptionsMenu,
   ScenesMenu,
   VersionsMenu,
@@ -76,6 +77,11 @@ export function EditorTopBar() {
     autoReload,
     setAutoReload,
     revert,
+    knownVersion,
+    conflict,
+    versionDiffs,
+    overwrite,
+    loadTheirs,
   } = useOverlayEditor();
 
   return (
@@ -238,12 +244,14 @@ export function EditorTopBar() {
         Refresh overlay
       </button>
 
+      {conflict && <ConflictBanner version={conflict} diffs={versionDiffs(conflict)} overwrite={overwrite} loadTheirs={loadTheirs} />}
       <ReviewMenu diffs={diffs} dirty={dirty} />
 
       <form action={saveAction} className="flex items-center gap-2">
         <input type="hidden" name="payload" value={payload} />
         <input type="hidden" name="scope" value={scope} />
         <input type="hidden" name="note" value={note} />
+        <input type="hidden" name="expectedVersion" value={knownVersion} />
         <input type="hidden" name="autoReload" value={autoReload ? 'on' : ''} />
         <button
           type="button"

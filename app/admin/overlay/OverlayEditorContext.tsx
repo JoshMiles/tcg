@@ -85,7 +85,7 @@ export interface OverlayEditorProps {
   initialLayout: OverlayLayout;
   initialScope: string;
   initialCategory?: string;
-  saveAction: (formData: FormData) => void | Promise<void>;
+  saveAction: (formData: FormData) => Promise<{ conflict: VersionInfo } | void>;
   savePresetAction: (formData: FormData) => void | Promise<void>;
   deletePresetAction: (formData: FormData) => void | Promise<void>;
 }
@@ -99,7 +99,14 @@ export interface OverlayEditorContextValue {
   seasons: SeasonInfo[];
   packCards: Record<string, CardInfo[]>;
   initialLayout: OverlayLayout;
-  saveAction: (formData: FormData) => void | Promise<void>;
+  saveAction: (formData: FormData) => Promise<void>;
+  /** The newest saved version the editor loaded, sent with Save; a newer one on the server is a conflict. */
+  knownVersion: string;
+  /** Set when the last Save was refused because someone saved a newer version. */
+  conflict: VersionInfo | null;
+  versionDiffs: (v: VersionInfo) => DiffLine[];
+  overwrite: () => void;
+  loadTheirs: () => void;
   savePresetAction: (formData: FormData) => void | Promise<void>;
   deletePresetAction: (formData: FormData) => void | Promise<void>;
 
@@ -346,6 +353,9 @@ export function OverlayEditorProvider({
   const [pickPack, setPickPack] = useState('');
   const [pickCard, setPickCard] = useState(0);
   const [versionList, setVersionList] = useState(versions);
+  const [knownVersion, setKnownVersion] = useState(versions[0]?.id ?? '');
+  const [conflict, setConflict] = useState<VersionInfo | null>(null);
+  useEffect(() => { setKnownVersion(versions[0]?.id ?? ''); }, [versions]);
   const [looks, setLooks] = useState(seasonLooks);
   const [note, setNote] = useState('');
   const [autoReload, setAutoReload] = useState(initialAutoReload);
@@ -562,13 +572,37 @@ export function OverlayEditorProvider({
 
   const shownLayout = showSaved ? initialActiveLayout : layout;
   const savedEffective: PropValues = isOver ? { ...initialGlobal, ...(initialPackMap[scope] ?? {}) } : initialGlobal;
-  const versionDistance = (v: VersionInfo) =>
-    diffLayout(v.layout, layout).length +
-    diffProps('', v.props, globalVals, k => PROP_BY_KEY[k]?.default).length +
-    [...new Set([...Object.keys(v.packs), ...Object.keys(packVals)])].reduce(
-      (n, id) => n + diffProps('', v.packs[id] ?? {}, packVals[id] ?? {}, () => '(follows global)').length,
-      0,
-    );
+  const versionDiffs = (v: VersionInfo): DiffLine[] => [
+    ...diffLayout(v.layout, layout),
+    ...diffProps('Everything', v.props, globalVals, k => PROP_BY_KEY[k]?.default),
+    ...[...new Set([...Object.keys(v.packs), ...Object.keys(packVals)])].flatMap(id =>
+      diffProps(`Pack: ${packs.find(x => x.id === id)?.name ?? id}`, v.packs[id] ?? {}, packVals[id] ?? {}, () => '(follows global)'),
+    ),
+  ];
+  const versionDistance = (v: VersionInfo) => versionDiffs(v).length;
+
+  // Save goes through the version check: a refused save keeps the editor as it is and shows the conflict banner.
+  const guardedSave = async (fd: FormData) => {
+    const r = await saveAction(fd);
+    if (r) setConflict(r.conflict);
+  };
+  const overwrite = () => {
+    const fd = new FormData();
+    fd.set('payload', payload);
+    fd.set('scope', scope);
+    fd.set('note', note);
+    fd.set('autoReload', autoReload ? 'on' : '');
+    fd.set('expectedVersion', knownVersion);
+    fd.set('force', 'on');
+    setConflict(null);
+    void saveAction(fd);
+  };
+  const loadTheirs = () => {
+    if (!conflict) return;
+    loadVersion(conflict);
+    setKnownVersion(conflict.id);
+    setConflict(null);
+  };
 
   const loadVersion = (v: VersionInfo) => {
     setGlobalVals(v.props);
@@ -944,7 +978,12 @@ export function OverlayEditorProvider({
     seasons,
     packCards,
     initialLayout,
-    saveAction,
+    saveAction: guardedSave,
+    knownVersion,
+    conflict,
+    versionDiffs,
+    overwrite,
+    loadTheirs,
     savePresetAction,
     deletePresetAction,
     scope,
