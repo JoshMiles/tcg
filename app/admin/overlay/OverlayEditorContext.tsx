@@ -43,6 +43,7 @@ import {
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
+const DRAFT_KEY = 'overlay-editor-draft';
 const snapKey = (x: Snap) => JSON.stringify([canon(x.g), Object.keys(x.p).sort().map(k => [k, canon(x.p[k])]), x.l]);
 // Preview element (data-edit) -> the category and section that edit it; read both ways.
 const TARGET_SECTIONS: Record<string, [string, string?]> = {
@@ -120,6 +121,12 @@ export interface OverlayEditorContextValue {
   dirty: boolean;
   payload: string;
   revert: () => void;
+  /** An unsaved draft found in localStorage on open (null once restored or discarded); stale = made against an older saved version. */
+  draftOffer: { at: number; stale: boolean } | null;
+  restoreDraft: () => void;
+  discardDraft: () => void;
+  /** Bumped to open the Review popover. */
+  reviewSignal: number;
   notice: string;
   setNotice: (n: string) => void;
   refreshing: boolean;
@@ -547,6 +554,43 @@ export function OverlayEditorProvider({
     setPackVals(initialPackMap);
     setLayoutMap(initialLayoutMap);
   };
+
+  // Unsaved draft recovery: the whole editor state (global, packs, scenes, layouts) is kept in one localStorage entry, 1s after the last
+  // change, while there is anything unsaved; it is dropped as soon as the editor is clean again (Save, Revert, Discard).
+  // `base` is the newest saved version id the draft was made against. Storage may be blocked, so every access is guarded.
+  const baseVersion = versions[0]?.id ?? '';
+  const [draftOffer, setDraftOffer] = useState<{ at: number; stale: boolean; snap: Snap } | null>(null);
+  const [reviewSignal, setReviewSignal] = useState(0);
+  const storeDraft = (v: { base: string; at: number; snap: Snap } | null) => {
+    try { if (v) localStorage.setItem(DRAFT_KEY, JSON.stringify(v)); else localStorage.removeItem(DRAFT_KEY); } catch { /* storage blocked */ }
+  };
+  useEffect(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
+      if (!d?.snap?.g || !d.snap.p || !d.snap.l || typeof d.at !== 'number') return;
+      // A draft that already matches what is saved (it was saved just before the page closed) is not worth offering.
+      if (snapKey(d.snap) === snapKey({ g: initialGlobal, p: initialPackMap, l: initialLayoutMap })) { storeDraft(null); return; }
+      setDraftOffer({ at: d.at, stale: d.base !== baseVersion, snap: d.snap });
+    } catch { /* storage blocked or a corrupt draft */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (draftOffer) return; // an unanswered offer is kept as it is
+    if (!dirty) { storeDraft(null); return; }
+    const t = setTimeout(() => storeDraft({ base: baseVersion, at: Date.now(), snap: { g: globalVals, p: packVals, l: layoutMap } }), 1000);
+    return () => clearTimeout(t);
+  }, [dirty, draftOffer, globalVals, packVals, layoutMap, baseVersion]);
+  const restoreDraft = () => {
+    if (!draftOffer) return;
+    const { snap, stale } = draftOffer;
+    // Drop what no longer exists (a deleted pack or scene) so it can't be saved back.
+    const live = (k: string) => (k.startsWith('scene:') ? presets.some(x => 'scene:' + x.id === k) : k === 'global' || packs.some(x => x.id === k));
+    setGlobalVals(snap.g);
+    setPackVals(Object.fromEntries(Object.entries(snap.p).filter(([k]) => live(k))));
+    setLayoutMap({ ...initialLayoutMap, ...Object.fromEntries(Object.entries(snap.l).filter(([k]) => live(k)).map(([k, l]) => [k, sanitizeLayout(l)])) });
+    setDraftOffer(null);
+    if (stale) { setNotice('Restored a draft made against an older saved version. Review what differs, then Save.'); setReviewSignal(n => n + 1); }
+  };
+  const discardDraft = () => { storeDraft(null); setDraftOffer(null); };
 
   const diffs = useMemo(
     () => [
@@ -995,6 +1039,10 @@ export function OverlayEditorProvider({
     dirty,
     payload,
     revert,
+    draftOffer: draftOffer && { at: draftOffer.at, stale: draftOffer.stale },
+    restoreDraft,
+    discardDraft,
+    reviewSignal,
     notice,
     setNotice,
     refreshing,

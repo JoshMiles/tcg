@@ -262,9 +262,9 @@ function DiffList({ diffs }: { diffs: DiffLine[] }) {
   );
 }
 
-export function ReviewMenu({ diffs, dirty }: { diffs: DiffLine[]; dirty: boolean }) {
+export function ReviewMenu({ diffs, dirty, openSignal }: { diffs: DiffLine[]; dirty: boolean; openSignal?: number }) {
   return (
-    <Popover label={`Review${diffs.length ? ` (${diffs.length})` : ''}`} icon="list" align="right" disabled={!dirty}>
+    <Popover label={`Review${diffs.length ? ` (${diffs.length})` : ''}`} icon="list" align="right" disabled={!dirty} openSignal={openSignal}>
       <div className="w-104 max-w-[85vw] space-y-2 text-sm">
         <p className="text-xs text-gray-500">Everything that differs from what is saved. Nothing goes live until you Save.</p>
         <DiffList diffs={diffs} />
@@ -288,6 +288,18 @@ export function ConflictBanner({ version, diffs, overwrite, loadTheirs }: { vers
       </Popover>
       <button type="button" onClick={overwrite} className={btn}>Overwrite</button>
       <button type="button" onClick={loadTheirs} className={btn}>Load theirs</button>
+    </div>
+  );
+}
+
+/** Offered on open when an unsaved draft from an earlier session is in localStorage. */
+export function DraftBanner({ at, stale, restore, discard }: { at: number; stale: boolean; restore: () => void; discard: () => void }) {
+  return (
+    <div role="status" className="basis-full flex flex-wrap items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-950/20 px-3 py-2 text-sm text-sky-200">
+      <Icon name="history" />
+      <span>Restore unsaved changes from {new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC?{stale ? ' They were made against an older saved version; Review opens after restoring.' : ''}</span>
+      <button type="button" onClick={restore} className={ghost}>Restore</button>
+      <button type="button" onClick={discard} className={ghost}>Discard</button>
     </div>
   );
 }
