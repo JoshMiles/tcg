@@ -19,6 +19,14 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
 | 35.2 | Launch screen on iPhone | Ready | S |
 | 35.3 | Richer Android install | Ready | S |
+| 38.1 | Overlay Editor: tools, pan and shortcuts | Ready | M |
+| 38.2 | Overlay Editor: History panel | Ready | S |
+| 38.3 | Overlay Editor: rulers and your own guides | Ready | S |
+| 38.4 | Overlay Editor: layer Properties (transform, opacity) | Ready | M |
+| 38.5 | Overlay Editor: multi-select, lock, align and distribute | Ready | M |
+| 38.6 | Overlay Editor: every part a layer (moment banner) | Ready | S |
+| 38.7 | Overlay Editor: add your own layers (text, image) | Needs a decision | L |
+| 38.8 | Overlay Editor: layer styles (shadow, outline, glow) | Needs a decision | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -40,6 +48,54 @@ Steps 2 to 4 shipped in #330 (`apple-touch-icon-v3.png`, the 180 px manifest ent
 - Add 2 or 3 `screenshots` (phone size, `form_factor: 'narrow'`) to the manifest so Chrome shows the bigger install sheet. Take them from the seeded local site (`docs/local-dev.md`), never production data with real usernames.
 
 Not planned: offline caching of pages or data. `public/sw.js` deliberately caches only the offline page so nobody sees stale cards or scores.
+
+## Track 38: Overlay Editor, the Photoshop pass (2026-10-21)
+
+Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers, drag, corner handles, snapping, undo and a right-click menu; what is still missing is the rest of the habit: a tool strip and the usual shortcuts, panning around a zoomed canvas, a History list, rulers with guides you drag out, a Properties panel for the selected layer, multi-select with align / distribute, locking, and layers you add yourself. Read `docs/overlay.md` (layout, properties, editor) first. One PR per item, each from `origin/main`, in order; 38.1 to 38.6 stand alone.
+
+**Reuse the card back editor.** `app/admin/components/card-back/` (`Canvas`, `Layers`, `Properties`) and `lib/card-back-edit.ts` already do multi-select, lock, show / hide, reorder, duplicate, Add text and `alignElements` / `distributeElements`. Lift what fits into shared code rather than writing it twice; the overlay differs only in that its layers live in an iframe and report their boxes by `postMessage`.
+
+**Rules for the whole track.** Preview mode never touches the queue, heartbeat or collections. Layer edits stay global or per scene, never per pack (handles, Layers and these tools stay hidden in pack scope). Reveal keyframes animate `transform` / `rotate` / `opacity` / `filter`; layer settings use the standalone `translate` / `scale` properties or a wrapper so they stack with them, never the animated property itself. Every new stored field goes through `sanitizeLayout()` with an empty default that equals today's look (no migration), plus a `scripts/check-overlay.mts` case.
+
+### 38.1 Tools, pan and shortcuts (Ready, M)
+- A thin **tool strip** on the left of the canvas: **Move (V)**, the current select / drag; **Hand (H)**, drag pans the canvas; **Zoom (Z)**, click zooms in, Alt+click out. Holding **Space** is a temporary Hand, as in Photoshop. While Hand or Zoom is on, the canvas gets a transparent overlay above the iframe so presses don't reach the widget.
+- When zoomed past fit the canvas pans (today it always fits and never scrolls). **Ctrl+wheel** zooms at the pointer, wheel / Shift+wheel pan. **Ctrl+0** fit, **Ctrl+1** 100% (one design px = one screen px), **Ctrl++ / Ctrl+-** step.
+- More shortcuts in the existing `keydown` handler (`OverlayEditorContext.tsx`): **Ctrl+S** Save, **Ctrl+D** deselect, **Tab** hides the dock and rail (canvas only), **H** in Layers toggles the selected layer's eye where it has one. Forward them from the iframe like the arrow keys. Never fire while typing in a field.
+- A **Keyboard shortcuts** sheet (`?` and a button in the options bar) listing all of them.
+- Verify: zoom to 400%, pan with Space, Ctrl+0 back; Ctrl+S saves; shortcuts ignored in a text field.
+
+### 38.2 History panel (Ready, S)
+- A collapsible **History** section in the dock under Layers, listing the undo stack newest last ("Move label", "Resize card", "Reveal animation: Flip", "Load version 'Halloween'"), with the saved state as the first row. Click a row to jump there; steps after it grey out until a new edit drops them (Photoshop's model).
+- Each undo snapshot gets a short `label`, set where the snapshot is taken (drag, resize, a property change by its `PropDef.label`, reset, load). The 60-step cap and 500 ms coalescing stay.
+
+### 38.3 Rulers and your own guides (Ready, S)
+- **Rulers** along the top and left of the canvas in design px (they follow zoom and pan), toggled with **Ctrl+R** and the Guides menu.
+- Drag from a ruler to make a **guide**; drag it back off to delete; Guides menu: Clear guides, Lock guides. Snapping (36.4) includes them.
+- Guides are an editor aid and are not saved to the overlay: keep them in localStorage per scope (`tcg:overlay-guides:<global|scene:id>`), like the canvas background.
+
+### 38.4 Layer Properties (Ready, M)
+- When a layer is selected, the dock shows a **Layer** section at the top (Photoshop's Properties panel): X, Y, size % as number fields for that part's `Placement.elements` entry (or the view's own placement when a view is selected), Reset, and a link "Look settings" that jumps to its category section, as a click does today.
+- Add **opacity** (0 to 100%) to element placements: `opacity?: number` in the element entry, clamped, default omitted. Opacity is animated by the reveals, so apply it on a wrapper or through `filter: opacity()` only where `filter` isn't animated on that part; check every reveal style and the show-off with a faded part before shipping.
+- Not in this item: rotation. `.main-card` animates `rotate` (tilt, rock); rotating other parts needs the same per-part check and goes in only if the user asks.
+
+### 38.5 Multi-select, lock, align and distribute (Ready, M)
+- **Shift+click** (canvas or Layers) adds to the selection; drag, arrows and corner handles move or scale all selected parts as one undo step. Selection state becomes a set; the widget outlines each.
+- **Align** (left, centre, right, top, middle, bottom) to the selection, or to the stage when one part is selected, and **Distribute** horizontally / vertically with three or more, in the options bar while something is selected. Offsets are relative to each part's CSS spot, so the widget reports each selected part's on-stage box (`{ type: 'boxes', boxes }`, design px; it already measures them for snapping) and the editor turns the target box into new offsets. Reuse the maths in `lib/card-back-edit.ts`.
+- **Lock** per layer (lock icon in Layers): a locked part can't be dragged, nudged or resized on the canvas (clicking still opens its settings). Locks are an editor aid kept in localStorage per scope, not saved to the overlay.
+
+### 38.6 Every part a layer (Ready, S)
+- Give the **moment banner** an element id (`banner`, pack view) with its `data-edit` tag, so it can be selected, moved and sized like the rest (docs/overlay.md notes it has none). Check the first-ever / first-pull / new-card banners and the show-off.
+- Layers rows show an icon per kind (image, text, group) and the part's name as on the canvas tag. Double-click a row to jump to its settings.
+
+### 38.7 Add your own layers (Needs a decision, L)
+Photoshop's core: layers that aren't built in. Proposed: **Add layer** in Layers makes a **Text** layer (text, overlay font list, size, colour, alignment) or an **Image** layer (upload through `ImageUploadField` to Blob, e.g. a logo or a frame). Stored per view in the layout as `custom: CustomLayer[]` (`id`, `kind`, content, `Placement`, `opacity`, `visible`), so scenes carry them and versions snapshot them; at most 8 per view. Text can use `{viewer}`, `{card}`, `{pack}`, `{edition}` (filled by the widget, escaped). Custom layers can be reordered among themselves and put in one of two bands, **behind** or **in front of** the card; built-in parts keep their fixed order. Each one has "Show: always / during the reveal / after the reveal".
+**For the user:** (a) is this wanted, (b) text and image only, or shapes too, (c) in both views or the pack opening only.
+
+### 38.8 Layer styles (Needs a decision, M)
+Photoshop's fx: **Drop shadow**, **Outline** (stroke) and **Outer glow** on each text layer (label, serial, name bar text, "got:" line, heading, custom text), shown as an fx badge in Layers. Each style is a few registry props per text layer in `lib/overlay-props.ts` (so it is pack-overridable like other looks, unlike position), applied in `widget.js` as `text-shadow` / `-webkit-text-stroke`.
+**For the user:** worth the extra settings? It adds about 6 settings per text layer; the alternative is one shared "Text effects" section that styles every text layer at once.
+
+Not planned: free-floating or re-dockable panels, blend modes, masks, rotating the card itself (its tilt / rock animations own `rotate`).
 
 ## Blocked by the Twitch panel freeze
 
