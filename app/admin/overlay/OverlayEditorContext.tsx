@@ -64,6 +64,7 @@ const TARGET_SECTIONS: Record<string, [string, string?]> = {
   strip: ['pack', 'Cards under the card'],
   heading: ['collection', 'What to show'],
   serial: ['variants', 'Label'],
+  banner: ['moments'],
   grid: ['collection', 'Layout'],
 };
 /** The category and section (if any) that edit a preview element. */

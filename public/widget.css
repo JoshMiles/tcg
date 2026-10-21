@@ -192,6 +192,7 @@
    Parts inside .card-box divide by --card-scale so an offset is design px, matching the pointer. */
 .main-card         { translate: calc(var(--el-card-x, 0px) / var(--card-scale, 1))  calc(var(--el-card-y, 0px) / var(--card-scale, 1));  scale: var(--el-card-s, 1); filter: var(--el-card-f, none); }
 .card-label        { translate: calc(var(--el-label-x, 0px) / var(--card-scale, 1)) calc(var(--el-label-y, 0px) / var(--card-scale, 1)); scale: var(--el-label-s, 1); filter: var(--el-label-f, none); }
+.first-banner      { translate: calc(var(--el-banner-x, 0px) / var(--card-scale, 1)) calc(var(--el-banner-y, 0px) / var(--card-scale, 1)); scale: var(--el-banner-s, 1); filter: var(--el-banner-f, none); }
 .serial-badge      { translate: calc(var(--el-serial-x, 0px) / var(--card-scale, 1)) calc(var(--el-serial-y, 0px) / var(--card-scale, 1)); scale: var(--el-serial-s, 1); filter: var(--el-serial-f, none); }
 .card-info-overlay { translate: calc(var(--el-bar-x, 0px) / var(--card-scale, 1))   calc(var(--el-bar-y, 0px) / var(--card-scale, 1));   scale: var(--el-bar-s, 1); filter: var(--el-bar-f, none); }
 .is-pack .user-text      { translate: var(--el-got-x, 0px)   var(--el-got-y, 0px);   scale: var(--el-got-s, 1); filter: var(--el-got-f, none); }
