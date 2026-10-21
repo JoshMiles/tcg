@@ -26,7 +26,9 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.5 | Overlay Editor: multi-select, lock, align and distribute | Ready | M |
 | 38.6 | Overlay Editor: every part a layer (moment banner) | Ready | S |
 | 38.7 | Overlay Editor: add your own layers (text, image) | Needs a decision | L |
-| 38.8 | Overlay Editor: layer styles (shadow, outline, glow) | Needs a decision | M |
+| 38.8 | Overlay Editor: text formatting (a Character panel on every text layer) | Ready | L |
+| 38.9 | Overlay Editor: better text fields (tokens, preview, checks) | Ready | S |
+| 38.10 | Overlay Editor: styled words inside one text (rich text) | Needs a decision | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -91,9 +93,26 @@ Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers
 Photoshop's core: layers that aren't built in. Proposed: **Add layer** in Layers makes a **Text** layer (text, overlay font list, size, colour, alignment) or an **Image** layer (upload through `ImageUploadField` to Blob, e.g. a logo or a frame). Stored per view in the layout as `custom: CustomLayer[]` (`id`, `kind`, content, `Placement`, `opacity`, `visible`), so scenes carry them and versions snapshot them; at most 8 per view. Text can use `{viewer}`, `{card}`, `{pack}`, `{edition}` (filled by the widget, escaped). Custom layers can be reordered among themselves and put in one of two bands, **behind** or **in front of** the card; built-in parts keep their fixed order. Each one has "Show: always / during the reveal / after the reveal".
 **For the user:** (a) is this wanted, (b) text and image only, or shapes too, (c) in both views or the pack opening only.
 
-### 38.8 Layer styles (Needs a decision, M)
-Photoshop's fx: **Drop shadow**, **Outline** (stroke) and **Outer glow** on each text layer (label, serial, name bar text, "got:" line, heading, custom text), shown as an fx badge in Layers. Each style is a few registry props per text layer in `lib/overlay-props.ts` (so it is pack-overridable like other looks, unlike position), applied in `widget.js` as `text-shadow` / `-webkit-text-stroke`.
-**For the user:** worth the extra settings? It adds about 6 settings per text layer; the alternative is one shared "Text effects" section that styles every text layer at once.
+### 38.8 Text formatting: a Character panel on every text layer (Ready, L)
+Today an overlay text layer has a font (36.5) and, for some, a size and colour; nothing else. The card back editor already has the full set (`BackEl` and `Effects` in `lib/card-back.ts`: weight, italic, underline, uppercase, letter spacing, line height, align, colour, opacity, and effects outline, glow, shadow, engrave, gradient text). Give every overlay text layer the same, as one Photoshop-style **Character** block. This replaces the old 38.8 (layer styles) and answers its question: one compact block per layer, not ~12 loose settings each.
+- **Which layers:** card label (`reveal.label*`), edition pill and its serial line, corner numbers, name bar, "got:" line, strip ("?" and ×N), show-off label, the three moment banners and their small line, collection heading, collection card text, and custom text layers (38.7) if built. The `#alert` bar and dev panel stay unthemed.
+- **Shared model:** lift the text fields of `BackEl` and `Effects` into `lib/text-style.ts` (`TextStyle`: `weight`, `italic`, `underline`, `case` (none / upper / lower / title), `letterSpacing`, `lineHeight`, `align`, `opacity`, `fx` with outline, glow, shadow, gradient) with one `sanitizeTextStyle()`, and make the card back use it too, so the two editors can't drift. Engrave stays card-back only.
+- **Registry:** a new `PropType` `'textStyle'` (`lib/overlay-props.ts`): one key per layer (`reveal.labelStyle`, `reveal.gotStyle`, `collection.headingStyle`, ...) whose value is a partial `TextStyle`. Defaults are empty = today's look, so nothing migrates. Merging is **field by field** (defaults → global → season look → pack), so a pack can override just the outline colour. The existing font / size / colour keys stay where they are (no migration); the Character block shows them at its top so the user sees one panel. Teach `lib/overlay-diff.ts`, presets, import / export, versions and `scripts/check-overlay.mts` the object value (diff per field, e.g. "Label: outline 2 px → 3 px").
+- **Editor:** one `CharacterPanel` component, lifted from the text section of `card-back/Properties.tsx`, used by both editors: font, size, colour on the first row; B / I / U and case as toggle buttons; align segmented; spacing and line height sliders; an **fx** row (outline, glow, shadow, gradient) each with an on switch and its few fields. Layers rows show an `fx` badge when any effect is on, and right-click gains **Copy text style / Paste text style** (to any text layer, across views).
+- **Widget:** one `applyTextStyle(el, layerId, P)` beside `applyTextFont`, writing inline `font-weight`, `font-style`, `text-decoration`, `text-transform`, `letter-spacing`, `line-height`, `text-align`, and `text-shadow` / `-webkit-text-stroke` / `background-clip: text` for the effects. Do not set `opacity` or `filter` on the element itself (reveals animate them): fade text through its colour alpha, and put glow in `text-shadow`. Load the font file for the chosen weight (`BACK_FONTS` files are per weight; a missing weight falls back to the nearest).
+- **Verify:** each layer with outline + shadow + uppercase in every reveal style, the show-off and the three moments; a pack override of one field; old saved looks unchanged; Review lists field changes; `npm run verify`.
+- Split if it runs long: (a) shared model + card back on it, (b) registry type + widget, (c) the panel on every layer.
+
+### 38.9 Better text fields (Ready, S)
+The wording fields (label text, "got:" wording, banners, show-off wording, heading) are plain inputs with tokens explained in help text, and the tokens differ: `{user}` in some, `{username}` in others.
+- **Tokens:** accept both `{user}` and `{username}` everywhere (the widget already treats them the same in some places; make one `fillTokens()` in `widget.js` used by every text layer), and offer the same set where the data exists: `{user}`, `{cardName}`, `{variant}`, `{pack}`, `{edition}`, `{stars}`. Unknown tokens stay as typed (no silent blanks).
+- **Insert chips** under each text field listing its tokens; clicking one inserts it at the caret. Tokens show as highlighted chips inside the field.
+- **Live result** under the field ("cheesygidds got:") using the preview's sample viewer and card, and a character count against `maxLength`.
+- **Fit warning:** the widget reports when a text layer overflows its box in the still (`scrollWidth > clientWidth`) and the field shows "Too long for this size at 1280×720", with a one-click "Shrink to fit" (lowers that layer's size).
+
+### 38.10 Styled words inside one text (Needs a decision, M)
+Photoshop lets one text layer mix styles. Proposed: light markup in any wording field, `**bold**`, `*italic*` and `{color:#ffcc00}word{/color}`, plus an **Accent** style for tokens (e.g. the viewer's name in the pack's accent colour, set in the Character block as "Highlight tokens"). The editor field gets B / I / colour buttons that wrap the selection; the widget parses the markup into spans with `textContent` only (never `innerHTML` from saved text, since wording reaches OBS).
+**For the user:** (a) is mixing styles inside one line wanted, or is one style per layer (38.8) enough? (b) if yes, markup only, or just the "highlight tokens" switch, which covers the common case (coloured viewer name) with no markup at all?
 
 Not planned: free-floating or re-dockable panels, blend modes, masks, rotating the card itself (its tilt / rock animations own `rotate`).
 
@@ -111,7 +130,6 @@ Recommended first are marked ★. Sizes are rough.
 - **Measure with Alt (S).** Alt+hover over another layer shows the gap in px between it and the selected one (Photoshop's distance readout); a status bar shows pointer X / Y in design px.
 - **Navigator (S).** A mini-map of the stage while zoomed in; drag its box to pan (after 38.1).
 - **Swatches and eyedropper (S).** A Swatches row on every colour field: the active packs' accent colours, the site theme and recently used colours; an eyedropper button using the browser's `EyeDropper` (Chromium only, hidden elsewhere) to pick from the preview or the background screenshot.
-- **Copy / paste layer look (S).** Right-click a text layer: Copy style, Paste style onto another (font, colour, size; and 38.8's effects if built).
 - **Anchor point for resize (S).** A 9-point reference in the Layer section (38.4), so scaling grows from the centre or a corner instead of the CSS origin.
 
 **Overlay-specific**
