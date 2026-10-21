@@ -41,11 +41,13 @@ import {
   type Snap,
   type VersionInfo,
 } from './editor-types';
+import { LAYER_NAMES } from './LayersPanel';
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
 export type Tool = 'move' | 'hand' | 'zoom';
 const DRAFT_KEY = 'overlay-editor-draft';
+const VIEW_NAMES: Record<Mode, string> = { pack: 'pack opening', collection: 'collection view' };
 const snapKey = (x: Snap) => JSON.stringify([canon(x.g), Object.keys(x.p).sort().map(k => [k, canon(x.p[k])]), x.l]);
 // Preview element (data-edit) -> the category and section that edit it; read both ways.
 const TARGET_SECTIONS: Record<string, [string, string?]> = {
@@ -150,7 +152,7 @@ export interface OverlayEditorContextValue {
   // Layout & Placement
   layout: OverlayLayout;
   layoutVals: OverlayLayout;
-  setLayoutVals: (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout)) => void;
+  setLayoutVals: (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout), label?: string) => void;
   setPlacement: (patch: Partial<Placement> | ((p: Placement) => Partial<Placement>)) => void;
   layoutMoved: number;
   placement: Placement;
@@ -243,6 +245,10 @@ export interface OverlayEditorContextValue {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  historyLabels: string[];
+  historyIndex: number;
+  jumpTo: (i: number) => void;
+  tagEdit: (label: string) => void;
   presetName: string;
   setPresetName: (n: string) => void;
   importText: string;
@@ -335,10 +341,15 @@ export function OverlayEditorProvider({
   const scene = isScene ? presets.find(x => 'scene:' + x.id === scope) ?? null : null;
   const layoutKey = isScene ? scope : 'global';
   const layoutVals = layoutMap[layoutKey] ?? layoutMap.global;
+  // The History label for the step the next commit takes; the first edit of a coalesced step names it.
+  const pendingLabel = useRef<string | null>(null);
+  const tagEdit = useCallback((l: string) => { pendingLabel.current ??= l; }, []);
   const setLayoutVals = useCallback(
-    (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout)) =>
-      setLayoutMap(m => ({ ...m, [layoutKey]: typeof u === 'function' ? u(m[layoutKey] ?? m.global) : u })),
-    [layoutKey],
+    (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout), label = 'Layout') => {
+      tagEdit(label);
+      setLayoutMap(m => ({ ...m, [layoutKey]: typeof u === 'function' ? u(m[layoutKey] ?? m.global) : u }));
+    },
+    [layoutKey, tagEdit],
   );
   const layout = useMemo(() => sanitizeLayout(layoutVals), [layoutVals]);
   const initialActiveLayout = initialLayoutMap[layoutKey] ?? initialLayout;
@@ -430,6 +441,7 @@ export function OverlayEditorProvider({
     const def = PROP_BY_KEY[key];
     const v = cleanValue(def, raw);
     if (v === undefined) return;
+    tagEdit(def.label + (def.variant ? ` (${VARIANT_LABELS[def.variant]})` : ''));
     if (!isOver) {
       setGlobalVals(g => {
         const next = { ...g };
@@ -449,6 +461,7 @@ export function OverlayEditorProvider({
   };
 
   const resetKeys = (keys: string[]) => {
+    tagEdit(keys.length === 1 && PROP_BY_KEY[keys[0]] ? `Reset ${PROP_BY_KEY[keys[0]].label}` : `Reset ${keys.length} settings`);
     const drop = (m: PropValues) => {
       const n = { ...m };
       keys.forEach(k => delete n[k]);
@@ -459,6 +472,7 @@ export function OverlayEditorProvider({
   };
 
   const replaceCurrent = (next: PropValues) => {
+    tagEdit('Replace settings');
     if (!isOver) setGlobalVals(next);
     else setPackVals(p => ({ ...p, [scope]: next }));
   };
@@ -466,8 +480,9 @@ export function OverlayEditorProvider({
   // Undo / redo
   const stateRef = useRef<Snap>({ g: globalVals, p: packVals, l: layoutMap });
   stateRef.current = { g: globalVals, p: packVals, l: layoutMap };
-  const hist = useRef<{ list: Snap[]; i: number; timer: ReturnType<typeof setTimeout> | null; skip: boolean }>({
+  const hist = useRef<{ list: Snap[]; labels: string[]; i: number; timer: ReturnType<typeof setTimeout> | null; skip: boolean }>({
     list: [{ g: initialGlobal, p: initialPackMap, l: initialLayoutMap }],
+    labels: ['Opened'],
     i: 0,
     timer: null,
     skip: false,
@@ -481,8 +496,13 @@ export function OverlayEditorProvider({
       h.timer = null;
     }
     const cur = stateRef.current;
-    if (snapKey(cur) === snapKey(h.list[h.i])) return;
+    if (snapKey(cur) === snapKey(h.list[h.i])) {
+      pendingLabel.current = null;
+      return;
+    }
     h.list = [...h.list.slice(0, h.i + 1), cur].slice(-60);
+    h.labels = [...h.labels.slice(0, h.i + 1), pendingLabel.current ?? 'Edit'].slice(-60);
+    pendingLabel.current = null;
     h.i = h.list.length - 1;
     bump(n => n + 1);
   }, []);
@@ -524,6 +544,15 @@ export function OverlayEditorProvider({
     }
   };
 
+  // Jump to any step of the History panel: the same restore as undo / redo with a chosen index.
+  const jumpTo = (i: number) => {
+    commit();
+    const h = hist.current;
+    if (i < 0 || i >= h.list.length || i === h.i) return;
+    h.i = i;
+    restoreSnap(h.list[i]);
+  };
+
   const canUndo = hist.current.i > 0 || snapKey(stateRef.current) !== snapKey(hist.current.list[hist.current.i]);
   const canRedo = hist.current.i < hist.current.list.length - 1;
 
@@ -555,6 +584,7 @@ export function OverlayEditorProvider({
   });
 
   const revert = () => {
+    tagEdit('Revert all changes');
     setGlobalVals(initialGlobal);
     setPackVals(initialPackMap);
     setLayoutMap(initialLayoutMap);
@@ -589,6 +619,7 @@ export function OverlayEditorProvider({
   const restoreDraft = () => {
     if (!draftOffer) return;
     const { snap, stale } = draftOffer;
+    tagEdit('Restore draft');
     // Drop what no longer exists (a deleted pack or scene) so it can't be saved back.
     const live = (k: string) => (k.startsWith('scene:') ? presets.some(x => 'scene:' + x.id === k) : k === 'global' || packs.some(x => x.id === k));
     setGlobalVals(snap.g);
@@ -656,6 +687,7 @@ export function OverlayEditorProvider({
   };
 
   const loadVersion = (v: VersionInfo) => {
+    tagEdit(`Load version '${v.note || new Date(v.at).toLocaleString('en-GB', { timeZone: 'UTC' })}'`);
     setGlobalVals(v.props);
     setPackVals(m => ({ ...Object.fromEntries(Object.entries(m).filter(([k]) => k.startsWith('scene:'))), ...v.packs }));
     setLayoutMap(m => ({ ...m, global: v.layout }));
@@ -832,6 +864,7 @@ export function OverlayEditorProvider({
   const runImport = (text: string) => {
     try {
       const values = importProps(text);
+      tagEdit('Import settings');
       replaceCurrent(values);
       setImportError('');
       setImportText('');
@@ -842,11 +875,13 @@ export function OverlayEditorProvider({
   };
 
   const applyPreset = (p: PresetInfo) => {
+    tagEdit(`Apply look '${p.name}'`);
     replaceCurrent(isPack ? { ...(packVals[scope] ?? {}), ...p.props } : { ...p.props });
     setNotice(`Applied "${p.name}". Review, then Save.`);
   };
 
   const copyVariant = (from: VariantId) => {
+    tagEdit(`Copy ${VARIANT_LABELS[from]} look onto ${VARIANT_LABELS[version]}`);
     const next: PropValues = { ...current };
     for (const d of PROPS.filter(x => x.variant === version)) {
       const src = PROP_BY_KEY[d.key.replace(`variant.${version}.`, `variant.${from}.`)];
@@ -861,7 +896,7 @@ export function OverlayEditorProvider({
 
   const placement = layout[mode];
   const setPlacement = (patch: Partial<Placement> | ((p: Placement) => Partial<Placement>)) =>
-    setLayoutVals(l => ({ ...l, [mode]: { ...l[mode], ...(typeof patch === 'function' ? patch(l[mode]) : patch) } }));
+    setLayoutVals(l => ({ ...l, [mode]: { ...l[mode], ...(typeof patch === 'function' ? patch(l[mode]) : patch) } }), `Move ${VIEW_NAMES[mode]}`);
   const moved = (p: Placement) => p.scale !== 1 || p.offsetX !== 0 || p.offsetY !== 0;
   const layoutMoved =
     (moved(layout.pack) ? 1 : 0) +
@@ -875,7 +910,7 @@ export function OverlayEditorProvider({
   const viewOf = (t: string): Mode => (t === 'heading' || t === 'grid' ? 'collection' : 'pack');
 
   const moveView = (view: Mode, ox: number, oy: number) =>
-    setLayoutVals(l => ({ ...l, [view]: { ...l[view], offsetX: ox, offsetY: oy } }));
+    setLayoutVals(l => ({ ...l, [view]: { ...l[view], offsetX: ox, offsetY: oy } }), `Move ${VIEW_NAMES[view]}`);
 
   // One part of a view (the label, the bar...) moved on its own; back at its normal spot it is dropped from the layout.
   const elementAt = (view: Mode, id: string) => layout[view].elements?.[id as ElementId] ?? { scale: 1, offsetX: 0, offsetY: 0 };
@@ -896,6 +931,7 @@ export function OverlayEditorProvider({
       const view = wholeView ? mode : viewOf(target);
       const id = wholeView ? null : target;
       commit();
+      tagEdit(`Resize ${id ? LAYER_NAMES[id as ElementId] : VIEW_NAMES[view]}`);
       drag.current = { view, id, ox: 0, oy: 0, s0: (id ? elementAt(view, id) : layout[view]).scale };
     }
     const { view, id, s0 = 1 } = drag.current;
@@ -906,16 +942,19 @@ export function OverlayEditorProvider({
 
   // Right-click menu on a layer (a preview part, a Layers row or a view heading); `id` null = the whole view.
   const sceneKeys = presets.map(x => 'scene:' + x.id).filter(k => k !== layoutKey);
-  const resetLayer = (view: Mode, id: string | null) =>
+  const resetLayer = (view: Mode, id: string | null) => {
+    tagEdit(`Reset ${id ? LAYER_NAMES[id as ElementId] : VIEW_NAMES[view]}`);
     setLayoutVals(l => {
       if (!id) return { ...l, [view]: { ...l[view], scale: 1, offsetX: 0, offsetY: 0 } };
       const { [id as ElementId]: _gone, ...elements } = l[view].elements ?? {};
       return { ...l, [view]: { ...l[view], elements } };
     });
+  };
   // Only a whole view can be centred: a part's offset is relative to its normal spot, which is not the stage centre.
-  const centerLayer = (view: Mode) => setLayoutVals(l => ({ ...l, [view]: { ...l[view], offsetX: 0, offsetY: 0 } }));
+  const centerLayer = (view: Mode) => setLayoutVals(l => ({ ...l, [view]: { ...l[view], offsetX: 0, offsetY: 0 } }), `Center ${VIEW_NAMES[view]}`);
   const copyLayerToScenes = (view: Mode, id: string | null) => {
     const src = id ? layout[view].elements?.[id as ElementId] : { scale: layout[view].scale, offsetX: layout[view].offsetX, offsetY: layout[view].offsetY };
+    tagEdit('Copy layout to scenes');
     setLayoutMap(m => {
       const out = { ...m };
       for (const k of sceneKeys) {
@@ -939,6 +978,7 @@ export function OverlayEditorProvider({
       const view = viewOf(target);
       commit();
       const id = shift ? null : target;
+      tagEdit(`Move ${id ? LAYER_NAMES[id as ElementId] : VIEW_NAMES[view]}`);
       const start = id ? elementAt(view, id) : layout[view];
       drag.current = { view, id, ox: start.offsetX, oy: start.offsetY };
     }
@@ -974,6 +1014,7 @@ export function OverlayEditorProvider({
     if (!dragging) return true;
     const view = viewOf(selected);
     const cur = elementAt(view, selected);
+    tagEdit(`Nudge ${LAYER_NAMES[selected as ElementId] ?? selected}`);
     moveElement(view, selected, cur.offsetX + m[0], cur.offsetY + m[1]);
     return true;
   };
@@ -1275,6 +1316,10 @@ export function OverlayEditorProvider({
     redo,
     canUndo,
     canRedo,
+    historyLabels: hist.current.labels,
+    historyIndex: hist.current.i,
+    jumpTo,
+    tagEdit,
     presetName,
     setPresetName,
     importText,

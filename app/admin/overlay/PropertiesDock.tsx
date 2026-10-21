@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { PanelStack } from '../components/workspace/PanelStack';
 import { LAYER_NAMES, LayersPanel } from './LayersPanel';
+import { HistoryPanel } from './HistoryPanel';
 import { LayoutPanel } from './LayoutPanel';
 import { VariantPicker } from './VariantPicker';
 import { PropRow } from './editor-controls';
@@ -345,6 +346,7 @@ export function PropertiesDock() {
     <div className="min-h-0 h-[75vh] xl:h-auto">
       <PanelStack
         storageKey="tcg:overlay-panels"
+        defaultCollapsed={['history']}
         panels={[
           { id: 'properties', title: 'Properties', icon: 'settings', weight: 3, content: properties },
           {
@@ -367,6 +369,7 @@ export function PropertiesDock() {
               />
             ),
           },
+          { id: 'history', title: 'History', icon: 'history', weight: 1, content: <HistoryPanel /> },
         ]}
       />
     </div>

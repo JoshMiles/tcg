@@ -15,17 +15,17 @@ export function LayoutPanel({
   selected: string;
   mode: Mode;
   setMode: (m: Mode) => void;
-  setLayoutVals: (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout)) => void;
+  setLayoutVals: (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout), label?: string) => void;
   setPlacement: (patch: Partial<Placement> | ((p: Placement) => Partial<Placement>)) => void;
   setValue: (key: string, raw: unknown) => void;
   setNotice: (message: string) => void;
 }) {
   const placement = layout[mode];
-  const setSize = (patch: Partial<Pick<OverlayLayout, 'width' | 'height'>>) => setLayoutVals(l => ({ ...l, ...patch }));
+  const setSize = (patch: Partial<Pick<OverlayLayout, 'width' | 'height'>>) => setLayoutVals(l => ({ ...l, ...patch }), 'Stage size');
   const moved = (p: Placement) => p.scale !== 1 || p.offsetX !== 0 || p.offsetY !== 0 || !!Object.keys(p.elements ?? {}).length;
   const elements = placement.elements ?? {};
   const selectedMoved = (ELEMENT_IDS[mode] as readonly string[]).includes(selected) && !!elements[selected as ElementId];
-  const setElements = (next: Placement['elements']) => setLayoutVals(l => ({ ...l, [mode]: { ...l[mode], elements: next } }));
+  const setElements = (next: Placement['elements']) => setLayoutVals(l => ({ ...l, [mode]: { ...l[mode], elements: next } }), 'Reset elements');
   const viewName = mode === 'pack' ? 'pack opening' : 'collection view';
   return (
     <div className="p-3 space-y-5">
@@ -116,7 +116,7 @@ export function LayoutPanel({
         </div>
       </section>
 
-      <button type="button" onClick={() => setLayoutVals(DEFAULT_LAYOUT)} className="text-xs text-gray-500 hover:text-red-300">Reset the whole layout</button>
+      <button type="button" onClick={() => setLayoutVals(DEFAULT_LAYOUT, 'Reset the whole layout')} className="text-xs text-gray-500 hover:text-red-300">Reset the whole layout</button>
     </div>
   );
 }
