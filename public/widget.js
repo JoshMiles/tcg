@@ -82,7 +82,8 @@ const tlCommand = (action, t) => {
     const shift = TL.at - TL.pausedAt;   // how far the scrubber moved while paused: pending timers move with it
     TL.start = now - TL.at; TL.paused = false;
     TL.timers.forEach(h => { h.remain = Math.max(0, h.remain - shift); h.due = now + h.remain; h.id = setTimeout(h.run, h.remain); });
-    TL.anims.forEach((off, a) => { try { a.play(); } catch (e) { /* finished or removed */ } });
+    // play() on a finished animation rewinds it to 0, so ones at or past their end stay paused (holding their end frame).
+    TL.anims.forEach((off, a) => { try { if ((a.currentTime ?? 0) < a.effect.getComputedTiming().endTime) a.play(); } catch (e) { /* removed */ } });
     TL.anims.clear();
   }
   tlReport();
