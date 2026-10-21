@@ -36,7 +36,7 @@ export function FlipCard({ children, back, compact = false, className = '', defa
   const nodes = useMemo(() => layoutBack(st ?? DEFAULT_CARD_BACK, back, size, { compact }), [st, back, size, compact]);
   const stackNodes = nodes.filter(n => n.mode === 'stack');
   const freeNodes = nodes.filter(n => n.mode === 'free');
-  useEffect(() => { for (const f of fontsNeeded(nodes)) void loadBackFont(f.id, f.weight); }, [nodes]);
+  useEffect(() => { for (const f of fontsNeeded(nodes)) void loadBackFont(f.id, f.weight, f.italic); }, [nodes]);
   const qrs = useMemo(() => new Map(nodes.filter(n => n.qrUrl).map(n => [n.id, qrPath(n.qrUrl!)])), [nodes]);
   const qrOf = (n: BackNode) => qrs.get(n.id) ?? null;
 

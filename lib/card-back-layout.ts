@@ -1,7 +1,7 @@
 // The back's layout engine (ROADMAP 20.3a): a design and a print in, positioned nodes with their final styles out. Pure and client-safe.
 // The DOM renderer (FlipCard) draws these nodes; the canvas and overlay renderers of 20.3c draw the same list, so every place shows the
 // same design. STACK nodes are laid out by the plate's own CSS (today's centred column), FREE nodes carry final pixel positions.
-import { BACK_FONTS, type BackEl, type CardBackStyle, type Effects } from './card-back';
+import { BACK_FONTS, nearestWeight, type BackEl, type CardBackStyle, type Effects } from './card-back';
 import { editionLine, madeLine, type FlipBack } from './flip-back';
 
 export interface BackNode {
@@ -25,7 +25,7 @@ export interface BackNode {
   dark?: string;
   light?: string;
   /** Fonts this node needs loaded (curated ids with files). */
-  font?: { id: string; weight: number };
+  font?: { id: string; weight: number; italic?: boolean };
 }
 
 export interface LayoutOptions { compact?: boolean }
@@ -77,9 +77,8 @@ function stackFace(e: BackEl, vars: Record<string, string>, css: Record<string, 
   if (e.kind === 'number') vars['--num-font'] = f.css;
   else css.fontFamily = f.css;
   if (!f.files) return undefined;
-  const have = Object.keys(f.files).map(Number);
   const want = STACK_PAINT_800.has(e.kind) ? 800 : 400;
-  const weight = have.reduce((best, n) => (Math.abs(n - want) < Math.abs(best - want) ? n : best), have[0]);
+  const weight = nearestWeight(f, want);
   if (weight !== want) css.fontWeight = weight;
   return { id: f.id, weight };
 }
@@ -144,7 +143,7 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
         textDecoration: e.underline ? 'underline' : 'none', textTransform: e.uppercase ? 'uppercase' : 'none', letterSpacing: `${e.letterSpacing / 10}em`,
         lineHeight: e.lineHeight, textAlign: e.align, color: hexOr(e.color, rarity, AUTO_INK), overflowWrap: 'anywhere',
       });
-      if (f.files) font = { id: f.id, weight: e.weight };
+      if (f.files) font = { id: f.id, weight: e.weight, ...(e.italic ? { italic: true } : {}) };
     } else {
       css.height = e.kind === 'qr' ? Math.round(w * 100) / 100 : 'auto';
     }
@@ -157,9 +156,9 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
   return [...stack, ...free.map(({ z: _z, order: _o, ...n }) => { void _z; void _o; return n; })];
 }
 
-/** The curated font files the nodes need, as `{ id, weight }` (deduplicated). */
-export function fontsNeeded(nodes: BackNode[]): { id: string; weight: number }[] {
-  const seen = new Map<string, { id: string; weight: number }>();
-  for (const n of nodes) if (n.font) seen.set(`${n.font.id}:${n.font.weight}`, n.font);
+/** The curated font files the nodes need, as `{ id, weight, italic? }` (deduplicated). */
+export function fontsNeeded(nodes: BackNode[]): { id: string; weight: number; italic?: boolean }[] {
+  const seen = new Map<string, { id: string; weight: number; italic?: boolean }>();
+  for (const n of nodes) if (n.font) seen.set(`${n.font.id}:${n.font.weight}:${n.font.italic ? 'i' : ''}`, n.font);
   return [...seen.values()];
 }

@@ -24,29 +24,75 @@ export const MAX_TEXT_BOXES = 8;
 export const MAX_TEXT = 80;
 export const MAX_BYTES = 16 * 1024;
 
-/** The curated fonts (self-hosted in /public/fonts/back, OFL). `display`, `body` and `mono` are the site's own and the system monospace. */
-export interface BackFont { id: string; label: string; css: string; /** Files in /public/fonts/back by weight; absent for the site's own. */ files?: Record<number, string> }
-export const BACK_FONTS: BackFont[] = [
-  { id: 'display', label: 'Site display', css: 'var(--font-display, inherit)' },
-  { id: 'body', label: 'Site body', css: 'inherit' },
-  { id: 'mono', label: 'System mono', css: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' },
-  { id: 'fredoka', label: 'Fredoka', css: "'BackFredoka', sans-serif", files: { 400: 'fredoka-400.woff2', 700: 'fredoka-700.woff2' } },
-  { id: 'nunito', label: 'Nunito', css: "'BackNunito', sans-serif", files: { 400: 'nunito-400.woff2', 700: 'nunito-700.woff2' } },
-  { id: 'bebas', label: 'Bebas Neue', css: "'BackBebas', sans-serif", files: { 400: 'bebas-neue-400.woff2' } },
-  { id: 'oswald', label: 'Oswald', css: "'BackOswald', sans-serif", files: { 400: 'oswald-400.woff2', 700: 'oswald-700.woff2' } },
-  { id: 'orbitron', label: 'Orbitron', css: "'BackOrbitron', sans-serif", files: { 400: 'orbitron-400.woff2', 700: 'orbitron-700.woff2' } },
-  { id: 'playfair', label: 'Playfair Display', css: "'BackPlayfair', serif", files: { 400: 'playfair-display-400.woff2', 700: 'playfair-display-700.woff2' } },
-  { id: 'cinzel', label: 'Cinzel', css: "'BackCinzel', serif", files: { 400: 'cinzel-400.woff2', 700: 'cinzel-700.woff2' } },
-  { id: 'bangers', label: 'Bangers', css: "'BackBangers', cursive", files: { 400: 'bangers-400.woff2' } },
-  { id: 'pixel', label: 'Press Start 2P', css: "'BackPixel', monospace", files: { 400: 'press-start-2p-400.woff2' } },
-  { id: 'spacemono', label: 'Space Mono', css: "'BackSpaceMono', monospace", files: { 400: 'space-mono-400.woff2', 700: 'space-mono-700.woff2' } },
-  { id: 'zillaslab', label: 'Zilla Slab', css: "'BackZillaSlab', serif", files: { 400: 'zilla-slab-400.woff2', 700: 'zilla-slab-700.woff2' } },
-  { id: 'pacifico', label: 'Pacifico', css: "'BackPacifico', cursive", files: { 400: 'pacifico-400.woff2' } },
-];
+/**
+ * The curated fonts (self-hosted in /public/fonts/back, OFL, a licence file beside each). `display`, `body` and `mono` are the site's own and
+ * the system monospace. `weights` are the weights the font really has (the Weight control offers only these); a variable font is one `file`
+ * covering them all, a static one lists a file per weight in `files`. `italic` means the family ships a true italic (`italicFile`, variable).
+ */
+export interface BackFont {
+  id: string; label: string; css: string; weights: number[];
+  /** Files in /public/fonts/back by weight (a variable font repeats its one file); absent for the site's own. */
+  files?: Record<number, string>;
+  /** One file covers every weight (the FontFace gets a weight range). */
+  variable?: true;
+  italic?: true; italicFile?: string;
+}
+type BackFontDef = Omit<BackFont, 'files' | 'variable'> & { file?: string; files?: Record<number, string> };
+const SITE_WEIGHTS = [400, 500, 600, 700, 800, 900];
+const BACK_FONT_DEFS: BackFontDef[] = [
+  { id: 'display', label: 'Site display', css: 'var(--font-display, inherit)', weights: SITE_WEIGHTS },
+  { id: 'body', label: 'Site body', css: 'inherit', weights: SITE_WEIGHTS },
+  { id: 'mono', label: 'System mono', css: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', weights: SITE_WEIGHTS },
+  { id: 'fredoka', label: 'Fredoka', css: "'BackFredoka', sans-serif", weights: [300, 400, 500, 600, 700], file: 'fredoka-var.woff2' },
+  { id: 'nunito', label: 'Nunito', css: "'BackNunito', sans-serif", weights: [200, 300, 400, 500, 600, 700, 800, 900], file: 'nunito-var.woff2', italic: true, italicFile: 'nunito-var-italic.woff2' },
+  { id: 'bebas', label: 'Bebas Neue', css: "'BackBebas', sans-serif", weights: [400], files: { 400: 'bebas-neue-400.woff2' } },
+  { id: 'oswald', label: 'Oswald', css: "'BackOswald', sans-serif", weights: [200, 300, 400, 500, 600, 700], file: 'oswald-var.woff2' },
+  { id: 'orbitron', label: 'Orbitron', css: "'BackOrbitron', sans-serif", weights: [400, 500, 600, 700, 800, 900], file: 'orbitron-var.woff2' },
+  { id: 'playfair', label: 'Playfair Display', css: "'BackPlayfair', serif", weights: [400, 500, 600, 700, 800, 900], file: 'playfair-display-var.woff2', italic: true, italicFile: 'playfair-display-var-italic.woff2' },
+  { id: 'cinzel', label: 'Cinzel', css: "'BackCinzel', serif", weights: [400, 500, 600, 700, 800, 900], file: 'cinzel-var.woff2' },
+  { id: 'bangers', label: 'Bangers', css: "'BackBangers', cursive", weights: [400], files: { 400: 'bangers-400.woff2' } },
+  { id: 'pixel', label: 'Press Start 2P', css: "'BackPixel', monospace", weights: [400], files: { 400: 'press-start-2p-400.woff2' } },
+  { id: 'spacemono', label: 'Space Mono', css: "'BackSpaceMono', monospace", weights: [400, 700], files: { 400: 'space-mono-400.woff2', 700: 'space-mono-700.woff2' } },
+  { id: 'zillaslab', label: 'Zilla Slab', css: "'BackZillaSlab', serif", weights: [400, 500, 600, 700], files: { 400: 'zilla-slab-400.woff2', 500: 'zilla-slab-500.woff2', 600: 'zilla-slab-600.woff2', 700: 'zilla-slab-700.woff2' } },
+  { id: 'pacifico', label: 'Pacifico', css: "'BackPacifico', cursive", weights: [400], files: { 400: 'pacifico-400.woff2' } },
+  { id: 'anton', label: 'Anton', css: "'BackAnton', sans-serif", weights: [400], files: { 400: 'anton-400.woff2' } },
+  { id: 'archivoblack', label: 'Archivo Black', css: "'BackArchivoBlack', sans-serif", weights: [400], files: { 400: 'archivo-black-400.woff2' } },
+  { id: 'lilitaone', label: 'Lilita One', css: "'BackLilitaOne', cursive", weights: [400], files: { 400: 'lilita-one-400.woff2' } },
+  { id: 'titanone', label: 'Titan One', css: "'BackTitanOne', cursive", weights: [400], files: { 400: 'titan-one-400.woff2' } },
+  { id: 'bungee', label: 'Bungee', css: "'BackBungee', sans-serif", weights: [400], files: { 400: 'bungee-400.woff2' } },
+  { id: 'baloo2', label: 'Baloo 2', css: "'BackBaloo2', sans-serif", weights: [400, 500, 600, 700, 800], file: 'baloo-2-var.woff2' },
+  { id: 'quicksand', label: 'Quicksand', css: "'BackQuicksand', sans-serif", weights: [300, 400, 500, 600, 700], file: 'quicksand-var.woff2' },
+  { id: 'comfortaa', label: 'Comfortaa', css: "'BackComfortaa', sans-serif", weights: [300, 400, 500, 600, 700], file: 'comfortaa-var.woff2' },
+  { id: 'inter', label: 'Inter', css: "'BackInter', sans-serif", weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], file: 'inter-var.woff2', italic: true, italicFile: 'inter-var-italic.woff2' },
+  { id: 'montserrat', label: 'Montserrat', css: "'BackMontserrat', sans-serif", weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], file: 'montserrat-var.woff2' },
+  { id: 'poppins', label: 'Poppins', css: "'BackPoppins', sans-serif", weights: [400, 500, 600, 700, 800], files: { 400: 'poppins-400.woff2', 500: 'poppins-500.woff2', 600: 'poppins-600.woff2', 700: 'poppins-700.woff2', 800: 'poppins-800.woff2' } },
+  { id: 'rubik', label: 'Rubik', css: "'BackRubik', sans-serif", weights: [300, 400, 500, 600, 700, 800, 900], file: 'rubik-var.woff2' },
+  { id: 'barlowcondensed', label: 'Barlow Condensed', css: "'BackBarlowCondensed', sans-serif", weights: [400, 500, 600, 700, 800], files: { 400: 'barlow-condensed-400.woff2', 500: 'barlow-condensed-500.woff2', 600: 'barlow-condensed-600.woff2', 700: 'barlow-condensed-700.woff2', 800: 'barlow-condensed-800.woff2' } },
+  { id: 'merriweather', label: 'Merriweather', css: "'BackMerriweather', serif", weights: [300, 400, 500, 600, 700, 800, 900], file: 'merriweather-var.woff2', italic: true, italicFile: 'merriweather-var-italic.woff2' },
+  { id: 'lora', label: 'Lora', css: "'BackLora', serif", weights: [400, 500, 600, 700], file: 'lora-var.woff2', italic: true, italicFile: 'lora-var-italic.woff2' },
+  { id: 'dmserif', label: 'DM Serif Display', css: "'BackDmSerif', serif", weights: [400], files: { 400: 'dm-serif-display-400.woff2' } },
+  { id: 'cinzeldeco', label: 'Cinzel Decorative', css: "'BackCinzelDecorative', serif", weights: [400, 700, 900], files: { 400: 'cinzel-decorative-400.woff2', 700: 'cinzel-decorative-700.woff2', 900: 'cinzel-decorative-900.woff2' } },
+  { id: 'uncial', label: 'Uncial Antiqua', css: "'BackUncial', fantasy", weights: [400], files: { 400: 'uncial-antiqua-400.woff2' } },
+  { id: 'medievalsharp', label: 'MedievalSharp', css: "'BackMedievalSharp', fantasy", weights: [400], files: { 400: 'medievalsharp-400.woff2' } },
+  { id: 'metamorphous', label: 'Metamorphous', css: "'BackMetamorphous', fantasy", weights: [400], files: { 400: 'metamorphous-400.woff2' } },
+  { id: 'caveat', label: 'Caveat', css: "'BackCaveat', cursive", weights: [400, 500, 600, 700], file: 'caveat-var.woff2' },
+  { id: 'gochihand', label: 'Gochi Hand', css: "'BackGochiHand', cursive", weights: [400], files: { 400: 'gochi-hand-400.woff2' } },
+  { id: 'kalam', label: 'Kalam', css: "'BackKalam', cursive", weights: [400, 700], files: { 400: 'kalam-400.woff2', 700: 'kalam-700.woff2' } },
+  { id: 'dancing', label: 'Dancing Script', css: "'BackDancing', cursive", weights: [400, 500, 600, 700], files: { 400: 'dancing-script-400.woff2', 500: 'dancing-script-500.woff2', 600: 'dancing-script-600.woff2', 700: 'dancing-script-700.woff2' } },
+  { id: 'rajdhani', label: 'Rajdhani', css: "'BackRajdhani', sans-serif", weights: [400, 500, 600, 700], files: { 400: 'rajdhani-400.woff2', 500: 'rajdhani-500.woff2', 600: 'rajdhani-600.woff2', 700: 'rajdhani-700.woff2' } },
+  { id: 'audiowide', label: 'Audiowide', css: "'BackAudiowide', sans-serif", weights: [400], files: { 400: 'audiowide-400.woff2' } },
+  { id: 'russoone', label: 'Russo One', css: "'BackRussoOne', sans-serif", weights: [400], files: { 400: 'russo-one-400.woff2' } },
+  { id: 'vt323', label: 'VT323', css: "'BackVT323', monospace", weights: [400], files: { 400: 'vt323-400.woff2' } },
+  { id: 'silkscreen', label: 'Silkscreen', css: "'BackSilkscreen', monospace", weights: [400, 700], files: { 400: 'silkscreen-400.woff2', 700: 'silkscreen-700.woff2' } },
+]
+export const BACK_FONTS: BackFont[] = BACK_FONT_DEFS.map(({ file, ...d }) => (file ? { ...d, files: Object.fromEntries(d.weights.map(w => [w, file])), variable: true as const } : d));
 export const FONT_IDS = BACK_FONTS.map(f => f.id);
 export const fontCss = (id: string) => (BACK_FONTS.find(f => f.id === id) ?? BACK_FONTS[0]).css;
 
-export const WEIGHTS = [400, 500, 600, 700, 800, 900] as const;
+export const WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900] as const;
+export const WEIGHT_NAMES: Record<number, string> = { 100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black' };
+/** The weight a font really has that is nearest to `want` (a saved weight the font lacks snaps to it). */
+export const nearestWeight = (f: BackFont, want: number) => f.weights.reduce((best, n) => (Math.abs(n - want) < Math.abs(best - want) ? n : best), f.weights[0]);
 export const TEXT_ALIGNS = ['left', 'center', 'right'] as const;
 
 export interface Effects {
