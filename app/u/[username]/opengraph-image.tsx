@@ -31,7 +31,7 @@ export default async function Image({ params }: { params: Promise<{ username: st
       const idx = board.rows.findIndex(r => r.username === lower);
       pct = total > 0 ? Math.round((unique / total) * 100) : 0;
       big = idx >= 0 ? `#${idx + 1}` : `${pct}%`;
-      line = idx >= 0 ? `${Math.round(board.rows[idx].score).toLocaleString()} points · ${unique}/${total} cards · ${season.name}` : `${unique}/${total} cards · ${season.name}`;
+      line = idx >= 0 ? `${Math.round(board.rows[idx].score).toLocaleString()} points · ${unique}/${total} collected · ${season.name}` : `${unique}/${total} collected · ${season.name}`;
     } catch { /* fall back to the plain card */ }
   }
 

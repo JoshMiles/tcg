@@ -92,7 +92,7 @@ export async function StatsTab({ b }: { b: ProfileBase }) {
             </li>
           ))}
         </ul>
-        <p className="text-xs text-gray-500">{s.copies} edition{s.copies === 1 ? '' : 's'} in total.</p>
+        <p className="text-xs text-gray-500">{s.copies} pull{s.copies === 1 ? '' : 's'} in total.</p>
       </section>
 
       <section className="card rounded-2xl p-5 space-y-3">

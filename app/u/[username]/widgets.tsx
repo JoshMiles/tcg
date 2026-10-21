@@ -111,7 +111,7 @@ export async function renderProfileWidget(type: ProfileWidgetType, ctx: WidgetCt
             <div className="flex justify-between py-1.5"><dt className="text-gray-400">Full set bonus<InfoTip term="fullSetBonus" /></dt><dd className="tabular-nums text-emerald-300">{s.complete ? `+${Math.round(s.setBonus).toLocaleString()}` : '-'}</dd></div>
             <div className="flex justify-between py-1.5 font-bold"><dt className="text-white">Total</dt><dd className="tabular-nums text-yellow-300">{Math.round(s.score).toLocaleString()}</dd></div>
           </dl>
-          <p className="text-xs text-gray-500">{s.copies} edition{s.copies === 1 ? '' : 's'} · {s.uniqueCards}/{s.totalCards} different cards</p>
+          <p className="text-xs text-gray-500">{s.copies} pull{s.copies === 1 ? '' : 's'} · {s.uniqueCards}/{s.totalCards} collected</p>
         </Box>
       );
     }

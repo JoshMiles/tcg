@@ -129,7 +129,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
     { label: 'Score', tip: 'score' as const, value: s.score.toLocaleString(), sub: 'points' },
     { label: 'Rank', tip: 'rank' as const, value: s.rank ? `#${s.rank}` : '-', sub: s.rank ? `of ${s.players}` : 'not on the board yet' },
     { label: 'Cards', value: `${s.uniqueCards}/${s.totalCards}`, sub: `${s.completionPct}% complete` },
-    { label: 'Editions', value: s.copies.toLocaleString(), sub: 'total owned' },
+    { label: 'Pulls', value: s.copies.toLocaleString(), sub: 'total owned' },
   ];
 
   return (

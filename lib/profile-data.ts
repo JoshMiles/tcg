@@ -54,7 +54,7 @@ export function buildShareBase(b: ProfileBase, siteHost: string): Omit<ShareSpec
   return {
     title: b.displayName,
     subtitle: `@${b.lower} · ${b.season.name}`,
-    stats: [b.rank ? `#${b.rank} rank` : 'Unranked', `${b.row ? Math.round(b.row.score).toLocaleString() : 0} pts`, `${b.uniqueOwned}/${b.total} cards`],
+    stats: [b.rank ? `#${b.rank} rank` : 'Unranked', `${b.row ? Math.round(b.row.score).toLocaleString() : 0} pts`, `${b.uniqueOwned}/${b.total} collected`],
     footer: siteHost,
   };
 }

@@ -62,7 +62,7 @@ function CardValues({ valueRows, upgradesOn }: FaqBlockData) {
           <thead>
             <tr className="text-gray-500 text-left bg-gray-950/50">
               <th className="py-2 px-3 font-medium">Card</th>
-              <th className="py-2 px-2 font-medium text-right">Editions</th>
+              <th className="py-2 px-2 font-medium text-right">Pulls</th>
               <th className="py-2 px-2 font-medium text-right">Regular</th>
               {upgradesOn && VARIANTS.filter(v => v !== 'regular').map(v => (
                 <th key={v} className="py-2 px-2 font-medium text-right" title={VARIANT_LABELS[v]}>{VARIANT_SHORT[v]}</th>

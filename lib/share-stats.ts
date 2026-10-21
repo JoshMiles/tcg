@@ -42,8 +42,8 @@ export function buildStatsCard(i: StatsCardInput): StatsCardShare {
     score: Math.round(i.score).toLocaleString('en-US'),
     accent: rarest ? i.hexOf(rarest.card) : undefined,
     figures: [
-      { label: 'Different cards', value: `${i.uniqueCards}/${i.totalCards}`, progress: i.totalCards > 0 ? i.uniqueCards / i.totalCards : 0 },
-      { label: 'Editions', value: i.copies.toLocaleString('en-US') },
+      { label: 'Collected', value: `${i.uniqueCards}/${i.totalCards}`, progress: i.totalCards > 0 ? i.uniqueCards / i.totalCards : 0 },
+      { label: 'Pulls', value: i.copies.toLocaleString('en-US') },
       { label: 'Progress bonus', value: `+${bonus.toFixed(1)}%`, sub: 'of the set value' },
       { label: 'Best edition', value: lowest === null ? '-' : `#${lowest}`, sub: lowest === null ? undefined : 'lowest held' },
       { label: 'Rarest edition', value: rarest ? i.nameOf(rarest.card) : '-', sub: rarest ? `${rarest.variant === 'regular' ? 'Regular' : VARIANT_LABELS[rarest.variant]} · 1 in ${Math.round(1 / rarest.chance).toLocaleString('en-US')}` : undefined },

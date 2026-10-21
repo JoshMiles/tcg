@@ -230,7 +230,7 @@ export function Binder({ cards, ownerLabel, onOpen, config = DEFAULT_BINDER, sea
     if (!pages.some(pp => pp.slots.some(x => x?.owned))) return null; // nothing to show off on these pages
     const names = pages.map(pp => pp.title).filter(Boolean);
     return {
-      title, subtitle: [...new Set(names)].join(' · ') || undefined, stats: [`${owned}/${cards.length} cards`], cards: [], footer: shareFooter, theme: cv.shareTheme,
+      title, subtitle: [...new Set(names)].join(' · ') || undefined, stats: [`${owned}/${cards.length} collected`], cards: [], footer: shareFooter, theme: cv.shareTheme,
       binder: { cols: cfg.cols, rows: cfg.rows, cover: { a: cv.a, b: cv.b, c: cv.c, ink: cv.ink }, material: cfg.material, page: { a: pg.a, b: pg.b, ink: pg.ink, muted: pg.muted, light: isLightColour(pg.a) }, pocket: cfg.pocketStyle, missing: cfg.missing, badges: cfg.badges, pages },
     };
   }, [shareFooter, sp, cards, custom, title, owned, cv, pg, cfg.cols, cfg.rows, cfg.material, cfg.pocketStyle, cfg.missing, cfg.badges]);

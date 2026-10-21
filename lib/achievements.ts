@@ -93,10 +93,10 @@ export const defaultIcon = (kind: string): IconName =>
   : kind === 'all-shiny' || kind === 'all-golden' || kind === 'first-shiny' ? 'sparkles' : kind.startsWith('all-') || kind === 'first-edition' ? 'gem'
   : kind === 'early-bird' ? 'zap' : 'trade';
 export const CUSTOM_RULES = {
-  unique: 'Own N different cards',
-  editions: 'Hold N editions in total (duplicates count)',
-  rarity: 'Own N different cards of a rarity',
-  version: 'Own N different cards in a version',
+  unique: 'Collect N different cards',
+  editions: 'Reach N pulls in total (repeats count)',
+  rarity: 'Collect N different cards of a rarity',
+  version: 'Collect N different cards in a version',
   firsts: 'Hold edition #1 of N different cards',
   trades: 'Complete N trades (all seasons)',
 } as const;

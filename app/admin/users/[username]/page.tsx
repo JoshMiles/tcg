@@ -271,7 +271,7 @@ export default async function UserDetailPage({
                     <h2 className="font-display text-xl font-bold text-white">{season.name}</h2>
                     {season.active && <span className="text-xs px-1.5 py-0.5 bg-green-900/40 text-green-400 rounded-md">Active</span>}
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">{countMap.size} / {totalSeasonCards} cards · {pct}%{ownedNumbers.length > countMap.size && ` · ${ownedNumbers.length} total pulls`}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{countMap.size} / {totalSeasonCards} collected · {pct}%{ownedNumbers.length > countMap.size && ` · ${ownedNumbers.length} total pulls`}</p>
                 </div>
                 {ownedNumbers.length > 0 && (
                   <form action={resetSeason}>

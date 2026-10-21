@@ -77,7 +77,7 @@ export function CardDetail({
               <p className="text-sm font-semibold mt-1" style={{ color: rarity?.hex }}>
                 {'★'.repeat(card.stars)} {rarity?.label}
                 {card.kind === 'trainer' ? <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"><Icon name="zap" className="w-3 h-3" />Trainer</span> : null}
-                <span className="ml-2 text-gray-400 font-normal">{total.toLocaleString()} edition{total === 1 ? '' : 's'}</span>
+                <span className="ml-2 text-gray-400 font-normal">{total.toLocaleString()} pull{total === 1 ? '' : 's'}</span>
               </p>
             </div>
             {canStep && <button onClick={() => onStep(1)} aria-label="Next card" className="w-8 h-10 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">›</button>}
@@ -252,7 +252,7 @@ function CardInfo({ card, totalScore, canUpgrade, ownerName, tradeWith, shown }:
         <p className="text-xs text-gray-500">
           {card.serial.points > 0 && <span className="text-emerald-300">Edition bonuses add +{card.serial.points.toLocaleString()} pts to this card. </span>}
           {(!card.copies || card.copies.length === 0) && card.serial.mult <= 1 && 'Low edition numbers earn a bonus; none of these editions qualify. '}
-          {outThere.toLocaleString()} edition{outThere === 1 ? '' : 's'} of {VARIANT_LABELS[shown]} out there
+          {outThere.toLocaleString()} pull{outThere === 1 ? '' : 's'} of {VARIANT_LABELS[shown]} out there
         </p>
 
         <div className="rounded-xl border border-gray-800 overflow-hidden">

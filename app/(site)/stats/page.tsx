@@ -50,7 +50,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
 
   const tiles = [
     { label: 'Collectors', value: s.collectors.toLocaleString(), sub: 'on the board' },
-    { label: 'Cards out there', value: s.totalCopies.toLocaleString(), sub: 'total editions pulled' },
+    { label: 'Cards out there', value: s.totalCopies.toLocaleString(), sub: 'total pulls' },
     { label: 'Discovered', value: `${s.cardsPulled}/${s.totalCards}`, sub: 'distinct cards pulled' },
     { label: 'Avg. completion', value: `${s.avgCompletionPct}%`, sub: 'of the set per collector' },
     { label: 'Points in play', value: s.totalScore.toLocaleString(), sub: 'across every collection' },
@@ -97,7 +97,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
             <div key={r.stars} className="space-y-1">
               <div className="flex justify-between text-sm">
                 <span style={{ color: r.hex }} className="font-semibold">{'★'.repeat(r.stars)} {r.label}</span>
-                <span className="text-gray-500 tabular-nums">{r.copies.toLocaleString()} editions · {r.cards} card{r.cards === 1 ? '' : 's'}</span>
+                <span className="text-gray-500 tabular-nums">{r.copies.toLocaleString()} pulls · {r.cards} card{r.cards === 1 ? '' : 's'}</span>
               </div>
               <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${(r.copies / maxRarityCopies) * 100}%`, backgroundColor: r.hex }} />
@@ -116,7 +116,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
                   <p className="text-xs text-gray-500">{VARIANT_LABELS[v]}</p>
                   <p className="font-display text-2xl font-bold text-white tabular-nums">{s.variantCopies[v].toLocaleString()}</p>
                   <p className="text-[11px] text-gray-600">
-                    {s.totalCopies > 0 ? `${((s.variantCopies[v] / s.totalCopies) * 100).toFixed(1)}% of all editions` : '-'}
+                    {s.totalCopies > 0 ? `${((s.variantCopies[v] / s.totalCopies) * 100).toFixed(1)}% of all pulls` : '-'}
                   </p>
                 </div>
               ))}
