@@ -223,6 +223,10 @@ export interface OverlayEditorContextValue {
   setReady: (r: boolean) => void;
   setLoadedCount: React.Dispatch<React.SetStateAction<number>>;
   playing: boolean;
+  /** A stream rehearsal (5 dry pulls and a show-off, back to back) is running. */
+  rehearsing: boolean;
+  rehearse: () => void;
+  stopRehearsal: () => void;
   /** The preview's reveal clock while a pull plays (null when none is): seconds, phase markers, paused or running. */
   timeline: TimelineState | null;
   /** Pause, resume or seek (seconds) the playing reveal. */
@@ -402,6 +406,10 @@ export function OverlayEditorProvider({
   const [ready, setReady] = useState(false);
   const [loadedCount, setLoadedCount] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [rehearsing, setRehearsing] = useState(false);
+  const rehearsalRun = useRef<{ stop: boolean } | null>(null);
+  /** Called with every timeline report (or 'stop') while a rehearsal waits for the current pull to end. */
+  const pullWait = useRef<((m: { active: boolean; cooldown: number } | 'stop') => void) | null>(null);
   const [timeline, setTimeline] = useState<TimelineState | null>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [presetName, setPresetName] = useState('');
@@ -921,6 +929,51 @@ export function OverlayEditorProvider({
     setTimeout(() => setPlaying(false), mode === 'pack' ? 13000 : 9000);
   };
 
+  // The rehearsal is driven from here: start a pull, wait for the widget to report it ended, wait the pack's cooldown, repeat.
+  const stopRehearsal = () => {
+    if (!rehearsalRun.current) return;
+    rehearsalRun.current.stop = true;
+    rehearsalRun.current = null;
+    pullWait.current?.('stop');
+    post({ type: 'stop' });
+    setTimeline(null);
+    setPlaying(false);
+    setRehearsing(false);
+  };
+  const rehearse = async () => {
+    if (!ready || playing || rehearsalRun.current || mode !== 'pack') return;
+    const run = { stop: false };
+    rehearsalRun.current = run;
+    setRehearsing(true);
+    // Resolves with the pack's cooldown (seconds) once the pull that just started has ended.
+    const pullEnded = () => new Promise<number>(resolve => {
+      let started = false;
+      const done = (c: number) => { clearTimeout(guard); pullWait.current = null; resolve(c); };
+      const guard = setTimeout(() => done(1), 40000);
+      pullWait.current = m => {
+        if (m === 'stop') done(0);
+        else if (m.active) started = true;
+        else if (started) done(m.cooldown);
+      };
+    });
+    const ids = packs.map(p => p.id);
+    const variants = ['regular', 'reverse', 'full', 'shiny', 'regular'];
+    for (let i = 0; i < 5 && !run.stop; i++) {
+      const ended = pullEnded();
+      post({ type: 'pack', packId: ids.length ? ids[i % ids.length] : '', variant: variants[i], moment: i === 2 ? 'newCard' : undefined });
+      const cooldown = await ended;
+      if (run.stop) return;
+      await new Promise(r => setTimeout(r, cooldown * 1000));
+    }
+    if (run.stop) return;
+    const ended = pullEnded();
+    post({ type: 'showoff' });
+    await ended;
+    if (run.stop) return;
+    rehearsalRun.current = null;
+    setRehearsing(false);
+  };
+  useEffect(() => () => { if (rehearsalRun.current) rehearsalRun.current.stop = true; }, []);
   const download = () => {
     const blob = new Blob([JSON.stringify(exportProps(effectiveSparse), null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -1314,6 +1367,7 @@ export function OverlayEditorProvider({
         const m = data as unknown as { active: boolean; paused: boolean; t: number; dur: number; markers: Record<string, number> | null };
         setTimeline(m.active ? { paused: m.paused, t: m.t, dur: m.dur, markers: m.markers } : null);
         if (!m.active) setPlaying(false);
+        pullWait.current?.({ active: m.active, cooldown: (m as { cooldown?: number }).cooldown ?? 1 });
         return;
       }
       if (data?.type === 'boxes') { boxesWait.current?.((data as { boxes?: Record<string, DesignBox> }).boxes ?? {}); return; }
@@ -1441,6 +1495,9 @@ export function OverlayEditorProvider({
     setReady,
     setLoadedCount,
     playing,
+    rehearsing,
+    rehearse,
+    stopRehearsal,
     timeline,
     timelineCmd,
     play,
