@@ -59,11 +59,12 @@ const editorTimer = (fn, ms) => {
 const editorClear = (h) => { if (h && typeof h === 'object') { clearTimeout(h.id); TL.timers.delete(h); } else clearTimeout(h); };
 const phaseTimer = EDITOR ? editorTimer : setTimeout;
 const phaseClear = EDITOR ? editorClear : clearTimeout;
+// The phase timers are already scheduled when tlBegin runs (same tick), so it must not clear them; tlEnd does.
 const tlBegin = (dur, markers) => {
-  TL.timers.clear(); TL.anims.clear(); TL.paused = false; TL.start = performance.now(); TL.dur = dur; TL.markers = markers; TL.active = true;
+  TL.anims.clear(); TL.paused = false; TL.start = performance.now(); TL.dur = dur; TL.markers = markers; TL.active = true;
   clearInterval(TL.tick); TL.tick = setInterval(tlReport, 100); tlReport();
 };
-const tlEnd = () => { TL.active = false; TL.paused = false; clearInterval(TL.tick); tlReport(); };
+const tlEnd = () => { TL.timers.clear(); TL.active = false; TL.paused = false; clearInterval(TL.tick); tlReport(); };
 const tlCommand = (action, t) => {
   if (!TL.active) return;
   if (action === 'pause' && !TL.paused) {
