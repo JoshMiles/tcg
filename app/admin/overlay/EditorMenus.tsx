@@ -248,22 +248,47 @@ export function PackToolsMenu({ packs, packVals, setPackVals, scope, globalVals,
   );
 }
 
+function DiffList({ diffs }: { diffs: DiffLine[] }) {
+  return (
+    <ul className="max-h-80 overflow-y-auto divide-y divide-gray-800/70">
+      {diffs.map((d, i) => (
+        <li key={i} className="py-1.5 text-xs">
+          <span className="text-[10px] uppercase tracking-wide text-gray-600">{d.scope}</span>
+          <span className="block text-gray-200">{d.label}</span>
+          <span className="text-gray-500">{d.from}</span> <span className="text-gray-600">→</span> <span className="text-yellow-300">{d.to}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function ReviewMenu({ diffs, dirty }: { diffs: DiffLine[]; dirty: boolean }) {
   return (
     <Popover label={`Review${diffs.length ? ` (${diffs.length})` : ''}`} icon="list" align="right" disabled={!dirty}>
       <div className="w-104 max-w-[85vw] space-y-2 text-sm">
         <p className="text-xs text-gray-500">Everything that differs from what is saved. Nothing goes live until you Save.</p>
-        <ul className="max-h-80 overflow-y-auto divide-y divide-gray-800/70">
-          {diffs.map((d, i) => (
-            <li key={i} className="py-1.5 text-xs">
-              <span className="text-[10px] uppercase tracking-wide text-gray-600">{d.scope}</span>
-              <span className="block text-gray-200">{d.label}</span>
-              <span className="text-gray-500">{d.from}</span> <span className="text-gray-600">→</span> <span className="text-yellow-300">{d.to}</span>
-            </li>
-          ))}
-        </ul>
+        <DiffList diffs={diffs} />
       </div>
     </Popover>
+  );
+}
+
+/** Shown when Save was refused because someone saved a newer version while this editor was open. */
+export function ConflictBanner({ version, diffs, overwrite, loadTheirs }: { version: VersionInfo; diffs: DiffLine[]; overwrite: () => void; loadTheirs: () => void }) {
+  const btn = 'px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-700 text-gray-200 hover:border-gray-500';
+  return (
+    <div role="alert" className="basis-full flex flex-wrap items-center gap-2 rounded-lg border border-yellow-500/40 bg-yellow-950/30 px-3 py-2 text-sm text-yellow-200">
+      <Icon name="alert" />
+      <span>Not saved. Someone saved a newer version at {new Date(version.at).toLocaleString('en-GB', { timeZone: 'UTC' })} (UTC){version.note ? `: ${version.note}` : ''}.</span>
+      <Popover label="Review their changes" icon="list">
+        <div className="w-104 max-w-[85vw] space-y-2 text-sm">
+          <p className="text-xs text-gray-500">How their saved version differs from what you have now (their value on the left, yours on the right).</p>
+          <DiffList diffs={diffs} />
+        </div>
+      </Popover>
+      <button type="button" onClick={overwrite} className={btn}>Overwrite</button>
+      <button type="button" onClick={loadTheirs} className={btn}>Load theirs</button>
+    </div>
   );
 }
 

@@ -50,3 +50,9 @@ export async function applyVersion(v: OverlayVersion): Promise<void> {
   const existing = await getPackOverrides();
   for (const id of new Set([...Object.keys(existing), ...Object.keys(v.packs)])) await savePackOverrides(id, v.packs[id] ?? {});
 }
+
+/** The newest saved version when it is not the one the editor loaded (someone saved since), else null. `force` skips the check (Overwrite). */
+export async function versionConflict(expectedId: string, force = false): Promise<OverlayVersion | null> {
+  const newest = (await listVersions())[0];
+  return !force && newest && newest.id !== expectedId ? newest : null;
+}

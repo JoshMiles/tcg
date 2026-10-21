@@ -169,6 +169,16 @@ await runInSandbox(box.id, async () => {
   await versions.deleteVersion(list[0].id);
   ok((await versions.listVersions()).length === 19, 'a version can be deleted');
 
+  // Save conflict guard (ROADMAP 38.13): the editor sends the newest version id it loaded; a stale id is refused, a matching id or force saves.
+  const newest = (await versions.listVersions())[0];
+  eq((await versions.versionConflict(newest.id))?.id ?? null, null, 'the newest id matches, so the save goes through');
+  await versions.recordVersion('theirs');
+  eq((await versions.versionConflict(newest.id))?.note, 'theirs', 'a stale id is refused and returns their version');
+  eq((await versions.versionConflict('', false))?.note, 'theirs', 'an editor that loaded no version id is refused too');
+  eq((await versions.versionConflict(newest.id, true)) ?? null, null, 'overwrite (force) skips the check');
+  await versions.recordVersion('mine');
+  eq((await versions.versionConflict((await versions.listVersions())[0].id)) ?? null, null, 'after a save the new newest id matches');
+
   // Live refresh token
   const t0 = await settings.getReloadToken();
   await new Promise(r => setTimeout(r, 5));

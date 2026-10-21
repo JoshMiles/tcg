@@ -15,7 +15,7 @@ import { currentStaffLogin } from '@/lib/staff-actor';
 import type { ActionResult } from '../action-types';
 import { getWebhookSettings, saveWebhookSettings } from '@/lib/webhooks';
 import { getOverlaySettings, saveOverlaySettings, savePackOverrides, savePreset, deletePreset, bumpReloadToken, updateScene } from '@/lib/overlay-settings';
-import { listVersions, recordVersion } from '@/lib/overlay-versions';
+import { listVersions, recordVersion, versionConflict, type OverlayVersion } from '@/lib/overlay-versions';
 import { sanitizePropValues } from '@/lib/overlay-props';
 import { sanitizeLayout, sceneLayout, type OverlayLayout } from '@/lib/overlay-layout';
 import { DEFAULT_SCORING, sanitizeScoring, saveScoringSettings, resetScoringSettings } from '@/lib/scoring';
@@ -94,8 +94,12 @@ export async function saveOverlaySettingsAction(formData: FormData) {
 //  - layout: the stage size and the pack / collection placements (sanitizeLayout clamps everything);
 //  - global: look & animation properties, stored sparsely (defaults dropped);
 //  - packs: { [packId]: values } per-pack overrides, which keep every value (an override equal to the default must survive).
-export async function saveOverlayEditorAction(formData: FormData) {
+// The form also carries `expectedVersion`, the id of the newest saved version the editor loaded. When a newer one exists (someone else
+// saved meanwhile) nothing is written and that version comes back as a conflict, unless `force` is set (Overwrite).
+export async function saveOverlayEditorAction(formData: FormData): Promise<{ conflict: OverlayVersion } | void> {
   await requireAdmin();
+  const conflict = await versionConflict(String(formData.get('expectedVersion') ?? ''), formData.get('force') === 'on');
+  if (conflict) return { conflict };
   let payload: { layout?: unknown; global?: unknown; packs?: Record<string, unknown>; scenes?: Record<string, { props?: unknown; layout?: unknown }> } = {};
   try { payload = JSON.parse(String(formData.get('payload') ?? '{}')); } catch { /* ignore: saves nothing */ }
   const autoReload = formData.get('autoReload') === 'on';
