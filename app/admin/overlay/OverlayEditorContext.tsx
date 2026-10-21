@@ -127,6 +127,12 @@ export interface OverlayEditorContextValue {
   discardDraft: () => void;
   /** Bumped to open the Review popover. */
   reviewSignal: number;
+  openReview: () => void;
+  /** When the newest saved version was made (ms), null before the first save. */
+  lastSavedAt: number | null;
+  /** Bumped by Help to show the first-use hint on the canvas again. */
+  hintSignal: number;
+  showHint: () => void;
   notice: string;
   setNotice: (n: string) => void;
   refreshing: boolean;
@@ -562,6 +568,7 @@ export function OverlayEditorProvider({
   const [draftOffer, setDraftOffer] = useState<{ at: number; stale: boolean; snap: Snap } | null>(null);
   const [draftChecked, setDraftChecked] = useState(false); // storage is only written once the stored draft has been read
   const [reviewSignal, setReviewSignal] = useState(0);
+  const [hintSignal, setHintSignal] = useState(0);
   const storeDraft = (v: { base: string; at: number; snap: Snap } | null) => {
     try { if (v) localStorage.setItem(DRAFT_KEY, JSON.stringify(v)); else localStorage.removeItem(DRAFT_KEY); } catch { /* storage blocked */ }
   };
@@ -1044,6 +1051,10 @@ export function OverlayEditorProvider({
     restoreDraft,
     discardDraft,
     reviewSignal,
+    openReview: () => setReviewSignal(n => n + 1),
+    lastSavedAt: versions[0]?.at ?? null,
+    hintSignal,
+    showHint: () => setHintSignal(n => n + 1),
     notice,
     setNotice,
     refreshing,

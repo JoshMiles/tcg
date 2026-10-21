@@ -25,6 +25,7 @@ export function PreviewStage() {
     showSaved,
     ready,
     isPack,
+    hintSignal,
   } = useOverlayEditor();
   // First-use hint: gone for good once dismissed (localStorage may be blocked, then it just shows again next time).
   const HINT_KEY = 'tcg:overlay-editor-hint';
@@ -32,6 +33,12 @@ export function PreviewStage() {
   useEffect(() => {
     try { setHintGone(localStorage.getItem(HINT_KEY) === '1'); } catch { setHintGone(false); }
   }, []);
+  // Help > Show the editing hint again.
+  useEffect(() => {
+    if (!hintSignal) return;
+    setHintGone(false);
+    try { localStorage.removeItem(HINT_KEY); } catch { /* ignore */ }
+  }, [hintSignal]);
   const dismissHint = () => {
     setHintGone(true);
     try { localStorage.setItem(HINT_KEY, '1'); } catch { /* ignore */ }

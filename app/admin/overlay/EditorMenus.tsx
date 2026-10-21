@@ -7,16 +7,17 @@ import { isVertical, type OverlayLayout } from '@/lib/overlay-layout';
 import { diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { deleteOverlayVersionAction, setSeasonLookAction } from '../overlay-actions';
 import { Popover, btn, ghost } from './editor-controls';
+import { SubMenu } from '../components/workspace/MenuBar';
 import type { Bg, PackInfo, PresetInfo, SeasonInfo, VersionInfo } from './editor-types';
 
-// The popovers of the Overlay Editor's options bar and preview bar. All state stays in OverlayEditor and arrives as props.
+// The flyouts of the Overlay Editor's menu bar (File, Edit, View, Scene), plus Review and the banners. All state stays in OverlayEditor and arrives as props.
 
 type FormAction = (formData: FormData) => void | Promise<void>;
 type Notify = (message: string) => void;
 
 export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, applyPreset, deletePresetAction, savePresetAction, presetName, setPresetName, seasons, looks, setLooks, setNotice }: { presets: PresetInfo[]; isPack: boolean; scope: string; dirty: boolean; effectiveSparse: PropValues; applyPreset: (p: PresetInfo) => void; deletePresetAction: FormAction; savePresetAction: FormAction; presetName: string; setPresetName: (v: string) => void; seasons: SeasonInfo[]; looks: Record<string, string>; setLooks: Dispatch<SetStateAction<Record<string, string>>>; setNotice: Notify }) {
   return (
-    <Popover label="Presets" badge={presets.length || undefined}>
+    <SubMenu label="Looks" icon="palette" badge={presets.length || undefined}>
       <div className="w-80 space-y-3 text-sm">
         <p className="text-xs text-gray-500">A preset is a named set of {isPack ? 'this pack’s effective' : 'global'} values you can apply later{isPack ? ' to any pack' : ''}.</p>
         {presets.length === 0 && <p className="text-xs text-gray-600">No presets yet.</p>}
@@ -74,13 +75,13 @@ export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, ap
           </div>
         )}
       </div>
-    </Popover>
+    </SubMenu>
   );
 }
 
 export function ScenesMenu({ presets, initialLayout, globalLayout, siteUrl, overlayKey, scope, setScope, setNotice, savePresetAction, presetName, setPresetName, dirty }: { presets: PresetInfo[]; initialLayout: OverlayLayout; globalLayout: OverlayLayout; siteUrl: string; overlayKey: string; scope: string; setScope: (v: string) => void; setNotice: Notify; savePresetAction: FormAction; presetName: string; setPresetName: (v: string) => void; dirty: boolean }) {
   return (
-    <Popover label="Scenes" icon="tv" badge={presets.length || undefined}>
+    <SubMenu label="Scenes" icon="tv" badge={presets.length || undefined}>
       <div className="w-104 max-w-[85vw] space-y-3 text-sm">
         <p className="text-xs text-gray-500">
           A scene has its own overlay URL, so each OBS scene (a vertical one, a different canvas size) can use its own size, position and look.
@@ -125,13 +126,13 @@ export function ScenesMenu({ presets, initialLayout, globalLayout, siteUrl, over
           {dirty ? <p className="text-xs text-yellow-500/80">Creating a scene reloads the page. Save your changes first.</p> : <p className="text-xs text-gray-600">Landscape starts from the global layout; vertical starts from a 1080 × 1920 stage. Then adjust it under Layout.</p>}
         </form>
       </div>
-    </Popover>
+    </SubMenu>
   );
 }
 
 export function VersionsMenu({ versionList, setVersionList, versionDistance, loadVersion }: { versionList: VersionInfo[]; setVersionList: Dispatch<SetStateAction<VersionInfo[]>>; versionDistance: (v: VersionInfo) => number; loadVersion: (v: VersionInfo) => void }) {
   return (
-    <Popover label="Versions" icon="history" badge={versionList.length || undefined}>
+    <SubMenu label="Versions" icon="history" badge={versionList.length || undefined}>
       <div className="w-96 space-y-2 text-sm">
         <p className="text-xs text-gray-500">Every save keeps a version (newest 20). Load one into the editor to compare, then Save to make it live.</p>
         {versionList.length === 0 && <p className="text-xs text-gray-600">Nothing saved yet. Your first save starts the history.</p>}
@@ -156,13 +157,13 @@ export function VersionsMenu({ versionList, setVersionList, versionDistance, loa
           })}
         </ul>
       </div>
-    </Popover>
+    </SubMenu>
   );
 }
 
 export function ImportExportMenu({ download, copyJson, runImport, importText, setImportText, importError, setImportError }: { download: () => void; copyJson: () => void; runImport: (text: string) => void; importText: string; setImportText: (v: string) => void; importError: string; setImportError: (v: string) => void }) {
   return (
-    <Popover label="Import / Export">
+    <SubMenu label="Import / Export" icon="download">
       <div className="w-80 space-y-2 text-sm">
         <p className="text-xs text-gray-500">Share or back up this look as JSON. Importing replaces the values at the current scope (you can still Revert).</p>
         <div className="flex flex-wrap gap-2">
@@ -194,13 +195,13 @@ export function ImportExportMenu({ download, copyJson, runImport, importText, se
           {importError && <span role="alert" className="text-xs text-red-300">{importError}</span>}
         </div>
       </div>
-    </Popover>
+    </SubMenu>
   );
 }
 
 export function PackToolsMenu({ packs, packVals, setPackVals, scope, globalVals, copyTargets, setCopyTargets, copyFrom, setCopyFrom, replaceCurrent, setNotice }: { packs: PackInfo[]; packVals: Record<string, PropValues>; setPackVals: Dispatch<SetStateAction<Record<string, PropValues>>>; scope: string; globalVals: PropValues; copyTargets: string[]; setCopyTargets: Dispatch<SetStateAction<string[]>>; copyFrom: string; setCopyFrom: (v: string) => void; replaceCurrent: (next: PropValues) => void; setNotice: Notify }) {
   return (
-    <Popover label="Pack tools" icon="copy">
+    <SubMenu label="Pack tools" icon="copy">
       <div className="w-96 space-y-4 text-sm">
         <div className="space-y-1.5">
           <p className="text-xs font-semibold text-gray-300">Copy this pack&apos;s look to other packs</p>
@@ -244,7 +245,7 @@ export function PackToolsMenu({ packs, packVals, setPackVals, scope, globalVals,
           <button type="button" disabled={Object.keys(packVals[scope] ?? {}).length === 0} onClick={() => { replaceCurrent({}); setNotice('Cleared this pack’s overrides. Review, then Save.'); }} className={`${btn} text-gray-400 hover:text-red-300 px-0 disabled:opacity-40`}>Clear all overrides</button>
         </div>
       </div>
-    </Popover>
+    </SubMenu>
   );
 }
 
@@ -306,20 +307,20 @@ export function DraftBanner({ at, stale, restore, discard }: { at: number; stale
 
 export function SaveOptionsMenu({ note, setNote, autoReload, setAutoReload }: { note: string; setNote: (v: string) => void; autoReload: boolean; setAutoReload: (v: boolean) => void }) {
   return (
-    <Popover label="Save options" icon="settings" align="right">
+    <SubMenu label="Save options" icon="settings">
       <div className="w-72 space-y-3 text-sm">
         <label className="block text-xs text-gray-400 space-y-1">Version note (optional)
           <input value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="e.g. Brighter shiny glow" className="input input-sm w-full" />
         </label>
         <label className="flex items-start gap-2 text-xs text-gray-300"><input type="checkbox" role="switch" checked={autoReload} onChange={e => setAutoReload(e.target.checked)} className="toggle toggle-xs toggle-primary mt-0.5" /><span>Refresh open overlays after saving. They reload once nothing is animating, so a pack opening is never cut short.</span></label>
       </div>
-    </Popover>
+    </SubMenu>
   );
 }
 
 export function GuidesMenu({ showThirds, setShowThirds, showGrid, setShowGrid, showSafe, setShowSafe, snapOn, setSnapOn, zoom, setZoom, bg, setBg, bgImage, setBgImage }: { showThirds: boolean; setShowThirds: (v: boolean) => void; showGrid: boolean; setShowGrid: (v: boolean) => void; showSafe: boolean; setShowSafe: (v: boolean) => void; snapOn: boolean; setSnapOn: (v: boolean) => void; zoom: number; setZoom: (v: number) => void; bg: Bg; setBg: (v: Bg) => void; bgImage: string | null; setBgImage: (v: string | null) => void }) {
   return (
-    <Popover label="Guides" icon="grid" up>
+    <SubMenu label="Guides, zoom and background" icon="grid">
       <div className="w-64 space-y-3 text-sm">
         <div className="space-y-1.5">
           <label className="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" role="switch" checked={showThirds} onChange={e => setShowThirds(e.target.checked)} className="toggle toggle-xs toggle-primary" />Rule of thirds</label>
@@ -354,6 +355,6 @@ export function GuidesMenu({ showThirds, setShowThirds, showGrid, setShowGrid, s
           <p className="text-[11px] text-gray-600">Only shown in this editor, never saved or uploaded.</p>
         </div>
       </div>
-    </Popover>
+    </SubMenu>
   );
 }
