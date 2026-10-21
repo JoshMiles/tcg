@@ -25,7 +25,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.4 | Overlay Editor: layer Properties (transform, opacity) | Ready | M |
 | 38.5 | Overlay Editor: multi-select, lock, align and distribute | Ready | M |
 | 38.6 | Overlay Editor: every part a layer (moment banner) | Ready | S |
-| 38.7 | Overlay Editor: add your own layers (text, image) | Ready | L |
+| 38.7 | Overlay Editor: add your own layers (text, image, shape) | Ready | L |
 | 38.8 | Overlay Editor: text formatting (a Character panel on every text layer) | Ready | L |
 | 38.9 | Overlay Editor: better text fields (tokens, preview, checks) | Ready | S |
 | 38.10 | Overlay Editor: styled words inside one text (rich text) | Ready | M |
@@ -47,6 +47,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.26 | Overlay Editor: text readability check | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
+| 38.29 | Overlay Editor: workspace redesign (menu bar, panels, contextual Properties) | Ready | L |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -108,7 +109,16 @@ Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers
 - Layers rows show an icon per kind (image, text, group) and the part's name as on the canvas tag. Double-click a row to jump to its settings.
 
 ### 38.7 Add your own layers (Ready, L)
-Photoshop's core: layers that aren't built in. **Decided (user, 2026-10-21):** text and image layers, in both views; no shapes. **Add layer** in Layers makes a **Text** layer (text, overlay font list, size, colour, alignment) or an **Image** layer (upload through `ImageUploadField` to Blob, e.g. a logo or a frame). Stored per view in the layout as `custom: CustomLayer[]` (`id`, `kind`, content, `Placement`, `opacity`, `visible`), so scenes carry them and versions snapshot them; at most 8 per view. Text can use `{viewer}`, `{card}`, `{pack}`, `{edition}` (filled by the widget, escaped). Custom layers can be reordered among themselves and put in one of two bands, **behind** or **in front of** the card; built-in parts keep their fixed order. Each one has "Show: always / during the reveal / after the reveal". Text layers use the full Character panel (38.8) including box height and vertical align. Image URLs are checked to be Blob or same-site on save. Split: (a) data + widget render + Add / delete in Layers, (b) bands, ordering and "Show when".
+Photoshop's core: layers that aren't built in. **Decided (user, 2026-10-21):** text, image **and shape** layers, in both views (pack opening and collection).
+- **Adding:** the Text (T), Shape (U) and Image tools in the tool strip (38.29) and **Add layer** in Layers. Click on the canvas places one; drag draws it at that size.
+- **Text:** a box with wording and the full Character / Paragraph / Effects panel (38.8, 38.12), including box height, vertical align and styled words (38.10). Tokens are 38.9's set (`{user}`, `{cardName}`, `{variant}`, `{pack}`, `{edition}`, `{stars}`), filled by the widget with `textContent` only.
+- **Image:** upload through `ImageUploadField` to Blob (a logo, a frame); fit (contain / cover / stretch), corner radius, opacity, effects (shadow, glow, stroke). URLs checked to be Blob or same-site on save.
+- **Shape:** rectangle (corner radius per corner or linked), ellipse, line (end caps, arrowheads), polygon and star (sides 3 to 12, inner radius). Fill: none, solid, or a gradient (linear / radial, 2 to 4 stops, the same gradient editor as text); stroke: colour, width, dash, position inside / centre / outside; effects: drop shadow, outer glow (the shared `Effects`). Shift while drawing keeps proportions. Rendered by the widget as an inline SVG sized to its box, so it scales cleanly at any stage size. Shapes are what make plates behind text, bars, frames and dividers.
+- **Data:** stored per view in the layout as `custom: CustomLayer[]` (`id`, `kind: 'text' | 'image' | 'shape'`, `name`, kind-specific fields, a box `{ x, y, w, h }` in design px plus `rotate`, `opacity`, `visible`; locks stay an editor aid as in 38.5), so scenes carry them and versions snapshot them; at most 16 per view. `sanitizeLayout()` validates every field and drops unknown kinds; an absent `custom` is today's look. Global or per scene, never per pack, like other layer edits.
+- **Order:** custom layers reorder freely among themselves (drag in Layers, Ctrl+[ / Ctrl+]) and sit in one of two bands, **behind the card** or **in front of it**; built-in parts keep their fixed order between the bands. Each has **Show: always / during the reveal / after the reveal** (pack view) and an optional fade in / out.
+- **Free transform:** custom layers (unlike built-in parts) get side handles for width / height, a rotate handle (Shift = 15° steps), and the 9-point anchor (38.22). Rotation is safe here because no reveal keyframe animates these wrappers.
+- **Editing:** duplicate (Ctrl+J, Photoshop's), copy / paste between views and scenes, rename by double-click in Layers, delete.
+- Split: (a) data, sanitize, widget render for all three kinds, Add / delete; (b) the Text tool and text panel; (c) the Shape tool, fill / stroke / effects; (d) the Image tool; (e) bands, ordering, "Show when", fades; (f) free transform. `scripts/check-overlay.mts` cases for each kind's sanitize and the 16 cap.
 
 ### 38.8 Text formatting: a Character panel on every text layer (Ready, L)
 Today an overlay text layer has a font (36.5) and, for some, a size and colour; nothing else. The card back editor already has the full set (`BackEl` and `Effects` in `lib/card-back.ts`: weight, italic, underline, uppercase, letter spacing, line height, align, colour, opacity, and effects outline, glow, shadow, engrave, gradient text). Give every overlay text layer the same, as one Photoshop-style **Character** block. This replaces the old 38.8 (layer styles) and answers its question: one compact block per layer, not ~12 loose settings each.
@@ -156,6 +166,37 @@ The card back's text controls (`card-back/Properties.tsx`, model `BackEl` / `Eff
 - **Panel layout:** Character and Paragraph as two collapsible sections, Effects as a list with switches (like Photoshop's Layer Style dialog, but docked), every field with a reset dot when changed. Reuse `Num` / `Row` from `Properties.tsx`.
 - **Parity is the hard part:** every option must render the same in the DOM back (`FlipCard`, site and overlay) and on the canvas (`lib/card-back-canvas.ts`, share images). Add a `scripts/check-card-back.mts` case per option for sanitize / defaults, and check DOM vs canvas by eye on the editor's export preview for each effect. Watch the reduced-motion learning: the bare editor back must keep `data-flipped="true"`.
 - Split into PRs: (a) model to `lib/text-style.ts` + sizes, pt, presets, auto-fit; (b) boxes, wrapping, paragraph; (c) character extras + gradient stops; (d) effects + background plate; (e) style presets; (f) text on a curve.
+
+### 38.29 Workspace redesign (Ready, L)
+Today the workspace is an options bar crowded with popovers (scope, Presets, Scenes, Versions, Import / Export, Pack tools, Review, Save options, Guides, undo / redo, Revert / Save; `EditorTopBar.tsx`, `EditorMenus.tsx`), the canvas with a preview toolbar under it (view, show as, moment, pack, card, Play; `PreviewToolbar.tsx`), and one 26rem dock (`PropertiesDock.tsx`) holding Layers on top, then a category rail, search and the category's settings. Settings are found by **category**, not by clicking the thing; Layers is squeezed; there is no status bar. Rearrange it as Photoshop does, so every later item has a fixed home:
+
+```
+┌ Menu bar: File  Edit  View  Layer  Scene  Window  Help ─────────────────── Revert  Save ┐
+├ Options bar (changes with the tool / selection)                                        ┤
+├──┬ Tabs: [Everything] [Scene: Vertical] [Pack: Halloween ×] ───────┬ Properties ───────┤
+│T │ ruler                                                           │ (selected layer:  │
+│o │ ┌─────────────────────────────────────────────┐                 │  Layer, Character,│
+│o │ │                 canvas                      │                 │  Paragraph, fx,   │
+│l │ │                                             │                 │  its look settings│
+│s │ └─────────────────────────────────────────────┘                 │  / nothing: the   │
+│  ├ Timeline: ▶ ■  scrubber  |  View  Show as  Moment  Pack  Card ──┤  categories)      │
+│  │                                                                 ├ Layers ───────────┤
+│  │                                                                 ├ History│Swatches│ │
+│  │                                                                 │ Navigator         │
+├──┴ Status: zoom · X,Y · 1280×720 · load ●● · 58 fps · 3 unsaved ───┴───────────────────┤
+```
+
+- **Menu bar** replaces the popover row: **File** (Save, Save options, Versions, Import / Export, Revert), **Edit** (Undo / Redo, Copy / Paste style, Pack tools in pack scope, Find a setting Ctrl+F), **View** (zoom, fit, 100%, rulers, guides, snap, artboards, background, Before / after), **Layer** (Add text / image / shape, Duplicate, Group, Lock, Align / Distribute, Reset position), **Scene** (the Scenes list, New scene, Copy position to scenes), **Window** (show / hide each panel, Reset workspace), **Help** (Keyboard shortcuts, the first-use hint again). Each item shows its shortcut. Presets and Season / Scheduled looks go under File → Looks. Review stays one click away as the "3 unsaved" button in the status bar and next to Save.
+- **Scope as document tabs** above the canvas: Everything, each scene and each open pack override is a tab (open more from Scene / Pack menus, close with ×), replacing the scope select. Each tab shows a dot when it has unsaved changes.
+- **Tool strip** (38.1's Move / Hand / Zoom plus Text, Shape, Image from 38.7) on the left of the canvas.
+- **Contextual options bar** under the menu bar, as in Photoshop: Move shows Auto-select, Show transform controls, Align / Distribute (38.5); Text shows font, size, colour, B / I / U, align; Shape shows shape type, fill, stroke, radius; Hand / Zoom show Fit / 100%.
+- **Timeline area** under the canvas: the scrubber (38.15) with the preview controls from `PreviewToolbar` in its header (View, Show as, Moment, Pack, Card, Play, Play a stream 38.16). Collapsible to one row.
+- **Right column, a stack of collapsible panels:** **Properties** on top is contextual: with a layer selected it shows that layer's Layer (38.4), Character / Paragraph / Effects (38.8) and then **that layer's look settings from the registry** (e.g. selecting the label shows the label's wording, colours, `reveal.label*`), so the category rail is no longer the way in. With nothing selected it shows the document: stage size and presets (today's Layout panel) and the categories (Pack opening timing, Variants, Moments, Show off, Collection) as a list that opens each one, plus Find a setting. Selecting the card opens its Variants picker. **Layers** below takes the remaining height (groups for the two views, custom layers, bands, lock, eye, link). Bottom: **History** (38.2), **Swatches** (38.21) and **Navigator** (38.20) as tabs.
+- **Panels:** each collapses to its title bar; the right column is resizable (drag its edge, 20 to 36rem) and panels can collapse to an icon strip, all remembered in localStorage with Window → Reset workspace. Not free-floating (still not planned).
+- **Status bar:** zoom, pointer X / Y (38.19), stage size, load rating, frame rate (38.23), unsaved count (opens Review), last saved time and the save-conflict state (38.13).
+- **Look:** a tighter, darker workspace (panel headers 28 px, 12 px labels, number fields with drag-to-scrub labels as in Photoshop: drag on a field's label to change its value), the daisyUI `cheesy` colours kept; icons from `Icon.tsx`, no emoji. Below `xl` the right column moves under the canvas as tabs (Properties / Layers / History).
+- **Keep:** every existing behaviour and message to the iframe; the auto-collapsed admin sidebar; no page scroll at `xl`.
+- **Split, behaviour unchanged until (d):** (a) menu bar + status bar, moving the popovers' contents into menus as is; (b) scope tabs; (c) the right panel stack, Layers full height, History / Swatches / Navigator slots; (d) contextual Properties replacing the rail; (e) tool strip + contextual options bar (with 38.1); (f) timeline area absorbing `PreviewToolbar` (with 38.15); (g) resizable / collapsible panels and the compact look. Update `docs/overlay.md` (Editor section) in each.
 
 ### Safety first (do these before 38.1)
 
@@ -211,7 +252,7 @@ Saving a preset or version captures a still of the preview (the widget draws its
 ### 38.28 Scheduled looks (Ready, M)
 A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
 
-**Build order for the track:** 38.13, 38.14 → 38.1 to 38.6 → 38.15, 38.16 → text work (38.11, 38.12, 38.8, 38.9, 38.10) → 38.7 → 38.17 to 38.28 in any order.
+**Build order for the track:** 38.13, 38.14 (safety) → 38.29 (a) to (d) (the new workspace, so later items are built into their final home) → 38.1 with 38.29 (e) → 38.2 to 38.6 → 38.15 with 38.29 (f), 38.16 → text work (38.11, 38.12, 38.8, 38.9, 38.10) → 38.7 → 38.29 (g) → 38.17 to 38.28 in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 
