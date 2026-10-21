@@ -240,27 +240,6 @@ export function EditorTopBar() {
       </MenuBar>
 
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-2 text-xs text-gray-400 font-semibold">
-          Editing
-          <select value={scope} onChange={e => setScope(e.target.value)} className="select select-sm max-w-56">
-            <option value="global">Everything (global)</option>
-            {packs.map(p => (
-              <option key={p.id} value={p.id}>
-                Pack: {p.name}
-                {Object.keys(packVals[p.id] ?? {}).length ? ' ●' : ''}
-              </option>
-            ))}
-            {presets.length > 0 && (
-              <optgroup label="Scenes (own overlay URL)">
-                {presets.map(x => (
-                  <option key={x.id} value={'scene:' + x.id}>
-                    Scene: {x.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        </label>
         {isPack && (
           <span className="text-xs text-yellow-300/80 hidden md:inline">
             Only what you change applies to this pack; the rest follows global.

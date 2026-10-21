@@ -1,6 +1,7 @@
 'use client';
 
 import { OverlayEditorProvider, type OverlayEditorProps } from './OverlayEditorContext';
+import { EditorScopeTabs } from './EditorScopeTabs';
 import { EditorStatusBar } from './EditorStatusBar';
 import { EditorTopBar } from './EditorTopBar';
 import { PreviewStage } from './PreviewStage';
@@ -18,6 +19,7 @@ export function OverlayEditor(props: OverlayEditorProps) {
         <EditorTopBar />
         <div className="flex-1 min-h-0 grid gap-3 xl:grid-cols-[minmax(0,1fr)_26rem]">
           <div className="min-h-0 min-w-0 flex flex-col gap-2">
+            <EditorScopeTabs />
             <PreviewStage />
             <PreviewToolbar />
           </div>
