@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { LayerMenu } from './LayerMenu';
 import { useOverlayEditor } from './OverlayEditorContext';
+import { RulerBar } from './RulerBar';
 
 export function PreviewStage() {
   const {
@@ -28,7 +29,70 @@ export function PreviewStage() {
     hintSignal,
     activeTool,
     zoomStep,
+    showRulers,
+    guides,
+    setGuides,
+    guidesLocked,
   } = useOverlayEditor();
+
+  // Rulers and the user's guides are drawn here, not in the widget: where the stage sits inside the scroll box, measured on scroll / resize / zoom.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [m, setM] = useState({ ox: 0, oy: 0, bw: 0, bh: 0 });
+  const measure = useCallback(() => {
+    const b = boxRef.current;
+    const st = stageRef.current;
+    if (!b || !st) return;
+    const br = b.getBoundingClientRect();
+    const sr = st.getBoundingClientRect();
+    const q = (n: number) => Math.round(n * 10) / 10;
+    const n = { ox: q(sr.left + st.clientLeft - br.left), oy: q(sr.top + st.clientTop - br.top), bw: q(br.width), bh: q(br.height) };
+    setM(p => (p.ox === n.ox && p.oy === n.oy && p.bw === n.bw && p.bh === n.bh ? p : n));
+  }, [boxRef]);
+  useEffect(() => {
+    measure();
+    const b = boxRef.current;
+    b?.addEventListener('scroll', measure);
+    const ro = new ResizeObserver(measure);
+    if (b) ro.observe(b);
+    if (stageRef.current) ro.observe(stageRef.current);
+    return () => { b?.removeEventListener('scroll', measure); ro.disconnect(); };
+  }, [measure, boxRef, fit, frameW, frameH, showRulers]);
+
+  // A guide drag (new from a ruler, or an existing line): axis 'x' = a vertical line at design x. Not an undo step. Letting go off the
+  // stage or back on the ruler deletes it.
+  const drag = useRef<{ axis: 'x' | 'y'; i: number } | null>(null);
+  const posOf = (axis: 'x' | 'y', e: React.PointerEvent) => {
+    const st = stageRef.current;
+    if (!st) return 0;
+    const r = st.getBoundingClientRect();
+    return Math.round(((axis === 'x' ? e.clientX - r.left : e.clientY - r.top) - (axis === 'x' ? st.clientLeft : st.clientTop)) / fit);
+  };
+  const setAt = (axis: 'x' | 'y', i: number, v: number) => setGuides(g => ({ ...g, [axis]: g[axis].map((n, j) => (j === i ? v : n)) }));
+  const beginGuide = (axis: 'x' | 'y', i: number, e: React.PointerEvent<HTMLElement>) => {
+    drag.current = { axis, i };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* no active pointer */ }
+    e.preventDefault();
+  };
+  const newGuide = (axis: 'x' | 'y') => (e: React.PointerEvent<HTMLElement>) => {
+    if (e.button !== 0) return;
+    const v = posOf(axis, e);
+    const i = guides[axis].length;
+    setGuides(g => ({ ...g, [axis]: [...g[axis], v] }));
+    beginGuide(axis, i, e);
+  };
+  const moveGuide = (e: React.PointerEvent) => {
+    if (drag.current) setAt(drag.current.axis, drag.current.i, posOf(drag.current.axis, e));
+  };
+  const endGuide = (e: React.PointerEvent) => {
+    const d = drag.current;
+    drag.current = null;
+    const b = boxRef.current;
+    if (!d || !b) return;
+    const v = posOf(d.axis, e);
+    const br = b.getBoundingClientRect();
+    const off = v < 0 || v > (d.axis === 'x' ? shownLayout.width : shownLayout.height) || (d.axis === 'x' ? e.clientX < br.left : e.clientY < br.top);
+    if (off) setGuides(g => ({ ...g, [d.axis]: g[d.axis].filter((_, j) => j !== d.i) }));
+  };
   // Hand / Zoom put a clear sheet over the preview so presses never reach the widget; the Alt key flips Zoom to zoom out.
   const [panning, setPanning] = useState(false);
   const [zoomOut, setZoomOut] = useState(false);
@@ -50,12 +114,26 @@ export function PreviewStage() {
   };
 
   return (
+    <div className="flex-1 min-w-0 flex flex-col">
+      {showRulers && (
+        <div className="flex" onPointerMove={moveGuide} onPointerUp={endGuide} onPointerCancel={endGuide}>
+          <div className="w-5 h-5 shrink-0 bg-gray-900" />
+          <div className="flex-1 min-w-0"><RulerBar axis="x" origin={m.ox} fit={fit} len={m.bw} onPointerDown={newGuide('y')} /></div>
+        </div>
+      )}
+      <div className="flex-1 min-h-0 flex">
+      {showRulers && (
+        <div className="shrink-0" onPointerMove={moveGuide} onPointerUp={endGuide} onPointerCancel={endGuide}>
+          <RulerBar axis="y" origin={m.oy} fit={fit} len={m.bh} onPointerDown={newGuide('x')} />
+        </div>
+      )}
     <div
       ref={boxRef}
       data-canvas
       className="relative flex-1 min-w-0 rounded-xl border border-gray-800 bg-gray-950/70 overflow-auto flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <div
+        ref={stageRef}
         className="relative overflow-hidden rounded-md border border-gray-700 shrink-0 m-auto outline-hidden focus-visible:border-yellow-500"
         tabIndex={0}
         onKeyDown={onKeyDown}
@@ -147,6 +225,22 @@ export function PreviewStage() {
             </div>
           </>
         )}
+        <div aria-hidden className="absolute inset-0 pointer-events-none">
+          {(['x', 'y'] as const).flatMap(axis => guides[axis].map((v, i) => (
+            <div
+              key={axis + i}
+              data-guide={axis}
+              onPointerDown={e => beginGuide(axis, i, e)}
+              onPointerMove={moveGuide}
+              onPointerUp={endGuide}
+              onPointerCancel={endGuide}
+              className={`absolute ${guidesLocked ? 'pointer-events-none' : 'pointer-events-auto'} ${axis === 'x' ? 'inset-y-0 w-2 -ml-1 cursor-col-resize' : 'inset-x-0 h-2 -mt-1 cursor-row-resize'}`}
+              style={axis === 'x' ? { left: v * fit } : { top: v * fit }}
+            >
+              <div className={`absolute bg-cyan-400/80 pointer-events-none ${axis === 'x' ? 'inset-y-0 left-1/2 w-px' : 'inset-x-0 top-1/2 h-px'}`} />
+            </div>
+          )))}
+        </div>
         {showSaved && (
           <span className="absolute top-2 left-2 rounded-md bg-gray-950/85 border border-yellow-500/50 px-2 py-0.5 text-[11px] font-bold text-yellow-300 pointer-events-none">
             Showing the saved look
@@ -172,6 +266,8 @@ export function PreviewStage() {
         )}
       </div>
       <LayerMenu />
+    </div>
+      </div>
     </div>
   );
 }

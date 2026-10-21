@@ -18,6 +18,7 @@ const GROUPS: { title: string; rows: [string, string][] }[] = [
     rows: [
       ['Ctrl+0', 'Fit to the space'],
       ['Ctrl+1', '100% (one design pixel per screen pixel)'],
+      ['Ctrl+R', 'Show or hide the rulers (drag from a ruler for a guide)'],
       ['Ctrl+= / Ctrl+-', 'Zoom in / out one step'],
       ['Ctrl+wheel', 'Zoom at the pointer'],
       ['Wheel / Shift+wheel', 'Pan up and down / sideways when zoomed in'],

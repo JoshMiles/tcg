@@ -329,6 +329,7 @@ if (PREVIEW) {
     for (let i = list.length; i < guideEls.length; i++) guideEls[i].style.display = 'none';
   };
   const SNAP_PX = 6;
+  let userGuides = { x: [], y: [] }; // the editor's own guide lines (design px), sent as { type: 'guides' }
   // The closest of `lines` to any of the moving edges (start, middle, end), within SNAP_PX: { d: shift to apply, line }.
   const snapAxis = (vals, lines) => {
     let best = null;
@@ -352,7 +353,7 @@ if (PREVIEW) {
     if (document.body.dataset.snap && !e.altKey) {
       // Snap the moving box's edges and middle to the stage and (for a single part) to the other parts.
       const b = e.shiftKey ? press.all : press.rect;
-      const xs = [0, innerWidth / 2, innerWidth], ys = [0, innerHeight / 2, innerHeight];
+      const xs = [0, innerWidth / 2, innerWidth, ...userGuides.x], ys = [0, innerHeight / 2, innerHeight, ...userGuides.y];
       if (!e.shiftKey) for (const o of press.others) { xs.push(o.l, (o.l + o.r) / 2, o.r); ys.push(o.t, (o.t + o.b) / 2, o.b); }
       const bx = snapAxis([b.l + sdx, (b.l + b.r) / 2 + sdx, b.r + sdx], xs);
       const by = snapAxis([b.t + sdy, (b.t + b.b) / 2 + sdy, b.b + sdy], ys);
@@ -379,7 +380,7 @@ if (PREVIEW) {
   // Focus sits in this frame after a click, so hand the nudge / clear keys and the editor's shortcuts (tools, zoom, save) to the editor.
   const FWD_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Escape'];
   const FWD_EDITOR_KEYS = ['v', 'h', 'z', 'Tab', '?', ' '];
-  const FWD_CTRL = ['s', 'd', '0', '1', '=', '+', '-', 'z', 'y'];
+  const FWD_CTRL = ['s', 'd', '0', '1', '=', '+', '-', 'z', 'y', 'r'];
   document.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;
     if (!(mod ? EDITOR && FWD_CTRL.includes(e.key.toLowerCase()) : FWD_KEYS.includes(e.key) || (EDITOR && FWD_EDITOR_KEYS.includes(e.key)))) return;
@@ -474,6 +475,10 @@ if (PREVIEW) {
       // `view`: a whole view is selected (handles wrap all its parts); canEdit / snap come from the editor.
       const flag = (k, on) => { if (on) document.body.dataset[k] = '1'; else delete document.body.dataset[k]; };
       flag('view', !!e.data.view); flag('canedit', !!e.data.canEdit); flag('snap', !!e.data.snap);
+    }
+    else if (e.data.type === 'guides') {
+      const nums = (a) => (Array.isArray(a) ? a.filter((n) => Number.isFinite(n)) : []);
+      userGuides = { x: nums(e.data.x), y: nums(e.data.y) };
     }
     else if (e.data.type === 'hover') {
       if (typeof e.data.target === 'string' && e.data.target) document.body.dataset.hover = e.data.target;
