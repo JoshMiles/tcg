@@ -109,7 +109,7 @@ ok(messy.background === 'steel' && messy.edge === 'rarity' && !('evil' in messy)
 ok(messy.elements.map(e => e.kind).join() === 'text,number,logo', 'v2: unknown kinds and a second number are dropped');
 ok(t.font === 'body' && t.weight === 400 && t.size === 30 && t.x === 0 && t.y === 100 && t.w === 10 && t.rotate === 45 && t.z === 50 && t.opacity === 1 && t.color === 'auto' && t.letterSpacing === 20 && t.lineHeight === 0.8, 'v2: unknown fonts, weights and colours fall back; every number is clamped');
 ok(t.text.length === 80 && !t.text.includes('<'), 'v2: a text box is capped at 80 characters and carries no markup');
-ok(t.fx.outline?.color === '#000000' && t.fx.outline.width === 10 && t.fx.glow?.color === '#aabbcc' && t.fx.glow.blur === 40 && t.fx.glow.strength === 3 && t.fx.shadow?.x === 20 && t.fx.shadow.y === -20 && t.fx.gradientText?.angle === 5 && t.fx.engrave === undefined && !('junk' in t.fx), 'v2: effects are clamped and validated');
+ok(t.fx.stroke?.color === '#000000' && t.fx.stroke.width === 10 && t.fx.glow?.color === '#aabbcc' && t.fx.glow.blur === 40 && t.fx.glow.strength === 3 && t.fx.shadows?.[0]?.x === 20 && t.fx.shadows[0].y === -20 && t.fx.gradientText?.angle === 5 && t.fx.bevel === undefined && !('junk' in t.fx), 'v2: effects are clamped and validated');
 ok(messy.elements[2].src === 'cover' && messy.elements[2].url === '', 'v2: a bad logo address is dropped');
 const many = cb.sanitizeCardBack({ v: 2, elements: Array.from({ length: 40 }, (_, i) => ({ kind: 'text', text: `t${i}` })) });
 ok(many.elements.length === 8 && many.elements.length <= cb.MAX_ELEMENTS, 'v2: at most 8 text boxes (and 24 elements)');
@@ -456,5 +456,38 @@ for (const [name, over] of [['word spacing', { wordEm: 0.3 }], ['small caps', { 
   const s = { ...base, text: 'aaaa bbbb cccc dddd', wrap: true, boxW: 50, size: 10, ...over };
   ok(JSON.stringify(wl(s, stub)) === JSON.stringify(lay.layoutText(s as Parameters<typeof lay.layoutText>[0], stub)), 'widget port matches layoutText: ' + name);
 }
+
+// ── 38.12 d: effects list and the background plate ──
+const fxs = (fx: Record<string, unknown>) => cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 'b', place: 'free', fx }] }).elements[0].fx;
+ok(Object.keys(fxs({})).length === 0, 'no effects by default');
+const oldFx = fxs({ outline: { color: '#fff', width: 2 }, shadow: { color: '#000', x: 1, y: 2, blur: 3 }, engrave: true });
+ok(oldFx.stroke?.pos === 'outside' && oldFx.stroke.width === 2 && oldFx.shadows?.length === 1 && oldFx.shadows[0].y === 2 && oldFx.bevel?.style === 'pressed' && oldFx.bevel.depth === 1 && !('outline' in oldFx) && !('engrave' in oldFx), 'old outline, shadow and engrave read as stroke, shadows and a pressed bevel');
+const bigFx = fxs({ shadows: [{ x: 99 }, { opacity: 5 }, { y: 1 }], inner: { blur: 99, opacity: -1 }, bevel: { style: 'raised', depth: 99 }, plate: { color: 'x', pad: 99, radius: -5, outline: { color: '#fff', width: 99 } }, stroke: { pos: 'center', width: 3, on: false } });
+ok(bigFx.shadows?.length === 2 && bigFx.shadows[0].x === 20 && bigFx.shadows[0].opacity === undefined && bigFx.shadows[1].opacity === undefined && bigFx.inner?.blur === 30 && bigFx.inner.opacity === 0 && bigFx.bevel?.style === 'raised' && bigFx.bevel.depth === 3, 'shadows (2 at most), inner shadow and bevel are clamped');
+ok(bigFx.plate?.pad === 20 && bigFx.plate.radius === 0 && bigFx.plate.outline?.width === 10 && bigFx.plate.color === '#000000' && bigFx.stroke?.pos === 'center' && bigFx.stroke.on === false, 'the plate is clamped and a switched-off effect keeps its settings');
+ok(fxs({ shadows: [{ opacity: 0.4 }] }).shadows?.[0].opacity === 0.4, 'shadow opacity is kept');
+const ec = (fx: Record<string, unknown>) => lay.effectsCss(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 'b', place: 'free', fx }] }).elements[0].fx, '#000', 240);
+ok(ec({ stroke: { width: 2, pos: 'outside' } }).paintOrder === 'stroke fill' && ec({ stroke: { width: 2, pos: 'center' } }).paintOrder === 'normal' && ec({ stroke: { width: 2, on: false } }).WebkitTextStroke === undefined, 'stroke position is the paint order; off draws nothing');
+ok(ec({ engrave: true }).textShadow === '0 1px 0 rgba(255,255,255,.55), 0 -1px 1px rgba(0,0,0,.4)' && ec({ bevel: { style: 'raised', depth: 2 } }).textShadow === '0 -2px 0 rgba(255,255,255,.55), 0 2px 2px rgba(0,0,0,.4)', 'engrave is the pressed bevel; raised flips it');
+const twoSh = String(ec({ shadows: [{ x: 4, y: 4, blur: 0, opacity: 0.5 }, { color: '#112233', x: 0, y: 0, blur: 8 }] }).textShadow);
+ok(twoSh.split('), ').length === 2 && twoSh.includes('rgba(0,0,0,0.5)') && twoSh.includes('#112233'), 'two drop shadows, one with opacity');
+ok(ec({ shadows: [{ on: false }, { y: 1 }] }).textShadow?.toString().split(', ').length === 1 || String(ec({ shadows: [{ on: false }] }).textShadow) === 'undefined', 'a switched-off shadow is skipped');
+const innerCss = ec({ inner: { x: 0, y: 2, blur: 3 }, glow: { color: '#fff', blur: 5, strength: 1 } });
+ok(String(innerCss.filter).startsWith('url("data:image/svg+xml,') && innerCss.textShadow === undefined, 'an inner shadow is an SVG filter that also draws the other shadows');
+const innerNode = lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 'b', place: 'free', w: 60, size: 6, text: 'Hi', fx: { inner: { x: 0, y: 2, blur: 3 }, glow: { color: '#ffffff', blur: 5, strength: 1 }, plate: { color: '#112233', pad: 2, radius: 3, outline: { color: '#fff', width: 2 } } } }] }), PRINT, SIZE, { measure: stub }).find(n => n.id === 'b')!;
+ok(!!innerNode.inner && innerNode.shadow?.includes('#ffffff') && innerNode.plate?.color === '#112233' && innerNode.plate.radius > 0 && !!innerNode.plate.outline && innerNode.css.backgroundColor === '#112233' && !!innerNode.css.boxShadow, 'the node carries the inner shadow, the shadow list and the plate for the canvas');
+ok(!!innerNode.spec && innerNode.spec.pad > 0 && !!innerNode.lines && innerNode.css.boxSizing === 'border-box', 'a plate gives the text padding and explicit lines');
+const gradPlate = ec({ gradientText: { stops: [{ color: '#f00', at: 0 }, { color: '#00f', at: 100 }], angle: 90 }, plate: { color: '#123456', pad: 1, radius: 1 } });
+ok(String(gradPlate.backgroundImage).endsWith('linear-gradient(#123456, #123456)') && gradPlate.backgroundClip === 'text, border-box' && gradPlate.backgroundColor === undefined, 'with gradient text the plate is its own background layer');
+ok(cvx.parseGradient(gradPlate.backgroundImage)?.to === '#0000ff' && cvx.parseGradient(gradPlate.backgroundImage)?.angle === 90, 'the canvas reads the gradient from the first layer');
+ok(cvx.parseStroke('1px #000', 'stroke fill')?.outside === true && cvx.parseStroke('1px #000', 'normal')?.outside === false, 'the canvas reads the stroke position');
+const fxBox = cvx.placeBack([innerNode], SIZE).find(b => b.id === 'b');
+ok(!!fxBox?.inner && !!fxBox.plate && fxBox.shadows.length === 1, 'the canvas box has the inner shadow, the plate and the shadows from the node');
+const logoNode = lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'logo', id: 'l', place: 'free', w: 20, src: 'url', url: 'https://x/y.png', fx: { stroke: { width: 1 }, shadows: [{ y: 2 }, { y: 4 }], plate: { color: '#fff' } } }] }), PRINT, SIZE, { measure: stub }).find(n => n.id === 'l')!;
+ok(String(logoNode.css.filter).split('drop-shadow').length === 4 && logoNode.css.backgroundColor === undefined && !logoNode.plate, 'an image gets drop-shadow filters only');
+
+ok(ec({ gradientText: { angle: 90 } }).textShadow === 'none', 'gradient text turns the stylesheet text-shadow off (it would wash the gradient out)');
+const gradSh = ec({ gradientText: { angle: 90 }, shadows: [{ y: 2 }] });
+ok(String(gradSh.filter).startsWith('url("data:image/svg+xml,') && gradSh.textShadow === 'none', 'gradient text draws its shadows in a filter, not as a text-shadow');
 
 console.log('card back checks passed');

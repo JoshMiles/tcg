@@ -40,14 +40,21 @@ export const SCRIPT_SHIFT = { sup: 0.6, sub: -0.25 } as const;
 /** The line height "auto" gives (a multiple of the size). */
 export const AUTO_LEADING = 1.2;
 
+/** A drop or inner shadow. `x`/`y` are the offset (the editor shows them as angle and distance); `opacity` is left out at 1. `on: false` keeps the settings but switches the effect off. */
+export interface Shadow { color: string; x: number; y: number; blur: number; opacity?: number; on?: false }
 export interface Effects {
-  outline?: { color: string; width: number };
-  glow?: { color: string; blur: number; strength: number };
-  shadow?: { color: string; x: number; y: number; blur: number };
-  /** Today's pressed-into-metal look (light and dark edges). */
-  engrave?: boolean;
+  /** `outside` is painted under the letters (paint-order: stroke), `center` over them. */
+  stroke?: { color: string; width: number; pos: 'outside' | 'center'; on?: false };
+  glow?: { color: string; blur: number; strength: number; on?: false };
+  /** Up to 2 drop shadows. */
+  shadows?: Shadow[];
+  inner?: Shadow;
+  /** `pressed` is today's engrave (light below, dark above); `raised` is the other way round. */
+  bevel?: { style: 'pressed' | 'raised'; depth: number; on?: false };
+  /** A box behind the text: `pad` and `radius` in % of the card width, `outline.width` as the stroke's. */
+  plate?: { color: string; pad: number; radius: number; outline?: { color: string; width: number }; on?: false };
   /** `from` and `to` are always the first and last colour; `stops` (2 to 4 colours, position in %) is optional, so an old two-colour gradient reads as it did. */
-  gradientText?: { from: string; to: string; angle: number; stops?: { color: string; at: number }[] };
+  gradientText?: { from: string; to: string; angle: number; stops?: { color: string; at: number }[]; on?: false };
 }
 
 export interface TextStyle {
@@ -119,18 +126,34 @@ export interface TextBox {
 
 export const DEFAULT_MIN_SIZE = 3;
 
+const shadowOf = (v: unknown, def: Shadow): Shadow => {
+  const o = isRec(v) ? v : {};
+  const op = r2(clamp(o.opacity, 0, 1, 1));
+  return { color: hex(o.color, def.color), x: r2(clamp(o.x, -20, 20, def.x)), y: r2(clamp(o.y, -20, 20, def.y)), blur: r2(clamp(o.blur, 0, 30, def.blur)), ...(op < 1 ? { opacity: op } : {}), ...(o.on === false ? { on: false as const } : {}) };
+};
+const off = (o: Record<string, unknown>) => (o.on === false ? { on: false as const } : {});
+
+/** Effects from anything. The old `outline`, `shadow` and `engrave` read as `stroke` (outside), the first of `shadows` and `bevel` (pressed). */
 export function sanitizeFx(v: unknown): Effects {
   const o = isRec(v) ? v : {};
   const fx: Effects = {};
-  if (isRec(o.outline)) fx.outline = { color: hex(o.outline.color, '#000000'), width: r2(clamp(o.outline.width, 0, 10, 1)) };
-  if (isRec(o.glow)) fx.glow = { color: hex(o.glow.color, '#ffffff'), blur: r2(clamp(o.glow.blur, 0, 40, 8)), strength: r2(clamp(o.glow.strength, 0, 3, 1)) };
-  if (isRec(o.shadow)) fx.shadow = { color: hex(o.shadow.color, '#000000'), x: r2(clamp(o.shadow.x, -20, 20, 0)), y: r2(clamp(o.shadow.y, -20, 20, 2)), blur: r2(clamp(o.shadow.blur, 0, 30, 4)) };
-  if (o.engrave === true) fx.engrave = true;
+  const st = isRec(o.stroke) ? o.stroke : isRec(o.outline) ? { ...o.outline, pos: 'outside' } : null;
+  if (st) fx.stroke = { color: hex(st.color, '#000000'), width: r2(clamp(st.width, 0, 10, 1)), pos: st.pos === 'center' ? 'center' : 'outside', ...off(st) };
+  if (isRec(o.glow)) fx.glow = { color: hex(o.glow.color, '#ffffff'), blur: r2(clamp(o.glow.blur, 0, 40, 8)), strength: r2(clamp(o.glow.strength, 0, 3, 1)), ...off(o.glow) };
+  const list = Array.isArray(o.shadows) ? o.shadows.filter(isRec) : isRec(o.shadow) ? [o.shadow] : [];
+  if (list.length) fx.shadows = list.slice(0, 2).map(x => shadowOf(x, { color: '#000000', x: 0, y: 2, blur: 4 }));
+  if (isRec(o.inner)) fx.inner = shadowOf(o.inner, { color: '#000000', x: 0, y: 2, blur: 3 });
+  const bv = isRec(o.bevel) ? o.bevel : o.engrave === true ? { style: 'pressed', depth: 1 } : null;
+  if (bv) fx.bevel = { style: bv.style === 'raised' ? 'raised' : 'pressed', depth: r2(clamp(bv.depth, 0.5, 3, 1)), ...off(bv) };
+  if (isRec(o.plate)) {
+    const p = o.plate, ol = isRec(p.outline) ? p.outline : null;
+    fx.plate = { color: hex(p.color, '#000000'), pad: r2(clamp(p.pad, 0, 20, 2)), radius: r2(clamp(p.radius, 0, 50, 2)), ...(ol ? { outline: { color: hex(ol.color, '#ffffff'), width: r2(clamp(ol.width, 0, 10, 1)) } } : {}), ...off(p) };
+  }
   if (isRec(o.gradientText)) {
     const g = o.gradientText;
     const stops = Array.isArray(g.stops) ? g.stops.filter(isRec).slice(0, 4).map(x => ({ color: hex(x.color, '#ffffff'), at: Math.round(clamp(x.at, 0, 100, 0)) })).sort((a, b) => a.at - b.at) : [];
     const ends = stops.length >= 2 ? { from: stops[0].color, to: stops[stops.length - 1].color } : { from: hex(g.from, '#fde68a'), to: hex(g.to, '#f59e0b') };
-    fx.gradientText = { ...ends, angle: Math.round(((clamp(g.angle, -100000, 100000, 180) % 360) + 360) % 360), ...(stops.length >= 2 ? { stops } : {}) };
+    fx.gradientText = { ...ends, angle: Math.round(((clamp(g.angle, -100000, 100000, 180) % 360) + 360) % 360), ...(stops.length >= 2 ? { stops } : {}), ...off(g) };
   }
   return fx;
 }

@@ -142,6 +142,13 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
     for (let row = 0; row < q.size; row++) for (let col = 0; col < q.size; col++) if (q.dark(row, col)) ctx.fillRect(b.x + (col + 1) * cell, b.y + (row + 1) * cell, cell + 0.4, cell + 0.4);
   } else if (b.type === 'text' || b.type === 'hist') {
     const f = b.font;
+    if (b.plate) {
+      const o = b.plate.outline;
+      roundRect(ctx, b.x, b.y, b.w, b.h, b.plate.radius);
+      ctx.fillStyle = b.plate.color; ctx.fill();
+      // The DOM draws the outline as a box-shadow spread, outside the box.
+      if (o) { roundRect(ctx, b.x - o.width / 2, b.y - o.width / 2, b.w + o.width, b.h + o.width, b.plate.radius + o.width / 2); ctx.strokeStyle = o.color; ctx.lineWidth = o.width; ctx.stroke(); }
+    }
     ctx.font = `${f.italic ? 'italic ' : ''}${f.weight} ${f.size}px ${f.family ?? family}`;
     ctx.textBaseline = 'middle'; ctx.textAlign = f.align;
     spaced(ctx, f.spacing);
@@ -155,13 +162,17 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
     const fontAt = (small: boolean) => `${base} ${small ? f.size * SMALLCAP_SCALE : f.size}px ${fam}`;
     const runsOf = (text: string) => (f.smallCaps ? capRuns(text) : [{ t: f.upper ? text.toUpperCase() : text, s: false }]);
     const textW = (text: string) => { const w = runsOf(text).reduce((a, r) => { ctx.font = fontAt(r.s); return a + ctx.measureText(r.t).width; }, 0); ctx.font = fontAt(false); return w; };
+    // Canvas shadows are in device px, not the scaled drawing's px.
+    const m = ctx.getTransform(), sc = Math.hypot(m.a, m.b) || 1;
     const paint = (s: string, tx: number, ty: number, align: CanvasTextAlign, size: number) => {
       ctx.textAlign = align;
       for (const sh of b.shadows) {
-        ctx.save(); ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x; ctx.shadowOffsetY = sh.y; ctx.shadowBlur = sh.blur;
+        ctx.save(); ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x * sc; ctx.shadowOffsetY = sh.y * sc; ctx.shadowBlur = sh.blur * sc;
         ctx.fillStyle = b.gradient ? 'rgba(0,0,0,0)' : b.color; ctx.fillText(s, tx, ty, maxW); ctx.restore();
       }
-      if (b.stroke) { ctx.save(); ctx.lineWidth = b.stroke.width * 2; ctx.strokeStyle = b.stroke.color; ctx.lineJoin = 'round'; ctx.strokeText(s, tx, ty, maxW); ctx.restore(); }
+      // An outside stroke is painted under the letters (like paint-order: stroke), so only its outer half shows; a centred one is painted over them below.
+      const strokeIt = () => { ctx.save(); ctx.lineWidth = b.stroke!.width; ctx.strokeStyle = b.stroke!.color; ctx.lineJoin = 'round'; ctx.strokeText(s, tx, ty, maxW); ctx.restore(); };
+      if (b.stroke?.outside) strokeIt();
       if (b.gold) { const g = ctx.createLinearGradient(0, ty - size / 2, 0, ty + size / 2); g.addColorStop(0, '#e0a81c'); g.addColorStop(0.45, '#f7d56b'); g.addColorStop(1, '#8a5a00'); ctx.fillStyle = g; }
       else if (b.gradient) {
         const a = (b.gradient.angle * Math.PI) / 180, dx = Math.sin(a) * b.w / 2, dy = -Math.cos(a) * f.size;
@@ -171,6 +182,31 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
         ctx.fillStyle = g;
       } else ctx.fillStyle = b.color;
       ctx.fillText(s, tx, ty, maxW);
+      if (b.stroke && !b.stroke.outside) strokeIt();
+      if (b.inner) innerShadow(s, tx, ty, align);
+    };
+    // The inner shadow: the shadow colour everywhere, cut out by the letters shifted and blurred, kept only inside the letters.
+    let tmp: HTMLCanvasElement | null = null;
+    const innerShadow = (s: string, tx: number, ty: number, align: CanvasTextAlign) => {
+      const c = ctx.canvas, sh = b.inner!;
+      tmp ??= document.createElement('canvas');
+      if (tmp.width !== c.width || tmp.height !== c.height) { tmp.width = c.width; tmp.height = c.height; }
+      const t = tmp.getContext('2d');
+      if (!t) return;
+      t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-over'; t.clearRect(0, 0, c.width, c.height);
+      t.fillStyle = sh.color; t.fillRect(0, 0, c.width, c.height);
+      t.setTransform(m);
+      t.font = ctx.font; t.textBaseline = ctx.textBaseline; t.textAlign = align;
+      const t2 = t as CanvasRenderingContext2D & { fontKerning?: string; wordSpacing?: string };
+      spaced(t, f.spacing); t2.fontKerning = cx2.fontKerning; if ('wordSpacing' in t) t2.wordSpacing = cx2.wordSpacing;
+      const far = 4000;
+      t.globalCompositeOperation = 'destination-out';
+      t.shadowColor = '#000'; t.shadowOffsetX = (far + sh.x) * sc; t.shadowOffsetY = sh.y * sc; t.shadowBlur = sh.blur * sc;
+      t.fillText(s, tx - far, ty, maxW);
+      t.shadowColor = 'rgba(0,0,0,0)'; t.shadowOffsetX = 0; t.shadowOffsetY = 0; t.shadowBlur = 0;
+      t.globalCompositeOperation = 'destination-in'; t.fillStyle = '#000';
+      t.fillText(s, tx, ty, maxW);
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(tmp, 0, 0); ctx.restore();
     };
     const fill = (text: string, tx: number, ty: number, align: CanvasTextAlign) => {
       const runs = runsOf(text);

@@ -4,6 +4,7 @@ import { ImageUploadField } from '../image-upload';
 import { PRINT_W } from './Canvas';
 import { FontPicker } from '../workspace/FontPicker';
 import { loadBackFont } from '@/lib/card-back-fonts';
+import type { Shadow } from '@/lib/text-style';
 import { BACK_FONTS, FONT_CATEGORIES, KIND_LABELS, MAX_TEXT, WEIGHT_NAMES, nearestWeight, type BackEl, type CardBackStyle, type Effects } from '@/lib/card-back';
 import { DEFAULT_MIN_SIZE, SIZE_PRESETS, caseOf, pctToPt, ptToPct, type TextCase } from '@/lib/text-style';
 import { BLENDS, PATTERN_IDS, PATTERN_LABELS } from '@/lib/card-back-patterns';
@@ -62,6 +63,35 @@ function Colour({ label, value, onChange, named = [] }: { label: string; value: 
         {named.map(n => <button key={n} type="button" onClick={() => onChange(n)} aria-pressed={value === n} className={chip(value === n)}>{n}</button>)}
       </span>
     </Row>
+  );
+}
+
+
+/** One effect: a switch (off keeps the settings, on starts from `make` the first time) and its fields while it is on. */
+function EffectSwitch<T extends { on?: false }>({ label, fx, make, onChange, children }: { label: string; fx: T | undefined; make: T; onChange: (v: T | undefined) => void; children: (v: T) => ReactNode }) {
+  const on = !!fx && fx.on !== false;
+  return (
+    <div className="space-y-1.5">
+      <span className="flex items-center gap-2">
+        <Check label={label} on={on} onChange={v => onChange(v ? (fx ? { ...fx, on: undefined } as T : make) : fx ? { ...fx, on: false } : undefined)} />
+        {on && <button type="button" aria-label={`Remove ${label}`} className="text-xs text-gray-400 hover:text-white px-1" onClick={() => onChange(undefined)}>x</button>}
+      </span>
+      {on && fx && children(fx)}
+    </div>
+  );
+}
+/** A shadow as colour, angle (0 = right, 90 = down), distance, blur and opacity; stored as an offset. */
+function ShadowFields({ sh, onChange }: { sh: Shadow; onChange: (v: Shadow, key?: string) => void }) {
+  const dist = Math.hypot(sh.x, sh.y), angle = dist ? ((Math.atan2(sh.y, sh.x) * 180) / Math.PI + 360) % 360 : 90;
+  const polar = (a: number, d: number): Shadow => ({ ...sh, x: Math.round(Math.cos((a * Math.PI) / 180) * d * 100) / 100, y: Math.round(Math.sin((a * Math.PI) / 180) * d * 100) / 100 });
+  return (
+    <>
+      <Colour label="Colour" value={sh.color} onChange={v => onChange({ ...sh, color: v })} />
+      <Num label="Angle" value={Math.round(angle)} min={0} max={360} step={15} onChange={v => onChange(polar(v, dist), 'sa')} />
+      <Num label="Distance" value={Math.round(dist * 10) / 10} min={0} max={20} step={0.5} onChange={v => onChange(polar(angle, v), 'sd')} />
+      <Num label="Blur" value={sh.blur} min={0} max={30} step={1} onChange={v => onChange({ ...sh, blur: v }, 'sb')} />
+      <Num label="Opacity (%)" value={Math.round((sh.opacity ?? 1) * 100)} min={0} max={100} step={5} onChange={v => onChange({ ...sh, opacity: v >= 100 ? undefined : v / 100 }, 'so')} />
+    </>
   );
 }
 
@@ -205,13 +235,42 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
       )}
 
       <Group title="Effects">
-        {text && <Check label="Engrave (pressed into the metal)" on={!!e.fx.engrave} onChange={v => fx({ engrave: v || undefined })} />}
-        <div className="space-y-1.5"><Check label="Outline" on={!!e.fx.outline} onChange={v => fx({ outline: v ? { color: '#000000', width: 2 } : undefined })} />
-          {e.fx.outline && <><Colour label="Colour" value={e.fx.outline.color} onChange={v => fx({ outline: { ...e.fx.outline!, color: v } })} /><Num label="Width" value={e.fx.outline.width} min={0} max={10} step={0.5} onChange={v => fx({ outline: { ...e.fx.outline!, width: v } }, 'ow')} /></>}</div>
-        <div className="space-y-1.5"><Check label="Glow" on={!!e.fx.glow} onChange={v => fx({ glow: v ? { color: '#fbbf24', blur: 10, strength: 1 } : undefined })} />
-          {e.fx.glow && <><Colour label="Colour" value={e.fx.glow.color} onChange={v => fx({ glow: { ...e.fx.glow!, color: v } })} /><Num label="Blur" value={e.fx.glow.blur} min={0} max={40} step={1} onChange={v => fx({ glow: { ...e.fx.glow!, blur: v } }, 'gb')} /><Num label="Strength" value={e.fx.glow.strength} min={0} max={3} step={1} onChange={v => fx({ glow: { ...e.fx.glow!, strength: v } }, 'gs')} /></>}</div>
-        <div className="space-y-1.5"><Check label="Shadow" on={!!e.fx.shadow} onChange={v => fx({ shadow: v ? { color: '#000000', x: 0, y: 2, blur: 4 } : undefined })} />
-          {e.fx.shadow && <><Colour label="Colour" value={e.fx.shadow.color} onChange={v => fx({ shadow: { ...e.fx.shadow!, color: v } })} /><Num label="x" value={e.fx.shadow.x} min={-20} max={20} step={1} onChange={v => fx({ shadow: { ...e.fx.shadow!, x: v } }, 'sx')} /><Num label="y" value={e.fx.shadow.y} min={-20} max={20} step={1} onChange={v => fx({ shadow: { ...e.fx.shadow!, y: v } }, 'sy')} /><Num label="Blur" value={e.fx.shadow.blur} min={0} max={30} step={1} onChange={v => fx({ shadow: { ...e.fx.shadow!, blur: v } }, 'sb')} /></>}</div>
+        {text && <EffectSwitch label="Stroke" fx={e.fx.stroke} make={{ color: '#000000', width: 2, pos: 'outside' }} onChange={v => fx({ stroke: v })}>
+          {st => <>
+            <Colour label="Colour" value={st.color} onChange={v => fx({ stroke: { ...st, color: v } })} />
+            <Num label="Width" value={st.width} min={0} max={10} step={0.5} onChange={v => fx({ stroke: { ...st, width: v } }, 'ow')} />
+            <Row label="Position"><span className="flex gap-1">{(['outside', 'center'] as const).map(m => <button key={m} type="button" aria-pressed={st.pos === m} onClick={() => fx({ stroke: { ...st, pos: m } })} className={chip(st.pos === m)}>{m === 'outside' ? 'Outside' : 'Centre'}</button>)}</span></Row>
+          </>}
+        </EffectSwitch>}
+        <EffectSwitch label="Outer glow" fx={e.fx.glow} make={{ color: '#fbbf24', blur: 10, strength: 1 }} onChange={v => fx({ glow: v })}>
+          {g => <>
+            <Colour label="Colour" value={g.color} onChange={v => fx({ glow: { ...g, color: v } })} />
+            <Num label="Blur" value={g.blur} min={0} max={40} step={1} onChange={v => fx({ glow: { ...g, blur: v } }, 'gb')} />
+            <Num label="Strength" value={g.strength} min={0} max={3} step={1} onChange={v => fx({ glow: { ...g, strength: v } }, 'gs')} />
+          </>}
+        </EffectSwitch>
+        {[0, 1].map(i => {
+          const list = e.fx.shadows ?? [];
+          if (i > list.length) return null;
+          const setAt = (v: Shadow | undefined, key?: string) => { const next = list.slice(); if (v) next[i] = v; else next.splice(i, 1); fx({ shadows: next.length ? next : undefined }, key); };
+          return <EffectSwitch key={i} label={i ? 'Drop shadow 2' : 'Drop shadow'} fx={list[i]} make={{ color: '#000000', x: 0, y: 2, blur: 4 }} onChange={v => setAt(v)}>{sh => <ShadowFields sh={sh} onChange={(v, k) => setAt(v, k)} />}</EffectSwitch>;
+        })}
+        {text && <EffectSwitch label="Inner shadow" fx={e.fx.inner} make={{ color: '#000000', x: 0, y: 2, blur: 3, opacity: 0.6 }} onChange={v => fx({ inner: v })}>{sh => <ShadowFields sh={sh} onChange={(v, k) => fx({ inner: v }, k)} />}</EffectSwitch>}
+        {text && <EffectSwitch label="Bevel / emboss" fx={e.fx.bevel} make={{ style: 'pressed', depth: 1 }} onChange={v => fx({ bevel: v })}>
+          {b => <>
+            <Row label="Style"><span className="flex gap-1">{(['pressed', 'raised'] as const).map(m => <button key={m} type="button" aria-pressed={b.style === m} onClick={() => fx({ bevel: { ...b, style: m } })} className={chip(b.style === m)}>{m === 'pressed' ? 'Pressed' : 'Raised'}</button>)}</span></Row>
+            <Num label="Depth" value={b.depth} min={0.5} max={3} step={0.5} onChange={v => fx({ bevel: { ...b, depth: v } }, 'bd')} />
+          </>}
+        </EffectSwitch>}
+        {text && free && <EffectSwitch label="Background plate" fx={e.fx.plate} make={{ color: '#14121f', pad: 2, radius: 2 }} onChange={v => fx({ plate: v })}>
+          {pl => <>
+            <Colour label="Colour" value={pl.color} onChange={v => fx({ plate: { ...pl, color: v } })} />
+            <Num label="Padding" value={pl.pad} min={0} max={20} step={0.5} onChange={v => fx({ plate: { ...pl, pad: v } }, 'pp')} />
+            <Num label="Corner radius" value={pl.radius} min={0} max={50} step={0.5} onChange={v => fx({ plate: { ...pl, radius: v } }, 'pr')} />
+            <Check label="Outline" on={!!pl.outline} onChange={v => fx({ plate: { ...pl, outline: v ? { color: '#ffffff', width: 1 } : undefined } })} />
+            {pl.outline && <><Colour label="Outline colour" value={pl.outline.color} onChange={v => fx({ plate: { ...pl, outline: { ...pl.outline!, color: v } } })} /><Num label="Outline width" value={pl.outline.width} min={0} max={10} step={0.5} onChange={v => fx({ plate: { ...pl, outline: { ...pl.outline!, width: v } } }, 'pw')} /></>}
+          </>}
+        </EffectSwitch>}
         {text && <div className="space-y-1.5"><Check label="Gradient text" on={!!e.fx.gradientText} onChange={v => fx({ gradientText: v ? { from: '#fde68a', to: '#f59e0b', angle: 180 } : undefined })} />
           {e.fx.gradientText && (() => {
             const g = e.fx.gradientText!;
