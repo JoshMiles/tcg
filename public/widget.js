@@ -237,11 +237,25 @@ function backMeasure(text, face) {
     family = (name && cs.getPropertyValue(name[1]).trim()) || cs.fontFamily;
   }
   backMeasureCtx.font = (face.italic ? 'italic ' : '') + face.weight + ' 100px ' + family;
+  backMeasureCtx.fontKerning = face.kerning === false ? 'none' : 'auto';
   return backMeasureCtx.measureText(text).width;
+}
+const BACK_SMALLCAP = 0.8;
+function backCapRuns(t) {
+  const out = [];
+  for (const ch of t) {
+    const small = ch !== ch.toUpperCase();
+    const c = small ? ch.toUpperCase() : ch;
+    const last = out[out.length - 1];
+    if (last && last.s === small) last.t += c; else out.push({ t: c, s: small });
+  }
+  return out;
 }
 function backLayoutText(s, measure) {
   const face = { family: s.family, weight: s.weight, italic: s.italic };
-  const wid = (t, size) => (measure(s.upper ? t.toUpperCase() : t, face) / 100 + t.length * s.spacingEm) * size;
+  if (s.kerning === false) face.kerning = false;
+  const glyphs = t => (s.smallCaps ? backCapRuns(t).reduce((a, r) => a + (measure(r.t, face) / 100) * (r.s ? BACK_SMALLCAP : 1), 0) : measure(s.upper ? t.toUpperCase() : t, face) / 100);
+  const wid = (t, size) => (glyphs(t) + t.length * s.spacingEm + (t.split(' ').length - 1) * (s.wordEm || 0)) * size;
   const flow = size => {
     const lines = [];
     s.text.split('\n').forEach((para, pi) => {
@@ -295,9 +309,11 @@ function backLayoutText(s, measure) {
   }
   return { size, lines: flow(size).lines };
 }
-function backLineSpan(l) {
+function backLineSpan(l, smallCaps) {
   const el = document.createElement('span');
-  el.textContent = l.t || ' ';
+  if (l.t && smallCaps) for (const r of backCapRuns(l.t)) {
+    if (r.s) { const sm = document.createElement('span'); sm.style.fontSize = BACK_SMALLCAP + 'em'; sm.textContent = r.t; el.appendChild(sm); } else el.appendChild(document.createTextNode(r.t));
+  } else el.textContent = l.t || '\u00a0';
   el.style.display = 'block'; el.style.whiteSpace = 'nowrap';
   if (l.i) el.style.marginLeft = l.i + 'px';
   if (l.g) el.style.marginTop = l.g + 'px';
@@ -309,7 +325,7 @@ function backNodeEl(spec) {
   const el = document.createElement(spec.tag);
   if (spec.cls) el.className = spec.cls;
   if (spec.tag === 'img') { el.src = spec.src; el.alt = ''; }
-  else if (spec.tag === 'p' && spec.lines) for (const l of spec.lines) el.appendChild(backLineSpan(l));
+  else if (spec.tag === 'p' && spec.lines) for (const l of spec.lines) el.appendChild(backLineSpan(l, spec.spec && spec.spec.smallCaps));
   else if (spec.tag === 'p') el.textContent = spec.text;
   for (const k of Object.keys(spec.style)) el.style.setProperty(k, spec.style[k]);
   return el;
@@ -319,7 +335,7 @@ function backRefit(el, spec) {
   const r = backLayoutText(spec.spec, backMeasure);
   el.style.fontSize = r.size + 'px';
   el.textContent = '';
-  for (const l of r.lines) el.appendChild(backLineSpan(l));
+  for (const l of r.lines) el.appendChild(backLineSpan(l, spec.spec.smallCaps));
 }
 // Draws the design into `host` (the .card-back element), scaled to its width. False = nothing drawn (the caller keeps the cover).
 function mountDesignBack(host, design) {

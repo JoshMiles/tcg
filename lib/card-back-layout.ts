@@ -2,7 +2,8 @@
 // The DOM renderer (FlipCard) draws these nodes; the canvas and overlay renderers of 20.3c draw the same list, so every place shows the
 // same design. STACK nodes are laid out by the plate's own CSS (today's centred column), FREE nodes carry final pixel positions.
 import { BACK_FONTS, nearestWeight, type BackEl, type CardBackStyle, type Effects } from './card-back';
-import { DEFAULT_MIN_SIZE } from './text-style';
+import { DEFAULT_MIN_SIZE, SCRIPT_SCALE, SCRIPT_SHIFT, SMALLCAP_SCALE, capRuns, caseOf, leadingOf, spacingEm, titleCase, wordEm } from './text-style';
+export { capRuns, SMALLCAP_SCALE };
 import { editionLine, madeLine, type FlipBack } from './flip-back';
 
 export interface BackNode {
@@ -33,7 +34,7 @@ export interface BackNode {
 }
 
 /** Text width at a 100 px font size with no letter spacing; auto-fit scales it to the box. */
-export type Measure = (text: string, face: { family: string; weight: number; italic: boolean }) => number;
+export type Measure = (text: string, face: { family: string; weight: number; italic: boolean; kerning?: boolean }) => number;
 export interface LayoutOptions { compact?: boolean; /** Measures text for auto-fit; defaults to the browser canvas, or a rough estimate without a DOM (the overlay's server side). */ measure?: Measure }
 
 /** A rough width (0.55 em a character) for places with no canvas; fitted text there is approximate. */
@@ -54,6 +55,7 @@ export function canvasMeasure(): Measure | undefined {
       family = (name && cs.getPropertyValue(name).trim()) || cs.fontFamily;
     }
     ctx.font = `${face.italic ? 'italic ' : ''}${face.weight} 100px ${family}`;
+    ctx.fontKerning = face.kerning === false ? 'none' : 'auto';
     return ctx.measureText(text).width;
   };
 }
@@ -68,6 +70,8 @@ export interface TextSpec {
   boxW: number; boxH: number;
   wrap: boolean; maxLines: number; indent: number; paraGap: number; lineHeight: number; spacingEm: number; upper: boolean; justify: boolean;
   family: string; weight: number; italic: boolean;
+  /** Small capitals, extra word gap (em) and kerning: they change a line's width, so the fit counts them. */
+  smallCaps?: boolean; wordEm?: number; kerning?: boolean;
   valign: 'top' | 'middle' | 'bottom'; pad: number;
 }
 
@@ -79,8 +83,9 @@ export interface TextSpec {
  * Keep public/widget.js (TEXT-FIT markers) in step; scripts/check-card-back.mts runs both on the same cases.
  */
 export function layoutText(s: TextSpec, measure: Measure): { size: number; lines: TextLine[] } {
-  const face = { family: s.family, weight: s.weight, italic: s.italic };
-  const wid = (t: string, size: number) => (measure(s.upper ? t.toUpperCase() : t, face) / 100 + t.length * s.spacingEm) * size;
+  const face = { family: s.family, weight: s.weight, italic: s.italic, ...(s.kerning === false ? { kerning: false } : {}) };
+  const glyphs = (t: string) => (s.smallCaps ? capRuns(t).reduce((a, r) => a + (measure(r.t, face) / 100) * (r.s ? SMALLCAP_SCALE : 1), 0) : measure(s.upper ? t.toUpperCase() : t, face) / 100);
+  const wid = (t: string, size: number) => (glyphs(t) + t.length * s.spacingEm + (t.split(' ').length - 1) * (s.wordEm ?? 0)) * size;
   const flow = (size: number) => {
     const lines: TextLine[] = [];
     s.text.split('\n').forEach((para, pi) => {
@@ -157,7 +162,8 @@ export function effectsCss(fx: Effects, hex: string, cardW: number): Record<stri
   if (fx.engrave) shadows.push('0 1px 0 rgba(255,255,255,.55)', '0 -1px 1px rgba(0,0,0,.4)');
   if (shadows.length) css.textShadow = shadows.join(', ');
   if (fx.gradientText) {
-    css.backgroundImage = `linear-gradient(${fx.gradientText.angle}deg, ${fx.gradientText.from}, ${fx.gradientText.to})`;
+    const g = fx.gradientText;
+    css.backgroundImage = `linear-gradient(${g.angle}deg, ${g.stops ? g.stops.map(x => `${x.color} ${x.at}%`).join(', ') : `${g.from}, ${g.to}`})`;
     css.WebkitBackgroundClip = 'text'; css.backgroundClip = 'text'; css.color = 'transparent'; css.WebkitTextFillColor = 'transparent';
   }
   void hex;
@@ -244,19 +250,30 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
     let lines: TextLine[] | undefined;
     if (e.kind !== 'qr' && e.kind !== 'logo') {
       const f = BACK_FONTS.find(x => x.id === e.font) ?? BACK_FONTS[0];
+      const kase = caseOf(e), em = spacingEm(e), word = wordEm(e), lead = leadingOf(e);
+      const deco = [e.underline && 'underline', e.strike && 'line-through', e.overline && 'overline'].filter(Boolean).join(' ');
+      const px = Math.round((e.size / 100) * size.w * (e.script ? SCRIPT_SCALE : 1) * 100) / 100;
       Object.assign(css, {
-        fontFamily: f.css, fontSize: Math.round((e.size / 100) * size.w * 100) / 100, fontWeight: e.weight, fontStyle: e.italic ? 'italic' : 'normal',
-        textDecoration: e.underline ? 'underline' : 'none', textTransform: e.uppercase ? 'uppercase' : 'none', letterSpacing: `${e.letterSpacing / 10}em`,
-        lineHeight: e.lineHeight, textAlign: e.align, color: hexOr(e.color, rarity, AUTO_INK), overflowWrap: 'anywhere',
+        fontFamily: f.css, fontSize: px, fontWeight: e.weight, fontStyle: e.italic ? 'italic' : 'normal',
+        textDecoration: deco || 'none', textTransform: kase === 'upper' ? 'uppercase' : 'none', letterSpacing: e.tracking !== undefined ? `${em}em` : `${e.letterSpacing / 10}em`,
+        lineHeight: lead, textAlign: e.align, color: hexOr(e.color, rarity, AUTO_INK), overflowWrap: 'anywhere',
       });
+      if (word) css.wordSpacing = `${word}em`;
+      if (e.kerning === false) css.fontKerning = 'none';
+      // Baseline shift and super/subscript move the whole box (one-line tokens): every renderer reads `top`.
+      const lift = ((e.baseline ?? 0) / 100 + (e.script ? SCRIPT_SHIFT[e.script] : 0)) * px;
+      if (lift) css.top = Math.round((Number(css.top) - lift) * 100) / 100;
+      if (kase === 'lower') c.text = c.text?.toLowerCase();
+      else if (kase === 'title') c.text = c.text ? titleCase(c.text) : c.text;
       if (f.files) font = { id: f.id, weight: e.weight, ...(e.italic ? { italic: true } : {}) };
       const pad = ((e.pad ?? 0) / 100) * size.w;
-      if (c.tag === 'p' && c.text && (e.fit || e.wrap === false || e.maxLines || e.h || e.indent || e.paraGap || e.align === 'justify' || e.pad || c.text.includes('\n'))) {
+      if (c.tag === 'p' && c.text && (e.fit || e.wrap === false || e.maxLines || e.h || e.indent || e.paraGap || e.align === 'justify' || e.pad || kase === 'smallcaps' || c.text.includes('\n'))) {
         spec = {
           text: c.text, size: Number(css.fontSize), minPx: ((e.minSize ?? DEFAULT_MIN_SIZE) / 100) * size.w, maxPx: 0.3 * size.w, fit: e.fit ?? null,
           boxW: Math.round((w - 2 * pad) * 100) / 100, boxH: e.h ? Math.round(((e.h / 100) * size.h - 2 * pad) * 100) / 100 : 0,
-          wrap: e.wrap !== false, maxLines: e.maxLines ?? 0, indent: e.indent ?? 0, paraGap: e.paraGap ?? 0, lineHeight: e.lineHeight, spacingEm: e.letterSpacing / 10,
-          upper: e.uppercase, justify: e.align === 'justify', family: f.css, weight: e.weight, italic: e.italic, valign: e.valign ?? 'middle', pad: Math.round(pad * 100) / 100,
+          wrap: e.wrap !== false, maxLines: e.maxLines ?? 0, indent: e.indent ?? 0, paraGap: e.paraGap ?? 0, lineHeight: lead, spacingEm: em,
+          upper: kase === 'upper', justify: e.align === 'justify', family: f.css, weight: e.weight, italic: e.italic, valign: e.valign ?? 'middle', pad: Math.round(pad * 100) / 100,
+          ...(kase === 'smallcaps' ? { smallCaps: true } : {}), ...(word ? { wordEm: word } : {}), ...(e.kerning === false ? { kerning: false } : {}),
         };
         const lay = layoutText(spec, opts.measure ?? canvasMeasure() ?? estimateMeasure);
         lines = lay.lines;

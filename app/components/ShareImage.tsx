@@ -7,7 +7,7 @@ import {
 } from '@/lib/share-image';
 import { qrModules } from '@/lib/qr';
 import { DEFAULT_CARD_BACK, plateLook } from '@/lib/card-back';
-import { fontsNeeded, layoutBack } from '@/lib/card-back-layout';
+import { SMALLCAP_SCALE, capRuns, fontsNeeded, layoutBack } from '@/lib/card-back-layout';
 import { loadBackFonts } from '@/lib/card-back-fonts';
 import { CANVAS_BACK_REF, canvasPattern, placeBack, wrapText, type BackBox } from '@/lib/card-back-canvas';
 
@@ -145,25 +145,50 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
     ctx.font = `${f.italic ? 'italic ' : ''}${f.weight} ${f.size}px ${f.family ?? family}`;
     ctx.textBaseline = 'middle'; ctx.textAlign = f.align;
     spaced(ctx, f.spacing);
+    const cx2 = ctx as CanvasRenderingContext2D & { fontKerning?: string; wordSpacing?: string };
+    cx2.fontKerning = f.kerning === false ? 'none' : 'auto';
+    if ('wordSpacing' in ctx) cx2.wordSpacing = `${f.wordSpacing ?? 0}px`;
     const pad = b.lines ? b.pad ?? 0 : 0;
     const maxW = b.w - 2 * pad;
     const x = f.align === 'left' ? b.x + pad : f.align === 'right' ? b.x + b.w - pad : b.x + b.w / 2;
-    const fill = (text: string, tx: number, ty: number, align: CanvasTextAlign) => {
+    const base = `${f.italic ? 'italic ' : ''}${f.weight}`, fam = f.family ?? family;
+    const fontAt = (small: boolean) => `${base} ${small ? f.size * SMALLCAP_SCALE : f.size}px ${fam}`;
+    const runsOf = (text: string) => (f.smallCaps ? capRuns(text) : [{ t: f.upper ? text.toUpperCase() : text, s: false }]);
+    const textW = (text: string) => { const w = runsOf(text).reduce((a, r) => { ctx.font = fontAt(r.s); return a + ctx.measureText(r.t).width; }, 0); ctx.font = fontAt(false); return w; };
+    const paint = (s: string, tx: number, ty: number, align: CanvasTextAlign, size: number) => {
       ctx.textAlign = align;
-      const s = f.upper ? text.toUpperCase() : text;
       for (const sh of b.shadows) {
         ctx.save(); ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x; ctx.shadowOffsetY = sh.y; ctx.shadowBlur = sh.blur;
         ctx.fillStyle = b.gradient ? 'rgba(0,0,0,0)' : b.color; ctx.fillText(s, tx, ty, maxW); ctx.restore();
       }
       if (b.stroke) { ctx.save(); ctx.lineWidth = b.stroke.width * 2; ctx.strokeStyle = b.stroke.color; ctx.lineJoin = 'round'; ctx.strokeText(s, tx, ty, maxW); ctx.restore(); }
-      if (b.gold) { const g = ctx.createLinearGradient(0, ty - f.size / 2, 0, ty + f.size / 2); g.addColorStop(0, '#e0a81c'); g.addColorStop(0.45, '#f7d56b'); g.addColorStop(1, '#8a5a00'); ctx.fillStyle = g; }
+      if (b.gold) { const g = ctx.createLinearGradient(0, ty - size / 2, 0, ty + size / 2); g.addColorStop(0, '#e0a81c'); g.addColorStop(0.45, '#f7d56b'); g.addColorStop(1, '#8a5a00'); ctx.fillStyle = g; }
       else if (b.gradient) {
         const a = (b.gradient.angle * Math.PI) / 180, dx = Math.sin(a) * b.w / 2, dy = -Math.cos(a) * f.size;
         const cx = b.x + b.w / 2;
-        const g = ctx.createLinearGradient(cx - dx, ty - dy, cx + dx, ty + dy); g.addColorStop(0, b.gradient.from); g.addColorStop(1, b.gradient.to); ctx.fillStyle = g;
+        const g = ctx.createLinearGradient(cx - dx, ty - dy, cx + dx, ty + dy);
+        for (const st of b.gradient.stops ?? [{ color: b.gradient.from, at: 0 }, { color: b.gradient.to, at: 100 }]) g.addColorStop(Math.min(1, Math.max(0, st.at / 100)), st.color);
+        ctx.fillStyle = g;
       } else ctx.fillStyle = b.color;
       ctx.fillText(s, tx, ty, maxW);
-      if (f.underline) { const w = Math.min(maxW, ctx.measureText(s).width); const ux = align === 'center' ? tx - w / 2 : align === 'right' ? tx - w : tx; ctx.fillRect(ux, ty + f.size * 0.45, w, Math.max(1, f.size / 14)); }
+    };
+    const fill = (text: string, tx: number, ty: number, align: CanvasTextAlign) => {
+      const runs = runsOf(text);
+      ctx.font = fontAt(false);
+      if (runs.length === 1 && !runs[0].s) paint(runs[0].t, tx, ty, align, f.size);
+      else {
+        const ws = runs.map(r => { ctx.font = fontAt(r.s); return ctx.measureText(r.t).width; });
+        const total = ws.reduce((a, n) => a + n, 0);
+        let rx = align === 'center' ? tx - total / 2 : align === 'right' ? tx - total : tx;
+        runs.forEach((r, i) => { ctx.font = fontAt(r.s); paint(r.t, rx, ty, 'left', r.s ? f.size * SMALLCAP_SCALE : f.size); rx += ws[i]; });
+        ctx.font = fontAt(false);
+      }
+      if (f.underline || f.strike || f.overline) {
+        const w = Math.min(maxW, textW(text)), ux = align === 'center' ? tx - w / 2 : align === 'right' ? tx - w : tx, th = Math.max(1, f.size / 14);
+        if (f.underline) ctx.fillRect(ux, ty + f.size * 0.45, w, th);
+        if (f.strike) ctx.fillRect(ux, ty + f.size * 0.05, w, th);
+        if (f.overline) ctx.fillRect(ux, ty - f.size * 0.5, w, th);
+      }
     };
     if (b.type === 'hist') {
       (b.items ?? []).forEach((h, i) => {
@@ -182,7 +207,7 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
         const x0 = b.x + pad + l.i, iw = maxW - l.i, cy = ty + lh / 2;
         const words = l.j ? l.t.split(' ') : [];
         if (l.j && words.length > 1) {
-          const ws = words.map(w => ctx.measureText(f.upper ? w.toUpperCase() : w).width);
+          const ws = words.map(w => textW(w));
           const gap = (iw - ws.reduce((a, n) => a + n, 0)) / (words.length - 1);
           let wx = x0;
           words.forEach((w, k) => { fill(w, wx, cy, 'left'); wx += ws[k] + gap; });
@@ -190,7 +215,7 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
         ty += lh;
       }
     } else {
-      const lines = b.mode === 'free' ? wrapText(b.text ?? '', maxW, s => ctx.measureText(f.upper ? s.toUpperCase() : s).width) : [b.text ?? ''];
+      const lines = b.mode === 'free' ? wrapText(b.text ?? '', maxW, textW) : [b.text ?? ''];
       const lh = f.size * f.lineHeight;
       const top = b.mode === 'free' ? b.y + b.h / 2 - (lines.length * lh) / 2 : b.y;
       lines.forEach((line, i) => fill(line, x, top + i * lh + lh / 2, f.align));
@@ -234,7 +259,7 @@ async function drawBackCard(ctx: CanvasRenderingContext2D, r: Rect, spec: NonNul
   const ref = CANVAS_BACK_REF;
   let nodes = layoutBack(style, spec, { ...ref });
   await loadBackFonts(fontsNeeded(nodes));
-  if (style.elements.some(e => e.fit)) nodes = layoutBack(style, spec, { ...ref }); // auto-fit measures the loaded fonts
+  if (nodes.some(n => n.spec)) nodes = layoutBack(style, spec, { ...ref }); // fit, wrapping and small caps measure the loaded fonts
   const images = new Map<string, HTMLImageElement | null>();
   await Promise.all(nodes.filter(n => n.src).map(async n => { images.set(n.src!, await loadImage(n.src!)); }));
   const pattern = canvasPattern(style);

@@ -9,7 +9,7 @@ import { DEFAULT_PATTERN, isCustomPattern, patternSvg } from './card-back-patter
 export const CANVAS_BACK_REF = { w: 240, h: 360 } as const;
 
 export interface TextShadow { x: number; y: number; blur: number; color: string }
-export interface Gradient { angle: number; from: string; to: string }
+export interface Gradient { angle: number; from: string; to: string; /** 3 or 4 colours (or 2 not at the ends), position in %. */ stops?: { color: string; at: number }[] }
 
 const COLOR = String.raw`(?:#[0-9a-fA-F]{3,8}|rgba?\([^)]*\)|[a-zA-Z]+)`;
 
@@ -34,8 +34,13 @@ export function parseStroke(css: unknown): { width: number; color: string } | nu
 /** "linear-gradient(90deg, #fff, #000)" -> the gradient text fill. */
 export function parseGradient(css: unknown): Gradient | null {
   if (typeof css !== 'string') return null;
-  const m = new RegExp(String.raw`^\s*linear-gradient\(\s*(-?[\d.]+)deg\s*,\s*(${COLOR})\s*,\s*(${COLOR})\s*\)\s*$`).exec(css);
-  return m ? { angle: Number(m[1]), from: m[2], to: m[3] } : null;
+  const m = new RegExp(String.raw`^\s*linear-gradient\(\s*(-?[\d.]+)deg\s*,\s*(.+)\)\s*$`).exec(css);
+  if (!m) return null;
+  const stops = [...m[2].matchAll(new RegExp(String.raw`(${COLOR})(?:\s+([\d.]+)%)?`, 'g'))].map(x => ({ color: x[1], at: x[2] === undefined ? NaN : Number(x[2]) }));
+  if (stops.length < 2 || stops.length > 4) return null;
+  stops.forEach((x, i) => { if (Number.isNaN(x.at)) x.at = (i / (stops.length - 1)) * 100; });
+  const plain = stops.length === 2 && stops[0].at === 0 && stops[1].at === 100;
+  return { angle: Number(m[1]), from: stops[0].color, to: stops[stops.length - 1].color, ...(plain ? {} : { stops }) };
 }
 
 /** One thing to draw. Text is drawn centred (stack) or aligned inside its box (free). */
@@ -53,7 +58,7 @@ export interface BackBox {
   qrUrl?: string;
   dark?: string;
   light?: string;
-  font: { size: number; weight: number; italic: boolean; underline: boolean; upper: boolean; spacing: number; family?: string; align: 'left' | 'center' | 'right'; lineHeight: number };
+  font: { size: number; weight: number; italic: boolean; underline: boolean; upper: boolean; spacing: number; strike?: boolean; overline?: boolean; smallCaps?: boolean; wordSpacing?: number; kerning?: boolean; family?: string; align: 'left' | 'center' | 'right'; lineHeight: number };
   color: string;
   /** Free text broken into lines by the layout engine (wrap, max lines, box height, paragraphs, justify, auto-fit): draw these lines inside the padding, placed by `valign`. */
   lines?: TextLine[];
@@ -159,7 +164,9 @@ function freeBox(n: BackNode, ref: { w: number; h: number }): BackBox | null {
     color: typeof css.color === 'string' && css.color !== 'transparent' ? css.color : '#1c1c24',
   };
   const font = {
-    size, weight: num(css.fontWeight, 400), italic: css.fontStyle === 'italic', underline: css.textDecoration === 'underline', upper: css.textTransform === 'uppercase',
+    size, weight: num(css.fontWeight, 400), italic: css.fontStyle === 'italic', underline: String(css.textDecoration ?? '').includes('underline'), upper: css.textTransform === 'uppercase',
+    ...(String(css.textDecoration ?? '').includes('line-through') ? { strike: true } : {}), ...(String(css.textDecoration ?? '').includes('overline') ? { overline: true } : {}),
+    ...(n.spec?.smallCaps ? { smallCaps: true } : {}), ...(css.wordSpacing ? { wordSpacing: num(String(css.wordSpacing).replace('em', '')) * size } : {}), ...(css.fontKerning === 'none' ? { kerning: false } : {}),
     spacing: num(String(css.letterSpacing ?? '0').replace('em', '')) * size, family: typeof css.fontFamily === 'string' ? css.fontFamily : undefined,
     align: (css.textAlign === 'left' || css.textAlign === 'right' ? css.textAlign : 'center') as 'left' | 'center' | 'right', lineHeight,
   };
