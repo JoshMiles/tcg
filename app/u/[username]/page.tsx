@@ -74,13 +74,15 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
     );
   }
 
-  const prefs = session ? await getUserSettings(session.username) : undefined;
   // For "Compare with me": the signed-in viewer's copies per card (the season's collection is already loaded).
   const mine = session && !isOwner && (tab === 'collection' || tab === 'overview') ? Object.fromEntries(countPulls(b.collection[session.username] ?? [])) : undefined;
   const SITE_SHORT = SITE_URL.replace(/^https?:\/\//, '');
-  const copies = await getOwnerCopies(b.season.collectionName, lower);
-  const discordOn = tab === 'share' && isOwner ? await sharesPostingOn() : false;
-  const pronouns = await pronounsFor(lower, b.settings.pronouns);
+  const [prefs, copies, discordOn, pronouns] = await Promise.all([
+    session ? getUserSettings(session.username) : undefined,
+    getOwnerCopies(b.season.collectionName, lower),
+    tab === 'share' && isOwner ? sharesPostingOn() : false,
+    pronounsFor(lower, b.settings.pronouns),
+  ]);
   const grid = tab === 'collection' ? await buildGridCards(b, copies) : [];
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">

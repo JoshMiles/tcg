@@ -30,24 +30,30 @@ export async function SiteShell({ children }: { children: ReactNode }) {
   // can't use the site gets them without the nav, search and site links.
   if (!(await requireSiteAccess())) return <ClosedShell>{children}</ClosedShell>;
 
-  const session = await getSession();
-  const siteLabel = await getSiteLabel();
-  const live = await getLiveStatus().catch(() => null); // cached, so this is normally one KV read
+  const [session, siteLabel, live] = await Promise.all([
+    getSession(),
+    getSiteLabel(),
+    getLiveStatus().catch(() => null), // cached, so this is normally one KV read
+  ]);
   let user: NavUser | null = null;
   let rank: NavRank | null = null;
-  const prefs = session ? await getUserSettings(session.username) : DEFAULT_SETTINGS;
+  let prefs = DEFAULT_SETTINGS;
   if (session) {
-    const avatar = (await getAvatars([session.username]))[session.username];
-    user = { username: session.username, displayName: session.displayName, avatarUrl: avatar && sizeTwitchAvatar(avatar, 70) };
     // Their place in the active season, from the shared (20 s) board: a nice-to-have, so a failure just hides the chip.
-    try {
-      const season = await getActiveSeason();
-      if (season) {
+    const findRank = async (): Promise<NavRank | null> => {
+      try {
+        const season = await getActiveSeason();
+        if (!season) return null;
         const board = await getSeasonLeaderboardCached(season);
         const i = board.rows.findIndex(r => r.username === session.username);
-        if (i >= 0) rank = { rank: i + 1, score: Math.round(board.rows[i].score), total: board.rows.length, season: season.name };
-      }
-    } catch { /* leave the chip out */ }
+        return i >= 0 ? { rank: i + 1, score: Math.round(board.rows[i].score), total: board.rows.length, season: season.name } : null;
+      } catch { return null; /* leave the chip out */ }
+    };
+    const [settings, avatars, r] = await Promise.all([getUserSettings(session.username), getAvatars([session.username]), findRank()]);
+    prefs = settings;
+    const avatar = avatars[session.username];
+    user = { username: session.username, displayName: session.displayName, avatarUrl: avatar && sizeTwitchAvatar(avatar, 70) };
+    rank = r;
   }
 
   return (
