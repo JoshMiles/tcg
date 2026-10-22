@@ -1,7 +1,7 @@
 import { getOverlayKey } from '@/lib/overlay-key';
 import { Icon } from '@/app/components/Icon';
 import { getActiveSeason, getPackCards, listAllPacks, listSeasons } from '@/lib/kv';
-import { getOverlaySettings, getPackOverrides, getSeasonLooks, listPresets } from '@/lib/overlay-settings';
+import { getOverlaySettings, getPackOverrides, getScheduledLooks, getSeasonLooks, listPresets } from '@/lib/overlay-settings';
 import { listVersions } from '@/lib/overlay-versions';
 import { saveOverlayEditorAction, saveOverlayPresetAction, deleteOverlayPresetAction } from '../actions/settings';
 import { SITE_URL } from '@/lib/site';
@@ -22,8 +22,8 @@ const SAVED_MESSAGES: Record<string, string> = {
 // (the page itself doesn't scroll), so this page is deliberately light on chrome.
 export default async function OverlayEditorPage({ searchParams }: { searchParams: Promise<{ saved?: string; scope?: string; pack?: string; group?: string }> }) {
   const { saved, scope, pack, group } = await searchParams;
-  const [overlay, packs, packOverrides, presets, versions, seasons, seasonLooks, active] = await Promise.all([
-    getOverlaySettings(), listAllPacks(), getPackOverrides(), listPresets(), listVersions(), listSeasons(), getSeasonLooks(), getActiveSeason().catch((): null => null),
+  const [overlay, packs, packOverrides, presets, versions, seasons, seasonLooks, scheduledLooks, active] = await Promise.all([
+    getOverlaySettings(), listAllPacks(), getPackOverrides(), listPresets(), listVersions(), listSeasons(), getSeasonLooks(), getScheduledLooks(), getActiveSeason().catch((): null => null),
   ]);
   const packCards = Object.fromEntries(await Promise.all(packs.map(async p => [p.id, (await getPackCards(p.id)).map(c => ({ number: c.number, name: c.name, stars: c.stars }))] as const)));
   const activeLook = active ? presets.find(p => p.id === seasonLooks[active.id]) : null;
@@ -61,6 +61,7 @@ export default async function OverlayEditorPage({ searchParams }: { searchParams
           versions={versions}
           seasons={seasons.filter(s => s.status !== 'draft').map(s => ({ id: s.id, name: s.name, active: s.active }))}
           seasonLooks={seasonLooks}
+          scheduledLooks={scheduledLooks}
           packCards={packCards}
           initialAutoReload={overlay.autoReload}
           initialZones={overlay.zones}

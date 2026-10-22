@@ -1,11 +1,12 @@
 'use client';
-import type { Dispatch, SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
+import type { ScheduledLook } from '@/lib/overlay-settings';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import { PROP_BY_KEY, mergePropValues, type PropValues } from '@/lib/overlay-props';
 import { isVertical, type OverlayLayout } from '@/lib/overlay-layout';
 import { diffProps, type DiffLine } from '@/lib/overlay-diff';
-import { deleteOverlayVersionAction, setSeasonLookAction } from '../overlay-actions';
+import { addScheduledLookAction, deleteOverlayVersionAction, removeScheduledLookAction, setSeasonLookAction } from '../overlay-actions';
 import { Popover, btn, ghost } from './editor-controls';
 import { SubMenu } from '../components/workspace/MenuBar';
 import type { Bg, PackInfo, PresetInfo, SeasonInfo, VersionInfo } from './editor-types';
@@ -15,7 +16,7 @@ import type { Bg, PackInfo, PresetInfo, SeasonInfo, VersionInfo } from './editor
 type FormAction = (formData: FormData) => void | Promise<void>;
 type Notify = (message: string) => void;
 
-export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, applyPreset, deletePresetAction, savePresetAction, presetName, setPresetName, seasons, looks, setLooks, setNotice }: { presets: PresetInfo[]; isPack: boolean; scope: string; dirty: boolean; effectiveSparse: PropValues; applyPreset: (p: PresetInfo) => void; deletePresetAction: FormAction; savePresetAction: FormAction; presetName: string; setPresetName: (v: string) => void; seasons: SeasonInfo[]; looks: Record<string, string>; setLooks: Dispatch<SetStateAction<Record<string, string>>>; setNotice: Notify }) {
+export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, applyPreset, deletePresetAction, savePresetAction, presetName, setPresetName, seasons, scheduledLooks, looks, setLooks, setNotice }: { scheduledLooks: ScheduledLook[]; presets: PresetInfo[]; isPack: boolean; scope: string; dirty: boolean; effectiveSparse: PropValues; applyPreset: (p: PresetInfo) => void; deletePresetAction: FormAction; savePresetAction: FormAction; presetName: string; setPresetName: (v: string) => void; seasons: SeasonInfo[]; looks: Record<string, string>; setLooks: Dispatch<SetStateAction<Record<string, string>>>; setNotice: Notify }) {
   return (
     <SubMenu label="Looks" icon="palette" badge={presets.length || undefined}>
       <div className="w-80 space-y-3 text-sm">
@@ -74,8 +75,55 @@ export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, ap
             ))}
           </div>
         )}
+
+        {presets.length > 0 && <ScheduledLooks presets={presets} scheduled={scheduledLooks} setNotice={setNotice} />}
       </div>
     </SubMenu>
+  );
+}
+
+// Times are typed and shown in this browser's time zone (there is no streamer time zone setting); stored as UTC epoch ms.
+const zoneName = () => new Intl.DateTimeFormat('en-GB', { timeZoneName: 'short' }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value ?? '';
+const showTime = (ms: number) => new Date(ms).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZoneName: 'short', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+
+function ScheduledLooks({ presets, scheduled, setNotice }: { presets: PresetInfo[]; scheduled: ScheduledLook[]; setNotice: Notify }) {
+  const [presetId, setPresetId] = useState(presets[0].id);
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const now = Date.now();
+  return (
+    <div className="border-t border-gray-800 pt-3 space-y-2">
+      <p className="text-xs font-semibold text-gray-300">Scheduled looks</p>
+      <p className="text-xs text-gray-500">A preset that switches on at a start time and off at an end (a Halloween stream), layered over the season look. Times are in your browser&apos;s time zone ({zoneName()}). An idle overlay reloads by itself at each edge. Applied immediately, no Save needed.</p>
+      <ul className="space-y-1">
+        {scheduled.map(e => (
+          <li key={e.id} className="flex items-center gap-2 text-xs text-gray-400">
+            <span className="flex-1 min-w-0">
+              <span className="text-gray-200">{presets.find(p => p.id === e.presetId)?.name ?? 'Deleted preset'}</span>
+              {e.start <= now && now < e.end && <span className="ml-1 text-green-400">(active)</span>}
+              {e.end <= now && <span className="ml-1 text-gray-600">(ended)</span>}
+              <br />{showTime(e.start)} to {showTime(e.end)}
+            </span>
+            <button type="button" onClick={async () => setNotice((await removeScheduledLookAction(e.id)).message)} className={`${btn} text-gray-500 hover:text-red-300 py-1`}>Remove</button>
+          </li>
+        ))}
+      </ul>
+      <select value={presetId} onChange={e => setPresetId(e.target.value)} aria-label="Preset to schedule" className="select select-sm w-full">
+        {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
+      <label className="flex items-center gap-2 text-xs text-gray-400"><span className="w-10">Start</span><input type="datetime-local" value={start} onChange={e => setStart(e.target.value)} className="input input-sm flex-1 min-w-0" /></label>
+      <label className="flex items-center gap-2 text-xs text-gray-400"><span className="w-10">End</span><input type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} className="input input-sm flex-1 min-w-0" /></label>
+      <button
+        type="button"
+        disabled={!start || !end}
+        onClick={async () => {
+          const r = await addScheduledLookAction(presetId, new Date(start).getTime(), new Date(end).getTime());
+          if (r.ok) { setStart(''); setEnd(''); }
+          setNotice(r.message);
+        }}
+        className={`${ghost} disabled:opacity-40`}
+      >Schedule</button>
+    </div>
   );
 }
 

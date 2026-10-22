@@ -376,6 +376,39 @@ await runInSandbox(box.id, async () => {
   await settings.deletePreset(preset.id);
   ok((await settings.getSeasonLookPreset(season.id)) === null, 'a deleted preset resolves to nothing');
 
+  // ── Scheduled looks: layered over the season look while running, and the heartbeat token follows start / end ──
+  {
+    const { NextRequest } = await import('next/server');
+    const { GET } = await import('../app/api/overlay/config/route');
+    const speed = async () => ((await (await GET(new NextRequest('http://localhost/api/overlay/config'))).json()) as { props: Record<string, unknown> }).props['reveal.speed'];
+    await settings.savePreset('Season look', { 'reveal.speed': 0.6 });
+    await settings.savePreset('Halloween', { 'reveal.speed': 0.8 });
+    await settings.savePreset('Late night', { 'reveal.speed': 1.2 });
+    const ps = await settings.listPresets();
+    const id = (n: string) => ps.find(p => p.name === n)!.id;
+    await settings.setSeasonLook(season.id, id('Season look'));
+    const T = Date.now();
+    const H = 3600_000;
+    eq(await speed(), 0.6, 'no schedule: the season look');
+    ok(!(await settings.addScheduledLook(id('Halloween'), T + H, T + H)).ok, 'an end that is not after the start is refused');
+    ok(!(await settings.addScheduledLook('nope', T, T + H)).ok, 'an unknown preset is refused');
+    ok((await settings.addScheduledLook(id('Halloween'), T + H, T + 3 * H)).ok, 'a future schedule is saved');
+    const before = await settings.getReloadSignal(T);
+    eq(await speed(), 0.6, 'a schedule that has not started leaves the season look');
+    ok((await settings.getReloadSignal(T + 2 * H)) !== before, 'the reload token changes when a schedule starts');
+    eq(await settings.getReloadSignal(T + 4 * H), before, 'and goes back when it ends');
+    await settings.addScheduledLook(id('Halloween'), T - H, T + H);
+    eq(await speed(), 0.8, 'a running schedule layers over the season look');
+    await settings.addScheduledLook(id('Late night'), T - H / 2, T + H);
+    eq(await speed(), 1.2, 'of two overlapping schedules the later start wins');
+    await settings.addScheduledLook(id('Late night'), T - 90 * 24 * H, T - 80 * 24 * H);
+    await settings.addScheduledLook(id('Late night'), T + 5 * H, T + 6 * H);
+    ok((await settings.getScheduledLooks()).every(s => s.end > T - 30 * 24 * H), 'an entry that ended long ago is dropped on the next write');
+    for (const s of await settings.getScheduledLooks()) await settings.removeScheduledLook(s.id);
+    eq(await speed(), 0.6, 'removing the schedules returns to the season look');
+    await settings.setSeasonLook(season.id, null);
+  }
+
   // ── Scenes: a preset with its own layout has its own overlay URL (?preset=<id>) ──
   {
     const { sceneLayout, isVertical } = await import('../lib/overlay-layout');

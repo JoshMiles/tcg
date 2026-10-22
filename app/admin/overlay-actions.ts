@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { getOverlayStatus } from '@/lib/overlay';
-import { bumpReloadToken, listPresets, saveZones, setSeasonLook } from '@/lib/overlay-settings';
+import { addScheduledLook, bumpReloadToken, listPresets, removeScheduledLook, saveZones, setSeasonLook } from '@/lib/overlay-settings';
 import { deleteVersion } from '@/lib/overlay-versions';
 import { getSeason } from '@/lib/kv';
 
@@ -34,6 +34,22 @@ export async function setSeasonLookAction(seasonId: string, presetId: string | n
   await setSeasonLook(seasonId, presetId);
   revalidatePath('/admin/overlay');
   return { ok: true, message: presetId ? `${season.name} now uses that look while it is active. Refresh the overlay to see it.` : `${season.name} follows the global look again.` };
+}
+
+/** Schedules a preset between two instants (epoch ms): the overlay layers it over the season look while it runs and reloads itself at each edge. */
+export async function addScheduledLookAction(presetId: string, start: number, end: number): Promise<OverlayActionResult> {
+  await requireAdmin();
+  const r = await addScheduledLook(presetId, start, end);
+  if (!r.ok) return r;
+  revalidatePath('/admin/overlay');
+  return { ok: true, message: 'Look scheduled. Idle overlays reload by themselves at the start and end.' };
+}
+
+export async function removeScheduledLookAction(id: string): Promise<OverlayActionResult> {
+  await requireAdmin();
+  await removeScheduledLook(id);
+  revalidatePath('/admin/overlay');
+  return { ok: true, message: 'Scheduled look removed.' };
 }
 
 /** Saves a scope's editor-only Twitch UI zones (staff-wide, never sent to the live overlay). */
