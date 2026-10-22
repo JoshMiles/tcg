@@ -235,7 +235,7 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
       const glyphs = [...text].map((ch, i) => ({ ch, t: t0 + (reach(i) + reach(i + 1)) / 2 })).filter(g => g.ch.trim());
       const at = (g: { t: number }) => { const phi = g.t / a.r - theta / 2; return { x: b.x + a.w / 2 + a.r * Math.sin(phi), y: b.y + (up ? a.ym + a.r * (1 - Math.cos(phi)) : a.ym - a.r * (1 - Math.cos(phi))), rot: up ? phi : -phi }; };
       const each = (fn: (ch: string, p: { x: number; y: number; rot: number }) => void) => glyphs.forEach(g => { const p = at(g); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); fn(g.ch, p); ctx.restore(); });
-      for (const sh of b.shadows) each(ch => { ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x * sc; ctx.shadowOffsetY = sh.y * sc; ctx.shadowBlur = sh.blur * sc; ctx.fillStyle = b.gradient ? 'rgba(0,0,0,0)' : b.color; ctx.fillText(ch, 0, 0); });
+      for (const sh of b.shadows) each(ch => { ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x * sc; ctx.shadowOffsetY = sh.y * sc; ctx.shadowBlur = sh.blur * sc; ctx.fillStyle = b.gradient ? b.gradient.from : b.color; ctx.fillText(ch, 0, 0); });
       const strokeAll = () => each(ch => { ctx.lineWidth = b.stroke!.width; ctx.strokeStyle = b.stroke!.color; ctx.lineJoin = 'round'; ctx.strokeText(ch, 0, 0); });
       if (b.stroke?.outside) strokeAll();
       // The gradient is laid across the whole text box; each glyph is rotated, so its endpoints are mapped back into the glyph's own space.
