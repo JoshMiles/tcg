@@ -9,6 +9,7 @@ const GROUPS: { title: string; rows: [string, string][] }[] = [
     rows: [
       ['V', 'Move: select and drag parts'],
       ['T', 'Text: click the canvas to add a text layer, or drag to draw its box (Esc or V to leave)'],
+      ['U', 'Shape: click for a default shape, or drag to draw it; Shift keeps proportions (Esc or V to leave)'],
       ['H', 'Hand: drag to pan (in the Layers panel, H hides or shows the layer)'],
       ['Z', 'Zoom: click to zoom in, Alt+click to zoom out'],
       ['Space (hold)', 'Temporary Hand'],

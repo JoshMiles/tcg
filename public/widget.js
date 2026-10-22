@@ -151,21 +151,40 @@ function customShape(l) {
     const defs = svgEl('defs', {}); defs.appendChild(g); svg.appendChild(defs);
     fill = 'url(#' + id + ')';
   }
-  const paint = { fill, stroke: sw ? l.stroke.color : 'none', 'stroke-width': sw };
-  if (sw && l.stroke.dash) paint['stroke-dasharray'] = l.stroke.dash + ' ' + l.stroke.dash;
-  const i = sw / 2, rx = (w - sw) / 2, ry = (h - sw) / 2, cx = w / 2, cy = h / 2;
-  let shape;
-  if (l.shape === 'ellipse') shape = svgEl('ellipse', Object.assign({ cx, cy, rx: Math.max(0, rx), ry: Math.max(0, ry) }, paint));
-  else if (l.shape === 'line') shape = svgEl('line', { x1: i, y1: cy, x2: w - i, y2: cy, stroke: sw ? l.stroke.color : fill === 'none' ? '#ffffff' : fill, 'stroke-width': sw || 2, 'stroke-linecap': 'round' });
-  else if (l.shape === 'polygon' || l.shape === 'star') {
-    const n = l.shape === 'star' ? l.sides * 2 : l.sides, pts = [];
-    for (let k = 0; k < n; k++) {
-      const ang = -Math.PI / 2 + (k * 2 * Math.PI) / n, r = l.shape === 'star' && k % 2 ? l.inner : 1;
-      pts.push((cx + Math.cos(ang) * rx * r).toFixed(2) + ',' + (cy + Math.sin(ang) * ry * r).toFixed(2));
-    }
-    shape = svgEl('polygon', Object.assign({ points: pts.join(' '), 'stroke-linejoin': 'round' }, paint));
-  } else shape = svgEl('rect', Object.assign({ x: i, y: i, width: Math.max(0, w - sw), height: Math.max(0, h - sw), rx: Math.min(l.radius || 0, Math.max(0, w - sw) / 2, Math.max(0, h - sw) / 2) }, paint));
-  svg.appendChild(shape);
+  const cx = w / 2, cy = h / 2, dash = sw && l.stroke.dash ? { 'stroke-dasharray': l.stroke.dash + ' ' + l.stroke.dash } : {};
+  if (l.shape === 'line') {
+    // A line is only a stroke: the box is its length, it sits mid-height; arrowheads are drawn polygons so they take the line's colour on every browser.
+    const lc = sw ? l.stroke.color : fill === 'none' ? '#ffffff' : fill, lw = sw || 2, cap = l.cap || 'round', e = cap === 'butt' ? 0 : lw / 2, hs = lw * 4;
+    const a0 = l.arrows === 'start' || l.arrows === 'both', a1 = l.arrows === 'end' || l.arrows === 'both';
+    svg.appendChild(svgEl('line', Object.assign({ x1: e + (a0 ? hs : 0), y1: cy, x2: w - e - (a1 ? hs : 0), y2: cy, stroke: lc, 'stroke-width': lw, 'stroke-linecap': cap }, dash)));
+    const head = (x, d) => svg.appendChild(svgEl('polygon', { points: x + ',' + cy + ' ' + (x + d * hs) + ',' + (cy - hs / 2) + ' ' + (x + d * hs) + ',' + (cy + hs / 2), fill: lc }));
+    if (a0) head(e, 1);
+    if (a1) head(w - e, -1);
+  } else {
+    // The fill sits on the box edge; the stroke is a second outline, moved in, on the edge or out by where the stroke goes (inside is the default).
+    const pos = (l.stroke && l.stroke.pos) || 'inside';
+    const outline = (i, paint) => {
+      const rx = Math.max(0, w / 2 - i), ry = Math.max(0, h / 2 - i);
+      if (l.shape === 'ellipse') return svgEl('ellipse', Object.assign({ cx, cy, rx, ry }, paint));
+      if (l.shape === 'polygon' || l.shape === 'star') {
+        const n = l.shape === 'star' ? l.sides * 2 : l.sides, pts = [];
+        for (let k = 0; k < n; k++) {
+          const ang = -Math.PI / 2 + (k * 2 * Math.PI) / n, r = l.shape === 'star' && k % 2 ? l.inner : 1;
+          pts.push((cx + Math.cos(ang) * rx * r).toFixed(2) + ',' + (cy + Math.sin(ang) * ry * r).toFixed(2));
+        }
+        return svgEl('polygon', Object.assign({ points: pts.join(' '), 'stroke-linejoin': 'round' }, paint));
+      }
+      // A rectangle with per-corner radii (top left, top right, bottom right, bottom left); corners that would overlap shrink together.
+      const rr = l.radii && l.radii.length === 4 ? l.radii : [l.radius || 0, l.radius || 0, l.radius || 0, l.radius || 0];
+      const W = Math.max(0, w - 2 * i), H = Math.max(0, h - 2 * i);
+      const f = Math.min(1, ...[[0, 1, w], [3, 2, w], [0, 3, h], [1, 2, h]].map(p => { const s = rr[p[0]] + rr[p[1]]; return s > 0 ? p[2] / s : 1; }));
+      const [a, b, c, d] = rr.map(v => Math.max(0, v * f - i));
+      const x0 = i, y0 = i, x1 = i + W, y1 = i + H;
+      return svgEl('path', Object.assign({ d: 'M' + (x0 + a) + ' ' + y0 + 'H' + (x1 - b) + 'A' + b + ' ' + b + ' 0 0 1 ' + x1 + ' ' + (y0 + b) + 'V' + (y1 - c) + 'A' + c + ' ' + c + ' 0 0 1 ' + (x1 - c) + ' ' + y1 + 'H' + (x0 + d) + 'A' + d + ' ' + d + ' 0 0 1 ' + x0 + ' ' + (y1 - d) + 'V' + (y0 + a) + 'A' + a + ' ' + a + ' 0 0 1 ' + (x0 + a) + ' ' + y0 + 'Z' }, paint));
+    };
+    svg.appendChild(outline(0, { fill, stroke: 'none' }));
+    if (sw) svg.appendChild(outline(pos === 'inside' ? sw / 2 : pos === 'outside' ? -sw / 2 : 0, Object.assign({ fill: 'none', stroke: l.stroke.color, 'stroke-width': sw }, dash)));
+  }
   const fx = l.fx || {}, fl = [];
   for (const sh of fx.shadows || []) if (sh.on !== false) fl.push('drop-shadow(' + sh.x + 'px ' + sh.y + 'px ' + sh.blur + 'px ' + tsAlpha(sh.color, sh.opacity) + ')');
   if (fx.glow && fx.glow.on !== false) for (let k = 0; k < Math.max(1, Math.round(fx.glow.strength)); k++) fl.push('drop-shadow(0 0 ' + fx.glow.blur + 'px ' + fx.glow.color + ')');

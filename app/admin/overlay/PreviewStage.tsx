@@ -97,7 +97,13 @@ export function PreviewStage() {
   };
   // The Text tool: a press-drag-release on the sheet draws a box (a plain click makes the default one) and adds a text layer there.
   const [rub, setRub] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
-  const rubAt = (e: React.PointerEvent) => ({ x: posOf('x', e), y: posOf('y', e) });
+  const drawing = activeTool === 'text' || activeTool === 'shape';
+  const rubAt = (e: React.PointerEvent, from?: { x0: number; y0: number } | null) => {
+    const p = { x: posOf('x', e), y: posOf('y', e) };
+    if (!from || !e.shiftKey || activeTool !== 'shape') return p;
+    const dx = p.x - from.x0, dy = p.y - from.y0, s = Math.max(Math.abs(dx), Math.abs(dy)); // Shift keeps the box square
+    return { x: from.x0 + (dx < 0 ? -s : s), y: from.y0 + (dy < 0 ? -s : s) };
+  };
   // Hand / Zoom put a clear sheet over the preview so presses never reach the widget; the Alt key flips Zoom to zoom out.
   const [panning, setPanning] = useState(false);
   const [zoomOut, setZoomOut] = useState(false);
@@ -183,12 +189,12 @@ export function PreviewStage() {
           <div
             aria-hidden
             className="absolute inset-0 z-10 touch-none"
-            style={{ cursor: activeTool === 'text' ? (isPack ? 'not-allowed' : 'crosshair') : activeTool === 'hand' ? (panning ? 'grabbing' : 'grab') : zoomOut ? 'zoom-out' : 'zoom-in' }}
+            style={{ cursor: drawing ? (isPack ? 'not-allowed' : 'crosshair') : activeTool === 'hand' ? (panning ? 'grabbing' : 'grab') : zoomOut ? 'zoom-out' : 'zoom-in' }}
             onPointerDown={e => {
-              if (activeTool === 'text') {
+              if (drawing) {
                 if (isPack || e.button !== 0) return;
                 e.currentTarget.setPointerCapture(e.pointerId);
-                const p = rubAt(e);
+                const p = rubAt(e, rub);
                 setRub({ x0: p.x, y0: p.y, x1: p.x, y1: p.y });
                 return;
               }
@@ -197,16 +203,16 @@ export function PreviewStage() {
               setPanning(true);
             }}
             onPointerMove={e => {
-              if (rub) { const p = rubAt(e); setRub(r => r && { ...r, x1: p.x, y1: p.y }); return; }
+              if (rub) { const p = rubAt(e, rub); setRub(r => r && { ...r, x1: p.x, y1: p.y }); return; }
               setZoomOut(e.altKey);
               if (panning) boxRef.current?.scrollBy(-e.movementX, -e.movementY);
             }}
             onPointerUp={e => {
               setPanning(false);
               if (!rub) return;
-              const p = rubAt(e);
+              const p = rubAt(e, rub);
               setRub(null);
-              addCustomAt('text', toolBox('text', rub.x0, rub.y0, p.x, p.y, shownLayout.width, shownLayout.height));
+              addCustomAt(activeTool === 'shape' ? 'shape' : 'text', toolBox(activeTool === 'shape' ? 'shape' : 'text', rub.x0, rub.y0, p.x, p.y, shownLayout.width, shownLayout.height));
             }}
             onPointerCancel={() => { setPanning(false); setRub(null); }}
             onClick={e => {

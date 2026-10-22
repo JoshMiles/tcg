@@ -48,7 +48,7 @@ import { LAYER_NAMES } from './LayersPanel';
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
-export type Tool = 'move' | 'hand' | 'zoom' | 'text';
+export type Tool = 'move' | 'hand' | 'zoom' | 'text' | 'shape';
 /** The user's own guide lines, in design px (an editor aid: kept in localStorage per scope, never saved to the overlay). */
 export type Guides = { x: number[]; y: number[] };
 const RULERS_KEY = 'tcg:overlay-rulers';
@@ -1225,7 +1225,7 @@ export function OverlayEditorProvider({
   // Arrow keys nudge the selected thing (Shift = 10 px); Esc clears the selection.
   const pressKey = (key: string, shift: boolean): boolean => {
     if (key === 'Escape') {
-      if (tool === 'text') setTool('move');
+      if (tool === 'text' || tool === 'shape') setTool('move');
       else setSelected('');
       return true;
     }
@@ -1358,8 +1358,8 @@ export function OverlayEditorProvider({
       t.closest('li')?.querySelector<HTMLButtonElement>('button[aria-pressed]')?.click();
       return true;
     }
-    if (k === 'v' || k === 'h' || k === 'z' || k === 't') {
-      setTool(k === 'v' ? 'move' : k === 'h' ? 'hand' : k === 'z' ? 'zoom' : 'text');
+    if (k === 'v' || k === 'h' || k === 'z' || k === 't' || k === 'u') {
+      setTool(k === 'v' ? 'move' : k === 'h' ? 'hand' : k === 'z' ? 'zoom' : k === 't' ? 'text' : 'shape');
       return true;
     }
     if (k === '?') {
