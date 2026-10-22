@@ -178,7 +178,7 @@ function layerFontId(key: string, valueOf: (k: string) => PropValue): string | u
 
 /** One text layer's style: the shared Character panel over a partial patch. It shows the inherited value, writes only the fields touched, and can copy / paste a style. */
 /** A wording field: the input, insert chips for its tokens, the result for a sample viewer and card, a character count and the "too long" warning. */
-function TextControl({ def, id, value, onChange }: { def: PropDef; id: string; value: string; onChange: (v: unknown) => void }) {
+export function TextControl({ def, id, value, onChange }: { def: PropDef; id: string; value: string; onChange: (v: unknown) => void }) {
   const { wordFit, fitStage, valueOf, setValue } = useOverlayEditor();
   const ref = useRef<HTMLInputElement>(null);
   const insert = (token: string) => {
@@ -231,25 +231,30 @@ function TextControl({ def, id, value, onChange }: { def: PropDef; id: string; v
 const WORDING_STYLE = /(.textStyle|.subTextStyle|^show.labelStyle|^reveal.labelStyle|^reveal.gotStyle|^collection.headingStyle)$/;
 function TextStyleControl({ def, value, onChange }: { def: PropDef; value: PropValue; onChange: (v: unknown) => void }) {
   const { current, globalVals, scope, valueOf } = useOverlayEditor();
-  const clip = useSyncExternalStore(subscribeClip, () => styleClip, () => null);
   const own = (isTextPatch(current[def.key]) ? current[def.key] : {}) as TextPatch;
   const inherited = (scope !== 'global' && isTextPatch(globalVals[def.key]) ? globalVals[def.key] : {}) as TextPatch;
-  const shown = shownTextStyle(inherited, own);
   void value;
+  return <TextPatchPanel own={own} inherited={inherited} fontId={layerFontId(def.key, valueOf)} wording={WORDING_STYLE.test(def.key)} stopLabel={scope === 'global' ? 'Clear every style field of this layer' : 'Stop overriding this layer'} onChange={onChange} />;
+}
+
+/** A text layer's style: Copy / Paste / Clear and the shared Character panel over a partial patch (`own`), showing what `inherited` gives under it. `wording`: the words come from tokens, so Highlight tokens shows. */
+export function TextPatchPanel({ own, inherited, fontId, wording, stopLabel, onChange }: { own: TextPatch; inherited: TextPatch; fontId?: string; wording: boolean; stopLabel: string; onChange: (v: TextPatch) => void }) {
+  const clip = useSyncExternalStore(subscribeClip, () => styleClip, () => null);
+  const shown = shownTextStyle(inherited, own);
   return (
     <div className="space-y-2 rounded-lg border border-gray-800 p-2">
       <div className="flex flex-wrap gap-1">
         <button type="button" className={ghost} onClick={() => setClip(own)} disabled={!Object.keys(own).length} title="Copy this layer's own style fields"><Icon name="copy" className="mr-1" />Copy style</button>
         <button type="button" className={ghost} onClick={() => clip && onChange(clip)} disabled={!clip} title="Replace this layer's style with the copied one">Paste style</button>
-        <button type="button" className={ghost} onClick={() => onChange({})} disabled={!Object.keys(own).length} title={scope === 'global' ? 'Clear every style field of this layer' : 'Stop overriding this layer'}>Clear</button>
+        <button type="button" className={ghost} onClick={() => onChange({})} disabled={!Object.keys(own).length} title={stopLabel}>Clear</button>
       </div>
       <CharacterPanel
         value={shown}
-        fontId={layerFontId(def.key, valueOf)}
+        fontId={fontId}
         patch={{ own: own as Record<string, unknown>, clear: path => onChange(clearTextPatch(own, path)) }}
         onChange={change => onChange(editTextPatch(own, shown, change as Record<string, unknown>))}
         onPreset={st => onChange(mergeTextPatch(own, patchFromStyle(st)))}
-        accent={WORDING_STYLE.test(def.key) ? { value: own.accent, onChange: (a: TextAccent | undefined) => onChange(a ? { ...own, accent: a } : clearTextPatch(own, 'accent')) } : undefined}
+        accent={wording ? { value: own.accent, onChange: (a: TextAccent | undefined) => onChange(a ? { ...own, accent: a } : clearTextPatch(own, 'accent')) } : undefined}
       />
     </div>
   );

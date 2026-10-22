@@ -28,6 +28,7 @@ import {
   type VariantId,
 } from '@/lib/overlay-props';
 import { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { MAX_CUSTOM, newCustom, type CustomKind, type CustomLayer } from '@/lib/overlay-custom';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { mergeTextPatch, type TextPatch } from '@/lib/overlay-text-style';
 import {
@@ -47,7 +48,7 @@ import { LAYER_NAMES } from './LayersPanel';
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
-export type Tool = 'move' | 'hand' | 'zoom';
+export type Tool = 'move' | 'hand' | 'zoom' | 'text';
 /** The user's own guide lines, in design px (an editor aid: kept in localStorage per scope, never saved to the overlay). */
 export type Guides = { x: number[]; y: number[] };
 const RULERS_KEY = 'tcg:overlay-rulers';
@@ -257,6 +258,11 @@ export interface OverlayEditorContextValue {
   setZoom: React.Dispatch<React.SetStateAction<number>>;
   activeTool: Tool;
   setTool: (t: Tool) => void;
+  /** Text tool: add a text layer to the current view at this box and select it. */
+  addCustomAt: (kind: CustomKind, box: { x: number; y: number; w?: number; h?: number }) => void;
+  /** The custom layer whose wording field should take focus (set by a double-click on it in the preview). */
+  focusText: string;
+  setFocusText: (id: string) => void;
   zoomStep: (dir: 1 | -1, cx?: number, cy?: number) => void;
   zoomFit: () => void;
   zoomActual: () => void;
@@ -428,7 +434,7 @@ export function OverlayEditorProvider({
   const frameRef = useRef<HTMLIFrameElement>(null);
   // A drag or a corner-handle resize in progress (one undo step): `s0` is the scale a resize started from.
   // `id` / `ox` / `oy` / `s0` are the primary part's start; `group` holds every moved part's start (one entry unless several are selected).
-  const drag = useRef<{ view: Mode; id: string | null; ox: number; oy: number; s0?: number; group?: { id: string; ox: number; oy: number; s0: number }[] } | null>(null);
+  const drag = useRef<{ view: Mode; id: string | null; ox: number; oy: number; s0?: number; box?: { x: number; y: number; w: number; h: number }; group?: { id: string; ox: number; oy: number; s0: number }[] } | null>(null);
   const [selection, setSelection] = useState<string[]>([]);
   const selected = selection[selection.length - 1] ?? '';
   const setSelected = useCallback((t: string) => setSelection(t ? [t] : []), []);
@@ -452,6 +458,7 @@ export function OverlayEditorProvider({
 
   const [zoom, setZoom] = useState(1);
   const [tool, setTool] = useState<Tool>('move');
+  const [focusText, setFocusText] = useState('');
   const [spaceDown, setSpaceDown] = useState(false); // Space held: a temporary Hand
   const [focusMode, setFocusMode] = useState(false); // Tab: only the canvas shows
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -1086,9 +1093,49 @@ export function OverlayEditorProvider({
     setElement(view, id, next);
   };
 
+  // The admin's own layers (ROADMAP 38.7): found by their `custom:<id>` target, moved and resized by box (design px) rather than by offset and scale.
+  const customOf = (target: string) => {
+    for (const view of ['pack', 'collection'] as const) {
+      const l = layout[view].custom?.find(c => `custom:${c.id}` === target);
+      if (l) return { view, l };
+    }
+    return null;
+  };
+  const patchCustom = (view: Mode, id: string, patch: Partial<CustomLayer>) =>
+    setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: (l[view].custom ?? []).map(c => (c.id === id ? ({ ...c, ...patch } as CustomLayer) : c)) } }));
+  const beginCustom = (target: string, verb: string) => {
+    const c = customOf(target);
+    if (!c) return null;
+    if (!drag.current) {
+      commit();
+      tagEdit(`${verb} ${c.l.name}`);
+      drag.current = { view: c.view, id: target, ox: 0, oy: 0, box: { x: c.l.x, y: c.l.y, w: c.l.w, h: c.l.h } };
+    }
+    return { id: c.l.id, view: drag.current.view, box: drag.current.box! };
+  };
+  const addCustomAt = (kind: CustomKind, box: { x: number; y: number; w?: number; h?: number }) => {
+    if (isPack) return;
+    const view = mode;
+    const have = layout[view].custom ?? [];
+    if (have.length >= MAX_CUSTOM) return;
+    const layer = newCustom(kind, have.map(c => c.id), layout.width, layout.height, box);
+    setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: [...(l[view].custom ?? []), layer] } }), `Add ${kind} layer`);
+    selectTarget(`custom:${layer.id}`);
+    setTool('move');
+    if (kind === 'text') setFocusText(layer.id);
+  };
+
   // Corner-handle resize: `factor` is the pointer's distance from the centre against where the press began (aspect kept).
   const resizeTo = (target: string, wholeView: boolean, factor: number) => {
     if (isPack) return;
+    if (!wholeView && target.startsWith('custom:')) {
+      // A plain box resize about the centre (the turn and anchor come with free transform).
+      const c = beginCustom(target, 'Resize');
+      if (!c) return;
+      const w = Math.max(10, Math.round(c.box.w * factor)), h = Math.max(10, Math.round(c.box.h * factor));
+      patchCustom(c.view, c.id, { w, h, x: Math.round(c.box.x + (c.box.w - w) / 2), y: Math.round(c.box.y + (c.box.h - h) / 2) });
+      return;
+    }
     if (!drag.current) {
       const view = wholeView ? mode : viewOf(target);
       const ids = wholeView ? [] : editable(target);
@@ -1139,6 +1186,11 @@ export function OverlayEditorProvider({
   // `sx` / `sy`: the preview already snapped that axis to a guide, so the grid snap below skips it.
   const dragTo = (target: string, dx: number, dy: number, alt: boolean, shift: boolean, sx = false, sy = false) => {
     if (isPack) return;
+    if (target.startsWith('custom:')) {
+      const c = beginCustom(target, 'Move');
+      if (c) patchCustom(c.view, c.id, { x: Math.round(c.box.x + dx), y: Math.round(c.box.y + dy) });
+      return;
+    }
     if (!drag.current) {
       const view = viewOf(target);
       const ids = shift ? [] : editable(target);
@@ -1173,13 +1225,20 @@ export function OverlayEditorProvider({
   // Arrow keys nudge the selected thing (Shift = 10 px); Esc clears the selection.
   const pressKey = (key: string, shift: boolean): boolean => {
     if (key === 'Escape') {
-      setSelected('');
+      if (tool === 'text') setTool('move');
+      else setSelected('');
       return true;
     }
     const step = shift ? 10 : 1;
     const m = ({ ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] } as Record<string, [number, number]>)[key];
     if (!m) return false;
     if (!dragging) return true;
+    const cu = selected.startsWith('custom:') ? customOf(selected) : null;
+    if (cu) {
+      tagEdit(`Nudge ${cu.l.name}`);
+      patchCustom(cu.view, cu.l.id, { x: cu.l.x + m[0], y: cu.l.y + m[1] });
+      return true;
+    }
     const view = viewOf(selected);
     const ids = editable(selected);
     if (!ids.length) return true;
@@ -1268,6 +1327,7 @@ export function OverlayEditorProvider({
     const r = frameRef.current?.getBoundingClientRect();
     if (!r) return;
     selectTarget(target);
+    if (target.startsWith('custom:')) return;
     openLayerMenu(viewOf(target), target, r.left + x * fit, r.top + y * fit);
   };
 
@@ -1298,8 +1358,8 @@ export function OverlayEditorProvider({
       t.closest('li')?.querySelector<HTMLButtonElement>('button[aria-pressed]')?.click();
       return true;
     }
-    if (k === 'v' || k === 'h' || k === 'z') {
-      setTool(k === 'v' ? 'move' : k === 'h' ? 'hand' : 'zoom');
+    if (k === 'v' || k === 'h' || k === 'z' || k === 't') {
+      setTool(k === 'v' ? 'move' : k === 'h' ? 'hand' : k === 'z' ? 'zoom' : 'text');
       return true;
     }
     if (k === '?') {
@@ -1385,6 +1445,11 @@ export function OverlayEditorProvider({
         return;
       }
       if (data?.type === 'boxes') { boxesWait.current?.((data as { boxes?: Record<string, DesignBox> }).boxes ?? {}); return; }
+      if (data?.type === 'edit' && typeof data.target === 'string' && data.target.startsWith('custom:')) {
+        live.current.selectTarget(data.target);
+        setFocusText(data.target.slice(7));
+        return;
+      }
       if (data?.type === 'dragend') return live.current.dragEnd();
       if (data?.type === 'key' && typeof data.key === 'string') {
         if (!live.current.pressKey(data.key, !!data.shift)) live.current.shortcut(data.key, !!data.ctrl, !!data.shift, null, !!data.up);
@@ -1536,6 +1601,9 @@ export function OverlayEditorProvider({
     setZoom,
     activeTool,
     setTool,
+    addCustomAt,
+    focusText,
+    setFocusText,
     zoomStep,
     zoomFit,
     zoomActual,

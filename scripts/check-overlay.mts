@@ -267,6 +267,19 @@ eq(sanitizeLayout({ pack: { elements: { banner: { offsetX: 12, scale: 1.5 } } } 
   ok(dl.some(l => l.to.startsWith('added text "Fresh"')) && dl.some(l => l.label.includes('"Old"') && l.to.includes('text')), 'the diff reports an added and a changed layer');
   ok(diff.diffLayout(after, before).some(l => l.to === 'removed' && l.from.includes('Fresh')) && diff.diffLayout(before, before).length === 0, 'the diff reports a removed layer and nothing when equal');
   ok(/const customUrlOk/.test(readFileSync('public/widget.js', 'utf8')) && /function renderCustom/.test(readFileSync('public/widget.js', 'utf8')) && !/innerHTML/.test(/\/\/ ── Custom layers[\s\S]*?function applyLayout/.exec(readFileSync('public/widget.js', 'utf8'))?.[0] ?? 'innerHTML'), 'the widget draws custom layers without innerHTML');
+  // Text tool (38.7 b): vertical align, the box a press makes, a layer placed at a box, the widget's editing hooks.
+  const va = (v: unknown) => (lay([{ id: 'v', kind: 'text', ...box, valign: v }])?.[0] as import('../lib/overlay-custom').CustomText).valign;
+  ok(va('middle') === 'middle' && va('bottom') === 'bottom' && va('sideways') === 'top' && va(undefined) === 'top', 'text valign is top, middle or bottom, top by default');
+  eq(cu.toolBox('text', 100, 50, 102, 52, 1280, 720), { x: 100, y: 50 }, 'a click gives the point only');
+  eq(cu.toolBox('text', 1200, 700, 1200, 700, 1280, 720), { x: 880, y: 640 }, 'a click near the edge keeps the default box on the stage');
+  eq(cu.toolBox('text', 300, 200, 100, 120, 1280, 720), { x: 100, y: 120, w: 200, h: 80 }, 'a drag in any direction gives the rectangle');
+  eq(cu.toolBox('text', 10, 10, 18, 40, 1280, 720), { x: 10, y: 10, w: 20, h: 30 }, 'a thin drag is at least 20 px each way');
+  const placed = cu.newCustom('text', [], 1280, 720, { x: 30, y: 40, w: 250, h: 60 });
+  ok(placed.x === 30 && placed.y === 40 && placed.w === 250 && placed.h === 60, 'newCustom places the layer at the given box');
+  const dflt = cu.newCustom('text', [], 1280, 720, { x: 30, y: 40 });
+  ok(dflt.w === 400 && dflt.h === 80, 'a box with only a point keeps the default size');
+  const wsrc = readFileSync('public/widget.js', 'utf8');
+  ok(/dataset\.edit = 'custom:'/.test(wsrc) && /'dblclick'/.test(wsrc) && !/setWording\([^)]*, ''\);/.test(/function customLayerEl[\s\S]*?\nfunction dropCustom/.exec(wsrc)?.[0] ?? ''), 'the widget tags custom layers for editing, reports a double-click and passes the accent colour');
 }
 // Align / distribute: box moves become offset moves (divided by the view scale), a lone part aligns to the stage.
 const bx = { a: { x: 100, y: 50, w: 100, h: 40 }, b: { x: 300, y: 80, w: 50, h: 20 }, c: { x: 700, y: 10, w: 100, h: 60 } };

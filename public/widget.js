@@ -172,7 +172,7 @@ function customShape(l) {
   if (fl.length) svg.style.filter = fl.join(' ');
   return svg;
 }
-function customLayerEl(l, ctx) {
+function customLayerEl(l, ctx, accent) {
   const d = document.createElement('div');
   d.className = 'custom-layer';
   d.dataset.custom = l.id;
@@ -181,6 +181,8 @@ function customLayerEl(l, ctx) {
   if (l.rotate) st.rotate = l.rotate + 'deg';
   if (l.opacity < 1) st.opacity = String(l.opacity);
   if (l.visible === false) st.display = 'none';
+  // The editor preview: the layer can be picked, moved and resized like the built-in parts (the live overlay has no such tag).
+  if (PREVIEW) { d.dataset.edit = 'custom:' + l.id; d.dataset.layerName = l.name; }
   if (l.kind === 'image') {
     if (!customUrlOk(l.url)) return null;
     const img = document.createElement('img');
@@ -189,8 +191,13 @@ function customLayerEl(l, ctx) {
     d.appendChild(img);
   } else if (l.kind === 'shape') d.appendChild(customShape(l));
   else if (l.kind === 'text') {
-    st.fontSize = l.size + 'px'; st.color = l.color; st.whiteSpace = 'pre-wrap'; st.overflow = 'hidden';
-    setWording(d, l.text, ctx || {}, l.style && l.style.accent, '');
+    st.fontSize = l.size + 'px'; st.color = l.color; st.overflow = 'hidden';
+    // A column box so the words can sit at the top, middle or bottom; the words go in their own child (a flex parent would split the coloured runs).
+    st.display = 'flex'; st.flexDirection = 'column'; st.justifyContent = l.valign === 'middle' ? 'center' : l.valign === 'bottom' ? 'flex-end' : 'flex-start';
+    const tx = document.createElement('div');
+    tx.style.whiteSpace = 'pre-wrap'; tx.style.overflowWrap = 'break-word';
+    d.appendChild(tx);
+    setWording(tx, l.text, ctx || {}, l.style && l.style.accent, accent || '');
   }
   return d;
 }
@@ -205,14 +212,14 @@ function renderCustom(set) {
   document.getElementById('stage').appendChild(box);
   const P = Object.assign({}, effectiveProps(null));
   for (const l of list) {
-    const d = customLayerEl(l, set.ctx);
+    const d = customLayerEl(l, set.ctx, set.accent);
     if (!d) continue;
     box.appendChild(d);
     if (l.kind === 'text') { applyTextFont(d, l.font, P); P['custom.style'] = l.style; applyTextStyle(d, 'custom.style', P, l.font, l.size); }
   }
 }
-function attachCustom(wrapper, view, ctx) {
-  const set = { view, ctx, el: null };
+function attachCustom(wrapper, view, ctx, accent) {
+  const set = { view, ctx, accent, el: null };
   CUSTOM_SETS.set(wrapper, set);
   renderCustom(set);
 }
@@ -715,7 +722,7 @@ function showStatic(mode) {
     const PS = previewShowOff ? showOffProps(P, variant) : P;
     const card = chosen.cards.find(c => c.number === previewCardNumber) || [...chosen.cards].sort((x, y) => y.stars - x.stars)[0] || ALL_CARDS[0];
     wrapper.classList.add('is-pack', 'pack-fit');
-    attachCustom(wrapper, 'pack', { user: 'Preview', cardName: card ? card.name : '', variant, pack: chosen.pack.name, stars: card ? card.stars : 0 });
+    attachCustom(wrapper, 'pack', { user: 'Preview', cardName: card ? card.name : '', variant, pack: chosen.pack.name, stars: card ? card.stars : 0 }, (cfg || PACK_DEFAULTS).accentColor);
     cardBox.style.animation = 'none';
     cardBox.style.opacity = '1';
     radialContainer.style.animation = 'none';
@@ -753,7 +760,7 @@ function showStatic(mode) {
   } else {
     // The collection view: just the name and the card grid.
     wrapper.classList.add('is-collection');
-    attachCustom(wrapper, 'collection', { user: 'Preview' });
+    attachCustom(wrapper, 'collection', { user: 'Preview' }, (cfg || PACK_DEFAULTS).accentColor);
     cardBox.style.display = 'none';
     radialContainer.style.display = 'none';
     cardInfo.style.opacity = '1';
@@ -863,6 +870,11 @@ if (PREVIEW) {
     press = null;
     showGuides([]);
   };
+  // Double-click on one of the admin's own layers: select it (the press already did) and ask the editor to focus its wording.
+  document.addEventListener('dblclick', (e) => {
+    const el = e.target.closest && e.target.closest('[data-edit^="custom:"]');
+    if (el) toParent({ type: 'edit', target: el.dataset.edit });
+  });
   // Right-click on a part opens the editor's layer menu there.
   document.addEventListener('contextmenu', (e) => {
     const el = e.target.closest && e.target.closest('[data-edit]');
@@ -872,7 +884,7 @@ if (PREVIEW) {
   });
   // Focus sits in this frame after a click, so hand the nudge / clear keys and the editor's shortcuts (tools, zoom, save) to the editor.
   const FWD_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Escape'];
-  const FWD_EDITOR_KEYS = ['v', 'h', 'z', 'Tab', '?', ' '];
+  const FWD_EDITOR_KEYS = ['v', 'h', 'z', 't', 'Tab', '?', ' '];
   const FWD_CTRL = ['s', 'd', '0', '1', '=', '+', '-', 'z', 'y', 'r'];
   document.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;
@@ -937,7 +949,7 @@ if (PREVIEW) {
     const el = t && document.querySelector('[data-edit="' + t + '"]');
     if (el) {
       const r = el.getBoundingClientRect();
-      selTag.textContent = selSet.size > 1 ? selSet.size + ' layers' : TAG_NAMES[t] || t;
+      selTag.textContent = selSet.size > 1 ? selSet.size + ' layers' : TAG_NAMES[t] || el.dataset.layerName || t;
       selTag.style.display = 'block';
       selTag.style.left = Math.max(0, r.left) + 'px';
       selTag.style.top = Math.max(0, r.top - 22) + 'px';
@@ -1963,7 +1975,7 @@ function drawCard(username, opts) {
 
   const owned = show ? true : prior.some(e => decodeEntry(e).cardNumber === card.number);
   const tokenCtx = { user, cardName: card.name, variant, pack: packName, stars: card.stars };
-  attachCustom(wrapper, 'pack', tokenCtx);
+  attachCustom(wrapper, 'pack', tokenCtx, cfg.accentColor);
   applyLook(theater, P, variant, card, cfg, owned, tokenCtx);
   paintCard(theater, card, art, isFullArt ? card.fullArtThumb : card.thumb);
 
@@ -2124,7 +2136,7 @@ function showCollection(username, opts) {
   wrapper.classList.remove('fade-in-start');
   cardInfo.style.opacity   = '1';
   cardInfo.style.transform = 'scale(1)';
-  attachCustom(wrapper, 'collection', { user: username });
+  attachCustom(wrapper, 'collection', { user: username }, cfg.accentColor);
   headingText(userText, P, username, cfg);
   applyTextFont(userText, pv(P, 'collection.headingFont', 'inherit'), P);
   if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';

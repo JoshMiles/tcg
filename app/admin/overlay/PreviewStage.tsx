@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
+import { toolBox } from '@/lib/overlay-custom';
 import { LayerMenu } from './LayerMenu';
 import { useOverlayEditor } from './OverlayEditorContext';
 import { RulerBar } from './RulerBar';
@@ -33,6 +34,7 @@ export function PreviewStage() {
     guides,
     setGuides,
     guidesLocked,
+    addCustomAt,
   } = useOverlayEditor();
 
   // Rulers and the user's guides are drawn here, not in the widget: where the stage sits inside the scroll box, measured on scroll / resize / zoom.
@@ -93,6 +95,9 @@ export function PreviewStage() {
     const off = v < 0 || v > (d.axis === 'x' ? shownLayout.width : shownLayout.height) || (d.axis === 'x' ? e.clientX < br.left : e.clientY < br.top);
     if (off) setGuides(g => ({ ...g, [d.axis]: g[d.axis].filter((_, j) => j !== d.i) }));
   };
+  // The Text tool: a press-drag-release on the sheet draws a box (a plain click makes the default one) and adds a text layer there.
+  const [rub, setRub] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const rubAt = (e: React.PointerEvent) => ({ x: posOf('x', e), y: posOf('y', e) });
   // Hand / Zoom put a clear sheet over the preview so presses never reach the widget; the Alt key flips Zoom to zoom out.
   const [panning, setPanning] = useState(false);
   const [zoomOut, setZoomOut] = useState(false);
@@ -178,21 +183,42 @@ export function PreviewStage() {
           <div
             aria-hidden
             className="absolute inset-0 z-10 touch-none"
-            style={{ cursor: activeTool === 'hand' ? (panning ? 'grabbing' : 'grab') : zoomOut ? 'zoom-out' : 'zoom-in' }}
+            style={{ cursor: activeTool === 'text' ? (isPack ? 'not-allowed' : 'crosshair') : activeTool === 'hand' ? (panning ? 'grabbing' : 'grab') : zoomOut ? 'zoom-out' : 'zoom-in' }}
             onPointerDown={e => {
+              if (activeTool === 'text') {
+                if (isPack || e.button !== 0) return;
+                e.currentTarget.setPointerCapture(e.pointerId);
+                const p = rubAt(e);
+                setRub({ x0: p.x, y0: p.y, x1: p.x, y1: p.y });
+                return;
+              }
               if (activeTool !== 'hand') return;
               e.currentTarget.setPointerCapture(e.pointerId);
               setPanning(true);
             }}
             onPointerMove={e => {
+              if (rub) { const p = rubAt(e); setRub(r => r && { ...r, x1: p.x, y1: p.y }); return; }
               setZoomOut(e.altKey);
               if (panning) boxRef.current?.scrollBy(-e.movementX, -e.movementY);
             }}
-            onPointerUp={() => setPanning(false)}
-            onPointerCancel={() => setPanning(false)}
+            onPointerUp={e => {
+              setPanning(false);
+              if (!rub) return;
+              const p = rubAt(e);
+              setRub(null);
+              addCustomAt('text', toolBox('text', rub.x0, rub.y0, p.x, p.y, shownLayout.width, shownLayout.height));
+            }}
+            onPointerCancel={() => { setPanning(false); setRub(null); }}
             onClick={e => {
               if (activeTool === 'zoom') zoomStep(e.altKey ? -1 : 1, e.clientX, e.clientY);
             }}
+          />
+        )}
+        {rub && (
+          <div
+            aria-hidden
+            className="absolute z-20 border border-dashed border-yellow-400 bg-yellow-400/10 pointer-events-none"
+            style={{ left: Math.min(rub.x0, rub.x1) * fit, top: Math.min(rub.y0, rub.y1) * fit, width: Math.abs(rub.x1 - rub.x0) * fit, height: Math.abs(rub.y1 - rub.y0) * fit }}
           />
         )}
         {/* Guides (never part of the overlay, only drawn over the preview) */}

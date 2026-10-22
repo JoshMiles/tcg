@@ -882,3 +882,5 @@
 /* Custom layers the admin added (widget.js renderCustom): one box over the whole stage, children placed in design px, in front of the views. */
 .custom-layers { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
 .custom-layer { position: absolute; box-sizing: border-box; transform-origin: center; }
+/* The editor preview can pick, move and resize the admin's own layers. */
+.preview-edit .custom-layer { pointer-events: auto; }
