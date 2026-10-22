@@ -764,3 +764,21 @@ fieldset.card { display: block; }
 /* A public dialog that turns into a bottom sheet below md: add this class to its panel (the rest is max-md: utilities). */
 @media (max-width: 767px) { .sheet-mobile { animation: sheetUp .22s cubic-bezier(.2,.8,.2,1) backwards; transition: transform .2s; } }
 @media (prefers-reduced-motion: reduce) { .sheet-panel, .sheet-backdrop, .sheet-mobile { animation: none; transition: none; } }
+
+/* Touch pass (public site: SiteShell's root has .site-touch; the admin is untouched). */
+@media (max-width: 767px) {
+  /* Tap targets: a control under 44px gets an invisible 44 x 44 hit area (the inset is 0 once it is big enough). `.tap` opts in any other element. */
+  .site-touch :is(button, summary, [role="button"], [role="tab"], a.btn, a[class*="rounded"], .tap):not(.absolute, .fixed, .sticky, .relative) { position: relative; }
+  .site-touch :is(button, summary, [role="button"], [role="tab"], a.btn, a[class*="rounded"], .tap)::before {
+    content: ''; position: absolute;
+    top: min(0px, calc((100% - 44px) / 2)); bottom: min(0px, calc((100% - 44px) / 2));
+    left: min(0px, calc((100% - 44px) / 2)); right: min(0px, calc((100% - 44px) / 2));
+  }
+  /* iOS zooms into a field under 16px on focus. */
+  .site-touch :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]), select, textarea) { font-size: max(16px, 1em); }
+  .site-touch :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select) { min-height: 44px; }
+}
+/* Press feedback where only :hover exists. Low specificity, so the 3D yellow button's own :active wins; no movement, so reduced motion needs nothing. */
+@media (hover: none), (max-width: 767px) {
+  :where(.site-touch) :where(button, summary, [role="button"], a.btn, a[class*="rounded"]):where(:active):not(:disabled) { filter: brightness(0.85); }
+}
