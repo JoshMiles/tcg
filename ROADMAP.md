@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-**Last updated 2026-10-21**
+**Last updated 2026-10-22**
 
 Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked Ready; Needs design or Needs a decision goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item.
 
@@ -19,9 +19,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
 | 35.3 | Richer Android install | Ready | S |
 | 38.7 | Overlay Editor: add your own layers (text, image, shape) | Ready | L |
-| 38.8 | Overlay Editor: text formatting (a Character panel on every text layer) | Ready | L |
-| 38.9 | Overlay Editor: better text fields (tokens, preview, checks) | Ready | S |
-| 38.10 | Overlay Editor: styled words inside one text (rich text) | Ready | M |
 | 38.17 | Overlay Editor: artboards (scenes side by side) | Ready | M |
 | 38.18 | Overlay Editor: groups and linked layers | Ready | M |
 | 38.19 | Overlay Editor: measure with Alt, status bar | Ready | S |
@@ -78,29 +75,7 @@ Photoshop's core: layers that aren't built in. **Decided (user, 2026-10-21):** t
 - **Editing:** duplicate (Ctrl+J, Photoshop's), copy / paste between views and scenes, rename by double-click in Layers, delete.
 - Split: (a) data, sanitize, widget render for all three kinds, Add / delete; (b) the Text tool and text panel; (c) the Shape tool, fill / stroke / effects; (d) the Image tool; (e) bands, ordering, "Show when", fades; (f) free transform. `scripts/check-overlay.mts` cases for each kind's sanitize and the 16 cap.
 
-### 38.8 Text formatting: a Character panel on every text layer (Ready, L)
-Today an overlay text layer has a font (36.5) and, for some, a size and colour; nothing else. The card back editor already has the full set (`BackEl` and `Effects` in `lib/card-back.ts`: weight, italic, underline, uppercase, letter spacing, line height, align, colour, opacity, and effects outline, glow, shadow, engrave, gradient text). Give every overlay text layer the same, as one Photoshop-style **Character** block. This replaces the old 38.8 (layer styles) and answers its question: one compact block per layer, not ~12 loose settings each.
-- **Which layers:** card label (`reveal.label*`), edition pill and its serial line, corner numbers, name bar, "got:" line, strip ("?" and ×N), show-off label, the three moment banners and their small line, collection heading, collection card text, and custom text layers (38.7) if built. The `#alert` bar and dev panel stay unthemed.
-- **Shared model:** use the `TextStyle` and `sanitizeTextStyle()` that 38.12 moves into `lib/text-style.ts`, so the two editors can't drift. Options that need a box the overlay layer doesn't have (height, vertical align, text on a curve) are hidden here, except on custom text layers (38.7).
-- **Registry:** a new `PropType` `'textStyle'` (`lib/overlay-props.ts`): one key per layer (`reveal.labelStyle`, `reveal.gotStyle`, `collection.headingStyle`, ...) whose value is a partial `TextStyle`. Defaults are empty = today's look, so nothing migrates. Merging is **field by field** (defaults → global → season look → pack), so a pack can override just the outline colour. The existing font / size / colour keys stay where they are (no migration); the Character block shows them at its top so the user sees one panel. Teach `lib/overlay-diff.ts`, presets, import / export, versions and `scripts/check-overlay.mts` the object value (diff per field, e.g. "Label: outline 2 px → 3 px").
-- **Editor:** one `CharacterPanel` component, lifted from the text section of `card-back/Properties.tsx`, used by both editors: font, size, colour on the first row; B / I / U and case as toggle buttons; align segmented; spacing and line height sliders; an **fx** row (outline, glow, shadow, gradient) each with an on switch and its few fields. Layers rows show an `fx` badge when any effect is on, and right-click gains **Copy text style / Paste text style** (to any text layer, across views).
-- **Widget:** one `applyTextStyle(el, layerId, P)` beside `applyTextFont`, writing inline `font-weight`, `font-style`, `text-decoration`, `text-transform`, `letter-spacing`, `line-height`, `text-align`, and `text-shadow` / `-webkit-text-stroke` / `background-clip: text` for the effects. Do not set `opacity` or `filter` on the element itself (reveals animate them): fade text through its colour alpha, and put glow in `text-shadow`. Load the font file for the chosen weight (`BACK_FONTS` files are per weight; a missing weight falls back to the nearest).
-- **Verify:** each layer with outline + shadow + uppercase in every reveal style, the show-off and the three moments; a pack override of one field; old saved looks unchanged; Review lists field changes; `npm run verify`.
-- Split if it runs long: (a) shared model + card back on it, (b) registry type + widget, (c) the panel on every layer.
-
-### 38.9 Better text fields (Ready, S)
-The wording fields (label text, "got:" wording, banners, show-off wording, heading) are plain inputs with tokens explained in help text, and the tokens differ: `{user}` in some, `{username}` in others.
-- **Tokens:** accept both `{user}` and `{username}` everywhere (the widget already treats them the same in some places; make one `fillTokens()` in `widget.js` used by every text layer), and offer the same set where the data exists: `{user}`, `{cardName}`, `{variant}`, `{pack}`, `{edition}`, `{stars}`. Unknown tokens stay as typed (no silent blanks).
-- **Insert chips** under each text field listing its tokens; clicking one inserts it at the caret. Tokens show as highlighted chips inside the field.
-- **Live result** under the field ("cheesygidds got:") using the preview's sample viewer and card, and a character count against `maxLength`.
-- **Fit warning:** the widget reports when a text layer overflows its box in the still (`scrollWidth > clientWidth`) and the field shows "Too long for this size at 1280×720", with a one-click "Shrink to fit" (lowers that layer's size).
-
-### 38.10 Styled words inside one text (Ready, M)
-Photoshop lets one text layer mix styles. **Decided (user, 2026-10-21):** wanted, both parts below. Light markup in any wording field, `**bold**`, `*italic*` and `{color:#ffcc00}word{/color}`, plus an **Accent** style for tokens (e.g. the viewer's name in the pack's accent colour, set in the Character block as "Highlight tokens"). The editor field gets B / I / colour buttons that wrap the selection; the widget parses the markup into spans with `textContent` only (never `innerHTML` from saved text, since wording reaches OBS). Ship "Highlight tokens" first (no markup needed, covers the coloured viewer name), then the markup and buttons. The card back text boxes get the same markup through the shared text code (DOM spans and canvas runs). Fit and ellipsis (38.9, 38.12) measure the styled runs, not the raw string.
-
 Not planned: free-floating or re-dockable panels, blend modes, masks, rotating the card itself (its tilt / rock animations own `rotate`).
-
-**Text work order:** 38.8 (the same Character panel on overlay text, on the `TextStyle` in `lib/text-style.ts` from 38.12) → 38.9 → 38.10. The user's ask (2026-10-21): the card back's text tool "is too basic, it all needs to be expanded (more fonts, better sizes etc)", and every overlay label and text field gets the same tool.
 
 ### 38.29 Workspace redesign (Ready, L)
 **Progress:** (a) to (e) shipped in #352 to #357, (f) in #366 (menu bar, status bar, scope tabs, panel stack, contextual Properties, tool strip with 38.1); `docs/overlay.md` describes them. Left: (g).
@@ -184,7 +159,7 @@ Saving a preset or version captures a still of the preview (the widget draws its
 ### 38.28 Scheduled looks (Ready, M)
 A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
 
-**Build order for the track:** text work (38.8, 38.9, 38.10) → 38.7 → 38.29 (g) → 38.30 → 38.17 to 38.28 in any order.
+**Build order for the track:** 38.7 → 38.29 (g) → 38.30 → 38.17 to 38.28 in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 
