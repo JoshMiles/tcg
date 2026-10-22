@@ -62,6 +62,7 @@ export function PropertiesDock({ column }: { column: ReturnType<typeof useColumn
     resetKeys,
     layout,
     overlapIds,
+    lowContrast,
     layoutVals,
     mode,
     setLayoutVals,
@@ -386,6 +387,7 @@ export function PropertiesDock({ column }: { column: ReturnType<typeof useColumn
             content: (
               <LayersPanel
                 overlapping={overlapIds}
+                lowContrast={lowContrast}
                 layout={layout}
                 selected={selected}
                 valueOf={valueOf}
