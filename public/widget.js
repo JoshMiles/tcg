@@ -580,7 +580,7 @@ function showStatic(mode) {
     cardInfo.style.opacity = '1';
     cardInfo.style.transform = 'scale(1)';
     if (card) {
-      applyLook(theater, PS, variant, card, cfg, false);
+      applyLook(theater, PS, variant, card, cfg, false, { user: 'Preview', cardName: card.name, variant, pack: chosen.pack.name, stars: card.stars });
       cardLabel.style.opacity = '1';
       cardLabel.style.visibility = 'visible';
       showSerial(theater, PS, { n: 3, mult: 2.8, uid: 1023381 });
@@ -589,12 +589,12 @@ function showStatic(mode) {
       radialContainer.style.opacity = String(burst.opacity);
       if (!burst.on) radialContainer.style.display = 'none';
       if (previewShowOff) {
-        userText.textContent = showText(PS, 'Preview', { cardName: card.name, variant });
+        userText.textContent = showText(PS, 'Preview', { cardName: card.name, variant, pack: chosen.pack.name, stars: card.stars });
         styleShowLabel(userText, PS);
         editable(userText, 'showlabel', 'Click to edit the show-off label');
         miniList.style.display = 'none';
       } else {
-        userText.textContent = gotText(PS, 'Preview');
+        userText.textContent = gotText(PS, 'Preview', { cardName: card.name, variant, pack: chosen.pack.name, stars: card.stars });
         editable(userText, 'got', 'Click to edit the "got:" line');
         editable(miniList, 'strip', 'Click to edit the cards under the card');
       }
@@ -637,6 +637,24 @@ if (PREVIEW) {
   const stageFit = () => parseFloat(document.documentElement.style.getPropertyValue('--stage-scale')) || 1;
   const boxOf = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
   const visibleEdits = () => [...document.querySelectorAll('[data-edit]')].filter(el => el.getBoundingClientRect().width > 0);
+  // Wording that does not fit the 1280x720 stage (wider than it, or clipped by its own box) is reported to the editor,
+  // which warns on that field. Editor preview only: the live overlay has no such code path.
+  let fitSent = '';
+  const reportFit = () => {
+    const over = {};
+    document.querySelectorAll('[data-edit]').forEach(el => {
+      const tag = el.dataset.edit;
+      if (tag !== 'label' && tag !== 'got' && tag !== 'showlabel' && tag !== 'heading' && tag !== 'banner') return;
+      const r = el.getBoundingClientRect();
+      if (r.width <= 0) return;
+      const w = r.width / stageFit();
+      const clipped = el.scrollWidth > el.clientWidth + 1;
+      if (w > STAGE.width || clipped) over[tag] = clipped && w <= STAGE.width ? 0.9 : Math.max(0.2, (STAGE.width - 40) / Math.max(1, w - 32));
+    });
+    const msg = JSON.stringify(over);
+    if (msg !== fitSent) { fitSent = msg; toParent({ type: 'fit', over, stage: STAGE.width + 'x' + STAGE.height }); }
+  };
+  setInterval(reportFit, 600);
   const unionOf = (boxes) => boxes.length ? { l: Math.min(...boxes.map(b => b.l)), t: Math.min(...boxes.map(b => b.t)), r: Math.max(...boxes.map(b => b.r)), b: Math.max(...boxes.map(b => b.b)) } : null;
   // Snap guides (lines drawn over the stage while a drag is locked to the stage or another element) and the size / position readout.
   const guideEls = [];
@@ -875,6 +893,15 @@ const VARIANTS = ['regular', 'reverse', 'full', 'shiny', 'golden'];
 const VARIANT_OFFSET = 1000000;
 const GOLDEN_PULLS = false;
 const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };
+// TOKENS-START
+// The one place wording tokens are filled (twin: lib/overlay-tokens.ts, scripts/check-overlay.mts runs both).
+// {user} and {username} are the same; a token with no data, and an unknown one, stays as typed. Plain text only.
+function fillTokens(str, ctx) {
+  const c = ctx || {};
+  const v = { user: c.user, username: c.user, cardName: c.cardName, variant: c.variant ? VARIANT_LABELS[c.variant] || c.variant : '', pack: c.pack, edition: c.edition, stars: c.stars };
+  return String(str).replace(/\{(\w+)\}/g, (m, k) => (Object.prototype.hasOwnProperty.call(v, k) && v[k] !== undefined && v[k] !== null && v[k] !== '' ? String(v[k]) : m));
+}
+// TOKENS-END
 const DEFAULT_VARIANT_WEIGHTS = { regular: 100, reverse: 25, full: 5, shiny: 1, golden: 0 };
 function encodeEntry(cardNumber, variant) { return cardNumber + VARIANT_OFFSET * Math.max(0, VARIANTS.indexOf(variant)); }
 function decodeEntry(entry) {
@@ -1121,9 +1148,6 @@ function pickMoment(facts, enabled) {
   if (facts.isNew && enabled.newCard) return 'newCard';
   return null;
 }
-function momentFill(text, ctx) {
-  return String(text).replace(/\{username\}/g, ctx.username).replace(/\{cardName\}/g, ctx.cardName);
-}
 /** Everything one moment's banner needs, read from the effective properties. */
 function momentSpec(P, id, ctx) {
   const g = (name, d) => pv(P, momentKey(id, name), d);
@@ -1131,8 +1155,8 @@ function momentSpec(P, id, ctx) {
   const sub = String(g('subText', ''));
   return {
     id,
-    text: momentFill(g('text', id === 'firstEver' ? 'FIRST EVER!' : id === 'firstPull' ? 'Welcome, {username}!' : 'NEW CARD!'), ctx),
-    sub: sub ? momentFill(sub, ctx) : auto,
+    text: fillTokens(g('text', id === 'firstEver' ? 'FIRST EVER!' : id === 'firstPull' ? 'Welcome, {username}!' : 'NEW CARD!'), ctx),
+    sub: sub ? fillTokens(sub, ctx) : auto,
     bg: g('bgColors', id === 'firstEver' ? MOMENT_DEFAULT_BG : ['#8b5cf6', '#ec4899']),
     textColor: g('textColor', id === 'firstEver' ? '#1a1205' : '#ffffff'),
     textSize: g('textSize', 26),
@@ -1429,9 +1453,8 @@ function setAnim(el, spec, speed, delay) {
   el.style.animation = spec ? spec[0] + ' ' + (spec[1] / speed) + 's ' + spec[2] + ' ' + (delay || 0) + 's forwards' : 'none';
 }
 
-const gotText = (P, user) => String(pv(P, 'reveal.gotText', '{user} got:')).split('{user}').join(user || 'Someone');
-const showText = (P, user, ctx) => String(pv(P, 'show.text', '{user} is showing off:')).split('{user}').join(user || 'Someone')
-  .split('{username}').join(user || 'Someone').split('{cardName}').join(ctx && ctx.cardName ? ctx.cardName : '').split('{variant}').join(ctx && ctx.variant ? VARIANT_LABELS[ctx.variant] || ctx.variant : '');
+const gotText = (P, user, ctx) => fillTokens(pv(P, 'reveal.gotText', '{user} got:'), { ...ctx, user: user || 'Someone' });
+const showText = (P, user, ctx) => fillTokens(pv(P, 'show.text', '{user} is showing off:'), { ...ctx, user: user || 'Someone' });
 
 // Show off (Overlay Editor -> Show off): the show-off settings folded into the properties the shared drawing code already reads,
 // so the card, effects and print pill need no show-off branches of their own. At the defaults nothing changes.
@@ -1461,7 +1484,7 @@ function styleShowLabel(el, P) {
   el.style.scale = 'var(--el-showlabel-s, 1)';
   el.style.filter = 'var(--el-showlabel-f, none)';
 }
-const headingText = (P, user) => String(pv(P, 'collection.headingText', "{user}'s collection:")).split('{user}').join(user || 'Someone');
+const headingText = (P, user) => fillTokens(pv(P, 'collection.headingText', "{user}'s collection:"), { user: user || 'Someone' });
 
 function holoOn(P, variant, card, cfg) {
   const mode = pv(P, 'variant.' + variant + '.holoMode', variant === 'reverse' || variant === 'shiny' || variant === 'golden' ? 'on' : 'auto');
@@ -1494,7 +1517,7 @@ function tiltAnimation(P, variant, speed, start) {
 }
 
 // Sets this card's per-variant look as CSS variables on the theater, plus its label.
-function applyLook(theater, P, variant, card, cfg, owned) {
+function applyLook(theater, P, variant, card, cfg, owned, tc) {
   const { wrapper, cardLabel, holoOverlay, cardInfoOverlay, userText, miniList } = theater;
   const g = (s, d) => pv(P, 'variant.' + variant + '.' + s, d);
   const st = wrapper.style;
@@ -1506,7 +1529,7 @@ function applyLook(theater, P, variant, card, cfg, owned) {
   const lc = g('labelColors', ['#f1bb06']);
   st.setProperty('--label-bg', lc.length > 1 ? 'linear-gradient(90deg, ' + lc.join(', ') + ')' : lc[0]);
   const ownedLabel = pv(P, 'reveal.labelOwned', '');
-  cardLabel.textContent = variant === 'regular' && owned && ownedLabel ? ownedLabel : g('labelText', variant === 'regular' ? 'new' : VARIANT_LABELS[variant]);
+  cardLabel.textContent = fillTokens(variant === 'regular' && owned && ownedLabel ? ownedLabel : g('labelText', variant === 'regular' ? 'new' : VARIANT_LABELS[variant]), tc);
   if (!pv(P, 'reveal.showLabel', true)) cardLabel.style.display = 'none';
 
   // Holographic shimmer
@@ -1700,7 +1723,8 @@ function drawCard(username, opts) {
   wrapper.classList.add('pack-fit', 'is-pack');
 
   const owned = show ? true : prior.some(e => decodeEntry(e).cardNumber === card.number);
-  applyLook(theater, P, variant, card, cfg, owned);
+  const tokenCtx = { user, cardName: card.name, variant, pack: packName, stars: card.stars };
+  applyLook(theater, P, variant, card, cfg, owned, tokenCtx);
   paintCard(theater, card, art, isFullArt ? card.fullArtThumb : card.thumb);
 
   // Flip reveal: a card back (the pack's cover) sits over the art until the card turns edge-on.
@@ -1752,7 +1776,7 @@ function drawCard(username, opts) {
         isNew: r && r.isNew !== undefined ? !!r.isNew : earlyFacts.isNew,
       };
       const id = forcedMoment || pickMoment(facts, momentOn);
-      if (id) momentBanner(theater, P, momentSpec(P, id, { username: user, cardName: card.name, variant, vol: cfg.soundVolume }), S, extendHold);
+      if (id) momentBanner(theater, P, momentSpec(P, id, { ...tokenCtx, edition: r && r.serial ? r.serial : undefined, vol: cfg.soundVolume }), S, extendHold);
     });
   }, at(R.label));
 
@@ -1760,7 +1784,7 @@ function drawCard(username, opts) {
   phaseTimer(() => {
     cardInfo.style.opacity   = '1';
     cardInfo.style.transform = 'scale(1)';
-    userText.textContent     = show ? showText(P, username, { cardName: card.name, variant }) : gotText(P, username);
+    userText.textContent     = show ? showText(P, username, tokenCtx) : gotText(P, username, tokenCtx);
     if (show) styleShowLabel(userText, P);
   }, at(R.info));
 

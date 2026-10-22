@@ -1,5 +1,6 @@
 import type { IconName } from '@/app/components/Icon';
 import { BACK_FONTS } from './card-back';
+import type { TokenName } from './overlay-tokens';
 import { mergeTextPatch, sanitizeTextPatch, type TextPatch } from './overlay-text-style';
 // Every adjustable property of the OBS overlay, in one registry. Browser-safe (no KV) so the admin editor can import it.
 //
@@ -10,6 +11,8 @@ import { mergeTextPatch, sanitizeTextPatch, type TextPatch } from './overlay-tex
 //  - The same flat map is used for the global settings, per-pack overrides, named presets and JSON export/import, and
 //    the editor UI is generated from this registry, so adding a property is one entry here plus using it in widget.js.
 //  - The defaults reproduce the overlay's original look exactly, so an untouched install is unchanged.
+
+const MOMENT_TOKENS: TokenName[] = ['user', 'cardName', 'variant', 'pack', 'edition', 'stars'];
 
 export type PropValue = number | boolean | string | string[] | TextPatch;
 export type PropValues = Record<string, PropValue>;
@@ -41,6 +44,12 @@ export interface PropDef {
   maxItems?: number;
   // text
   maxLength?: number;
+  /** Wording tokens this field fills (`{user}`, `{cardName}`...): the editor lists them as chips and previews the result. `{username}` always works as `{user}`. */
+  tokens?: TokenName[];
+  /** The size prop that scales this wording, for "Shrink to fit". */
+  sizeKey?: string;
+  /** The preview element (its `data-edit` tag) this wording shows in, for the "too long" warning. */
+  fit?: string;
   /** Shown with an "experimental" badge: works, but is new or unusual and may change. */
   experimental?: boolean;
 }
@@ -142,7 +151,7 @@ function variantPropsRaw(v: VariantId): PropDef[] {
   const d = VARIANT_DEFAULTS[v];
   const name = GROUP_LABEL[v];
   return [
-    { key: `${g}.labelText`, group: g, label: 'Label text', type: 'text', default: d.labelText, maxLength: 30, help: `The tag above the card for ${name}.` },
+    { key: `${g}.labelText`, group: g, label: 'Label text', type: 'text', default: d.labelText, maxLength: 30, tokens: ['user', 'cardName', 'variant', 'pack', 'stars'], sizeKey: 'reveal.labelSize', fit: 'label', help: `The tag above the card for ${name}.` },
     { key: `${g}.labelColors`, group: g, label: 'Label colors', type: 'colors', default: d.labelColors, minItems: 1, maxItems: 3, help: 'One colour is solid; two or three make a gradient.' },
     {
       key: `${g}.holoMode`, group: g, label: 'Holographic shimmer', type: 'select', default: d.holoMode,
@@ -220,9 +229,9 @@ function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
       ? { key: 'reveal.firstEver', group: g, label: 'First-ever moment', type: 'boolean', default: true, help: "When a pull is edition #1 (the very first edition ever made of that card in that version) the overlay adds a banner and a burst of sparkles, and keeps the card up a little longer. Needs the season's editions to be numbered." }
       : { key: `${m}.on`, group: g, label: id === 'firstPull' ? 'First-pull moment' : 'New-card moment', type: 'boolean', default: false, help: `Adds a banner when a pull is ${who}. Off by default.` },
     first
-      ? { key: 'reveal.firstEverText', group: g, label: 'Banner text', type: 'text', default: 'FIRST EVER!', maxLength: 30 }
-      : { key: `${m}.text`, group: g, label: 'Banner text', type: 'text', default: id === 'firstPull' ? 'Welcome, {username}!' : 'NEW CARD!', maxLength: 40, help: 'Use {username} for the viewer and {cardName} for the card.' },
-    { key: `${m}.subText`, group: g, label: 'Small line', type: 'text', default: '', maxLength: 40, help: first ? 'Empty shows "edition #1" and the version. Use {username} / {cardName}.' : 'Empty shows a short default line. Use {username} / {cardName}.' },
+      ? { key: 'reveal.firstEverText', group: g, label: 'Banner text', type: 'text', default: 'FIRST EVER!', maxLength: 30, tokens: MOMENT_TOKENS, sizeKey: 'moment.firstEver.textSize', fit: 'banner' }
+      : { key: `${m}.text`, group: g, label: 'Banner text', type: 'text', default: id === 'firstPull' ? 'Welcome, {username}!' : 'NEW CARD!', maxLength: 40, tokens: MOMENT_TOKENS, sizeKey: `${m}.textSize`, fit: 'banner' },
+    { key: `${m}.subText`, group: g, label: 'Small line', type: 'text', default: '', maxLength: 40, tokens: MOMENT_TOKENS, help: first ? 'Empty shows "edition #1" and the version.' : 'Empty shows a short default line.' },
     { key: `${m}.bgColors`, group: g, label: 'Banner colours', type: 'colors', default: first ? MOMENT_BANNER_DEFAULT_BG : ['#8b5cf6', '#ec4899'], minItems: 1, maxItems: 4, help: 'One colour is solid; more make a gradient.' },
     { key: `${m}.textColor`, group: g, label: 'Text colour', type: 'color', default: first ? '#1a1205' : '#ffffff' },
     { key: `${m}.textSize`, group: g, label: 'Text size', type: 'number', default: 26, min: 12, max: 60, step: 1, unit: 'px' },
@@ -248,7 +257,7 @@ const SHOW_PROPS: PropDef[] = [
   { key: 'show.style', label: 'Entrance', type: 'select', default: 'drop', options: SHOW_STYLE_OPTIONS, help: 'How a card appears when a viewer shows one off from chat. Shown cards come from the viewer\'s collection, so there is no pack to open.' },
   { key: 'show.hold', label: 'Time on screen', type: 'number', default: 6, min: 2, max: 30, step: 0.5, unit: 's', help: 'How long a shown-off card stays up after it has appeared.' },
   { key: 'show.showLabel', label: 'Label line', type: 'boolean', default: true, help: 'The pill under the card that says who is showing it off.' },
-  { key: 'show.text', label: 'Label wording', type: 'text', default: '{user} is showing off:', maxLength: 60, help: 'Use {user} (or {username}) for the viewer, {cardName} for the card and {variant} for its version.' },
+  { key: 'show.text', label: 'Label wording', type: 'text', default: '{user} is showing off:', maxLength: 60, tokens: ['user', 'cardName', 'variant', 'pack', 'stars'], sizeKey: 'show.labelSize', fit: 'showlabel' },
   { key: 'show.ownLabelLook', label: 'Own label colours', type: 'boolean', default: false, help: 'Off: the label uses the "got:" pill colours from Pack opening. On: pick its colours here.' },
   { key: 'show.labelColor', label: 'Label colour', type: 'color', default: '#f1bb06' },
   { key: 'show.labelTextColor', label: 'Label text colour', type: 'color', default: '#fffefe' },
@@ -300,10 +309,10 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.showLabel', group: 'pack', label: 'Label above the card', type: 'boolean', default: true, help: 'The tag: "new", or the version name.' },
   { key: 'reveal.showSerial', group: 'pack', label: 'Edition number on the card', type: 'boolean', default: true, help: 'The edition number this edition got ("#7": the 7th of that card and version ever made), with its points bonus when it is one of the first editions. Needs the season\'s editions to be numbered.' },
   { key: 'reveal.serialFormat', group: 'pack', label: 'Number shown on the card', type: 'select', default: 'edition', options: [{ value: 'edition', label: 'Edition (#7)' }, { value: 'uid', label: 'Serial (#1023381)' }, { value: 'both', label: 'Both (edition, with the serial number under it)' }], help: 'Which number the pill shows: the edition number (the 7th of that card and version) or the edition\'s own game-wide serial number. Falls back to the edition number when the edition has no serial number yet. Needs the season\'s editions to be numbered.' },
-  { key: 'reveal.labelOwned', group: 'pack', label: 'Label for a card they already own', type: 'text', default: '', maxLength: 30, help: 'Regular pulls say "new" even when it is a duplicate. Put a word here (e.g. "again") to use it for cards the viewer already has. Empty keeps the normal label.' },
+  { key: 'reveal.labelOwned', group: 'pack', label: 'Label for a card they already own', type: 'text', default: '', maxLength: 30, tokens: ['user', 'cardName', 'variant', 'pack', 'stars'], sizeKey: 'reveal.labelSize', fit: 'label', help: 'Regular pulls say "new" even when it is a duplicate. Put a word here (e.g. "again") to use it for cards the viewer already has. Empty keeps the normal label.' },
   { key: 'reveal.showInfoBar', group: 'pack', label: 'Name and stars bar', type: 'boolean', default: true, help: 'The card name and star rating at the bottom of the card.' },
   { key: 'reveal.showGotLine', group: 'pack', label: '"… got:" line', type: 'boolean', default: true },
-  { key: 'reveal.gotText', group: 'pack', label: '"… got:" wording', type: 'text', default: '{user} got:', maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
+  { key: 'reveal.gotText', group: 'pack', label: '"… got:" wording', type: 'text', default: '{user} got:', maxLength: 60, fit: 'got', tokens: ['user', 'cardName', 'variant', 'pack', 'stars'] },
   { key: 'reveal.stripPerRow', group: 'pack', label: 'Cards per row', type: 'number', default: 0, min: 0, max: 30, step: 1, help: '0 = fit as many as the width allows (the original). Otherwise each row holds exactly this many.' },
   { key: 'reveal.stripCardWidth', group: 'pack', label: 'Card size', type: 'number', default: 48, min: 24, max: 200, step: 2, unit: 'px', help: 'Width of each small card (the height follows).' },
   { key: 'reveal.stripGap', group: 'pack', label: 'Gap between cards', type: 'number', default: 13, min: 0, max: 60, step: 1, unit: 'px' },
@@ -339,7 +348,7 @@ export const PROPS: PropDef[] = [
   { key: 'collection.showCounts', group: 'collection', label: 'Show ×N counts', type: 'boolean', default: true, help: 'The duplicate-count badge.' },
   { key: 'collection.showVariantMarkers', group: 'collection', label: 'Show a sparkle on upgraded cards', type: 'boolean', default: true },
   { key: 'collection.showHeading', group: 'collection', label: 'Show the heading', type: 'boolean', default: true, help: 'The "name\'s collection:" line.' },
-  { key: 'collection.headingText', group: 'collection', label: 'Heading wording', type: 'text', default: "{user}'s collection:", maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
+  { key: 'collection.headingText', group: 'collection', label: 'Heading wording', type: 'text', default: "{user}'s collection:", maxLength: 60, fit: 'heading', tokens: ['user'] },
   layerFont('collection.headingFont', 'collection', 'Heading font'),
   layerStyle('collection.headingStyle', 'collection', 'Heading text style'),
   layerFont('collection.cardFont', 'collection', 'Card text font', 'The "?" on uncollected cards and the ×N counts. Overlay font follows the "Overlay font" setting under Pack opening.'),

@@ -6,6 +6,7 @@ import { BACK_FONTS, FONT_CATEGORIES } from '@/lib/card-back';
 import { loadBackFont } from '@/lib/card-back-fonts';
 import { CharacterPanel } from '@/app/admin/components/workspace/CharacterPanel';
 import { PROP_BY_KEY, REVEAL_STYLES, type PropDef, type PropValue } from '@/lib/overlay-props';
+import { SAMPLE_TOKENS, TOKEN_INFO, fillTokens } from '@/lib/overlay-tokens';
 import { clearTextPatch, editTextPatch, mergeTextPatch, patchFromStyle, shownTextStyle, type TextPatch } from '@/lib/overlay-text-style';
 import { useOverlayEditor } from './OverlayEditorContext';
 
@@ -174,6 +175,46 @@ function layerFontId(key: string, valueOf: (k: string) => PropValue): string | u
 }
 
 /** One text layer's style: the shared Character panel over a partial patch. It shows the inherited value, writes only the fields touched, and can copy / paste a style. */
+/** A wording field: the input, insert chips for its tokens, the result for a sample viewer and card, a character count and the "too long" warning. */
+function TextControl({ def, id, value, onChange }: { def: PropDef; id: string; value: string; onChange: (v: unknown) => void }) {
+  const { wordFit, fitStage, valueOf, setValue } = useOverlayEditor();
+  const ref = useRef<HTMLInputElement>(null);
+  const insert = (token: string) => {
+    const el = ref.current;
+    const a = el?.selectionStart ?? value.length, b = el?.selectionEnd ?? a;
+    const next = value.slice(0, a) + token + value.slice(b);
+    if (def.maxLength && next.length > def.maxLength) return;
+    onChange(next);
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(a + token.length, a + token.length); });
+  };
+  const input = <input ref={ref} id={id} type="text" value={value} maxLength={def.maxLength} onChange={e => onChange(e.target.value)} className={`${inputCls} w-full`} />;
+  if (!def.tokens) return input;
+  const ratio = def.fit ? wordFit[def.fit] : undefined;
+  const sizeDef = def.sizeKey ? PROP_BY_KEY[def.sizeKey] : undefined;
+  const size = sizeDef ? Number(valueOf(sizeDef.key)) : 0;
+  const shrunk = sizeDef && ratio ? Math.max(sizeDef.min ?? 1, Math.floor(size * ratio)) : 0;
+  return (
+    <div className="space-y-1">
+      {input}
+      <div className="flex flex-wrap items-center gap-1" aria-label="Insert a token">
+        {def.tokens.map(t => (
+          <button key={t} type="button" title={`${TOKEN_INFO[t].label}, for example ${TOKEN_INFO[t].sample}`} onClick={() => insert(`{${t}}`)} className="px-1.5 py-0.5 rounded-sm border border-gray-700 text-xs text-gray-300 hover:border-yellow-500 hover:text-yellow-300">{`{${t}}`}</button>
+        ))}
+        <span className="text-xs text-gray-600">{'{username}'} works as {'{user}'}</span>
+      </div>
+      <p className="flex justify-between gap-2 text-xs text-gray-500">
+        <span className="min-w-0 truncate" title="With a sample viewer and card">{value ? <>Shows: <span className="text-gray-300">{fillTokens(value, SAMPLE_TOKENS)}</span></> : 'Empty: the default wording shows.'}</span>
+        {def.maxLength ? <span className={value.length >= def.maxLength ? 'text-yellow-400' : ''}>{value.length}/{def.maxLength}</span> : null}
+      </p>
+      {ratio ? (
+        <p role="alert" className="text-xs text-yellow-300">
+          Too long for this size at {fitStage}.{' '}
+          {shrunk && shrunk < size ? <button type="button" className="underline hover:text-white" onClick={() => setValue(def.sizeKey!, shrunk)}>Shrink to fit ({shrunk}{sizeDef?.unit})</button> : 'Shorten the wording.'}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 function TextStyleControl({ def, value, onChange }: { def: PropDef; value: PropValue; onChange: (v: unknown) => void }) {
   const { current, globalVals, scope, valueOf } = useOverlayEditor();
   const clip = useSyncExternalStore(subscribeClip, () => styleClip, () => null);
@@ -309,15 +350,6 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
       );
     }
     case 'text':
-      return (
-        <input
-          id={id}
-          type="text"
-          value={String(value)}
-          maxLength={def.maxLength}
-          onChange={e => onChange(e.target.value)}
-          className={`${inputCls} w-full`}
-        />
-      );
+      return <TextControl def={def} id={id} value={String(value)} onChange={onChange} />;
   }
 }

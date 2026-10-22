@@ -231,6 +231,9 @@ export interface OverlayEditorContextValue {
   stopRehearsal: () => void;
   /** The preview's reveal clock while a pull plays (null when none is): seconds, phase markers, paused or running. */
   timeline: TimelineState | null;
+  /** Preview elements whose wording does not fit the stage (by `data-edit` tag), with the factor that would fit. */
+  wordFit: Record<string, number>;
+  fitStage: string;
   /** Pause, resume or seek (seconds) the playing reveal. */
   timelineCmd: (action: 'pause' | 'resume' | 'seek', t?: number) => void;
   /** Shows one setting's value in the preview without changing it (no undo step); null restores. Used by the font picker's hover. */
@@ -415,6 +418,7 @@ export function OverlayEditorProvider({
   /** Called with every timeline report (or 'stop') while a rehearsal waits for the current pull to end. */
   const pullWait = useRef<((m: { active: boolean; cooldown: number } | 'stop') => void) | null>(null);
   const [timeline, setTimeline] = useState<TimelineState | null>(null);
+  const [fitReport, setFitReport] = useState<{ over: Record<string, number>; stage: string }>({ over: {}, stage: '1280x720' });
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [presetName, setPresetName] = useState('');
   const [importText, setImportText] = useState('');
@@ -1372,6 +1376,7 @@ export function OverlayEditorProvider({
         live.current.contextAt(data.target, data.x as number, data.y as number);
         return;
       }
+      if (data?.type === 'fit') { setFitReport({ over: ((data as unknown as { over?: Record<string, number> }).over) ?? {}, stage: String((data as unknown as { stage?: string }).stage ?? '1280x720') }); return; }
       if (data?.type === 'timeline') {
         const m = data as unknown as { active: boolean; paused: boolean; t: number; dur: number; markers: Record<string, number> | null };
         setTimeline(m.active ? { paused: m.paused, t: m.t, dur: m.dur, markers: m.markers } : null);
@@ -1508,6 +1513,8 @@ export function OverlayEditorProvider({
     rehearse,
     stopRehearsal,
     timeline,
+    wordFit: fitReport.over,
+    fitStage: fitReport.stage.replace('x', '×'),
     timelineCmd,
     previewProp,
     play,
