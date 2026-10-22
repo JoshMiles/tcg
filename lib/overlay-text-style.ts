@@ -9,6 +9,9 @@ export const TEXT_PATCH_ALIGNS = ['left', 'center', 'right'] as const;
 /** `none` switches a case set further out (global) back off. */
 export const PATCH_CASES = ['none', ...TEXT_CASES] as const;
 
+/** "Highlight tokens": filled wording tokens (the viewer's name, the card name...) get their own colour and optionally bold. On unless `on` is false; `color` is a hex or `accent` (the pack's accent colour). */
+export interface TextAccent { on?: boolean; color?: string; bold?: boolean }
+
 export interface TextPatch {
   weight?: number; italic?: boolean; underline?: boolean; strike?: boolean; overline?: boolean;
   textCase?: (typeof PATCH_CASES)[number];
@@ -18,6 +21,8 @@ export interface TextPatch {
   opacity?: number;
   /** `false` = no kerning. */
   kerning?: boolean;
+  /** Colours the filled tokens of a wording layer (wording layers only; the widget ignores it elsewhere). */
+  accent?: TextAccent;
   /** Each effect may carry only some of its fields (a pack can set just the outline colour); `shadows` and `gradientText` are whole. */
   fx?: Record<string, unknown>;
 }
@@ -58,6 +63,13 @@ export function sanitizeTextPatch(raw: unknown): TextPatch {
   const lh = num(o.lineHeight, 0.8, 2.5, r2); if (lh !== undefined) out.lineHeight = lh;
   const a = pick(o.align, TEXT_PATCH_ALIGNS, undefined as unknown as (typeof TEXT_PATCH_ALIGNS)[number]); if (a) out.align = a;
   const op = num(o.opacity, 0, 1, r2); if (op !== undefined) out.opacity = op;
+  if (isRec(o.accent)) {
+    const ac: TextAccent = {};
+    if (o.accent.color === 'accent') ac.color = 'accent'; else if (colorOf(o.accent.color)) ac.color = colorOf(o.accent.color);
+    const b = bool(o.accent.bold); if (b !== undefined) ac.bold = b;
+    const on = bool(o.accent.on); if (on !== undefined) ac.on = on;
+    if (Object.keys(ac).length) out.accent = ac;
+  }
   if (isRec(o.fx)) {
     const fx: Record<string, unknown> = {};
     for (const k of ['stroke', 'glow', 'bevel'] as const) { const p = partFx(k, o.fx[k]); if (p) fx[k] = p; }
@@ -74,6 +86,7 @@ export function mergeTextPatch(base: TextPatch | undefined, over: TextPatch | un
   if (!over) return { ...(base ?? {}) };
   if (!base) return { ...over };
   const out: TextPatch = { ...base, ...over };
+  if (base.accent && over.accent) out.accent = { ...base.accent, ...over.accent };
   if (base.fx || over.fx) {
     const fx: Record<string, unknown> = { ...(base.fx ?? {}) };
     for (const [k, v] of Object.entries(over.fx ?? {})) fx[k] = isRec(v) && isRec(fx[k]) && k !== 'gradientText' ? { ...(fx[k] as object), ...v } : v;

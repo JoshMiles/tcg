@@ -4,6 +4,7 @@ import { BACK_FONTS, WEIGHT_NAMES, nearestWeight } from '@/lib/card-back';
 import { WEIGHTS, caseOf, type Shadow, type TextCase, type TextStyle } from '@/lib/text-style';
 import { BUILTIN_TEXT_PRESETS, presetPatch, styleOf, type TextPreset } from '@/lib/text-presets';
 import { deleteTextPresetAction, listTextPresetsAction, saveTextPresetAction } from '@/app/admin/text-preset-actions';
+import type { TextAccent } from '@/lib/overlay-text-style';
 
 // The Character and Effects controls, shared by the card back editor (a whole TextStyle on a BackEl) and the Overlay Editor (a partial patch per
 // text layer, ROADMAP 38.8 c). Lifted from the card back Properties panel. `patch` switches to the overlay's mode: the value shown is what the layer
@@ -245,7 +246,24 @@ export function EffectFields({ value: e, onChange: set, patch, text = true, free
 }
 
 /** What the overlay editor shows for one text layer: presets, the Character details, align, opacity and the effects. */
-export function CharacterPanel({ value, onChange, patch, onPreset, fontId }: { value: TextStyle; onChange: Change; patch: PatchMode; onPreset: (s: TextStyle) => void; fontId?: string }) {
+/** "Highlight tokens" for a wording layer: the filled tokens (the viewer's name...) get their own colour and optionally bold. */
+export function AccentFields({ value: a, onChange }: { value: TextAccent | undefined; onChange: (a: TextAccent | undefined) => void }) {
+  const on = !!a && a.on !== false;
+  return (
+    <Group title="Highlight tokens">
+      <Check label="Highlight the filled tokens" on={on} onChange={v => onChange(v ? { ...a, on: undefined } : a ? { ...a, on: false } : undefined)} reset={a ? () => onChange(undefined) : undefined} />
+      {on && (
+        <>
+          <Colour label="Colour" value={a?.color ?? 'accent'} named={['accent']} onChange={v => onChange({ ...a, color: v })} />
+          <p className="text-xs text-gray-500">accent is the pack's accent colour.</p>
+          <Check label="Bold" on={!!a?.bold} onChange={v => onChange({ ...a, bold: v })} />
+        </>
+      )}
+    </Group>
+  );
+}
+
+export function CharacterPanel({ value, onChange, patch, onPreset, fontId, accent }: { value: TextStyle; onChange: Change; patch: PatchMode; onPreset: (s: TextStyle) => void; fontId?: string; accent?: { value: TextAccent | undefined; onChange: (a: TextAccent | undefined) => void } }) {
   return (
     <div className="space-y-1.5">
       <CharacterFields value={value} onChange={onChange} patch={patch} onPreset={onPreset} fontId={fontId} />
@@ -253,6 +271,7 @@ export function CharacterPanel({ value, onChange, patch, onPreset, fontId }: { v
       <OpacityRow value={value} onChange={onChange} patch={patch} />
       <p className="text-xs font-bold text-gray-300 pt-1">Effects</p>
       <EffectFields value={value} onChange={onChange} patch={patch} />
+      {accent && <AccentFields value={accent.value} onChange={accent.onChange} />}
     </div>
   );
 }
