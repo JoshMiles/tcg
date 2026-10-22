@@ -21,6 +21,7 @@ import {
   cleanValue,
   exportProps,
   importProps,
+  mergePropValues,
   type PropDef,
   type PropValue,
   type PropValues,
@@ -28,6 +29,7 @@ import {
 } from '@/lib/overlay-props';
 import { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
+import { mergeTextPatch, type TextPatch } from '@/lib/overlay-text-style';
 import {
   VARIANT_LABELS,
   type Bg,
@@ -512,6 +514,8 @@ export function OverlayEditorProvider({
   const valueOf = useCallback(
     (key: string): PropValue => {
       const def = PROP_BY_KEY[key];
+      // A text style is what the layer ends up with: the global patch with the pack's own fields on top.
+      if (def.type === 'textStyle' && isOver) return mergeTextPatch(globalVals[key] as TextPatch | undefined, current[key] as TextPatch | undefined);
       if (current[key] !== undefined) return current[key];
       if (isOver && globalVals[key] !== undefined) return globalVals[key];
       return def.default;
@@ -535,7 +539,7 @@ export function OverlayEditorProvider({
       setPackVals(p => {
         const own = { ...(p[scope] ?? {}) };
         const inherited = globalVals[key] !== undefined ? globalVals[key] : def.default;
-        if (eq(v, inherited)) delete own[key];
+        if (eq(v, inherited) || (def.type === 'textStyle' && !Object.keys(v as object).length)) delete own[key];
         else own[key] = v;
         return { ...p, [scope]: own };
       });
@@ -735,7 +739,7 @@ export function OverlayEditorProvider({
   }, [dirty]);
 
   const shownLayout = showSaved ? initialActiveLayout : layout;
-  const savedEffective: PropValues = isOver ? { ...initialGlobal, ...(initialPackMap[scope] ?? {}) } : initialGlobal;
+  const savedEffective: PropValues = isOver ? mergePropValues(initialGlobal, initialPackMap[scope]) : initialGlobal;
   const versionDiffs = (v: VersionInfo): DiffLine[] => [
     ...diffLayout(v.layout, layout),
     ...diffProps('Everything', v.props, globalVals, k => PROP_BY_KEY[k]?.default),
@@ -777,7 +781,7 @@ export function OverlayEditorProvider({
   };
 
   const effectiveSparse: PropValues = useMemo(
-    () => (isOver ? { ...globalVals, ...(packVals[scope] ?? {}) } : globalVals),
+    () => (isOver ? mergePropValues(globalVals, packVals[scope]) : globalVals),
     [isOver, globalVals, packVals, scope],
   );
   const shownProps = showSaved ? savedEffective : effectiveSparse;
@@ -1012,7 +1016,7 @@ export function OverlayEditorProvider({
 
   const applyPreset = (p: PresetInfo) => {
     tagEdit(`Apply look '${p.name}'`);
-    replaceCurrent(isPack ? { ...(packVals[scope] ?? {}), ...p.props } : { ...p.props });
+    replaceCurrent(isPack ? mergePropValues(packVals[scope], p.props) : { ...p.props });
     setNotice(`Applied "${p.name}". Review, then Save.`);
   };
 

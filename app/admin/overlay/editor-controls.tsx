@@ -1,10 +1,12 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { FontPicker } from '@/app/admin/components/workspace/FontPicker';
 import { BACK_FONTS, FONT_CATEGORIES } from '@/lib/card-back';
 import { loadBackFont } from '@/lib/card-back-fonts';
-import { REVEAL_STYLES, type PropDef, type PropValue } from '@/lib/overlay-props';
+import { CharacterPanel } from '@/app/admin/components/workspace/CharacterPanel';
+import { PROP_BY_KEY, REVEAL_STYLES, type PropDef, type PropValue } from '@/lib/overlay-props';
+import { clearTextPatch, editTextPatch, mergeTextPatch, patchFromStyle, shownTextStyle, type TextPatch } from '@/lib/overlay-text-style';
 import { useOverlayEditor } from './OverlayEditorContext';
 
 // Small building blocks of the Overlay Editor: the popover, the segmented control, one property row and the value controls.
@@ -98,6 +100,7 @@ export function PropRow({
       {def.label}
       {modified && <span className="ml-1.5 text-yellow-400" title={isPack ? 'Overridden for this pack' : 'Changed from the default'}>●</span>}
       {inherited && <span className="ml-1.5 text-xs text-gray-600 font-normal">(from global)</span>}
+      {def.type === 'textStyle' && hasFx(value) && <FxBadge />}
       {def.experimental && <span className="ml-1.5 text-[10px] uppercase tracking-wide rounded-sm bg-purple-500/20 text-purple-300 px-1.5 py-0.5 font-semibold">experimental</span>}
     </label>
   );
@@ -127,6 +130,10 @@ export function PropRow({
   );
 }
 
+/** A text style with effects (outline, glow, shadow, bevel, gradient) carries this badge, here and on its layer in Layers. */
+export const hasFx = (v: unknown) => !!v && typeof v === 'object' && !Array.isArray(v) && !!(v as { fx?: object }).fx && Object.keys((v as { fx: object }).fx).length > 0;
+export const FxBadge = () => <span title="Has text effects" className="ml-1.5 text-[10px] uppercase tracking-wide rounded-sm bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 font-semibold">fx</span>;
+
 export function formatValue(def: PropDef, v: PropValue): string {
   if (Array.isArray(v)) return v.join(', ');
   if (typeof v === 'boolean') return v ? 'on' : 'off';
@@ -152,22 +159,46 @@ function FontControl({ def, value, onChange }: { def: PropDef; value: PropValue;
   );
 }
 
-/** A stand-in for the Character panel (ROADMAP 38.8 c): the style as JSON, applied when the box loses focus. Anything that doesn't parse is ignored, and the server cleans the rest. */
-function TextStyleJson({ id, label, value, onChange }: { id: string; label: string; value: PropValue; onChange: (v: unknown) => void }) {
-  const text = typeof value === 'object' && !Array.isArray(value) ? JSON.stringify(value) : '{}';
+// The text style clipboard: an editor-local copy of one layer's own patch, shared by every text layer's panel.
+let styleClip: TextPatch | null = null;
+const clipSubs = new Set<() => void>();
+const subscribeClip = (f: () => void) => { clipSubs.add(f); return () => { clipSubs.delete(f); }; };
+const setClip = (p: TextPatch) => { styleClip = p; clipSubs.forEach(f => f()); };
+
+/** The font of a text layer's style (its own font setting, `inherit` meaning the overlay font), so the weight list is that font's. */
+function layerFontId(key: string, valueOf: (k: string) => PropValue): string | undefined {
+  const fk = key.replace(/^(moment\.\w+)\.(?:sub)?[tT]extStyle$/, '$1.font').replace(/Style$/, 'Font');
+  if (!PROP_BY_KEY[fk]) return undefined;
+  const v = String(valueOf(fk));
+  return v === 'inherit' ? String(valueOf('text.font')) : v;
+}
+
+/** One text layer's style: the shared Character panel over a partial patch. It shows the inherited value, writes only the fields touched, and can copy / paste a style. */
+function TextStyleControl({ def, value, onChange }: { def: PropDef; value: PropValue; onChange: (v: unknown) => void }) {
+  const { current, globalVals, scope, valueOf } = useOverlayEditor();
+  const clip = useSyncExternalStore(subscribeClip, () => styleClip, () => null);
+  const own = (isTextPatch(current[def.key]) ? current[def.key] : {}) as TextPatch;
+  const inherited = (scope !== 'global' && isTextPatch(globalVals[def.key]) ? globalVals[def.key] : {}) as TextPatch;
+  const shown = shownTextStyle(inherited, own);
+  void value;
   return (
-    <textarea
-      id={id}
-      aria-label={`${label} (JSON)`}
-      key={text}
-      defaultValue={text}
-      rows={3}
-      spellCheck={false}
-      onBlur={e => { try { const v = JSON.parse(e.target.value); if (v && typeof v === 'object' && !Array.isArray(v)) onChange(v); } catch { /* not JSON yet */ } }}
-      className={`${inputCls} w-full font-mono text-xs`}
-    />
+    <div className="space-y-2 rounded-lg border border-gray-800 p-2">
+      <div className="flex flex-wrap gap-1">
+        <button type="button" className={ghost} onClick={() => setClip(own)} disabled={!Object.keys(own).length} title="Copy this layer's own style fields"><Icon name="copy" className="mr-1" />Copy style</button>
+        <button type="button" className={ghost} onClick={() => clip && onChange(clip)} disabled={!clip} title="Replace this layer's style with the copied one">Paste style</button>
+        <button type="button" className={ghost} onClick={() => onChange({})} disabled={!Object.keys(own).length} title={scope === 'global' ? 'Clear every style field of this layer' : 'Stop overriding this layer'}>Clear</button>
+      </div>
+      <CharacterPanel
+        value={shown}
+        fontId={layerFontId(def.key, valueOf)}
+        patch={{ own: own as Record<string, unknown>, clear: path => onChange(clearTextPatch(own, path)) }}
+        onChange={change => onChange(editTextPatch(own, shown, change as Record<string, unknown>))}
+        onPreset={st => onChange(mergeTextPatch(own, patchFromStyle(st)))}
+      />
+    </div>
   );
 }
+const isTextPatch = (v: unknown): v is TextPatch => !!v && typeof v === 'object' && !Array.isArray(v);
 
 export function Control({ def, id, value, onChange }: { def: PropDef; id: string; value: PropValue; onChange: (v: unknown) => void }) {
   switch (def.type) {
@@ -240,7 +271,7 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
       );
     }
     case 'textStyle':
-      return <TextStyleJson id={id} label={def.label} value={value} onChange={onChange} />;
+      return <TextStyleControl def={def} value={value} onChange={onChange} />;
     case 'colors': {
       const list = Array.isArray(value) ? value : [];
       const min = def.minItems ?? 1, max = def.maxItems ?? 8;

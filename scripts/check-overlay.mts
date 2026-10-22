@@ -68,6 +68,32 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   eq(textPatchCss({}, 14, [0, 0, 0]), {}, 'an empty style writes no CSS');
   ok(!('opacity' in textPatchCss(cases[3], 14, [1, 2, 3])) && !('filter' in textPatchCss(cases[6], 14, [1, 2, 3])), 'a style never sets opacity or filter');
   eq(wCss.mergeTextPatch(g, packOnly), m, 'the widget merge matches the TS one');
+  // The Character panel's edits (ROADMAP 38.8 c): only touched fields are stored, inherited ones are shown.
+  {
+    const { shownTextStyle, editTextPatch, clearTextPatch, patchFromStyle } = await import('../lib/overlay-text-style');
+    const { BUILTIN_TEXT_PRESETS } = await import('../lib/text-presets');
+    const shown = shownTextStyle(g, {});
+    ok(shown.weight === 700 && shown.textCase === 'upper' && shown.fx.stroke?.width === 2, 'the panel shows the inherited style');
+    // A pack changes only the outline colour: the panel reports the whole stroke, the patch keeps one field.
+    const own1 = editTextPatch({}, shown, { fx: { ...shown.fx, stroke: { ...shown.fx.stroke!, color: '#ff0000' } } });
+    eq(own1, { fx: { stroke: { color: '#ff0000' } } }, 'an edit stores only the changed field');
+    const shown2 = shownTextStyle(g, own1);
+    eq(shown2.fx.stroke, { color: '#ff0000', width: 2, pos: 'outside' }, 'inherited fields still show under the override');
+    eq(editTextPatch(own1, shown2, { weight: 500 }), { weight: 500, fx: { stroke: { color: '#ff0000' } } }, 'a flat field is added to the patch');
+    eq(clearTextPatch({ weight: 500, fx: { stroke: { color: '#ff0000' } } }, 'fx.stroke.color'), { weight: 500 }, 'clearing the last effect field drops the effect');
+    eq(clearTextPatch({ weight: 500 }, 'weight'), {}, 'clearing a field makes it inherited');
+    // Switching an inherited effect off writes on:false, switching it back on writes on:true; removing the effect clears the override.
+    const off = editTextPatch({}, shown, { fx: { ...shown.fx, stroke: { ...shown.fx.stroke!, on: false } } });
+    eq(off, { fx: { stroke: { on: false } } }, 'switching an inherited effect off stores on:false');
+    ok(shownTextStyle(g, off).fx.stroke?.on === false, 'and the shown style has it off');
+    eq(editTextPatch(off, shownTextStyle(g, off), { fx: { ...shownTextStyle(g, off).fx, stroke: { ...shownTextStyle(g, off).fx.stroke!, on: undefined } } }), { fx: { stroke: { on: true } } }, 'switching it back on stores on:true');
+    eq(editTextPatch(own1, shown2, { fx: { ...shown2.fx, stroke: undefined } }), {}, 'removing the effect clears the override');
+    ok(textPatchCss(mergeTextPatch(g, off), 14).WebkitTextStroke === undefined, 'an effect switched off here is off in the CSS');
+    // Presets become a patch of only what they set.
+    const outlined = patchFromStyle(BUILTIN_TEXT_PRESETS.find(p => p.id === 'builtin:outlined-label')!.style);
+    ok(outlined.textCase === 'upper' && outlined.weight === 700 && (outlined.fx?.stroke as { width: number }).width === 3 && !('size' in outlined), 'a preset becomes a style patch');
+    eq(patchFromStyle(shownTextStyle(undefined, {})), {}, 'a plain style is the empty patch');
+  }
 }
 
 

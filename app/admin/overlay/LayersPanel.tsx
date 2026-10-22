@@ -3,6 +3,7 @@ import { Icon, type IconName } from '@/app/components/Icon';
 import { ELEMENT_IDS, type ElementId, type OverlayLayout } from '@/lib/overlay-layout';
 import type { PropValue } from '@/lib/overlay-props';
 import type { Mode } from './editor-types';
+import { FxBadge, hasFx } from './editor-controls';
 
 // Readable names, and the existing show/hide property of each element (none for the card and the collection grid).
 export const LAYER_NAMES: Record<ElementId, string> = {
@@ -16,6 +17,11 @@ const LAYER_KINDS: Record<ElementId, IconName> = {
 const VISIBLE_KEY: Partial<Record<ElementId, string>> = {
   label: 'reveal.showLabel', serial: 'reveal.showSerial', bar: 'reveal.showInfoBar', got: 'reveal.showGotLine',
   strip: 'reveal.showMiniList', showlabel: 'show.showLabel', heading: 'collection.showHeading',
+};
+// The text style settings of each part, for the fx badge.
+const STYLE_KEYS: Partial<Record<ElementId, string[]>> = {
+  label: ['reveal.labelStyle'], serial: ['reveal.serialStyle'], bar: ['reveal.nameStyle', 'reveal.cardNumberStyle'], got: ['reveal.gotStyle'], strip: ['reveal.stripStyle'], showlabel: ['show.labelStyle'],
+  banner: ['firstEver', 'firstPull', 'newCard'].flatMap(m => [`moment.${m}.textStyle`, `moment.${m}.subTextStyle`]), heading: ['collection.headingStyle'], grid: ['collection.cardStyle'],
 };
 const VIEWS: { view: Mode; label: string }[] = [
   { view: 'pack', label: 'Pack opening' },
@@ -75,6 +81,7 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
                   >
                     <Icon name={LAYER_KINDS[id]} className="text-gray-500 shrink-0" />
                     {LAYER_NAMES[id]}
+                    {STYLE_KEYS[id]?.some(k => hasFx(valueOf(k))) && <FxBadge />}
                     {moved && <span role="img" aria-label="moved" title="Moved from its normal spot" className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />}
                   </button>
                   <button
