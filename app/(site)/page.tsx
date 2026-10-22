@@ -4,7 +4,8 @@ import { PendingButton } from '../admin/components/PendingButton';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
-import { getCollection, listSeasons } from '@/lib/kv';
+import { listSeasons } from '@/lib/kv';
+import { getCollectionCached } from '@/lib/leaderboard';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { getSnapshot } from '@/lib/season-wrap';
 import { recentPullItems } from '@/lib/home-pulls';
@@ -63,7 +64,7 @@ export default async function HomePage() {
     : [];
   // Who holds the rarest cards (collectors an admin hid or who went private are left out).
   const owners = season && rarest.length > 0
-    ? ownersByCard(await getCollection(season.collectionName), overview!.values, 1, await getHiddenUsers().catch(() => new Set<string>()))
+    ? ownersByCard(await getCollectionCached(season), overview!.values, 1, await getHiddenUsers().catch(() => new Set<string>()))
     : new Map<number, { top: { username: string; copies: number }[]; collectors: number }>();
 
   return (
