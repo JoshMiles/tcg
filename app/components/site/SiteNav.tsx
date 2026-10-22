@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '@/app/components/Avatar';
 import { LiveBadge } from './Live';
 import { InstallButton } from './InstallButton';
+import { RefreshRow } from './PullToRefresh';
 import { NotificationBell } from './NotificationBell';
 import { OPEN_SEARCH_EVENT, SearchButton } from './SiteSearch';
 import { ChangelogLink } from './ChangelogLink';
@@ -196,6 +197,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
           )}
           {staff && <Link href={staff.href} prefetch={false} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-purple-200 hover:bg-purple-500/10"><Icon name="shield" className="mr-1.5" />{staff.label}</Link>}
           <InstallButton row />
+          <RefreshRow />
           {user && (
             <form action="/auth/logout" method="post">
               <PendingButton type="submit" className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-300 hover:bg-red-950/40">Sign out</PendingButton>

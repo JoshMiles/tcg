@@ -21,6 +21,7 @@ import { CaptchaHost } from '@/app/components/CaptchaHost';
 import { CookieNotice,CookieSettingsLink } from './CookieNotice';
 import { ChangelogLink } from './ChangelogLink';
 import { newestChangelogDate } from '@/lib/changelog';
+import { PullToRefresh } from './PullToRefresh';
 import { SandboxPill } from '@/app/components/SandboxPill';
 
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
@@ -58,6 +59,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       {siteLabel.label && <BetaBanner text={bannerText(siteLabel)} />}
       <CookieNotice />
       <CaptchaHost />
+      <PullToRefresh />
       <SiteNav label={siteLabel.label} user={user} loginEnabled={loginConfigured()} rank={rank} staff={await staffPanelLink(session).catch(() => null)} />
       <SiteSearch />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-hidden">{children}</main>
