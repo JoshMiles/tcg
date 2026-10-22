@@ -236,6 +236,38 @@ const op = sanitizeLayout({ pack: { elements: { label: { opacity: 0.6 }, bar: { 
 eq(op, { card: { scale: 1, offsetX: 0, offsetY: 0, opacity: 0.46 }, label: { scale: 1, offsetX: 0, offsetY: 0, opacity: 0.6 }, serial: { scale: 1, offsetX: 3, offsetY: 0 }, strip: { scale: 1, offsetX: 0, offsetY: 0, opacity: 0 } }, 'opacity is clamped to 0..1 and omitted at 1 or when invalid');
 ok(diff.diffLayout(DEFAULT_LAYOUT, sanitizeLayout({ pack: { elements: { label: { opacity: 0.6 } } } })).some(l => l.label === 'Pack opening label opacity' && l.from === '100%' && l.to === '60%'), 'layout diff lists an opacity change');
 eq(sanitizeLayout({ pack: { elements: { banner: { offsetX: 12, scale: 1.5 } } } }).pack.elements?.banner, { scale: 1.5, offsetX: 12, offsetY: 0 }, 'the moment banner is a movable part');
+// Custom layers (ROADMAP 38.7 a): each kind's sanitize, unknown kinds dropped, the 16 cap, bad image urls, absent custom unchanged.
+{
+  const cu = await import('../lib/overlay-custom');
+  const { readFileSync } = await import('node:fs');
+  const box = { x: 10, y: 20, w: 300, h: 80 };
+  const lay = (custom: unknown) => sanitizeLayout({ pack: { custom } }).pack.custom;
+  ok(sanitizeLayout({ pack: { scale: 1 } }).pack.custom === undefined && !('custom' in sanitizeLayout({}).collection) && !('custom' in DEFAULT_LAYOUT.pack), 'a layout with no custom layers has no custom key (today\'s look)');
+  eq(sanitizeLayout({ pack: { custom: [] } }).pack, DEFAULT_LAYOUT.pack, 'an empty custom list reads back as none');
+  const t = lay([{ id: 't1', kind: 'text', ...box, text: '**Hi** {user}', size: 9999, color: 'nope', font: 'Bad Font!', style: { weight: 700, bogus: 1 }, opacity: 3, rotate: 999 }])?.[0] as import('../lib/overlay-custom').CustomText;
+  ok(t.kind === 'text' && t.text === '**Hi** {user}' && t.size === 400 && t.color === '#ffffff' && t.font === 'inherit' && t.opacity === 1 && t.rotate === 360 && t.visible === true && t.name === 'Text', 'a text layer is clamped and defaulted');
+  eq(t.style, { weight: 700 }, 'a text layer keeps a valid text patch only');
+  const i = lay([{ id: 'i1', kind: 'image', ...box, url: '/logo.png', fit: 'weird' }])?.[0] as import('../lib/overlay-custom').CustomImage;
+  ok(i.kind === 'image' && i.url === '/logo.png' && i.fit === 'contain', 'an image layer keeps a same-site url, a bad fit falls back');
+  ok(lay([{ id: 'i2', kind: 'image', ...box, url: 'https://abc.public.blob.vercel-storage.com/x.png' }])?.length === 1, 'a Blob image url is accepted');
+  ok(lay([{ id: 'i3', kind: 'image', ...box, url: '' }])?.length === 1, 'an image with no url yet is kept');
+  for (const bad of ['javascript:alert(1)', 'https://evil.example/x.png', '//evil.example/x.png', 'data:image/png;base64,AAAA', 'http://x.public.blob.vercel-storage.com/x.png', '/a b']) ok(lay([{ id: 'i4', kind: 'image', ...box, url: bad }]) === undefined, 'a bad image url drops the layer: ' + bad);
+  const sh = lay([{ id: 's1', kind: 'shape', ...box, shape: 'star', sides: 99, inner: 5, fill: { type: 'gradient', kind: 'radial', stops: [{ color: '#ff0000', at: 0 }] }, stroke: { color: '#00ff00', width: 4, dash: 2 }, fx: { shadows: [{ color: '#000000', x: 1, y: 2, blur: 3 }], glow: { color: '#ffffff', blur: 5, strength: 1 }, bevel: { style: 'raised', depth: 1 } } }])?.[0] as import('../lib/overlay-custom').CustomShape;
+  ok(sh.kind === 'shape' && sh.shape === 'star' && sh.sides === 12 && sh.inner === 0.9 && sh.fill.type === 'gradient' && sh.fill.stops.length === 2 && sh.stroke.width === 4 && !!sh.fx.shadows && !!sh.fx.glow && !('bevel' in sh.fx), 'a shape layer is clamped; only shadow and glow effects are kept');
+  eq((lay([{ id: 's2', kind: 'shape', ...box, shape: 'blob', fill: { type: 'x' } }])?.[0] as import('../lib/overlay-custom').CustomShape).fill, { type: 'none' }, 'an unknown shape and fill fall back');
+  ok(lay([{ id: 'a', kind: 'video', ...box }, { id: 'b', kind: 'text', ...box }, null, 'x', { kind: 'text' }, { id: 'a a', kind: 'text' }, { id: 'b', kind: 'text', ...box }])?.map(l => l.id).join() === 'b', 'unknown kinds, bad ids, non-objects and duplicate ids are dropped');
+  ok(lay(Array.from({ length: 30 }, (_, n) => ({ id: 'c' + n, kind: 'text', ...box })))?.length === cu.MAX_CUSTOM && cu.MAX_CUSTOM === 16, 'at most 16 layers per view');
+  const both = sanitizeLayout({ pack: { custom: [{ id: 'p', kind: 'text', ...box }] }, collection: { custom: [{ id: 'q', kind: 'text', ...box }] } });
+  ok(both.pack.custom?.[0].id === 'p' && both.collection.custom?.[0].id === 'q', 'each view keeps its own layers');
+  const n = cu.newCustom('shape', ['shape1'], 1280, 720);
+  ok(n.id === 'shape2' && n.kind === 'shape' && cu.newCustom('image', [], 1280, 720).kind === 'image' && cu.newCustom('text', [], 1280, 720).kind === 'text', 'newCustom picks a free id');
+  const before = sanitizeLayout({ pack: { custom: [{ id: 'a', kind: 'text', ...box, name: 'Old' }] } });
+  const after = sanitizeLayout({ pack: { custom: [{ id: 'a', kind: 'text', ...box, name: 'Old', text: 'new' }, { id: 'b', kind: 'text', ...box, name: 'Fresh' }] } });
+  const dl = diff.diffLayout(before, after);
+  ok(dl.some(l => l.to.startsWith('added text "Fresh"')) && dl.some(l => l.label.includes('"Old"') && l.to.includes('text')), 'the diff reports an added and a changed layer');
+  ok(diff.diffLayout(after, before).some(l => l.to === 'removed' && l.from.includes('Fresh')) && diff.diffLayout(before, before).length === 0, 'the diff reports a removed layer and nothing when equal');
+  ok(/const customUrlOk/.test(readFileSync('public/widget.js', 'utf8')) && /function renderCustom/.test(readFileSync('public/widget.js', 'utf8')) && !/innerHTML/.test(/\/\/ ── Custom layers[\s\S]*?function applyLayout/.exec(readFileSync('public/widget.js', 'utf8'))?.[0] ?? 'innerHTML'), 'the widget draws custom layers without innerHTML');
+}
 // Align / distribute: box moves become offset moves (divided by the view scale), a lone part aligns to the stage.
 const bx = { a: { x: 100, y: 50, w: 100, h: 40 }, b: { x: 300, y: 80, w: 50, h: 20 }, c: { x: 700, y: 10, w: 100, h: 60 } };
 eq(alignOffsets(bx, 'left', { w: 1280, h: 720 }), { a: { dx: 0, dy: 0 }, b: { dx: -200, dy: 0 }, c: { dx: -600, dy: 0 } }, 'align left to the selection box');

@@ -81,6 +81,13 @@ export function diffLayout(before: OverlayLayout, after: OverlayLayout): DiffLin
       const pct = (e?: ElementPlacement) => `${Math.round((e?.opacity ?? 1) * 100)}%`;
       add(`${name} ${id} opacity`, pct(be[id]), pct(ae[id]));
     }
+    const [bc, ac] = [before[view].custom ?? [], after[view].custom ?? []];
+    for (const l of ac) {
+      const old = bc.find(x => x.id === l.id);
+      if (!old) out.push({ scope: 'Layout', label: `${name} custom layer`, from: '-', to: `added ${l.kind} "${l.name}"` });
+      else if (!same(old, l)) out.push({ scope: 'Layout', label: `${name} custom layer "${l.name}"`, from: 'before', to: `changed (${Object.keys(l).filter(k => !same((old as unknown as Record<string, unknown>)[k], (l as unknown as Record<string, unknown>)[k])).join(', ')})` });
+    }
+    for (const l of bc) if (!ac.some(x => x.id === l.id)) out.push({ scope: 'Layout', label: `${name} custom layer`, from: `${l.kind} "${l.name}"`, to: 'removed' });
   }
   return out;
 }

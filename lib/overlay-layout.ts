@@ -7,6 +7,8 @@
 // and offsets, in design-stage pixels, applied on top of that fit.
 
 /** Movable parts of each view. They match the widget's `data-edit` tags (the collection grid is `grid`). */
+import { sanitizeCustom, type CustomLayer } from './overlay-custom';
+
 export const ELEMENT_IDS = {
   pack: ['card', 'label', 'serial', 'bar', 'got', 'strip', 'showlabel', 'banner'],
   collection: ['heading', 'grid'],
@@ -19,10 +21,12 @@ export interface Placement {
   offsetY: number;   // design px, + = down
   /** Single parts moved on their own, relative to where the part normally sits. Absent = every part at its normal spot. */
   elements?: Partial<Record<ElementId, ElementPlacement>>;
+  /** Layers the admin added to this view (text, image, shape), at most 16. Absent = none, today's look. */
+  custom?: CustomLayer[];
 }
 
 /** One part's spot, plus how see-through it is (0 to 1). Absent opacity = fully solid, as before. */
-export type ElementPlacement = Omit<Placement, 'elements'> & { opacity?: number };
+export type ElementPlacement = Omit<Placement, 'elements' | 'custom'> & { opacity?: number };
 
 export interface OverlayLayout {
   width: number;     // design stage = the browser source size, px
@@ -119,7 +123,8 @@ function withElements(p: Placement, raw: unknown, view: LayoutMode, width: numbe
     if (opacity < 1) el.opacity = opacity;
     if (el.scale !== 1 || el.offsetX !== 0 || el.offsetY !== 0 || opacity < 1) out[id] = el;
   }
-  return Object.keys(out).length ? { ...p, elements: out } : p;
+  const custom = sanitizeCustom((raw && typeof raw === 'object' ? (raw as Loose).custom : null), width, height);
+  return { ...p, ...(Object.keys(out).length ? { elements: out } : {}), ...(custom.length ? { custom } : {}) };
 }
 
 /** A part's box on the stage in design px (what the preview measures). */

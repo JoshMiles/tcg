@@ -1,6 +1,7 @@
 'use client';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { ELEMENT_IDS, type ElementId, type OverlayLayout } from '@/lib/overlay-layout';
+import { MAX_CUSTOM, newCustom, type CustomKind } from '@/lib/overlay-custom';
 import type { PropValue } from '@/lib/overlay-props';
 import type { Mode } from './editor-types';
 import { FxBadge, hasFx } from './editor-controls';
@@ -38,7 +39,7 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
   toggleLock: (ids: string[]) => void;
   valueOf: (key: string) => PropValue;
   setValue: (key: string, raw: unknown) => void;
-  setLayoutVals: (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout)) => void;
+  setLayoutVals: (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout), label?: string) => void;
   selectTarget: (target: string) => void;
   selectView: (view: Mode) => void;
   hoverElement: (target: string) => void;
@@ -53,6 +54,16 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
       const { [id]: _gone, ...rest } = l[view].elements ?? {};
       return { ...l, [view]: { ...l[view], elements: rest } };
     });
+  // Custom layers (38.7): the add and delete edits, one History step each.
+  type Custom = NonNullable<OverlayLayout['pack']['custom']>;
+  const setCustom = (view: Mode, fn: (c: Custom) => Custom, label: string) =>
+    setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: fn(l[view].custom ?? []) } }), label);
+  const add = (view: Mode, kind: CustomKind) => {
+    const layer = newCustom(kind, (layout[view].custom ?? []).map(c => c.id), layout.width, layout.height);
+    setCustom(view, c => [...c, layer], `Add ${kind} layer`);
+    selectView(view);
+    selectTarget(`custom:${layer.id}`);
+  };
   return (
     <div data-layers className="px-3 py-2 space-y-2" onMouseLeave={() => hoverElement('')}>
       {VIEWS.map(({ view, label }) => (
@@ -115,6 +126,33 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
               );
             })}
           </ul>
+          <ul>
+            {(layout[view].custom ?? []).map(l => {
+              const id = `custom:${l.id}`;
+              return (
+                <li key={l.id} className={`flex items-center gap-1 rounded ${selection.includes(id) ? 'bg-yellow-500/15' : 'hover:bg-white/5'}`}>
+                  <button type="button" onClick={() => { selectView(view); selectTarget(id); }} aria-current={selected === id} className={`flex-1 min-w-0 flex items-center gap-2 px-2 py-1 text-left text-sm truncate ${l.visible ? 'text-gray-200' : 'text-gray-500 line-through'}`}>
+                    <Icon name={l.kind === 'text' ? 'text' : l.kind === 'image' ? 'image' : 'stop'} className="text-gray-500 shrink-0" />
+                    {l.name}
+                  </button>
+                  <button type="button" onClick={() => setCustom(view, c => c.map(x => (x.id === l.id ? { ...x, visible: !x.visible } : x)), `${l.visible ? 'Hide' : 'Show'} ${l.name}`)} aria-pressed={!l.visible} aria-label={`Hide ${l.name}`} title={l.visible ? 'Hide' : 'Show'} className="px-1 text-gray-500 hover:text-white">
+                    <Icon name={l.visible ? 'eye' : 'eyeOff'} />
+                  </button>
+                  <button type="button" onClick={() => { if (selected === id) selectView(view); setCustom(view, c => c.filter(x => x.id !== l.id), `Delete ${l.name}`); }} aria-label={`Delete ${l.name}`} title="Delete layer" className="px-1 text-gray-500 hover:text-red-400">
+                    <Icon name="trash" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="flex items-center gap-1 px-1 pt-1 text-xs text-gray-500">
+            Add layer
+            {(['text', 'image', 'shape'] as CustomKind[]).map(k => (
+              <button key={k} type="button" disabled={(layout[view].custom?.length ?? 0) >= MAX_CUSTOM} onClick={() => add(view, k)} className="rounded border border-gray-700 px-1.5 py-0.5 hover:border-gray-500 hover:text-white disabled:opacity-40">
+                <Icon name="plus" /> {k}
+              </button>
+            ))}
+          </div>
         </div>
       ))}
     </div>
