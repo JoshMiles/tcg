@@ -23,6 +23,12 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: '/icons/maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
       { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
+    // Phone screenshots (taken from seeded mock data) so Chrome on Android shows the richer install sheet.
+    screenshots: [
+      { src: '/screenshots/install-1.png', sizes: '780x1688', type: 'image/png', form_factor: 'narrow', label: 'Home: top collectors and the live season' },
+      { src: '/screenshots/install-2.png', sizes: '780x1688', type: 'image/png', form_factor: 'narrow', label: 'Card dex: every card and how rare it is' },
+      { src: '/screenshots/install-3.png', sizes: '780x1688', type: 'image/png', form_factor: 'narrow', label: 'A collector profile with rank and score' },
+    ],
     shortcuts: [
       { name: 'My stats', short_name: 'My stats', url: '/account?source=pwa', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
       { name: 'Trade', url: '/trade?source=pwa', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },

@@ -17,7 +17,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
-| 35.3 | Richer Android install | Ready | S |
 | 38.7 | Overlay Editor: add your own layers, (e) and (f) left | Ready | M |
 | 38.17 | Overlay Editor: artboards (scenes side by side) | Ready | M |
 | 38.18 | Overlay Editor: groups and linked layers | Ready | M |
@@ -55,9 +54,6 @@ Steps 2 to 4 shipped in #330 (`apple-touch-icon-v3.png`, the 180 px manifest ent
 3. **Cover iOS 26 using the manifest.** Add a 180 px `purpose: 'any'` entry (the same PNG) to `app/manifest.ts`, so a web app added from the manifest gets the mascot too.
 4. Delete `app/apple-icon.png`. `metadata.icons` switches it off (the head has no link to it), so it is a dead third copy. Update the layout comment that names it.
 5. Verify: `npm run verify`, then check the head and each URL on the preview deploy. The user then removes the app, clears Website Data and adds it again (see the user step below). Close this item once the mascot shows.
-
-### 35.3 Richer Android install (Ready, S)
-- Add 2 or 3 `screenshots` (phone size, `form_factor: 'narrow'`) to the manifest so Chrome shows the bigger install sheet. Take them from the seeded local site (`docs/local-dev.md`), never production data with real usernames.
 
 Not planned: offline caching of pages or data. `public/sw.js` deliberately caches only the offline page so nobody sees stale cards or scores.
 
