@@ -32,7 +32,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.29 | Overlay Editor: workspace redesign, (g) left | Ready | M |
 | 38.30 | Card back editor: the same workspace, plus shapes and images | Ready | L |
 | 38.31 | Overlay Editor: text formatting in the options bar | Ready | M |
-| 39.1 | Mobile: bottom tab bar | Ready | M |
 | 39.2 | Mobile: "More" bottom sheet replaces the burger menu | Ready | S |
 | 39.4 | Mobile: dialogs and filters as bottom sheets | Ready | M |
 | 39.5 | Mobile: touch pass (tap targets, press states, no hover-only controls) | Ready | S |
@@ -177,15 +176,6 @@ A look (a preset) that switches on at a start time and off at an end (a Hallowee
 
 Goal: on a phone (and in the home-screen app from Track 35) the site feels like an app, not a shrunken desktop page. Today `SiteNav` shows the page links only at `xl`; below that they sit behind a burger menu at the top, which is a long thumb reach, and nothing accounts for the iPhone notch or home indicator. Read `docs/public-site/basics.md` (the `SiteShell` / `SiteNav` part) first. One PR per item, each from `origin/main`. Rules for the whole track: desktop (`xl` and up) looks exactly as it does now; icons from `Icon.tsx`, no emoji; nothing in `public/twitch-panel/*` (panel freeze); check every change at 375 px wide and in the installed app (`display: standalone`) on the local seeded site.
 
-### 39.1 Bottom tab bar (Ready, M)
-A fixed bar along the bottom of the screen below `xl` (where the burger shows today), like a native app's tab bar.
-- **Tabs (proposed, the user can swap them before the build):** Home, Card Dex, Trade, Leaderboard, **More** (39.2). Each is an icon over a short label, the active one in the theme yellow with `aria-current="page"`, using the same `isActive` rule as the top links. Lift `LINKS` into a shared list both navs read so they can't drift.
-- **Badges:** a dot or count on Trade for trades waiting on the viewer, and on More for unread notifications, from the data the top bar already loads (`NotificationBell`); no new polling.
-- **Fit:** 56 px tall plus `env(safe-area-inset-bottom)` (39.3); the page gets matching bottom padding so the footer and the last row of cards are never hidden behind it. Hidden while a text field has focus (the on-screen keyboard) and on pages that already own the bottom edge, if any are found in 39.6.
-- **Top bar on phones** shrinks to the logo, search and the notification bell; the burger goes (its links move to More).
-- A `<nav aria-label="Main">` landmark; desktop's top nav keeps that label at `xl` and the bar is not rendered there, so only one exists at a time.
-- Update `docs/public-site/basics.md`.
-
 ### 39.2 "More" bottom sheet (Ready, S)
 The More tab opens a sheet that slides up from the bottom (with a backdrop; Esc, a tap outside or a swipe down closes it; focus is trapped and returns to the tab). It holds: the account row (avatar, name, rank chip, or **Sign in with Twitch**), then Collectors, Season Stats, FAQ, What's new (`ChangelogLink` with its dot), the staff panel link for staff, Install app (`InstallButton`) and Sign out. Replaces the burger drawer and the phone account dropdown; reuse their existing items rather than copying them. Respects `prefers-reduced-motion` (no slide).
 
@@ -203,7 +193,7 @@ Run the public-site page sweep (`docs/review.md`) at 375 px and 414 px wide on t
 ### 39.7 Swipe gestures (Needs a decision, M)
 Candidates: swipe left / right between cards in the card detail dialog and between binder pages; pull to refresh in the installed app (which has no browser reload button). **User decides** which, if any; each must keep a button route for people who don't swipe and respect `prefers-reduced-motion`.
 
-**Build order for the track:** 39.3 → 39.1 → 39.2 → 39.4 → 39.5 → 39.6 → 39.7.
+**Build order for the track:** 39.2 → 39.4 → 39.5 → 39.6 → 39.7.
 
 **Not planned:** a native app, offline pages (see Track 35), a different layout for tablets beyond what falls out of the breakpoints.
 

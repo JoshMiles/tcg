@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TradeCeremony } from '../TradeCeremony';
+import { NOTICE_COUNTS_EVENT, type NoticeCounts } from './MobileTabBar';
 import { NOTICE_ICON, type Notice, type Swap } from '@/lib/trade-notice-core';
 import { currentSubscription, enablePush, pushSupport } from '@/lib/push-client';
 import { IDLE_AFTER_MS, freshNotices, pollDelay, titleWithCount } from '@/lib/notice-poll-core';
@@ -174,6 +175,12 @@ export function NotificationBell() {
   }, [open]);
 
   const unread = notices.filter(n => n.at > seen).length;
+  const offers = notices.filter(n => n.at > seen && (n.kind === 'offer' || n.kind === 'countered')).length;
+
+  // The phone tab bar badges Trade and More from these counts instead of loading anything itself.
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent<NoticeCounts>(NOTICE_COUNTS_EVENT, { detail: { unread, offers } }));
+  }, [unread, offers]);
 
   // (N) in the tab title (kept when the page changes the title) and the installed app's icon badge.
   useEffect(() => {
