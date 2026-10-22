@@ -279,6 +279,8 @@ export interface OverlayEditorContextValue {
   zoomStep: (dir: 1 | -1, cx?: number, cy?: number) => void;
   zoomFit: () => void;
   zoomActual: () => void;
+  zoomTo: (z: number) => void;
+  fitBase: number;
   focusMode: boolean;
   setFocusMode: React.Dispatch<React.SetStateAction<boolean>>;
   shortcutsOpen: boolean;
@@ -1719,6 +1721,8 @@ export function OverlayEditorProvider({
     zoomStep,
     zoomFit,
     zoomActual,
+    zoomTo,
+    fitBase,
     focusMode,
     setFocusMode,
     shortcutsOpen,

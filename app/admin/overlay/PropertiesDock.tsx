@@ -9,6 +9,7 @@ import { LAYER_NAMES, LayersPanel } from './LayersPanel';
 import { CustomLayerPanel } from './CustomLayerPanel';
 import { useTextBar } from './EditorTextOptions';
 import { HistoryPanel } from './HistoryPanel';
+import { NavigatorPanel } from './NavigatorPanel';
 import { LayerBlock } from './LayerBlock';
 import { LayoutPanel } from './LayoutPanel';
 import { VariantPicker } from './VariantPicker';
@@ -21,6 +22,7 @@ import { sectionForTarget, useOverlayEditor } from './OverlayEditorContext';
 export function PropertiesDock({ column }: { column: ReturnType<typeof useColumnLayout> }) {
   const {
     isPack,
+    zoom,
     isOver,
     isScene,
     scene,
@@ -396,6 +398,7 @@ export function PropertiesDock({ column }: { column: ReturnType<typeof useColumn
               />
             ),
           },
+          { id: 'navigator', title: 'Navigator', icon: 'search', weight: 1, hidden: isPack || zoom <= 1.001, content: <NavigatorPanel /> },
           { id: 'history', title: 'History', icon: 'history', weight: 1, content: <HistoryPanel /> },
   ];
 
