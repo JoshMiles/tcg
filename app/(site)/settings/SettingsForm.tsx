@@ -182,7 +182,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         </div>
       </Section>
 
-      <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-950/90 backdrop-blur-sm px-4 py-3">
+      <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] xl:bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-950/90 backdrop-blur-sm px-4 py-3">
         <p role="status" aria-live="polite" className={`text-sm ${state.kind === 'error' ? 'text-red-300' : state.kind === 'ok' ? 'text-emerald-300' : 'text-gray-500'}`}>
           {state.kind === 'saving' ? 'Saving...' : state.msg ?? (dirty ? 'Unsaved changes' : 'Up to date')}
         </p>

@@ -1,11 +1,12 @@
 import Link from 'next/link';
+import { TabStrip } from '@/app/components/site/TabStrip';
 import { Icon } from '@/app/components/Icon';
 import { PROFILE_TABS, profileHref, type ProfileTab } from '@/lib/profile-url';
 
 /** The profile's tab strip: plain links (`?tab=`), so each tab has an address you can share and the back button works. */
 export function ProfileTabBar({ username, active, counts, isOwner = false }: { username: string; active: ProfileTab; isOwner?: boolean; counts?: Partial<Record<ProfileTab, number>> }) {
   return (
-    <nav aria-label="Profile sections" className="no-scrollbar flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-800 -mx-1 px-1">
+    <TabStrip label="Profile sections">
       {PROFILE_TABS.filter(t => !t.ownerOnly || isOwner).map(t => (
         <Link
           key={t.id} href={profileHref(username, t.id)} scroll={false} aria-current={t.id === active ? 'page' : undefined}
@@ -15,6 +16,6 @@ export function ProfileTabBar({ username, active, counts, isOwner = false }: { u
           {counts?.[t.id] ? <span className={`text-[11px] tabular-nums rounded-full px-1.5 py-px ${t.id === active ? 'bg-yellow-500/15 text-yellow-300' : 'bg-gray-800 text-gray-400'}`}>{counts[t.id]}</span> : null}
         </Link>
       ))}
-    </nav>
+    </TabStrip>
   );
 }

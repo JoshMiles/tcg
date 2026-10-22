@@ -99,7 +99,7 @@ export function Board({ rows, avatars, totalCards, seasonId, viewer, badges = {}
                       </span>
                       <span className="block text-xs text-gray-500 sm:truncate">
                         {r.uniqueCards}/{totalCards} collected · {r.copies.toLocaleString()} pull{r.copies === 1 ? '' : 's'}
-                        {(['reverse', 'full', 'shiny', 'golden'] as const).filter(v => (r.variants[v] ?? 0) > 0).map(v => <span key={v} className="ml-2 text-fuchsia-300" title={LABEL[v]}>{r.variants[v]}× {SHORT[v]}</span>)}
+                        {(['reverse', 'full', 'shiny', 'golden'] as const).filter(v => (r.variants[v] ?? 0) > 0).map(v => <span key={v} className="ml-2 text-fuchsia-300 whitespace-nowrap" title={LABEL[v]}>{r.variants[v]}× {SHORT[v]}</span>)}
                       </span>
                     </span>
                   </Link>

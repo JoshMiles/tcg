@@ -113,7 +113,7 @@ export function ProfileGrid({ layout, nodes, isOwner }: { layout: ProfilePlaceme
           <button type="button" onClick={() => { setDraft(saved); setEdit(true); }} className={ghost}><Icon name="pencil" className="mr-1" />Customize profile</button>
         </div>
       ) : (
-        <div className="sticky top-16 z-20 rounded-xl border border-yellow-500/40 bg-gray-900/95 backdrop-blur-sm px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
+        <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-20 rounded-xl border border-yellow-500/40 bg-gray-900/95 backdrop-blur-sm px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
           <div className="min-w-0 mr-auto">
             <p className="text-sm font-bold text-yellow-300">Editing your profile</p>
             <p className="text-xs text-gray-500">Drag widgets to rearrange, drag a right edge or use the arrows to resize, the cross removes one. Add widgets from the list below.</p>

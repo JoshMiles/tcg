@@ -1,5 +1,6 @@
 import { Icon } from '@/app/components/Icon';
 import { PushPrompt } from '@/app/components/site/PushPrompt';
+import { TabStrip } from '@/app/components/site/TabStrip';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSession, loginConfigured } from '@/lib/session';
@@ -105,7 +106,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
         )}
       </header>
 
-      <nav aria-label="Trade sections" className="no-scrollbar flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-800 -mx-1 px-1">
+      <TabStrip label="Trade sections">
         {tabs.filter(t => !t.hidden).map(t => (
           <Link key={t.id} href={href(t.id)} scroll={false} aria-current={t.id === tab ? 'page' : undefined}
             className={`flex items-center gap-1.5 px-4 py-2.5 max-md:py-3 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${t.id === tab ? 'border-yellow-500 text-yellow-300' : 'border-transparent text-gray-400 hover:text-white hover:border-gray-600'}`}>
@@ -113,7 +114,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
             {t.count ? <span className={`text-[11px] tabular-nums rounded-full px-1.5 py-px ${t.id === tab ? 'bg-yellow-500/15 text-yellow-300' : 'bg-gray-800 text-gray-400'}`}>{t.count}</span> : null}
           </Link>
         ))}
-      </nav>
+      </TabStrip>
 
       {tab === 'mine' && session && (
         <div className="space-y-8">
