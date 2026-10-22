@@ -93,6 +93,8 @@ export function EditorTopBar() {
     showSaved,
     showRulers,
     toggleRulers,
+    showArtboards,
+    setShowArtboards,
     guides,
     setGuides,
     zones,
@@ -277,6 +279,7 @@ export function EditorTopBar() {
           <MenuItem label="Canvas only" icon="eye" shortcut="Tab" onSelect={() => setFocusMode(true)} />
           <MenuItem label="Before / after" icon="eye" checked={showSaved} disabled={!dirty} onSelect={() => setShowSaved(v => !v)} />
           <MenuItem label="Rulers" icon="ruler" shortcut="Ctrl+R" checked={showRulers} onSelect={toggleRulers} />
+          <MenuItem label="Artboards" icon="layers" checked={showArtboards} onSelect={() => setShowArtboards(v => !v)} />
           <MenuItem label="Lock guides" icon="lock" checked={guidesLocked} onSelect={() => setGuidesLocked(v => !v)} />
           <MenuItem label="Clear guides" icon="x" disabled={guides.x.length + guides.y.length === 0} onSelect={() => setGuides({ x: [], y: [] })} />
           <MenuItem

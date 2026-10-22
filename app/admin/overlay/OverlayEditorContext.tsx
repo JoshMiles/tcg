@@ -261,6 +261,8 @@ export interface OverlayEditorContextValue {
   setShowGrid: React.Dispatch<React.SetStateAction<boolean>>;
   showRulers: boolean;
   toggleRulers: () => void;
+  showArtboards: boolean;
+  setShowArtboards: React.Dispatch<React.SetStateAction<boolean>>;
   guides: Guides;
   setGuides: React.Dispatch<React.SetStateAction<Guides>>;
   guidesLocked: boolean;
@@ -500,6 +502,7 @@ export function OverlayEditorProvider({
   const zoomAnchor = useRef<{ dx: number; dy: number; x: number; y: number } | null>(null);
   const [showThirds, setShowThirds] = useState(false);
   const [showRulers, setShowRulers] = useState(false);
+  const [showArtboards, setShowArtboards] = useState(false); // several live iframes cost memory, so off until asked
   useEffect(() => { try { setShowRulers(localStorage.getItem(RULERS_KEY) === '1'); } catch { /* storage blocked */ } }, []);
   const toggleRulers = () => setShowRulers(v => {
     try { localStorage.setItem(RULERS_KEY, v ? '0' : '1'); } catch { /* storage blocked */ }
@@ -1764,6 +1767,8 @@ export function OverlayEditorProvider({
     setSnapOn,
     showRulers,
     toggleRulers,
+    showArtboards,
+    setShowArtboards,
     guides,
     setGuides,
     guidesLocked,
