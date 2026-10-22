@@ -9,6 +9,10 @@ import { sampleFlipBack, type FlipBack } from '@/lib/flip-back';
 import { Canvas, type Boxes } from './card-back/Canvas';
 import { Layers } from './card-back/Layers';
 import { Properties } from './card-back/Properties';
+import { Menu, MenuBar, MenuItem } from './workspace/MenuBar';
+import { PanelStack, type PanelDef } from './workspace/PanelStack';
+import { ColumnResizer } from './workspace/ColumnResizer';
+import { resetColumnLayout, useColumnLayout } from './workspace/useColumnLayout';
 
 /**
  * The "Card back" section of a pack (ROADMAP 20.1, 20.3b): a live preview with presets, Copy from another pack, Reset and Save, and **Edit design**,
@@ -48,12 +52,12 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
   const [open, setOpen] = useState(false);
   /** A style shown on the canvas without being part of the design (the font picker's hover). */
   const [preview, setPreview] = useState<CardBackStyle | null>(null);
-  const [sheet, setSheet] = useState(true);
   const [note, setNote] = useState('');
   const [from, setFrom] = useState('');
   const [pending, run] = useTransition();
   const stage = useRef<HTMLDivElement>(null);
   const [canvasW, setCanvasW] = useState(340);
+  const column = useColumnLayout('tcg:card-back-workspace');
 
   const dirty = JSON.stringify(style) !== saved;
   const setStyle = useCallback((s: CardBackStyle) => { styleRef.current = s; setStyleState(s); setNote(''); }, []);
@@ -92,7 +96,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable;
-      if (e.key === 'Escape' && !typing) { setOpen(false); return; }
+      if (e.key === 'Escape' && !typing && !e.defaultPrevented) { setOpen(false); return; }
       if (typing || !(e.ctrlKey || e.metaKey)) return;
       if (e.key.toLowerCase() === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); } else if (e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
     };
@@ -106,6 +110,11 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
   });
   const save = () => exec(() => saveCardBackAction(packId, style), 'Saved');
   const preset = (s: CardBackStyle) => { change(s); setSelection(new Set(['bg'])); };
+
+  const panels: PanelDef[] = [
+    { id: 'properties', title: 'Properties', icon: 'settings', weight: 2, content: <div className="p-3"><Properties style={live} selection={selection} boxes={boxes} cardW={canvasW} onChange={change} onPreview={setPreview} /></div> },
+    { id: 'layers', title: 'Layers', icon: 'layers', weight: 1, content: <div className="p-3"><Layers style={live} selection={selection} boxes={boxes as Record<string, Box>} onSelect={setSelection} onChange={change} /></div> },
+  ];
 
   const panelCard = (
     <FlipCard key={`${live.pattern}-${live.elements.length}`} defaultFlipped back={{ ...back, style: live }}>
@@ -150,25 +159,39 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
       </div>
 
       {open && (
-        <div role="dialog" aria-modal="true" aria-label="Card back editor" className="fixed inset-0 z-50 bg-gray-950 flex flex-col">
-          <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-gray-800">
-            <h2 className="text-sm font-bold text-white mr-auto">Card back: {packName}</h2>
-            <button type="button" onClick={undo} disabled={past.current.length === 0} aria-label="Undo" title="Undo (Ctrl+Z)" className="p-2 rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40"><Icon name="undo" /></button>
-            <button type="button" onClick={redo} disabled={future.current.length === 0} aria-label="Redo" title="Redo (Ctrl+Shift+Z)" className="p-2 rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40"><Icon name="redo" /></button>
-            <select aria-label="Presets" value="" onChange={e => { const p = EDITOR_PRESETS.find(x => x.id === e.target.value); if (p) preset(p.style); }} className={`${field} hidden sm:block`}>
-              <option value="">Preset…</option>{EDITOR_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-            </select>
-            <span role="status" className="text-xs text-gray-400">{note || (dirty ? 'Unsaved changes' : 'Saved')}</span>
-            <button type="button" disabled={pending || !dirty} onClick={save} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">{pending ? 'Saving…' : 'Save'}</button>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close the editor" className="p-2 rounded-lg border border-gray-700 text-gray-200"><Icon name="x" /></button>
+        <div role="dialog" aria-modal="true" aria-label="Card back editor" className="fixed inset-0 z-50 bg-gray-950 flex flex-col gap-3 p-3">
+          <div className="flex flex-col gap-1.5 rounded-xl bg-gray-900/80 border border-gray-800 px-3 py-1.5">
+            <MenuBar
+              end={
+                <>
+                  <button type="button" onClick={undo} disabled={past.current.length === 0} aria-label="Undo" title="Undo (Ctrl+Z)" className="p-2 rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40"><Icon name="undo" /></button>
+                  <button type="button" onClick={redo} disabled={future.current.length === 0} aria-label="Redo" title="Redo (Ctrl+Shift+Z)" className="p-2 rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40"><Icon name="redo" /></button>
+                  <select aria-label="Presets" value="" onChange={e => { const p = EDITOR_PRESETS.find(x => x.id === e.target.value); if (p) preset(p.style); }} className={`${field} w-40 hidden sm:block`}>
+                    <option value="">Preset…</option>{EDITOR_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                  <span role="status" className="text-xs text-gray-400">{note || (dirty ? 'Unsaved changes' : 'Saved')}</span>
+                  <button type="button" disabled={pending || !dirty} onClick={save} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">{pending ? 'Saving…' : 'Save'}</button>
+                  <button type="button" onClick={() => setOpen(false)} aria-label="Close the editor" className="p-2 rounded-lg border border-gray-700 text-gray-200"><Icon name="x" /></button>
+                </>
+              }
+            >
+              <h2 className="text-sm font-bold text-white mr-2">Card back: {packName}</h2>
+              <Menu label="File">
+                <MenuItem label="Save" disabled={pending || !dirty} onSelect={save} />
+                <MenuItem label="Close" icon="x" shortcut="Esc" onSelect={() => setOpen(false)} />
+              </Menu>
+              <Menu label="Edit">
+                <MenuItem label="Undo" icon="undo" shortcut="Ctrl+Z" disabled={past.current.length === 0} onSelect={undo} />
+                <MenuItem label="Redo" icon="redo" shortcut="Ctrl+Shift+Z" disabled={future.current.length === 0} onSelect={redo} />
+              </Menu>
+              <Menu label="Window">
+                <MenuItem label="Reset workspace" icon="undo" onSelect={resetColumnLayout} />
+              </Menu>
+            </MenuBar>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid lg:grid-cols-[17rem_minmax(0,1fr)_21rem]">
-            <div className="order-2 lg:order-1 p-3 lg:overflow-y-auto border-t lg:border-t-0 lg:border-r border-gray-800">
-              <Layers style={live} selection={selection} boxes={boxes as Record<string, Box>} onSelect={setSelection} onChange={change} />
-            </div>
-
-            <div ref={stage} className="order-1 lg:order-2 p-3 lg:overflow-y-auto flex flex-col items-center gap-5 min-w-0">
+          <div style={{ '--dock-w': column.railed ? '2.75rem' : `${column.width}rem` } as React.CSSProperties} className="flex-1 min-h-0 overflow-y-auto xl:overflow-hidden grid gap-3 content-start xl:content-stretch xl:grid-cols-[minmax(0,1fr)_var(--dock-w)]">
+            <div ref={stage} className="xl:overflow-y-auto flex flex-col items-center gap-5 min-w-0">
               <Canvas style={preview ?? live} back={back} width={canvasW} selection={selection} onSelect={setSelection} onGesture={gesture} onChange={setStyle} onBoxes={setBoxes} />
               {tiny.length > 0 && (
                 <p role="alert" className="text-xs text-amber-300 rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 max-w-md">
@@ -185,14 +208,26 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
               </div>
             </div>
 
-            <aside aria-label="Properties" className={`order-3 border-t lg:border-t-0 lg:border-l border-gray-800 bg-gray-950 lg:overflow-y-auto ${sheet ? '' : 'max-lg:hidden'} max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:max-h-[55vh] max-lg:overflow-y-auto max-lg:z-10 max-lg:shadow-2xl`}>
-              <div className="lg:hidden flex justify-end px-3 pt-2"><button type="button" onClick={() => setSheet(false)} className="text-xs font-bold text-gray-400">Hide properties</button></div>
-              <div className="p-3" onFocusCapture={() => setSheet(true)}>
-                <Properties style={live} selection={selection} boxes={boxes} cardW={canvasW} onChange={change} onPreview={setPreview} />
+            {/* Folded to an icon strip (xl and up only): a click unfolds the column with that panel open. */}
+            <div className="relative min-h-0 h-[75vh] xl:h-auto">
+              <ColumnResizer width={column.width} onChange={column.setWidth} />
+              {column.railed && (
+                <div className="hidden xl:flex h-full flex-col items-center gap-1 rounded-xl border border-gray-800 bg-gray-900/80 py-1">
+                  <button type="button" onClick={() => column.setRailed(false)} aria-label="Expand the side panels" title="Expand" className="w-8 h-7 flex items-center justify-center text-gray-500 hover:text-white">
+                    <Icon name="chevronLeft" className="w-3 h-3" />
+                  </button>
+                  {panels.map(p => (
+                    <button key={p.id} type="button" onClick={() => column.reveal(p.id)} aria-label={`Open ${p.title}`} title={p.title} className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:bg-white/5 hover:text-white">
+                      <Icon name={p.icon} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className={`h-full ${column.railed ? 'xl:hidden' : ''}`}>
+                <PanelStack panels={panels} collapsed={column.collapsed} onToggle={column.toggle} onRail={() => column.setRailed(true)} />
               </div>
-            </aside>
+            </div>
           </div>
-          {!sheet && <button type="button" onClick={() => setSheet(true)} className="lg:hidden fixed bottom-3 right-3 z-10 px-4 py-2 btn btn-primary rounded-full text-sm shadow-xl">Properties</button>}
         </div>
       )}
     </div>
