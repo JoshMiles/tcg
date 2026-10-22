@@ -381,4 +381,47 @@ await sbx.deleteSandbox(box.id);
     if (d.sizeKey) ok(PROP_BY_KEY[d.sizeKey]?.type === 'number', `${d.key} size key ${d.sizeKey} is a number prop`);
   }
 }
+// Light markup (ROADMAP 38.10 b): one parser in lib, a port in the widget, same results.
+{
+  const { readFileSync } = await import('node:fs');
+  const { runInNewContext } = await import('node:vm');
+  const { parseMarkup, stripMarkup, markupRuns } = await import('../lib/text-markup');
+  const { fillTokens } = await import('../lib/overlay-tokens');
+  const w = readFileSync('public/widget.js', 'utf8').replace(/\r\n/g, '\n');
+  const tsrc = /\/\/ TOKENS-START\n([^]*?)\/\/ TOKENS-END/.exec(w)?.[1], msrc = /\/\/ MARKUP-START\n([^]*?)\/\/ MARKUP-END/.exec(w)?.[1];
+  ok(tsrc && msrc, 'widget.js has the MARKUP block');
+  const port = runInNewContext("const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo' };" + tsrc + msrc + '; ({ parseMarkup, markupRuns })', {}) as { parseMarkup: typeof parseMarkup; markupRuns: typeof markupRuns };
+  const ctx = { user: 'cheesygidds', cardName: 'Cheesy Cheese', variant: 'reverse' };
+  const cases: [string, unknown[]][] = [
+    ['plain', [{ t: 'plain' }]],
+    ['**bold** and *italic*', [{ t: 'bold', bold: true }, { t: ' and ' }, { t: 'italic', italic: true }]],
+    ['*a **b** c*', [{ t: 'a ', italic: true }, { t: 'b', bold: true, italic: true }, { t: ' c', italic: true }]],
+    ['{color:#FFCC00}gold{/color} text', [{ t: 'gold', color: '#ffcc00' }, { t: ' text' }]],
+    ['**{color:#ff0000}red bold{/color}**', [{ t: 'red bold', bold: true, color: '#ff0000' }]],
+    ['2 * 3 * 4', [{ t: '2 * 3 * 4' }]],
+    ['a * b', [{ t: 'a * b' }]],
+    ['**', [{ t: '**' }]],
+    ['*', [{ t: '*' }]],
+    ['**open', [{ t: '**open' }]],
+    ['*open **b** x', [{ t: '*open ' }, { t: 'b', bold: true }, { t: ' x' }]],
+    ['{color:red}x{/color}', [{ t: '{color:red}x{/color}' }]],
+    ['{color:#12345}x{/color}', [{ t: '{color:#12345}x{/color}' }]],
+    ['{color:#ff0000}never closed', [{ t: '{color:#ff0000}never closed' }]],
+    ['{/color} stray', [{ t: '{/color} stray' }]],
+    ['**x*', [{ t: '**x*' }]],
+  ];
+  for (const [str, want] of cases) {
+    eq(parseMarkup(str), want, `parseMarkup ${str}`);
+    eq(JSON.parse(JSON.stringify(port.parseMarkup(str))), want, `widget parseMarkup ${str}`);
+  }
+  eq(stripMarkup('**bold** *x* {color:#ffffff}w{/color}'), 'bold x w', 'stripMarkup drops matched markup');
+  eq(stripMarkup('2 * 3 * 4 **'), '2 * 3 * 4 **', 'stripMarkup keeps literal stars');
+  const mixed = ['**{user}** got: {cardName}', '*{user}*', '{color:#00ff00}{user}{/color}!', 'no markup {user}', '{nobody} **{variant}**'];
+  for (const str of mixed) {
+    eq(JSON.parse(JSON.stringify(port.markupRuns(str, ctx))), markupRuns(str, ctx), `widget markupRuns matches: ${str}`);
+    eq(markupRuns(str, ctx).map(r => r.t).join(''), fillTokens(stripMarkup(str), ctx), `markupRuns joins to the filled plain text: ${str}`);
+  }
+  eq(markupRuns('**{user}** hi', ctx), [{ t: 'cheesygidds', bold: true, tok: true }, { t: ' hi' }], 'a token inside bold is filled and marked');
+  eq(markupRuns('**{user}**', { user: 'a*b*' }), [{ t: 'a*b*', bold: true, tok: true }], 'a token value is never read as markup');
+}
 console.log('check-overlay: all checks passed');
