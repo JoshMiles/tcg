@@ -299,6 +299,9 @@ eq(sanitizeLayout({ pack: { elements: { banner: { offsetX: 12, scale: 1.5 } } } 
   const dl = diff.diffLayout(before, after);
   ok(dl.some(l => l.to.startsWith('added text "Fresh"')) && dl.some(l => l.label.includes('"Old"') && l.to.includes('text')), 'the diff reports an added and a changed layer');
   ok(diff.diffLayout(after, before).some(l => l.to === 'removed' && l.from.includes('Fresh')) && diff.diffLayout(before, before).length === 0, 'the diff reports a removed layer and nothing when equal');
+  const two = sanitizeLayout({ pack: { custom: [{ id: 'a', kind: 'text', ...box, name: 'A' }, { id: 'b', kind: 'text', ...box, name: 'B' }] } });
+  const swapped = sanitizeLayout({ pack: { custom: [{ id: 'b', kind: 'text', ...box, name: 'B' }, { id: 'a', kind: 'text', ...box, name: 'A' }] } });
+  ok(diff.diffLayout(two, swapped).some(l => l.to === 'order changed') && !diff.diffLayout(before, after).some(l => l.to === 'order changed'), 'the diff reports reordered layers, not added ones');
   ok(/const customUrlOk/.test(readFileSync('public/widget.js', 'utf8')) && /function renderCustom/.test(readFileSync('public/widget.js', 'utf8')) && !/innerHTML/.test(/\/\/ ── Custom layers[\s\S]*?function applyLayout/.exec(readFileSync('public/widget.js', 'utf8'))?.[0] ?? 'innerHTML'), 'the widget draws custom layers without innerHTML');
   ok(/packageContainer\.style\.pointerEvents = 'none'/.test(readFileSync('public/widget.js', 'utf8')), 'the still preview lets presses through the hidden pack art to the card');
   // Text tool (38.7 b): vertical align, the box a press makes, a layer placed at a box, the widget's editing hooks.
