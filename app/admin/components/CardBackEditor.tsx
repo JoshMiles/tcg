@@ -4,7 +4,7 @@ import { FlipCard } from '@/app/components/FlipCard';
 import { Icon } from '@/app/components/Icon';
 import { saveCardBackAction, resetCardBackAction, loadCardBackAction } from '../card-back-actions';
 import { DEFAULT_CARD_BACK, isDefaultCardBack, resolveCardBack, type CardBackStyle } from '@/lib/card-back';
-import { EDITOR_PRESETS, addText, patchElements, tinyText, type Box } from '@/lib/card-back-edit';
+import { EDITOR_PRESETS, addMedia, addText, patchElements, tinyText, type Box } from '@/lib/card-back-edit';
 import { pctToPt } from '@/lib/text-style';
 import { sampleFlipBack, type FlipBack } from '@/lib/flip-back';
 import { Canvas, PRINT_W, type Boxes } from './card-back/Canvas';
@@ -42,12 +42,14 @@ export interface CardBackEditorProps {
 const btn = 'px-3 py-2 text-sm font-bold rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white disabled:opacity-50';
 const field = 'select select-sm';
 
-type Tool = 'move' | 'hand' | 'zoom' | 'text';
+type Tool = 'move' | 'hand' | 'zoom' | 'text' | 'shape' | 'image';
 const TOOLS: (ToolDef & { id: Tool })[] = [
   { id: 'move', label: 'Move', icon: 'move', shortcut: 'V' },
   { id: 'hand', label: 'Hand', icon: 'hand', shortcut: 'H' },
   { id: 'zoom', label: 'Zoom', icon: 'zoomIn', shortcut: 'Z' },
   { id: 'text', label: 'Text', icon: 'text', shortcut: 'T' },
+  { id: 'shape', label: 'Shape', icon: 'stop', shortcut: 'U' },
+  { id: 'image', label: 'Image', icon: 'image', shortcut: 'I' },
 ];
 /** Zoom is a multiple of "Fit" (1 = fit). */
 const ZOOM_STEPS = [0.5, 0.75, 1, 1.5, 2, 3, 4];
@@ -75,6 +77,8 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
   const [zoom, setZoom] = useState(1);
   const canvasW = Math.round(fitW * zoom);
   const [tool, setTool] = useState<Tool>('move');
+  /** The box being drawn with the Shape or Image tool (top-left corner and size, in % of the card). */
+  const [draw, setDraw] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [spaceDown, setSpaceDown] = useState(false); // Space held: a temporary Hand
   const activeTool: Tool = spaceDown ? 'hand' : tool;
   const [rulers, setRulers] = useState(false);
@@ -169,7 +173,7 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (!(e.ctrlKey || e.metaKey)) {
       if (e.altKey) return;
-      const tool = ({ v: 'move', h: 'hand', z: 'zoom', t: 'text' } as Record<string, Tool>)[k];
+      const tool = ({ v: 'move', h: 'hand', z: 'zoom', t: 'text', u: 'shape', i: 'image' } as Record<string, Tool>)[k];
       if (tool) { e.preventDefault(); setTool(tool); }
       else if (k === ' ' && !t.closest('button,a,summary,[role=menuitem]')) { e.preventDefault(); setSpaceDown(true); }
       return;
@@ -212,9 +216,27 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
     const c = scrollBox.current?.querySelector('.flip-card');
     if (!c) return;
     if (activeTool === 'zoom') { zoomStep(e.altKey ? -1 : 1, e.clientX, e.clientY); return; }
-    if (activeTool !== 'text') return;
     const r = c.getBoundingClientRect();
     const clamp = (n: number) => Math.min(100, Math.max(0, Math.round(n * 10) / 10));
+    if (activeTool === 'shape' || activeTool === 'image') {
+      // Drag to draw the box; a plain click makes a default-sized one.
+      const kind = activeTool;
+      const at = (ev: { clientX: number; clientY: number }) => ({ x: clamp(((ev.clientX - r.left) / r.width) * 100), y: clamp(((ev.clientY - r.top) / r.height) * 100) });
+      const a = at(e);
+      const box = (b: { x: number; y: number }) => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) });
+      const move = (ev: PointerEvent) => setDraw(box(at(ev)));
+      const up = (ev: PointerEvent) => {
+        window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); setDraw(null);
+        const d = box(at(ev)), click = d.w < 2 && d.h < 2;
+        const w = click ? 40 : Math.max(2, d.w), h = click ? 20 : Math.max(2, d.h);
+        const made = addMedia(styleRef.current, kind, { x: clamp(click ? a.x : d.x + d.w / 2), y: clamp(click ? a.y : d.y + d.h / 2), w, h });
+        if (!made) { setNote('No room for another element'); return; }
+        change(made.style); setSelection(new Set([made.id])); setTool('move');
+      };
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+      return;
+    }
+    if (activeTool !== 'text') return;
     const made = addText(live);
     if (!made) { setNote('No room for another text'); return; }
     change(patchElements(made.style, [made.id], { x: clamp(((e.clientX - r.left) / r.width) * 100), y: clamp(((e.clientY - r.top) / r.height) * 100) }));
@@ -339,7 +361,9 @@ export function CardBackEditor({ packId, packName, seasonName, coverImageUrl, in
                     >
                       <div className="relative m-auto p-6">
                         <Canvas style={preview ?? live} back={back} width={canvasW} selection={selection} onSelect={setSelection} onGesture={gesture} onChange={setStyle} onBoxes={setBoxes} />
-                        {activeTool !== 'move' && <div onPointerDown={sheetDown} aria-hidden className={`absolute inset-0 z-10 ${activeTool === 'zoom' ? 'cursor-zoom-in' : activeTool === 'text' ? 'cursor-text' : ''}`} />}
+                        {activeTool !== 'move' && <div onPointerDown={sheetDown} aria-hidden className={`absolute inset-0 z-10 ${activeTool === 'zoom' ? 'cursor-zoom-in' : activeTool === 'text' ? 'cursor-text' : activeTool === 'shape' || activeTool === 'image' ? 'cursor-crosshair' : ''}`}>
+                          {draw && <div className="absolute border-2 border-dashed border-yellow-400 bg-yellow-400/10" style={{ left: `calc(1.5rem + (100% - 3rem) * ${draw.x / 100})`, top: `calc(1.5rem + (100% - 3rem) * ${draw.y / 100})`, width: `calc((100% - 3rem) * ${draw.w / 100})`, height: `calc((100% - 3rem) * ${draw.h / 100})` }} />}
+                        </div>}
                       </div>
                     </div>
                   </div>

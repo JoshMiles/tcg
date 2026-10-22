@@ -127,14 +127,66 @@ function drawPlate(ctx: CanvasRenderingContext2D, p: NonNullable<ShareSpec['plat
   }
 }
 
+/** A shape element: the layout engine's paths (SVG path strings) filled and stroked in the box, with its shadows and glow. A radial gradient is stretched to the box like the SVG's. */
+function drawShape(ctx: CanvasRenderingContext2D, b: BackBox, g: NonNullable<BackBox['shape']>) {
+  const grad = g.grad;
+  const linear = () => {
+    const c = grad?.kind === 'radial' ? ctx.createRadialGradient(g.w / 2, g.h / 2, 0, g.w / 2, g.h / 2, Math.max(g.w, g.h) / 2) : ctx.createLinearGradient((grad?.x1 ?? 0) * g.w, (grad?.y1 ?? 0) * g.h, (grad?.x2 ?? 0) * g.w, (grad?.y2 ?? 0) * g.h);
+    for (const s of grad?.stops ?? []) c.addColorStop(s.at / 100, s.color);
+    return c;
+  };
+  const pass = () => {
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    for (const p of g.parts) {
+      const path = new Path2D(p.d);
+      if (p.fill === 'grad' && grad?.kind === 'radial' && g.w > 0 && g.h > 0) {
+        const unit = new Path2D();
+        unit.addPath(path, new DOMMatrix().scale(2 / g.w, 2 / g.h).translate(-g.w / 2, -g.h / 2));
+        ctx.save(); ctx.translate(g.w / 2, g.h / 2); ctx.scale(g.w / 2, g.h / 2);
+        const c = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        for (const s of grad.stops) c.addColorStop(s.at / 100, s.color);
+        ctx.fillStyle = c; ctx.fill(unit); ctx.restore();
+      } else if (p.fill !== 'none') { ctx.fillStyle = p.fill === 'grad' ? linear() : p.fill; ctx.fill(path); }
+      const st = p.stroke;
+      if (st) {
+        ctx.strokeStyle = st.color === 'grad' ? linear() : st.color; ctx.lineWidth = st.width; ctx.lineCap = st.cap as CanvasLineCap; ctx.lineJoin = st.join ?? 'miter';
+        ctx.setLineDash(st.dash ? [st.dash, st.dash] : []); ctx.stroke(path);
+      }
+    }
+    ctx.restore();
+  };
+  const m = ctx.getTransform(), sc = Math.hypot(m.a, m.b) || 1;
+  for (const sh of b.shadows) {
+    ctx.save(); ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x * sc; ctx.shadowOffsetY = sh.y * sc; ctx.shadowBlur = sh.blur * sc;
+    pass(); ctx.restore();
+  }
+  pass();
+}
+
 /** One box of the back: text with its outline, shadows, glow and gradient, an image, or a QR code. Drawn in the reference card's px (the context is scaled). */
 function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, images: Map<string, HTMLImageElement | null>) {
   ctx.save();
   ctx.globalAlpha = b.opacity;
   if (b.rotate) { ctx.translate(b.x + b.w / 2, b.y + b.h / 2); ctx.rotate((b.rotate * Math.PI) / 180); ctx.translate(-(b.x + b.w / 2), -(b.y + b.h / 2)); }
-  if (b.type === 'img') {
+  if (b.type === 'shape' && b.shape) drawShape(ctx, b, b.shape);
+  else if (b.type === 'img') {
     const img = b.src ? images.get(b.src) : null;
-    if (img) { const k = Math.min(b.w / img.width, b.h / img.height); ctx.drawImage(img, b.x + (b.w - img.width * k) / 2, b.y + (b.h - img.height * k) / 2, img.width * k, img.height * k); }
+    if (img) {
+      const fit = b.fit ?? 'contain';
+      const k = fit === 'cover' ? Math.max(b.w / img.width, b.h / img.height) : Math.min(b.w / img.width, b.h / img.height);
+      const dw = fit === 'fill' ? b.w : img.width * k, dh = fit === 'fill' ? b.h : img.height * k;
+      const draw = () => ctx.drawImage(img, b.x + (b.w - dw) / 2, b.y + (b.h - dh) / 2, dw, dh);
+      // Shadows and glow of a free image (the DOM's drop-shadows); a box-filling picture casts the box's shadow.
+      const sc = Math.hypot(ctx.getTransform().a, ctx.getTransform().b) || 1;
+      if (b.kind === 'image') for (const sh of b.shadows) {
+        ctx.save(); ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x * sc; ctx.shadowOffsetY = sh.y * sc; ctx.shadowBlur = sh.blur * sc;
+        if (fit === 'contain') draw(); else { ctx.fillStyle = '#000'; ctx.fillRect(b.x, b.y, b.w, b.h); }
+        ctx.restore();
+      }
+      if (fit === 'cover') { ctx.beginPath(); ctx.rect(b.x, b.y, b.w, b.h); ctx.clip(); }
+      draw();
+    }
   } else if (b.type === 'qr' && b.qrUrl && qrModules(b.qrUrl)) {
     const q = qrModules(b.qrUrl)!;
     const cell = b.w / (q.size + 2);

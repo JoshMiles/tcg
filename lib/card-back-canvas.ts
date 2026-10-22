@@ -3,6 +3,7 @@
 // in app/components/ShareImage.tsx. Sizes are in px at the reference card width below and the drawing scales the context.
 import type { CardBackStyle } from './card-back';
 import type { ArcGeo, BackNode, TextLine } from './card-back-layout';
+import type { ShapeGeo } from './shapes';
 import type { TextMark } from './text-markup';
 import { DEFAULT_PATTERN, isCustomPattern, patternSvg } from './card-back-patterns';
 
@@ -51,13 +52,17 @@ export interface BackBox {
   id: string;
   kind: BackNode['kind'];
   mode: 'stack' | 'free';
-  type: 'text' | 'img' | 'qr' | 'hist';
+  type: 'text' | 'img' | 'qr' | 'hist' | 'shape';
   /** Box in px at the reference size: x is the left edge, y the TOP edge (free nodes are centred on y, converted here). */
   x: number; y: number; w: number; h: number;
   rotate: number;
   text?: string;
   items?: { text: string; date: string }[];
   src?: string;
+  /** Free images: how the picture fits the box. */
+  fit?: 'contain' | 'cover' | 'fill';
+  /** A shape element's paths (px at the reference width). */
+  shape?: ShapeGeo;
   qrUrl?: string;
   dark?: string;
   light?: string;
@@ -180,7 +185,11 @@ function freeBox(n: BackNode, ref: { w: number; h: number }): BackBox | null {
     spacing: num(String(css.letterSpacing ?? '0').replace('em', '')) * size, family: typeof css.fontFamily === 'string' ? css.fontFamily : undefined,
     align: (css.textAlign === 'left' || css.textAlign === 'right' ? css.textAlign : 'center') as 'left' | 'center' | 'right', lineHeight,
   };
-  if (n.tag === 'img' && n.src) { const h = n.kind === 'logo' ? w : num(css.height, w); return { ...common, type: 'img', src: n.src, y: cy - h / 2, h, font }; }
+  if (n.tag === 'img' && n.src) {
+    const h = n.kind === 'logo' ? w : num(css.height, w);
+    return { ...common, type: 'img', src: n.src, y: cy - h / 2, h, font, ...(n.kind === 'image' ? { fit: css.objectFit === 'cover' || css.objectFit === 'fill' ? css.objectFit : 'contain' } : {}) };
+  }
+  if (n.tag === 'shape' && n.shape) return { ...common, type: 'shape', shape: n.shape, y: cy - n.shape.h / 2, h: n.shape.h, font };
   if (n.tag === 'qr' && n.qrUrl) return { ...common, type: 'qr', qrUrl: n.qrUrl, dark: n.dark, light: n.light, y: cy - w / 2, h: w, font };
   if (n.tag === 'ul' && n.items?.length) { const h = n.items.length * (size * lineHeight + 1); return { ...common, type: 'hist', items: n.items, y: cy - h / 2, h, font: { ...font, align: 'left' } }; }
   if (n.tag === 'p' && n.arc && n.text) return { ...common, type: 'text', text: n.text, y: cy - n.arc.h / 2, h: n.arc.h, arc: n.arc, font };

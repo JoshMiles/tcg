@@ -483,11 +483,11 @@ const BACK_UNITLESS = { opacity: 1, zIndex: 1, lineHeight: 1, fontWeight: 1 };
 const backCssName = k => k.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
 // One node as plain data: its tag, classes, text and a map of CSS property -> value (px added to bare numbers); null = nothing to draw.
 function backNodeSpec(n) {
-  if (!n || (n.tag !== 'img' && n.tag !== 'p' && n.tag !== 'ul')) return null; // facts about a print (qr, link) are hidden; empty = nothing to print
+  if (!n || (n.tag !== 'img' && n.tag !== 'p' && n.tag !== 'ul' && n.tag !== 'shape')) return null; // facts about a print (qr, link) are hidden; empty = nothing to print
   const style = {};
   for (const k of Object.keys(n.vars || {})) style[k] = String(n.vars[k]);
   for (const k of Object.keys(n.css || {})) { const v = n.css[k]; style[backCssName(k)] = typeof v === 'number' && !BACK_UNITLESS[k] ? v + 'px' : String(v); }
-  return { tag: n.tag, cls: n.cls || '', text: n.text || '', src: n.src || '', items: n.items || [], lines: n.lines || null, spec: n.spec || null, arc: n.arc || null, style };
+  return { tag: n.tag, cls: n.cls || '', text: n.text || '', src: n.src || '', items: n.items || [], lines: n.lines || null, spec: n.spec || null, arc: n.arc || null, shape: n.shape || null, style };
 }
 // TEXT-FIT-START: a port of layoutText / lineCss (lib/card-back-layout.ts). The server laid text out with a rough width; once the faces are loaded
 // the widget runs this again with a canvas measure. scripts/check-card-back.mts runs both on the same cases.
@@ -655,8 +655,31 @@ function backArcSvg(a, text) {
   svg.appendChild(t);
   return svg;
 }
+// A shape element: the layout engine's paths as an SVG (FlipCard's ShapeView draws the same thing).
+let backGradN = 0;
+function backShapeSvg(g) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k of Object.keys(attrs)) e.setAttribute(k, attrs[k]); return e; };
+  const svg = mk('svg', { width: g.w, height: g.h, viewBox: '0 0 ' + g.w + ' ' + g.h, 'aria-hidden': 'true' });
+  svg.style.display = 'block'; svg.style.overflow = 'visible';
+  const id = 'bsh' + (++backGradN);
+  if (g.grad) {
+    const gr = g.grad.kind === 'radial' ? mk('radialGradient', { id }) : mk('linearGradient', { id, x1: g.grad.x1, y1: g.grad.y1, x2: g.grad.x2, y2: g.grad.y2 });
+    for (const s of g.grad.stops) gr.appendChild(mk('stop', { offset: s.at + '%', 'stop-color': s.color }));
+    const defs = mk('defs', {});
+    defs.appendChild(gr);
+    svg.appendChild(defs);
+  }
+  const paint = c => (c === 'grad' ? 'url(#' + id + ')' : c);
+  for (const p of g.parts) {
+    const a = { d: p.d, fill: paint(p.fill) };
+    if (p.stroke) { a.stroke = paint(p.stroke.color); a['stroke-width'] = p.stroke.width; a['stroke-linecap'] = p.stroke.cap; if (p.stroke.join) a['stroke-linejoin'] = p.stroke.join; if (p.stroke.dash) a['stroke-dasharray'] = p.stroke.dash + ' ' + p.stroke.dash; }
+    svg.appendChild(mk('path', a));
+  }
+  return svg;
+}
 function backNodeEl(spec) {
-  const el = document.createElement(spec.tag);
+  const el = spec.tag === 'shape' ? backShapeSvg(spec.shape) : document.createElement(spec.tag);
   if (spec.cls) el.className = spec.cls;
   if (spec.tag === 'img') { el.src = spec.src; el.alt = ''; }
   else if (spec.tag === 'p' && spec.arc) el.appendChild(backArcSvg(spec.arc, spec.text));

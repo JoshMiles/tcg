@@ -1,9 +1,10 @@
 // The card back editor's pure operations (ROADMAP 20.3b): changing, adding, ordering, aligning and snapping elements of a v2 design.
 // Client-safe and free of React so a script can test them. Boxes are in PERCENT of the card (left / top / width / height of what is drawn).
 import {
-  DEFAULT_CARD_BACK, MAX_ELEMENTS, MAX_TEXT_BOXES, PRESETS, sanitizeCardBack,
+  DEFAULT_CARD_BACK, MAX_ELEMENTS, MAX_TEXT_BOXES, MULTI_KINDS, PRESETS, sanitizeCardBack,
   type BackEl, type CardBackStyle, type ElementKind,
 } from './card-back';
+import type { ShapeType } from './shapes';
 
 export interface Box { l: number; t: number; w: number; h: number }
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -31,18 +32,27 @@ export function addText(style: CardBackStyle, text = 'New text'): { style: CardB
   return { style: sanitizeCardBack({ ...style, elements: [...style.elements, el] }), id };
 }
 
-/** Duplicates a text box just above itself, nudged so the copy is visible; null for other kinds or at the limits. */
+/** Adds a shape (filled yellow) or an empty image box, free and on top, in `box` (percent: centre x / y, width, height); null at the limit. */
+export function addMedia(style: CardBackStyle, kind: 'shape' | 'image', box: { x: number; y: number; w: number; h: number }, shape?: ShapeType): { style: CardBackStyle; id: string } | null {
+  if (style.elements.length >= MAX_ELEMENTS) return null;
+  const id = nextId(style, kind);
+  const top = Math.max(0, ...style.elements.filter(e => e.place === 'free').map(e => e.z));
+  const el = { id, kind, place: 'free', x: box.x, y: box.y, w: box.w, h: box.h, z: Math.min(50, top + 1), ...(kind === 'shape' ? { shape: { shape: shape ?? 'rect', fill: { type: 'solid', color: '#facc15' } } } : {}) };
+  return { style: sanitizeCardBack({ ...style, elements: [...style.elements, el] }), id };
+}
+
+/** Duplicates a text box, shape or image just above itself, nudged so the copy is visible; null for other kinds or at the limits. */
 export function duplicateElement(style: CardBackStyle, id: string): { style: CardBackStyle; id: string } | null {
   const src = style.elements.find(e => e.id === id);
-  if (!src || src.kind !== 'text' || style.elements.length >= MAX_ELEMENTS || style.elements.filter(e => e.kind === 'text').length >= MAX_TEXT_BOXES) return null;
-  const copy = { ...src, id: nextId(style, 'text'), x: clamp(src.x + 3, 0, 100), y: clamp(src.y + 3, 0, 100), z: Math.min(50, src.z + 1), locked: false };
+  if (!src || !MULTI_KINDS.includes(src.kind) || style.elements.length >= MAX_ELEMENTS || (src.kind === 'text' && style.elements.filter(e => e.kind === 'text').length >= MAX_TEXT_BOXES)) return null;
+  const copy = { ...src, id: nextId(style, src.kind), x: clamp(src.x + 3, 0, 100), y: clamp(src.y + 3, 0, 100), z: Math.min(50, src.z + 1), locked: false };
   const i = style.elements.indexOf(src);
   return { style: sanitizeCardBack({ ...style, elements: [...style.elements.slice(0, i + 1), copy, ...style.elements.slice(i + 1)] }), id: copy.id };
 }
 
-/** Removes a text box (the other kinds can only be hidden). */
+/** Removes a text box, shape or image (the other kinds can only be hidden). */
 export function removeElement(style: CardBackStyle, id: string): CardBackStyle {
-  return sanitizeCardBack({ ...style, elements: style.elements.filter(e => !(e.id === id && e.kind === 'text')) });
+  return sanitizeCardBack({ ...style, elements: style.elements.filter(e => !(e.id === id && MULTI_KINDS.includes(e.kind))) });
 }
 
 /** Moves the element `from` to the place of `to` in the list (layers order, and the stack order for stack elements). */
@@ -184,5 +194,5 @@ export const EDITOR_PRESETS: { id: string; label: string; style: CardBackStyle }
 
 /** Text that would be drawn smaller than `minPx` when the card is `tileW` px wide (the size of a tile), for the editor's warning. */
 export function tinyText(style: CardBackStyle, tileW = 120, minPx = 9): string[] {
-  return style.elements.filter(e => e.show && e.place === 'free' && e.kind !== 'qr' && e.kind !== 'logo' && (e.size / 100) * tileW < minPx).map(e => e.id);
+  return style.elements.filter(e => e.show && e.place === 'free' && e.kind !== 'qr' && e.kind !== 'logo' && e.kind !== 'shape' && e.kind !== 'image' && (e.size / 100) * tileW < minPx).map(e => e.id);
 }

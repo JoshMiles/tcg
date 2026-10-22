@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { qrPath } from '@/lib/qr';
 import type { FlipBack } from '@/lib/flip-back';
 import { DEFAULT_CARD_BACK, plateVars } from '@/lib/card-back';
@@ -158,6 +158,27 @@ function BackNodeView({ n, qr, flipped }: { n: BackNode; qr: { d: string; size: 
           <path d={qr.d} fill={n.dark ?? '#1f1f24'} />
         </svg>
       ) : null;
+    case 'shape': return n.shape ? <ShapeView g={n.shape} id={n.id} style={style} /> : null;
     default: return null;
   }
+}
+
+/** A shape element: the layout engine's paths as an SVG. public/widget.js's backShapeSvg draws the same thing. */
+function ShapeView({ g, id, style }: { g: NonNullable<BackNode['shape']>; id: string; style: React.CSSProperties }) {
+  const gid = `bs${useId().replace(/:/g, '')}`;
+  const paint = (c: string) => (c === 'grad' ? `url(#${gid})` : c);
+  return (
+    <svg data-back-id={id} width={g.w} height={g.h} viewBox={`0 0 ${g.w} ${g.h}`} style={{ ...style, display: 'block', overflow: 'visible' }} aria-hidden="true">
+      {g.grad && (
+        <defs>
+          {g.grad.kind === 'radial'
+            ? <radialGradient id={gid}>{g.grad.stops.map((s, i) => <stop key={i} offset={`${s.at}%`} stopColor={s.color} />)}</radialGradient>
+            : <linearGradient id={gid} x1={g.grad.x1} y1={g.grad.y1} x2={g.grad.x2} y2={g.grad.y2}>{g.grad.stops.map((s, i) => <stop key={i} offset={`${s.at}%`} stopColor={s.color} />)}</linearGradient>}
+        </defs>
+      )}
+      {g.parts.map((p, i) => (
+        <path key={i} d={p.d} fill={paint(p.fill)} {...(p.stroke ? { stroke: paint(p.stroke.color), strokeWidth: p.stroke.width, strokeLinecap: p.stroke.cap as 'butt', strokeLinejoin: p.stroke.join, ...(p.stroke.dash ? { strokeDasharray: `${p.stroke.dash} ${p.stroke.dash}` } : {}) } : {})} />
+      ))}
+    </svg>
+  );
 }

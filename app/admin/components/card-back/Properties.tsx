@@ -1,5 +1,7 @@
 'use client';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { ShapeFields } from '../workspace/ShapeFields';
+import { IMAGE_FITS, isSafeImageUrl } from '@/lib/shapes';
 import { ImageUploadField } from '../image-upload';
 import { MarkupButtons } from '../MarkupButtons';
 import { PRINT_W } from './Canvas';
@@ -44,13 +46,15 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
   onPreview?: (next: CardBackStyle | null) => void;
 }) {
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const [badUrl, setBadUrl] = useState(false);
   const ids = style.elements.filter(e => selection.has(e.id)).map(e => e.id);
   if (selection.has('bg') || ids.length === 0) return <BackgroundPanel style={style} onChange={onChange} />;
   const els = style.elements.filter(e => ids.includes(e.id));
   const e = els[0];
   const many = els.length > 1;
   const set = (patch: Partial<BackEl>, key?: string) => onChange(patchElements(style, ids, patch), key ? `${ids.join()}:${key}` : undefined);
-  const text = e.kind !== 'qr' && e.kind !== 'logo';
+  const media = e.kind === 'shape' || e.kind === 'image';
+  const text = e.kind !== 'qr' && e.kind !== 'logo' && !media;
   // Light markup (**bold**, *italic*, {color:#rrggbb}..{/color}): wrap the selection, or put the caret between the marks.
   const wrapText = (open: string, close: string) => {
     const el = textRef.current, a = el?.selectionStart ?? e.text.length, b = el?.selectionEnd ?? a;
@@ -67,10 +71,10 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
       <p className="text-sm font-semibold text-white mb-2">{many ? `${els.length} elements` : e.kind === 'text' ? 'Text box' : KIND_LABELS[e.kind]}</p>
 
       <Group title="Layer">
-        <div className="flex flex-wrap items-center gap-1.5">
+        {!media && <div className="flex flex-wrap items-center gap-1.5">
           <button type="button" className={chip(!free)} onClick={() => onChange(els.reduce((s, x) => returnToStack(s, x.id), style))}>In the stack</button>
           <button type="button" className={chip(free)} onClick={toFree}>Placed freely</button>
-        </div>
+        </div>}
         {free ? (
           <>
             <Num label="x (%)" value={e.x} min={0} max={100} step={0.5} onChange={v => set({ x: v }, 'x')} />
@@ -82,6 +86,7 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
                 {e.h !== undefined && <input type="number" aria-label="Height (%)" className={`${field} w-20!`} min={2} max={100} step={0.5} value={Math.round(e.h * 100) / 100} onChange={ev => { const n = Number(ev.target.value); if (ev.target.value.trim() !== '' && Number.isFinite(n)) set({ h: n }, 'h'); }} />}
               </span>
             </Row>}
+            {media && <Num label="Height (%)" value={Math.round((e.h ?? 20) * 100) / 100} min={1} max={100} step={0.5} onChange={v => set({ h: v }, 'h')} />}
             <Num label="Rotate" value={e.rotate} min={-45} max={45} step={1} onChange={v => set({ rotate: v }, 'rot')} />
             {text && <OpacityRow value={e} onChange={set} />}
           </>
@@ -105,6 +110,18 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
             </>
           )}
           {e.kind === 'qr' && (<><Colour label="Dark" value={e.dark} named={['auto']} onChange={v => set({ dark: v })} /><Colour label="Light" value={e.light} named={['auto']} onChange={v => set({ light: v })} /></>)}
+        </Group>
+      )}
+
+      {e.kind === 'shape' && !many && e.shape && (
+        <ShapeFields spec={e.shape} fx={e.fx} set={p => ('fx' in p ? set({ fx: p.fx as BackEl['fx'] }, 'fx') : set({ shape: { ...e.shape!, ...p } as BackEl['shape'] }, 'shape'))} />
+      )}
+
+      {e.kind === 'image' && !many && (
+        <Group title="Image">
+          <ImageUploadField name="cardBackImage" label="Image (upload, or a Blob file or path on this site)" defaultValue={e.url} onUrlChange={u => { const t = u.trim(); if (t === '' || isSafeImageUrl(t)) { setBadUrl(false); if (t !== e.url) set({ url: t }); } else setBadUrl(true); }} />
+          {badUrl && <p className="text-xs text-red-400">Only uploaded files and paths on this site can be used.</p>}
+          <Row label="Fit"><span className="flex gap-1">{IMAGE_FITS.map(f => <button key={f} type="button" aria-pressed={(e.imageFit ?? 'contain') === f} onClick={() => set({ imageFit: f })} className={chip((e.imageFit ?? 'contain') === f)}>{f}</button>)}</span></Row>
         </Group>
       )}
 
@@ -164,9 +181,11 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
         </Group>
       )}
 
-      <Group title="Effects">
-        <EffectFields value={e} onChange={set} text={text} free={free} />
-      </Group>
+      {(e.kind !== 'shape' || many) && (
+        <Group title="Effects">
+          <EffectFields value={e} onChange={set} text={text} free={free} />
+        </Group>
+      )}
 
       <button type="button" onClick={() => onChange(els.reduce((s, x) => resetElement(s, x.id), style))} className="text-xs font-bold text-gray-400 hover:text-white">Reset {many ? 'elements' : 'element'}</button>
     </div>

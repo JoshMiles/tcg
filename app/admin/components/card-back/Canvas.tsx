@@ -46,6 +46,8 @@ export function Canvas({ style, back, width, selection, onSelect, onGesture, onC
   const drag = useRef<Drag | null>(null);
   const boxesRef = useRef(boxes);
   boxesRef.current = boxes;
+  const styleRef = useRef(style);
+  styleRef.current = style;
 
   const measure = useCallback(() => {
     const card = wrap.current?.querySelector('.flip-card');
@@ -57,6 +59,10 @@ export function Canvas({ style, back, width, selection, onSelect, onGesture, onC
       const r = el.getBoundingClientRect();
       out[el.dataset.backId!] = { l: ((r.left - cr.left) / cr.width) * 100, t: ((r.top - cr.top) / cr.height) * 100, w: (r.width / cr.width) * 100, h: (r.height / cr.height) * 100, fontPx: parseFloat(getComputedStyle(el).fontSize) || 12 };
     });
+    // An image with no file yet draws nothing, so give it a box to select and resize.
+    for (const el of styleRef.current.elements) {
+      if (el.kind === 'image' && el.show && !out[el.id]) out[el.id] = { l: el.x - el.w / 2, t: el.y - (el.h ?? 20) / 2, w: el.w, h: el.h ?? 20, fontPx: 12 };
+    }
     const round = (b: Boxes) => JSON.stringify(Object.fromEntries(Object.entries(b).map(([k, v]) => [k, [v.l, v.t, v.w, v.h, v.fontPx].map(n => Math.round(n * 10) / 10)])));
     if (round(out) !== round(boxesRef.current)) { setBoxes(out); onBoxes?.(out); }
   }, [onBoxes]);
@@ -134,7 +140,9 @@ export function Canvas({ style, back, width, selection, onSelect, onGesture, onC
       else if (d.mode === 'scale') {
         const s0 = pct({ clientX: d.sx, clientY: d.sy });
         const k = Math.hypot((px - cx) * r.width, (py - cy) * r.height) / Math.max(4, Math.hypot((s0.x - cx) * r.width, (s0.y - cy) * r.height));
-        onChange(el.kind === 'qr' || el.kind === 'logo' ? patchElements(d.base, [id], { w: el.w * k }) : patchElements(d.base, [id], { size: el.size * k }));
+        onChange(el.kind === 'qr' || el.kind === 'logo' ? patchElements(d.base, [id], { w: el.w * k })
+          : el.kind === 'shape' || el.kind === 'image' ? patchElements(d.base, [id], { w: el.w * k, h: (el.h ?? 20) * k })
+          : patchElements(d.base, [id], { size: el.size * k }));
       } else if (d.mode === 'rotate') {
         let a = (Math.atan2((py - cy) * r.height, (px - cx) * r.width) * 180) / Math.PI + 90;
         if (a > 180) a -= 360;
