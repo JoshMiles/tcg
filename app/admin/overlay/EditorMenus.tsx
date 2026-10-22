@@ -2,7 +2,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
-import { PROP_BY_KEY, type PropValues } from '@/lib/overlay-props';
+import { PROP_BY_KEY, mergePropValues, type PropValues } from '@/lib/overlay-props';
 import { isVertical, type OverlayLayout } from '@/lib/overlay-layout';
 import { diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { deleteOverlayVersionAction, setSeasonLookAction } from '../overlay-actions';
@@ -237,7 +237,7 @@ export function PackToolsMenu({ packs, packVals, setPackVals, scope, globalVals,
           <p className="text-xs font-semibold text-gray-300">Differences from global</p>
           {Object.keys(packVals[scope] ?? {}).length === 0 ? <p className="text-xs text-gray-600">This pack follows the global look exactly.</p> : (
             <ul className="max-h-40 overflow-y-auto space-y-0.5">
-              {diffProps('', globalVals, { ...globalVals, ...(packVals[scope] ?? {}) }, k => PROP_BY_KEY[k]?.default).map((d, i) => (
+              {diffProps('', globalVals, mergePropValues(globalVals, packVals[scope]), k => PROP_BY_KEY[k]?.default).map((d, i) => (
                 <li key={i} className="text-xs text-gray-400"><span className="text-gray-300">{d.label}</span> <span className="text-gray-600">{d.from} → </span><span className="text-yellow-300">{d.to}</span></li>
               ))}
             </ul>

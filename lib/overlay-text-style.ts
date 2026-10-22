@@ -1,5 +1,5 @@
 import { effectParts } from './card-back-layout';
-import { WEIGHTS, TEXT_CASES, clamp, hex, isRec, pick, r2, sanitizeFx, type Effects } from './text-style';
+import { WEIGHTS, TEXT_CASES, clamp, hex, isRec, pick, r2, sanitizeFx, sanitizeTextStyle, type Effects, type TextStyle } from './text-style';
 
 // The overlay's text style (ROADMAP 38.8): a PARTIAL TextStyle per text layer. Only fields the admin set are stored, so an empty
 // patch is today's look and a pack can override one field (merge is field by field). Font, size and colour stay in their own keys.
@@ -117,4 +117,69 @@ export function textPatchCss(p: TextPatch, fontPx: number, rgb?: [number, number
     for (const [k, v] of Object.entries(parts)) css[k] = String(v);
   }
   return css;
+}
+
+const FLAT_KEYS = ['weight', 'italic', 'underline', 'strike', 'overline', 'textCase', 'tracking', 'wordSpacing', 'lineHeight', 'align', 'opacity', 'kerning'] as const;
+const json = (v: unknown) => JSON.stringify(v);
+
+/** What a layer's style panel shows: the inherited patch with the layer's own on top, filled out with the model's defaults. */
+export function shownTextStyle(inherited: TextPatch | undefined, own: TextPatch | undefined): TextStyle {
+  return sanitizeTextStyle(mergeTextPatch(inherited, own) as Record<string, unknown>, ['body']);
+}
+
+/**
+ * The shared Character panel edits the SHOWN style and reports the changed fields; this turns one such change into an edit of the layer's own patch,
+ * so only the fields the admin touched are stored (a pack then overrides just those). A value of undefined clears the field.
+ */
+export function editTextPatch(own: TextPatch, shown: TextStyle, change: Record<string, unknown>): TextPatch {
+  const out: Record<string, unknown> = { ...own };
+  for (const k of FLAT_KEYS) if (k in change) { if (change[k] === undefined) delete out[k]; else out[k] = change[k]; }
+  if (isRec(change.fx)) {
+    const was = shown.fx as Record<string, unknown>, now = change.fx;
+    const fx: Record<string, unknown> = { ...(isRec(out.fx) ? out.fx : {}) };
+    for (const k of new Set([...Object.keys(was), ...Object.keys(now)])) {
+      const n = now[k], o = was[k];
+      if (n === undefined) { if (o !== undefined) delete fx[k]; continue; }
+      if (json(n) === json(o)) continue;
+      if (k === 'shadows' || k === 'gradientText' || !isRec(o) || !isRec(n)) { fx[k] = n; continue; }
+      const eff: Record<string, unknown> = { ...(isRec(fx[k]) ? fx[k] : {}) };
+      for (const f of new Set([...Object.keys(o), ...Object.keys(n)])) {
+        if (json(n[f]) === json(o[f])) continue;
+        if (n[f] === undefined) { if (f === 'on') eff.on = true; else delete eff[f]; } else eff[f] = n[f];
+      }
+      fx[k] = eff;
+    }
+    if (Object.keys(fx).length) out.fx = fx; else delete out.fx;
+  }
+  return sanitizeTextPatch(out);
+}
+
+/** Drops one field (`weight`) or one effect field (`fx.stroke.color`) from a patch, so it is inherited again. */
+export function clearTextPatch(own: TextPatch, path: string): TextPatch {
+  const parts = path.split('.');
+  const walk = (o: Record<string, unknown>, i: number): Record<string, unknown> => {
+    const { [parts[i]]: cur, ...rest } = o;
+    if (i < parts.length - 1 && isRec(cur)) { const inner = walk(cur, i + 1); return Object.keys(inner).length ? { ...rest, [parts[i]]: inner } : rest; }
+    return rest;
+  };
+  return walk(own as Record<string, unknown>, 0) as TextPatch;
+}
+
+/** The fields a saved or built-in text style sets, as a patch: only what differs from a plain style (size, font and colour are not part of a patch). */
+export function patchFromStyle(s: TextStyle): TextPatch {
+  const d = sanitizeTextStyle({}, ['body']);
+  const o: Record<string, unknown> = {};
+  if (s.weight !== d.weight) o.weight = s.weight;
+  for (const k of ['italic', 'underline', 'strike', 'overline'] as const) if (s[k]) o[k] = true;
+  const c = s.textCase ?? (s.uppercase ? 'upper' : undefined);
+  if (c) o.textCase = c;
+  const t = s.tracking ?? (s.letterSpacing !== d.letterSpacing ? Math.round(s.letterSpacing * 100) : undefined);
+  if (t !== undefined) o.tracking = t;
+  if (s.wordSpacing) o.wordSpacing = s.wordSpacing;
+  if (s.lineHeight !== d.lineHeight) o.lineHeight = s.lineHeight;
+  if (s.align !== d.align) o.align = s.align;
+  if (s.opacity !== d.opacity) o.opacity = s.opacity;
+  if (s.kerning === false) o.kerning = false;
+  if (Object.keys(s.fx).length) o.fx = s.fx;
+  return sanitizeTextPatch(o);
 }
