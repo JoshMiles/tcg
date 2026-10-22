@@ -10,6 +10,7 @@ import { SAMPLE_TOKENS, TOKEN_INFO, fillTokens } from '@/lib/overlay-tokens';
 import { stripMarkup } from '@/lib/text-markup';
 import { MarkupButtons } from '@/app/admin/components/MarkupButtons';
 import { clearTextPatch, editTextPatch, mergeTextPatch, patchFromStyle, shownTextStyle, type TextAccent, type TextPatch } from '@/lib/overlay-text-style';
+import { Swatches } from '@/app/admin/components/workspace/Swatches';
 import { useTextBar } from './EditorTextOptions';
 import { useOverlayEditor } from './OverlayEditorContext';
 
@@ -291,7 +292,7 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
     case 'color': {
       const c = typeof value === 'string' ? value : '#ffffff';
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input id={id} type="color" value={c} onChange={e => onChange(e.target.value)} className="h-8 w-12 rounded-sm bg-transparent border border-gray-700 cursor-pointer" />
           <input
             type="text"
@@ -303,6 +304,7 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onChange((e.target as HTMLInputElement).value); } }}
             className={`${inputCls} w-24 font-mono`}
           />
+          <Swatches value={c} onPick={onChange} />
         </div>
       );
     }
