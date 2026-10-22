@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { getOverlayStatus } from '@/lib/overlay';
-import { bumpReloadToken, listPresets, setSeasonLook } from '@/lib/overlay-settings';
+import { bumpReloadToken, listPresets, saveZones, setSeasonLook } from '@/lib/overlay-settings';
 import { deleteVersion } from '@/lib/overlay-versions';
 import { getSeason } from '@/lib/kv';
 
@@ -34,4 +34,10 @@ export async function setSeasonLookAction(seasonId: string, presetId: string | n
   await setSeasonLook(seasonId, presetId);
   revalidatePath('/admin/overlay');
   return { ok: true, message: presetId ? `${season.name} now uses that look while it is active. Refresh the overlay to see it.` : `${season.name} follows the global look again.` };
+}
+
+/** Saves a scope's editor-only Twitch UI zones (staff-wide, never sent to the live overlay). */
+export async function saveOverlayZonesAction(scope: string, zones: unknown): Promise<void> {
+  await requireAdmin();
+  await saveZones(scope, zones);
 }

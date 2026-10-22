@@ -63,6 +63,7 @@ export default async function OverlayEditorPage({ searchParams }: { searchParams
           seasonLooks={seasonLooks}
           packCards={packCards}
           initialAutoReload={overlay.autoReload}
+          initialZones={overlay.zones}
           siteUrl={SITE_URL}
           overlayKey={await getOverlayKey()}
         />

@@ -21,7 +21,7 @@ import {
 import { refreshOverlayAction } from '../overlay-actions';
 import { EditorTextOptions } from './EditorTextOptions';
 import { useOverlayEditor } from './OverlayEditorContext';
-import type { AlignMode } from '@/lib/overlay-layout';
+import { MAX_ZONES, type AlignMode } from '@/lib/overlay-layout';
 
 export function EditorTopBar() {
   const {
@@ -94,6 +94,9 @@ export function EditorTopBar() {
     toggleRulers,
     guides,
     setGuides,
+    zones,
+    setZones,
+    layout,
     guidesLocked,
     setGuidesLocked,
     setShowSaved,
@@ -274,6 +277,12 @@ export function EditorTopBar() {
           <MenuItem label="Rulers" icon="ruler" shortcut="Ctrl+R" checked={showRulers} onSelect={toggleRulers} />
           <MenuItem label="Lock guides" icon="lock" checked={guidesLocked} onSelect={() => setGuidesLocked(v => !v)} />
           <MenuItem label="Clear guides" icon="x" disabled={guides.x.length + guides.y.length === 0} onSelect={() => setGuides({ x: [], y: [] })} />
+          <MenuItem
+            label="Add Twitch zone"
+            icon="plus"
+            disabled={isPack || zones.length >= MAX_ZONES}
+            onSelect={() => setZones(z => [...z, { id: Math.random().toString(36).slice(2, 8), name: 'Webcam', x: Math.round(layout.width * 0.7), y: Math.round(layout.height * 0.6), w: Math.round(layout.width * 0.25), h: Math.round(layout.height * 0.35) }])}
+          />
           <GuidesMenu
             showThirds={showThirds}
             setShowThirds={setShowThirds}
