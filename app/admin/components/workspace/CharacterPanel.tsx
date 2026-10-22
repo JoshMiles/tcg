@@ -5,12 +5,14 @@ import { WEIGHTS, caseOf, type Shadow, type TextCase, type TextStyle } from '@/l
 import { BUILTIN_TEXT_PRESETS, presetPatch, styleOf, type TextPreset } from '@/lib/text-presets';
 import { deleteTextPresetAction, listTextPresetsAction, saveTextPresetAction } from '@/app/admin/text-preset-actions';
 import type { TextAccent } from '@/lib/overlay-text-style';
+import { ScrubLabel } from './ScrubLabel';
 
 // The Character and Effects controls, shared by the card back editor (a whole TextStyle on a BackEl) and the Overlay Editor (a partial patch per
 // text layer, ROADMAP 38.8 c). Lifted from the card back Properties panel. `patch` switches to the overlay's mode: the value shown is what the layer
 // ends up with (inherited plus its own), `patch.own` is only what this layer sets, a reset dot appears on those fields and calls `patch.clear(path)`
 // (path like `weight` or `fx.stroke.color`), and the controls that need a box (arc, wrap, plate, inner shadow...) are not offered.
 
+type ScrubArgs = Omit<React.ComponentProps<typeof ScrubLabel>, 'children'>;
 export interface PatchMode { own: Record<string, unknown>; clear: (path: string) => void }
 type Change = (patch: Partial<TextStyle>, key?: string) => void;
 type FontShape = { weights: readonly number[]; italicFile?: string };
@@ -22,13 +24,13 @@ export function Group({ title, children }: { title: string; children: ReactNode 
   return <section className="space-y-2 border-b border-gray-800 pb-3 mb-3 last:border-0"><h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">{title}</h4>{children}</section>;
 }
 const Dot = ({ label, reset }: { label: string; reset: () => void }) => <button type="button" aria-label={`Reset ${label}`} title="Reset to the default" onClick={reset} className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />;
-export function Row({ label, children, reset }: { label: string; children: ReactNode; reset?: () => void }) {
-  return <label className="flex items-center gap-2 text-xs text-gray-400"><span className="w-20 shrink-0 flex items-center gap-1">{label}{reset && <Dot label={label} reset={reset} />}</span><span className="flex-1 min-w-0">{children}</span></label>;
+export function Row({ label, children, reset, scrub }: { label: string; children: ReactNode; reset?: () => void; scrub?: ScrubArgs }) {
+  return <label className="flex items-center gap-2 text-xs text-gray-400"><span className="w-20 shrink-0 flex items-center gap-1">{scrub ? <ScrubLabel {...scrub}>{label}</ScrubLabel> : label}{reset && <Dot label={label} reset={reset} />}</span><span className="flex-1 min-w-0">{children}</span></label>;
 }
 export function Num({ label, value, min, max, step = 1, onChange, reset }: { label: string; value: number; min: number; max: number; step?: number; onChange: (n: number) => void; reset?: () => void }) {
   const [text, setText] = useState<string | null>(null);
   return (
-    <Row label={label} reset={reset}>
+    <Row label={label} reset={reset} scrub={{ value, onChange, step, min, max }}>
       <input type="number" aria-label={label} className={field} min={min} max={max} step={step} value={text !== null && Number(text) === value ? text : String(Math.round(value * 100) / 100)}
         onChange={e => { setText(e.target.value); const n = Number(e.target.value); if (e.target.value.trim() !== '' && Number.isFinite(n)) onChange(n); }} onBlur={() => setText(null)} />
     </Row>

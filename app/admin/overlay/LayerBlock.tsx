@@ -1,6 +1,7 @@
 'use client';
 
-import { ELEMENT_IDS, type ElementId } from '@/lib/overlay-layout';
+import { ScrubLabel } from '../components/workspace/ScrubLabel';
+import { ELEMENT_IDS,type ElementId } from '@/lib/overlay-layout';
 import { LAYER_NAMES } from './LayersPanel';
 import { ghost, inputCls } from './editor-controls';
 import { useOverlayEditor } from './OverlayEditorContext';
@@ -9,7 +10,7 @@ import { useOverlayEditor } from './OverlayEditorContext';
 function NumField({ label, value, unit, onChange }: { label: string; value: number; unit?: string; onChange: (v: number) => void }) {
   return (
     <label className="text-xs text-gray-500 space-y-1">
-      {label}
+      <ScrubLabel value={value} onChange={onChange}>{label}</ScrubLabel>
       <span className="flex items-center gap-1">
         <input
           type="number"

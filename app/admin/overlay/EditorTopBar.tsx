@@ -4,6 +4,7 @@ import { Icon, type IconName } from '@/app/components/Icon';
 import { useEffect, useRef } from 'react';
 import { PendingButton } from '../components/PendingButton';
 import { Menu, MenuBar, MenuItem, MenuSeparator, SubMenu } from '../components/workspace/MenuBar';
+import { resetColumnLayout } from '../components/workspace/useColumnLayout';
 import { btn } from './editor-controls';
 import {
   ImportExportMenu,
@@ -289,6 +290,9 @@ export function EditorTopBar() {
             bgImage={bgImage}
             setBgImage={setBgImage}
           />
+        </Menu>
+        <Menu label="Window">
+          <MenuItem label="Reset workspace" icon="undo" onSelect={resetColumnLayout} />
         </Menu>
         <Menu label="Scene">
           <ScenesMenu
