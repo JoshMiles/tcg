@@ -71,6 +71,7 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   // Highlight tokens (ROADMAP 38.10 a): sanitized, merged field by field, never CSS.
   eq(sanitizeTextPatch({ accent: { color: 'accent', bold: true } }), { accent: { color: 'accent', bold: true } }, 'accent keeps a pack-accent colour and bold');
   eq(sanitizeTextPatch({ accent: { color: '#FF0000', on: false, junk: 1 } }), { accent: { color: '#ff0000', on: false } }, 'accent keeps a hex and the switch');
+  eq(sanitizeTextPatch({ accent: { on: true } }), { accent: { on: true } }, 'accent switched on alone survives (the Highlight tokens switch writes on: true)');
   eq(sanitizeTextPatch({ accent: { color: 'red', bold: 'yes' } }), {}, 'a bad accent is dropped');
   const accA = sanitizeTextPatch({ weight: 700, accent: { color: '#ff0000', bold: true } }), accB = sanitizeTextPatch({ accent: { color: 'accent' } });
   eq(mergeTextPatch(accA, accB), { weight: 700, accent: { color: 'accent', bold: true } }, 'accent merges field by field');
