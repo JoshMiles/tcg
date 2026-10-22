@@ -24,13 +24,13 @@ export interface OverlayBack {
 }
 
 /** Every card-back face, for overlay text. A file is the 700 cut when one exists, else the only cut. Site faces have no file. */
-export function overlayFontCatalog(): { id: string; css: string; family?: string; weight?: number; file?: string }[] {
+export function overlayFontCatalog(): { id: string; css: string; family?: string; weight?: number; file?: string; files?: Record<number, string>; italicFile?: string }[] {
   return BACK_FONTS.map(f => {
     if (!f.files) return { id: f.id, css: f.css };
     const family = /'([^']+)'/.exec(f.css)?.[1];
     const weights = Object.keys(f.files).map(Number);
     const weight = weights.includes(700) ? 700 : weights[0];
-    return { id: f.id, css: f.css, family, weight, file: f.files[weight] };
+    return { id: f.id, css: f.css, family, weight, file: f.files[weight], files: f.files, ...(f.italicFile ? { italicFile: f.italicFile } : {}) };
   });
 }
 

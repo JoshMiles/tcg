@@ -1,5 +1,6 @@
 import type { IconName } from '@/app/components/Icon';
 import { BACK_FONTS } from './card-back';
+import { mergeTextPatch, sanitizeTextPatch, type TextPatch } from './overlay-text-style';
 // Every adjustable property of the OBS overlay, in one registry. Browser-safe (no KV) so the admin editor can import it.
 //
 // Design:
@@ -10,10 +11,10 @@ import { BACK_FONTS } from './card-back';
 //    the editor UI is generated from this registry, so adding a property is one entry here plus using it in widget.js.
 //  - The defaults reproduce the overlay's original look exactly, so an untouched install is unchanged.
 
-export type PropValue = number | boolean | string | string[];
+export type PropValue = number | boolean | string | string[] | TextPatch;
 export type PropValues = Record<string, PropValue>;
 
-export type PropType = 'number' | 'boolean' | 'select' | 'color' | 'colors' | 'text';
+export type PropType = 'number' | 'boolean' | 'select' | 'color' | 'colors' | 'text' | 'textStyle';
 
 export interface PropDef {
   key: string;
@@ -206,6 +207,9 @@ const LAYER_FONT_OPTIONS = [{ value: 'inherit', label: 'Overlay font' }, ...FONT
 const layerFont = (key: string, group: string, label = 'Font', help = 'Overlay font follows the "Overlay font" setting under Pack opening.'): PropDef =>
   ({ key, group, label, type: 'select', default: 'inherit', options: LAYER_FONT_OPTIONS, font: true, help });
 
+/** One text layer's Character style: a partial TextStyle, empty = the look the overlay always had. */
+const layerStyle = (key: string, group: string, label: string): PropDef => ({ key, group, label, type: 'textStyle', default: {}, help: 'Weight, case, spacing and effects (outline, glow, shadow, gradient). Empty keeps the look as it is. Font, size and colour are the settings next to it.' });
+
 function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
   const m = `moment.${id}`;
   const first = id === 'firstEver';
@@ -223,6 +227,8 @@ function momentProps(id: 'firstEver' | 'firstPull' | 'newCard'): PropDef[] {
     { key: `${m}.textColor`, group: g, label: 'Text colour', type: 'color', default: first ? '#1a1205' : '#ffffff' },
     { key: `${m}.textSize`, group: g, label: 'Text size', type: 'number', default: 26, min: 12, max: 60, step: 1, unit: 'px' },
     layerFont(`${m}.font`, g),
+    layerStyle(`${m}.textStyle`, g, 'Banner text style'),
+    layerStyle(`${m}.subTextStyle`, g, 'Small line style'),
     { key: `${m}.position`, group: g, label: 'Position on the card', type: 'select', default: 'top', options: [{ value: 'top', label: 'Top' }, { value: 'middle', label: 'Middle' }, { value: 'bottom', label: 'Bottom' }] },
     { key: `${m}.sparkles`, group: g, label: 'Sparkle amount', type: 'number', default: first ? 44 : 0, min: 0, max: 80, step: 1, help: 'A burst of sparkles when the banner appears. 0 for none.' },
     { key: `${m}.sparkleColor`, group: g, label: 'Sparkle colour', type: 'color', default: '#ffe27a' },
@@ -248,6 +254,7 @@ const SHOW_PROPS: PropDef[] = [
   { key: 'show.labelTextColor', label: 'Label text colour', type: 'color', default: '#fffefe' },
   { key: 'show.labelSize', label: 'Label text size', type: 'number', default: 14, min: 10, max: 40, step: 1, unit: 'px' },
   layerFont('show.labelFont', 'showoff', 'Label font'),
+  layerStyle('show.labelStyle', 'showoff', 'Label text style'),
   { key: 'show.labelX', label: 'Label nudge across', type: 'number', default: 0, min: -300, max: 300, step: 2, unit: 'px', help: 'Moves the label sideways from where it sits.' },
   { key: 'show.labelY', label: 'Label nudge up / down', type: 'number', default: 0, min: -400, max: 300, step: 2, unit: 'px', help: 'Moves the label down (positive) or up (negative), for example over the card.' },
   { key: 'show.showPrint', label: 'Edition number pill', type: 'boolean', default: true, help: 'The number on the card. Also needs "Edition number on the card" in Pack opening to be on, and the season\'s editions to be numbered.' },
@@ -274,11 +281,17 @@ export const PROPS: PropDef[] = [
   { key: 'reveal.cardScale', group: 'pack', label: 'Revealed card size', type: 'number', default: 1, min: 0.5, max: 1.5, step: 0.05, unit: '×', help: 'Scales the card itself (the pack and the strip stay as they are).' },
   { key: 'reveal.labelSize', group: 'pack', label: 'Label text size', type: 'number', default: 14, min: 10, max: 30, step: 1, unit: 'px' },
   layerFont('reveal.labelFont', 'pack', 'Label font'),
+  layerStyle('reveal.labelStyle', 'pack', 'Label text style'),
   layerFont('reveal.serialFont', 'pack', 'Edition number font'),
+  layerStyle('reveal.serialStyle', 'pack', 'Edition number text style'),
   layerFont('reveal.cardNumberFont', 'pack', 'Card corner number font'),
+  layerStyle('reveal.cardNumberStyle', 'pack', 'Card corner number text style'),
   layerFont('reveal.nameFont', 'pack', 'Card name font'),
+  layerStyle('reveal.nameStyle', 'pack', 'Card name text style'),
   layerFont('reveal.gotFont', 'pack', '"got:" line font'),
+  layerStyle('reveal.gotStyle', 'pack', '"got:" line text style'),
   layerFont('reveal.stripFont', 'pack', 'Strip text font'),
+  layerStyle('reveal.stripStyle', 'pack', 'Strip text text style'),
   { key: 'reveal.nameColor', group: 'pack', label: 'Card name colour', type: 'color', default: '#f1bb06' },
   { key: 'reveal.starColor', group: 'pack', label: 'Star colour', type: 'color', default: '#f1bb06' },
   { key: 'reveal.infoBg', group: 'pack', label: 'Name & stars bar colour', type: 'color', default: '#fffefe' },
@@ -328,7 +341,9 @@ export const PROPS: PropDef[] = [
   { key: 'collection.showHeading', group: 'collection', label: 'Show the heading', type: 'boolean', default: true, help: 'The "name\'s collection:" line.' },
   { key: 'collection.headingText', group: 'collection', label: 'Heading wording', type: 'text', default: "{user}'s collection:", maxLength: 60, help: 'Use {user} for the viewer\'s name.' },
   layerFont('collection.headingFont', 'collection', 'Heading font'),
+  layerStyle('collection.headingStyle', 'collection', 'Heading text style'),
   layerFont('collection.cardFont', 'collection', 'Card text font', 'The "?" on uncollected cards and the ×N counts. Overlay font follows the "Overlay font" setting under Pack opening.'),
+  layerStyle('collection.cardStyle', 'collection', 'Card text style'),
   { key: 'collection.hold', group: 'collection', label: 'Time on screen', type: 'number', default: 4, min: 1, max: 30, step: 0.5, unit: 's' },
   {
     key: 'collection.appear', group: 'collection', label: 'Entrance', type: 'select', default: 'fade',
@@ -360,13 +375,13 @@ function sectionFor(key: string): string {
   const r: [RegExp, string][] = [
     [/^reveal.(style|speed|startDelay|packScale|packSounds)$/, 'Animation'],
     [/^text\./, 'Text'],
-    [/^reveal.(cardScale|cardNumberFont)$/, 'Card'],
-    [/^reveal.(showLabel|labelSize|labelFont|labelOwned|showSerial|serialFormat|serialFont)$/, 'Label'],
+    [/^reveal.(cardScale|cardNumberFont|cardNumberStyle)$/, 'Card'],
+    [/^reveal.(showLabel|labelSize|labelFont|labelStyle|labelOwned|showSerial|serialFormat|serialFont|serialStyle)$/, 'Label'],
     [/^(reveal\.firstEver|moment\.firstEver\.)/, 'First-ever edition'],
     [/^moment\.firstPull\./, "A viewer's first pull"],
     [/^moment\.newCard\./, 'A new card for them'],
-    [/^reveal.(showInfoBar|nameColor|starColor|infoBg|nameFont)$/, 'Name and stars bar'],
-    [/^reveal.(showGotLine|gotText|gotColor|gotTextColor|gotFont)$/, '"got:" line'],
+    [/^reveal.(showInfoBar|nameColor|starColor|infoBg|nameFont|nameStyle)$/, 'Name and stars bar'],
+    [/^reveal.(showGotLine|gotText|gotColor|gotTextColor|gotFont|gotStyle)$/, '"got:" line'],
     [/^show\.(style|hold)$/, 'Entrance and timing'],
     [/^show\.(showLabel|text|ownLabelLook|label.*)$/, 'Label'],
     [/^show\.(showPrint|printFormat)$/, 'Edition number'],
@@ -376,7 +391,7 @@ function sectionFor(key: string): string {
     [/^reveal.(stripPerRow|stripCardWidth|stripGap|stripSort)$/, 'Strip layout'],
     [/^reveal.strip/, 'Strip card look'],
     [/^collection.(perRow|cardWidth|gap|sort)$/, 'Layout'],
-    [/^collection.(showUncollected|showCounts|showVariantMarkers|showHeading|headingText|headingFont)$/, 'What to show'],
+    [/^collection.(showUncollected|showCounts|showVariantMarkers|showHeading|headingText|headingFont|headingStyle)$/, 'What to show'],
     [/^collection.(hold|appear)$/, 'Timing'],
     [/^collection./, 'Card look'],
   ];
@@ -429,6 +444,8 @@ export function cleanValue(def: PropDef, raw: unknown): PropValue | undefined {
       if (colors.length < min) return undefined;
       return colors.slice(0, def.maxItems ?? 8);
     }
+    case 'textStyle':
+      return sanitizeTextPatch(raw);
     case 'text':
       // Strip control characters; keep it to one line.
       return typeof raw === 'string' ? raw.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, def.maxLength ?? 80) : undefined;
@@ -454,6 +471,17 @@ export function sanitizePropValues(input: unknown, opts: { keepDefaults?: boolea
   return out;
 }
 
+/** Sparse maps layered in order (later wins). A text style key merges field by field, so a pack can override just the outline colour. */
+export function mergePropValues(...layers: (PropValues | null | undefined)[]): PropValues {
+  const out: PropValues = {};
+  for (const layer of layers) {
+    for (const [k, v] of Object.entries(layer ?? {})) {
+      out[k] = PROP_BY_KEY[k]?.type === 'textStyle' && out[k] ? mergeTextPatch(out[k] as TextPatch, v as TextPatch) : v;
+    }
+  }
+  return out;
+}
+
 /** Fills in defaults under a sparse map: the full effective configuration. */
 export function withDefaults(sparse: PropValues | null | undefined): PropValues {
   const full: PropValues = {};
@@ -464,7 +492,7 @@ export function withDefaults(sparse: PropValues | null | undefined): PropValues 
 
 /** Global settings with a pack's overrides on top (all sparse in, full out). */
 export function effectiveProps(global: PropValues | null | undefined, packOverrides?: PropValues | null): PropValues {
-  return withDefaults({ ...(global ?? {}), ...(packOverrides ?? {}) });
+  return withDefaults(mergePropValues(global, packOverrides));
 }
 
 export const isChanged = (key: string, value: PropValue | undefined) => value !== undefined && !same(value, PROP_BY_KEY[key].default);

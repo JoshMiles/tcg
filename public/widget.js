@@ -199,14 +199,126 @@ function applyTextFont(el, id, P) {
   if (f.file) loadFace(f.family, f.weight, f.file);
   el.style.fontFamily = f.css;
 }
+// ── Text style per layer (lib/overlay-text-style.ts; ROADMAP 38.8) ──
+// A partial patch per text layer: weight, italic, decoration, case, spacing, alignment, opacity, outline, glow, shadows, bevel, gradient text.
+// The pure part is a port of mergeTextPatch / textPatchCss; scripts/check-overlay.mts runs both on the same cases. An empty patch writes nothing.
+// Opacity goes through the colour alpha and the effects through text-shadow / -webkit-text-stroke / background-clip, never opacity or filter
+// on the element, because the reveals animate those.
+// TEXT-STYLE-START
+const tsIsObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+const tsR2 = n => Math.round(n * 100) / 100;
+function tsAlpha(c, o) {
+  if (o === undefined || o >= 1 || !/^#[0-9a-f]{6}$/i.test(c)) return c;
+  const n = parseInt(c.slice(1), 16);
+  return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + o + ')';
+}
+function mergeTextPatch(base, over) {
+  if (!over) return Object.assign({}, base || {});
+  if (!base) return Object.assign({}, over);
+  const out = Object.assign({}, base, over);
+  if (base.fx || over.fx) {
+    const fx = Object.assign({}, base.fx || {});
+    for (const k of Object.keys(over.fx || {})) {
+      const v = over.fx[k];
+      fx[k] = tsIsObj(v) && tsIsObj(fx[k]) && k !== 'gradientText' ? Object.assign({}, fx[k], v) : v;
+    }
+    out.fx = fx;
+  }
+  return out;
+}
+function textPatchCss(p, fontPx, rgb) {
+  const css = {};
+  if (p.weight) css.fontWeight = String(p.weight);
+  if (p.italic !== undefined) css.fontStyle = p.italic ? 'italic' : 'normal';
+  if (p.underline !== undefined || p.strike !== undefined || p.overline !== undefined) {
+    const d = [p.underline && 'underline', p.overline && 'overline', p.strike && 'line-through'].filter(Boolean).join(' ');
+    css.textDecoration = d || 'none';
+  }
+  if (p.textCase) {
+    css.textTransform = p.textCase === 'upper' ? 'uppercase' : p.textCase === 'lower' ? 'lowercase' : p.textCase === 'title' ? 'capitalize' : 'none';
+    if (p.textCase === 'smallcaps') css.fontVariantCaps = 'small-caps';
+  }
+  if (p.tracking !== undefined) css.letterSpacing = (p.tracking / 1000) + 'em';
+  if (p.wordSpacing !== undefined) css.wordSpacing = (p.wordSpacing / 1000) + 'em';
+  if (p.lineHeight !== undefined) css.lineHeight = String(p.lineHeight);
+  if (p.align) css.textAlign = p.align;
+  if (p.kerning !== undefined) css.fontKerning = p.kerning ? 'auto' : 'none';
+  if (p.opacity !== undefined && p.opacity < 1 && rgb) css.color = 'rgba(' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ', ' + p.opacity + ')';
+  const fx = p.fx;
+  if (fx) {
+    const unit = fontPx * (400 / 14) / 100, k = unit * 0.25;
+    const on = e => !!e && e.on !== false;
+    const outer = [];
+    const st = fx.stroke;
+    if (st && on(st)) {
+      const w = st.width === undefined ? 1 : st.width;
+      if (w > 0) { css.WebkitTextStroke = tsR2(w * unit * 0.1) + 'px ' + (st.color || '#000000'); css.paintOrder = st.pos === 'center' ? 'normal' : 'stroke fill'; }
+    }
+    const gl = fx.glow;
+    if (gl && on(gl)) {
+      const b = tsR2((gl.blur === undefined ? 8 : gl.blur) * k), c = gl.color || '#ffffff';
+      for (let i = 0, n = Math.ceil(gl.strength === undefined ? 1 : gl.strength); i < n; i++) outer.push('0 0 ' + b + 'px ' + c);
+    }
+    for (const sh of fx.shadows || []) if (on(sh)) outer.push(tsR2(sh.x * k) + 'px ' + tsR2(sh.y * k) + 'px ' + tsR2(sh.blur * k) + 'px ' + tsAlpha(sh.color, sh.opacity));
+    const bv = fx.bevel;
+    if (bv && on(bv)) {
+      const d = bv.depth === undefined ? 1 : bv.depth, sg = bv.style === 'raised' ? -1 : 1;
+      outer.push('0 ' + (sg * d) + 'px 0 rgba(255,255,255,.55)', '0 ' + (-sg * d) + 'px ' + d + 'px rgba(0,0,0,.4)');
+    }
+    const g = fx.gradientText;
+    if (g && on(g)) {
+      css.backgroundImage = 'linear-gradient(' + g.angle + 'deg, ' + (g.stops ? g.stops.map(x => x.color + ' ' + x.at + '%').join(', ') : g.from + ', ' + g.to) + ')';
+      css.textShadow = 'none';
+      css.WebkitBackgroundClip = 'text'; css.backgroundClip = 'text'; css.color = 'transparent'; css.WebkitTextFillColor = 'transparent';
+    } else if (outer.length) css.textShadow = outer.join(', ');
+  }
+  return css;
+}
+// TEXT-STYLE-END
+const tsApplied = new WeakMap();   // element -> { property: [what the style wrote, the inline value it replaced] }
+const tsDash = k => k.replace(/[A-Z]/g, m => '-' + m.toLowerCase()).replace(/^webkit-/, '-webkit-');
+// Writes the layer's style onto el. `fontId` is the layer's resolved font (so the file for the chosen weight loads); `px` is the font size when the
+// element is not laid out yet. Call it after the colour is set (opacity reads it) and, for reveal layers, after the element is in the page.
+function applyTextStyle(el, key, P, fontId, px) {
+  if (!el) return;
+  // Undo the last write; a property the widget has set since (a new colour, say) is left alone.
+  const last = tsApplied.get(el) || {};
+  for (const k of Object.keys(last)) if (el.style.getPropertyValue(k) === last[k][0]) { if (last[k][1]) el.style.setProperty(k, last[k][1]); else el.style.removeProperty(k); }
+  tsApplied.delete(el);
+  const p = P && P[key];
+  if (!tsIsObj(p) || !Object.keys(p).length) return;
+  let rgb;
+  const cs = getComputedStyle(el);
+  const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(cs.color || '');
+  if (m) rgb = [+m[1], +m[2], +m[3]];
+  const css = textPatchCss(p, px || parseFloat(cs.fontSize) || 14, rgb);
+  const f = FONT_CATALOG.find(x => x.id === textFontId(P, fontId));
+  if (f && f.family && f.files) {
+    const ws = Object.keys(f.files).map(Number);
+    if (ws.length) {
+      const want = p.weight || 700, w = ws.reduce((a, b) => (Math.abs(b - want) < Math.abs(a - want) ? b : a));
+      loadFace(f.family, w, f.files[w]);
+      if (p.italic && f.italicFile) loadFace(f.family, w, f.italicFile, true);
+    }
+  }
+  const wrote = {};
+  for (const k of Object.keys(css)) {
+    const d = tsDash(k), prev = el.style.getPropertyValue(d);
+    el.style.setProperty(d, css[k]);
+    wrote[d] = [el.style.getPropertyValue(d), prev];
+  }
+  tsApplied.set(el, wrote);
+}
 let PREVIEW_PROPS = null;   // admin editor: unsaved values shown live (replaces the saved ones)
 let PREVIEW_VARIANT = '';   // admin editor: "preview as" variant
 
 function effectiveProps(packId) {
   const out = Object.assign({}, PROP_DEFAULTS);
   if (PREVIEW_PROPS) return Object.assign(out, PREVIEW_PROPS);
-  Object.assign(out, PROPS_GLOBAL);
-  if (packId && PACK_OVERRIDES[packId]) Object.assign(out, PACK_OVERRIDES[packId]);
+  // A text style merges field by field (a pack can override just the outline colour); every other value is replaced.
+  const lay = o => { for (const k of Object.keys(o)) out[k] = tsIsObj(o[k]) && tsIsObj(out[k]) ? mergeTextPatch(out[k], o[k]) : o[k]; };
+  lay(PROPS_GLOBAL);
+  if (packId && PACK_OVERRIDES[packId]) lay(PACK_OVERRIDES[packId]);
   return out;
 }
 // ── The pack's designed card back (reveal.flipBack = design) ──
@@ -505,6 +617,7 @@ function showStatic(mode) {
     cardInfo.style.transform = 'scale(1)';
     userText.textContent = headingText(P, 'Preview');
     applyTextFont(userText, pv(P, 'collection.headingFont', 'inherit'), P);
+    applyTextStyle(userText, 'collection.headingStyle', P, pv(P, 'collection.headingFont', 'inherit'));
     editable(userText, 'heading', 'Click to edit the heading');
     editable(miniList, 'grid', 'Click to edit the collection grid');
     if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
@@ -986,6 +1099,7 @@ function showSerial(theater, P, info) {
   }
   applyTextFont(el, pv(P, 'reveal.serialFont', 'inherit'), P);
   cardBox.appendChild(el);
+  applyTextStyle(el, 'reveal.serialStyle', P, pv(P, 'reveal.serialFont', 'inherit'));
   requestAnimationFrame(() => el.classList.add('on'));
 }
 
@@ -1023,6 +1137,8 @@ function momentSpec(P, id, ctx) {
     textColor: g('textColor', id === 'firstEver' ? '#1a1205' : '#ffffff'),
     textSize: g('textSize', 26),
     font: g('font', 'inherit'),
+    style: g('textStyle', {}),
+    subStyle: g('subTextStyle', {}),
     position: g('position', 'top'),
     sparkles: Math.round(g('sparkles', id === 'firstEver' ? 44 : 0)),
     sparkleColor: g('sparkleColor', '#ffe27a'),
@@ -1058,6 +1174,9 @@ function momentBanner(theater, P, spec, S, extendHold) {
   applyTextFont(banner, spec.font, P);
   if (PREVIEW) { banner.dataset.edit = 'banner'; banner.title = 'Click to edit the moment banner'; }
   cardBox.appendChild(banner);
+  const bp = Object.assign({}, P, { '_m.main': spec.style, '_m.sub': spec.subStyle });
+  applyTextStyle(main, '_m.main', bp, spec.font, spec.textSize);
+  applyTextStyle(sub, '_m.sub', bp, spec.font, 12);
   requestAnimationFrame(() => banner.classList.add('on'));
   if (spec.sparkles > 0) {
     const fx = Object.assign({}, P);
@@ -1130,6 +1249,7 @@ function listOpts(P, strip) {
     placeholder:     strip ? pv(P, 'reveal.stripPlaceholderColor', '#f1bb06') : pv(P, 'collection.placeholderColor', '#f1bb06'),
     radius:          strip ? pv(P, 'reveal.stripCardRadius', 2) : pv(P, 'collection.cardRadius', 2),
     sort:            strip ? pv(P, 'reveal.stripSort', 'number') : pv(P, 'collection.sort', 'number'),
+    style:           strip ? pv(P, 'reveal.stripStyle', {}) : pv(P, 'collection.cardStyle', {}),
     font:            textFontId(P, strip ? pv(P, 'reveal.stripFont', 'inherit') : pv(P, 'collection.cardFont', 'inherit')),
   };
 }
@@ -1188,6 +1308,7 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg, opts) {
       q.textContent = '?';
       q.style.fontSize = Math.round(20 * k) + 'px';
       applyTextFont(q, opts.font);
+      applyTextStyle(q, '_s', { _s: opts.style }, opts.font, Math.round(20 * k));
       div.appendChild(q);
     }
 
@@ -1196,6 +1317,7 @@ function buildMiniList(miniList, userCards, highlightNumber, cfg, opts) {
       badge.style.cssText = 'position:absolute;bottom:1px;right:1px;background:rgba(0,0,0,0.8);color:#f59e0b;font-weight:700;padding:0 2px;border-radius:2px;line-height:1.4;pointer-events:none;font-size:' + Math.max(7, Math.round(7 * k)) + 'px;';
       badge.textContent = '×' + count;
       applyTextFont(badge, opts.font);
+      applyTextStyle(badge, '_s', { _s: opts.style }, opts.font, Math.max(7, Math.round(7 * k)));
       div.appendChild(badge);
     }
 
@@ -1332,6 +1454,7 @@ function styleShowLabel(el, P) {
   }
   el.style.fontSize = pv(P, 'show.labelSize', 14) + 'px';
   applyTextFont(el, pv(P, 'show.labelFont', 'inherit'), P);
+  applyTextStyle(el, 'show.labelStyle', P, pv(P, 'show.labelFont', 'inherit'));
   const x = pv(P, 'show.labelX', 0), y = pv(P, 'show.labelY', 0);
   // The Overlay Editor's own move of this label (the pack opening's "showlabel" part) adds to the nudge above.
   el.style.translate = 'calc(' + x + 'px + var(--el-showlabel-x, 0px)) calc(' + y + 'px + var(--el-showlabel-y, 0px))';
@@ -1428,6 +1551,10 @@ function applyLook(theater, P, variant, card, cfg, owned) {
   applyTextFont(userText, pv(P, 'reveal.gotFont', 'inherit'), P);
   applyTextFont(cardInfoOverlay.querySelector('.card-name'), pv(P, 'reveal.nameFont', 'inherit'), P);
   theater.mainCard.querySelectorAll('.card-number-1, .card-number-2').forEach(e => applyTextFont(e, pv(P, 'reveal.cardNumberFont', 'inherit'), P));
+  applyTextStyle(cardLabel, 'reveal.labelStyle', P, pv(P, 'reveal.labelFont', 'inherit'), pv(P, 'reveal.labelSize', 14));
+  applyTextStyle(userText, 'reveal.gotStyle', P, pv(P, 'reveal.gotFont', 'inherit'));
+  applyTextStyle(cardInfoOverlay.querySelector('.card-name'), 'reveal.nameStyle', P, pv(P, 'reveal.nameFont', 'inherit'));
+  theater.mainCard.querySelectorAll('.card-number-1, .card-number-2').forEach(e => applyTextStyle(e, 'reveal.cardNumberStyle', P, pv(P, 'reveal.cardNumberFont', 'inherit')));
   st.setProperty('--name-color', pv(P, 'reveal.nameColor', '#f1bb06'));
   st.setProperty('--star-color', pv(P, 'reveal.starColor', '#f1bb06'));
   st.setProperty('--info-bg', pv(P, 'reveal.infoBg', '#fffefe'));
