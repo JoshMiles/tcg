@@ -169,6 +169,16 @@ export function alignOffsets(boxes: Record<string, DesignBox>, mode: AlignMode, 
   return out;
 }
 
+/**
+ * The offset change that keeps a part's anchor point (0 to 1 across its box, centre = 0.5) still while its scale goes from
+ * `oldScale` to `newScale`. `box` is the part's box now (design px); parts scale about their centre and the offset is divided
+ * by the view's scale, like dragging. Editor-only: the result is just a new offset.
+ */
+export function anchorOffset(box: DesignBox, anchor: { x: number; y: number }, oldScale: number, newScale: number, viewScale = 1): { dx: number; dy: number } {
+  const k = (1 - newScale / oldScale) / (viewScale || 1);
+  return { dx: (anchor.x - 0.5) * box.w * k, dy: (anchor.y - 0.5) * box.h * k };
+}
+
 /** Offset changes that space part centres evenly between the two outermost ones (needs 3 or more parts). */
 export function distributeOffsets(boxes: Record<string, DesignBox>, axis: 'x' | 'y', viewScale = 1): Record<string, { dx: number; dy: number }> {
   const centre = (b: DesignBox) => (axis === 'x' ? b.x + b.w / 2 : b.y + b.h / 2);

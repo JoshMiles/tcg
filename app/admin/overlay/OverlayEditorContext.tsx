@@ -27,7 +27,7 @@ import {
   type PropValues,
   type VariantId,
 } from '@/lib/overlay-props';
-import { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, anchorOffset, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
 import { MAX_CUSTOM, duplicateCustom, newCustom, pasteCustom, stepCustom, type CustomKind, type CustomLayer, type CustomText } from '@/lib/overlay-custom';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { mergeTextPatch, type TextPatch } from '@/lib/overlay-text-style';
@@ -188,6 +188,8 @@ export interface OverlayEditorContextValue {
   closeLayerMenu: () => void;
   resetLayer: (view: Mode, id: string | null) => void;
   editLayer: (view: Mode, id: string, patch: Partial<ElementPlacement>) => void;
+  anchor: { x: number; y: number };
+  setAnchor: (a: { x: number; y: number }) => void;
   centerLayer: (view: Mode) => void;
   copyLayerToScenes: (view: Mode, id: string | null) => void;
   sceneCount: number;
@@ -448,6 +450,9 @@ export function OverlayEditorProvider({
   // `id` / `ox` / `oy` / `s0` are the primary part's start; `group` holds every moved part's start (one entry unless several are selected).
   const drag = useRef<{ view: Mode; id: string | null; ox: number; oy: number; s0?: number; box?: { x: number; y: number; w: number; h: number }; group?: { id: string; ox: number; oy: number; s0: number }[] } | null>(null);
   const [selection, setSelection] = useState<string[]>([]);
+  // The resize anchor (ROADMAP 38.22, editor state only): scaling a part keeps this point of its box still. `sizes` holds each part's box at size 100%, measured for it.
+  const [anchor, setAnchor] = useState({ x: 0.5, y: 0.5 });
+  const sizes = useRef<Record<string, { w: number; h: number }>>({});
   const selected = selection[selection.length - 1] ?? '';
   const setSelected = useCallback((t: string) => setSelection(t ? [t] : []), []);
   const [locked, setLocked] = useState<string[]>([]);
@@ -1103,6 +1108,12 @@ export function OverlayEditorProvider({
     if (patch.offsetY !== undefined) next.offsetY = Math.round(Math.min(layout.height, Math.max(-layout.height, patch.offsetY)));
     if (patch.scale !== undefined) next.scale = Math.round(Math.min(3, Math.max(0.25, patch.scale)) * 100) / 100;
     if (patch.opacity !== undefined) next.opacity = Math.round(Math.min(1, Math.max(0, patch.opacity)) * 100) / 100;
+    const at = elementAt(view, id), size = sizes.current[id];
+    if (next.scale !== undefined && size) {
+      const vs = layout[view].scale, d = anchorOffset({ x: 0, y: 0, w: size.w * at.scale * vs, h: size.h * at.scale * vs }, anchor, at.scale, next.scale, vs);
+      next.offsetX = Math.round(at.offsetX + d.dx);
+      next.offsetY = Math.round(at.offsetY + d.dy);
+    }
     tagEdit(next.scale !== undefined ? `Resize ${name}` : next.opacity !== undefined ? `Fade ${name}` : `Move ${name}`);
     setElement(view, id, next);
   };
@@ -1203,12 +1214,17 @@ export function OverlayEditorProvider({
       const id = wholeView ? null : ids.includes(target) ? target : ids[0];
       commit();
       tagEdit(wholeView ? `Resize ${VIEW_NAMES[view]}` : layersLabel('Resize', ids));
-      const group = ids.map(i => ({ id: i, ox: 0, oy: 0, s0: elementAt(view, i).scale }));
+      const group = ids.map(i => ({ id: i, ox: elementAt(view, i).offsetX, oy: elementAt(view, i).offsetY, s0: elementAt(view, i).scale }));
       drag.current = { view, id, ox: 0, oy: 0, s0: (id ? elementAt(view, id) : layout[view]).scale, group };
     }
     const { view, id, s0 = 1, group } = drag.current;
     const clampScale = (s: number) => Math.round(Math.min(3, Math.max(0.25, s)) * 100) / 100;
-    if (id) setElements(view, Object.fromEntries((group ?? []).map(g => [g.id, { scale: clampScale(g.s0 * factor) }])));
+    if (id) setElements(view, Object.fromEntries((group ?? []).map(g => {
+      const scale = clampScale(g.s0 * factor), size = sizes.current[g.id];
+      if (!size) return [g.id, { scale }];
+      const vs = layout[view].scale, d = anchorOffset({ x: 0, y: 0, w: size.w * g.s0 * vs, h: size.h * g.s0 * vs }, anchor, g.s0, scale, vs);
+      return [g.id, { scale, offsetX: Math.round(g.ox + d.dx), offsetY: Math.round(g.oy + d.dy) }];
+    })));
     else setLayoutVals(l => ({ ...l, [view]: { ...l[view], scale: clampScale(s0 * factor) } }));
   };
 
@@ -1338,15 +1354,30 @@ export function OverlayEditorProvider({
   };
   // Align / distribute: the preview measures the parts, the editor turns each box move into an offset change (one History step).
   const boxesWait = useRef<((b: Record<string, DesignBox>) => void) | null>(null);
+  const measureBoxes = (ids: string[]) => new Promise<Record<string, DesignBox>>(resolve => {
+    const timer = setTimeout(() => { boxesWait.current = null; resolve({}); }, 1500);
+    boxesWait.current = b => { clearTimeout(timer); boxesWait.current = null; resolve(b); };
+    post({ type: 'measure', ids });
+  });
+  // With an off-centre anchor, learn each selected part's size at 100% (its box now over its scale and the view's) so a resize can shift it.
+  useEffect(() => {
+    if (isPack || !selection.length || (anchor.x === 0.5 && anchor.y === 0.5)) return;
+    let live = true;
+    void measureBoxes(selection).then(boxes => {
+      if (!live) return;
+      for (const [id, b] of Object.entries(boxes)) {
+        const k = elementAt(viewOf(id), id).scale * layout[viewOf(id)].scale;
+        if (k > 0) sizes.current[id] = { w: b.w / k, h: b.h / k };
+      }
+    });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection, anchor, isPack]);
   const arrange = async (label: string, minParts: number, plan: (boxes: Record<string, DesignBox>, viewScale: number) => Record<string, { dx: number; dy: number }>) => {
     const ids = selection.filter(id => !locked.includes(id));
     if (isPack || ids.length < minParts) return;
     const view = viewOf(selected);
-    const boxes = await new Promise<Record<string, DesignBox>>(resolve => {
-      const timer = setTimeout(() => { boxesWait.current = null; resolve({}); }, 1500);
-      boxesWait.current = b => { clearTimeout(timer); boxesWait.current = null; resolve(b); };
-      post({ type: 'measure', ids });
-    });
+    const boxes = await measureBoxes(ids);
     const moves = plan(Object.fromEntries(Object.entries(boxes).filter(([id]) => ids.includes(id))), layout[view].scale || 1);
     const patches = Object.fromEntries(Object.entries(moves).map(([id, m]) => {
       const at = elementAt(view, id);
@@ -1614,6 +1645,8 @@ export function OverlayEditorProvider({
     closeLayerMenu,
     resetLayer,
     editLayer,
+    anchor,
+    setAnchor,
     centerLayer,
     copyLayerToScenes,
     sceneCount: sceneKeys.length,
