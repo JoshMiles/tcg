@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { ELEMENT_IDS, type ElementId, type OverlayLayout } from '@/lib/overlay-layout';
 import { MAX_CUSTOM, moveCustomOnto, newCustom, type CustomKind } from '@/lib/overlay-custom';
@@ -31,7 +31,7 @@ const VIEWS: { view: Mode; label: string }[] = [
 ];
 
 // The preview's elements as a list: select, hover-highlight, hide (where a show/hide setting exists) and reset a moved one.
-export function LayersPanel({ overlapping, layout, selected, selection, locked, toggleSelect, toggleLock, valueOf, setValue, setLayoutVals, selectTarget, selectView, hoverElement, openLayerMenu }: {
+export function LayersPanel({ overlapping, layout, selected, selection, locked, toggleSelect, toggleLock, linkSelection, unlinkSelection, valueOf, setValue, setLayoutVals, selectTarget, selectView, hoverElement, openLayerMenu }: {
   overlapping: string[];
   layout: OverlayLayout;
   selected: string;
@@ -39,6 +39,8 @@ export function LayersPanel({ overlapping, layout, selected, selection, locked, 
   locked: string[];
   toggleSelect: (target: string) => void;
   toggleLock: (ids: string[]) => void;
+  linkSelection: () => void;
+  unlinkSelection: () => void;
   valueOf: (key: string) => PropValue;
   setValue: (key: string, raw: unknown) => void;
   setLayoutVals: (u: OverlayLayout | ((l: OverlayLayout) => OverlayLayout), label?: string) => void;
@@ -67,6 +69,8 @@ export function LayersPanel({ overlapping, layout, selected, selection, locked, 
     selectTarget(`custom:${layer.id}`);
   };
   const [renaming, setRenaming] = useState('');
+  const [folded, setFolded] = useState<string[]>([]); // collapsed link groups, keyed by their ids
+  const linked = [...(layout.pack.links ?? []), ...(layout.collection.links ?? [])].flat().some(t => selection.includes(t));
   const rename = (view: Mode, layerId: string, name: string) => {
     setRenaming('');
     const n = name.trim().slice(0, 40);
@@ -74,19 +78,36 @@ export function LayersPanel({ overlapping, layout, selected, selection, locked, 
   };
   return (
     <div data-layers className="px-3 py-2 space-y-2" onMouseLeave={() => hoverElement('')}>
+      <div className="flex items-center gap-1 text-xs text-gray-500">
+        <button type="button" disabled={selection.filter(t => !t.startsWith('custom:')).length < 2} onClick={linkSelection} title="Link the selected layers so they move and scale together" className="rounded border border-gray-700 px-1.5 py-0.5 hover:border-gray-500 hover:text-white disabled:opacity-40"><Icon name="link" /> Link</button>
+        <button type="button" disabled={!linked} onClick={unlinkSelection} title="Release the selected layers' link" className="rounded border border-gray-700 px-1.5 py-0.5 hover:border-gray-500 hover:text-white disabled:opacity-40"><Icon name="unlink" /> Unlink</button>
+      </div>
       {VIEWS.map(({ view, label }) => (
         <div key={view}>
           <button type="button" onClick={() => selectView(view)} onContextMenu={menuOn(view, null)} className="text-xs uppercase tracking-wide text-gray-500 font-semibold hover:text-white">
             {label}
           </button>
           <ul>
-            {ELEMENT_IDS[view].map(id => {
+            {[...new Set(ELEMENT_IDS[view].flatMap(id => (layout[view].links?.find(s => s.includes(id)) ?? [id]).filter((t): t is ElementId => !t.startsWith('custom:'))))].map(id => {
+              const set = layout[view].links?.find(s => s.includes(id));
+              const gk = set?.join(',') ?? '';
+              const head = !!set && set.find(t => !t.startsWith('custom:')) === id;
+              if (set && folded.includes(gk) && !head) return null;
               const moved = !!layout[view].elements?.[id];
               const key = VISIBLE_KEY[id];
               const visible = key ? valueOf(key) !== false : true;
               return (
+                <Fragment key={id}>
+                {head && (
+                  <li className="flex items-center gap-1 rounded text-xs text-gray-400">
+                    <button type="button" aria-expanded={!folded.includes(gk)} onClick={() => setFolded(f => (f.includes(gk) ? f.filter(x => x !== gk) : [...f, gk]))} className="flex-1 flex items-center gap-1 px-2 py-0.5 text-left hover:text-white">
+                      <Icon name={folded.includes(gk) ? 'chevronRight' : 'chevronDown'} />
+                      <Icon name="link" />
+                      Group {(layout[view].links ?? []).indexOf(set) + 1}
+                    </button>
+                  </li>
+                )}
                 <li
-                  key={id}
                   onMouseEnter={() => hoverElement(id)}
                   onDoubleClick={() => selectTarget(id)}
                   onContextMenu={menuOn(view, id)}
@@ -132,6 +153,7 @@ export function LayersPanel({ overlapping, layout, selected, selection, locked, 
                     </button>
                   )}
                 </li>
+                </Fragment>
               );
             })}
           </ul>
