@@ -539,12 +539,12 @@ export function OverlayEditorProvider({
   // Twitch UI zones (38.25): editor-only boxes, saved staff-wide per scope as they are edited (not part of Save / versions). Pack scope has none.
   const [zonesMap, setZonesMap] = useState(initialZones);
   const zones = useMemo(() => (isPack ? [] : zonesMap[layoutKey] ?? []), [isPack, zonesMap, layoutKey]);
-  const zoneSave = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const zoneSave = useRef<Record<string, ReturnType<typeof setTimeout>>>({}); // one timer per scope, so switching scope never drops a pending save
   const setZones = (fn: (z: OverlayZone[]) => OverlayZone[]) => {
-    const next = fn(zones).slice(0, MAX_ZONES);
-    setZonesMap(m => ({ ...m, [layoutKey]: next }));
-    clearTimeout(zoneSave.current);
-    zoneSave.current = setTimeout(() => void saveOverlayZonesAction(layoutKey, next), 600);
+    const next = fn(zones).slice(0, MAX_ZONES), key = layoutKey;
+    setZonesMap(m => ({ ...m, [key]: next }));
+    clearTimeout(zoneSave.current[key]);
+    zoneSave.current[key] = setTimeout(() => void saveOverlayZonesAction(key, next), 600);
   };
   const [overlapIds, setOverlapIds] = useState<string[]>([]);
   const isOver = scope !== 'global';
