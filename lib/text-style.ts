@@ -28,6 +28,17 @@ export const VALIGNS = ['top', 'middle', 'bottom'] as const;
 /** Auto-fit: `shrink` = the largest size (up to the set size) at which the text fits its box; `width` = one line spanning the box. */
 export const FIT_MODES = ['shrink', 'width'] as const;
 export type FitMode = (typeof FIT_MODES)[number];
+/** Case: `upper` is today's `uppercase` flag (an old saved flag reads as `upper`); title and lower rewrite the text; small caps draw lowercase as scaled capitals. */
+export const TEXT_CASES = ['upper', 'lower', 'title', 'smallcaps'] as const;
+export type TextCase = (typeof TEXT_CASES)[number];
+export const SCRIPTS = ['sup', 'sub'] as const;
+/** Small capitals are the capital at this share of the size; superscript and subscript are the text at this share of the size. */
+export const SMALLCAP_SCALE = 0.8;
+export const SCRIPT_SCALE = 0.65;
+/** Where a superscript or subscript sits, in em of its own (scaled) size, up positive. */
+export const SCRIPT_SHIFT = { sup: 0.6, sub: -0.25 } as const;
+/** The line height "auto" gives (a multiple of the size). */
+export const AUTO_LEADING = 1.2;
 
 export interface Effects {
   outline?: { color: string; width: number };
@@ -35,7 +46,8 @@ export interface Effects {
   shadow?: { color: string; x: number; y: number; blur: number };
   /** Today's pressed-into-metal look (light and dark edges). */
   engrave?: boolean;
-  gradientText?: { from: string; to: string; angle: number };
+  /** `from` and `to` are always the first and last colour; `stops` (2 to 4 colours, position in %) is optional, so an old two-colour gradient reads as it did. */
+  gradientText?: { from: string; to: string; angle: number; stops?: { color: string; at: number }[] };
 }
 
 export interface TextStyle {
@@ -54,6 +66,41 @@ export interface TextStyle {
   /** Paragraph: first-line indent and the space between paragraphs, both in em. Absent = 0. */
   indent?: number;
   paraGap?: number;
+  /** Character (all optional, absent = today's render). */
+  strike?: true; overline?: true;
+  textCase?: TextCase;
+  /** Letter spacing in thousandths of an em (-100 to 800); when present it replaces `letterSpacing`. */
+  tracking?: number;
+  /** Extra space at every word gap, thousandths of an em (-100 to 800). */
+  wordSpacing?: number;
+  /** Line height "auto": `AUTO_LEADING`, replacing `lineHeight`. */
+  autoLeading?: true;
+  /** Shift the baseline up (positive) or down, % of the size. For one-line tokens: it moves the whole text box. */
+  baseline?: number;
+  script?: (typeof SCRIPTS)[number];
+  /** `false` = no kerning. */
+  kerning?: false;
+}
+
+/** The case a text has: the new field, else today's uppercase flag. */
+export const caseOf = (s: { textCase?: TextCase; uppercase: boolean }): TextCase | undefined => s.textCase ?? (s.uppercase ? 'upper' : undefined);
+/** Letter spacing in em: `tracking` when set, else the old field (tenths of an em). */
+export const spacingEm = (s: { tracking?: number; letterSpacing: number }) => (s.tracking !== undefined ? s.tracking / 1000 : s.letterSpacing / 10);
+export const wordEm = (s: { wordSpacing?: number }) => (s.wordSpacing ?? 0) / 1000;
+export const leadingOf = (s: { autoLeading?: true; lineHeight: number }) => (s.autoLeading ? AUTO_LEADING : s.lineHeight);
+
+/** Title case: the first letter of every word up, the rest down. */
+export const titleCase = (t: string) => t.toLowerCase().replace(/(^|[\s\-(\[])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
+/** A line split into runs for small caps: lowercase letters become capitals marked `s` (drawn at SMALLCAP_SCALE), everything else is as is. */
+export function capRuns(t: string): { t: string; s: boolean }[] {
+  const out: { t: string; s: boolean }[] = [];
+  for (const ch of t) {
+    const small = ch !== ch.toUpperCase();
+    const c = small ? ch.toUpperCase() : ch;
+    const last = out[out.length - 1];
+    if (last && last.s === small) last.t += c; else out.push({ t: c, s: small });
+  }
+  return out;
 }
 
 /** The box a text sits in (not for overlay layers without a box). Every field is optional: absent = today's look (grows with its text, centred, wraps). */
@@ -79,7 +126,12 @@ export function sanitizeFx(v: unknown): Effects {
   if (isRec(o.glow)) fx.glow = { color: hex(o.glow.color, '#ffffff'), blur: r2(clamp(o.glow.blur, 0, 40, 8)), strength: r2(clamp(o.glow.strength, 0, 3, 1)) };
   if (isRec(o.shadow)) fx.shadow = { color: hex(o.shadow.color, '#000000'), x: r2(clamp(o.shadow.x, -20, 20, 0)), y: r2(clamp(o.shadow.y, -20, 20, 2)), blur: r2(clamp(o.shadow.blur, 0, 30, 4)) };
   if (o.engrave === true) fx.engrave = true;
-  if (isRec(o.gradientText)) fx.gradientText = { from: hex(o.gradientText.from, '#fde68a'), to: hex(o.gradientText.to, '#f59e0b'), angle: Math.round(((clamp(o.gradientText.angle, -100000, 100000, 180) % 360) + 360) % 360) };
+  if (isRec(o.gradientText)) {
+    const g = o.gradientText;
+    const stops = Array.isArray(g.stops) ? g.stops.filter(isRec).slice(0, 4).map(x => ({ color: hex(x.color, '#ffffff'), at: Math.round(clamp(x.at, 0, 100, 0)) })).sort((a, b) => a.at - b.at) : [];
+    const ends = stops.length >= 2 ? { from: stops[0].color, to: stops[stops.length - 1].color } : { from: hex(g.from, '#fde68a'), to: hex(g.to, '#f59e0b') };
+    fx.gradientText = { ...ends, angle: Math.round(((clamp(g.angle, -100000, 100000, 180) % 360) + 360) % 360), ...(stops.length >= 2 ? { stops } : {}) };
+  }
   return fx;
 }
 
@@ -94,6 +146,15 @@ export function sanitizeTextStyle(raw: Record<string, unknown>, fontIds: readonl
     ...(fit ? { fit, minSize: r2(clamp(raw.minSize, 1, 30, DEFAULT_MIN_SIZE)) } : {}),
     ...(clamp(raw.indent, 0, 5, 0) > 0 ? { indent: r2(clamp(raw.indent, 0, 5, 0)) } : {}),
     ...(clamp(raw.paraGap, 0, 3, 0) > 0 ? { paraGap: r2(clamp(raw.paraGap, 0, 3, 0)) } : {}),
+    ...(raw.strike === true ? { strike: true as const } : {}),
+    ...(raw.overline === true ? { overline: true as const } : {}),
+    ...(pick(raw.textCase, TEXT_CASES, undefined as unknown as TextCase) ? { textCase: raw.textCase as TextCase } : {}),
+    ...(raw.tracking !== undefined && raw.tracking !== null && raw.tracking !== '' && Number.isFinite(Number(raw.tracking)) ? { tracking: Math.round(clamp(raw.tracking, -100, 800, 0)) } : {}),
+    ...(Math.round(clamp(raw.wordSpacing, -100, 800, 0)) !== 0 ? { wordSpacing: Math.round(clamp(raw.wordSpacing, -100, 800, 0)) } : {}),
+    ...(raw.autoLeading === true ? { autoLeading: true as const } : {}),
+    ...(Math.round(clamp(raw.baseline, -100, 100, 0)) !== 0 ? { baseline: Math.round(clamp(raw.baseline, -100, 100, 0)) } : {}),
+    ...(pick(raw.script, SCRIPTS, undefined as unknown as (typeof SCRIPTS)[number]) ? { script: raw.script as (typeof SCRIPTS)[number] } : {}),
+    ...(raw.kerning === false ? { kerning: false as const } : {}),
   };
 }
 

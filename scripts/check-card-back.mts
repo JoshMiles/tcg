@@ -409,4 +409,52 @@ for (const [name, over] of [
   ok(JSON.stringify(wl(s, stub)) === JSON.stringify(lay.layoutText(s as Parameters<typeof lay.layoutText>[0], stub)), 'widget port matches layoutText: ' + name);
 }
 
+// ── 38.12 c: character extras and gradient stops ──
+const CHAR_FIELDS = ['strike', 'overline', 'textCase', 'tracking', 'wordSpacing', 'autoLeading', 'baseline', 'script', 'kerning'];
+ok(CHAR_FIELDS.every(k => !(k in el1({}))) && CHAR_FIELDS.every(k => !(k in el1({ strike: false, overline: 1, textCase: 'weird', wordSpacing: 0, autoLeading: false, baseline: 0, script: 'x', kerning: true }))), 'every character field is omitted at its default, so a saved back is unchanged');
+ok(el1({ strike: true }).strike === true && el1({ overline: true }).overline === true && el1({ autoLeading: true }).autoLeading === true && el1({ kerning: false }).kerning === false, 'switches are kept');
+ok(el1({ textCase: 'smallcaps' }).textCase === 'smallcaps' && el1({ textCase: 'title' }).textCase === 'title' && el1({ script: 'sup' }).script === 'sup', 'case and script keep a valid value');
+ok(el1({ tracking: 9999 }).tracking === 800 && el1({ tracking: -999 }).tracking === -100 && el1({ tracking: 0 }).tracking === 0 && el1({ tracking: 12.6 }).tracking === 13 && !('tracking' in el1({ tracking: 'x' })), 'tracking is clamped to -100..800 thousandths and kept at 0');
+ok(el1({ wordSpacing: 9999 }).wordSpacing === 800 && el1({ wordSpacing: -999 }).wordSpacing === -100 && el1({ baseline: 999 }).baseline === 100 && el1({ baseline: -999 }).baseline === -100, 'word spacing and baseline are clamped');
+ok(ts.caseOf({ uppercase: true }) === 'upper' && ts.caseOf({ uppercase: true, textCase: 'lower' }) === 'lower' && ts.caseOf({ uppercase: false }) === undefined, 'an old uppercase flag reads as the upper case');
+ok(ts.spacingEm({ letterSpacing: 2 }) === 0.2 && ts.spacingEm({ letterSpacing: 2, tracking: 200 }) === 0.2 && ts.spacingEm({ letterSpacing: 2, tracking: 50 }) === 0.05, 'tracking is thousandths of an em and replaces the old spacing');
+ok(ts.titleCase('hELLO big-world (x)') === 'Hello Big-World (X)', 'title case');
+ok(JSON.stringify(ts.capRuns('Ab c')) === JSON.stringify([{ t: 'A', s: false }, { t: 'B', s: true }, { t: ' ', s: false }, { t: 'C', s: true }]), 'small caps runs: lowercase becomes scaled capitals');
+const g3 = (g: unknown) => (cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 't', place: 'free', text: 'x', fx: { gradientText: g } }] }).elements[0] as { fx: { gradientText: { from: string; to: string; angle: number; stops?: { color: string; at: number }[] } } }).fx.gradientText;
+ok(!('stops' in g3({ from: '#111111', to: '#222222', angle: 45 })) && g3({ from: '#111111', to: '#222222', angle: 45 }).to === '#222222', 'a two-colour gradient reads as before (no stops)');
+const gs = g3({ angle: 45, stops: [{ color: '#00ff00', at: 100 }, { color: '#ff0000', at: 0 }, { color: '#0000ff', at: 50 }, { color: '#ffffff', at: 70 }, { color: '#000000', at: 80 }] });
+ok(gs.stops?.length === 4 && gs.stops[0].color === '#ff0000' && gs.stops[1].at === 50 && gs.from === '#ff0000' && gs.to === '#00ff00', 'gradient stops: at most 4, sorted by position, from and to follow the ends');
+ok(!('stops' in g3({ angle: 45, from: '#111111', to: '#222222', stops: [{ color: '#00ff00', at: 5 }] })), 'one stop is not a gradient: the two colours are used');
+const cvx = await import('../lib/card-back-canvas');
+const grad3 = lay.effectsCss({ gradientText: gs }, '#000', 240).backgroundImage as string;
+ok(grad3 === 'linear-gradient(45deg, #ff0000 0%, #0000ff 50%, #ffffff 70%, #00ff00 100%)', 'effectsCss writes the stops');
+ok(JSON.stringify(cvx.parseGradient(grad3)?.stops?.map(x => x.at)) === '[0,50,70,100]' && cvx.parseGradient(grad3)?.angle === 45, 'the canvas parses the stops back');
+ok(!cvx.parseGradient('linear-gradient(90deg, #fff, #000)')?.stops && cvx.parseGradient('linear-gradient(90deg, #fff, #000)')?.to === '#000', 'a plain two-colour gradient parses as before');
+const charBack = (over: Record<string, unknown>) => lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 'b', place: 'free', w: 60, size: 6, text: 'Hello World', ...over }] }), PRINT, SIZE, { measure: stub }).find(n => n.id === 'b')!;
+const plainCss = charBack({}).css;
+ok(plainCss.textDecoration === 'none' && !('wordSpacing' in plainCss) && !('fontKerning' in plainCss) && plainCss.letterSpacing === '0em' && plainCss.lineHeight === 1.25, 'a plain text has none of the character CSS');
+ok(charBack({ underline: true, strike: true, overline: true }).css.textDecoration === 'underline line-through overline' && charBack({ strike: true }).css.textDecoration === 'line-through', 'decorations combine');
+ok(charBack({ uppercase: true }).css.textTransform === 'uppercase' && charBack({ textCase: 'upper' }).css.textTransform === 'uppercase' && charBack({ textCase: 'lower', uppercase: true }).text === 'hello world', 'the old uppercase flag renders as the upper case; lower rewrites the text');
+ok(charBack({ textCase: 'title', text: 'hELLO wORLD' }).text === 'Hello World', 'title case rewrites the text');
+ok(charBack({ tracking: 200 }).css.letterSpacing === '0.2em' && charBack({ letterSpacing: 2 }).css.letterSpacing === '0.2em', 'tracking 200 = 0.2 em, and the old spacing field is unchanged');
+ok(charBack({ wordSpacing: 150 }).css.wordSpacing === '0.15em' && charBack({ kerning: false }).css.fontKerning === 'none', 'word spacing and kerning are CSS');
+ok(charBack({ autoLeading: true, lineHeight: 2 }).css.lineHeight === 1.2, 'auto line height is 1.2');
+const sup = charBack({ script: 'sup' }), noSup = charBack({});
+ok(Number(sup.css.fontSize) === Math.round(Number(noSup.css.fontSize) * 0.65 * 100) / 100 && Number(sup.css.top) < Number(noSup.css.top), 'superscript is smaller and sits higher');
+ok(Number(charBack({ baseline: 50 }).css.top) < Number(noSup.css.top) && Number(charBack({ baseline: -50 }).css.top) > Number(noSup.css.top), 'baseline shift moves the box');
+const sc = charBack({ textCase: 'smallcaps' });
+ok(!!sc.spec?.smallCaps && !!sc.lines && sc.css.textTransform === 'none', 'small caps gives explicit lines and the spec says so');
+const cbox2 = cvx.placeBack([charBack({ strike: true, overline: true, wordSpacing: 100, kerning: false, textCase: 'smallcaps' })], SIZE).find(b => b.id === 'b');
+ok(cbox2?.font.strike === true && cbox2.font.overline === true && cbox2.font.kerning === false && cbox2.font.smallCaps === true && Math.abs((cbox2.font.wordSpacing ?? 0) - 0.1 * cbox2.font.size) < 0.01, 'the canvas box carries every character option');
+// Word spacing, case and kerning change widths, so the fit counts them (stub: 0.5 em a character).
+ok(fit({ fit: 'width', wordEm: 0.5, text: 'a b' }).size < fit({ fit: 'width', text: 'a b' }).size, 'word spacing is part of the measure');
+ok(fit({ fit: 'width', boxW: 10, smallCaps: true, text: 'abc' }, () => 50).size > fit({ fit: 'width', boxW: 10, text: 'abc' }, () => 50).size && fit({ fit: 'width', boxW: 10, smallCaps: true, text: 'ABC' }, () => 50).size === fit({ fit: 'width', boxW: 10, text: 'ABC' }, () => 50).size, 'small caps are narrower than capitals');
+let kernSeen: unknown;
+fit({ fit: 'width', kerning: false }, ((_t: string, f: { kerning?: boolean }) => { kernSeen = f.kerning; return 50; }) as never);
+ok(kernSeen === false, 'the measurer is told kerning is off');
+for (const [name, over] of [['word spacing', { wordEm: 0.3 }], ['small caps', { smallCaps: true }], ['small caps shrink', { smallCaps: true, fit: 'shrink', size: 40, boxH: 30, text: 'aaaa bbbb cccc dddd eeee ffff' }], ['kerning', { kerning: false }]] as const) {
+  const s = { ...base, text: 'aaaa bbbb cccc dddd', wrap: true, boxW: 50, size: 10, ...over };
+  ok(JSON.stringify(wl(s, stub)) === JSON.stringify(lay.layoutText(s as Parameters<typeof lay.layoutText>[0], stub)), 'widget port matches layoutText: ' + name);
+}
+
 console.log('card back checks passed');

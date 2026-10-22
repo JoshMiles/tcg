@@ -5,7 +5,7 @@ import { PRINT_W } from './Canvas';
 import { FontPicker } from '../workspace/FontPicker';
 import { loadBackFont } from '@/lib/card-back-fonts';
 import { BACK_FONTS, FONT_CATEGORIES, KIND_LABELS, MAX_TEXT, WEIGHT_NAMES, nearestWeight, type BackEl, type CardBackStyle, type Effects } from '@/lib/card-back';
-import { DEFAULT_MIN_SIZE, SIZE_PRESETS, pctToPt, ptToPct } from '@/lib/text-style';
+import { DEFAULT_MIN_SIZE, SIZE_PRESETS, caseOf, pctToPt, ptToPct, type TextCase } from '@/lib/text-style';
 import { BLENDS, PATTERN_IDS, PATTERN_LABELS } from '@/lib/card-back-patterns';
 import { plateBackground } from '@/lib/card-back-v1';
 import { makeFree, patchBackground, patchElements, resetElement, returnToStack, type Box } from '@/lib/card-back-edit';
@@ -16,13 +16,13 @@ const chip = (on: boolean) => `px-2 py-1 text-xs font-bold rounded-lg border ${o
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return <section className="space-y-2 border-b border-gray-800 pb-3 mb-3 last:border-0"><h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">{title}</h4>{children}</section>;
 }
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="flex items-center gap-2 text-xs text-gray-400"><span className="w-20 shrink-0">{label}</span><span className="flex-1 min-w-0">{children}</span></label>;
+function Row({ label, children, reset }: { label: string; children: ReactNode; reset?: () => void }) {
+  return <label className="flex items-center gap-2 text-xs text-gray-400"><span className="w-20 shrink-0 flex items-center gap-1">{label}{reset && <button type="button" aria-label={`Reset ${label}`} title="Reset to the default" onClick={reset} className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />}</span><span className="flex-1 min-w-0">{children}</span></label>;
 }
-function Num({ label, value, min, max, step = 1, onChange }: { label: string; value: number; min: number; max: number; step?: number; onChange: (n: number) => void }) {
+function Num({ label, value, min, max, step = 1, onChange, reset }: { label: string; value: number; min: number; max: number; step?: number; onChange: (n: number) => void; reset?: () => void }) {
   const [text, setText] = useState<string | null>(null);
   return (
-    <Row label={label}>
+    <Row label={label} reset={reset}>
       <input type="number" aria-label={label} className={field} min={min} max={max} step={step} value={text !== null && Number(text) === value ? text : String(Math.round(value * 100) / 100)}
         onChange={e => { setText(e.target.value); const n = Number(e.target.value); if (e.target.value.trim() !== '' && Number.isFinite(n)) onChange(n); }} onBlur={() => setText(null)} />
     </Row>
@@ -83,6 +83,9 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
   const set = (patch: Partial<BackEl>, key?: string) => onChange(patchElements(style, ids, patch), key ? `${ids.join()}:${key}` : undefined);
   const fx = (patch: Partial<Effects>, key?: string) => set({ fx: { ...e.fx, ...patch } }, key);
   const text = e.kind !== 'qr' && e.kind !== 'logo';
+  const fd = BACK_FONTS.find(f => f.id === e.font) ?? BACK_FONTS[0];
+  const kase = caseOf(e) ?? 'none';
+  const trk = e.tracking ?? Math.round(e.letterSpacing * 100);
   const free = els.every(x => x.place === 'free');
   const toFree = () => { let s = style; for (const x of els) { const b = boxes[x.id]; if (b && x.place === 'stack') s = makeFree(s, x.id, b, b.fontPx, PRINT_W); } onChange(s); };
 
@@ -136,10 +139,33 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
                 </span>
               </Row>
               {e.fit && <Num label="Min size (pt)" value={pctToPt(e.minSize ?? DEFAULT_MIN_SIZE)} min={1.8} max={54} step={0.5} onChange={v => set({ minSize: ptToPct(v) }, 'min')} />}
-              <Row label="Weight"><select aria-label="Weight" className="select select-sm w-full" value={nearestWeight(BACK_FONTS.find(f => f.id === e.font) ?? BACK_FONTS[0], e.weight)} onChange={ev => set({ weight: Number(ev.target.value) })}>{(BACK_FONTS.find(f => f.id === e.font) ?? BACK_FONTS[0]).weights.map(w => <option key={w} value={w}>{WEIGHT_NAMES[w]} ({w})</option>)}</select></Row>
-              <div className="flex flex-wrap gap-3"><Check label="Italic" on={e.italic} onChange={v => set({ italic: v })} /><Check label="Underline" on={e.underline} onChange={v => set({ underline: v })} /><Check label="Uppercase" on={e.uppercase} onChange={v => set({ uppercase: v })} /></div>
-              <Num label="Spacing" value={e.letterSpacing} min={-2} max={20} step={0.5} onChange={v => set({ letterSpacing: v }, 'ls')} />
-              <Num label="Line height" value={e.lineHeight} min={0.8} max={2.5} step={0.05} onChange={v => set({ lineHeight: v }, 'lh')} />
+              <details open className="space-y-1.5">
+                <summary className="text-xs font-bold text-gray-300 cursor-pointer select-none">Character</summary>
+                <div className="space-y-1.5 mt-1.5">
+                  <Row label="Weight" reset={e.weight !== 400 ? () => set({ weight: 400 }) : undefined}><select aria-label="Weight" className="select select-sm w-full" value={nearestWeight(fd, e.weight)} onChange={ev => set({ weight: Number(ev.target.value) })}>{fd.weights.map(w => <option key={w} value={w}>{WEIGHT_NAMES[w]} ({w})</option>)}</select></Row>
+                  <div className="flex flex-wrap gap-3">
+                    <Check label={fd.italicFile ? 'Italic' : 'Slanted'} on={e.italic} onChange={v => set({ italic: v })} />
+                    <Check label="Underline" on={e.underline} onChange={v => set({ underline: v })} />
+                    <Check label="Strikethrough" on={!!e.strike} onChange={v => set({ strike: v || undefined })} />
+                    <Check label="Overline" on={!!e.overline} onChange={v => set({ overline: v || undefined })} />
+                  </div>
+                  <Row label="Case" reset={kase !== 'none' ? () => set({ textCase: undefined, uppercase: false }) : undefined}>
+                    <select aria-label="Case" className="select select-sm w-full" value={kase} onChange={ev => set({ textCase: ev.target.value === 'none' ? undefined : (ev.target.value as TextCase), uppercase: false })}>
+                      {([['none', 'As typed'], ['upper', 'UPPERCASE'], ['lower', 'lowercase'], ['title', 'Title Case'], ['smallcaps', 'Small caps']] as const).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </Row>
+                  <Num label="Tracking" value={trk} min={-100} max={800} step={10} reset={trk !== 0 ? () => set({ tracking: undefined, letterSpacing: 0 }) : undefined} onChange={v => set({ tracking: v, letterSpacing: 0 }, 'ls')} />
+                  <Num label="Word spacing" value={e.wordSpacing ?? 0} min={-100} max={800} step={10} reset={e.wordSpacing ? () => set({ wordSpacing: undefined }) : undefined} onChange={v => set({ wordSpacing: v || undefined }, 'ws')} />
+                  <Check label="Auto line height" on={!!e.autoLeading} onChange={v => set({ autoLeading: v || undefined })} />
+                  {!e.autoLeading && <Num label="Line height" value={e.lineHeight} min={0.8} max={2.5} step={0.05} reset={e.lineHeight !== 1.25 ? () => set({ lineHeight: 1.25 }) : undefined} onChange={v => set({ lineHeight: v }, 'lh')} />}
+                  <Num label="Baseline (%)" value={e.baseline ?? 0} min={-100} max={100} step={5} reset={e.baseline ? () => set({ baseline: undefined }) : undefined} onChange={v => set({ baseline: v || undefined }, 'bl')} />
+                  <Row label="Script" reset={e.script ? () => set({ script: undefined }) : undefined}>
+                    <span className="flex gap-1">{([[undefined, 'Normal'], ['sup', 'Superscript'], ['sub', 'Subscript']] as const).map(([v, l]) => <button key={l} type="button" aria-pressed={e.script === v} onClick={() => set({ script: v })} className={chip(e.script === v)}>{l}</button>)}</span>
+                  </Row>
+                  <Check label="Kerning" on={e.kerning !== false} onChange={v => set({ kerning: v ? undefined : false })} />
+                  <p className="text-[11px] text-gray-500">Baseline and script move the whole box: use them on one-line tokens.</p>
+                </div>
+              </details>
               <Row label="Align"><span className="flex gap-1">{(['left', 'center', 'right', 'justify'] as const).map(a => <button key={a} type="button" aria-pressed={e.align === a} onClick={() => set({ align: a })} className={chip(e.align === a)}>{a}</button>)}</span></Row>
               <Num label="Indent (em)" value={e.indent ?? 0} min={0} max={5} step={0.25} onChange={v => set({ indent: v || undefined }, 'ind')} />
               <Num label="Paragraph gap" value={e.paraGap ?? 0} min={0} max={3} step={0.1} onChange={v => set({ paraGap: v || undefined }, 'pg')} />
@@ -187,7 +213,24 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
         <div className="space-y-1.5"><Check label="Shadow" on={!!e.fx.shadow} onChange={v => fx({ shadow: v ? { color: '#000000', x: 0, y: 2, blur: 4 } : undefined })} />
           {e.fx.shadow && <><Colour label="Colour" value={e.fx.shadow.color} onChange={v => fx({ shadow: { ...e.fx.shadow!, color: v } })} /><Num label="x" value={e.fx.shadow.x} min={-20} max={20} step={1} onChange={v => fx({ shadow: { ...e.fx.shadow!, x: v } }, 'sx')} /><Num label="y" value={e.fx.shadow.y} min={-20} max={20} step={1} onChange={v => fx({ shadow: { ...e.fx.shadow!, y: v } }, 'sy')} /><Num label="Blur" value={e.fx.shadow.blur} min={0} max={30} step={1} onChange={v => fx({ shadow: { ...e.fx.shadow!, blur: v } }, 'sb')} /></>}</div>
         {text && <div className="space-y-1.5"><Check label="Gradient text" on={!!e.fx.gradientText} onChange={v => fx({ gradientText: v ? { from: '#fde68a', to: '#f59e0b', angle: 180 } : undefined })} />
-          {e.fx.gradientText && <><Colour label="From" value={e.fx.gradientText.from} onChange={v => fx({ gradientText: { ...e.fx.gradientText!, from: v } })} /><Colour label="To" value={e.fx.gradientText.to} onChange={v => fx({ gradientText: { ...e.fx.gradientText!, to: v } })} /><Num label="Angle" value={e.fx.gradientText.angle} min={0} max={360} step={5} onChange={v => fx({ gradientText: { ...e.fx.gradientText!, angle: v } }, 'ga')} /></>}</div>}
+          {e.fx.gradientText && (() => {
+            const g = e.fx.gradientText!;
+            const stops = g.stops ?? [{ color: g.from, at: 0 }, { color: g.to, at: 100 }];
+            const setStops = (next: { color: string; at: number }[], key?: string) => fx({ gradientText: { ...g, stops: next } }, key);
+            return (
+              <>
+                {stops.map((st, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <div className="flex-1 min-w-0"><Colour label={`Stop ${i + 1}`} value={st.color} onChange={v => setStops(stops.map((x, k) => (k === i ? { ...x, color: v } : x)))} /></div>
+                    <input type="number" aria-label={`Stop ${i + 1} position (%)`} className={`${field} w-16!`} min={0} max={100} step={5} value={st.at} onChange={ev => { const n = Number(ev.target.value); if (ev.target.value.trim() !== '' && Number.isFinite(n)) setStops(stops.map((x, k) => (k === i ? { ...x, at: n } : x)), `gs${i}`); }} />
+                    {stops.length > 2 && <button type="button" aria-label={`Remove stop ${i + 1}`} className="text-xs text-gray-400 hover:text-white px-1" onClick={() => setStops(stops.filter((_, k) => k !== i))}>x</button>}
+                  </div>
+                ))}
+                {stops.length < 4 && <button type="button" className={chip(false)} onClick={() => setStops([...stops, { color: '#ffffff', at: 50 }])}>Add stop</button>}
+                <Num label="Angle" value={g.angle} min={0} max={360} step={5} onChange={v => fx({ gradientText: { ...g, angle: v } }, 'ga')} />
+              </>
+            );
+          })()}</div>}
       </Group>
 
       <button type="button" onClick={() => onChange(els.reduce((s, x) => resetElement(s, x.id), style))} className="text-xs font-bold text-gray-400 hover:text-white">Reset {many ? 'elements' : 'element'}</button>

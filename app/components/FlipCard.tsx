@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { qrPath } from '@/lib/qr';
 import type { FlipBack } from '@/lib/flip-back';
 import { DEFAULT_CARD_BACK, plateVars } from '@/lib/card-back';
-import { fontsNeeded, layoutBack, lineCss, type BackNode } from '@/lib/card-back-layout';
+import { capRuns, fontsNeeded, layoutBack, lineCss, SMALLCAP_SCALE, type BackNode } from '@/lib/card-back-layout';
 import { loadBackFont } from '@/lib/card-back-fonts';
 
 const MAX_TILT = 12;
@@ -120,7 +120,7 @@ function BackNodeView({ n, qr, flipped }: { n: BackNode; qr: { d: string; size: 
   const id = { 'data-back-id': n.id };
   switch (n.tag) {
     case 'img': return <img {...id} src={n.src} alt="" className={cls} style={style} />;
-    case 'p': return <p {...id} className={cls} style={style}>{n.lines ? n.lines.map((l, i) => <span key={i} style={lineCss(l) as React.CSSProperties}>{l.t || ' '}</span>) : n.text}</p>;
+    case 'p': return <p {...id} className={cls} style={style}>{n.lines ? n.lines.map((l, i) => <span key={i} style={lineCss(l) as React.CSSProperties}>{!l.t ? ' ' : n.spec?.smallCaps ? capRuns(l.t).map((r, k) => (r.s ? <span key={k} style={{ fontSize: `${SMALLCAP_SCALE}em` }}>{r.t}</span> : r.t)) : l.t}</span>) : n.text}</p>;
     case 'ul': return <ul {...id} className={cls} style={style}>{n.items?.map((h, i) => <li key={i}><span>{h.text}</span><span>{h.date}</span></li>)}</ul>;
     case 'a': return <a {...id} href={n.href} tabIndex={flipped ? 0 : -1} onClick={e => e.stopPropagation()} className={cls} style={style}>{n.text}</a>;
     case 'qr':
