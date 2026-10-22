@@ -26,7 +26,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.21 | Both editors: swatches and eyedropper | Ready | S |
 | 38.22 | Overlay Editor: anchor point for resize | Ready | S |
 | 38.23 | Overlay Editor: real frame-rate meter | Ready | S |
-| 38.24 | Overlay Editor: paste a screenshot as background | Ready | XS |
 | 38.25 | Overlay Editor: Twitch UI zones | Ready | S |
 | 38.26 | Overlay Editor: text readability check | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
