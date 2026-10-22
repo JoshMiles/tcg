@@ -89,6 +89,25 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
         <Check label="Locked (the canvas can't drag it)" on={e.locked} onChange={v => set({ locked: v })} />
       </Group>
 
+      {!many && (e.kind === 'text' || e.kind === 'logo' || e.kind === 'qr') && (
+        <Group title="Content">
+          {e.kind === 'text' && (
+            <label className="block text-xs text-gray-400">Text <span className="text-gray-600">({e.text.length}/{MAX_TEXT}) {'{pack} {season} {card} {version} {edition} {printNumber} {holder} {date}'}</span>
+              <textarea ref={textRef} aria-label="Text" className="textarea w-full mt-1" rows={3} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
+            </label>
+          )}
+          {e.kind === 'text' && <MarkupButtons wrap={wrapText} />}
+          {e.kind === 'logo' && (
+            <>
+              <Row label="Image"><span className="flex gap-1">{(['cover', 'url'] as const).map(s => <button key={s} type="button" aria-pressed={e.src === s} onClick={() => set({ src: s })} className={chip(e.src === s)}>{s === 'cover' ? 'Pack cover' : 'Uploaded'}</button>)}</span></Row>
+              {e.src === 'url' && <ImageUploadField name="cardBackLogo" label="Logo image" defaultValue={e.url} onUrlChange={u => set({ url: u, src: 'url' })} />}
+              <Num label="Size (px)" value={e.px} min={10} max={120} step={2} onChange={v => set({ px: v }, 'px')} />
+            </>
+          )}
+          {e.kind === 'qr' && (<><Colour label="Dark" value={e.dark} named={['auto']} onChange={v => set({ dark: v })} /><Colour label="Light" value={e.light} named={['auto']} onChange={v => set({ light: v })} /></>)}
+        </Group>
+      )}
+
       {text && (
         <Group title="Font">
           <Row label="Font">
@@ -148,25 +167,6 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
       <Group title="Effects">
         <EffectFields value={e} onChange={set} text={text} free={free} />
       </Group>
-
-      {!many && (e.kind === 'text' || e.kind === 'logo' || e.kind === 'qr') && (
-        <Group title="Content">
-          {e.kind === 'text' && (
-            <label className="block text-xs text-gray-400">Text <span className="text-gray-600">({e.text.length}/{MAX_TEXT}) {'{pack} {season} {card} {version} {edition} {printNumber} {holder} {date}'}</span>
-              <textarea ref={textRef} aria-label="Text" className="textarea w-full mt-1" rows={3} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
-            </label>
-          )}
-          {e.kind === 'text' && <MarkupButtons wrap={wrapText} />}
-          {e.kind === 'logo' && (
-            <>
-              <Row label="Image"><span className="flex gap-1">{(['cover', 'url'] as const).map(s => <button key={s} type="button" aria-pressed={e.src === s} onClick={() => set({ src: s })} className={chip(e.src === s)}>{s === 'cover' ? 'Pack cover' : 'Uploaded'}</button>)}</span></Row>
-              {e.src === 'url' && <ImageUploadField name="cardBackLogo" label="Logo image" defaultValue={e.url} onUrlChange={u => set({ url: u, src: 'url' })} />}
-              <Num label="Size (px)" value={e.px} min={10} max={120} step={2} onChange={v => set({ px: v }, 'px')} />
-            </>
-          )}
-          {e.kind === 'qr' && (<><Colour label="Dark" value={e.dark} named={['auto']} onChange={v => set({ dark: v })} /><Colour label="Light" value={e.light} named={['auto']} onChange={v => set({ light: v })} /></>)}
-        </Group>
-      )}
 
       <button type="button" onClick={() => onChange(els.reduce((s, x) => resetElement(s, x.id), style))} className="text-xs font-bold text-gray-400 hover:text-white">Reset {many ? 'elements' : 'element'}</button>
     </div>
