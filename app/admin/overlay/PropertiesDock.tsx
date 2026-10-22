@@ -35,6 +35,8 @@ export function PropertiesDock({ column }: { column: ReturnType<typeof useColumn
     toggleSelect,
     toggleLock,
     resetSelection,
+    linkSelection,
+    unlinkSelection,
     modifiedCount,
     searching,
     setQuery,
@@ -394,6 +396,8 @@ export function PropertiesDock({ column }: { column: ReturnType<typeof useColumn
                 locked={locked}
                 toggleSelect={toggleSelect}
                 toggleLock={toggleLock}
+                linkSelection={linkSelection}
+                unlinkSelection={unlinkSelection}
                 selectView={selectView}
                 hoverElement={hoverElement}
                 openLayerMenu={openLayerMenu}

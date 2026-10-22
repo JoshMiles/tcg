@@ -561,6 +561,14 @@ await sbx.deleteSandbox(box.id);
   eq(await sw.getSavedSwatches(), ['#abcdef'], 'swatches: read back');
   eq([sw.toHex('rgb(241,187,6)'), sw.toHex('#ABCDEF'), sw.toHex('blue')], ['#f1bb06', '#abcdef', null], 'swatches: toHex');
 }
+// ── Linked layers (ROADMAP 38.18): sanitizeLayout keeps known ids, each in one set of 2 or more; none by default ──
+{
+  ok(sanitizeLayout({}).pack.links === undefined && sanitizeLayout({ pack: { links: [] } }).pack.links === undefined, 'links: absent by default');
+  const l = sanitizeLayout({ pack: { links: [['card', 'label', 'nope', 'heading'], ['label', 'bar'], ['bar', 'got'], 'x', ['strip']] }, collection: { links: [['heading', 'grid']] } });
+  eq(l.pack.links, [['card', 'label'], ['bar', 'got']], 'links: unknown and other-view ids dropped, one set per id, singles dropped');
+  eq(l.collection.links, [['heading', 'grid']], 'links: collection view');
+  eq(sanitizeLayout({ pack: { links: 'nope' } }).pack.links, undefined, 'links: junk reads as none');
+}
 // ── Twitch UI zones (ROADMAP 38.25): saved per scope in the settings, clamped, capped, never in the widget config ──
 {
   const { sanitizeZones, boxesOverlap } = await import('../lib/overlay-layout');

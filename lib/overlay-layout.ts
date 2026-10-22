@@ -23,10 +23,12 @@ export interface Placement {
   elements?: Partial<Record<ElementId, ElementPlacement>>;
   /** Layers the admin added to this view (text, image, shape), at most 16. Absent = none, today's look. */
   custom?: CustomLayer[];
+  /** Parts that move and scale together (ROADMAP 38.18): sets of 2 or more ids, each id in at most one set. Absent = none linked. */
+  links?: string[][];
 }
 
 /** One part's spot, plus how see-through it is (0 to 1). Absent opacity = fully solid, as before. */
-export type ElementPlacement = Omit<Placement, 'elements' | 'custom'> & { opacity?: number };
+export type ElementPlacement = Omit<Placement, 'elements' | 'custom' | 'links'> & { opacity?: number };
 
 export interface OverlayLayout {
   width: number;     // design stage = the browser source size, px
@@ -124,7 +126,16 @@ function withElements(p: Placement, raw: unknown, view: LayoutMode, width: numbe
     if (el.scale !== 1 || el.offsetX !== 0 || el.offsetY !== 0 || opacity < 1) out[id] = el;
   }
   const custom = sanitizeCustom((raw && typeof raw === 'object' ? (raw as Loose).custom : null), width, height);
-  return { ...p, ...(Object.keys(out).length ? { elements: out } : {}), ...(custom.length ? { custom } : {}) };
+  // Link sets keep only this view's known ids (built-in or existing custom), each id once, and need 2 or more.
+  const known = new Set<string>([...ELEMENT_IDS[view], ...custom.map(c => 'custom:' + c.id)]);
+  const seen = new Set<string>();
+  const rawLinks = (raw && typeof raw === 'object' ? (raw as Loose).links : null);
+  const links: string[][] = [];
+  for (const set of Array.isArray(rawLinks) ? rawLinks : []) {
+    const ids = [...new Set(Array.isArray(set) ? set : [])].filter((id): id is string => typeof id === 'string' && known.has(id) && !seen.has(id));
+    if (ids.length > 1) { ids.forEach(id => seen.add(id)); links.push(ids); }
+  }
+  return { ...p, ...(Object.keys(out).length ? { elements: out } : {}), ...(custom.length ? { custom } : {}), ...(links.length ? { links } : {}) };
 }
 
 /** A part's box on the stage in design px (what the preview measures). */

@@ -184,6 +184,9 @@ export interface OverlayEditorContextValue {
   alignSelection: (mode: AlignMode) => void;
   distributeSelection: (axis: 'x' | 'y') => void;
   resetSelection: () => void;
+  /** Link the selected built-in parts of a view so they select, move and scale together; Unlink releases their sets (global or scene layouts only). */
+  linkSelection: () => void;
+  unlinkSelection: () => void;
   selectTarget: (target: string) => void;
   selectView: (view: Mode) => void;
   hoverElement: (target: string) => void;
@@ -1121,6 +1124,7 @@ export function OverlayEditorProvider({
     });
   const setElement = (view: Mode, id: string, patch: Partial<ElementPlacement>) => setElements(view, { [id]: patch });
   // The parts an edit on `target` acts on: the whole selection when it is part of it, else just that part; locked parts are skipped.
+  const linkSet = (target: string) => layout[viewOf(target)].links?.find(s => s.includes(target)) ?? [target];
   const editable = (target: string) => (selection.includes(target) ? selection : [target]).filter(id => !locked.includes(id));
   const layersLabel = (verb: string, ids: string[]) => (ids.length > 1 ? `${verb} ${ids.length} layers` : `${verb} ${LAYER_NAMES[ids[0] as ElementId] ?? ids[0]}`);
   // The Layer block's fields: the same clamps as dragging, resizing and sanitizeLayout, one labelled History step per edit.
@@ -1352,7 +1356,7 @@ export function OverlayEditorProvider({
 
   // Select one element and open its category and section; the preview click and the Layers panel share this.
   const selectTarget = (target: string) => {
-    setSelected(target);
+    setSelection([...linkSet(target).filter(t => t !== target), target]);
     const t = TARGET_SECTIONS[target];
     if (!t || (isPack && t[0] === 'collection')) return;
     const [c, section] = t;
@@ -1371,9 +1375,30 @@ export function OverlayEditorProvider({
   };
   // Shift+click: add a part to the selection, or take a selected one out. Only one view's parts can be selected together.
   const toggleSelect = (target: string) => {
-    if (selection.includes(target)) setSelection(selection.filter(t => t !== target));
+    const set = linkSet(target);
+    if (selection.includes(target)) setSelection(selection.filter(t => !set.includes(t)));
     else if (!selected || viewOf(selected) !== viewOf(target)) selectTarget(target);
-    else setSelection([...selection, target]);
+    else setSelection([...selection.filter(t => !set.includes(t)), ...set.filter(t => t !== target), target]);
+  };
+  // Link / Unlink (ROADMAP 38.18): linked parts select together, so the group drag, resize and nudge move them as one.
+  const linkSelection = () => {
+    const ids = selection.filter(t => !t.startsWith('custom:'));
+    if (isPack || ids.length < 2) return;
+    const view = viewOf(ids[0]);
+    setLayoutVals(l => {
+      const old = l[view].links ?? [];
+      const hit = old.filter(s => s.some(t => ids.includes(t)));
+      return { ...l, [view]: { ...l[view], links: [...old.filter(s => !hit.includes(s)), [...new Set([...hit.flat(), ...ids])]] } };
+    }, layersLabel('Link', ids));
+  };
+  const unlinkSelection = () => {
+    if (isPack || !selection.some(t => linkSet(t).length > 1)) return;
+    const view = viewOf(selected);
+    setLayoutVals(l => {
+      const links = (l[view].links ?? []).filter(s => !s.some(t => selection.includes(t)));
+      const { links: _gone, ...rest } = l[view];
+      return { ...l, [view]: links.length ? { ...rest, links } : rest };
+    }, layersLabel('Unlink', selection));
   };
   // Align / distribute: the preview measures the parts, the editor turns each box move into an offset change (one History step).
   const boxesWait = useRef<((b: Record<string, DesignBox>) => void) | null>(null);
@@ -1671,6 +1696,8 @@ export function OverlayEditorProvider({
     alignSelection,
     distributeSelection,
     resetSelection,
+    linkSelection,
+    unlinkSelection,
     selectTarget,
     selectView,
     hoverElement,

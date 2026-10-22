@@ -4,7 +4,7 @@ import {
   Type, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, Ellipsis,
   Hand, Keyboard, Move, ZoomIn, Plus, Bug, Flag, Activity, Share2, Smartphone, Bell, BellOff, Filter, List, Pin, Heart, ArrowDown, ArrowUp, Award, Ban, BookOpen, Bomb, CalendarDays, ChartColumn, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   CircleAlert, CircleCheck, CircleDashed, CircleHelp, ClipboardList, Clock, Coins, Compass, Copy, Crown, Download, Film, FlaskConical, Gamepad2, Gem,
-  Gift, GripVertical, Handshake, History, Hourglass, Image, Inbox, Info, Layers, Link, Lock, LockOpen, Medal, Menu, MessageSquare, Monitor, Music,
+  Gift, GripVertical, Handshake, History, Hourglass, Image, Inbox, Info, Layers, Link, Link2Off, Lock, LockOpen, Medal, Menu, MessageSquare, Monitor, Music,
   Palette, PartyPopper, Pause, Pencil, Pipette, Play, Puzzle, Radio, RefreshCw, Repeat, Ruler, Search, Send, Settings, Shield, Sigma, Sparkles,
   Square, Star, StickyNote, Database, House, LogOut, PanelLeftClose, PanelLeftOpen, ExternalLink, Redo2, Eye, EyeOff, Grid3x3, Target, Trash2, TrendingUp, Trophy, Tv, TriangleAlert, Undo2, User, Users, Volume2, Wrench, X, Zap,
 } from 'lucide-react';
@@ -40,7 +40,7 @@ export const ICONS = {
   image: Image, film: Film, music: Music, palette: Palette, flask: FlaskConical, bug: Bug, settings: Settings, menu: Menu, volume: Volume2,
   target: Target, pencil: Pencil, puzzle: Puzzle, gem: Gem, monitor: Monitor, trend: TrendingUp, chart: ChartColumn, coins: Coins,
   hole: CircleDashed, party: PartyPopper, compass: Compass, note: StickyNote, ruler: Ruler, search: Search, gamepad: Gamepad2,
-  chat: MessageSquare, link: Link, share: Share2, phone: Smartphone, shield: Shield, database: Database, home: House, stop: Square, bomb: Bomb, grip: GripVertical, download: Download, copy: Copy,
+  chat: MessageSquare, link: Link, unlink: Link2Off, share: Share2, phone: Smartphone, shield: Shield, database: Database, home: House, stop: Square, bomb: Bomb, grip: GripVertical, download: Download, copy: Copy,
   bold: Bold, italic: Italic, underline: Underline, textLeft: AlignLeft, textCenter: AlignCenter, textRight: AlignRight, more: Ellipsis,
   pause: Pause, play: Play, filter: Filter, bell: Bell, bellOff: BellOff, list: List, pin: Pin, heart: Heart, activity: Activity, calendar: CalendarDays, tv: Tv, text: Type, lock: Lock, unlock: LockOpen, alignLeft: AlignHorizontalJustifyStart, alignCenter: AlignHorizontalJustifyCenter, alignRight: AlignHorizontalJustifyEnd, alignTop: AlignVerticalJustifyStart, alignMiddle: AlignVerticalJustifyCenter, alignBottom: AlignVerticalJustifyEnd, distributeH: AlignHorizontalSpaceAround, distributeV: AlignVerticalSpaceAround, wrench: Wrench, nerd: Sigma, clock: Clock, cheese: CheeseGlyph, redo: Redo2, logout: LogOut, panelClose: PanelLeftClose, panelOpen: PanelLeftOpen, external: ExternalLink, eye: Eye, eyeOff: EyeOff, pipette: Pipette, layers: Layers, grid: Grid3x3, help: CircleHelp,
 } satisfies Record<string, LucideIcon>;
