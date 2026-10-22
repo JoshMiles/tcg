@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
+import { FilterSheet } from '@/app/components/site/BottomSheet';
 
 type Filter = 'all' | 'take' | 'wanted' | 'new' | 'spare';
 type Sort = 'newest' | 'expiring' | 'gain';
@@ -43,6 +44,7 @@ export function BoardToolbar({ total, signedIn }: { total: number; signedIn: boo
 
   return (
     <div className="space-y-3">
+      <FilterSheet active={q !== '' || filter !== 'all' || sort !== 'newest'}>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-56 max-w-sm">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"><Icon name="search" /></span>
@@ -61,6 +63,7 @@ export function BoardToolbar({ total, signedIn }: { total: number; signedIn: boo
           <button key={f.id} type="button" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)} className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${filter === f.id ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-300 hover:text-white'}`}>{f.label}</button>
         ))}
       </div>
+      </FilterSheet>
       {shown === 0 && total > 0 && <p className="rind rounded-2xl p-6 text-center text-sm text-gray-400">No listing matches. Try another filter.</p>}
     </div>
   );
