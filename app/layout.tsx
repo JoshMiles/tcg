@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 };
 
-export const viewport: Viewport = { themeColor: '#0a0f1e', colorScheme: 'dark' };
+export const viewport: Viewport = { viewportFit: 'cover', themeColor: '#0a0f1e', colorScheme: 'dark' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

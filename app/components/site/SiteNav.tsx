@@ -98,7 +98,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
   const isActive = (href: string, exact?: boolean) => (exact ? pathname === href : pathname === href || pathname.startsWith(href + '/'));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-yellow-500/20 bg-gray-950/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-yellow-500/20 bg-gray-950/80 backdrop-blur-sm pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
         <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="The Cheesy TCG, home">
           <img src="/brand/icon.png" alt="" width={34} height={34} className="rounded-lg ring-1 ring-yellow-500/50" />
@@ -189,7 +189,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
         </div>
       </div>
 
-      {open && <div className="xl:hidden fixed inset-0 top-14 z-[-1] bg-gray-950/60" onClick={() => setOpen(false)} aria-hidden />}
+      {open && <div className="xl:hidden fixed inset-0 top-[calc(3.5rem+env(safe-area-inset-top))] z-[-1] bg-gray-950/60" onClick={() => setOpen(false)} aria-hidden />}
       {open && (
         <nav id="site-menu" className="xl:hidden border-t border-gray-800 bg-gray-950 px-4 py-3 grid gap-1" aria-label="Main">
           <button type="button" onClick={() => { setOpen(false); window.dispatchEvent(new Event(OPEN_SEARCH_EVENT)); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-gray-700 text-sm text-gray-400 text-left">

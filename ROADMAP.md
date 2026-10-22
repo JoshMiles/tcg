@@ -35,7 +35,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.31 | Overlay Editor: text formatting in the options bar | Ready | M |
 | 39.1 | Mobile: bottom tab bar | Ready | M |
 | 39.2 | Mobile: "More" bottom sheet replaces the burger menu | Ready | S |
-| 39.3 | Mobile: safe areas and the installed app | Ready | S |
 | 39.4 | Mobile: dialogs and filters as bottom sheets | Ready | M |
 | 39.5 | Mobile: touch pass (tap targets, press states, no hover-only controls) | Ready | S |
 | 39.6 | Mobile: phone-width sweep of every public page | Ready | M |
@@ -193,11 +192,6 @@ A fixed bar along the bottom of the screen below `xl` (where the burger shows to
 
 ### 39.2 "More" bottom sheet (Ready, S)
 The More tab opens a sheet that slides up from the bottom (with a backdrop; Esc, a tap outside or a swipe down closes it; focus is trapped and returns to the tab). It holds: the account row (avatar, name, rank chip, or **Sign in with Twitch**), then Collectors, Season Stats, FAQ, What's new (`ChangelogLink` with its dot), the staff panel link for staff, Install app (`InstallButton`) and Sign out. Replaces the burger drawer and the phone account dropdown; reuse their existing items rather than copying them. Respects `prefers-reduced-motion` (no slide).
-
-### 39.3 Safe areas and the installed app (Ready, S)
-- `viewport-fit=cover` in the root viewport (`app/layout.tsx`), then `env(safe-area-inset-*)` padding on the sticky top bar, the tab bar and full-screen dialogs, so nothing sits under the notch or the home indicator.
-- `theme-color` matching the top bar so the status bar blends in; `overscroll-behavior-y: none` on the body in standalone only, so the app doesn't rubber-band the whole page.
-- Check the manifest's `display` / `background_color` match the dark theme, so the launch screen doesn't flash white.
 
 ### 39.4 Dialogs and filters as bottom sheets (Ready, M)
 Below `md`, the public site's dialogs (card detail, copy / edition pickers, trade composer steps, report and share dialogs) and the filter / sort panels on the Card Dex, binder and Collectors open as bottom sheets (full width, rounded top, a grab handle, swipe down to close, max 90% height with their own scroll) instead of centred boxes. One shared sheet component in `app/components/site/`, used by 39.2 too; desktop keeps today's dialogs. List every dialog it replaces in the PR.

@@ -37,7 +37,7 @@ export function ReportDialog({ target, name, onClose }: { target: string; name: 
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Report ${name}`} className="fixed inset-0 z-90 grid place-items-center overflow-y-auto p-4 bg-black/60 backdrop-blur-xs" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div role="dialog" aria-modal="true" aria-label={`Report ${name}`} className="fixed inset-0 z-90 grid place-items-center overflow-y-auto p-4 safe-inset bg-black/60 backdrop-blur-xs" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="card w-full max-w-md rounded-2xl p-5">
         {sent ? (
           <div className="space-y-3 text-center" role="status">

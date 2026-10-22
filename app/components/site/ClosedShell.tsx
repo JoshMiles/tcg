@@ -22,7 +22,7 @@ export function ClosedShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-hidden">{children}</main>
-      <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">
+      <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12 pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-gray-500">
           <p>Played live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-yellow-500 hover:text-yellow-300 underline">{CHANNEL_NAME}&rsquo;s Twitch channel</a>, and nowhere else.</p>
           <nav aria-label="Legal" className="flex gap-4">
