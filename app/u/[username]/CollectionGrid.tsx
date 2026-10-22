@@ -5,17 +5,23 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { SerialChip, tileChipClass } from '@/app/components/SerialChip';
 import type { CardBackStyle } from '@/lib/card-back';
-import { CardDetail, artFor, bestVariant } from './CardDetail';
+import dynamic from 'next/dynamic';
 import { Binder } from './Binder';
-import { BinderEditor } from './BinderEditor';
 import { DEFAULT_BINDER, type BinderConfig } from '@/lib/binder-config';
 import { getRarity } from '@/lib/rarity';
 import { stillFor } from '@/lib/card-art';
-import { VARIANTS, type VariantCounts } from '@/lib/variants';
+import { VARIANTS, usesFullArt, type VariantCounts } from '@/lib/variants';
 import { holoClass, siteHoloVars, type HoloSpecs } from '@/lib/holo-core';
 import type { CardMaths } from '@/lib/card-maths';
 import type { UpgradeCosts, Variant } from '@/lib/types';
 import { DEFAULT_VIEW, SHOW_LABELS, SORT_LABELS, applyView, compareCollections, packProgress, type ShowFilter, type SortKey, type ViewState } from '@/lib/collection-view';
+
+// Opened by a tap, so they load on demand.
+const CardDetail = dynamic(() => import('./CardDetail').then(m => m.CardDetail), { ssr: false });
+const BinderEditor = dynamic(() => import('./BinderEditor').then(m => m.BinderEditor), { ssr: false });
+
+export const bestVariant = (c: VariantCounts): Variant => [...VARIANTS].reverse().find(v => c[v] > 0) ?? 'regular';
+export const artFor = (c: GridCard, v: Variant) => (usesFullArt(v) && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 
 /** Everything the grid and the card detail need, precomputed on the server. */
 export interface GridCard {

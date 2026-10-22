@@ -11,17 +11,15 @@ import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
 import { getRarity } from '@/lib/rarity';
 import { cardThumbUrl, stillFor } from '@/lib/card-art';
-import { VARIANTS, VARIANT_LABELS, usesFullArt, type VariantCounts } from '@/lib/variants';
+import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { holoClass, holoVars } from '@/lib/holo-core';
 import { UpgradeButton } from '@/app/components/UpgradeButton';
 import { UseTrainerButton } from '@/app/components/UseTrainerButton';
 import { CardMathsPanel } from '@/app/components/CardMathsPanel';
 import type { Variant } from '@/lib/types';
 import { copiesForDialog } from '@/lib/collection-view';
-import type { GridCard } from './CollectionGrid';
+import { artFor, bestVariant, type GridCard } from './CollectionGrid';
 
-export const bestVariant = (c: VariantCounts): Variant => [...VARIANTS].reverse().find(v => c[v] > 0) ?? 'regular';
-export const artFor = (c: GridCard, v: Variant) => (usesFullArt(v) && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '-');
 
 // ── Detail dialog ─────────────────────────────────────────

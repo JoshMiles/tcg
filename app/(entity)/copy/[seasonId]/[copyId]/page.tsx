@@ -13,7 +13,7 @@ import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
 import { getSession } from '@/lib/session';
 import { getUserSettings } from '@/lib/user-settings-store';
-import { ShareStudio } from '@/app/components/ShareStudio';
+import { ShareStudioLazy as ShareStudio } from '@/app/components/ShareStudioLazy';
 import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
 import { ORIGIN_LABELS, ORIGIN_VERB, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
