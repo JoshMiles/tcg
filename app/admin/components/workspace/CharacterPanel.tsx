@@ -251,7 +251,7 @@ export function AccentFields({ value: a, onChange }: { value: TextAccent | undef
   const on = !!a && a.on !== false;
   return (
     <Group title="Highlight tokens">
-      <Check label="Highlight the filled tokens" on={on} onChange={v => onChange(v ? { ...a, on: undefined } : a ? { ...a, on: false } : undefined)} reset={a ? () => onChange(undefined) : undefined} />
+      <Check label="Highlight the filled tokens" on={on} onChange={v => onChange(v ? { ...a, on: true } : a ? { ...a, on: false } : undefined)} reset={a ? () => onChange(undefined) : undefined} />
       {on && (
         <>
           <Colour label="Colour" value={a?.color ?? 'accent'} named={['accent']} onChange={v => onChange({ ...a, color: v })} />
