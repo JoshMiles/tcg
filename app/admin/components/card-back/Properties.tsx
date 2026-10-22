@@ -1,5 +1,7 @@
 'use client';
+import { useRef } from 'react';
 import { ImageUploadField } from '../image-upload';
+import { MarkupButtons } from '../MarkupButtons';
 import { PRINT_W } from './Canvas';
 import { FontPicker } from '../workspace/FontPicker';
 import { loadBackFont } from '@/lib/card-back-fonts';
@@ -41,6 +43,7 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
   /** Shows a style on the canvas without changing the design (the font picker's hover); null restores. */
   onPreview?: (next: CardBackStyle | null) => void;
 }) {
+  const textRef = useRef<HTMLTextAreaElement>(null);
   const ids = style.elements.filter(e => selection.has(e.id)).map(e => e.id);
   if (selection.has('bg') || ids.length === 0) return <BackgroundPanel style={style} onChange={onChange} />;
   const els = style.elements.filter(e => ids.includes(e.id));
@@ -48,6 +51,14 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
   const many = els.length > 1;
   const set = (patch: Partial<BackEl>, key?: string) => onChange(patchElements(style, ids, patch), key ? `${ids.join()}:${key}` : undefined);
   const text = e.kind !== 'qr' && e.kind !== 'logo';
+  // Light markup (**bold**, *italic*, {color:#rrggbb}..{/color}): wrap the selection, or put the caret between the marks.
+  const wrapText = (open: string, close: string) => {
+    const el = textRef.current, a = el?.selectionStart ?? e.text.length, b = el?.selectionEnd ?? a;
+    const next = e.text.slice(0, a) + open + e.text.slice(a, b) + close + e.text.slice(b);
+    if (next.length > MAX_TEXT) return;
+    set({ text: next }, 'text');
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(a + open.length, b + open.length); });
+  };
   const free = els.every(x => x.place === 'free');
   const toFree = () => { let s = style; for (const x of els) { const b = boxes[x.id]; if (b && x.place === 'stack') s = makeFree(s, x.id, b, b.fontPx, PRINT_W); } onChange(s); };
 
@@ -133,9 +144,10 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
         <Group title="Content">
           {e.kind === 'text' && (
             <label className="block text-xs text-gray-400">Text <span className="text-gray-600">({e.text.length}/{MAX_TEXT}) {'{pack} {season} {card} {version} {edition} {printNumber} {holder} {date}'}</span>
-              <textarea aria-label="Text" className="textarea w-full mt-1" rows={3} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
+              <textarea ref={textRef} aria-label="Text" className="textarea w-full mt-1" rows={3} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
             </label>
           )}
+          {e.kind === 'text' && <MarkupButtons wrap={wrapText} />}
           {e.kind === 'logo' && (
             <>
               <Row label="Image"><span className="flex gap-1">{(['cover', 'url'] as const).map(s => <button key={s} type="button" aria-pressed={e.src === s} onClick={() => set({ src: s })} className={chip(e.src === s)}>{s === 'cover' ? 'Pack cover' : 'Uploaded'}</button>)}</span></Row>

@@ -66,3 +66,43 @@ export function markupRuns(str: string, ctx: TokenCtx = {}): MarkupRun[] {
   for (const r of parseMarkup(str)) for (const f of fillRuns(r.t, ctx)) out.push({ ...r, t: f.t, ...(f.tok ? { tok: true } : {}) });
   return out;
 }
+
+/** A styled stretch of a plain text, as character offsets (`to` exclusive). Colour never changes a width. */
+export interface TextMark { from: number; to: number; bold?: boolean; italic?: boolean; color?: string }
+
+/**
+ * The card back's text: the markup stripped to the plain string the line breaker works on, plus the styled stretches as offsets into it.
+ * `marks` is absent when nothing is styled, so unmarked text is exactly what it was. Runs of spaces collapse to one (the line breaker would
+ * collapse them and shift the offsets).
+ */
+export function markedText(str: string): { text: string; marks?: TextMark[] } {
+  let text = '';
+  const marks: TextMark[] = [];
+  for (const r of parseMarkup(str)) {
+    const from = text.length;
+    for (const ch of r.t) if (!(ch === ' ' && text.endsWith(' '))) text += ch;
+    if ((r.bold || r.italic || r.color) && text.length > from) marks.push({ from, to: text.length, ...(r.bold ? { bold: true } : {}), ...(r.italic ? { italic: true } : {}), ...(r.color ? { color: r.color } : {}) });
+  }
+  return marks.length ? { text, marks } : { text };
+}
+
+/**
+ * One line's text (`t`, which starts at offset `o` of the plain text) split at the marks' edges, each piece with its style. `ell`: the line ends
+ * in an ellipsis the line breaker added; it takes the style of the character before it.
+ */
+export function markPieces(t: string, o: number, marks?: TextMark[], ell?: boolean): { t: string; bold?: boolean; italic?: boolean; color?: string }[] {
+  const body = ell ? t.slice(0, -1) : t;
+  const cuts = new Set([0, body.length]);
+  for (const m of marks ?? []) for (const c of [m.from - o, m.to - o]) if (c > 0 && c < body.length) cuts.add(c);
+  const at = [...cuts].sort((a, b) => a - b);
+  const out: { t: string; bold?: boolean; italic?: boolean; color?: string }[] = [];
+  for (let i = 0; i < at.length - 1; i++) {
+    const m = (marks ?? []).find(k => k.from <= o + at[i] && o + at[i] < k.to);
+    out.push({ t: body.slice(at[i], at[i + 1]), ...(m?.bold ? { bold: true } : {}), ...(m?.italic ? { italic: true } : {}), ...(m?.color ? { color: m.color } : {}) });
+  }
+  if (ell) {
+    const last = out[out.length - 1];
+    if (last) last.t += '…'; else out.push({ t: '…' });
+  }
+  return out;
+}

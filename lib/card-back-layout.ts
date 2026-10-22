@@ -2,6 +2,7 @@
 // The DOM renderer (FlipCard) draws these nodes; the canvas and overlay renderers of 20.3c draw the same list, so every place shows the
 // same design. STACK nodes are laid out by the plate's own CSS (today's centred column), FREE nodes carry final pixel positions.
 import { BACK_FONTS, nearestWeight, type BackEl, type CardBackStyle, type Effects } from './card-back';
+import { markPieces, markedText, stripMarkup, type TextMark } from './text-markup';
 import { DEFAULT_MIN_SIZE, SCRIPT_SCALE, SCRIPT_SHIFT, SMALLCAP_SCALE, capRuns, caseOf, leadingOf, spacingEm, titleCase, wordEm } from './text-style';
 export { capRuns, SMALLCAP_SCALE };
 import { editionLine, madeLine, type FlipBack } from './flip-back';
@@ -31,6 +32,8 @@ export interface BackNode {
   spec?: TextSpec;
   /** Fonts this node needs loaded (curated ids with files). */
   font?: { id: string; weight: number; italic?: boolean };
+  /** The bold / italic faces the text's markup needs, besides `font`. */
+  moreFonts?: { id: string; weight: number; italic?: boolean }[];
   /** The effects the canvas draws itself (px at this layout's card width). With an inner shadow the DOM draws every shadow in one SVG filter, so `shadow` keeps the plain text-shadow list for the canvas. */
   inner?: Shade;
   shadow?: string;
@@ -91,7 +94,11 @@ export function canvasMeasure(): Measure | undefined {
 }
 
 /** One drawn line of a text: its words, the first-line indent and the space above it (px), and whether it is stretched to the box width (justify). */
-export interface TextLine { t: string; i: number; g: number; j: boolean }
+export interface TextLine {
+  t: string; i: number; g: number; j: boolean;
+  /** With markup (`TextSpec.marks`): where `t` starts in the plain text, and whether it ends in the ellipsis the breaker added. */
+  o?: number; e?: true;
+}
 
 /** Everything line breaking and auto-fit need, in px. Sent with the node so the overlay can run `layoutText` again with a real measurer. */
 export interface TextSpec {
@@ -103,6 +110,8 @@ export interface TextSpec {
   /** Small capitals, extra word gap (em) and kerning: they change a line's width, so the fit counts them. */
   smallCaps?: boolean; wordEm?: number; kerning?: boolean;
   valign: 'top' | 'middle' | 'bottom'; pad: number;
+  /** Bold, italic and colour stretches of `text` (offsets); absent = plain text, laid out exactly as before. Bold and italic change widths, colour does not. */
+  marks?: TextMark[];
 }
 
 /**
@@ -114,22 +123,33 @@ export interface TextSpec {
  */
 export function layoutText(s: TextSpec, measure: Measure): { size: number; lines: TextLine[] } {
   const face = { family: s.family, weight: s.weight, italic: s.italic, ...(s.kerning === false ? { kerning: false } : {}) };
-  const glyphs = (t: string) => (s.smallCaps ? capRuns(t).reduce((a, r) => a + (measure(r.t, face) / 100) * (r.s ? SMALLCAP_SCALE : 1), 0) : measure(s.upper ? t.toUpperCase() : t, face) / 100);
-  const wid = (t: string, size: number) => (glyphs(t) + t.length * s.spacingEm + (t.split(' ').length - 1) * (s.wordEm ?? 0)) * size;
+  const glyphs1 = (t: string, fc: typeof face) => (s.smallCaps ? capRuns(t).reduce((a, r) => a + (measure(r.t, fc) / 100) * (r.s ? SMALLCAP_SCALE : 1), 0) : measure(s.upper ? t.toUpperCase() : t, fc) / 100);
+  // With marks each piece is measured in its own face; `o` is where `t` starts in the plain text, `ell` that its last character is the added ellipsis.
+  const glyphs = (t: string, o?: number, ell?: boolean) => (s.marks
+    ? markPieces(t, o ?? 0, s.marks, ell).reduce((a, p) => a + glyphs1(p.t, p.bold || p.italic ? { ...face, ...(p.bold ? { weight: Math.max(s.weight, 700) } : {}), italic: s.italic || !!p.italic } : face), 0)
+    : glyphs1(t, face));
+  const wid = (t: string, size: number, o?: number, ell?: boolean) => (glyphs(t, o, ell) + t.length * s.spacingEm + (t.split(' ').length - 1) * (s.wordEm ?? 0)) * size;
+  const at = (o: number) => (s.marks ? { o } : {});
   const flow = (size: number) => {
     const lines: TextLine[] = [];
+    let po = 0;
     s.text.split('\n').forEach((para, pi) => {
-      const words = para.split(' ').filter(Boolean);
+      const ws: { w: string; o: number }[] = [];
+      let p = 0;
+      for (const w of para.split(' ')) { if (w) ws.push({ w, o: po + p }); p += w.length + 1; }
+      const p0 = po;
+      po += para.length + 1;
+      const words = ws.map(x => x.w);
       const ind = s.indent * size, gap = pi ? s.paraGap * size : 0;
       const start = lines.length;
       const meta = (j: boolean) => (lines.length === start ? { i: ind, g: gap, j } : { i: 0, g: 0, j });
-      if (!s.wrap || words.length <= 1) { lines.push({ t: words.join(' '), ...meta(false) }); return; }
-      let line = '';
-      for (const w of words) {
-        const next = line ? line + ' ' + w : w;
-        if (line && wid(next, size) > s.boxW - (lines.length === start ? ind : 0)) { lines.push({ t: line, ...meta(s.justify) }); line = w; } else line = next;
+      if (!s.wrap || words.length <= 1) { lines.push({ t: words.join(' '), ...meta(false), ...at(ws.length ? ws[0].o : p0) }); return; }
+      let line = '', lo = 0;
+      for (const x of ws) {
+        const w = x.w, next = line ? line + ' ' + w : w;
+        if (line && wid(next, size, lo) > s.boxW - (lines.length === start ? ind : 0)) { lines.push({ t: line, ...meta(s.justify), ...at(lo) }); line = w; lo = x.o; } else { if (!line) lo = x.o; line = next; }
       }
-      lines.push({ t: line, ...meta(false) });
+      lines.push({ t: line, ...meta(false), ...at(lo) });
     });
     let cap = s.maxLines > 0 ? s.maxLines : Infinity;
     if (s.boxH > 0) {
@@ -142,19 +162,23 @@ export function layoutText(s: TextSpec, measure: Measure): { size: number; lines
       lines.length = cap;
       const last = lines[cap - 1];
       let t = last.t;
-      while (t && wid(t + '…', size) > s.boxW - last.i) t = t.slice(0, -1).trimEnd();
+      while (t && wid(t + '…', size, last.o, true) > s.boxW - last.i) t = t.slice(0, -1).trimEnd();
       last.t = t + '…'; last.j = false;
+      if (s.marks) last.e = true;
     }
     let widest = 0;
-    for (const l of lines) widest = Math.max(widest, wid(l.t, size) + l.i);
+    for (const l of lines) widest = Math.max(widest, wid(l.t, size, l.o, l.e) + l.i);
     return { lines, cut, widest };
   };
   const round = (n: number) => Math.round(n * 100) / 100;
   if (s.fit === 'width') {
-    const t = s.text.replace(/\n/g, ' ').replace(/ +/g, ' ').trim();
-    const unit = wid(t, 1);
-    if (!(unit > 0) || !(s.boxW > 0)) return { size: s.size, lines: [{ t, i: 0, g: 0, j: false }] };
-    return { size: round(Math.max(Math.min(s.minPx, s.maxPx), Math.min(s.maxPx, (s.boxW * 0.99) / unit))), lines: [{ t, i: 0, g: 0, j: false }] };
+    // With marks the text is not re-collapsed (that would shift the offsets); a leading gap just moves `o`.
+    const flat = s.marks ? s.text.replace(/\n/g, ' ') : s.text.replace(/\n/g, ' ').replace(/ +/g, ' ');
+    const t = flat.trim(), o = flat.length - flat.trimStart().length;
+    const one = [{ t, i: 0, g: 0, j: false, ...at(o) }];
+    const unit = wid(t, 1, o);
+    if (!(unit > 0) || !(s.boxW > 0)) return { size: s.size, lines: one };
+    return { size: round(Math.max(Math.min(s.minPx, s.maxPx), Math.min(s.maxPx, (s.boxW * 0.99) / unit))), lines: one };
   }
   let size = s.size;
   if (s.fit === 'shrink') {
@@ -303,6 +327,7 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
     const isFoot = e.kind === 'qr' || e.kind === 'link';
     if (e.place === 'stack') {
       const c = e.show ? content(e, back, style, compact) : null;
+      if (c && e.kind === 'text' && c.text) c.text = stripMarkup(c.text); // markup only styles free text boxes
       if (!c && !isFoot) return;
       const vars: Record<string, string> = {};
       let css: Record<string, string | number> = {};
@@ -334,6 +359,8 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       transform: `translateY(-50%)${e.rotate ? ` rotate(${e.rotate}deg)` : ''}`, zIndex: 10 + e.z, opacity: e.opacity, margin: 0,
     };
     let font: BackNode['font'];
+    let moreFonts: BackNode['moreFonts'];
+    let marks: TextMark[] | undefined;
     let spec: TextSpec | undefined;
     let lines: TextLine[] | undefined;
     let arcMode = false;
@@ -352,22 +379,28 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       // Baseline shift and super/subscript move the whole box (one-line tokens): every renderer reads `top`.
       const lift = ((e.baseline ?? 0) / 100 + (e.script ? SCRIPT_SHIFT[e.script] : 0)) * px;
       if (lift) css.top = Math.round((Number(css.top) - lift) * 100) / 100;
+      if (e.kind === 'text' && c.text) { const mt = markedText(c.text); c.text = mt.text; marks = mt.marks; }
       if (kase === 'lower') c.text = c.text?.toLowerCase();
       else if (kase === 'title') c.text = c.text ? titleCase(c.text) : c.text;
       if (f.files) font = { id: f.id, weight: e.weight, ...(e.italic ? { italic: true } : {}) };
+      if (f.files && marks) {
+        const faces = new Map<string, { id: string; weight: number; italic?: boolean }>();
+        for (const m of marks) faces.set(`${m.bold ? 1 : 0}${m.italic ? 1 : 0}`, { id: f.id, weight: m.bold ? Math.max(e.weight, 700) : e.weight, ...(e.italic || m.italic ? { italic: true } : {}) });
+        moreFonts = [...faces.values()];
+      }
       const arcOn = !!e.arc && c.tag === 'p' && !!c.text;
       arcMode = arcOn;
       const plate = e.fx.plate && e.fx.plate.on !== false && !arcOn ? e.fx.plate : undefined;
       const pad = (((e.pad ?? 0) + (plate?.pad ?? 0)) / 100) * size.w;
       if (arcOn) c.text = c.text!.replace(/\s*\n\s*/g, ' ');
       if (arcOn && kase === 'upper') c.text = c.text!.toUpperCase(); // SVG text does not reliably take text-transform
-      if (!arcOn && c.tag === 'p' && c.text && (e.fit || e.wrap === false || e.maxLines || e.h || e.indent || e.paraGap || e.align === 'justify' || e.pad || plate || kase === 'smallcaps' || c.text.includes('\n'))) {
+      if (!arcOn && c.tag === 'p' && c.text && (e.fit || e.wrap === false || e.maxLines || e.h || e.indent || e.paraGap || e.align === 'justify' || e.pad || plate || kase === 'smallcaps' || marks || c.text.includes('\n'))) {
         spec = {
           text: c.text, size: Number(css.fontSize), minPx: ((e.minSize ?? DEFAULT_MIN_SIZE) / 100) * size.w, maxPx: 0.3 * size.w, fit: e.fit ?? null,
           boxW: Math.round((w - 2 * pad) * 100) / 100, boxH: e.h ? Math.round(((e.h / 100) * size.h - 2 * pad) * 100) / 100 : 0,
           wrap: e.wrap !== false, maxLines: e.maxLines ?? 0, indent: e.indent ?? 0, paraGap: e.paraGap ?? 0, lineHeight: lead, spacingEm: em,
           upper: kase === 'upper', justify: e.align === 'justify', family: f.css, weight: e.weight, italic: e.italic, valign: e.valign ?? 'middle', pad: Math.round(pad * 100) / 100,
-          ...(kase === 'smallcaps' ? { smallCaps: true } : {}), ...(word ? { wordEm: word } : {}), ...(e.kerning === false ? { kerning: false } : {}),
+          ...(marks ? { marks } : {}), ...(kase === 'smallcaps' ? { smallCaps: true } : {}), ...(word ? { wordEm: word } : {}), ...(e.kerning === false ? { kerning: false } : {}),
         };
         const lay = layoutText(spec, opts.measure ?? canvasMeasure() ?? estimateMeasure);
         lines = lay.lines;
@@ -406,7 +439,7 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       }
       css.height = 'auto';
     }
-    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(spec ? { spec, lines } : {}), ...(parts.inner ? { inner: parts.inner } : {}), ...(parts.shadow ? { shadow: parts.shadow } : {}), ...(arcGeo ? { arc: arcGeo } : {}), ...(parts.plate ? { plate: parts.plate } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
+    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(moreFonts ? { moreFonts } : {}), ...(spec ? { spec, lines } : {}), ...(parts.inner ? { inner: parts.inner } : {}), ...(parts.shadow ? { shadow: parts.shadow } : {}), ...(arcGeo ? { arc: arcGeo } : {}), ...(parts.plate ? { plate: parts.plate } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
   });
   free.sort((a, b) => a.z - b.z || a.order - b.order);
   return [...stack, ...free.map(({ z: _z, order: _o, ...n }) => { void _z; void _o; return n; })];
@@ -415,7 +448,7 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
 /** The curated font files the nodes need, as `{ id, weight, italic? }` (deduplicated). */
 export function fontsNeeded(nodes: BackNode[]): { id: string; weight: number; italic?: boolean }[] {
   const seen = new Map<string, { id: string; weight: number; italic?: boolean }>();
-  for (const n of nodes) if (n.font) seen.set(`${n.font.id}:${n.font.weight}:${n.font.italic ? 'i' : ''}`, n.font);
+  for (const n of nodes) for (const f of [n.font, ...(n.moreFonts ?? [])]) if (f) seen.set(`${f.id}:${f.weight}:${f.italic ? 'i' : ''}`, f);
   return [...seen.values()];
 }
 
