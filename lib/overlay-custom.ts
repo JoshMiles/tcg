@@ -10,6 +10,9 @@ export const CUSTOM_KINDS = ['text', 'image', 'shape'] as const;
 export type CustomKind = (typeof CUSTOM_KINDS)[number];
 export const SHAPES = ['rect', 'ellipse', 'line', 'polygon', 'star'] as const;
 export type ShapeType = (typeof SHAPES)[number];
+export const STROKE_POS = ['inside', 'center', 'outside'] as const;
+export const LINE_CAPS = ['butt', 'round', 'square'] as const;
+export const ARROWS = ['none', 'start', 'end', 'both'] as const;
 export const IMAGE_FITS = ['contain', 'cover', 'fill'] as const;
 export const MAX_CUSTOM_TEXT = 300;
 export const VALIGNS = ['top', 'middle', 'bottom'] as const;
@@ -43,12 +46,18 @@ export interface CustomShape extends CustomBase {
   shape: ShapeType;
   /** Rect corner radius in design px. */
   radius: number;
+  /** Per corner (top left, top right, bottom right, bottom left) in design px; empty means all four follow `radius`. */
+  radii: number[];
+  /** Line end caps and arrowheads (a line only). */
+  cap: (typeof LINE_CAPS)[number];
+  arrows: (typeof ARROWS)[number];
   /** Polygon and star points. */
   sides: number;
   /** Star inner radius as a share of the outer. */
   inner: number;
   fill: ShapeFill;
-  stroke: { color: string; width: number; dash: number };
+  /** `pos`: where the stroke sits on the edge of the box (`inside` is the original look). */
+  stroke: { color: string; width: number; dash: number; pos: (typeof STROKE_POS)[number] };
   /** Only `shadows` and `glow` are drawn on a shape. */
   fx: Effects;
 }
@@ -107,9 +116,11 @@ export function sanitizeCustom(raw: unknown, width: number, height: number): Cus
       out.push({
         ...base, kind,
         shape: pick(r.shape, SHAPES, 'rect'), radius: Math.round(clamp(r.radius, 0, 1000, 0)),
+        radii: Array.isArray(r.radii) && r.radii.length === 4 ? r.radii.map(v => Math.round(clamp(v, 0, 1000, 0))) : [],
+        cap: pick(r.cap, LINE_CAPS, 'round'), arrows: pick(r.arrows, ARROWS, 'none'),
         sides: Math.round(clamp(r.sides, 3, 12, 5)), inner: r2(clamp(r.inner, 0.1, 0.9, 0.5)),
         fill: fillOf(r.fill),
-        stroke: { color: hex(st.color, '#ffffff'), width: r2(clamp(st.width, 0, 40, 0)), dash: Math.round(clamp(st.dash, 0, 40, 0)) },
+        stroke: { color: hex(st.color, '#ffffff'), width: r2(clamp(st.width, 0, 40, 0)), dash: Math.round(clamp(st.dash, 0, 40, 0)), pos: pick(st.pos, STROKE_POS, 'inside') },
         fx: keep,
       });
     }

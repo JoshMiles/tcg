@@ -174,6 +174,22 @@ export function OpacityRow({ value: e, onChange: set, patch }: { value: TextStyl
   return <Num label="Opacity" value={e.opacity} min={0} max={1} step={0.05} reset={resetOf(patch, 'opacity')} onChange={v => set({ opacity: v }, 'op')} />;
 }
 
+/** The colour stops of a gradient (2 to 4, each a colour and a position in %), shared by gradient text and the overlay's shape fills. */
+export function GradientStops({ stops, onChange }: { stops: { color: string; at: number }[]; onChange: (next: { color: string; at: number }[], key?: string) => void }) {
+  return (
+    <>
+      {stops.map((st, i) => (
+        <div key={i} className="flex items-center gap-1">
+          <div className="flex-1 min-w-0"><Colour label={`Stop ${i + 1}`} value={st.color} onChange={v => onChange(stops.map((x, k) => (k === i ? { ...x, color: v } : x)))} /></div>
+          <input type="number" aria-label={`Stop ${i + 1} position (%)`} className={`${field} w-16!`} min={0} max={100} step={5} value={st.at} onChange={ev => { const n = Number(ev.target.value); if (ev.target.value.trim() !== '' && Number.isFinite(n)) onChange(stops.map((x, k) => (k === i ? { ...x, at: n } : x)), `gs${i}`); }} />
+          {stops.length > 2 && <button type="button" aria-label={`Remove stop ${i + 1}`} className="text-xs text-gray-400 hover:text-white px-1" onClick={() => onChange(stops.filter((_, k) => k !== i))}>x</button>}
+        </div>
+      ))}
+      {stops.length < 4 && <button type="button" className={chip(false)} onClick={() => onChange([...stops, { color: '#ffffff', at: 50 }])}>Add stop</button>}
+    </>
+  );
+}
+
 /** The effects: stroke, glow, two drop shadows, gradient text, and (not in the overlay) inner shadow, bevel's box siblings and the background plate. */
 export function EffectFields({ value: e, onChange: set, patch, text = true, free = true }: { value: TextStyle; onChange: Change; patch?: PatchMode; text?: boolean; free?: boolean }) {
   const fx = (p: Partial<TextStyle['fx']>, key?: string) => set({ fx: { ...e.fx, ...p } }, key);
@@ -229,14 +245,7 @@ export function EffectFields({ value: e, onChange: set, patch, text = true, free
           const setStops = (next: { color: string; at: number }[], key?: string) => fx({ gradientText: { ...g, stops: next } }, key);
           return (
             <>
-              {stops.map((st, i) => (
-                <div key={i} className="flex items-center gap-1">
-                  <div className="flex-1 min-w-0"><Colour label={`Stop ${i + 1}`} value={st.color} onChange={v => setStops(stops.map((x, k) => (k === i ? { ...x, color: v } : x)))} /></div>
-                  <input type="number" aria-label={`Stop ${i + 1} position (%)`} className={`${field} w-16!`} min={0} max={100} step={5} value={st.at} onChange={ev => { const n = Number(ev.target.value); if (ev.target.value.trim() !== '' && Number.isFinite(n)) setStops(stops.map((x, k) => (k === i ? { ...x, at: n } : x)), `gs${i}`); }} />
-                  {stops.length > 2 && <button type="button" aria-label={`Remove stop ${i + 1}`} className="text-xs text-gray-400 hover:text-white px-1" onClick={() => setStops(stops.filter((_, k) => k !== i))}>x</button>}
-                </div>
-              ))}
-              {stops.length < 4 && <button type="button" className={chip(false)} onClick={() => setStops([...stops, { color: '#ffffff', at: 50 }])}>Add stop</button>}
+              <GradientStops stops={stops} onChange={setStops} />
               <Num label="Angle" value={g.angle} min={0} max={360} step={5} onChange={v => fx({ gradientText: { ...g, angle: v } }, 'ga')} />
             </>
           );
