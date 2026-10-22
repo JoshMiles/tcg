@@ -209,8 +209,8 @@ function customLayerEl(l, ctx, accent) {
     img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = l.fit === 'fill' ? 'fill' : l.fit === 'cover' ? 'cover' : 'contain';
     if (l.radius > 0) img.style.borderRadius = l.radius + 'px';
     const fx = l.fx || {}, fl = [];
-    // Stroke is a CSS outline (it follows the radius); centre pulls it half in. Shadows and glow are drop-shadows, so a transparent logo is lit along its shape.
-    if (fx.stroke && fx.stroke.on !== false && fx.stroke.width > 0) { img.style.outline = fx.stroke.width + 'px solid ' + fx.stroke.color; img.style.outlineOffset = fx.stroke.pos === 'center' ? -fx.stroke.width / 2 + 'px' : '0'; }
+    // Stroke is a CSS outline (it follows the radius); inside pulls it fully in, centre half. Shadows and glow are drop-shadows, so a transparent logo is lit along its shape.
+    if (fx.stroke && fx.stroke.on !== false && fx.stroke.width > 0) { img.style.outline = fx.stroke.width + 'px solid ' + fx.stroke.color; img.style.outlineOffset = (fx.stroke.pos === 'inside' ? -fx.stroke.width : fx.stroke.pos === 'center' ? -fx.stroke.width / 2 : 0) + 'px'; }
     for (const sh of fx.shadows || []) if (sh.on !== false) fl.push('drop-shadow(' + sh.x + 'px ' + sh.y + 'px ' + sh.blur + 'px ' + tsAlpha(sh.color, sh.opacity) + ')');
     if (fx.glow && fx.glow.on !== false) for (let k = 0; k < Math.max(1, Math.round(fx.glow.strength)); k++) fl.push('drop-shadow(0 0 ' + fx.glow.blur + 'px ' + fx.glow.color + ')');
     if (fl.length) img.style.filter = fl.join(' ');
