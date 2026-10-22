@@ -6,6 +6,7 @@ const TOOLS: (ToolDef & { id: Tool })[] = [
   { id: 'move', label: 'Move', icon: 'move', shortcut: 'V' },
   { id: 'hand', label: 'Hand', icon: 'hand', shortcut: 'H' },
   { id: 'zoom', label: 'Zoom', icon: 'zoomIn', shortcut: 'Z' },
+  { id: 'text', label: 'Text', icon: 'text', shortcut: 'T' },
 ];
 
 // The tool strip left of the canvas; holding Space shows Hand while it is held.

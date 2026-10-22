@@ -12,6 +12,7 @@ export const SHAPES = ['rect', 'ellipse', 'line', 'polygon', 'star'] as const;
 export type ShapeType = (typeof SHAPES)[number];
 export const IMAGE_FITS = ['contain', 'cover', 'fill'] as const;
 export const MAX_CUSTOM_TEXT = 300;
+export const VALIGNS = ['top', 'middle', 'bottom'] as const;
 
 export type ShapeFill =
   | { type: 'none' }
@@ -33,6 +34,8 @@ export interface CustomText extends CustomBase {
   size: number; color: string;
   /** A font id from the card back list, or `inherit` (the overlay font). */
   font: string;
+  /** Where the words sit in the box. */
+  valign: (typeof VALIGNS)[number];
 }
 export interface CustomImage extends CustomBase { kind: 'image'; url: string; fit: (typeof IMAGE_FITS)[number] }
 export interface CustomShape extends CustomBase {
@@ -90,6 +93,7 @@ export function sanitizeCustom(raw: unknown, width: number, height: number): Cus
         style: sanitizeTextPatch(r.style),
         size: Math.round(clamp(r.size, 6, 400, 32)), color: hex(r.color, '#ffffff'),
         font: typeof r.font === 'string' && /^[a-z0-9_-]{1,40}$/.test(r.font) ? r.font : 'inherit',
+        valign: pick(r.valign, VALIGNS, 'top'),
       });
     } else if (kind === 'image') {
       // An empty url is a new image with nothing chosen yet (the widget draws nothing); any other url must pass the check or the layer is dropped.
@@ -114,11 +118,22 @@ export function sanitizeCustom(raw: unknown, width: number, height: number): Cus
   return out;
 }
 
-/** A new layer of `kind` with defaults, centred on a stage of width x height, with an id not in `taken`. */
-export function newCustom(kind: CustomKind, taken: string[], width: number, height: number): CustomLayer {
+const DEFAULT_SIZE: Record<CustomKind, [number, number]> = { text: [400, 80], image: [200, 200], shape: [240, 160] };
+
+/** The box a tool press makes: a click gives just the point (kept on the stage so the default box fits), a drag the rectangle between the two corners (at least 20 px each way). */
+export function toolBox(kind: CustomKind, x0: number, y0: number, x1: number, y1: number, width: number, height: number): { x: number; y: number; w?: number; h?: number } {
+  if (Math.hypot(x1 - x0, y1 - y0) < 6) {
+    const [w, h] = DEFAULT_SIZE[kind];
+    return { x: Math.round(clamp(x0, 0, Math.max(0, width - w), 0)), y: Math.round(clamp(y0, 0, Math.max(0, height - h), 0)) };
+  }
+  return { x: Math.round(Math.min(x0, x1)), y: Math.round(Math.min(y0, y1)), w: Math.round(Math.max(20, Math.abs(x1 - x0))), h: Math.round(Math.max(20, Math.abs(y1 - y0))) };
+}
+
+/** A new layer of `kind` with defaults, centred on a stage of width x height (or at `box`), with an id not in `taken`. */
+export function newCustom(kind: CustomKind, taken: string[], width: number, height: number, box?: { x: number; y: number; w?: number; h?: number }): CustomLayer {
   let n = 1;
   while (taken.includes(`${kind}${n}`)) n++;
-  const [w, h] = kind === 'text' ? [400, 80] : kind === 'image' ? [200, 200] : [240, 160];
-  const at = { id: `${kind}${n}`, x: Math.round((width - w) / 2), y: Math.round((height - h) / 2), w, h };
+  const [w, h] = DEFAULT_SIZE[kind];
+  const at = { id: `${kind}${n}`, x: box ? box.x : Math.round((width - w) / 2), y: box ? box.y : Math.round((height - h) / 2), w: box?.w ?? w, h: box?.h ?? h };
   return sanitizeCustom([{ ...at, kind, name: `${KIND_LABEL[kind]} ${n}`, ...(kind === 'text' ? { text: 'New text' } : kind === 'image' ? { url: '' } : { fill: { type: 'solid', color: '#facc15' } }) }], width, height)[0];
 }

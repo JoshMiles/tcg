@@ -130,7 +130,7 @@ export function EditorTopBar() {
     if (saveSignal && dirty) saveForm.current?.requestSubmit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveSignal]);
-  const handTool = activeTool !== 'move';
+  const handTool = activeTool === 'hand' || activeTool === 'zoom';
   const free = selection.filter(id => !locked.includes(id));
   const canAlign = !isPack && free.length > 0;
   const canDistribute = !isPack && free.length > 2;
