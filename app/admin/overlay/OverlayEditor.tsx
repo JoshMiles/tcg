@@ -6,6 +6,7 @@ import { EditorStatusBar } from './EditorStatusBar';
 import { EditorToolStrip } from './EditorToolStrip';
 import { EditorTopBar } from './EditorTopBar';
 import { PreviewStage } from './PreviewStage';
+import { ArtboardStrip } from './ArtboardStrip';
 import { EditorTimeline } from './EditorTimeline';
 import { PropertiesDock } from './PropertiesDock';
 import { useColumnLayout } from '../components/workspace/useColumnLayout';
@@ -33,6 +34,9 @@ function Workspace() {
           <div className="flex-1 min-h-64 h-[55vh] xl:h-auto flex gap-2">
             <EditorToolStrip />
             <PreviewStage />
+          </div>
+          <div className={hide}>
+            <ArtboardStrip />
           </div>
           <div className={hide}>
             <EditorTimeline />
