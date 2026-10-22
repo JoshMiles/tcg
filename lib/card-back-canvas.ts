@@ -3,6 +3,7 @@
 // in app/components/ShareImage.tsx. Sizes are in px at the reference card width below and the drawing scales the context.
 import type { CardBackStyle } from './card-back';
 import type { ArcGeo, BackNode, TextLine } from './card-back-layout';
+import type { TextMark } from './text-markup';
 import { DEFAULT_PATTERN, isCustomPattern, patternSvg } from './card-back-patterns';
 
 /** The card size the share image lays the back out at (the drawing scales it to the card's rectangle). */
@@ -64,6 +65,8 @@ export interface BackBox {
   color: string;
   /** Free text broken into lines by the layout engine (wrap, max lines, box height, paragraphs, justify, auto-fit): draw these lines inside the padding, placed by `valign`. */
   lines?: TextLine[];
+  /** Bold, italic and colour stretches of the text (`lines` say where each starts); a gradient or gold fill wins over a colour. */
+  marks?: TextMark[];
   pad?: number;
   valign?: 'top' | 'middle' | 'bottom';
   /** Gold-plated number (a bonus edition): drawn with the gold gradient. */
@@ -184,7 +187,7 @@ function freeBox(n: BackNode, ref: { w: number; h: number }): BackBox | null {
   if (n.tag === 'p' && n.lines && n.spec) {
     const content = n.lines.reduce((a, l) => a + size * lineHeight + l.g, 0), pad = n.spec.pad;
     const h = num(css.height) || content + 2 * pad;
-    return { ...common, type: 'text', text: n.text, y: cy - h / 2, h, lines: n.lines, pad, valign: n.spec.valign, font };
+    return { ...common, type: 'text', text: n.text, y: cy - h / 2, h, lines: n.lines, pad, valign: n.spec.valign, font, ...(n.spec.marks ? { marks: n.spec.marks } : {}) };
   }
   if ((n.tag === 'p' || n.tag === 'a') && n.text) return { ...common, type: 'text', text: n.text, y: cy - size * lineHeight / 2, h: size * lineHeight, font };
   return null;

@@ -409,6 +409,52 @@ for (const [name, over] of [
   ok(JSON.stringify(wl(s, stub)) === JSON.stringify(lay.layoutText(s as Parameters<typeof lay.layoutText>[0], stub)), 'widget port matches layoutText: ' + name);
 }
 
+// ── 38.10 b: markup on card back text (marks beside the plain text) ──
+const tm = await import('../lib/text-markup');
+{
+  const m = tm.markedText('**ab** *cd* {color:#ff0000}ef{/color}  g');
+  ok(m.text === 'ab cd ef g' && m.marks?.length === 3 && m.marks[0].bold && m.marks[1].italic && m.marks[2].color === '#ff0000', 'markedText: styles become offsets, double space collapses');
+  ok(m.marks?.[0].from === 0 && m.marks?.[0].to === 2 && m.marks?.[2].from === 6 && m.marks?.[2].to === 8, 'markedText: offsets index the plain text');
+  ok(tm.markedText('2 * 3 * 4').marks === undefined && tm.markedText('plain').marks === undefined && tm.markedText('{color:red}x{/color}').text === '{color:red}x{/color}', 'markedText: literal and plain text have no marks');
+  const ps = tm.markPieces('ab cd', 0, m.marks);
+  ok(ps.length === 3 && ps[0].t === 'ab' && ps[0].bold && ps[1].t === ' ' && ps[2].italic, 'markPieces splits at the edges');
+  const pe = tm.markPieces('ab…', 0, [{ from: 0, to: 2, bold: true }], true);
+  ok(pe.length === 1 && pe[0].t === 'ab…' && pe[0].bold, 'markPieces: the ellipsis joins the last piece');
+}
+const boldStub = (t: string, face?: { weight?: number; italic?: boolean }) => t.length * 50 * ((face?.weight ?? 400) >= 700 ? 2 : 1) * (face?.italic ? 1.1 : 1);
+{
+  const plain = { ...base, text: 'aa bb cc', wrap: true, boxW: 5, size: 1 };
+  ok(lay.layoutText(plain as Parameters<typeof lay.layoutText>[0], boldStub as never).lines.length === 1, 'plain text fits one line');
+  const marked = { ...plain, text: 'aa bb cc', marks: [{ from: 0, to: 5, bold: true }] };
+  const r = lay.layoutText(marked as Parameters<typeof lay.layoutText>[0], boldStub as never);
+  ok(r.lines.length === 2 && JSON.stringify(r.lines.map(l => l.o)) === '[0,6]', 'a bold stretch widens the line so it wraps earlier, lines carry offsets');
+  const cut = lay.layoutText({ ...plain, text: 'aaaa bbbb cccc', boxW: 4, maxLines: 1, marks: [{ from: 0, to: 14, bold: true }] } as Parameters<typeof lay.layoutText>[0], boldStub as never);
+  ok(cut.lines[0].t.endsWith('…') && cut.lines[0].e === true, 'the ellipsis inside a bold run is measured bold and flagged');
+  const nom = lay.layoutText(plain as Parameters<typeof lay.layoutText>[0], boldStub as never);
+  ok(!('o' in nom.lines[0]) && !('e' in nom.lines[0]), 'no marks: lines carry no offsets');
+}
+for (const [name, over] of [
+  ['marks wrap', { marks: [{ from: 0, to: 4, bold: true }] }],
+  ['marks maxLines', { maxLines: 1, marks: [{ from: 0, to: 19, bold: true }] }],
+  ['marks justify', { justify: true, text: 'aaaa bbbb cccc dddd eeee', marks: [{ from: 5, to: 9, italic: true }, { from: 10, to: 14, color: '#ff0000' }] }],
+  ['marks smallcaps', { smallCaps: true, marks: [{ from: 5, to: 9, bold: true }] }],
+  ['marks shrink', { fit: 'shrink', size: 40, boxH: 30, marks: [{ from: 0, to: 4, bold: true }] }],
+  ['marks width', { fit: 'width', marks: [{ from: 5, to: 9, bold: true }] }],
+  ['marks paragraph', { text: 'aaaa bbbb cccc\ndd ee', indent: 1, marks: [{ from: 10, to: 17, italic: true }] }],
+] as const) {
+  const s = { ...base, text: 'aaaa bbbb cccc dddd', wrap: true, boxW: 50, size: 10, ...over };
+  ok(JSON.stringify(wl(s, boldStub)) === JSON.stringify(lay.layoutText(s as Parameters<typeof lay.layoutText>[0], boldStub as never)), 'widget port matches layoutText: ' + name);
+}
+{
+  const lb = (kind: string, place: string, text: string) => lay.layoutBack({ ...cb.sanitizeCardBack({ v: 2, elements: [{ kind, place, text, x: 50, y: 50, w: 80 }] }), packName: 'Base', seasonName: 'S1' }, PRINT, SIZE).find(n => n.kind === 'text');
+  const fr = lb('text', 'free', '**Bold** and *it*');
+  ok(fr?.text === 'Bold and it' && fr.spec?.marks?.length === 2 && fr.spec.marks[0].bold, 'a free text box with markup: plain text plus marks');
+  const st = lb('text', 'top', '**Bold** and *it*');
+  ok(!st || (st.text === 'Bold and it' && !st.spec?.marks), 'a stacked text box shows the markup stripped');
+  const pl = lb('text', 'free', 'just words');
+  ok(pl?.spec === undefined || !pl.spec.marks, 'plain free text has no marks');
+}
+
 // ── 38.12 c: character extras and gradient stops ──
 const CHAR_FIELDS = ['strike', 'overline', 'textCase', 'tracking', 'wordSpacing', 'autoLeading', 'baseline', 'script', 'kerning'];
 ok(CHAR_FIELDS.every(k => !(k in el1({}))) && CHAR_FIELDS.every(k => !(k in el1({ strike: false, overline: 1, textCase: 'weird', wordSpacing: 0, autoLeading: false, baseline: 0, script: 'x', kerning: true }))), 'every character field is omitted at its default, so a saved back is unchanged');

@@ -8,6 +8,7 @@ import {
 import { qrModules } from '@/lib/qr';
 import { DEFAULT_CARD_BACK, plateLook } from '@/lib/card-back';
 import { SMALLCAP_SCALE, capRuns, fontsNeeded, layoutBack } from '@/lib/card-back-layout';
+import { markPieces } from '@/lib/text-markup';
 import { loadBackFonts } from '@/lib/card-back-fonts';
 import { CANVAS_BACK_REF, canvasPattern, placeBack, wrapText, type BackBox } from '@/lib/card-back-canvas';
 
@@ -158,8 +159,11 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
     const pad = b.lines ? b.pad ?? 0 : 0;
     const maxW = b.w - 2 * pad;
     const x = f.align === 'left' ? b.x + pad : f.align === 'right' ? b.x + b.w - pad : b.x + b.w / 2;
-    const base = `${f.italic ? 'italic ' : ''}${f.weight}`, fam = f.family ?? family;
-    const fontAt = (small: boolean) => `${base} ${small ? f.size * SMALLCAP_SCALE : f.size}px ${fam}`;
+    const fam = f.family ?? family;
+    // The markup piece being drawn: bold and italic change the face (and so the widths), colour only the fill.
+    const cur = { bold: false, italic: false };
+    let ink = b.color;
+    const fontAt = (small: boolean) => `${f.italic || cur.italic ? 'italic ' : ''}${cur.bold ? Math.max(f.weight, 700) : f.weight} ${small ? f.size * SMALLCAP_SCALE : f.size}px ${fam}`;
     const runsOf = (text: string) => (f.smallCaps ? capRuns(text) : [{ t: f.upper ? text.toUpperCase() : text, s: false }]);
     const textW = (text: string) => { const w = runsOf(text).reduce((a, r) => { ctx.font = fontAt(r.s); return a + ctx.measureText(r.t).width; }, 0); ctx.font = fontAt(false); return w; };
     // Canvas shadows are in device px, not the scaled drawing's px.
@@ -168,7 +172,7 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
       ctx.textAlign = align;
       for (const sh of b.shadows) {
         ctx.save(); ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x * sc; ctx.shadowOffsetY = sh.y * sc; ctx.shadowBlur = sh.blur * sc;
-        ctx.fillStyle = b.gradient ? 'rgba(0,0,0,0)' : b.color; ctx.fillText(s, tx, ty, maxW); ctx.restore();
+        ctx.fillStyle = b.gradient ? 'rgba(0,0,0,0)' : ink; ctx.fillText(s, tx, ty, maxW); ctx.restore();
       }
       // An outside stroke is painted under the letters (like paint-order: stroke), so only its outer half shows; a centred one is painted over them below.
       const strokeIt = () => { ctx.save(); ctx.lineWidth = b.stroke!.width; ctx.strokeStyle = b.stroke!.color; ctx.lineJoin = 'round'; ctx.strokeText(s, tx, ty, maxW); ctx.restore(); };
@@ -180,7 +184,7 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
         const g = ctx.createLinearGradient(cx - dx, ty - dy, cx + dx, ty + dy);
         for (const st of b.gradient.stops ?? [{ color: b.gradient.from, at: 0 }, { color: b.gradient.to, at: 100 }]) g.addColorStop(Math.min(1, Math.max(0, st.at / 100)), st.color);
         ctx.fillStyle = g;
-      } else ctx.fillStyle = b.color;
+      } else ctx.fillStyle = ink;
       ctx.fillText(s, tx, ty, maxW);
       if (b.stroke && !b.stroke.outside) strokeIt();
       if (b.inner) innerShadow(s, tx, ty, align);
@@ -225,6 +229,19 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
         if (f.strike) ctx.fillRect(ux, ty + f.size * 0.05, w, th);
         if (f.overline) ctx.fillRect(ux, ty - f.size * 0.5, w, th);
       }
+    };
+    // A line (or word) with markup: its pieces drawn one after another, each in its own face and colour. `o` is where it starts in the plain text.
+    const richPieces = (text: string, o: number, ell?: boolean) => (b.marks ? markPieces(text, o, b.marks, ell) : [{ t: text }]);
+    const withPiece = <T,>(p: { bold?: boolean; italic?: boolean; color?: string }, fn: () => T): T => {
+      cur.bold = !!p.bold; cur.italic = !!p.italic; ink = p.color && !b.gradient && !b.gold ? p.color : b.color;
+      try { return fn(); } finally { cur.bold = false; cur.italic = false; ink = b.color; ctx.font = fontAt(false); }
+    };
+    const richW = (text: string, o: number, ell?: boolean) => richPieces(text, o, ell).reduce((a, p) => a + withPiece(p, () => textW(p.t)), 0);
+    const fillRich = (text: string, o: number, tx: number, ty: number, align: CanvasTextAlign, ell?: boolean) => {
+      if (!b.marks) { fill(text, tx, ty, align); return; }
+      const ps = richPieces(text, o, ell), total = ps.reduce((a, p) => a + withPiece(p, () => textW(p.t)), 0);
+      let rx = align === 'center' ? tx - total / 2 : align === 'right' ? tx - total : tx;
+      for (const p of ps) { const w = withPiece(p, () => textW(p.t)); withPiece(p, () => fill(p.t, rx, ty, 'left')); rx += w; }
     };
     // Text on a curve: each glyph is placed on the circle (the DOM's textPath does the same) and drawn upright to it, one pass per effect so shadows never sit over a neighbour's letters.
     const arcText = (a: NonNullable<BackBox['arc']>, text: string) => {
@@ -271,11 +288,13 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
         const x0 = b.x + pad + l.i, iw = maxW - l.i, cy = ty + lh / 2;
         const words = l.j ? l.t.split(' ') : [];
         if (l.j && words.length > 1) {
-          const ws = words.map(w => textW(w));
+          let wo = l.o ?? 0;
+          const offs = words.map(w => { const at = wo; wo += w.length + 1; return at; });
+          const ws = words.map((w, k) => richW(w, offs[k]));
           const gap = (iw - ws.reduce((a, n) => a + n, 0)) / (words.length - 1);
           let wx = x0;
-          words.forEach((w, k) => { fill(w, wx, cy, 'left'); wx += ws[k] + gap; });
-        } else fill(l.t, f.align === 'left' ? x0 : f.align === 'right' ? x0 + iw : x0 + iw / 2, cy, f.align);
+          words.forEach((w, k) => { fillRich(w, offs[k], wx, cy, 'left'); wx += ws[k] + gap; });
+        } else fillRich(l.t, l.o ?? 0, f.align === 'left' ? x0 : f.align === 'right' ? x0 + iw : x0 + iw / 2, cy, f.align, l.e);
         ty += lh;
       }
     } else {

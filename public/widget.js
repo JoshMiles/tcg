@@ -354,6 +354,24 @@ function backMeasure(text, face) {
   return backMeasureCtx.measureText(text).width;
 }
 const BACK_SMALLCAP = 0.8;
+// Port of markPieces (lib/text-markup.ts): a line's text split at the markup's edges, each piece with its style. ell = the line ends in an added ellipsis.
+function markPieces(t, o, marks, ell) {
+  const body = ell ? t.slice(0, -1) : t;
+  const cuts = new Set([0, body.length]);
+  for (const m of marks || []) for (const c of [m.from - o, m.to - o]) if (c > 0 && c < body.length) cuts.add(c);
+  const at = [...cuts].sort((a, b) => a - b);
+  const out = [];
+  for (let i = 0; i < at.length - 1; i++) {
+    const m = (marks || []).find(k => k.from <= o + at[i] && o + at[i] < k.to);
+    const p = { t: body.slice(at[i], at[i + 1]) };
+    if (m && m.bold) p.bold = true;
+    if (m && m.italic) p.italic = true;
+    if (m && m.color) p.color = m.color;
+    out.push(p);
+  }
+  if (ell) { const last = out[out.length - 1]; if (last) last.t += '\u2026'; else out.push({ t: '\u2026' }); }
+  return out;
+}
 function backCapRuns(t) {
   const out = [];
   for (const ch of t) {
@@ -367,22 +385,32 @@ function backCapRuns(t) {
 function backLayoutText(s, measure) {
   const face = { family: s.family, weight: s.weight, italic: s.italic };
   if (s.kerning === false) face.kerning = false;
-  const glyphs = t => (s.smallCaps ? backCapRuns(t).reduce((a, r) => a + (measure(r.t, face) / 100) * (r.s ? BACK_SMALLCAP : 1), 0) : measure(s.upper ? t.toUpperCase() : t, face) / 100);
-  const wid = (t, size) => (glyphs(t) + t.length * s.spacingEm + (t.split(' ').length - 1) * (s.wordEm || 0)) * size;
+  const glyphs1 = (t, fc) => (s.smallCaps ? backCapRuns(t).reduce((a, r) => a + (measure(r.t, fc) / 100) * (r.s ? BACK_SMALLCAP : 1), 0) : measure(s.upper ? t.toUpperCase() : t, fc) / 100);
+  const glyphs = (t, o, ell) => (s.marks
+    ? markPieces(t, o || 0, s.marks, ell).reduce((a, p) => a + glyphs1(p.t, p.bold || p.italic ? Object.assign({}, face, p.bold ? { weight: Math.max(s.weight, 700) } : {}, { italic: s.italic || !!p.italic }) : face), 0)
+    : glyphs1(t, face));
+  const wid = (t, size, o, ell) => (glyphs(t, o, ell) + t.length * s.spacingEm + (t.split(' ').length - 1) * (s.wordEm || 0)) * size;
+  const at = o => (s.marks ? { o } : {});
   const flow = size => {
     const lines = [];
+    let po = 0;
     s.text.split('\n').forEach((para, pi) => {
-      const words = para.split(' ').filter(Boolean);
+      const ws = [];
+      let p = 0;
+      for (const w of para.split(' ')) { if (w) ws.push({ w, o: po + p }); p += w.length + 1; }
+      const p0 = po;
+      po += para.length + 1;
+      const words = ws.map(x => x.w);
       const ind = s.indent * size, gap = pi ? s.paraGap * size : 0;
       const start = lines.length;
       const meta = j => (lines.length === start ? { i: ind, g: gap, j } : { i: 0, g: 0, j });
-      if (!s.wrap || words.length <= 1) { lines.push(Object.assign({ t: words.join(' ') }, meta(false))); return; }
-      let line = '';
-      for (const w of words) {
-        const next = line ? line + ' ' + w : w;
-        if (line && wid(next, size) > s.boxW - (lines.length === start ? ind : 0)) { lines.push(Object.assign({ t: line }, meta(s.justify))); line = w; } else line = next;
+      if (!s.wrap || words.length <= 1) { lines.push(Object.assign({ t: words.join(' ') }, meta(false), at(ws.length ? ws[0].o : p0))); return; }
+      let line = '', lo = 0;
+      for (const x of ws) {
+        const w = x.w, next = line ? line + ' ' + w : w;
+        if (line && wid(next, size, lo) > s.boxW - (lines.length === start ? ind : 0)) { lines.push(Object.assign({ t: line }, meta(s.justify), at(lo))); line = w; lo = x.o; } else { if (!line) lo = x.o; line = next; }
       }
-      lines.push(Object.assign({ t: line }, meta(false)));
+      lines.push(Object.assign({ t: line }, meta(false), at(lo)));
     });
     let cap = s.maxLines > 0 ? s.maxLines : Infinity;
     if (s.boxH > 0) {
@@ -395,18 +423,20 @@ function backLayoutText(s, measure) {
       lines.length = cap;
       const last = lines[cap - 1];
       let t = last.t;
-      while (t && wid(t + '…', size) > s.boxW - last.i) t = t.slice(0, -1).trimEnd();
+      while (t && wid(t + '…', size, last.o, true) > s.boxW - last.i) t = t.slice(0, -1).trimEnd();
       last.t = t + '…'; last.j = false;
+      if (s.marks) last.e = true;
     }
     let widest = 0;
-    for (const l of lines) widest = Math.max(widest, wid(l.t, size) + l.i);
+    for (const l of lines) widest = Math.max(widest, wid(l.t, size, l.o, l.e) + l.i);
     return { lines, cut, widest };
   };
   const round = n => Math.round(n * 100) / 100;
   if (s.fit === 'width') {
-    const t = s.text.replace(/\n/g, ' ').replace(/ +/g, ' ').trim();
-    const unit = wid(t, 1);
-    const one = [{ t, i: 0, g: 0, j: false }];
+    const flat = s.marks ? s.text.replace(/\n/g, ' ') : s.text.replace(/\n/g, ' ').replace(/ +/g, ' ');
+    const t = flat.trim(), o = flat.length - flat.trimStart().length;
+    const unit = wid(t, 1, o);
+    const one = [Object.assign({ t, i: 0, g: 0, j: false }, at(o))];
     if (!(unit > 0) || !(s.boxW > 0)) return { size: s.size, lines: one };
     return { size: round(Math.max(Math.min(s.minPx, s.maxPx), Math.min(s.maxPx, (s.boxW * 0.99) / unit))), lines: one };
   }
@@ -422,11 +452,26 @@ function backLayoutText(s, measure) {
   }
   return { size, lines: flow(size).lines };
 }
-function backLineSpan(l, smallCaps) {
-  const el = document.createElement('span');
-  if (l.t && smallCaps) for (const r of backCapRuns(l.t)) {
+function backCapInto(el, t, smallCaps) {
+  if (!smallCaps) { el.appendChild(document.createTextNode(t)); return; }
+  for (const r of backCapRuns(t)) {
     if (r.s) { const sm = document.createElement('span'); sm.style.fontSize = BACK_SMALLCAP + 'em'; sm.textContent = r.t; el.appendChild(sm); } else el.appendChild(document.createTextNode(r.t));
-  } else el.textContent = l.t || '\u00a0';
+  }
+}
+// sp = the node's spec ({smallCaps, marks, weight}); gradient = the text has a gradient fill, which wins over a markup colour.
+function backLineSpan(l, sp, gradient) {
+  const el = document.createElement('span');
+  const smallCaps = !!(sp && sp.smallCaps);
+  if (!l.t) el.textContent = '\u00a0';
+  else if (sp && sp.marks) for (const p of markPieces(l.t, l.o || 0, sp.marks, l.e)) {
+    const part = document.createElement('span');
+    if (p.bold) part.style.fontWeight = String(Math.max(sp.weight, 700));
+    if (p.italic) part.style.fontStyle = 'italic';
+    if (p.color && !gradient) part.style.color = p.color;
+    backCapInto(part, p.t, smallCaps);
+    el.appendChild(part);
+  } else if (smallCaps) backCapInto(el, l.t, true);
+  else el.textContent = l.t;
   el.style.display = 'block'; el.style.whiteSpace = 'nowrap';
   if (l.i) el.style.marginLeft = l.i + 'px';
   if (l.g) el.style.marginTop = l.g + 'px';
@@ -463,7 +508,7 @@ function backNodeEl(spec) {
   if (spec.cls) el.className = spec.cls;
   if (spec.tag === 'img') { el.src = spec.src; el.alt = ''; }
   else if (spec.tag === 'p' && spec.arc) el.appendChild(backArcSvg(spec.arc, spec.text));
-  else if (spec.tag === 'p' && spec.lines) for (const l of spec.lines) el.appendChild(backLineSpan(l, spec.spec && spec.spec.smallCaps));
+  else if (spec.tag === 'p' && spec.lines) for (const l of spec.lines) el.appendChild(backLineSpan(l, spec.spec, spec.style.color === 'transparent'));
   else if (spec.tag === 'p') el.textContent = spec.text;
   for (const k of Object.keys(spec.style)) el.style.setProperty(k, spec.style[k]);
   return el;
@@ -473,7 +518,7 @@ function backRefit(el, spec) {
   const r = backLayoutText(spec.spec, backMeasure);
   el.style.fontSize = r.size + 'px';
   el.textContent = '';
-  for (const l of r.lines) el.appendChild(backLineSpan(l, spec.spec.smallCaps));
+  for (const l of r.lines) el.appendChild(backLineSpan(l, spec.spec, spec.style.color === 'transparent'));
 }
 // Draws the design into `host` (the .card-back element), scaled to its width. False = nothing drawn (the caller keeps the cover).
 function mountDesignBack(host, design) {

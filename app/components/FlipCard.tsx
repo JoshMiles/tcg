@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { qrPath } from '@/lib/qr';
 import type { FlipBack } from '@/lib/flip-back';
 import { DEFAULT_CARD_BACK, plateVars } from '@/lib/card-back';
-import { capRuns, fontsNeeded, layoutBack, lineCss, SMALLCAP_SCALE, type ArcGeo, type BackNode } from '@/lib/card-back-layout';
+import { capRuns, fontsNeeded, layoutBack, lineCss, SMALLCAP_SCALE, type ArcGeo, type BackNode, type TextLine } from '@/lib/card-back-layout';
+import { markPieces } from '@/lib/text-markup';
 import { loadBackFont } from '@/lib/card-back-fonts';
 
 const MAX_TILT = 12;
@@ -129,6 +130,16 @@ function ArcText({ a, text }: { a: ArcGeo; text: string }) {
   );
 }
 
+/** One line's text: plain, in small capitals, and/or in the pieces its markup styles (bold, italic, colour; a gradient fill wins over a colour). */
+function LineBody({ l, spec, gradient }: { l: TextLine; spec: BackNode['spec']; gradient: boolean }) {
+  if (!l.t) return <>{' '}</>;
+  const caps = (t: string) => (spec?.smallCaps ? capRuns(t).map((r, k) => (r.s ? <span key={k} style={{ fontSize: `${SMALLCAP_SCALE}em` }}>{r.t}</span> : r.t)) : t);
+  if (!spec?.marks) return <>{caps(l.t)}</>;
+  return <>{markPieces(l.t, l.o ?? 0, spec.marks, l.e).map((p, k) => (p.bold || p.italic || p.color
+    ? <span key={k} style={{ ...(p.bold ? { fontWeight: Math.max(spec.weight, 700) } : {}), ...(p.italic ? { fontStyle: 'italic' as const } : {}), ...(p.color && !gradient ? { color: p.color } : {}) }}>{caps(p.t)}</span>
+    : <span key={k}>{caps(p.t)}</span>))}</>;
+}
+
 /** One node of the back: the same elements and classes the classic plate always used, so the stylesheet draws them as before. */
 function BackNodeView({ n, qr, flipped }: { n: BackNode; qr: { d: string; size: number } | null; flipped: boolean }) {
   const style = { ...n.vars, ...n.css } as React.CSSProperties;
@@ -137,7 +148,7 @@ function BackNodeView({ n, qr, flipped }: { n: BackNode; qr: { d: string; size: 
   switch (n.tag) {
     case 'img': return <img {...id} src={n.src} alt="" className={cls} style={style} />;
     case 'p': if (n.arc) return <p {...id} className={cls} style={style}><ArcText a={n.arc} text={n.text ?? ''} /></p>;
-      return <p {...id} className={cls} style={style}>{n.lines ? n.lines.map((l, i) => <span key={i} style={lineCss(l) as React.CSSProperties}>{!l.t ? ' ' : n.spec?.smallCaps ? capRuns(l.t).map((r, k) => (r.s ? <span key={k} style={{ fontSize: `${SMALLCAP_SCALE}em` }}>{r.t}</span> : r.t)) : l.t}</span>) : n.text}</p>;
+      return <p {...id} className={cls} style={style}>{n.lines ? n.lines.map((l, i) => <span key={i} style={lineCss(l) as React.CSSProperties}><LineBody l={l} spec={n.spec} gradient={n.css.color === 'transparent'} /></span>) : n.text}</p>;
     case 'ul': return <ul {...id} className={cls} style={style}>{n.items?.map((h, i) => <li key={i}><span>{h.text}</span><span>{h.date}</span></li>)}</ul>;
     case 'a': return <a {...id} href={n.href} tabIndex={flipped ? 0 : -1} onClick={e => e.stopPropagation()} className={cls} style={style}>{n.text}</a>;
     case 'qr':
