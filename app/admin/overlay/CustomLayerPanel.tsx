@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { ImageUploadField } from '@/app/admin/components/image-upload';
-import { Check, Colour, EffectFields, GradientStops, Group, Num } from '@/app/admin/components/workspace/CharacterPanel';
+import { ScrubLabel } from '@/app/admin/components/workspace/ScrubLabel';
+import { Check,Colour, EffectFields, GradientStops, Group, Num } from '@/app/admin/components/workspace/CharacterPanel';
 import { ARROWS, IMAGE_FITS, LINE_CAPS, MAX_CUSTOM_TEXT, SHAPES, STROKE_POS, isSafeImageUrl, type CustomLayer, type CustomShape, type CustomText } from '@/lib/overlay-custom';
 import type { TextStyle } from '@/lib/text-style';
 import type { PropDef } from '@/lib/overlay-props';
@@ -20,7 +21,7 @@ export function CustomLayerPanel({ view, layerId }: { view: Mode; layerId: strin
     setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: (l[view].custom ?? []).map(x => (x.id === layerId ? ({ ...x, ...patch } as CustomLayer) : x)) } }), `Custom layer "${layer.name}"`);
   const num = (label: string, key: 'x' | 'y' | 'w' | 'h' | 'rotate', unit = 'px') => (
     <label className="text-xs text-gray-500 space-y-1">
-      {label}
+      <ScrubLabel value={layer[key]} onChange={v => set({ [key]: v })}>{label}</ScrubLabel>
       <span className="flex items-center gap-1">
         <input type="number" value={layer[key]} onChange={e => { if (e.target.value !== '' && Number.isFinite(Number(e.target.value))) set({ [key]: Number(e.target.value) }); }} className={`${inputCls} block w-20`} />
         <span className="text-gray-600">{unit}</span>

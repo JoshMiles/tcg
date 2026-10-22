@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react';
 import { Icon } from '@/app/components/Icon';
-import { PanelStack } from '../components/workspace/PanelStack';
+import { ColumnResizer } from '../components/workspace/ColumnResizer';
+import { PanelStack, type PanelDef } from '../components/workspace/PanelStack';
+import type { useColumnLayout } from '../components/workspace/useColumnLayout';
 import { LAYER_NAMES, LayersPanel } from './LayersPanel';
 import { CustomLayerPanel } from './CustomLayerPanel';
 import { useTextBar } from './EditorTextOptions';
@@ -16,7 +18,7 @@ import { PERF_LABEL, variantPerf } from '@/lib/overlay-perf';
 import { PERF_STYLE, VARIANT_LABELS, dependsOn } from './editor-types';
 import { sectionForTarget, useOverlayEditor } from './OverlayEditorContext';
 
-export function PropertiesDock() {
+export function PropertiesDock({ column }: { column: ReturnType<typeof useColumnLayout> }) {
   const {
     isPack,
     isOver,
@@ -166,7 +168,7 @@ export function PropertiesDock() {
             type="button"
             onClick={() => setOpenMap(m => ({ ...m, [k]: !open }))}
             aria-expanded={open}
-            className="flex-1 min-w-0 flex items-center gap-2 px-3 py-2.5 text-left hover:bg-white/5"
+            className="flex-1 min-w-0 flex items-center gap-2 px-2 py-1.5 text-left hover:bg-white/5"
           >
             <span
               aria-hidden
@@ -174,7 +176,7 @@ export function PropertiesDock() {
             >
               <Icon name="chevronRight" className="w-3 h-3" />
             </span>
-            <span className="text-sm font-semibold text-gray-200 truncate">{name || 'Settings'}</span>
+            <span className="text-xs font-semibold text-gray-200 truncate">{name || 'Settings'}</span>
             {changed.length > 0 && (
               <span className="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 rounded-full px-1.5">
                 {changed.length}
@@ -192,7 +194,7 @@ export function PropertiesDock() {
             </button>
           )}
         </div>
-        {open && <div className="px-3 pb-4 pt-1 space-y-4">{defs.map(renderRow)}</div>}
+        {open && <div className="px-2 pb-3 pt-1 space-y-3">{defs.map(renderRow)}</div>}
       </section>
     );
   };
@@ -212,7 +214,7 @@ export function PropertiesDock() {
   // Properties follows the selection; Layers sits under it and takes the rest of the column (hidden in a pack override).
   const properties = (
     <div className="min-h-0 flex-1 flex flex-col">
-      <div className="p-3 space-y-2 border-b border-gray-800">
+      <div className="p-2 space-y-2 border-b border-gray-800">
         <input
           type="search"
           value={query}
@@ -368,12 +370,7 @@ export function PropertiesDock() {
     </div>
   );
 
-  return (
-    <div className="min-h-0 h-[75vh] xl:h-auto">
-      <PanelStack
-        storageKey="tcg:overlay-panels"
-        defaultCollapsed={['history']}
-        panels={[
+  const panels: PanelDef[] = [
           { id: 'properties', title: 'Properties', icon: 'settings', weight: 3, content: properties },
           {
             id: 'layers',
@@ -400,8 +397,27 @@ export function PropertiesDock() {
             ),
           },
           { id: 'history', title: 'History', icon: 'history', weight: 1, content: <HistoryPanel /> },
-        ]}
-      />
+  ];
+
+  // Folded to an icon strip (xl and up only): one button per panel, and a click unfolds the column with that panel open.
+  return (
+    <div className="relative min-h-0 h-[75vh] xl:h-auto">
+      <ColumnResizer width={column.width} onChange={column.setWidth} />
+      {column.railed && (
+        <div className="hidden xl:flex h-full flex-col items-center gap-1 rounded-xl border border-gray-800 bg-gray-900/80 py-1">
+          <button type="button" onClick={() => column.setRailed(false)} aria-label="Expand the side panels" title="Expand" className="w-8 h-7 flex items-center justify-center text-gray-500 hover:text-white">
+            <Icon name="chevronLeft" className="w-3 h-3" />
+          </button>
+          {panels.filter(p => !p.hidden).map(p => (
+            <button key={p.id} type="button" onClick={() => column.reveal(p.id)} aria-label={`Open ${p.title}`} title={p.title} className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:bg-white/5 hover:text-white">
+              <Icon name={p.icon} />
+            </button>
+          ))}
+        </div>
+      )}
+      <div className={`h-full ${column.railed ? 'xl:hidden' : ''}`}>
+        <PanelStack panels={panels} collapsed={column.collapsed} onToggle={column.toggle} onRail={() => column.setRailed(true)} />
+      </div>
     </div>
   );
 }
