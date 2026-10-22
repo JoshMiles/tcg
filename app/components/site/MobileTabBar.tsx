@@ -16,9 +16,10 @@ const TABS: { href: string; icon: IconName }[] = [
   { href: '/trade', icon: 'trade' },
   { href: '/leaderboard', icon: 'trophy' },
 ];
+export const TAB_HREFS = TABS.map(t => t.href);
 const TEXT_FIELD = 'textarea, select, [contenteditable=""], [contenteditable="true"], input:not([type=checkbox],[type=radio],[type=button],[type=submit],[type=reset],[type=range],[type=file],[type=color],[type=image])';
 
-/** The phone tab bar (below xl): Home, Card Dex, Trade, Leaderboard and More, which opens the site menu. Hidden while a text field has focus. */
+/** The phone tab bar (below xl): Home, Card Dex, Trade, Leaderboard and More, which opens the More sheet. Hidden while a text field has focus. */
 export function MobileTabBar({ menuOpen, onMore, moreRef }: { menuOpen: boolean; onMore: () => void; moreRef: RefObject<HTMLButtonElement | null> }) {
   const pathname = usePathname();
   const [typing, setTyping] = useState(false);
@@ -51,7 +52,7 @@ export function MobileTabBar({ menuOpen, onMore, moreRef }: { menuOpen: boolean;
           </Link>
         );
       })}
-      <button ref={moreRef} type="button" onClick={onMore} aria-expanded={menuOpen} aria-controls="site-menu" className={`${item} ${menuOpen ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
+      <button ref={moreRef} type="button" onClick={onMore} aria-expanded={menuOpen} aria-haspopup="dialog" className={`${item} ${menuOpen ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
         <Icon name={menuOpen ? 'x' : 'menu'} className="w-5 h-5" />More
         {badge(counts.unread)}
       </button>

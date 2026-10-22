@@ -13,11 +13,15 @@ import { ChangelogLink } from './ChangelogLink';
 import { newestChangelogDate } from '@/lib/changelog';
 import { nextMenuIndex } from '@/lib/menu-nav';
 import { LINKS, isActive as active } from './links';
-import { MobileTabBar } from './MobileTabBar';
+import { MobileTabBar, TAB_HREFS } from './MobileTabBar';
+import { BottomSheet } from './BottomSheet';
 
 export interface NavUser { username: string; displayName: string; avatarUrl?: string }
 /** The signed-in viewer's place in the active season (null when unranked or there is no season). */
 export interface NavRank { rank: number; score: number; total: number; season: string }
+
+/** The main links the phone tab bar doesn't carry. */
+const SHEET_LINKS = LINKS.filter(l => !TAB_HREFS.includes(l.href));
 
 const SEEN_KEY = 'tcg_rank_seen';
 /** What changed since the viewer last opened the account menu: positive = climbed. */
@@ -31,7 +35,7 @@ const TwitchGlyph = () => (
   </svg>
 );
 
-/** Top bar for the public site. Collapses to a menu button on small screens. */
+/** Top bar for the public site. Below xl the account and menu live in the More sheet. */
 /** Where the signed-in staff member's panel is (admins and the super admin: the admin panel; mods: the mod panel). */
 export interface NavStaff { href: string; label: string }
 
@@ -61,14 +65,6 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [menuOpen]);
-
-  // The phone menu closes on Escape too (and gives focus back to its button).
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); moreRef.current?.focus(); } };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open]);
 
   // Rank movement since the last time they opened the menu (kept in this browser only).
   useEffect(() => {
@@ -119,7 +115,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
 
         <div className="ml-auto flex items-center gap-2">
           <SearchButton className="h-9 px-2.5" />
-          <span className="hidden xl:contents"><LiveBadge /></span>
+          <LiveBadge />
           <span className="hidden xl:contents"><InstallButton /></span>
           {staff && (
             <Link href={staff.href} prefetch={false} className="hidden 2xl:inline-flex items-center gap-1.5 h-9 px-3 whitespace-nowrap shrink-0 rounded-lg border border-purple-400/40 bg-purple-500/10 text-xs font-bold text-purple-200 hover:bg-purple-500/20 transition-colors">
@@ -128,7 +124,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
           )}
           {user && <NotificationBell />}
           {user ? (
-            <div className="relative hidden sm:block" ref={menuRef}>
+            <div className="relative hidden xl:block" ref={menuRef}>
               <button
                 ref={triggerRef}
                 type="button"
@@ -163,7 +159,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
           ) : loginEnabled ? (
             <a
               href={loginHref}
-              className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap shrink-0 text-white bg-[#9146ff] hover:bg-[#a36bff] transition-colors"
+              className="hidden xl:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap shrink-0 text-white bg-[#9146ff] hover:bg-[#a36bff] transition-colors"
             >
               <TwitchGlyph /> Log in with Twitch
             </a>
@@ -171,41 +167,43 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
         </div>
       </div>
 
-      {open && <div className="xl:hidden fixed inset-0 top-[calc(3.5rem+env(safe-area-inset-top))] z-[-1] bg-gray-950/60" onClick={() => setOpen(false)} aria-hidden />}
-      {open && (
-        <nav id="site-menu" className="xl:hidden border-t border-gray-800 bg-gray-950 px-4 py-3 grid gap-1 max-h-[calc(100dvh-7rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] overflow-y-auto" aria-label="Menu">
-          <button type="button" onClick={() => { setOpen(false); window.dispatchEvent(new Event(OPEN_SEARCH_EVENT)); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-gray-700 text-sm text-gray-400 text-left">
-            <Icon name="search" /> Search collectors, cards and pages…
-          </button>
-          {LINKS.map(l => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`px-3 py-2.5 rounded-lg text-sm font-semibold ${isActive(l.href, l.exact) ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-300 hover:bg-white/5'}`}
-            >
-              {l.label}
-            </Link>
-          ))}
-          <ChangelogLink newest={newestChangelogDate()} className={`px-3 py-2.5 rounded-lg text-sm font-semibold ${isActive('/changelog') ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-300 hover:bg-white/5'}`}>What&rsquo;s new</ChangelogLink>
-          {staff && <Link href={staff.href} prefetch={false} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-purple-200 hover:bg-purple-500/10"><Icon name="shield" className="mr-1.5" />{staff.label}</Link>}
-          {user ? (
-            <>
-              <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-yellow-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats ({user.displayName}){rank && <span className="ml-2 text-xs text-gray-400">#{rank.rank} · {rank.score.toLocaleString()} pts</span>}</Link>
-              <Link href={`/u/${user.username}`} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="user" className="mr-1.5" />My profile</Link>
-              <Link href="/settings" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="settings" className="mr-1.5" />Settings</Link>
-              <form action="/auth/logout" method="post">
-                <PendingButton type="submit" className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-300 hover:bg-red-950/40">Log out</PendingButton>
-              </form>
-            </>
-          ) : loginEnabled ? (
-            <a href={loginHref} className="mt-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-bold text-white bg-[#9146ff]">
-              <TwitchGlyph /> Log in with Twitch
-            </a>
-          ) : null}
-        </nav>
-      )}
     </header>
     <MobileTabBar menuOpen={open} onMore={() => setOpen(o => !o)} moreRef={moreRef} />
+    <div className="xl:hidden">
+      <BottomSheet open={open} onClose={() => setOpen(false)} label="More" returnFocusRef={moreRef}>
+        <div className="grid gap-1" onClick={e => { if ((e.target as Element).closest('a')) setOpen(false); }}>
+          {user ? (
+            <Link href={`/u/${user.username}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-yellow-500/30 bg-yellow-500/5">
+              <Avatar src={user.avatarUrl} name={user.displayName} className="w-9 h-9 text-sm" />
+              <span className="text-sm font-semibold text-yellow-100 truncate">{user.displayName}</span>
+              {rank && <RankChip rank={rank} delta={delta} />}
+            </Link>
+          ) : loginEnabled ? (
+            <a href={loginHref} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-bold text-white bg-[#9146ff]">
+              <TwitchGlyph /> Sign in with Twitch
+            </a>
+          ) : null}
+          {SHEET_LINKS.map(l => (
+            <Link key={l.href} href={l.href} className={`px-3 py-2.5 rounded-lg text-sm font-semibold ${isActive(l.href, l.exact) ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-300 hover:bg-white/5'}`}>{l.label}</Link>
+          ))}
+          <ChangelogLink newest={newestChangelogDate()} className={`px-3 py-2.5 rounded-lg text-sm font-semibold ${isActive('/changelog') ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-300 hover:bg-white/5'}`}>What&rsquo;s new</ChangelogLink>
+          {user && (
+            <>
+              <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats{rank && <span className="ml-2 text-xs text-gray-400">#{rank.rank} &middot; {rank.score.toLocaleString()} pts</span>}</Link>
+              <Link href={`/u/${user.username}`} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="user" className="mr-1.5" />My profile</Link>
+              <Link href="/settings" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="settings" className="mr-1.5" />Settings</Link>
+            </>
+          )}
+          {staff && <Link href={staff.href} prefetch={false} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-purple-200 hover:bg-purple-500/10"><Icon name="shield" className="mr-1.5" />{staff.label}</Link>}
+          <InstallButton row />
+          {user && (
+            <form action="/auth/logout" method="post">
+              <PendingButton type="submit" className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-red-300 hover:bg-red-950/40">Sign out</PendingButton>
+            </form>
+          )}
+        </div>
+      </BottomSheet>
+    </div>
     </>
   );
 }
