@@ -18,15 +18,10 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
 | 35.3 | Richer Android install | Ready | S |
-| 38.6 | Overlay Editor: every part a layer (moment banner) | Ready | S |
 | 38.7 | Overlay Editor: add your own layers (text, image, shape) | Ready | L |
 | 38.8 | Overlay Editor: text formatting (a Character panel on every text layer) | Ready | L |
 | 38.9 | Overlay Editor: better text fields (tokens, preview, checks) | Ready | S |
 | 38.10 | Overlay Editor: styled words inside one text (rich text) | Ready | M |
-| 38.11 | Font library: more fonts, real weights, a proper font picker | Ready | M |
-| 38.12 | Card back editor: full text tool (sizes, fitting, boxes, effects) | Ready | L |
-| 38.15 | Overlay Editor: timeline scrubber | Ready | M |
-| 38.16 | Overlay Editor: stream rehearsal | Ready | S |
 | 38.17 | Overlay Editor: artboards (scenes side by side) | Ready | M |
 | 38.18 | Overlay Editor: groups and linked layers | Ready | M |
 | 38.19 | Overlay Editor: measure with Alt, status bar | Ready | S |
@@ -39,7 +34,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.26 | Overlay Editor: text readability check | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
-| 38.29 | Overlay Editor: workspace redesign, (f) and (g) left | Ready | M |
+| 38.29 | Overlay Editor: workspace redesign, (g) left | Ready | M |
 | 38.30 | Card back editor: the same workspace, plus shapes and images | Ready | L |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
@@ -70,10 +65,6 @@ Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers
 **Reuse the card back editor.** `app/admin/components/card-back/` (`Canvas`, `Layers`, `Properties`) and `lib/card-back-edit.ts` already do multi-select, lock, show / hide, reorder, duplicate, Add text and `alignElements` / `distributeElements`. Lift what fits into shared code rather than writing it twice; the overlay differs only in that its layers live in an iframe and report their boxes by `postMessage`.
 
 **Rules for the whole track.** Preview mode never touches the queue, heartbeat or collections. Layer edits stay global or per scene, never per pack (handles, Layers and these tools stay hidden in pack scope). Reveal keyframes animate `transform` / `rotate` / `opacity` / `filter`; layer settings use the standalone `translate` / `scale` properties or a wrapper so they stack with them, never the animated property itself. Every new stored field goes through `sanitizeLayout()` with an empty default that equals today's look (no migration), plus a `scripts/check-overlay.mts` case.
-
-### 38.6 Every part a layer (Ready, S)
-- Give the **moment banner** an element id (`banner`, pack view) with its `data-edit` tag, so it can be selected, moved and sized like the rest (docs/overlay.md notes it has none). Check the first-ever / first-pull / new-card banners and the show-off.
-- Layers rows show an icon per kind (image, text, group) and the part's name as on the canvas tag. Double-click a row to jump to its settings.
 
 ### 38.7 Add your own layers (Ready, L)
 Photoshop's core: layers that aren't built in. **Decided (user, 2026-10-21):** text, image **and shape** layers, in both views (pack opening and collection).
@@ -109,33 +100,10 @@ Photoshop lets one text layer mix styles. **Decided (user, 2026-10-21):** wanted
 
 Not planned: free-floating or re-dockable panels, blend modes, masks, rotating the card itself (its tilt / rock animations own `rotate`).
 
-**Text work order:** 38.11 (fonts) → 38.12 (card back text tool, which defines the full `TextStyle` in `lib/text-style.ts`) → 38.8 (the same Character panel on overlay text) → 38.9 → 38.10. The user's ask (2026-10-21): the card back's text tool "is too basic, it all needs to be expanded (more fonts, better sizes etc)", and every overlay label and text field gets the same tool.
-
-### 38.11 Font library (Ready, M)
-Today `BACK_FONTS` (`lib/card-back.ts`) has 15 faces: 3 site / system ones and 12 self-hosted files, most only 400 and 700, some only 400. The Weight select offers 400 to 900, so 500 / 600 / 800 / 900 silently snap to the nearest file (`loadBackFont`), and there are no italic files (italic is faked by the browser). The overlay shares this list (36.5).
-- **More fonts:** grow to about 40 curated OFL faces, self-hosted in `public/fonts/back/` with their licences (no font service at runtime, as now). Fill the gaps by mood: bold display (Anton, Archivo Black, Luckiest Guy, Titan One, Bungee), friendly rounded (Baloo 2, Quicksand, Comfortaa), clean sans (Inter, Montserrat, Poppins, Rubik, Barlow Condensed), serif (Merriweather, Lora, DM Serif Display), fantasy / trading card (Cinzel Decorative, Uncial Antiqua, MedievalSharp, Metamorphous), handwritten / script (Caveat, Permanent Marker, Kalam, Satisfy), tech / game (Rajdhani, Audiowide, Russo One, VT323, Silkscreen). Final list is the builder's call within that spread; keep total font bytes reported in the PR.
-- **Real weights and italics:** prefer **variable** woff2 files where the family has one (one file covers 100 to 900, `font-weight` range in the `FontFace` descriptor); otherwise ship each static weight offered. `BackFont` gains `weights: number[]` and `italic?: true`, and the Weight control offers only that font's weights (named: Thin, Light, Regular, Medium, SemiBold, Bold, Black). Existing saved weights a font lacks keep snapping to the nearest, so old designs don't change.
-- **Font picker** (shared component, replaces the plain `<select>` in both editors): each font named in its own face with a sample of the layer's actual text, a search box, category tabs (Display, Sans, Serif, Script, Fantasy, Mono / Pixel, Site), **Recently used** and starred **Favourites** at the top (localStorage), and hover previews the font on the canvas before clicking (Photoshop does this).
-- **Canvas parity:** `lib/card-back-canvas.ts` (share images) must load and draw the same face and weight; wait for `loadBackFonts` as now.
-- `scripts/check-card-back.mts`: every `BACK_FONTS` file exists, every licence exists, an unknown font id falls back.
-- **Decided (user, 2026-10-21):** no uploading of your own font files; the curated list only.
-
-### 38.12 Card back editor: full text tool (Ready, L)
-The card back's text controls (`card-back/Properties.tsx`, model `BackEl` / `Effects` in `lib/card-back.ts`) are one font select, size as a bare "Size (%)" number 2 to 30, a 400 to 900 weight select, B / I / U / uppercase, spacing, line height, three aligns, colour, opacity, and one each of outline, glow, shadow, gradient, engrave. Expand it into a full Character + Paragraph panel and move the model into `lib/text-style.ts` so the overlay (38.8) gets the identical tool. Every new field is optional with a default equal to today's render, so saved backs don't change; `sanitize` clamps each one.
-- **Sizes:** a size field in **pt** (as if printed on a standard 2.5 in wide card, which the editor draws as `PRINT_W` = 260 px; stored as now, shown converted), a slider beside it, and presets (Tiny 6, Small 8, Body 10, Large 14, Title 20, Huge 32). Arrow keys step 0.5, Shift 5. **Auto-fit**: "Shrink to fit" (largest size where the text fits its box, down to a minimum) and "Fit width" (one line spanning the box). The layout code already measures text (`lib/card-back-layout.ts`); fitting lives there so DOM and canvas agree.
-- **Text boxes:** free text gets a **height** as well as a width, drag handles for both on the canvas, **vertical align** (top / middle / bottom), **max lines** with an ellipsis, **wrap** on / off, and **padding**.
-- **Character:** weight by name (only the font's real weights, 38.11), italic only where the face has it or marked "slanted", underline / **strikethrough** / overline, case (none, UPPER, lower, Title, small caps), letter spacing in thousandths of an em (Photoshop's tracking, -100 to 800), word spacing, line height as a multiple or "auto", **baseline shift** and superscript for one-line tokens, **kerning** auto / off.
-- **Paragraph:** align left / centre / right / **justify**, first-line indent, space between paragraphs (texts may contain line breaks).
-- **Colour:** solid, **gradient** with 2 to 4 stops and an angle (today: 2 colours), rarity colour and auto (as now), opacity.
-- **Effects** (each on / off, several at once, Photoshop's Layer Style list): **stroke** with position outside / centre (canvas `strokeText`, DOM `paint-order: stroke` so outside strokes don't eat the letters), **drop shadow** (colour, angle, distance, blur, opacity; up to 2), **outer glow**, **inner shadow**, **bevel / emboss** (today's engrave becomes its "pressed" preset), and a **background plate** behind the text (colour, padding, corner radius, outline), which makes readable labels on busy patterns.
-- **Text on a curve (decide size during build):** "Arc" with a bend from -100 to 100, for curved titles across the top of a back. Canvas draws glyph by glyph; DOM uses an SVG `textPath`. If it doubles the item, ship it as its own PR after the rest.
-- **Style presets:** save the current text style under a name ("Gold title", "Fine print") and apply it to any text in either editor; a few built in. Stored in KV beside the card back settings (staff-wide), not per back.
-- **Panel layout:** Character and Paragraph as two collapsible sections, Effects as a list with switches (like Photoshop's Layer Style dialog, but docked), every field with a reset dot when changed. Reuse `Num` / `Row` from `Properties.tsx`.
-- **Parity is the hard part:** every option must render the same in the DOM back (`FlipCard`, site and overlay) and on the canvas (`lib/card-back-canvas.ts`, share images). Add a `scripts/check-card-back.mts` case per option for sanitize / defaults, and check DOM vs canvas by eye on the editor's export preview for each effect. Watch the reduced-motion learning: the bare editor back must keep `data-flipped="true"`.
-- Split into PRs: (a) model to `lib/text-style.ts` + sizes, pt, presets, auto-fit; (b) boxes, wrapping, paragraph; (c) character extras + gradient stops; (d) effects + background plate; (e) style presets; (f) text on a curve.
+**Text work order:** 38.8 (the same Character panel on overlay text, on the `TextStyle` in `lib/text-style.ts` from 38.12) → 38.9 → 38.10. The user's ask (2026-10-21): the card back's text tool "is too basic, it all needs to be expanded (more fonts, better sizes etc)", and every overlay label and text field gets the same tool.
 
 ### 38.29 Workspace redesign (Ready, L)
-**Progress:** (a) to (e) shipped in #352 to #357 (menu bar, status bar, scope tabs, panel stack, contextual Properties, tool strip with 38.1); `docs/overlay.md` describes them. Left: (f) and (g).
+**Progress:** (a) to (e) shipped in #352 to #357, (f) in #366 (menu bar, status bar, scope tabs, panel stack, contextual Properties, tool strip with 38.1); `docs/overlay.md` describes them. Left: (g).
 
 Today the workspace is an options bar crowded with popovers (scope, Presets, Scenes, Versions, Import / Export, Pack tools, Review, Save options, Guides, undo / redo, Revert / Save; `EditorTopBar.tsx`, `EditorMenus.tsx`), the canvas with a preview toolbar under it (view, show as, moment, pack, card, Play; `PreviewToolbar.tsx`), and one 26rem dock (`PropertiesDock.tsx`) holding Layers on top, then a category rail, search and the category's settings. Settings are found by **category**, not by clicking the thing; Layers is squeezed; there is no status bar. Rearrange it as Photoshop does, so every later item has a fixed home:
 
@@ -178,12 +146,6 @@ Today the workspace is an options bar crowded with popovers (scope, Presets, Sce
 
 ### More Photoshop habits
 
-### 38.15 Timeline scrubber (Ready, M)
-Pause the reveal at any moment and scrub it, instead of only Play. A timeline bar under the canvas (play / pause, a scrubber, the time in seconds, markers for each phase: pack, tear, card, label, strip). The preview drives `document.getAnimations()` (`pause()`, `currentTime`) on the iframe document. The widget runs its phases with about 15 `setTimeout`s, so: (a) first PR scrubs within the reveal phase only; (b) second PR moves the preview's phase timings onto one clock (`PREVIEW_CLOCK`, preview mode only; live OBS keeps its timers) so the whole pull scrubs end to end. Variant effects and moments included. Preview only.
-
-### 38.16 Stream rehearsal (Ready, S)
-"Play a stream" in the canvas bar: 5 dry pulls back to back with the real `cardTime` / `cooldownTime`, a mix of packs, versions and one special moment, plus a show-off. Uses the editor's existing preview path (fake `preview` user); nothing queued, saved or heard by OBS. Stop button.
-
 ### 38.17 Artboards (Ready, M)
 A canvas mode showing the global layout and every scene side by side (landscape and vertical, each at its own stage size and scaled to fit), like Photoshop artboards. Click one to make it the edited scope; each is a live iframe still, the selected one playable. Off by default (several iframes cost memory); a View menu toggle.
 
@@ -222,7 +184,7 @@ Saving a preset or version captures a still of the preview (the widget draws its
 ### 38.28 Scheduled looks (Ready, M)
 A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
 
-**Build order for the track:** 38.6 → 38.15 with 38.29 (f), 38.16 → text work (38.11, 38.12, 38.8, 38.9, 38.10) → 38.7 → 38.29 (g) → 38.30 (after 38.12 (a)) → 38.17 to 38.28 in any order.
+**Build order for the track:** text work (38.8, 38.9, 38.10) → 38.7 → 38.29 (g) → 38.30 → 38.17 to 38.28 in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 
