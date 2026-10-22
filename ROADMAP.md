@@ -17,7 +17,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
-| 38.7 | Overlay Editor: add your own layers, (f) left | Ready | M |
 | 38.17 | Overlay Editor: artboards (scenes side by side) | Ready | M |
 | 38.18 | Overlay Editor: groups and linked layers | Ready | M |
 | 38.19 | Overlay Editor: measure with Alt, status bar | Ready | S |
@@ -63,22 +62,6 @@ Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers
 **Reuse the card back editor.** `app/admin/components/card-back/` (`Canvas`, `Layers`, `Properties`) and `lib/card-back-edit.ts` already do multi-select, lock, show / hide, reorder, duplicate, Add text and `alignElements` / `distributeElements`. Lift what fits into shared code rather than writing it twice; the overlay differs only in that its layers live in an iframe and report their boxes by `postMessage`.
 
 **Rules for the whole track.** Preview mode never touches the queue, heartbeat or collections. Layer edits stay global or per scene, never per pack (handles, Layers and these tools stay hidden in pack scope). Reveal keyframes animate `transform` / `rotate` / `opacity` / `filter`; layer settings use the standalone `translate` / `scale` properties or a wrapper so they stack with them, never the animated property itself. Every new stored field goes through `sanitizeLayout()` with an empty default that equals today's look (no migration), plus a `scripts/check-overlay.mts` case.
-
-### 38.7 Add your own layers (Ready, L)
-**Progress:** (a) in #385, (b) in #386, (c) in #392, (d) in #395, (e) bands, order, Show when and fades; `docs/overlay.md` describes them. Left: (f).
-
-Photoshop's core: layers that aren't built in. **Decided (user, 2026-10-21):** text, image **and shape** layers, in both views (pack opening and collection).
-- **Adding:** the Text (T), Shape (U) and Image tools in the tool strip (38.29) and **Add layer** in Layers. Click on the canvas places one; drag draws it at that size.
-- **Text:** a box with wording and the full Character / Paragraph / Effects panel (38.8, 38.12), including box height, vertical align and styled words (38.10). Tokens are 38.9's set (`{user}`, `{cardName}`, `{variant}`, `{pack}`, `{edition}`, `{stars}`), filled by the widget with `textContent` only.
-- **Image:** upload through `ImageUploadField` to Blob (a logo, a frame); fit (contain / cover / stretch), corner radius, opacity, effects (shadow, glow, stroke). URLs checked to be Blob or same-site on save.
-- **Shape:** rectangle (corner radius per corner or linked), ellipse, line (end caps, arrowheads), polygon and star (sides 3 to 12, inner radius). Fill: none, solid, or a gradient (linear / radial, 2 to 4 stops, the same gradient editor as text); stroke: colour, width, dash, position inside / centre / outside; effects: drop shadow, outer glow (the shared `Effects`). Shift while drawing keeps proportions. Rendered by the widget as an inline SVG sized to its box, so it scales cleanly at any stage size. Shapes are what make plates behind text, bars, frames and dividers.
-- **Data:** stored per view in the layout as `custom: CustomLayer[]` (`id`, `kind: 'text' | 'image' | 'shape'`, `name`, kind-specific fields, a box `{ x, y, w, h }` in design px plus `rotate`, `opacity`, `visible`; locks stay an editor aid as in 38.5), so scenes carry them and versions snapshot them; at most 16 per view. `sanitizeLayout()` validates every field and drops unknown kinds; an absent `custom` is today's look. Global or per scene, never per pack, like other layer edits.
-- **Order:** custom layers reorder freely among themselves (drag in Layers, Ctrl+[ / Ctrl+]) and sit in one of two bands, **behind the card** or **in front of it**; built-in parts keep their fixed order between the bands. Each has **Show: always / during the reveal / after the reveal** (pack view) and an optional fade in / out.
-- **Free transform:** custom layers (unlike built-in parts) get side handles for width / height, a rotate handle (Shift = 15° steps), and the 9-point anchor (38.22). Rotation is safe here because no reveal keyframe animates these wrappers.
-- **Editing:** duplicate (Ctrl+J, Photoshop's), copy / paste between views and scenes, rename by double-click in Layers, delete.
-- Split: (a) data, sanitize, widget render for all three kinds, Add / delete; (b) the Text tool and text panel; (c) the Shape tool, fill / stroke / effects; (d) the Image tool; (e) bands, ordering, "Show when", fades; (f) free transform. `scripts/check-overlay.mts` cases for each kind's sanitize and the 16 cap.
-
-Not planned: free-floating or re-dockable panels, blend modes, masks, rotating the card itself (its tilt / rock animations own `rotate`).
 
 ### 38.29 Workspace redesign (Ready, L)
 **Progress:** (a) to (e) shipped in #352 to #357, (f) in #366 (menu bar, status bar, scope tabs, panel stack, contextual Properties, tool strip with 38.1); `docs/overlay.md` describes them. Left: (g).
@@ -168,7 +151,7 @@ Saving a preset or version captures a still of the preview (the widget draws its
 ### 38.28 Scheduled looks (Ready, M)
 A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
 
-**Build order for the track:** 38.7 (d) to (f) → 38.31 → 38.29 (g) → 38.30 → 38.17 to 38.28 in any order.
+**Build order for the track:** 38.31 → 38.29 (g) → 38.30 → 38.17 to 38.28 in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 

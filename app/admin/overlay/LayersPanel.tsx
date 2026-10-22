@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { ELEMENT_IDS, type ElementId, type OverlayLayout } from '@/lib/overlay-layout';
 import { MAX_CUSTOM, moveCustomOnto, newCustom, type CustomKind } from '@/lib/overlay-custom';
@@ -63,6 +64,12 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
     setCustom(view, c => [...c, layer], `Add ${kind} layer`);
     selectView(view);
     selectTarget(`custom:${layer.id}`);
+  };
+  const [renaming, setRenaming] = useState('');
+  const rename = (view: Mode, layerId: string, name: string) => {
+    setRenaming('');
+    const n = name.trim().slice(0, 40);
+    if (n && n !== (layout[view].custom ?? []).find(x => x.id === layerId)?.name) setCustom(view, c => c.map(x => (x.id === layerId ? { ...x, name: n } : x)), `Rename ${n}`);
   };
   return (
     <div data-layers className="px-3 py-2 space-y-2" onMouseLeave={() => hoverElement('')}>
@@ -132,12 +139,17 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
               return (
                 <li key={l.id} draggable onDragStart={e => e.dataTransfer.setData('text/plain', `custom:${view}:${l.id}`)} onDragOver={e => e.preventDefault()}
                   onDrop={e => { const [t, v, from] = e.dataTransfer.getData('text/plain').split(':'); if (t === 'custom' && v === view) setCustom(view, c => moveCustomOnto(c, from, l.id), 'Reorder layers'); }}
+                  onContextMenu={e => { selectView(view); selectTarget(id); menuOn(view, id)(e); }}
                   className={`flex items-center gap-1 rounded ${selection.includes(id) ? 'bg-yellow-500/15' : 'hover:bg-white/5'}`}>
-                  <button type="button" onClick={() => { selectView(view); selectTarget(id); }} aria-current={selected === id} className={`flex-1 min-w-0 flex items-center gap-2 px-2 py-1 text-left text-sm truncate ${l.visible ? 'text-gray-200' : 'text-gray-500 line-through'}`}>
+                  {renaming === view + l.id ? (
+                    <input autoFocus defaultValue={l.name} maxLength={40} aria-label="Layer name" onFocus={e => e.currentTarget.select()} onBlur={e => rename(view, l.id, e.currentTarget.value)}
+                      onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); else if (e.key === 'Escape') { e.currentTarget.value = l.name; e.currentTarget.blur(); } }}
+                      className="flex-1 min-w-0 mx-1 my-0.5 rounded border border-gray-600 bg-gray-950 px-1.5 py-0.5 text-sm text-gray-100" />
+                  ) : <button type="button" onClick={() => { selectView(view); selectTarget(id); }} onDoubleClick={() => setRenaming(view + l.id)} title="Double-click to rename" aria-current={selected === id} className={`flex-1 min-w-0 flex items-center gap-2 px-2 py-1 text-left text-sm truncate ${l.visible ? 'text-gray-200' : 'text-gray-500 line-through'}`}>
                     <Icon name={l.kind === 'text' ? 'text' : l.kind === 'image' ? 'image' : 'stop'} className="text-gray-500 shrink-0" />
                     {l.name}
                     {l.band === 'back' && <span className="text-[10px] text-gray-500 shrink-0">behind</span>}
-                  </button>
+                  </button>}
                   <button type="button" onClick={() => setCustom(view, c => c.map(x => (x.id === l.id ? { ...x, visible: !x.visible } : x)), `${l.visible ? 'Hide' : 'Show'} ${l.name}`)} aria-pressed={!l.visible} aria-label={`Hide ${l.name}`} title={l.visible ? 'Hide' : 'Show'} className="px-1 text-gray-500 hover:text-white">
                     <Icon name={l.visible ? 'eye' : 'eyeOff'} />
                   </button>

@@ -613,6 +613,9 @@
   background: #facc15; border: 1px solid #111; border-radius: 2px; touch-action: none; }
 .edit-handle.nw, .edit-handle.se { cursor: nwse-resize; }
 .edit-handle.ne, .edit-handle.sw { cursor: nesw-resize; }
+.edit-handle.n, .edit-handle.s { cursor: ns-resize; }
+.edit-handle.e, .edit-handle.w { cursor: ew-resize; }
+.edit-handle.rot { cursor: grab; border-radius: 50%; background: #fff; }
 
 /* Sparkle burst (variant.*.sparkles): particles fly out from the middle of the card and fade. */
 .spark-layer { position: absolute; left: 0; right: 0; top: 40px; height: 380px; pointer-events: none; z-index: 2000; }
