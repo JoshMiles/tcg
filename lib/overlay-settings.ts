@@ -212,13 +212,17 @@ export async function removeScheduledLook(id: string): Promise<void> {
 }
 
 /** The schedule running now (when two overlap, the one that started latest wins) and its preset, if that still exists. */
+const runningLook = (looks: ScheduledLook[], now: number) => looks.filter(e => e.start <= now && now < e.end).sort((a, b) => b.start - a.start)[0];
+
 export async function getActiveScheduledLook(now = Date.now()): Promise<{ look: ScheduledLook; preset: OverlayPreset | null } | null> {
-  const look = (await getScheduledLooks()).filter(e => e.start <= now && now < e.end).sort((a, b) => b.start - a.start)[0];
+  const look = runningLook(await getScheduledLooks(), now);
   if (!look) return null;
   return { look, preset: (await listPresets()).find(p => p.id === look.presetId) ?? null };
 }
 
 /** What the heartbeat sends: the stored refresh token plus the active schedule, so the overlay reloads by itself at each start / end. */
 export async function getReloadSignal(now = Date.now()): Promise<string> {
-  return `${await getReloadToken()}:${(await getActiveScheduledLook(now))?.look.id ?? ''}`;
+  // Reads only the schedule list (not the presets): this runs on every overlay's 10 s ping.
+  const [token, looks] = await Promise.all([getReloadToken(), getScheduledLooks()]);
+  return `${token}:${runningLook(looks, now)?.id ?? ''}`;
 }
