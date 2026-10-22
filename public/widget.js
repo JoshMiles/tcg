@@ -227,25 +227,49 @@ function customLayerEl(l, ctx, accent) {
   }
   return d;
 }
-function dropCustom(set) { if (set.el) { set.el.remove(); set.el = null; } }
+function dropCustom(set) { for (const b of set.boxes || []) b.remove(); set.boxes = []; set.items = []; }
+// Phase: 'static' (editor preview: everything shown, no fades), 'all' (collection: Show when ignored), 'during' / 'after' (a pull, before / from the card reveal).
+const customShown = (l, phase) => phase === 'static' || phase === 'all' || !l.show || l.show === 'always' || (l.show === 'reveal') === (phase === 'during');
 function renderCustom(set) {
   dropCustom(set);
   const list = CUSTOM[set.view] || [];
   if (!list.length) return;
-  const box = document.createElement('div');
-  box.className = 'custom-layers';
-  set.el = box;
-  document.getElementById('stage').appendChild(box);
+  // Two boxes: behind the card (under the whole theater) and in front of it; the list order is the stacking order inside each.
+  const mk = back => {
+    const box = document.createElement('div');
+    box.className = 'custom-layers' + (back ? ' behind' : '');
+    set.boxes.push(box);
+    document.getElementById('stage').appendChild(box);
+    return box;
+  };
+  const boxes = {};
   const P = Object.assign({}, effectiveProps(null));
   for (const l of list) {
     const d = customLayerEl(l, set.ctx, set.accent);
     if (!d) continue;
-    box.appendChild(d);
+    const back = l.band === 'back';
+    (boxes[back] || (boxes[back] = mk(back))).appendChild(d);
     if (l.kind === 'text') { applyTextFont(d, l.font, P); P['custom.style'] = l.style; applyTextStyle(d, 'custom.style', P, l.font, l.size); }
+    if (set.phase === 'static') continue;
+    // Fades set the element's own opacity (the layer's opacity is the "on" value), so they never fight it.
+    set.items.push({ d, l });
+    const on = customShown(l, set.phase);
+    if (!on) d.style.opacity = '0';
+    else if (l.fadeIn > 0) { d.style.opacity = '0'; void d.offsetWidth; d.style.transition = 'opacity ' + l.fadeIn + 'ms linear'; d.style.opacity = String(l.opacity); }
   }
 }
-function attachCustom(wrapper, view, ctx, accent) {
-  const set = { view, ctx, accent, el: null };
+function setCustomPhase(wrapper, phase) {
+  const set = CUSTOM_SETS.get(wrapper);
+  if (!set) return;
+  set.phase = phase;
+  for (const { d, l } of set.items) {
+    const on = customShown(l, phase);
+    d.style.transition = 'opacity ' + (on ? l.fadeIn : l.fadeOut) + 'ms linear';
+    d.style.opacity = on ? String(l.opacity) : '0';
+  }
+}
+function attachCustom(wrapper, view, ctx, accent, phase) {
+  const set = { view, ctx, accent, phase: phase || 'static', boxes: [], items: [] };
   CUSTOM_SETS.set(wrapper, set);
   renderCustom(set);
 }
@@ -912,7 +936,7 @@ if (PREVIEW) {
   // Focus sits in this frame after a click, so hand the nudge / clear keys and the editor's shortcuts (tools, zoom, save) to the editor.
   const FWD_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Escape'];
   const FWD_EDITOR_KEYS = ['v', 'h', 'z', 't', 'Tab', '?', ' '];
-  const FWD_CTRL = ['s', 'd', '0', '1', '=', '+', '-', 'z', 'y', 'r'];
+  const FWD_CTRL = ['s', 'd', '0', '1', '=', '+', '-', 'z', 'y', 'r', '[', ']'];
   document.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;
     if (!(mod ? EDITOR && FWD_CTRL.includes(e.key.toLowerCase()) : FWD_KEYS.includes(e.key) || (EDITOR && FWD_EDITOR_KEYS.includes(e.key)))) return;
@@ -2002,7 +2026,7 @@ function drawCard(username, opts) {
 
   const owned = show ? true : prior.some(e => decodeEntry(e).cardNumber === card.number);
   const tokenCtx = { user, cardName: card.name, variant, pack: packName, stars: card.stars };
-  attachCustom(wrapper, 'pack', tokenCtx, cfg.accentColor);
+  attachCustom(wrapper, 'pack', tokenCtx, cfg.accentColor, 'during');
   applyLook(theater, P, variant, card, cfg, owned, tokenCtx);
   paintCard(theater, card, art, isFullArt ? card.fullArtThumb : card.thumb);
 
@@ -2028,6 +2052,7 @@ function drawCard(username, opts) {
 
   // Card reveal sound + radial burst
   phaseTimer(() => {
+    setCustomPhase(wrapper, 'after');
     const so = show ? pv(P, 'show.sound', 'on') : 'on';
     if (so === 'custom') { const u = String(pv(P, 'show.soundUrl', '')); if (u) playAudio(u, Math.min(1, vol * pv(P, 'show.volume', 1))); }
     else if (so !== 'off') playAudio(card.soundUrl || `assets/sounds/${card.number}.mp3`, show ? Math.min(1, cardVol * pv(P, 'show.volume', 1)) : cardVol);
@@ -2163,7 +2188,7 @@ function showCollection(username, opts) {
   wrapper.classList.remove('fade-in-start');
   cardInfo.style.opacity   = '1';
   cardInfo.style.transform = 'scale(1)';
-  attachCustom(wrapper, 'collection', { user: username }, cfg.accentColor);
+  attachCustom(wrapper, 'collection', { user: username }, cfg.accentColor, 'all');
   headingText(userText, P, username, cfg);
   applyTextFont(userText, pv(P, 'collection.headingFont', 'inherit'), P);
   if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';

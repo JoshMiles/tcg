@@ -269,6 +269,16 @@ eq(sanitizeLayout({ pack: { elements: { banner: { offsetX: 12, scale: 1.5 } } } 
   ok(lay(Array.from({ length: 30 }, (_, n) => ({ id: 'c' + n, kind: 'text', ...box })))?.length === cu.MAX_CUSTOM && cu.MAX_CUSTOM === 16, 'at most 16 layers per view');
   const both = sanitizeLayout({ pack: { custom: [{ id: 'p', kind: 'text', ...box }] }, collection: { custom: [{ id: 'q', kind: 'text', ...box }] } });
   ok(both.pack.custom?.[0].id === 'p' && both.collection.custom?.[0].id === 'q', 'each view keeps its own layers');
+  // 38.7 e: band, Show when, fades; defaults are today's look, bad values fall back, stepping stays inside a band.
+  const bd = lay([{ id: 'b1', kind: 'text', ...box }, { id: 'b2', kind: 'text', ...box, band: 'back', show: 'after', fadeIn: 99999, fadeOut: -5 }, { id: 'b3', kind: 'text', ...box, band: 'x', show: 'x', fadeIn: 250 }]) as import('../lib/overlay-custom').CustomLayer[];
+  ok(bd[0].band === 'front' && bd[0].show === 'always' && bd[0].fadeIn === 0 && bd[0].fadeOut === 0, 'a layer with no band / show / fades reads as front, always, no fade');
+  ok(bd[1].band === 'back' && bd[1].show === 'after' && bd[1].fadeIn === 5000 && bd[1].fadeOut === 0, 'band and show are kept, fades are clamped to 0..5000 ms');
+  ok(bd[2].band === 'front' && bd[2].show === 'always' && bd[2].fadeIn === 250, 'a bad band or show falls back');
+  eq(cu.stepCustom(bd, 'b3', -1).map(l => l.id), ['b3', 'b2', 'b1'], 'a step back skips a layer of the other band');
+  eq(cu.stepCustom(bd, 'b1', -1).map(l => l.id), ['b1', 'b2', 'b3'], 'the back of its band stays put');
+  eq(cu.stepCustom(bd, 'b3', 1).map(l => l.id), ['b1', 'b2', 'b3'], 'the front of its band stays put');
+  const dr = cu.moveCustomOnto(bd, 'b2', 'b3');
+  ok(dr.map(l => l.id).join() === 'b1,b3,b2' && dr[2].band === 'front', 'a drop takes the target place and band');
   const n = cu.newCustom('shape', ['shape1'], 1280, 720);
   ok(n.id === 'shape2' && n.kind === 'shape' && cu.newCustom('image', [], 1280, 720).kind === 'image' && cu.newCustom('text', [], 1280, 720).kind === 'text', 'newCustom picks a free id');
   const before = sanitizeLayout({ pack: { custom: [{ id: 'a', kind: 'text', ...box, name: 'Old' }] } });

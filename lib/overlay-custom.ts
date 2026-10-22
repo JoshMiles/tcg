@@ -14,6 +14,9 @@ export const STROKE_POS = ['inside', 'center', 'outside'] as const;
 export const LINE_CAPS = ['butt', 'round', 'square'] as const;
 export const ARROWS = ['none', 'start', 'end', 'both'] as const;
 export const IMAGE_FITS = ['contain', 'cover', 'fill'] as const;
+export const BANDS = ['front', 'back'] as const;
+/** Pack view only: when in the pull the layer is up (`reveal`: until the card is revealed, `after`: from the card reveal on). */
+export const SHOWS = ['always', 'reveal', 'after'] as const;
 export const MAX_CUSTOM_TEXT = 300;
 export const VALIGNS = ['top', 'middle', 'bottom'] as const;
 
@@ -27,6 +30,11 @@ interface CustomBase {
   /** The box on the stage in design px (top left), plus turn in degrees. */
   x: number; y: number; w: number; h: number; rotate: number;
   opacity: number; visible: boolean;
+  /** Behind the whole card theater or in front of it; order inside a band is the list order (last is on top). */
+  band: (typeof BANDS)[number];
+  show: (typeof SHOWS)[number];
+  /** Fade in when it comes up, out when its `show` window ends (ms, 0 = cut). */
+  fadeIn: number; fadeOut: number;
 }
 export interface CustomText extends CustomBase {
   kind: 'text';
@@ -100,6 +108,8 @@ export function sanitizeCustom(raw: unknown, width: number, height: number): Cus
       x: Math.round(clamp(r.x, -width, width * 2, 0)), y: Math.round(clamp(r.y, -height, height * 2, 0)),
       w: Math.round(clamp(r.w, 1, width * 2, 200)), h: Math.round(clamp(r.h, 1, height * 2, 100)),
       rotate: Math.round(clamp(r.rotate, -360, 360, 0)), opacity: r2(clamp(r.opacity, 0, 1, 1)), visible: r.visible !== false,
+      band: pick(r.band, BANDS, 'front'), show: pick(r.show, SHOWS, 'always'),
+      fadeIn: Math.round(clamp(r.fadeIn, 0, 5000, 0)), fadeOut: Math.round(clamp(r.fadeOut, 0, 5000, 0)),
     };
     if (kind === 'text') {
       out.push({
@@ -157,4 +167,25 @@ export function newCustom(kind: CustomKind, taken: string[], width: number, heig
   const [w, h] = DEFAULT_SIZE[kind];
   const at = { id: `${kind}${n}`, x: box ? box.x : Math.round((width - w) / 2), y: box ? box.y : Math.round((height - h) / 2), w: box?.w ?? w, h: box?.h ?? h };
   return sanitizeCustom([{ ...at, kind, name: `${KIND_LABEL[kind]} ${n}`, ...(kind === 'text' ? { text: 'New text' } : kind === 'image' ? { url: '' } : { fill: { type: 'solid', color: '#facc15' } }) }], width, height)[0];
+}
+
+/** Layer `id` one step towards the back (-1) or front (+1) among the layers of its own band (the other band is drawn elsewhere). */
+export function stepCustom(list: CustomLayer[], id: string, dir: -1 | 1): CustomLayer[] {
+  const i = list.findIndex(l => l.id === id);
+  if (i < 0) return list;
+  let j = i + dir;
+  while (j >= 0 && j < list.length && list[j].band !== list[i].band) j += dir;
+  if (j < 0 || j >= list.length) return list;
+  const out = list.slice();
+  [out[i], out[j]] = [out[j], out[i]];
+  return out;
+}
+
+/** Drag-reorder: `id` takes the place of `onto` (and joins its band). */
+export function moveCustomOnto(list: CustomLayer[], id: string, onto: string): CustomLayer[] {
+  const from = list.find(l => l.id === id), to = list.find(l => l.id === onto);
+  if (!from || !to || from === to) return list;
+  const out = list.filter(l => l !== from);
+  out.splice(out.indexOf(to) + (list.indexOf(from) < list.indexOf(to) ? 1 : 0), 0, { ...from, band: to.band });
+  return out;
 }

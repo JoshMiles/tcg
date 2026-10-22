@@ -1,7 +1,7 @@
 'use client';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { ELEMENT_IDS, type ElementId, type OverlayLayout } from '@/lib/overlay-layout';
-import { MAX_CUSTOM, newCustom, type CustomKind } from '@/lib/overlay-custom';
+import { MAX_CUSTOM, moveCustomOnto, newCustom, type CustomKind } from '@/lib/overlay-custom';
 import type { PropValue } from '@/lib/overlay-props';
 import type { Mode } from './editor-types';
 import { FxBadge, hasFx } from './editor-controls';
@@ -130,10 +130,13 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
             {(layout[view].custom ?? []).map(l => {
               const id = `custom:${l.id}`;
               return (
-                <li key={l.id} className={`flex items-center gap-1 rounded ${selection.includes(id) ? 'bg-yellow-500/15' : 'hover:bg-white/5'}`}>
+                <li key={l.id} draggable onDragStart={e => e.dataTransfer.setData('text/plain', `custom:${view}:${l.id}`)} onDragOver={e => e.preventDefault()}
+                  onDrop={e => { const [t, v, from] = e.dataTransfer.getData('text/plain').split(':'); if (t === 'custom' && v === view) setCustom(view, c => moveCustomOnto(c, from, l.id), 'Reorder layers'); }}
+                  className={`flex items-center gap-1 rounded ${selection.includes(id) ? 'bg-yellow-500/15' : 'hover:bg-white/5'}`}>
                   <button type="button" onClick={() => { selectView(view); selectTarget(id); }} aria-current={selected === id} className={`flex-1 min-w-0 flex items-center gap-2 px-2 py-1 text-left text-sm truncate ${l.visible ? 'text-gray-200' : 'text-gray-500 line-through'}`}>
                     <Icon name={l.kind === 'text' ? 'text' : l.kind === 'image' ? 'image' : 'stop'} className="text-gray-500 shrink-0" />
                     {l.name}
+                    {l.band === 'back' && <span className="text-[10px] text-gray-500 shrink-0">behind</span>}
                   </button>
                   <button type="button" onClick={() => setCustom(view, c => c.map(x => (x.id === l.id ? { ...x, visible: !x.visible } : x)), `${l.visible ? 'Hide' : 'Show'} ${l.name}`)} aria-pressed={!l.visible} aria-label={`Hide ${l.name}`} title={l.visible ? 'Hide' : 'Show'} className="px-1 text-gray-500 hover:text-white">
                     <Icon name={l.visible ? 'eye' : 'eyeOff'} />

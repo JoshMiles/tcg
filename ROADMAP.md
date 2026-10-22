@@ -17,7 +17,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
-| 38.7 | Overlay Editor: add your own layers, (e) and (f) left | Ready | M |
+| 38.7 | Overlay Editor: add your own layers, (f) left | Ready | M |
 | 38.17 | Overlay Editor: artboards (scenes side by side) | Ready | M |
 | 38.18 | Overlay Editor: groups and linked layers | Ready | M |
 | 38.19 | Overlay Editor: measure with Alt, status bar | Ready | S |
@@ -66,7 +66,7 @@ Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers
 **Rules for the whole track.** Preview mode never touches the queue, heartbeat or collections. Layer edits stay global or per scene, never per pack (handles, Layers and these tools stay hidden in pack scope). Reveal keyframes animate `transform` / `rotate` / `opacity` / `filter`; layer settings use the standalone `translate` / `scale` properties or a wrapper so they stack with them, never the animated property itself. Every new stored field goes through `sanitizeLayout()` with an empty default that equals today's look (no migration), plus a `scripts/check-overlay.mts` case.
 
 ### 38.7 Add your own layers (Ready, L)
-**Progress:** (a) in #385, (b) in #386, (c) in #392, (d) the Image tool; `docs/overlay.md` describes them. Left: (e) and (f).
+**Progress:** (a) in #385, (b) in #386, (c) in #392, (d) in #395, (e) bands, order, Show when and fades; `docs/overlay.md` describes them. Left: (f).
 
 Photoshop's core: layers that aren't built in. **Decided (user, 2026-10-21):** text, image **and shape** layers, in both views (pack opening and collection).
 - **Adding:** the Text (T), Shape (U) and Image tools in the tool strip (38.29) and **Add layer** in Layers. Click on the canvas places one; drag draws it at that size.

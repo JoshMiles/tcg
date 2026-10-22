@@ -41,6 +41,12 @@ export function CustomLayerPanel({ view, layerId }: { view: Mode; layerId: strin
         Opacity {Math.round(layer.opacity * 100)}%
         <input type="range" min={0} max={100} value={Math.round(layer.opacity * 100)} onChange={e => set({ opacity: Number(e.target.value) / 100 })} className="range range-xs w-full" />
       </label>
+      <Segmented label="Layer sits" value={layer.band} onChange={v => set({ band: v })} options={[{ id: 'back', label: 'Behind the card' }, { id: 'front', label: 'In front' }]} wrap />
+      {view === 'pack' && <Segmented label="Show" value={layer.show} onChange={v => set({ show: v })} options={[{ id: 'always', label: 'Always' }, { id: 'reveal', label: 'During the reveal' }, { id: 'after', label: 'After the reveal' }]} wrap />}
+      <div className="grid grid-cols-2 gap-2">
+        <Num label="Fade in (ms)" value={layer.fadeIn} min={0} max={5000} step={50} onChange={v => set({ fadeIn: v })} />
+        <Num label="Fade out (ms)" value={layer.fadeOut} min={0} max={5000} step={50} onChange={v => set({ fadeOut: v })} />
+      </div>
       {layer.kind === 'text' && <TextFields layer={layer} view={view} set={set} />}
       {layer.kind === 'image' && (
         <>
