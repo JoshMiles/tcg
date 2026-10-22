@@ -715,6 +715,7 @@ function showStatic(mode) {
   editable(cardLabel, 'label', 'Click to edit the label');
   editable(cardInfoOverlay, 'bar', 'Click to edit the name and stars bar');
   packageContainer.style.opacity = '0';
+  packageContainer.style.pointerEvents = 'none'; // the hidden pack art sits over the card and would swallow the press
 
   if (previewMode === 'pack') {
     // The settled moment of a pack opening: the revealed card, its label and the collection strip beneath it.

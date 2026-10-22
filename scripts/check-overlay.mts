@@ -268,6 +268,7 @@ eq(sanitizeLayout({ pack: { elements: { banner: { offsetX: 12, scale: 1.5 } } } 
   ok(dl.some(l => l.to.startsWith('added text "Fresh"')) && dl.some(l => l.label.includes('"Old"') && l.to.includes('text')), 'the diff reports an added and a changed layer');
   ok(diff.diffLayout(after, before).some(l => l.to === 'removed' && l.from.includes('Fresh')) && diff.diffLayout(before, before).length === 0, 'the diff reports a removed layer and nothing when equal');
   ok(/const customUrlOk/.test(readFileSync('public/widget.js', 'utf8')) && /function renderCustom/.test(readFileSync('public/widget.js', 'utf8')) && !/innerHTML/.test(/\/\/ ── Custom layers[\s\S]*?function applyLayout/.exec(readFileSync('public/widget.js', 'utf8'))?.[0] ?? 'innerHTML'), 'the widget draws custom layers without innerHTML');
+  ok(/packageContainer\.style\.pointerEvents = 'none'/.test(readFileSync('public/widget.js', 'utf8')), 'the still preview lets presses through the hidden pack art to the card');
   // Text tool (38.7 b): vertical align, the box a press makes, a layer placed at a box, the widget's editing hooks.
   const va = (v: unknown) => (lay([{ id: 'v', kind: 'text', ...box, valign: v }])?.[0] as import('../lib/overlay-custom').CustomText).valign;
   ok(va('middle') === 'middle' && va('bottom') === 'bottom' && va('sideways') === 'top' && va(undefined) === 'top', 'text valign is top, middle or bottom, top by default');
