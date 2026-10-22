@@ -17,6 +17,8 @@ function Board({ name, layout, props, onPick }: { name: string; layout: OverlayL
   const [loaded, setLoaded] = useState(false);
   const scale = Math.min(BOX_W / layout.width, BOX_H / layout.height);
   const variant = version === 'regular' ? '' : version;
+  // The props object is rebuilt on every editor render (each drag frame); only re-post when the values really change.
+  const values = JSON.stringify([layout, props]);
   useEffect(() => {
     if (!loaded) return;
     const post = (m: object) => ref.current?.contentWindow?.postMessage(m, window.location.origin);
@@ -24,7 +26,7 @@ function Board({ name, layout, props, onPick }: { name: string; layout: OverlayL
     post({ type: 'variant', variant });
     post({ type: 'props', props, packId: pickPack, cardNumber: pickCard });
     post({ type: 'static', mode, showoff: false });
-  }, [loaded, layout, variant, props, pickPack, pickCard, mode]);
+  }, [loaded, values, variant, pickPack, pickCard, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <button type="button" onClick={onPick} title={`Edit ${name}`} className="shrink-0 rounded-md border border-gray-700 hover:border-yellow-500 bg-gray-950/70 p-1.5 text-left">
       <div className="relative overflow-hidden rounded-sm" style={{ width: layout.width * scale, height: layout.height * scale, backgroundColor: '#1a1d23' }}>
