@@ -51,7 +51,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
 
   return (
     <LiveProvider initial={live}>
-    <div className="min-h-screen flex flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] xl:pb-0" data-motion={prefs.motion}>
+    <div className="site-touch min-h-screen flex flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] xl:pb-0" data-motion={prefs.motion}>
       {hasExperiment(prefs, 'shortcuts') && <PublicKeyboard username={session?.username} />}
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-90 focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
       <SandboxPill />
