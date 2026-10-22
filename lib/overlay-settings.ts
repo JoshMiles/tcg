@@ -180,3 +180,49 @@ export async function getSeasonLookPreset(seasonId: string | null | undefined): 
   if (!id) return null;
   return (await listPresets()).find(p => p.id === id) ?? null;
 }
+
+// ── Scheduled looks: a preset that switches on at a start time and off at an end (a Halloween stream) ──
+
+const SCHEDULE_KEY = 'overlay:scheduledlooks';
+const SCHEDULE_MAX = 20;
+const SCHEDULE_KEEP_MS = 30 * 24 * 3600_000;   // entries that ended longer ago than this are dropped on write
+
+/** Start / end are epoch ms (UTC); the admin UI enters and shows them in the browser's time zone. */
+export interface ScheduledLook { id: string; presetId: string; start: number; end: number }
+
+export async function getScheduledLooks(): Promise<ScheduledLook[]> {
+  const raw = await kv.get<unknown>(SCHEDULE_KEY).catch(() => null);
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((e): e is ScheduledLook => !!e && typeof e.id === 'string' && typeof e.presetId === 'string'
+    && Number.isFinite(e.start) && Number.isFinite(e.end) && e.start < e.end).slice(0, SCHEDULE_MAX);
+}
+
+export async function addScheduledLook(presetId: string, start: number, end: number, now = Date.now()): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) return { ok: false, message: 'The end must be after the start.' };
+  if (!(await listPresets()).some(p => p.id === presetId)) return { ok: false, message: 'That preset no longer exists.' };
+  const kept = (await getScheduledLooks()).filter(e => e.end > now - SCHEDULE_KEEP_MS);
+  if (kept.length >= SCHEDULE_MAX) return { ok: false, message: `At most ${SCHEDULE_MAX} scheduled looks. Remove one first.` };
+  kept.push({ id: Math.random().toString(36).slice(2, 10), presetId, start, end });
+  await kv.set(SCHEDULE_KEY, kept);
+  return { ok: true };
+}
+
+export async function removeScheduledLook(id: string): Promise<void> {
+  await kv.set(SCHEDULE_KEY, (await getScheduledLooks()).filter(e => e.id !== id));
+}
+
+/** The schedule running now (when two overlap, the one that started latest wins) and its preset, if that still exists. */
+const runningLook = (looks: ScheduledLook[], now: number) => looks.filter(e => e.start <= now && now < e.end).sort((a, b) => b.start - a.start)[0];
+
+export async function getActiveScheduledLook(now = Date.now()): Promise<{ look: ScheduledLook; preset: OverlayPreset | null } | null> {
+  const look = runningLook(await getScheduledLooks(), now);
+  if (!look) return null;
+  return { look, preset: (await listPresets()).find(p => p.id === look.presetId) ?? null };
+}
+
+/** What the heartbeat sends: the stored refresh token plus the active schedule, so the overlay reloads by itself at each start / end. */
+export async function getReloadSignal(now = Date.now()): Promise<string> {
+  // Reads only the schedule list (not the presets): this runs on every overlay's 10 s ping.
+  const [token, looks] = await Promise.all([getReloadToken(), getScheduledLooks()]);
+  return `${token}:${runningLook(looks, now)?.id ?? ''}`;
+}

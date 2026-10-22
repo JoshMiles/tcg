@@ -40,6 +40,7 @@ export function EditorTopBar() {
     presetName,
     setPresetName,
     seasons,
+    scheduledLooks,
     looks,
     setLooks,
     setNotice,
@@ -215,6 +216,7 @@ export function EditorTopBar() {
             presetName={presetName}
             setPresetName={setPresetName}
             seasons={seasons}
+            scheduledLooks={scheduledLooks}
             looks={looks}
             setLooks={setLooks}
             setNotice={setNotice}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recordHeartbeat, isValidClientId } from '@/lib/overlay';
-import { getReloadToken } from '@/lib/overlay-settings';
+import { getReloadSignal } from '@/lib/overlay-settings';
 import { isOverlayRequest } from '@/lib/overlay-key';
 
 // The OBS overlay (public/widget.js) pings this every ~10s so the admin can see it is open.
@@ -21,5 +21,5 @@ export async function POST(req: NextRequest) {
     dev: body.dev === true,
   });
   // `reload` changes when an admin asks connected overlays to refresh (see Overlay Editor); the widget reloads once idle.
-  return NextResponse.json({ ok: true, reload: await getReloadToken() });
+  return NextResponse.json({ ok: true, reload: await getReloadSignal() });
 }

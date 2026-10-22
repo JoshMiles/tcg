@@ -46,6 +46,7 @@ import {
   type VersionInfo,
 } from './editor-types';
 import { LAYER_NAMES } from './LayersPanel';
+import type { ScheduledLook } from '@/lib/overlay-settings';
 
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
@@ -95,6 +96,7 @@ export interface OverlayEditorProps {
   versions: VersionInfo[];
   seasons: SeasonInfo[];
   seasonLooks: Record<string, string>;
+  scheduledLooks: ScheduledLook[];
   packCards: Record<string, CardInfo[]>;
   initialAutoReload: boolean;
   initialZones: Record<string, OverlayZone[]>;
@@ -328,6 +330,7 @@ export interface OverlayEditorContextValue {
   setVersionList: React.Dispatch<React.SetStateAction<VersionInfo[]>>;
   versionDistance: (v: VersionInfo) => number;
   loadVersion: (v: VersionInfo) => void;
+  scheduledLooks: ScheduledLook[];
   looks: Record<string, string>;
   setLooks: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   note: string;
@@ -380,6 +383,7 @@ export function OverlayEditorProvider({
   versions,
   seasons,
   seasonLooks,
+  scheduledLooks,
   packCards,
   initialAutoReload,
   initialZones,
@@ -1794,6 +1798,7 @@ export function OverlayEditorProvider({
     setVersionList,
     versionDistance,
     loadVersion,
+    scheduledLooks,
     looks,
     setLooks,
     note,
