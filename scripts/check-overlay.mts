@@ -13,7 +13,7 @@ const versions = await import('../lib/overlay-versions');
 const diff = await import('../lib/overlay-diff');
 const perf = await import('../lib/overlay-perf');
 const { DEFAULT_PROPS, PROP_BY_KEY } = await import('../lib/overlay-props');
-const { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, measureGaps } = await import('../lib/overlay-layout');
+const { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, measureGaps, anchorOffset } = await import('../lib/overlay-layout');
 const kvLib = await import('../lib/kv');
 const sbx = await import('../lib/sandbox');
 const { runInSandbox, prodKv } = await import('../lib/db');
@@ -321,6 +321,9 @@ eq(measureGaps({ x: 0, y: 0, w: 50, h: 50 }, { x: 10, y: 10, w: 10, h: 10 }), []
 eq(alignOffsets({ a: bx.a }, 'middle', { w: 1280, h: 720 }), { a: { dx: 0, dy: 290 } }, 'one part middles on the stage');
 eq(distributeOffsets(bx, 'x'), { a: { dx: 0, dy: 0 }, b: { dx: 125, dy: 0 }, c: { dx: 0, dy: 0 } }, 'distribute spaces centres evenly');
 eq(distributeOffsets({ a: bx.a, c: bx.c }, 'x'), {}, 'distribute needs three parts');
+eq(anchorOffset({ x: 100, y: 50, w: 200, h: 100 }, { x: 0.5, y: 0.5 }, 1, 2), { dx: 0, dy: 0 }, 'anchor: the centre needs no shift');
+eq(anchorOffset({ x: 100, y: 50, w: 200, h: 100 }, { x: 0, y: 0 }, 1, 2), { dx: 100, dy: 50 }, 'anchor: growing from the top-left shifts the offset by half the box');
+eq(anchorOffset({ x: 100, y: 50, w: 200, h: 100 }, { x: 1, y: 1 }, 1, 0.5, 2), { dx: 25, dy: 12.5 }, 'anchor: shrinking from the bottom-right, divided by the view scale');
 eq(diff.diffProps('x', { 'bogus.key': 1 }, {}, () => undefined), [], 'unknown keys are ignored');
 
 // ── Engine, in a sandbox namespace ──

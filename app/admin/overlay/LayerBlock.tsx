@@ -31,7 +31,7 @@ function NumField({ label, value, unit, onChange }: { label: string; value: numb
 
 /** Position, size and opacity of the selected part, as numbers. Top of Properties in Layer mode; not shown in a pack override. */
 export function LayerBlock() {
-  const { isPack, selected, layout, editLayer, resetLayer } = useOverlayEditor();
+  const { isPack, selected, layout, editLayer, resetLayer, anchor, setAnchor } = useOverlayEditor();
   const id = selected as ElementId;
   if (isPack || !(Object.values(ELEMENT_IDS).flat() as string[]).includes(selected)) return null;
   const view = (ELEMENT_IDS.collection as readonly string[]).includes(id) ? 'collection' : 'pack';
@@ -45,6 +45,15 @@ export function LayerBlock() {
         <NumField label="X" value={e.offsetX} unit="px" onChange={v => editLayer(view, id, { offsetX: v })} />
         <NumField label="Y" value={e.offsetY} unit="px" onChange={v => editLayer(view, id, { offsetY: v })} />
         <NumField label="Size" value={Math.round(e.scale * 100)} unit="%" onChange={v => editLayer(view, id, { scale: v / 100 })} />
+      </div>
+      <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div role="radiogroup" aria-label="Resize anchor" className="grid grid-cols-3 gap-0.5">
+          {[0, 0.5, 1].flatMap(y => [0, 0.5, 1].map(x => {
+            const on = anchor.x === x && anchor.y === y;
+            return <button key={x + ',' + y} type="button" role="radio" aria-checked={on} aria-label={`Anchor ${['top', 'middle', 'bottom'][y * 2]} ${['left', 'centre', 'right'][x * 2]}`} onClick={() => setAnchor({ x, y })} className={`h-3 w-3 rounded-sm border ${on ? 'bg-yellow-500 border-yellow-500' : 'border-gray-600 hover:border-gray-400'}`} />;
+          }))}
+        </div>
+        <span className="leading-snug">Anchor: resizing keeps this point of the part still.</span>
       </div>
       <div className="flex items-end gap-2">
         <label className="text-xs text-gray-500 space-y-1 flex-1">
