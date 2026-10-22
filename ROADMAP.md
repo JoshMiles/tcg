@@ -17,11 +17,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
-| 38.17 | Overlay Editor: artboards (scenes side by side) | Ready | M |
-| 38.18 | Overlay Editor: groups and linked layers | Ready | M |
-| 38.26 | Overlay Editor: text readability check | Ready | S |
-| 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
-| 38.28 | Overlay Editor: scheduled looks | Ready | M |
+| 38.27 | Overlay Editor: preset / version thumbnails | Needs design | M |
 | 40.2e | Site speed: cache public pages for signed-out visitors | Needs design | M |
 | 40.2f | Site speed: smaller Card Dex payload | Needs design | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
@@ -51,24 +47,8 @@ Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers
 
 **Rules for the whole track.** Preview mode never touches the queue, heartbeat or collections. Layer edits stay global or per scene, never per pack (handles, Layers and these tools stay hidden in pack scope). Reveal keyframes animate `transform` / `rotate` / `opacity` / `filter`; layer settings use the standalone `translate` / `scale` properties or a wrapper so they stack with them, never the animated property itself. Every new stored field goes through `sanitizeLayout()` with an empty default that equals today's look (no migration), plus a `scripts/check-overlay.mts` case.
 
-### More Photoshop habits
-
-### 38.17 Artboards (Ready, M)
-A canvas mode showing the global layout and every scene side by side (landscape and vertical, each at its own stage size and scaled to fit), like Photoshop artboards. Click one to make it the edited scope; each is a live iframe still, the selected one playable. Off by default (several iframes cost memory); a View menu toggle.
-
-### 38.18 Groups and linked layers (Ready, M)
-Link layers so they move and scale together (chain icon in Layers, stored as `links: ElementId[][]` per view in the layout, editor and widget both ignore unknown ids). Groups collapse in Layers. Built-in default: none linked. Builds on 38.5.
-
-### Overlay helpers
-
-### 38.26 Text readability check (Ready, S)
-For each text layer the widget samples the pixels behind it in the still (or the background screenshot) and the editor warns in Layers and the Character panel when contrast is under 3:1, with a one-click "Add outline" or "Add plate" fix (38.8 / 38.12).
-
-### 38.27 Thumbnails and compare (Ready, M)
-Saving a preset or version captures a still of the preview (the widget draws its settled still to a canvas, or the editor uses the iframe's own render, at 320 px wide) uploaded to Blob; Presets and the versions list show them. **Compare** picks two versions and shows them side by side (two preview iframes fed each version's values), with Review's list between.
-
-### 38.28 Scheduled looks (Ready, M)
-A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
+### 38.27 Preset and version thumbnails (Needs design, M)
+Saving a preset or version captures a still of the preview at 320 px wide, uploaded to Blob; Presets and the versions list show it. Compare (two stills and the diff list) shipped as part 1. Open question: nothing draws the overlay (DOM in an iframe) to a canvas, so a thumbnail needs either a rasterising dependency (`html-to-image`, unreliable across the iframe) or a server render. Decide which before building.
 
 **Build order for the track:** the open 38.x items in any order.
 
