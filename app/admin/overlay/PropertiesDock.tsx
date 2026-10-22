@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { PanelStack } from '../components/workspace/PanelStack';
 import { LAYER_NAMES, LayersPanel } from './LayersPanel';
+import { CustomLayerPanel } from './CustomLayerPanel';
 import { HistoryPanel } from './HistoryPanel';
 import { LayerBlock } from './LayerBlock';
 import { LayoutPanel } from './LayoutPanel';
@@ -68,6 +69,7 @@ export function PropertiesDock() {
   // A category opened from that list is a sub-page of the document and never selects anything on the canvas.
   useEffect(() => { if (selected) setOpenCat(null); }, [selected]);
   const target = selected ? sectionForTarget(selected) : undefined;
+  const customSel = !isPack && selected.startsWith('custom:') ? (['pack', 'collection'] as const).flatMap(view => (layout[view].custom ?? []).filter(l => `custom:${l.id}` === selected).map(l => ({ view, id: l.id })))[0] : undefined;
   const multi = selection.length > 1;
   const layer = !multi && target && !(isPack && target[0] === 'collection') ? target : undefined;
   const layerName = (LAYER_NAMES as Record<string, string>)[selected] ?? selected;
@@ -325,6 +327,8 @@ export function PropertiesDock() {
               ))}
             </div>
           )
+        ) : customSel ? (
+          <CustomLayerPanel view={customSel.view} layerId={customSel.id} />
         ) : !cat ? (
           <>
             {!isPack && layoutPanel}

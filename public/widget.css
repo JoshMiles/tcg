@@ -878,3 +878,7 @@
 .tcg-back .flip-logo { width: var(--logo-px, 38px); height: var(--logo-px, 38px); object-fit: contain; margin-bottom: 4px; }
 .tcg-back .flip-custom { font-size: 10px; font-style: italic; color: var(--ink, rgba(16,16,22,.8)); text-shadow: var(--ink-shadow, 0 1px 0 rgba(255,255,255,.55)); max-width: 100%; overflow-wrap: anywhere; }
 .tcg-back .flip-plate { border-radius: 12px; }
+
+/* Custom layers the admin added (widget.js renderCustom): one box over the whole stage, children placed in design px, in front of the views. */
+.custom-layers { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+.custom-layer { position: absolute; box-sizing: border-box; transform-origin: center; }

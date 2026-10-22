@@ -127,6 +127,99 @@ let ELEMENTS = {};
 
 const n0 = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
 
+// ── Custom layers (lib/overlay-custom.ts; ROADMAP 38.7) ──
+// Text, image and shape layers the admin added, per view. For now they sit in front of everything, over the whole stage in design px
+// (bands, "show when" and fades come later). Built with createElement / createElementNS, textContent and setAttribute only: nothing saved
+// is ever parsed as markup. A theater's wrapper registers with attachCustom; a view with no layers adds nothing to the page.
+let CUSTOM = { pack: [], collection: [] };
+const CUSTOM_SETS = new Map();   // theater wrapper -> { view, ctx, el }
+let customGrad = 0;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const customUrlOk = u => typeof u === 'string' && u.length <= 600 && (/^https:\/\/[^/]+\.public\.blob\.vercel-storage\.com\//i.test(u) || /^\/(?!\/)[\w\-./%]*$/.test(u));
+const svgEl = (name, attrs) => { const e = document.createElementNS(SVG_NS, name); for (const k in attrs) e.setAttribute(k, String(attrs[k])); return e; };
+function customShape(l) {
+  const sw = l.stroke && l.stroke.width > 0 ? l.stroke.width : 0, w = l.w, h = l.h;
+  const svg = svgEl('svg', { width: w, height: h, viewBox: '0 0 ' + w + ' ' + h });
+  svg.style.display = 'block'; svg.style.overflow = 'visible';
+  const f = l.fill || { type: 'none' };
+  let fill = 'none';
+  if (f.type === 'solid') fill = f.color;
+  else if (f.type === 'gradient') {
+    const id = 'cg' + (++customGrad), a = (f.angle || 0) * Math.PI / 180, dx = Math.sin(a) / 2, dy = -Math.cos(a) / 2;
+    const g = f.kind === 'radial' ? svgEl('radialGradient', { id }) : svgEl('linearGradient', { id, x1: 0.5 - dx, y1: 0.5 - dy, x2: 0.5 + dx, y2: 0.5 + dy });
+    for (const st of f.stops || []) g.appendChild(svgEl('stop', { offset: st.at + '%', 'stop-color': st.color }));
+    const defs = svgEl('defs', {}); defs.appendChild(g); svg.appendChild(defs);
+    fill = 'url(#' + id + ')';
+  }
+  const paint = { fill, stroke: sw ? l.stroke.color : 'none', 'stroke-width': sw };
+  if (sw && l.stroke.dash) paint['stroke-dasharray'] = l.stroke.dash + ' ' + l.stroke.dash;
+  const i = sw / 2, rx = (w - sw) / 2, ry = (h - sw) / 2, cx = w / 2, cy = h / 2;
+  let shape;
+  if (l.shape === 'ellipse') shape = svgEl('ellipse', Object.assign({ cx, cy, rx: Math.max(0, rx), ry: Math.max(0, ry) }, paint));
+  else if (l.shape === 'line') shape = svgEl('line', { x1: i, y1: cy, x2: w - i, y2: cy, stroke: sw ? l.stroke.color : fill === 'none' ? '#ffffff' : fill, 'stroke-width': sw || 2, 'stroke-linecap': 'round' });
+  else if (l.shape === 'polygon' || l.shape === 'star') {
+    const n = l.shape === 'star' ? l.sides * 2 : l.sides, pts = [];
+    for (let k = 0; k < n; k++) {
+      const ang = -Math.PI / 2 + (k * 2 * Math.PI) / n, r = l.shape === 'star' && k % 2 ? l.inner : 1;
+      pts.push((cx + Math.cos(ang) * rx * r).toFixed(2) + ',' + (cy + Math.sin(ang) * ry * r).toFixed(2));
+    }
+    shape = svgEl('polygon', Object.assign({ points: pts.join(' '), 'stroke-linejoin': 'round' }, paint));
+  } else shape = svgEl('rect', Object.assign({ x: i, y: i, width: Math.max(0, w - sw), height: Math.max(0, h - sw), rx: Math.min(l.radius || 0, Math.max(0, w - sw) / 2, Math.max(0, h - sw) / 2) }, paint));
+  svg.appendChild(shape);
+  const fx = l.fx || {}, fl = [];
+  for (const sh of fx.shadows || []) if (sh.on !== false) fl.push('drop-shadow(' + sh.x + 'px ' + sh.y + 'px ' + sh.blur + 'px ' + tsAlpha(sh.color, sh.opacity) + ')');
+  if (fx.glow && fx.glow.on !== false) for (let k = 0; k < Math.max(1, Math.round(fx.glow.strength)); k++) fl.push('drop-shadow(0 0 ' + fx.glow.blur + 'px ' + fx.glow.color + ')');
+  if (fl.length) svg.style.filter = fl.join(' ');
+  return svg;
+}
+function customLayerEl(l, ctx) {
+  const d = document.createElement('div');
+  d.className = 'custom-layer';
+  d.dataset.custom = l.id;
+  const st = d.style;
+  st.left = l.x + 'px'; st.top = l.y + 'px'; st.width = l.w + 'px'; st.height = l.h + 'px';
+  if (l.rotate) st.rotate = l.rotate + 'deg';
+  if (l.opacity < 1) st.opacity = String(l.opacity);
+  if (l.visible === false) st.display = 'none';
+  if (l.kind === 'image') {
+    if (!customUrlOk(l.url)) return null;
+    const img = document.createElement('img');
+    img.src = l.url; img.alt = ''; img.draggable = false;
+    img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = l.fit === 'fill' ? 'fill' : l.fit === 'cover' ? 'cover' : 'contain';
+    d.appendChild(img);
+  } else if (l.kind === 'shape') d.appendChild(customShape(l));
+  else if (l.kind === 'text') {
+    st.fontSize = l.size + 'px'; st.color = l.color; st.whiteSpace = 'pre-wrap'; st.overflow = 'hidden';
+    setWording(d, l.text, ctx || {}, l.style && l.style.accent, '');
+  }
+  return d;
+}
+function dropCustom(set) { if (set.el) { set.el.remove(); set.el = null; } }
+function renderCustom(set) {
+  dropCustom(set);
+  const list = CUSTOM[set.view] || [];
+  if (!list.length) return;
+  const box = document.createElement('div');
+  box.className = 'custom-layers';
+  set.el = box;
+  document.getElementById('stage').appendChild(box);
+  const P = Object.assign({}, effectiveProps(null));
+  for (const l of list) {
+    const d = customLayerEl(l, set.ctx);
+    if (!d) continue;
+    box.appendChild(d);
+    if (l.kind === 'text') { applyTextFont(d, l.font, P); P['custom.style'] = l.style; applyTextStyle(d, 'custom.style', P, l.font, l.size); }
+  }
+}
+function attachCustom(wrapper, view, ctx) {
+  const set = { view, ctx, el: null };
+  CUSTOM_SETS.set(wrapper, set);
+  renderCustom(set);
+}
+function pruneCustom() { for (const [w, set] of CUSTOM_SETS) if (!w.isConnected) { dropCustom(set); CUSTOM_SETS.delete(w); } }
+function renderAllCustom() { pruneCustom(); for (const set of CUSTOM_SETS.values()) renderCustom(set); }
+new MutationObserver(pruneCustom).observe(document.getElementById('stage') || document.body, { childList: true });
+
 function applyLayout(layout) {
   if (layout) {
     const n = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
@@ -145,6 +238,8 @@ function applyLayout(layout) {
       };
     }
     ELEMENTS = Object.assign({}, layout.pack && layout.pack.elements, layout.collection && layout.collection.elements);
+    CUSTOM = { pack: Array.isArray(layout.pack && layout.pack.custom) ? layout.pack.custom : [], collection: Array.isArray(layout.collection && layout.collection.custom) ? layout.collection.custom : [] };
+    renderAllCustom();
   }
   const fit = Math.min(window.innerWidth / STAGE.width, window.innerHeight / STAGE.height);
   const root = document.documentElement.style;
@@ -620,6 +715,7 @@ function showStatic(mode) {
     const PS = previewShowOff ? showOffProps(P, variant) : P;
     const card = chosen.cards.find(c => c.number === previewCardNumber) || [...chosen.cards].sort((x, y) => y.stars - x.stars)[0] || ALL_CARDS[0];
     wrapper.classList.add('is-pack', 'pack-fit');
+    attachCustom(wrapper, 'pack', { user: 'Preview', cardName: card ? card.name : '', variant, pack: chosen.pack.name, stars: card ? card.stars : 0 });
     cardBox.style.animation = 'none';
     cardBox.style.opacity = '1';
     radialContainer.style.animation = 'none';
@@ -657,6 +753,7 @@ function showStatic(mode) {
   } else {
     // The collection view: just the name and the card grid.
     wrapper.classList.add('is-collection');
+    attachCustom(wrapper, 'collection', { user: 'Preview' });
     cardBox.style.display = 'none';
     radialContainer.style.display = 'none';
     cardInfo.style.opacity = '1';
@@ -1866,6 +1963,7 @@ function drawCard(username, opts) {
 
   const owned = show ? true : prior.some(e => decodeEntry(e).cardNumber === card.number);
   const tokenCtx = { user, cardName: card.name, variant, pack: packName, stars: card.stars };
+  attachCustom(wrapper, 'pack', tokenCtx);
   applyLook(theater, P, variant, card, cfg, owned, tokenCtx);
   paintCard(theater, card, art, isFullArt ? card.fullArtThumb : card.thumb);
 
@@ -2026,6 +2124,7 @@ function showCollection(username, opts) {
   wrapper.classList.remove('fade-in-start');
   cardInfo.style.opacity   = '1';
   cardInfo.style.transform = 'scale(1)';
+  attachCustom(wrapper, 'collection', { user: username });
   headingText(userText, P, username, cfg);
   applyTextFont(userText, pv(P, 'collection.headingFont', 'inherit'), P);
   if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
