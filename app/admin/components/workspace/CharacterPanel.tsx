@@ -191,12 +191,12 @@ export function GradientStops({ stops, onChange }: { stops: { color: string; at:
 }
 
 /** The effects: stroke, glow, two drop shadows, gradient text, and (not in the overlay) inner shadow, bevel's box siblings and the background plate. */
-export function EffectFields({ value: e, onChange: set, patch, text = true, free = true }: { value: TextStyle; onChange: Change; patch?: PatchMode; text?: boolean; free?: boolean }) {
+export function EffectFields({ value: e, onChange: set, patch, text = true, free = true, stroke = false }: { value: TextStyle; onChange: Change; patch?: PatchMode; text?: boolean; free?: boolean; stroke?: boolean }) {
   const fx = (p: Partial<TextStyle['fx']>, key?: string) => set({ fx: { ...e.fx, ...p } }, key);
   const r = (path: string) => resetOf(patch, path);
   return (
     <>
-      {text && <EffectSwitch label="Stroke" fx={e.fx.stroke} make={{ color: '#000000', width: 2, pos: 'outside' }} onChange={v => fx({ stroke: v })}>
+      {(text || stroke) && <EffectSwitch label="Stroke" fx={e.fx.stroke} make={{ color: '#000000', width: 2, pos: 'outside' }} onChange={v => fx({ stroke: v })}>
         {st => <>
           <Colour label="Colour" value={st.color} reset={r('fx.stroke.color')} onChange={v => fx({ stroke: { ...st, color: v } })} />
           <Num label="Width" value={st.width} min={0} max={10} step={0.5} reset={r('fx.stroke.width')} onChange={v => fx({ stroke: { ...st, width: v } }, 'ow')} />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ImageUploadField } from '@/app/admin/components/image-upload';
 import { FontPicker } from '@/app/admin/components/workspace/FontPicker';
 import { BACK_FONTS, FONT_CATEGORIES } from '@/lib/card-back';
 import { loadBackFont } from '@/lib/card-back-fonts';
@@ -43,20 +44,16 @@ export function CustomLayerPanel({ view, layerId }: { view: Mode; layerId: strin
       {layer.kind === 'text' && <TextFields layer={layer} view={view} set={set} />}
       {layer.kind === 'image' && (
         <>
-          <label className="text-xs text-gray-500 space-y-1 block">
-            Image URL (an uploaded file or a path on this site)
-            <input
-              key={layer.url}
-              defaultValue={layer.url}
-              onBlur={e => { const v = e.target.value.trim(); if (v === '' || isSafeImageUrl(v)) { setBad(false); if (v !== layer.url) set({ url: v }); } else setBad(true); }}
-              className={`${inputCls} block w-full`}
-            />
-          </label>
+          <ImageUploadField key={layer.id} name={`custom-${layer.id}`} defaultValue={layer.url} label="Image (upload, or a Blob file or path on this site)" onUrlChange={v => { const u = v.trim(); if (u === '' || isSafeImageUrl(u)) { setBad(false); if (u !== layer.url) set({ url: u }); } else setBad(true); }} />
           {bad && <p className="text-xs text-red-400">Only uploaded files and paths on this site can be used.</p>}
           <label className="text-xs text-gray-500 space-y-1 block">
             Fit
             <select value={layer.fit} onChange={e => set({ fit: e.target.value })} className="select select-sm block">{IMAGE_FITS.map(f => <option key={f} value={f}>{f}</option>)}</select>
           </label>
+          <Num label="Corner radius" value={layer.radius} min={0} max={1000} onChange={v => set({ radius: v })} />
+          <Group title="Effects">
+            <EffectFields value={{ fx: layer.fx } as TextStyle} text={false} stroke onChange={p => set({ fx: p.fx })} />
+          </Group>
         </>
       )}
       {layer.kind === 'shape' && <ShapeFields layer={layer} set={set} />}

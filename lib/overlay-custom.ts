@@ -40,7 +40,13 @@ export interface CustomText extends CustomBase {
   /** Where the words sit in the box. */
   valign: (typeof VALIGNS)[number];
 }
-export interface CustomImage extends CustomBase { kind: 'image'; url: string; fit: (typeof IMAGE_FITS)[number] }
+export interface CustomImage extends CustomBase {
+  kind: 'image'; url: string; fit: (typeof IMAGE_FITS)[number];
+  /** Corner radius in design px. */
+  radius: number;
+  /** Only `shadows`, `glow` and `stroke` are drawn on an image. */
+  fx: Effects;
+}
 export interface CustomShape extends CustomBase {
   kind: 'shape';
   shape: ShapeType;
@@ -107,7 +113,11 @@ export function sanitizeCustom(raw: unknown, width: number, height: number): Cus
     } else if (kind === 'image') {
       // An empty url is a new image with nothing chosen yet (the widget draws nothing); any other url must pass the check or the layer is dropped.
       if (r.url !== '' && !isSafeImageUrl(r.url)) continue;
-      out.push({ ...base, kind, url: r.url as string, fit: pick(r.fit, IMAGE_FITS, 'contain') });
+      const fx = sanitizeFx(r.fx), keep: Effects = {};
+      if (fx.shadows) keep.shadows = fx.shadows;
+      if (fx.glow) keep.glow = fx.glow;
+      if (fx.stroke) keep.stroke = fx.stroke;
+      out.push({ ...base, kind, url: r.url as string, fit: pick(r.fit, IMAGE_FITS, 'contain'), radius: Math.round(clamp(r.radius, 0, 1000, 0)), fx: keep });
     } else {
       const fx = sanitizeFx(r.fx), keep: Effects = {};
       if (fx.shadows) keep.shadows = fx.shadows;
