@@ -1,4 +1,4 @@
-import { ShareStudio } from '@/app/components/ShareStudio';
+import { ShareStudioLazy as ShareStudio } from '@/app/components/ShareStudioLazy';
 import type { BigStat, ShareCard, ShareSpec } from '@/lib/share-image';
 
 /** The owner's Share tab: choose a theme, a shape and which cards go in, preview the image, then share, save or post it. */
