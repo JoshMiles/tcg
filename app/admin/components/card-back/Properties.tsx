@@ -1,14 +1,16 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ImageUploadField } from '../image-upload';
 import { PRINT_W } from './Canvas';
 import { FontPicker } from '../workspace/FontPicker';
 import { loadBackFont } from '@/lib/card-back-fonts';
 import type { Shadow } from '@/lib/text-style';
 import { BACK_FONTS, FONT_CATEGORIES, KIND_LABELS, MAX_TEXT, WEIGHT_NAMES, nearestWeight, type BackEl, type CardBackStyle, type Effects } from '@/lib/card-back';
-import { DEFAULT_MIN_SIZE, SIZE_PRESETS, caseOf, pctToPt, ptToPct, type TextCase } from '@/lib/text-style';
+import { DEFAULT_MIN_SIZE, SIZE_PRESETS, caseOf, pctToPt, ptToPct, type TextCase, type TextStyle } from '@/lib/text-style';
 import { BLENDS, PATTERN_IDS, PATTERN_LABELS } from '@/lib/card-back-patterns';
 import { plateBackground } from '@/lib/card-back-v1';
+import { BUILTIN_TEXT_PRESETS, presetPatch, styleOf, type TextPreset } from '@/lib/text-presets';
+import { deleteTextPresetAction, listTextPresetsAction, saveTextPresetAction } from '@/app/admin/text-preset-actions';
 import { makeFree, patchBackground, patchElements, resetElement, returnToStack, type Box } from '@/lib/card-back-edit';
 
 const field = 'input input-sm w-full';
@@ -95,6 +97,41 @@ function ShadowFields({ sh, onChange }: { sh: Shadow; onChange: (v: Shadow, key?
   );
 }
 
+/** The Style row: apply a built-in or saved preset to the selection, save the current look under a name, delete a saved one. */
+function PresetRow({ current, onApply }: { current: () => TextStyle; onApply: (s: TextStyle) => void }) {
+  const [saved, setSaved] = useState<TextPreset[]>([]);
+  const [pick, setPick] = useState('');
+  const [naming, setNaming] = useState(false);
+  const [name, setName] = useState('');
+  const [err, setErr] = useState('');
+  useEffect(() => { listTextPresetsAction().then(setSaved).catch(() => {}); }, []);
+  const chosen = [...BUILTIN_TEXT_PRESETS, ...saved].find(p => p.id === pick);
+  const run = (f: () => Promise<TextPreset[]>, after?: (l: TextPreset[]) => void) => { setErr(''); f().then(l => { setSaved(l); after?.(l); }).catch(x => setErr(x instanceof Error ? x.message : 'Could not save')); };
+  return (
+    <div className="space-y-1.5">
+      <Row label="Style">
+        <span className="flex gap-1 w-full">
+          <select aria-label="Style preset" className="select select-sm flex-1 min-w-0" value={pick} onChange={ev => setPick(ev.target.value)}>
+            <option value="">Choose...</option>
+            <optgroup label="Built in">{BUILTIN_TEXT_PRESETS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</optgroup>
+            {saved.length > 0 && <optgroup label="Saved">{saved.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</optgroup>}
+          </select>
+          <button type="button" className={chip(false)} disabled={!chosen} onClick={() => chosen && onApply(chosen.style)}>Apply</button>
+          {chosen && !chosen.id.startsWith('builtin:') && <button type="button" className={chip(false)} onClick={() => run(() => deleteTextPresetAction(chosen.id), () => setPick(''))}>Delete</button>}
+        </span>
+      </Row>
+      {naming ? (
+        <form className="flex gap-1" onSubmit={ev => { ev.preventDefault(); run(() => saveTextPresetAction(name, current()), l => { setNaming(false); setName(''); setPick(l.find(p => p.name.toLowerCase() === name.trim().toLowerCase())?.id ?? ''); }); }}>
+          <input aria-label="Preset name" className={field} maxLength={40} placeholder="Preset name" value={name} onChange={ev => setName(ev.target.value)} autoFocus />
+          <button type="submit" className={chip(true)} disabled={!name.trim()}>Save</button>
+          <button type="button" className={chip(false)} onClick={() => { setNaming(false); setErr(''); }}>Cancel</button>
+        </form>
+      ) : <button type="button" className={chip(false)} onClick={() => setNaming(true)}>Save as preset...</button>}
+      {err && <p className="text-xs text-red-400">{err}</p>}
+    </div>
+  );
+}
+
 /** The properties of the selection: the element's placement, type, content and effects, or the background when nothing (or the background) is selected. */
 export function Properties({ style, selection, boxes, cardW, onChange, onPreview }: {
   style: CardBackStyle;
@@ -172,6 +209,7 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
               <details open className="space-y-1.5">
                 <summary className="text-xs font-bold text-gray-300 cursor-pointer select-none">Character</summary>
                 <div className="space-y-1.5 mt-1.5">
+                  <PresetRow current={() => styleOf(e as unknown as Record<string, unknown>)} onApply={st => set(presetPatch(st))} />
                   <Row label="Weight" reset={e.weight !== 400 ? () => set({ weight: 400 }) : undefined}><select aria-label="Weight" className="select select-sm w-full" value={nearestWeight(fd, e.weight)} onChange={ev => set({ weight: Number(ev.target.value) })}>{fd.weights.map(w => <option key={w} value={w}>{WEIGHT_NAMES[w]} ({w})</option>)}</select></Row>
                   <div className="flex flex-wrap gap-3">
                     <Check label={fd.italicFile ? 'Italic' : 'Slanted'} on={e.italic} onChange={v => set({ italic: v })} />
