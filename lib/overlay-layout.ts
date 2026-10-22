@@ -129,6 +129,24 @@ function withElements(p: Placement, raw: unknown, view: LayoutMode, width: numbe
 
 /** A part's box on the stage in design px (what the preview measures). */
 export interface DesignBox { x: number; y: number; w: number; h: number }
+/** The gaps between two boxes for Alt-measuring: one segment per axis they are apart on (none on an axis they overlap), in design px. */
+export function measureGaps(a: DesignBox, b: DesignBox): { x1: number; y1: number; x2: number; y2: number; px: number }[] {
+  const out: { x1: number; y1: number; x2: number; y2: number; px: number }[] = [];
+  const [ar, ab, br, bb] = [a.x + a.w, a.y + a.h, b.x + b.w, b.y + b.h];
+  // The line sits mid-way across the overlap on the other axis (or mid-way between the nearest edges when there is none).
+  const cross = (a0: number, a1: number, b0: number, b1: number) => (Math.max(a0, b0) + Math.min(a1, b1)) / 2;
+  if (ar <= b.x || br <= a.x) {
+    const [x1, x2] = ar <= b.x ? [ar, b.x] : [br, a.x];
+    const y = cross(a.y, ab, b.y, bb);
+    out.push({ x1, y1: y, x2, y2: y, px: Math.round(x2 - x1) });
+  }
+  if (ab <= b.y || bb <= a.y) {
+    const [y1, y2] = ab <= b.y ? [ab, b.y] : [bb, a.y];
+    const x = cross(a.x, ar, b.x, br);
+    out.push({ x1: x, y1, x2: x, y2, px: Math.round(y2 - y1) });
+  }
+  return out;
+}
 export type AlignMode = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom';
 
 /**

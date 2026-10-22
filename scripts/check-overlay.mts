@@ -13,7 +13,7 @@ const versions = await import('../lib/overlay-versions');
 const diff = await import('../lib/overlay-diff');
 const perf = await import('../lib/overlay-perf');
 const { DEFAULT_PROPS, PROP_BY_KEY } = await import('../lib/overlay-props');
-const { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets } = await import('../lib/overlay-layout');
+const { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, measureGaps } = await import('../lib/overlay-layout');
 const kvLib = await import('../lib/kv');
 const sbx = await import('../lib/sandbox');
 const { runInSandbox, prodKv } = await import('../lib/db');
@@ -315,6 +315,9 @@ const bx = { a: { x: 100, y: 50, w: 100, h: 40 }, b: { x: 300, y: 80, w: 50, h: 
 eq(alignOffsets(bx, 'left', { w: 1280, h: 720 }), { a: { dx: 0, dy: 0 }, b: { dx: -200, dy: 0 }, c: { dx: -600, dy: 0 } }, 'align left to the selection box');
 eq(alignOffsets(bx, 'bottom', { w: 1280, h: 720 }, 2).c, { dx: 0, dy: 15 }, 'align bottom, offsets divided by the view scale');
 eq(alignOffsets({ a: bx.a }, 'center', { w: 1280, h: 720 }), { a: { dx: 490, dy: 0 } }, 'one part centres on the stage');
+eq(measureGaps({ x: 0, y: 0, w: 100, h: 50 }, { x: 140, y: 20, w: 60, h: 60 }), [{ x1: 100, y1: 35, x2: 140, y2: 35, px: 40 }], 'measure: side by side, line across the overlap');
+eq(measureGaps({ x: 0, y: 0, w: 10, h: 10 }, { x: 30, y: 40, w: 10, h: 10 }).map(g => g.px), [20, 30], 'measure: diagonal shows both gaps');
+eq(measureGaps({ x: 0, y: 0, w: 50, h: 50 }, { x: 10, y: 10, w: 10, h: 10 }), [], 'measure: overlapping boxes show nothing');
 eq(alignOffsets({ a: bx.a }, 'middle', { w: 1280, h: 720 }), { a: { dx: 0, dy: 290 } }, 'one part middles on the stage');
 eq(distributeOffsets(bx, 'x'), { a: { dx: 0, dy: 0 }, b: { dx: 125, dy: 0 }, c: { dx: 0, dy: 0 } }, 'distribute spaces centres evenly');
 eq(distributeOffsets({ a: bx.a, c: bx.c }, 'x'), {}, 'distribute needs three parts');

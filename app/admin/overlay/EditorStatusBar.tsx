@@ -5,6 +5,7 @@ import { PERF_LABEL, variantPerf } from '@/lib/overlay-perf';
 import { StatusBar, StatusItem } from '../components/workspace/StatusBar';
 import { PERF_STYLE, VARIANT_LABELS } from './editor-types';
 import { useOverlayEditor } from './OverlayEditorContext';
+import { PointerReadout } from './PreviewPointer';
 
 // The strip under the Overlay Editor: what the canvas shows, how heavy the look is, what is unsaved and when it was last saved.
 export function EditorStatusBar() {
@@ -19,6 +20,7 @@ export function EditorStatusBar() {
   return (
     <StatusBar>
       <StatusItem title="The real canvas scale (Ctrl+0 fits, Ctrl+1 is 100%; the Zoom tool and Ctrl+wheel zoom)">Zoom {Math.round(fit * 100)}%</StatusItem>
+      <PointerReadout />
       <StatusItem title="The stage size, in design pixels">{shownLayout.width} × {shownLayout.height}</StatusItem>
       <span
         title={`${VARIANT_LABELS[worst.v]} is the heaviest version${worst.r.reasons.length ? ': ' + worst.r.reasons.join(', ') : ''}. A rough guide to how hard the overlay works in OBS.`}

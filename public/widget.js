@@ -937,6 +937,20 @@ if (PREVIEW) {
     const fit = stageFit();
     toParent({ type: 'drag', target: press.target, dx: sdx / fit, dy: sdy / fit, alt: e.altKey, shift: e.shiftKey && !press.toggle, sx, sy });
   });
+  // The editor's status bar and Alt-measure: the pointer in design px; with Alt over a part that is not selected, also its box and the selection's.
+  if (EDITOR) {
+    const dbox = (b) => { const f = stageFit(); return { x: b.l / f, y: b.t / f, w: (b.r - b.l) / f, h: (b.b - b.t) / f }; };
+    document.addEventListener('pointermove', (e) => {
+      if (press) return;
+      const f = stageFit();
+      const el = e.target.closest && e.target.closest('[data-edit]');
+      const msg = { type: 'pointer', x: e.clientX / f, y: e.clientY / f };
+      const sel = e.altKey && el && !selSet.has(el.dataset.edit) && visibleEdits().filter(o => selSet.has(o.dataset.edit)).map(boxOf);
+      if (sel && sel.length) { msg.over = dbox(boxOf(el)); msg.sel = dbox(unionOf(sel)); }
+      toParent(msg);
+    });
+    document.documentElement.addEventListener('pointerleave', () => toParent({ type: 'pointer', x: -1, y: -1 }));
+  }
   const endPress = (e) => {
     if (!press || e.pointerId !== press.id) return;
     if (press.moved) toParent({ type: 'dragend' });
