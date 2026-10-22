@@ -60,6 +60,7 @@ export function LayersPanel({ overlapping, lowContrast, layout, selected, select
       return { ...l, [view]: { ...l[view], elements: rest } };
     });
   // Custom layers (38.7): the add and delete edits, one History step each.
+  const DRAG_TYPE = 'application/x-overlay-layer';
   type Custom = NonNullable<OverlayLayout['pack']['custom']>;
   const setCustom = (view: Mode, fn: (c: Custom) => Custom, label: string) =>
     setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: fn(l[view].custom ?? []) } }), label);
@@ -162,8 +163,16 @@ export function LayersPanel({ overlapping, lowContrast, layout, selected, select
             {(layout[view].custom ?? []).map(l => {
               const id = `custom:${l.id}`;
               return (
-                <li key={l.id} draggable onDragStart={e => e.dataTransfer.setData('text/plain', `custom:${view}:${l.id}`)} onDragOver={e => e.preventDefault()}
-                  onDrop={e => { const [t, v, from] = e.dataTransfer.getData('text/plain').split(':'); if (t === 'custom' && v === view) setCustom(view, c => moveCustomOnto(c, from, l.id), 'Reorder layers'); }}
+                <li key={l.id} draggable onDragStart={e => { e.dataTransfer.setData(DRAG_TYPE, `${view}:${l.id}`); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={e => { if (e.dataTransfer.types.includes(DRAG_TYPE)) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } }}
+                  onDrop={e => {
+                    const data = e.dataTransfer.getData(DRAG_TYPE);
+                    if (!data) return;
+                    e.preventDefault();
+                    const at = data.indexOf(':'), from = data.slice(at + 1); // ids may hold ':' in a hand-edited layout
+                    if (data.slice(0, at) !== view || !from) return;
+                    if (moveCustomOnto(layout[view].custom ?? [], from, l.id) !== (layout[view].custom ?? [])) setCustom(view, c => moveCustomOnto(c, from, l.id), 'Reorder layers');
+                  }}
                   onContextMenu={e => { selectView(view); selectTarget(id); menuOn(view, id)(e); }}
                   className={`flex items-center gap-1 rounded ${selection.includes(id) ? 'bg-yellow-500/15' : 'hover:bg-white/5'}`}>
                   {renaming === view + l.id ? (

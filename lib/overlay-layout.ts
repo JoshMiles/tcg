@@ -125,7 +125,7 @@ function withElements(p: Placement, raw: unknown, view: LayoutMode, width: numbe
     if (opacity < 1) el.opacity = opacity;
     if (el.scale !== 1 || el.offsetX !== 0 || el.offsetY !== 0 || opacity < 1) out[id] = el;
   }
-  const custom = sanitizeCustom((raw && typeof raw === 'object' ? (raw as Loose).custom : null), width, height);
+  const custom = sanitizeCustom((raw && typeof raw === 'object' ? (raw as Loose).custom : null), width, height, view === 'pack' ? 'pack' : 'collection');
   // Link sets keep only this view's known ids (built-in or existing custom), each id once, and need 2 or more.
   const known = new Set<string>([...ELEMENT_IDS[view], ...custom.map(c => 'custom:' + c.id)]);
   const seen = new Set<string>();
