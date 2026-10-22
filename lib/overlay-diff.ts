@@ -101,6 +101,8 @@ export function diffLayout(before: OverlayLayout, after: OverlayLayout): DiffLin
       else if (!same(old, l)) out.push({ scope: 'Layout', label: `${name} custom layer "${l.name}"`, from: 'before', to: `changed (${Object.keys(l).filter(k => !same((old as unknown as Record<string, unknown>)[k], (l as unknown as Record<string, unknown>)[k])).join(', ')})` });
     }
     for (const l of bc) if (!ac.some(x => x.id === l.id)) out.push({ scope: 'Layout', label: `${name} custom layer`, from: `${l.kind} "${l.name}"`, to: 'removed' });
+    const [bo, ao] = [bc.filter(x => ac.some(y => y.id === x.id)).map(x => x.id), ac.filter(x => bc.some(y => y.id === x.id)).map(x => x.id)];
+    if (!same(bo, ao)) out.push({ scope: 'Layout', label: `${name} custom layers`, from: 'before', to: 'order changed' });
   }
   return out;
 }
