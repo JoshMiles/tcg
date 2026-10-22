@@ -25,6 +25,9 @@ export interface BackNode {
   /** QR code colours, when set. */
   dark?: string;
   light?: string;
+  /** Free text whose lines are broken here (wrapping, max lines, a box height, paragraphs, justify or auto-fit): the lines to draw and what made them. Every renderer draws these lines as they are. */
+  lines?: TextLine[];
+  spec?: TextSpec;
   /** Fonts this node needs loaded (curated ids with files). */
   font?: { id: string; weight: number; italic?: boolean };
 }
@@ -55,18 +58,80 @@ export function canvasMeasure(): Measure | undefined {
   };
 }
 
+/** One drawn line of a text: its words, the first-line indent and the space above it (px), and whether it is stretched to the box width (justify). */
+export interface TextLine { t: string; i: number; g: number; j: boolean }
+
+/** Everything line breaking and auto-fit need, in px. Sent with the node so the overlay can run `layoutText` again with a real measurer. */
+export interface TextSpec {
+  text: string; size: number; minPx: number; maxPx: number; fit: 'shrink' | 'width' | null;
+  /** The text's width, and its height (0 = as tall as the text): inside the padding. */
+  boxW: number; boxH: number;
+  wrap: boolean; maxLines: number; indent: number; paraGap: number; lineHeight: number; spacingEm: number; upper: boolean; justify: boolean;
+  family: string; weight: number; italic: boolean;
+  valign: 'top' | 'middle' | 'bottom'; pad: number;
+}
+
 /**
- * The font size (px) auto-fit gives a text: `width` = one line exactly as wide as the box (between the minimum and 30 % of the card width),
- * `shrink` = the set size, made smaller until one line fits the box (never below the minimum). Single line only until text boxes get a
- * height and max lines (38.12 b).
+ * Line breaking and auto-fit, once, for every renderer: the DOM back, the share canvas and the overlay all draw the lines this returns.
+ * Greedy word wrap into `boxW` (a paragraph is the text between line breaks; its first line is indented), cut to `maxLines` and to what
+ * fits `boxH`, the last line then ending with an ellipsis. `shrink` = the largest size up to `size` (down to `minPx`) where nothing is cut
+ * and no line is wider than the box; `width` = one line exactly as wide as the box (between `minPx` and `maxPx`).
+ * Keep public/widget.js (TEXT-FIT markers) in step; scripts/check-card-back.mts runs both on the same cases.
  */
-export function fitFontPx(o: { mode: 'shrink' | 'width'; text: string; boxW: number; setPx: number; minPx: number; maxPx: number; spacingEm: number; upper: boolean; face: { family: string; weight: number; italic: boolean }; measure: Measure }): number {
-  const t = o.upper ? o.text.toUpperCase() : o.text;
-  const unit = o.measure(t, o.face) / 100 + t.length * o.spacingEm;
-  if (!(unit > 0) || !(o.boxW > 0)) return o.setPx;
-  const ideal = (o.boxW * 0.99) / unit;
-  const hi = o.mode === 'width' ? o.maxPx : o.setPx;
-  return Math.round(Math.max(Math.min(o.minPx, hi), Math.min(hi, ideal)) * 100) / 100;
+export function layoutText(s: TextSpec, measure: Measure): { size: number; lines: TextLine[] } {
+  const face = { family: s.family, weight: s.weight, italic: s.italic };
+  const wid = (t: string, size: number) => (measure(s.upper ? t.toUpperCase() : t, face) / 100 + t.length * s.spacingEm) * size;
+  const flow = (size: number) => {
+    const lines: TextLine[] = [];
+    s.text.split('\n').forEach((para, pi) => {
+      const words = para.split(' ').filter(Boolean);
+      const ind = s.indent * size, gap = pi ? s.paraGap * size : 0;
+      const start = lines.length;
+      const meta = (j: boolean) => (lines.length === start ? { i: ind, g: gap, j } : { i: 0, g: 0, j });
+      if (!s.wrap || words.length <= 1) { lines.push({ t: words.join(' '), ...meta(false) }); return; }
+      let line = '';
+      for (const w of words) {
+        const next = line ? line + ' ' + w : w;
+        if (line && wid(next, size) > s.boxW - (lines.length === start ? ind : 0)) { lines.push({ t: line, ...meta(s.justify) }); line = w; } else line = next;
+      }
+      lines.push({ t: line, ...meta(false) });
+    });
+    let cap = s.maxLines > 0 ? s.maxLines : Infinity;
+    if (s.boxH > 0) {
+      let h = 0, n = 0;
+      for (const l of lines) { h += size * s.lineHeight + l.g; if (h > s.boxH + 0.01) break; n++; }
+      cap = Math.min(cap, Math.max(1, n));
+    }
+    const cut = lines.length > cap;
+    if (cut) {
+      lines.length = cap;
+      const last = lines[cap - 1];
+      let t = last.t;
+      while (t && wid(t + '…', size) > s.boxW - last.i) t = t.slice(0, -1).trimEnd();
+      last.t = t + '…'; last.j = false;
+    }
+    let widest = 0;
+    for (const l of lines) widest = Math.max(widest, wid(l.t, size) + l.i);
+    return { lines, cut, widest };
+  };
+  const round = (n: number) => Math.round(n * 100) / 100;
+  if (s.fit === 'width') {
+    const t = s.text.replace(/\n/g, ' ').replace(/ +/g, ' ').trim();
+    const unit = wid(t, 1);
+    if (!(unit > 0) || !(s.boxW > 0)) return { size: s.size, lines: [{ t, i: 0, g: 0, j: false }] };
+    return { size: round(Math.max(Math.min(s.minPx, s.maxPx), Math.min(s.maxPx, (s.boxW * 0.99) / unit))), lines: [{ t, i: 0, g: 0, j: false }] };
+  }
+  let size = s.size;
+  if (s.fit === 'shrink') {
+    const ok = (z: number) => { const f = flow(z); return !f.cut && f.widest <= s.boxW + 0.01; };
+    const lo0 = Math.min(s.minPx, s.size);
+    if (!ok(s.size)) {
+      if (!ok(lo0)) size = lo0;
+      else { let lo = lo0, hi = s.size; for (let k = 0; k < 18; k++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; } size = lo; }
+    }
+    size = Math.max(lo0, Math.floor(size * 100 + 1e-6) / 100);
+  }
+  return { size, lines: flow(size).lines };
 }
 
 const hexOr = (c: string, rarity: string, auto: string) => (c === 'rarity' ? rarity : c === 'auto' ? auto : c);
@@ -78,7 +143,7 @@ export function resolveTemplate(t: string, back: FlipBack, style: CardBackStyle)
     pack: style.packName ?? '', season: style.seasonName ?? '', card: back.name, version: back.variantLabel, edition: String(back.n),
     printNumber: String(back.uid ?? back.n), holder: back.holder ?? '', date: back.date ?? '',
   };
-  return t.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? '').replace(/\s+/g, ' ').trim();
+  return t.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? '').replace(/[^\S\n]+/g, ' ').replace(/ ?\n ?/g, '\n').trim();
 }
 
 /** The CSS for an element's effects (outline, glow, shadow, engrave, gradient text) at a card width in px. */
@@ -175,6 +240,8 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       transform: `translateY(-50%)${e.rotate ? ` rotate(${e.rotate}deg)` : ''}`, zIndex: 10 + e.z, opacity: e.opacity, margin: 0,
     };
     let font: BackNode['font'];
+    let spec: TextSpec | undefined;
+    let lines: TextLine[] | undefined;
     if (e.kind !== 'qr' && e.kind !== 'logo') {
       const f = BACK_FONTS.find(x => x.id === e.font) ?? BACK_FONTS[0];
       Object.assign(css, {
@@ -183,9 +250,20 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
         lineHeight: e.lineHeight, textAlign: e.align, color: hexOr(e.color, rarity, AUTO_INK), overflowWrap: 'anywhere',
       });
       if (f.files) font = { id: f.id, weight: e.weight, ...(e.italic ? { italic: true } : {}) };
-      if (e.fit && c.text) {
-        css.fontSize = fitFontPx({ mode: e.fit, text: c.text, boxW: w, setPx: Number(css.fontSize), minPx: ((e.minSize ?? DEFAULT_MIN_SIZE) / 100) * size.w, maxPx: 0.3 * size.w, spacingEm: e.letterSpacing / 10, upper: e.uppercase, face: { family: f.css, weight: e.weight, italic: e.italic }, measure: opts.measure ?? canvasMeasure() ?? estimateMeasure });
-        css.whiteSpace = 'nowrap';
+      const pad = ((e.pad ?? 0) / 100) * size.w;
+      if (c.tag === 'p' && c.text && (e.fit || e.wrap === false || e.maxLines || e.h || e.indent || e.paraGap || e.align === 'justify' || e.pad || c.text.includes('\n'))) {
+        spec = {
+          text: c.text, size: Number(css.fontSize), minPx: ((e.minSize ?? DEFAULT_MIN_SIZE) / 100) * size.w, maxPx: 0.3 * size.w, fit: e.fit ?? null,
+          boxW: Math.round((w - 2 * pad) * 100) / 100, boxH: e.h ? Math.round(((e.h / 100) * size.h - 2 * pad) * 100) / 100 : 0,
+          wrap: e.wrap !== false, maxLines: e.maxLines ?? 0, indent: e.indent ?? 0, paraGap: e.paraGap ?? 0, lineHeight: e.lineHeight, spacingEm: e.letterSpacing / 10,
+          upper: e.uppercase, justify: e.align === 'justify', family: f.css, weight: e.weight, italic: e.italic, valign: e.valign ?? 'middle', pad: Math.round(pad * 100) / 100,
+        };
+        const lay = layoutText(spec, opts.measure ?? canvasMeasure() ?? estimateMeasure);
+        lines = lay.lines;
+        css.fontSize = lay.size;
+        Object.assign(css, { boxSizing: 'border-box', textAlign: e.align === 'justify' ? 'left' : e.align });
+        if (pad) css.padding = Math.round(pad * 100) / 100;
+        if (e.h) Object.assign(css, { height: Math.round(((e.h / 100) * size.h) * 100) / 100, display: 'flex', flexDirection: 'column', justifyContent: spec.valign === 'top' ? 'flex-start' : spec.valign === 'bottom' ? 'flex-end' : 'center' });
       }
     } else {
       css.height = e.kind === 'qr' ? Math.round(w * 100) / 100 : 'auto';
@@ -193,7 +271,7 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
     const fxCss = effectsCss(e.fx, rarity, size.w);
     if (e.kind === 'qr' || e.kind === 'logo') { delete fxCss.WebkitTextStroke; delete fxCss.paintOrder; delete fxCss.textShadow; if (e.fx.glow || e.fx.shadow || e.fx.outline) css.filter = [e.fx.outline ? `drop-shadow(0 0 1px ${e.fx.outline.color})` : '', e.fx.glow ? `drop-shadow(0 0 ${e.fx.glow.blur / 4}px ${e.fx.glow.color})` : '', e.fx.shadow ? `drop-shadow(${e.fx.shadow.x / 4}px ${e.fx.shadow.y / 4}px ${e.fx.shadow.blur / 4}px ${e.fx.shadow.color})` : ''].filter(Boolean).join(' '); }
     Object.assign(css, fxCss);
-    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
+    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(spec ? { spec, lines } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
   });
   free.sort((a, b) => a.z - b.z || a.order - b.order);
   return [...stack, ...free.map(({ z: _z, order: _o, ...n }) => { void _z; void _o; return n; })];
@@ -204,4 +282,9 @@ export function fontsNeeded(nodes: BackNode[]): { id: string; weight: number; it
   const seen = new Map<string, { id: string; weight: number; italic?: boolean }>();
   for (const n of nodes) if (n.font) seen.set(`${n.font.id}:${n.font.weight}:${n.font.italic ? 'i' : ''}`, n.font);
   return [...seen.values()];
+}
+
+/** The CSS of one drawn line (a block, so the box's flex or text alignment places it). Keep widget.js's backLineStyle in step. */
+export function lineCss(l: TextLine): Record<string, string | number> {
+  return { display: 'block', whiteSpace: 'nowrap', ...(l.i ? { marginLeft: l.i } : {}), ...(l.g ? { marginTop: l.g } : {}), ...(l.j ? { textAlignLast: 'justify' } : {}) };
 }

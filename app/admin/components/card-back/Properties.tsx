@@ -100,6 +100,12 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
             <Num label="x (%)" value={e.x} min={0} max={100} step={0.5} onChange={v => set({ x: v }, 'x')} />
             <Num label="y (%)" value={e.y} min={0} max={100} step={0.5} onChange={v => set({ y: v }, 'y')} />
             <Num label="Width (%)" value={e.w} min={10} max={100} step={1} onChange={v => set({ w: v }, 'w')} />
+            {text && <Row label="Height">
+              <span className="flex items-center gap-2">
+                <Check label="Fixed" on={e.h !== undefined} onChange={v => set({ h: v ? Math.round((boxes[e.id]?.h ?? 10) * 2) / 2 : undefined })} />
+                {e.h !== undefined && <input type="number" aria-label="Height (%)" className={`${field} w-20!`} min={2} max={100} step={0.5} value={Math.round(e.h * 100) / 100} onChange={ev => { const n = Number(ev.target.value); if (ev.target.value.trim() !== '' && Number.isFinite(n)) set({ h: n }, 'h'); }} />}
+              </span>
+            </Row>}
             <Num label="Rotate" value={e.rotate} min={-45} max={45} step={1} onChange={v => set({ rotate: v }, 'rot')} />
           </>
         ) : <p className="text-xs text-gray-500">In the stack the element sits in the classic centred column, in list order. Its face stays the classic one until you pick a font. Place it freely to move it, rotate it and set the rest of its type.</p>}
@@ -124,7 +130,7 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
               <SizeField value={e.size} onChange={v => set({ size: v }, 'size')} />
               <Row label="Auto-fit">
                 <span className="flex gap-1">
-                  {([[undefined, 'Off'], ['shrink', 'Shrink to fit'], ['width', 'Fit width']] as const).map(([m, l]) => (
+                  {([[undefined, 'Off'], ['shrink', 'Shrink to fit the box'], ['width', 'Fit width']] as const).map(([m, l]) => (
                     <button key={l} type="button" aria-pressed={e.fit === m} onClick={() => set(m ? { fit: m, minSize: e.minSize ?? DEFAULT_MIN_SIZE } : { fit: undefined, minSize: undefined })} className={chip(e.fit === m)}>{l}</button>
                   ))}
                 </span>
@@ -134,7 +140,17 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
               <div className="flex flex-wrap gap-3"><Check label="Italic" on={e.italic} onChange={v => set({ italic: v })} /><Check label="Underline" on={e.underline} onChange={v => set({ underline: v })} /><Check label="Uppercase" on={e.uppercase} onChange={v => set({ uppercase: v })} /></div>
               <Num label="Spacing" value={e.letterSpacing} min={-2} max={20} step={0.5} onChange={v => set({ letterSpacing: v }, 'ls')} />
               <Num label="Line height" value={e.lineHeight} min={0.8} max={2.5} step={0.05} onChange={v => set({ lineHeight: v }, 'lh')} />
-              <Row label="Align"><span className="flex gap-1">{(['left', 'center', 'right'] as const).map(a => <button key={a} type="button" aria-pressed={e.align === a} onClick={() => set({ align: a })} className={chip(e.align === a)}>{a}</button>)}</span></Row>
+              <Row label="Align"><span className="flex gap-1">{(['left', 'center', 'right', 'justify'] as const).map(a => <button key={a} type="button" aria-pressed={e.align === a} onClick={() => set({ align: a })} className={chip(e.align === a)}>{a}</button>)}</span></Row>
+              <Num label="Indent (em)" value={e.indent ?? 0} min={0} max={5} step={0.25} onChange={v => set({ indent: v || undefined }, 'ind')} />
+              <Num label="Paragraph gap" value={e.paraGap ?? 0} min={0} max={3} step={0.1} onChange={v => set({ paraGap: v || undefined }, 'pg')} />
+              <Row label="Box">
+                <span className="flex flex-wrap items-center gap-2">
+                  <Check label="Wrap" on={e.wrap !== false} onChange={v => set({ wrap: v ? undefined : false })} />
+                  {e.h !== undefined && (['top', 'middle', 'bottom'] as const).map(a => <button key={a} type="button" aria-pressed={(e.valign ?? 'top') === a} onClick={() => set({ valign: a === 'top' ? undefined : a })} className={chip((e.valign ?? 'top') === a)}>{a}</button>)}
+                </span>
+              </Row>
+              <Num label="Max lines (0 = any)" value={e.maxLines ?? 0} min={0} max={20} step={1} onChange={v => set({ maxLines: v >= 1 ? Math.round(v) : undefined }, 'ml')} />
+              <Num label="Padding (%)" value={e.pad ?? 0} min={0} max={15} step={0.5} onChange={v => set({ pad: v || undefined }, 'pad')} />
               <Num label="Opacity" value={e.opacity} min={0} max={1} step={0.05} onChange={v => set({ opacity: v }, 'op')} />
             </>
           ) : (
@@ -148,7 +164,7 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
         <Group title="Content">
           {e.kind === 'text' && (
             <label className="block text-xs text-gray-400">Text <span className="text-gray-600">({e.text.length}/{MAX_TEXT}) {'{pack} {season} {card} {version} {edition} {printNumber} {holder} {date}'}</span>
-              <textarea aria-label="Text" className="textarea w-full mt-1" rows={2} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
+              <textarea aria-label="Text" className="textarea w-full mt-1" rows={3} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
             </label>
           )}
           {e.kind === 'logo' && (

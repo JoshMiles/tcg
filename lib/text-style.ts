@@ -23,7 +23,8 @@ export const pick = <T extends string | number>(v: unknown, all: readonly T[], f
 
 export const WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900] as const;
 export const WEIGHT_NAMES: Record<number, string> = { 100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black' };
-export const TEXT_ALIGNS = ['left', 'center', 'right'] as const;
+export const TEXT_ALIGNS = ['left', 'center', 'right', 'justify'] as const;
+export const VALIGNS = ['top', 'middle', 'bottom'] as const;
 /** Auto-fit: `shrink` = the largest size (up to the set size) at which the text fits its box; `width` = one line spanning the box. */
 export const FIT_MODES = ['shrink', 'width'] as const;
 export type FitMode = (typeof FIT_MODES)[number];
@@ -50,6 +51,23 @@ export interface TextStyle {
   fit?: FitMode;
   /** The smallest size auto-fit may use, % of the card width. Only stored with `fit`. */
   minSize?: number;
+  /** Paragraph: first-line indent and the space between paragraphs, both in em. Absent = 0. */
+  indent?: number;
+  paraGap?: number;
+}
+
+/** The box a text sits in (not for overlay layers without a box). Every field is optional: absent = today's look (grows with its text, centred, wraps). */
+export interface TextBox {
+  /** Height in % of the card height. Absent = as tall as the text. */
+  h?: number;
+  /** Where the text sits in a box taller than it (absent = middle). */
+  valign?: (typeof VALIGNS)[number];
+  /** At most this many lines; the last ends with an ellipsis when the text is longer. */
+  maxLines?: number;
+  /** `false` = one line per paragraph, no wrapping. Absent = wraps. */
+  wrap?: false;
+  /** Space between the box edge and the text, in % of the card width. */
+  pad?: number;
 }
 
 export const DEFAULT_MIN_SIZE = 3;
@@ -74,6 +92,20 @@ export function sanitizeTextStyle(raw: Record<string, unknown>, fontIds: readonl
     letterSpacing: r2(clamp(raw.letterSpacing, -2, 20, 0)), lineHeight: r2(clamp(raw.lineHeight, 0.8, 2.5, 1.25)), align: pick(raw.align, TEXT_ALIGNS, 'center'),
     color: hex(raw.color, 'auto', 'auto', 'rarity'), opacity: r2(clamp(raw.opacity, 0, 1, 1)), fx: sanitizeFx(raw.fx),
     ...(fit ? { fit, minSize: r2(clamp(raw.minSize, 1, 30, DEFAULT_MIN_SIZE)) } : {}),
+    ...(clamp(raw.indent, 0, 5, 0) > 0 ? { indent: r2(clamp(raw.indent, 0, 5, 0)) } : {}),
+    ...(clamp(raw.paraGap, 0, 3, 0) > 0 ? { paraGap: r2(clamp(raw.paraGap, 0, 3, 0)) } : {}),
+  };
+}
+
+export function sanitizeTextBox(raw: Record<string, unknown>): TextBox {
+  const valign = pick(raw.valign, VALIGNS, undefined as unknown as (typeof VALIGNS)[number]);
+  const maxLines = Number(raw.maxLines) > 0 ? Math.round(clamp(raw.maxLines, 1, 20, 0)) : 0;
+  return {
+    ...(raw.h !== undefined && raw.h !== null && raw.h !== '' && Number.isFinite(Number(raw.h)) ? { h: r2(clamp(raw.h, 2, 100, 10)) } : {}),
+    ...(valign ? { valign } : {}),
+    ...(maxLines > 0 ? { maxLines } : {}),
+    ...(raw.wrap === false ? { wrap: false as const } : {}),
+    ...(clamp(raw.pad, 0, 15, 0) > 0 ? { pad: r2(clamp(raw.pad, 0, 15, 0)) } : {}),
   };
 }
 

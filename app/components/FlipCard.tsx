@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { qrPath } from '@/lib/qr';
 import type { FlipBack } from '@/lib/flip-back';
 import { DEFAULT_CARD_BACK, plateVars } from '@/lib/card-back';
-import { fontsNeeded, layoutBack, type BackNode } from '@/lib/card-back-layout';
+import { fontsNeeded, layoutBack, lineCss, type BackNode } from '@/lib/card-back-layout';
 import { loadBackFont } from '@/lib/card-back-fonts';
 
 const MAX_TILT = 12;
@@ -38,7 +38,7 @@ export function FlipCard({ children, back, compact = false, className = '', defa
   const nodes = useMemo(() => layoutBack(st ?? DEFAULT_CARD_BACK, back, size, { compact }), [st, back, size, compact, fontsReady]); // eslint-disable-line react-hooks/exhaustive-deps
   const stackNodes = nodes.filter(n => n.mode === 'stack');
   const freeNodes = nodes.filter(n => n.mode === 'free');
-  const fits = (st ?? DEFAULT_CARD_BACK).elements.some(e => e.fit);
+  const fits = nodes.some(n => n.spec);
   const fontKey = JSON.stringify(fontsNeeded(nodes));
   useEffect(() => {
     const loads = fontsNeeded(nodes).map(f => loadBackFont(f.id, f.weight, f.italic));
@@ -120,7 +120,7 @@ function BackNodeView({ n, qr, flipped }: { n: BackNode; qr: { d: string; size: 
   const id = { 'data-back-id': n.id };
   switch (n.tag) {
     case 'img': return <img {...id} src={n.src} alt="" className={cls} style={style} />;
-    case 'p': return <p {...id} className={cls} style={style}>{n.text}</p>;
+    case 'p': return <p {...id} className={cls} style={style}>{n.lines ? n.lines.map((l, i) => <span key={i} style={lineCss(l) as React.CSSProperties}>{l.t || ' '}</span>) : n.text}</p>;
     case 'ul': return <ul {...id} className={cls} style={style}>{n.items?.map((h, i) => <li key={i}><span>{h.text}</span><span>{h.date}</span></li>)}</ul>;
     case 'a': return <a {...id} href={n.href} tabIndex={flipped ? 0 : -1} onClick={e => e.stopPropagation()} className={cls} style={style}>{n.text}</a>;
     case 'qr':

@@ -145,8 +145,9 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
     ctx.font = `${f.italic ? 'italic ' : ''}${f.weight} ${f.size}px ${f.family ?? family}`;
     ctx.textBaseline = 'middle'; ctx.textAlign = f.align;
     spaced(ctx, f.spacing);
-    const maxW = b.w;
-    const x = f.align === 'left' ? b.x : f.align === 'right' ? b.x + b.w : b.x + b.w / 2;
+    const pad = b.lines ? b.pad ?? 0 : 0;
+    const maxW = b.w - 2 * pad;
+    const x = f.align === 'left' ? b.x + pad : f.align === 'right' ? b.x + b.w - pad : b.x + b.w / 2;
     const fill = (text: string, tx: number, ty: number, align: CanvasTextAlign) => {
       ctx.textAlign = align;
       const s = f.upper ? text.toUpperCase() : text;
@@ -170,6 +171,24 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
         fill(h.text, b.x, ty, 'left');
         fill(h.date, b.x + b.w, ty, 'right');
       });
+    } else if (b.lines) {
+      // Lines the layout engine already broke (the DOM draws the same ones): placed by the box's vertical align, justified lines spread their words.
+      const lh = f.size * f.lineHeight;
+      const content = b.lines.reduce((a, l) => a + lh + l.g, 0);
+      const room = b.h - 2 * pad - content;
+      let ty = b.y + pad + (b.valign === 'top' ? 0 : b.valign === 'bottom' ? room : room / 2);
+      for (const l of b.lines) {
+        ty += l.g;
+        const x0 = b.x + pad + l.i, iw = maxW - l.i, cy = ty + lh / 2;
+        const words = l.j ? l.t.split(' ') : [];
+        if (l.j && words.length > 1) {
+          const ws = words.map(w => ctx.measureText(f.upper ? w.toUpperCase() : w).width);
+          const gap = (iw - ws.reduce((a, n) => a + n, 0)) / (words.length - 1);
+          let wx = x0;
+          words.forEach((w, k) => { fill(w, wx, cy, 'left'); wx += ws[k] + gap; });
+        } else fill(l.t, f.align === 'left' ? x0 : f.align === 'right' ? x0 + iw : x0 + iw / 2, cy, f.align);
+        ty += lh;
+      }
     } else {
       const lines = b.mode === 'free' ? wrapText(b.text ?? '', maxW, s => ctx.measureText(f.upper ? s.toUpperCase() : s).width) : [b.text ?? ''];
       const lh = f.size * f.lineHeight;
