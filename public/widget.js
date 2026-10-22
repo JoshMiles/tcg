@@ -222,7 +222,7 @@ function backNodeSpec(n) {
   const style = {};
   for (const k of Object.keys(n.vars || {})) style[k] = String(n.vars[k]);
   for (const k of Object.keys(n.css || {})) { const v = n.css[k]; style[backCssName(k)] = typeof v === 'number' && !BACK_UNITLESS[k] ? v + 'px' : String(v); }
-  return { tag: n.tag, cls: n.cls || '', text: n.text || '', src: n.src || '', items: n.items || [], lines: n.lines || null, spec: n.spec || null, style };
+  return { tag: n.tag, cls: n.cls || '', text: n.text || '', src: n.src || '', items: n.items || [], lines: n.lines || null, spec: n.spec || null, arc: n.arc || null, style };
 }
 // TEXT-FIT-START: a port of layoutText / lineCss (lib/card-back-layout.ts). The server laid text out with a rough width; once the faces are loaded
 // the widget runs this again with a canvas measure. scripts/check-card-back.mts runs both on the same cases.
@@ -321,10 +321,35 @@ function backLineSpan(l, smallCaps) {
   return el;
 }
 // TEXT-FIT-END
+// Text on a curve: the same SVG FlipCard's ArcText draws (the server worked the path out; see arcGeometry in lib/card-back-layout.ts).
+function backArcSvg(a, text) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k of Object.keys(attrs)) e.setAttribute(k, attrs[k]); return e; };
+  const svg = mk('svg', { width: a.w, height: a.h, viewBox: '0 0 ' + a.w + ' ' + a.h, 'aria-hidden': 'true' });
+  svg.style.display = 'block'; svg.style.overflow = 'visible';
+  if (a.filter) svg.style.filter = a.filter;
+  const defs = mk('defs', {});
+  defs.appendChild(mk('path', { id: a.key + 'p', d: a.d }));
+  if (a.grad) {
+    const g = mk('linearGradient', { id: a.key + 'g', gradientUnits: 'userSpaceOnUse', x1: a.grad.x1, y1: a.grad.y1, x2: a.grad.x2, y2: a.grad.y2 });
+    for (const s of a.grad.stops) g.appendChild(mk('stop', { offset: s.at + '%', 'stop-color': s.c }));
+    defs.appendChild(g);
+  }
+  svg.appendChild(defs);
+  const t = mk('text', { fill: a.grad ? 'url(#' + a.key + 'g)' : 'currentColor', 'text-anchor': a.off === 0 ? 'start' : a.off === 1 ? 'end' : 'middle' });
+  t.style.textShadow = 'none';
+  if (a.stroke) { t.style.stroke = a.stroke.color; t.style.strokeWidth = a.stroke.width + 'px'; t.style.strokeLinejoin = 'round'; t.style.paintOrder = a.stroke.outside ? 'stroke fill' : 'normal'; }
+  const tp = mk('textPath', { href: '#' + a.key + 'p', startOffset: a.off * 100 + '%' });
+  tp.textContent = text;
+  t.appendChild(tp);
+  svg.appendChild(t);
+  return svg;
+}
 function backNodeEl(spec) {
   const el = document.createElement(spec.tag);
   if (spec.cls) el.className = spec.cls;
   if (spec.tag === 'img') { el.src = spec.src; el.alt = ''; }
+  else if (spec.tag === 'p' && spec.arc) el.appendChild(backArcSvg(spec.arc, spec.text));
   else if (spec.tag === 'p' && spec.lines) for (const l of spec.lines) el.appendChild(backLineSpan(l, spec.spec && spec.spec.smallCaps));
   else if (spec.tag === 'p') el.textContent = spec.text;
   for (const k of Object.keys(spec.style)) el.style.setProperty(k, spec.style[k]);

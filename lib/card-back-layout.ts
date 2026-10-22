@@ -35,6 +35,29 @@ export interface BackNode {
   inner?: Shade;
   shadow?: string;
   plate?: { color: string; radius: number; outline?: { color: string; width: number } };
+  /** Text on a curve (free text with `arc`): the SVG the DOM and overlay draw, and the circle the canvas walks. Replaces `lines` / `spec`. */
+  arc?: ArcGeo;
+}
+
+/**
+ * The geometry of text on an arc, in px, in the node's own box (`w` wide, `h` tall, drawn by an SVG of that size). `d` is the baseline path;
+ * the circle has radius `r` and `sweep` radians (signed: positive arches up). `ym` is the baseline's y in the middle. `off` is where the text sits
+ * along the path (0 start, 0.5 middle, 1 end). Drawn with stroke / gradient / filter as given; `key` makes the SVG ids unique.
+ */
+export interface ArcGeo {
+  d: string; w: number; h: number; r: number; sweep: number; ym: number; off: number; key: string;
+  stroke?: { color: string; width: number; outside: boolean };
+  grad?: { x1: number; y1: number; x2: number; y2: number; stops: { c: string; at: number }[] };
+  filter?: string;
+}
+
+/** The arc for a box width, font size and bend (-100..100, 100 = half circle), the text sitting on a baseline that is level with straight text in the middle. */
+export function arcGeometry(w: number, px: number, arc: number, align: string): Pick<ArcGeo, 'd' | 'w' | 'h' | 'r' | 'sweep' | 'ym' | 'off'> {
+  const theta = (Math.abs(arc) / 100) * Math.PI, r = w / (2 * Math.sin(theta / 2)), s = r * (1 - Math.cos(theta / 2));
+  const up = arc > 0, above = up ? px : px + s, below = up ? s + 0.4 * px : 0.4 * px;
+  const h = 2 * Math.max(above - 0.3 * px, below + 0.3 * px), ym = h / 2 + 0.3 * px, ye = up ? ym + s : ym - s;
+  const n = (v: number) => Math.round(v * 100) / 100;
+  return { d: `M 0 ${n(ye)} A ${n(r)} ${n(r)} 0 0 ${up ? 1 : 0} ${n(w)} ${n(ye)}`, w: n(w), h: n(h), r: n(r), sweep: up ? theta : -theta, ym: n(ym), off: align === 'left' ? 0 : align === 'right' ? 1 : 0.5 };
 }
 
 /** A shadow in px: offset, blur radius, colour. */
@@ -313,6 +336,7 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
     let font: BackNode['font'];
     let spec: TextSpec | undefined;
     let lines: TextLine[] | undefined;
+    let arcMode = false;
     if (e.kind !== 'qr' && e.kind !== 'logo') {
       const f = BACK_FONTS.find(x => x.id === e.font) ?? BACK_FONTS[0];
       const kase = caseOf(e), em = spacingEm(e), word = wordEm(e), lead = leadingOf(e);
@@ -331,9 +355,13 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       if (kase === 'lower') c.text = c.text?.toLowerCase();
       else if (kase === 'title') c.text = c.text ? titleCase(c.text) : c.text;
       if (f.files) font = { id: f.id, weight: e.weight, ...(e.italic ? { italic: true } : {}) };
-      const plate = e.fx.plate && e.fx.plate.on !== false ? e.fx.plate : undefined;
+      const arcOn = !!e.arc && c.tag === 'p' && !!c.text;
+      arcMode = arcOn;
+      const plate = e.fx.plate && e.fx.plate.on !== false && !arcOn ? e.fx.plate : undefined;
       const pad = (((e.pad ?? 0) + (plate?.pad ?? 0)) / 100) * size.w;
-      if (c.tag === 'p' && c.text && (e.fit || e.wrap === false || e.maxLines || e.h || e.indent || e.paraGap || e.align === 'justify' || e.pad || plate || kase === 'smallcaps' || c.text.includes('\n'))) {
+      if (arcOn) c.text = c.text!.replace(/\s*\n\s*/g, ' ');
+      if (arcOn && kase === 'upper') c.text = c.text!.toUpperCase(); // SVG text does not reliably take text-transform
+      if (!arcOn && c.tag === 'p' && c.text && (e.fit || e.wrap === false || e.maxLines || e.h || e.indent || e.paraGap || e.align === 'justify' || e.pad || plate || kase === 'smallcaps' || c.text.includes('\n'))) {
         spec = {
           text: c.text, size: Number(css.fontSize), minPx: ((e.minSize ?? DEFAULT_MIN_SIZE) / 100) * size.w, maxPx: 0.3 * size.w, fit: e.fit ?? null,
           boxW: Math.round((w - 2 * pad) * 100) / 100, boxH: e.h ? Math.round(((e.h / 100) * size.h - 2 * pad) * 100) / 100 : 0,
@@ -352,7 +380,8 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       css.height = e.kind === 'qr' ? Math.round(w * 100) / 100 : 'auto';
     }
     const textual = e.kind !== 'qr' && e.kind !== 'logo';
-    const parts = effectParts(textual ? e.fx : { gradientText: e.fx.gradientText }, size.w);
+    // On an arc the inner shadow and the plate are not drawn (they follow a straight box); stroke, glow, shadows, bevel and gradient are.
+    const parts = effectParts(textual ? (arcMode ? { ...e.fx, inner: undefined, plate: undefined } : e.fx) : { gradientText: e.fx.gradientText }, size.w);
     const fxCss = parts.css;
     if (!textual) {
       const on = (v?: { on?: false }) => !!v && v.on !== false;
@@ -360,7 +389,24 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       if (dl.length) css.filter = dl.join(' ');
     }
     Object.assign(css, fxCss);
-    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(spec ? { spec, lines } : {}), ...(parts.inner ? { inner: parts.inner } : {}), ...(parts.shadow ? { shadow: parts.shadow } : {}), ...(parts.plate ? { plate: parts.plate } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
+    let arcGeo: ArcGeo | undefined;
+    if (arcMode && c.text) {
+      const px = Number(css.fontSize), g = arcGeometry(w, px, e.arc!, e.align);
+      const st = e.fx.stroke, gr = e.fx.gradientText, unit = size.w / 100;
+      arcGeo = { ...g, key: `arc${Math.abs(e.arc!)}${e.arc! < 0 ? 'n' : 'p'}${Math.round(w)}${Math.round(px * 10)}${e.id}` };
+      if (st && st.on !== false && st.width > 0) arcGeo.stroke = { color: st.color, width: f2(st.width * unit * 0.1), outside: st.pos !== 'center' };
+      if (gr && gr.on !== false) {
+        const a = (gr.angle * Math.PI) / 180, half = (Math.abs(g.w * Math.sin(a)) + Math.abs(g.h * Math.cos(a))) / 2, dx = Math.sin(a) * half, dy = -Math.cos(a) * half;
+        arcGeo.grad = { x1: f2(g.w / 2 - dx), y1: f2(g.h / 2 - dy), x2: f2(g.w / 2 + dx), y2: f2(g.h / 2 + dy), stops: gr.stops ? gr.stops.map(x => ({ c: x.color, at: x.at })) : [{ c: gr.from, at: 0 }, { c: gr.to, at: 100 }] };
+      }
+      // A text-shadow on the wrapper would not reach the SVG's glyphs the same way everywhere: draw them as a drop-shadow filter (its blur is a deviation, half the shadow's radius).
+      const ts = typeof css.textShadow === 'string' && css.textShadow !== 'none' ? css.textShadow : '';
+      if (ts && !css.filter) {
+        arcGeo.filter = ts.split(/,(?![^(]*\))/).map(p => { const m = /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(.+?)\s*$/.exec(p); return m ? `drop-shadow(${m[1]} ${m[2]} ${f2(parseFloat(m[3]) / 2)}px ${m[4]})` : ''; }).filter(Boolean).join(' ');
+      }
+      css.height = 'auto';
+    }
+    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(spec ? { spec, lines } : {}), ...(parts.inner ? { inner: parts.inner } : {}), ...(parts.shadow ? { shadow: parts.shadow } : {}), ...(arcGeo ? { arc: arcGeo } : {}), ...(parts.plate ? { plate: parts.plate } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
   });
   free.sort((a, b) => a.z - b.z || a.order - b.order);
   return [...stack, ...free.map(({ z: _z, order: _o, ...n }) => { void _z; void _o; return n; })];

@@ -490,4 +490,33 @@ ok(ec({ gradientText: { angle: 90 } }).textShadow === 'none', 'gradient text tur
 const gradSh = ec({ gradientText: { angle: 90 }, shadows: [{ y: 2 }] });
 ok(String(gradSh.filter).startsWith('url("data:image/svg+xml,') && gradSh.textShadow === 'none', 'gradient text draws its shadows in a filter, not as a text-shadow');
 
+// ── 38.12 f: text on a curve ──
+const arcOf = (arc: unknown, extra: Record<string, unknown> = {}, w = 60) => lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 'b', place: 'free', w, size: 8, text: 'Arc title', arc, ...extra }] }), PRINT, SIZE, { measure: stub }).find(n => n.id === 'b')!;
+const arcEl = (arc: unknown) => cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 'b', place: 'free', arc }] }).elements[0].arc;
+ok(arcEl(150) === 100 && arcEl(-999) === -100 && arcEl(33.6) === 34 && arcEl(0) === undefined && arcEl('x') === undefined && arcEl(undefined) === undefined, 'arc is clamped to -100..100, rounded, and omitted at 0 or junk');
+ok(!('arc' in cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 'b', place: 'free' }] }).elements[0]), 'an old text has no arc key');
+ok(!arcOf(undefined).arc && !!arcOf(undefined).css.lineHeight, 'no arc, no arc geometry');
+const half = arcOf(100).arc!;
+ok(half.r === 66 && half.w === 132 && half.sweep === Math.PI && half.off === 0.5 && /^M 0 [\d.]+ A 66 66 0 0 1 132 [\d.]+$/.test(half.d), 'arc 100 on a 132 px box is a half circle of radius 66, arching up (sweep 1)');
+const sixty = arcOf(-60).arc!, up60 = arcOf(60).arc!;
+ok(Math.abs(sixty.r - 132 / (2 * Math.sin(0.3 * Math.PI))) < 0.01 && sixty.sweep < 0 && / 0 0 0 132 /.test(sixty.d) && up60.sweep > 0 && / 0 0 1 132 /.test(up60.d) && sixty.h === up60.h === false || sixty.r === up60.r, 'arc -60 and +60 share the radius and flip the sweep');
+ok(arcOf(100, {}).arc!.ym > 0 && arcOf(100).arc!.h > arcOf(20).arc!.h, 'a bigger bend makes the box taller');
+const arcPlain = arcOf(60);
+ok(!arcPlain.lines && !arcPlain.spec && arcPlain.css.height === 'auto', 'an arc draws one line: no lines or spec, no fixed height');
+const busy = arcOf(60, { fit: 'shrink', wrap: false, maxLines: 2, h: 20, align: 'justify', text: 'a\nb', textCase: 'upper', pad: 3, fx: { plate: { color: '#112233', pad: 2, radius: 2 }, inner: { x: 0, y: 2, blur: 3 } } });
+ok(!busy.lines && !busy.spec && busy.text === 'A B' && !busy.plate && !busy.inner && busy.css.backgroundColor === undefined && busy.arc!.off === 0.5, 'fit, wrap, max lines, height, justify and padding are ignored; newlines become spaces; plate and inner shadow are dropped');
+ok(arcOf(60, { align: 'left' }).arc!.off === 0 && arcOf(60, { align: 'right' }).arc!.off === 1, 'the text sits at the start, middle or end of the path by its alignment');
+const fxArc = arcOf(60, { fx: { stroke: { color: '#112233', width: 3, pos: 'outside' }, gradientText: { from: '#ff0000', to: '#0000ff', angle: 90 }, shadows: [{ x: 2, y: 3, blur: 4 }] } });
+ok(fxArc.arc!.stroke?.color === '#112233' && fxArc.arc!.stroke.outside && fxArc.arc!.stroke.width > 0 && fxArc.arc!.grad?.stops.length === 2 && fxArc.arc!.grad.x1 < fxArc.arc!.grad.x2, 'the arc carries the stroke and the gradient');
+ok(arcOf(60, { fx: { shadows: [{ x: 2, y: 3, blur: 4 }] } }).arc!.filter?.startsWith('drop-shadow(') === true && !!fxArc.css.filter && !fxArc.arc!.filter, 'shadows become a drop-shadow filter (a gradient already uses the shadow filter)');
+ok(arcOf(60, { fx: { stroke: { width: 3, pos: 'center' } } }).arc!.stroke?.outside === false, 'a centred stroke is not painted under the letters');
+ok(arcOf(60).arc!.key !== arcOf(-60).arc!.key, 'ids differ between arcs');
+const arcBox = cvx.placeBack([fxArc], SIZE).find(b => b.id === 'b');
+ok(arcBox?.type === 'text' && arcBox.arc === fxArc.arc && arcBox.h === fxArc.arc!.h && !!arcBox.stroke && !!arcBox.gradient && arcBox.shadows.length === 1, 'the canvas box carries the arc, with the stroke, gradient and shadow read from the css');
+const wspec = runInNewContext(src + '; backNodeSpec', {}) as (n: unknown) => { arc: unknown; tag: string; text: string } | null;
+ok(JSON.stringify(wspec(fxArc)?.arc) === JSON.stringify(fxArc.arc) && wspec(fxArc)?.text === fxArc.text, 'widget: the arc node reaches the widget renderer whole');
+ok(/function backArcSvg/.test(widget) && /spec\.arc/.test(widget) && /textPath/.test(widget), 'widget.js draws the arc as an SVG textPath');
+const presetP = await import('../lib/text-presets');
+ok(presetP.TEXT_STYLE_KEYS.includes('arc') && presetP.presetPatch(presetP.styleOf({ arc: 40 })).arc === 40, 'presets carry the arc');
+
 console.log('card back checks passed');

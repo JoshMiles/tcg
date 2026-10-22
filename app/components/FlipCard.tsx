@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { qrPath } from '@/lib/qr';
 import type { FlipBack } from '@/lib/flip-back';
 import { DEFAULT_CARD_BACK, plateVars } from '@/lib/card-back';
-import { capRuns, fontsNeeded, layoutBack, lineCss, SMALLCAP_SCALE, type BackNode } from '@/lib/card-back-layout';
+import { capRuns, fontsNeeded, layoutBack, lineCss, SMALLCAP_SCALE, type ArcGeo, type BackNode } from '@/lib/card-back-layout';
 import { loadBackFont } from '@/lib/card-back-fonts';
 
 const MAX_TILT = 12;
@@ -113,6 +113,22 @@ export function FlipCard({ children, back, compact = false, className = '', defa
   );
 }
 
+/** Text on a curve: an SVG the size of the node's box, the text riding the baseline path. public/widget.js's backArcSvg draws the same thing. */
+function ArcText({ a, text }: { a: ArcGeo; text: string }) {
+  const gid = `${a.key}g`, pid = `${a.key}p`;
+  return (
+    <svg width={a.w} height={a.h} viewBox={`0 0 ${a.w} ${a.h}`} style={{ display: 'block', overflow: 'visible', ...(a.filter ? { filter: a.filter } : {}) }} aria-hidden="true">
+      <defs>
+        <path id={pid} d={a.d} />
+        {a.grad && <linearGradient id={gid} gradientUnits="userSpaceOnUse" x1={a.grad.x1} y1={a.grad.y1} x2={a.grad.x2} y2={a.grad.y2}>{a.grad.stops.map((s, i) => <stop key={i} offset={`${s.at}%`} stopColor={s.c} />)}</linearGradient>}
+      </defs>
+      <text fill={a.grad ? `url(#${gid})` : 'currentColor'} style={{ textShadow: 'none', ...(a.stroke ? { stroke: a.stroke.color, strokeWidth: a.stroke.width, strokeLinejoin: 'round' as const, paintOrder: a.stroke.outside ? 'stroke fill' : 'normal' } : {}) }} textAnchor={a.off === 0 ? 'start' : a.off === 1 ? 'end' : 'middle'}>
+        <textPath href={`#${pid}`} startOffset={`${a.off * 100}%`}>{text}</textPath>
+      </text>
+    </svg>
+  );
+}
+
 /** One node of the back: the same elements and classes the classic plate always used, so the stylesheet draws them as before. */
 function BackNodeView({ n, qr, flipped }: { n: BackNode; qr: { d: string; size: number } | null; flipped: boolean }) {
   const style = { ...n.vars, ...n.css } as React.CSSProperties;
@@ -120,7 +136,8 @@ function BackNodeView({ n, qr, flipped }: { n: BackNode; qr: { d: string; size: 
   const id = { 'data-back-id': n.id };
   switch (n.tag) {
     case 'img': return <img {...id} src={n.src} alt="" className={cls} style={style} />;
-    case 'p': return <p {...id} className={cls} style={style}>{n.lines ? n.lines.map((l, i) => <span key={i} style={lineCss(l) as React.CSSProperties}>{!l.t ? ' ' : n.spec?.smallCaps ? capRuns(l.t).map((r, k) => (r.s ? <span key={k} style={{ fontSize: `${SMALLCAP_SCALE}em` }}>{r.t}</span> : r.t)) : l.t}</span>) : n.text}</p>;
+    case 'p': if (n.arc) return <p {...id} className={cls} style={style}><ArcText a={n.arc} text={n.text ?? ''} /></p>;
+      return <p {...id} className={cls} style={style}>{n.lines ? n.lines.map((l, i) => <span key={i} style={lineCss(l) as React.CSSProperties}>{!l.t ? ' ' : n.spec?.smallCaps ? capRuns(l.t).map((r, k) => (r.s ? <span key={k} style={{ fontSize: `${SMALLCAP_SCALE}em` }}>{r.t}</span> : r.t)) : l.t}</span>) : n.text}</p>;
     case 'ul': return <ul {...id} className={cls} style={style}>{n.items?.map((h, i) => <li key={i}><span>{h.text}</span><span>{h.date}</span></li>)}</ul>;
     case 'a': return <a {...id} href={n.href} tabIndex={flipped ? 0 : -1} onClick={e => e.stopPropagation()} className={cls} style={style}>{n.text}</a>;
     case 'qr':
