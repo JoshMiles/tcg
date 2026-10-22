@@ -148,7 +148,7 @@ const REQUIRED_HEADINGS = ['Changelog', 'Summary', 'Test plan'];
  * follow the same rules, and may write "none"); kept so callers pass what they have.
  */
 export function prBodyProblems(body, title) {
-  let text = String(body ?? '');
+  let text = String(body ?? '').replace(/^﻿/, ''); // bodies pasted from PowerShell start with a BOM
   for (let prev = null; prev !== text;) { prev = text; text = text.replace(/<!--[\s\S]*?-->/g, ''); }
   const lines = text.split(/\r?\n/);
   const problems = [];

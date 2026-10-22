@@ -1,4 +1,4 @@
-﻿// Fails when a PR body does not follow .github/pull_request_template.md (see prBodyProblems in changelog-parse.mjs).
+// Fails when a PR body does not follow .github/pull_request_template.md (see prBodyProblems in changelog-parse.mjs).
 // CI: reads the pull_request event (GITHUB_EVENT_PATH). Locally: gh pr view N --json body --jq .body | node scripts/check-pr-body.mjs ["title"]
 import { readFileSync } from 'node:fs';
 import { prBodyProblems } from './changelog-parse.mjs';
