@@ -28,8 +28,12 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.26 | Overlay Editor: text readability check | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
-| 40.1 | Site speed: measure where it feels sluggish | Ready | S |
-| 40.2 | Site speed: fix what 40.1 finds | Needs design | M |
+| 40.2a | Site speed: parallel reads in the site shell and profile | Ready | S |
+| 40.2b | Site speed: smaller mascot, more loading screens | Ready | XS |
+| 40.2c | Site speed: load profile and copy dialogs on demand | Ready | S |
+| 40.2d | Site speed: one shared season snapshot per instance | Ready | M |
+| 40.2e | Site speed: cache public pages for signed-out visitors | Needs design | M |
+| 40.2f | Site speed: smaller Card Dex payload | Needs design | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -102,18 +106,29 @@ A look (a preset) that switches on at a start time and off at an end (a Hallowee
 
 The public site can feel sluggish, most of all on a phone. Measure first, then fix what the numbers point at; no speculative optimising. Read `docs/public-site.md` and `docs/hosting.md` first.
 
-### 40.1 Measure (Ready, S)
+### 40.1 findings (measured 2026-10-22)
 
-Output is a ranked findings list (page, metric, cause, likely fix, size), added here as 40.2 sub-items. No code changes in this item.
-- Field data: Vercel Speed Insights (already installed in `app/layout.tsx`): LCP, INP, CLS and TTFB per route, phone and desktop.
-- Lab data: Lighthouse with phone throttling on home, a profile, the binder, the dex, the leaderboard, stats, a copy page and the trade pages.
-- Bundle: `npm run build` route sizes and first-load JS; the heaviest client components.
-- Server time on the heavy pages (profile, leaderboard, dex, stats): KV reads per request, `getAllCollectionUsers` and other whole-collection scans.
-- Suspects to confirm or rule out, not conclusions: `force-dynamic` on public pages that could cache or revalidate; raw `<img>` instead of sized or lazy images; few `loading.tsx` files, so navigation shows nothing while the server works; large client components hydrated on every page.
+Production can't be audited while the alpha / beta gate is on: every public route redirects to `/closed`. The Vercel MCP Speed Insights query failed, so there are no field numbers yet (user step below). Local Lighthouse runs are invalid on the user's machine: AdGuard injects a 1.8 MB script into every page. Measure before / after on a Vercel preview with the gate open, or in a browser without AdGuard; otherwise use first-load JS from `npm run build` and the count of serial KV waves, which don't need a browser.
 
-### 40.2 Fix (Needs design, M)
+What was measured: first-load JS is 216 kB on the profile (the largest), 172 kB on a copy page (1.1 kB of route code), 175 kB on `/cards`, 158 kB on home, with a 103 kB shared baseline. 45 of 46 public routes are dynamic. `getAllCollectionUsers` is not on any public page (ruled out), the grids already lazy-load thumbnails (ruled out), and the leaderboard already reads the 20 s cached board (fine).
 
-Planned from 40.1's list, one PR per fix, each with a before and after number.
+### 40.2a Parallel reads in the site shell and profile (Ready, S)
+`SiteShell` (`app/components/site/SiteShell.tsx`) awaits `requireSiteAccess`, `getSession`, `getSiteLabel`, `getLiveStatus` and, when signed in, settings, avatars, active season and board one after another on every public page; run the independent ones in `Promise.all`. On the profile (`app/u/[username]/page.tsx`, `lib/profile-data.ts`) fold `getUserSettings` and `getOwnerCopies` into the existing parallel waves. Keep `requireSiteAccess` first if it redirects. Number: serial waves before / after.
+
+### 40.2b Smaller mascot, more loading screens (Ready, XS)
+The home mascot `public/brand/icon.png` is 126 kB shown at 190 px: add a 380 px compressed copy and point the home `<img>` at it (keep the original, other things use it). Add skeleton `loading.tsx` for the `(entity)` group (copy and trade pages), `/cards` and `/stats`, copying the existing `app/(site)/loading.tsx` style.
+
+### 40.2c Load dialogs on demand (Ready, S)
+`next/dynamic` for `BinderEditor`, `CardDetail`, the share image / share studio and the showcase editor on the profile, and the share image on the copy page, so they load when opened. Number: first-load JS for `/u/[username]` and the copy page before / after.
+
+### 40.2d One shared season snapshot (Ready, M)
+`getCollection` (`lib/kv.ts`) reads the whole `tcg_{collection}` blob, and home, stats, `/cards`, the profile and the trade list each read it again per request; it grows with every pull. The leaderboard's 20 s cache (`lib/leaderboard.ts`) already loads it: expose that loaded collection from the cached board and read it on those pages, so an instance reads the blob at most once per 20 s. Pages that must be exact (trades, the signed-in owner's own collection when acting on it) keep the direct read. A check case that two reads within the TTL hit KV once.
+
+### 40.2e Cache public pages for signed-out visitors (Needs design)
+Every public page is `force-dynamic` and the shell reads the session cookie, so nothing is cached. Planning question: split the shell so a signed-out render can use `revalidate` (the gate and the live badge complicate it). Plan after 40.2a and 40.2d land, with field numbers in hand.
+
+### 40.2f Smaller Card Dex payload (Needs design)
+`/cards` sends every card and all owner data to the client (181 kB of HTML on seed data, growing with cards). Planning question: page it, or fetch a card's owners when its dialog opens.
 
 ## Blocked by the Twitch panel freeze
 
@@ -150,6 +165,7 @@ All of it ships as one reviewed panel version. Every item edits `public/twitch-p
 ## User steps still open
 
 Outside the repo; tick off or delete when done (listed as of 2026-10-16).
+- [ ] **Speed Insights (40.1):** in Vercel → the project → Speed Insights, note LCP, INP and TTFB for the top routes on phone, and paste them into a session so 40.2 has field numbers.
 - [ ] **Overlay key (13.2):** copy the browser-source address (ends `?key=...`) from Settings → OBS Overlay into every OBS browser source, and each scene's address from the Overlay Editor, then refresh the sources. Clear the pull queue first.
 - [ ] **Mix It Up paid pulls (Track 12), when wanted:** a Mix It Up webhook command answering `{ "balance": n }` for `action: "balance"` and taking the currency for `action: "deduct"`; then fill in the Mix It Up admin page, press **Check balance** and **Send test message**, and switch it on.
 - [ ] **Web Push keys:** set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:` the legal contact) in Vercel Production, redeploy, then try a real iPhone (app installed), Android and a desktop browser.
