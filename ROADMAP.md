@@ -28,7 +28,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.26 | Overlay Editor: text readability check | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
-| 38.30 | Card back editor: the same workspace, plus shapes and images | Ready | L |
+| 38.30 | Card back editor: the same workspace, plus shapes and images, (b) to (d) left | Ready | L |
 | 39.6 | Mobile: phone-width sweep of every public page | Ready | M |
 | 39.7 | Mobile: swipe gestures | Needs a decision | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
@@ -64,7 +64,7 @@ Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers
 - **Contextual Properties:** a selected element shows Layer (position, size, rotation, opacity), Character / Paragraph / Effects (38.12) for text, its kind's own fields (QR, logo, history lines); nothing selected shows the back itself (background, gradient, pattern, edge, alignment) where today's top-level settings live.
 - **Shapes and images (with 38.7's model):** the back gets the same Shape tool (rectangle, ellipse, line, polygon, star; fill, gradient, stroke, effects) and free Image layers (Blob upload; the existing logo element stays). Add `shape` and `image` to `ELEMENT_KINDS` with optional fields so saved backs don't change, and draw both in the DOM back and in `lib/card-back-canvas.ts` (share images); the 38.12 parity rule applies. Share the shape and gradient types with the overlay in `lib/shapes.ts`.
 - **Keep:** reduced-motion behaviour (the bare editor back keeps `data-flipped="true"`), the stacked layout in the narrow pack panel for the preview card and the **Edit design** button, `MAX_ELEMENTS` / `MAX_TEXT_BOXES` (raise them only with the canvas renderer checked), every saved back reading back unchanged (`scripts/check-card-back.mts`).
-- **Order:** after 38.12 (a). Split: (a) shell around today's panels, no behaviour change; (b) contextual Properties; (c) tools, zoom, rulers, status bar; (d) shapes and images, DOM and canvas. Update the card back part of `docs/admin/packs-and-seasons.md` in each.
+- **Order:** split (a), the shell around today's panels, is done. Left: (b) contextual Properties; (c) tools, zoom, rulers, status bar; (d) shapes and images, DOM and canvas. Update the card back editor part of `docs/serials.md` in each.
 
 ### More Photoshop habits
 
