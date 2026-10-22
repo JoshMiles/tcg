@@ -20,12 +20,16 @@ export function Swatches({ value, onPick }: { value: string; onPick: (v: string)
   const [recent, setRecent] = useState<string[]>([]);
   const [eye, setEye] = useState(false);
   const first = useRef(true);
+  const row = useRef<HTMLSpanElement>(null);
   useEffect(() => { load().then(setSets); setRecent(readRecent()); setEye(!!window.EyeDropper); }, []);
-  // A colour counts as used once it has stopped changing for a moment.
+  // A colour counts as used once it has stopped changing for a moment, and only if this field has focus (a new selection changes the value too).
   useEffect(() => {
     if (first.current) { first.current = false; return; }
     if (!HEX.test(value)) return;
-    const t = setTimeout(() => { writeRecent(value.toLowerCase()); setRecent(readRecent()); }, 800);
+    const t = setTimeout(() => {
+      if (!row.current?.parentElement?.contains(document.activeElement)) return;
+      writeRecent(value.toLowerCase()); setRecent(readRecent());
+    }, 800);
     return () => clearTimeout(t);
   }, [value]);
 
@@ -43,7 +47,7 @@ export function Swatches({ value, onPick }: { value: string; onPick: (v: string)
   );
   const saved = sets?.saved ?? [];
   return (
-    <span className="flex flex-wrap items-center gap-1" role="group" aria-label="Swatches">
+    <span ref={row} className="flex flex-wrap items-center gap-1" role="group" aria-label="Swatches">
       {recent.map(c => dot(c, 'Recent'))}
       {sets?.packs.map(c => dot(c, 'Pack'))}
       {sets?.theme.map(c => dot(c, 'Theme'))}
