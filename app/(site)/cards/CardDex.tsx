@@ -1,5 +1,6 @@
 'use client';
 import { Icon, RankMedal } from '@/app/components/Icon';
+import { FilterSheet, SheetHandle } from '@/app/components/site/BottomSheet';
 import { InfoTip } from '@/app/components/InfoTip';
 import type { TermId } from '@/lib/glossary';
 import Link from 'next/link';
@@ -118,6 +119,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
         </div>
       )}
 
+      <FilterSheet active={filtering}>
       <div className="flex flex-wrap items-center gap-3">
         <input
           value={f.q}
@@ -156,6 +158,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
           {filtering && <button type="button" onClick={() => setF(DEFAULT_DEX)} className="text-xs text-yellow-400 hover:text-yellow-300">Clear</button>}
         </div>
       </div>
+      </FilterSheet>
       {wantedError && <p role="alert" className="text-sm text-red-400">{wantedError}</p>}
 
       {shown.length === 0 ? (
@@ -237,10 +240,11 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
   const art = artFor(card, shown);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 safe-inset" role="dialog" aria-modal="true" aria-label={`${card.name} details`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 safe-inset max-md:items-end max-md:p-0!" role="dialog" aria-modal="true" aria-label={`${card.name} details`}>
       <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-xs" onClick={onClose} />
 
-      <div className="card relative w-full max-w-4xl max-h-full overflow-y-auto rounded-2xl shadow-glow">
+      <div className="card sheet-mobile relative w-full max-w-4xl max-h-full overflow-y-auto rounded-2xl shadow-glow max-md:max-w-none max-md:max-h-[90dvh] max-md:rounded-b-none! max-md:pb-[env(safe-area-inset-bottom)]">
+        <SheetHandle onClose={onClose} className="sticky top-0 z-20 md:hidden bg-gray-950/90 rounded-t-2xl" />
         <button ref={closeBtn} onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-gray-900/80 text-gray-300 hover:text-white text-xl leading-none">×</button>
 
         <div className="grid md:grid-cols-[240px_1fr] gap-6 p-5 sm:p-6">

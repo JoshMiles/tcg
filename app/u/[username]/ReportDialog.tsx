@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
+import { SheetHandle } from '@/app/components/site/BottomSheet';
 import { postJson } from '@/app/components/captcha-client';
 import { FEEDBACK_LIMITS, REPORT_REASONS, REPORT_REASON_LABELS, type ReportReason } from '@/lib/feedback-core';
 
@@ -37,8 +38,9 @@ export function ReportDialog({ target, name, onClose }: { target: string; name: 
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Report ${name}`} className="fixed inset-0 z-90 grid place-items-center overflow-y-auto p-4 safe-inset bg-black/60 backdrop-blur-xs" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="card w-full max-w-md rounded-2xl p-5">
+    <div role="dialog" aria-modal="true" aria-label={`Report ${name}`} className="fixed inset-0 z-90 grid place-items-center max-md:place-items-end overflow-y-auto p-4 safe-inset max-md:p-0! bg-black/60 backdrop-blur-xs" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="card sheet-mobile w-full max-w-md rounded-2xl p-5 max-md:max-w-none max-md:rounded-b-none! max-md:pt-0 max-md:max-h-[90dvh] max-md:overflow-y-auto max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <SheetHandle onClose={onClose} className="sticky top-0 z-20 md:hidden bg-gray-950/90 rounded-t-2xl" />
         {sent ? (
           <div className="space-y-3 text-center" role="status">
             <Icon name="check" className="w-8 h-8 text-green-400 mx-auto" />

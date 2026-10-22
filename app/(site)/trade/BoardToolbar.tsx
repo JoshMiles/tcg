@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
+import { FilterSheet } from '@/app/components/site/BottomSheet';
 
 type Filter = 'all' | 'take' | 'wanted' | 'new' | 'spare';
 type Sort = 'newest' | 'expiring' | 'gain';
@@ -48,6 +49,8 @@ export function BoardToolbar({ total, signedIn }: { total: number; signedIn: boo
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none"><Icon name="search" /></span>
           <input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search a card or collector" aria-label="Search the board" className="input input-sm w-full pl-9" />
         </div>
+        {/* Search stays out; on phones sort and the filters sit behind the Filters button. */}
+        <FilterSheet active={filter !== 'all' || sort !== 'newest'}>
         <label className="ml-auto flex items-center gap-2 text-xs text-gray-500">Sort
           <select value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort the board" className="select select-sm w-fit max-w-full">
             <option value="newest">Newest</option>
@@ -55,11 +58,12 @@ export function BoardToolbar({ total, signedIn }: { total: number; signedIn: boo
             {signedIn && <option value="gain">Best for me (points)</option>}
           </select>
         </label>
-      </div>
-      <div role="group" aria-label="Filter the board" className="flex flex-wrap gap-1.5">
+      <div role="group" aria-label="Filter the board" className="w-full flex flex-wrap gap-1.5">
         {FILTERS.filter(f => !f.signedIn || signedIn).map(f => (
           <button key={f.id} type="button" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)} className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${filter === f.id ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-300 hover:text-white'}`}>{f.label}</button>
         ))}
+      </div>
+        </FilterSheet>
       </div>
       {shown === 0 && total > 0 && <p className="rind rounded-2xl p-6 text-center text-sm text-gray-400">No listing matches. Try another filter.</p>}
     </div>

@@ -1,5 +1,6 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
+import { FilterSheet } from '@/app/components/site/BottomSheet';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CardTile } from '@/app/components/CardTile';
 import { SerialChip, tileChipClass } from '@/app/components/SerialChip';
@@ -165,7 +166,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         ? <BinderEditor visitorsBinder={defaultLayout === 'binder'} cards={cards} initial={binderCfg} seasonId={seasonId} ownerLabel={ownerLabel} onClose={saved => { if (saved) setBinderCfg(saved); setCustomising(false); }} />
         : <Binder cards={cards} ownerLabel={ownerLabel} onOpen={open} config={binderCfg} seasonId={seasonId} shareFooter={siteHost} />)}
 
-      {!binder && <div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter the collection">
+      {!binder && <FilterSheet active={filtering}><div className="flex flex-wrap items-center gap-2" role="search" aria-label="Filter the collection">
         <input type="search" value={view.q} onChange={e => patch({ q: e.target.value })} placeholder="Search name or #" aria-label="Search cards"
           className="input input-sm flex-1 min-w-40" />
         <select value={view.show} onChange={e => patch({ show: e.target.value as ShowFilter })} aria-label="Show" className="select select-sm w-fit max-w-full">
@@ -186,7 +187,7 @@ export function CollectionGrid({ cards, totalScore, leaderboardHref, canUpgrade 
         </select>
         <button type="button" onClick={() => patch({ dir: view.dir === 1 ? -1 : 1 })} aria-label="Reverse the order" title="Reverse the order" className="rounded-xl border border-gray-700 px-2 py-1.5 text-gray-300 hover:text-white"><Icon name={view.dir === 1 ? 'arrowDown' : 'arrowUp'} /></button>
         {filtering && <button type="button" onClick={() => setView(DEFAULT_VIEW)} className="text-xs text-yellow-400 hover:text-yellow-300">Clear</button>}
-      </div>}
+      </div></FilterSheet>}
 
       {!binder && uncollected > 0 && ownedIdx.length > 0 && view.show === 'default' && (
         <div className="flex items-center justify-between gap-3 pb-1">

@@ -30,7 +30,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
 | 38.29 | Overlay Editor: workspace redesign, (g) left | Ready | M |
 | 38.30 | Card back editor: the same workspace, plus shapes and images | Ready | L |
-| 39.4 | Mobile: dialogs and filters as bottom sheets | Ready | M |
 | 39.5 | Mobile: touch pass (tap targets, press states, no hover-only controls) | Ready | S |
 | 39.6 | Mobile: phone-width sweep of every public page | Ready | M |
 | 39.7 | Mobile: swipe gestures | Needs a decision | M |
@@ -148,9 +147,6 @@ A look (a preset) that switches on at a start time and off at an end (a Hallowee
 
 Goal: on a phone (and in the home-screen app from Track 35) the site feels like an app, not a shrunken desktop page. Today `SiteNav` shows the page links only at `xl`; below that they sit behind a burger menu at the top, which is a long thumb reach, and nothing accounts for the iPhone notch or home indicator. Read `docs/public-site/basics.md` (the `SiteShell` / `SiteNav` part) first. One PR per item, each from `origin/main`. Rules for the whole track: desktop (`xl` and up) looks exactly as it does now; icons from `Icon.tsx`, no emoji; nothing in `public/twitch-panel/*` (panel freeze); check every change at 375 px wide and in the installed app (`display: standalone`) on the local seeded site.
 
-### 39.4 Dialogs and filters as bottom sheets (Ready, M)
-Below `md`, the public site's dialogs (card detail, copy / edition pickers, trade composer steps, report and share dialogs) and the filter / sort panels on the Card Dex, binder and Collectors open as bottom sheets (full width, rounded top, a grab handle, swipe down to close, max 90% height with their own scroll) instead of centred boxes. Use the shared `BottomSheet` (`app/components/site/BottomSheet.tsx`, from 39.2); desktop keeps today's dialogs. List every dialog it replaces in the PR.
-
 ### 39.5 Touch pass (Ready, S)
 - Every tappable thing at least 44 × 44 px on phones (icon buttons, chips, pagination, the stars and variant toggles).
 - Press feedback (`:active` scale or tint) where only `:hover` exists today, and no control that is only reachable on hover (hover-revealed buttons on card tiles get a visible or long-press route).
@@ -162,7 +158,7 @@ Run the public-site page sweep (`docs/review.md`) at 375 px and 414 px wide on t
 ### 39.7 Swipe gestures (Needs a decision, M)
 Candidates: swipe left / right between cards in the card detail dialog and between binder pages; pull to refresh in the installed app (which has no browser reload button). **User decides** which, if any; each must keep a button route for people who don't swipe and respect `prefers-reduced-motion`.
 
-**Build order for the track:** 39.4 → 39.5 → 39.6 → 39.7.
+**Build order for the track:** 39.5 → 39.6 → 39.7.
 
 **Not planned:** a native app, offline pages (see Track 35), a different layout for tablets beyond what falls out of the breakpoints.
 
