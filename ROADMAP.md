@@ -29,7 +29,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
 | 38.30 | Card back editor: the same workspace, plus shapes and images, (c) and (d) left | Ready | L |
-| 39.6 | Mobile: phone-width sweep of every public page | Ready | M |
 | 39.7 | Mobile: swipe gestures | Needs a decision | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
@@ -111,13 +110,10 @@ A look (a preset) that switches on at a start time and off at an end (a Hallowee
 
 Goal: on a phone (and in the home-screen app from Track 35) the site feels like an app, not a shrunken desktop page. Today `SiteNav` shows the page links only at `xl`; below that they sit behind a burger menu at the top, which is a long thumb reach, and nothing accounts for the iPhone notch or home indicator. Read `docs/public-site/basics.md` (the `SiteShell` / `SiteNav` part) first. One PR per item, each from `origin/main`. Rules for the whole track: desktop (`xl` and up) looks exactly as it does now; icons from `Icon.tsx`, no emoji; nothing in `public/twitch-panel/*` (panel freeze); check every change at 375 px wide and in the installed app (`display: standalone`) on the local seeded site.
 
-### 39.6 Phone-width sweep (Ready, M)
-Run the public-site page sweep (`docs/review.md`) at 375 px and 414 px wide on the seeded local site, then fix what it finds: sideways page scroll, tables (leaderboard, stats, trade history) that should become stacked rows on phones, text cut off, sticky headers stacking with the tab bar. Split into one PR per page group if it grows. List the pages checked in the PR.
-
 ### 39.7 Swipe gestures (Needs a decision, M)
 Candidates: swipe left / right between cards in the card detail dialog and between binder pages; pull to refresh in the installed app (which has no browser reload button). **User decides** which, if any; each must keep a button route for people who don't swipe and respect `prefers-reduced-motion`.
 
-**Build order for the track:** 39.6 → 39.7.
+**Build order for the track:** 39.7.
 
 **Not planned:** a native app, offline pages (see Track 35), a different layout for tablets beyond what falls out of the breakpoints.
 
