@@ -26,7 +26,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.21 | Both editors: swatches and eyedropper | Ready | S |
 | 38.22 | Overlay Editor: anchor point for resize | Ready | S |
 | 38.23 | Overlay Editor: real frame-rate meter | Ready | S |
-| 38.24 | Overlay Editor: paste a screenshot as background | Ready | XS |
 | 38.25 | Overlay Editor: Twitch UI zones | Ready | S |
 | 38.26 | Overlay Editor: text readability check | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
@@ -162,9 +161,6 @@ A 9-point reference grid in the Layer section (38.4): corner-handle scaling and 
 
 ### 38.23 Real frame-rate meter (Ready, S)
 During Play the preview counts frames with `requestAnimationFrame` and reports the average and the worst 250 ms stretch; shown beside the load rating. Labelled "on this computer", since OBS's own browser differs.
-
-### 38.24 Paste a screenshot as background (Ready, XS)
-Ctrl+V an image (an OBS screenshot) onto the canvas sets it as the background, beside the existing file picker. Never saved, as now.
 
 ### 38.25 Twitch UI zones (Ready, S)
 Editor-only rectangles marking where the webcam, chat overlay or alerts sit on stream ("Add zone" in the Guides menu, drag to place and size, name it). Shown as a hatched area; snapping avoids them; a warning in Layers when a part overlaps one. Saved per scope in the overlay settings (staff-wide, so every editor sees them), never sent to the widget's live render.

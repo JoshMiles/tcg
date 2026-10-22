@@ -319,6 +319,11 @@ export function SaveOptionsMenu({ note, setNote, autoReload, setAutoReload }: { 
 }
 
 export function GuidesMenu({ showThirds, setShowThirds, showGrid, setShowGrid, showSafe, setShowSafe, snapOn, setSnapOn, zoom, setZoom, bg, setBg, bgImage, setBgImage }: { showThirds: boolean; setShowThirds: (v: boolean) => void; showGrid: boolean; setShowGrid: (v: boolean) => void; showSafe: boolean; setShowSafe: (v: boolean) => void; snapOn: boolean; setSnapOn: (v: boolean) => void; zoom: number; setZoom: (v: number) => void; bg: Bg; setBg: (v: Bg) => void; bgImage: string | null; setBgImage: (v: string | null) => void }) {
+  const pickScreenshot = (f: File) => {
+    if (bgImage) URL.revokeObjectURL(bgImage);
+    setBgImage(URL.createObjectURL(f));
+    setBg('image');
+  };
   return (
     <SubMenu label="Guides, zoom and background" icon="grid">
       <div className="w-64 space-y-3 text-sm">
@@ -347,13 +352,10 @@ export function GuidesMenu({ showThirds, setShowThirds, showGrid, setShowGrid, s
             <input type="file" accept="image/*" className="sr-only" onChange={e => {
               const f = e.target.files?.[0];
               e.target.value = '';
-              if (!f) return;
-              if (bgImage) URL.revokeObjectURL(bgImage);
-              setBgImage(URL.createObjectURL(f));
-              setBg('image');
+              if (f) pickScreenshot(f);
             }} />
           </label>
-          <p className="text-[11px] text-gray-600">Only shown in this editor, never saved or uploaded.</p>
+          <p className="text-[11px] text-gray-600">Or paste one with Ctrl+V. Only shown in this editor, never saved or uploaded.</p>
         </div>
       </div>
     </SubMenu>

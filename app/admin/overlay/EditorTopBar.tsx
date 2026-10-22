@@ -130,6 +130,22 @@ export function EditorTopBar() {
     if (saveSignal && dirty) saveForm.current?.requestSubmit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveSignal]);
+  // Ctrl+V an image anywhere outside a text field sets it as the background (here, not in
+  // GuidesMenu, because the menu is only mounted while open).
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const f = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith('image/'))?.getAsFile();
+      if (!f) return;
+      e.preventDefault();
+      if (bgImage) URL.revokeObjectURL(bgImage);
+      setBgImage(URL.createObjectURL(f));
+      setBg('image');
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [bgImage, setBgImage, setBg]);
   const handTool = activeTool === 'hand' || activeTool === 'zoom';
   const free = selection.filter(id => !locked.includes(id));
   const canAlign = !isPack && free.length > 0;
