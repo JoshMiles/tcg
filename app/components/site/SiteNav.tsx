@@ -12,16 +12,8 @@ import { OPEN_SEARCH_EVENT, SearchButton } from './SiteSearch';
 import { ChangelogLink } from './ChangelogLink';
 import { newestChangelogDate } from '@/lib/changelog';
 import { nextMenuIndex } from '@/lib/menu-nav';
-
-const LINKS = [
-  { href: '/', label: 'Home', exact: true },
-  { href: '/collection', label: 'Collectors' },
-  { href: '/leaderboard', label: 'Leaderboard' },
-  { href: '/trade', label: 'Trade' },
-  { href: '/stats', label: 'Season Stats' },
-  { href: '/cards', label: 'Card Dex' },
-  { href: '/faq', label: 'FAQ' },
-];
+import { LINKS, isActive as active } from './links';
+import { MobileTabBar } from './MobileTabBar';
 
 export interface NavUser { username: string; displayName: string; avatarUrl?: string }
 /** The signed-in viewer's place in the active season (null when unranked or there is no season). */
@@ -49,7 +41,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
   const [menuOpen, setMenuOpen] = useState(false); // account dropdown
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const burgerRef = useRef<HTMLButtonElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
   const [delta, setDelta] = useState(0); // places climbed (+) or lost (-) since the viewer last looked
 
   // The account menu behaves like a real menu: focus moves into it, arrows / Home / End move, Esc and Tab close it.
@@ -73,7 +65,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
   // The phone menu closes on Escape too (and gives focus back to its button).
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); burgerRef.current?.focus(); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); moreRef.current?.focus(); } };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
@@ -95,9 +87,10 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
   // Close the mobile menu when navigating.
   useEffect(() => { setOpen(false); setMenuOpen(false); }, [pathname]);
 
-  const isActive = (href: string, exact?: boolean) => (exact ? pathname === href : pathname === href || pathname.startsWith(href + '/'));
+  const isActive = (href: string, exact?: boolean) => active(pathname, href, exact);
 
   return (
+    <>
     <header className="sticky top-0 z-40 border-b border-yellow-500/20 bg-gray-950/80 backdrop-blur-sm pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
         <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="The Cheesy TCG, home">
@@ -126,8 +119,8 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
 
         <div className="ml-auto flex items-center gap-2">
           <SearchButton className="h-9 px-2.5" />
-          <LiveBadge />
-          <InstallButton />
+          <span className="hidden xl:contents"><LiveBadge /></span>
+          <span className="hidden xl:contents"><InstallButton /></span>
           {staff && (
             <Link href={staff.href} prefetch={false} className="hidden 2xl:inline-flex items-center gap-1.5 h-9 px-3 whitespace-nowrap shrink-0 rounded-lg border border-purple-400/40 bg-purple-500/10 text-xs font-bold text-purple-200 hover:bg-purple-500/20 transition-colors">
               <Icon name="shield" />{staff.label}
@@ -175,23 +168,12 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
               <TwitchGlyph /> Log in with Twitch
             </a>
           ) : null}
-          <button
-            ref={burgerRef}
-            type="button"
-            onClick={() => setOpen(o => !o)}
-            aria-expanded={open}
-            aria-controls="site-menu"
-            aria-label="Menu"
-            className="xl:hidden w-9 h-9 rounded-lg border border-gray-700 text-gray-300 hover:text-white flex items-center justify-center text-lg"
-          >
-            {open ? <Icon name="x" className="w-5 h-5" /> : <Icon name="menu" className="w-5 h-5" />}
-          </button>
         </div>
       </div>
 
       {open && <div className="xl:hidden fixed inset-0 top-[calc(3.5rem+env(safe-area-inset-top))] z-[-1] bg-gray-950/60" onClick={() => setOpen(false)} aria-hidden />}
       {open && (
-        <nav id="site-menu" className="xl:hidden border-t border-gray-800 bg-gray-950 px-4 py-3 grid gap-1" aria-label="Main">
+        <nav id="site-menu" className="xl:hidden border-t border-gray-800 bg-gray-950 px-4 py-3 grid gap-1 max-h-[calc(100dvh-7rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] overflow-y-auto" aria-label="Menu">
           <button type="button" onClick={() => { setOpen(false); window.dispatchEvent(new Event(OPEN_SEARCH_EVENT)); }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-gray-700 text-sm text-gray-400 text-left">
             <Icon name="search" /> Search collectors, cards and pages…
           </button>
@@ -223,6 +205,8 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
         </nav>
       )}
     </header>
+    <MobileTabBar menuOpen={open} onMore={() => setOpen(o => !o)} moreRef={moreRef} />
+    </>
   );
 }
 
