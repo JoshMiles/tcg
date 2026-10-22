@@ -334,4 +334,38 @@ await runInSandbox(box.id, async () => {
 });
 ok(JSON.stringify(await prodKv.get('overlay:versions')) === prodBefore, 'production versions untouched by the sandbox');
 await sbx.deleteSandbox(box.id);
+// Wording tokens: the widget's fillTokens and the TS twin give the same text.
+{
+  const { readFileSync } = await import('node:fs');
+  const { runInNewContext } = await import('node:vm');
+  const { fillTokens, TOKEN_INFO } = await import('../lib/overlay-tokens');
+  const w = readFileSync('public/widget.js', 'utf8').replace(/\r\n/g, '\n');
+  const tsrc = /\/\/ TOKENS-START\n([^]*?)\/\/ TOKENS-END/.exec(w)?.[1];
+  ok(tsrc, 'widget.js has the TOKENS block');
+  const wFill = runInNewContext("const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };" + tsrc + '; fillTokens', {}) as typeof fillTokens;
+  const ctx = { user: 'cheesygidds', cardName: 'Cheesy Cheese', variant: 'reverse', pack: 'Starter', edition: 3, stars: 5 };
+  const cases: [string, Parameters<typeof fillTokens>[1], string][] = [
+    ['{user} got:', ctx, 'cheesygidds got:'],
+    ['{username} got:', ctx, 'cheesygidds got:'],
+    ['{user}/{username}', ctx, 'cheesygidds/cheesygidds'],
+    ['{cardName} ({variant}) from {pack}: #{edition}, {stars} stars', ctx, 'Cheesy Cheese (Reverse Holo) from Starter: #3, 5 stars'],
+    ['Hello {nobody} {constructor} {}', ctx, 'Hello {nobody} {constructor} {}'],
+    ['{cardName} {edition} {pack}', { user: 'a' }, '{cardName} {edition} {pack}'],
+    ['{variant}', { variant: 'weird' }, 'weird'],
+    ['{user', ctx, '{user'],
+    ['no tokens', {}, 'no tokens'],
+    ['{stars}', { stars: 0 }, '0'],
+  ];
+  for (const [str, c, want] of cases) {
+    eq(fillTokens(str, c), want, `fillTokens ${str}`);
+    eq(wFill(str, c), want, `widget fillTokens ${str}`);
+  }
+  ok(Object.keys(TOKEN_INFO).every(k => /^[a-zA-Z]+$/.test(k)), 'token names are plain words');
+  const { PROPS } = await import('../lib/overlay-props');
+  for (const d of PROPS.filter(p => p.type === 'text' && p.tokens)) {
+    ok(d.tokens!.includes('user'), `${d.key} offers {user}`);
+    ok(d.fit || d.key.endsWith('.subText'), `${d.key} names its preview element`);
+    if (d.sizeKey) ok(PROP_BY_KEY[d.sizeKey]?.type === 'number', `${d.key} size key ${d.sizeKey} is a number prop`);
+  }
+}
 console.log('check-overlay: all checks passed');
