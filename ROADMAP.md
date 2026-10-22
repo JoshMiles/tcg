@@ -19,19 +19,10 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 35.1 | iPhone icon still a "C" (code shipped in #330; waits on the user step) | Blocked (user) | S |
 | 38.17 | Overlay Editor: artboards (scenes side by side) | Ready | M |
 | 38.18 | Overlay Editor: groups and linked layers | Ready | M |
-| 38.19 | Overlay Editor: measure with Alt, status bar | Ready | S |
-| 38.20 | Overlay Editor: navigator | Ready | S |
-| 38.21 | Both editors: swatches and eyedropper | Ready | S |
-| 38.22 | Overlay Editor: anchor point for resize | Ready | S |
-| 38.23 | Overlay Editor: real frame-rate meter | Ready | S |
 | 38.25 | Overlay Editor: Twitch UI zones | Ready | S |
 | 38.26 | Overlay Editor: text readability check | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
-| 40.2a | Site speed: parallel reads in the site shell and profile | Ready | S |
-| 40.2b | Site speed: smaller mascot, more loading screens | Ready | XS |
-| 40.2c | Site speed: load profile and copy dialogs on demand | Ready | S |
-| 40.2d | Site speed: one shared season snapshot per instance | Ready | M |
 | 40.2e | Site speed: cache public pages for signed-out visitors | Needs design | M |
 | 40.2f | Site speed: smaller Card Dex payload | Needs design | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
@@ -69,22 +60,7 @@ A canvas mode showing the global layout and every scene side by side (landscape 
 ### 38.18 Groups and linked layers (Ready, M)
 Link layers so they move and scale together (chain icon in Layers, stored as `links: ElementId[][]` per view in the layout, editor and widget both ignore unknown ids). Groups collapse in Layers. Built-in default: none linked. Builds on 38.5.
 
-### 38.19 Measure with Alt (Ready, S)
-With a layer selected, Alt+hover over another shows the gaps between them in design px (red lines and numbers in the preview, from the boxes 38.5 reports). A status bar under the canvas shows the pointer X / Y in design px and the zoom.
-
-### 38.20 Navigator (Ready, S)
-A small mini-map of the stage in the dock while zoomed past fit (after 38.1); its box shows the view, drag it to pan, the slider zooms.
-
-### 38.21 Swatches and eyedropper (Ready, S)
-A Swatches row in every colour field in both editors: the active packs' accent colours, the site theme colours, the 8 most recently used (localStorage) and **saved swatches** (staff-wide, KV beside overlay settings). An eyedropper button using the browser's `EyeDropper` API (Chromium only; hidden where missing) to pick any colour on screen.
-
-### 38.22 Anchor point for resize (Ready, S)
-A 9-point reference grid in the Layer section (38.4): corner-handle scaling and the size field grow from that point (centre by default for views, the part's CSS origin for parts) by adjusting the offset with the scale. Editor-only; nothing new is stored.
-
 ### Overlay helpers
-
-### 38.23 Real frame-rate meter (Ready, S)
-During Play the preview counts frames with `requestAnimationFrame` and reports the average and the worst 250 ms stretch; shown beside the load rating. Labelled "on this computer", since OBS's own browser differs.
 
 ### 38.25 Twitch UI zones (Ready, S)
 Editor-only rectangles marking where the webcam, chat overlay or alerts sit on stream ("Add zone" in the Guides menu, drag to place and size, name it). Shown as a hatched area; snapping avoids them; a warning in Layers when a part overlaps one. Saved per scope in the overlay settings (staff-wide, so every editor sees them), never sent to the widget's live render.
@@ -98,7 +74,7 @@ Saving a preset or version captures a still of the preview (the widget draws its
 ### 38.28 Scheduled looks (Ready, M)
 A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
 
-**Build order for the track:** 38.17 to 38.28 in any order.
+**Build order for the track:** the open 38.x items in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 
@@ -112,20 +88,8 @@ Production can't be audited while the alpha / beta gate is on: every public rout
 
 What was measured: first-load JS is 216 kB on the profile (the largest), 172 kB on a copy page (1.1 kB of route code), 175 kB on `/cards`, 158 kB on home, with a 103 kB shared baseline. 45 of 46 public routes are dynamic. `getAllCollectionUsers` is not on any public page (ruled out), the grids already lazy-load thumbnails (ruled out), and the leaderboard already reads the 20 s cached board (fine).
 
-### 40.2a Parallel reads in the site shell and profile (Ready, S)
-`SiteShell` (`app/components/site/SiteShell.tsx`) awaits `requireSiteAccess`, `getSession`, `getSiteLabel`, `getLiveStatus` and, when signed in, settings, avatars, active season and board one after another on every public page; run the independent ones in `Promise.all`. On the profile (`app/u/[username]/page.tsx`, `lib/profile-data.ts`) fold `getUserSettings` and `getOwnerCopies` into the existing parallel waves. Keep `requireSiteAccess` first if it redirects. Number: serial waves before / after.
-
-### 40.2b Smaller mascot, more loading screens (Ready, XS)
-The home mascot `public/brand/icon.png` is 126 kB shown at 190 px: add a 380 px compressed copy and point the home `<img>` at it (keep the original, other things use it). Add skeleton `loading.tsx` for the `(entity)` group (copy and trade pages), `/cards` and `/stats`, copying the existing `app/(site)/loading.tsx` style.
-
-### 40.2c Load dialogs on demand (Ready, S)
-`next/dynamic` for `BinderEditor`, `CardDetail`, the share image / share studio and the showcase editor on the profile, and the share image on the copy page, so they load when opened. Number: first-load JS for `/u/[username]` and the copy page before / after.
-
-### 40.2d One shared season snapshot (Ready, M)
-`getCollection` (`lib/kv.ts`) reads the whole `tcg_{collection}` blob, and home, stats, `/cards`, the profile and the trade list each read it again per request; it grows with every pull. The leaderboard's 20 s cache (`lib/leaderboard.ts`) already loads it: expose that loaded collection from the cached board and read it on those pages, so an instance reads the blob at most once per 20 s. Pages that must be exact (trades, the signed-in owner's own collection when acting on it) keep the direct read. A check case that two reads within the TTL hit KV once.
-
 ### 40.2e Cache public pages for signed-out visitors (Needs design)
-Every public page is `force-dynamic` and the shell reads the session cookie, so nothing is cached. Planning question: split the shell so a signed-out render can use `revalidate` (the gate and the live badge complicate it). Plan after 40.2a and 40.2d land, with field numbers in hand.
+Every public page is `force-dynamic` and the shell reads the session cookie, so nothing is cached. Planning question: split the shell so a signed-out render can use `revalidate` (the gate and the live badge complicate it). Plan with field numbers in hand (40.2a and 40.2d have shipped).
 
 ### 40.2f Smaller Card Dex payload (Needs design)
 `/cards` sends every card and all owner data to the client (181 kB of HTML on seed data, growing with cards). Planning question: page it, or fetch a card's owners when its dialog opens.
