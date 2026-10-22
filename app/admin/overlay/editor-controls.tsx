@@ -7,6 +7,7 @@ import { loadBackFont } from '@/lib/card-back-fonts';
 import { CharacterPanel } from '@/app/admin/components/workspace/CharacterPanel';
 import { PROP_BY_KEY, REVEAL_STYLES, type PropDef, type PropValue } from '@/lib/overlay-props';
 import { SAMPLE_TOKENS, TOKEN_INFO, fillTokens } from '@/lib/overlay-tokens';
+import { stripMarkup } from '@/lib/text-markup';
 import { clearTextPatch, editTextPatch, mergeTextPatch, patchFromStyle, shownTextStyle, type TextAccent, type TextPatch } from '@/lib/overlay-text-style';
 import { useOverlayEditor } from './OverlayEditorContext';
 
@@ -187,6 +188,15 @@ function TextControl({ def, id, value, onChange }: { def: PropDef; id: string; v
     onChange(next);
     requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(a + token.length, a + token.length); });
   };
+  // Wrap the selection (or put the caret between the marks when nothing is selected).
+  const wrap = (open: string, close: string) => {
+    const el = ref.current;
+    const a = el?.selectionStart ?? value.length, b = el?.selectionEnd ?? a;
+    const next = value.slice(0, a) + open + value.slice(a, b) + close + value.slice(b);
+    if (def.maxLength && next.length > def.maxLength) return;
+    onChange(next);
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(a + open.length, b + open.length); });
+  };
   const input = <input ref={ref} id={id} type="text" value={value} maxLength={def.maxLength} onChange={e => onChange(e.target.value)} className={`${inputCls} w-full`} />;
   if (!def.tokens) return input;
   const ratio = def.fit ? wordFit[def.fit] : undefined;
@@ -196,6 +206,11 @@ function TextControl({ def, id, value, onChange }: { def: PropDef; id: string; v
   return (
     <div className="space-y-1">
       {input}
+      <div className="flex flex-wrap items-center gap-1" aria-label="Format the selection">
+        <button type="button" title="Bold: wraps the selection in **" aria-label="Bold" onClick={() => wrap('**', '**')} className="px-1.5 py-0.5 rounded-sm border border-gray-700 text-xs font-bold text-gray-300 hover:border-yellow-500">B</button>
+        <button type="button" title="Italic: wraps the selection in *" aria-label="Italic" onClick={() => wrap('*', '*')} className="px-1.5 py-0.5 rounded-sm border border-gray-700 text-xs italic text-gray-300 hover:border-yellow-500">I</button>
+        <label title="Colour: wraps the selection in {color:#rrggbb} (applies when the picker closes)" className="inline-flex items-center gap-1 text-xs text-gray-400">Colour<input type="color" aria-label="Colour the selection" defaultValue="#ffcc00" ref={el => { if (el) el.onchange = () => wrap(`{color:${el.value}}`, '{/color}'); }} className="w-6 h-5 rounded-sm bg-transparent border border-gray-700 p-0" /></label>
+      </div>
       <div className="flex flex-wrap items-center gap-1" aria-label="Insert a token">
         {def.tokens.map(t => (
           <button key={t} type="button" title={`${TOKEN_INFO[t].label}, for example ${TOKEN_INFO[t].sample}`} onClick={() => insert(`{${t}}`)} className="px-1.5 py-0.5 rounded-sm border border-gray-700 text-xs text-gray-300 hover:border-yellow-500 hover:text-yellow-300">{`{${t}}`}</button>
@@ -203,7 +218,7 @@ function TextControl({ def, id, value, onChange }: { def: PropDef; id: string; v
         <span className="text-xs text-gray-600">{'{username}'} works as {'{user}'}</span>
       </div>
       <p className="flex justify-between gap-2 text-xs text-gray-500">
-        <span className="min-w-0 truncate" title="With a sample viewer and card">{value ? <>Shows: <span className="text-gray-300">{fillTokens(value, SAMPLE_TOKENS)}</span></> : 'Empty: the default wording shows.'}</span>
+        <span className="min-w-0 truncate" title="With a sample viewer and card">{value ? <>Shows: <span className="text-gray-300">{fillTokens(stripMarkup(value), SAMPLE_TOKENS)}</span></> : 'Empty: the default wording shows.'}</span>
         {def.maxLength ? <span className={value.length >= def.maxLength ? 'text-yellow-400' : ''}>{value.length}/{def.maxLength}</span> : null}
       </p>
       {ratio ? (

@@ -920,18 +920,79 @@ function fillRuns(str, ctx) {
   return out;
 }
 // TOKENS-END
-// "Highlight tokens": with accent on, filled tokens become <span class="tok"> (textContent only); off is the plain fillTokens text.
-// The accent colour is a hex or 'accent' (the pack's accent colour).
+// MARKUP-START
+// Light markup in wording: **bold**, *italic*, {color:#rrggbb}word{/color}. Twin of lib/text-markup.ts (scripts/check-overlay.mts runs both).
+// Unbalanced, unknown or non-hex markup stays as typed; a * opens only before a non-space and closes only after one.
+const MARK_RE = /\*\*|\*|\{color:(#[0-9a-fA-F]{6})\}|\{\/color\}/g;
+function parseMarkup(str) {
+  const s = String(str), pieces = [], stack = [];
+  let last = 0;
+  for (const m of s.matchAll(MARK_RE)) {
+    if (m.index > last) pieces.push({ text: s.slice(last, m.index) });
+    last = m.index + m[0].length;
+    const star = m[0][0] === '*';
+    const kind = star ? (m[0] === '**' ? 'b' : 'i') : 'c';
+    const closes = m[0] === '{/color}' || (star && stack.some(i => pieces[i].kind === kind) && !/\s/.test(s[m.index - 1] === undefined ? ' ' : s[m.index - 1]));
+    if (closes) {
+      let at = stack.length - 1;
+      while (at >= 0 && pieces[stack[at]].kind !== kind) at--;
+      if (at >= 0) {
+        pieces[stack[at]].live = true;
+        stack.length = at;
+        pieces.push({ text: m[0], kind, open: false, live: true });
+        continue;
+      }
+    } else if (m[1] || (star && !/\s/.test(s[last] === undefined ? ' ' : s[last]))) {
+      stack.push(pieces.length);
+      pieces.push({ text: m[0], kind, open: true, color: m[1] });
+      continue;
+    }
+    pieces.push({ text: m[0] });
+  }
+  if (last < s.length) pieces.push({ text: s.slice(last) });
+  const out = [], colors = [];
+  let bold = 0, italic = 0;
+  for (const p of pieces) {
+    if (p.kind && p.live) {
+      const d = p.open ? 1 : -1;
+      if (p.kind === 'b') bold += d; else if (p.kind === 'i') italic += d; else if (p.open) colors.push(p.color); else colors.pop();
+      continue;
+    }
+    if (!p.text) continue;
+    const r = { t: p.text };
+    if (bold > 0) r.bold = true;
+    if (italic > 0) r.italic = true;
+    if (colors.length) r.color = colors[colors.length - 1].toLowerCase();
+    const prev = out[out.length - 1];
+    if (prev && prev.bold === r.bold && prev.italic === r.italic && prev.color === r.color) prev.t += r.t; else out.push(r);
+  }
+  return out;
+}
+// Markup parsed, then tokens filled inside each run (a token value is never read as markup); tok marks a filled token.
+function markupRuns(str, ctx) {
+  const out = [];
+  for (const r of parseMarkup(str)) for (const f of fillRuns(r.t, ctx)) out.push(Object.assign({}, r, { t: f.t }, f.tok ? { tok: true } : {}));
+  return out;
+}
+// MARKUP-END
+// "Highlight tokens" and light markup: a run that needs styling (markup, or a filled token with accent on) becomes a <span> with
+// textContent only. A wording with neither is the plain filled text, exactly as before. Accent colour is a hex or 'accent' (the pack's);
+// a markup colour wins over it.
 function setWording(el, str, ctx, accent, accentColor) {
-  if (!accent || accent.on === false) { el.textContent = fillTokens(str, ctx); return; }
+  const hi = accent && accent.on !== false;
+  const runs = markupRuns(str, ctx);
+  const styled = r => r.bold || r.italic || r.color || (hi && r.tok);
+  if (!runs.some(styled)) { el.textContent = runs.map(r => r.t).join(''); return; }
   el.textContent = '';
-  for (const r of fillRuns(str, ctx)) {
-    if (!r.tok) { el.appendChild(document.createTextNode(r.t)); continue; }
+  for (const r of runs) {
+    if (!styled(r)) { el.appendChild(document.createTextNode(r.t)); continue; }
     const sp = document.createElement('span');
-    sp.className = 'tok';
+    if (r.tok) sp.className = 'tok';
     sp.textContent = r.t;
-    sp.style.color = !accent.color || accent.color === 'accent' ? accentColor : accent.color;
-    if (accent.bold) sp.style.fontWeight = '700';
+    const col = r.color || (hi && r.tok ? (!accent.color || accent.color === 'accent' ? accentColor : accent.color) : '');
+    if (col) sp.style.color = col;
+    if (r.bold || (hi && r.tok && accent.bold)) sp.style.fontWeight = '700';
+    if (r.italic) sp.style.fontStyle = 'italic';
     el.appendChild(sp);
   }
 }
