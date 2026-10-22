@@ -1,7 +1,7 @@
 'use client';
 
 import { Icon, type IconName } from '@/app/components/Icon';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PendingButton } from '../components/PendingButton';
 import { Menu, MenuBar, MenuItem, MenuSeparator, SubMenu } from '../components/workspace/MenuBar';
 import { resetColumnLayout } from '../components/workspace/useColumnLayout';
@@ -19,11 +19,13 @@ import {
   VersionsMenu,
 } from './EditorMenus';
 import { refreshOverlayAction } from '../overlay-actions';
+import { CompareDialog } from './CompareDialog';
 import { EditorTextOptions } from './EditorTextOptions';
 import { useOverlayEditor } from './OverlayEditorContext';
 import { MAX_ZONES, type AlignMode } from '@/lib/overlay-layout';
 
 export function EditorTopBar() {
+  const [compareId, setCompareId] = useState<string | null>(null);
   const {
     scope,
     setScope,
@@ -228,6 +230,7 @@ export function EditorTopBar() {
             setVersionList={setVersionList}
             versionDistance={versionDistance}
             loadVersion={loadVersion}
+            onCompare={setCompareId}
           />
           <ImportExportMenu
             download={download}
@@ -384,6 +387,7 @@ export function EditorTopBar() {
 
           </>
         )}
+        {compareId && <CompareDialog startId={compareId} onClose={() => setCompareId(null)} />}
         {conflict && <ConflictBanner version={conflict} diffs={versionDiffs(conflict)} overwrite={overwrite} loadTheirs={loadTheirs} />}
         {draftOffer && <DraftBanner at={draftOffer.at} stale={draftOffer.stale} restore={restoreDraft} discard={discardDraft} />}
       </div>

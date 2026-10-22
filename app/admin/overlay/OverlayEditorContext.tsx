@@ -31,7 +31,7 @@ import { DEFAULT_LAYOUT, ELEMENT_IDS, MAX_ZONES, boxesOverlap, sanitizeLayout, a
 import { saveOverlayZonesAction } from '@/app/admin/overlay-actions';
 import { MAX_CUSTOM, duplicateCustom, newCustom, pasteCustom, stepCustom, type CustomKind, type CustomLayer, type CustomText } from '@/lib/overlay-custom';
 import { WCAG_MIN, contrastRatio, parseHex, worstContrast, type RGB } from '@/lib/contrast';
-import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
+import { diffLayout, diffLooks, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { mergeTextPatch, type TextPatch } from '@/lib/overlay-text-style';
 import {
   VARIANT_LABELS,
@@ -835,13 +835,7 @@ export function OverlayEditorProvider({
 
   const shownLayout = showSaved ? initialActiveLayout : layout;
   const savedEffective: PropValues = isOver ? mergePropValues(initialGlobal, initialPackMap[scope]) : initialGlobal;
-  const versionDiffs = (v: VersionInfo): DiffLine[] => [
-    ...diffLayout(v.layout, layout),
-    ...diffProps('Everything', v.props, globalVals, k => PROP_BY_KEY[k]?.default),
-    ...[...new Set([...Object.keys(v.packs), ...Object.keys(packVals)])].flatMap(id =>
-      diffProps(`Pack: ${packs.find(x => x.id === id)?.name ?? id}`, v.packs[id] ?? {}, packVals[id] ?? {}, () => '(follows global)'),
-    ),
-  ];
+  const versionDiffs = (v: VersionInfo): DiffLine[] => diffLooks(v, { layout, props: globalVals, packs: packVals }, id => packs.find(x => x.id === id)?.name ?? id);
   const versionDistance = (v: VersionInfo) => versionDiffs(v).length;
 
   // Save goes through the version check: a refused save keeps the editor as it is and shows the conflict banner.

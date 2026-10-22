@@ -178,7 +178,7 @@ export function ScenesMenu({ presets, initialLayout, globalLayout, siteUrl, over
   );
 }
 
-export function VersionsMenu({ versionList, setVersionList, versionDistance, loadVersion }: { versionList: VersionInfo[]; setVersionList: Dispatch<SetStateAction<VersionInfo[]>>; versionDistance: (v: VersionInfo) => number; loadVersion: (v: VersionInfo) => void }) {
+export function VersionsMenu({ versionList, setVersionList, versionDistance, loadVersion, onCompare }: { versionList: VersionInfo[]; setVersionList: Dispatch<SetStateAction<VersionInfo[]>>; versionDistance: (v: VersionInfo) => number; loadVersion: (v: VersionInfo) => void; onCompare: (id: string) => void }) {
   return (
     <SubMenu label="Versions" icon="history" badge={versionList.length || undefined}>
       <div className="w-96 space-y-2 text-sm">
@@ -194,6 +194,7 @@ export function VersionsMenu({ versionList, setVersionList, versionDistance, loa
                   <span className="block text-[11px] text-gray-500">{new Date(v.at).toLocaleString('en-GB', { timeZone: 'UTC' })} · {dist === 0 ? 'same as now' : `${dist} difference${dist === 1 ? '' : 's'} from your edit`}</span>
                 </span>
                 <button type="button" disabled={dist === 0} onClick={() => loadVersion(v)} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1 disabled:opacity-40`}>Load</button>
+                <button type="button" onClick={() => onCompare(v.id)} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`}>Compare</button>
                 <button
                   type="button"
                   aria-label="Delete version"
@@ -297,7 +298,7 @@ export function PackToolsMenu({ packs, packVals, setPackVals, scope, globalVals,
   );
 }
 
-function DiffList({ diffs }: { diffs: DiffLine[] }) {
+export function DiffList({ diffs }: { diffs: DiffLine[] }) {
   return (
     <ul className="max-h-80 overflow-y-auto divide-y divide-gray-800/70">
       {diffs.map((d, i) => (
