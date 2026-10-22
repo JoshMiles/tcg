@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { toolBox } from '@/lib/overlay-custom';
 import { LayerMenu } from './LayerMenu';
+import { MeasureOverlay } from './PreviewPointer';
 import { useOverlayEditor } from './OverlayEditorContext';
 import { RulerBar } from '../components/workspace/RulerBar';
 
@@ -274,6 +275,7 @@ export function PreviewStage() {
             </div>
           )))}
         </div>
+        <MeasureOverlay />
         {showSaved && (
           <span className="absolute top-2 left-2 rounded-md bg-gray-950/85 border border-yellow-500/50 px-2 py-0.5 text-[11px] font-bold text-yellow-300 pointer-events-none">
             Showing the saved look
