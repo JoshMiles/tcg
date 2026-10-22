@@ -59,7 +59,7 @@ const KIND_LABEL: Record<CustomKind, string> = { text: 'Text', image: 'Image', s
 const ID = /^[A-Za-z0-9_-]{1,24}$/;
 
 /** Valid layers from anything: unknown kinds, bad ids and duplicates are dropped, at most MAX_CUSTOM kept. Absent or empty gives []. */
-export function sanitizeCustom(raw: unknown, width: number, height: number): CustomLayer[] {
+export function sanitizeCustom(raw: unknown, width: number, height: number, view: 'pack' | 'collection' = 'pack'): CustomLayer[] {
   const out: CustomLayer[] = [];
   const seen = new Set<string>();
   for (const r of Array.isArray(raw) ? raw : []) {
@@ -73,7 +73,7 @@ export function sanitizeCustom(raw: unknown, width: number, height: number): Cus
       x: Math.round(clamp(r.x, -width, width * 2, 0)), y: Math.round(clamp(r.y, -height, height * 2, 0)),
       w: Math.round(clamp(r.w, 1, width * 2, 200)), h: Math.round(clamp(r.h, 1, height * 2, 100)),
       rotate: Math.round(clamp(r.rotate, -360, 360, 0)), opacity: r2(clamp(r.opacity, 0, 1, 1)), visible: r.visible !== false,
-      band: pick(r.band, BANDS, 'front'), show: pick(r.show, SHOWS, 'always'),
+      band: pick(r.band, BANDS, 'front'), show: view === 'pack' ? pick(r.show, SHOWS, 'always') : 'always', // only the pack view has a reveal
       fadeIn: Math.round(clamp(r.fadeIn, 0, 5000, 0)), fadeOut: Math.round(clamp(r.fadeOut, 0, 5000, 0)),
     };
     if (kind === 'text') {

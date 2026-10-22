@@ -279,6 +279,7 @@ eq(sanitizeLayout({ pack: { elements: { banner: { offsetX: 12, scale: 1.5 } } } 
   ok(bd[0].band === 'front' && bd[0].show === 'always' && bd[0].fadeIn === 0 && bd[0].fadeOut === 0, 'a layer with no band / show / fades reads as front, always, no fade');
   ok(bd[1].band === 'back' && bd[1].show === 'after' && bd[1].fadeIn === 5000 && bd[1].fadeOut === 0, 'band and show are kept, fades are clamped to 0..5000 ms');
   ok(bd[2].band === 'front' && bd[2].show === 'always' && bd[2].fadeIn === 250, 'a bad band or show falls back');
+  ok(sanitizeLayout({ collection: { custom: [{ id: 'q', kind: 'text', ...box, show: 'after' }] } }).collection.custom?.[0].show === 'always', 'the collection view has no reveal, so its layers drop Show');
   eq(cu.stepCustom(bd, 'b3', -1).map(l => l.id), ['b3', 'b2', 'b1'], 'a step back skips a layer of the other band');
   eq(cu.stepCustom(bd, 'b1', -1).map(l => l.id), ['b1', 'b2', 'b3'], 'the back of its band stays put');
   eq(cu.stepCustom(bd, 'b3', 1).map(l => l.id), ['b1', 'b2', 'b3'], 'the front of its band stays put');

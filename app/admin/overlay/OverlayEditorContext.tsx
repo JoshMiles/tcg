@@ -1230,7 +1230,7 @@ export function OverlayEditorProvider({
   const pasteClip = () => {
     if (isPack || !clip.length) return;
     const view = mode;
-    const r = pasteCustom(layout[view].custom ?? [], clip);
+    const r = pasteCustom(layout[view].custom ?? [], view === 'pack' ? clip : clip.map(l => ({ ...l, show: 'always' as const })));
     if (!r) { setNotice(`A view holds at most ${MAX_CUSTOM} layers. Delete some first.`); return; }
     setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: r.list } }), `Paste ${r.added.length === 1 ? r.added[0].name : `${r.added.length} layers`}`);
     selectTarget(`custom:${r.added[r.added.length - 1].id}`);
