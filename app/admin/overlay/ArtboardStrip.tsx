@@ -10,12 +10,12 @@ const BOX_W = 220;
 const BOX_H = 130;
 const MAX_BOARDS = 8; // every board is a live iframe
 
-// One non-selected scope as a small still of the overlay at its own stage size, fed the editor's current values for it.
-function Board({ name, layout, props, onPick }: { name: string; layout: OverlayLayout; props: PropValues; onPick: () => void }) {
+// A live settled still of the overlay at `layout`'s stage size, scaled to fit boxW x boxH, fed `props` and the editor's Variant / Mode pickers.
+export function StillFrame({ name, layout, props, boxW = BOX_W, boxH = BOX_H }: { name: string; layout: OverlayLayout; props: PropValues; boxW?: number; boxH?: number }) {
   const { mode, version, pickPack, pickCard } = useOverlayEditor();
   const ref = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
-  const scale = Math.min(BOX_W / layout.width, BOX_H / layout.height);
+  const scale = Math.min(boxW / layout.width, boxH / layout.height);
   const variant = version === 'regular' ? '' : version;
   // The props object is rebuilt on every editor render (each drag frame); only re-post when the values really change.
   const values = JSON.stringify([layout, props]);
@@ -28,18 +28,25 @@ function Board({ name, layout, props, onPick }: { name: string; layout: OverlayL
     post({ type: 'static', mode, showoff: false });
   }, [loaded, values, variant, pickPack, pickCard, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
+    <div className="relative overflow-hidden rounded-sm" style={{ width: layout.width * scale, height: layout.height * scale, backgroundColor: '#1a1d23' }}>
+      <iframe
+        ref={ref}
+        src="/overlay.html?preview&editor"
+        title={`${name} preview`}
+        tabIndex={-1}
+        onLoad={() => setLoaded(true)}
+        className="pointer-events-none"
+        style={{ width: layout.width, height: layout.height, border: 0, background: 'transparent', colorScheme: 'light', transform: `scale(${scale})`, transformOrigin: 'top left' }}
+      />
+    </div>
+  );
+}
+
+// One non-selected scope as a small still of the overlay at its own stage size, fed the editor's current values for it.
+function Board({ name, layout, props, onPick }: { name: string; layout: OverlayLayout; props: PropValues; onPick: () => void }) {
+  return (
     <button type="button" onClick={onPick} title={`Edit ${name}`} className="shrink-0 rounded-md border border-gray-700 hover:border-yellow-500 bg-gray-950/70 p-1.5 text-left">
-      <div className="relative overflow-hidden rounded-sm" style={{ width: layout.width * scale, height: layout.height * scale, backgroundColor: '#1a1d23' }}>
-        <iframe
-          ref={ref}
-          src="/overlay.html?preview&editor"
-          title={`${name} preview`}
-          tabIndex={-1}
-          onLoad={() => setLoaded(true)}
-          className="pointer-events-none"
-          style={{ width: layout.width, height: layout.height, border: 0, background: 'transparent', colorScheme: 'light', transform: `scale(${scale})`, transformOrigin: 'top left' }}
-        />
-      </div>
+      <StillFrame name={name} layout={layout} props={props} />
       <p className="mt-1 text-[11px] font-bold text-gray-200 truncate" style={{ maxWidth: BOX_W }}>{name}</p>
       <p className="text-[10px] text-gray-500">{layout.width} x {layout.height}</p>
     </button>

@@ -227,6 +227,11 @@ ok(d.length === 1 && d[0].to === 'off' && d[0].from === 'on', 'diff shows a swit
 eq(diff.diffProps('x', { 'variant.shiny.glow': false }, { 'variant.shiny.glow': false }, () => undefined), [], 'identical values do not differ');
 const lay = diff.diffLayout(DEFAULT_LAYOUT, { ...DEFAULT_LAYOUT, width: 1920, pack: { ...DEFAULT_LAYOUT.pack, offsetX: 40 } });
 ok(lay.length === 2, 'layout diff lists size and offset');
+const lookA = { layout: DEFAULT_LAYOUT, props: {}, packs: {} };
+const lookB = { layout: { ...DEFAULT_LAYOUT, width: 1920 }, props: { 'variant.shiny.glow': false }, packs: { p1: { 'variant.shiny.glow': false } } };
+const looks = diff.diffLooks(lookA, lookB, id => 'Pack ' + id);
+ok(looks.some(l => l.scope === 'Layout') && looks.some(l => l.scope === 'Everything') && looks.some(l => l.scope === 'Pack: Pack p1'), 'diffLooks covers layout, global values and a pack override');
+eq(diff.diffLooks(lookA, lookA, String), [], 'diffLooks of a look with itself is empty');
 // element layers
 eq(sanitizeLayout({ width: 1280, height: 720, pack: { scale: 1, offsetX: 5, offsetY: 0 } }).pack, { scale: 1, offsetX: 5, offsetY: 0 }, 'an old layout reads back with no elements');
 const el = sanitizeLayout({ pack: { elements: { label: { offsetX: 12.4, offsetY: -3 }, bar: { scale: 1, offsetX: 0, offsetY: 0 }, heading: { offsetX: 9 }, nope: { offsetX: 9 }, got: { scale: 9, offsetX: 99999, offsetY: 0 } } }, collection: { elements: { heading: { offsetY: 4 }, card: { offsetX: 1 } } } });

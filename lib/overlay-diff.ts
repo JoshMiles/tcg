@@ -64,6 +64,19 @@ export function diffProps(scope: string, before: PropValues, after: PropValues, 
   return out;
 }
 
+export interface LookValues { layout: OverlayLayout; props: PropValues; packs: Record<string, PropValues> }
+
+/** Everything that differs between two whole looks (layout, global values, per-pack overrides): a saved version, or the editor's current values. */
+export function diffLooks(before: LookValues, after: LookValues, packName: (id: string) => string): DiffLine[] {
+  return [
+    ...diffLayout(before.layout, after.layout),
+    ...diffProps('Everything', before.props, after.props, k => PROP_BY_KEY[k]?.default),
+    ...[...new Set([...Object.keys(before.packs), ...Object.keys(after.packs)])].flatMap(id =>
+      diffProps(`Pack: ${packName(id)}`, before.packs[id] ?? {}, after.packs[id] ?? {}, () => '(follows global)'),
+    ),
+  ];
+}
+
 export function diffLayout(before: OverlayLayout, after: OverlayLayout): DiffLine[] {
   const out: DiffLine[] = [];
   const add = (label: string, a: unknown, b: unknown) => { if (!same(a, b)) out.push({ scope: 'Layout', label, from: String(a), to: String(b) }); };
