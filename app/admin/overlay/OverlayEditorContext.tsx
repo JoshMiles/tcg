@@ -238,6 +238,8 @@ export interface OverlayEditorContextValue {
   stopRehearsal: () => void;
   /** The preview's reveal clock while a pull plays (null when none is): seconds, phase markers, paused or running. */
   timeline: TimelineState | null;
+  /** The last play's real frame rate in this browser (average and worst 250 ms stretch); null before any play. */
+  fps: { avg: number; worst: number } | null;
   /** Preview elements whose wording does not fit the stage (by `data-edit` tag), with the factor that would fit. */
   wordFit: Record<string, number>;
   fitStage: string;
@@ -433,6 +435,7 @@ export function OverlayEditorProvider({
   /** Called with every timeline report (or 'stop') while a rehearsal waits for the current pull to end. */
   const pullWait = useRef<((m: { active: boolean; cooldown: number } | 'stop') => void) | null>(null);
   const [timeline, setTimeline] = useState<TimelineState | null>(null);
+  const [fps, setFps] = useState<{ avg: number; worst: number } | null>(null);
   const [fitReport, setFitReport] = useState<{ over: Record<string, number>; stage: string }>({ over: {}, stage: '1280x720' });
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [presetName, setPresetName] = useState('');
@@ -1515,6 +1518,7 @@ export function OverlayEditorProvider({
         pullWait.current?.({ active: m.active, cooldown: (m as { cooldown?: number }).cooldown ?? 1 });
         return;
       }
+      if (data?.type === 'fps') { const m = data as unknown as { avg: number; worst: number }; if (Number.isFinite(m.avg) && Number.isFinite(m.worst)) setFps({ avg: m.avg, worst: m.worst }); return; }
       if (data?.type === 'boxes') { boxesWait.current?.((data as { boxes?: Record<string, DesignBox> }).boxes ?? {}); return; }
       if (data?.type === 'edit' && typeof data.target === 'string' && data.target.startsWith('custom:')) {
         live.current.selectTarget(data.target);
@@ -1650,6 +1654,7 @@ export function OverlayEditorProvider({
     rehearse,
     stopRehearsal,
     timeline,
+    fps,
     wordFit: fitReport.over,
     fitStage: fitReport.stage.replace('x', '×'),
     timelineCmd,

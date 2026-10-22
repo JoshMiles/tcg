@@ -9,7 +9,7 @@ import { PointerReadout } from './PreviewPointer';
 
 // The strip under the Overlay Editor: what the canvas shows, how heavy the look is, what is unsaved and when it was last saved.
 export function EditorStatusBar() {
-  const { fit, shownLayout, valueOf, dirty, diffs, openReview, lastSavedAt, conflict, packs, changedLayout, changedGlobal, changedPacks, changedScenes } = useOverlayEditor();
+  const { fit, shownLayout, valueOf, dirty, diffs, openReview, lastSavedAt, conflict, packs, changedLayout, changedGlobal, changedPacks, changedScenes, fps } = useOverlayEditor();
   const worst = VARIANT_IDS.map(v => ({ v, r: variantPerf(valueOf, v) })).sort((a, b) => b.r.score - a.r.score)[0];
   const unsaved = [
     changedLayout && 'layout',
@@ -28,6 +28,11 @@ export function EditorStatusBar() {
       >
         Load: {PERF_LABEL[worst.r.level]}
       </span>
+      {fps && (
+        <StatusItem title="Counted with requestAnimationFrame during the last Play: the average, and the worst 250 ms stretch. OBS's own browser differs.">
+          {Math.round(fps.avg)} fps (worst {Math.round(fps.worst)}) on this computer
+        </StatusItem>
+      )}
       {dirty ? (
         <StatusItem tone="warn" onClick={openReview} title={`Review: ${unsaved}`}>{diffs.length} unsaved</StatusItem>
       ) : (
