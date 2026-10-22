@@ -6,6 +6,7 @@ import { BUILTIN_TEXT_PRESETS, presetPatch, styleOf, type TextPreset } from '@/l
 import { deleteTextPresetAction, listTextPresetsAction, saveTextPresetAction } from '@/app/admin/text-preset-actions';
 import type { TextAccent } from '@/lib/overlay-text-style';
 import { ScrubLabel } from './ScrubLabel';
+import { Swatches } from './Swatches';
 
 // The Character and Effects controls, shared by the card back editor (a whole TextStyle on a BackEl) and the Overlay Editor (a partial patch per
 // text layer, ROADMAP 38.8 c). Lifted from the card back Properties panel. `patch` switches to the overlay's mode: the value shown is what the layer
@@ -48,6 +49,7 @@ export function Colour({ label, value, onChange, named = [], reset }: { label: s
         <input type="color" aria-label={`${label} colour`} value={isHex ? value : '#808080'} onChange={e => onChange(e.target.value)} className="w-8 h-7 rounded-sm bg-transparent border border-gray-700 p-0.5" />
         <input aria-label={`${label} hex`} className={`${field} w-24!`} value={isHex ? value : ''} placeholder={value} onChange={e => { if (/^#[0-9a-f]{6}$/i.test(e.target.value)) onChange(e.target.value.toLowerCase()); }} />
         {named.map(n => <button key={n} type="button" onClick={() => onChange(n)} aria-pressed={value === n} className={chip(value === n)}>{n}</button>)}
+        <Swatches value={value} onPick={onChange} />
       </span>
     </Row>
   );

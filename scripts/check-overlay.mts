@@ -512,4 +512,14 @@ await sbx.deleteSandbox(box.id);
   eq(applyCustomText(bold, { bold: false, highlight: false }).style.accent?.on, false, 'highlight off keeps the colour with on:false');
   eq(applyCustomText(a, { highlight: false }).style, {}, 'highlight off on a plain layer stores nothing');
 }
+{
+  // ROADMAP 38.21: saved swatches.
+  const sw = await import('../lib/swatches');
+  eq(sw.sanitizeSwatches(['#FF0000', '#ff0000', 'red', '#12345', 5, '#00ff00']), ['#ff0000', '#00ff00'], 'swatches: hex only, lowercased, unique');
+  eq(sw.sanitizeSwatches('x'), [], 'swatches: non-array');
+  eq(sw.sanitizeSwatches(Array.from({ length: 40 }, (_, i) => '#' + i.toString(16).padStart(6, '0'))).length, sw.MAX_SWATCHES, 'swatches: capped');
+  eq(await sw.saveSwatches(['#abcdef', 'nope']), ['#abcdef'], 'swatches: save returns the clean list');
+  eq(await sw.getSavedSwatches(), ['#abcdef'], 'swatches: read back');
+  eq([sw.toHex('rgb(241,187,6)'), sw.toHex('#ABCDEF'), sw.toHex('blue')], ['#f1bb06', '#abcdef', null], 'swatches: toHex');
+}
 console.log('check-overlay: all checks passed');
