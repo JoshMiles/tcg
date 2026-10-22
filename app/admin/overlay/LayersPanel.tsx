@@ -31,8 +31,9 @@ const VIEWS: { view: Mode; label: string }[] = [
 ];
 
 // The preview's elements as a list: select, hover-highlight, hide (where a show/hide setting exists) and reset a moved one.
-export function LayersPanel({ overlapping, layout, selected, selection, locked, toggleSelect, toggleLock, linkSelection, unlinkSelection, valueOf, setValue, setLayoutVals, selectTarget, selectView, hoverElement, openLayerMenu }: {
+export function LayersPanel({ overlapping, lowContrast, layout, selected, selection, locked, toggleSelect, toggleLock, linkSelection, unlinkSelection, valueOf, setValue, setLayoutVals, selectTarget, selectView, hoverElement, openLayerMenu }: {
   overlapping: string[];
+  lowContrast: Record<string, number>;
   layout: OverlayLayout;
   selected: string;
   selection: string[];
@@ -173,6 +174,7 @@ export function LayersPanel({ overlapping, layout, selected, selection, locked, 
                     <Icon name={l.kind === 'text' ? 'text' : l.kind === 'image' ? 'image' : 'stop'} className="text-gray-500 shrink-0" />
                     {l.name}
                     {overlapping.includes(id) && <Icon name="warning" className="text-fuchsia-400 shrink-0" title="Overlaps a Twitch zone (webcam, chat or alerts)" />}
+                    {lowContrast[id] !== undefined && <Icon name="warning" className="text-orange-400 shrink-0" title={`Low contrast (${lowContrast[id].toFixed(1)}:1)`} />}
                     {l.band === 'back' && <span className="text-[10px] text-gray-500 shrink-0">behind</span>}
                   </button>}
                   <button type="button" onClick={() => setCustom(view, c => c.map(x => (x.id === l.id ? { ...x, visible: !x.visible } : x)), `${l.visible ? 'Hide' : 'Show'} ${l.name}`)} aria-pressed={!l.visible} aria-label={`Hide ${l.name}`} title={l.visible ? 'Hide' : 'Show'} className="px-1 text-gray-500 hover:text-white">

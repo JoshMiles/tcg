@@ -584,4 +584,18 @@ await sbx.deleteSandbox(box.id);
   await settings.saveZones('global', []);
   eq((await settings.getOverlaySettings()).zones, {}, 'zones: an empty list clears the scope');
 }
+// ── Pure: text readability (ROADMAP 38.26) ──
+{
+  const { parseHex, contrastRatio, inkFor, worstContrast } = await import('../lib/contrast');
+  const W = parseHex('#fff')!, B = parseHex('#000000')!;
+  ok(Math.abs(contrastRatio(W, B) - 21) < 0.01 && contrastRatio(W, W) === 1, 'contrast: white on black is 21:1');
+  ok(parseHex('nope') === null, 'contrast: a bad colour is null');
+  eq([inkFor(W), inkFor(B)], ['#000000', '#ffffff'], 'contrast: ink is the opposite of the background');
+  const px = new Uint8Array(4 * 4 * 4).fill(255); // a 4 x 4 white buffer with one black pixel at (0,0)
+  px.set([0, 0, 0, 255], 0);
+  ok(worstContrast(W, px, 4, 4, { x: 2, y: 2, w: 1, h: 1 }) === 1, 'contrast: white text on a white area is 1:1');
+  ok(worstContrast(W, px, 4, 4, { x: 0, y: 0, w: 3, h: 3 }) === 1, 'contrast: the worst sample counts');
+  ok(Math.abs(worstContrast(W, px, 4, 4, { x: 0, y: 0, w: 0, h: 0 })! - 21) < 0.01, 'contrast: white text on the black pixel is 21:1');
+  ok(worstContrast(W, px, 4, 4, { x: 10, y: 10, w: 2, h: 2 }) === null, 'contrast: a box off the buffer is skipped');
+}
 console.log('check-overlay: all checks passed');

@@ -30,6 +30,7 @@ import {
 import { DEFAULT_LAYOUT, ELEMENT_IDS, MAX_ZONES, boxesOverlap, sanitizeLayout, alignOffsets, distributeOffsets, anchorOffset, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type OverlayZone, type Placement } from '@/lib/overlay-layout';
 import { saveOverlayZonesAction } from '@/app/admin/overlay-actions';
 import { MAX_CUSTOM, duplicateCustom, newCustom, pasteCustom, stepCustom, type CustomKind, type CustomLayer, type CustomText } from '@/lib/overlay-custom';
+import { WCAG_MIN, contrastRatio, parseHex, worstContrast, type RGB } from '@/lib/contrast';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { mergeTextPatch, type TextPatch } from '@/lib/overlay-text-style';
 import {
@@ -270,6 +271,8 @@ export interface OverlayEditorContextValue {
   zones: OverlayZone[];
   setZones: (fn: (z: OverlayZone[]) => OverlayZone[]) => void;
   overlapIds: string[];
+  /** Custom text layers (`custom:{id}`) whose colour reads under 3:1 on the preview background, with the ratio. */
+  lowContrast: Record<string, number>;
   showThirds: boolean;
   setShowThirds: React.Dispatch<React.SetStateAction<boolean>>;
   showSafe: boolean;
@@ -371,6 +374,38 @@ export function useOverlayEditor() {
   const ctx = useContext(OverlayEditorContext);
   if (!ctx) throw new Error('useOverlayEditor must be used within an OverlayEditorProvider');
   return ctx;
+}
+
+const SOLID_BG: Partial<Record<Bg, RGB>> = { dark: [7, 8, 11], light: [229, 231, 235], green: [0, 177, 64] };
+/** Readability (ROADMAP 38.26): the worst contrast of each text layer's colour over the preview background under its measured box. A checker background is skipped; a layer whose outline reads against the text is fine. */
+async function lowContrastOf(texts: CustomText[], boxes: Record<string, DesignBox>, bg: Bg, bgImage: string | null, w: number, h: number): Promise<Record<string, number>> {
+  const solid = SOLID_BG[bg];
+  const k = 0.25, cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
+  let px: Uint8ClampedArray | null = null;
+  if (bg === 'image' && bgImage) {
+    try {
+      const img = new Image();
+      img.src = bgImage;
+      await img.decode();
+      const cv = document.createElement('canvas');
+      cv.width = cw; cv.height = ch;
+      const c = cv.getContext('2d');
+      c?.drawImage(img, 0, 0, cw, ch);
+      px = c ? c.getImageData(0, 0, cw, ch).data : null;
+    } catch { return {}; }
+    if (!px) return {};
+  } else if (!solid) return {};
+  const out: Record<string, number> = {};
+  for (const t of texts) {
+    const b = boxes[`custom:${t.id}`], ink = parseHex(t.color);
+    if (!b || !ink) continue;
+    const st = t.style.fx?.stroke as { color?: string; width?: number; on?: boolean } | undefined;
+    const edge = st && st.on !== false && (st.width ?? 0) >= 1 ? parseHex(st.color ?? '') : null;
+    if (edge && contrastRatio(ink, edge) >= WCAG_MIN) continue;
+    const r = px ? worstContrast(ink, px, cw, ch, { x: b.x * k, y: b.y * k, w: b.w * k, h: b.h * k }) : contrastRatio(ink, solid!);
+    if (r !== null && r < WCAG_MIN) out[`custom:${t.id}`] = r;
+  }
+  return out;
 }
 
 export function OverlayEditorProvider({
@@ -557,6 +592,7 @@ export function OverlayEditorProvider({
     zoneSave.current[key] = setTimeout(() => void saveOverlayZonesAction(key, next), 600);
   };
   const [overlapIds, setOverlapIds] = useState<string[]>([]);
+  const [lowContrast, setLowContrast] = useState<Record<string, number>>({});
   const isOver = scope !== 'global';
   const current: PropValues = isOver ? packVals[scope] ?? {} : globalVals;
 
@@ -1566,16 +1602,23 @@ export function OverlayEditorProvider({
     if (ready) post({ type: 'guides', x: [...guides.x, ...zones.flatMap(z => [z.x, z.x + z.w])], y: [...guides.y, ...zones.flatMap(z => [z.y, z.y + z.h])] });
   }, [ready, loadedCount, guides, zones, post]);
   // Layers warns about a part whose measured box overlaps a zone (the preview shows one view at a time, so only its parts are measured).
+  // The same measure feeds the readability check (ROADMAP 38.26): visible custom text layers against the preview background.
   useEffect(() => {
-    if (!ready || !zones.length) { setOverlapIds(o => (o.length ? [] : o)); return; }
+    const texts = (layout[mode].custom ?? []).filter((c): c is CustomText => c.kind === 'text' && c.visible);
+    if (!ready || (!zones.length && !texts.length)) { setOverlapIds(o => (o.length ? [] : o)); setLowContrast(o => (Object.keys(o).length ? {} : o)); return; }
     let live = true;
     const t = setTimeout(() => {
       const ids = [...ELEMENT_IDS[mode], ...(layout[mode].custom ?? []).map(c => `custom:${c.id}`)];
-      void measureBoxes(ids).then(b => { if (live) setOverlapIds(Object.entries(b).filter(([, x]) => zones.some(z => boxesOverlap(x, z))).map(([id]) => id)); });
+      void measureBoxes(ids).then(async b => {
+        if (!live) return;
+        setOverlapIds(Object.entries(b).filter(([, x]) => zones.some(z => boxesOverlap(x, z))).map(([id]) => id));
+        const low = await lowContrastOf(texts, b, bg, bgImage, layout.width, layout.height);
+        if (live) setLowContrast(low);
+      });
     }, 400);
     return () => { live = false; clearTimeout(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, loadedCount, zones, layout, shownProps, mode]);
+  }, [ready, loadedCount, zones, layout, shownProps, mode, bg, bgImage]);
 
   const catId = isPack && category === 'collection' ? 'pack' : category;
 
@@ -1776,6 +1819,7 @@ export function OverlayEditorProvider({
     zones,
     setZones,
     overlapIds,
+    lowContrast,
     zoom,
     setZoom,
     activeTool,

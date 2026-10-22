@@ -7,6 +7,8 @@ import { EffectFields, Group, Num } from '@/app/admin/components/workspace/Chara
 import { ShapeFields } from '@/app/admin/components/workspace/ShapeFields';
 import { IMAGE_FITS, MAX_CUSTOM_TEXT, isSafeImageUrl, type CustomLayer, type CustomText } from '@/lib/overlay-custom';
 import type { TextStyle } from '@/lib/text-style';
+import { inkFor, parseHex } from '@/lib/contrast';
+import { Icon } from '@/app/components/Icon';
 import type { PropDef } from '@/lib/overlay-props';
 import type { Mode } from './editor-types';
 import { Segmented, TextControl, TextPatchPanel, inputCls } from './editor-controls';
@@ -18,8 +20,8 @@ export function CustomLayerPanel({ view, layerId }: { view: Mode; layerId: strin
   const layer = layout[view].custom?.find(l => l.id === layerId);
   const [bad, setBad] = useState(false);
   if (!layer) return null;
-  const set = (patch: Record<string, unknown>) =>
-    setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: (l[view].custom ?? []).map(x => (x.id === layerId ? ({ ...x, ...patch } as CustomLayer) : x)) } }), `Custom layer "${layer.name}"`);
+  const set = (patch: Record<string, unknown>, label = `Custom layer "${layer.name}"`) =>
+    setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: (l[view].custom ?? []).map(x => (x.id === layerId ? ({ ...x, ...patch } as CustomLayer) : x)) } }), label);
   const num = (label: string, key: 'x' | 'y' | 'w' | 'h' | 'rotate', unit = 'px') => (
     <label className="text-xs text-gray-500 space-y-1">
       <ScrubLabel value={layer[key]} onChange={v => set({ [key]: v })}>{label}</ScrubLabel>
@@ -67,8 +69,9 @@ export function CustomLayerPanel({ view, layerId }: { view: Mode; layerId: strin
 }
 
 /** A text layer's fields: the wording (token chips, markup buttons, live result), font, size, colour, vertical align and the shared Character panel. */
-function TextFields({ layer, view, set }: { layer: CustomText; view: Mode; set: (patch: Record<string, unknown>) => void }) {
-  const { valueOf, focusText, setFocusText } = useOverlayEditor();
+function TextFields({ layer, view, set }: { layer: CustomText; view: Mode; set: (patch: Record<string, unknown>, label?: string) => void }) {
+  const { valueOf, focusText, setFocusText, lowContrast } = useOverlayEditor();
+  const low = lowContrast[`custom:${layer.id}`];
   const id = `custom-text-${layer.id}`;
   // A double-click on the layer in the preview, or the Text tool, asks for the wording field.
   useEffect(() => {
@@ -84,6 +87,12 @@ function TextFields({ layer, view, set }: { layer: CustomText; view: Mode; set: 
     <>
       <label htmlFor={id} className="text-xs text-gray-500 block">Wording</label>
       <TextControl def={def} id={id} value={layer.text} onChange={v => set({ text: String(v) })} />
+      {low !== undefined && (
+        <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-orange-300">
+          <Icon name="warning" />Low contrast ({low.toFixed(1)}:1)
+          <button type="button" className="btn btn-xs btn-ghost" onClick={() => set({ style: { ...layer.style, fx: { ...layer.style.fx, stroke: { color: inkFor(parseHex(layer.color) ?? [255, 255, 255]), width: 2, pos: 'outside' } } } }, `Add outline to "${layer.name}"`)}>Add outline</button>
+        </p>
+      )}
       <TextPatchPanel
         own={layer.style}
         inherited={{}}
