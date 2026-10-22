@@ -18,6 +18,59 @@ const kvLib = await import('../lib/kv');
 const sbx = await import('../lib/sandbox');
 const { runInSandbox, prodKv } = await import('../lib/db');
 
+// ── Pure: per-layer text style (ROADMAP 38.8 b) ──
+{
+  const { sanitizeTextPatch, mergeTextPatch, textPatchCss } = await import('../lib/overlay-text-style');
+  const { PROPS, sanitizePropValues, mergePropValues } = await import('../lib/overlay-props');
+  const { readFileSync } = await import('node:fs');
+  const { runInNewContext } = await import('node:vm');
+  const layerKeys = PROPS.filter(p => p.type === 'textStyle').map(p => p.key);
+  ok(['reveal.labelStyle', 'reveal.gotStyle', 'collection.headingStyle', 'show.labelStyle', 'moment.firstEver.textStyle', 'moment.newCard.subTextStyle'].every(k => layerKeys.includes(k)), 'every text layer has a style key');
+  ok(layerKeys.every(k => JSON.stringify(DEFAULT_PROPS[k]) === '{}'), 'a text style defaults to empty (today\'s look)');
+  // sanitize: invalid and box-only fields are dropped, nothing is filled in.
+  eq(sanitizeTextPatch(undefined), {}, 'no style is the empty patch');
+  eq(sanitizeTextPatch({ weight: 123, size: 9, height: 40, arc: 30, maxLines: 2, plate: { color: '#fff' }, textCase: 'nope', align: 'justify', tracking: 'x' }), {}, 'invalid and box-only fields are dropped');
+  eq(sanitizeTextPatch({ weight: 700, italic: false, textCase: 'upper', tracking: 50.4, fx: { stroke: { color: '#112233', width: 99 }, glow: {}, junk: 1 } }), { weight: 700, italic: false, textCase: 'upper', tracking: 50, fx: { stroke: { color: '#112233', width: 10 } } }, 'a patch keeps only the set, valid fields');
+  // merge: field by field, effect by effect.
+  const g = sanitizeTextPatch({ weight: 700, textCase: 'upper', fx: { stroke: { color: '#000000', width: 2, pos: 'outside' }, shadows: [{ color: '#000000', x: 0, y: 2, blur: 4 }] } });
+  const packOnly = sanitizeTextPatch({ fx: { stroke: { color: '#ff0000' } } });
+  const m = mergeTextPatch(g, packOnly);
+  eq((m.fx!.stroke as Record<string, unknown>), { color: '#ff0000', width: 2, pos: 'outside' }, 'a pack overrides just the outline colour');
+  ok(m.weight === 700 && m.textCase === 'upper' && Array.isArray(m.fx!.shadows), 'the rest of the global style stays');
+  eq(mergePropValues({ 'reveal.labelStyle': g, 'reveal.labelSize': 20 }, { 'reveal.labelStyle': packOnly, 'reveal.labelSize': 30 })['reveal.labelStyle'], m, 'mergePropValues merges text styles field by field');
+  eq(mergePropValues({ 'reveal.labelSize': 20 }, { 'reveal.labelSize': 30 })['reveal.labelSize'], 30, 'other values are replaced');
+  // import / presets / versions use the same sanitiser.
+  eq(sanitizePropValues({ 'reveal.labelStyle': { weight: 700, size: 9 }, 'reveal.gotStyle': {} }), { 'reveal.labelStyle': { weight: 700 } }, 'sanitizePropValues keeps a style and drops what is not text style (defaults are dropped)');
+  const id = (await settings.savePreset('Styled', { 'reveal.labelStyle': g }))!;
+  eq((await settings.listPresets()).find(p => p.id === id)?.props['reveal.labelStyle'], g, 'a preset round-trips a text style');
+  await settings.deletePreset(id);
+  // diff: one line per field.
+  const lines = diff.diffProps('Global', { 'reveal.labelStyle': g }, { 'reveal.labelStyle': mergeTextPatch(g, sanitizeTextPatch({ fx: { stroke: { width: 3 } }, textCase: 'none' })) }, () => undefined);
+  eq(lines.map(l => `${l.label}|${l.from}|${l.to}`).sort(), ['Label: outline width|2|3', 'Label: case|upper|none'].sort(), 'the diff names each changed field');
+  // The widget's port gives the same CSS as the TS reference.
+  const w = readFileSync('public/widget.js', 'utf8').replace(/\r\n/g, '\n');
+  const src = /\/\/ TEXT-STYLE-START\n([\s\S]*?)\/\/ TEXT-STYLE-END/.exec(w)?.[1];
+  ok(src, 'widget.js has the TEXT-STYLE block');
+  const wCss = runInNewContext(src + '; ({ textPatchCss, mergeTextPatch })', {}) as { textPatchCss: typeof textPatchCss; mergeTextPatch: typeof mergeTextPatch };
+  const cases = [
+    {}, g, m,
+    sanitizeTextPatch({ italic: true, underline: true, strike: true, overline: true, tracking: 80, wordSpacing: 40, lineHeight: 1.5, align: 'right', kerning: false, opacity: 0.5 }),
+    sanitizeTextPatch({ textCase: 'smallcaps', fx: { glow: { color: '#00ffff', blur: 12, strength: 2 }, bevel: { style: 'raised', depth: 2 } } }),
+    sanitizeTextPatch({ fx: { stroke: { pos: 'center', width: 4 }, shadows: [{ color: '#112233', x: 1, y: 3, blur: 5, opacity: 0.4 }, { color: '#000000', x: 0, y: 1, blur: 2 }] } }),
+    sanitizeTextPatch({ fx: { gradientText: { from: '#ff0000', to: '#0000ff', angle: 90 }, stroke: { color: '#ffffff', width: 1 }, shadows: [{ color: '#000000', x: 0, y: 2, blur: 4 }] } }),
+    sanitizeTextPatch({ fx: { glow: { on: false }, stroke: { on: false } } }),
+  ];
+  for (const [i, c] of cases.entries()) for (const px of [14, 26]) {
+    const a = wCss.textPatchCss(JSON.parse(JSON.stringify(c)), px, [10, 20, 30]), b = textPatchCss(c, px, [10, 20, 30]);
+    const norm = (o: Record<string, string>) => JSON.stringify(Object.entries(o).sort(([x], [y]) => x.localeCompare(y)));
+    ok(norm(a) === norm(b), `widget textPatchCss matches the TS one (case ${i}, ${px}px): ${norm(a)} vs ${norm(b)}`);
+  }
+  eq(textPatchCss({}, 14, [0, 0, 0]), {}, 'an empty style writes no CSS');
+  ok(!('opacity' in textPatchCss(cases[3], 14, [1, 2, 3])) && !('filter' in textPatchCss(cases[6], 14, [1, 2, 3])), 'a style never sets opacity or filter');
+  eq(wCss.mergeTextPatch(g, packOnly), m, 'the widget merge matches the TS one');
+}
+
+
 // ── Pure: special moments (ROADMAP 18.1) ──
 {
   const { pickMoment, MOMENT_IDS } = await import('../lib/overlay-moments');

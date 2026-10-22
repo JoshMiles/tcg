@@ -21,6 +21,29 @@ export function formatValue(def: PropDef | undefined, v: PropValue | undefined):
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
+/** Names for the fields of a text style, as the Review list says them ("outline width"). */
+const TEXT_FIELD: Record<string, string> = {
+  weight: 'weight', italic: 'italic', underline: 'underline', strike: 'strikethrough', overline: 'overline', textCase: 'case', tracking: 'letter spacing', wordSpacing: 'word spacing',
+  lineHeight: 'line height', align: 'align', opacity: 'opacity', kerning: 'kerning',
+  'fx.stroke': 'outline', 'fx.glow': 'glow', 'fx.bevel': 'bevel', 'fx.shadows': 'shadow', 'fx.gradientText': 'gradient',
+};
+const EFFECT_FIELD: Record<string, string> = { color: 'colour', width: 'width', pos: 'position', blur: 'blur', strength: 'strength', style: 'style', depth: 'depth', on: 'on' };
+const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** A text style value as one entry per field: `{ 'outline width': '2', weight: '700' }`. */
+function textFields(v: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, val] of Object.entries(isObj(v) ? v : {})) {
+    if (k !== 'fx') { out[TEXT_FIELD[k] ?? k] = String(val); continue; }
+    for (const [e, ev] of Object.entries(isObj(val) ? val : {})) {
+      const name = TEXT_FIELD[`fx.${e}`] ?? e;
+      if (isObj(ev) && e !== 'gradientText') for (const [f, fv] of Object.entries(ev)) out[`${name} ${EFFECT_FIELD[f] ?? f}`] = typeof fv === 'boolean' ? (fv ? 'on' : 'off') : String(fv);
+      else out[name] = JSON.stringify(ev);
+    }
+  }
+  return out;
+}
+
 /** Differences between two sparse value sets. `missing` says what an absent key means (the default, or "inherits global"). */
 export function diffProps(scope: string, before: PropValues, after: PropValues, missing: (key: string) => PropValue | string | undefined): DiffLine[] {
   const out: DiffLine[] = [];
@@ -30,6 +53,11 @@ export function diffProps(scope: string, before: PropValues, after: PropValues, 
     const b = before[key] ?? missing(key);
     const a = after[key] ?? missing(key);
     if (same(a, b)) continue;
+    if (def.type === 'textStyle') {
+      const [bf, af] = [textFields(b), textFields(a)];
+      for (const f of new Set([...Object.keys(bf), ...Object.keys(af)])) if (bf[f] !== af[f]) out.push({ scope, label: `${def.label.replace(/ text style$| style$/, '')}: ${f}`, from: bf[f] ?? '-', to: af[f] ?? '-' });
+      continue;
+    }
     const fmt = (x: PropValue | string | undefined) => (typeof x === 'string' && x.startsWith('(') ? x : formatValue(def, x as PropValue | undefined));
     out.push({ scope, label: `${def.variant ? VARIANT_NAME[def.variant] + ' › ' : ''}${def.label}`, from: fmt(b), to: fmt(a) });
   }

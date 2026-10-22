@@ -152,6 +152,23 @@ function FontControl({ def, value, onChange }: { def: PropDef; value: PropValue;
   );
 }
 
+/** A stand-in for the Character panel (ROADMAP 38.8 c): the style as JSON, applied when the box loses focus. Anything that doesn't parse is ignored, and the server cleans the rest. */
+function TextStyleJson({ id, label, value, onChange }: { id: string; label: string; value: PropValue; onChange: (v: unknown) => void }) {
+  const text = typeof value === 'object' && !Array.isArray(value) ? JSON.stringify(value) : '{}';
+  return (
+    <textarea
+      id={id}
+      aria-label={`${label} (JSON)`}
+      key={text}
+      defaultValue={text}
+      rows={3}
+      spellCheck={false}
+      onBlur={e => { try { const v = JSON.parse(e.target.value); if (v && typeof v === 'object' && !Array.isArray(v)) onChange(v); } catch { /* not JSON yet */ } }}
+      className={`${inputCls} w-full font-mono text-xs`}
+    />
+  );
+}
+
 export function Control({ def, id, value, onChange }: { def: PropDef; id: string; value: PropValue; onChange: (v: unknown) => void }) {
   switch (def.type) {
     case 'number': {
@@ -222,6 +239,8 @@ export function Control({ def, id, value, onChange }: { def: PropDef; id: string
         </div>
       );
     }
+    case 'textStyle':
+      return <TextStyleJson id={id} label={def.label} value={value} onChange={onChange} />;
     case 'colors': {
       const list = Array.isArray(value) ? value : [];
       const min = def.minItems ?? 1, max = def.maxItems ?? 8;

@@ -4,7 +4,7 @@ import { cardBackFor } from '@/lib/card-back-store';
 import { overlayBack, overlayFontCatalog, type OverlayBack } from '@/lib/card-back-overlay';
 import { getOverlaySettings, getPackOverrides, getPreset, getSeasonLookPreset } from '@/lib/overlay-settings';
 import { DEFAULT_LAYOUT } from '@/lib/overlay-layout';
-import { DEFAULT_PROPS } from '@/lib/overlay-props';
+import { DEFAULT_PROPS, mergePropValues } from '@/lib/overlay-props';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   // the season's look. An unknown id just means the global overlay.
   const scene = await getPreset(req.nextUrl.searchParams.get('preset')).catch((): null => null);
   return NextResponse.json(
-    { layout: scene?.layout ?? settings.layout, defaults: DEFAULT_PROPS, props: { ...settings.props, ...(look?.props ?? {}), ...(scene?.props ?? {}) }, packOverrides, backs, fonts: overlayFontCatalog() },
+    { layout: scene?.layout ?? settings.layout, defaults: DEFAULT_PROPS, props: mergePropValues(settings.props, look?.props, scene?.props), packOverrides, backs, fonts: overlayFontCatalog() },
     { headers: { 'Cache-Control': 'no-store' } },
   );
 }
