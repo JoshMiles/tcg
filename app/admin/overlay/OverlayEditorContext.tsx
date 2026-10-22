@@ -28,7 +28,7 @@ import {
   type VariantId,
 } from '@/lib/overlay-props';
 import { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
-import { MAX_CUSTOM, duplicateCustom, newCustom, pasteCustom, stepCustom, type CustomKind, type CustomLayer } from '@/lib/overlay-custom';
+import { MAX_CUSTOM, duplicateCustom, newCustom, pasteCustom, stepCustom, type CustomKind, type CustomLayer, type CustomText } from '@/lib/overlay-custom';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { mergeTextPatch, type TextPatch } from '@/lib/overlay-text-style';
 import {
@@ -49,6 +49,7 @@ import { LAYER_NAMES } from './LayersPanel';
 const canon = (v: PropValues) => JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 const eq = (a: PropValue | undefined, b: PropValue | undefined) => JSON.stringify(a) === JSON.stringify(b);
 export type Tool = 'move' | 'hand' | 'zoom' | 'text' | 'shape' | 'image';
+export type TextTemplate = Partial<Pick<CustomText, 'font' | 'size' | 'color' | 'valign' | 'style'>>;
 /** The user's own guide lines, in design px (an editor aid: kept in localStorage per scope, never saved to the overlay). */
 export type Guides = { x: number[]; y: number[] };
 const RULERS_KEY = 'tcg:overlay-rulers';
@@ -267,6 +268,9 @@ export interface OverlayEditorContextValue {
   addCustomAt: (kind: CustomKind, box: { x: number; y: number; w?: number; h?: number }) => void;
   /** The custom layer whose wording field should take focus (set by a double-click on it in the preview). */
   focusText: string;
+  /** The Text tool's defaults for the next text layer placed (ROADMAP 38.31): editor state only, never stored. */
+  textTemplate: TextTemplate;
+  setTextTemplate: (t: TextTemplate) => void;
   setFocusText: (id: string) => void;
   zoomStep: (dir: 1 | -1, cx?: number, cy?: number) => void;
   zoomFit: () => void;
@@ -465,6 +469,7 @@ export function OverlayEditorProvider({
   const [zoom, setZoom] = useState(1);
   const [tool, setTool] = useState<Tool>('move');
   const [focusText, setFocusText] = useState('');
+  const [textTemplate, setTextTemplate] = useState<TextTemplate>({});
   const [spaceDown, setSpaceDown] = useState(false); // Space held: a temporary Hand
   const [focusMode, setFocusMode] = useState(false); // Tab: only the canvas shows
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -1124,7 +1129,8 @@ export function OverlayEditorProvider({
     const view = mode;
     const have = layout[view].custom ?? [];
     if (have.length >= MAX_CUSTOM) return;
-    const layer = newCustom(kind, have.map(c => c.id), layout.width, layout.height, box);
+    const made = newCustom(kind, have.map(c => c.id), layout.width, layout.height, box);
+    const layer = made.kind === 'text' ? { ...made, ...textTemplate } : made;
     setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: [...(l[view].custom ?? []), layer] } }), `Add ${kind} layer`);
     selectTarget(`custom:${layer.id}`);
     setTool('move');
@@ -1669,6 +1675,8 @@ export function OverlayEditorProvider({
     setTool,
     addCustomAt,
     focusText,
+    textTemplate,
+    setTextTemplate,
     setFocusText,
     zoomStep,
     zoomFit,

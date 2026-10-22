@@ -123,7 +123,7 @@ const hasPath = (o: Record<string, unknown>, path: string) => {
 const resetOf = (patch: PatchMode | undefined, path: string, card?: () => void) => (patch ? (hasPath(patch.own, path) ? () => patch.clear(path) : undefined) : card);
 
 /** The Character details: weight, italic and lines, case, spacing, line height, kerning (plus baseline, script and auto leading on the card back). */
-export function CharacterFields({ value: e, onChange: set, patch, onPreset, fontId }: { value: TextStyle; onChange: Change; patch?: PatchMode; onPreset?: (s: TextStyle) => void; fontId?: string }) {
+export function CharacterFields({ value: e, onChange: set, patch, onPreset, fontId, moved }: { value: TextStyle; onChange: Change; patch?: PatchMode; onPreset?: (s: TextStyle) => void; fontId?: string; moved?: boolean }) {
   const known = BACK_FONTS.find(f => f.id === (fontId ?? e.font));
   const fd: FontShape = known ?? (patch ? { weights: WEIGHTS } : BACK_FONTS[0]);
   const kase = caseOf(e) ?? 'none';
@@ -139,8 +139,8 @@ export function CharacterFields({ value: e, onChange: set, patch, onPreset, font
         <PresetRow current={() => styleOf(e as unknown as Record<string, unknown>)} onApply={st => (onPreset ? onPreset(st) : set(presetPatch(st)))} />
         <Row label="Weight" reset={r('weight', e.weight !== 400 ? () => set({ weight: 400 }) : undefined)}><select aria-label="Weight" className="select select-sm w-full" value={wsel} onChange={ev => set({ weight: Number(ev.target.value) })}>{fd.weights.map(w => <option key={w} value={w}>{WEIGHT_NAMES[w]} ({w})</option>)}</select></Row>
         <div className="flex flex-wrap gap-3">
-          <Check label={fd.italicFile ? 'Italic' : 'Slanted'} on={e.italic} onChange={v => flag('italic', v)} reset={r('italic')} />
-          <Check label="Underline" on={e.underline} onChange={v => flag('underline', v)} reset={r('underline')} />
+          {!moved && <Check label={fd.italicFile ? 'Italic' : 'Slanted'} on={e.italic} onChange={v => flag('italic', v)} reset={r('italic')} />}
+          {!moved && <Check label="Underline" on={e.underline} onChange={v => flag('underline', v)} reset={r('underline')} />}
           <Check label="Strikethrough" on={!!e.strike} onChange={v => flag('strike', v)} reset={r('strike')} />
           <Check label="Overline" on={!!e.overline} onChange={v => flag('overline', v)} reset={r('overline')} />
         </div>
@@ -256,8 +256,10 @@ export function EffectFields({ value: e, onChange: set, patch, text = true, free
 
 /** What the overlay editor shows for one text layer: presets, the Character details, align, opacity and the effects. */
 /** "Highlight tokens" for a wording layer: the filled tokens (the viewer's name...) get their own colour and optionally bold. */
-export function AccentFields({ value: a, onChange }: { value: TextAccent | undefined; onChange: (a: TextAccent | undefined) => void }) {
+export function AccentFields({ value: a, onChange, moved }: { value: TextAccent | undefined; onChange: (a: TextAccent | undefined) => void; moved?: boolean }) {
   const on = !!a && a.on !== false;
+  // moved: the switch and colour are in the options bar's text row; only the bold choice stays here.
+  if (moved) return on ? <Group title="Highlight tokens"><Check label="Bold" on={!!a?.bold} onChange={v => onChange({ ...a, bold: v })} /></Group> : null;
   return (
     <Group title="Highlight tokens">
       <Check label="Highlight the filled tokens" on={on} onChange={v => onChange(v ? { ...a, on: true } : a ? { ...a, on: false } : undefined)} reset={a ? () => onChange(undefined) : undefined} />
@@ -272,15 +274,15 @@ export function AccentFields({ value: a, onChange }: { value: TextAccent | undef
   );
 }
 
-export function CharacterPanel({ value, onChange, patch, onPreset, fontId, accent }: { value: TextStyle; onChange: Change; patch: PatchMode; onPreset: (s: TextStyle) => void; fontId?: string; accent?: { value: TextAccent | undefined; onChange: (a: TextAccent | undefined) => void } }) {
+export function CharacterPanel({ value, onChange, patch, onPreset, fontId, accent, moved }: { value: TextStyle; onChange: Change; patch: PatchMode; onPreset: (s: TextStyle) => void; fontId?: string; moved?: boolean; accent?: { value: TextAccent | undefined; onChange: (a: TextAccent | undefined) => void } }) {
   return (
     <div className="space-y-1.5">
-      <CharacterFields value={value} onChange={onChange} patch={patch} onPreset={onPreset} fontId={fontId} />
-      <AlignRow value={value} onChange={onChange} patch={patch} />
+      <CharacterFields value={value} onChange={onChange} patch={patch} onPreset={onPreset} fontId={fontId} moved={moved} />
+      {!moved && <AlignRow value={value} onChange={onChange} patch={patch} />}
       <OpacityRow value={value} onChange={onChange} patch={patch} />
       <p className="text-xs font-bold text-gray-300 pt-1">Effects</p>
       <EffectFields value={value} onChange={onChange} patch={patch} />
-      {accent && <AccentFields value={accent.value} onChange={accent.onChange} />}
+      {accent && <AccentFields value={accent.value} onChange={accent.onChange} moved={moved} />}
     </div>
   );
 }
