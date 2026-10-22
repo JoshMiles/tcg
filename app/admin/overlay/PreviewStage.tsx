@@ -5,7 +5,7 @@ import { Icon } from '@/app/components/Icon';
 import { toolBox } from '@/lib/overlay-custom';
 import { LayerMenu } from './LayerMenu';
 import { useOverlayEditor } from './OverlayEditorContext';
-import { RulerBar } from './RulerBar';
+import { RulerBar } from '../components/workspace/RulerBar';
 
 export function PreviewStage() {
   const {

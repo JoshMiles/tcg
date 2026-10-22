@@ -1,15 +1,16 @@
 'use client';
 
-// One ruler along the canvas, in design px. `origin` is where design 0 sits along the bar (screen px, from the bar's start) and `fit`
-// the screen px per design px, so the ticks follow zoom and pan. Pressing on it starts a guide (handled by the parent).
+// One ruler along a canvas, in whatever unit the parent uses. `origin` is where 0 sits along the bar (screen px, from the bar's start) and `fit`
+// the screen px per unit, so the ticks follow zoom and pan. With `onPointerDown`, pressing on it starts a guide (handled by the parent).
 const STEPS = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
 
-export function RulerBar({ axis, origin, fit, len, onPointerDown }: {
+export function RulerBar({ axis, origin, fit, len, onPointerDown, title }: {
   axis: 'x' | 'y';
   origin: number;
   fit: number;
   len: number;
-  onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
+  title?: string;
 }) {
   const major = STEPS.find(s => s * fit >= 60) ?? 5000;
   const minor = major >= 10 ? major / 5 : major >= 5 ? 1 : 0;
@@ -24,7 +25,7 @@ export function RulerBar({ axis, origin, fit, len, onPointerDown }: {
       data-ruler={axis}
       onPointerDown={onPointerDown}
       className={`bg-gray-900 text-gray-500 select-none touch-none overflow-hidden ${horiz ? 'h-5 cursor-row-resize' : 'w-5 cursor-col-resize'}`}
-      title={horiz ? 'Drag down for a horizontal guide' : 'Drag right for a vertical guide'}
+      title={title ?? (horiz ? 'Drag down for a horizontal guide' : 'Drag right for a vertical guide')}
     >
       <svg width={horiz ? len : 20} height={horiz ? 20 : len} className="block pointer-events-none">
         {ticks.map(v => {
