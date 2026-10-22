@@ -2,7 +2,7 @@ import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getActive, getSeasonOverview, computeStats, ownersByCard } from '@/lib/site-data';
-import { getCollection } from '@/lib/kv';
+import { getCollectionCached } from '@/lib/leaderboard';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { bucketsFor, getSeries, sum } from '@/lib/stats';
 import { CardTable, type StatCard } from './CardTable';
@@ -33,7 +33,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const maxRarityCopies = Math.max(1, ...s.rarity.map(r => r.copies));
 
   // Per-card collectors (those an admin hid or who went private are left out, like everywhere public) and pulls per day.
-  const [collection, hidden] = await Promise.all([getCollection(season.collectionName), getHiddenUsers().catch(() => new Set<string>())]);
+  const [collection, hidden] = await Promise.all([getCollectionCached(season), getHiddenUsers().catch(() => new Set<string>())]);
   const owners = ownersByCard(collection, overview.values, 1, hidden);
   const statCards: StatCard[] = overview.cards.map(c => ({
     number: c.number, name: c.name, stars: c.stars, hex: getRarity(c.stars)?.hex ?? '#9ca3af', label: getRarity(c.stars)?.label ?? '',

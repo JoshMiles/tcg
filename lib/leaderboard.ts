@@ -302,6 +302,7 @@ export async function getSeasonLeaderboard(season: Season): Promise<{
   rows: LeaderboardRow[];
   values: SeasonValues;
   packs: { pack: Pack; cards: Card[] }[];
+  collection: Record<string, number[]>;
 }> {
   const [packList, collection, settings, serials] = await Promise.all([
     getPacksForSeason(season),
@@ -316,7 +317,7 @@ export async function getSeasonLeaderboard(season: Season): Promise<{
   // Viewers an admin has hidden from public rankings are left out of the rows (their cards still count in the season's copy totals).
   const hidden = await getHiddenUsersSafe();
   const rows = buildLeaderboard(values, collection).filter(r => !hidden.has(r.username));
-  return { rows, values, packs };
+  return { rows, values, packs, collection };
 }
 
 type Board = Awaited<ReturnType<typeof getSeasonLeaderboard>>;
@@ -330,4 +331,12 @@ const boardCache = createTtlCache<Board>(20_000);
 export async function getSeasonLeaderboardCached(season: Season): Promise<Board> {
   const box = await currentSandboxId().catch(() => null);
   return boardCache.get(`${box ?? 'prod'}:${season.id}:${season.collectionName}`, () => getSeasonLeaderboard(season));
+}
+
+/**
+ * The collection the cached board loaded (same entry, same ~20 s), so display-only public pages (home, stats, card dex) do not
+ * read the whole blob again. Read-only, and up to 20 s behind a fresh pull. Anything that validates or writes keeps getCollection.
+ */
+export async function getCollectionCached(season: Season): Promise<Record<string, number[]>> {
+  return (await getSeasonLeaderboardCached(season)).collection;
 }

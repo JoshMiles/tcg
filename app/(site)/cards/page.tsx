@@ -4,7 +4,7 @@ import { getHoloResolver } from '@/lib/holo';
 import { getHiddenUsers } from '@/lib/user-admin';
 import Link from 'next/link';
 import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
-import { getCollection } from '@/lib/kv';
+import { getCollectionCached } from '@/lib/leaderboard';
 import { getSession } from '@/lib/session';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { VARIANTS, countVariants, effectiveWeights, emptyCounts } from '@/lib/variants';
@@ -42,7 +42,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
   }
 
   const overview = await getSeasonOverview(season);
-  const collection = await getCollection(season.collectionName);
+  const collection = await getCollectionCached(season);
   const owners = ownersByCard(collection, overview.values, 10, await getHiddenUsers());
   const avatars = await getAvatars([...new Set([...owners.values()].flatMap(o => o.top.map(t => t.username)))]);
 

@@ -1,4 +1,4 @@
-import { getActiveSeasonWithPacks, getCollection, getUserProfile } from './kv';
+import { getActiveSeasonWithPacks, getUserProfile } from './kv';
 import { getSeasonLeaderboard, getSeasonLeaderboardCached, pointsFor } from './leaderboard';
 import { getUserAwards } from './season-wrap';
 import { getAvatars, sizeTwitchAvatar } from './avatars';
@@ -107,13 +107,13 @@ export async function loadProfileBase(lower: string, fresh: boolean): Promise<Pr
   const [result, profile, hiddenSet, theirs] = await Promise.all([getActiveSeasonWithPacks(), getUserProfile(lower), getHiddenUsers().catch(() => new Set<string>()), getUserSettings(lower)]);
   if (!result) return null;
   const { season, packs } = result;
-  const [avatars, collection, board, awards] = await Promise.all([
+  const [avatars, board, awards] = await Promise.all([
     getAvatars([lower]),
-    getCollection(season.collectionName),
     fresh ? getSeasonLeaderboard(season) : getSeasonLeaderboardCached(season),
     getUserAwards(lower).catch(() => []),
   ]);
   const allCards = packs.flatMap(({ pack, cards }) => cards.map(c => ({ ...c, packName: pack.name, pack }))).sort((a, b) => b.stars - a.stars || a.number - b.number);
+  const { collection } = board; // the board's own read: fresh with the fresh board, up to 20 s old with the shared one
   const owned = collection[lower] ?? [];
   const countMap = countPulls(owned);
   const idx = board.rows.findIndex(r => r.username === lower);
