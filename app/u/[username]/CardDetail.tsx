@@ -1,6 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { SheetHandle } from '@/app/components/site/BottomSheet';
+import { useSwipe } from '@/app/components/site/useSwipe';
 import { InfoTip } from '@/app/components/InfoTip';
 import { useEffect, useRef, useState } from 'react';
 import { SerialChip } from '@/app/components/SerialChip';
@@ -58,6 +59,7 @@ export function CardDetail({
     return () => { document.body.style.overflow = prevOverflow; window.removeEventListener('keydown', onKey); };
   }, [onClose, onStep]);
 
+  const swipe = useSwipe(d => { if (canStep) onStep(d); });
   const total = dialog.total;
   const best = bestVariant(card.counts);
   const label = edition ? `${card.name}, ${VARIANT_LABELS[edition.variant]} edition #${edition.n}` : `${card.name} details`;
@@ -66,7 +68,7 @@ export function CardDetail({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 safe-inset max-md:items-end max-md:p-0!" role="dialog" aria-modal="true" aria-label={label}>
       <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-xs" onClick={onClose} />
 
-      <div className="card sheet-mobile relative w-full max-w-3xl max-h-full overflow-y-auto rounded-2xl shadow-glow max-md:max-w-none max-md:max-h-[90dvh] max-md:rounded-b-none! max-md:pb-[env(safe-area-inset-bottom)]">
+      <div {...swipe} className="card sheet-mobile relative w-full max-w-3xl max-h-full overflow-y-auto rounded-2xl shadow-glow max-md:max-w-none max-md:max-h-[90dvh] max-md:rounded-b-none! max-md:pb-[env(safe-area-inset-bottom)]">
         <SheetHandle onClose={onClose} className="sticky top-0 z-20 md:hidden bg-gray-950/90 rounded-t-2xl" />
         <button ref={closeBtn} onClick={onClose} aria-label="Close" className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-gray-900/80 text-gray-300 hover:text-white text-xl leading-none">×</button>
 
