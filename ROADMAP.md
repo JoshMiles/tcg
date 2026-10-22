@@ -33,6 +33,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
 | 38.29 | Overlay Editor: workspace redesign, (g) left | Ready | M |
 | 38.30 | Card back editor: the same workspace, plus shapes and images | Ready | L |
+| 38.31 | Overlay Editor: text formatting in the options bar | Ready | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -111,6 +112,15 @@ Today the workspace is an options bar crowded with popovers (scope, Presets, Sce
 - **Split, behaviour unchanged until (d):** (a) menu bar + status bar, moving the popovers' contents into menus as is; (b) scope tabs; (c) the right panel stack, Layers full height, History / Swatches / Navigator slots; (d) contextual Properties replacing the rail; (e) tool strip + contextual options bar (with 38.1); (f) timeline area absorbing `PreviewToolbar` (with 38.15); (g) resizable / collapsible panels and the compact look. Update `docs/overlay.md` (Editor section) in each.
 - **Build the shell to be shared:** the menu bar, document tabs, tool strip, options bar, panel stack, status bar, History, Swatches, Navigator, `CharacterPanel` and font picker go in `app/admin/components/workspace/` with no overlay imports (the overlay feeds them its state), because the card back editor moves onto the same shell in 38.30.
 
+### 38.31 Text formatting in the options bar (Ready, M)
+**Decided (user, 2026-10-22):** the text formatting tools move out of Properties into the options bar, which is mostly empty while Properties is getting cluttered. 38.29 (e) planned "Text shows font, size, colour, B / I / U, align" in the options bar but shipped with only the Move / Hand / Zoom options; this item does the text part.
+- **When:** the options bar shows the text row while the Text tool is active (it sets the defaults for the next layer placed) or while a text layer is selected: a custom text layer, or a built-in part with wording (label, got, showlabel, banner, heading). Several text layers selected: the row edits them all, showing a mixed state where they differ.
+- **What moves (out of Properties, not copied):** font picker, size, colour, B / I / U, horizontal align, vertical align (custom text), and the Highlight tokens switch with its colour. Properties keeps the wording field with its token chips and live result, and the less used Character / Paragraph / Effects settings (tracking, leading, case, gradient, stroke, shadows, glow), so it gets shorter, not split in two.
+- **Same data:** the row writes the same `TextPatch` / fields as the panel today, through the same handlers, in global, scene and pack scope exactly as the panel does now; no stored field changes and no migration.
+- **Shared:** build the row in `app/admin/components/workspace/` with no overlay imports (fed by props, like `CharacterPanel`), so the card back editor uses it when it moves onto the shell in 38.30.
+- **Fit:** the row stays one line at `xl`; below that it wraps or the rarer controls go into a "More" popover. Compact controls (the font picker as a dropdown, size as a number field with a scrub label, colour as a swatch).
+- Update `docs/overlay.md` (Editor section). A check-overlay case is only needed if a handler moves into shared code.
+
 ### 38.30 Card back editor on the same workspace (Ready, L)
 **Decided (user, 2026-10-21):** the card back editor gets the same redesign, so both editors feel like one app. Today it is a full-screen dialog (`CardBackEditor.tsx`, opened by **Edit design** in the pack workspace) with Layers on the left, the canvas in the middle (`card-back/Canvas.tsx`) with the three-size preview, and Properties on the right; undo / redo, but no menu bar, history list, zoom, rulers, status bar or tools.
 - **Same shell (from 38.29):** menu bar (File: Save, Presets, Copy from another pack, Reset to classic, Export PNG; Edit: undo / redo, copy / paste style, Find a setting; View: zoom, fit, rulers, guides, snap, the three-size preview, background; Layer: add text / image / shape, duplicate, group, lock, align / distribute, arrange; Window; Help), tool strip (Move, Hand, Zoom, Text, Shape, Image), contextual options bar, the right panel stack (contextual Properties on top, Layers under it, History / Swatches / Navigator tabs) and the status bar (zoom, pointer X / Y in % of the card and pt, unsaved state). It stays a full-screen view opened from the pack, as now, and keeps its own save action.
@@ -159,7 +169,7 @@ Saving a preset or version captures a still of the preview (the widget draws its
 ### 38.28 Scheduled looks (Ready, M)
 A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
 
-**Build order for the track:** 38.7 → 38.29 (g) → 38.30 → 38.17 to 38.28 in any order.
+**Build order for the track:** 38.7 → 38.31 → 38.29 (g) → 38.30 → 38.17 to 38.28 in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 
