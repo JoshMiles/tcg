@@ -142,7 +142,7 @@ const n0 = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
 // (bands, "show when" and fades come later). Built with createElement / createElementNS, textContent and setAttribute only: nothing saved
 // is ever parsed as markup. A theater's wrapper registers with attachCustom; a view with no layers adds nothing to the page.
 let CUSTOM = { pack: [], collection: [] };
-const CUSTOM_SETS = new Map();   // theater wrapper -> { view, ctx, el }
+const CUSTOM_SETS = new Map();   // theater wrapper -> { view, ctx, accent, phase, boxes, items }
 let customGrad = 0;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const customUrlOk = u => typeof u === 'string' && u.length <= 600 && (/^https:\/\/[^/]+\.public\.blob\.vercel-storage\.com\//i.test(u) || /^\/(?!\/)[\w\-./%]*$/.test(u));
@@ -238,9 +238,10 @@ function customLayerEl(l, ctx, accent) {
   return d;
 }
 function dropCustom(set) { for (const b of set.boxes || []) b.remove(); set.boxes = []; set.items = []; }
-// Phase: 'static' (editor preview: everything shown, no fades), 'all' (collection: Show when ignored), 'during' / 'after' (a pull, before / from the card reveal).
-const customShown = (l, phase) => phase === 'static' || phase === 'all' || !l.show || l.show === 'always' || (l.show === 'reveal') === (phase === 'during');
-function renderCustom(set) {
+// Phase: 'static' (editor preview: everything shown, no fades), 'all' (collection: Show when ignored), 'during' / 'after' (a pull, before / from the card reveal), 'end' (the pull is hiding: nothing shown).
+const customShown = (l, phase) => phase !== 'end' && (phase === 'static' || phase === 'all' || !l.show || l.show === 'always' || (l.show === 'reveal') === (phase === 'during'));
+// `fresh` (a pull just started) fades layers in; a rebuild (layout change) sets the current state straight away.
+function renderCustom(set, fresh) {
   dropCustom(set);
   const list = CUSTOM[set.view] || [];
   if (!list.length) return;
@@ -252,7 +253,7 @@ function renderCustom(set) {
     document.getElementById('stage').appendChild(box);
     return box;
   };
-  const boxes = {};
+  const boxes = {}, fades = [];
   const P = Object.assign({}, effectiveProps(null));
   for (const l of list) {
     const d = customLayerEl(l, set.ctx, set.accent);
@@ -263,10 +264,12 @@ function renderCustom(set) {
     if (set.phase === 'static') continue;
     // Fades set the element's own opacity (the layer's opacity is the "on" value), so they never fight it.
     set.items.push({ d, l });
-    const on = customShown(l, set.phase);
-    if (!on) d.style.opacity = '0';
-    else if (l.fadeIn > 0) { d.style.opacity = '0'; void d.offsetWidth; d.style.transition = 'opacity ' + l.fadeIn + 'ms linear'; d.style.opacity = String(l.opacity); }
+    if (!customShown(l, set.phase)) d.style.opacity = '0';
+    else if (fresh && l.fadeIn > 0) { d.style.opacity = '0'; fades.push(d, l); }
   }
+  // One reflow for the batch, so the 0 opacity is painted before the fade-in (and a phase flip right after still transitions).
+  if (fresh && set.items.length) void document.body.offsetWidth;
+  for (let i = 0; i < fades.length; i += 2) { fades[i].style.transition = 'opacity ' + fades[i + 1].fadeIn + 'ms linear'; fades[i].style.opacity = String(fades[i + 1].opacity); }
 }
 function setCustomPhase(wrapper, phase) {
   const set = CUSTOM_SETS.get(wrapper);
@@ -281,7 +284,7 @@ function setCustomPhase(wrapper, phase) {
 function attachCustom(wrapper, view, ctx, accent, phase) {
   const set = { view, ctx, accent, phase: phase || 'static', boxes: [], items: [] };
   CUSTOM_SETS.set(wrapper, set);
-  renderCustom(set);
+  renderCustom(set, true);
 }
 function pruneCustom() { for (const [w, set] of CUSTOM_SETS) if (!w.isConnected) { dropCustom(set); CUSTOM_SETS.delete(w); } }
 function renderAllCustom() { pruneCustom(); for (const set of CUSTOM_SETS.values()) renderCustom(set); }
@@ -911,8 +914,10 @@ if (PREVIEW) {
     for (const v of vals) for (const ln of lines) { const d = ln - v; if (Math.abs(d) <= SNAP_PX && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, line: ln }; }
     return best;
   };
+  // The part under a press. A layer behind the card sits under the card's wrapper, so with no part hit, take the topmost layer at the pointer.
+  const pickEl = (e) => (e.target.closest && e.target.closest('[data-edit]')) || document.elementsFromPoint(e.clientX, e.clientY).find(n => n.matches('[data-edit^="custom:"]'));
   document.addEventListener('pointerdown', (e) => {
-    const el = e.target.closest && e.target.closest('[data-edit]');
+    const el = pickEl(e);
     if (!el || e.button !== 0) return;
     const t = el.dataset.edit;
     // Shift+click toggles a part in the selection; Shift+drag still moves the whole view when nothing is selected yet.
@@ -970,12 +975,12 @@ if (PREVIEW) {
   };
   // Double-click on one of the admin's own layers: select it (the press already did) and ask the editor to focus its wording.
   document.addEventListener('dblclick', (e) => {
-    const el = e.target.closest && e.target.closest('[data-edit^="custom:"]');
-    if (el) toParent({ type: 'edit', target: el.dataset.edit });
+    const el = pickEl(e);
+    if (el && el.dataset.edit.startsWith('custom:')) toParent({ type: 'edit', target: el.dataset.edit });
   });
   // Right-click on a part opens the editor's layer menu there.
   document.addEventListener('contextmenu', (e) => {
-    const el = e.target.closest && e.target.closest('[data-edit]');
+    const el = pickEl(e);
     if (!el) return;
     e.preventDefault();
     toParent({ type: 'context', target: el.dataset.edit, x: e.clientX, y: e.clientY });
@@ -2233,6 +2238,7 @@ function drawCard(username, opts) {
   let hideTimer = null;
   const gen = stopGen;
   const hide = () => {
+    setCustomPhase(wrapper, 'end');
     radialContainer.style.opacity   = '0';
     radialContainer.style.animation = 'none';
     wrapper.classList.add('hid');
