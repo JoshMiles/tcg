@@ -28,7 +28,7 @@ import {
   type VariantId,
 } from '@/lib/overlay-props';
 import { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
-import { MAX_CUSTOM, newCustom, type CustomKind, type CustomLayer } from '@/lib/overlay-custom';
+import { MAX_CUSTOM, newCustom, stepCustom, type CustomKind, type CustomLayer } from '@/lib/overlay-custom';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { mergeTextPatch, type TextPatch } from '@/lib/overlay-text-style';
 import {
@@ -1350,6 +1350,10 @@ export function OverlayEditorProvider({
       else if (k === '1') zoomActual();
       else if (k === '=' || k === '+') zoomStep(1);
       else if (k === '-') zoomStep(-1);
+      else if ((k === '[' || k === ']') && selected.startsWith('custom:')) {
+        const c = customOf(selected);
+        if (c) setLayoutVals(l => ({ ...l, [c.view]: { ...l[c.view], custom: stepCustom(l[c.view].custom ?? [], c.l.id, k === '[' ? -1 : 1) } }), k === '[' ? `Send ${c.l.name} back` : `Bring ${c.l.name} forward`);
+      }
       else return false;
       return true;
     }
