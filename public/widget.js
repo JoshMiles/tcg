@@ -222,15 +222,104 @@ function backNodeSpec(n) {
   const style = {};
   for (const k of Object.keys(n.vars || {})) style[k] = String(n.vars[k]);
   for (const k of Object.keys(n.css || {})) { const v = n.css[k]; style[backCssName(k)] = typeof v === 'number' && !BACK_UNITLESS[k] ? v + 'px' : String(v); }
-  return { tag: n.tag, cls: n.cls || '', text: n.text || '', src: n.src || '', items: n.items || [], style };
+  return { tag: n.tag, cls: n.cls || '', text: n.text || '', src: n.src || '', items: n.items || [], lines: n.lines || null, spec: n.spec || null, style };
 }
+// TEXT-FIT-START: a port of layoutText / lineCss (lib/card-back-layout.ts). The server laid text out with a rough width; once the faces are loaded
+// the widget runs this again with a canvas measure. scripts/check-card-back.mts runs both on the same cases.
+let backMeasureCtx;
+function backMeasure(text, face) {
+  if (backMeasureCtx === undefined) backMeasureCtx = document.createElement('canvas').getContext('2d');
+  if (!backMeasureCtx) return text.length * 55;
+  let family = face.family;
+  if (/^var\(|^inherit$/.test(family)) {
+    const cs = getComputedStyle(document.body);
+    const name = /^var\(([^,)]+)/.exec(family);
+    family = (name && cs.getPropertyValue(name[1]).trim()) || cs.fontFamily;
+  }
+  backMeasureCtx.font = (face.italic ? 'italic ' : '') + face.weight + ' 100px ' + family;
+  return backMeasureCtx.measureText(text).width;
+}
+function backLayoutText(s, measure) {
+  const face = { family: s.family, weight: s.weight, italic: s.italic };
+  const wid = (t, size) => (measure(s.upper ? t.toUpperCase() : t, face) / 100 + t.length * s.spacingEm) * size;
+  const flow = size => {
+    const lines = [];
+    s.text.split('\n').forEach((para, pi) => {
+      const words = para.split(' ').filter(Boolean);
+      const ind = s.indent * size, gap = pi ? s.paraGap * size : 0;
+      const start = lines.length;
+      const meta = j => (lines.length === start ? { i: ind, g: gap, j } : { i: 0, g: 0, j });
+      if (!s.wrap || words.length <= 1) { lines.push(Object.assign({ t: words.join(' ') }, meta(false))); return; }
+      let line = '';
+      for (const w of words) {
+        const next = line ? line + ' ' + w : w;
+        if (line && wid(next, size) > s.boxW - (lines.length === start ? ind : 0)) { lines.push(Object.assign({ t: line }, meta(s.justify))); line = w; } else line = next;
+      }
+      lines.push(Object.assign({ t: line }, meta(false)));
+    });
+    let cap = s.maxLines > 0 ? s.maxLines : Infinity;
+    if (s.boxH > 0) {
+      let h = 0, n = 0;
+      for (const l of lines) { h += size * s.lineHeight + l.g; if (h > s.boxH + 0.01) break; n++; }
+      cap = Math.min(cap, Math.max(1, n));
+    }
+    const cut = lines.length > cap;
+    if (cut) {
+      lines.length = cap;
+      const last = lines[cap - 1];
+      let t = last.t;
+      while (t && wid(t + '…', size) > s.boxW - last.i) t = t.slice(0, -1).trimEnd();
+      last.t = t + '…'; last.j = false;
+    }
+    let widest = 0;
+    for (const l of lines) widest = Math.max(widest, wid(l.t, size) + l.i);
+    return { lines, cut, widest };
+  };
+  const round = n => Math.round(n * 100) / 100;
+  if (s.fit === 'width') {
+    const t = s.text.replace(/\n/g, ' ').replace(/ +/g, ' ').trim();
+    const unit = wid(t, 1);
+    const one = [{ t, i: 0, g: 0, j: false }];
+    if (!(unit > 0) || !(s.boxW > 0)) return { size: s.size, lines: one };
+    return { size: round(Math.max(Math.min(s.minPx, s.maxPx), Math.min(s.maxPx, (s.boxW * 0.99) / unit))), lines: one };
+  }
+  let size = s.size;
+  if (s.fit === 'shrink') {
+    const ok = z => { const f = flow(z); return !f.cut && f.widest <= s.boxW + 0.01; };
+    const lo0 = Math.min(s.minPx, s.size);
+    if (!ok(s.size)) {
+      if (!ok(lo0)) size = lo0;
+      else { let lo = lo0, hi = s.size; for (let k = 0; k < 18; k++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; } size = lo; }
+    }
+    size = Math.max(lo0, Math.floor(size * 100 + 1e-6) / 100);
+  }
+  return { size, lines: flow(size).lines };
+}
+function backLineSpan(l) {
+  const el = document.createElement('span');
+  el.textContent = l.t || ' ';
+  el.style.display = 'block'; el.style.whiteSpace = 'nowrap';
+  if (l.i) el.style.marginLeft = l.i + 'px';
+  if (l.g) el.style.marginTop = l.g + 'px';
+  if (l.j) el.style.textAlignLast = 'justify';
+  return el;
+}
+// TEXT-FIT-END
 function backNodeEl(spec) {
   const el = document.createElement(spec.tag);
   if (spec.cls) el.className = spec.cls;
   if (spec.tag === 'img') { el.src = spec.src; el.alt = ''; }
+  else if (spec.tag === 'p' && spec.lines) for (const l of spec.lines) el.appendChild(backLineSpan(l));
   else if (spec.tag === 'p') el.textContent = spec.text;
   for (const k of Object.keys(spec.style)) el.style.setProperty(k, spec.style[k]);
   return el;
+}
+// Fitted or wrapped text: laid out again with real widths once the faces are loaded.
+function backRefit(el, spec) {
+  const r = backLayoutText(spec.spec, backMeasure);
+  el.style.fontSize = r.size + 'px';
+  el.textContent = '';
+  for (const l of r.lines) el.appendChild(backLineSpan(l));
 }
 // Draws the design into `host` (the .card-back element), scaled to its width. False = nothing drawn (the caller keeps the cover).
 function mountDesignBack(host, design) {
@@ -244,10 +333,16 @@ function mountDesignBack(host, design) {
   const plate = document.createElement('div');
   plate.className = 'flip-plate';
   for (const k of Object.keys(design.vars || {})) plate.style.setProperty(k, design.vars[k]);
-  for (const n of design.nodes) { const spec = backNodeSpec(n); if (spec) plate.appendChild(backNodeEl(spec)); }
+  const refits = [];
+  for (const n of design.nodes) { const spec = backNodeSpec(n); if (!spec) continue; const el = backNodeEl(spec); plate.appendChild(el); if (spec.spec) refits.push([el, spec]); }
   root.appendChild(plate);
   host.appendChild(root);
   host.classList.add('card-back-design');
+  if (refits.length) {
+    const run = () => { for (const [el, spec] of refits) backRefit(el, spec); };
+    const faces = refits.map(([, sp]) => sp.spec).map(t => (t.italic ? 'italic ' : '') + t.weight + ' 16px ' + t.family);
+    Promise.all(faces.map(f => document.fonts.load(f).catch(() => {}))).then(run, run);
+  }
   return true;
 }
 // BACK-RENDERER-END

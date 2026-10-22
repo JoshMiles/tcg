@@ -11,7 +11,7 @@ export const PRINT_W = 260;
 export type Boxes = Record<string, Box & { fontPx: number }>;
 
 interface Drag {
-  mode: 'move' | 'width' | 'scale' | 'rotate' | 'marquee';
+  mode: 'move' | 'width' | 'height' | 'scale' | 'rotate' | 'marquee';
   sx: number; sy: number;
   ids: string[];
   base: CardBackStyle;
@@ -130,6 +130,7 @@ export function Canvas({ style, back, width, selection, onSelect, onGesture, onC
       if (!el) return;
       const cx = el.x, cy = el.y;
       if (d.mode === 'width' || (d.mode === 'scale' && !e.shiftKey)) onChange(patchElements(d.base, [id], { w: Math.abs(px - cx) * 2 }));
+      else if (d.mode === 'height') onChange(patchElements(d.base, [id], { h: Math.abs(py - cy) * 2 }));
       else if (d.mode === 'scale') {
         const s0 = pct({ clientX: d.sx, clientY: d.sy });
         const k = Math.hypot((px - cx) * r.width, (py - cy) * r.height) / Math.max(4, Math.hypot((s0.x - cx) * r.width, (s0.y - cy) * r.height));
@@ -199,6 +200,7 @@ export function Canvas({ style, back, width, selection, onSelect, onGesture, onC
               {only?.id === el.id && el.place === 'free' && !el.locked && (
                 <>
                   <span onPointerDown={e => start(e, el.id, 'width')} className="absolute top-1/2 -right-2 -translate-y-1/2 w-3 h-5 rounded-xs bg-yellow-400 border border-gray-900 cursor-ew-resize" title="Drag to change the width" />
+                  {el.kind !== 'logo' && el.kind !== 'qr' && <span onPointerDown={e => start(e, el.id, 'height')} className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-3 rounded-xs bg-yellow-400 border border-gray-900 cursor-ns-resize" title="Drag to set a fixed height" />}
                   <span onPointerDown={e => start(e, el.id, 'scale')} className="absolute -bottom-2 -right-2 w-3.5 h-3.5 rounded-xs bg-yellow-400 border border-gray-900 cursor-nwse-resize" title="Drag to change the width, Shift-drag to scale the text" />
                   <span onPointerDown={e => start(e, el.id, 'rotate')} className="absolute -top-6 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-yellow-400 border border-gray-900 cursor-grab" title="Drag to rotate" />
                 </>

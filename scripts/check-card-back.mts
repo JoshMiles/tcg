@@ -350,21 +350,63 @@ ok(el1({ fit: 'shrink', minSize: 99 }).minSize === 30 && el1({ fit: 'shrink', mi
 ok(el1({ size: 99 }).size === 30 && el1({ size: 0 }).size === 2, 'size is still clamped');
 ok(ts.pctToPt(10) === 18 && ts.ptToPct(18) === 10 && ts.pctToPt(ts.ptToPct(10)) === 10, 'pt and % convert (2.5 in card, 1 % = 1.8 pt)');
 ok(ts.SIZE_PRESETS.map(p => p[1]).join() === '6,8,10,14,20,32', 'size presets');
-// fitFontPx with a stub measurer: every character is 50 (0.5 em) wide at 100 px.
+// layoutText with a stub measurer: every character is 50 (0.5 em) wide at 100 px.
 const stub = (t: string) => t.length * 50;
-const fit = (over: Record<string, unknown>) => lay.fitFontPx({ mode: 'width', text: '10 chars!!', boxW: 100, setPx: 12, minPx: 6, maxPx: 60, spacingEm: 0, upper: false, face: { family: 'x', weight: 400, italic: false }, measure: stub, ...over } as Parameters<typeof lay.fitFontPx>[0]);
-ok(Math.abs(fit({}) - 19.8) < 0.01, 'Fit width: one line spans the box (100 * .99 / (10 * .5))');
-ok(fit({ boxW: 1000 }) === 60, 'Fit width stops at the maximum');
-ok(fit({ boxW: 10 }) === 6, 'Fit width stops at the minimum');
-ok(fit({ mode: 'shrink' }) === 12, 'Shrink never grows past the set size');
-ok(fit({ mode: 'shrink', boxW: 50 }) === 9.9, 'Shrink makes it smaller until it fits');
-ok(fit({ mode: 'shrink', boxW: 5 }) === 6, 'Shrink stops at the minimum');
-ok(fit({ spacingEm: 0.1 }) < fit({}) && fit({ boxW: 20, upper: true, measure: (t: string) => (t === t.toUpperCase() ? 100 : 50) }) < fit({ boxW: 20, measure: () => 50 }), 'spacing and uppercase are part of the measure');
+const base = { text: '10 chars!!', size: 12, minPx: 6, maxPx: 60, fit: null, boxW: 100, boxH: 0, wrap: false, maxLines: 0, indent: 0, paraGap: 0, lineHeight: 1.2, spacingEm: 0, upper: false, justify: false, family: 'x', weight: 400, italic: false, valign: 'top', pad: 0 };
+const fit = (over: Record<string, unknown>, m: (t: string) => number = stub) => lay.layoutText({ ...base, ...over } as Parameters<typeof lay.layoutText>[0], m);
+ok(Math.abs(fit({ fit: 'width' }).size - 19.8) < 0.01, 'Fit width: one line spans the box (100 * .99 / (10 * .5))');
+ok(fit({ fit: 'width', boxW: 1000 }).size === 60, 'Fit width stops at the maximum');
+ok(fit({ fit: 'width', boxW: 10 }).size === 6, 'Fit width stops at the minimum');
+ok(fit({ fit: 'shrink', boxW: 1000 }).size === 12, 'Shrink never grows past the set size');
+ok(Math.abs(fit({ fit: 'shrink', boxW: 50 }).size - 10) < 0.02, 'Shrink makes it smaller until it fits');
+ok(fit({ fit: 'shrink', boxW: 5 }).size === 6, 'Shrink stops at the minimum');
+ok(fit({ fit: 'width', spacingEm: 0.1 }).size < fit({ fit: 'width' }).size && fit({ fit: 'width', boxW: 20, upper: true }, (t: string) => (t === t.toUpperCase() ? 100 : 50)).size < fit({ fit: 'width', boxW: 20 }, () => 50).size, 'spacing and uppercase are part of the measure');
 const fitted = lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'name', id: 'n', place: 'free', w: 80, size: 8, fit: 'width' }] }), PRINT, SIZE, { measure: stub });
 const fitPx = Number(fitted.find(n => n.id === 'n')?.css.fontSize);
 const textLen = (fitted.find(n => n.id === 'n')?.text ?? '').length;
-ok(fitted.find(n => n.id === 'n')?.css.whiteSpace === 'nowrap' && Math.abs(fitPx * textLen * 0.5 - 0.8 * SIZE.w * 0.99) < 0.5, 'layoutBack sizes a fitted free text so its line spans the box');
+ok(Math.abs(fitPx * textLen * 0.5 - 0.8 * SIZE.w * 0.99) < 0.5, 'layoutBack sizes a fitted free text so its line spans the box');
 const plain = lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'name', id: 'n', place: 'free', w: 80, size: 8 }] }), PRINT, SIZE, { measure: stub });
-ok(plain.find(n => n.id === 'n')?.css.fontSize === Math.round((8 / 100) * SIZE.w * 100) / 100 && !plain.find(n => n.id === 'n')?.css.whiteSpace, 'without fit the size is today\'s');
+ok(plain.find(n => n.id === 'n')?.css.fontSize === Math.round((8 / 100) * SIZE.w * 100) / 100 && !plain.find(n => n.id === 'n')?.css.whiteSpace && !plain.find(n => n.id === 'n')?.lines, 'without fit the size is today\'s and there are no explicit lines');
+
+// ── 38.12 b: text boxes, wrapping and paragraph ──
+const NEW_FIELDS = ['h', 'valign', 'maxLines', 'wrap', 'pad', 'indent', 'paraGap'];
+ok(NEW_FIELDS.every(k => !(k in el1({}))) && NEW_FIELDS.every(k => !(k in el1({ h: 'x', valign: 'sideways', maxLines: 0, wrap: true, pad: 0, indent: 0, paraGap: -1 }))), 'every new field is omitted at its default, so a saved back is unchanged');
+ok(el1({ h: 500 }).h === 100 && el1({ h: -3 }).h === 2 && el1({ h: 12.345 }).h === 12.35, 'height is clamped to 2..100');
+ok(el1({ valign: 'middle' }).valign === 'middle' && el1({ valign: 'bottom' }).valign === 'bottom', 'vertical align keeps a valid value');
+ok(el1({ maxLines: 2.6 }).maxLines === 3 && el1({ maxLines: 99 }).maxLines === 20 && !('maxLines' in el1({ maxLines: -1 })), 'max lines is a whole number up to 20');
+ok(el1({ wrap: false }).wrap === false, 'wrap off is kept');
+ok(el1({ pad: 99 }).pad === 15 && el1({ indent: 99 }).indent === 5 && el1({ paraGap: 99 }).paraGap === 3, 'padding, indent and paragraph gap are clamped');
+ok(el1({ align: 'justify' }).align === 'justify' && el1({ align: 'nope' }).align !== 'nope', 'justify is a valid align');
+ok(el1({ text: 'a\r\nb\n\n\n\nc  d' }).text === 'a\nb\n\nc d', 'a text keeps its line breaks (runs of blank lines and spaces collapse)');
+const wrapped = (over: Record<string, unknown>, m: (t: string) => number = stub) => fit({ text: 'aaaa bbbb cccc dddd', wrap: true, boxW: 50, size: 10, ...over }, m);
+ok(wrapped({}).lines.map(l => l.t).join('|') === 'aaaa bbbb|cccc dddd', 'wrap breaks at words (each 4-letter word is 20 wide at 10 px)');
+ok(wrapped({ wrap: false }).lines.length === 1, 'wrap off keeps one line per paragraph');
+ok(wrapped({ maxLines: 1 }).lines.length === 1 && wrapped({ maxLines: 1 }).lines[0].t.endsWith('…') && wrapped({ maxLines: 1 }).lines[0].t.length * 5 <= 100, 'max lines ends the last line with an ellipsis that still fits the box');
+ok(wrapped({ boxH: 12 }).lines.length === 1 && wrapped({ boxH: 24 }).lines.length === 2, 'the box height cuts the lines (line height 1.2 x 10 = 12)');
+ok(wrapped({ text: 'one\n\ntwo', paraGap: 0.5 }).lines.length === 3, 'a blank line is a line');
+const para = wrapped({ text: 'aaaa bbbb cccc\ndd', indent: 1, paraGap: 0.5, justify: true });
+ok(para.lines[0].i === 10 && para.lines[1].i === 0 && para.lines[para.lines.length - 1].g === 5 && para.lines[para.lines.length - 1].i === 10, 'first line of each paragraph is indented, later paragraphs get the gap above');
+ok(para.lines[0].j && !para.lines[para.lines.length - 1].j, 'justify stretches every line but the last of a paragraph');
+const sh = wrapped({ fit: 'shrink', size: 40, boxH: 30, text: 'aaaa bbbb cccc dddd eeee ffff' });
+ok(sh.size < 40 && sh.size >= 6 && sh.lines.length * sh.size * 1.2 <= 30.01 && !sh.lines.some(l => l.t.endsWith('…')), 'shrink to fit finds the largest size where wrapped text fits width and height');
+ok(wrapped({ fit: 'shrink', size: 40, boxH: 30, minPx: 30, text: 'aaaa bbbb cccc dddd eeee ffff' }).size === 30, 'shrink stops at the minimum, then the text is cut');
+
+const boxBack = (over: Record<string, unknown>) => lay.layoutBack(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'text', id: 'b', place: 'free', w: 60, size: 6, text: 'aaaa bbbb cccc dddd', ...over }] }), PRINT, SIZE, { measure: stub }).find(n => n.id === 'b')!;
+ok(!boxBack({}).lines && !boxBack({}).spec, 'a plain free text has no explicit lines (today\'s render)');
+const bb = boxBack({ h: 20, wrap: true, maxLines: 2, valign: 'middle', align: 'justify' });
+ok(!!bb.lines && bb.lines.length <= 2 && bb.css.display === 'flex' && bb.css.justifyContent === 'center' && bb.css.textAlign === 'left', 'a box with height, valign and justify lays out lines in a flex column');
+ok(!boxBack({ wrap: true }).lines && !!boxBack({ maxLines: 2 }).lines && !!boxBack({ text: 'a\nb' }).lines, 'wrap alone is today\'s render; max lines and line breaks give explicit lines');
+
+// The widget's port of the line breaking gives the same lines and size as the server's.
+const wsrc = /\/\/ TEXT-FIT-START[^\n]*\n([\s\S]*?)\/\/ TEXT-FIT-END/.exec(readFileSync('public/widget.js', 'utf8').replace(/\r\n/g, '\n'))?.[1];
+ok(!!wsrc, 'widget.js has the text fit port between its markers');
+const wl = runInNewContext(wsrc + '; backLayoutText', { document: {} }) as (s: unknown, m: unknown) => { size: number; lines: unknown[] };
+for (const [name, over] of [
+  ['wrap', {}], ['maxLines', { maxLines: 1 }], ['box height', { boxH: 12 }], ['paragraph', { text: 'aaaa bbbb cccc\ndd', indent: 1, paraGap: 0.5, justify: true }],
+  ['shrink', { fit: 'shrink', size: 40, boxH: 30, text: 'aaaa bbbb cccc dddd eeee ffff' }], ['width', { fit: 'width' }], ['upper', { upper: true, spacingEm: 0.1 }],
+] as const) {
+  const s = { ...base, text: 'aaaa bbbb cccc dddd', wrap: true, boxW: 50, size: 10, ...over };
+  ok(JSON.stringify(wl(s, stub)) === JSON.stringify(lay.layoutText(s as Parameters<typeof lay.layoutText>[0], stub)), 'widget port matches layoutText: ' + name);
+}
 
 console.log('card back checks passed');

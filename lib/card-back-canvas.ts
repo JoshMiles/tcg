@@ -2,7 +2,7 @@
 // print's back from these, so they show the same design as the site (DOM) and the overlay. Pure and client-safe; the drawing itself is
 // in app/components/ShareImage.tsx. Sizes are in px at the reference card width below and the drawing scales the context.
 import type { CardBackStyle } from './card-back';
-import type { BackNode } from './card-back-layout';
+import type { BackNode, TextLine } from './card-back-layout';
 import { DEFAULT_PATTERN, isCustomPattern, patternSvg } from './card-back-patterns';
 
 /** The card size the share image lays the back out at (the drawing scales it to the card's rectangle). */
@@ -55,6 +55,10 @@ export interface BackBox {
   light?: string;
   font: { size: number; weight: number; italic: boolean; underline: boolean; upper: boolean; spacing: number; family?: string; align: 'left' | 'center' | 'right'; lineHeight: number };
   color: string;
+  /** Free text broken into lines by the layout engine (wrap, max lines, box height, paragraphs, justify, auto-fit): draw these lines inside the padding, placed by `valign`. */
+  lines?: TextLine[];
+  pad?: number;
+  valign?: 'top' | 'middle' | 'bottom';
   /** Gold-plated number (a bonus edition): drawn with the gold gradient. */
   gold?: boolean;
   opacity: number;
@@ -162,6 +166,11 @@ function freeBox(n: BackNode, ref: { w: number; h: number }): BackBox | null {
   if (n.tag === 'img' && n.src) { const h = n.kind === 'logo' ? w : num(css.height, w); return { ...common, type: 'img', src: n.src, y: cy - h / 2, h, font }; }
   if (n.tag === 'qr' && n.qrUrl) return { ...common, type: 'qr', qrUrl: n.qrUrl, dark: n.dark, light: n.light, y: cy - w / 2, h: w, font };
   if (n.tag === 'ul' && n.items?.length) { const h = n.items.length * (size * lineHeight + 1); return { ...common, type: 'hist', items: n.items, y: cy - h / 2, h, font: { ...font, align: 'left' } }; }
+  if (n.tag === 'p' && n.lines && n.spec) {
+    const content = n.lines.reduce((a, l) => a + size * lineHeight + l.g, 0), pad = n.spec.pad;
+    const h = num(css.height) || content + 2 * pad;
+    return { ...common, type: 'text', text: n.text, y: cy - h / 2, h, lines: n.lines, pad, valign: n.spec.valign, font };
+  }
   if ((n.tag === 'p' || n.tag === 'a') && n.text) return { ...common, type: 'text', text: n.text, y: cy - size * lineHeight / 2, h: size * lineHeight, font };
   return null;
 }

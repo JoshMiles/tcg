@@ -12,7 +12,7 @@ import {
 
 export { ALIGNS, BACKGROUNDS, PATTERNS, SIZES, type BackSize };
 import type { Blend } from './card-back-patterns';
-import { TEXT_ALIGNS, WEIGHTS, WEIGHT_NAMES, clamp, hex, isRec, pick, r2, sanitizeTextStyle, type Effects, type TextStyle } from './text-style';
+import { TEXT_ALIGNS, WEIGHTS, WEIGHT_NAMES, clamp, hex, isRec, pick, r2, sanitizeTextBox, sanitizeTextStyle, type Effects, type TextBox, type TextStyle } from './text-style';
 
 export { TEXT_ALIGNS, WEIGHTS, WEIGHT_NAMES, type Effects };
 
@@ -96,7 +96,7 @@ export const fontCss = (id: string) => (BACK_FONTS.find(f => f.id === id) ?? BAC
 
 /** The weight a font really has that is nearest to `want` (a saved weight the font lacks snaps to it). */
 export const nearestWeight = (f: BackFont, want: number) => f.weights.reduce((best, n) => (Math.abs(n - want) < Math.abs(best - want) ? n : best), f.weights[0]);
-export interface BackEl extends TextStyle {
+export interface BackEl extends TextStyle, TextBox {
   id: string;
   kind: ElementKind;
   show: boolean;
@@ -143,7 +143,8 @@ export function safeUrl(v: unknown): string {
   return /^https:\/\//i.test(s) || /^\/(?!\/)/.test(s) ? s : '';
 }
 
-const cleanText = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max) : '');
+/** Line breaks are kept (a text box may have paragraphs); everything else is collapsed. */
+const cleanText = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f<>]/g, ' ').split('\n').map(l => l.replace(/\s+/g, ' ').trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, max) : '');
 
 const BASE_EL: Omit<BackEl, 'id' | 'kind'> = {
   show: true, place: 'stack', x: 50, y: 50, w: 80, rotate: 0, z: 0, locked: false, scale: 1, size: 8,
@@ -163,7 +164,7 @@ function sanitizeEl(raw: unknown, i: number, taken: Set<string>): BackEl | null 
     id, kind, show: raw.show !== false, place: raw.place === 'free' ? 'free' : 'stack',
     x: r2(clamp(raw.x, 0, 100, 50)), y: r2(clamp(raw.y, 0, 100, 50)), w: r2(clamp(raw.w, 10, 100, 80)), rotate: r2(clamp(raw.rotate, -45, 45, 0)),
     z: Math.round(clamp(raw.z, -50, 50, 0)), locked: raw.locked === true,
-    scale: r2(clamp(raw.scale, 0.5, 2, 1)), ...sanitizeTextStyle(raw, FONT_IDS),
+    scale: r2(clamp(raw.scale, 0.5, 2, 1)), ...sanitizeTextStyle(raw, FONT_IDS), ...sanitizeTextBox(raw),
     text: kind === 'text' ? cleanText(raw.text, MAX_TEXT) : '', src: src === 'url' && !url ? 'cover' : src, url, px: Math.round(clamp(raw.px, 10, 120, 38)),
     dark: hex(raw.dark, 'auto', 'auto'), light: hex(raw.light, 'auto', 'auto'),
   };
