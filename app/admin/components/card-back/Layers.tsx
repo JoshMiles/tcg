@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Icon } from '@/app/components/Icon';
-import { KIND_LABELS, MAX_ELEMENTS, MAX_TEXT_BOXES, type CardBackStyle } from '@/lib/card-back';
+import { KIND_LABELS, MAX_ELEMENTS, MULTI_KINDS, MAX_TEXT_BOXES, type CardBackStyle } from '@/lib/card-back';
 import { addText, alignElements, distributeElements, duplicateElement, moveElement, patchElements, removeElement, stepElement, type AlignMode, type Box } from '@/lib/card-back-edit';
 
 const tool = 'inline-flex items-center justify-center px-2 py-1 text-xs font-bold rounded-md border border-gray-700 text-gray-200 hover:border-gray-500 disabled:opacity-40';
@@ -51,11 +51,11 @@ export function Layers({ style, selection, boxes, onSelect, onChange }: {
               <button type="button" onClick={() => onChange(patchElements(style, [e.id], { show: !e.show }))} aria-pressed={e.show} aria-label={`${e.show ? 'Hide' : 'Show'} ${label(e.id)}`} className={`p-1 ${e.show ? 'text-gray-200' : 'text-gray-600 line-through'}`}><Icon name="eye" /></button>
               <button type="button" onClick={() => onChange(patchElements(style, [e.id], { locked: !e.locked }))} aria-pressed={e.locked} aria-label={`${e.locked ? 'Unlock' : 'Lock'} ${label(e.id)}`} className={`p-1 ${e.locked ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-300'}`}><Icon name="lock" /></button>
               <button type="button" onClick={ev => click(e.id, ev.shiftKey || ev.ctrlKey || ev.metaKey)} aria-pressed={sel} className={`flex-1 min-w-0 text-left truncate ${e.show ? 'text-gray-100' : 'text-gray-500'}`}>
-                {label(e.id)} <span className="text-[10px] text-gray-500">{e.place === 'free' ? 'free' : 'stack'}</span>
+                {(e.kind === 'shape' || e.kind === 'image') && <Icon name={e.kind === 'shape' ? 'stop' : 'image'} className="mr-1 text-gray-500" />}{label(e.id)} <span className="text-[10px] text-gray-500">{e.place === 'free' ? 'free' : 'stack'}</span>
               </button>
               <button type="button" onClick={() => onChange(stepElement(style, e.id, 1))} aria-label={`Move ${label(e.id)} up`} className="p-1 text-gray-500 hover:text-white"><Icon name="chevronUp" /></button>
               <button type="button" onClick={() => onChange(stepElement(style, e.id, -1))} aria-label={`Move ${label(e.id)} down`} className="p-1 text-gray-500 hover:text-white"><Icon name="chevronDown" /></button>
-              {e.kind === 'text' && <>
+              {MULTI_KINDS.includes(e.kind) && <>
                 <button type="button" onClick={() => { const r = duplicateElement(style, e.id); if (r) { onChange(r.style); onSelect(new Set([r.id])); } }} aria-label={`Duplicate ${label(e.id)}`} className="p-1 text-gray-500 hover:text-white"><Icon name="copy" /></button>
                 <button type="button" onClick={() => { onChange(removeElement(style, e.id)); onSelect(new Set()); }} aria-label={`Delete ${label(e.id)}`} className="p-1 text-gray-500 hover:text-red-300"><Icon name="trash" /></button>
               </>}

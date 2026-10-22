@@ -6,13 +6,16 @@ import { markPieces, markedText, stripMarkup, type TextMark } from './text-marku
 import { DEFAULT_MIN_SIZE, SCRIPT_SCALE, SCRIPT_SHIFT, SMALLCAP_SCALE, capRuns, caseOf, leadingOf, spacingEm, titleCase, wordEm } from './text-style';
 export { capRuns, SMALLCAP_SCALE };
 import { editionLine, madeLine, type FlipBack } from './flip-back';
+import { shapeGeo, type ShapeGeo } from './shapes';
 
 export interface BackNode {
   id: string;
   kind: BackEl['kind'];
   mode: 'stack' | 'free';
-  /** `foot` = a stack QR code or link that shows nothing for this print (the footer row is still kept, as it always was). */
-  tag: 'p' | 'ul' | 'img' | 'qr' | 'a' | 'empty';
+  /** `foot` = a stack QR code or link that shows nothing for this print (the footer row is still kept, as it always was). `shape` = a drawn shape (see `shape`). */
+  tag: 'p' | 'ul' | 'img' | 'qr' | 'a' | 'empty' | 'shape';
+  /** A shape element's paths, in px at this layout's card width (the DOM and overlay draw them as SVG, the canvas as Path2D). */
+  shape?: ShapeGeo;
   /** The stylesheet classes of a stack node (`flip-serial gold` ...). Free nodes have none. */
   cls: string;
   text?: string;
@@ -230,6 +233,9 @@ function shadeFilter(inner: Shade | undefined, outer: Shade[]): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}#f")`;
 }
 
+/** A text-shadow list ("x y blur color, ...") as CSS drop-shadows (their blur is a deviation, half the shadow's radius). */
+const dropShadows = (ts: string) => ts.split(/,(?![^(]*\))/).map(p => { const m = /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(.+?)\s*$/.exec(p); return m ? `drop-shadow(${m[1]} ${m[2]} ${f2(parseFloat(m[3]) / 2)}px ${m[4]})` : ''; }).filter(Boolean).join(' ');
+
 /** What an element's effects (stroke, glow, shadows, inner shadow, bevel, plate, gradient text) become at a card width in px: the CSS, plus what the canvas draws itself. */
 export function effectParts(fx: Effects, cardW: number): { css: Record<string, string | number>; inner?: Shade; shadow?: string; plate?: BackNode['plate'] } {
   const css: Record<string, string | number> = {};
@@ -314,6 +320,8 @@ function content(e: BackEl, back: FlipBack, style: CardBackStyle, compact: boole
     case 'history': return !compact && back.history && back.history.length > 0 ? { tag: 'ul', cls: 'flip-hist', items: back.history } : null;
     case 'qr': return !compact && back.qrUrl ? { tag: 'qr', cls: 'flip-qr', qrUrl: back.qrUrl } : null;
     case 'link': return back.href ? { tag: 'a', cls: 'flip-link', text: 'Full history ›', href: back.href } : null;
+    case 'image': return e.url ? { tag: 'img', cls: '', src: e.url } : null;
+    case 'shape': return e.shape ? { tag: 'shape', cls: '' } : null;
   }
 }
 
@@ -364,7 +372,17 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
     let spec: TextSpec | undefined;
     let lines: TextLine[] | undefined;
     let arcMode = false;
-    if (e.kind !== 'qr' && e.kind !== 'logo') {
+    const media = e.kind === 'shape' || e.kind === 'image';
+    let mediaShadow: string | undefined;
+    let shape: ShapeGeo | undefined;
+    if (media) {
+      // Shadows and glow only, as drop-shadows around what is drawn (the canvas takes the plain list).
+      const ts = effectParts({ ...(e.fx.shadows ? { shadows: e.fx.shadows } : {}), ...(e.fx.glow ? { glow: e.fx.glow } : {}) }, size.w).css.textShadow;
+      if (typeof ts === 'string' && ts !== 'none') { mediaShadow = ts; css.filter = dropShadows(ts); }
+      css.height = Math.round(((e.h ?? 20) / 100) * size.h * 100) / 100;
+      if (e.kind === 'image') css.objectFit = e.imageFit ?? 'contain';
+      else if (e.shape) shape = shapeGeo(e.shape, w, Number(css.height), size.w / 240);
+    } else if (e.kind !== 'qr' && e.kind !== 'logo') {
       const f = BACK_FONTS.find(x => x.id === e.font) ?? BACK_FONTS[0];
       const kase = caseOf(e), em = spacingEm(e), word = wordEm(e), lead = leadingOf(e);
       const deco = [e.underline && 'underline', e.strike && 'line-through', e.overline && 'overline'].filter(Boolean).join(' ');
@@ -412,11 +430,11 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
     } else {
       css.height = e.kind === 'qr' ? Math.round(w * 100) / 100 : 'auto';
     }
-    const textual = e.kind !== 'qr' && e.kind !== 'logo';
+    const textual = e.kind !== 'qr' && e.kind !== 'logo' && !media;
     // On an arc the inner shadow and the plate are not drawn (they follow a straight box); stroke, glow, shadows, bevel and gradient are.
-    const parts = effectParts(textual ? (arcMode ? { ...e.fx, inner: undefined, plate: undefined } : e.fx) : { gradientText: e.fx.gradientText }, size.w);
+    const parts: ReturnType<typeof effectParts> = media ? { css: {}, ...(mediaShadow ? { shadow: mediaShadow } : {}) } : effectParts(textual ? (arcMode ? { ...e.fx, inner: undefined, plate: undefined } : e.fx) : { gradientText: e.fx.gradientText }, size.w);
     const fxCss = parts.css;
-    if (!textual) {
+    if (!textual && !media) {
       const on = (v?: { on?: false }) => !!v && v.on !== false;
       const dl = [on(e.fx.stroke) ? `drop-shadow(0 0 1px ${e.fx.stroke!.color})` : '', on(e.fx.glow) ? `drop-shadow(0 0 ${e.fx.glow!.blur / 4}px ${e.fx.glow!.color})` : '', ...(e.fx.shadows ?? []).filter(on).map(h => `drop-shadow(${h.x / 4}px ${h.y / 4}px ${h.blur / 4}px ${h.color})`)].filter(Boolean);
       if (dl.length) css.filter = dl.join(' ');
@@ -434,12 +452,10 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       }
       // A text-shadow on the wrapper would not reach the SVG's glyphs the same way everywhere: draw them as a drop-shadow filter (its blur is a deviation, half the shadow's radius).
       const ts = typeof css.textShadow === 'string' && css.textShadow !== 'none' ? css.textShadow : '';
-      if (ts && !css.filter) {
-        arcGeo.filter = ts.split(/,(?![^(]*\))/).map(p => { const m = /^\s*(\S+)\s+(\S+)\s+(\S+)\s+(.+?)\s*$/.exec(p); return m ? `drop-shadow(${m[1]} ${m[2]} ${f2(parseFloat(m[3]) / 2)}px ${m[4]})` : ''; }).filter(Boolean).join(' ');
-      }
+      if (ts && !css.filter) arcGeo.filter = dropShadows(ts);
       css.height = 'auto';
     }
-    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(moreFonts ? { moreFonts } : {}), ...(spec ? { spec, lines } : {}), ...(parts.inner ? { inner: parts.inner } : {}), ...(parts.shadow ? { shadow: parts.shadow } : {}), ...(arcGeo ? { arc: arcGeo } : {}), ...(parts.plate ? { plate: parts.plate } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
+    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(moreFonts ? { moreFonts } : {}), ...(spec ? { spec, lines } : {}), ...(parts.inner ? { inner: parts.inner } : {}), ...(parts.shadow ? { shadow: parts.shadow } : {}), ...(arcGeo ? { arc: arcGeo } : {}), ...(shape ? { shape } : {}), ...(parts.plate ? { plate: parts.plate } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
   });
   free.sort((a, b) => a.z - b.z || a.order - b.order);
   return [...stack, ...free.map(({ z: _z, order: _o, ...n }) => { void _z; void _o; return n; })];

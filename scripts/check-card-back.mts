@@ -565,4 +565,33 @@ ok(/function backArcSvg/.test(widget) && /spec\.arc/.test(widget) && /textPath/.
 const presetP = await import('../lib/text-presets');
 ok(presetP.TEXT_STYLE_KEYS.includes('arc') && presetP.presetPatch(presetP.styleOf({ arc: 40 })).arc === 40, 'presets carry the arc');
 
+// Shapes and images (ROADMAP 38.30 d): round-trip, a bad URL is dropped, and every renderer draws them.
+const mediaIn = { v: 2, elements: [
+  { kind: 'shape', id: 'sp1', x: 30, y: 40, w: 30, h: 15, shape: { shape: 'star', sides: 6, fill: { type: 'gradient', kind: 'linear', angle: 90, stops: [{ color: '#ff0000', at: 0 }, { color: '#0000ff', at: 100 }] }, stroke: { color: '#ffffff', width: 2 } }, fx: { shadows: [{ x: 1, y: 2, blur: 3 }] } },
+  { kind: 'image', id: 'im1', x: 70, y: 70, w: 30, h: 20, url: '/cover.png', imageFit: 'cover' },
+  { kind: 'image', id: 'im2', x: 20, y: 80, w: 20, h: 10, url: 'javascript:alert(1)' },
+] };
+const media = cb.sanitizeCardBack(mediaIn);
+const mSp = media.elements.find(e => e.id === 'sp1')!, mIm = media.elements.find(e => e.id === 'im1')!, mBad = media.elements.find(e => e.id === 'im2')!;
+ok(mSp.kind === 'shape' && mSp.place === 'free' && mSp.shape?.shape === 'star' && mSp.shape.sides === 6 && mSp.shape.fill.type === 'gradient' && mSp.shape.stroke.width === 2, 'a shape keeps its type, fill and stroke');
+ok(mIm.kind === 'image' && mIm.url === '/cover.png' && mIm.imageFit === 'cover' && mBad.url === '', 'an image keeps a site path and fit; a javascript: URL is dropped');
+ok(JSON.stringify(cb.sanitizeCardBack(JSON.parse(JSON.stringify(media)))) === JSON.stringify(media), 'shapes and images survive a save and load unchanged');
+ok(cb.sanitizeCardBack({ v: 2, elements: [{ kind: 'image', url: 'https://evil.example/x.png' }] }).elements[0].url === '', 'an external image URL is dropped');
+ok(cb.sanitizeCardBack({ v: 2, elements: Array.from({ length: 40 }, () => ({ kind: 'shape' })) }).elements.length <= cb.MAX_ELEMENTS, 'shapes respect MAX_ELEMENTS');
+const mNodes = lay.layoutBack({ ...media, packName: 'Base' }, PRINT, SIZE);
+const mShapeN = mNodes.find(n => n.id === 'sp1'), mImgN = mNodes.find(n => n.id === 'im1');
+ok(mShapeN?.tag === 'shape' && (mShapeN.shape?.parts.length ?? 0) > 0 && mShapeN.shape?.grad?.stops.length === 2, 'the layout gives the shape its paths and gradient');
+ok(mImgN?.tag === 'img' && mImgN.src === '/cover.png' && mImgN.css.objectFit === 'cover' && !mNodes.some(n => n.id === 'im2'), 'the layout gives the image its source and fit; an empty image draws nothing');
+const mSpec = spec(JSON.parse(JSON.stringify(mShapeN))) as unknown as { tag: string; shape: { parts: unknown[] } } | null;
+ok(mSpec?.tag === 'shape' && mSpec.shape.parts.length === mShapeN!.shape!.parts.length, 'widget: the shape node reaches the widget renderer whole');
+ok(spec(mImgN)?.tag === 'img', 'widget: the image node is drawn');
+ok(/function backShapeSvg/.test(widget) && /createElementNS/.test(widget), 'widget.js draws shapes as SVG');
+const mBoxes = canvas.placeBack(mNodes);
+const mBoxS = mBoxes.find(b => b.id === 'sp1'), mBoxI = mBoxes.find(b => b.id === 'im1');
+ok(mBoxS?.type === 'shape' && !!mBoxS.shape && mBoxI?.type === 'img' && mBoxI.fit === 'cover', 'the canvas places the shape and the image (with its fit)');
+const mOverlay = ovl.overlayBack({ ...media, packName: 'Base' });
+ok(mOverlay.nodes.some(n => n.id === 'sp1') && mOverlay.nodes.some(n => n.id === 'im1'), 'the overlay back keeps shapes and images');
+const mEd = ed.addMedia(cb.DEFAULT_CARD_BACK, 'shape', { x: 50, y: 50, w: 20, h: 10 }, 'ellipse')!;
+ok(mEd.style.elements.find(e => e.id === mEd.id)?.shape?.shape === 'ellipse' && ed.removeElement(mEd.style, mEd.id).elements.length === cb.DEFAULT_CARD_BACK.elements.length, 'addMedia adds a shape and removeElement takes it away');
+
 console.log('card back checks passed');

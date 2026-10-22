@@ -12,16 +12,19 @@ import {
 
 export { ALIGNS, BACKGROUNDS, PATTERNS, SIZES, type BackSize };
 import type { Blend } from './card-back-patterns';
+import { IMAGE_FITS, isSafeImageUrl, sanitizeShape, type ShapeSpec } from './shapes';
 import { TEXT_ALIGNS, WEIGHTS, WEIGHT_NAMES, clamp, hex, isRec, pick, r2, sanitizeTextBox, sanitizeTextStyle, type Effects, type TextBox, type TextStyle } from './text-style';
 
 export { TEXT_ALIGNS, WEIGHTS, WEIGHT_NAMES, type Effects };
 
-export const ELEMENT_KINDS = ['number', 'edition', 'name', 'date', 'origin', 'history', 'qr', 'logo', 'brand', 'link', 'text'] as const;
+export const ELEMENT_KINDS = ['number', 'edition', 'name', 'date', 'origin', 'history', 'qr', 'logo', 'brand', 'link', 'text', 'shape', 'image'] as const;
 export type ElementKind = (typeof ELEMENT_KINDS)[number];
 export const KIND_LABELS: Record<ElementKind, string> = {
   number: 'Serial number', edition: 'Edition line', name: 'Name line', date: 'Date', origin: 'Origin and holder', history: 'History', qr: 'QR code',
-  logo: 'Logo', brand: 'Site name', link: 'Full history link', text: 'Text',
+  logo: 'Logo', brand: 'Site name', link: 'Full history link', text: 'Text', shape: 'Shape', image: 'Image',
 };
+/** Kinds that can be added more than once (the others are one each). Shapes and images are always placed freely. */
+export const MULTI_KINDS: readonly ElementKind[] = ['text', 'shape', 'image'];
 export const MAX_ELEMENTS = 24;
 export const MAX_TEXT_BOXES = 8;
 export const MAX_TEXT = 80;
@@ -114,6 +117,10 @@ export interface BackEl extends TextStyle, TextBox {
   /** QR code colours (hex, or `auto`). */
   dark: string;
   light: string;
+  /** Shape elements: the shape (lengths in px of the 240 px reference card). The box is x, y, w and `h`. */
+  shape?: ShapeSpec;
+  /** Image elements: how the picture fits its box (the address is `url`). */
+  imageFit?: (typeof IMAGE_FITS)[number];
 }
 
 export interface CardBackStyle {
@@ -160,13 +167,18 @@ function sanitizeEl(raw: unknown, i: number, taken: Set<string>): BackEl | null 
   taken.add(id);
   const url = safeUrl(raw.url);
   const src = pick(raw.src, ['cover', 'url'] as const, 'cover');
+  const media = kind === 'shape' || kind === 'image';
+  const style = sanitizeTextStyle(raw, FONT_IDS), box = sanitizeTextBox(raw);
+  // A shape or image draws only shadows and glow, and always sits freely in a box of its own.
+  const fx = media ? { ...(style.fx.shadows ? { shadows: style.fx.shadows } : {}), ...(style.fx.glow ? { glow: style.fx.glow } : {}) } : style.fx;
   return {
-    id, kind, show: raw.show !== false, place: raw.place === 'free' ? 'free' : 'stack',
+    id, kind, show: raw.show !== false, place: media || raw.place === 'free' ? 'free' : 'stack',
     x: r2(clamp(raw.x, 0, 100, 50)), y: r2(clamp(raw.y, 0, 100, 50)), w: r2(clamp(raw.w, 10, 100, 80)), rotate: r2(clamp(raw.rotate, -45, 45, 0)),
     z: Math.round(clamp(raw.z, -50, 50, 0)), locked: raw.locked === true,
-    scale: r2(clamp(raw.scale, 0.5, 2, 1)), ...sanitizeTextStyle(raw, FONT_IDS), ...sanitizeTextBox(raw),
-    text: kind === 'text' ? cleanText(raw.text, MAX_TEXT) : '', src: src === 'url' && !url ? 'cover' : src, url, px: Math.round(clamp(raw.px, 10, 120, 38)),
+    scale: r2(clamp(raw.scale, 0.5, 2, 1)), ...style, fx, ...box, ...(media ? { h: box.h ?? 20 } : {}),
+    text: kind === 'text' ? cleanText(raw.text, MAX_TEXT) : '', src: src === 'url' && !url ? 'cover' : src, url: kind === 'image' ? (isSafeImageUrl(raw.url) ? raw.url : '') : url, px: Math.round(clamp(raw.px, 10, 120, 38)),
     dark: hex(raw.dark, 'auto', 'auto'), light: hex(raw.light, 'auto', 'auto'),
+    ...(kind === 'shape' ? { shape: sanitizeShape(isRec(raw.shape) ? raw.shape : {}) } : {}), ...(kind === 'image' ? { imageFit: pick(raw.imageFit, IMAGE_FITS, 'contain') } : {}),
   };
 }
 
@@ -185,7 +197,7 @@ function sanitizeV2(o: Record<string, unknown>): CardBackStyle {
     if (elements.length >= MAX_ELEMENTS) break;
     const el = sanitizeEl(raw, i, taken);
     if (!el) continue;
-    if (el.kind === 'text') { if (texts >= MAX_TEXT_BOXES) continue; texts++; } else if (seenKinds.has(el.kind)) continue; else seenKinds.add(el.kind);
+    if (el.kind === 'text') { if (texts >= MAX_TEXT_BOXES) continue; texts++; } else if (!MULTI_KINDS.includes(el.kind)) { if (seenKinds.has(el.kind)) continue; seenKinds.add(el.kind); }
     elements.push(el);
   }
   return {

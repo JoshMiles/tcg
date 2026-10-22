@@ -1,6 +1,10 @@
-import { isBlobUrl } from './card-art';
 import { sanitizeFx, clamp, hex, isRec, pick, r2, type Effects } from './text-style';
 import { sanitizeTextPatch, type TextPatch } from './overlay-text-style';
+import { ARROWS, IMAGE_FITS, LINE_CAPS, SHAPES, STROKE_POS, isSafeImageUrl, sanitizeFill, sanitizeShape, type ShapeFill, type ShapeSpec, type ShapeType } from './shapes';
+
+// The shape and image types live in lib/shapes.ts (the card back shares them); re-exported so every overlay import keeps working.
+export { ARROWS, IMAGE_FITS, LINE_CAPS, SHAPES, STROKE_POS, isSafeImageUrl, sanitizeFill, sanitizeShape };
+export type { ShapeFill, ShapeSpec, ShapeType };
 
 // Layers the admin adds to the overlay themselves (ROADMAP 38.7): text, image and shape, stored per view in the layout as `custom`.
 // Pure and client-safe. public/widget.js (renderCustom) draws them; every value here is data, never markup.
@@ -8,22 +12,11 @@ import { sanitizeTextPatch, type TextPatch } from './overlay-text-style';
 export const MAX_CUSTOM = 16;
 export const CUSTOM_KINDS = ['text', 'image', 'shape'] as const;
 export type CustomKind = (typeof CUSTOM_KINDS)[number];
-export const SHAPES = ['rect', 'ellipse', 'line', 'polygon', 'star'] as const;
-export type ShapeType = (typeof SHAPES)[number];
-export const STROKE_POS = ['inside', 'center', 'outside'] as const;
-export const LINE_CAPS = ['butt', 'round', 'square'] as const;
-export const ARROWS = ['none', 'start', 'end', 'both'] as const;
-export const IMAGE_FITS = ['contain', 'cover', 'fill'] as const;
 export const BANDS = ['front', 'back'] as const;
 /** Pack view only: when in the pull the layer is up (`reveal`: until the card is revealed, `after`: from the card reveal on). */
 export const SHOWS = ['always', 'reveal', 'after'] as const;
 export const MAX_CUSTOM_TEXT = 300;
 export const VALIGNS = ['top', 'middle', 'bottom'] as const;
-
-export type ShapeFill =
-  | { type: 'none' }
-  | { type: 'solid'; color: string }
-  | { type: 'gradient'; kind: 'linear' | 'radial'; angle: number; stops: { color: string; at: number }[] };
 
 interface CustomBase {
   id: string; name: string;
@@ -55,43 +48,15 @@ export interface CustomImage extends CustomBase {
   /** Only `shadows`, `glow` and `stroke` are drawn on an image. */
   fx: Effects;
 }
-export interface CustomShape extends CustomBase {
+export interface CustomShape extends CustomBase, ShapeSpec {
   kind: 'shape';
-  shape: ShapeType;
-  /** Rect corner radius in design px. */
-  radius: number;
-  /** Per corner (top left, top right, bottom right, bottom left) in design px; empty means all four follow `radius`. */
-  radii: number[];
-  /** Line end caps and arrowheads (a line only). */
-  cap: (typeof LINE_CAPS)[number];
-  arrows: (typeof ARROWS)[number];
-  /** Polygon and star points. */
-  sides: number;
-  /** Star inner radius as a share of the outer. */
-  inner: number;
-  fill: ShapeFill;
-  /** `pos`: where the stroke sits on the edge of the box (`inside` is the original look). */
-  stroke: { color: string; width: number; dash: number; pos: (typeof STROKE_POS)[number] };
   /** Only `shadows` and `glow` are drawn on a shape. */
   fx: Effects;
 }
 export type CustomLayer = CustomText | CustomImage | CustomShape;
 
-/** Blob files and same-site paths only. The widget re-checks with the same rule. */
-export const isSafeImageUrl = (u: unknown): u is string => typeof u === 'string' && u.length <= 600 && (isBlobUrl(u) || /^\/(?!\/)[\w\-./%]*$/.test(u));
-
 const KIND_LABEL: Record<CustomKind, string> = { text: 'Text', image: 'Image', shape: 'Shape' };
 const ID = /^[A-Za-z0-9_-]{1,24}$/;
-
-function fillOf(v: unknown): ShapeFill {
-  if (!isRec(v)) return { type: 'none' };
-  if (v.type === 'solid') return { type: 'solid', color: hex(v.color, '#ffffff') };
-  if (v.type === 'gradient') {
-    const stops = (Array.isArray(v.stops) ? v.stops.filter(isRec) : []).slice(0, 4).map(s => ({ color: hex(s.color, '#ffffff'), at: Math.round(clamp(s.at, 0, 100, 0)) })).sort((a, b) => a.at - b.at);
-    return { type: 'gradient', kind: v.kind === 'radial' ? 'radial' : 'linear', angle: Math.round(clamp(v.angle, 0, 360, 180)), stops: stops.length >= 2 ? stops : [{ color: '#fde68a', at: 0 }, { color: '#f59e0b', at: 100 }] };
-  }
-  return { type: 'none' };
-}
 
 /** Valid layers from anything: unknown kinds, bad ids and duplicates are dropped, at most MAX_CUSTOM kept. Absent or empty gives []. */
 export function sanitizeCustom(raw: unknown, width: number, height: number): CustomLayer[] {
@@ -132,15 +97,9 @@ export function sanitizeCustom(raw: unknown, width: number, height: number): Cus
       const fx = sanitizeFx(r.fx), keep: Effects = {};
       if (fx.shadows) keep.shadows = fx.shadows;
       if (fx.glow) keep.glow = fx.glow;
-      const st = isRec(r.stroke) ? r.stroke : {};
       out.push({
         ...base, kind,
-        shape: pick(r.shape, SHAPES, 'rect'), radius: Math.round(clamp(r.radius, 0, 1000, 0)),
-        radii: Array.isArray(r.radii) && r.radii.length === 4 ? r.radii.map(v => Math.round(clamp(v, 0, 1000, 0))) : [],
-        cap: pick(r.cap, LINE_CAPS, 'round'), arrows: pick(r.arrows, ARROWS, 'none'),
-        sides: Math.round(clamp(r.sides, 3, 12, 5)), inner: r2(clamp(r.inner, 0.1, 0.9, 0.5)),
-        fill: fillOf(r.fill),
-        stroke: { color: hex(st.color, '#ffffff'), width: r2(clamp(st.width, 0, 40, 0)), dash: Math.round(clamp(st.dash, 0, 40, 0)), pos: pick(st.pos, STROKE_POS, 'inside') },
+        ...sanitizeShape(r),
         fx: keep,
       });
     }

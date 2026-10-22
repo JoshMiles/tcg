@@ -28,7 +28,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.26 | Overlay Editor: text readability check | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
-| 38.30 | Card back editor: the same workspace, plus shapes and images, (d) left | Ready | L |
 | 39.7 | Mobile: swipe gestures | Needs a decision | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
@@ -56,14 +55,6 @@ Goal: the Overlay Editor works like Photoshop. Track 36 gave it a canvas, layers
 **Reuse the card back editor.** `app/admin/components/card-back/` (`Canvas`, `Layers`, `Properties`) and `lib/card-back-edit.ts` already do multi-select, lock, show / hide, reorder, duplicate, Add text and `alignElements` / `distributeElements`. Lift what fits into shared code rather than writing it twice; the overlay differs only in that its layers live in an iframe and report their boxes by `postMessage`.
 
 **Rules for the whole track.** Preview mode never touches the queue, heartbeat or collections. Layer edits stay global or per scene, never per pack (handles, Layers and these tools stay hidden in pack scope). Reveal keyframes animate `transform` / `rotate` / `opacity` / `filter`; layer settings use the standalone `translate` / `scale` properties or a wrapper so they stack with them, never the animated property itself. Every new stored field goes through `sanitizeLayout()` with an empty default that equals today's look (no migration), plus a `scripts/check-overlay.mts` case.
-
-### 38.30 Card back editor on the same workspace (Ready, L)
-**Decided (user, 2026-10-21):** the card back editor gets the same redesign, so both editors feel like one app. Today it is a full-screen dialog (`CardBackEditor.tsx`, opened by **Edit design** in the pack workspace) with Layers on the left, the canvas in the middle (`card-back/Canvas.tsx`) with the three-size preview, and Properties on the right; undo / redo, but no menu bar, history list, zoom, rulers, status bar or tools.
-- **Same shell (from the Overlay Editor):** menu bar (File: Save, Presets, Copy from another pack, Reset to classic, Export PNG; Edit: undo / redo, copy / paste style, Find a setting; View: zoom, fit, rulers, guides, snap, the three-size preview, background; Layer: add text / image / shape, duplicate, group, lock, align / distribute, arrange; Window; Help), tool strip (Move, Hand, Zoom, Text, Shape, Image), contextual options bar, the right panel stack (contextual Properties on top, Layers under it, History / Swatches / Navigator tabs) and the status bar (zoom, pointer X / Y in % of the card and pt, unsaved state). It stays a full-screen view opened from the pack, as now, and keeps its own save action.
-- **Contextual Properties:** a selected element shows Layer (position, size, rotation, opacity), Character / Paragraph / Effects (38.12) for text, its kind's own fields (QR, logo, history lines); nothing selected shows the back itself (background, gradient, pattern, edge, alignment) where today's top-level settings live.
-- **Shapes and images (with 38.7's model):** the back gets the same Shape tool (rectangle, ellipse, line, polygon, star; fill, gradient, stroke, effects) and free Image layers (Blob upload; the existing logo element stays). Add `shape` and `image` to `ELEMENT_KINDS` with optional fields so saved backs don't change, and draw both in the DOM back and in `lib/card-back-canvas.ts` (share images); the 38.12 parity rule applies. Share the shape and gradient types with the overlay in `lib/shapes.ts`.
-- **Keep:** reduced-motion behaviour (the bare editor back keeps `data-flipped="true"`), the stacked layout in the narrow pack panel for the preview card and the **Edit design** button, `MAX_ELEMENTS` / `MAX_TEXT_BOXES` (raise them only with the canvas renderer checked), every saved back reading back unchanged (`scripts/check-card-back.mts`).
-- **Order:** splits (a) shell, (b) contextual Properties and (c) tools, zoom, rulers, status bar are done. Left: (d) shapes and images, DOM and canvas. Update the card back editor part of `docs/serials.md` in each.
 
 ### More Photoshop habits
 
@@ -102,7 +93,7 @@ Saving a preset or version captures a still of the preview (the widget draws its
 ### 38.28 Scheduled looks (Ready, M)
 A look (a preset) that switches on at a start time and off at an end (a Halloween stream), set from Presets → Scheduled looks, stored in KV beside season looks. `GET /api/overlay/config` layers the active scheduled look above the season look (pack overrides still win). The overlay reads config once, so the heartbeat's reload token also changes at each start / end (fold the active schedule id into the token) and an idle overlay reloads by itself. Times in the streamer's timezone, shown with it. A `scripts/check-overlay.mts` case for the layering and the token.
 
-**Build order for the track:** 38.30 → 38.17 to 38.28 in any order.
+**Build order for the track:** 38.17 to 38.28 in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 
