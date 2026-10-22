@@ -250,6 +250,9 @@ eq(sanitizeLayout({ pack: { elements: { banner: { offsetX: 12, scale: 1.5 } } } 
   eq(t.style, { weight: 700 }, 'a text layer keeps a valid text patch only');
   const i = lay([{ id: 'i1', kind: 'image', ...box, url: '/logo.png', fit: 'weird' }])?.[0] as import('../lib/overlay-custom').CustomImage;
   ok(i.kind === 'image' && i.url === '/logo.png' && i.fit === 'contain', 'an image layer keeps a same-site url, a bad fit falls back');
+  const ix = lay([{ id: 'i5', kind: 'image', ...box, url: '/logo.png', radius: 99999, fx: { shadows: [{ color: '#000000', x: 1, y: 2, blur: 3 }], glow: { color: '#ffffff', blur: 5, strength: 1 }, stroke: { color: '#ff0000', width: 3, pos: 'center' }, bevel: { style: 'raised', depth: 1 } } }])?.[0] as import('../lib/overlay-custom').CustomImage;
+  ok(ix.radius === 1000 && !!ix.fx.shadows && !!ix.fx.glow && ix.fx.stroke?.width === 3 && !('bevel' in ix.fx), 'an image layer clamps its radius and keeps shadow, glow and stroke only');
+  ok(i.radius === 0 && Object.keys(i.fx).length === 0, 'an image layer with no radius or effects reads as today');
   ok(lay([{ id: 'i2', kind: 'image', ...box, url: 'https://abc.public.blob.vercel-storage.com/x.png' }])?.length === 1, 'a Blob image url is accepted');
   ok(lay([{ id: 'i3', kind: 'image', ...box, url: '' }])?.length === 1, 'an image with no url yet is kept');
   for (const bad of ['javascript:alert(1)', 'https://evil.example/x.png', '//evil.example/x.png', 'data:image/png;base64,AAAA', 'http://x.public.blob.vercel-storage.com/x.png', '/a b']) ok(lay([{ id: 'i4', kind: 'image', ...box, url: bad }]) === undefined, 'a bad image url drops the layer: ' + bad);

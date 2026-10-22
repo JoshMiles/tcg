@@ -97,10 +97,11 @@ export function PreviewStage() {
   };
   // The Text tool: a press-drag-release on the sheet draws a box (a plain click makes the default one) and adds a text layer there.
   const [rub, setRub] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
-  const drawing = activeTool === 'text' || activeTool === 'shape';
+  const drawing = activeTool === 'text' || activeTool === 'shape' || activeTool === 'image';
+  const drawKind = activeTool === 'shape' ? 'shape' : activeTool === 'image' ? 'image' : 'text';
   const rubAt = (e: React.PointerEvent, from?: { x0: number; y0: number } | null) => {
     const p = { x: posOf('x', e), y: posOf('y', e) };
-    if (!from || !e.shiftKey || activeTool !== 'shape') return p;
+    if (!from || !e.shiftKey || activeTool === 'text') return p;
     const dx = p.x - from.x0, dy = p.y - from.y0, s = Math.max(Math.abs(dx), Math.abs(dy)); // Shift keeps the box square
     return { x: from.x0 + (dx < 0 ? -s : s), y: from.y0 + (dy < 0 ? -s : s) };
   };
@@ -212,7 +213,7 @@ export function PreviewStage() {
               if (!rub) return;
               const p = rubAt(e, rub);
               setRub(null);
-              addCustomAt(activeTool === 'shape' ? 'shape' : 'text', toolBox(activeTool === 'shape' ? 'shape' : 'text', rub.x0, rub.y0, p.x, p.y, shownLayout.width, shownLayout.height));
+              addCustomAt(drawKind, toolBox(drawKind, rub.x0, rub.y0, p.x, p.y, shownLayout.width, shownLayout.height));
             }}
             onPointerCancel={() => { setPanning(false); setRub(null); }}
             onClick={e => {
