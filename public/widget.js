@@ -70,10 +70,20 @@ const tlBegin = (dur, markers, redo, wrapper, cooldown) => {
   TL.cooldown = cooldown;
   TL.anims.clear(); TL.paused = false; TL.start = performance.now(); TL.dur = dur; TL.markers = markers; TL.active = true; TL.redo = redo; TL.wrapper = wrapper;
   clearInterval(TL.tick); TL.tick = setInterval(tlTick, 100);
+  if (EDITOR) fpsStart();
   if (TL.replayTo !== null) { const to = TL.replayTo; TL.replayTo = null; tlPause(); tlSeek(to); }
   tlReport();
 };
-const tlEnd = () => { TL.timers.clear(); TL.active = false; TL.paused = false; clearInterval(TL.tick); tlReport(); };
+// Editor only: count frames while a play runs, then report the average and the worst 250 ms stretch (frames per second) to the editor.
+let fpsRaf = 0, fpsStop = null;
+const fpsStart = () => {
+  cancelAnimationFrame(fpsRaf);
+  const t0 = performance.now(); let w0 = t0, n = 0, wn = 0, worst = Infinity;
+  const step = (t) => { n++; wn++; if (t - w0 >= 250) { worst = Math.min(worst, wn * 1000 / (t - w0)); w0 = t; wn = 0; } fpsRaf = requestAnimationFrame(step); };
+  fpsRaf = requestAnimationFrame(step);
+  fpsStop = () => { cancelAnimationFrame(fpsRaf); fpsStop = null; const avg = n * 1000 / (performance.now() - t0); window.parent.postMessage({ type: 'fps', avg, worst: Math.min(worst, avg) }, window.location.origin); };
+};
+const tlEnd = () => { TL.timers.clear(); TL.active = false; TL.paused = false; clearInterval(TL.tick); if (fpsStop) fpsStop(); tlReport(); };
 // While paused, animations that appeared since (a banner's shine, a sparkle layer) are held too, at the time they would be on.
 const tlHoldNew = () => { for (const a of document.getAnimations()) if (!TL.anims.has(a)) { TL.anims.set(a, TL.at - (a.currentTime || 0)); a.pause(); } };
 const tlTick = () => { if (TL.paused) tlHoldNew(); tlReport(); };
