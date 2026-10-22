@@ -162,9 +162,6 @@ A 9-point reference grid in the Layer section (38.4): corner-handle scaling and 
 ### 38.23 Real frame-rate meter (Ready, S)
 During Play the preview counts frames with `requestAnimationFrame` and reports the average and the worst 250 ms stretch; shown beside the load rating. Labelled "on this computer", since OBS's own browser differs.
 
-### 38.24 Paste a screenshot as background (Ready, XS)
-Ctrl+V an image (an OBS screenshot) onto the canvas sets it as the background, beside the existing file picker. Never saved, as now.
-
 ### 38.25 Twitch UI zones (Ready, S)
 Editor-only rectangles marking where the webcam, chat overlay or alerts sit on stream ("Add zone" in the Guides menu, drag to place and size, name it). Shown as a hatched area; snapping avoids them; a warning in Layers when a part overlaps one. Saved per scope in the overlay settings (staff-wide, so every editor sees them), never sent to the widget's live render.
 
