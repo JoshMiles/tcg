@@ -27,7 +27,8 @@ import {
   type PropValues,
   type VariantId,
 } from '@/lib/overlay-props';
-import { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, anchorOffset, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
+import { DEFAULT_LAYOUT, ELEMENT_IDS, MAX_ZONES, boxesOverlap, sanitizeLayout, alignOffsets, distributeOffsets, anchorOffset, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type OverlayZone, type Placement } from '@/lib/overlay-layout';
+import { saveOverlayZonesAction } from '@/app/admin/overlay-actions';
 import { MAX_CUSTOM, duplicateCustom, newCustom, pasteCustom, stepCustom, type CustomKind, type CustomLayer, type CustomText } from '@/lib/overlay-custom';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { mergeTextPatch, type TextPatch } from '@/lib/overlay-text-style';
@@ -96,6 +97,7 @@ export interface OverlayEditorProps {
   seasonLooks: Record<string, string>;
   packCards: Record<string, CardInfo[]>;
   initialAutoReload: boolean;
+  initialZones: Record<string, OverlayZone[]>;
   initialGlobal: PropValues;
   initialPacks: Record<string, PropValues>;
   packs: PackInfo[];
@@ -258,6 +260,9 @@ export interface OverlayEditorContextValue {
   setGuides: React.Dispatch<React.SetStateAction<Guides>>;
   guidesLocked: boolean;
   setGuidesLocked: React.Dispatch<React.SetStateAction<boolean>>;
+  zones: OverlayZone[];
+  setZones: (fn: (z: OverlayZone[]) => OverlayZone[]) => void;
+  overlapIds: string[];
   showThirds: boolean;
   setShowThirds: React.Dispatch<React.SetStateAction<boolean>>;
   showSafe: boolean;
@@ -377,6 +382,7 @@ export function OverlayEditorProvider({
   seasonLooks,
   packCards,
   initialAutoReload,
+  initialZones,
   siteUrl,
   overlayKey,
 }: OverlayEditorProps & { children: ReactNode }) {
@@ -530,6 +536,17 @@ export function OverlayEditorProvider({
   const [copyFrom, setCopyFrom] = useState('');
 
   const isPack = scope !== 'global' && !isScene;
+  // Twitch UI zones (38.25): editor-only boxes, saved staff-wide per scope as they are edited (not part of Save / versions). Pack scope has none.
+  const [zonesMap, setZonesMap] = useState(initialZones);
+  const zones = useMemo(() => (isPack ? [] : zonesMap[layoutKey] ?? []), [isPack, zonesMap, layoutKey]);
+  const zoneSave = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const setZones = (fn: (z: OverlayZone[]) => OverlayZone[]) => {
+    const next = fn(zones).slice(0, MAX_ZONES);
+    setZonesMap(m => ({ ...m, [layoutKey]: next }));
+    clearTimeout(zoneSave.current);
+    zoneSave.current = setTimeout(() => void saveOverlayZonesAction(layoutKey, next), 600);
+  };
+  const [overlapIds, setOverlapIds] = useState<string[]>([]);
   const isOver = scope !== 'global';
   const current: PropValues = isOver ? packVals[scope] ?? {} : globalVals;
 
@@ -1514,8 +1531,19 @@ export function OverlayEditorProvider({
   }, [ready, loadedCount, selected, selection, locked, viewSelected, dragging, isPack, snapOn, post]);
   // The preview snaps a dragged part to the user's guides too.
   useEffect(() => {
-    if (ready) post({ type: 'guides', x: guides.x, y: guides.y });
-  }, [ready, loadedCount, guides, post]);
+    if (ready) post({ type: 'guides', x: [...guides.x, ...zones.flatMap(z => [z.x, z.x + z.w])], y: [...guides.y, ...zones.flatMap(z => [z.y, z.y + z.h])] });
+  }, [ready, loadedCount, guides, zones, post]);
+  // Layers warns about a part whose measured box overlaps a zone (the preview shows one view at a time, so only its parts are measured).
+  useEffect(() => {
+    if (!ready || !zones.length) { setOverlapIds(o => (o.length ? [] : o)); return; }
+    let live = true;
+    const t = setTimeout(() => {
+      const ids = [...ELEMENT_IDS[mode], ...(layout[mode].custom ?? []).map(c => `custom:${c.id}`)];
+      void measureBoxes(ids).then(b => { if (live) setOverlapIds(Object.entries(b).filter(([, x]) => zones.some(z => boxesOverlap(x, z))).map(([id]) => id)); });
+    }, 400);
+    return () => { live = false; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, loadedCount, zones, layout, shownProps, mode]);
 
   const catId = isPack && category === 'collection' ? 'pack' : category;
 
@@ -1709,6 +1737,9 @@ export function OverlayEditorProvider({
     setGuides,
     guidesLocked,
     setGuidesLocked,
+    zones,
+    setZones,
+    overlapIds,
     zoom,
     setZoom,
     activeTool,

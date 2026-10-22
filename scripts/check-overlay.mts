@@ -528,4 +528,19 @@ await sbx.deleteSandbox(box.id);
   eq(await sw.getSavedSwatches(), ['#abcdef'], 'swatches: read back');
   eq([sw.toHex('rgb(241,187,6)'), sw.toHex('#ABCDEF'), sw.toHex('blue')], ['#f1bb06', '#abcdef', null], 'swatches: toHex');
 }
+// ── Twitch UI zones (ROADMAP 38.25): saved per scope in the settings, clamped, capped, never in the widget config ──
+{
+  const { sanitizeZones, boxesOverlap } = await import('../lib/overlay-layout');
+  const many = Array.from({ length: 20 }, (_, i) => ({ id: 'a' + i, name: ' '.repeat(2) + 'n'.repeat(60), x: 1270, y: -5, w: 900, h: 'x' }));
+  const z = sanitizeZones(many, 1280, 720);
+  ok(z.length === 12 && z[0].name.length === 40, 'zones: capped at 12, names trimmed to 40');
+  eq([z[0].x, z[0].y, z[0].w, z[0].h], [1260, 0, 20, 20], 'zones: clamped to the stage, at least 20 px');
+  eq(sanitizeZones('nope'), [], 'zones: junk reads as none');
+  ok(boxesOverlap({ x: 0, y: 0, w: 10, h: 10 }, { x: 9, y: 9, w: 5, h: 5 }) && !boxesOverlap({ x: 0, y: 0, w: 10, h: 10 }, { x: 10, y: 0, w: 5, h: 5 }), 'zones: overlap test');
+  eq((await settings.getOverlaySettings()).zones, {}, 'zones: empty by default');
+  await settings.saveZones('global', [{ id: 'cam', name: 'Webcam', x: 900, y: 400, w: 300, h: 250 }]);
+  eq((await settings.getOverlaySettings()).zones.global.map(q => q.name), ['Webcam'], 'zones: saved per scope');
+  await settings.saveZones('global', []);
+  eq((await settings.getOverlaySettings()).zones, {}, 'zones: an empty list clears the scope');
+}
 console.log('check-overlay: all checks passed');

@@ -129,6 +129,19 @@ function withElements(p: Placement, raw: unknown, view: LayoutMode, width: numbe
 
 /** A part's box on the stage in design px (what the preview measures). */
 export interface DesignBox { x: number; y: number; w: number; h: number }
+/** An editor-only rectangle marking where the webcam, chat or alerts sit on stream (design px). Never sent to the live widget. */
+export interface OverlayZone extends DesignBox { id: string; name: string }
+export const MAX_ZONES = 12;
+/** Cleans one scope's zones: at most MAX_ZONES, a short name, a box that fits a stage of `maxW` x `maxH` (at least 20 px). */
+export function sanitizeZones(input: unknown, maxW = 8192, maxH = 8192): OverlayZone[] {
+  const clamp = (v: unknown, lo: number, hi: number) => Math.round(Math.min(hi, Math.max(lo, Number(v) || 0)));
+  return (Array.isArray(input) ? input : []).slice(0, MAX_ZONES).filter(z => z && typeof z === 'object').map((z, i) => {
+    const x = clamp(z.x, 0, maxW - 20), y = clamp(z.y, 0, maxH - 20);
+    return { id: String(z.id ?? '').slice(0, 12) || 'z' + i, name: String(z.name ?? '').trim().slice(0, 40) || 'Zone', x, y, w: clamp(z.w, 20, maxW - x), h: clamp(z.h, 20, maxH - y) };
+  });
+}
+/** Whether two boxes share any area. */
+export const boxesOverlap = (a: DesignBox, b: DesignBox) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 /** The gaps between two boxes for Alt-measuring: one segment per axis they are apart on (none on an axis they overlap), in design px. */
 export function measureGaps(a: DesignBox, b: DesignBox): { x1: number; y1: number; x2: number; y2: number; px: number }[] {
   const out: { x1: number; y1: number; x2: number; y2: number; px: number }[] = [];

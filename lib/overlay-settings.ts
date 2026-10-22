@@ -1,6 +1,6 @@
 import { kv } from './db';
 import { getOverlayStatus } from './overlay';
-import { sanitizeLayout, type OverlayLayout } from './overlay-layout';
+import { sanitizeLayout, sanitizeZones, type OverlayLayout, type OverlayZone } from './overlay-layout';
 import { sanitizePropValues, type PropValues } from './overlay-props';
 
 // Admin switches for the overlay. Stored in one KV key; missing = everything allowed.
@@ -17,6 +17,8 @@ export interface OverlaySettings {
   props: PropValues;
   /** After saving in the Overlay Editor, connected overlays reload themselves (when idle). */
   autoReload: boolean;
+  /** Editor-only Twitch UI zones (webcam, chat, alerts) per scope: 'global' or 'scene:<id>'. Never part of the overlay config. */
+  zones: Record<string, OverlayZone[]>;
 }
 
 export async function getOverlaySettings(): Promise<OverlaySettings> {
@@ -27,7 +29,19 @@ export async function getOverlaySettings(): Promise<OverlaySettings> {
     layout: sanitizeLayout(stored?.layout),
     props: sanitizePropValues(stored?.props),
     autoReload: !!stored?.autoReload,
+    zones: Object.fromEntries(Object.entries(stored?.zones ?? {}).map(([k, z]) => [k, sanitizeZones(z)] as const).filter(([, z]) => z.length)),
   };
+}
+
+/** Saves one scope's zones, clamped to that scope's stage; an empty list clears them. */
+export async function saveZones(scope: string, zones: unknown): Promise<OverlayZone[]> {
+  const current = await getOverlaySettings();
+  const layout = scope === 'global' ? current.layout : (await getPreset(scope.replace(/^scene:/, '')))?.layout;
+  if (!layout) return [];
+  const clean = sanitizeZones(zones, layout.width, layout.height);
+  const { [scope]: _old, ...rest } = current.zones;
+  await saveOverlaySettings({ ...current, zones: clean.length ? { ...rest, [scope]: clean } : rest });
+  return clean;
 }
 
 export async function saveOverlaySettings(settings: OverlaySettings): Promise<void> {

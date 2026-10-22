@@ -31,7 +31,8 @@ const VIEWS: { view: Mode; label: string }[] = [
 ];
 
 // The preview's elements as a list: select, hover-highlight, hide (where a show/hide setting exists) and reset a moved one.
-export function LayersPanel({ layout, selected, selection, locked, toggleSelect, toggleLock, valueOf, setValue, setLayoutVals, selectTarget, selectView, hoverElement, openLayerMenu }: {
+export function LayersPanel({ overlapping, layout, selected, selection, locked, toggleSelect, toggleLock, valueOf, setValue, setLayoutVals, selectTarget, selectView, hoverElement, openLayerMenu }: {
+  overlapping: string[];
   layout: OverlayLayout;
   selected: string;
   selection: string[];
@@ -99,6 +100,7 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
                   >
                     <Icon name={LAYER_KINDS[id]} className="text-gray-500 shrink-0" />
                     {LAYER_NAMES[id]}
+                    {overlapping.includes(id) && <Icon name="warning" className="text-fuchsia-400 shrink-0" title="Overlaps a Twitch zone (webcam, chat or alerts)" />}
                     {STYLE_KEYS[id]?.some(k => hasFx(valueOf(k))) && <FxBadge />}
                     {moved && <span role="img" aria-label="moved" title="Moved from its normal spot" className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />}
                   </button>
@@ -148,6 +150,7 @@ export function LayersPanel({ layout, selected, selection, locked, toggleSelect,
                   ) : <button type="button" onClick={() => { selectView(view); selectTarget(id); }} onDoubleClick={() => setRenaming(view + l.id)} title="Double-click to rename" aria-current={selected === id} className={`flex-1 min-w-0 flex items-center gap-2 px-2 py-1 text-left text-sm truncate ${l.visible ? 'text-gray-200' : 'text-gray-500 line-through'}`}>
                     <Icon name={l.kind === 'text' ? 'text' : l.kind === 'image' ? 'image' : 'stop'} className="text-gray-500 shrink-0" />
                     {l.name}
+                    {overlapping.includes(id) && <Icon name="warning" className="text-fuchsia-400 shrink-0" title="Overlaps a Twitch zone (webcam, chat or alerts)" />}
                     {l.band === 'back' && <span className="text-[10px] text-gray-500 shrink-0">behind</span>}
                   </button>}
                   <button type="button" onClick={() => setCustom(view, c => c.map(x => (x.id === l.id ? { ...x, visible: !x.visible } : x)), `${l.visible ? 'Hide' : 'Show'} ${l.name}`)} aria-pressed={!l.visible} aria-label={`Hide ${l.name}`} title={l.visible ? 'Hide' : 'Show'} className="px-1 text-gray-500 hover:text-white">
