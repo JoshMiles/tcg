@@ -214,7 +214,7 @@ const el = (kind: ElementKind, over: Partial<BackEl> = {}): BackEl => ({ id: kin
 export function upgradeCardBack(v1: CardBackV1): CardBackStyle {
   const inkOf = (c: string) => (c === 'auto' ? 'auto' : c);
   const own = (kind: Exclude<keyof CardBackV1['show'], never>, over: Partial<BackEl> = {}) => el(kind, { show: v1.show[kind], scale: SCALE[v1.size[kind]], color: inkOf(v1.text), fx: engrave, ...over });
-  const engrave: Effects = v1.text === 'auto' ? { engrave: true } : {};
+  const engrave: Effects = v1.text === 'auto' ? { bevel: { style: 'pressed', depth: 1 } } : {};
   const accent = v1.accent !== 'auto' ? v1.accent : v1.text !== 'auto' ? v1.text : 'auto';
   const elements: BackEl[] = [];
   if (v1.logo !== 'none') elements.push(el('logo', { src: v1.logo === 'url' ? 'url' : 'cover', url: v1.logo === 'url' ? v1.logoUrl : '', px: LOGO_PX[v1.logoSize] }));

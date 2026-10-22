@@ -24,17 +24,19 @@ export function parseTextShadow(css: unknown): TextShadow[] {
   return out;
 }
 
-/** "1.2px #000" -> the outline. */
-export function parseStroke(css: unknown): { width: number; color: string } | null {
+/** "1.2px #000" (and `paint-order`) -> the stroke; `stroke fill` paints it under the letters, so only its outer half shows. */
+export function parseStroke(css: unknown, paintOrder?: unknown): { width: number; color: string; outside: boolean } | null {
   if (typeof css !== 'string') return null;
   const m = new RegExp(String.raw`^\s*([\d.]+)px\s+(${COLOR})\s*$`).exec(css);
-  return m && Number(m[1]) > 0 ? { width: Number(m[1]), color: m[2] } : null;
+  return m && Number(m[1]) > 0 ? { width: Number(m[1]), color: m[2], outside: paintOrder === 'stroke fill' } : null;
 }
 
 /** "linear-gradient(90deg, #fff, #000)" -> the gradient text fill. */
 export function parseGradient(css: unknown): Gradient | null {
   if (typeof css !== 'string') return null;
-  const m = new RegExp(String.raw`^\s*linear-gradient\(\s*(-?[\d.]+)deg\s*,\s*(.+)\)\s*$`).exec(css);
+  // With a plate the value is two layers ("gradient, linear-gradient(plate, plate)"): the text fill is the first.
+  const first = /^\s*linear-gradient\((?:[^()]|\([^)]*\))*\)/.exec(css);
+  const m = first && new RegExp(String.raw`^\s*linear-gradient\(\s*(-?[\d.]+)deg\s*,\s*(.+)\)\s*$`).exec(first[0]);
   if (!m) return null;
   const stops = [...m[2].matchAll(new RegExp(String.raw`(${COLOR})(?:\s+([\d.]+)%)?`, 'g'))].map(x => ({ color: x[1], at: x[2] === undefined ? NaN : Number(x[2]) }));
   if (stops.length < 2 || stops.length > 4) return null;
@@ -68,8 +70,11 @@ export interface BackBox {
   gold?: boolean;
   opacity: number;
   shadows: TextShadow[];
-  stroke: { width: number; color: string } | null;
+  stroke: { width: number; color: string; outside: boolean } | null;
   gradient: Gradient | null;
+  /** An inner shadow, and the box behind the text (both px at the reference width). */
+  inner?: TextShadow;
+  plate?: BackNode['plate'];
 }
 
 const num = (v: unknown, d = 0): number => { const n = typeof v === 'number' ? v : parseFloat(String(v ?? '')); return Number.isFinite(n) ? n : d; };
@@ -107,10 +112,10 @@ export function placeBack(nodes: BackNode[], ref: { w: number; h: number } = CAN
     if (n.tag === 'empty') continue;
     const s = stackStyle(n);
     const ink = n.vars['--ink'] ?? n.vars['--accent-ink'] ?? s.ink;
-    const base = { id: n.id, kind: n.kind, mode: 'stack' as const, rotate: 0, x: padX, w: inner, opacity: s.opacity ?? 1, shadows: [] as TextShadow[], stroke: null, gradient: null as Gradient | null };
+    const base = { id: n.id, kind: n.kind, mode: 'stack' as const, rotate: 0, x: padX, w: inner, opacity: s.opacity ?? 1, shadows: [] as TextShadow[], stroke: null as BackBox['stroke'], gradient: null as Gradient | null };
     const family = typeof n.css.fontFamily === 'string' ? n.css.fontFamily : n.vars['--num-font'];
     const font = (size: number, extra: Partial<BackBox['font']> = {}): BackBox['font'] => ({ size, weight: s.weight, italic: !!s.italic, underline: !!s.underline, upper: !!s.upper, spacing: (s.spacingEm ?? 0) * size, align: 'center', lineHeight: s.lineHeight, ...(family ? { family } : {}), ...extra });
-    const extraFx = { shadows: parseTextShadow(n.css.textShadow), stroke: parseStroke(n.css.WebkitTextStroke), gradient: parseGradient(n.css.backgroundImage) };
+    const extraFx = { shadows: parseTextShadow(n.shadow ?? n.css.textShadow), stroke: parseStroke(n.css.WebkitTextStroke, n.css.paintOrder), gradient: parseGradient(n.css.backgroundImage), ...(n.inner ? { inner: n.inner } : {}) };
     if (n.tag === 'img' && n.src) {
       const px = num(n.vars['--logo-px'], 38);
       col.push({ gapBefore: 0, box: { ...base, type: 'img', src: n.src, y: 0, w: px, x: ref.w / 2 - px / 2, h: px + 4, font: font(10), color: ink, ...extraFx } });
@@ -160,7 +165,7 @@ function freeBox(n: BackNode, ref: { w: number; h: number }): BackBox | null {
   const lineHeight = num(css.lineHeight, 1.25);
   const common = {
     id: n.id, kind: n.kind, mode: 'free' as const, x: num(css.left), w, rotate: rot ? Number(rot[1]) : 0, opacity: num(css.opacity, 1),
-    shadows: parseTextShadow(css.textShadow), stroke: parseStroke(css.WebkitTextStroke), gradient: parseGradient(css.backgroundImage),
+    shadows: parseTextShadow(n.shadow ?? css.textShadow), stroke: parseStroke(css.WebkitTextStroke, css.paintOrder), gradient: parseGradient(css.backgroundImage), ...(n.inner ? { inner: n.inner } : {}), ...(n.plate ? { plate: n.plate } : {}),
     color: typeof css.color === 'string' && css.color !== 'transparent' ? css.color : '#1c1c24',
   };
   const font = {

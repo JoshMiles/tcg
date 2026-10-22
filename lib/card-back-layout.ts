@@ -31,7 +31,14 @@ export interface BackNode {
   spec?: TextSpec;
   /** Fonts this node needs loaded (curated ids with files). */
   font?: { id: string; weight: number; italic?: boolean };
+  /** The effects the canvas draws itself (px at this layout's card width). With an inner shadow the DOM draws every shadow in one SVG filter, so `shadow` keeps the plain text-shadow list for the canvas. */
+  inner?: Shade;
+  shadow?: string;
+  plate?: { color: string; radius: number; outline?: { color: string; width: number } };
 }
+
+/** A shadow in px: offset, blur radius, colour. */
+export interface Shade { x: number; y: number; blur: number; color: string }
 
 /** Text width at a 100 px font size with no letter spacing; auto-fit scales it to the box. */
 export type Measure = (text: string, face: { family: string; weight: number; italic: boolean; kerning?: boolean }) => number;
@@ -151,23 +158,76 @@ export function resolveTemplate(t: string, back: FlipBack, style: CardBackStyle)
   return t.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? '').replace(/[^\S\n]+/g, ' ').replace(/ ?\n ?/g, '\n').trim();
 }
 
-/** The CSS for an element's effects (outline, glow, shadow, engrave, gradient text) at a card width in px. */
-export function effectsCss(fx: Effects, hex: string, cardW: number): Record<string, string | number> {
+const f2 = (n: number) => Math.round(n * 100) / 100;
+const withOpacity = (c: string, o?: number) => {
+  if (o === undefined || o >= 1 || !/^#[0-9a-f]{6}$/i.test(c)) return c;
+  const n = parseInt(c.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${o})`;
+};
+
+/**
+ * An inner shadow and the drop shadows as a CSS `filter: url(...)` value. The drop shadows come along because a text-shadow would be
+ * seen by the inner shadow (it reads the element's alpha), and because a text-shadow is painted over a gradient fill (background-clip: text).
+ */
+function shadeFilter(inner: Shade | undefined, outer: Shade[]): string {
+  const sd = (b: number) => f2(b / 2);
+  let x = inner
+    ? '<feComponentTransfer in="SourceAlpha" result="inv"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer>'
+    + `<feOffset in="inv" dx="${inner.x}" dy="${inner.y}" result="o"/><feGaussianBlur in="o" stdDeviation="${sd(inner.blur)}" result="b"/>`
+    + `<feFlood flood-color="${inner.color}"/><feComposite in2="b" operator="in" result="s"/><feComposite in="s" in2="SourceAlpha" operator="in" result="ins"/>`
+    + '<feMerge result="body"><feMergeNode in="SourceGraphic"/><feMergeNode in="ins"/></feMerge>'
+    : '<feMerge result="body"><feMergeNode in="SourceGraphic"/></feMerge>';
+  outer.forEach((o, i) => { x += `<feGaussianBlur in="SourceAlpha" stdDeviation="${sd(o.blur)}"/><feOffset dx="${o.x}" dy="${o.y}" result="d${i}"/><feFlood flood-color="${o.color}"/><feComposite in2="d${i}" operator="in" result="g${i}"/>`; });
+  x += `<feMerge>${outer.map((_, i) => `<feMergeNode in="g${outer.length - 1 - i}"/>`).join('')}<feMergeNode in="body"/></feMerge>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg"><filter id="f" x="-10%" y="-60%" width="120%" height="220%" color-interpolation-filters="sRGB">${x}</filter></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}#f")`;
+}
+
+/** What an element's effects (stroke, glow, shadows, inner shadow, bevel, plate, gradient text) become at a card width in px: the CSS, plus what the canvas draws itself. */
+export function effectParts(fx: Effects, cardW: number): { css: Record<string, string | number>; inner?: Shade; shadow?: string; plate?: BackNode['plate'] } {
   const css: Record<string, string | number> = {};
-  const shadows: string[] = [];
-  const unit = cardW / 100;
-  if (fx.outline && fx.outline.width > 0) { css.WebkitTextStroke = `${Math.round(fx.outline.width * unit * 0.1 * 100) / 100}px ${fx.outline.color}`; css.paintOrder = 'stroke fill'; }
-  if (fx.glow) for (let i = 0; i < Math.ceil(fx.glow.strength); i++) shadows.push(`0 0 ${Math.round(fx.glow.blur * unit * 0.25 * 100) / 100}px ${fx.glow.color}`);
-  if (fx.shadow) shadows.push(`${Math.round(fx.shadow.x * unit * 0.25 * 100) / 100}px ${Math.round(fx.shadow.y * unit * 0.25 * 100) / 100}px ${Math.round(fx.shadow.blur * unit * 0.25 * 100) / 100}px ${fx.shadow.color}`);
-  if (fx.engrave) shadows.push('0 1px 0 rgba(255,255,255,.55)', '0 -1px 1px rgba(0,0,0,.4)');
-  if (shadows.length) css.textShadow = shadows.join(', ');
-  if (fx.gradientText) {
-    const g = fx.gradientText;
-    css.backgroundImage = `linear-gradient(${g.angle}deg, ${g.stops ? g.stops.map(x => `${x.color} ${x.at}%`).join(', ') : `${g.from}, ${g.to}`})`;
-    css.WebkitBackgroundClip = 'text'; css.backgroundClip = 'text'; css.color = 'transparent'; css.WebkitTextFillColor = 'transparent';
+  const outer: (Shade & { css: string })[] = [];
+  const unit = cardW / 100, k = unit * 0.25;
+  const on = (e?: { on?: false }) => !!e && e.on !== false;
+  const st = fx.stroke;
+  if (st && on(st) && st.width > 0) { css.WebkitTextStroke = `${f2(st.width * unit * 0.1)}px ${st.color}`; css.paintOrder = st.pos === 'center' ? 'normal' : 'stroke fill'; }
+  const gl = fx.glow;
+  if (gl && on(gl)) for (let i = 0; i < Math.ceil(gl.strength); i++) { const b = f2(gl.blur * k); outer.push({ x: 0, y: 0, blur: b, color: gl.color, css: `0 0 ${b}px ${gl.color}` }); }
+  for (const sh of fx.shadows ?? []) if (on(sh)) { const x = f2(sh.x * k), y = f2(sh.y * k), b = f2(sh.blur * k), c = withOpacity(sh.color, sh.opacity); outer.push({ x, y, blur: b, color: c, css: `${x}px ${y}px ${b}px ${c}` }); }
+  const bv = fx.bevel;
+  if (bv && on(bv)) {
+    const d = bv.depth, sg = bv.style === 'raised' ? -1 : 1, L = 'rgba(255,255,255,.55)', D = 'rgba(0,0,0,.4)';
+    outer.push({ x: 0, y: sg * d, blur: 0, color: L, css: `0 ${sg * d}px 0 ${L}` }, { x: 0, y: -sg * d, blur: d, color: D, css: `0 ${-sg * d}px ${d}px ${D}` });
   }
+  const out: ReturnType<typeof effectParts> = { css };
+  const inn = fx.inner;
+  const grad = !!fx.gradientText && on(fx.gradientText);
+  if (inn && on(inn)) out.inner = { x: f2(inn.x * k), y: f2(inn.y * k), blur: f2(inn.blur * k), color: withOpacity(inn.color, inn.opacity) };
+  if (out.inner || (grad && outer.length)) {
+    if (outer.length) out.shadow = outer.map(o => o.css).join(', ');
+    css.filter = shadeFilter(out.inner, outer);
+  } else if (outer.length) css.textShadow = outer.map(o => o.css).join(', ');
+  const pl = fx.plate, plateOn = !!pl && on(pl);
+  if (pl && plateOn) {
+    out.plate = { color: pl.color, radius: f2(pl.radius * unit), ...(pl.outline && pl.outline.width > 0 ? { outline: { color: pl.outline.color, width: f2(pl.outline.width * unit * 0.1) } } : {}) };
+    css.borderRadius = out.plate.radius;
+    if (out.plate.outline) css.boxShadow = `0 0 0 ${out.plate.outline.width}px ${out.plate.outline.color}`;
+  }
+  const g = fx.gradientText;
+  if (g && on(g)) {
+    const grad = `linear-gradient(${g.angle}deg, ${g.stops ? g.stops.map(x => `${x.color} ${x.at}%`).join(', ') : `${g.from}, ${g.to}`})`;
+    // The plate is its own background layer: background-clip: text would otherwise clip its colour to the letters too.
+    css.backgroundImage = plateOn ? `${grad}, linear-gradient(${pl!.color}, ${pl!.color})` : grad;
+    css.textShadow = 'none'; // the stylesheet's engraved highlight would be painted over the gradient and wash it out
+    css.WebkitBackgroundClip = plateOn ? 'text, border-box' : 'text'; css.backgroundClip = plateOn ? 'text, border-box' : 'text'; css.color = 'transparent'; css.WebkitTextFillColor = 'transparent';
+  } else if (plateOn) css.backgroundColor = pl!.color;
+  return out;
+}
+
+/** The CSS of an element's effects at a card width in px. */
+export function effectsCss(fx: Effects, hex: string, cardW: number): Record<string, string | number> {
   void hex;
-  return css;
+  return effectParts(fx, cardW).css;
 }
 
 /** The face a stacked line already has from the stylesheet. Anything else is written onto the node. */
@@ -223,18 +283,23 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       if (!c && !isFoot) return;
       const vars: Record<string, string> = {};
       let css: Record<string, string | number> = {};
+      let inner: Shade | undefined, shadow: string | undefined;
       if (c) {
         const textual = e.kind !== 'qr' && e.kind !== 'logo';
         const ink = e.color === 'auto' ? null : hexOr(e.color, rarity, AUTO_INK);
         if (textual && ink && !(e.kind === 'number' && c.cls?.includes('gold'))) vars[e.kind === 'brand' || e.kind === 'link' ? '--accent-ink' : '--ink'] = ink;
-        if (textual && !e.fx.engrave) vars['--ink-shadow'] = 'none';
-        const { engrave: _g, ...extra } = e.fx; void _g;
-        if (Object.keys(extra).length) css = effectsCss(extra, rarity, size.w);
+        // A pressed bevel at depth 1 is the plate's own ink shadow (the stylesheet draws it); any other bevel, or an inner shadow, is written out.
+        const bv = e.fx.bevel, std = !!bv && bv.on !== false && bv.style === 'pressed' && bv.depth === 1 && !e.fx.inner;
+        if (textual && !std) vars['--ink-shadow'] = 'none';
+        const { plate: _p, ...rest } = e.fx; void _p;
+        const { bevel: _b, ...extra } = rest; void _b;
+        const parts = effectParts(std ? extra : rest, size.w);
+        css = parts.css; inner = parts.inner; shadow = parts.shadow;
         if (e.scale !== 1 && ['number', 'edition', 'name', 'date', 'origin', 'history', 'qr', 'brand'].includes(e.kind)) vars[`--k-${e.kind}`] = String(e.scale);
         if (e.kind === 'logo') vars['--logo-px'] = `${e.px}px`;
       }
       const font = c ? stackFace(e, vars, css) : undefined;
-      stack.push({ id: e.id, kind: e.kind, mode: 'stack', tag: c?.tag ?? 'empty', cls: c?.cls ?? '', ...c, vars, css, ...(font ? { font } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}) });
+      stack.push({ id: e.id, kind: e.kind, mode: 'stack', tag: c?.tag ?? 'empty', cls: c?.cls ?? '', ...c, vars, css, ...(inner ? { inner } : {}), ...(shadow ? { shadow } : {}), ...(font ? { font } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}) });
       return;
     }
     // Free: a box placed in percent of the card.
@@ -266,8 +331,9 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
       if (kase === 'lower') c.text = c.text?.toLowerCase();
       else if (kase === 'title') c.text = c.text ? titleCase(c.text) : c.text;
       if (f.files) font = { id: f.id, weight: e.weight, ...(e.italic ? { italic: true } : {}) };
-      const pad = ((e.pad ?? 0) / 100) * size.w;
-      if (c.tag === 'p' && c.text && (e.fit || e.wrap === false || e.maxLines || e.h || e.indent || e.paraGap || e.align === 'justify' || e.pad || kase === 'smallcaps' || c.text.includes('\n'))) {
+      const plate = e.fx.plate && e.fx.plate.on !== false ? e.fx.plate : undefined;
+      const pad = (((e.pad ?? 0) + (plate?.pad ?? 0)) / 100) * size.w;
+      if (c.tag === 'p' && c.text && (e.fit || e.wrap === false || e.maxLines || e.h || e.indent || e.paraGap || e.align === 'justify' || e.pad || plate || kase === 'smallcaps' || c.text.includes('\n'))) {
         spec = {
           text: c.text, size: Number(css.fontSize), minPx: ((e.minSize ?? DEFAULT_MIN_SIZE) / 100) * size.w, maxPx: 0.3 * size.w, fit: e.fit ?? null,
           boxW: Math.round((w - 2 * pad) * 100) / 100, boxH: e.h ? Math.round(((e.h / 100) * size.h - 2 * pad) * 100) / 100 : 0,
@@ -285,10 +351,16 @@ export function layoutBack(style: CardBackStyle, back: FlipBack, size: { w: numb
     } else {
       css.height = e.kind === 'qr' ? Math.round(w * 100) / 100 : 'auto';
     }
-    const fxCss = effectsCss(e.fx, rarity, size.w);
-    if (e.kind === 'qr' || e.kind === 'logo') { delete fxCss.WebkitTextStroke; delete fxCss.paintOrder; delete fxCss.textShadow; if (e.fx.glow || e.fx.shadow || e.fx.outline) css.filter = [e.fx.outline ? `drop-shadow(0 0 1px ${e.fx.outline.color})` : '', e.fx.glow ? `drop-shadow(0 0 ${e.fx.glow.blur / 4}px ${e.fx.glow.color})` : '', e.fx.shadow ? `drop-shadow(${e.fx.shadow.x / 4}px ${e.fx.shadow.y / 4}px ${e.fx.shadow.blur / 4}px ${e.fx.shadow.color})` : ''].filter(Boolean).join(' '); }
+    const textual = e.kind !== 'qr' && e.kind !== 'logo';
+    const parts = effectParts(textual ? e.fx : { gradientText: e.fx.gradientText }, size.w);
+    const fxCss = parts.css;
+    if (!textual) {
+      const on = (v?: { on?: false }) => !!v && v.on !== false;
+      const dl = [on(e.fx.stroke) ? `drop-shadow(0 0 1px ${e.fx.stroke!.color})` : '', on(e.fx.glow) ? `drop-shadow(0 0 ${e.fx.glow!.blur / 4}px ${e.fx.glow!.color})` : '', ...(e.fx.shadows ?? []).filter(on).map(h => `drop-shadow(${h.x / 4}px ${h.y / 4}px ${h.blur / 4}px ${h.color})`)].filter(Boolean);
+      if (dl.length) css.filter = dl.join(' ');
+    }
     Object.assign(css, fxCss);
-    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(spec ? { spec, lines } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
+    free.push({ id: e.id, kind: e.kind, mode: 'free', tag: c.tag ?? 'p', cls: '', ...c, vars: {}, css, ...(font ? { font } : {}), ...(spec ? { spec, lines } : {}), ...(parts.inner ? { inner: parts.inner } : {}), ...(parts.shadow ? { shadow: parts.shadow } : {}), ...(parts.plate ? { plate: parts.plate } : {}), ...(e.kind === 'qr' && e.dark !== 'auto' ? { dark: e.dark } : {}), ...(e.kind === 'qr' && e.light !== 'auto' ? { light: e.light } : {}), z: e.z, order });
   });
   free.sort((a, b) => a.z - b.z || a.order - b.order);
   return [...stack, ...free.map(({ z: _z, order: _o, ...n }) => { void _z; void _o; return n; })];

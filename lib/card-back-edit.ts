@@ -162,7 +162,7 @@ export const EDITOR_PRESETS: { id: string; label: string; style: CardBackStyle }
     id: 'poster', label: 'Poster',
     style: sanitizeCardBack({ v: 2, background: 'solid', bg1: '#14121f', pattern: 'rays', patternColor: '#fbbf24', patternOpacity: 0.12, edge: 'rarity', align: 'middle', elements: [
       { id: 'number', kind: 'number', place: 'free', x: 50, y: 50, w: 90, size: 20, font: 'bebas', weight: 400, color: '#fde68a', fx: { glow: { color: '#f59e0b', blur: 14, strength: 1 } } },
-      freeText('text-1', { x: 50, y: 22, w: 84, size: 9, font: 'bangers', weight: 400, text: '{card}', color: 'rarity', rotate: -4, fx: { outline: { color: '#000000', width: 3 } } }),
+      freeText('text-1', { x: 50, y: 22, w: 84, size: 9, font: 'bangers', weight: 400, text: '{card}', color: 'rarity', rotate: -4, fx: { stroke: { color: '#000000', width: 3, pos: 'outside' } } }),
       { id: 'edition', kind: 'edition', place: 'free', x: 50, y: 66, w: 80, size: 5, font: 'orbitron', weight: 700, uppercase: true, letterSpacing: 2, color: '#f9fafb' },
       { id: 'brand', kind: 'brand', place: 'free', x: 50, y: 92, w: 80, size: 3.4, font: 'body', weight: 800, uppercase: true, letterSpacing: 4, color: '#fde68a' },
       { id: 'qr', kind: 'qr', place: 'free', x: 86, y: 86, w: 14, dark: '#14121f', light: '#fde68a' },
