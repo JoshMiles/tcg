@@ -113,7 +113,7 @@ export default async function HomePage() {
           </div>
 
           <div className="hidden md:flex justify-center">
-            <img src="/brand/icon-380.png" alt="The Cheesy TCG mascot sipping a hot drink" width={190} height={190} className="cheese-float rounded-4xl ring-2 ring-yellow-500/50 shadow-glow" />
+            <img src="/brand/icon-small.png" alt="The Cheesy TCG mascot sipping a hot drink" width={190} height={190} className="cheese-float rounded-4xl ring-2 ring-yellow-500/50 shadow-glow" />
           </div>
         </div>
         </div>
