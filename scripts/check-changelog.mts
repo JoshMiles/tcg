@@ -23,7 +23,7 @@ ok(!hasUnseenChanges(newest, newest), 'the dot is gone once the newest entry is 
 ok(!hasUnseenChanges(null, ''), 'no entries, no dot');
 
 // ---- built from PR descriptions (ROADMAP 21.1): parser, no network ----
-import { buildEntries, entryFromPr, parseChangelogBody, MAX_ITEM_LENGTH } from './changelog-parse.mjs';
+import { buildEntries, entryFromPr, parseChangelogBody, prBodyProblems, MAX_ITEM_LENGTH } from './changelog-parse.mjs';
 
 const ROBOT = String.fromCodePoint(0x1f916);
 const EM = String.fromCharCode(8212);
@@ -131,4 +131,30 @@ ok(built.entries.every(e => !leak(e) && ![e.title, ...e.items].join('').includes
 // whatever the build wrote (the committed state is empty) must be clean too
 ok(CHANGELOG.filter(e => e.pr !== undefined).every(e => !leak(e)), 'generated entries on disk never mention Claude');
 
+// ---- PR body must follow the template (prBodyProblems) ----
+const body = (cl: string, rest = '## Summary\nWhat changed.\n\n## Test plan\n- [x] verify\n') => `## Changelog\n${cl}\n\n${rest}`;
+const good = 'Audience: players\nTitle: A title\nTags: new, fixed\n- Players can do a thing.';
+const template = ['## Changelog', '<!-- hint -->', 'Audience: players', 'Title: ', 'Tags: new', '- ', '', '## Summary', '', '', '## Test plan', ''].join('\n');
+const bad = (b: string, re: RegExp, msg: string) => ok(prBodyProblems(b, '').some(p => re.test(p)), msg);
+ok(prBodyProblems(body(good) + '\n' + ROBOT + ' Generated with a tool', '').length === 0, 'a correct body (with a footer after Test plan) passes');
+ok(prBodyProblems(body('Audience: admin, mod\nTags: improved\n- Text.'), '').length === 0, 'Title is optional');
+ok(prBodyProblems(body('None (internal)'), '').length === 0, 'none passes');
+ok(prBodyProblems(body('none'), 'ROADMAP 1: plan').length === 0, 'none passes for a ROADMAP PR');
+bad(template, /empty "- " bullet/, 'the unfilled template fails on its bare bullet');
+bad(template, /"## Summary" is empty/, 'the unfilled template fails on its empty Summary');
+bad('## Summary\nx\n\n## Changelog\nnone\n\n## Test plan\nx', /Headings must be/, 'wrong heading order fails');
+bad(body(good, '## Summary\nx\n'), /Headings must be/, 'a missing Test plan fails');
+bad(body(good, '## Summary\nx\n\n## Test plan\nx\n\n## Notes\nx'), /Headings must be/, 'an extra ## heading fails');
+bad(body('Audience: players\nTags: new\nSome prose.\n- Text.'), /not a bullet/, 'prose in Changelog fails');
+bad(body('Audience: mods and wizards\nTags: new\n- Text.'), /Unknown audience: wizards/, 'unknown audience fails');
+bad(body('Audience: players\nTags: new, big\n- Text.'), /Unknown tag: big/, 'unknown tag fails');
+bad(body('Audience: players\n- Text.'), /Tags:/, 'missing Tags fails');
+bad(body('Audience: players\nTitle:\nTags: new\n- Text.'), /Title:" is empty/, 'an empty Title line fails');
+bad(body('Audience: players\nTags: new\n- Text ' + EM + ' more.'), /em dash/, 'an em dash in a bullet fails');
+bad(body('Audience: players\nTags: new\n- Made with Claude.'), /tool or author/, 'a credit in a bullet fails');
+bad(body(good, '## Summary\n\n## Test plan\nx'), /"## Summary" is empty/, 'an empty Summary fails');
+// PR #386 as it was written: Summary first, prose instead of a bullet
+const pr386 = '## Summary\n- Text tool.\n\n## Changelog\nAudience: admin\nTags: new\nThe Overlay Editor has a Text tool: click or drag.\n\n## Test plan\n- [x] npm run verify';
+bad(pr386, /Headings must be/, '#386 fails on heading order');
+bad(pr386, /not a bullet/, '#386 fails on its prose changelog');
 console.log('changelog checks passed');

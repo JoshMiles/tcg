@@ -138,3 +138,85 @@ export function buildEntries(prs, since = '') {
   entries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.pr - a.pr));
   return { entries, problems };
 }
+
+const AUDIENCE_WORDS = ['both', 'all', 'everyone', 'admin', 'admins', 'staff', 'mod', 'mods', 'moderators', 'players', 'player', 'public', 'viewers'];
+const REQUIRED_HEADINGS = ['Changelog', 'Summary', 'Test plan'];
+
+/**
+ * Everything wrong with a PR body against .github/pull_request_template.md (empty list = fine). Stricter than parseChangelogBody, which
+ * quietly drops what it can't read: here a body that would lose its changelog text fails instead. `title` is unused today (ROADMAP PRs
+ * follow the same rules, and may write "none"); kept so callers pass what they have.
+ */
+export function prBodyProblems(body, title) {
+  let text = String(body ?? '');
+  for (let prev = null; prev !== text;) { prev = text; text = text.replace(/<!--[\s\S]*?-->/g, ''); }
+  const lines = text.split(/\r?\n/);
+  const problems = [];
+
+  // Split into level-2 sections. Text before the first heading and after Test plan (the attribution footer) is not checked.
+  const sections = [];
+  for (const line of lines) {
+    const h = /^##\s+(.*?)\s*$/.exec(line);
+    if (h && !line.startsWith('###')) sections.push({ name: h[1], lines: [] });
+    else if (sections.length) sections[sections.length - 1].lines.push(line);
+  }
+  const names = sections.map(s => s.name);
+  if (names.join('|') !== REQUIRED_HEADINGS.join('|')) {
+    problems.push(`Headings must be exactly "## Changelog", "## Summary", "## Test plan" once each, in that order; found: ${names.map(n => `"## ${n}"`).join(', ') || 'none'}.`);
+  }
+  const content = (name) => (sections.find(s => s.name === name)?.lines ?? []).map(l => l.trimEnd()).filter(l => l.trim() !== '');
+
+  const log = content('Changelog');
+  if (sections.some(s => s.name === 'Changelog')) {
+    if (log.length === 0) problems.push('Changelog is empty: write "none" or fill in Audience, Tags and bullets.');
+    else if (/^none\b/i.test(log[0].trim())) {
+      if (log.length > 1) problems.push('Changelog starts with "none" but has more lines; keep only the "none" line.');
+    } else problems.push(...changelogProblems(log));
+  }
+  for (const name of ['Summary', 'Test plan']) {
+    if (sections.some(s => s.name === name) && content(name).length === 0) problems.push(`"## ${name}" is empty.`);
+  }
+  return problems;
+}
+
+/** Problems in a filled-in (not "none") Changelog section: Audience, optional Title, Tags, then only real bullets. */
+function changelogProblems(log) {
+  const problems = [];
+  const lines = log.map(l => l.trim());
+  let i = 0;
+  const audience = /^audience:\s*(.*)$/i.exec(lines[i] ?? '');
+  if (!audience) problems.push('Changelog must start with an "Audience:" line (players, admin, mod, staff or all).');
+  else {
+    i++;
+    const words = audience[1].toLowerCase().split(/[\s,/+&]+|\band\b/).filter(Boolean);
+    const unknown = words.filter(w => !AUDIENCE_WORDS.includes(w));
+    if (words.length === 0) problems.push('"Audience:" is empty.');
+    if (unknown.length) problems.push(`Unknown audience: ${unknown.join(', ')}. Use players, admin, mod, staff or all.`);
+  }
+  const title = /^title:\s*(.*)$/i.exec(lines[i] ?? '');
+  if (title) {
+    i++;
+    if (!title[1].trim()) problems.push('"Title:" is empty: fill it in or delete the line.');
+    else if (title[1].includes(EM_DASH)) problems.push('Title has an em dash.');
+  }
+  const tags = /^tags:\s*(.*)$/i.exec(lines[i] ?? '');
+  if (!tags) problems.push('Changelog needs a "Tags:" line (new, improved, fixed) after Audience and the optional Title.');
+  else {
+    i++;
+    const words = tags[1].toLowerCase().split(/[\s,]+/).filter(Boolean);
+    const unknown = words.filter(w => !TAGS.includes(w));
+    if (words.length === 0) problems.push('"Tags:" is empty: use new, improved and/or fixed.');
+    if (unknown.length) problems.push(`Unknown tag: ${unknown.join(', ')}. Use new, improved or fixed.`);
+  }
+  const rest = lines.slice(i);
+  if (!rest.some(l => /^-\s+\S/.test(l))) problems.push('Changelog needs at least one "- " bullet with text.');
+  for (const l of rest) {
+    if (/^-\s*$/.test(l)) problems.push('Changelog has an empty "- " bullet (the template\'s placeholder): fill it in or remove it.');
+    else if (!/^-\s/.test(l)) problems.push(`Changelog line is not a bullet and would be dropped from What's new: "${l.slice(0, 60)}".`);
+    else {
+      if (l.includes(EM_DASH)) problems.push(`Bullet has an em dash: "${l.slice(0, 60)}".`);
+      if (BANNED.test(l)) problems.push(`Bullet names a tool or author (not allowed): "${l.slice(0, 60)}".`);
+    }
+  }
+  return problems;
+}
