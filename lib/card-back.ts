@@ -12,6 +12,9 @@ import {
 
 export { ALIGNS, BACKGROUNDS, PATTERNS, SIZES, type BackSize };
 import type { Blend } from './card-back-patterns';
+import { TEXT_ALIGNS, WEIGHTS, WEIGHT_NAMES, clamp, hex, isRec, pick, r2, sanitizeTextStyle, type Effects, type TextStyle } from './text-style';
+
+export { TEXT_ALIGNS, WEIGHTS, WEIGHT_NAMES, type Effects };
 
 export const ELEMENT_KINDS = ['number', 'edition', 'name', 'date', 'origin', 'history', 'qr', 'logo', 'brand', 'link', 'text'] as const;
 export type ElementKind = (typeof ELEMENT_KINDS)[number];
@@ -91,22 +94,9 @@ export const BACK_FONTS: BackFont[] = BACK_FONT_DEFS.map(({ file, ...d }) => (fi
 export const FONT_IDS = BACK_FONTS.map(f => f.id);
 export const fontCss = (id: string) => (BACK_FONTS.find(f => f.id === id) ?? BACK_FONTS[0]).css;
 
-export const WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900] as const;
-export const WEIGHT_NAMES: Record<number, string> = { 100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black' };
 /** The weight a font really has that is nearest to `want` (a saved weight the font lacks snaps to it). */
 export const nearestWeight = (f: BackFont, want: number) => f.weights.reduce((best, n) => (Math.abs(n - want) < Math.abs(best - want) ? n : best), f.weights[0]);
-export const TEXT_ALIGNS = ['left', 'center', 'right'] as const;
-
-export interface Effects {
-  outline?: { color: string; width: number };
-  glow?: { color: string; blur: number; strength: number };
-  shadow?: { color: string; x: number; y: number; blur: number };
-  /** Today's pressed-into-metal look (light and dark edges). */
-  engrave?: boolean;
-  gradientText?: { from: string; to: string; angle: number };
-}
-
-export interface BackEl {
+export interface BackEl extends TextStyle {
   id: string;
   kind: ElementKind;
   show: boolean;
@@ -115,13 +105,6 @@ export interface BackEl {
   x: number; y: number; w: number; rotate: number; z: number; locked: boolean;
   /** Stack elements: 0.8 / 1 / 1.25 (S / M / L). Free text: size in % of the card width. */
   scale: number;
-  size: number;
-  font: string; weight: number; italic: boolean; underline: boolean; uppercase: boolean; letterSpacing: number; lineHeight: number;
-  align: (typeof TEXT_ALIGNS)[number];
-  /** A hex colour, `rarity` (the card's rarity colour) or `auto` (the plate's engraved ink). */
-  color: string;
-  opacity: number;
-  fx: Effects;
   /** Text boxes: the template ({pack} {season} {card} {version} {edition} {printNumber} {holder} {date}). */
   text: string;
   /** Logo: where the image comes from, its address and its size in px (stack). */
@@ -152,22 +135,6 @@ export interface CardBackStyle {
 
 // ── Sanitising ───────────────────────────────────────────
 
-const HEX = /^#[0-9a-fA-F]{6}$/;
-const SHORT_HEX = /^#[0-9a-fA-F]{3}$/;
-const isRec = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
-const clamp = (v: unknown, lo: number, hi: number, fb: number) => { const n = typeof v === 'number' ? v : Number(v); return Number.isFinite(n) && v !== '' && v !== null ? Math.min(hi, Math.max(lo, n)) : fb; };
-const r2 = (n: number) => Math.round(n * 100) / 100;
-
-function hex(v: unknown, fb: string, ...allow: string[]): string {
-  if (typeof v !== 'string') return fb;
-  const s = v.trim();
-  if (allow.includes(s)) return s;
-  if (HEX.test(s)) return s.toLowerCase();
-  if (SHORT_HEX.test(s)) return `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`.toLowerCase();
-  return fb;
-}
-const pick = <T extends string | number>(v: unknown, all: readonly T[], fb: T): T => (all as readonly unknown[]).includes(v) ? (v as T) : fb;
-
 /** Only http(s) and site-relative image addresses; anything else (javascript:, data:, quotes that could end a CSS url()) is dropped. */
 export function safeUrl(v: unknown): string {
   if (typeof v !== 'string') return '';
@@ -177,17 +144,6 @@ export function safeUrl(v: unknown): string {
 }
 
 const cleanText = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max) : '');
-
-function sanitizeFx(v: unknown): Effects {
-  const o = isRec(v) ? v : {};
-  const fx: Effects = {};
-  if (isRec(o.outline)) fx.outline = { color: hex(o.outline.color, '#000000'), width: r2(clamp(o.outline.width, 0, 10, 1)) };
-  if (isRec(o.glow)) fx.glow = { color: hex(o.glow.color, '#ffffff'), blur: r2(clamp(o.glow.blur, 0, 40, 8)), strength: r2(clamp(o.glow.strength, 0, 3, 1)) };
-  if (isRec(o.shadow)) fx.shadow = { color: hex(o.shadow.color, '#000000'), x: r2(clamp(o.shadow.x, -20, 20, 0)), y: r2(clamp(o.shadow.y, -20, 20, 2)), blur: r2(clamp(o.shadow.blur, 0, 30, 4)) };
-  if (o.engrave === true) fx.engrave = true;
-  if (isRec(o.gradientText)) fx.gradientText = { from: hex(o.gradientText.from, '#fde68a'), to: hex(o.gradientText.to, '#f59e0b'), angle: Math.round(((clamp(o.gradientText.angle, -100000, 100000, 180) % 360) + 360) % 360) };
-  return fx;
-}
 
 const BASE_EL: Omit<BackEl, 'id' | 'kind'> = {
   show: true, place: 'stack', x: 50, y: 50, w: 80, rotate: 0, z: 0, locked: false, scale: 1, size: 8,
@@ -207,10 +163,7 @@ function sanitizeEl(raw: unknown, i: number, taken: Set<string>): BackEl | null 
     id, kind, show: raw.show !== false, place: raw.place === 'free' ? 'free' : 'stack',
     x: r2(clamp(raw.x, 0, 100, 50)), y: r2(clamp(raw.y, 0, 100, 50)), w: r2(clamp(raw.w, 10, 100, 80)), rotate: r2(clamp(raw.rotate, -45, 45, 0)),
     z: Math.round(clamp(raw.z, -50, 50, 0)), locked: raw.locked === true,
-    scale: r2(clamp(raw.scale, 0.5, 2, 1)), size: r2(clamp(raw.size, 2, 30, 8)),
-    font: pick(raw.font, FONT_IDS, 'body'), weight: pick(raw.weight, WEIGHTS, 400), italic: raw.italic === true, underline: raw.underline === true, uppercase: raw.uppercase === true,
-    letterSpacing: r2(clamp(raw.letterSpacing, -2, 20, 0)), lineHeight: r2(clamp(raw.lineHeight, 0.8, 2.5, 1.25)), align: pick(raw.align, TEXT_ALIGNS, 'center'),
-    color: hex(raw.color, 'auto', 'auto', 'rarity'), opacity: r2(clamp(raw.opacity, 0, 1, 1)), fx: sanitizeFx(raw.fx),
+    scale: r2(clamp(raw.scale, 0.5, 2, 1)), ...sanitizeTextStyle(raw, FONT_IDS),
     text: kind === 'text' ? cleanText(raw.text, MAX_TEXT) : '', src: src === 'url' && !url ? 'cover' : src, url, px: Math.round(clamp(raw.px, 10, 120, 38)),
     dark: hex(raw.dark, 'auto', 'auto'), light: hex(raw.light, 'auto', 'auto'),
   };
