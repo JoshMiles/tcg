@@ -160,10 +160,37 @@ export function toolBox(kind: CustomKind, x0: number, y0: number, x1: number, y1
   return { x: Math.round(Math.min(x0, x1)), y: Math.round(Math.min(y0, y1)), w: Math.round(Math.max(20, Math.abs(x1 - x0))), h: Math.round(Math.max(20, Math.abs(y1 - y0))) };
 }
 
+const freeNumber = (kind: CustomKind, taken: string[]) => { let n = 1; while (taken.includes(`${kind}${n}`)) n++; return n; };
+
+/** Copies of `layers` with fresh ids, each moved by `by` px; null when the view could not hold them (MAX_CUSTOM). */
+function cloneInto(list: CustomLayer[], layers: CustomLayer[], by: number, name: (l: CustomLayer) => string): CustomLayer[] | null {
+  if (!layers.length || list.length + layers.length > MAX_CUSTOM) return null;
+  const taken = list.map(l => l.id);
+  return layers.map(l => {
+    const id = `${l.kind}${freeNumber(l.kind, taken)}`;
+    taken.push(id);
+    return { ...l, id, name: name(l).slice(0, 40), x: l.x + by, y: l.y + by };
+  });
+}
+
+/** Layer `id` copied just above itself (same band), named "<name> copy" and moved 20 px; null when missing or the view is full. */
+export function duplicateCustom(list: CustomLayer[], id: string): { list: CustomLayer[]; added: CustomLayer } | null {
+  const i = list.findIndex(l => l.id === id);
+  const [added] = (i < 0 ? null : cloneInto(list, [list[i]], 20, l => `${l.name} copy`)) ?? [];
+  if (!added) return null;
+  return { list: [...list.slice(0, i + 1), added, ...list.slice(i + 1)], added };
+}
+
+/** `layers` (from the editor's clipboard) pasted on top of `list` with fresh ids; moved 20 px when a layer already sits exactly there. Null when it will not fit. */
+export function pasteCustom(list: CustomLayer[], layers: CustomLayer[]): { list: CustomLayer[]; added: CustomLayer[] } | null {
+  const here = (l: CustomLayer) => list.some(o => o.x === l.x && o.y === l.y && o.w === l.w && o.h === l.h);
+  const added = cloneInto(list, layers, layers.some(here) ? 20 : 0, l => l.name);
+  return added && { list: [...list, ...added], added };
+}
+
 /** A new layer of `kind` with defaults, centred on a stage of width x height (or at `box`), with an id not in `taken`. */
 export function newCustom(kind: CustomKind, taken: string[], width: number, height: number, box?: { x: number; y: number; w?: number; h?: number }): CustomLayer {
-  let n = 1;
-  while (taken.includes(`${kind}${n}`)) n++;
+  const n = freeNumber(kind, taken);
   const [w, h] = DEFAULT_SIZE[kind];
   const at = { id: `${kind}${n}`, x: box ? box.x : Math.round((width - w) / 2), y: box ? box.y : Math.round((height - h) / 2), w: box?.w ?? w, h: box?.h ?? h };
   return sanitizeCustom([{ ...at, kind, name: `${KIND_LABEL[kind]} ${n}`, ...(kind === 'text' ? { text: 'New text' } : kind === 'image' ? { url: '' } : { fill: { type: 'solid', color: '#facc15' } }) }], width, height)[0];

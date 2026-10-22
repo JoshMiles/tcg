@@ -5,7 +5,7 @@ import { useOverlayEditor } from './OverlayEditorContext';
 
 // The right-click menu on a layer (a preview part, a Layers row or a view heading).
 export function LayerMenu() {
-  const { layerMenu, closeLayerMenu, resetLayer, centerLayer, copyLayerToScenes, sceneCount, locked, toggleLock } = useOverlayEditor();
+  const { layerMenu, closeLayerMenu, resetLayer, centerLayer, copyLayerToScenes, sceneCount, locked, toggleLock, duplicateSelected, copySelected, pasteClip, hasClip } = useOverlayEditor();
   useEffect(() => {
     if (!layerMenu) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeLayerMenu();
@@ -14,7 +14,11 @@ export function LayerMenu() {
   }, [layerMenu, closeLayerMenu]);
   if (!layerMenu) return null;
   const { view, id, x, y } = layerMenu;
-  const items: { label: string; icon: IconName; run: () => void }[] = [
+  const items: { label: string; icon: IconName; run: () => void }[] = id?.startsWith('custom:') ? [
+    { label: 'Duplicate (Ctrl+J)', icon: 'copy', run: duplicateSelected },
+    { label: 'Copy (Ctrl+C)', icon: 'copy', run: copySelected },
+    ...(hasClip ? [{ label: 'Paste (Ctrl+V)', icon: 'copy' as IconName, run: pasteClip }] : []),
+  ] : [
     { label: 'Reset position', icon: 'undo', run: () => resetLayer(view, id) },
     ...(id ? [{ label: locked.includes(id) ? 'Unlock' : 'Lock', icon: (locked.includes(id) ? 'unlock' : 'lock') as IconName, run: () => toggleLock([id]) }] : []),
     // A part's offset is relative to its normal spot, so only a whole view has a meaningful "centre".

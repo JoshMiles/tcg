@@ -28,7 +28,7 @@ import {
   type VariantId,
 } from '@/lib/overlay-props';
 import { DEFAULT_LAYOUT, sanitizeLayout, alignOffsets, distributeOffsets, type AlignMode, type DesignBox, type ElementId, type ElementPlacement, type OverlayLayout, type Placement } from '@/lib/overlay-layout';
-import { MAX_CUSTOM, newCustom, stepCustom, type CustomKind, type CustomLayer } from '@/lib/overlay-custom';
+import { MAX_CUSTOM, duplicateCustom, newCustom, pasteCustom, stepCustom, type CustomKind, type CustomLayer } from '@/lib/overlay-custom';
 import { diffLayout, diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { mergeTextPatch, type TextPatch } from '@/lib/overlay-text-style';
 import {
@@ -190,6 +190,11 @@ export interface OverlayEditorContextValue {
   centerLayer: (view: Mode) => void;
   copyLayerToScenes: (view: Mode, id: string | null) => void;
   sceneCount: number;
+  /** Custom layers (38.7 f): duplicate the selected one, copy the selected ones, paste into the current view. */
+  duplicateSelected: () => void;
+  copySelected: () => void;
+  pasteClip: () => void;
+  hasClip: boolean;
   layoutOf: (k: string) => OverlayLayout;
 
   // Navigation & Category
@@ -455,6 +460,7 @@ export function OverlayEditorProvider({
   }, [locked]); // eslint-disable-line react-hooks/exhaustive-deps
   const toggleLock = (ids: string[]) => setLocked(l => (ids.every(i => l.includes(i)) ? l.filter(i => !ids.includes(i)) : [...new Set([...l, ...ids])]));
   const [layerMenu, setLayerMenu] = useState<LayerMenuState | null>(null);
+  const [clip, setClip] = useState<CustomLayer[]>([]);
 
   const [zoom, setZoom] = useState(1);
   const [tool, setTool] = useState<Tool>('move');
@@ -1125,6 +1131,51 @@ export function OverlayEditorProvider({
     if (kind === 'text') setFocusText(layer.id);
   };
 
+  const duplicateSelected = () => {
+    const c = isPack ? null : customOf(selected);
+    if (!c) return;
+    const r = duplicateCustom(layout[c.view].custom ?? [], c.l.id);
+    if (!r) { setNotice(`A view holds at most ${MAX_CUSTOM} layers. Delete one first.`); return; }
+    setLayoutVals(l => ({ ...l, [c.view]: { ...l[c.view], custom: r.list } }), `Duplicate ${c.l.name}`);
+    selectTarget(`custom:${r.added.id}`);
+  };
+  const copySelected = () => {
+    const first = isPack ? null : customOf(selected);
+    if (!first) return;
+    const ids = new Set((selection.length > 1 ? selection : [selected]).filter(t => t.startsWith('custom:')));
+    const layers = (layout[first.view].custom ?? []).filter(l => ids.has(`custom:${l.id}`));
+    setClip(layers);
+    setNotice(`Copied ${layers.length === 1 ? layers[0].name : `${layers.length} layers`}. Paste with Ctrl+V in any view or scene.`);
+  };
+  const pasteClip = () => {
+    if (isPack || !clip.length) return;
+    const view = mode;
+    const r = pasteCustom(layout[view].custom ?? [], clip);
+    if (!r) { setNotice(`A view holds at most ${MAX_CUSTOM} layers. Delete some first.`); return; }
+    setLayoutVals(l => ({ ...l, [view]: { ...l[view], custom: r.list } }), `Paste ${r.added.length === 1 ? r.added[0].name : `${r.added.length} layers`}`);
+    selectTarget(`custom:${r.added[r.added.length - 1].id}`);
+  };
+
+  // Side-handle resize: the dragged edge follows the pointer (dx / dy are the pointer's travel in design px), the opposite edge stays put, along the layer's own turn.
+  const sideTo = (target: string, edge: string, dx: number, dy: number) => {
+    const cu = isPack ? null : customOf(target);
+    const c = cu && beginCustom(target, 'Resize');
+    if (!cu || !c) return;
+    const a = (cu.l.rotate * Math.PI) / 180, cs = Math.cos(a), sn = Math.sin(a);
+    const ex = dx * cs + dy * sn, ey = -dx * sn + dy * cs;
+    const { x, y, w, h } = c.box;
+    const nw = edge === 'e' ? Math.max(20, w + ex) : edge === 'w' ? Math.max(20, w - ex) : w;
+    const nh = edge === 's' ? Math.max(20, h + ey) : edge === 'n' ? Math.max(20, h - ey) : h;
+    const lx = (edge === 'e' ? 1 : edge === 'w' ? -1 : 0) * (nw - w) / 2, ly = (edge === 's' ? 1 : edge === 'n' ? -1 : 0) * (nh - h) / 2;
+    const cx = x + w / 2 + lx * cs - ly * sn, cy = y + h / 2 + lx * sn + ly * cs;
+    patchCustom(c.view, c.id, { w: Math.round(nw), h: Math.round(nh), x: Math.round(cx - nw / 2), y: Math.round(cy - nh / 2) });
+  };
+  // Rotate handle: `deg` comes from the preview (already snapped to 15 with Shift).
+  const rotateTo = (target: string, deg: number) => {
+    const c = isPack ? null : beginCustom(target, 'Rotate');
+    if (c) patchCustom(c.view, c.id, { rotate: Math.round((((deg % 360) + 540) % 360) - 180) });
+  };
+
   // Corner-handle resize: `factor` is the pointer's distance from the centre against where the press began (aspect kept).
   const resizeTo = (target: string, wholeView: boolean, factor: number) => {
     if (isPack) return;
@@ -1327,8 +1378,7 @@ export function OverlayEditorProvider({
     const r = frameRef.current?.getBoundingClientRect();
     if (!r) return;
     selectTarget(target);
-    if (target.startsWith('custom:')) return;
-    openLayerMenu(viewOf(target), target, r.left + x * fit, r.top + y * fit);
+    openLayerMenu(customOf(target)?.view ?? viewOf(target), target, r.left + x * fit, r.top + y * fit);
   };
 
   // Editor shortcuts, from this window and forwarded from the preview frame (t is null then). True when one was used.
@@ -1345,6 +1395,9 @@ export function OverlayEditorProvider({
       else if (k === 'z' || k === 'y') redo();
       else if (k === 's') setSaveSignal(n => n + 1);
       else if (k === 'd') setSelected('');
+      else if (k === 'j') duplicateSelected();
+      else if (k === 'c' && selected.startsWith('custom:') && !window.getSelection()?.toString()) copySelected();
+      else if (k === 'v' && clip.length) pasteClip();
       else if (k === 'r') toggleRulers();
       else if (k === '0') zoomFit();
       else if (k === '1') zoomActual();
@@ -1388,8 +1441,8 @@ export function OverlayEditorProvider({
     if (r) wheel(dx, dy, ctrl, shift, r.left + x * fit, r.top + y * fit);
   };
 
-  const live = useRef({ dragTo, resizeTo, dragEnd, pressKey, selectTarget, toggleSelect, contextAt, shortcut, wheel, wheelFromFrame });
-  live.current = { dragTo, resizeTo, dragEnd, pressKey, selectTarget, toggleSelect, contextAt, shortcut, wheel, wheelFromFrame };
+  const live = useRef({ dragTo, resizeTo, sideTo, rotateTo, dragEnd, pressKey, selectTarget, toggleSelect, contextAt, shortcut, wheel, wheelFromFrame });
+  live.current = { dragTo, resizeTo, sideTo, rotateTo, dragEnd, pressKey, selectTarget, toggleSelect, contextAt, shortcut, wheel, wheelFromFrame };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (live.current.shortcut(e.key, e.ctrlKey || e.metaKey, e.shiftKey, e.target as HTMLElement | null, e.type === 'keyup')) e.preventDefault();
@@ -1427,13 +1480,21 @@ export function OverlayEditorProvider({
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.source !== frameRef.current?.contentWindow) return;
-      const data = e.data as { type?: string; target?: string; dx?: number; dy?: number; alt?: boolean; shift?: boolean; key?: string; ctrl?: boolean; up?: boolean; sx?: boolean; sy?: boolean; view?: boolean; factor?: number; x?: number; y?: number } | null;
+      const data = e.data as { type?: string; target?: string; dx?: number; dy?: number; alt?: boolean; shift?: boolean; key?: string; ctrl?: boolean; up?: boolean; sx?: boolean; sy?: boolean; view?: boolean; factor?: number; edge?: string; deg?: number; x?: number; y?: number } | null;
       if (data?.type === 'drag' && data.target && Number.isFinite(data.dx) && Number.isFinite(data.dy)) {
         live.current.dragTo(data.target, data.dx as number, data.dy as number, !!data.alt, !!data.shift, !!data.sx, !!data.sy);
         return;
       }
       if (data?.type === 'resize' && typeof data.factor === 'number' && Number.isFinite(data.factor) && data.factor > 0) {
         live.current.resizeTo(data.target ?? '', !!data.view, data.factor);
+        return;
+      }
+      if (data?.type === 'side' && data.target && typeof data.edge === 'string' && Number.isFinite(data.dx) && Number.isFinite(data.dy)) {
+        live.current.sideTo(data.target, data.edge, data.dx as number, data.dy as number);
+        return;
+      }
+      if (data?.type === 'rotate' && data.target && Number.isFinite(data.deg)) {
+        live.current.rotateTo(data.target, data.deg as number);
         return;
       }
       if (data?.type === 'context' && data.target && Number.isFinite(data.x) && Number.isFinite(data.y)) {
@@ -1546,6 +1607,7 @@ export function OverlayEditorProvider({
     centerLayer,
     copyLayerToScenes,
     sceneCount: sceneKeys.length,
+    duplicateSelected, copySelected, pasteClip, hasClip: clip.length > 0,
     layoutOf,
     category,
     setCategory,

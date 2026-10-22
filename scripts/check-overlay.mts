@@ -279,6 +279,14 @@ eq(sanitizeLayout({ pack: { elements: { banner: { offsetX: 12, scale: 1.5 } } } 
   eq(cu.stepCustom(bd, 'b3', 1).map(l => l.id), ['b1', 'b2', 'b3'], 'the front of its band stays put');
   const dr = cu.moveCustomOnto(bd, 'b2', 'b3');
   ok(dr.map(l => l.id).join() === 'b1,b3,b2' && dr[2].band === 'front', 'a drop takes the target place and band');
+  // 38.7 f: duplicate goes just above the original with a new id; paste appends copies, both stop at the cap.
+  const dp = cu.duplicateCustom(bd, 'b1');
+  ok(!!dp && dp.list.map(l => l.id).join() === 'b1,text1,b2,b3' && dp.added.name.endsWith(' copy') && dp.added.x === bd[0].x + 20 && dp.added.band === 'front', 'duplicate sits just above the original, offset, same band');
+  ok(cu.duplicateCustom(bd, 'nope') === null, 'duplicate of a missing layer is null');
+  const full = Array.from({ length: cu.MAX_CUSTOM }, (_, i) => ({ ...bd[0], id: `t${i}` }));
+  ok(cu.duplicateCustom(full, 't0') === null && cu.pasteCustom(full, [bd[0]]) === null, 'duplicate and paste refuse past the cap');
+  const ps = cu.pasteCustom(bd, [bd[0], bd[1]]);
+  ok(!!ps && ps.list.length === 5 && new Set(ps.list.map(l => l.id)).size === 5 && ps.added[0].x === bd[0].x + 20, 'paste gives fresh ids and steps off an identical box');
   const n = cu.newCustom('shape', ['shape1'], 1280, 720);
   ok(n.id === 'shape2' && n.kind === 'shape' && cu.newCustom('image', [], 1280, 720).kind === 'image' && cu.newCustom('text', [], 1280, 720).kind === 'text', 'newCustom picks a free id');
   const before = sanitizeLayout({ pack: { custom: [{ id: 'a', kind: 'text', ...box, name: 'Old' }] } });

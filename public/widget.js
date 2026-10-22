@@ -936,7 +936,7 @@ if (PREVIEW) {
   // Focus sits in this frame after a click, so hand the nudge / clear keys and the editor's shortcuts (tools, zoom, save) to the editor.
   const FWD_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Escape'];
   const FWD_EDITOR_KEYS = ['v', 'h', 'z', 't', 'Tab', '?', ' '];
-  const FWD_CTRL = ['s', 'd', '0', '1', '=', '+', '-', 'z', 'y', 'r', '[', ']'];
+  const FWD_CTRL = ['s', 'd', '0', '1', '=', '+', '-', 'z', 'y', 'r', '[', ']', 'j', 'c', 'v'];
   document.addEventListener('keydown', (e) => {
     const mod = e.ctrlKey || e.metaKey;
     if (!(mod ? EDITOR && FWD_CTRL.includes(e.key.toLowerCase()) : FWD_KEYS.includes(e.key) || (EDITOR && FWD_EDITOR_KEYS.includes(e.key)))) return;
@@ -988,6 +988,51 @@ if (PREVIEW) {
     h.addEventListener('pointercancel', end);
     return h;
   });
+  // One of the admin's own layers is selected: its box before the turn (centre, half sizes, in screen px) so the handles can follow the turn.
+  const customGeo = () => {
+    const t = document.body.dataset.selected;
+    if (!t || !t.startsWith('custom:') || selSet.size > 1 || !document.body.dataset.canedit) return null;
+    const el = document.querySelector('[data-edit="' + t + '"]');
+    if (!el || !el.offsetWidth) return null;
+    const r = el.getBoundingClientRect(), rot = parseFloat(el.style.rotate) || 0, a = rot * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a);
+    const w = el.offsetWidth, h = el.offsetHeight, k = r.width / (w * Math.abs(cs) + h * Math.abs(sn));
+    const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+    return { cx, cy, hw: w * k / 2, hh: h * k / 2, rot, at: (lx, ly) => ({ x: cx + lx * cs - ly * sn, y: cy + lx * sn + ly * cs }) };
+  };
+  // Side handles and a rotate handle, for the admin's own layers only (built-in parts keep the corners; their reveals own the turn).
+  const freeHandle = (cls, move) => {
+    const h = document.body.appendChild(Object.assign(document.createElement('div'), { className: 'edit-handle ' + cls }));
+    let st = null;
+    h.addEventListener('pointerdown', (e) => {
+      const g = customGeo();
+      if (e.button !== 0 || !g) return;
+      e.preventDefault(); e.stopPropagation();
+      st = { id: e.pointerId, x: e.clientX, y: e.clientY, g, target: document.body.dataset.selected };
+      resizing = { id: e.pointerId };
+      h.setPointerCapture(e.pointerId);
+    });
+    h.addEventListener('pointermove', (e) => { if (st && e.pointerId === st.id) move(st, e); });
+    const end = (e) => {
+      if (!st || e.pointerId !== st.id) return;
+      st = null; resizing = null;
+      toParent({ type: 'dragend' });
+    };
+    h.addEventListener('pointerup', end);
+    h.addEventListener('pointercancel', end);
+    return h;
+  };
+  const sideHandles = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+  const sideEls = Object.keys(sideHandles).map(edge => {
+    const h = freeHandle(edge, (st, e) => toParent({ type: 'side', target: st.target, edge, dx: (e.clientX - st.x) / stageFit(), dy: (e.clientY - st.y) / stageFit() }));
+    h.dataset.edge = edge;
+    return h;
+  });
+  const rotHandle = freeHandle('rot', (st, e) => {
+    const ang = (x, y) => Math.atan2(y - st.g.cy, x - st.g.cx);
+    let deg = st.g.rot + (ang(e.clientX, e.clientY) - ang(st.x, st.y)) * 180 / Math.PI;
+    if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+    toParent({ type: 'rotate', target: st.target, deg });
+  });
   // The box the handles and readout wrap: the selected part, or all parts together when a view is selected.
   const curBox = () => {
     const t = document.body.dataset.selected;
@@ -1007,17 +1052,23 @@ if (PREVIEW) {
     } else selTag.style.display = 'none';
     document.querySelectorAll('[data-edit]').forEach(o => { o.classList.toggle('edit-sel', selSet.has(o.dataset.edit)); o.classList.toggle('edit-locked', lockedSet.has(o.dataset.edit)); });
     const b = document.body.dataset.canedit ? curBox() : null;
+    const g = b ? customGeo() : null;
+    const put = (h, p) => { h.style.display = 'block'; h.style.left = p.x + 'px'; h.style.top = p.y + 'px'; };
     handles.forEach(h => {
       h.style.display = b ? 'block' : 'none';
       if (!b) return;
-      h.style.left = (h.classList.contains('nw') || h.classList.contains('sw') ? b.l : b.r) + 'px';
-      h.style.top = (h.classList.contains('nw') || h.classList.contains('ne') ? b.t : b.b) + 'px';
+      const left = h.classList.contains('nw') || h.classList.contains('sw'), top = h.classList.contains('nw') || h.classList.contains('ne');
+      if (g) put(h, g.at(left ? -g.hw : g.hw, top ? -g.hh : g.hh));
+      else { h.style.left = (left ? b.l : b.r) + 'px'; h.style.top = (top ? b.t : b.b) + 'px'; }
     });
+    sideEls.forEach(h => { if (g) put(h, g.at(sideHandles[h.dataset.edge][0] * g.hw, sideHandles[h.dataset.edge][1] * g.hh)); else h.style.display = 'none'; });
+    if (g) put(rotHandle, g.at(0, -g.hh - 24)); else rotHandle.style.display = 'none';
     if (b && ((press && press.moved) || resizing)) {
       const fit = stageFit();
-      const w = b.r - b.l, h = b.b - b.t;
-      readout.textContent = 'X ' + Math.round(b.l / fit) + '  Y ' + Math.round(b.t / fit) + '  ' + Math.round(w / fit) + ' x ' + Math.round(h / fit)
-        + ' (' + Math.round(w / innerWidth * 100) + '% x ' + Math.round(h / innerHeight * 100) + '%)';
+      const q = g ? { l: g.cx - g.hw, t: g.cy - g.hh, r: g.cx + g.hw, b: g.cy + g.hh } : b;
+      const w = q.r - q.l, h = q.b - q.t;
+      readout.textContent = 'X ' + Math.round(q.l / fit) + '  Y ' + Math.round(q.t / fit) + '  ' + Math.round(w / fit) + ' x ' + Math.round(h / fit)
+        + ' (' + Math.round(w / innerWidth * 100) + '% x ' + Math.round(h / innerHeight * 100) + '%)' + (g && g.rot ? '  ' + Math.round(g.rot) + ' deg' : '');
       readout.style.display = 'block';
       readout.style.left = Math.max(0, Math.min(innerWidth - 220, b.l)) + 'px';
       readout.style.top = Math.min(innerHeight - 20, b.b + 6) + 'px';
