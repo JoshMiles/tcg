@@ -10,6 +10,7 @@ import { SAMPLE_TOKENS, TOKEN_INFO, fillTokens } from '@/lib/overlay-tokens';
 import { stripMarkup } from '@/lib/text-markup';
 import { MarkupButtons } from '@/app/admin/components/MarkupButtons';
 import { clearTextPatch, editTextPatch, mergeTextPatch, patchFromStyle, shownTextStyle, type TextAccent, type TextPatch } from '@/lib/overlay-text-style';
+import { useTextBar } from './EditorTextOptions';
 import { useOverlayEditor } from './OverlayEditorContext';
 
 // Small building blocks of the Overlay Editor: the popover, the segmented control, one property row and the value controls.
@@ -231,14 +232,15 @@ export function TextControl({ def, id, value, onChange }: { def: PropDef; id: st
 const WORDING_STYLE = /(.textStyle|.subTextStyle|^show.labelStyle|^reveal.labelStyle|^reveal.gotStyle|^collection.headingStyle)$/;
 function TextStyleControl({ def, value, onChange }: { def: PropDef; value: PropValue; onChange: (v: unknown) => void }) {
   const { current, globalVals, scope, valueOf } = useOverlayEditor();
+  const bar = useTextBar();
   const own = (isTextPatch(current[def.key]) ? current[def.key] : {}) as TextPatch;
   const inherited = (scope !== 'global' && isTextPatch(globalVals[def.key]) ? globalVals[def.key] : {}) as TextPatch;
   void value;
-  return <TextPatchPanel own={own} inherited={inherited} fontId={layerFontId(def.key, valueOf)} wording={WORDING_STYLE.test(def.key)} stopLabel={scope === 'global' ? 'Clear every style field of this layer' : 'Stop overriding this layer'} onChange={onChange} />;
+  return <TextPatchPanel own={own} inherited={inherited} fontId={layerFontId(def.key, valueOf)} wording={WORDING_STYLE.test(def.key)} moved={bar?.kind === 'builtin' && bar.part.style === def.key} stopLabel={scope === 'global' ? 'Clear every style field of this layer' : 'Stop overriding this layer'} onChange={onChange} />;
 }
 
 /** A text layer's style: Copy / Paste / Clear and the shared Character panel over a partial patch (`own`), showing what `inherited` gives under it. `wording`: the words come from tokens, so Highlight tokens shows. */
-export function TextPatchPanel({ own, inherited, fontId, wording, stopLabel, onChange }: { own: TextPatch; inherited: TextPatch; fontId?: string; wording: boolean; stopLabel: string; onChange: (v: TextPatch) => void }) {
+export function TextPatchPanel({ own, inherited, fontId, wording, moved, stopLabel, onChange }: { own: TextPatch; inherited: TextPatch; fontId?: string; wording: boolean; moved?: boolean; stopLabel: string; onChange: (v: TextPatch) => void }) {
   const clip = useSyncExternalStore(subscribeClip, () => styleClip, () => null);
   const shown = shownTextStyle(inherited, own);
   return (
@@ -251,6 +253,7 @@ export function TextPatchPanel({ own, inherited, fontId, wording, stopLabel, onC
       <CharacterPanel
         value={shown}
         fontId={fontId}
+        moved={moved}
         patch={{ own: own as Record<string, unknown>, clear: path => onChange(clearTextPatch(own, path)) }}
         onChange={change => onChange(editTextPatch(own, shown, change as Record<string, unknown>))}
         onPreset={st => onChange(mergeTextPatch(own, patchFromStyle(st)))}

@@ -5,6 +5,7 @@ import { Icon } from '@/app/components/Icon';
 import { PanelStack } from '../components/workspace/PanelStack';
 import { LAYER_NAMES, LayersPanel } from './LayersPanel';
 import { CustomLayerPanel } from './CustomLayerPanel';
+import { useTextBar } from './EditorTextOptions';
 import { HistoryPanel } from './HistoryPanel';
 import { LayerBlock } from './LayerBlock';
 import { LayoutPanel } from './LayoutPanel';
@@ -75,7 +76,10 @@ export function PropertiesDock() {
   const layerName = (LAYER_NAMES as Record<string, string>)[selected] ?? selected;
   const cat = PROP_GROUPS.find(g => g.id === (layer ? layer[0] : isPack && openCat === 'collection' ? null : openCat));
   const categories = isPack ? PROP_GROUPS.filter(g => g.id !== 'collection') : PROP_GROUPS;
-  const catDefs = cat ? defsFor(cat.id) : [];
+  // The settings the options bar's text row now carries for a selected built-in part (ROADMAP 38.31).
+  const bar = useTextBar();
+  const moved = bar?.kind === 'builtin' ? [bar.part.font, bar.part.size, bar.part.color] : [];
+  const catDefs = cat ? defsFor(cat.id).filter(d => !moved.includes(d.key)) : [];
   const scopeKey = cat ? `${cat.id}${cat.id === 'variants' ? '.' + version : ''}` : '';
   const variantPicker = cat?.id === 'variants' && !variantOpen;
   const catSections = groupSections(catDefs);
@@ -93,7 +97,7 @@ export function PropertiesDock() {
   // Search results span every category (and every version), labelled with where each one lives.
   const searchResults = searching
     ? PROP_GROUPS.flatMap(g =>
-        groupSections(PROPS.filter(d => d.group === g.id && !hiddenInScope(d) && matches(d))).flatMap(
+        groupSections(PROPS.filter(d => d.group === g.id && !hiddenInScope(d) && !moved.includes(d.key) && matches(d))).flatMap(
           ([name, defs]) =>
             defs.map(d => ({
               d,

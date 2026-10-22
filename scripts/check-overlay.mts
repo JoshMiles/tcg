@@ -498,4 +498,18 @@ await sbx.deleteSandbox(box.id);
   eq(markupRuns('**{user}** hi', ctx), [{ t: 'cheesygidds', bold: true, tok: true }, { t: ' hi' }], 'a token inside bold is filled and marked');
   eq(markupRuns('**{user}**', { user: 'a*b*' }), [{ t: 'a*b*', bold: true, tok: true }], 'a token value is never read as markup');
 }
+{
+  // ROADMAP 38.31: the text formatting row.
+  const { mixedFormat, MIXED, customTextFormat, applyCustomText } = await import('../lib/text-format');
+  const a = { font: 'inherit', size: 20, color: '#ffffff', valign: 'top' as const, style: {} };
+  const b = { ...a, size: 30 };
+  eq(mixedFormat([customTextFormat(a), customTextFormat(b)]).size, MIXED, 'different sizes are mixed');
+  eq(mixedFormat([customTextFormat(a), customTextFormat(b)]).color, '#ffffff', 'equal colours stay');
+  eq(mixedFormat([{ size: 1 }, {}]).size, undefined, 'a control one layer lacks is not offered');
+  const bold = applyCustomText(a, { bold: true, align: 'center', size: 36, highlight: true, highlightColor: '#ff0000' });
+  eq([bold.style.weight, bold.style.align, bold.size, bold.style.accent], [700, 'center', 36, { on: true, color: '#ff0000' }], 'bold, align, size, highlight');
+  eq(customTextFormat(bold).bold, true, 'bold reads back');
+  eq(applyCustomText(bold, { bold: false, highlight: false }).style.accent?.on, false, 'highlight off keeps the colour with on:false');
+  eq(applyCustomText(a, { highlight: false }).style, {}, 'highlight off on a plain layer stores nothing');
+}
 console.log('check-overlay: all checks passed');

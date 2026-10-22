@@ -2,11 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { ImageUploadField } from '@/app/admin/components/image-upload';
-import { FontPicker } from '@/app/admin/components/workspace/FontPicker';
-import { BACK_FONTS, FONT_CATEGORIES } from '@/lib/card-back';
-import { loadBackFont } from '@/lib/card-back-fonts';
 import { Check, Colour, EffectFields, GradientStops, Group, Num } from '@/app/admin/components/workspace/CharacterPanel';
-import { ARROWS, IMAGE_FITS, LINE_CAPS, MAX_CUSTOM_TEXT, SHAPES, STROKE_POS, VALIGNS, isSafeImageUrl, type CustomLayer, type CustomShape, type CustomText } from '@/lib/overlay-custom';
+import { ARROWS, IMAGE_FITS, LINE_CAPS, MAX_CUSTOM_TEXT, SHAPES, STROKE_POS, isSafeImageUrl, type CustomLayer, type CustomShape, type CustomText } from '@/lib/overlay-custom';
 import type { TextStyle } from '@/lib/text-style';
 import type { PropDef } from '@/lib/overlay-props';
 import type { Mode } from './editor-types';
@@ -85,25 +82,12 @@ function TextFields({ layer, view, set }: { layer: CustomText; view: Mode; set: 
     <>
       <label htmlFor={id} className="text-xs text-gray-500 block">Wording</label>
       <TextControl def={def} id={id} value={layer.text} onChange={v => set({ text: String(v) })} />
-      <FontPicker
-        label="Font"
-        fonts={BACK_FONTS}
-        categories={FONT_CATEGORIES}
-        extra={[{ id: 'inherit', label: 'Overlay font', css: 'inherit', category: 'Site' }]}
-        value={layer.font}
-        onChange={v => set({ font: v })}
-        onNeedFont={f => { void loadBackFont(f, 700); }}
-      />
-      <div className="grid grid-cols-2 gap-2">
-        <label className="text-xs text-gray-500 space-y-1">Size (px)<input type="number" min={6} max={400} value={layer.size} onChange={e => { if (e.target.value !== '') set({ size: Number(e.target.value) }); }} className={`${inputCls} block w-20`} /></label>
-        <label className="text-xs text-gray-500 space-y-1">Colour<input type="color" value={layer.color} onChange={e => set({ color: e.target.value })} className="block h-8 w-12" /></label>
-      </div>
-      <Segmented label="Vertical align" value={layer.valign} onChange={v => set({ valign: v })} options={VALIGNS.map(a => ({ id: a, label: a }))} />
       <TextPatchPanel
         own={layer.style}
         inherited={{}}
         fontId={layer.font === 'inherit' ? String(valueOf('text.font')) : layer.font}
         wording
+        moved
         stopLabel="Clear every style field of this layer"
         onChange={v => set({ style: v })}
       />

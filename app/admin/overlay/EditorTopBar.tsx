@@ -18,6 +18,7 @@ import {
   VersionsMenu,
 } from './EditorMenus';
 import { refreshOverlayAction } from '../overlay-actions';
+import { EditorTextOptions } from './EditorTextOptions';
 import { useOverlayEditor } from './OverlayEditorContext';
 import type { AlignMode } from '@/lib/overlay-layout';
 
@@ -320,6 +321,7 @@ export function EditorTopBar() {
           </>
         ) : (
           <>
+          <EditorTextOptions />
           {canAlign && (
             <div className="flex items-center gap-0.5" role="group" aria-label="Align and distribute">
               {ALIGNS.map(a => (
