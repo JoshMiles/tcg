@@ -62,7 +62,7 @@ export function CardDetail({
   const label = edition ? `${card.name}, ${VARIANT_LABELS[edition.variant]} edition #${edition.n}` : `${card.name} details`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={label}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 safe-inset" role="dialog" aria-modal="true" aria-label={label}>
       <div className="absolute inset-0 bg-gray-950/85 backdrop-blur-xs" onClick={onClose} />
 
       <div className="card relative w-full max-w-3xl max-h-full overflow-y-auto rounded-2xl shadow-glow">

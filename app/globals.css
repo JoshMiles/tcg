@@ -745,3 +745,13 @@ fieldset.card { display: block; }
   .bell-shake svg, .badge-pulse { animation: none; }
   .notice-toast { animation: toast-fade 0.25s ease-out both; }
 }
+
+/* Installed app (viewport-fit=cover): keep full-screen dialogs clear of the notch and home indicator; insets are 0 in a normal browser. */
+.safe-inset {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+/* No whole-page rubber-band in the installed app. */
+@media (display-mode: standalone) { body { overscroll-behavior-y: none; } }

@@ -61,7 +61,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       <SiteNav label={siteLabel.label} user={user} loginEnabled={loginConfigured()} rank={rank} staff={await staffPanelLink(session).catch(() => null)} />
       <SiteSearch />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-hidden">{children}</main>
-      <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12">
+      <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12 pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-6xl mx-auto px-4 pt-8 pb-6">
           <div className="grid gap-8 md:grid-cols-[minmax(0,20rem)_1fr] md:gap-10 items-start">
             <div className="space-y-3">
