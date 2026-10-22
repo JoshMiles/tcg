@@ -28,6 +28,8 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.26 | Overlay Editor: text readability check | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails and compare | Ready | M |
 | 38.28 | Overlay Editor: scheduled looks | Ready | M |
+| 40.1 | Site speed: measure where it feels sluggish | Ready | S |
+| 40.2 | Site speed: fix what 40.1 finds | Needs design | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze) | L |
 
 Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -95,6 +97,23 @@ A look (a preset) that switches on at a start time and off at an end (a Hallowee
 **Build order for the track:** 38.17 to 38.28 in any order.
 
 **Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
+
+## Track 40: site speed (2026-10-22)
+
+The public site can feel sluggish, most of all on a phone. Measure first, then fix what the numbers point at; no speculative optimising. Read `docs/public-site.md` and `docs/hosting.md` first.
+
+### 40.1 Measure (Ready, S)
+
+Output is a ranked findings list (page, metric, cause, likely fix, size), added here as 40.2 sub-items. No code changes in this item.
+- Field data: Vercel Speed Insights (already installed in `app/layout.tsx`): LCP, INP, CLS and TTFB per route, phone and desktop.
+- Lab data: Lighthouse with phone throttling on home, a profile, the binder, the dex, the leaderboard, stats, a copy page and the trade pages.
+- Bundle: `npm run build` route sizes and first-load JS; the heaviest client components.
+- Server time on the heavy pages (profile, leaderboard, dex, stats): KV reads per request, `getAllCollectionUsers` and other whole-collection scans.
+- Suspects to confirm or rule out, not conclusions: `force-dynamic` on public pages that could cache or revalidate; raw `<img>` instead of sized or lazy images; few `loading.tsx` files, so navigation shows nothing while the server works; large client components hydrated on every page.
+
+### 40.2 Fix (Needs design, M)
+
+Planned from 40.1's list, one PR per fix, each with a before and after number.
 
 ## Blocked by the Twitch panel freeze
 
