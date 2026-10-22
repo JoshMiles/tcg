@@ -66,7 +66,7 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
     <div>
       <p className="text-sm font-semibold text-white mb-2">{many ? `${els.length} elements` : e.kind === 'text' ? 'Text box' : KIND_LABELS[e.kind]}</p>
 
-      <Group title="Placement">
+      <Group title="Layer">
         <div className="flex flex-wrap items-center gap-1.5">
           <button type="button" className={chip(!free)} onClick={() => onChange(els.reduce((s, x) => returnToStack(s, x.id), style))}>In the stack</button>
           <button type="button" className={chip(free)} onClick={toFree}>Placed freely</button>
@@ -83,13 +83,33 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
               </span>
             </Row>}
             <Num label="Rotate" value={e.rotate} min={-45} max={45} step={1} onChange={v => set({ rotate: v }, 'rot')} />
+            {text && <OpacityRow value={e} onChange={set} />}
           </>
         ) : <p className="text-xs text-gray-500">In the stack the element sits in the classic centred column, in list order. Its face stays the classic one until you pick a font. Place it freely to move it, rotate it and set the rest of its type.</p>}
         <Check label="Locked (the canvas can't drag it)" on={e.locked} onChange={v => set({ locked: v })} />
       </Group>
 
+      {!many && (e.kind === 'text' || e.kind === 'logo' || e.kind === 'qr') && (
+        <Group title="Content">
+          {e.kind === 'text' && (
+            <label className="block text-xs text-gray-400">Text <span className="text-gray-600">({e.text.length}/{MAX_TEXT}) {'{pack} {season} {card} {version} {edition} {printNumber} {holder} {date}'}</span>
+              <textarea ref={textRef} aria-label="Text" className="textarea w-full mt-1" rows={3} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
+            </label>
+          )}
+          {e.kind === 'text' && <MarkupButtons wrap={wrapText} />}
+          {e.kind === 'logo' && (
+            <>
+              <Row label="Image"><span className="flex gap-1">{(['cover', 'url'] as const).map(s => <button key={s} type="button" aria-pressed={e.src === s} onClick={() => set({ src: s })} className={chip(e.src === s)}>{s === 'cover' ? 'Pack cover' : 'Uploaded'}</button>)}</span></Row>
+              {e.src === 'url' && <ImageUploadField name="cardBackLogo" label="Logo image" defaultValue={e.url} onUrlChange={u => set({ url: u, src: 'url' })} />}
+              <Num label="Size (px)" value={e.px} min={10} max={120} step={2} onChange={v => set({ px: v }, 'px')} />
+            </>
+          )}
+          {e.kind === 'qr' && (<><Colour label="Dark" value={e.dark} named={['auto']} onChange={v => set({ dark: v })} /><Colour label="Light" value={e.light} named={['auto']} onChange={v => set({ light: v })} /></>)}
+        </Group>
+      )}
+
       {text && (
-        <Group title="Text">
+        <Group title="Font">
           <Row label="Font">
             <FontPicker
               fonts={BACK_FONTS}
@@ -119,43 +139,28 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
               </Row>
               {e.arc ? <p className="text-[11px] text-gray-500">An arc is one line of text: wrapping, line limits, box height, auto-fit and justify are ignored, and the plate and inner shadow are not drawn.</p> : null}
               {e.fit && !e.arc && <Num label="Min size (pt)" value={pctToPt(e.minSize ?? DEFAULT_MIN_SIZE)} min={1.8} max={54} step={0.5} onChange={v => set({ minSize: ptToPct(v) }, 'min')} />}
-              <CharacterFields value={e} onChange={set} />
-              <AlignRow value={e} onChange={set} />
-              <Num label="Indent (em)" value={e.indent ?? 0} min={0} max={5} step={0.25} onChange={v => set({ indent: v || undefined }, 'ind')} />
-              <Num label="Paragraph gap" value={e.paraGap ?? 0} min={0} max={3} step={0.1} onChange={v => set({ paraGap: v || undefined }, 'pg')} />
-              <Row label="Box">
-                <span className="flex flex-wrap items-center gap-2">
-                  <Check label="Wrap" on={e.wrap !== false} onChange={v => set({ wrap: v ? undefined : false })} />
-                  {e.h !== undefined && (['top', 'middle', 'bottom'] as const).map(a => <button key={a} type="button" aria-pressed={(e.valign ?? 'top') === a} onClick={() => set({ valign: a === 'top' ? undefined : a })} className={chip((e.valign ?? 'top') === a)}>{a}</button>)}
-                </span>
-              </Row>
-              <Num label="Max lines (0 = any)" value={e.maxLines ?? 0} min={0} max={20} step={1} onChange={v => set({ maxLines: v >= 1 ? Math.round(v) : undefined }, 'ml')} />
-              <Num label="Padding (%)" value={e.pad ?? 0} min={0} max={15} step={0.5} onChange={v => set({ pad: v || undefined }, 'pad')} />
-              <OpacityRow value={e} onChange={set} />
             </>
           ) : (
             <Row label="Size"><span className="flex gap-1">{([['S', 0.8], ['M', 1], ['L', 1.25]] as const).map(([k, v]) => <button key={k} type="button" aria-pressed={e.scale === v} onClick={() => set({ scale: v })} className={chip(e.scale === v)}>{k}</button>)}</span></Row>
           )}
           <Colour label="Colour" value={e.color} named={['auto', 'rarity']} onChange={v => set({ color: v }, 'color')} />
+          {free && <CharacterFields value={e} onChange={set} />}
         </Group>
       )}
 
-      {!many && (e.kind === 'text' || e.kind === 'logo' || e.kind === 'qr') && (
-        <Group title="Content">
-          {e.kind === 'text' && (
-            <label className="block text-xs text-gray-400">Text <span className="text-gray-600">({e.text.length}/{MAX_TEXT}) {'{pack} {season} {card} {version} {edition} {printNumber} {holder} {date}'}</span>
-              <textarea ref={textRef} aria-label="Text" className="textarea w-full mt-1" rows={3} maxLength={MAX_TEXT} value={e.text} onChange={ev => set({ text: ev.target.value }, 'text')} />
-            </label>
-          )}
-          {e.kind === 'text' && <MarkupButtons wrap={wrapText} />}
-          {e.kind === 'logo' && (
-            <>
-              <Row label="Image"><span className="flex gap-1">{(['cover', 'url'] as const).map(s => <button key={s} type="button" aria-pressed={e.src === s} onClick={() => set({ src: s })} className={chip(e.src === s)}>{s === 'cover' ? 'Pack cover' : 'Uploaded'}</button>)}</span></Row>
-              {e.src === 'url' && <ImageUploadField name="cardBackLogo" label="Logo image" defaultValue={e.url} onUrlChange={u => set({ url: u, src: 'url' })} />}
-              <Num label="Size (px)" value={e.px} min={10} max={120} step={2} onChange={v => set({ px: v }, 'px')} />
-            </>
-          )}
-          {e.kind === 'qr' && (<><Colour label="Dark" value={e.dark} named={['auto']} onChange={v => set({ dark: v })} /><Colour label="Light" value={e.light} named={['auto']} onChange={v => set({ light: v })} /></>)}
+      {text && free && (
+        <Group title="Paragraph">
+          <AlignRow value={e} onChange={set} />
+          <Num label="Indent (em)" value={e.indent ?? 0} min={0} max={5} step={0.25} onChange={v => set({ indent: v || undefined }, 'ind')} />
+          <Num label="Paragraph gap" value={e.paraGap ?? 0} min={0} max={3} step={0.1} onChange={v => set({ paraGap: v || undefined }, 'pg')} />
+          <Row label="Box">
+            <span className="flex flex-wrap items-center gap-2">
+              <Check label="Wrap" on={e.wrap !== false} onChange={v => set({ wrap: v ? undefined : false })} />
+              {e.h !== undefined && (['top', 'middle', 'bottom'] as const).map(a => <button key={a} type="button" aria-pressed={(e.valign ?? 'top') === a} onClick={() => set({ valign: a === 'top' ? undefined : a })} className={chip((e.valign ?? 'top') === a)}>{a}</button>)}
+            </span>
+          </Row>
+          <Num label="Max lines (0 = any)" value={e.maxLines ?? 0} min={0} max={20} step={1} onChange={v => set({ maxLines: v >= 1 ? Math.round(v) : undefined }, 'ml')} />
+          <Num label="Padding (%)" value={e.pad ?? 0} min={0} max={15} step={0.5} onChange={v => set({ pad: v || undefined }, 'pad')} />
         </Group>
       )}
 
