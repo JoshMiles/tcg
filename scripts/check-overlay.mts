@@ -68,6 +68,14 @@ const { runInSandbox, prodKv } = await import('../lib/db');
   eq(textPatchCss({}, 14, [0, 0, 0]), {}, 'an empty style writes no CSS');
   ok(!('opacity' in textPatchCss(cases[3], 14, [1, 2, 3])) && !('filter' in textPatchCss(cases[6], 14, [1, 2, 3])), 'a style never sets opacity or filter');
   eq(wCss.mergeTextPatch(g, packOnly), m, 'the widget merge matches the TS one');
+  // Highlight tokens (ROADMAP 38.10 a): sanitized, merged field by field, never CSS.
+  eq(sanitizeTextPatch({ accent: { color: 'accent', bold: true } }), { accent: { color: 'accent', bold: true } }, 'accent keeps a pack-accent colour and bold');
+  eq(sanitizeTextPatch({ accent: { color: '#FF0000', on: false, junk: 1 } }), { accent: { color: '#ff0000', on: false } }, 'accent keeps a hex and the switch');
+  eq(sanitizeTextPatch({ accent: { color: 'red', bold: 'yes' } }), {}, 'a bad accent is dropped');
+  const accA = sanitizeTextPatch({ weight: 700, accent: { color: '#ff0000', bold: true } }), accB = sanitizeTextPatch({ accent: { color: 'accent' } });
+  eq(mergeTextPatch(accA, accB), { weight: 700, accent: { color: 'accent', bold: true } }, 'accent merges field by field');
+  eq(wCss.mergeTextPatch(JSON.parse(JSON.stringify(accA)), accB), mergeTextPatch(accA, accB), 'the widget merges accent the same way');
+  eq(textPatchCss(accB, 14, [0, 0, 0]), {}, 'accent writes no CSS');
   // The Character panel's edits (ROADMAP 38.8 c): only touched fields are stored, inherited ones are shown.
   {
     const { shownTextStyle, editTextPatch, clearTextPatch, patchFromStyle } = await import('../lib/overlay-text-style');
@@ -338,11 +346,12 @@ await sbx.deleteSandbox(box.id);
 {
   const { readFileSync } = await import('node:fs');
   const { runInNewContext } = await import('node:vm');
-  const { fillTokens, TOKEN_INFO } = await import('../lib/overlay-tokens');
+  const { fillTokens, fillRuns, TOKEN_INFO } = await import('../lib/overlay-tokens');
   const w = readFileSync('public/widget.js', 'utf8').replace(/\r\n/g, '\n');
   const tsrc = /\/\/ TOKENS-START\n([^]*?)\/\/ TOKENS-END/.exec(w)?.[1];
   ok(tsrc, 'widget.js has the TOKENS block');
   const wFill = runInNewContext("const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };" + tsrc + '; fillTokens', {}) as typeof fillTokens;
+  const wRuns = runInNewContext("const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo' };" + tsrc + '; fillRuns', {}) as typeof fillRuns;
   const ctx = { user: 'cheesygidds', cardName: 'Cheesy Cheese', variant: 'reverse', pack: 'Starter', edition: 3, stars: 5 };
   const cases: [string, Parameters<typeof fillTokens>[1], string][] = [
     ['{user} got:', ctx, 'cheesygidds got:'],
@@ -359,7 +368,11 @@ await sbx.deleteSandbox(box.id);
   for (const [str, c, want] of cases) {
     eq(fillTokens(str, c), want, `fillTokens ${str}`);
     eq(wFill(str, c), want, `widget fillTokens ${str}`);
+    eq(fillRuns(str, c).map(r => r.t).join(''), want, `fillRuns joins to fillTokens: ${str}`);
+    eq(JSON.parse(JSON.stringify(wRuns(str, c))), fillRuns(str, c), `widget fillRuns matches: ${str}`);
   }
+  eq(fillRuns('{user} got {nobody}: {cardName}', ctx), [{ t: 'cheesygidds', tok: true }, { t: ' got {nobody}: ', tok: false }, { t: 'Cheesy Cheese', tok: true }], 'only filled tokens are marked');
+  eq(fillRuns('plain', {}), [{ t: 'plain', tok: false }], 'no tokens is one plain run');
   ok(Object.keys(TOKEN_INFO).every(k => /^[a-zA-Z]+$/.test(k)), 'token names are plain words');
   const { PROPS } = await import('../lib/overlay-props');
   for (const d of PROPS.filter(p => p.type === 'text' && p.tokens)) {

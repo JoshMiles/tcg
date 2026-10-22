@@ -7,7 +7,7 @@ import { loadBackFont } from '@/lib/card-back-fonts';
 import { CharacterPanel } from '@/app/admin/components/workspace/CharacterPanel';
 import { PROP_BY_KEY, REVEAL_STYLES, type PropDef, type PropValue } from '@/lib/overlay-props';
 import { SAMPLE_TOKENS, TOKEN_INFO, fillTokens } from '@/lib/overlay-tokens';
-import { clearTextPatch, editTextPatch, mergeTextPatch, patchFromStyle, shownTextStyle, type TextPatch } from '@/lib/overlay-text-style';
+import { clearTextPatch, editTextPatch, mergeTextPatch, patchFromStyle, shownTextStyle, type TextAccent, type TextPatch } from '@/lib/overlay-text-style';
 import { useOverlayEditor } from './OverlayEditorContext';
 
 // Small building blocks of the Overlay Editor: the popover, the segmented control, one property row and the value controls.
@@ -215,6 +215,8 @@ function TextControl({ def, id, value, onChange }: { def: PropDef; id: string; v
     </div>
   );
 }
+// The text layers whose words come from tokens, so "Highlight tokens" means something there.
+const WORDING_STYLE = /(.textStyle|.subTextStyle|^show.labelStyle|^reveal.labelStyle|^reveal.gotStyle|^collection.headingStyle)$/;
 function TextStyleControl({ def, value, onChange }: { def: PropDef; value: PropValue; onChange: (v: unknown) => void }) {
   const { current, globalVals, scope, valueOf } = useOverlayEditor();
   const clip = useSyncExternalStore(subscribeClip, () => styleClip, () => null);
@@ -235,6 +237,7 @@ function TextStyleControl({ def, value, onChange }: { def: PropDef; value: PropV
         patch={{ own: own as Record<string, unknown>, clear: path => onChange(clearTextPatch(own, path)) }}
         onChange={change => onChange(editTextPatch(own, shown, change as Record<string, unknown>))}
         onPreset={st => onChange(mergeTextPatch(own, patchFromStyle(st)))}
+        accent={WORDING_STYLE.test(def.key) ? { value: own.accent, onChange: (a: TextAccent | undefined) => onChange(a ? { ...own, accent: a } : clearTextPatch(own, 'accent')) } : undefined}
       />
     </div>
   );

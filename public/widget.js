@@ -224,6 +224,7 @@ function mergeTextPatch(base, over) {
     }
     out.fx = fx;
   }
+  if (base.accent && over.accent) out.accent = Object.assign({}, base.accent, over.accent);
   return out;
 }
 function textPatchCss(p, fontPx, rgb) {
@@ -589,12 +590,12 @@ function showStatic(mode) {
       radialContainer.style.opacity = String(burst.opacity);
       if (!burst.on) radialContainer.style.display = 'none';
       if (previewShowOff) {
-        userText.textContent = showText(PS, 'Preview', { cardName: card.name, variant, pack: chosen.pack.name, stars: card.stars });
+        showText(userText, PS, 'Preview', { cardName: card.name, variant, pack: chosen.pack.name, stars: card.stars }, cfg);
         styleShowLabel(userText, PS);
         editable(userText, 'showlabel', 'Click to edit the show-off label');
         miniList.style.display = 'none';
       } else {
-        userText.textContent = gotText(PS, 'Preview', { cardName: card.name, variant, pack: chosen.pack.name, stars: card.stars });
+        gotText(userText, PS, 'Preview', { cardName: card.name, variant, pack: chosen.pack.name, stars: card.stars }, cfg);
         editable(userText, 'got', 'Click to edit the "got:" line');
         editable(miniList, 'strip', 'Click to edit the cards under the card');
       }
@@ -615,7 +616,7 @@ function showStatic(mode) {
     radialContainer.style.display = 'none';
     cardInfo.style.opacity = '1';
     cardInfo.style.transform = 'scale(1)';
-    userText.textContent = headingText(P, 'Preview');
+    headingText(userText, P, 'Preview', cfg);
     applyTextFont(userText, pv(P, 'collection.headingFont', 'inherit'), P);
     applyTextStyle(userText, 'collection.headingStyle', P, pv(P, 'collection.headingFont', 'inherit'));
     editable(userText, 'heading', 'Click to edit the heading');
@@ -896,12 +897,45 @@ const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Ful
 // TOKENS-START
 // The one place wording tokens are filled (twin: lib/overlay-tokens.ts, scripts/check-overlay.mts runs both).
 // {user} and {username} are the same; a token with no data, and an unknown one, stays as typed. Plain text only.
+function tokenValue(c, k) {
+  const v = { user: c.user, username: c.user, cardName: c.cardName, variant: c.variant ? VARIANT_LABELS[c.variant] || c.variant : '', pack: c.pack, edition: c.edition, stars: c.stars };
+  return Object.prototype.hasOwnProperty.call(v, k) && v[k] !== undefined && v[k] !== null && v[k] !== '' ? String(v[k]) : null;
+}
 function fillTokens(str, ctx) {
   const c = ctx || {};
-  const v = { user: c.user, username: c.user, cardName: c.cardName, variant: c.variant ? VARIANT_LABELS[c.variant] || c.variant : '', pack: c.pack, edition: c.edition, stars: c.stars };
-  return String(str).replace(/\{(\w+)\}/g, (m, k) => (Object.prototype.hasOwnProperty.call(v, k) && v[k] !== undefined && v[k] !== null && v[k] !== '' ? String(v[k]) : m));
+  return String(str).replace(/\{(\w+)\}/g, (m, k) => { const val = tokenValue(c, k); return val === null ? m : val; });
+}
+// fillTokens as runs ({t, tok}); tok marks a filled token. Joined, the runs equal fillTokens.
+function fillRuns(str, ctx) {
+  const c = ctx || {}, text = String(str), out = [];
+  let last = 0;
+  for (const m of text.matchAll(/\{(\w+)\}/g)) {
+    const val = tokenValue(c, m[1]);
+    if (val === null) continue;
+    if (m.index > last) out.push({ t: text.slice(last, m.index), tok: false });
+    out.push({ t: val, tok: true });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push({ t: text.slice(last), tok: false });
+  return out;
 }
 // TOKENS-END
+// "Highlight tokens": with accent on, filled tokens become <span class="tok"> (textContent only); off is the plain fillTokens text.
+// The accent colour is a hex or 'accent' (the pack's accent colour).
+function setWording(el, str, ctx, accent, accentColor) {
+  if (!accent || accent.on === false) { el.textContent = fillTokens(str, ctx); return; }
+  el.textContent = '';
+  for (const r of fillRuns(str, ctx)) {
+    if (!r.tok) { el.appendChild(document.createTextNode(r.t)); continue; }
+    const sp = document.createElement('span');
+    sp.className = 'tok';
+    sp.textContent = r.t;
+    sp.style.color = !accent.color || accent.color === 'accent' ? accentColor : accent.color;
+    if (accent.bold) sp.style.fontWeight = '700';
+    el.appendChild(sp);
+  }
+}
+const accentOf = (P, key) => { const v = pv(P, key, null); return v && v.accent; };
 const DEFAULT_VARIANT_WEIGHTS = { regular: 100, reverse: 25, full: 5, shiny: 1, golden: 0 };
 function encodeEntry(cardNumber, variant) { return cardNumber + VARIANT_OFFSET * Math.max(0, VARIANTS.indexOf(variant)); }
 function decodeEntry(entry) {
@@ -1149,14 +1183,16 @@ function pickMoment(facts, enabled) {
   return null;
 }
 /** Everything one moment's banner needs, read from the effective properties. */
-function momentSpec(P, id, ctx) {
+function momentSpec(P, id, ctx, accentColor) {
   const g = (name, d) => pv(P, momentKey(id, name), d);
   const auto = id === 'firstEver' ? 'edition #1' + (ctx.variant === 'regular' ? '' : ' · ' + VARIANT_LABELS[ctx.variant]) : id === 'firstPull' ? 'their first card' : 'new to their collection';
   const sub = String(g('subText', ''));
   return {
     id,
-    text: fillTokens(g('text', id === 'firstEver' ? 'FIRST EVER!' : id === 'firstPull' ? 'Welcome, {username}!' : 'NEW CARD!'), ctx),
-    sub: sub ? fillTokens(sub, ctx) : auto,
+    text: g('text', id === 'firstEver' ? 'FIRST EVER!' : id === 'firstPull' ? 'Welcome, {username}!' : 'NEW CARD!'),
+    sub: sub || auto,
+    ctx,
+    accentColor,
     bg: g('bgColors', id === 'firstEver' ? MOMENT_DEFAULT_BG : ['#8b5cf6', '#ec4899']),
     textColor: g('textColor', id === 'firstEver' ? '#1a1205' : '#ffffff'),
     textSize: g('textSize', 26),
@@ -1181,10 +1217,10 @@ function momentBanner(theater, P, spec, S, extendHold) {
   banner.className = 'first-banner moment-' + spec.id + (spec.position === 'middle' ? ' pos-middle' : spec.position === 'bottom' ? ' pos-bottom' : '');
   const main = document.createElement('span');
   main.className = 'first-main';
-  main.textContent = spec.text;
+  setWording(main, spec.text, spec.ctx, spec.style && spec.style.accent, spec.accentColor);
   const sub = document.createElement('span');
   sub.className = 'first-sub';
-  sub.textContent = spec.sub;
+  setWording(sub, spec.sub, spec.ctx, spec.subStyle && spec.subStyle.accent, spec.accentColor);
   banner.append(main, sub);
   // The stylesheet is the first-ever look; only what differs from it is written inline.
   const defaultBg = JSON.stringify(spec.bg) === JSON.stringify(MOMENT_DEFAULT_BG);
@@ -1453,8 +1489,8 @@ function setAnim(el, spec, speed, delay) {
   el.style.animation = spec ? spec[0] + ' ' + (spec[1] / speed) + 's ' + spec[2] + ' ' + (delay || 0) + 's forwards' : 'none';
 }
 
-const gotText = (P, user, ctx) => fillTokens(pv(P, 'reveal.gotText', '{user} got:'), { ...ctx, user: user || 'Someone' });
-const showText = (P, user, ctx) => fillTokens(pv(P, 'show.text', '{user} is showing off:'), { ...ctx, user: user || 'Someone' });
+const gotText = (el, P, user, ctx, cfg) => setWording(el, pv(P, 'reveal.gotText', '{user} got:'), { ...ctx, user: user || 'Someone' }, accentOf(P, 'reveal.gotStyle'), cfg.accentColor);
+const showText = (el, P, user, ctx, cfg) => setWording(el, pv(P, 'show.text', '{user} is showing off:'), { ...ctx, user: user || 'Someone' }, accentOf(P, 'show.labelStyle'), cfg.accentColor);
 
 // Show off (Overlay Editor -> Show off): the show-off settings folded into the properties the shared drawing code already reads,
 // so the card, effects and print pill need no show-off branches of their own. At the defaults nothing changes.
@@ -1484,7 +1520,7 @@ function styleShowLabel(el, P) {
   el.style.scale = 'var(--el-showlabel-s, 1)';
   el.style.filter = 'var(--el-showlabel-f, none)';
 }
-const headingText = (P, user) => fillTokens(pv(P, 'collection.headingText', "{user}'s collection:"), { user: user || 'Someone' });
+const headingText = (el, P, user, cfg) => setWording(el, pv(P, 'collection.headingText', "{user}'s collection:"), { user: user || 'Someone' }, accentOf(P, 'collection.headingStyle'), cfg.accentColor);
 
 function holoOn(P, variant, card, cfg) {
   const mode = pv(P, 'variant.' + variant + '.holoMode', variant === 'reverse' || variant === 'shiny' || variant === 'golden' ? 'on' : 'auto');
@@ -1529,7 +1565,7 @@ function applyLook(theater, P, variant, card, cfg, owned, tc) {
   const lc = g('labelColors', ['#f1bb06']);
   st.setProperty('--label-bg', lc.length > 1 ? 'linear-gradient(90deg, ' + lc.join(', ') + ')' : lc[0]);
   const ownedLabel = pv(P, 'reveal.labelOwned', '');
-  cardLabel.textContent = fillTokens(variant === 'regular' && owned && ownedLabel ? ownedLabel : g('labelText', variant === 'regular' ? 'new' : VARIANT_LABELS[variant]), tc);
+  setWording(cardLabel, variant === 'regular' && owned && ownedLabel ? ownedLabel : g('labelText', variant === 'regular' ? 'new' : VARIANT_LABELS[variant]), tc, accentOf(P, 'reveal.labelStyle'), cfg.accentColor);
   if (!pv(P, 'reveal.showLabel', true)) cardLabel.style.display = 'none';
 
   // Holographic shimmer
@@ -1776,7 +1812,7 @@ function drawCard(username, opts) {
         isNew: r && r.isNew !== undefined ? !!r.isNew : earlyFacts.isNew,
       };
       const id = forcedMoment || pickMoment(facts, momentOn);
-      if (id) momentBanner(theater, P, momentSpec(P, id, { ...tokenCtx, edition: r && r.serial ? r.serial : undefined, vol: cfg.soundVolume }), S, extendHold);
+      if (id) momentBanner(theater, P, momentSpec(P, id, { ...tokenCtx, edition: r && r.serial ? r.serial : undefined, vol: cfg.soundVolume }, cfg.accentColor), S, extendHold);
     });
   }, at(R.label));
 
@@ -1784,7 +1820,7 @@ function drawCard(username, opts) {
   phaseTimer(() => {
     cardInfo.style.opacity   = '1';
     cardInfo.style.transform = 'scale(1)';
-    userText.textContent     = show ? showText(P, username, tokenCtx) : gotText(P, username, tokenCtx);
+    if (show) showText(userText, P, username, tokenCtx, cfg); else gotText(userText, P, username, tokenCtx, cfg);
     if (show) styleShowLabel(userText, P);
   }, at(R.info));
 
@@ -1884,7 +1920,7 @@ function showCollection(username, opts) {
   wrapper.classList.remove('fade-in-start');
   cardInfo.style.opacity   = '1';
   cardInfo.style.transform = 'scale(1)';
-  userText.textContent     = headingText(P, username);
+  headingText(userText, P, username, cfg);
   applyTextFont(userText, pv(P, 'collection.headingFont', 'inherit'), P);
   if (!pv(P, 'collection.showHeading', true)) userText.style.display = 'none';
 
