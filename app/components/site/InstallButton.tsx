@@ -14,7 +14,7 @@ const BUTTON = 'inline-flex items-center justify-center w-9 h-9 rounded-lg borde
  * It only shows on phones and tablets (computers reach /install from the footer and the site menu), and stays hidden once the app is
  * installed and inside another app's browser that can't add sites.
  */
-export function InstallButton() {
+export function InstallButton({ row }: { row?: boolean } = {}) {
   const [state, setState] = useState<'hidden' | 'prompt' | 'guide'>('hidden');
 
   useEffect(() => {
@@ -30,16 +30,18 @@ export function InstallButton() {
   }, []);
 
   if (state === 'hidden') return null;
+  const cls = row ? 'flex items-center px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5 text-left w-full' : BUTTON;
+  const text = row && <span className="ml-1.5">Install app</span>;
   if (state === 'prompt') {
     return (
-      <button type="button" onClick={() => { void askToInstall(); }} className={BUTTON} title="Install the app" aria-label="Install the app">
-        <Icon name="download" />
+      <button type="button" onClick={() => { void askToInstall(); }} className={cls} title="Install the app" aria-label="Install the app">
+        <Icon name="download" />{text}
       </button>
     );
   }
   return (
-    <Link href="/install" className={BUTTON} title="Add to your home screen" aria-label="Get the app: add to your home screen">
-      <Icon name="download" />
+    <Link href="/install" className={cls} title="Add to your home screen" aria-label="Get the app: add to your home screen">
+      <Icon name="download" />{text}
     </Link>
   );
 }
