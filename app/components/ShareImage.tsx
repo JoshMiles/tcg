@@ -226,7 +226,35 @@ function drawBackBox(ctx: CanvasRenderingContext2D, b: BackBox, family: string, 
         if (f.overline) ctx.fillRect(ux, ty - f.size * 0.5, w, th);
       }
     };
-    if (b.type === 'hist') {
+    // Text on a curve: each glyph is placed on the circle (the DOM's textPath does the same) and drawn upright to it, one pass per effect so shadows never sit over a neighbour's letters.
+    const arcText = (a: NonNullable<BackBox['arc']>, text: string) => {
+      const up = a.sweep > 0, theta = Math.abs(a.sweep), L = theta * a.r;
+      const reach = (i: number) => ctx.measureText(text.slice(0, i)).width;
+      const t0 = a.off * (L - reach(text.length));
+      ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
+      const glyphs = [...text].map((ch, i) => ({ ch, t: t0 + (reach(i) + reach(i + 1)) / 2 })).filter(g => g.ch.trim());
+      const at = (g: { t: number }) => { const phi = g.t / a.r - theta / 2; return { x: b.x + a.w / 2 + a.r * Math.sin(phi), y: b.y + (up ? a.ym + a.r * (1 - Math.cos(phi)) : a.ym - a.r * (1 - Math.cos(phi))), rot: up ? phi : -phi }; };
+      const each = (fn: (ch: string, p: { x: number; y: number; rot: number }) => void) => glyphs.forEach(g => { const p = at(g); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); fn(g.ch, p); ctx.restore(); });
+      for (const sh of b.shadows) each(ch => { ctx.shadowColor = sh.color; ctx.shadowOffsetX = sh.x * sc; ctx.shadowOffsetY = sh.y * sc; ctx.shadowBlur = sh.blur * sc; ctx.fillStyle = b.gradient ? 'rgba(0,0,0,0)' : b.color; ctx.fillText(ch, 0, 0); });
+      const strokeAll = () => each(ch => { ctx.lineWidth = b.stroke!.width; ctx.strokeStyle = b.stroke!.color; ctx.lineJoin = 'round'; ctx.strokeText(ch, 0, 0); });
+      if (b.stroke?.outside) strokeAll();
+      // The gradient is laid across the whole text box; each glyph is rotated, so its endpoints are mapped back into the glyph's own space.
+      const gr = b.gradient;
+      const fillStyle = (p: { x: number; y: number; rot: number }): string | CanvasGradient => {
+        if (!gr) return b.color;
+        const ang = (gr.angle * Math.PI) / 180, half = (Math.abs(a.w * Math.sin(ang)) + Math.abs(a.h * Math.cos(ang))) / 2, dx = Math.sin(ang) * half, dy = -Math.cos(ang) * half;
+        const cx = b.x + a.w / 2, cy = b.y + a.h / 2, c = Math.cos(p.rot), sn = Math.sin(p.rot);
+        const local = (X: number, Y: number) => ({ x: (X - p.x) * c + (Y - p.y) * sn, y: -(X - p.x) * sn + (Y - p.y) * c });
+        const p0 = local(cx - dx, cy - dy), p1 = local(cx + dx, cy + dy);
+        const g = ctx.createLinearGradient(p0.x, p0.y, p1.x, p1.y);
+        for (const st of gr.stops ?? [{ color: gr.from, at: 0 }, { color: gr.to, at: 100 }]) g.addColorStop(Math.min(1, Math.max(0, st.at / 100)), st.color);
+        return g;
+      };
+      each((ch, p) => { ctx.fillStyle = fillStyle(p); ctx.fillText(ch, 0, 0); });
+      if (b.stroke && !b.stroke.outside) strokeAll();
+    };
+    if (b.arc && b.text) arcText(b.arc, b.text);
+    else if (b.type === 'hist') {
       (b.items ?? []).forEach((h, i) => {
         const ty = b.y + i * (f.size * f.lineHeight + 1) + f.size * f.lineHeight / 2;
         fill(h.text, b.x, ty, 'left');

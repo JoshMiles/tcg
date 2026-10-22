@@ -8,7 +8,7 @@ export const MAX_PRESETS = 50;
 export const MAX_PRESET_NAME = 40;
 
 /** Every TextStyle key, so applying a preset also clears what the preset leaves unset. */
-export const TEXT_STYLE_KEYS: (keyof TextStyle)[] = ['size', 'font', 'weight', 'italic', 'underline', 'uppercase', 'letterSpacing', 'lineHeight', 'align', 'color', 'opacity', 'fx', 'fit', 'minSize', 'indent', 'paraGap', 'strike', 'overline', 'textCase', 'tracking', 'wordSpacing', 'autoLeading', 'baseline', 'script', 'kerning'];
+export const TEXT_STYLE_KEYS: (keyof TextStyle)[] = ['size', 'font', 'weight', 'italic', 'underline', 'uppercase', 'letterSpacing', 'lineHeight', 'align', 'color', 'opacity', 'fx', 'fit', 'minSize', 'indent', 'paraGap', 'strike', 'overline', 'textCase', 'tracking', 'wordSpacing', 'autoLeading', 'baseline', 'script', 'kerning', 'arc'];
 
 /** The style fields of anything shaped like a text element (a BackEl, say). */
 export function styleOf(src: Record<string, unknown>): TextStyle {

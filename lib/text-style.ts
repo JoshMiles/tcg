@@ -87,6 +87,8 @@ export interface TextStyle {
   script?: (typeof SCRIPTS)[number];
   /** `false` = no kerning. */
   kerning?: false;
+  /** Text on a curve, -100 to 100 (0 = straight, absent at 0): the bend of an arc across the box width, 100 = a half circle; positive arches up. Free single-line text only. */
+  arc?: number;
 }
 
 /** The case a text has: the new field, else today's uppercase flag. */
@@ -178,6 +180,7 @@ export function sanitizeTextStyle(raw: Record<string, unknown>, fontIds: readonl
     ...(Math.round(clamp(raw.baseline, -100, 100, 0)) !== 0 ? { baseline: Math.round(clamp(raw.baseline, -100, 100, 0)) } : {}),
     ...(pick(raw.script, SCRIPTS, undefined as unknown as (typeof SCRIPTS)[number]) ? { script: raw.script as (typeof SCRIPTS)[number] } : {}),
     ...(raw.kerning === false ? { kerning: false as const } : {}),
+    ...(Math.round(clamp(raw.arc, -100, 100, 0)) !== 0 ? { arc: Math.round(clamp(raw.arc, -100, 100, 0)) } : {}),
   };
 }
 

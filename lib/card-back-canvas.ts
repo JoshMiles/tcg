@@ -2,7 +2,7 @@
 // print's back from these, so they show the same design as the site (DOM) and the overlay. Pure and client-safe; the drawing itself is
 // in app/components/ShareImage.tsx. Sizes are in px at the reference card width below and the drawing scales the context.
 import type { CardBackStyle } from './card-back';
-import type { BackNode, TextLine } from './card-back-layout';
+import type { ArcGeo, BackNode, TextLine } from './card-back-layout';
 import { DEFAULT_PATTERN, isCustomPattern, patternSvg } from './card-back-patterns';
 
 /** The card size the share image lays the back out at (the drawing scales it to the card's rectangle). */
@@ -75,6 +75,8 @@ export interface BackBox {
   /** An inner shadow, and the box behind the text (both px at the reference width). */
   inner?: TextShadow;
   plate?: BackNode['plate'];
+  /** Text on a curve: draw the glyphs one by one along this circle (`y` is the top of its box). */
+  arc?: ArcGeo;
 }
 
 const num = (v: unknown, d = 0): number => { const n = typeof v === 'number' ? v : parseFloat(String(v ?? '')); return Number.isFinite(n) ? n : d; };
@@ -178,6 +180,7 @@ function freeBox(n: BackNode, ref: { w: number; h: number }): BackBox | null {
   if (n.tag === 'img' && n.src) { const h = n.kind === 'logo' ? w : num(css.height, w); return { ...common, type: 'img', src: n.src, y: cy - h / 2, h, font }; }
   if (n.tag === 'qr' && n.qrUrl) return { ...common, type: 'qr', qrUrl: n.qrUrl, dark: n.dark, light: n.light, y: cy - w / 2, h: w, font };
   if (n.tag === 'ul' && n.items?.length) { const h = n.items.length * (size * lineHeight + 1); return { ...common, type: 'hist', items: n.items, y: cy - h / 2, h, font: { ...font, align: 'left' } }; }
+  if (n.tag === 'p' && n.arc && n.text) return { ...common, type: 'text', text: n.text, y: cy - n.arc.h / 2, h: n.arc.h, arc: n.arc, font };
   if (n.tag === 'p' && n.lines && n.spec) {
     const content = n.lines.reduce((a, l) => a + size * lineHeight + l.g, 0), pad = n.spec.pad;
     const h = num(css.height) || content + 2 * pad;

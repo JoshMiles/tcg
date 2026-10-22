@@ -201,11 +201,18 @@ export function Properties({ style, selection, boxes, cardW, onChange, onPreview
               <Row label="Auto-fit">
                 <span className="flex gap-1">
                   {([[undefined, 'Off'], ['shrink', 'Shrink to fit the box'], ['width', 'Fit width']] as const).map(([m, l]) => (
-                    <button key={l} type="button" aria-pressed={e.fit === m} onClick={() => set(m ? { fit: m, minSize: e.minSize ?? DEFAULT_MIN_SIZE } : { fit: undefined, minSize: undefined })} className={chip(e.fit === m)}>{l}</button>
+                    <button key={l} type="button" disabled={!!e.arc} aria-pressed={e.fit === m} onClick={() => set(m ? { fit: m, minSize: e.minSize ?? DEFAULT_MIN_SIZE } : { fit: undefined, minSize: undefined })} className={chip(e.fit === m)}>{l}</button>
                   ))}
                 </span>
               </Row>
-              {e.fit && <Num label="Min size (pt)" value={pctToPt(e.minSize ?? DEFAULT_MIN_SIZE)} min={1.8} max={54} step={0.5} onChange={v => set({ minSize: ptToPct(v) }, 'min')} />}
+              <Row label="Arc" reset={e.arc ? () => set({ arc: undefined }) : undefined}>
+                <span className="flex items-center gap-2 w-full">
+                  <input type="range" aria-label="Arc slider" className="range range-xs flex-1" min={-100} max={100} step={1} value={e.arc ?? 0} onChange={ev => set({ arc: Number(ev.target.value) || undefined }, 'arc')} />
+                  <input type="number" aria-label="Arc" className={`${field} w-16!`} min={-100} max={100} step={1} value={e.arc ?? 0} onChange={ev => { const n = Number(ev.target.value); if (ev.target.value.trim() !== '' && Number.isFinite(n)) set({ arc: Math.round(Math.min(100, Math.max(-100, n))) || undefined }, 'arc'); }} />
+                </span>
+              </Row>
+              {e.arc ? <p className="text-[11px] text-gray-500">An arc is one line of text: wrapping, line limits, box height, auto-fit and justify are ignored, and the plate and inner shadow are not drawn.</p> : null}
+              {e.fit && !e.arc && <Num label="Min size (pt)" value={pctToPt(e.minSize ?? DEFAULT_MIN_SIZE)} min={1.8} max={54} step={0.5} onChange={v => set({ minSize: ptToPct(v) }, 'min')} />}
               <details open className="space-y-1.5">
                 <summary className="text-xs font-bold text-gray-300 cursor-pointer select-none">Character</summary>
                 <div className="space-y-1.5 mt-1.5">
