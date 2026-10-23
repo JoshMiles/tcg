@@ -1,6 +1,14 @@
 # TCG, CLAUDE.md
 
-A trading card game played live on stream: an OBS overlay where viewers pull cards, an admin panel (seasons, packs, cards), a public site (profiles, binder, dex, leaderboard, trading) and a Twitch Extension panel. Production: `https://cheesytcg.app` (Vercel, Next.js 15, KV + Blob). Open work and the rules in force live in `ROADMAP.md` (short, open items only); read it before starting anything non-trivial.
+## Canary
+
+- Start every reply with "Josh," with no exceptions, including short replies and tool summaries. If the name stops showing up, instructions are being dropped.
+- If you can no longer recall the earlier parts of this session clearly, or the conversation has become very long, say so at the start of your reply and suggest a fresh session.
+- **Hand off through files, not chat.** `HANDOFF.md` at the repo root holds the current task (commit it with the work; the repo is public, so anything that shouldn't be public goes in the gitignored `SECRETS.md` instead, and real keys stay in `.env.local`): Goal, Done, Left, Key files, Open questions, and an append-only dated Decisions list. On multi-step work keep it current as you go, bring it up to date before suggesting `/clear`, `/compact` or a fresh session, and read it first in a new session. Delete it when the task ships. Planned work belongs in `ROADMAP.md`, lasting lessons in a trail learning.
+
+## The project
+
+A trading card game played live on stream: an OBS overlay where viewers pull cards, an admin panel (seasons, packs, cards), a public site (profiles, binder, dex, leaderboard, trading) and a Twitch Extension panel. Production: `https://cheesytcg.app` (Vercel, Next.js 15, KV + Blob). Data is Seasons → Packs → Cards in KV (see [docs/data-architecture.md](docs/data-architecture.md)). Open work and the rules in force live in `ROADMAP.md` (short, open items only); read it before starting anything non-trivial.
 
 **The game runs only on the Cheesygidds Twitch channel (https://www.twitch.tv/cheesygidds).** Say so in public copy (FAQ, Terms, Privacy, home, footer) and use `CHANNEL_NAME` / `CHANNEL_URL` from `lib/site.ts`, never a hard-coded name or URL.
 
@@ -43,19 +51,11 @@ Behavioural guidelines to reduce common coding mistakes (from [andrej-karpathy-s
 
 ## Model workflow
 
-Work is split between three models. Follow your role.
+Full rules in [docs/model-workflow.md](docs/model-workflow.md); read it before delegating.
 
-- **Opus plans.** High-level planning, architecture, trade-off analysis, reviewing, and writing or updating `ROADMAP.md`. Opus does not write feature code; it hands execution to subagents (`model: sonnet` or `model: haiku`) with a self-contained brief.
-- **Sonnet executes.** Functions, boilerplate, refactoring, terminal commands, tests. Sonnet does not make architectural decisions or edit the roadmap.
-- **Haiku supports.** Focused, well-bounded tasks with a clear brief: searching the codebase and reporting where something lives, reading CI logs or scanner output and summarising the failure, running `npm run verify` or named checks and reporting results, mechanical edits the brief spells out (renames, copy fixes, swapping one call for another). Haiku does not design, write new logic or decide what a finding means; anything that needs judgement goes back to Sonnet or Opus.
-- **Pick the cheapest model that fits, and default grunt work to Haiku.** Lookups, log reading and check runs go to Haiku; code changes go to Sonnet; Opus keeps only planning, review and decisions.
-- **Haiku is the first choice for grunt tasks, not a last resort.** Before giving anything to Sonnet or doing it yourself, ask whether a Haiku brief would do: codebase searches, running `npm run verify` and reporting the result, reading CI output, checking a PR's state, rebasing a branch onto `main` and re-running verify, mechanical edits and doc or copy fixes the brief spells out, cleanup after a session (dev servers, `.env.local`, stray logs). Split a Sonnet task so its mechanical parts (the verify run, the doc update, the cleanup) go to Haiku. Escalate to Sonnet only when the brief can't spell the change out.
-- **A fresh agent per item.** Opus starts a new Sonnet (or Haiku) subagent for each roadmap item or split, with a self-contained brief; it does not keep resuming one long-lived agent across a track, because a long context is re-read on every turn and costs far more than a fresh start. The brief carries what the agent needs (the roadmap section, what just merged, the rules, the hand-back). Resume an agent only to finish its own item (a review fix, a usage-limit reset). **When an agent suggests `/clear` or reports a long session, its next task goes to a fresh agent.** Opus does not stay on as the conductor: it returns to read each PR's diff before it merges.
-- **Inline beats delegating for small jobs.** A job of one or two commands (a PR's state, `git status`, one grep) is done inline; delegating costs more than it saves. Haiku gets multi-step grunt work.
-- **Haiku stops at the edge of its brief.** On a merge conflict, a failing check, or anything the brief doesn't cover, Haiku stops and reports back instead of fixing it.
-- **Plan gate.** Before executing code, Sonnet and Haiku check that an Opus-approved plan covers the task (in `ROADMAP.md` or the task's brief). If none exists, stop and ask for an Opus planning pass.
-- **Escalate, don't improvise.** A design question the plan doesn't answer (data model, API shape, a change to the architecture below) goes back to Opus, not into code.
-- **Exempt:** typos, copy edits, one-line bug fixes and documentation updates.
+- **Opus plans and reviews, Sonnet writes code, Haiku does grunt work** (searches, verify runs, CI logs, PR state, mechanical edits a brief spells out). Pick the cheapest model that fits; one- or two-command jobs are done inline.
+- **A fresh subagent per roadmap item**, with a self-contained brief. When an agent suggests `/clear`, its next task goes to a fresh agent.
+- **Plan gate:** Sonnet and Haiku need an Opus-approved plan (`ROADMAP.md` or the brief) before writing code; design questions go back to Opus. Exempt: typos, copy edits, one-line bug fixes, docs.
 
 ## Area docs
 
@@ -63,6 +63,7 @@ Read the doc that matches what you are changing **before** you change it; each s
 
 | Doc | Read it when you touch |
 |-----|------------------------|
+| [docs/data-architecture.md](docs/data-architecture.md) | how seasons, packs, cards, collections and profiles are stored in KV |
 | [docs/variants-and-scoring.md](docs/variants-and-scoring.md) | variants, upgrades, the upgrade ceremony, card values, score, leaderboard, scoring settings, holo masking |
 | [docs/serials.md](docs/serials.md) | the copy ledger, serial and unique copy numbers, copy pages, flip cards, share images of copies |
 | [docs/trading.md](docs/trading.md) | trades, escrow, trade pages, notifications, listing alerts, the panel's Trades tab |
@@ -75,6 +76,8 @@ Read the doc that matches what you are changing **before** you change it; each s
 | [docs/hosting.md](docs/hosting.md) | deploys, environment variables, build stamp, backups, data health |
 | [docs/review.md](docs/review.md) | running a review batch: the seed data, the page sweeps, the mod access test |
 | [docs/local-dev.md](docs/local-dev.md) | running the app locally, the overlay test panel, website login against the fake Twitch |
+| [docs/git-and-prs.md](docs/git-and-prs.md) | pushing, opening or merging a PR, PR bodies, review comments |
+| [docs/model-workflow.md](docs/model-workflow.md) | planning, delegating to subagents, writing a brief |
 | [docs/reference.md](docs/reference.md) | which file does what (key files), the API routes |
 | [docs/archive/roadmap-history.md](docs/archive/roadmap-history.md) | only when you need the original plan behind a finished roadmap item ("ROADMAP 13.1") |
 
@@ -82,21 +85,9 @@ Read the doc that matches what you are changing **before** you change it; each s
 
 - Read the part of a file you need (search first, then read a line range); the big ones (`public/widget.js`, `OverlayEditor.tsx`) cost 12k to 20k tokens whole.
 - Send wide searches across many files to a subagent (Explore) so only the answer comes back.
-- Long build sessions run on Sonnet and supporting lookups on Haiku (see "Model workflow"); Opus sessions plan and review.
-- **Remind the user to reset context.** When a task is finished (PR merged, or the user moves to an unrelated task), end your reply with one line suggesting `/clear`. When a session is running long but the task isn't done (many files read, several PR rounds), suggest `/compact` and name what the summary should keep (branch, PR, open items). Say it once per break point, not every turn.
+- **Remind the user to reset context.** When a task is finished (PR merged, or the user moves to an unrelated task), end your reply with one line suggesting `/clear`. When a session is running long but the task isn't done (many files read, several PR rounds), update `HANDOFF.md`, then suggest `/compact` and name what the summary should keep (branch, PR, open items). Say it once per break point, not every turn.
 - When you change behaviour, update the matching doc to say what the code does now. History belongs in PR descriptions and `docs/archive/`, not in the area docs.
 - When a PR updates `ROADMAP.md`, only bump the date on the **Last updated** line. Never add a shipped log there.
-
-## Data architecture
-
-Three tiers in Vercel KV: **Seasons → Packs → Cards**.
-
-- **Seasons** (`season:{id}`, index `seasons:list`): metadata + `packIds: string[]`. One season active at a time.
-- **Packs** (`pack:{id}`, index `packs:list`): global, not owned by a season; one pack can be in several seasons. Cards live at `pack:{id}:cards`.
-- **Legacy collection** (`tcg_{collectionName}`): `{ username: number[] }`. **The source of truth for user data**, written by the overlay via `/api/collection`. Duplicates are intentional: each entry is one pull. Unique count is `new Set(array).size`; everywhere that shows cards builds a `Map<number, count>` and shows a `×N` badge when count > 1.
-- **User profiles** (`user:{username}:profile`) and **Twitch opaque mapping** (`twitch_opaque:{opaqueId}` → lowercase username).
-- Users are read with `getAllCollectionUsers()` in `lib/kv.ts` (aggregates every season's legacy collection).
-- `normalizeSeason` / `normalizePack` in `lib/kv.ts` handle legacy shapes on read, so KV never needs manual migrations.
 
 ## Conventions
 
@@ -113,14 +104,11 @@ Three tiers in Vercel KV: **Seasons → Packs → Cards**.
 
 ## Git and PRs
 
-- Branch off an up-to-date `origin/main`, push, open a PR against `main`. **Every push to GitHub gets a PR**: open one straight away if the branch has none. Don't push to `main`.
-- **PR bodies follow `.github/pull_request_template.md` exactly** (`## Changelog`, `## Summary`, `## Test plan` in that order; Changelog is `none` or Audience, Tags and `- ` bullets only). The `PR description` check fails otherwise; test a body first with `gh pr view N --json body --jq .body | node scripts/check-pr-body.mjs`.
-- **Before pushing to a branch that has a PR, check whether that PR is merged.** If it is, start again from `origin/main` (rebase any unmerged commits onto it) and open a new PR; never stack new work on a merged PR.
-- **Merging:** Opus may merge PRs and delete their branches when necessary (CI green, no open review asks). Sonnet and Haiku don't merge or close PRs unless the user asks.
-- **Before merging, read all three comment lists**; the `claude-review` bot posts bugs as **inline** comments, which `gh pr view --json comments,reviews` does not show. Run `for k in pulls/N/comments pulls/N/reviews issues/N/comments; do gh api repos/JoshMiles/tcg/$k --jq '.[] | "\(.user.login) \(.path // "") \(.line // "")\n\(.body)\n---"'; done` (N = PR number) and fix or answer every finding first. A green `claude-review` check does not mean it found nothing.
-- **One feature per PR, each branched from `main`.** Never stack PRs: merging them out of order drops commits. A fix that lands after its PR merged needs a new branch and PR.
-- Commit messages and PR bodies end with the attribution lines the harness gives.
-- CRLF warnings on Windows are harmless (`.gitattributes`). The pre-rewrite `Old/` folder and `olddata.txt` are only in git history now (gitignored).
+Full rules, including the comment-reading command, in [docs/git-and-prs.md](docs/git-and-prs.md); read it before pushing or merging.
+
+- Branch off an up-to-date `origin/main`; **every push gets a PR**; never push to `main`. One feature per PR, never stacked; never push new work onto a merged PR's branch.
+- **PR bodies follow `.github/pull_request_template.md` exactly** (`## Changelog`, `## Summary`, `## Test plan`); the `PR description` check fails otherwise.
+- **Before merging, read all three comment lists**: `claude-review` posts bugs as inline comments that `gh pr view` doesn't show.
 
 ## Gotchas
 

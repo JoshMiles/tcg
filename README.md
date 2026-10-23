@@ -56,7 +56,7 @@ Viewers on the [Cheesygidds Twitch channel](https://www.twitch.tv/cheesygidds) p
 | **Twitch** | Twitch OAuth for sign-in, a Twitch Extension for the channel panel |
 | **Optional** | Web Push, Discord webhooks |
 
-Data is three tiers in KV: **Seasons → Packs → Cards**. Each viewer's pulls are stored per season; duplicates are kept on purpose, because each entry is one pull. More in [`CLAUDE.md`](CLAUDE.md#data-architecture).
+Data is three tiers in KV: **Seasons → Packs → Cards**. Each viewer's pulls are stored per season; duplicates are kept on purpose, because each entry is one pull. More in [`docs/data-architecture.md`](docs/data-architecture.md).
 
 ## Running it locally
 

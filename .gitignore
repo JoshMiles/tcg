@@ -15,6 +15,7 @@ next-env.d.ts
 
 # local tooling
 .claude/settings.local.json
+SECRETS.md
 
 # os / editor
 .DS_Store
