@@ -23,6 +23,8 @@ import { ChangelogLink } from './ChangelogLink';
 import { newestChangelogDate } from '@/lib/changelog';
 import { PullToRefresh } from './PullToRefresh';
 import { SandboxPill } from '@/app/components/SandboxPill';
+import { UpdatePrompt } from '@/app/components/UpdatePrompt';
+import { getBuildInfo } from '@/lib/version';
 
 /** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
 export async function SiteShell({ children }: { children: ReactNode }) {
@@ -30,6 +32,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
   // can't use the site gets them without the nav, search and site links.
   if (!(await requireSiteAccess())) return <ClosedShell>{children}</ClosedShell>;
 
+  const build = getBuildInfo();
   const [session, siteLabel, live] = await Promise.all([
     getSession(),
     getSiteLabel(),
@@ -66,6 +69,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       <CookieNotice />
       <CaptchaHost />
       <PullToRefresh />
+      <UpdatePrompt commit={build.commit} env={build.env} />
       <SiteNav label={siteLabel.label} user={user} loginEnabled={loginConfigured()} rank={rank} staff={await staffPanelLink(session).catch(() => null)} />
       <SiteSearch />
       <main id="main" tabIndex={-1} className="flex-1 focus:outline-hidden">{children}</main>
