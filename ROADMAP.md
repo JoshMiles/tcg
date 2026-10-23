@@ -64,9 +64,6 @@ Field numbers come from the Vercel MCP (`create_observability_query` on `vercel.
 
 Lab numbers come from Lighthouse (`npx -y lighthouse@12.8.2 <url> --throttling-method=devtools`; the default simulated mode overstates LCP on localhost) against `next build` on the seeded mock KV, with AdGuard off. `npm run analyze` writes a treemap of every JS bundle to `.next/analyze/client.html`. The main stylesheet is 300 kB raw (47 kB gzipped, about 120 kB of it daisyUI components, nearly all used; Tailwind now scans only `app/` and `lib/`). In the lab it holds first paint to about 2.4 s on every page. `experimental.inlineCss` brought that to 1.2 s, but was set aside: it is experimental, it puts the whole sheet in every page's HTML twice (about 96 kB more per full load, never cached), and `next start` serves HTTP/1.1, so the lab overstates how long the CSS file waits behind the JS (Vercel serves HTTP/2, which sends CSS first). Check home's first paint in Speed Insights after this ships before trying critical CSS. First-load JS has a 103 kB shared baseline; `/cards` is 160 kB gzipped after its share button became lazy.
 
-### 40.2g Leaderboard LCP and Card Dex layout shift (Ready, small)
-On a first visit the leaderboard's largest paint is the cookie notice, which only renders after hydration (LCP about 4.2 s, first paint 1.8 s): render it so it is not the LCP, or render it on the server. `/cards` has CLS 0.13 from the grid moving after first paint (not the images; look at the font swap and anything above the grid).
-
 ### 40.2e Cache public pages for signed-out visitors (Needs design)
 Every public page is `force-dynamic` and the shell reads the session cookie, so nothing is cached. Planning question: split the shell so a signed-out render can use `revalidate` (the gate and the live badge complicate it). Field numbers are in 40.1 (40.2a and 40.2d have shipped).
 
