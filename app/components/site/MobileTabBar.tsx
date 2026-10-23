@@ -9,18 +9,19 @@ import { LINKS, isActive } from './links';
 export const NOTICE_COUNTS_EVENT = 'tcg:notice-counts';
 export interface NoticeCounts { unread: number; offers: number }
 
-// Order and icons of the tabs; labels and active rule come from the shared LINKS.
-const TABS: { href: string; icon: IconName }[] = [
-  { href: '/', icon: 'home' },
-  { href: '/cards', icon: 'cards' },
-  { href: '/trade', icon: 'trade' },
-  { href: '/leaderboard', icon: 'trophy' },
-];
-export const TAB_HREFS = TABS.map(t => t.href);
+/** Order, icons and links of the tabs; labels and active rule come from the shared LINKS. A signed-in viewer's second tab is their own collection (Card Dex then lives in the More sheet). */
+export function tabsFor(username?: string): { href: string; icon: IconName; label?: string }[] {
+  return [
+    { href: '/', icon: 'home' },
+    username ? { href: `/u/${username}`, icon: 'book', label: 'Collection' } : { href: '/cards', icon: 'cards' },
+    { href: '/trade', icon: 'trade' },
+    { href: '/leaderboard', icon: 'trophy' },
+  ];
+}
 const TEXT_FIELD = 'textarea, select, [contenteditable=""], [contenteditable="true"], input:not([type=checkbox],[type=radio],[type=button],[type=submit],[type=reset],[type=range],[type=file],[type=color],[type=image])';
 
-/** The phone tab bar (below xl): Home, Card Dex, Trade, Leaderboard and More, which opens the More sheet. Hidden while a text field has focus. */
-export function MobileTabBar({ menuOpen, onMore, moreRef }: { menuOpen: boolean; onMore: () => void; moreRef: RefObject<HTMLButtonElement | null> }) {
+/** The phone tab bar (below xl): Home, Card Dex (Collection when signed in), Trade, Leaderboard and More, which opens the More sheet. Hidden while a text field has focus. */
+export function MobileTabBar({ username, menuOpen, onMore, moreRef }: { username?: string; menuOpen: boolean; onMore: () => void; moreRef: RefObject<HTMLButtonElement | null> }) {
   const pathname = usePathname();
   const [typing, setTyping] = useState(false);
   const [counts, setCounts] = useState<NoticeCounts>({ unread: 0, offers: 0 });
@@ -42,13 +43,13 @@ export function MobileTabBar({ menuOpen, onMore, moreRef }: { menuOpen: boolean;
 
   return (
     <nav aria-label="Main" className={`${typing ? 'hidden ' : 'flex '}xl:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(3.5rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-t border-yellow-500/20 bg-gray-950/90 backdrop-blur-sm`}>
-      {TABS.map(t => {
-        const l = LINKS.find(x => x.href === t.href)!;
-        const active = isActive(pathname, l.href, l.exact);
+      {tabsFor(username).map(t => {
+        const l = LINKS.find(x => x.href === t.href);
+        const active = isActive(pathname, t.href, l?.exact);
         return (
-          <Link key={l.href} href={l.href} aria-current={active ? 'page' : undefined} className={`${item} ${active ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
-            <Icon name={t.icon} className="w-5 h-5" />{l.label}
-            {l.href === '/trade' && badge(counts.offers)}
+          <Link key={t.href} href={t.href} aria-current={active ? 'page' : undefined} className={`${item} ${active ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
+            <Icon name={t.icon} className="w-5 h-5" />{t.label ?? l?.label}
+            {t.href === '/trade' && badge(counts.offers)}
           </Link>
         );
       })}
