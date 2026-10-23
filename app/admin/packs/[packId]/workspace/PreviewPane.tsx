@@ -125,7 +125,7 @@ function BackTab({ pack, shown, holoByStars, cardBack, seasonName }: PreviewPane
           <Front c={shown} v="regular" holo={holoByStars[shown.stars]} animated={false} />
         </FlipCard>
       </div>
-      <p className="text-xs text-gray-500">A sample edition. {cardBack ? 'This is the saved card back; design it under Pack settings.' : 'No card back is designed, so this is the classic plate. Design one under Pack settings.'}</p>
+      <p className="text-xs text-gray-500">A sample edition. {cardBack ? 'This is the saved card back; design it on the Card back tab.' : 'No card back is designed, so this is the classic plate. Design one on the Card back tab.'}</p>
     </div>
   );
 }

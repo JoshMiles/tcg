@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
-import { CardBackEditor, type CardBackEditorProps } from '../../../components/CardBackEditor';
 import { ConfirmButton } from '../../../components/ConfirmButton';
 import { VariantChips } from '../../../components/VariantSwitches';
 import { deletePackAction } from '../../../actions/packs';
@@ -11,15 +10,14 @@ import { ArtDrop, Field, NumberInput, Section, inputCls } from './fields';
 
 export interface SeasonUse { id: string; name: string; active: boolean; /** Share of draws this pack gets in that season, when it is drawn there. */ share: number | null }
 
-/** The right panel with the pack selected: its settings, the card back editor, the overlay look, seasons and the danger zone. */
-export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount, cardBack, readOnlyStatus }: {
+/** The Pack settings view: the pack's settings, the overlay look, seasons and the danger zone. */
+export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount, readOnlyStatus }: {
   packId: string;
   pack: PackInput;
   base: PackInput;
   onChange: (patch: Partial<PackInput>, key?: string) => void;
   seasons: SeasonUse[];
   overrideCount: number;
-  cardBack: CardBackEditorProps;
   readOnlyStatus: 'draft' | 'published';
 }) {
   const changed = (...k: (keyof PackInput)[]) => (k.some(x => JSON.stringify(pack[x]) !== JSON.stringify(base[x])) ? 'changed' as const : null);
@@ -77,8 +75,6 @@ export function PackPanel({ packId, pack, base, onChange, seasons, overrideCount
           <Field label="Volume (0-1)" htmlFor="pw-vol"><NumberInput id="pw-vol" value={pack.soundVolume} min={0} max={1} onChange={n => onChange({ soundVolume: n }, 'vol')} /></Field>
         </div>
       </Section>
-
-      <div className="border-b border-gray-800 p-3"><CardBackEditor {...cardBack} layout="stacked" /></div>
 
       <Section title="Overlay look" defaultOpen={false}>
         <p className="text-sm text-gray-300">{overrideCount > 0 ? `${overrideCount} overlay setting${overrideCount === 1 ? '' : 's'} differ for this pack.` : 'This pack uses the overlay\'s shared look.'}</p>
