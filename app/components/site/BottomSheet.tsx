@@ -47,12 +47,16 @@ export function FilterSheet({ active = false, children }: { active?: boolean; ch
   const phone = useIsPhone();
   const [open, setOpen] = useState(false);
   const btn = useRef<HTMLButtonElement>(null);
-  if (!phone) return <>{children}</>;
+  const trigger = (
+    <button ref={btn} type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" className="inline-flex items-center gap-1.5 rounded-xl border border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-200 hover:text-white md:hidden">
+      <Icon name="filter" />Filters{active && <span className="h-2 w-2 rounded-full bg-yellow-400" role="img" aria-label="active" />}
+    </button>
+  );
+  // Server and first paint (phone is false): both versions, one hidden by CSS per width, so the page does not jump when phone turns true after hydration.
+  if (!phone) return <>{trigger}<div className="max-md:hidden">{children}</div></>;
   return (
     <>
-      <button ref={btn} type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" className="inline-flex items-center gap-1.5 rounded-xl border border-gray-700 px-3 py-1.5 text-sm font-semibold text-gray-200 hover:text-white">
-        <Icon name="filter" />Filters{active && <span className="h-2 w-2 rounded-full bg-yellow-400" role="img" aria-label="active" />}
-      </button>
+      {trigger}
       <BottomSheet open={open} onClose={() => setOpen(false)} label="Filters" returnFocusRef={btn}>
         <div className="flex flex-col items-stretch gap-3 pb-2">
           {children}
