@@ -762,6 +762,7 @@ fieldset.card { display: block; }
 
 /* Bottom sheet (BottomSheet.tsx): slides up; reduced motion (system or the account setting) just shows it. */
 .sheet-panel { animation: sheetUp .22s cubic-bezier(.2,.8,.2,1) backwards; transition: transform .2s; }
+html[data-cookie-ok] .cookie-notice { display: none; }
 .sheet-backdrop { animation: sheetFade .22s ease both; }
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes sheetFade { from { opacity: 0; } to { opacity: 1; } }
