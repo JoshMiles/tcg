@@ -2,7 +2,7 @@
 export function BrandMark({ size = 36 }: { size?: number }) {
   return (
     <img
-      src="/brand/icon.png"
+      src="/brand/icon-small.png"
       alt=""
       aria-hidden="true"
       width={size}

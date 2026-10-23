@@ -15,7 +15,7 @@ import type { Variant } from '@/lib/types';
 import { CardMathsPanel } from '@/app/components/CardMathsPanel';
 import type { CardMaths } from '@/lib/card-maths';
 import { DEFAULT_DEX, SORT_LABELS, applyDex, dexProgress, type DexFilter, type DexShow, type DexSort } from '@/lib/dex-view';
-import { ShareImageButton } from '@/app/components/ShareImage';
+import { ShareImageButtonLazy } from '@/app/components/ShareImageLazy';
 import { toggleWantedAction } from './actions';
 
 export interface DexOwner {
@@ -165,7 +165,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
         <p className="text-center text-gray-500 py-12 text-sm">No cards match.</p>
       ) : (
         <div className={compact ? 'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-3' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4'}>
-          {shown.map(c => {
+          {shown.map((c, i) => {
             const rarity = getRarity(c.stars);
             const tileClass = 'holo-hover relative aspect-2/3 rounded-xl overflow-hidden border-2 bg-gray-900 cursor-pointer transition-transform hover:-translate-y-1 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-yellow-400';
             const style = { borderColor: rarity?.hex, boxShadow: `0 0 18px -6px ${rarity?.hex}` };
@@ -180,7 +180,7 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
             return (
               <div key={c.id} className={`space-y-2 ${showMine && c.owned === false ? 'opacity-80' : ''}`}>
                 {c.imageUrl ? (
-                  <CardTile imageUrl={c.imageUrl} still={c.stillUrl} alt={c.name} title={`${c.name}. Click for details`} className={tileClass} style={style} onActivate={el => { opener.current = el; setOpenId(c.id); }}>
+                  <CardTile imageUrl={c.imageUrl} still={c.stillUrl} alt={c.name} eager={i < 6} title={`${c.name}. Click for details`} className={tileClass} style={style} onActivate={el => { opener.current = el; setOpenId(c.id); }}>
                     {badges}
                   </CardTile>
                 ) : (
@@ -262,7 +262,7 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
               {canStep && <button onClick={() => onStep(1)} aria-label="Next card" className="w-8 h-12 shrink-0 rounded-lg border border-gray-700 text-gray-400 hover:text-white">›</button>}
             </div>
             {card.upgradable && <p className="text-[11px] text-gray-500">Showing: {VARIANT_LABELS[shown]}</p>}
-            <ShareImageButton
+            <ShareImageButtonLazy
               spec={{ title: card.name, subtitle: `${'★'.repeat(card.stars)} ${rarity?.label ?? ''} · ${oneIn(card.pullRate)} per pack`, stats: [`${card.copies.toLocaleString()} out there`, `${card.collectors} collector${card.collectors === 1 ? '' : 's'}`], cards: [{ src: art, name: card.name, hex: rarity?.hex }], footer: siteHost }}
               filename={`cheesy-tcg-card-${card.number}.png`}
               label="Share this card"

@@ -46,6 +46,10 @@ SITE_URL=http://localhost:3111
 
 With the dev server, mock KV (seeded, with some pulls, a listing and `backfillSerials` run) and the fake Twitch running, `node scripts/sweep-public.mjs` loads every public page at 390px and 1280px, signed in and out, and flags horizontal overflow, a missing or duplicate `h1`, images without `alt`, unnamed buttons / links and console errors. It found the stats table overflowing on phones (grid children need `min-w-0` when they hold a scrolling table). Run it after a public-site change. More review tooling is in docs/review.md.
 
+## Measuring page speed
+
+Build and serve production on the seeded mock KV (`npm run build`, then `node node_modules/next/dist/bin/next start --port 3111`; `npx next start -p` fails in Git Bash), turn off ad blockers (AdGuard injects a big script into every page), then run `npx -y lighthouse@12.8.2 http://localhost:3111/<page> --only-categories=performance --throttling-method=devtools --output=json --output-path=<file> --chrome-flags="--headless=new"`. Always pass `--throttling-method=devtools` locally: the default simulated mode overstates LCP when the server answers instantly. Runs vary by a few hundred ms, so compare two per page. `npm run analyze` builds with `@next/bundle-analyzer` and writes the JS treemap to `.next/analyze/client.html`. Field numbers (real visitors) come from Speed Insights, through the Vercel MCP.
+
 ## The Claude app's browser pane
 
 The built-in browser pane is often **hidden**: `requestAnimationFrame` is paused, CSS background images aren't fetched and animations don't advance, so frame rate and smoothness can't be measured there. Instead scrub animations (`document.getAnimations()` → `pause()`/`currentTime`) and measure bounding boxes, or inspect computed styles. Restore the pane afterwards (`resize_window` preset `desktop`).

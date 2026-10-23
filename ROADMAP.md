@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-**Last updated 2026-10-22**
+**Last updated 2026-10-23**
 
 Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked Ready; Needs design or Needs a decision goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item.
 
@@ -58,14 +58,17 @@ Saving a preset or version captures a still of the preview at 320 px wide, uploa
 
 The public site can feel sluggish, most of all on a phone. Measure first, then fix what the numbers point at; no speculative optimising. Read `docs/public-site.md` and `docs/hosting.md` first.
 
-### 40.1 findings (measured 2026-10-22)
+### 40.1 findings (measured 2026-10-23)
 
-Production can't be audited while the alpha / beta gate is on: every public route redirects to `/closed`. The Vercel MCP Speed Insights query failed, so there are no field numbers yet (user step below). Local Lighthouse runs are invalid on the user's machine: AdGuard injects a 1.8 MB script into every page. Measure before / after on a Vercel preview with the gate open, or in a browser without AdGuard; otherwise use first-load JS from `npm run build` and the count of serial KV waves, which don't need a browser.
+Field numbers come from the Vercel MCP (`create_observability_query` on `vercel.speed_insights.*`, grouped by route and device). Over 30 days only home has enough samples: LCP p75 3.5 s, TTFB p75 838 ms. Warm server time is fine; the TTFB spikes look like cold starts, which is what 40.2e targets.
 
-What was measured: first-load JS is 216 kB on the profile (the largest), 172 kB on a copy page (1.1 kB of route code), 175 kB on `/cards`, 158 kB on home, with a 103 kB shared baseline. 45 of 46 public routes are dynamic. `getAllCollectionUsers` is not on any public page (ruled out), the grids already lazy-load thumbnails (ruled out), and the leaderboard already reads the 20 s cached board (fine).
+Lab numbers come from Lighthouse (`npx -y lighthouse@12.8.2 <url> --throttling-method=devtools`; the default simulated mode overstates LCP on localhost) against `next build` on the seeded mock KV, with AdGuard off. `npm run analyze` writes a treemap of every JS bundle to `.next/analyze/client.html`. The main stylesheet is 311 kB raw (47 kB gzipped, about 120 kB of it daisyUI components); as a separate file it held back first paint to about 2.4 s on every page, so it is now inlined (`experimental.inlineCss`, first paint about 1.2 s). The cost: each full page load's HTML carries it (about 96 kB more gzipped, the CSS text is in the page twice), while client-side navigation fetches none. First-load JS has a 103 kB shared baseline; `/cards` is 160 kB gzipped after its share button became lazy.
+
+### 40.2g Leaderboard LCP and Card Dex layout shift (Ready, small)
+On a first visit the leaderboard's largest paint is the cookie notice, which only renders after hydration (LCP about 4.2 s, first paint 1.8 s): render it so it is not the LCP, or render it on the server. `/cards` has CLS 0.13 from the grid moving after first paint (not the images; look at the font swap and anything above the grid).
 
 ### 40.2e Cache public pages for signed-out visitors (Needs design)
-Every public page is `force-dynamic` and the shell reads the session cookie, so nothing is cached. Planning question: split the shell so a signed-out render can use `revalidate` (the gate and the live badge complicate it). Plan with field numbers in hand (40.2a and 40.2d have shipped).
+Every public page is `force-dynamic` and the shell reads the session cookie, so nothing is cached. Planning question: split the shell so a signed-out render can use `revalidate` (the gate and the live badge complicate it). Field numbers are in 40.1 (40.2a and 40.2d have shipped).
 
 ### 40.2f Smaller Card Dex payload (Needs design)
 `/cards` sends every card and all owner data to the client (181 kB of HTML on seed data, growing with cards). Planning question: page it, or fetch a card's owners when its dialog opens.
@@ -105,7 +108,6 @@ All of it ships as one reviewed panel version. Every item edits `public/twitch-p
 ## User steps still open
 
 Outside the repo; tick off or delete when done (listed as of 2026-10-16).
-- [ ] **Speed Insights (40.1):** in Vercel → the project → Speed Insights, note LCP, INP and TTFB for the top routes on phone, and paste them into a session so 40.2 has field numbers.
 - [ ] **Overlay key (13.2):** copy the browser-source address (ends `?key=...`) from Settings → OBS Overlay into every OBS browser source, and each scene's address from the Overlay Editor, then refresh the sources. Clear the pull queue first.
 - [ ] **Mix It Up paid pulls (Track 12), when wanted:** a Mix It Up webhook command answering `{ "balance": n }` for `action: "balance"` and taking the currency for `action: "deduct"`; then fill in the Mix It Up admin page, press **Check balance** and **Send test message**, and switch it on.
 - [ ] **Web Push keys:** set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:` the legal contact) in Vercel Production, redeploy, then try a real iPhone (app installed), Android and a desktop browser.

@@ -91,7 +91,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
     <header className="sticky top-0 z-40 border-b border-yellow-500/20 bg-gray-950/80 backdrop-blur-sm pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
         <Link href="/" className="tap flex items-center gap-2.5 shrink-0" aria-label="The Cheesy TCG, home">
-          <img src="/brand/icon.png" alt="" width={34} height={34} className="rounded-lg ring-1 ring-yellow-500/50" />
+          <img src="/brand/icon-small.png" alt="" width={34} height={34} className="rounded-lg ring-1 ring-yellow-500/50" />
           <span className="font-display text-lg font-bold leading-none text-yellow-300">
             <span className="text-[11px] font-semibold text-yellow-500/80 block tracking-wider uppercase">The</span>
             Cheesy TCG

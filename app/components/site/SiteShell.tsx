@@ -74,7 +74,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
           <div className="grid gap-8 md:grid-cols-[minmax(0,20rem)_1fr] md:gap-10 items-start">
             <div className="space-y-3">
               <div className="flex items-center gap-2.5">
-                <img src="/brand/icon.png" alt="" width={28} height={28} className="rounded-md ring-1 ring-yellow-500/40" />
+                <img src="/brand/icon-small.png" alt="" width={28} height={28} className="rounded-md ring-1 ring-yellow-500/40" />
                 <span className="font-display font-bold text-yellow-300 whitespace-nowrap">The Cheesy TCG</span>
               </div>
               <p className="text-xs text-gray-500 leading-relaxed">

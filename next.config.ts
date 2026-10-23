@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import bundleAnalyzer from '@next/bundle-analyzer';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
@@ -15,6 +16,7 @@ function git(args: string): string | undefined {
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
 
 const nextConfig: NextConfig = {
+  experimental: { inlineCss: true },
   // Wiki pages read content/wiki/*.md at request time. Trace those files into the server bundle.
   outputFileTracingIncludes: {
     '/admin/wiki': ['./content/wiki/**/*'],
@@ -52,4 +54,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// `npm run analyze` builds and writes a treemap of every JS bundle to .next/analyze/client.html.
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.npm_lifecycle_event === 'analyze', openAnalyzer: false });
+
+export default withBundleAnalyzer(nextConfig);
