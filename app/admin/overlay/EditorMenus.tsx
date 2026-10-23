@@ -1,5 +1,5 @@
 'use client';
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ScheduledLook } from '@/lib/overlay-settings';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
@@ -8,6 +8,8 @@ import { isVertical, type OverlayLayout } from '@/lib/overlay-layout';
 import { diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { addScheduledLookAction, deleteOverlayVersionAction, removeScheduledLookAction, setSeasonLookAction } from '../overlay-actions';
 import { Popover, btn, ghost } from './editor-controls';
+import { StillFrame } from './ArtboardStrip';
+import { useOverlayEditor } from './OverlayEditorContext';
 import { SubMenu } from '../components/workspace/MenuBar';
 import type { Bg, PackInfo, PresetInfo, SeasonInfo, VersionInfo } from './editor-types';
 
@@ -16,7 +18,22 @@ import type { Bg, PackInfo, PresetInfo, SeasonInfo, VersionInfo } from './editor
 type FormAction = (formData: FormData) => void | Promise<void>;
 type Notify = (message: string) => void;
 
+// A small live still for a list row. Each is an iframe, so it mounts only while its row is visible in the scrolling list and unmounts when scrolled out; the list's max height is the cap.
+function Thumb({ name, layout, props }: { name: string; layout: OverlayLayout; props: PropValues }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <span ref={ref} className="shrink-0 flex items-center justify-center" style={{ width: 72, height: 44 }}>{visible && <StillFrame name={name} layout={layout} props={props} boxW={72} boxH={44} />}</span>;
+}
+
 export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, applyPreset, deletePresetAction, savePresetAction, presetName, setPresetName, seasons, scheduledLooks, looks, setLooks, setNotice }: { scheduledLooks: ScheduledLook[]; presets: PresetInfo[]; isPack: boolean; scope: string; dirty: boolean; effectiveSparse: PropValues; applyPreset: (p: PresetInfo) => void; deletePresetAction: FormAction; savePresetAction: FormAction; presetName: string; setPresetName: (v: string) => void; seasons: SeasonInfo[]; looks: Record<string, string>; setLooks: Dispatch<SetStateAction<Record<string, string>>>; setNotice: Notify }) {
+  const { layout } = useOverlayEditor();
   return (
     <SubMenu label="Looks" icon="palette" badge={presets.length || undefined}>
       <div className="w-80 space-y-3 text-sm">
@@ -25,6 +42,7 @@ export function PresetsMenu({ presets, isPack, scope, dirty, effectiveSparse, ap
         <ul className="space-y-1 max-h-48 overflow-y-auto">
           {presets.map(p => (
             <li key={p.id} className="flex items-center gap-2">
+              <Thumb name={p.name} layout={p.layout ?? layout} props={p.props} />
               <span className="flex-1 truncate text-gray-200">{p.name} <span className="text-gray-600 text-xs">· {Object.keys(p.props).length}</span></span>
               <button type="button" onClick={() => applyPreset(p)} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`}>Apply</button>
               <form action={deletePresetAction}>
@@ -189,6 +207,7 @@ export function VersionsMenu({ versionList, setVersionList, versionDistance, loa
             const dist = versionDistance(v);
             return (
               <li key={v.id} className="flex items-center gap-2 rounded-lg border border-gray-800 px-2 py-1.5">
+                <Thumb name={v.note || 'Saved'} layout={v.layout} props={v.props} />
                 <span className="flex-1 min-w-0">
                   <span className="block text-gray-200 truncate">{v.note || 'Saved'}</span>
                   <span className="block text-[11px] text-gray-500">{new Date(v.at).toLocaleString('en-GB', { timeZone: 'UTC' })} · {dist === 0 ? 'same as now' : `${dist} difference${dist === 1 ? '' : 's'} from your edit`}</span>
