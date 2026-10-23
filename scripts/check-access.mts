@@ -62,7 +62,7 @@ const GATED = [
   '/', '/leaderboard', '/leaderboard/s1', '/cards', '/cards/12', '/collection', '/collection/sam', '/u/sam', '/account', '/settings', '/trade', '/trade/new', '/trade/abc',
   '/notifications', '/feedback', '/stats', '/changelog', '/install', '/p/x', '/c/1', '/copy/1', '/offline-not',
   '/api/trades', '/api/trades/holdings', '/api/trades/abc', '/api/account/settings', '/api/account/push', '/api/account/upgrade', '/api/notifications', '/api/feedback',
-  '/api/search', '/api/live', '/api/recent-pulls',
+  '/api/search', '/api/cards/7/owners', '/api/live', '/api/recent-pulls',
 ];
 for (const p of EXEMPT.filter(p => !/\.[a-z0-9]+$/i.test(p))) ok(core.isExemptPath(p), `exempt: ${p}`);
 for (const p of EXEMPT.filter(p => /\.[a-z0-9]+$/i.test(p))) ok(core.isExemptPath(p), `exempt (file): ${p}`);

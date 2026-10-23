@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
 import { getCollectionCached } from '@/lib/leaderboard';
 import { getSession } from '@/lib/session';
-import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { VARIANTS, countVariants, effectiveWeights, emptyCounts } from '@/lib/variants';
 import { SITE_URL } from '@/lib/site';
 import { getUserSettings } from '@/lib/user-settings-store';
@@ -43,8 +42,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
 
   const overview = await getSeasonOverview(season);
   const collection = await getCollectionCached(season);
-  const owners = ownersByCard(collection, overview.values, 10, await getHiddenUsers());
-  const avatars = await getAvatars([...new Set([...owners.values()].flatMap(o => o.top.map(t => t.username)))]);
+  const owners = ownersByCard(collection, overview.values, 0, await getHiddenUsers()); // counts only; the dialog loads the top 10
 
   // Cards the logged-in viewer owns (for the Collected / Missing filter). Only meaningful for the active season.
   const session = await getSession();
@@ -73,7 +71,6 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
         variantCopies: v?.variantCopies ?? emptyCounts(),
         variantOdds: variantOdds(effectiveWeights(c.pack, c), v?.pullRate ?? 0),
         collectors: owners.get(c.number)?.collectors ?? 0,
-        owners: (owners.get(c.number)?.top ?? []).map(o => ({ ...o, avatar: avatars[o.username] ? sizeTwitchAvatar(avatars[o.username], 70) : undefined })),
         owned: mine ? mine.has(c.number) : undefined,
         wanted: session ? wanted.has(c.number) : undefined,
         holo: holoFor(c.pack, c.stars),
