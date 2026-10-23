@@ -14,15 +14,12 @@ import { ChangelogLink } from './ChangelogLink';
 import { newestChangelogDate } from '@/lib/changelog';
 import { nextMenuIndex } from '@/lib/menu-nav';
 import { LINKS, isActive as active } from './links';
-import { MobileTabBar, TAB_HREFS } from './MobileTabBar';
+import { MobileTabBar, tabsFor } from './MobileTabBar';
 import { BottomSheet } from './BottomSheet';
 
 export interface NavUser { username: string; displayName: string; avatarUrl?: string }
 /** The signed-in viewer's place in the active season (null when unranked or there is no season). */
 export interface NavRank { rank: number; score: number; total: number; season: string }
-
-/** The main links the phone tab bar doesn't carry. */
-const SHEET_LINKS = LINKS.filter(l => !TAB_HREFS.includes(l.href));
 
 const SEEN_KEY = 'tcg_rank_seen';
 /** What changed since the viewer last opened the account menu: positive = climbed. */
@@ -42,6 +39,9 @@ export interface NavStaff { href: string; label: string }
 
 export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'alpha' | 'beta' | null; user: NavUser | null; loginEnabled: boolean; rank?: NavRank | null; staff?: NavStaff | null }) {
   const pathname = usePathname();
+  // The main links the phone tab bar doesn't carry (Card Dex when signed in).
+  const tabHrefs = tabsFor(user?.username).map(t => t.href);
+  const SHEET_LINKS = LINKS.filter(l => !tabHrefs.includes(l.href));
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // account dropdown
   const menuRef = useRef<HTMLDivElement>(null);
@@ -169,7 +169,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
       </div>
 
     </header>
-    <MobileTabBar menuOpen={open} onMore={() => setOpen(o => !o)} moreRef={moreRef} />
+    <MobileTabBar username={user?.username} menuOpen={open} onMore={() => setOpen(o => !o)} moreRef={moreRef} />
     <div className="xl:hidden">
       <BottomSheet open={open} onClose={() => setOpen(false)} label="More" returnFocusRef={moreRef}>
         <div className="grid gap-1" onClick={e => { if ((e.target as Element).closest('a')) setOpen(false); }}>
