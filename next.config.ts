@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { deriveVersion } from './lib/version';
 
 // Build stamp, baked in at build time so every deployment is identifiable (see lib/version.ts).
 // On Vercel the commit comes from VERCEL_GIT_*; locally we ask git.
@@ -22,7 +23,12 @@ const nextConfig: NextConfig = {
     '/admin/wiki/[slug]': ['./content/wiki/**/*'],
   },
   env: {
-    BUILD_VERSION: pkg.version,
+    BUILD_VERSION: deriveVersion(
+      pkg.version,
+      process.env.VERCEL_GIT_COMMIT_MESSAGE ?? git('log -1 --format=%s'),
+      process.env.VERCEL_GIT_PULL_REQUEST_ID,
+      process.env.VERCEL_ENV,
+    ),
     BUILD_COMMIT: process.env.VERCEL_GIT_COMMIT_SHA ?? git('rev-parse HEAD') ?? '',
     BUILD_BRANCH: process.env.VERCEL_GIT_COMMIT_REF ?? git('rev-parse --abbrev-ref HEAD') ?? '',
     BUILD_ENV: process.env.VERCEL_ENV ?? 'development', // production | preview | development

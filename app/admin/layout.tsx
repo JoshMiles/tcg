@@ -9,6 +9,8 @@ import { OverlayStatusProvider } from './components/OverlayStatusContext';
 import { CopyUrlButton } from './components/copy-url-button';
 import { Icon } from '@/app/components/Icon';
 import { SandboxPill } from '@/app/components/SandboxPill';
+import { UpdatePrompt } from '@/app/components/UpdatePrompt';
+import { getBuildInfo } from '@/lib/version';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { countNewFeedback } from '@/lib/feedback';
@@ -24,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const staff = await getStaff();
   if (!staff || !roleCan(staff.role, 'admin')) redirect(staff ? '/mod' : '/login?error=not-staff');
   const overlayKey = await getOverlayKey().catch(() => '');
+  const build = getBuildInfo();
   const siteText = adminSiteText(await getSiteLabel());
   return (
     <OverlayStatusProvider>
@@ -87,6 +90,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         }
       >
         <SandboxPill />
+        <UpdatePrompt commit={build.commit} env={build.env} />
         {siteText && <p className="fixed bottom-2 right-3 z-30 rounded-full border border-purple-400/40 bg-purple-950/80 px-2.5 py-1 text-[11px] font-semibold text-purple-200" role="status">Site: {siteText}</p>}
         <AdminKeyboard overlayKey={overlayKey} />
         {children}
