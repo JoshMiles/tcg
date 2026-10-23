@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import bundleAnalyzer from '@next/bundle-analyzer';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
@@ -52,4 +53,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// `npm run analyze` builds and writes a treemap of every JS bundle to .next/analyze/client.html.
+const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.npm_lifecycle_event === 'analyze', openAnalyzer: false });
+
+export default withBundleAnalyzer(nextConfig);

@@ -1,4 +1,8 @@
-@import 'tailwindcss';
+/* Only scan what the site renders: Tailwind's auto-detection also read .trail/, docs/, scripts/ and public/,
+   and every word there that names a utility or daisyUI component ended up in the stylesheet. */
+@import 'tailwindcss' source(none);
+@source '../app';
+@source '../lib';
 
 /* daisyUI 5, one theme. Built-in light/dark stay off so the page does not restyle. */
 @plugin "daisyui" {

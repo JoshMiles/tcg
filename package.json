@@ -7,6 +7,7 @@
     "predev": "node scripts/build-changelog.mjs --ensure",
     "dev": "next dev",
     "build": "node scripts/build-changelog.mjs && next build",
+    "analyze": "node scripts/build-changelog.mjs --ensure && next build",
     "start": "next start",
     "check": "node scripts/build-changelog.mjs --ensure && node scripts/run-checks.mjs",
     "typecheck": "node scripts/build-changelog.mjs --ensure && tsc --noEmit",
@@ -32,6 +33,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.5.28",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",

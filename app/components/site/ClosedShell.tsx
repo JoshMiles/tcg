@@ -15,7 +15,7 @@ export function ClosedShell({ children }: { children: ReactNode }) {
       <header className="border-b border-gray-800/80 bg-gray-950/60">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <Link href="/closed" className="flex items-center gap-2.5 min-w-0" aria-label="The Cheesy TCG">
-            <img src="/brand/icon.png" alt="" width={28} height={28} className="rounded-md ring-1 ring-yellow-500/40" />
+            <img src="/brand/icon-small.png" alt="" width={28} height={28} className="rounded-md ring-1 ring-yellow-500/40" />
             <span className="font-display font-bold text-yellow-300 truncate">The Cheesy TCG</span>
           </Link>
           <Link href="/closed" className="shrink-0 text-xs font-semibold text-yellow-500 hover:text-yellow-300">Log in</Link>

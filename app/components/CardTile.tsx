@@ -17,6 +17,7 @@ export function CardTile({
   title,
   label,
   onActivate,
+  eager,
   children,
 }: {
   imageUrl: string;
@@ -30,6 +31,8 @@ export function CardTile({
   label?: string;
   /** Makes the tile a button; called with the tile element on click / Enter / Space. */
   onActivate?: (el: HTMLElement) => void;
+  /** Above-the-fold tile: load at once, not lazily (it is often the page's LCP image). */
+  eager?: boolean;
   children?: ReactNode;
 }) {
   const base = cardThumbUrl(imageUrl);
@@ -55,7 +58,7 @@ export function CardTile({
       onMouseEnter={() => animates && setHovered(true)}
       onMouseLeave={() => { setHovered(false); setReady(false); }}
     >
-      <img src={thumb} alt={alt} loading="lazy" className="w-full h-full object-cover" />
+      <img src={thumb} alt={alt} loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : undefined} className="w-full h-full object-cover" />
       {hovered && (
         <img
           src={imageUrl}
