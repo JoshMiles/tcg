@@ -1382,7 +1382,3 @@ Goal: every visible part of the overlay is a layer you can click, drag and size 
 - Update `docs/overlay.md` (layout and editor sections) to describe layers.
 
 ### 36.5 A font on every text layer (Done, #344)
-
-## Track 35: home-screen app (2026-10-20, closed 2026-10-23)
-
-The iPhone home-screen icon showed iOS's letter fallback ("C"). Production checked on 2026-10-20: `/apple-touch-icon.png` served the 180 px mascot, the head had one plain `apple-touch-icon` link and the middleware matcher skips dotted paths, so the fault was the phone's cached icon. #330 gave the icon a new URL (`public/apple-touch-icon-v3.png`, since iOS caches per URL; no `?v=` query), added a 180 px `purpose: 'any'` manifest entry for iOS 26 web apps, and removed the dead `app/apple-icon.png`. Closed once the user re-added the app. Not planned: offline caching of pages or data (now a standing decision).

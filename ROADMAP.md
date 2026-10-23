@@ -22,10 +22,20 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 41.1 | Pack workspace: Pack settings and Card back become tabs | Ready | M |
 | 41.2 | Phone tab bar: the viewer's own collection replaces Card Dex | Ready | S |
 | 42.1 | Version from the PR number, and a "New version available" prompt | Ready | M |
+| 35.1 | iPhone icon still a "C" (server side checked again 2026-10-23; test Safari against Chrome) | Blocked (user) | S |
 | 40.2e | Site speed: cache public pages for signed-out visitors | Blocked (field data, re-check 2026-11-06) | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze, check review 2026-10-30) | L |
 
-Tracks 25 to 33, 35 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
+Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
+
+## Track 35: home-screen app (2026-10-20)
+
+Read `docs/public-site.md` (install topic) first. #330 gave the icon a new URL (`apple-touch-icon-v3.png`), added the 180 px manifest entry and removed `app/apple-icon.png`. Production checked again on 2026-10-23: signed-out visitors land on `/closed`, whose head links `/apple-touch-icon-v3.png` (180x180); that file, the root `apple-touch-icon.png`, `-precomposed.png` and the manifest all serve 200. The "C" is iOS's letter fallback, so the fault is on the device. The user re-added the app and still got the "C"; their default browser is Chrome.
+
+### 35.1 iPhone icon still a "C" (Blocked on the user, S)
+1. **Safari against Chrome (user):** delete the home-screen app. Open `cheesytcg.app` in **Safari** (it works whatever the default browser is), Share > Add to Home Screen. Then try the same from Chrome's share button.
+2. **If Safari shows the mascot and Chrome the "C":** Chrome on iPhone is the cause and nothing on the server can fix it. Change the iPhone step in `app/components/site/InstallGuide.tsx` (it says "Chrome and Edge on iPhone can do it too"): tell iPhone users to use Safari, and update the install topic in `docs/public-site.md`. Close 35.1.
+3. **If Safari shows the "C" too, diagnose (user, with a Mac):** iPhone Settings > Apps > Safari > Advanced > Web Inspector on, plug into the Mac, Safari > Develop > the iPhone. Open `cheesytcg.app`, open the Network tab, then Share > Add to Home Screen. Note whether `/apple-touch-icon-v3.png` is requested and what comes back, the iOS version, and whether "Open as Web App" was on. Bring that back to planning.
 
 ## Track 38: Overlay Editor, the Photoshop pass (2026-10-21)
 
