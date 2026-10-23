@@ -43,6 +43,8 @@ export const metadata: Metadata = {
     apple: [{ url: '/apple-touch-icon-v3.png', sizes: '180x180', type: 'image/png' }],
   },
   formatDetection: { telephone: false },
+  // Next 15.5 renders appleWebApp.capable as mobile-web-app-capable only; iOS still wants the apple- name before it uses the startup images.
+  other: { 'apple-mobile-web-app-capable': 'yes' },
 };
 
 export const viewport: Viewport = { viewportFit: 'cover', themeColor: '#0a0f1e', colorScheme: 'dark' };
