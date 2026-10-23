@@ -16,7 +16,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 | # | Item | Status | Size |
 |---|------|--------|------|
-| 40.2g | Site speed: leaderboard LCP and Card Dex layout shift | Ready | S |
 | 40.2f | Site speed: smaller Card Dex payload (owners load with the dialog) | Ready | S |
 | 38.27 | Overlay Editor: preset / version thumbnails (live stills) | Ready | S |
 | 41.1 | Pack workspace: Pack settings and Card back become tabs | Ready | M |
@@ -51,9 +50,6 @@ Presets and the versions list show a small still of each entry. No image capture
 The public site can feel sluggish, most of all on a phone. Measure first, then fix what the numbers point at; no speculative optimising. Read `docs/public-site.md` and `docs/hosting.md` first.
 
 How to measure (Speed Insights through the Vercel MCP, Lighthouse flags, `npm run analyze`, why `inlineCss` was set aside) is in `docs/hosting.md`, "Measuring site speed". Field baseline on 2026-10-23, home only (the one route with enough samples): LCP p75 3.5 s, TTFB p75 838 ms. Lab: first-load JS has a 103 kB shared baseline; `/cards` is 160 kB gzipped.
-
-### 40.2g Leaderboard LCP and Card Dex layout shift (Ready, S)
-On a first visit the leaderboard's largest paint is the cookie notice, which only renders after hydration (LCP about 4.2 s, first paint 1.8 s): render it so it is not the LCP, or render it on the server. `/cards` has CLS 0.13 from the grid moving after first paint (not the images; look at the font swap and anything above the grid).
 
 ### 40.2f Smaller Card Dex payload (Ready, S)
 `/cards` sends 181 kB of HTML on seed data, growing with cards. `app/(site)/cards/page.tsx` builds the top 10 owners and their avatars for every card (`ownersByCard(..., 10)`, `getAvatars`), but they only show in a card's dialog. Keep `collectors` in the page (the grid and sorting use it); load a card's owners when its dialog opens, from a small GET route that reuses `ownersByCard` for one card and respects hidden users as the page does now. No paging yet. Check: the HTML size before and after on seed data, and the dialog still shows owners with avatars.
