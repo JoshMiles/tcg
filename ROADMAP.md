@@ -21,6 +21,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 38.27 | Overlay Editor: preset / version thumbnails (live stills) | Ready | S |
 | 41.1 | Pack workspace: Pack settings and Card back become tabs | Ready | M |
 | 41.2 | Phone tab bar: the viewer's own collection replaces Card Dex | Ready | S |
+| 42.1 | Version from the PR number, and a "New version available" prompt | Ready | M |
 | 40.2e | Site speed: cache public pages for signed-out visitors | Blocked (field data, re-check 2026-11-06) | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze, check review 2026-10-30) | L |
 
@@ -59,6 +60,17 @@ Read `docs/admin/packs-and-seasons.md` (the pack workspace) first. Today the pac
 
 ### 41.2 Phone tab bar: own collection (Ready, S)
 Read `docs/public-site/basics.md` (the phone tab bar) first, and update it. The phone tab bar (`app/components/site/MobileTabBar.tsx`, below `xl`) is Home, Card Dex, Trade, Leaderboard, More. For a signed-in viewer the second tab becomes **Collection**, linking to `/u/<username>` and active there; Card Dex then moves into the More sheet. Signed out it stays Card Dex (nothing to link to). `SiteNav` already has the viewer (`NavUser`): pass it to `MobileTabBar`, and work out `SHEET_LINKS` from the tabs actually shown rather than the fixed `TAB_HREFS`, so no link is lost or doubled. Check at phone width signed in and signed out: five tabs, the right one active on your own profile, Card Dex reachable from More when signed in, nothing changes at `xl` and up.
+
+## Track 42: versions and the update prompt (2026-10-23)
+
+### 42.1 Version from the PR number, and a refresh prompt (Ready, M)
+Read `docs/hosting.md` ("Build version") first, and update it. Today `BUILD_VERSION` is the hand-bumped `package.json` semver (`v1.1.0 · 75fdb70`), so it rarely moves.
+
+1. **Version.** In `next.config.ts`, build the version as `<major>.<PR number>`: the major from `package.json`, the PR number from the `(#N)` at the end of the commit subject (every merge to `main` is a squash merge). On Vercel the subject is `VERCEL_GIT_COMMIT_MESSAGE`; locally `git log -1 --format=%s`. On a preview build use `VERCEL_GIT_PULL_REQUEST_ID` with a `-pr` suffix (`1.438-pr`); with neither, fall back to the `package.json` version. No GitHub API call, so it can't fail a build. It is the PR number, not a count of merged PRs (closed PRs leave gaps), but it only goes up. Shows as `v1.437 · 179a138` everywhere the badge does now.
+2. **Prompt.** A small client component in the site shell and the admin shell compares the commit baked into the page (`getBuildInfo()`) with `GET /api/version`. It checks when the tab becomes visible again and every 10 minutes while visible (never while hidden). When the commit differs, show a toast: "A new version is available" with **Refresh** (a normal reload, so pages with unsaved changes still ask first through their own guard) and a close button that hides it until the next new commit. Never reload by itself. Skip it in dev (`BUILD_ENV` development).
+3. `/api/version` keeps its fields (the released Twitch panel reads `version`); only the value's format changes. Not the overlay (OBS has nobody to click it; it stays refreshed by hand) and not the panel (frozen; an idea for Track 34).
+
+Check: a local build shows `v1.<n>` from the latest commit subject; with the page open, a second build with another commit makes the toast appear on refocus; Refresh loads the new build; close keeps it hidden for that commit. Player-facing changelog line for the prompt.
 
 ## Blocked by the Twitch panel freeze
 
