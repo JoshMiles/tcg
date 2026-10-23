@@ -16,34 +16,20 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 | # | Item | Status | Size |
 |---|------|--------|------|
-| 40.2f | Site speed: smaller Card Dex payload (owners load with the dialog) | Ready | S |
-| 38.27 | Overlay Editor: preset / version thumbnails (live stills) | Ready | S |
-| 41.1 | Pack workspace: Pack settings and Card back become tabs | Ready | M |
-| 41.2 | Phone tab bar: the viewer's own collection replaces Card Dex | Ready | S |
-| 42.1 | Version from the PR number, and a "New version available" prompt | Ready | M |
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2e | Site speed: cache public pages for signed-out visitors | Blocked (field data, re-check 2026-11-06) | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze, check review 2026-10-30) | L |
 
-Tracks 25 to 33 and 36 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
+Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
 ## Track 35: home-screen app (2026-10-20)
 
-Read `docs/public-site.md` (install topic) first. #330 gave the icon a new URL (`apple-touch-icon-v3.png`), added the 180 px manifest entry and removed `app/apple-icon.png`. Production checked again on 2026-10-23: signed-out visitors land on `/closed`, whose head links `/apple-touch-icon-v3.png` (180x180); that file, the root `apple-touch-icon.png`, `-precomposed.png` and the manifest all serve 200. The icon is a plain 8-bit RGB 180 px PNG (no alpha, not interlaced), served `image/png` with ordinary headers; every tag is in `<head>`. The user re-added the app from Safari and from Chrome on 2026-10-23: the "C" both times, and the launch screen (the mascot on black) doesn't show either. One server-side lead: Next 15.5 turns `appleWebApp.capable` into `mobile-web-app-capable` only, with no `apple-mobile-web-app-capable`, which iOS has needed before it uses `apple-touch-startup-image`. It is being fixed on its own branch; it likely explains the launch screen, and may or may not explain the icon.
+Read `docs/public-site.md` (install topic) first. #330 gave the icon a new URL (`apple-touch-icon-v3.png`), added the 180 px manifest entry and removed `app/apple-icon.png`. Production checked again on 2026-10-23: signed-out visitors land on `/closed`, whose head links `/apple-touch-icon-v3.png` (180x180); that file, the root `apple-touch-icon.png`, `-precomposed.png` and the manifest all serve 200. The icon is a plain 8-bit RGB 180 px PNG (no alpha, not interlaced), served `image/png` with ordinary headers; every tag is in `<head>`. The user re-added the app from Safari and from Chrome on 2026-10-23: the "C" both times, and the launch screen (the mascot on black) doesn't show either. One server-side lead: Next 15.5 turns `appleWebApp.capable` into `mobile-web-app-capable` only, with no `apple-mobile-web-app-capable`, which iOS has needed before it uses `apple-touch-startup-image`. Fixed in #439 (live); it likely explains the launch screen, and may or may not explain the icon.
 
 ### 35.1 iPhone icon still a "C" (Blocked on the user, S)
 1. After the `apple-mobile-web-app-capable` fix is live, delete the home-screen app and add it again from Safari. Close 35.1 if the mascot and the launch screen show.
 2. **Rule out the phone (user):** add another site (github.com) to the home screen; if it also gets a letter, look at content blockers (Settings > Apps > Safari > Extensions), Lockdown Mode and iCloud Private Relay rather than this site. Note the iPhone model, the iOS version, and whether the app opens full screen without Safari's bars.
 3. **If only this site gets a "C", diagnose (user, with a Mac):** iPhone Settings > Apps > Safari > Advanced > Web Inspector on, plug into the Mac, Safari > Develop > the iPhone. Open `cheesytcg.app`, open the Network tab, then Share > Add to Home Screen. Note whether `/apple-touch-icon-v3.png` is requested and what comes back, the iOS version, and whether "Open as Web App" was on. Bring that back to planning.
-
-## Track 38: Overlay Editor, the Photoshop pass (2026-10-21)
-
-Goal: the Overlay Editor works like Photoshop; the rest of the pass has shipped. Read `docs/overlay.md` (layout, properties, editor) first. Rules: preview mode never touches the queue, heartbeat or collections; every new stored field goes through `sanitizeLayout()` with an empty default that equals today's look, plus a `scripts/check-overlay.mts` case.
-
-### 38.27 Preset and version thumbnails (Ready, S)
-Presets and the versions list show a small still of each entry. No image capture, no Blob upload and no new stored field: reuse `StillFrame` from `app/admin/overlay/ArtboardStrip.tsx` (a live, settled still of a layout in a same-origin iframe, already used by `CompareDialog`). A version passes its own `layout` and `props`; a preset passes its `props` with its `layout` if it saved one, else the editor's current layout (what applying it would show). Every still is a live iframe, so render them only for entries on screen and cap them as `ArtboardStrip` does (`MAX_BOARDS`). Check: a list of 20 versions stays responsive. If live stills still prove too heavy, bring it back to planning rather than adding a rasterising dependency.
-
-**Not planned:** real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.
 
 ## Track 40: site speed (2026-10-22)
 
@@ -51,32 +37,8 @@ The public site can feel sluggish, most of all on a phone. Measure first, then f
 
 How to measure (Speed Insights through the Vercel MCP, Lighthouse flags, `npm run analyze`, why `inlineCss` was set aside) is in `docs/hosting.md`, "Measuring site speed". Field baseline on 2026-10-23, home only (the one route with enough samples): LCP p75 3.5 s, TTFB p75 838 ms. Lab: first-load JS has a 103 kB shared baseline; `/cards` is 160 kB gzipped.
 
-### 40.2f Smaller Card Dex payload (Ready, S)
-`/cards` sends 181 kB of HTML on seed data, growing with cards. `app/(site)/cards/page.tsx` builds the top 10 owners and their avatars for every card (`ownersByCard(..., 10)`, `getAvatars`), but they only show in a card's dialog. Keep `collectors` in the page (the grid and sorting use it); load a card's owners when its dialog opens, from a small GET route that reuses `ownersByCard` for one card and respects hidden users as the page does now. No paging yet. Check: the HTML size before and after on seed data, and the dialog still shows owners with avatars.
-
 ### 40.2e Cache public pages for signed-out visitors (Blocked on field data, M)
 Every public page is `force-dynamic` and the shell reads the session cookie, so nothing is cached. Caching can only win back the TTFB part of home's 3.5 s LCP (838 ms at p75), and it is the riskiest item here (the gate, the live badge, the session in the shell, 10 dynamic pages). On 2026-11-06, read two weeks of Speed Insights after #437 and 40.2g; plan the shell split only if TTFB is still a large share of LCP.
-
-## Track 41: navigation (2026-10-23)
-
-One PR per item, each from `origin/main`.
-
-### 41.1 Pack settings and Card back tabs (Ready, M)
-Read `docs/admin/packs-and-seasons.md` (the pack workspace) first. Today the pack settings, the card back editor, the overlay look, seasons and the danger zone are all stacked in the right panel when the pack itself is selected (`workspace/PackPanel.tsx`, opened by `?card=pack`), with the card back editor squeezed into `layout="stacked"`. Add two views to the tab row in `PackWorkspace.tsx` (`WorkspaceView`, after Overview): **Pack settings** (everything `PackPanel` shows except the card back, full width) and **Card back** (`CardBackEditor` in its wide layout). Both go through the same unsaved-changes / save flow as now; nothing about storage changes. Old addresses keep working: `?tab=settings` and `?card=pack` open the Pack settings view (`page.tsx` already redirects old `tab` values). Whatever selected the pack before (its row or button) now switches to the Pack settings view. Update the `PreviewPane` hint ("design it under Pack settings") to name the Card back tab. Check: edit a setting and the card back, save, reload, both kept; the old addresses land on the right view; the tab row still fits on a narrow window.
-
-### 41.2 Phone tab bar: own collection (Ready, S)
-Read `docs/public-site/basics.md` (the phone tab bar) first, and update it. The phone tab bar (`app/components/site/MobileTabBar.tsx`, below `xl`) is Home, Card Dex, Trade, Leaderboard, More. For a signed-in viewer the second tab becomes **Collection**, linking to `/u/<username>` and active there; Card Dex then moves into the More sheet. Signed out it stays Card Dex (nothing to link to). `SiteNav` already has the viewer (`NavUser`): pass it to `MobileTabBar`, and work out `SHEET_LINKS` from the tabs actually shown rather than the fixed `TAB_HREFS`, so no link is lost or doubled. Check at phone width signed in and signed out: five tabs, the right one active on your own profile, Card Dex reachable from More when signed in, nothing changes at `xl` and up.
-
-## Track 42: versions and the update prompt (2026-10-23)
-
-### 42.1 Version from the PR number, and a refresh prompt (Ready, M)
-Read `docs/hosting.md` ("Build version") first, and update it. Today `BUILD_VERSION` is the hand-bumped `package.json` semver (`v1.1.0 · 75fdb70`), so it rarely moves.
-
-1. **Version.** In `next.config.ts`, build the version as `<major>.<PR number>`: the major from `package.json`, the PR number from the `(#N)` at the end of the commit subject (every merge to `main` is a squash merge). On Vercel the subject is `VERCEL_GIT_COMMIT_MESSAGE`; locally `git log -1 --format=%s`. On a preview build use `VERCEL_GIT_PULL_REQUEST_ID` with a `-pr` suffix (`1.438-pr`); with neither, fall back to the `package.json` version. No GitHub API call, so it can't fail a build. It is the PR number, not a count of merged PRs (closed PRs leave gaps), but it only goes up. Shows as `v1.437 · 179a138` everywhere the badge does now.
-2. **Prompt.** A small client component in the site shell and the admin shell compares the commit baked into the page (`getBuildInfo()`) with `GET /api/version`. It checks when the tab becomes visible again and every 10 minutes while visible (never while hidden). When the commit differs, show a toast: "A new version is available" with **Refresh** (a normal reload, so pages with unsaved changes still ask first through their own guard) and a close button that hides it until the next new commit. Never reload by itself. Skip it in dev (`BUILD_ENV` development).
-3. `/api/version` keeps its fields (the released Twitch panel reads `version`); only the value's format changes. Not the overlay (OBS has nobody to click it; it stays refreshed by hand) and not the panel (frozen; an idea for Track 34).
-
-Check: a local build shows `v1.<n>` from the latest commit subject; with the page open, a second build with another commit makes the toast appear on refocus; Refresh loads the new build; close keeps it hidden for that commit. Player-facing changelog line for the prompt.
 
 ## Blocked by the Twitch panel freeze
 
@@ -110,3 +72,4 @@ The panel went to Twitch review on 2026-10-15; check its status on 2026-10-30. T
 - Trainer cards can be traded until used.
 - Collection words (Track 37): collected = different cards of a set, pulls = every pull, edition = one numbered copy.
 - No offline caching of pages or data: `public/sw.js` caches only the offline page so nobody sees stale cards or scores (Track 35).
+- Not planned for the Overlay Editor: real-time co-editing, plugin / script actions, filters on card art (the card art is the pack's job), uploading font files.

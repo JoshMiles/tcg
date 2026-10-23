@@ -1382,3 +1382,33 @@ Goal: every visible part of the overlay is a layer you can click, drag and size 
 - Update `docs/overlay.md` (layout and editor sections) to describe layers.
 
 ### 36.5 A font on every text layer (Done, #344)
+
+## Track 38: Overlay Editor, the Photoshop pass (2026-10-21)
+
+Goal: the Overlay Editor works like Photoshop; the rest of the pass has shipped. Read `docs/overlay.md` (layout, properties, editor) first. Rules: preview mode never touches the queue, heartbeat or collections; every new stored field goes through `sanitizeLayout()` with an empty default that equals today's look, plus a `scripts/check-overlay.mts` case.
+
+### 38.27 Preset and version thumbnails (Done, #445)
+Presets and the versions list show a small still of each entry. No image capture, no Blob upload and no new stored field: reuse `StillFrame` from `app/admin/overlay/ArtboardStrip.tsx` (a live, settled still of a layout in a same-origin iframe, already used by `CompareDialog`). A version passes its own `layout` and `props`; a preset passes its `props` with its `layout` if it saved one, else the editor's current layout (what applying it would show). Every still is a live iframe, so render them only for entries on screen and cap them as `ArtboardStrip` does (`MAX_BOARDS`). Check: a list of 20 versions stays responsive. If live stills still prove too heavy, bring it back to planning rather than adding a rasterising dependency.
+## Track 40: site speed (2026-10-22)
+
+### 40.2f Smaller Card Dex payload (Done, #447)
+`/cards` sends 181 kB of HTML on seed data, growing with cards. `app/(site)/cards/page.tsx` builds the top 10 owners and their avatars for every card (`ownersByCard(..., 10)`, `getAvatars`), but they only show in a card's dialog. Keep `collectors` in the page (the grid and sorting use it); load a card's owners when its dialog opens, from a small GET route that reuses `ownersByCard` for one card and respects hidden users as the page does now. No paging yet. Check: the HTML size before and after on seed data, and the dialog still shows owners with avatars.
+## Track 41: navigation (2026-10-23)
+
+One PR per item, each from `origin/main`.
+
+### 41.1 Pack settings and Card back tabs (Done, #441)
+Read `docs/admin/packs-and-seasons.md` (the pack workspace) first. Today the pack settings, the card back editor, the overlay look, seasons and the danger zone are all stacked in the right panel when the pack itself is selected (`workspace/PackPanel.tsx`, opened by `?card=pack`), with the card back editor squeezed into `layout="stacked"`. Add two views to the tab row in `PackWorkspace.tsx` (`WorkspaceView`, after Overview): **Pack settings** (everything `PackPanel` shows except the card back, full width) and **Card back** (`CardBackEditor` in its wide layout). Both go through the same unsaved-changes / save flow as now; nothing about storage changes. Old addresses keep working: `?tab=settings` and `?card=pack` open the Pack settings view (`page.tsx` already redirects old `tab` values). Whatever selected the pack before (its row or button) now switches to the Pack settings view. Update the `PreviewPane` hint ("design it under Pack settings") to name the Card back tab. Check: edit a setting and the card back, save, reload, both kept; the old addresses land on the right view; the tab row still fits on a narrow window.
+
+### 41.2 Phone tab bar: own collection (Done, #446)
+Read `docs/public-site/basics.md` (the phone tab bar) first, and update it. The phone tab bar (`app/components/site/MobileTabBar.tsx`, below `xl`) is Home, Card Dex, Trade, Leaderboard, More. For a signed-in viewer the second tab becomes **Collection**, linking to `/u/<username>` and active there; Card Dex then moves into the More sheet. Signed out it stays Card Dex (nothing to link to). `SiteNav` already has the viewer (`NavUser`): pass it to `MobileTabBar`, and work out `SHEET_LINKS` from the tabs actually shown rather than the fixed `TAB_HREFS`, so no link is lost or doubled. Check at phone width signed in and signed out: five tabs, the right one active on your own profile, Card Dex reachable from More when signed in, nothing changes at `xl` and up.
+## Track 42: versions and the update prompt (2026-10-23)
+
+### 42.1 Version from the PR number, and a refresh prompt (Done, #442)
+Read `docs/hosting.md` ("Build version") first, and update it. Today `BUILD_VERSION` is the hand-bumped `package.json` semver (`v1.1.0 · 75fdb70`), so it rarely moves.
+
+1. **Version.** In `next.config.ts`, build the version as `<major>.<PR number>`: the major from `package.json`, the PR number from the `(#N)` at the end of the commit subject (every merge to `main` is a squash merge). On Vercel the subject is `VERCEL_GIT_COMMIT_MESSAGE`; locally `git log -1 --format=%s`. On a preview build use `VERCEL_GIT_PULL_REQUEST_ID` with a `-pr` suffix (`1.438-pr`); with neither, fall back to the `package.json` version. No GitHub API call, so it can't fail a build. It is the PR number, not a count of merged PRs (closed PRs leave gaps), but it only goes up. Shows as `v1.437 · 179a138` everywhere the badge does now.
+2. **Prompt.** A small client component in the site shell and the admin shell compares the commit baked into the page (`getBuildInfo()`) with `GET /api/version`. It checks when the tab becomes visible again and every 10 minutes while visible (never while hidden). When the commit differs, show a toast: "A new version is available" with **Refresh** (a normal reload, so pages with unsaved changes still ask first through their own guard) and a close button that hides it until the next new commit. Never reload by itself. Skip it in dev (`BUILD_ENV` development).
+3. `/api/version` keeps its fields (the released Twitch panel reads `version`); only the value's format changes. Not the overlay (OBS has nobody to click it; it stays refreshed by hand) and not the panel (frozen; an idea for Track 34).
+
+Check: a local build shows `v1.<n>` from the latest commit subject; with the page open, a second build with another commit makes the toast appear on refocus; Refresh loads the new build; close keeps it hidden for that commit. Player-facing changelog line for the prompt.
