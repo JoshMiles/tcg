@@ -76,7 +76,7 @@ const EXEMPT_PAGES = ['/closed', '/login', '/privacy', '/terms', '/admin', '/mod
 const EXEMPT_PREFIXES = ['/auth/', '/_next/', '/assets/', '/brand/', '/icons/', '/twitch-panel/'];
 const EXEMPT_API = ['/api/twitch', '/api/version', '/api/webhooks', '/api/cron', '/api/overlay', '/api/collection', '/api/auth', '/api/admin', '/api/seasons', '/api/sandbox', '/api/upload', '/api/seed', '/api/account/deletion', '/api/account/export'];
 /** The public site's own APIs, which need a tester or staff sign-in when the site is closed. Every other API is left alone. */
-const GATED_API = ['/api/account', '/api/trades', '/api/notifications', '/api/feedback', '/api/search', '/api/live', '/api/recent-pulls'];
+const GATED_API = ['/api/account', '/api/trades', '/api/notifications', '/api/feedback', '/api/search', '/api/cards', '/api/live', '/api/recent-pulls'];
 
 const within = (path: string, base: string) => path === base || path.startsWith(`${base}/`);
 

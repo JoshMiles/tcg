@@ -44,8 +44,7 @@ export interface DexCard {
   /** Copies of each version out there, and the chance of each per pull. */
   variantCopies: VariantCounts;
   variantOdds: Record<Variant, number>;
-  /** Biggest collectors of this card (most copies first) and how many collectors own it at all. */
-  owners: DexOwner[];
+  /** How many collectors own it at all. The biggest collectors load with the dialog (/api/cards/<n>/owners). */
   collectors: number;
   /** Whether the logged-in viewer owns it; undefined when nobody is logged in. */
   owned?: boolean;
@@ -223,6 +222,20 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
 
   useEffect(() => { setShown('regular'); }, [card.id]);
 
+  // Top collectors load when the dialog opens (and when you step to another card).
+  const [owners, setOwners] = useState<DexOwner[] | null>(null);
+  const [ownersFailed, setOwnersFailed] = useState(false);
+  useEffect(() => {
+    setOwners(null); setOwnersFailed(false);
+    if (card.collectors === 0) { setOwners([]); return; }
+    const ctl = new AbortController();
+    fetch(`/api/cards/${card.number}/owners?season=${encodeURIComponent(seasonId)}`, { signal: ctl.signal })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('owners'))))
+      .then((d: { owners: DexOwner[] }) => setOwners(d.owners))
+      .catch(() => { if (!ctl.signal.aborted) setOwnersFailed(true); });
+    return () => ctl.abort();
+  }, [card.number, card.collectors, seasonId]);
+
   useEffect(() => {
     closeBtn.current?.focus();
     const prev = document.body.style.overflow;
@@ -329,15 +342,19 @@ function DexDetail({ card, seasonId, siteHost, signedIn, onToggleWanted, canStep
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-3">
                 <h3 className="font-display text-xl font-bold text-white">Top collectors</h3>
-                {card.collectors > card.owners.length && <span className="text-xs text-gray-500">+{card.collectors - card.owners.length} more own it</span>}
+                {owners && card.collectors > owners.length && <span className="text-xs text-gray-500">+{card.collectors - owners.length} more own it</span>}
               </div>
-              {card.owners.length === 0 ? (
+              {ownersFailed ? (
+                <p className="rounded-xl bg-gray-950/50 border border-gray-800 px-4 py-5 text-sm text-gray-400 text-center">Could not load the collectors. Close and reopen this card to try again.</p>
+              ) : owners === null ? (
+                <p className="rounded-xl bg-gray-950/50 border border-gray-800 px-4 py-5 text-sm text-gray-500 text-center" role="status">Loading collectors...</p>
+              ) : owners.length === 0 ? (
                 <p className="rounded-xl bg-gray-950/50 border border-gray-800 px-4 py-5 text-sm text-gray-400 text-center">
                   Nobody owns this card yet. Be the first to pull it!
                 </p>
               ) : (
                 <ol className="divide-y divide-gray-800/70 rounded-xl border border-gray-800 overflow-hidden">
-                  {card.owners.map((o, i) => {
+                  {owners.map((o, i) => {
                     const extras = VARIANTS.filter(v => v !== 'regular' && o.variants[v] > 0);
                     return (
                       <li key={o.username}>
