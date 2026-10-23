@@ -1,6 +1,6 @@
 # Hosting, environment, backups and data health
 
-> Read this when you touch deployment, environment variables, the build stamp, nightly backups or data health.
+> Read this when you touch deployment, environment variables, the build stamp, nightly backups, data health or measuring site speed.
 
 ## Environment variables
 | Variable | Purpose |
@@ -44,6 +44,12 @@ The project's **first scheduled job**: Vercel Cron (`vercel.json`, 04:00 UTC) ca
 - Build: `next build` (Node, Next 15). `next.config.ts` stamps the build version/commit and sets cache headers for card art. Tailwind is 4 (`@tailwindcss/postcss`, theme in `app/globals.css`) with daisyUI 5's `cheesy` theme. `@vercel/blob` is on 2.x (moved from 0.27 in October 2026, which also cleared the `undici` / `@fastify/busboy` advisories; the code needed no changes). Upload, optimise, replace and cleanup only run against a real Blob store, so after any further major bump test them on a Preview deployment first.
 - Static files in `public/` (overlay, widget, Twitch panel, card art, sounds) are served as-is by Vercel, no build step. The overlay/widget are cached by OBS, after a deploy, right-click the browser source → **Refresh cache of current page**.
 - **Twitch Extension** is configured at dev.twitch.tv (see "Twitch Extension Panel"); it loads the panel from the production URL, so panel changes only reach viewers after a production deploy, and Twitch's iframe can cache the old JS for a short while.
+
+## Measuring site speed
+- **Field numbers** come from Speed Insights through the Vercel MCP: `create_observability_query` on `vercel.speed_insights.*`, grouped by route and device. Only busy routes (home) collect enough samples over 30 days to read.
+- **Lab numbers** come from Lighthouse against `next build` / `next start` on the seeded mock KV, with ad blockers off: `npx -y lighthouse@12.8.2 <url> --throttling-method=devtools`. The default simulated mode overstates LCP on localhost. `next start` serves HTTP/1.1, so the lab also overstates how long the CSS file waits behind the JS (Vercel serves HTTP/2).
+- **Bundles:** `npm run analyze` writes a treemap of every JS bundle to `.next/analyze/client.html`.
+- **CSS:** the main stylesheet is about 300 kB raw (47 kB gzipped, about 120 kB of it daisyUI components, nearly all used); Tailwind scans only `app/` and `lib/`. `experimental.inlineCss` was tried and set aside: it is experimental, puts the whole sheet in every page's HTML twice (about 96 kB more per full load, never cached), and most of its lab gain came from HTTP/1.1. Check home's first paint in Speed Insights before trying critical CSS.
 
 ## GitHub and Vercel changes in Discord
 No server code: GitHub posts these itself, and Vercel reports every deployment to GitHub as a deployment status, so one GitHub webhook covers both. The same steps show in Settings → Webhooks → "Deploys & code".
