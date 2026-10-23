@@ -8,7 +8,7 @@ import { useOverlayEditor } from './OverlayEditorContext';
 
 const BOX_W = 220;
 const BOX_H = 130;
-export const MAX_BOARDS = 8; // every board is a live iframe
+const MAX_BOARDS = 8; // every board is a live iframe
 
 // A live settled still of the overlay at `layout`'s stage size, scaled to fit boxW x boxH, fed `props` and the editor's Variant / Mode pickers.
 export function StillFrame({ name, layout, props, boxW = BOX_W, boxH = BOX_H }: { name: string; layout: OverlayLayout; props: PropValues; boxW?: number; boxH?: number }) {
