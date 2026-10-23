@@ -18,7 +18,7 @@ import { duplicatePackAction, archivePackAction, restorePackAction } from '../..
 import { publishPack, unpublishPack } from '../../../draft-actions';
 import { loadPackWorkspace, savePackChanges } from '../../../workspace-actions';
 import type { WorkspaceState } from '@/lib/pack-save';
-import type { CardBackEditorProps } from '../../../components/CardBackEditor';
+import { CardBackEditor, type CardBackEditorProps } from '../../../components/CardBackEditor';
 import { CardList } from './CardList';
 import { CardPanel } from './CardPanel';
 import { PackPanel, type SeasonUse } from './PackPanel';
@@ -30,7 +30,7 @@ import { BulkPanel } from './BulkPanel';
 import type { HoloSpecs } from '@/lib/holo-core';
 import type { BuffDef } from '@/lib/buffs-core';
 
-export type WorkspaceView = 'edit' | 'grid' | 'odds' | 'overview';
+export type WorkspaceView = 'edit' | 'grid' | 'odds' | 'overview' | 'settings' | 'cardback';
 
 interface Base extends WorkspaceState {}
 
@@ -187,7 +187,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
 
   // ── Selection ──────────────────────────────────────────
   const select = useCallback((id: string, mode: 'replace' | 'toggle' | 'range', visible: string[]) => {
-    if (id === 'pack') { setSelected(new Set(['pack'])); setFocus('pack'); setSheet(true); anchor.current = null; return; }
+    if (id === 'pack') { setSelected(new Set(['pack'])); setFocus('pack'); anchor.current = null; setView('settings'); return; }
     if (mode === 'replace') { setSelected(new Set([id])); setFocus(id); setSheet(true); anchor.current = id; return; }
     setSelected(prev => {
       const n = new Set(prev); n.delete('pack');
@@ -280,6 +280,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
     router.refresh();
   }
   const sampleCard = work.cards.find(c => c.imageUrl) ?? null;
+  const cardBackProps: CardBackEditorProps = { ...cardBack, sample: { name: sampleCard?.name || cardBack.sampleFallback.name, imageUrl: sampleCard?.imageUrl || work.pack.coverImageUrl || cardBack.sampleFallback.imageUrl, hex: sampleCard ? getRarity(sampleCard.stars)?.hex : undefined }, packName: work.pack.name || cardBack.packName, coverImageUrl: work.pack.coverImageUrl || undefined };
   const previewProps = {
     packId, pack: work.pack, card: showPack ? null : active, selection: work.cards.filter(c => cardIds.includes(c.id)), cards: work.cards, holoByStars,
     cardBack: cardBack.initial, seasonName: cardBack.seasonName, onStream,
@@ -403,10 +404,10 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
       {base.archived && <p className="rounded-xl border border-gray-600/40 bg-gray-800/40 px-4 py-2.5 text-sm text-gray-300">This pack is <strong>archived</strong>: hidden from the library and never drawn. Restore it from the menu to bring it back.</p>}
 
       {/* ── View switch ── */}
-      <div role="tablist" aria-label="Pack views" className="flex gap-1 border-b border-gray-800">
-        {([['edit', 'Edit'], ['grid', 'Grid'], ['odds', 'Odds and simulator'], ['overview', 'Overview']] as const).map(([id, label]) => (
+      <div role="tablist" aria-label="Pack views" className="flex gap-1 border-b border-gray-800 overflow-x-auto">
+        {([['edit', 'Edit'], ['grid', 'Grid'], ['odds', 'Odds and simulator'], ['overview', 'Overview'], ['settings', 'Pack settings'], ['cardback', 'Card back']] as const).map(([id, label]) => (
           <button key={id} role="tab" aria-selected={view === id} type="button" onClick={() => setView(id)}
-            className={`px-3 py-2 text-sm font-semibold border-b-2 -mb-px ${view === id ? 'border-yellow-400 text-yellow-300' : 'border-transparent text-gray-400 hover:text-white'}`}>
+            className={`px-3 py-2 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px ${view === id ? 'border-yellow-400 text-yellow-300' : 'border-transparent text-gray-400 hover:text-white'}`}>
             {label}{id === 'overview' && healthCount > 0 ? <span className="ml-1.5 text-[10px] bg-amber-500/20 text-amber-300 rounded-full px-1.5 py-0.5">{healthCount}</span> : null}
           </button>
         ))}
@@ -421,6 +422,17 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
 
       {view === 'odds' && <div className="min-h-0 xl:overflow-y-auto"><OddsView pack={work.pack} cards={work.cards} baseCards={base.work.cards} editCards={editCards} /></div>}
       {view === 'overview' && <div className="min-h-0 xl:overflow-y-auto">{overview}</div>}
+
+      {view === 'settings' && (
+        <div className="card rounded-2xl min-h-0 xl:overflow-y-auto">
+          <PackPanel
+            packId={packId} pack={work.pack} base={base.work.pack} onChange={patchPack} seasons={seasons} overrideCount={overrideCount}
+            readOnlyStatus={isDraft ? 'draft' : 'published'}
+          />
+        </div>
+      )}
+
+      {view === 'cardback' && <div className="card rounded-2xl min-h-0 xl:overflow-y-auto"><div className="p-3"><CardBackEditor {...cardBackProps} /></div></div>}
 
       {view === 'edit' && (
         <div className="grid gap-4 xl:grid-cols-[19rem_minmax(0,1fr)_25rem] flex-1 min-h-0">
@@ -453,11 +465,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
                 onChange={patchCard(active.id)} onRemove={() => removeCards([active.id])} buffs={buffs}
               />
             ) : (
-              <PackPanel
-                packId={packId} pack={work.pack} base={base.work.pack} onChange={patchPack} seasons={seasons} overrideCount={overrideCount}
-                readOnlyStatus={isDraft ? 'draft' : 'published'}
-                cardBack={{ ...cardBack, sample: { name: sampleCard?.name || cardBack.sampleFallback.name, imageUrl: sampleCard?.imageUrl || work.pack.coverImageUrl || cardBack.sampleFallback.imageUrl, hex: sampleCard ? getRarity(sampleCard.stars)?.hex : undefined }, packName: work.pack.name || cardBack.packName, coverImageUrl: work.pack.coverImageUrl || undefined }}
-              />
+              <p className="p-4 text-sm text-gray-400">Select a card to edit it, or open the Pack settings tab.</p>
             )}
           </aside>
         </div>

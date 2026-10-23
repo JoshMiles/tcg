@@ -21,14 +21,13 @@ export async function generateMetadata({ params }: { params: Promise<{ packId: s
   return { title: `${pack?.name || 'Pack'} · Admin`, robots: { index: false } };
 }
 
-/** The pack workspace (ROADMAP 20.2a). Old addresses still work: ?tab=settings opens the pack settings, ?tab=odds and ?tab=overview their views. */
+/** The pack workspace (ROADMAP 20.2a). Old addresses still work: ?tab=settings and ?card=pack open the Pack settings view, ?tab=odds and ?tab=overview their views. */
 export default async function PackPage({ params, searchParams }: { params: Promise<{ packId: string }>; searchParams: Promise<{ tab?: string; view?: string; card?: string }> }) {
   const { packId } = await params;
   const { tab, view: viewParam, card } = await searchParams;
   if (tab) {
     const q = new URLSearchParams();
-    if (tab === 'odds' || tab === 'overview') q.set('view', tab);
-    if (tab === 'settings') q.set('card', 'pack');
+    if (tab === 'odds' || tab === 'overview' || tab === 'settings') q.set('view', tab);
     redirect(`/admin/packs/${packId}${q.size ? `?${q}` : ''}`);
   }
   const [pack, cards, seasons, overrides, cardBack, allPacks, rev, held, holoFor, buffs] = await Promise.all([
@@ -48,7 +47,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
     const sum = drawn.reduce((t, p) => t + p.weight, 0);
     return { id: s.id, name: s.name, active: s.active, share: pack.active && !isDraft && sum > 0 ? pack.weight / sum : null };
   });
-  const view: WorkspaceView = viewParam === 'grid' || viewParam === 'odds' || viewParam === 'overview' ? viewParam : 'edit';
+  const view: WorkspaceView = viewParam === 'grid' || viewParam === 'odds' || viewParam === 'overview' || viewParam === 'settings' || viewParam === 'cardback' ? viewParam : card === 'pack' ? 'settings' : 'edit';
   const state = { work: workOf(pack, sorted), rev, held: [...held], status: pack.status, archived: !!pack.archived };
 
   const overviewView = (

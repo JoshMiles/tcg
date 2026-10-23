@@ -23,6 +23,17 @@ export function getBuildInfo(): BuildInfo {
   };
 }
 
+/**
+ * The build's version: "<major>.<PR number>" from the "(#N)" a squash merge puts at the end of the commit subject,
+ * "<major>.<N>-pr" on a preview build of PR N, else the package.json version. Used by next.config.ts, so keep it dependency-free.
+ */
+export function deriveVersion(pkgVersion: string, subject?: string, previewPr?: string, vercelEnv?: string): string {
+  const major = pkgVersion.split('.')[0];
+  if (vercelEnv === 'preview' && previewPr && /^\d+$/.test(previewPr)) return `${major}.${previewPr}-pr`;
+  const n = subject?.match(/\(#(\d+)\)\s*$/)?.[1];
+  return n ? `${major}.${n}` : pkgVersion;
+}
+
 /** "v1.1.0 · 75fdb70" */
 export function formatVersion(b: BuildInfo): string {
   return `v${b.version} · ${b.commit}`;
