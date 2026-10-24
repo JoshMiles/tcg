@@ -12,7 +12,6 @@ export function PendingPage({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [from, setFrom] = useState<string | null>(null); // the path the click left; the skeleton shows only while we are still on it
   const scrollY = useRef(0); // where the reader was, restored if the navigation never lands
-  const restore = () => { setFrom(null); requestAnimationFrame(() => window.scrollTo(0, scrollY.current)); };
 
   useEffect(() => {
     setFrom(null);
@@ -28,7 +27,7 @@ export function PendingPage({ children }: { children: ReactNode }) {
       window.scrollTo(0, 0);
     };
     const onPopState = () => setFrom(null); // Back / Forward mid-load: the router handles that scroll itself
-    const onPageShow = (e: PageTransitionEvent) => { if (e.persisted) restore(); }; // back from another site via the back/forward cache
+    const onPageShow = (e: PageTransitionEvent) => { if (e.persisted) setFrom(null); }; // back from another site: the browser restores scroll
     document.addEventListener('click', onClick);
     window.addEventListener('popstate', onPopState);
     window.addEventListener('pageshow', onPageShow);
@@ -42,7 +41,7 @@ export function PendingPage({ children }: { children: ReactNode }) {
   // A navigation that never lands (an error, a redirect back here) must not leave the skeleton up.
   useEffect(() => {
     if (!from) return;
-    const t = setTimeout(restore, 10_000);
+    const t = setTimeout(() => { setFrom(null); requestAnimationFrame(() => window.scrollTo(0, scrollY.current)); }, 10_000);
     return () => clearTimeout(t);
   }, [from]);
 
