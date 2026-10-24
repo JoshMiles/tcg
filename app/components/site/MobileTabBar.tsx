@@ -1,6 +1,6 @@
 'use client';
 import { Icon, type IconName } from '@/app/components/Icon';
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type RefObject } from 'react';
 import { LINKS, isActive } from './links';
@@ -18,6 +18,11 @@ export function tabsFor(username?: string): { href: string; icon: IconName; labe
     { href: '/trade', icon: 'trade' },
     { href: '/leaderboard', icon: 'trophy' },
   ];
+}
+/** A tab's icon and label; lights up and pulses the moment it is tapped, since the pages have no loading skeleton (see docs/public-site/basics.md). */
+function TabFace({ icon, label }: { icon: IconName; label?: string }) {
+  const { pending } = useLinkStatus();
+  return <><Icon name={icon} className={`w-5 h-5${pending ? ' text-yellow-300 animate-pulse' : ''}`} /><span className={pending ? 'text-yellow-300' : undefined}>{label}</span></>;
 }
 const TEXT_FIELD = 'textarea, select, [contenteditable=""], [contenteditable="true"], input:not([type=checkbox],[type=radio],[type=button],[type=submit],[type=reset],[type=range],[type=file],[type=color],[type=image])';
 
@@ -49,7 +54,7 @@ export function MobileTabBar({ username, menuOpen, onMore, moreRef }: { username
         const active = isActive(pathname, t.href.split('?')[0], l?.exact); // the profile link stays lit on every profile tab
         return (
           <Link key={t.href} href={t.href} aria-current={active ? 'page' : undefined} className={`${item} ${active ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
-            <Icon name={t.icon} className="w-5 h-5" />{t.label ?? l?.label}
+            <TabFace icon={t.icon} label={t.label ?? l?.label} />
             {t.href === '/trade' && badge(counts.offers)}
           </Link>
         );
