@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-**Last updated 2026-10-23**
+**Last updated 2026-10-24**
 
 Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked Ready; Needs design or Needs a decision goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item.
 
@@ -19,6 +19,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2e | Site speed: cache public pages for signed-out visitors | Blocked (field data, re-check 2026-11-06) | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze, check review 2026-10-30) | L |
+| 43.1 | Upgrade Next.js 15.5 to 16 | Ready | M |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -39,6 +40,16 @@ How to measure (Speed Insights through the Vercel MCP, Lighthouse flags, `npm ru
 
 ### 40.2e Cache public pages for signed-out visitors (Blocked on field data, M)
 Every public page is `force-dynamic` and the shell reads the session cookie, so nothing is cached. Caching can only win back the TTFB part of home's 3.5 s LCP (838 ms at p75), and it is the riskiest item here (the gate, the live badge, the session in the shell, 10 dynamic pages). On 2026-11-06, read two weeks of Speed Insights after #437 and 40.2g; plan the shell split only if TTFB is still a large share of LCP.
+
+## Track 43: framework upgrade (2026-10-24)
+
+We run Next.js 15.5 (`^15.3.3` in `package.json`); 16 is current. Stay on the latest major so fixes and security patches keep coming.
+
+### 43.1 Upgrade Next.js 15.5 to 16 (Ready, M)
+1. Read the official 15 to 16 upgrade guide first and list every breaking change that touches this app; run the upgrade codemod on its own branch. Bump `react`, `react-dom` and `eslint-config-next` with it.
+2. **Panel freeze:** if 16 renames or changes `middleware.ts`, leave the file and its CORS rules as they are (it still has to run) and note the rename for after the freeze.
+3. `rm -rf .next`, then `npm run verify` and `npm run build`; run the public-site sweep and the overlay on the mock KV (`docs/local-dev.md`, `docs/review.md`).
+4. **Re-test the same-page `?param` hang** (`docs/public-site/basics.md`, "Frames and states"; repro in the trail learning of 2026-10-24, production build, headless Chrome). If it is gone, give Trade, profile, Card Dex and Stats their `loading.tsx` skeletons back, drop the tap skeleton in `SiteShell` (`PendingPage`) and update the doc.
 
 ## Blocked by the Twitch panel freeze
 
