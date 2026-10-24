@@ -1,6 +1,6 @@
 import { Icon, RankMedal } from '@/app/components/Icon';
 import { UserInput } from '@/app/components/UserInput';
-import { PendingButton } from '../admin/components/PendingButton';
+import { PendingButton } from '../../admin/components/PendingButton';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
