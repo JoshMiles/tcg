@@ -4,16 +4,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type RefObject } from 'react';
 import { LINKS, isActive } from './links';
+import { profileHref } from '@/lib/profile-url';
 
 /** Event the bell fires whenever its unread counts change, so the bar can badge without fetching anything itself. */
 export const NOTICE_COUNTS_EVENT = 'tcg:notice-counts';
 export interface NoticeCounts { unread: number; offers: number }
 
-/** Order, icons and links of the tabs; labels and active rule come from the shared LINKS. A signed-in viewer's second tab is their own collection (Card Dex then lives in the More sheet). */
+/** Order, icons and links of the tabs; labels and active rule come from the shared LINKS. A signed-in viewer's second tab opens their own profile on its Collection tab (Card Dex then lives in the More sheet). */
 export function tabsFor(username?: string): { href: string; icon: IconName; label?: string }[] {
   return [
     { href: '/', icon: 'home' },
-    username ? { href: `/u/${username}`, icon: 'book', label: 'Collection' } : { href: '/cards', icon: 'cards' },
+    username ? { href: profileHref(username, 'collection'), icon: 'book', label: 'Collection' } : { href: '/cards', icon: 'cards' },
     { href: '/trade', icon: 'trade' },
     { href: '/leaderboard', icon: 'trophy' },
   ];
@@ -45,7 +46,7 @@ export function MobileTabBar({ username, menuOpen, onMore, moreRef }: { username
     <nav aria-label="Main" className={`${typing ? 'hidden ' : 'flex '}xl:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(3.5rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] border-t border-yellow-500/20 bg-gray-950/90 backdrop-blur-sm`}>
       {tabsFor(username).map(t => {
         const l = LINKS.find(x => x.href === t.href);
-        const active = isActive(pathname, t.href, l?.exact);
+        const active = isActive(pathname, t.href.split('?')[0], l?.exact); // the profile link stays lit on every profile tab
         return (
           <Link key={t.href} href={t.href} aria-current={active ? 'page' : undefined} className={`${item} ${active ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
             <Icon name={t.icon} className="w-5 h-5" />{t.label ?? l?.label}
