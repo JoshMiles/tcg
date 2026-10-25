@@ -1,6 +1,6 @@
 # The Cheesy TCG, roadmap
 
-**Last updated 2026-10-24**
+**Last updated 2026-10-25**
 
 Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAUDE.md`). Execution picks up items marked Ready; Needs design or Needs a decision goes back to planning (or to the user) first. When an item ships, delete it here and make sure its area doc in `docs/` describes the result. Finished items and their original designs are archived in `docs/archive/roadmap-history.md`; read it only when you need the reasoning behind a done item.
 
@@ -19,7 +19,10 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2e | Site speed: cache public pages for signed-out visitors | Blocked (field data, re-check 2026-11-06) | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze, check review 2026-10-30) | L |
-| 43.1 | Upgrade Next.js 15.5 to 16 | Ready | M |
+| 43.1 | Upgrade Next.js 15.5 to 16.4 | Ready | M |
+| 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Ready after 43.1 | S |
+| 43.4 | Bring the other packages up to date | Ready after 43.1 | S |
+| 43.3 | Rename `middleware.ts` to `proxy.ts` | Blocked (panel freeze) | S |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -43,13 +46,34 @@ Every public page is `force-dynamic` and the shell reads the session cookie, so 
 
 ## Track 43: framework upgrade (2026-10-24)
 
-We run Next.js 15.5 (`^15.3.3` in `package.json`); 16 is current. Stay on the latest major so fixes and security patches keep coming.
+We run Next.js 15.5.28 (`^15.3.3` in `package.json`); the latest is 16.4.3 (2026-10-25). Stay on the latest major so fixes and security patches keep coming. Run the items in order, each its own PR.
 
-### 43.1 Upgrade Next.js 15.5 to 16 (Ready, M)
-1. Read the official 15 to 16 upgrade guide first and list every breaking change that touches this app; run the upgrade codemod on its own branch. Bump `react`, `react-dom` and `eslint-config-next` with it.
-2. **Panel freeze:** if 16 renames or changes `middleware.ts`, leave the file and its CORS rules as they are (it still has to run) and note the rename for after the freeze.
-3. `rm -rf .next`, then `npm run verify` and `npm run build`; run the public-site sweep and the overlay on the mock KV (`docs/local-dev.md`, `docs/review.md`).
-4. **Re-test the same-page `?param` hang** (`docs/public-site/basics.md`, "Frames and states"; repro in the trail learning of 2026-10-24, production build, headless Chrome). If it is gone, give Trade, profile, Card Dex and Stats their `loading.tsx` skeletons back, drop the tap skeleton in `SiteShell` (`PendingPage`) and update the doc.
+Checked against the code on 2026-10-25, most of the 16 breaking changes need nothing here: request APIs (`params`, `searchParams`, `cookies()`, `headers()`, the profile share image) are already awaited; no `next/image`, `revalidateTag`, `unstable_cache`, parallel routes (`@slot`), AMP, `runtimeConfig`, `next lint` / ESLint config or `scroll-behavior: smooth`. What does touch us: Turbopack becomes the build bundler, the bundle analyzer is a webpack plugin, and `middleware.ts` is renamed `proxy.ts` (Node runtime only).
+
+**Not part of this track:** Cache Components, the React Compiler, Instant Navigations (16.3) and Partial Prefetching (16.4). The upgrade guide says not to turn them on just to upgrade; if one looks worth it after 43.2, plan it as its own item.
+
+### 43.1 Upgrade Next.js 15.5 to 16.4 (Ready, M)
+1. Read the official upgrade guide (`nextjs.org/docs/app/guides/upgrading/version-16`) and the 16.1 to 16.4 release posts; add to this item anything they list that the note above missed.
+2. Bump `next` and `@next/bundle-analyzer` to `^16.4.3`, `react` / `react-dom` to the latest 19 and `@types/react` / `@types/react-dom` with them. Check that the Vercel project's Node.js version is 20.9 or newer.
+3. `npm run analyze` becomes `next build --webpack` (the analyzer only adds a webpack config when that script runs; a Turbopack build with a webpack config fails). `npm run build` stays on Turbopack.
+4. **Panel freeze:** leave `middleware.ts` (name, `middleware` export, edge runtime, CORS rules) as it is; the old name still works in 16. The rename is 43.3.
+5. `rm -rf .next`, then `npm run verify` and `npm run build`. Check the build stamp (`BUILD_*` in `next.config.ts`), the wiki pages (`outputFileTracingIncludes`), Tailwind / daisyUI styles and the share images under the Turbopack build. Run the public-site and admin sweeps and the overlay on the mock KV (`docs/local-dev.md`, `docs/review.md`). Check a preview deployment before merging.
+6. Update the docs: `docs/hosting.md` (Build line says "Next 15"; add that the build is Turbopack and analyze is webpack) and the `npm run analyze` line in `docs/local-dev.md`.
+
+### 43.2 Bring back the page skeletons if 16 fixed the `?param` hang (Ready after 43.1, S)
+1. **Re-test the same-page `?param` hang** on 16 (`docs/public-site/basics.md`, "Frames and states"; repro in the trail learning of 2026-10-24: production build, headless Chrome; `next dev` never shows it).
+2. If it is gone: give Trade, profile, Card Dex, Stats, My stats and Feedback their `loading.tsx` skeletons back, delete `PendingPage` (and its `SiteShell` wrapper; this also retires the scroll-restore timing bug found in review on 2026-10-25), soften the `TabFace` comment in `MobileTabBar.tsx` and rewrite "Frames and states".
+3. If it is not: keep `PendingPage`, fix its scroll restore (`flushSync(() => setFrom(null))` then `scrollTo`, no `requestAnimationFrame`) and note the 16.4 result in the doc.
+
+### 43.4 Bring the other packages up to date (Ready after 43.1, S)
+`npm outdated` on 2026-10-25, besides Next: `lucide-react` and `postcss` (minor), `@vercel/analytics` 1 to 2 and `@vercel/speed-insights` 1 to 2 (both used only in `app/layout.tsx`), `qrcode-generator` 1 to 2 (only `lib/qr.ts`), `@types/node` 22 to 26, `typescript` 5.9 to 7.
+1. `npm update` for the minors, then the three majors one at a time: read each changelog, bump, `npm run verify` and `npm run build`. Check Analytics and Speed Insights on a preview deployment (their requests reach Vercel) and a QR code (`lib/qr.ts` callers) by hand.
+2. `@types/node` follows the Node.js major the Vercel project runs, not npm's latest; bump it only to that major.
+3. **Not TypeScript 7** in this item: it is the new native compiler, a bigger change than a version bump. Check whether Next 16.4 supports it and plan it as its own item if so.
+4. The npm CLI itself (11 locally, 12 is out) is a local tool, not a project dependency; update it with `npm i -g npm` whenever, nothing in the repo changes.
+
+### 43.3 Rename `middleware.ts` to `proxy.ts` (Blocked by the panel freeze, S)
+The file holds the extension's CORS rules, so it waits for the freeze to lift. `proxy.ts` runs on Node only; today the file runs on edge and reads through `lib/admin-auth-edge` and `lib/access-edge`. Rename the file and its export (the codemod does both), then test the admin and mod gates, the access gate and the `/api/twitch/*` CORS answers (the panel's requests from the Twitch origin) on a preview deployment. Drop the `-edge` variants only if nothing else uses them.
 
 ## Blocked by the Twitch panel freeze
 
