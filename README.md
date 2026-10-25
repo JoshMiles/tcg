@@ -50,7 +50,7 @@ Viewers on the [Cheesygidds Twitch channel](https://www.twitch.tv/cheesygidds) p
 
 | Layer | Tools |
 |:------|:------|
-| **App** | [Next.js 15](https://nextjs.org) (App Router, server actions), React 19, TypeScript (strict) |
+| **App** | [Next.js 16](https://nextjs.org) (App Router, server actions), React 19, TypeScript (strict) |
 | **Styling** | Tailwind CSS 4 with daisyUI 5 |
 | **Hosting and data** | [Vercel](https://vercel.com), Vercel KV (Upstash Redis), Vercel Blob for images and backups |
 | **Twitch** | Twitch OAuth for sign-in, a Twitch Extension for the channel panel |

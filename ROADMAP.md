@@ -19,7 +19,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2e | Site speed: cache public pages for signed-out visitors | Blocked (field data, re-check 2026-11-06) | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze, check review 2026-10-30) | L |
-| 43.1 | Upgrade Next.js 15.5 to 16.4 | Ready | M |
+| 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Ready after 43.1 | S |
 | 43.4 | Bring the other packages up to date | Ready after 43.1 | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Blocked (panel freeze) | S |
@@ -52,8 +52,12 @@ Checked against the code on 2026-10-25, most of the 16 breaking changes need not
 
 **Not part of this track:** Cache Components, the React Compiler, Instant Navigations (16.3) and Partial Prefetching (16.4). The upgrade guide says not to turn them on just to upgrade; if one looks worth it after 43.2, plan it as its own item.
 
-### 43.1 Upgrade Next.js 15.5 to 16.4 (Ready, M)
-1. Read the official upgrade guide (`nextjs.org/docs/app/guides/upgrading/version-16`) and the 16.1 to 16.4 release posts; add to this item anything they list that the note above missed.
+### 43.1 Upgrade Next.js 15.5 to 16.4 (Done, M)
+1. Read the official upgrade guide (`nextjs.org/docs/app/guides/upgrading/version-16`) and the 16.1 to 16.4 release posts; add to this item anything they list that the note above missed. Done 2026-10-25; besides the note above they list:
+   - `ImageResponse` (16.2) defaults to Geist Sans instead of Noto Sans. `lib/og.tsx` sets no font, so the share images change typeface: look at them, keep the new font unless it breaks the layout.
+   - `next build` no longer prints route `size` / `First Load JS`. Bundle sizes come from `npm run analyze` or Lighthouse now; say so wherever the docs read them off the build output.
+   - `next dev` writes to `.next/dev`, and a lockfile stops a second `next dev` or `next build` in the same checkout. Check the local-dev scripts and doc steps that run both.
+   - 16.1 adds a Turbopack analyzer (`next experimental-analyze`). Not in this item; keep the webpack analyzer (step 3).
 2. Bump `next` and `@next/bundle-analyzer` to `^16.4.3`, `react` / `react-dom` to the latest 19 and `@types/react` / `@types/react-dom` with them. Check that the Vercel project's Node.js version is 20.9 or newer.
 3. `npm run analyze` becomes `next build --webpack` (the analyzer only adds a webpack config when that script runs; a Turbopack build with a webpack config fails). `npm run build` stays on Turbopack.
 4. **Panel freeze:** leave `middleware.ts` (name, `middleware` export, edge runtime, CORS rules) as it is; the old name still works in 16. The rename is 43.3.

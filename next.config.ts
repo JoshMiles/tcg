@@ -17,6 +17,8 @@ function git(args: string): string | undefined {
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
 
 const nextConfig: NextConfig = {
+  // CLAUDE.md is the agent guide; stop `next dev` writing its own AGENTS.md.
+  agentRules: false,
   // Wiki pages read content/wiki/*.md at request time. Trace those files into the server bundle.
   outputFileTracingIncludes: {
     '/admin/wiki': ['./content/wiki/**/*'],
