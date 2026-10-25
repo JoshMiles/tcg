@@ -20,7 +20,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 40.2e | Site speed: cache public pages for signed-out visitors | Blocked (field data, re-check 2026-11-06) | M |
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze, check review 2026-10-30) | L |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
-| 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Ready after 43.1 | S |
+| 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
 | 43.4 | Bring the other packages up to date | Ready after 43.1 | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Blocked (panel freeze) | S |
 
@@ -64,7 +64,7 @@ Checked against the code on 2026-10-25, most of the 16 breaking changes need not
 5. `rm -rf .next`, then `npm run verify` and `npm run build`. Check the build stamp (`BUILD_*` in `next.config.ts`), the wiki pages (`outputFileTracingIncludes`), Tailwind / daisyUI styles and the share images under the Turbopack build. Run the public-site and admin sweeps and the overlay on the mock KV (`docs/local-dev.md`, `docs/review.md`). Check a preview deployment before merging.
 6. Update the docs: `docs/hosting.md` (Build line says "Next 15"; add that the build is Turbopack and analyze is webpack) and the `npm run analyze` line in `docs/local-dev.md`.
 
-### 43.2 Bring back the page skeletons if 16 fixed the `?param` hang (Ready after 43.1, S)
+### 43.2 Bring back the page skeletons if 16 fixed the `?param` hang (Done, S)
 1. **Re-test the same-page `?param` hang** on 16 (`docs/public-site/basics.md`, "Frames and states"; repro in the trail learning of 2026-10-24: production build, headless Chrome; `next dev` never shows it).
 2. If it is gone: give Trade, profile, Card Dex, Stats, My stats and Feedback their `loading.tsx` skeletons back, delete `PendingPage` (and its `SiteShell` wrapper; this also retires the scroll-restore timing bug found in review on 2026-10-25), soften the `TabFace` comment in `MobileTabBar.tsx` and rewrite "Frames and states".
 3. If it is not: keep `PendingPage`, fix its scroll restore (`flushSync(() => setFrom(null))` then `scrollTo`, no `requestAnimationFrame`) and note the 16.4 result in the doc.

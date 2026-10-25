@@ -19,7 +19,7 @@ export function tabsFor(username?: string): { href: string; icon: IconName; labe
     { href: '/leaderboard', icon: 'trophy' },
   ];
 }
-/** A tab's icon and label; lights up and pulses the moment it is tapped, alongside `PendingPage`'s skeleton, and alone for a same-path tab such as Collection on your own profile. */
+/** A tab's icon and label; lights up and pulses the moment it is tapped, until the page arrives. It is the only feedback for a same-path tab such as Collection on your own profile (a `?tab=` change shows no skeleton). */
 function TabFace({ icon, label }: { icon: IconName; label?: string }) {
   const { pending } = useLinkStatus();
   return <><Icon name={icon} className={`w-5 h-5${pending ? ' text-yellow-300 animate-pulse' : ''}`} /><span className={pending ? 'text-yellow-300' : undefined}>{label}</span></>;
