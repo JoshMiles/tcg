@@ -21,7 +21,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze, check review 2026-10-30) | L |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
-| 43.4 | Bring the other packages up to date | Ready after 43.1 | S |
+| 43.4 | Bring the other packages up to date | Done | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Blocked (panel freeze) | S |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -69,7 +69,7 @@ Checked against the code on 2026-10-25, most of the 16 breaking changes need not
 2. If it is gone: give Trade, profile, Card Dex, Stats, My stats and Feedback their `loading.tsx` skeletons back, delete `PendingPage` (and its `SiteShell` wrapper; this also retires the scroll-restore timing bug found in review on 2026-10-25), soften the `TabFace` comment in `MobileTabBar.tsx` and rewrite "Frames and states".
 3. If it is not: keep `PendingPage`, fix its scroll restore (`flushSync(() => setFrom(null))` then `scrollTo`, no `requestAnimationFrame`) and note the 16.4 result in the doc.
 
-### 43.4 Bring the other packages up to date (Ready after 43.1, S)
+### 43.4 Bring the other packages up to date (Done, S)
 `npm outdated` on 2026-10-25, besides Next: `lucide-react` and `postcss` (minor), `@vercel/analytics` 1 to 2 and `@vercel/speed-insights` 1 to 2 (both used only in `app/layout.tsx`), `qrcode-generator` 1 to 2 (only `lib/qr.ts`), `@types/node` 22 to 26, `typescript` 5.9 to 7.
 1. `npm update` for the minors, then the three majors one at a time: read each changelog, bump, `npm run verify` and `npm run build`. Check Analytics and Speed Insights on a preview deployment (their requests reach Vercel) and a QR code (`lib/qr.ts` callers) by hand.
 2. `@types/node` follows the Node.js major the Vercel project runs, not npm's latest; bump it only to that major.
