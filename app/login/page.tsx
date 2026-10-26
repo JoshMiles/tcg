@@ -14,8 +14,8 @@ const ERRORS: Record<string, string> = {
 };
 
 /** Staff sign-in: Twitch first; the old password is a small emergency option underneath (unless it has been switched off). */
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; returnTo?: string }> }) {
-  const { error, returnTo } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; returnTo?: string; out?: string }> }) {
+  const { error, returnTo, out } = await searchParams;
   // Only an admin or mod page may be the destination.
   const dest = returnTo && /^\/(admin|mod)(\/|\?|$)/.test(returnTo) && !returnTo.startsWith('//') ? returnTo : '/admin';
   const twitchHref = `/auth/twitch?returnTo=${encodeURIComponent(dest)}`;
@@ -33,6 +33,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
 
           {error && ERRORS[error] && <p role="alert" className="text-sm font-semibold text-red-400 text-center">{ERRORS[error]}</p>}
+
+          {out === '1' && (
+            <div role="status" className="text-sm text-center space-y-2">
+              <p className="font-semibold text-gray-300">You&rsquo;re logged out of the staff panels.</p>
+              <form action="/auth/logout" method="post">
+                <button type="submit" className="btn btn-ghost btn-sm">Log out of the website too</button>
+              </form>
+            </div>
+          )}
 
           {loginConfigured() ? (
             <a href={twitchHref} className="flex items-center justify-center gap-2 w-full rounded-xl py-3 font-bold text-white bg-[#9146ff] hover:bg-[#a36bff] transition-colors">

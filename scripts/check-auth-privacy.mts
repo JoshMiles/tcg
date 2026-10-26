@@ -65,6 +65,27 @@ const signedOut = await logout.POST(new NextRequest('http://localhost/api/auth/l
 }));
 ok(signedOut.status === 303 && (await cookieStore.currentAdminGen()) === gen! + 1, 'signing out bumps the generation');
 ok(!(await token.isValidAdminToken(issued, KEY, (await cookieStore.currentAdminGen())!)), 'the cookie from before sign-out no longer matches');
+const genBefore = await cookieStore.currentAdminGen();
+await logout.POST(new NextRequest('http://localhost/api/auth/logout', { method: 'POST', headers: { cookie: `${token.AUTH_COOKIE}=junk` } }));
+ok((await cookieStore.currentAdminGen()) === genBefore, 'a junk emergency cookie does not sign everyone out');
+
+// ── panel Log out sticks: the site login alone does not bring the staff cookie back ──
+const { STAFF_COOKIE, STAFF_OUT_COOKIE } = await import('../lib/staff-token');
+const marker = signedOut.cookies.get(STAFF_OUT_COOKIE)?.value;
+ok(!!marker && signedOut.headers.get('location')?.endsWith('/login?out=1') === true, 'panel Log out sets the marker and lands on the sign-in page');
+const staffRoute = await import('../app/auth/staff/route');
+const outCookie = { cookie: `${STAFF_OUT_COOKIE}=1` };
+const again = await staffRoute.GET(new NextRequest('http://localhost/auth/staff?returnTo=%2Fmod', { headers: outCookie }));
+ok(again.status === 307 && (again.headers.get('location') ?? '').includes('/login?returnTo=%2Fmod') && !again.cookies.get(STAFF_COOKIE)?.value, 'after Log out, the next panel visit asks to sign in instead of re-issuing the staff cookie');
+const silentAgain = await staffRoute.GET(new NextRequest('http://localhost/auth/staff?silent=1', { headers: outCookie }));
+ok(silentAgain.status === 401, 'the silent renewal is refused too');
+process.env.SESSION_SECRET ??= 'session-secret-for-the-check-only';
+process.env.TWITCH_CLIENT_ID ??= 'id';
+process.env.TWITCH_CLIENT_SECRET ??= 'secret';
+const twitchStart = await import('../app/auth/twitch/route');
+const start = await twitchStart.GET(new NextRequest('http://localhost/auth/twitch?returnTo=%2Fmod', { headers: outCookie }));
+const cleared = start.headers.getSetCookie().find(c => c.startsWith(`${STAFF_OUT_COOKIE}=`)) ?? '';
+ok(/Max-Age=0|Expires=Thu, 01 Jan 1970/i.test(cleared), '"Log in with Twitch" clears the marker');
 const saved = process.env.ADMIN_COOKIE_SECRET;
 delete process.env.ADMIN_COOKIE_SECRET;
 const unconfigured = await login.POST(new NextRequest('http://localhost/api/auth/login', {

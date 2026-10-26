@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, loginConfigured } from '@/lib/session';
 import { getStaffRecord, touchStaffLogin } from '@/lib/staff';
 import { resolveRole, staffReturnTo } from '@/lib/staff-core';
-import { STAFF_COOKIE, signStaffToken, staffCookieOptions } from '@/lib/staff-token';
+import { STAFF_COOKIE, STAFF_OUT_COOKIE, signStaffToken, staffCookieOptions } from '@/lib/staff-token';
 
 // Staff sign-in, step 2 (step 1 is the ordinary "Log in with Twitch"): look the signed-in Twitch account up in the staff list and,
 // if it has a role, issue the one-hour staff cookie, then go to the panel. The middleware also sends people here when their
@@ -12,6 +12,11 @@ export async function GET(req: NextRequest) {
   // ?silent=1 is for the activity feed: the same renewal from the viewer session, but a small JSON answer instead of redirects.
   const silent = req.nextUrl.searchParams.get('silent') === '1';
   const deny = (error: string) => NextResponse.json({ ok: false, error }, { status: 401, headers: { 'Cache-Control': 'no-store' } });
+  // Logged out of the panels: the site login alone does not bring the staff cookie back; "Log in with Twitch" does.
+  if (req.cookies.get(STAFF_OUT_COOKIE)?.value) {
+    if (silent) return deny('signed-out');
+    return NextResponse.redirect(new URL(`/login?returnTo=${encodeURIComponent(staffReturnTo(returnTo, 'admin'))}`, req.url));
+  }
   const session = await getSession();
   if (silent && (!session || session.sandbox)) return deny('no-session');
   if (!session) {
