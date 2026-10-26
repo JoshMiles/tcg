@@ -2,12 +2,26 @@
 import { useMemo, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
 import type { BlobProblem, UnusedBlob } from '@/lib/assets';
-import { olderThan } from '@/lib/asset-insights';
+import { groupUnused, olderThan } from '@/lib/asset-insights';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { deleteUnusedAssets } from '../actions/settings';
 import { formatBytes } from './asset-ui';
 
 const AGES = [7, 30, 90];
+
+/** What a delete will remove, by folder and kind, so nothing goes before staff have seen what it is. */
+function Breakdown({ files }: { files: UnusedBlob[] }) {
+  return (
+    <table className="table table-xs mt-3 w-full text-gray-300">
+      <thead><tr><th>Folder</th><th>Kind</th><th className="text-right">Files</th><th className="text-right">Size</th></tr></thead>
+      <tbody>
+        {groupUnused(files).map(g => (
+          <tr key={`${g.folder} ${g.format}`}><td className="font-mono">{g.folder}</td><td>{g.format}</td><td className="text-right">{g.files}</td><td className="text-right">{formatBytes(g.bytes)}</td></tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
 
 export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }: {
   items: UnusedBlob[]; all: UnusedBlob[]; blobConnected: boolean; problem?: BlobProblem; copy: (url: string) => void; copied: string | null;
@@ -44,7 +58,7 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
     <div className="space-y-4">
       <div className="card rounded-xl p-4 space-y-3">
         <p className="text-sm text-gray-400 max-w-3xl">
-          These files are in Blob storage but no card or pack points at them (leftover originals, replaced art, abandoned uploads). Files uploaded in the last 10 minutes are hidden in case they&apos;re still being processed. Tick the ones to delete; anything still in use is skipped on the server.
+          These files are in Blob storage but no card, pack, card back or overlay setting points at them (leftover originals, replaced art, abandoned uploads). Backups are never listed here and are never deleted from this page. Files uploaded in the last 10 minutes are hidden in case they&apos;re still being processed. Tick the ones to delete; anything still in use is skipped on the server.
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => setPicked(new Set(items.map(i => i.url)))} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-700 text-gray-300 hover:border-gray-500">Select all{visible.size !== all.length ? ' shown' : ''}</button>
@@ -61,7 +75,7 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
             <ConfirmButton
               title="Delete the selected files?"
               confirmLabel={`Delete ${chosen.length} file${chosen.length !== 1 ? 's' : ''}`}
-              message={<>Permanently delete <strong className="text-white">{chosen.length} unused file{chosen.length !== 1 ? 's' : ''}</strong> ({formatBytes(chosenBytes)}) from storage? Anything still in use is skipped automatically. This can&apos;t be undone.</>}
+              message={<>Permanently delete <strong className="text-white">{chosen.length} unused file{chosen.length !== 1 ? 's' : ''}</strong> ({formatBytes(chosenBytes)}) from storage? Anything still in use is skipped automatically. This can&apos;t be undone.<Breakdown files={chosen} /></>}
               className={`px-4 py-2 text-sm font-bold rounded-xl transition-colors ${chosen.length === 0 ? 'bg-gray-800 text-gray-500 pointer-events-none' : 'bg-red-600/90 hover:bg-red-500 text-white'}`}
             >
               <Icon name="trash" className="mr-1.5" />Delete selected{chosen.length > 0 && ` (${chosen.length} · ${formatBytes(chosenBytes)})`}
@@ -72,7 +86,7 @@ export function UnusedPanel({ items, all, blobConnected, problem, copy, copied }
             <ConfirmButton
               title="Delete all unused files?"
               confirmLabel={`Delete ${all.length} file${all.length !== 1 ? 's' : ''}`}
-              message={<>Permanently delete <strong className="text-white">{all.length} unused file{all.length !== 1 ? 's' : ''}</strong> ({formatBytes(totalBytes)}) from storage? Anything still in use is skipped automatically. This can&apos;t be undone.</>}
+              message={<>Permanently delete <strong className="text-white">{all.length} unused file{all.length !== 1 ? 's' : ''}</strong> ({formatBytes(totalBytes)}) from storage? Anything still in use is skipped automatically. This can&apos;t be undone.<Breakdown files={all} /></>}
               className="px-4 py-2 text-sm font-semibold text-red-300 hover:text-red-100 hover:bg-red-950/50 border border-red-500/30 rounded-xl transition-colors"
             >
               Delete all unused ({formatBytes(totalBytes)})
