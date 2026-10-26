@@ -23,7 +23,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 43.4 | Bring the other packages up to date | Done | S |
 | 43.5 | Move to TypeScript 7 | Done | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Ready | S |
-| 46 | Data correctness (46.1 to 46.7) | Ready | S to M |
 | 47 | Access hardening (47.1 to 47.9) | Ready (47.8 needs a decision) | M |
 | 48 | KV efficiency (48.1 to 48.7) | Ready (48.7 needs design) | M to L |
 | 49 | Mod panel UI, cleanup and polish (49.1 to 49.6) | Ready | S |
@@ -105,16 +104,7 @@ Other items marked "next panel version" belong to this release: 47.4 (extension 
 
 ## Audit follow-up (2026-10-26)
 
-Tracks 46 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 46, 47, 48; 49 to 52 fit in between. One item per PR unless it says otherwise.
-
-### Track 46: data correctness (Ready)
-- **46.1 Lock release (S).** public-site M-1 (admin C-3, CODE_REVIEW #18): compare-and-delete in one script.
-- **46.2 Listing alerts after a failed index build (S).** public-site M-2 (CODE_REVIEW #23).
-- **46.3 Paid pull before the charge (S to M).** public-site L-4, security M-8 (CODE_REVIEW #24).
-- **46.4 Overlay pull save body (S).** admin A-2: send only the pull. Load the overlay against the mock KV to check it.
-- **46.5 Card-pulled webhook delivery (S).** admin A-3: `after()` or await.
-- **46.6 Read-modify-write staff edits (S).** mod-panel L-8 (hidden list, tags, flags) and L-7 (mod actions accept any username).
-- **46.7 Small input checks (S, one PR).** public-site L-9 (trainer season id), security M-6 (incoming webhooks: unknown usernames and card numbers), security L-11 (collection replace body), mod-panel L-6 ("Total pulls" label).
+Tracks 46 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 47, 48; 49 to 52 fit in between. One item per PR unless it says otherwise.
 
 ### Track 47: access hardening (Ready unless marked)
 - **47.1 A guard on every staff page, checked by verify (M).** mod-panel M-1 and C1, L-9, L-10; security C-1 (every `route.ts` against an allow-list of public routes); admin C-4 and A-8 (missing `revalidatePath`).
