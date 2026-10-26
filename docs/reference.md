@@ -60,6 +60,7 @@
 - `POST /api/twitch/unlink`, JWT-validated, deletes opaque ID → username mapping (logout)
 - `GET /api/twitch/me[?fresh=1]`, JWT-validated (opaque ID → linked username): the viewer's rank, score breakdown (`cardPoints`, `serialPoints`, completion / set bonuses), who is next up, every card's base values + unrounded `raw` + pull rate + copies out there, the serials they hold (`entry → number[]`), the serial-bonus rule, and how many trade offers are waiting. Shared 20 s leaderboard unless `fresh=1` (used right after an upgrade)
 - `POST /api/twitch/upgrade`, JWT-validated; body `{ seasonId, cardNumber, from }`; spends the pack's upgrade cost in `from` copies for one of the next variant
+- `POST /api/twitch/trainer`, JWT-validated (`extensionViewer()`); body `{ cardNumber, seasonId? }`; uses a trainer card through `useTrainerCard` (spends 1 Regular edition, starts the buff); returns `{ ok, message }` or `{ ok: false, error }`
 - `GET /api/twitch/leaderboard?seasonId=&username=`, public per-season ranking, the viewer's own rank, and per-card point values
 - `GET /api/twitch/resolve-username?userId={numericId}`, resolves Twitch numeric user ID → login name via Helix API (requires `TWITCH_CLIENT_ID` + `TWITCH_CLIENT_SECRET`)
 
