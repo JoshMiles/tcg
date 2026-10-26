@@ -305,8 +305,12 @@ export async function withCollectionLock<T>(collectionName: string, fn: () => Pr
   return withLock(`tcg_${collectionName}`, fn);
 }
 
+// Compare-and-delete in one step: a holder whose lock expired must not delete the lock another request now owns.
+// scripts/mock-kv.cjs recognises this exact script, so change both together.
+const RELEASE_LOCK = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+
 /**
- * A short named lock (Redis SET NX EX), for any read-modify-write that must not interleave across serverless invocations.
+ * A short named lock (Redis SET NX EX, released by compare-and-delete), for any read-modify-write that must not interleave across serverless invocations.
  * Locks are never held across anything slow. If one code path takes two locks it must always take them in the same order
  * (trading takes 'trades' first, then a collection's lock; nothing takes them the other way round).
  */
@@ -319,7 +323,7 @@ export async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T
       try {
         return await fn();
       } finally {
-        if ((await kv.get(key)) === token) await kv.del(key);
+        await kv.eval(RELEASE_LOCK, [key], [token]);
       }
     }
     await new Promise(r => setTimeout(r, 80 + Math.random() * 120));
