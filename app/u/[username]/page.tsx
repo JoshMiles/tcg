@@ -6,7 +6,6 @@ import { getUserSettings } from '@/lib/user-settings-store';
 import { countPulls } from '@/lib/collection';
 import { getOwnerCopies } from '@/lib/serials';
 import { pronounsFor } from '@/lib/pronouns-store';
-import { sweepTrades } from '@/lib/trades';
 import { getUserProfile } from '@/lib/kv';
 import { SITE_URL } from '@/lib/site';
 import { buildBigStats, buildGridCards, buildShareBase, buildShareCandidates, buildShareSpec, loadProfileBase } from '@/lib/profile-data';
@@ -57,7 +56,6 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
       </SiteMessage>
     );
   }
-  await sweepTrades(); // hand back copies from offers that have run out of time
 
   const b = await loadProfileBase(lower, isOwner);
   if (!b) {

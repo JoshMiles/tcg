@@ -3,14 +3,19 @@
 // the `x-overlay-key` header on every request. A signed-in staff browser (the editor preview, a test tab) needs no key. The key
 // lives in the key namespace (`kv`), so a sandbox has its own, made on first use.
 import { timingSafeEqual, randomBytes } from 'node:crypto';
-import { kv } from './db';
+import { kv, currentSandboxId } from './db';
 import { isAuthenticated } from './auth';
+import { createTtlCache } from './ttl-cache';
 
 const KEY = 'overlay:key';
 export const OVERLAY_KEY_HEADER = 'x-overlay-key';
 
-/** The key, made on first use. */
-export async function getOverlayKey(): Promise<string> {
+// The overlay asks every 2 s, so the key is kept in this instance's memory for 30 s (one cache entry per sandbox). Regenerating
+// clears this instance at once; other instances keep the old key for at most 30 s. A failed read is never kept.
+export const OVERLAY_KEY_TTL_MS = 30_000;
+const keyCache = createTtlCache<string>(OVERLAY_KEY_TTL_MS, () => Date.now());
+
+async function readOrMakeKey(): Promise<string> {
   const have = await kv.get<string>(KEY);
   if (typeof have === 'string' && have.length >= 16) return have;
   const fresh = randomBytes(18).toString('hex');
@@ -18,10 +23,16 @@ export async function getOverlayKey(): Promise<string> {
   return (await kv.get<string>(KEY)) ?? fresh; // a parallel request may have won the race: use its key
 }
 
+/** The key, made on first use. */
+export async function getOverlayKey(): Promise<string> {
+  return keyCache.get((await currentSandboxId()) ?? '', readOrMakeKey);
+}
+
 /** Replaces the key; every OBS source needs the new URL after this. */
 export async function regenerateOverlayKey(): Promise<string> {
   const fresh = randomBytes(18).toString('hex');
   await kv.set(KEY, fresh);
+  keyCache.clear();
   return fresh;
 }
 

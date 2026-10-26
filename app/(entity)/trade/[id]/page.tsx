@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSession, loginConfigured } from '@/lib/session';
 import { getCollection, getSeason } from '@/lib/kv';
-import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
+import { getTrade, getTradeSettings } from '@/lib/trades';
 import { describeItems, firstMissing, tradeVisibleTo, type Trade } from '@/lib/trade-core';
 import { getTradeCards, getTradePools, poolsFor, stackPoints } from '@/lib/trade-view';
 import { fairness } from '@/lib/trade-match';
@@ -45,7 +45,6 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 export default async function TradeOfferPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await sweepTrades(); // an offer that has run out of time is refunded and shown as expired
   const [session, trade, settings] = await Promise.all([getSession(), getTrade(id), getTradeSettings()]);
   if (!trade) notFound();
   const season = await getSeason(trade.seasonId);
