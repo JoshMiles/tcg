@@ -1,7 +1,7 @@
 import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { acceptTrade, cancelTrade, counterTrade, declineTrade } from '@/lib/trades';
-import { parseGetIds, requireViewer, respond } from '@/lib/trade-api';
+import { parseGetIds, requireViewer, respond, serverError } from '@/lib/trade-api';
 import { buildSwap } from '@/lib/trade-notify';
 import { captchaGate } from '@/lib/captcha-server';
 import { NextResponse as Res } from 'next/server';
@@ -40,6 +40,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       default: return NextResponse.json({ error: 'action must be accept, decline, cancel or counter' }, { status: 400 });
     }
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'That did not work' }, { status: 503 });
+    return serverError(e, 'trades/[id]', 'That did not work just now. Please try again in a moment.');
   }
 }

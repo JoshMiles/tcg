@@ -10,6 +10,12 @@ export async function requireViewer(req: Request): Promise<{ session: Session } 
   return { session };
 }
 
+/** A 503 for an unexpected failure: the cause goes to the log, the browser gets a fixed friendly sentence. */
+export function serverError(e: unknown, where: string, message: string): NextResponse {
+  console.error(`[${where}]`, e instanceof Error ? e.message : e);
+  return NextResponse.json({ error: message }, { status: 503 });
+}
+
 /** The optional `getIds` of an accept body, `{ <collection entry>: [edition ids] }`: undefined when absent, null when it is the wrong shape. */
 export function parseGetIds(v: unknown): Record<string, string[]> | undefined | null {
   if (v === undefined || v === null) return undefined;

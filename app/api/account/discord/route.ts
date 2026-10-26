@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isSameOrigin } from '@/lib/session';
+import { siteClosedResponse } from '@/lib/access';
 import {
   isDiscordDmConfigured,
   getDiscordLink,
@@ -10,6 +11,8 @@ import {
 import { toDiscordLinkView, sanitizeDiscordKinds } from '@/lib/discord-dm-core';
 
 export async function GET() {
+  const closed = await siteClosedResponse();
+  if (closed) return closed;
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -23,6 +26,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const closed = await siteClosedResponse();
+  if (closed) return closed;
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'bad_origin' }, { status: 403 });
@@ -52,6 +57,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const closed = await siteClosedResponse();
+  if (closed) return closed;
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'bad_origin' }, { status: 403 });
