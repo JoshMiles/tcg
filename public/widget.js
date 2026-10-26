@@ -1481,11 +1481,11 @@ async function loadCollection() {
   }
 }
 
-// Returns a promise of the server's reply ({ owned, serial, uid, serialMult } for a pull), or null.
+// Returns a promise of the server's reply ({ owned, serial, uid, serialMult }), or null.
 function saveCollection(pull) {
   if (PREVIEW || !SEASON_CFG.collectionName) return Promise.resolve(null);
-  const body = { data: revealedCardsByUser };
-  if (pull) body.pull = pull;
+  // Only the pull goes up: the ticket decides the card, and the server appends it to the real collection.
+  const body = { pull: { username: pull.username, ticket: pull.ticket } };
   return fetch(`/api/collection?name=${SEASON_CFG.collectionName}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1494,7 +1494,7 @@ function saveCollection(pull) {
     .then(res => (res.ok ? res.json() : null))
     // The server appended the pull to the real collection (which may have changed since the overlay
     // loaded it, e.g. a viewer upgraded a card); take its copy for this user.
-    .then(r => { if (pull && r && Array.isArray(r.owned)) revealedCardsByUser[pull.username] = r.owned; return r; })
+    .then(r => { if (r && Array.isArray(r.owned)) revealedCardsByUser[pull.username] = r.owned; return r; })
     .catch(() => null);
 }
 
@@ -2069,7 +2069,7 @@ function drawCard(username, opts) {
     const prior = revealedCardsByUser[user].slice();
     const entry0 = encodeEntry(card.number, variant);
     revealedCardsByUser[user].push(entry0);
-    saveCollection({ username: user, cardNumber: card.number, entry: entry0, variant, cardName: card.name, stars: card.stars, packName, ticket: opts.ticket })
+    saveCollection({ username: user, ticket: opts.ticket })
       .then(r => drawCard(username, Object.assign({}, opts, { _pre: { r: r || null, prior } })));
     return;
   }
@@ -2221,7 +2221,7 @@ function drawCard(username, opts) {
     saved = Promise.resolve(pre.r);   // already saved before the reveal (see the first-ever style above)
   } else if (!opts.dry) {
     revealedCardsByUser[user].push(entry);
-    saved = saveCollection({ username: user, cardNumber: card.number, entry, variant, cardName: card.name, stars: card.stars, packName, ...(opts.ticket ? { ticket: opts.ticket } : {}) });
+    saved = saveCollection({ username: user, ticket: opts.ticket });
   } else if (!PREVIEW) {
     // Test panel (dry run): nothing is saved, so show a sample serial to see how the badge looks.
     const n = opts.sampleSerial || 1 + Math.floor(Math.random() * 30);

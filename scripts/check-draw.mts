@@ -57,6 +57,12 @@ const again = await post({ pull: { username: 'carl', ticket: 't2', cardNumber: 1
 ok(again.status === 401 && ((await kvLib.getCollection(coll)).carl ?? []).length === 1, 'replaying a ticket adds nothing');
 const stolen = await (async () => { await issueDraw('t3', 'dora'); return post({ pull: { username: 'mallory', ticket: 't3' } }); })();
 ok(stolen.status === 401, "someone else's ticket cannot be used for another viewer");
+// The overlay sends only { pull: { username, ticket } } (no collection); a leftover `data` beside a pull is ignored, and odd types are refused.
+await issueDraw('t4', 'eve');
+const lean = await post({ pull: { username: 'eve', ticket: 't4' }, data: { mallory: [1, 2, 3] } });
+ok(lean.status === 200 && ((await kvLib.getCollection(coll)).eve ?? []).length === 1 && !(await kvLib.getCollection(coll)).mallory, 'a pull with just the viewer and ticket saves, and a stray data is ignored');
+const odd = await Promise.all([{ username: 5, ticket: 't4' }, { username: 'eve', ticket: { a: 1 } }].map(p => post({ pull: p }).then(r => r.status)));
+ok(odd.every(s => s === 401), 'a non-string viewer or ticket is refused, not an error');
 // Outside a real request the staff check cannot read cookies and throws; either way the write is refused.
 const overwrite = await post({ data: { mallory: [1, 2, 3] } }).then(r => r.status, () => 500);
 ok(overwrite === 401 || overwrite === 500, 'replacing a whole collection needs an admin');
