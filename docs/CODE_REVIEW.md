@@ -251,6 +251,8 @@ In Node, `new URL('/\\evil.com', 'https://cheesytcg.app/api/sandbox/exit')` is `
 
 **Fix.** Use a separate key for the staff cookie. Rotating the viewer secret would then not be tied to staff sessions, and the other way around.
 
+**Status.** Fixed (ROADMAP 47.6): `lib/signing.ts` derives one HMAC key per purpose from `SESSION_SECRET` with a label (viewer session, staff cookie, access cookie, sandbox entry, fake Twitch token), so a value signed for one purpose, or with the bare secret, is refused by the others. The emergency password and the signature compares in `lib/staff-token.ts`, `lib/access-token.ts` and `lib/admin-token.ts` go through one `safeEqual` that hashes both sides first, so length does not leak either. `scripts/check-signing-keys.mts` covers it. Everyone signs in again once.
+
 ### 14. Replacing a collection does not check the body's shape
 
 `POST /api/collection` without `pull` (`app/api/collection/route.ts` lines 24-29) requires an admin and then `saveCollection(target, data)` for any object. A mistaken client can write a value the ledger sync does not understand. This is admin-only.

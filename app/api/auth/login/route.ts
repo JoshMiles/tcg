@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureAdminGen } from '@/lib/admin-cookie';
-import { adminCookieKey, isPasswordLoginEnabled, sameString, signAdminCookie } from '@/lib/admin-token';
+import { adminCookieKey, isPasswordLoginEnabled, signAdminCookie } from '@/lib/admin-token';
+import { safeEqual } from '@/lib/signing';
 import { adminCookieOptions } from '@/lib/auth';
 import { clientIp, loginLocked, recordLoginFail } from '@/lib/login-limit';
 
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
   const { password } = await req.json().catch(() => ({}));
   const expected = process.env.ADMIN_PASSWORD;
-  if (!expected || typeof password !== 'string' || !sameString(password, expected)) {
+  if (!expected || typeof password !== 'string' || !(await safeEqual(password, expected))) {
     await recordLoginFail(ip);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
