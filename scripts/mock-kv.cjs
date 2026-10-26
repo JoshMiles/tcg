@@ -60,7 +60,19 @@ function run(cmd) {
     case 'srem': { const s = new Set(store.get(key) || []); let n = 0; rest.forEach(x => { if (s.delete(x)) n++; }); store.set(key, [...s]); return n; }
     case 'hset': { const h = store.get(key) || {}; for (let i = 0; i < rest.length; i += 2) h[rest[i]] = rest[i+1]; store.set(key, h); types.set(key, 'hash'); return rest.length / 2; }
     case 'hsetnx': { const h = store.get(key) || {}; if (rest[0] in h) return 0; h[rest[0]] = rest[1]; store.set(key, h); types.set(key, 'hash'); return 1; }
-    case 'hdel': { const h = store.get(key) || {}; let n = 0; rest.forEach(f => { if (f in h) { delete h[f]; n++; } }); store.set(key, h); return n; }
+    case 'hdel': {
+      const h = store.get(key); if (!h) return 0;
+      let n = 0; [...rest].forEach(f => { if (f in h) { delete h[f]; n++; } });
+      if (Object.keys(h).length === 0) { store.delete(key); types.delete(key); } // like Redis, an emptied hash is no key at all
+      return n;
+    }
+    case 'rename': {
+      // RENAME src dst: atomic move, replaces dst; an error when src is missing (as Redis does).
+      if (!store.has(key)) throw new Error('ERR no such key');
+      const dst = rest[0];
+      store.set(dst, store.get(key)); types.set(dst, types.get(key)); store.delete(key); types.delete(key);
+      return 'OK';
+    }
     case 'hincrby': { const h = store.get(key) || {}; h[rest[0]] = Number(h[rest[0]] || 0) + Number(rest[1]); store.set(key, h); types.set(key, 'hash'); return h[rest[0]]; }
     case 'scard': return (store.get(key) || []).length;
     case 'llen': return (store.get(key) || []).length;
@@ -83,7 +95,9 @@ http.createServer((req, res) => {
     const enc = req.headers['upstash-encoding'] === 'base64';
     const wrap = r => ({ result: enc ? b64(r) : r });
     let j; try { j = JSON.parse(body || "[]"); } catch { j = []; }
-    const out = req.url.includes('pipeline') ? j.map(c => wrap(run(c))) : wrap(run(j));
+    let out;
+    try { out = req.url.includes('pipeline') ? j.map(c => wrap(run(c))) : wrap(run(j)); }
+    catch (e) { res.statusCode = 400; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ error: String(e.message || e) })); return; }
     res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(out));
   });
 }).listen(PORT, () => console.log('mock kv on ' + PORT));

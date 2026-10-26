@@ -16,10 +16,10 @@ const throws = async (fn: () => unknown) => { try { await fn(); return false; } 
 // ---- which keys are kept ----
 for (const k of ['seasons:list', 'season:s1', 'season:s1:wrap', 'pack:p1:cards', 'tcg_Season2', 'user:alice:profile', 'user:alice:settings', 'user:alice:ach',
   'user:alice:scorehist:s1', 'copies:Season2:o:alice', 'copies:uid:seq', 'staff:members', 'trades:open', 'notif:alice', 'discord:settings', 'webhooks:settings',
-  'overlay:settings', 'scoring:settings', 'twitch_opaque:U123', 'users:hidden', 'admin:dashboard', 'audit:all', 'something:nobody:thought:of']) ok(core.isBackedUp(k), `${k} is backed up`);
+  'overlay:settings', 'scoring:settings', 'twitch_opaque:U123', 'users:hidden', 'admin:dashboard', 'audit:all', 'coll:Season2', 'collmig', 'something:nobody:thought:of']) ok(core.isBackedUp(k), `${k} is backed up`);
 for (const k of ['sbx:preview:tcg_x', 'sbx:demo:seasons:list', 'sandbox:registry', 'stats:h:Season2', 'stats:last', 'twitch:live', 'twitch:avatars', 'activity:log', 'activity:seq',
   'lock:trades', 'captcha:pass:alice', 'showoff:cd:alice', 'trade:cd:alice', 'webhooks:queue', 'overlay:clients', 'overlay:reload', 'watch:idx:12', 'watch:idx:ready',
-  'user:alice:snap:abc', 'user:alice:snaps']) ok(!core.isBackedUp(k), `${k} is not backed up`);
+  'user:alice:snap:abc', 'user:alice:snaps', 'tcg_Season2:old', 'coll:Season2:new']) ok(!core.isBackedUp(k), `${k} is not backed up`);
 ok(core.isBackedUp('user:snapper:profile'), 'a viewer called snapper is not mistaken for a restore point');
 
 // ---- names and retention ----
@@ -51,6 +51,9 @@ ok(await throws(() => core.encryptBackup(plain, 'short')), 'a short key is refus
 await prodKv.set('seasons:list', ['s1']);
 await prodKv.set('season:s1', { id: 's1', name: 'Season 1', collectionName: 'S1' });
 await prodKv.set('tcg_S1', { alice: [1, 1, 2], bob: [3] });
+await prodKv.hset('coll:S1', { alice: [1, 1, 2], bob: [3] });
+await prodKv.set('tcg_S1:old', { alice: [1, 1, 2], bob: [3] });
+await prodKv.hset('coll:S1:new', { alice: [1] });
 await prodKv.hset('staff:members', { alice: { login: 'alice', role: 'mod' }, bob: { login: 'bob', role: 'admin' } });
 await prodKv.lpush('trades:history', { id: 'a' }); await prodKv.lpush('trades:history', { id: 'b' }); await prodKv.lpush('trades:history', { id: 'c' });
 await prodKv.sadd('users:hidden', 'x', 'y');
@@ -64,7 +67,8 @@ const file = await backup.collectEntries(prodKv as unknown as Parameters<typeof 
 const byKey = new Map(file.entries.map(e => [e.key, e]));
 ok(byKey.size === file.entries.length, 'no key twice');
 for (const k of ['seasons:list', 'season:s1', 'tcg_S1', 'staff:members', 'trades:history', 'users:hidden']) ok(byKey.has(k), `${k} was collected`);
-for (const k of ['sbx:demo:seasons:list', 'stats:last', 'lock:trades', 'activity:log', 'user:alice:snap:1']) ok(!byKey.has(k), `${k} was left out`);
+for (const k of ['sbx:demo:seasons:list', 'stats:last', 'lock:trades', 'activity:log', 'user:alice:snap:1', 'tcg_S1:old', 'coll:S1:new']) ok(!byKey.has(k), `${k} was left out`);
+ok(byKey.has('coll:S1') && byKey.get('coll:S1')!.type === 'hash', 'a season collection hash was collected as a hash');
 ok(byKey.get('staff:members')!.type === 'hash' && byKey.get('trades:history')!.type === 'list' && byKey.get('users:hidden')!.type === 'set' && byKey.get('tcg_S1')!.type === 'string', 'types are recorded');
 ok(file.skipped.length === 0, 'nothing skipped');
 
@@ -77,6 +81,7 @@ ok(core.describeBackup(reread).includes(`${file.entries.length} keys`), 'describ
 const n = await backup.restoreEntries(prodKv as unknown as Parameters<typeof backup.restoreEntries>[0], reread.entries, k => `sbx:rt:${k}`);
 ok(n === reread.entries.length, 'every entry was restored');
 ok(JSON.stringify(await prodKv.get('sbx:rt:tcg_S1')) === JSON.stringify({ alice: [1, 1, 2], bob: [3] }), 'a string value is restored exactly');
+ok(JSON.stringify(await prodKv.hgetall('sbx:rt:coll:S1')) === JSON.stringify({ alice: [1, 1, 2], bob: [3] }), 'a collection hash round trips with its arrays');
 ok(JSON.stringify(await prodKv.hgetall('sbx:rt:staff:members')) === JSON.stringify(await prodKv.hgetall('staff:members')), 'a hash is restored exactly');
 ok(JSON.stringify(await prodKv.lrange('sbx:rt:trades:history', 0, -1)) === JSON.stringify(await prodKv.lrange('trades:history', 0, -1)), 'a list keeps its order');
 ok(JSON.stringify(((await prodKv.smembers('sbx:rt:users:hidden')) as string[]).sort()) === JSON.stringify(['x', 'y']), 'a set is restored');
@@ -84,9 +89,11 @@ ok(JSON.stringify(await prodKv.get('tcg_S1')) === JSON.stringify({ alice: [1, 1,
 
 // A restore replaces rather than merges, and --raw style (no rename) puts keys back where they were.
 await prodKv.set('tcg_S1', { mallory: [9] });
+await prodKv.hset('coll:S1', { mallory: [9] });
 await prodKv.lpush('trades:history', { id: 'later' });
 await backup.restoreEntries(prodKv as unknown as Parameters<typeof backup.restoreEntries>[0], reread.entries);
 ok(JSON.stringify(await prodKv.get('tcg_S1')) === JSON.stringify({ alice: [1, 1, 2], bob: [3] }), 'a raw restore replaces a changed string');
+ok(JSON.stringify(await prodKv.hgetall('coll:S1')) === JSON.stringify({ alice: [1, 1, 2], bob: [3] }), 'a raw restore replaces a changed collection hash (no leftover viewer)');
 ok((await prodKv.lrange('trades:history', 0, -1)).length === 3, 'a raw restore replaces a list instead of appending');
 
 // ---- refusals ----

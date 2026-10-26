@@ -6,7 +6,7 @@ import { requireStaff } from '@/lib/staff-guard';
 import { checkModerate } from '@/lib/staff';
 import { sanitizeTradeSettings } from '@/lib/trade-core';
 import { recordAudit } from '@/lib/audit';
-import { getSeason, getUserProfile, saveSeason } from '@/lib/kv';
+import { deleteOldCollectionCopies, getSeason, getUserProfile, saveSeason } from '@/lib/kv';
 import { saveFlags } from '@/lib/user-admin';
 import { cancelOpenTrades, cancelTrade, extendOpenTrades, releaseStuckEscrow, reverseTrade, getTradeSettings, saveTradeSettings } from '@/lib/trades';
 import { notifyAdminLog } from '@/lib/discord';
@@ -50,6 +50,14 @@ export async function finishMoveAction(from: string) {
   revalidatePath('/admin/users');
   if (!res.ok) redirect(`/admin/settings?tab=environment&error=${encodeURIComponent(res.error)}`);
   redirect(`/admin/settings?tab=environment&note=${encodeURIComponent(`Move finished: ${from} is now ${res.to}.`)}`);
+}
+
+/** Deletes the old one-string collection copies kept after the move to hashes, once they are past the rollback window (Data health). */
+export async function deleteOldCollectionCopiesAction() {
+  await requireAdmin();
+  const n = await deleteOldCollectionCopies();
+  revalidatePath('/admin/settings');
+  redirect(`/admin/settings?tab=environment&note=${encodeURIComponent(n === 0 ? 'No old collection copies were old enough to delete.' : `Deleted ${n} old collection ${n === 1 ? 'copy' : 'copies'}.`)}`);
 }
 
 /** Cancels an open offer and returns the escrowed cards to their owner. Works while trading is paused. */

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { formatBytes, loadDataHealth, BLOB_WARN_BYTES, BLOB_HIGH_BYTES, type HealthLevel } from '@/lib/data-health';
-import { getActiveSeason } from '@/lib/kv';
-import { finishMoveAction, releaseStuckEscrowAction } from '../trade-actions';
+import { getActiveSeason, OLD_COPY_DAYS } from '@/lib/kv';
+import { deleteOldCollectionCopiesAction, finishMoveAction, releaseStuckEscrowAction } from '../trade-actions';
 import { PendingButton } from '../components/PendingButton';
 import { Panel, Chip } from '../components/ui';
 
@@ -10,12 +10,12 @@ const LABEL: Record<HealthLevel, string> = { ok: 'Fine', warn: 'Growing', high: 
 
 const n = (v: number) => v.toLocaleString();
 
-/** How big the stored game data is. A measurement only: it decides whether the one-value-per-season collection storage needs redesigning. */
+/** How big the stored game data is, and which seasons moved to the per-viewer hash layout. A measurement plus the old-copy cleanup. */
 export async function DataHealthPanel() {
   const active = await getActiveSeason().catch(() => null);
   const h = await loadDataHealth(active?.id ?? null);
   return (
-    <Panel title="Data health" icon="database" hint={`Each season's collection is one stored value that is read and rewritten in full on every pull, trade and upgrade. It is flagged at ${formatBytes(BLOB_WARN_BYTES)} and again at ${formatBytes(BLOB_HIGH_BYTES)}. Trades and the activity log are capped, so they stay small. Measured just now; check your database plan's limit on the size of one request.`}>
+    <Panel title="Data health" icon="database" hint={`Each season's collection is stored per viewer, so a pull, trade or upgrade only touches the viewers involved. The leaderboard, search and admin lists still read the whole season; it is flagged at ${formatBytes(BLOB_WARN_BYTES)} and again at ${formatBytes(BLOB_HIGH_BYTES)}. Trades and the activity log are capped, so they stay small. Measured just now.`}>
       {h.seasons.length === 0 ? <p className="text-sm text-gray-500">No published seasons yet.</p> : (
         <>
         <ul className="sm:hidden space-y-2">
@@ -79,6 +79,24 @@ export async function DataHealthPanel() {
         </div>
       )}
       <dl className="grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-y-0.5 sm:gap-y-1 text-sm">
+        <dt className="text-gray-500">Collections moved</dt>
+        <dd className="text-gray-300 mb-1.5 sm:mb-0">
+          {h.migrations.length === 0 ? 'None' : (
+            <ul className="space-y-0.5">
+              {h.migrations.map(m => (
+                <li key={m.collection} className="tabular-nums">{m.collection}: {n(m.viewers)} viewers, {n(m.entries)} entries, {new Date(m.at).toLocaleString()}{m.oldCopy ? ', old copy kept' : ', old copy deleted'}</li>
+              ))}
+            </ul>
+          )}
+          {h.oldCopiesDue > 0 && (
+            <form action={deleteOldCollectionCopiesAction} className="mt-1.5">
+              <PendingButton type="submit" className="px-3 py-1.5 text-xs font-bold rounded-lg border border-red-400/40 text-red-100 hover:bg-red-900/40">
+                Delete old collection copies ({n(h.oldCopiesDue)})
+              </PendingButton>
+            </form>
+          )}
+          <span className="block text-xs text-gray-500">The old copy is kept as a rollback for {OLD_COPY_DAYS} days; the delete button appears after that.</span>
+        </dd>
         <dt className="text-gray-500">Open trade offers</dt>
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.trades.openCount)} ({formatBytes(h.trades.openBytes)})</dd>
         <dt className="text-gray-500">Trade history</dt>

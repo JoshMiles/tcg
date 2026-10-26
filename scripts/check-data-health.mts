@@ -68,4 +68,16 @@ ok(h.trades.openCount === 2 && h.trades.historyCount === 3 && h.trades.historyBy
 ok(h.trades.stuckEscrow.join() === 'h2', 'a closed offer still marked escrowed is listed as stuck');
 ok(h.activityEvents === 2, 'activity events are counted');
 
+// The season above started as the old string and moved on first read: the log shows it, and the old copy is deletable only after 30 days.
+const mig = h.migrations.find(m => m.collection === coll);
+ok(!!mig && mig.viewers === 3 && mig.entries === 7 && mig.oldCopy, 'the migration is listed with its counts and the old copy kept');
+ok(h.oldCopiesDue === 0 && (await kvLib.deleteOldCollectionCopies()) === 0, 'a fresh old copy is not offered for deletion and is not deleted');
+await prodKv.hset('collmig', { [coll]: { viewers: 3, entries: 7, at: Date.now() - (kvLib.OLD_COPY_DAYS + 1) * 86_400_000 } });
+h = await dh.loadDataHealth(season.id);
+ok(h.oldCopiesDue === 1, 'an old copy past the window is offered for deletion');
+ok((await kvLib.deleteOldCollectionCopies()) === 1 && (await prodKv.exists(`tcg_${coll}:old`)) === 0, 'deleting removes the old copy');
+h = await dh.loadDataHealth(season.id);
+ok(h.oldCopiesDue === 0 && h.migrations.find(m => m.collection === coll)?.oldCopy === false, 'the log keeps the row, marked as deleted');
+ok((await kvLib.getCollection(coll)).alice.length === 4, 'the live collection is unaffected');
+
 console.log('data health checks passed');

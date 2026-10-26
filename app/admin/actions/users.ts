@@ -6,7 +6,7 @@ import { recordAudit } from '@/lib/audit';
 import { takeUserSnapshot } from '@/lib/user-admin';
 import { deleteViewerAccount } from '@/lib/account-deletion';
 import {
-  listSeasons, getCollection, saveCollection, deleteCollection, removeUserFromCollection, addCollectionEntryWithSerial, withCollectionLock,
+  listSeasons, updateCollection, deleteCollection, removeUserFromCollection, addCollectionEntryWithSerial, withCollectionLock,
   getUserProfile, saveUserProfile, getActiveSeasonWithPacks, ensureUserProfile,
 } from '@/lib/kv';
 import type { UserProfile } from '@/lib/types';
@@ -42,15 +42,11 @@ export async function removeUserCard(username: string, collectionName: string, e
   await requireSeasonCollection(collectionName);
   const lower = username.toLowerCase();
   const { cardNumber, variant } = decodeEntry(entry);
-  const removed = await withCollectionLock(collectionName, async () => {
-    const data = await getCollection(collectionName);
-    const idx = data[lower]?.indexOf(entry) ?? -1;
-    if (idx === -1) return false;
-    data[lower] = [...data[lower].slice(0, idx), ...data[lower].slice(idx + 1)];
-    if (data[lower].length === 0) delete data[lower];
-    await saveCollection(collectionName, data);
-    return true;
-  });
+  const removed = await withCollectionLock(collectionName, () => updateCollection(collectionName, [lower], cards => {
+    const idx = cards[lower].indexOf(entry);
+    if (idx === -1) return { result: false };
+    return { result: true, cards: { [lower]: [...cards[lower].slice(0, idx), ...cards[lower].slice(idx + 1)] } };
+  }));
   if (removed) {
     await recordActivity({ type: 'remove', username: lower, cardNumber, variant, collectionName });
     await recordAudit(lower, 'Card removed', `#${cardNumber}${variant === 'regular' ? '' : ` (${VARIANT_LABELS[variant]})`}`);

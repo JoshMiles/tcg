@@ -1,18 +1,19 @@
 // Data health: how big the stored game data is, so a storage redesign (roadmap 3.2) is decided by numbers, not a hunch.
 //
-// Each season's collection is ONE JSON value (`tcg_<name>`: { viewer: number[] }) that is read and rewritten whole, under a lock,
-// on every pull, trade and upgrade. Trades (`trades:open`, `trades:history`) work the same way. So the size of those values, and how
-// long the writers wait for each other, is what decides when this stops being fine. Nothing here changes behaviour.
+// Each season's collection is one hash (`coll:<name>`: field = viewer, value = their number[]). A pull, trade or upgrade reads and
+// writes only the viewers it touches, but the whole-season pages (leaderboard, search, admin lists) read all of it. Trades
+// (`trades:open`, `trades:history`) are still one value each, read and rewritten whole under a lock. So the size of these, and how
+// long the writers wait for each other, is what decides when that stops being fine. Nothing here changes behaviour.
 
 import { kv } from './db';
-import { getCollection, listSeasons } from './kv';
+import { getCollection, listCollectionMigrations, listSeasons, OLD_COPY_DAYS, type CollectionMigration } from './kv';
 import { listAccountConflicts, type AccountConflict } from './account-bind';
 import { listAsideAccounts, listUnfinishedMoves, type AsideAccount, type UnfinishedMove } from './account-move';
 import { getAccountCheck, type AccountCheck } from './account-helix-check';
 
-/** A collection value at this size gets a "needs attention" line on the dashboard. */
+/** A season's collection at this size gets a "needs attention" line on the dashboard. */
 export const BLOB_WARN_BYTES = 512 * 1024;
-/** From here a pull rewrites a couple of MB every time; the storage layout should be revisited (3.2). */
+/** From here every whole-season read moves a couple of MB; those pages should be revisited. */
 export const BLOB_HIGH_BYTES = 2 * 1024 * 1024;
 
 export type HealthLevel = 'ok' | 'warn' | 'high';
@@ -55,7 +56,7 @@ export function sizeAttention(seasonName: string, bytes: number): { level: Healt
   if (level === 'ok') return null;
   return {
     level,
-    text: `${seasonName}'s collection data is ${formatBytes(bytes)}, and every pull, trade and upgrade rewrites all of it. ${level === 'high' ? 'It is large enough that the storage layout should be revisited.' : 'Keep an eye on it as the season grows.'}`,
+    text: `${seasonName}'s collection data is ${formatBytes(bytes)}, and the leaderboard, search and admin lists read all of it. ${level === 'high' ? 'It is large enough that those pages should be revisited.' :'Keep an eye on it as the season grows.'}`,
   };
 }
 
@@ -103,6 +104,10 @@ export interface DataHealth {
   unfinishedMoves: UnfinishedMove[];
   /** The last nightly Twitch check (lib/account-helix-check.ts), or null before the first run. */
   helixCheck: AccountCheck | null;
+  /** Seasons moved from the old one-string layout to a hash per season, newest first (lib/kv.ts `ensureMigrated`). */
+  migrations: CollectionMigration[];
+  /** How many old string copies are at least OLD_COPY_DAYS old and can be deleted. */
+  oldCopiesDue: number;
 }
 
 const OWNER_SAMPLE = 500;
@@ -137,9 +142,10 @@ export async function loadDataHealth(activeSeasonId?: string | null): Promise<Da
     const collection = summarizeCollection(raw);
     return { id: s.id, name: s.name, active: s.id === activeSeasonId, collection, level: healthLevel(collection.bytes), ledger: await ledgerHealth(s.collectionName, Object.keys(raw)) };
   }));
-  const [open, history, activityEvents, accountConflicts, asideAccounts, unfinishedMoves, helixCheck] = await Promise.all([
-    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<{ id: string; escrowed?: boolean }[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0), listAccountConflicts(), listAsideAccounts().catch(() => []), listUnfinishedMoves().catch(() => []), getAccountCheck(),
+  const [open, history, activityEvents, accountConflicts, asideAccounts, unfinishedMoves, helixCheck, migrations] = await Promise.all([
+    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<{ id: string; escrowed?: boolean }[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0), listAccountConflicts(), listAsideAccounts().catch(() => []), listUnfinishedMoves().catch(() => []), getAccountCheck(), listCollectionMigrations().catch(() => [] as CollectionMigration[]),
   ]);
+  const cutoff = Date.now() - OLD_COPY_DAYS * 86_400_000;
   return {
     at: Date.now(),
     seasons: rows,
@@ -149,5 +155,7 @@ export async function loadDataHealth(activeSeasonId?: string | null): Promise<Da
     asideAccounts,
     unfinishedMoves,
     helixCheck,
+    migrations,
+    oldCopiesDue: migrations.filter(m => m.oldCopy && m.at <= cutoff).length,
   };
 }

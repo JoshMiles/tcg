@@ -10,7 +10,7 @@
 // Sign-in drives both (lib/account-bind.ts); the admin Move aside button uses 'aside'.
 
 import { inSandbox, isPreview, kv } from './db';
-import { getCollection, getUserProfile, listSeasons, saveUserProfile, deleteUserProfile, withCollectionLock, withLock } from './kv';
+import { getCollection, getUserProfile, listSeasons, moveCollectionCards, saveUserProfile, deleteUserProfile, withCollectionLock, withLock } from './kv';
 import { IDS as ACCT_IDS } from './account-id';
 import { removeOpaqueLinks } from './account-deletion';
 import { deleteTesterRecord, getTester, putTesterRecord } from './access';
@@ -135,19 +135,14 @@ const STEPS: { name: string; run: (c: Ctx) => Promise<void> }[] = [
   { name: 'snapshot', run: async c => { await takeUserSnapshot(c.from, c.mode === 'aside' ? 'Before moving aside' : 'Before moving to a new login'); } },
   // The staff record stays on the login; pinning its Twitch ID now means whoever takes the login next cannot inherit the role.
   { name: 'staff', run: async c => { if (c.j.id) await pinStaffId(c.from, c.j.id); } },
-  // Each season: the collection blob (written directly, saveCollection would retire and re-mint every print) and the copy ledger, under one lock.
+  // Each season: the collection (written directly, updateCollection would retire and re-mint every print) and the copy ledger, under one lock.
   {
     name: 'collections',
     run: async c => {
       for (const s of c.seasons) {
         await withCollectionLock(s.collectionName, async () => {
-          const data = await getCollection(s.collectionName);
-          if (c.from in data) {
-            data[c.to] = [...(data[c.to] ?? []), ...data[c.from]]; // a resumed move may find a pull that landed under `from` meanwhile
-            delete data[c.from];
-            await kv.set(`tcg_${s.collectionName}`, data);
-            c.hook('collections:blob');
-          }
+          // A resumed move may find a pull that landed under `from` meanwhile: it is added to `to` here.
+          if (await moveCollectionCards(s.collectionName, c.from, c.to)) c.hook('collections:blob');
           if (await isTracking(s.collectionName)) await renameOwner(s.collectionName, c.from, c.to);
         });
       }

@@ -116,7 +116,7 @@ const fenced: Kv = new Proxy(prodKv, {
     return (...args: unknown[]) => {
       if (isPreview() && !READ_ONLY.has(name)) {
         if (name === 'pipeline' || name === 'multi') return Promise.reject(new Error(`kv.${prop} is not available on a preview deployment`));
-        const keys = name === 'del' || name === 'unlink' ? args : name === 'eval' ? (args[1] as unknown[]) : [args[0]];
+        const keys = name === 'del' || name === 'unlink' || name === 'rename' || name === 'renamenx' ? args : name === 'eval' ? (args[1] as unknown[]) : [args[0]];
         if (!keys.every(k => typeof k === 'string' && k.startsWith(PREVIEW_PREFIX)))
           return Promise.reject(new Error(`Blocked: a preview deployment may not write outside ${PREVIEW_PREFIX}* (kv.${prop})`));
       }
@@ -143,6 +143,7 @@ export const kv: Kv = new Proxy(fenced, {
       if (id === null) return (orig as (...a: unknown[]) => unknown).apply(target, args);
       if (prop === 'mget') return (orig as (...a: unknown[]) => unknown).apply(target, args.flat().map(k => prefixed(id, k)));
       if (prop === 'del') return (orig as (...a: unknown[]) => unknown).apply(target, args.map(k => prefixed(id, k)));
+      if (prop === 'rename') return (orig as (...a: unknown[]) => unknown).apply(target, args.map(k => prefixed(id, k))); // both the source and the destination are keys
       if (prop === 'eval') return (orig as (...a: unknown[]) => unknown).apply(target, [args[0], (args[1] as unknown[]).map(k => prefixed(id, k)), ...args.slice(2)]); // (script, keys, argv): only the keys are namespaced
       if (!KEY_FIRST.has(prop.toLowerCase())) throw new Error(`kv.${prop} is not supported by the namespaced client`);
       return (orig as (...a: unknown[]) => unknown).apply(target, [prefixed(id, args[0]), ...args.slice(1)]);

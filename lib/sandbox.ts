@@ -64,6 +64,18 @@ async function copyKey(id: string, key: string): Promise<void> {
   if (value !== null && value !== undefined) await prodKv.set(ns(id, key), value);
 }
 
+/** Copies one season's collection into the sandbox as a hash (`coll:<name>`). Production's season may still be the old string (not yet used since the move to hashes); it is copied in the hash layout either way. */
+async function copyCollection(id: string, c: string): Promise<void> {
+  let rec = await prodKv.hgetall<Record<string, number[]>>(`coll:${c}`);
+  if (!rec) {
+    const old = await prodKv.get<Record<string, number[]>>(`tcg_${c}`);
+    rec = old ? Object.fromEntries(Object.entries(old).filter(([, cards]) => Array.isArray(cards) && cards.length > 0)) : null;
+  }
+  const names = Object.keys(rec ?? {});
+  await prodKv.del(ns(id, `coll:${c}`), ns(id, `tcg_${c}`)); // a copy replaces what was there, as the old single-value copy did
+  for (let i = 0; i < names.length; i += 200) await prodKv.hset(ns(id, `coll:${c}`), Object.fromEntries(names.slice(i, i + 200).map(n => [n, rec![n]])));
+}
+
 /** Settings keys copied from production into a sandbox (or the preview namespace), on top of the seasons / packs / cards. One list for both. */
 export const SETUP_SETTINGS_KEYS = ['overlay:settings', 'overlay:packprops', 'overlay:presets', 'scoring:settings'] as const;
 
@@ -77,7 +89,7 @@ export async function cloneFromProduction(id: string, withCollections: boolean):
     await copyKey(id, `season:${sid}`);
     if (withCollections) {
       const season = await prodKv.get<{ collectionName?: string }>(`season:${sid}`);
-      if (season?.collectionName) await copyKey(id, `tcg_${season.collectionName}`);
+      if (season?.collectionName) await copyCollection(id, season.collectionName);
     }
   }
   for (const pid of packIds) {
@@ -130,7 +142,7 @@ export async function resetSandbox(id: string): Promise<void> {
 /** Removes only viewer data (collections, profiles, activity, logins), keeping the sandbox's setup. */
 export async function resetTestData(id: string): Promise<number> {
   let n = 0;
-  for (const pattern of ['tcg_*', 'user:*', 'activity:*', 'twitch_opaque:*', 'lock:*', 'webhooks:queue', 'overlay:clients']) n += await wipeKeys(id, pattern);
+  for (const pattern of ['tcg_*', 'coll:*', 'collmig', 'user:*', 'activity:*', 'twitch_opaque:*', 'lock:*', 'webhooks:queue', 'overlay:clients']) n += await wipeKeys(id, pattern);
   return n;
 }
 

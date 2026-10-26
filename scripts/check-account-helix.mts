@@ -39,6 +39,7 @@ await kvLib.saveUserProfile({ username: 'tilde~1', displayName: 'tilde (former)'
 await kv.hset('acct:ids', { '1006': 'tilde~1' });
 await kvLib.saveCollection(C, { ...(await kvLib.getCollection(C)), hascards: [E(3)], otherprof: [] });
 await kvLib.saveUserProfile({ username: 'otherprof', displayName: 'other', twitchId: '9999', createdAt: 1 });
+await kv.hset('acct:ids', { '9999': 'otherprof' }); // a viewer with no cards has no collection entry any more, so the registry is how the check finds them
 
 const asked: string[] = [];
 const lookup = (ids: string[]) => {
