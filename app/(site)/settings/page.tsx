@@ -15,6 +15,8 @@ import { isSuperAdmin } from '@/lib/staff-core';
 
 export const metadata: Metadata = { title: 'Settings', robots: { index: false, follow: false } };
 
+const SECTION_LINKS = [['profile', 'Profile'], ['notifications', 'Notifications'], ['alerts', 'Saved alerts'], ['display', 'Display'], ['experimental', 'Experimental'], ['data', 'Your data'], ['delete-account-section', 'Delete account']];
+
 export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/auth/twitch?returnTo=/settings');
@@ -31,6 +33,11 @@ export default async function SettingsPage() {
         </div>
         <Link href={profileHref(session.username)} className="text-sm text-yellow-400 hover:text-yellow-300">View my profile →</Link>
       </header>
+      <nav aria-label="Settings sections" className="flex flex-wrap gap-2">
+        {SECTION_LINKS.map(([id, label]) => (
+          <a key={id} href={`#${id}`} className="px-3 py-1 rounded-full text-xs font-semibold border border-gray-700 text-gray-300 hover:text-yellow-300 hover:border-yellow-500/50 transition-colors">{label}</a>
+        ))}
+      </nav>
       <SettingsForm initial={settings} username={session.username} cards={cards} isStaff={isStaff} />
       <DeleteAccount username={session.username} initial={deletion ? { status: deletion.status, at: deletion.at, reply: deletion.reply } : null} />
     </div>

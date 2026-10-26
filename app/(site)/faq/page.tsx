@@ -6,6 +6,7 @@ import { OpenOnHash } from '@/app/components/site/OpenOnHash';
 import { Section, Q, FaqAnswer } from './parts';
 import { FaqBlock } from './blocks';
 import { getFaqContext } from './context';
+import { FaqFilter } from './FaqFilter';
 
 export const metadata: Metadata = {
   title: 'FAQ',
@@ -34,6 +35,7 @@ export default async function FaqPage() {
         </nav>
       </header>
 
+      <FaqFilter>
       {visibleSections.map(s => (
         <Section key={s.id} id={s.id} title={s.title} icon={s.icon}>
           {FAQ_BUILTINS.filter(b => b.sectionId === s.id && (!b.when || flags[b.when]) && !faqStore.overrides[b.id]?.hidden).map(b => {
@@ -52,6 +54,7 @@ export default async function FaqPage() {
           ))}
         </Section>
       ))}
+      </FaqFilter>
     </div>
   );
 }

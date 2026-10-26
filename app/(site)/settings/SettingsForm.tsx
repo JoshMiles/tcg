@@ -13,9 +13,9 @@ import type { Variant } from '@/lib/types';
 
 type BoolKey = 'privateProfile' | 'notifyOffers' | 'notifyResults' | 'notifyWatch' | 'notifyFeedback' | 'noticeSound' | 'allowOffers' | 'hideStaffBadge' | 'hideUncollected' | 'compactGrids';
 
-function Section({ icon, title, hint, children }: { icon: Parameters<typeof Icon>[0]['name']; title: string; hint?: string; children: ReactNode }) {
+function Section({ id, icon, title, hint, children }: { id: string; icon: Parameters<typeof Icon>[0]['name']; title: string; hint?: string; children: ReactNode }) {
   return (
-    <section className="card rounded-2xl p-5 space-y-4">
+    <section id={id} className="card rounded-2xl p-5 space-y-4 scroll-mt-20">
       <div>
         <h2 className="font-display text-xl font-bold text-white"><Icon name={icon} className="mr-2 text-yellow-400" />{title}</h2>
         {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
@@ -74,7 +74,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
 
   return (
     <form onSubmit={e => { e.preventDefault(); void save(); }} className="space-y-6">
-      <Section icon="user" title="Profile" hint="What other collectors see on your page.">
+      <Section icon="user" id="profile" title="Profile" hint="What other collectors see on your page.">
         <fieldset className="fieldset pb-3">
           <legend className="fieldset-legend"><label htmlFor="bio">About you</label></legend>
           <textarea id="bio" value={s.bio} maxLength={BIO_MAX} rows={2} onChange={e => setS(p => ({ ...p, bio: e.target.value }))}
@@ -122,7 +122,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         <Row id="private" label="Private profile" help="Hide my profile page and leave me off the public leaderboard, card owner lists and recent pulls. Anyone else who opens my page sees only that it is private; I still see it." checked={s.privateProfile} onChange={flip('privateProfile')} />
       </Section>
 
-      <Section icon="bell" title="Trading and notifications" hint="Admin notices about your offers always come through.">
+      <Section icon="bell" id="notifications" title="Trading and notifications" hint="Admin notices about your offers always come through.">
         <Row id="allow" label="Accept direct offers" help="Turn off to stop other collectors offering you trades. The open board and counter-offers to your own offers still work." checked={s.allowOffers} onChange={flip('allowOffers')} />
         <Row id="n-offers" label="New offers and counters" help="A bell notice when someone offers you a trade or counters yours." checked={s.notifyOffers} onChange={flip('notifyOffers')} />
         <Row id="n-results" label="How my offers ended" help="A bell notice when an offer of yours is accepted, declined, withdrawn or runs out of time." checked={s.notifyResults} onChange={flip('notifyResults')} />
@@ -133,7 +133,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         <DiscordAlerts />
       </Section>
 
-      <Section icon="search" title="Saved alerts" hint="Tell me when someone lists a card, in a version you choose. Cards on your Looking for list alert in every version automatically.">
+      <Section icon="search" id="alerts" title="Saved alerts" hint="Tell me when someone lists a card, in a version you choose. Cards on your Looking for list alert in every version automatically.">
         <div className="space-y-2 pb-1" id="watches">
           <div className="flex flex-wrap gap-1.5">
             {s.watches.length === 0 && <span className="text-xs text-gray-600">No saved alerts yet.</span>}
@@ -160,13 +160,13 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         </div>
       </Section>
 
-      <Section icon="eye" title="Display" hint="Saved to your account, so it follows you between devices.">
+      <Section icon="eye" id="display" title="Display" hint="Saved to your account, so it follows you between devices.">
         <Row id="hide" label="Hide uncollected cards" help="Collection grids start with the ? tiles hidden." checked={s.hideUncollected} onChange={flip('hideUncollected')} />
         <Row id="compact" label="Compact grids" help="Smaller card tiles, more cards on screen." checked={s.compactGrids} onChange={flip('compactGrids')} />
         <Row id="motion" label="Reduce motion" help="Calm the site's animations even if your device doesn't ask for it." checked={s.motion === 'reduce'} onChange={v => setS(p => ({ ...p, motion: v ? 'reduce' : 'system' }))} />
       </Section>
 
-      <Section icon="flask" title="Experimental" hint="Early features that may change or go away.">
+      <Section icon="flask" id="experimental" title="Experimental" hint="Early features that may change or go away.">
         {EXPERIMENTS.map(x => (
           <div key={x.id}>
             <Row id={`x-${x.id}`} label={x.label} help={x.description} checked={s.experiments.includes(x.id)} onChange={v => toggleExp(x.id, v)} />
@@ -174,7 +174,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         ))}
       </Section>
 
-      <Section icon="download" title="Your data" hint="Cards, trades and settings are stored against your Twitch login name.">
+      <Section icon="download" id="data" title="Your data" hint="Cards, trades and settings are stored against your Twitch login name.">
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <a href="/api/account/export" className="inline-flex items-center gap-1.5 rounded-full border border-gray-700 hover:border-yellow-500/60 px-3 py-1.5 text-gray-200 hover:text-white"><Icon name="download" />Download my data (JSON)</a>
           <a href="/privacy" className="text-yellow-400 hover:text-yellow-300">Privacy policy</a>
