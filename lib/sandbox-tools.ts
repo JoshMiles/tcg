@@ -1,4 +1,4 @@
-import { addCollectionEntry, deleteUserProfile, ensureUserProfile, getActiveSeasonWithPacks, getAllCollectionUsers, getCollection, getUserProfile, listAllPacks, listSeasons, saveCollection, withCollectionLock } from './kv';
+import { addCollectionEntry, deleteUserProfile, ensureUserProfile, getActiveSeasonWithPacks, getAllCollectionUsers, getCollection, getUserProfiles, listAllPacks, listSeasons, saveCollection, withCollectionLock } from './kv';
 import { listOpenTrades } from './trades';
 import { getSeasonLeaderboard } from './leaderboard';
 import { getHoloResolver, type HoloSpecs } from './holo';
@@ -209,15 +209,16 @@ export function listSandboxUserRows(sandboxId: string): Promise<SandboxUserRow[]
     const [users, active] = await Promise.all([getAllCollectionUsers(), getActiveSeasonWithPacks()]);
     const board = active ? await getSeasonLeaderboard(active.season).catch(() => null) : null;
     const standing = new Map((board?.rows ?? []).map((r, i) => [r.username, { rank: i + 1, score: r.score, complete: r.complete }]));
-    return Promise.all(users.map(async u => {
+    const profiles = await getUserProfiles(users.map(u => u.username));
+    return users.map(u => {
       const all = u.seasons.flatMap(s => s.cards);
       const st = standing.get(u.username);
       return {
         username: u.username, copies: all.length, unique: new Set(all.map(e => e % 1_000_000)).size,
         rank: st?.rank ?? null, score: st ? Math.round(st.score) : null, complete: !!st?.complete,
-        createdAt: (await getUserProfile(u.username))?.createdAt ?? null,
+        createdAt: profiles.get(u.username.toLowerCase())?.createdAt ?? null,
       };
-    }));
+    });
   });
 }
 

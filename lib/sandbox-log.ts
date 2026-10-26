@@ -1,5 +1,5 @@
 import { kv, runInSandbox } from './db';
-import { getCollection, listSeasons, saveCollection, getUserProfile, saveUserProfile, deleteUserProfile, withCollectionLock } from './kv';
+import { getCollection, listSeasons, saveCollection, getUserProfiles, saveUserProfile, deleteUserProfile, withCollectionLock } from './kv';
 import { listOpenTrades, tradeHistory } from './trades';
 import type { UserProfile } from './types';
 
@@ -55,7 +55,8 @@ async function takeSnapshot(label: string, usernames: string[]): Promise<UndoPoi
   const collections: UndoPoint['collections'] = {};
   for (const s of seasons) collections[s.collectionName] = await getCollection(s.collectionName);
   const profiles: UndoPoint['profiles'] = {};
-  for (const u of usernames) profiles[u] = await getUserProfile(u);
+  const got = await getUserProfiles(usernames);
+  for (const u of usernames) profiles[u] = got.get(u.toLowerCase()) ?? null;
   return { at: Date.now(), label, collections, profiles, tradeStamp: await tradeStamp() };
 }
 

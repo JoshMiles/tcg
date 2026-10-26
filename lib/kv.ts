@@ -227,6 +227,17 @@ export async function getUserProfile(username: string): Promise<UserProfile | nu
   return kv.get<UserProfile>(`user:${username.toLowerCase()}:profile`);
 }
 
+const PROFILE_CHUNK = 100;
+
+/** Several profiles with one `mget` per 100 names (lists: Users, Viewers, trades). Keys are the lowercased names; a missing profile is null. */
+export async function getUserProfiles(usernames: string[]): Promise<Map<string, UserProfile | null>> {
+  const names = [...new Set(usernames.map(u => u.toLowerCase()))];
+  const parts: string[][] = [];
+  for (let i = 0; i < names.length; i += PROFILE_CHUNK) parts.push(names.slice(i, i + PROFILE_CHUNK));
+  const got = (await Promise.all(parts.map(part => kv.mget<(UserProfile | null)[]>(...part.map(n => `user:${n}:profile`))))).flat();
+  return new Map(names.map((n, i) => [n, got[i] ?? null]));
+}
+
 export async function saveUserProfile(profile: UserProfile): Promise<void> {
   await kv.set(`user:${profile.username}:profile`, profile);
 }

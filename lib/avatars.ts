@@ -28,7 +28,7 @@ export async function getAvatars(usernames: string[]): Promise<Record<string, st
   if (names.length === 0) return {};
 
   try {
-    const cache = (await kv.hgetall<Record<string, Entry>>(KEY)) ?? {};
+    const cache = (await kv.hmget<Record<string, Entry>>(KEY, ...names)) ?? {}; // only the names on screen, the hash holds every viewer ever seen
     const now = Date.now();
     const stale = names.filter(n => {
       const e = cache[n];

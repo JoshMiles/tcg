@@ -152,10 +152,11 @@ export default async function UserDetailPage({
   // Compare with another viewer, active season.
   let compare: { name: string; theyLack: string[]; iLack: string[]; swaps: number } | null = null;
   if (compareWith && compareWith !== username && activeEntry && activeSeason) {
-    const theirs = new Set((await getCollection(activeSeason.collectionName))[compareWith]?.map(e => e % 1_000_000) ?? []);
+    const theirEntries = (await getCollection(activeSeason.collectionName))[compareWith] ?? [];
+    const theirs = new Set(theirEntries.map(e => e % 1_000_000));
     const mine = new Set(activeEntry.ownedNumbers.map(e => e % 1_000_000));
     const dupMine = [...activeEntry.countMap.entries()].filter(([, n]) => n > 1).map(([k]) => k % 1_000_000);
-    const theirCounts = countPulls((await getCollection(activeSeason.collectionName))[compareWith] ?? []);
+    const theirCounts = countPulls(theirEntries);
     const dupTheirs = [...theirCounts.entries()].filter(([, n]) => n > 1).map(([k]) => k % 1_000_000);
     const every = grantCards.map(c => c.number);
     const iLack = every.filter(n => !mine.has(n) && theirs.has(n));

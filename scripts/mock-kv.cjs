@@ -7,10 +7,13 @@ const PORT = Number(process.env.MOCK_KV_PORT) || 4111;
 const store = new Map();
 const timers = new Map(); // key -> pending EXPIRE timer
 const types = new Map(); // key -> 'string' | 'hash' | 'list' | 'set' (the stored value alone can't tell a list from a set)
+const counts = {}; // op -> commands served, read from GET /__stats (add ?reset to zero it), so a check or a measurement can count KV commands
 function run(cmd) {
   if (!Array.isArray(cmd)) return null;
   const [op, key, ...rest] = cmd; const o = String(op).toLowerCase();
+  counts[o] = (counts[o] || 0) + 1;
   switch (o) {
+    case 'mget': return [key, ...rest].map(k => (store.has(k) ? store.get(k) : null));
     case 'get': return store.has(key) ? store.get(key) : null;
     case 'set': {
       // SET key value [NX] [EX seconds]: NX only sets when the key is absent (what the app's locks rely on), EX expires it.
@@ -62,6 +65,7 @@ function run(cmd) {
     case 'scard': return (store.get(key) || []).length;
     case 'llen': return (store.get(key) || []).length;
     case 'hget': { const h = store.get(key) || {}; return rest[0] in h ? h[rest[0]] : null; }
+    case 'hmget': { const h = store.get(key) || {}; return rest.map(f => (f in h ? h[f] : null)); }
     case 'hlen': return Object.keys(store.get(key) || {}).length;
     case 'hgetall': { const h = store.get(key); return h ? Object.entries(h).flat() : []; }
     case 'smembers': return store.get(key) || [];
@@ -70,6 +74,11 @@ function run(cmd) {
 }
 const b64 = v => v === 'OK' ? v : typeof v === 'string' ? Buffer.from(v).toString('base64') : Array.isArray(v) ? v.map(b64) : v;
 http.createServer((req, res) => {
+  if (req.url.startsWith('/__stats')) {
+    res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(counts));
+    if (req.url.includes('reset')) for (const k of Object.keys(counts)) delete counts[k];
+    return;
+  }
   let body = ''; req.on('data', c => body += c); req.on('end', () => {
     const enc = req.headers['upstash-encoding'] === 'base64';
     const wrap = r => ({ result: enc ? b64(r) : r });

@@ -6,7 +6,7 @@
 
 Never develop against production KV.
 
-1. `node scripts/mock-kv.cjs`, in-memory Upstash REST fake on `:4111`. Data is lost when it stops.
+1. `node scripts/mock-kv.cjs`, in-memory Upstash REST fake on `:4111`. Data is lost when it stops. `GET /__stats` returns the commands it has served per command name (`?reset` zeroes the counts afterwards), for counting KV reads.
 2. Create `.env.local` (gitignored; **delete it when you're done**):
    ```
    KV_REST_API_URL=http://localhost:4111

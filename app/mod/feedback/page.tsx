@@ -16,11 +16,13 @@ export default async function ModFeedbackPage({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const kind = (FEEDBACK_KINDS as string[]).includes(sp.kind ?? '') ? (sp.kind as FeedbackKind) : undefined;
   const status = isStatus(sp.status) ? sp.status : undefined;
-  const [items, waiting, reportsWaiting] = await Promise.all([listFeedback({ kind, status }), listFeedback({ kind: 'deletion', status: 'new' }), listFeedback({ kind: 'report', status: 'new' })]);
+  const all = await listFeedback();
+  const items = all.filter(i => (!kind || i.kind === kind) && (!status || i.status === status));
+  const waiting = (k: FeedbackKind) => all.filter(i => i.kind === k && i.status === 'new').length;
   return (
     <div className="space-y-6">
       <PageHeader title="Feedback" icon="chat" subtitle={`Suggestions, problem reports and user reports from viewers. Answering or changing a status notifies the sender. Resolved items are deleted ${FEEDBACK_LIMITS.keepDaysAfterResolved} days later.`} />
-      <FeedbackInbox items={items} base="/mod/feedback" kind={kind} status={status} deletionWaiting={waiting.length} reportWaiting={reportsWaiting.length} viewerHref={u => `/mod/users/${encodeURIComponent(u)}`} />
+      <FeedbackInbox items={items} base="/mod/feedback" kind={kind} status={status} deletionWaiting={waiting('deletion')} reportWaiting={waiting('report')} viewerHref={u => `/mod/users/${encodeURIComponent(u)}`} />
     </div>
   );
 }

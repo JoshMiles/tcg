@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { Avatar } from '@/app/components/Avatar';
 import { Icon } from '@/app/components/Icon';
-import { getAllCollectionUsers, getUserProfile } from '@/lib/kv';
+import { getAllCollectionUsers, getUserProfiles } from '@/lib/kv';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
+import type { UserProfile } from '@/lib/types';
 import { uniqueCount } from '@/lib/collection';
 import { requireStaff } from '@/lib/staff-guard';
 import { Chip, EmptyState, PageHeader, fieldClass } from '../../admin/components/ui';
@@ -24,12 +25,12 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
   const restrictedOnly = show === 'restricted';
 
   const all = await getAllCollectionUsers();
-  const pool = needle ? all.filter(u => u.username.includes(needle)) : all;
-  const profiles = await Promise.all(pool.map(u => getUserProfile(u.username).catch(() => null)));
-  let rows = pool.map((u, i) => ({ u, p: profiles[i] }));
-  if (restrictedOnly) rows = rows.filter(r => r.p?.flags?.noTrading || r.p?.flags?.hideFromBoard);
-  rows.sort((a, b) => a.u.username.localeCompare(b.u.username));
-  const total = rows.length;
+  const pool = (needle ? all.filter(u => u.username.includes(needle)) : [...all]).sort((a, b) => a.username.localeCompare(b.username));
+  // Profiles are read for the rows that decide the list: all of them for "Restricted only" (no index to start from), else just the page.
+  const candidates = restrictedOnly ? pool : pool.slice(0, SHOWN);
+  const profiles = await getUserProfiles(candidates.map(u => u.username)).catch(() => new Map<string, UserProfile | null>());
+  const rows = candidates.map(u => ({ u, p: profiles.get(u.username) ?? null })).filter(r => !restrictedOnly || r.p?.flags?.noTrading || r.p?.flags?.hideFromBoard);
+  const total = restrictedOnly ? rows.length : pool.length;
   const shown = rows.slice(0, SHOWN);
   const avatars = await getAvatars(shown.map(r => r.u.username));
 

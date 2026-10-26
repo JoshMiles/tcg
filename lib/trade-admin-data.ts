@@ -1,6 +1,6 @@
 // Everything the admin and mod Trades pages show: open offers and the kept history as table rows (with card names, points and
 // flags), plus the summary stats. Shared so the mod panel's Trades page and the admin's read the same data.
-import { getUserProfile, listSeasons } from './kv';
+import { getUserProfiles, listSeasons } from './kv';
 import { getTradeSettings, listOpenTrades, sweepTrades, tradeHistory } from './trades';
 import { describeItems, type Trade } from './trade-core';
 import { getTradeCards, getTradePools } from './trade-view';
@@ -16,13 +16,16 @@ export async function loadTradeAdminData() {
   // Card names / points for every season that has a trade, and when each involved viewer first appeared.
   const cardsBySeason: Record<string, Record<number, TradeCardInfo>> = {};
   const poolsBySeason: Record<string, TradePools> = {};
-  for (const s of seasons) if (all.some(t => t.seasonId === s.id)) {
-    cardsBySeason[s.id] = await getTradeCards(s).catch(() => ({}));
-    poolsBySeason[s.id] = await getTradePools(s, open).catch(() => ({ viewer: null, give: {}, mine: {} }));
-  }
+  await Promise.all(seasons.filter(s => all.some(t => t.seasonId === s.id)).map(async s => {
+    [cardsBySeason[s.id], poolsBySeason[s.id]] = await Promise.all([
+      getTradeCards(s).catch(() => ({})),
+      getTradePools(s, open).catch(() => ({ viewer: null, give: {}, mine: {} })),
+    ]);
+  }));
   const users = [...new Set(all.flatMap(t => [t.from, partnerOf(t)].filter((u): u is string => !!u)))];
   const created = new Map<string, number>();
-  await Promise.all(users.map(async u => { const c = (await getUserProfile(u).catch(() => null))?.createdAt; if (c) created.set(u, c); }));
+  const profiles = await getUserProfiles(users).catch(() => null);
+  for (const u of users) { const c = profiles?.get(u.toLowerCase())?.createdAt; if (c) created.set(u, c); }
 
   const pts = (t: Trade, side: 'give' | 'get') => stackPoints(side === 'give' ? t.give : t.get, cardsBySeason[t.seasonId] ?? {}, side === 'give' ? poolsBySeason[t.seasonId]?.give[t.id] : undefined);
   const flags = flagTrades(all, { points: pts, createdAt: u => created.get(u) });
