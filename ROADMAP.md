@@ -18,7 +18,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
-| 45 | Held security fixes and asset deletion (45.1 to 45.4) | Ready, first | S to M |
+| 45 | Held security fixes and asset deletion (45.1, 45.2, 45.4) | Ready, first | S to M |
 | 34 | Next extension version 0.0.2 (34.8; 34.6b after) | Ready after 45 | S |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
@@ -112,7 +112,6 @@ Tracks 45 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-
 The details of 45.1 to 45.3 are in the gitignored `SECRETS.md` at the main checkout (Opus hands them to the agent in its brief). The repo is public: the PR title, body, commit messages and changelog line describe the fix, never how it could be abused, and the finding stays out of every public file until it is merged.
 - **45.1 Sandbox entry and the overlay key (S to M).** SECRETS 44.2 S-1 and 44.5 S-1 (also CODE_REVIEW #8, security C-4). Add a check-file case that fails before the fix.
 - **45.2 Staff sign-in bookkeeping writes (S).** SECRETS 44.3 S-1. Add a `scripts/check-staff.mts` case that fails before the fix.
-- **45.3 Emergency password login limit (S).** SECRETS 44.5 S-2 (with public-site L-2).
 - **45.4 Assets "Delete all unused" deletes files in use (S to M).** admin A-1 with U-1: `collectReferenced` learns every kind of stored file (backups, Full Art art, card backs, overlay layer images), the confirm lists files by folder and kind, and nothing under `backups/` is ever bulk deleted. Until it ships, don't use the button.
 
 ### Track 46: data correctness (Ready)
@@ -131,7 +130,7 @@ The details of 45.1 to 45.3 are in the gitignored `SECRETS.md` at the main check
 - **47.4 Extension routes (S, next panel version).** twitch-panel M-2, M-3, M-4, L-2, L-3, L-9 and Changes 1 to 3; security M-3, M-7, L-5, L-7. One viewer check (`extensionViewer()`) for every route, no dev fallback in production, delete `/api/twitch/user`, `/api/twitch/resolve-username` and the dead login helpers. Never remove a JSON key the released panel reads; the deletions wait until no released panel calls them.
 - **47.5 Security headers (S).** security M-4, then the CSP trial (security X-1, report-only for a week; success: no violations from real pages).
 - **47.6 Signing keys and secret compares (S).** security C-3, L-8, L-9 (public-site L-3, twitch-panel L-8, CODE_REVIEW #13). Rotating keys signs everyone out once: say so in the changelog line.
-- **47.7 Small hardening (S, one PR).** public-site L-1 (sandbox exit, one line: `safeReturnTo`), L-5, L-6, L-7 (with public-site U-1, friendly error toasts), L-8; security L-2, L-6, L-10.
+- **47.7 Small hardening (S, one PR).** public-site L-1 (sandbox exit, one line: `safeReturnTo`), L-5, L-6, L-7 (with public-site U-1, friendly error toasts), L-8; security L-2, L-6, L-10; `lib/captcha-server.ts` takes the left-most `X-Forwarded-For` too (use `clientIp` from `lib/login-limit.ts`).
 - **47.8 Profiles tied to the Twitch account ID (Needs a decision, M).** security M-1 and X-3. Josh decides what happens when a new account signs in with a name an old profile holds (refuse, or move the old profile aside). Start with the trial: record the ID on every sign-in for a month and count conflicts.
 
 - **47.9 One rate limiter, and a firewall trial (S).** security C-2 (`rateLimit(name, key, max, windowS)` in `prodKv` for login, incoming webhooks and the panel routes) and X-2 (Vercel Firewall rules for login and webhook paths, log-only for a week; success: no real overlay, panel or webhook traffic flagged). After 45.3.
