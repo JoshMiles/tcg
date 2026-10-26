@@ -31,6 +31,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 49 | Mod panel UI, cleanup and polish (49.1 to 49.6) | Ready | S |
 | 50 | Player features and trials (50.1 to 50.12) | Ready (50.3 needs design) | M |
 | 51 | Staff and admin tools (51.1 to 51.14) | Ready | M |
+| 52 | UI and UX from the page walk (52.1 to 52.16) | Ready | S each |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -105,7 +106,7 @@ The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34
 
 ## Audit follow-up (2026-10-26)
 
-Tracks 45 to 51 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 45, 34.8, then 46, 47, 48; 49, 50 and 51 fit in between. One item per PR unless it says otherwise.
+Tracks 45 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 45, 34.8, then 46, 47, 48; 49 to 52 fit in between. One item per PR unless it says otherwise.
 
 ### Track 45: held security fixes and asset deletion (Ready, do first)
 The details of 45.1 to 45.3 are in the gitignored `SECRETS.md` at the main checkout (Opus hands them to the agent in its brief). The repo is public: the PR title, body, commit messages and changelog line describe the fix, never how it could be abused, and the finding stays out of every public file until it is merged.
@@ -186,6 +187,25 @@ Trials run for the time given, then Josh keeps, changes or drops them.
 - **51.12 Season pre-flight check (S).** Before a season goes live, the season flow lists missing art or frames, empty rarity tiers, packs with no cards and odds that don't add up.
 - **51.13 Error spike alert (S to M).** Server-side failures counted per hour in `stats:h:`; the minute cron posts to the Discord admin log when they jump.
 - **51.14 Monthly restore drill (M).** Restore the newest backup into a sandbox each month, compare counts with production and post the result. After 51.9.
+
+### Track 52: UI and UX from the page walk (Ready)
+Found by walking every public, admin and mod page on the review seed (`docs/review.md`) on 2026-10-26; Josh picked all of them. Check each against the seed before and after.
+- **52.1 Readable disabled buttons (S).** Disabled gold buttons show their label at 20% opacity, so they read as empty gold boxes (Send offer on `/trade/new`, the Settings save bar, the pack workspace Save, Add on `/admin/staff`). Make the label readable and say why the button is off.
+- **52.2 Twitch ID label (S).** `/admin/users/<name>` Profile tab: the field labelled "Twitch username" (`profile-twitchId`) holds the numeric Twitch ID. Label it "Twitch ID" and make it read-only.
+- **52.3 Counts that agree (S).** The FAQ editor's "Questions (0)" counts only custom questions while it lists the built-ins; the dashboard's "Top collectors" ranks by completion while the site ranks by points. Count everything shown, and rank by points (or rename the widget).
+- **52.4 Mask the overlay key (S).** Admin Settings > OBS Overlay shows the overlay URL with its key in plain text; hide the key behind Reveal and Copy, since Settings can be on screen during a stream.
+- **52.5 One stats page (M).** The score breakdown appears on the profile Overview, the profile Stats tab and `/account`, and "most valuable editions" twice. Fold `/account` into the owner's profile Stats tab (upgrades and "what to do next" included) and redirect `/account` there.
+- **52.6 Compact profile header (S).** On a phone the header and its five buttons fill the first screen. Shrink the header on sub-tabs and move Leaderboard, Edit profile and Settings into a menu; drop the Share button, which repeats the Share tab.
+- **52.7 Your offers on the profile Trades tab (S).** The owner's Trades tab says "No open listings" while they have an open direct offer; show the owner their direct offers too (others still see listings only).
+- **52.8 FAQ search and Settings jump links (S).** A search box on `/faq` (about 7,500px long) and section links at the top of `/settings` (about 3,100px).
+- **52.9 Offer a trade for this edition (S).** An edition page held by someone else gets "Offer a trade for this edition", opening `/trade/new` with that person and that edition filled in.
+- **52.10 Labelled dex values (S).** Dex tiles show five unlabelled values ("81 · 486 · 1742 · 8067 · 29140 pts"); label them RH, FA, FH, GD or show the Regular value with the rest on hover.
+- **52.11 Editions list and the Collectors link (S).** `/cards/<n>/copies` repeats "Existed before editions were numbered" on every row; say it once above the list. The "Collectors" nav item opens "Find a collector" (`/collection`) and repeats the leaderboard's top 8: rename it to match, or fold it into the header search.
+- **52.12 Trade builder on phones (S).** On a phone "You give" scrolls inside the page (two scroll areas) and "You want" is an empty half until a name is entered: one scroll area, and "You want" hidden until there is a name.
+- **52.13 Slimmer admin sidebar (S).** The sidebar footer (overlay status, Copy URL, Preview, Public site, Mod view, the user) takes about 200px, so the nav cuts off on an 800px-tall screen. Fold it into one row.
+- **52.14 Danger placement and the No sound chip (S).** `/admin/users` puts "Reset all" next to "Collection page" in the header: move it to a danger zone. The pack workspace marks every card with a red "No sound" chip: grey it, or show it only when the pack uses sounds.
+- **52.15 Mod viewer tools (S).** The restriction toggles on `/mod/users/<name>` look instant but need a separate "Save restrictions" link: save on toggle, or light up a real button when something changed. `/mod/users` lists A to Z only: show last seen and pulls and sort by them.
+- **52.16 Panel loading timeout (S, next panel version).** The panel shows "Loading..." forever when Twitch never authorizes; after about 10 seconds show a message with Retry.
 
 ## Standing decisions
 
