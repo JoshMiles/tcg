@@ -5,6 +5,7 @@ import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import { PROP_BY_KEY, mergePropValues, type PropValues } from '@/lib/overlay-props';
 import { isVertical, type OverlayLayout } from '@/lib/overlay-layout';
+import { maskUrlKey } from '@/lib/mask-url-key';
 import { diffProps, type DiffLine } from '@/lib/overlay-diff';
 import { addScheduledLookAction, deleteOverlayVersionAction, removeScheduledLookAction, setSeasonLookAction } from '../overlay-actions';
 import { Popover, btn, ghost } from './editor-controls';
@@ -146,12 +147,14 @@ function ScheduledLooks({ presets, scheduled, setNotice }: { presets: PresetInfo
 }
 
 export function ScenesMenu({ presets, initialLayout, globalLayout, siteUrl, overlayKey, scope, setScope, setNotice, savePresetAction, presetName, setPresetName, dirty }: { presets: PresetInfo[]; initialLayout: OverlayLayout; globalLayout: OverlayLayout; siteUrl: string; overlayKey: string; scope: string; setScope: (v: string) => void; setNotice: Notify; savePresetAction: FormAction; presetName: string; setPresetName: (v: string) => void; dirty: boolean }) {
+  const [revealed, setRevealed] = useState(false);
   return (
     <SubMenu label="Scenes" icon="tv" badge={presets.length || undefined}>
       <div className="w-104 max-w-[85vw] space-y-3 text-sm">
         <p className="text-xs text-gray-500">
           A scene has its own overlay URL, so each OBS scene (a vertical one, a different canvas size) can use its own size, position and look.
           Put the URL in that scene&apos;s browser source. Everything a scene does not change follows the global look.
+          {' '}<button type="button" onClick={() => setRevealed(v => !v)} aria-pressed={revealed} className="underline hover:text-gray-300">{revealed ? 'Hide the key' : 'Reveal the key'}</button>
         </p>
         <ul className="space-y-1.5 max-h-64 overflow-y-auto">
           {[{ id: '', name: 'Everything (global)', size: `${initialLayout.width} × ${initialLayout.height}`, own: true }, ...presets.map(x => {
@@ -167,7 +170,7 @@ export function ScenesMenu({ presets, initialLayout, globalLayout, siteUrl, over
                   <span className="text-[11px] text-gray-500 shrink-0">{row.size}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <code className="flex-1 min-w-0 truncate rounded-sm bg-gray-950 border border-gray-800 px-1.5 py-1 text-[11px] text-gray-400">{url}</code>
+                  <code className="flex-1 min-w-0 truncate rounded-sm bg-gray-950 border border-gray-800 px-1.5 py-1 text-[11px] text-gray-400">{revealed ? url : maskUrlKey(url)}</code>
                   <button type="button" onClick={() => navigator.clipboard.writeText(url).then(() => setNotice(`Copied the URL for "${row.name}".`), () => setNotice('Could not copy. Select the URL instead.'))} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`}>Copy</button>
                   <a href={url} target="_blank" rel="noreferrer" className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1`} aria-label={`Open the overlay for ${row.name}`}>Open</a>
                   <button type="button" onClick={() => setScope(key)} disabled={scope === key} className={`${btn} border border-gray-700 text-gray-200 hover:border-yellow-500 py-1 disabled:opacity-40`}>Edit</button>
