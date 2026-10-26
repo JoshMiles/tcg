@@ -131,6 +131,8 @@ export async function reverseTradeAction(id: string, reason: string): Promise<Tr
   if (!res.ok) return { ok: false, message: res.error };
   const t = res.trade;
   for (const u of [t.from, t.resolvedBy]) if (u) await recordAudit(u, 'Trade reversed', `${t.id.slice(0, 8)} with ${u === t.from ? t.resolvedBy : t.from}: ${t.reverseReason}`);
+  // The activity event for the reversal names the staff member but not the reason, so the admin log gets the reason as its own line.
+  await notifyAdminLog({ action: 'Trade reversal reason', subject: `${t.from} and ${t.resolvedBy}`, detail: t.reverseReason, by: await currentStaffLogin() });
   revalidatePath('/admin/trades');
   revalidatePath('/mod/trades');
   revalidatePath(`/trade/${id}`);
