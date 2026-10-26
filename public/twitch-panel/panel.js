@@ -146,6 +146,14 @@ function copyPts(cardNumber, variant, serial) {
 }
 // The viewer's serial numbers for one card in one version, lowest first (empty until the copies are numbered).
 const heldSerials = (cardNumber, variant) => (me && me.serials && me.serials[entryOf(cardNumber, variant)]) || [];
+// The viewer's editions of one card in one version ({ n, uid?, at, date, origin, made?, est? }, lowest first); empty until editions are numbered.
+const heldEditions = (cardNumber, variant) => (me && me.editions && me.editions[entryOf(cardNumber, variant)]) || [];
+const isFavourite = e => !!(e && e.uid && me && me.favourites && me.favourites.indexOf(e.uid) !== -1);
+// "Edition #12 of 340" (the site's wording); "~" marks a number worked out after the fact.
+const editionLabel = e => (e.est ? '~' : '') + '#' + e.n + (e.made ? ' of ' + e.made.toLocaleString() : '');
+// Streamer / Admin / Mod chip, as the website shows next to a name (kind comes from the API, null = none).
+const BADGE_LABELS = { streamer: 'Streamer', admin: 'Admin', mod: 'Mod' };
+const staffChip = kind => (kind && BADGE_LABELS[kind]) ? el('span', 'staff-badge ' + kind, BADGE_LABELS[kind]) : null;
 // What the viewer's copies of a card are worth, serial bonuses included (null until /api/twitch/me has loaded).
 function cardWorth(card, variants) {
   if (!me || !me.cards[card.number]) return null;
@@ -359,8 +367,10 @@ function renderGrid() {
         const held = heldSerials(card.number, status.best);
         if (held.length) {
           const n = held[0];
-          const sm = el('div', 'serial-mark' + (serialMult(n) > 1 ? ' bonus' : '') + (n === 1 ? ' first' : ''), '#' + n);
+          const eds = heldEditions(card.number, status.best);
+          const sm = el('div', 'serial-mark' + (serialMult(n) > 1 ? ' bonus' : '') + (n === 1 ? ' first' : ''), (eds[0] && eds[0].est ? '~' : '') + '#' + n);
           sm.title = 'Edition #' + n + (serialMult(n) > 1 ? ' (x' + serialMult(n).toFixed(2) + ' points)' : '');
+          if (eds.some(isFavourite)) sm.prepend(el('span', 'heart')); // one of this version's editions is a favourite
           cell.appendChild(sm);
         }
       }
@@ -415,11 +425,14 @@ function renderGrid() {
 let detailIdx   = -1;    // index into the current pack's cards, or -1 when closed
 let detailVariant = null; // variant being previewed in the detail view (null = best owned)
 let upgradeMsg  = '';    // result of the last upgrade attempt, shown under the variant list
+let detailEdition = null; // { variant, n } of the edition whose details are open in the card details (null = the list)
+const editionsExpanded = {}; // version -> whether its full list of editions is shown
 let detailOpener = null; // element to refocus on close
 
 function openDetail(idx, opener) {
   detailIdx = idx;
   detailVariant = null;
+  detailEdition = null;
   upgradeMsg = '';
   if (opener) detailOpener = opener;
   document.getElementById('card-detail').classList.remove('hidden');
@@ -432,6 +445,7 @@ function closeDetail() {
   if (!el || detailIdx === -1) return;
   detailIdx = -1;
   detailVariant = null;
+  detailEdition = null;
   upgradeMsg = '';
   el.classList.add('hidden');
   document.getElementById('detail-art').innerHTML = '';
@@ -444,6 +458,7 @@ function stepDetail(delta) {
   if (detailIdx === -1 || cards.length === 0) return;
   detailIdx = (detailIdx + delta + cards.length) % cards.length;
   detailVariant = null;
+  detailEdition = null;
   upgradeMsg = '';
   renderDetail();
 }
@@ -458,6 +473,105 @@ function upgradeStepFor(pack, card, v) {
     if (allowed.includes(VARIANTS[k])) { next = VARIANTS[k]; break; }
   }
   return next ? { next, cost } : { next: null, cost: 0 };
+}
+
+// "Your editions" in the card details (ROADMAP 34.6, like the site's copies-first dialog): chips grouped by version, each opening
+// that edition's details (number, version, when it was made, favourite). Returns an empty node while editions are not numbered.
+const EDITIONS_SHOWN = 12;
+function editionsSection(card) {
+  const wrap = el('div', 'serials');
+  const groups = VARIANTS.map(v => ({ v, list: heldEditions(card.number, v) })).filter(g => g.list.length > 0);
+  if (groups.length === 0) return wrap;
+  const picked = detailEdition && groups.find(g => g.v === detailEdition.variant);
+  const ed = picked && picked.list.find(e => e.n === detailEdition.n);
+  if (ed) { editionView(wrap, card, picked.v, ed); return wrap; }
+
+  wrap.appendChild(el('div', 'serials-title', 'Your editions'));
+  groups.forEach(g => {
+    if (groups.length > 1) wrap.appendChild(el('div', 'ed-group', VARIANT_LABELS[g.v]));
+    const chips = el('div', 'serial-chips');
+    const open = editionsExpanded[g.v];
+    (open ? g.list : g.list.slice(0, EDITIONS_SHOWN)).forEach(e => {
+      const m = serialMult(e.n);
+      const b = el('button', 'serial-chip' + (m > 1 ? ' bonus' : ''));
+      b.type = 'button';
+      b.title = 'Edition ' + editionLabel(e) + (m > 1 ? ' (x' + m.toFixed(2) + ' points)' : '') + (isFavourite(e) ? ', favourite' : '') + '. Tap for details.';
+      if (isFavourite(e)) b.appendChild(el('span', 'heart'));
+      b.append((e.est ? '~' : '') + '#' + e.n); // the full "of N" is in the tooltip and the details
+      b.addEventListener('click', () => { detailEdition = { variant: g.v, n: e.n }; renderDetail(); });
+      chips.appendChild(b);
+    });
+    if (g.list.length > EDITIONS_SHOWN) {
+      const more = el('button', 'serial-more', open ? 'Show fewer' : 'Show all ' + g.list.length);
+      more.type = 'button';
+      more.addEventListener('click', () => { editionsExpanded[g.v] = !open; renderDetail(); });
+      chips.appendChild(more);
+    }
+    wrap.appendChild(chips);
+  });
+  if (groups.some(g => g.list.some(e => serialMult(e.n) > 1))) wrap.appendChild(el('div', 'serials-note', 'Low edition numbers earn a points bonus.'));
+  return wrap;
+}
+
+// One edition's details, fitted to the narrow panel: its number, version, when it was made and how, points, favourite toggle, site link.
+function editionView(wrap, card, variant, e) {
+  const back = el('button', 'ed-back', '‹ All editions');
+  back.type = 'button';
+  back.addEventListener('click', () => { detailEdition = null; renderDetail(); });
+  wrap.appendChild(back);
+  const fav = isFavourite(e);
+  wrap.appendChild(el('div', 'ed-title', 'Edition ' + editionLabel(e)));
+  const rows = el('dl', 'ed-rows');
+  const add = (k, v) => { rows.append(el('dt', null, k), el('dd', null, v)); };
+  add('Version', VARIANT_LABELS[variant]);
+  if (e.uid) add('Serial number', '#' + e.uid);
+  add('Made', e.date + ' · ' + e.origin);
+  const m = serialMult(e.n);
+  add('Worth', fmtNum(copyPts(card.number, variant, e.n)) + ' pts' + (m > 1 ? ' (x' + m.toFixed(2) + ' edition bonus)' : ''));
+  if (e.est) add('Number', 'Worked out after the fact');
+  wrap.appendChild(rows);
+
+  const actions = el('div', 'ed-actions');
+  if (e.uid) {
+    const fb = el('button', 'upgrade-btn ed-fav' + (fav ? ' on' : ''));
+    fb.type = 'button';
+    fb.append(el('span', 'heart'), fav ? 'Favourite' : 'Make favourite');
+    fb.title = fav ? 'Take the favourite mark off' : 'A favourite can\'t be traded or spent in an upgrade';
+    fb.setAttribute('aria-pressed', fav ? 'true' : 'false');
+    fb.addEventListener('click', () => toggleFavourite(e, fb));
+    actions.appendChild(fb);
+  }
+  const a = el('a', 'ed-link', 'Open page');
+  a.href = siteUrl('/copy/' + encodeURIComponent(season.seasonId) + '/' + card.number + '.' + VARIANTS.indexOf(variant) + '.' + e.n);
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  actions.appendChild(a);
+  wrap.appendChild(actions);
+  if (fav) wrap.appendChild(el('div', 'serials-note', 'Favourites are kept out of trades and upgrades.'));
+}
+
+// Favourite an edition (or take it off) through the same rules as the website; the server checks the edition is the viewer's.
+async function toggleFavourite(e, btn) {
+  if (!e.uid || !auth || !auth.token) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch(api('/api/twitch/favourite'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
+      body: JSON.stringify({ uid: e.uid, on: !isFavourite(e) }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) showToast(body.error || 'Could not change the favourite.');
+    else {
+      const rest = (me.favourites || []).filter(u => u !== e.uid);
+      me.favourites = body.favourite ? rest.concat(e.uid) : rest;
+      if (tradesData) tradesData.favourites = me.favourites; // the trade pickers read it
+      renderGrid();
+    }
+  } catch {
+    showToast('Could not reach the server.');
+  }
+  renderDetail();
 }
 
 function detailLine(className, text) {
@@ -516,6 +630,9 @@ function renderDetail() {
   if (facts && status.owned) {
     info.appendChild(detailLine('detail-facts', '1 in ' + Math.round(1 / facts.pullRate).toLocaleString() + ' per pack · ' + facts.copies.toLocaleString() + (facts.copies === 1 ? ' edition' : ' editions') + ' out there'));
   }
+
+  // The viewer's editions come first: a list, and tapping one shows that edition's details.
+  if (status.activeCount > 0) info.appendChild(editionsSection(card));
 
   // How many the viewer has
   const count = document.createElement('div');
@@ -593,28 +710,6 @@ function renderDetail() {
     row.appendChild(useBtn);
     info.appendChild(row);
     info.appendChild(detailLine('upgrade-msg', 'Tap twice to use. Consumes 1 Regular edition.'));
-  }
-
-  // Serial numbers of the copies the viewer holds in the version being shown; each opens that copy's page.
-  const serials = status.activeCount > 0 ? heldSerials(card.number, shown) : [];
-  if (serials.length > 0 && season) {
-    const wrap = el('div', 'serials');
-    wrap.appendChild(el('div', 'serials-title', 'Your ' + VARIANT_LABELS[shown] + ' editions'));
-    const chips = el('div', 'serial-chips');
-    serials.slice(0, 12).forEach(n => {
-      const a = el('a', 'serial-chip' + (serialMult(n) > 1 ? ' bonus' : ''));
-      a.href = new URL('/copy/' + encodeURIComponent(season.seasonId) + '/' + card.number + '.' + VARIANTS.indexOf(shown) + '.' + n, (SITE || window.location.origin)).href;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      const m = serialMult(n);
-      a.title = m > 1 ? 'Edition bonus ×' + m.toFixed(2) + ': worth ' + fmtNum(copyPts(card.number, shown, n)) + ' pts. Open its page.' : 'Open this edition\'s page';
-      a.append('#' + n + (m > 1 ? ' ×' + m.toFixed(2) : ''));
-      chips.appendChild(a);
-    });
-    if (serials.length > 12) chips.appendChild(el('span', 'serial-more', '+' + (serials.length - 12) + ' more'));
-    wrap.appendChild(chips);
-    if (serials.some(n => serialMult(n) > 1)) wrap.appendChild(el('div', 'serials-note', 'Low edition numbers earn a points bonus.'));
-    info.appendChild(wrap);
   }
 
   // Past seasons
@@ -820,6 +915,7 @@ function rankBadge(rank) {
   return b;
 }
 
+let boardBadges = {}; // login -> 'streamer' | 'admin' | 'mod' from /api/twitch/leaderboard
 function boardRow(r, myName) {
   const row = document.createElement('a');
   row.className = 'lb-row' + (r.username === myName ? ' me' : '') + (r.rank <= 3 ? ' top' + r.rank : '');
@@ -830,6 +926,8 @@ function boardRow(r, myName) {
   const who = el('span', 'lb-who');
   const name = el('span', 'lb-name', r.username);
   if (r.username === myName) name.appendChild(el('span', 'lb-you', 'you'));
+  const chip = staffChip(boardBadges[r.username]);
+  if (chip) name.appendChild(chip);
   const sub = el('span', 'lb-sub');
   const v = r.variants;
   const extras = [];
@@ -858,6 +956,7 @@ async function loadLeaderboard() {
     if (!res.ok) throw new Error('bad status');
     const data = await res.json();
     leaderboardLoadedAt = Date.now();
+    boardBadges = data.badges || {};
     area.innerHTML = '';
 
     area.appendChild(detailLine('lb-note', data.seasonName + ' \u00b7 ' + data.players + ' collector' + (data.players === 1 ? '' : 's')));
@@ -1061,6 +1160,9 @@ async function loadMe(fresh) {
   } catch {
     return;
   }
+  const footerChip = staffChip(me.badge); // the viewer's own staff badge next to their name
+  const footerLink = document.getElementById('footer-username');
+  if (footerLink) { footerLink.querySelectorAll('.staff-badge').forEach(n => n.remove()); if (footerChip) footerLink.appendChild(footerChip); }
   updateTradesDot();
   if (!tradesData) loadTrades(false); // so listings for your Looking for list can light the dot
   renderSeasonHeader('collection-season-header');

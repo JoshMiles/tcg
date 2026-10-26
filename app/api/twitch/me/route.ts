@@ -4,6 +4,11 @@ import { verifyExtensionAuth, getBearerToken } from '@/lib/twitch-jwt';
 import { collectionBonuses, getSeasonLeaderboard, getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { tradesForUser } from '@/lib/trades';
 import { VARIANTS } from '@/lib/variants';
+import { getOwnerCopies, isTracking, mintedCounts } from '@/lib/serials';
+import { panelEditions } from '@/lib/panel-editions';
+import { getUserSettings } from '@/lib/user-settings-store';
+import { FAVOURITES_MAX } from '@/lib/user-settings';
+import { getStaffBadges } from '@/lib/staff-badge';
 
 const DEV_OPAQUE_ID = 'dev_mock_opaque';
 
@@ -34,6 +39,16 @@ export async function GET(req: NextRequest) {
   const held = values.serials?.held.get(username);
   const offers = await tradesForUser(username).then(t => t.incoming.filter(x => x.seasonId === season.id).length).catch(() => 0);
 
+  // The viewer's own numbered editions (empty while the season's editions are not numbered), which of them they favourited, and their staff badge.
+  const tracking = await isTracking(season.collectionName);
+  const [copies, minted, prefs, badges] = await Promise.all([
+    tracking ? getOwnerCopies(season.collectionName, username) : [],
+    tracking ? mintedCounts(season.collectionName).catch(() => null) : null,
+    getUserSettings(username),
+    getStaffBadges(),
+  ]);
+  const heldUids = new Set(copies.map(c => c.uid));
+
   return NextResponse.json({
     username,
     seasonId: season.id,
@@ -57,5 +72,12 @@ export async function GET(req: NextRequest) {
     // entry (card + variant) -> the serial numbers this viewer holds, lowest first
     serials: held ? Object.fromEntries([...held].map(([entry, list]) => [entry, list])) : {},
     offers,
-  }, { headers: { 'Cache-Control': 'no-store' } });
+    // entry (card + variant) -> the viewer's editions { n, uid?, at, date, origin, made?, est? }, lowest first
+    editions: panelEditions(copies, minted),
+    // serial numbers of the editions the viewer holds and has marked as favourites (they can't be traded or spent in an upgrade)
+    favourites: prefs.favourites.filter(uid => heldUids.has(uid)),
+    favouritesMax: FAVOURITES_MAX,
+    // Streamer / Admin / Mod, as the website shows next to the name (null when none or hidden)
+    badge: badges[username] ?? null,
+  },{ headers: { 'Cache-Control': 'no-store' } });
 }

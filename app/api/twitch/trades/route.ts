@@ -7,6 +7,7 @@ import { extensionViewer } from '@/lib/twitch-viewer';
 import { parseGetIds, respond } from '@/lib/trade-api';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { matchingAlerts } from '@/lib/watch-core';
+import { getStaffBadges } from '@/lib/staff-badge';
 
 const BOARD_MAX = 30;
 const RECENT_MAX = 8;
@@ -61,6 +62,10 @@ export async function GET(req: NextRequest) {
     limits: { maxStacks: settings.maxStacksPerSide, maxOpen: settings.maxOpenPerUser, expiryHours: settings.expiryHours },
     // The viewer's own editions by collection entry ({ id, n: edition number, uid? }, lowest first), so they can pick which ones move; {} while editions are not numbered.
     prints,
+    // Serial numbers of the viewer's editions they have favourited: the panel shows those disabled (the engine refuses them).
+    favourites: prefs.favourites,
+    // Staff badges (login -> 'streamer' | 'admin' | 'mod') for the people named in the offers.
+    badges: await getStaffBadges(),
     incoming: incoming.map(view),
     outgoing: outgoing.map(view),
     board: board.map(view),

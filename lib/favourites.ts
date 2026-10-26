@@ -1,6 +1,8 @@
-import { getUserSettings } from './user-settings-store';
+import { getUserSettings, saveUserSettings } from './user-settings-store';
+import { FAVOURITES_MAX } from './user-settings';
+import { loadCopyByUid } from './copy-view';
 import { getOwnerCopies, isTracking, printLabel } from './serials';
-import { entryOf, newestFirst } from './serials-core';
+import { entryOf, isEscrow, newestFirst } from './serials-core';
 import type { TradeItem } from './trade-core';
 import { encodeEntry } from './variants';
 
@@ -13,6 +15,24 @@ export async function favouriteIdsOf(collection: string, owner: string): Promise
   if (s.favourites.length === 0) return new Set();
   const favs = new Set(s.favourites);
   return new Set((await getOwnerCopies(collection, owner)).filter(c => c.uid && favs.has(c.uid)).map(c => c.id));
+}
+
+/** Marks one of `username`'s prints (by unique number) as a favourite, or removes the mark. The website's heart and the Twitch panel's both come here; the caller has already authenticated `username`. */
+export async function setFavourite(username: string, uid: number, on: boolean): Promise<{ ok: true; favourite: boolean } | { ok: false; error: string }> {
+  if (!Number.isInteger(uid)) return { ok: false, error: 'Unknown edition.' };
+  const s = await getUserSettings(username);
+  const rest = s.favourites.filter(n => n !== uid);
+  if (!on) {
+    const saved = await saveUserSettings(username, { ...s, favourites: rest });
+    return { ok: true, favourite: saved.favourites.includes(uid) };
+  }
+  const found = await loadCopyByUid(uid);
+  if (!found || found.copy.owner !== username) {
+    return { ok: false, error: found && isEscrow(found.copy.owner) ? 'It is in an open offer.' : 'You can only favourite an edition you hold.' };
+  }
+  if (rest.length >= FAVOURITES_MAX) return { ok: false, error: `You can favourite up to ${FAVOURITES_MAX} editions. Unfavourite one first.` };
+  const saved = await saveUserSettings(username, { ...s, favourites: [...rest, uid] });
+  return { ok: true, favourite: saved.favourites.includes(uid) };
 }
 
 export type Spend = { ok: true; ids: string[] | null } | { ok: false; text: string };

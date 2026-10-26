@@ -2,10 +2,9 @@
 
 import { getSession } from '@/lib/session';
 import { getUserSettings, saveUserSettings } from '@/lib/user-settings-store';
-import { FAVOURITES_MAX } from '@/lib/user-settings';
 import { withPinnedWidget } from '@/lib/profile-widgets';
 import { loadCopyByUid } from '@/lib/copy-view';
-import { isEscrow } from '@/lib/serials-core';
+import { setFavourite } from '@/lib/favourites';
 
 /** Pins one of the signed-in viewer's copies as their profile's Showcase copy, or unpins it (null). The viewer comes from the session, and the copy must really be theirs. */
 export async function pinCopyAction(uid: number | null): Promise<{ ok: true; pinned: number | null } | { ok: false; error: string }> {
@@ -27,18 +26,5 @@ export async function pinCopyAction(uid: number | null): Promise<{ ok: true; pin
 export async function favouriteCopyAction(uid: number, on: boolean): Promise<{ ok: true; favourite: boolean } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Log in to favourite an edition.' };
-  if (!Number.isInteger(uid)) return { ok: false, error: 'Unknown edition.' };
-  const s = await getUserSettings(session.username);
-  const rest = s.favourites.filter(n => n !== uid);
-  if (!on) {
-    const saved = await saveUserSettings(session.username, { ...s, favourites: rest });
-    return { ok: true, favourite: saved.favourites.includes(uid) };
-  }
-  const found = await loadCopyByUid(uid);
-  if (!found || found.copy.owner !== session.username) {
-    return { ok: false, error: found && isEscrow(found.copy.owner) ? 'It is in an open offer.' : 'You can only favourite an edition you hold.' };
-  }
-  if (rest.length >= FAVOURITES_MAX) return { ok: false, error: `You can favourite up to ${FAVOURITES_MAX} editions. Unfavourite one first.` };
-  const saved = await saveUserSettings(session.username, { ...s, favourites: [...rest, uid] });
-  return { ok: true, favourite: saved.favourites.includes(uid) };
+  return setFavourite(session.username, uid, on);
 }
