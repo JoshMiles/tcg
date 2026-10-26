@@ -25,7 +25,7 @@ function Overview({ d }: { d: DashboardData }) {
     { label: 'Players', accent: 'from-poke-blue-light to-poke-blue', value: d.totalUsers, sub: 'unique collectors' },
     { label: 'Pulls', accent: 'from-yellow-300 to-yellow-600', value: d.totalOwned, sub: 'total across all players' },
     { label: 'Card pool', accent: 'from-red-400 to-poke-red', value: d.allCards.length, sub: `across ${d.packs.length} pack${d.packs.length !== 1 ? 's' : ''}` },
-    { label: 'Avg complete', accent: 'from-emerald-300 to-emerald-600', value: `${d.avgCompletion}%`, sub: d.totalUsers > 0 ? `${d.topCollectors[0]?.pct ?? 0}% best` : 'no players yet' },
+    { label: 'Avg complete', accent: 'from-emerald-300 to-emerald-600', value: `${d.avgCompletion}%`, sub: d.totalUsers > 0 ? `${d.bestPct}% best` : 'no players yet' },
   ];
   return (
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 h-full">
@@ -48,12 +48,13 @@ function TopCollectors({ d }: { d: DashboardData }) {
     <Panel title="Top collectors" icon="award" flush action={<span className="flex items-center gap-4"><More href={`/leaderboard/${d.season.id}`} external>Full leaderboard ↗</More><More href="/admin/users">View all →</More></span>}>
       {d.topCollectors.length === 0 ? <Empty>No players yet. Share the overlay and start pulling cards!</Empty> : (
         <div className="divide-y divide-gray-800/60">
-          {d.topCollectors.map(({ username, owned, pct }, i) => (
+          {d.topCollectors.map(({ username, owned, pct, score }, i) => (
             <div key={username} className="px-5 py-3 flex items-center gap-4 hover:bg-gray-800/30 transition-colors">
               <span className={`text-sm font-bold w-5 tabular-nums shrink-0 ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-700' : 'text-gray-700'}`}>{i + 1}</span>
               <Avatar src={d.avatars[username] && sizeTwitchAvatar(d.avatars[username]!, 70)} name={username} className="w-8 h-8 text-xs" />
               <Link href={`/admin/users/${username}`} className="flex-1 text-sm font-mono text-gray-200 hover:text-white truncate">{username}</Link>
               <div className="flex items-center gap-3 shrink-0">
+                <span className="text-sm font-bold text-yellow-400 tabular-nums">{score.toLocaleString()}</span>
                 <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden"><div className="h-full bg-yellow-500 rounded-full" style={{ width: `${pct}%` }} /></div>
                 <span className="text-xs text-gray-500 tabular-nums w-16 text-right">{owned}/{d.allCards.length} <span className="text-gray-700">·</span> <span className="text-yellow-500">{pct}%</span></span>
               </div>

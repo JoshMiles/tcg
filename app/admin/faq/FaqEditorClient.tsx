@@ -95,6 +95,11 @@ export function FaqEditorClient({ store, values }: { store: FaqStoreData; values
   const [newSectionTitle, setNewSectionTitle] = useState('');
   const [newSectionIcon, setNewSectionIcon] = useState<IconName>('help');
 
+  // Everything the section lists: its custom questions plus its built-ins (hidden ones included).
+  function sectionCount(sectionId: string) {
+    return store.questions.filter(q => q.sectionId === sectionId).length + FAQ_BUILTINS.filter(b => b.sectionId === sectionId).length;
+  }
+
   function openCreateQuestion(defaultSectionId?: string) {
     setEditingQuestionId(null);
     setEditingBuiltin(null);
@@ -323,7 +328,7 @@ export function FaqEditorClient({ store, values }: { store: FaqStoreData; values
             onClick={() => setActiveTab('questions')}
             className={`btn btn-sm ${activeTab === 'questions' ? 'btn-primary' : 'btn-ghost text-gray-400'}`}
           >
-            <Icon name="help" className="mr-1" /> Questions ({store.questions.length})
+            <Icon name="help" className="mr-1" /> Questions ({store.sections.reduce((n, s) => n + sectionCount(s.id), 0)})
           </button>
           <button
             type="button"
@@ -375,12 +380,11 @@ export function FaqEditorClient({ store, values }: { store: FaqStoreData; values
                 onChange={e => setSelectedSectionFilter(e.target.value)}
                 className={selectClass}
               >
-                <option value="all">All sections ({store.questions.length})</option>
+                <option value="all">All sections ({store.sections.reduce((n, s) => n + sectionCount(s.id), 0)})</option>
                 {store.sections.map(s => {
-                  const count = store.questions.filter(q => q.sectionId === s.id).length;
                   return (
                     <option key={s.id} value={s.id}>
-                      {s.title} ({count})
+                      {s.title} ({sectionCount(s.id)})
                     </option>
                   );
                 })}

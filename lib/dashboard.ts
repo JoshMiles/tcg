@@ -27,7 +27,7 @@ export interface WidgetDef {
 export const WIDGETS: Record<WidgetType, WidgetDef> = {
   overview: { type: 'overview', title: 'Season overview', icon: 'chart', description: 'Players, cards pulled, card pool and average completion at a glance.', defaultSpan: 12, spans: [6, 8, 12] },
   'quick-actions': { type: 'quick-actions', title: 'Quick actions', icon: 'zap', description: 'Gift packs, show a collection or grant a card to a viewer.', defaultSpan: 12, spans: [8, 12] },
-  'top-collectors': { type: 'top-collectors', title: 'Top collectors', icon: 'award', description: 'Who owns the most different cards this season.', defaultSpan: 8, spans: [6, 8, 12] },
+  'top-collectors': { type: 'top-collectors', title: 'Top collectors', icon: 'award', description: 'The top players by points this season, with how much of the card pool they own.', defaultSpan: 8, spans: [6, 8, 12] },
   leaderboard: { type: 'leaderboard', title: 'Leaderboard', icon: 'trophy', description: 'The top scorers (points, not card count), with their completion.', defaultSpan: 4, spans: [4, 6, 8] },
   rarity: { type: 'rarity', title: 'Rarity mix', icon: 'gem', description: 'How the season\'s cards split across rarities.', defaultSpan: 4, spans: [3, 4, 6] },
   packs: { type: 'packs', title: 'Active packs', icon: 'cards', description: 'The packs being drawn this season, with a link to each.', defaultSpan: 4, spans: [3, 4, 6] },
