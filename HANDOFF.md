@@ -11,7 +11,7 @@ Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then T
 
 ## Left
 - Clean up worktrees after merge: agent-a83bbd65686488fd1 (47.5), agent-a08e5a069533010f0 (47.7), agent-a58eea7a3802be355 (47.9, merged), agent-ac6df3fb092cd5d75 (46.6, locked). Remove the node_modules junction first.
-- IN PROGRESS: 47.8 PR 2 on branch `47-8-account-move` (off main 34a05f9d), Sonnet subagent building lib/account-move.ts + check + admin Move aside button. Plan: PLAN-47-8.md (commit it with PR 2). Then PR 3 (start it as soon as PR 2 merges, Josh), PR 4, then Track 48.
+- IN PROGRESS: 47.8 PR 2 on branch `47-8-account-move` (off main 34a05f9d), built and reviewed (dda713c8 + fix), verify 101/101; PR being opened. Plan: PLAN-47-8.md (commit it with PR 2). Then PR 3 (start it as soon as PR 2 merges, Josh), PR 4, then Track 48.
 - Josh to do: the Vercel Firewall log-only trial rules from docs/hosting.md (#498 is merged, so they can be set up now), and read the CSP report logs after a week.
 - Stale worktrees under .claude/worktrees/ (audit-44-*, twitch-34-*, roadmap-34*, panel-version): clean at the end.
 

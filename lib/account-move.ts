@@ -103,7 +103,7 @@ const STEPS: { name: string; run: (c: Ctx) => Promise<void> }[] = [
         await withCollectionLock(s.collectionName, async () => {
           const data = await getCollection(s.collectionName);
           if (c.from in data) {
-            data[c.to] = data[c.from];
+            data[c.to] = [...(data[c.to] ?? []), ...data[c.from]]; // a resumed move may find a pull that landed under `from` meanwhile
             delete data[c.from];
             await kv.set(`tcg_${s.collectionName}`, data);
             c.hook('collections:blob');
