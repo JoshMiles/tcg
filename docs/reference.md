@@ -54,7 +54,7 @@
 
 ### Twitch Extension
 - `GET /api/twitch/season`, active season + packs + cards (public, used by panel)
-- `GET /api/twitch/collection?username=foo`, user's owned card numbers across all seasons, as `{ collections: [{ seasonId, seasonName, active, ownedNumbers }] }`
+- `GET /api/twitch/collection?username=foo`, user's owned card numbers across all published seasons (a private profile answers `collections: []` unless the caller is that viewer), as `{ collections: [{ seasonId, seasonName, active, ownedNumbers }] }`
 - `GET /api/twitch/user?opaqueId=xxx`, look up username by Twitch opaque ID
 - `POST /api/twitch/login`, **primary login endpoint**: verifies Extension JWT, gets the viewer's numeric ID via `getTwitchUserId()` (`user_id` after an identity grant, or `channel_id` when the signed `role` is `broadcaster`), resolves via Helix API, saves opaque→username mapping, creates user profile if needed, returns `{ username }`
 - `POST /api/twitch/unlink`, JWT-validated, deletes opaque ID → username mapping (logout)

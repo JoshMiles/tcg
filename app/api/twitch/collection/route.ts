@@ -1,15 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listSeasons, getCollection } from '@/lib/kv';
+import { getSession } from '@/lib/session';
+import { getUserSettings } from '@/lib/user-settings-store';
+import { extensionViewer } from '@/lib/twitch-viewer';
 
-// Returns the viewer's owned card numbers across every season.
+// Returns the viewer's owned card numbers across every published season.
 // Shape allows the panel to show per-season indicators on cards.
+// A private profile gets its cards only when the caller is that viewer (extension token or website session); anyone else
+// gets the same shape with no collections, so an old panel still loads.
 export async function GET(req: NextRequest) {
   const username = req.nextUrl.searchParams.get('username')?.toLowerCase().trim();
   if (!username) {
     return NextResponse.json({ error: 'username required' }, { status: 400 });
   }
 
-  const seasons = await listSeasons();
+  if ((await getUserSettings(username)).privateProfile) {
+    const ext = await extensionViewer(req);
+    const session = await getSession().catch(() => null); // outside a request there is no caller
+    if (!(('username' in ext && ext.username === username) || session?.username === username)) {
+      return NextResponse.json({ username, collections: [] });
+    }
+  }
+
+  const seasons = (await listSeasons()).filter(s => s.status !== 'draft');
 
   const collections = await Promise.all(
     seasons.map(async s => {

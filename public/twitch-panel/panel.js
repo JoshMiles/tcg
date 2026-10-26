@@ -1038,7 +1038,7 @@ document.querySelectorAll('#view-tabs .view-tab').forEach(b => b.addEventListene
 // Returns whether it worked; on a failure the cards already on screen are kept (an empty grid would look like "you own nothing").
 async function loadUserCollection(username) {
   try {
-    const res = await fetch(api(`/api/twitch/collection?username=${encodeURIComponent(username)}`));
+    const res = await fetch(api(`/api/twitch/collection?username=${encodeURIComponent(username)}`), { headers: { Authorization: 'Bearer ' + auth.token } });
     if (!res.ok) return false;
     const data = await res.json();
     collections = data.collections ?? [];
