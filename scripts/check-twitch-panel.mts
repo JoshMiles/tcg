@@ -15,9 +15,12 @@ ok(a > 0 && b > a, 'found the serial maths in panel.js');
 const make = new Function('me', 'VARIANTS', 'VARIANT_OFFSET', `${js.slice(a, b)}\nreturn { serialMult, copyPts, entryOf };`) as (me: unknown, v: string[], o: number) => {
   serialMult(n: number): number; copyPts(card: number, variant: string, serial?: number): number; entryOf(card: number, variant: string): number;
 };
-const VARIANTS = ['regular', 'reverse', 'full', 'shiny'];
+const { VARIANTS: SERVER_VARIANTS, usesFullArt } = await import('../lib/variants');
+const VARIANTS = ['regular', 'reverse', 'full', 'shiny', 'golden'];
+ok(js.includes(`const VARIANTS = ${JSON.stringify(VARIANTS).replace(/"/g, "'").replace(/,/g, ', ')};`) && VARIANTS.join() === SERVER_VARIANTS.join(), 'the panel lists the same variants as lib/variants.ts');
+for (const v of VARIANTS) ok(js.includes(`const usesFullArt = v => ${['full', 'shiny', 'golden'].map(x => `v === '${x}'`).join(' || ')};`) && usesFullArt(v as never) === ['full', 'shiny', 'golden'].includes(v), `usesFullArt(${v}) matches the panel`);
 for (const [max, cutoff] of [[3, 20], [5, 10], [1, 20], [3, 0], [2.5, 1]] as const) {
-  const panel = make({ bonus: { max, cutoff }, cards: { 7: { values: [100, 600, 2000, 10000], raw: [100.4, 600.2, 2000.5, 10000.1] } } }, VARIANTS, 1_000_000);
+  const panel = make({ bonus: { max, cutoff }, cards: { 7: { values: [100, 600, 2000, 10000, 40000], raw: [100.4, 600.2, 2000.5, 10000.1, 40000.3] } } }, VARIANTS, 1_000_000);
   for (let n = 0; n <= 30; n++) {
     const want = serialMultiplier(n, { serialBonusMax: max, serialBonusCutoff: cutoff });
     ok(Math.abs(panel.serialMult(n) - want) < 1e-9, `serial multiplier for #${n} (max ${max}, cutoff ${cutoff}): ${panel.serialMult(n)} vs ${want}`);
@@ -27,8 +30,10 @@ for (const [max, cutoff] of [[3, 20], [5, 10], [1, 20], [3, 0], [2.5, 1]] as con
   ok(panel.copyPts(7, 'regular', undefined) === 100, 'no serial, no bonus');
   const m = serialMultiplier(1, { serialBonusMax: max, serialBonusCutoff: cutoff });
   ok(panel.copyPts(7, 'shiny', 1) === (m === 1 ? 10000 : Math.max(1, Math.round(10000.1 * m))), 'bonus copy points use the unrounded value');
+  ok(panel.copyPts(7, 'golden', 1) === (m === 1 ? 40000 : Math.max(1, Math.round(40000.3 * m))), 'golden bonus copy points use the unrounded value');
 }
 ok(make({ bonus: { max: 3, cutoff: 20 }, cards: {} }, VARIANTS, 1_000_000).entryOf(5, 'full') === 2_000_005, 'entry encoding matches lib/variants.ts');
+ok(make({ bonus: { max: 3, cutoff: 20 }, cards: {} }, VARIANTS, 1_000_000).entryOf(5, 'golden') === 4_000_005, 'golden is index 4');
 
 // ── the three views share one markup ──
 const body = (html: string) => html.replace(/<meta name="viewport"[^>]*>\n/, '').replace(/ *<link rel="stylesheet" href="views.css">\n/, '').replace(/<body class="[^"]*">\n(\n  <!--[^\n]*-->\n)?/, '<body>\n');

@@ -1200,7 +1200,6 @@ if (PREVIEW) {
 // Keep in sync with lib/variants.ts.
 const VARIANTS = ['regular', 'reverse', 'full', 'shiny', 'golden'];
 const VARIANT_OFFSET = 1000000;
-const GOLDEN_PULLS = false;
 const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };
 // TOKENS-START
 // The one place wording tokens are filled (twin: lib/overlay-tokens.ts, scripts/check-overlay.mts runs both).
@@ -1317,7 +1316,7 @@ const DEV = { dry: true, mute: false, quick: false };
 // `off` lists the variants switched off for this pack / card: they are never rolled (Regular can't be switched off).
 function rollVariant(weights, off) {
   const w = Object.assign({}, DEFAULT_VARIANT_WEIGHTS, weights);
-  const weight = v => ((v === 'golden' && !GOLDEN_PULLS) || (v !== 'regular' && off && off.indexOf(v) !== -1) ? 0 : Math.max(0, w[v]));
+  const weight = v => (v !== 'regular' && off && off.indexOf(v) !== -1 ? 0 : Math.max(0, w[v]));
   const total = VARIANTS.reduce((s, v) => s + weight(v), 0);
   if (total <= 0) return 'regular';
   let r = Math.random() * total;

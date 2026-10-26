@@ -6,7 +6,7 @@ import { kv } from './db';
 import { getActiveSeasonWithPacks } from './kv';
 import { rarityBoostFor } from './buffs';
 import { boostedWeight } from './buffs-core';
-import { DEFAULT_VARIANT_WEIGHTS, GOLDEN_PULLS, VARIANTS, encodeEntry } from './variants';
+import { DEFAULT_VARIANT_WEIGHTS, VARIANTS, encodeEntry } from './variants';
 import type { Card, Pack, Variant } from './types';
 
 const TICKET_TTL_S = 12 * 3600; // an overlay that is offline plays queued pulls when it comes back, so be generous
@@ -34,7 +34,7 @@ export function rollDraw(packs: { pack: Pack; cards: Card[] }[], rng: () => numb
   if (chosen.pack.upgradesEnabled && card.kind !== 'trainer' && card.upgradesEnabled !== false) {
     const w = { ...DEFAULT_VARIANT_WEIGHTS, ...chosen.pack.variantWeights };
     const off = [...(chosen.pack.disabledVariants ?? []), ...(card.disabledVariants ?? [])] as Variant[];
-    const weight = (v: Variant) => (v !== 'regular' && (off.includes(v) || (!GOLDEN_PULLS && v === 'golden')) ? 0 : Math.max(0, w[v]));
+    const weight = (v: Variant) => (v !== 'regular' && off.includes(v) ? 0 : Math.max(0, w[v]));
     const total = VARIANTS.reduce((s, v) => s + weight(v), 0);
     if (total > 0) {
       let r = rng() * total;

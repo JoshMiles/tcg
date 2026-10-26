@@ -10,9 +10,6 @@ export const VARIANT_LABELS: Record<Variant, string> = {
   golden: 'Golden',
 };
 
-/** While the Twitch panel is frozen, Golden pulls and upgrades into Golden stay gated off. */
-export const GOLDEN_PULLS = false;
-
 /** Full Art, Full Art Holo and Golden all use the card's full-art image when present. */
 export const usesFullArt = (v: Variant): boolean => v === 'full' || v === 'shiny' || v === 'golden';
 
@@ -88,7 +85,6 @@ export function effectiveWeights(pack: Pick<Pack, 'variantWeights' | 'disabledVa
  * Where an upgrade from `from` goes: the next variant up that is switched on. Skipping a switched-off variant does not
  * make it cheaper: the cost is the product of every step crossed (regular → full with Reverse off costs reverse × full
  * regular copies, exactly what crafting through it would take). Null when there is nothing above to upgrade to.
- * While `GOLDEN_PULLS` is false, upgrading into `'golden'` is gated off.
  */
 export function upgradeStep(
   pack: Pick<Pack, 'disabledVariants' | 'upgradeCosts'>,
@@ -96,7 +92,7 @@ export function upgradeStep(
   from: Variant,
 ): { to: Variant; cost: number } | null {
   if (card?.kind === 'trainer' || card?.upgradesEnabled === false) return null;
-  const allowed = allowedVariants(pack, card).filter(v => GOLDEN_PULLS || v !== 'golden');
+  const allowed = allowedVariants(pack, card);
   let cost = 1;
   for (let i = VARIANTS.indexOf(from) + 1; i < VARIANTS.length; i++) {
     const v = VARIANTS[i];
@@ -106,14 +102,13 @@ export function upgradeStep(
   return null;
 }
 
-/** Weighted variant roll. Weights are relative, so 100/25/5/1 means ~76.6% regular. Never returns `'golden'` while `!GOLDEN_PULLS`. */
+/** Weighted variant roll. Weights are relative, so 100/25/5/1 means ~76.6% regular. */
 export function rollVariant(weights: VariantWeights, rand: () => number = Math.random): Variant {
-  const w = GOLDEN_PULLS ? weights : { ...weights, golden: 0 };
-  const total = VARIANTS.reduce((sum, v) => sum + Math.max(0, w[v]), 0);
+  const total = VARIANTS.reduce((sum, v) => sum + Math.max(0, weights[v]), 0);
   if (total <= 0) return 'regular';
   let r = rand() * total;
   for (const v of VARIANTS) {
-    r -= Math.max(0, w[v]);
+    r -= Math.max(0, weights[v]);
     if (r < 0) return v;
   }
   return 'regular';

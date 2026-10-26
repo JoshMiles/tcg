@@ -11,7 +11,7 @@ function eq(a: unknown, b: unknown, msg: string) {
 eq(decodeEntry(25), { cardNumber: 25, variant: 'regular' }, 'legacy entry');
 for (const n of [1, 40, 5000, 999_999]) for (const v of VARIANTS) eq(decodeEntry(encodeEntry(n, v)), { cardNumber: n, variant: v }, `roundtrip ${n} ${v}`);
 
-// Variant roll hits roughly the configured odds (and never rolls golden while GOLDEN_PULLS is false).
+// Variant roll hits roughly the configured odds (Golden's default weight is 0, so it never rolls until a pack gives it one).
 const N = 200_000;
 const hits = { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0 };
 for (let i = 0; i < N; i++) hits[rollVariant(DEFAULT_VARIANT_WEIGHTS)]++;
@@ -20,8 +20,11 @@ console.log('roll %:', Object.fromEntries(VARIANTS.map(v => [v, pct(v).toFixed(2
 if (Math.abs(pct('regular') - 76.3) > 1 || Math.abs(pct('reverse') - 19.1) > 1 || Math.abs(pct('shiny') - 0.8) > 0.3 || hits.golden !== 0) throw new Error('roll odds off');
 eq(rollVariant({ regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0 }), 'regular', 'zero weights');
 for (let i = 0; i < 10_000; i++) {
-  if (rollVariant({ regular: 1, reverse: 1, full: 1, shiny: 1, golden: 1000 }) === 'golden') throw new Error('rollVariant must not return golden while GOLDEN_PULLS is false');
+  if (rollVariant({ regular: 0, reverse: 0, full: 0, shiny: 0, golden: 1 }) !== 'golden') throw new Error('rollVariant should return golden when it is the only weight');
 }
+const gHits = { golden: 0, regular: 0 };
+for (let i = 0; i < 20_000; i++) gHits[rollVariant({ regular: 1, reverse: 0, full: 0, shiny: 0, golden: 1 }) === 'golden' ? 'golden' : 'regular']++;
+if (Math.abs(gHits.golden / 20_000 - 0.5) > 0.03) throw new Error('golden should roll at its weight');
 
 // Removing copies.
 eq(removeEntries([1, 1, 2, 1], 1, 2), [2, 1], 'remove 2');
@@ -155,13 +158,15 @@ eq(sanitizeScoring(undefined), DEFAULT_SCORING, 'no stored settings -> defaults'
 console.log('scoring settings checks passed');
 
 // ── Switched-off variants: pack / card switches, upgrade steps and odds ──
-import { allowedVariants, effectiveWeights, upgradeStep, cleanDisabled, GOLDEN_PULLS } from '../lib/variants';
+import { allowedVariants, effectiveWeights, upgradeStep, cleanDisabled } from '../lib/variants';
 const vp = { disabledVariants: [] as ('reverse' | 'full' | 'shiny' | 'golden')[], upgradeCosts: DEFAULT_UPGRADE_COSTS, variantWeights: DEFAULT_VARIANT_WEIGHTS };
 eq(allowedVariants(vp), ['regular', 'reverse', 'full', 'shiny', 'golden'], 'everything is on by default');
 eq(allowedVariants({ ...vp, disabledVariants: ['reverse'] }, { disabledVariants: ['shiny', 'golden'] }), ['regular', 'full'], 'pack and card switches combine');
 eq(cleanDisabled(['shiny', 'regular', 'bogus', 'shiny', 'reverse', 'golden']), ['reverse', 'shiny', 'golden'], 'regular and junk are dropped, order and uniqueness are fixed');
 eq(upgradeStep(vp, undefined, 'regular'), { to: 'reverse', cost: 5 }, 'plain step');
-eq(upgradeStep(vp, undefined, 'shiny'), GOLDEN_PULLS ? { to: 'golden', cost: 3 } : null, 'while GOLDEN_PULLS is false, nothing above shiny');
+eq(upgradeStep(vp, undefined, 'shiny'), { to: 'golden', cost: 3 }, 'shiny steps up to golden');
+eq(upgradeStep(vp, undefined, 'golden'), null, 'nothing above golden');
+eq(upgradeStep({ ...vp, disabledVariants: ['golden'] }, undefined, 'shiny'), null, 'a switched-off golden is skipped');
 // Skipping a switched-off variant costs the combined price (no shortcut): regular -> full with Reverse off = 5 x 3.
 eq(upgradeStep({ ...vp, disabledVariants: ['reverse'] }, undefined, 'regular'), { to: 'full', cost: 15 }, 'skip reverse');
 eq(upgradeStep(vp, { disabledVariants: ['full'] }, 'reverse'), { to: 'shiny', cost: 9 }, 'card-level skip');
@@ -173,11 +178,16 @@ for (let i = 0; i < 20_000; i++) { const v = rollVariant(offW); if (v === 'rever
 // parseCopyId accepts index 4 (golden) and rejects >= 5.
 eq(parseCopyId('7.4.3'), { card: 7, variant: 'golden', n: 3 }, 'parseCopyId accepts index 4');
 eq(parseCopyId('7.5.3'), null, 'parseCopyId rejects index 5');
-// rollDraw never returns golden while GOLDEN_PULLS is false, even when a pack sets golden weight > 0.
+// rollDraw rolls golden when a pack gives it a weight, and never once it is switched off.
 const goldenPack = pack({ variantWeights: { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 100 } });
 for (let i = 0; i < 500; i++) {
   const d = rollDraw([{ pack: goldenPack, cards }]);
-  if (!d || d.variant === 'golden') throw new Error('rollDraw returned golden while GOLDEN_PULLS is false');
+  if (!d || d.variant !== 'golden') throw new Error('rollDraw should return golden for a golden-only pack');
+}
+const goldenOff = pack({ variantWeights: { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 100 }, disabledVariants: ['golden'] });
+for (let i = 0; i < 500; i++) {
+  const d = rollDraw([{ pack: goldenOff, cards }]);
+  if (!d || d.variant === 'golden') throw new Error('rollDraw returned a switched-off golden');
 }
 // The value multipliers only credit variants that exist: with Full off, Shiny is still priced from the chain of costs.
 const mOff = variantMultipliers(pack({ disabledVariants: ['full'] }));

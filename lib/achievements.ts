@@ -1,6 +1,6 @@
 import type { IconName } from '@/app/components/Icon';
 import type { Variant } from './types';
-import { GOLDEN_PULLS, VARIANTS, VARIANT_LABELS, decodeEntry, type VariantCounts } from './variants';
+import { VARIANTS, VARIANT_LABELS, decodeEntry, type VariantCounts } from './variants';
 import { RARITIES } from './rarity';
 
 // Profile achievements (pure, client-safe): collection goals per season, such as completing the season, owning every card of a
@@ -176,15 +176,14 @@ export function evaluateSeason(s: AchSeason, disabled?: ReadonlySet<string>, cus
     out.push(goal(s, `tier-${tier.stars}`, 'award', cards, c => owns(s, c.number)));
   }
 
-  for (const v of VARIANTS.filter(x => x !== 'regular' && (GOLDEN_PULLS || x !== 'golden'))) {
+  for (const v of VARIANTS.filter(x => x !== 'regular')) {
     const cards = s.cards.filter(c => c.variants.includes(v));
     out.push(goal(s, `all-${v}`, v === 'shiny' || v === 'golden' ? 'sparkles' : 'gem', cards, c => owns(s, c.number, v)));
   }
 
   // The master set: every card in every version it can be pulled in. Only meaningful when some card has more than one version.
-  const liveVariants = (c: AchCard) => GOLDEN_PULLS ? c.variants : c.variants.filter(v => v !== 'golden');
-  if (s.cards.some(c => liveVariants(c).length > 1)) {
-    const wanted = s.cards.flatMap(c => liveVariants(c).map(v => ({ number: c.number, stars: c.stars, variants: [v] as Variant[] })));
+  if (s.cards.some(c => c.variants.length > 1)) {
+    const wanted = s.cards.flatMap(c => c.variants.map(v => ({ number: c.number, stars: c.stars, variants: [v] as Variant[] })));
     out.push(goal(s, 'master', 'trophy', wanted, c => owns(s, c.number, c.variants[0])));
   }
   if (s.held) out.push(...serialGoals(s));

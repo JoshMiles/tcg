@@ -10,7 +10,7 @@ const eq = (a: unknown, b: unknown, msg: string) => ok(JSON.stringify(a) === JSO
 const core = await import('../lib/serials-core');
 const copyLink = await import('../lib/copy-link');
 const { encodeEntry } = await import('../lib/variants');
-const E = (n: number, v: 'regular' | 'reverse' | 'full' | 'shiny' = 'regular') => encodeEntry(n, v);
+const E = (n: number, v: 'regular' | 'reverse' | 'full' | 'shiny' | 'golden' = 'regular') => encodeEntry(n, v);
 
 // ── pure ──
 eq(core.copyId(7, 'shiny', 12), '7.3.12', 'copy id');
@@ -172,6 +172,15 @@ await db.runInSandbox(box.id, async () => {
   const spent = await ser.getCopy(c, made!.madeFrom![0]);
   ok(typeof spent!.uid === 'number' && (await ser.findByUid(spent!.uid!))?.copyId === spent!.id, 'a spent copy can still be found by its number');
   ok(spent && spent.ev.at(-1)?.type === 'upgraded', 'a spent copy is retired as upgraded');
+
+  // The top of the ladder: Full Art Holo steps up to Golden, and Golden has nowhere to go.
+  await kvLib.saveCollection(c, { ...(await kvLib.getCollection(c)), carol: [] });
+  for (let i = 0; i < 3; i++) await kvLib.addCollectionEntry(c, 'carol', E(4, 'shiny'), 'pull');
+  const gold = await upgrade.upgradeCard({ seasonId: season.id, username: 'carol', cardNumber: 4, from: 'shiny' });
+  ok(gold.ok && gold.to === 'golden' && gold.cost === 3, `shiny upgrades to golden: ${JSON.stringify(gold)}`);
+  await consistent();
+  ok((await mine('carol')).join() === '4.4.1', 'the Golden copy is numbered 1 and the spent Full Art Holos are gone');
+  ok(!(await upgrade.upgradeCard({ seasonId: season.id, username: 'carol', cardNumber: 4, from: 'golden' })).ok, 'golden cannot be upgraded');
 
   // Admin actions on one exact copy: give away a specific (low) copy rather than the newest, and remove a specific copy.
   {

@@ -6,7 +6,7 @@ let tradesData = null;      // last GET /api/twitch/trades
 let tradesLoadedAt = 0;
 let tradesError = '';
 let composer = null;        // { to, note, give: {key: n}, get: {key: n}, wantVar: {number: variant}, filter, busy, msg } while composing
-const SHORT = { regular: '', reverse: 'RH', full: 'FA', shiny: 'SH' };
+const SHORT = { regular: '', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
 const tkey = (number, variant) => number + '|' + variant;
 
 function tradeCardMap() {
