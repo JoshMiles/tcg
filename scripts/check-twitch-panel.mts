@@ -43,4 +43,19 @@ for (const id of ['stats-area', 'trades-area', 'leaderboard-area', 'collection-a
   ok(base.includes(`id="${id}"`), `panel.html has #${id}`);
   ok((js + read('trades.js')).includes(id), `the panel scripts use #${id}`);
 }
+// ── a token refresh (onAuthorized firing again) swaps the token only; the login flow runs for the first authorization and the identity answer ──
+{
+  const s = js.indexOf('function handleAuthorized(');
+  const e = js.indexOf('\n}\n', s) + 3;
+  ok(s > 0 && e > s && js.includes('window.Twitch.ext.onAuthorized(handleAuthorized);'), 'found handleAuthorized and it is what onAuthorized calls');
+  const run = (user: string | null, pending: boolean) => {
+    const calls: string[] = [];
+    const out = new Function('init', `let auth = null; let currentUsername = ${JSON.stringify(user)}; let identityRequestPending = ${pending};\n${js.slice(s, e)}\nhandleAuthorized({ token: 'new' }); return auth;`)((t: { token: string }) => calls.push(t.token)) as { token: string } | null;
+    return { calls, token: out?.token };
+  };
+  ok(run(null, false).calls.length === 1, 'the first authorization runs init()');
+  ok(run('cheesyfan', true).calls.length === 1, 'the answer to the identity prompt runs init() even when a name is set');
+  const refresh = run('cheesyfan', false);
+  ok(refresh.calls.length === 0 && refresh.token === 'new', 'a refresh for a logged-in viewer swaps the token and does not re-run init()');
+}
 console.log('twitch panel checks passed');

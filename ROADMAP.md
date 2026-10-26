@@ -8,7 +8,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 ## Rules in force
 
-- **Twitch panel freeze lifted (2026-10-26).** The 2026-10-15 version was never approved; the user will submit a new version, so the panel, `/api/twitch/*` and the CORS rules in `middleware.ts` can change again. Keep the Track 34 rule: never rename or remove a JSON key on `/api/twitch/*`.
+- **Twitch panel freeze (2026-10-26).** It was lifted so version 0.0.2 could be built; a light freeze starts when Josh submits 0.0.2 and lasts until Twitch answers: `public/twitch-panel/*` and the CORS rules in `middleware.ts` stay as submitted, and `/api/twitch/*` may only gain JSON keys (Track 53 waits for the review). Always: never rename or remove a JSON key on `/api/twitch/*` that the released panel reads.
 - One feature per PR, branched from up-to-date `origin/main`; every push gets a PR (see "Git and PRs" in `CLAUDE.md`).
 - No em dashes, no emoji in the UI, FAQ / Privacy / Terms kept in step (`scripts/check-words.mts`), `npm run verify` before every PR.
 
@@ -18,7 +18,6 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
-| 34 | Next extension version 0.0.2 (34.8; 34.6b after) | Ready | S |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
 | 43.4 | Bring the other packages up to date | Done | S |
@@ -31,6 +30,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 50 | Player features and trials (50.1 to 50.12) | Ready (50.3 needs design) | M |
 | 51 | Staff and admin tools (51.1 to 51.14) | Ready | M |
 | 52 | UI and UX from the page walk (52.1 to 52.16) | Ready | S each |
+| 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -94,18 +94,18 @@ The file holds the extension's CORS rules, so it waited for the panel freeze (li
 
 ## Twitch extension
 
-### Track 34: next extension version (Ready)
+### Track 53: next panel version, 0.0.3 (Ready)
 
-The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34.1 to 34.7 are merged (34.6 without the pack card back, now 34.6b), and the panel shows its own version, 0.0.2 (`PANEL_VERSION` in `panel.js`). All of it ships as extension version 0.0.2, one reviewed panel version. Every item edits `public/twitch-panel/panel.js`, so run them **one at a time** in the order below, each its own PR from `origin/main`; the version is submitted only after 34.8. Read `docs/twitch-extension.md` first. Rules for the whole track: never rename or remove a JSON key on `/api/twitch/*` (the released panel keeps working against new responses until viewers update); new data goes in new fields; reuse the website's existing APIs and `lib/` helpers rather than copying logic into the panel.
+Extension version 0.0.2 is built and documented (`twitch-extension/SUBMISSION.md`); Josh submits it. A new panel freeze starts at submission (ask Josh before changing `public/twitch-panel/*`, `/api/twitch/*` or the CORS rules), so everything here waits for 0.0.2 to be approved or sent back. The panel keeps its own version, `PANEL_VERSION` in `panel.js`; bump it for 0.0.3. Rules: never rename or remove a JSON key on `/api/twitch/*` the released panel reads, and put new data in new fields.
 
-**34.6b Pack card back in the panel (Ready after 0.0.2, M).** Left out of 0.0.2 (Josh, 2026-10-26); when 34.8 closes the track, move this to the next panel version's track. The rest of 34.6 is merged. The panel has no flip card, and the pack card back exists only as layout nodes (`layoutBack`), the React `FlipCard` and the vanilla port in `public/widget.js`; there is no image form. Options when it is picked up: a server-rendered back image route the panel shows (also usable for share images), or port the `widget.js` renderer into the panel. Testers get no badge next to names on the site either, so the panel shows only streamer, admin and mod.
+**34.6b Pack card back in the panel (Ready, M).** Left out of 0.0.2 (Josh, 2026-10-26). The panel has no flip card, and the pack card back exists only as layout nodes (`layoutBack`), the React `FlipCard` and the vanilla port in `public/widget.js`; there is no image form. Options when it is picked up: a server-rendered back image route the panel shows (also usable for share images), or port the `widget.js` renderer into the panel. Testers get no badge next to names on the site either, so the panel shows only streamer, admin and mod.
 
-**34.8 Release (Ready, S).** From the 44.4 audit (`docs/archive/audit-2026-twitch-panel.md`): M-5 (a visible off-site marker on every `target=_blank` link, one CSS rule, and twitch-panel Changes 4 so the zip check enforces it), M-6 (rewrite `twitch-extension/SUBMISSION.md` for 0.0.2: details, change log, source note, size), M-7 (Allowlist for Panel URLs: `https://cheesytcg.app/`), L-1 (one walkthrough paragraph on how trade notes are moderated), and M-1 (a JWT refresh swaps the token only, so a viewer writing an offer is not sent back to Collection). Then rebuild the zip (`node scripts/build-twitch-package.mjs`, gives `cheesy-tcg-panel-v0.0.2.zip`), refresh screenshots, move 34.6b to the next panel version's track, and remove Track 34. Check Twitch's CSP against the `data:` SVG masks in Hosted Test. A new freeze starts at submission (ask Josh).
+Other items marked "next panel version" belong to this release: 47.4 (extension routes), 50.1 (panel quick wins), 50.2 and 50.4 (the two panel trials), the panel half of 49.6 and 52.16 (loading timeout). They are listed in their own tracks; do not duplicate them here.
 
 
 ## Audit follow-up (2026-10-26)
 
-Tracks 46 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 34.8, then 46, 47, 48; 49 to 52 fit in between. One item per PR unless it says otherwise.
+Tracks 46 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 46, 47, 48; 49 to 52 fit in between. One item per PR unless it says otherwise.
 
 ### Track 46: data correctness (Ready)
 - **46.1 Lock release (S).** public-site M-1 (admin C-3, CODE_REVIEW #18): compare-and-delete in one script.

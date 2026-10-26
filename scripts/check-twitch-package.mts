@@ -41,6 +41,10 @@ ok(hasProblem(edit('config.js', () => "window.TCG_SITE = '';"), /config\.js does
 ok(hasProblem(buildPackageFiles(SITE).filter((f: { name: string }) => f.name !== 'trades.js'), /trades\.js is missing/), 'a missing file is caught');
 ok(hasProblem(edit('video_component.html', s => s.replace('<script src="config.js"></script>', '').replace('<script src="panel.js"></script>', '<script src="panel.js"></script><script src="config.js"></script>')), /order/), 'config.js loading after panel.js is caught');
 
+ok(hasProblem(edit('mobile.html', s => s.replace(/(<script src="https:\/\/extension-files[^\n]*\n)([\s\S]*?)(<script src="config\.js"><\/script>\n)/, '$3$1')), /helper script must be the first/), 'Twitch\'s helper loading after another script is caught');
+ok(hasProblem(edit('panel.css', s => s.replace(/a\[target="_blank"\]::after/, 'a.off-site::after')), /off-site marker/), 'a missing off-site marker rule is caught');
+ok(hasProblem(edit('panel.css', s => s.replace(/(a\[target="_blank"\]::after \{ )content: '[^']*';/, "$1content: '';")), /off-site marker/), 'an off-site marker rule with no visible content is caught');
+
 // ── the panel's helpers (the code itself, run in isolation) ──
 const panel = readFileSync('public/twitch-panel/panel.js', 'utf8').replace(/\r\n/g, '\n');
 const start = panel.indexOf('const SITE = ');

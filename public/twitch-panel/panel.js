@@ -1537,6 +1537,13 @@ async function init(twitchAuth) {
   showLoginScreen(result.status === 403 || result.status === 0 ? undefined : loginFailureMessage(result));
 }
 
+// Twitch calls onAuthorized again each time it refreshes the token. A viewer who is already in keeps their place (a half-written
+// offer, an open card): only the token is swapped. The first authorization, and the one that answers the identity prompt, run init().
+function handleAuthorized(twitchAuth) {
+  if (currentUsername && !identityRequestPending) { auth = twitchAuth; return; }
+  init(twitchAuth);
+}
+
 // ── Build version ─────────────────────────────────────────
 // The extension's own version (what Twitch reviews), not the site's; the zip name comes from it too (packageVersion()).
 const PANEL_VERSION = '0.0.2';
@@ -1632,7 +1639,7 @@ document.getElementById('refresh-btn').addEventListener('click', () => refreshDa
 
 // ── Twitch Extension Helper ───────────────────────────────
 if (typeof window.Twitch !== 'undefined' && window.Twitch.ext) {
-  window.Twitch.ext.onAuthorized(authObj => init(authObj));
+  window.Twitch.ext.onAuthorized(handleAuthorized);
   window.Twitch.ext.onError(err => console.error('[TCG Panel]', err));
 } else {
   // Dev mode, run without the Twitch Extension environment
