@@ -28,7 +28,15 @@ export function TagsEditor({ username, initial, suggestions }: { username: strin
   const [draft, setDraft] = useState('');
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState('');
-  const save = (next: string[]) => { const before = tags; setTags(next); setError(''); startTransition(async () => { const r = await saveTagsAction(username, next); setTags(r.tags ?? before); if (!r.ok) setError(r.message); }); };
+  const save = (next: string[]) => {
+    const before = tags;
+    setTags(next);
+    setError('');
+    startTransition(async () => {
+      const res = await saveTagsAction(username, next);
+      if (res.ok) setTags(res.tags); else { setTags(before); setError(res.message); }
+    });
+  };
   const add = (t: string) => { const v = t.trim().toLowerCase(); if (v && !tags.includes(v)) save([...tags, v]); setDraft(''); };
   return (
     <div className="space-y-2">

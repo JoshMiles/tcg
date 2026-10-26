@@ -23,7 +23,8 @@ ok(admin.cleanTags(Array.from({ length: 20 }, (_, i) => `t${i}`)).length === adm
 
 await kvLib.seedSeason1();
 const box = await sbx.createSandbox({ name: 'Users check', source: 'config' });
-const prodBefore = JSON.stringify(await prodKv.get('users:hidden'));
+const prodHidden = async () => JSON.stringify([await prodKv.get('users:hidden'), await prodKv.smembers('users:hidden:admin')]);
+const prodBefore = await prodHidden();
 
 await runInSandbox(box.id, async () => {
   const season = (await kvLib.listSeasons())[0];
@@ -33,7 +34,8 @@ await runInSandbox(box.id, async () => {
   const stack = (cardNumber: number, count = 1) => ({ cardNumber, variant: 'regular' as const, count });
 
   // Tags
-  eq(await admin.saveTags('alice', ['VIP', 'watch']), ['vip', 'watch'], 'tags saved');
+  const tagged = await admin.saveTags('alice', ['VIP', 'watch']);
+  ok(tagged.ok && JSON.stringify(tagged.tags) === JSON.stringify(['vip', 'watch']), 'tags saved');
   eq((await kvLib.getUserProfile('alice'))?.tags, ['vip', 'watch'], 'tags persisted on the profile');
 
   // Restrictions
@@ -133,6 +135,6 @@ await runInSandbox(box.id, async () => {
   ok((await serials.getOwnerCopies(coll, 'bob')).some(c => beforeIds.includes(c.id)), 'bob keeps the print');
 });
 
-ok(JSON.stringify(await prodKv.get('users:hidden')) === prodBefore, 'production hidden set untouched by the sandbox');
+ok((await prodHidden()) === prodBefore, 'production hidden set untouched by the sandbox');
 await sbx.deleteSandbox(box.id);
 console.log('check-users: all checks passed');

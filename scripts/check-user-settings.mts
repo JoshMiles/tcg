@@ -66,9 +66,10 @@ eq((await store.getUserSettings('ann')).bio, 'hello', 'settings round-trip, lowe
 ok((await store.getSelfHidden()).has('ann'), 'private profile joins the self-hidden set');
 const admin = await import('../lib/user-admin');
 ok((await admin.getHiddenUsers()).has('ann'), 'the public hidden list includes private profiles');
+await (await import('../lib/kv')).saveUserProfile({ username: 'zed', displayName: 'zed', createdAt: 1 });
 await admin.saveFlags('zed', { hideFromBoard: true });
 await admin.saveFlags('zed', { hideFromBoard: false });
-eq(await kv.get('users:hidden'), [], 'the admin list never absorbs self-hidden viewers');
+eq(await kv.smembers('users:hidden:admin'), [], 'the admin list never absorbs self-hidden viewers');
 await store.saveUserSettings('ann', { privateProfile: false });
 ok(!(await admin.getHiddenUsers()).has('ann'), 'turning it off brings them back');
 eq(await kv.get('user:ann:settings'), null, 'all-default settings are removed, not stored');

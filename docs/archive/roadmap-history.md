@@ -1412,3 +1412,15 @@ Read `docs/hosting.md` ("Build version") first, and update it. Today `BUILD_VERS
 3. `/api/version` keeps its fields (the released Twitch panel reads `version`); only the value's format changes. Not the overlay (OBS has nobody to click it; it stays refreshed by hand) and not the panel (frozen; an idea for Track 34).
 
 Check: a local build shows `v1.<n>` from the latest commit subject; with the page open, a second build with another commit makes the toast appear on refocus; Refresh loads the new build; close keeps it hidden for that commit. Player-facing changelog line for the prompt.
+
+## Track 46: data correctness (2026-10-26)
+
+From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`.
+
+- **46.1 Lock release (Done, #486).** public-site M-1 (admin C-3, CODE_REVIEW #18): compare-and-delete in one script.
+- **46.2 Listing alerts after a failed index build (Done, #488).** public-site M-2 (CODE_REVIEW #23).
+- **46.3 Paid pull before the charge (Done, #487).** public-site L-4, security M-8 (CODE_REVIEW #24).
+- **46.4 Overlay pull save body (Done, #489).** admin A-2: send only the pull. Load the overlay against the mock KV to check it.
+- **46.5 Card-pulled webhook delivery (Done, #485).** admin A-3: `after()` or await.
+- **46.6 Read-modify-write staff edits (Done, #499).** mod-panel L-8 (hidden list, tags, flags) and L-7 (mod actions accept any username).
+- **46.7 Small input checks (Done, #490).** public-site L-9 (trainer season id), security M-6 (incoming webhooks: unknown usernames and card numbers), security L-11 (collection replace body), mod-panel L-6 ("Total pulls" label).

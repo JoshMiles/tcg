@@ -9,11 +9,11 @@ import type { SerialIndex } from './serials-core';
 import { currentSandboxId, kv } from './db';
 import { createTtlCache } from './ttl-cache';
 
-/** The set of hidden viewers (KV `users:hidden`, kept by lib/user-admin.ts); read here directly to avoid a circular import. */
+/** The set of hidden viewers (KV `users:hidden:admin`, plus the older `users:hidden` array, kept by lib/user-admin.ts); read here directly to avoid a circular import. */
 async function getHiddenUsersSafe(): Promise<Set<string>> {
   try {
-    const [admin, self] = await Promise.all([kv.get<string[]>('users:hidden'), kv.smembers('users:hidden:self').catch(() => [] as string[])]);
-    return new Set([...(admin ?? []), ...(self as string[])]);
+    const [old, admin, self] = await Promise.all([kv.get<string[]>('users:hidden'), kv.smembers('users:hidden:admin'), kv.smembers('users:hidden:self').catch(() => [] as string[])]);
+    return new Set([...(Array.isArray(old) ? old : []), ...(admin as string[]).map(String),...(self as string[])]);
   } catch { return new Set(); }
 }
 import type { CardMaths } from './card-maths';

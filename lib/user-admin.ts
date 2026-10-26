@@ -1,6 +1,7 @@
 import { getSelfHidden } from './user-settings-store';
 import { kv } from './db';
-import { getCollection, getUserProfile, listSeasons, saveCollection, saveUserProfile, withCollectionLock, deleteUserProfile } from './kv';
+import { getCollection, getUserProfile, listSeasons, patchUserProfile, saveCollection, saveUserProfile, withCollectionLock, withLock, deleteUserProfile } from './kv';
+import { cleanLogin } from './staff-core';
 import { recordAudit } from './audit';
 import { currentStaffLogin } from './staff-actor';
 import { listOpenTrades } from './trades';
@@ -35,9 +36,12 @@ export interface UserFlags {
   by?: string;
 }
 
+/** The old admin hidden list: one JSON array. Still read, and folded into the set below the first time anyone is hidden or shown. */
 const HIDDEN_KEY = 'users:hidden';
+/** The admin hidden list now: a KV set, so hiding or showing one viewer is a single atomic add / remove. */
+const HIDDEN_SET = 'users:hidden:admin';
 
-/** Viewers hidden from public rankings. One small array, kept in step by saveFlags. */
+/** Viewers hidden from public rankings, kept in step by saveFlags. */
 export async function getHiddenUsers(): Promise<Set<string>> {
   const [admin, self] = await Promise.all([getAdminHidden(), getSelfHidden()]);
   for (const u of self) admin.add(u);
@@ -46,37 +50,57 @@ export async function getHiddenUsers(): Promise<Set<string>> {
 
 /** Only the ones an admin hid (viewers who chose a private profile are tracked separately). */
 async function getAdminHidden(): Promise<Set<string>> {
-  try { return new Set((await kv.get<string[]>(HIDDEN_KEY)) ?? []); } catch { return new Set(); }
+  try {
+    const [old, members] = await Promise.all([kv.get<string[]>(HIDDEN_KEY), kv.smembers(HIDDEN_SET)]);
+    return new Set([...(Array.isArray(old) ? old : []), ...members.map(String)]);
+  } catch { return new Set(); }
 }
 
-async function setHidden(username: string, hidden: boolean): Promise<void> {
-  const set = await getAdminHidden();
-  if (hidden) set.add(username); else set.delete(username);
-  await kv.set(HIDDEN_KEY, [...set]);
+export async function setHidden(username: string, hidden: boolean): Promise<void> {
+  if (await kv.exists(HIDDEN_KEY)) {
+    await withLock('users_hidden_migrate', async () => {
+      const old = await kv.get<string[]>(HIDDEN_KEY); // read again inside the lock: another save may have moved it already
+      if (Array.isArray(old) && old.length > 0) await kv.sadd(HIDDEN_SET, old[0], ...old.slice(1));
+      await kv.del(HIDDEN_KEY);
+    });
+  }
+  if (hidden) await kv.sadd(HIDDEN_SET, username); else await kv.srem(HIDDEN_SET, username);
 }
 
-async function ensureProfile(username: string): Promise<UserProfile> {
-  return (await getUserProfile(username)) ?? { username, displayName: username, createdAt: Date.now() };
+export const UNKNOWN_VIEWER = "We don't know that viewer. Check the spelling: they need to have signed in or pulled a card.";
+
+/** The clean login of a viewer who exists (a profile, or cards in any season), or null: staff edits never create a viewer out of a typo. */
+export async function knownViewer(input: string): Promise<string | null> {
+  const name = cleanLogin(input);
+  if (!name) return null;
+  if (await getUserProfile(name)) return name;
+  for (const s of await listSeasons()) {
+    if (Object.keys(await getCollection(s.collectionName)).some(u => u.toLowerCase() === name)) return name;
+  }
+  return null;
 }
 
-export async function saveTags(username: string, tags: string[]): Promise<string[]> {
-  const name = username.toLowerCase();
-  const profile = await ensureProfile(name);
+const blankProfile = (name: string): UserProfile => ({ username: name, displayName: name, createdAt: Date.now() });
+
+export async function saveTags(username: string, tags: string[]): Promise<{ ok: true; tags: string[] } | { ok: false; error: string }> {
+  const name = await knownViewer(username);
+  if (!name) return { ok: false, error: UNKNOWN_VIEWER };
   const clean = cleanTags(tags);
-  await saveUserProfile({ ...profile, tags: clean });
+  await patchUserProfile(name, p => ({ ...(p ?? blankProfile(name)), tags: clean }));
   await recordAudit(name, 'Tags changed', clean.join(', ') || 'none');
-  return clean;
+  return { ok: true, tags: clean };
 }
 
-export async function saveFlags(username: string, flags: UserFlags): Promise<void> {
-  const name = username.toLowerCase();
-  const profile = await ensureProfile(name);
+export async function saveFlags(username: string, flags: UserFlags): Promise<{ ok: true } | { ok: false; error: string }> {
+  const name = await knownViewer(username);
+  if (!name) return { ok: false, error: UNKNOWN_VIEWER };
   const any = !!(flags.noTrading || flags.hideFromBoard);
   const by = any ? await currentStaffLogin() : null;
   const next: UserFlags | undefined = any ? { noTrading: !!flags.noTrading, hideFromBoard: !!flags.hideFromBoard, reason: (flags.reason ?? '').slice(0, 200), at: Date.now(), ...(by ? { by } : {}) } : undefined;
-  await saveUserProfile({ ...profile, flags: next });
+  await patchUserProfile(name, p => ({ ...(p ?? blankProfile(name)), flags: next }));
   await setHidden(name, !!flags.hideFromBoard);
   await recordAudit(name, any ? 'Restrictions set' : 'Restrictions cleared', any ? [flags.noTrading && 'no trading', flags.hideFromBoard && 'hidden from public boards', flags.reason].filter(Boolean).join(' · ') : undefined);
+  return { ok: true };
 }
 
 /** True when this viewer is blocked from trading. */
