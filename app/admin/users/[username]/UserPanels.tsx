@@ -4,8 +4,8 @@ import { UserInput } from '@/app/components/UserInput';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
-import { Spinner } from '../../components/PendingButton';
-import { ArmedButton } from '../../components/ArmedButton';
+import { Spinner } from '@/app/components/PendingButton';
+import { ArmedButton } from '@/app/components/ArmedButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import {

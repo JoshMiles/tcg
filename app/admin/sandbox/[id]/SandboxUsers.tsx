@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { ConfirmButton } from '../../components/ConfirmButton';
-import { PendingButton } from '../../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import type { SandboxUserRow } from '@/lib/sandbox-tools';
 
 type Sort = 'copies' | 'rank' | 'name' | 'new';

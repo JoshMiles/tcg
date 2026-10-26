@@ -16,7 +16,7 @@ import {
 } from '@/lib/faq-core';
 import { FAQ_BUILTINS, type FaqBuiltin } from '@/lib/faq-builtins';
 import { FaqAnswer } from '@/app/(site)/faq/parts';
-import { ArmedButton } from '../components/ArmedButton';
+import { ArmedButton } from '@/app/components/ArmedButton';
 import {
   Chip,
   EmptyState,

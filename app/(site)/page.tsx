@@ -1,6 +1,6 @@
 import { Icon, RankMedal } from '@/app/components/Icon';
 import { UserInput } from '@/app/components/UserInput';
-import { PendingButton } from '../admin/components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';

@@ -3,7 +3,7 @@ import { useActionState, useState, useTransition } from 'react';
 import { clearQueueAction } from '../actions/users';
 import type { ActionResult } from '../action-types';
 import { ConfirmButton } from '../components/ConfirmButton';
-import { Spinner } from '../components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { setLiveGateAction } from './actions';
 
 function Switch({ label, hint, on, busy, onChange }: { label: string; hint: string; on: boolean; busy: boolean; onChange: (v: boolean) => void }) {

@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
-import { Spinner } from '../../../components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { cardThumbUrl } from '@/lib/card-art';
 import { shareOf, totalWeight } from '@/lib/card-maths';
 import { TIER_DEFAULTS, balanceByRarity, normalizeWeights, simulate, type SimResult } from '@/lib/odds-core';

@@ -4,7 +4,7 @@ import { Icon } from '@/app/components/Icon';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type DragEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_LAYOUT, SPAN_CLASS, WIDGETS, WIDGET_TYPES, type DashboardLayout, type Span, type WidgetPlacement, type WidgetType } from '@/lib/dashboard';
-import { Spinner } from '../components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { applyBuiltinPresetAction, applyDashboardPresetAction, deleteDashboardPresetAction, saveDashboardLayoutAction, saveDashboardPresetAction } from './actions';
 
 type DragSource = { type: WidgetType; fromLibrary: boolean };

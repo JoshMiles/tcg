@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { BrandMark } from '../admin/components/BrandMark';
-import { PendingButton } from '../admin/components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { getStaff } from '@/lib/staff-guard';
 import { ROLE_LABELS, roleCan } from '@/lib/staff-core';
 import { ModNav } from './ModNav';

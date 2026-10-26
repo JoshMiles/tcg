@@ -9,7 +9,7 @@ import { PreviewOff } from '../../PreviewOff';
 import { getSandbox } from '@/lib/sandbox';
 import { listSandboxUsers } from '@/lib/sandbox-tools';
 import { CHANNEL_NAME } from '@/lib/site';
-import { PendingButton } from '../../../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { enterSandboxAction } from '../../actions';
 import { FakeTwitch } from './FakeTwitch';
 

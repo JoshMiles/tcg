@@ -1,7 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
-import { PendingButton } from '../components/PendingButton';
-import { ArmedButton } from '../components/ArmedButton';
+import { PendingButton } from '@/app/components/PendingButton';
+import { ArmedButton } from '@/app/components/ArmedButton';
 import { useActionState, useId, useState } from 'react';
 import {
   DEPLOY_STEPS, DISCORD_CATEGORIES, FEEDBACK_FILTER_KINDS, FEEDBACK_FILTER_OPTIONS, DISCORD_PRESETS, MAX_DISCORD_CHANNELS, presetChannel,

@@ -1,6 +1,6 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
-import { PendingButton } from './PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { useActionState, useEffect, useState } from 'react';
 import { quickAction, clearQueueAction } from '../actions/users';
 import type { ActionResult } from '../action-types';

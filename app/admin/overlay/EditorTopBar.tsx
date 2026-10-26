@@ -2,7 +2,7 @@
 
 import { Icon, type IconName } from '@/app/components/Icon';
 import { useEffect, useRef, useState } from 'react';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { Menu, MenuBar, MenuItem, MenuSeparator, SubMenu } from '../components/workspace/MenuBar';
 import { resetColumnLayout } from '../components/workspace/useColumnLayout';
 import { btn } from './editor-controls';

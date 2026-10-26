@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ScheduledLook } from '@/lib/overlay-settings';
 import { Icon } from '@/app/components/Icon';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { PROP_BY_KEY, mergePropValues, type PropValues } from '@/lib/overlay-props';
 import { isVertical, type OverlayLayout } from '@/lib/overlay-layout';
 import { maskUrlKey } from '@/lib/mask-url-key';

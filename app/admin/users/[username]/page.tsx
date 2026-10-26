@@ -1,5 +1,5 @@
 import { staffPage } from '@/lib/staff-guard';
-import { PendingButton } from '../../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';

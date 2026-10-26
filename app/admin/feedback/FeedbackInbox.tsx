@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { Chip, EmptyState, Panel, areaClass, selectClass } from '../components/ui';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { declineDeletionAction, deleteViewerForRequestAction, updateFeedbackAction } from '../feedback-actions';
 import { DELETION_OVERDUE_DAYS, FEEDBACK_KINDS, FEEDBACK_LIMITS, FEEDBACK_STATUSES, KIND_LABELS, REPORT_REASON_LABELS, STATUS_LABELS, type FeedbackItem, type FeedbackKind, type FeedbackStatus } from '@/lib/feedback-core';
 

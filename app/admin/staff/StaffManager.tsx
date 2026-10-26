@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { UserInput } from '@/app/components/UserInput';
-import { ArmedButton } from '../components/ArmedButton';
+import { ArmedButton } from '@/app/components/ArmedButton';
 import { Icon } from '@/app/components/Icon';
 import { Chip, Panel, fieldClass, selectClass } from '../components/ui';
 import { addStaffAction, removeStaffAction, setStaffRoleAction } from '../staff-actions';

@@ -8,7 +8,7 @@ import { VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import { cardNumberOf, notableReason, plainText, type CardNamer } from '@/lib/activity-view';
 import type { ActivityEvent } from '@/lib/activity';
 import { quickAction, removeUserCard } from '../actions/users';
-import { Spinner } from '../components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import type { CardInfo } from './ActivityFeed';
 import { usePrintHref } from './PrintLink';
 

@@ -16,7 +16,7 @@ import type { Variant } from '@/lib/types';
 import { backfillSerialsAction } from '../settings/actions';
 import { clearPotwAction, pickPotwAgainAction } from '../serial-actions';
 import { ConfirmButton } from '../components/ConfirmButton';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { getPotw } from '@/lib/print-of-week-store';
 import { Chip, EmptyState, PageHeader, Panel, Tile, selectClass } from '../components/ui';
 import { PrintDetail } from './PrintDetail';

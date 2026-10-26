@@ -17,7 +17,7 @@ import { hasStaffCapability } from '@/lib/staff-guard';
 import { StaffBadge } from '@/app/components/StaffBadge';
 import { getStaffBadges } from '@/lib/staff-badge';
 import type { StaffBadge as StaffBadgeKind } from '@/lib/staff-badge-core';
-import { ReverseTrade } from '@/app/admin/trades/ReverseTrade';
+import { ReverseTrade } from '@/app/components/trade/ReverseTrade';
 
 export const metadata: Metadata = { title: 'Trade', description: 'A trade offer.', robots: { index: false, follow: true } };
 

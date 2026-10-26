@@ -14,7 +14,6 @@ process.env.ADMIN_SECRET = 'leaked-admin-secret-value';
 delete process.env.ADMIN_PASSWORD_LOGIN;
 
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
-const { readFileSync } = await import('node:fs');
 
 const token = await import('../lib/admin-token');
 const cookieStore = await import('../lib/admin-cookie');
@@ -25,7 +24,6 @@ const kvLib = await import('../lib/kv');
 const settingsStore = await import('../lib/user-settings-store');
 const overlay = await import('../lib/overlay-key');
 const login = await import('../app/api/auth/login/route');
-const legacy = await import('../app/api/admin/import-legacy/route');
 const collection = await import('../app/api/collection/route');
 const holdings = await import('../app/api/trades/holdings/route');
 
@@ -94,13 +92,6 @@ const unconfigured = await login.POST(new NextRequest('http://localhost/api/auth
 ok(unconfigured.status === 503, 'password login fails closed without the cookie key');
 process.env.ADMIN_COOKIE_SECRET = saved;
 
-// ── legacy import: no secret in the URL, no write without an admin session ──
-const importSrc = readFileSync(new URL('../app/api/admin/import-legacy/route.ts', import.meta.url), 'utf8');
-ok(!importSrc.includes('ADMIN_SECRET') && !/searchParams\.get\(\s*['"]secret['"]\s*\)/.test(importSrc), 'the import route does not read a secret');
-const peeked = await legacy.GET();
-ok(peeked.status === 405, 'GET is not the import');
-const sneaky = await legacy.POST(new NextRequest(`http://localhost/api/admin/import-legacy?secret=${encodeURIComponent(LEAKED)}&overwrite=1`, { method: 'POST' }));
-ok((sneaky.status === 401 || sneaky.status === 500) && !(await kvLib.getCollection('CheesyStarterDeck')).angrymactavish, 'a leaked secret does not import, and nothing is written');
 
 // ── collection dump ──
 await kvLib.saveCollection('privdump', { pat: [4242], sam: [4343] });

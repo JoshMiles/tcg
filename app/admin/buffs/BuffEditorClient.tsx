@@ -29,7 +29,7 @@ import {
   type BuffUsage,
   type DurationUnit,
 } from '@/lib/buffs-core';
-import { ArmedButton } from '../components/ArmedButton';
+import { ArmedButton } from '@/app/components/ArmedButton';
 import { Chip, EmptyState, Panel, fieldClass, selectClass } from '../components/ui';
 import { createBuffAction, deleteBuffAction, retryGrantAction, updateBuffAction } from '../buff-actions';
 

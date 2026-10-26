@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState, type ReactNode } from 'react';
 import { createPortal, useFormStatus } from 'react-dom';
-import { Spinner } from './PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { Dialog } from './Dialog';
 
 /**
