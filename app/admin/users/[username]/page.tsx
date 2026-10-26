@@ -224,8 +224,8 @@ export default async function UserDetailPage({
             <input id="profile-displayName" name="displayName" maxLength={60} defaultValue={profile?.displayName || username} className="input w-full" />
           </fieldset>
           <fieldset className="fieldset">
-            <legend className="fieldset-legend"><label htmlFor="profile-twitchId">Twitch username</label></legend>
-            <input id="profile-twitchId" name="twitchId" maxLength={60} defaultValue={profile?.twitchId || ''} placeholder="twitch_username" className="input w-full" />
+            <legend className="fieldset-legend"><label htmlFor="profile-twitchId">Twitch ID</label></legend>
+            <input id="profile-twitchId" readOnly value={profile?.twitchId || '-'} className="input w-full" />
           </fieldset>
           <fieldset className="fieldset md:col-span-3">
             <legend className="fieldset-legend"><label htmlFor="profile-notes">Private notes</label></legend>

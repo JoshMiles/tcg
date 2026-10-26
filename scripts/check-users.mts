@@ -1,6 +1,7 @@
 // Checks the admin Users tools: tags, restrictions (hidden board, trade block), restore points and merging.
 // Needs the mock KV running (node scripts/mock-kv.cjs); refuses anything non-local.
 // Run: npx tsx scripts/check-users.mts
+import { readFileSync } from 'node:fs';
 const url = process.env.KV_REST_API_URL ?? 'http://localhost:4111';
 if (!/^http:\/\/(localhost|127\.0\.0\.1)[:/]/.test(url)) throw new Error(`Refusing to run against non-local KV: ${url}`);
 process.env.KV_REST_API_URL = url; process.env.KV_REST_API_TOKEN ??= 'dev'; process.env.KV_URL ??= 'redis://dev';
@@ -134,6 +135,11 @@ await runInSandbox(box.id, async () => {
   ok((await serials.serialStats(coll)).minted === minted, 'the refused restore still mints nothing');
   ok((await serials.getOwnerCopies(coll, 'bob')).some(c => beforeIds.includes(c.id)), 'bob keeps the print');
 });
+
+// The profile form never writes the Twitch ID (sign-in binds it, ROADMAP 47.8): the action does not read or set it.
+const saveAction = readFileSync(new URL('../app/admin/actions/users.ts', import.meta.url), 'utf8');
+const saveProfile = saveAction.slice(saveAction.indexOf('export async function updateUserProfile'), saveAction.indexOf('// Remove one instance'));
+ok(saveProfile.includes('...existing') && !/twitchId/i.test(saveProfile), 'updateUserProfile keeps the stored twitchId and never reads or writes it');
 
 ok((await prodHidden()) === prodBefore, 'production hidden set untouched by the sandbox');
 await sbx.deleteSandbox(box.id);

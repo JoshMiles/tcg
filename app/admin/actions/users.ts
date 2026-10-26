@@ -27,12 +27,11 @@ export async function updateUserProfile(username: string, formData: FormData) {
     ...existing,
     username: username.toLowerCase(),
     displayName: String(formData.get('displayName') ?? '').trim().slice(0, 60) || username,
-    twitchId: String(formData.get('twitchId') ?? '').trim().slice(0, 60) || existing?.twitchId,
     notes: String(formData.get('notes') ?? '').trim().slice(0, 2000),
     createdAt: existing?.createdAt ?? Date.now(),
   };
   await saveUserProfile(profile);
-  await recordAudit(username, 'Profile edited', [profile.displayName !== existing?.displayName && `name: ${profile.displayName}`, profile.twitchId !== existing?.twitchId && 'Twitch username changed', profile.notes !== (existing?.notes ?? '') && 'notes updated'].filter(Boolean).join(' · ') || undefined);
+  await recordAudit(username, 'Profile edited', [profile.displayName !== existing?.displayName && `name: ${profile.displayName}`, profile.notes !== (existing?.notes ?? '') && 'notes updated'].filter(Boolean).join(' · ') || undefined);
   revalidatePath(`/admin/users/${username.toLowerCase()}`);
   revalidatePath('/admin/users');
 }
