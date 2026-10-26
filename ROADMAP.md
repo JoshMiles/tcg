@@ -18,13 +18,13 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
-| 34 | Next extension version 0.0.2 (34.8; 34.6b after) | Ready | L |
+| 34 | Next extension version 0.0.2 (34.8; 34.6b after) | Ready after 44.4 | S |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
 | 43.4 | Bring the other packages up to date | Done | S |
 | 43.5 | Move to TypeScript 7 | Done | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Ready | S |
-| 44 | Full review and audit: public site, admin, mod panel, Twitch panel, security review (44.1 to 44.6) | Ready (44.4 after 34.7) | L |
+| 44 | Full review and audit: public site, admin, mod panel, Twitch panel, security review (44.1 to 44.6) | Ready | L |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -90,11 +90,11 @@ The file holds the extension's CORS rules, so it waited for the panel freeze (li
 
 ### Track 34: next extension version (Ready)
 
-The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34.1 to 34.5 are merged. All of it ships as extension version 0.0.2, one reviewed panel version. Every item edits `public/twitch-panel/panel.js`, so run them **one at a time** in the order below, each its own PR from `origin/main`; the version is submitted only after 34.8. Read `docs/twitch-extension.md` first. Rules for the whole track: never rename or remove a JSON key on `/api/twitch/*` (the released panel keeps working against new responses until viewers update); new data goes in new fields; reuse the website's existing APIs and `lib/` helpers rather than copying logic into the panel.
+The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34.1 to 34.7 are merged (34.6 without the pack card back, now 34.6b), and the panel shows its own version, 0.0.2 (`PANEL_VERSION` in `panel.js`). All of it ships as extension version 0.0.2, one reviewed panel version. Every item edits `public/twitch-panel/panel.js`, so run them **one at a time** in the order below, each its own PR from `origin/main`; the version is submitted only after 34.8. Read `docs/twitch-extension.md` first. Rules for the whole track: never rename or remove a JSON key on `/api/twitch/*` (the released panel keeps working against new responses until viewers update); new data goes in new fields; reuse the website's existing APIs and `lib/` helpers rather than copying logic into the panel.
 
 **34.6b Pack card back in the panel (Ready after 0.0.2, M).** Left out of 0.0.2 (Josh, 2026-10-26); when 34.8 closes the track, move this to the next panel version's track. The rest of 34.6 is merged. The panel has no flip card, and the pack card back exists only as layout nodes (`layoutBack`), the React `FlipCard` and the vanilla port in `public/widget.js`; there is no image form. Options when it is picked up: a server-rendered back image route the panel shows (also usable for share images), or port the `widget.js` renderer into the panel. Testers get no badge next to names on the site either, so the panel shows only streamer, admin and mod.
 
-**34.8 Release (Ready, S).** Anything Twitch reviewers asked for; give the extension its own version, 0.0.2 (`packageVersion()` in `scripts/lib/twitch-package.mjs` reads `package.json` today; the site stays 1.1.0), rebuild the zip as `cheesy-tcg-panel-v0.0.2.zip`, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. A new freeze starts at submission.
+**34.8 Release (Ready after 44.4, S).** First fold in the 44.4 audit's critical and high findings and anything Twitch's review would reject, plus anything Twitch reviewers asked for; then rebuild the zip as `cheesy-tcg-panel-v0.0.2.zip`, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. A new freeze starts at submission.
 
 
 ## Track 44: full review and audit (2026-10-26)
@@ -116,7 +116,7 @@ Then, for each area, **propose** (ideas, not defects, so no severity):
 
 Each proposal gets a one-line pitch, the pages or systems it touches, a size, and a rough value (high, medium, low). Proposals never block a finding and are never built during the audit.
 
-Each finding gets a severity (critical, high, medium, low), the file:line, a one-line fix and a size. Output per area: `docs/archive/audit-2026-<area>.md` (findings and proposals), the ranked findings and the top proposals in the PR description, and the items Josh accepts added here as numbered items. 44.1 to 44.3 and 44.5 only read code and add docs, so they can run alongside Track 34; 44.4 waits for 34.7.
+Each finding gets a severity (critical, high, medium, low), the file:line, a one-line fix and a size. Output per area: `docs/archive/audit-2026-<area>.md` (findings and proposals), the ranked findings and the top proposals in the PR description, and the items Josh accepts added here as numbered items. 44.1 to 44.3 and 44.5 only read code and add docs, so they can run alongside Track 34; 44.4 runs on the 0.0.2 code before 34.8.
 
 ### 44.1 Public site (Ready, L)
 Every public page and its API routes: home, closed page, login, install, profile and binder, dex and card pages, copy pages, leaderboard, stats, search, trade board, new trade and trade pages, notifications, account, settings, feedback, changelog, FAQ, Terms, Privacy, SEO (metadata, sitemap, share images). Systems: sign-in and sessions, draws as players see them, collections and the copy ledger, scoring and achievements, trading and escrow, notifications and push, Discord linking, caching (Cache Components, the 40.2 work).
@@ -127,7 +127,7 @@ Every admin page: dashboard, seasons and the season wizard, the pack workspace, 
 ### 44.3 Mod panel (Ready, M)
 Every mod page and action (users, trades, testers, feedback, activity, changelog), and the role model in `docs/staff.md`: what each role can reach versus what it should (run the mod access test in `docs/review.md`), who-did-it attribution, and what a mod sees on the stream tools.
 
-### 44.4 Twitch panel (Ready after 34.7, M)
+### 44.4 Twitch panel (Ready, M)
 Every panel tab and view (`public/twitch-panel/*`), every `/api/twitch/*` route and the CORS rules in `middleware.ts`, on the 0.0.2 code. Also checks the submission pack against Twitch's review rules. Critical and high findings, and anything Twitch's review would reject, go into 34.8 before submission; the rest go to the next panel version.
 
 ### 44.5 Security review (Ready, L)
