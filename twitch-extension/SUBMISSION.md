@@ -73,7 +73,7 @@ Collect trading cards pulled live on stream. Browse your collection, upgrade dup
 The Cheesy TCG is a collectible card game played live on Cheesygidds' channel. Packs are opened on stream and every card you pull goes into your collection.
 
 Use this panel to:
-- See every card you own, with its version (Reverse Holo, Full Art, Shiny Full Art) and how many editions you have
+- See every card you own, with its version (Reverse Holo, Full Art, Full Art Holo) and how many editions you have
 - Open any card for its pull odds, how many exist and what it is worth
 - Check your points, your rank and what you can upgrade next
 - Upgrade duplicates into rarer versions

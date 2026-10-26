@@ -28,7 +28,7 @@ const RARITY_LABEL = { 1: 'Common', 2: 'Uncommon', 3: 'Rare', 4: 'Epic', 5: 'Leg
 // Keep in sync with lib/variants.ts.
 const VARIANTS = ['regular', 'reverse', 'full', 'shiny'];
 const VARIANT_OFFSET = 1000000;
-const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny Full Art' };
+const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo' };
 function decodeEntry(entry) {
   const idx = Math.min(Math.floor(entry / VARIANT_OFFSET), VARIANTS.length - 1);
   return { cardNumber: entry - idx * VARIANT_OFFSET, variant: VARIANTS[idx] };
@@ -948,8 +948,8 @@ function renderStats() {
   };
   addRow('Your cards', fmtNum(r.cardPoints - r.serialPoints));
   addRow('Edition bonus', (r.serialPoints > 0 ? '+' : '') + fmtNum(r.serialPoints), r.serialPoints > 0 ? 'good' : 'dim');
-  addRow('Completion bonus', '+' + fmtNum(r.completionBonus) + ' / ' + fmtNum(me.maxCompletion), r.completionBonus > 0 ? 'good' : 'dim');
-  addRow('Complete collection', r.complete ? '+' + fmtNum(r.setBonus) : fmtNum(me.setBonusValue) + ' when complete', r.complete ? 'good' : 'dim');
+  addRow('Progress bonus', '+' + fmtNum(r.completionBonus) + ' / ' + fmtNum(me.maxCompletion), r.completionBonus > 0 ? 'good' : 'dim');
+  addRow('Full set bonus', r.complete ? '+' + fmtNum(r.setBonus) : fmtNum(me.setBonusValue) + ' when complete', r.complete ? 'good' : 'dim');
   addRow('Total', fmtNum(r.score), 'total');
   area.appendChild(statSection('Where your points come from', rows));
 
