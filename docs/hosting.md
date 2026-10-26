@@ -6,9 +6,9 @@
 | Variable | Purpose |
 |----------|---------|
 | `ADMIN_SECRET` | No longer signs the emergency cookie. It used to be that cookie's HMAC key and the secret on `GET /api/admin/import-legacy`. Rotate it if that URL was ever requested, then remove it. A leaked value cannot mint a cookie |
-| `ADMIN_COOKIE_SECRET` | Signs the emergency password cookie (16+ characters, not `ADMIN_SECRET` and not `SESSION_SECRET`). Without it the password login cannot start a session. Set it on Production, and a different value on Preview if the password is used there. Twitch staff sign-in does not need it. Password attempts are still limited to 10 wrong ones per address every 15 minutes |
+| `ADMIN_COOKIE_SECRET` | Signs the emergency password cookie (16+ characters, not `ADMIN_SECRET` and not `SESSION_SECRET`). Without it the password login cannot start a session. Set it on Production, and a different value on Preview if the password is used there. Twitch staff sign-in does not need it. Wrong passwords are limited to 10 per address every 15 minutes and 20 across the whole site per clock hour (see `docs/staff.md`) |
 | `ADMIN_PASSWORD` | Password checked by `/api/auth/login` (the emergency login) |
-| `ADMIN_PASSWORD_LOGIN` | Optional. `off` switches the emergency password login off |
+| `ADMIN_PASSWORD_LOGIN` | Optional. `off` switches the emergency password login off: `/api/auth/login` answers 403, the `/login` page hides the password form and the password cookie stops working |
 | `SUPER_ADMIN_TWITCH_IDS` | Optional. Extra super admins (comma-separated numeric Twitch IDs); joshmiles is hard-coded |
 | `KV_URL`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN` | Vercel KV credentials |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob credentials |
