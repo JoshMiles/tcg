@@ -28,7 +28,7 @@ const RARITY_LABEL = { 1: 'Common', 2: 'Uncommon', 3: 'Rare', 4: 'Epic', 5: 'Leg
 // Keep in sync with lib/variants.ts.
 const VARIANTS = ['regular', 'reverse', 'full', 'shiny'];
 const VARIANT_OFFSET = 1000000;
-const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Shiny Full Art' };
+const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo' };
 function decodeEntry(entry) {
   const idx = Math.min(Math.floor(entry / VARIANT_OFFSET), VARIANTS.length - 1);
   return { cardNumber: entry - idx * VARIANT_OFFSET, variant: VARIANTS[idx] };
@@ -210,8 +210,8 @@ function renderSeasonHeader(containerId) {
     const label = document.createElement('div');
     label.className = 'progress-label';
     label.textContent = totalPulls > ownedCount
-      ? `${ownedCount}/${totalCards} · ${pct}% · ${totalPulls} pulls`
-      : `${ownedCount}/${totalCards} · ${pct}%`;
+      ? `${ownedCount}/${totalCards} collected · ${pct}% · ${totalPulls} pulls`
+      : `${ownedCount}/${totalCards} collected · ${pct}%`;
 
     row.appendChild(bar);
     row.appendChild(label);
@@ -357,7 +357,7 @@ function renderGrid() {
         if (held.length) {
           const n = held[0];
           const sm = el('div', 'serial-mark' + (serialMult(n) > 1 ? ' bonus' : '') + (n === 1 ? ' first' : ''), '#' + n);
-          sm.title = 'Serial #' + n + (serialMult(n) > 1 ? ' (x' + serialMult(n).toFixed(2) + ' points)' : '');
+          sm.title = 'Edition #' + n + (serialMult(n) > 1 ? ' (x' + serialMult(n).toFixed(2) + ' points)' : '');
           cell.appendChild(sm);
         }
       }
@@ -511,7 +511,7 @@ function renderDetail() {
   // Odds and how many exist (from /api/twitch/me); undiscovered cards keep their secrecy.
   const facts = me && me.cards[card.number];
   if (facts && status.owned) {
-    info.appendChild(detailLine('detail-facts', '1 in ' + Math.round(1 / facts.pullRate).toLocaleString() + ' per pack · ' + facts.copies.toLocaleString() + ' out there'));
+    info.appendChild(detailLine('detail-facts', '1 in ' + Math.round(1 / facts.pullRate).toLocaleString() + ' per pack · ' + facts.copies.toLocaleString() + (facts.copies === 1 ? ' edition' : ' editions') + ' out there'));
   }
 
   // How many the viewer has
@@ -560,7 +560,7 @@ function renderDetail() {
       row.append(name, cnt);
       if (me && me.cards[card.number]) {
         const pts = el('span', 'variant-pts', fmtNum(me.cards[card.number].values[VARIANTS.indexOf(v)]) + ' pts');
-        pts.title = 'Points for one copy of this version (a low serial number is worth more)';
+        pts.title = 'Points for one edition of this version (a low edition number is worth more)';
         row.appendChild(pts);
       }
 
@@ -586,7 +586,7 @@ function renderDetail() {
   const serials = status.activeCount > 0 ? heldSerials(card.number, shown) : [];
   if (serials.length > 0 && season) {
     const wrap = el('div', 'serials');
-    wrap.appendChild(el('div', 'serials-title', 'Your ' + VARIANT_LABELS[shown] + ' serials'));
+    wrap.appendChild(el('div', 'serials-title', 'Your ' + VARIANT_LABELS[shown] + ' editions'));
     const chips = el('div', 'serial-chips');
     serials.slice(0, 12).forEach(n => {
       const a = el('a', 'serial-chip' + (serialMult(n) > 1 ? ' bonus' : ''));
@@ -594,13 +594,13 @@ function renderDetail() {
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       const m = serialMult(n);
-      a.title = m > 1 ? 'Serial bonus ×' + m.toFixed(2) + ': worth ' + fmtNum(copyPts(card.number, shown, n)) + ' pts. Open its page.' : 'Open this copy\'s page';
+      a.title = m > 1 ? 'Edition bonus ×' + m.toFixed(2) + ': worth ' + fmtNum(copyPts(card.number, shown, n)) + ' pts. Open its page.' : 'Open this edition\'s page';
       a.append('#' + n + (m > 1 ? ' ×' + m.toFixed(2) : ''));
       chips.appendChild(a);
     });
     if (serials.length > 12) chips.appendChild(el('span', 'serial-more', '+' + (serials.length - 12) + ' more'));
     wrap.appendChild(chips);
-    if (serials.some(n => serialMult(n) > 1)) wrap.appendChild(el('div', 'serials-note', 'Low serial numbers earn a points bonus.'));
+    if (serials.some(n => serialMult(n) > 1)) wrap.appendChild(el('div', 'serials-note', 'Low edition numbers earn a points bonus.'));
     info.appendChild(wrap);
   }
 
@@ -835,7 +835,7 @@ async function loadLeaderboard() {
       area.appendChild(boardRow(data.me, myName));
     }
     const foot = el('div', 'lb-foot');
-    foot.append('Score = every copy you own (low serial numbers earn a bonus) plus collection bonuses. ');
+    foot.append('Score = every edition you own (low edition numbers earn a bonus) plus collection bonuses. ');
     const more = el('a', null, 'How points work');
     more.href = siteUrl('/faq#points');
     more.target = '_blank';
@@ -947,9 +947,9 @@ function renderStats() {
     rows.appendChild(d);
   };
   addRow('Your cards', fmtNum(r.cardPoints - r.serialPoints));
-  addRow('Serial number bonus', (r.serialPoints > 0 ? '+' : '') + fmtNum(r.serialPoints), r.serialPoints > 0 ? 'good' : 'dim');
-  addRow('Completion bonus', '+' + fmtNum(r.completionBonus) + ' / ' + fmtNum(me.maxCompletion), r.completionBonus > 0 ? 'good' : 'dim');
-  addRow('Complete collection', r.complete ? '+' + fmtNum(r.setBonus) : fmtNum(me.setBonusValue) + ' when complete', r.complete ? 'good' : 'dim');
+  addRow('Edition bonus', (r.serialPoints > 0 ? '+' : '') + fmtNum(r.serialPoints), r.serialPoints > 0 ? 'good' : 'dim');
+  addRow('Progress bonus', '+' + fmtNum(r.completionBonus) + ' / ' + fmtNum(me.maxCompletion), r.completionBonus > 0 ? 'good' : 'dim');
+  addRow('Full set bonus', r.complete ? '+' + fmtNum(r.setBonus) : fmtNum(me.setBonusValue) + ' when complete', r.complete ? 'good' : 'dim');
   addRow('Total', fmtNum(r.score), 'total');
   area.appendChild(statSection('Where your points come from', rows));
 
@@ -1005,7 +1005,7 @@ function renderStats() {
       chips.appendChild(a);
     });
     if (best.length > 6) chips.appendChild(el('span', 'serial-more', '+' + (best.length - 6) + ' more'));
-    area.appendChild(statSection('Your best serial numbers', chips, el('p', 'stat-muted', 'The first copies ever made of a card are worth extra points.')));
+    area.appendChild(statSection('Your best edition numbers', chips, el('p', 'stat-muted', 'The first editions ever made of a card are worth extra points.')));
   }
 
   // Links out

@@ -55,7 +55,7 @@ ok(!faq.includes('>Collections</Link> or the search box'), 'the FAQ calls the pa
 
 // ---- retired names must not come back (ROADMAP 2.6), and a copy is an edition (ROADMAP 25.2) ----
 // Narrow on purpose: code identifiers (copy, uid, Copy, print) and comments are fine, only phrases a viewer would read are banned.
-// The Twitch panel is not in this list: it keeps the old words until the freeze lifts. lib/changelog.ts keeps the words each entry shipped with.
+// The Twitch panel is not in this list (it uses the same words, checked by hand). lib/changelog.ts keeps the words each entry shipped with.
 const walkSrc = (dir: string, re: RegExp, out: string[] = []): string[] => {
   for (const f of readdirSync(join(root, dir))) {
     const rel = dir + '/' + f;
