@@ -23,7 +23,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 43.4 | Bring the other packages up to date | Done | S |
 | 43.5 | Move to TypeScript 7 | Done | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Ready | S |
-| 47 | Access hardening (47.8 PR 2 to 4, 47.10, 47.11) | Ready (47.10 needs a decision, 47.11 blocked on Josh) | M |
+| 47 | Access hardening (47.10, 47.11) | Ready (47.10 needs a decision, 47.11 blocked on Josh) | M |
 | 48 | KV efficiency (48.1 to 48.7) | Ready (48.7 needs design) | M to L |
 | 49 | Mod panel UI, cleanup and polish (49.1 to 49.6) | Ready | S |
 | 50 | Player features and trials (50.1 to 50.12) | Ready (50.3 needs design) | M |
@@ -109,11 +109,7 @@ Other items marked "next panel version" belong to this release: 50.1 (panel quic
 Tracks 46 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 47, 48; 49 to 52 fit in between. One item per PR unless it says otherwise.
 
 ### Track 47: access hardening (Ready unless marked)
-47.1 to 47.3, 47.5 to 47.7, 47.9 and 47.8 PR 1 are done (archived). 47.4 moved to Track 53.
-- **47.8 Profiles tied to the Twitch account ID (Ready, M).** security M-1 and X-3. PR 1 (#494) records the ID on sign-in (`bindAccount`, `acct:ids`) and counts conflicts on Data health. Decided (Josh, 2026-10-26): a new account signing in with a login an old profile holds moves the old profile aside (`<login>~<n>`); the old owner returning under a new login is asked before their collection is restored; the same ID under a changed login moves the profile to the new login automatically (no redirect table); no month trial, PR 2 and 3 ship straight after PR 1. The full design is in `PLAN-47-8.md` at the repo root (commit it with PR 2).
-  - **PR 2:** `lib/account-move.ts` (`moveAccount(from, to)`, journalled and resumable) and `scripts/check-account-move.mts`, called only from an admin "Move aside" button on the admin user page, so it runs on real data before sign-in uses it.
-  - **PR 3:** sign-in acts on a conflict (move aside), the reclaim prompt on /account, the same-ID rename move, the session-ID check, `~` display and hidden handling.
-  - **PR 4:** a nightly Twitch (Helix) check of logins against `acct:ids`, to close the gap where overlay and bot pulls carry only a login (no bot change).
+47.1 to 47.3 and 47.5 to 47.9 are done (archived). 47.4 moved to Track 53.
 - **47.10 Outgoing webhooks: https only, check the resolved address (Needs a decision, S).** security L-2, left out of 47.7: `isPrivateHost` checks the host name as written and allows `http:`. Choose whether to resolve DNS at send time (and how to handle a failed lookup) before building.
 - **47.11 Trial readouts (Blocked: Josh, from 2026-11-02).** The CSP report-only trial (47.5, `docs/hosting.md` "Security headers and the CSP trial") and the Vercel Firewall log-only rules (47.9, "Vercel Firewall trial"; Josh sets them up in the dashboard). After a week each: switch CSP to enforcing if no real page reported a violation, and the firewall rules to Deny if none flagged real overlay, panel or webhook traffic; otherwise adjust or drop them.
 
