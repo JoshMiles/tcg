@@ -1,6 +1,6 @@
 import { getSelfHidden } from './user-settings-store';
 import { kv, requestCached } from './db';
-import { getCollection, getUserProfile, listSeasons, patchUserProfile, saveUserProfile, updateCollection, withCollectionLock, withLock, deleteUserProfile } from './kv';
+import { getCollection, getUserCards, getUserProfile, listSeasons, patchUserProfile, saveUserProfile, updateCollection, withCollectionLock, withLock, deleteUserProfile } from './kv';
 import { cleanLogin } from './staff-core';
 import { recordAudit } from './audit';
 import { currentStaffLogin } from './staff-actor';
@@ -144,8 +144,8 @@ export async function takeUserSnapshot(username: string, reason: string): Promis
   const [seasons, profile] = await Promise.all([listSeasons(), getUserProfile(name)]);
   const collections: UserSnapshot['collections'] = [];
   for (const s of seasons) {
-    const entries = (await getCollection(s.collectionName))[name];
-    if (entries && entries.length > 0) {
+    const entries = await getUserCards(s.collectionName, name);
+    if (entries.length > 0) {
       const prints = (await isTracking(s.collectionName)) ? assignPrints(entries, await getOwnerCopies(s.collectionName, name)) : undefined;
       collections.push({ collectionName: s.collectionName, seasonName: s.name, entries: [...entries], ...(prints ? { prints } : {}) });
     }

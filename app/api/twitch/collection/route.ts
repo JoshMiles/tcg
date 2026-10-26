@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listSeasons, getCollection } from '@/lib/kv';
+import { listSeasons, getUserCards } from '@/lib/kv';
 import { getSession } from '@/lib/session';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { extensionViewer } from '@/lib/twitch-viewer';
@@ -29,12 +29,12 @@ export async function GET(req: NextRequest) {
 
   const collections = await Promise.all(
     seasons.map(async s => {
-      const col = await getCollection(s.collectionName);
+      const col = await getUserCards(s.collectionName, username);
       return {
         seasonId: s.id,
         seasonName: s.name,
         active: s.active,
-        ownedNumbers: col[username] ?? [],
+        ownedNumbers: col,
       };
     })
   );

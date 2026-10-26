@@ -1,5 +1,5 @@
 import { kv } from './db';
-import { getActiveSeasonWithPacks, getCollection } from './kv';
+import { getActiveSeasonWithPacks, getUserCards } from './kv';
 import { getSeasonLeaderboardCached } from './leaderboard';
 import { getOwnerCopies } from './serials';
 import { getUserSettings } from './user-settings-store';
@@ -36,7 +36,7 @@ export async function prepareShowOff(username: string, text: unknown, opts: { dr
   if (!active) return { ok: false, error: 'no-season', message: 'There is no season running right now.' };
   const { season, packs } = active;
 
-  const owned = countVariants((await getCollection(season.collectionName))[user] ?? []);
+  const owned = countVariants(await getUserCards(season.collectionName, user));
   const cards: ShowCard[] = packs.flatMap(p => p.cards).map(c => ({ number: c.number, name: c.name, stars: c.stars }));
   const board = await getSeasonLeaderboardCached(season).catch(() => null);
 

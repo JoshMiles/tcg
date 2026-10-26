@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSession, loginConfigured } from '@/lib/session';
-import { getCollection, getSeason } from '@/lib/kv';
+import { getUserCards, getSeason } from '@/lib/kv';
 import { getTrade, getTradeSettings } from '@/lib/trades';
 import { describeItems, firstMissing, tradeVisibleTo, type Trade } from '@/lib/trade-core';
 import { getTradeCards, getTradePools, poolsFor, stackPoints } from '@/lib/trade-view';
@@ -71,7 +71,7 @@ export default async function TradeOfferPage({ params }: { params: Promise<{ id:
 
   const [cards, owned] = await Promise.all([
     getTradeCards(season),
-    me ? getCollection(season.collectionName).then(c => c[me] ?? []) : Promise.resolve([] as number[]),
+    me ? getUserCards(season.collectionName, me) : Promise.resolve([] as number[]),
   ]);
   const pools = await getTradePools(season, [trade], me);
   const wanted = (await wantedForTrades([trade]))[trade.id];

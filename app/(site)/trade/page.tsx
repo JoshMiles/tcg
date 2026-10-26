@@ -5,7 +5,7 @@ import { PendingLabel } from '@/app/components/site/PendingLabel';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSession, loginConfigured } from '@/lib/session';
-import { getCollection } from '@/lib/kv';
+import { getUserCards } from '@/lib/kv';
 import { getActive } from '@/lib/site-seasons';
 import { getTradeSettings, sweepTrades, tradesForUser, listOpenTrades } from '@/lib/trades';
 import { describeItems, firstMissing } from '@/lib/trade-core';
@@ -43,7 +43,7 @@ export default async function TradePage({ searchParams }: { searchParams: Promis
   const cards = await getTradeCards(season);
   const me = session?.username;
   const mine = me ? await tradesForUser(me) : null;
-  const owned = me ? (await getCollection(season.collectionName))[me] ?? [] : [];
+  const owned = me ? await getUserCards(season.collectionName, me) : [];
   const prefs = me ? await getUserSettings(me) : null;
   const here = <T extends { seasonId: string }>(list: T[]) => list.filter(t => t.seasonId === season.id);
   const board = here((await listOpenTrades()).filter(t => t.kind === 'listing'));

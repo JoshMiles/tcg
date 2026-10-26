@@ -3,7 +3,7 @@ import { PendingButton } from '@/app/components/PendingButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
-import { listSeasons, getCollection, getPackCards, getPack, getUserProfile } from '@/lib/kv';
+import { listSeasons, getUserCards, getPackCards, getPack, getUserProfile } from '@/lib/kv';
 import type { Season, Pack, Card } from '@/lib/types';
 import { getRarity } from '@/lib/rarity';
 import { countPulls } from '@/lib/collection';
@@ -85,11 +85,11 @@ export default async function UserDetailPage({
     tradesForUser(username).catch(() => ({ incoming: [], outgoing: [], board: [], recent: [] })),
   ]);
 
-  const collections = await Promise.all(seasons.map(s => getCollection(s.collectionName)));
+  const collections = await Promise.all(seasons.map(s => getUserCards(s.collectionName, username)));
 
   const seasonEntries: SeasonEntry[] = await Promise.all(
     seasons.map(async (season, i) => {
-      const ownedNumbers = collections[i][username] ?? [];
+      const ownedNumbers = collections[i];
       const packData = await Promise.all(
         season.packIds.map(async packId => {
           const [pack, cards] = await Promise.all([getPack(packId), getPackCards(packId)]);
@@ -152,7 +152,7 @@ export default async function UserDetailPage({
   // Compare with another viewer, active season.
   let compare: { name: string; theyLack: string[]; iLack: string[]; swaps: number } | null = null;
   if (compareWith && compareWith !== username && activeEntry && activeSeason) {
-    const theirEntries = (await getCollection(activeSeason.collectionName))[compareWith] ?? [];
+    const theirEntries = await getUserCards(activeSeason.collectionName, compareWith);
     const theirs = new Set(theirEntries.map(e => e % 1_000_000));
     const mine = new Set(activeEntry.ownedNumbers.map(e => e % 1_000_000));
     const dupMine = [...activeEntry.countMap.entries()].filter(([, n]) => n > 1).map(([k]) => k % 1_000_000);

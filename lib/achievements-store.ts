@@ -1,5 +1,5 @@
 import { kv } from './db';
-import { getAllCollectionUsers, getCollection, getPackCards, getPacksForSeason, listSeasons } from './kv';
+import { getAllCollectionUsers, getUserCards, getPackCards, getPacksForSeason, listSeasons } from './kv';
 import { countVariants, allowedVariants } from './variants';
 import { evaluateSeason, sortAchievements, tradingGoals, TRADING, type AchCard, type Achievement, type CustomGoal } from './achievements';
 import { applyAchievementText, disabledKinds, getAchievementSettings, getCustomGoals } from './achievement-settings';
@@ -88,9 +88,8 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
     const disabled = disabledKinds(settings);
     if (trades !== null) live.push(...tradingGoals(trades, disabled, custom));
     await Promise.all(seasons.map(async season => {
-      const [collection, packs] = await Promise.all([getCollection(season.collectionName), getPacksForSeason(season)]);
-      const owned = collection[u];
-      if (!owned || owned.length === 0) return;
+      const [owned, packs] = await Promise.all([getUserCards(season.collectionName, u), getPacksForSeason(season)]);
+      if (owned.length === 0) return;
       const cards: AchCard[] = [];
       for (const pack of packs.filter(p => p.status !== 'draft')) {
         for (const c of await getPackCards(pack.id)) {
