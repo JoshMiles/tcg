@@ -9,8 +9,8 @@ import { notifyAdminLog } from './discord';
 import { isPreview, prodKv, runInSandbox } from './db';
 import { getUserProfile } from './kv';
 import {
-  SUPER_ADMINS, canManage, cleanLogin, isSuperAdmin, isTwitchId, sanitizeStaffRecord,
-  type AssignableRole, type StaffRecord, type StaffRole,
+  SUPER_ADMINS, canManage, canModerate, cleanLogin, isSuperAdmin, isTwitchId, sanitizeStaffRecord,
+  type AssignableRole, type ModAction, type ModActor, type ModTarget, type ModVerdict, type StaffRecord, type StaffRole,
 } from './staff-core';
 
 const MEMBERS = 'staff:members';
@@ -35,6 +35,29 @@ export async function getStaffRecord(login: string): Promise<StaffRecord | null>
     const bound = await prodKv.hget<{ id?: unknown }>(IDS, l);
     return isTwitchId(bound?.id) ? { ...rec, twitchId: bound.id } : rec;
   } catch { return null; }
+}
+
+/** The staff role a login holds right now: a super admin from the code, else the staff list, else null. `asActor` reads "password" as the emergency login (it is only ever recorded as `flags.by`, never a viewer). */
+async function roleOfLogin(login: string, asActor = false): Promise<StaffRole | null> {
+  const l = login.toLowerCase();
+  if ((asActor && l === 'password') || SUPER_ADMINS.some(s => s.login === l)) return 'super';
+  return (await getStaffRecord(l))?.role ?? null;
+}
+
+/** Looks up what `canModerate` needs to know about a viewer: their staff role and who set the restrictions they carry. */
+export async function moderationTarget(login: string): Promise<ModTarget> {
+  const name = login.toLowerCase().replace(/^@/, '');
+  const by = (await getUserProfile(name))?.flags?.by;
+  return { login: name, role: await roleOfLogin(name), flagsByRole: by ? await roleOfLogin(by, true) : null };
+}
+
+/** The moderation rule for real people: looks each target up and returns the first refusal, or ok. Call before acting. */
+export async function checkModerate(actor: ModActor, logins: string[], action: ModAction): Promise<ModVerdict> {
+  for (const login of new Set(logins.filter(Boolean))) {
+    const v = canModerate(actor, await moderationTarget(login), action);
+    if (!v.ok) return v;
+  }
+  return { ok: true };
 }
 
 /** Everyone on the staff list (not the super admin, who comes from the code), admins first, then by name. */

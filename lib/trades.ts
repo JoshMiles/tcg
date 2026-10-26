@@ -6,6 +6,8 @@ import { kv } from './db';
 import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserProfile, saveCollection, withCollectionLock, withLock } from './kv';
 import { announceTrade, type EventPools, type TradeAction } from './trade-notify';
 import { currentStaffLogin } from './staff-actor';
+import { checkModerate } from './staff';
+import type { ModActor } from './staff-core';
 import { allowedVariants, encodeEntry, removeEntries } from './variants';
 import {
   DEFAULT_TRADE_SETTINGS, TRADE_LIMITS, cleanItems, itemEntries, sanitizeTradeSettings, settleTrade, takeForEscrow,
@@ -468,13 +470,18 @@ export async function declineTrade(id: string, username: string): Promise<TradeR
 }
 
 /** The offerer withdraws (or an admin cancels): the copies are refunded. Works even while trading is paused. */
-export async function cancelTrade(id: string, username: string, opts: { admin?: boolean; reason?: string } = {}): Promise<TradeResult<{ trade: Trade }>> {
+export async function cancelTrade(id: string, username: string, opts: { admin?: boolean; reason?: string; actor?: ModActor } = {}): Promise<TradeResult<{ trade: Trade }>> {
   const user = username.toLowerCase();
   return locked(async () => {
     const found = await findOpen(id);
     if ('error' in found) return found.error;
     const { open, history, trade } = found;
     if (!opts.admin && trade.from !== user) return fail(403, 'You can only cancel your own offers.');
+    // A staff cancel passes who is acting, so the moderation rule is checked against the offerer before anything moves.
+    if (opts.actor) {
+      const allowed = await checkModerate(opts.actor, [trade.from], 'cancel-offer');
+      if (!allowed.ok) return fail(403, allowed.error);
+    }
     await closeTrade(open, history, trade, 'cancelled', opts.admin ? 'admin' : user, opts.reason);
     await persist(open, history);
     return { ok: true, trade };
@@ -697,7 +704,8 @@ export async function reverseBlocker(trade: Trade): Promise<string | null> {
  * received it and not in an open offer, otherwise nothing moves and the print that has moved on is named. The trade keeps
  * status 'accepted' and gains reversedAt / reversedBy / reverseReason; each print gets a 'reversed' event (who = staff, note = reason).
  */
-export async function reverseTrade(id: string, staff: string, reason: string): Promise<TradeResult<{ trade: Trade }>> {
+export async function reverseTrade(id: string, actor: ModActor, reason: string): Promise<TradeResult<{ trade: Trade }>> {
+  const staff = actor.login;
   const why = reason.trim().slice(0, 300);
   if (!why) return fail(400, 'Give a reason for reversing this trade.');
   return locked(async () => {
@@ -710,6 +718,8 @@ export async function reverseTrade(id: string, staff: string, reason: string): P
     const taker = trade.resolvedBy;
     const season = await getSeason(trade.seasonId);
     if (!taker || !season) return fail(400, 'This trade is too old to reverse automatically.');
+    const allowed = await checkModerate(actor, [trade.from, taker], 'reverse-trade');
+    if (!allowed.ok) return fail(403, allowed.error);
     const c = season.collectionName;
     const result = await withCollectionLock(c, async () => {
       const moved = trade.moved ?? (await rebuildMoved(c, trade, taker));

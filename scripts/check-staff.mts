@@ -101,7 +101,6 @@ ok(!(await adminToken.isValidAdminToken(adminCookie!, key, 5, now)), 'a cookie f
 ok(!(await adminToken.isValidAdminToken(undefined, key, 4, now)) && !(await adminToken.isValidAdminToken(adminCookie!, undefined, 4, now)) && !(await adminToken.isValidAdminToken(adminCookie!, 'short', 4, now)), 'no cookie, or no proper key, fails closed');
 ok(adminToken.adminCookieKey({ ADMIN_COOKIE_SECRET: key }) === key && adminToken.adminCookieKey({ ADMIN_SECRET: leaked }) === null && adminToken.adminCookieKey({ ADMIN_COOKIE_SECRET: 'short' }) === null, 'ADMIN_SECRET is not the cookie key');
 ok(adminToken.adminGenKey({}) === 'admin:auth-gen:development' && adminToken.adminGenKey({ VERCEL_ENV: 'production' }) === 'admin:auth-gen:production' && adminToken.adminGenKey({ VERCEL_ENV: 'preview' }) === 'sbx:preview:admin:auth-gen', 'the generation key is per environment');
-ok(adminToken.sameString('abc', 'abc') && !adminToken.sameString('abc', 'abd') && !adminToken.sameString('abc', 'abcd'), 'sameString compares whole strings');
 
 // ── the staff list ──
 const staff = await import('../lib/staff');

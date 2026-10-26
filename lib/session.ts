@@ -2,8 +2,9 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 import { connection } from 'next/server';
 import { currentSandboxId } from './db';
+import { signingKey } from './signing';
 
-// Website login session: a small signed cookie, no database. The payload is signed with SESSION_SECRET (HMAC-SHA256),
+// Website login session: a small signed cookie, no database. The payload is signed with a key derived from SESSION_SECRET (HMAC-SHA256, lib/signing.ts),
 // so it can be read but not forged or edited. Logging out clears the cookie; otherwise it expires after 30 days.
 // Never put anything secret in it. It is readable by the browser's owner.
 
@@ -22,10 +23,7 @@ export interface Session {
   sandbox?: string;
 }
 
-function secret(): string | null {
-  const s = process.env.SESSION_SECRET;
-  return s && s.length >= 16 ? s : null;
-}
+const secret = () => signingKey('session');
 
 /** True when website login can work (a usable SESSION_SECRET plus Twitch app credentials). */
 export function loginConfigured(): boolean {
