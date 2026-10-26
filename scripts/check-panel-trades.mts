@@ -134,7 +134,7 @@ await db.runInSandbox(box.id, async () => {
   // Reversed by staff: the trade keeps its status and the panel gets a `reversed` flag.
   g = await call(req('GET'));
   ok(g.body.recent.every((t: { reversed: unknown }) => t.reversed === false), 'nothing is reversed yet');
-  ok((await trades.reverseTrade(askId, 'staff1', 'check')).ok, 'staff reverse the trade');
+  ok((await trades.reverseTrade(askId, { login: 'staff1', role: 'mod' }, 'check')).ok, 'staff reverse the trade');
   g = await call(req('GET'));
   const rev = g.body.recent.find((t: { id: string }) => t.id === askId);
   ok(rev && rev.reversed === true && rev.status === 'accepted', 'the reversed trade is flagged: ' + JSON.stringify(rev));

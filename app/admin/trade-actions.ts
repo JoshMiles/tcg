@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin-guard';
 import { requireStaff } from '@/lib/staff-guard';
+import { checkModerate } from '@/lib/staff';
 import { sanitizeTradeSettings } from '@/lib/trade-core';
 import { recordAudit } from '@/lib/audit';
 import { getSeason, getUserProfile, saveSeason } from '@/lib/kv';
@@ -81,8 +82,10 @@ export async function setSeasonTradingAction(seasonId: string, frozen: boolean):
 
 /** One-click "stop this viewer trading" from a flagged trade; their open offers are cancelled and refunded too. */
 export async function blockViewerTradingAction(username: string, reason: string): Promise<TradeActionResult> {
-  await requireStaff('mod'); // mods moderate trades too
+  const staff = await requireStaff('mod'); // mods moderate trades too
   const name = username.toLowerCase();
+  const allowed = await checkModerate(staff, [name], 'block-trading');
+  if (!allowed.ok) return { ok: false, message: allowed.error };
   const profile = await getUserProfile(name);
   await saveFlags(name, { noTrading: true, hideFromBoard: !!profile?.flags?.hideFromBoard, reason: reason.slice(0, 200) || 'Blocked from the Trades page' });
   const n = await cancelOpenTrades({ username: name }, 'Trading was turned off for a viewer in this offer');
@@ -94,8 +97,8 @@ export async function blockViewerTradingAction(username: string, reason: string)
 
 /** Cancels one open offer without redirecting (for the detail panel). */
 export async function cancelOneTradeAction(id: string): Promise<TradeActionResult> {
-  await requireStaff('mod'); // mods moderate trades too
-  const res = await cancelTrade(id, 'admin', { admin: true, reason: 'Cancelled by staff' });
+  const staff = await requireStaff('mod'); // mods moderate trades too
+  const res = await cancelTrade(id, 'admin', { admin: true, reason: 'Cancelled by staff', actor: staff });
   revalidatePath('/admin/trades');
   revalidatePath('/mod/trades');
   return res.ok ? { ok: true, message: 'Offer cancelled and the cards returned.' } : { ok: false, message: res.error };
@@ -103,8 +106,7 @@ export async function cancelOneTradeAction(id: string): Promise<TradeActionResul
 
 /** Staff put every print of a completed trade back where it started (all or nothing). A reason is required; both people are told. */
 export async function reverseTradeAction(id: string, reason: string): Promise<TradeActionResult> {
-  await requireStaff('mod'); // mods moderate trades too
-  const staff = (await currentStaffLogin()) ?? 'password';
+  const staff = await requireStaff('mod'); // mods moderate trades too; reverseTrade asks canModerate about both people
   const res = await reverseTrade(id, staff, reason);
   if (!res.ok) return { ok: false, message: res.error };
   const t = res.trade;

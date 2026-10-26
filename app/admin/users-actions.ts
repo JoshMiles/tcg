@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { requireStaff } from '@/lib/staff-guard';
+import { checkModerate } from '@/lib/staff';
 import { recordAudit } from '@/lib/audit';
 import { recordActivity } from '@/lib/activity';
 import { addCollectionEntryWithSerial, ensureUserProfile, getActiveSeasonWithPacks, getUserProfile, saveUserProfile } from '@/lib/kv';
@@ -21,15 +22,20 @@ const revalidate = (username?: string) => {
 };
 
 // Mods may use the three moderation actions (tags, restrictions, cancelling an offer); everything else here is admin only.
-export async function saveTagsAction(username: string, tags: string[]): Promise<string[]> {
-  await requireStaff('mod');
+// Each one asks canModerate (lib/staff-core.ts) first: nobody moderates themselves, mods can't act on staff or the streamer.
+export async function saveTagsAction(username: string, tags: string[]): Promise<UserActionResult & { tags?: string[] }> {
+  const staff = await requireStaff('mod');
+  const allowed = await checkModerate(staff, [username], 'tags');
+  if (!allowed.ok) return { ok: false, message: allowed.error };
   const clean = await saveTags(username, tags);
   revalidate(username);
-  return clean;
+  return { ok: true, message: 'Tags saved.', tags: clean };
 }
 
 export async function saveFlagsAction(username: string, flags: { noTrading: boolean; hideFromBoard: boolean; reason: string }): Promise<UserActionResult> {
-  await requireStaff('mod');
+  const staff = await requireStaff('mod');
+  const allowed = await checkModerate(staff, [username], 'flags');
+  if (!allowed.ok) return { ok: false, message: allowed.error };
   await saveFlags(username, flags);
   revalidate(username);
   revalidatePath('/leaderboard', 'layout');
@@ -89,8 +95,8 @@ export async function mergeUserAction(from: string, into: string): Promise<UserA
 
 /** Admin-cancels one of a viewer's open trade offers (the escrowed cards go back to their owner). */
 export async function cancelUserTradeAction(username: string, tradeId: string): Promise<UserActionResult> {
-  await requireStaff('mod');
-  const res = await cancelTrade(tradeId, 'admin', { admin: true, reason: 'Cancelled by staff' });
+  const staff = await requireStaff('mod');
+  const res = await cancelTrade(tradeId, 'admin', { admin: true, reason: 'Cancelled by staff', actor: staff });
   revalidate(username);
   revalidatePath('/admin/trades');
   revalidatePath('/mod/trades');
