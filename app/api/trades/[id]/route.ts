@@ -1,7 +1,7 @@
 import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { acceptTrade, cancelTrade, counterTrade, declineTrade } from '@/lib/trades';
-import { requireViewer, respond } from '@/lib/trade-api';
+import { parseGetIds, requireViewer, respond } from '@/lib/trade-api';
 import { buildSwap } from '@/lib/trade-notify';
 import { captchaGate } from '@/lib/captcha-server';
 import { NextResponse as Res } from 'next/server';
@@ -26,13 +26,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     switch (body.action) {
       case 'accept': {
         // Optional: the prints the taker picked for what the offer asks, { <collection entry>: [print ids] }. Absent = newest first.
-        let getIds: Record<string, string[]> | undefined;
-        if (body.getIds !== undefined && body.getIds !== null) {
-          const g = body.getIds as unknown;
-          const okShape = typeof g === 'object' && !Array.isArray(g) && Object.values(g as object).every(v => Array.isArray(v) && v.every(x => typeof x === 'string'));
-          if (!okShape) return NextResponse.json({ error: 'getIds must map each card to a list of edition ids' }, { status: 400 });
-          getIds = g as Record<string, string[]>;
-        }
+        const getIds = parseGetIds(body.getIds);
+        if (getIds === null) return NextResponse.json({ error: 'getIds must map each card to a list of edition ids' }, { status: 400 });
         const result = await acceptTrade(id, user, getIds);
         if (!result.ok) return respond(result);
         // What changed hands from the accepter's side, for the trade animation.

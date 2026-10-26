@@ -1054,3 +1054,15 @@ html, body {
 .tr-input:focus-visible, .tr-btn:focus-visible, .tr-step-btn:focus-visible, .tr-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .tr-alert { align-self: flex-start; padding: 1px 8px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #bae6fd; background: rgba(56, 189, 248, .14); border: 1px solid rgba(56, 189, 248, .5); border-radius: 999px; }
 .tr-input[readonly] { opacity: .75; cursor: not-allowed; }
+.tr-link { padding: 0; font-family: inherit; font-size: 10px; font-weight: 700; color: var(--accent); background: none; border: none; text-decoration: none; cursor: pointer; }
+.tr-link:hover { text-decoration: underline; }
+.tr-link:focus-visible, .tr-ed:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tr-actions.hidden { display: none; }
+.tr-pickbox { display: flex; flex-direction: column; gap: 4px; }
+.tr-eds { display: flex; flex-direction: column; gap: 4px; padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+.tr-eds-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tr-ed { padding: 2px 8px; font-family: inherit; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
+.tr-ed.on { color: var(--accent); border-color: var(--accent); }
+.tr-ed.bonus { box-shadow: inset 0 0 0 1px rgba(250, 204, 21, .45); }
+.tr-warn { margin: 0; color: #fcd34d; }
+.tr-recent-status.reversed { color: #fcd34d; }

@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason, getCollection } from '@/lib/kv';
 import { acceptTrade, cancelTrade, counterTrade, createTrade, declineTrade, getTradeSettings, sweepTrades, tradesForUser, listOpenTrades } from '@/lib/trades';
 import { firstMissing, type Trade } from '@/lib/trade-core';
-import { getTradeCards, getTradePools, poolsFor, stackPoints } from '@/lib/trade-view';
+import { getPrintPool, getTradeCards, getTradePools, poolsFor, stackPoints } from '@/lib/trade-view';
 import { extensionViewer } from '@/lib/twitch-viewer';
-import { respond } from '@/lib/trade-api';
+import { parseGetIds, respond } from '@/lib/trade-api';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { matchingAlerts } from '@/lib/watch-core';
 
@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
   if (!season || season.status === 'draft') return NextResponse.json({ error: 'No active season' }, { status: 404 });
   await sweepTrades(); // refund anything that ran out of time before listing it
 
-  const [settings, cards, mine, open, data, prefs] = await Promise.all([
-    getTradeSettings(), getTradeCards(season), tradesForUser(me), listOpenTrades(), getCollection(season.collectionName), getUserSettings(me),
+  const [settings, cards, mine, open, data, prefs, prints] = await Promise.all([
+    getTradeSettings(), getTradeCards(season), tradesForUser(me), listOpenTrades(), getCollection(season.collectionName), getUserSettings(me), getPrintPool(season, me),
   ]);
   const here = (list: Trade[]) => list.filter(t => t.seasonId === season.id);
   const incoming = here(mine.incoming);
@@ -48,6 +48,8 @@ export async function GET(req: NextRequest) {
       canTake: t.from !== me && firstMissing(owned, t.get) === null,
       // Gives a card from the viewer's Looking for list or one of their saved alerts.
       alert: t.kind === 'listing' && t.from !== me && isMatch(t),
+      // Staff reversed this completed trade (it keeps status 'accepted'): the panel says "Reversed by staff".
+      reversed: !!t.reversedAt,
     };
   };
 
@@ -57,6 +59,8 @@ export async function GET(req: NextRequest) {
     enabled: settings.enabled && !season.tradingFrozen,
     closedReason: !settings.enabled ? 'Trading is paused right now.' : season.tradingFrozen ? 'Trading is closed for this season.' : null,
     limits: { maxStacks: settings.maxStacksPerSide, maxOpen: settings.maxOpenPerUser, expiryHours: settings.expiryHours },
+    // The viewer's own editions by collection entry ({ id, n: edition number, uid? }, lowest first), so they can pick which ones move; {} while editions are not numbered.
+    prints,
     incoming: incoming.map(view),
     outgoing: outgoing.map(view),
     board: board.map(view),
@@ -64,7 +68,10 @@ export async function GET(req: NextRequest) {
   });
 }
 
-/** Make an offer, or answer / cancel one. Body: { action: 'create' | 'accept' | 'decline' | 'cancel' | 'counter', ... }. */
+/**
+ * Make an offer, or answer / cancel one. Body: { action: 'create' | 'accept' | 'decline' | 'cancel' | 'counter', ... }.
+ * `give` items may carry `ids` (exact edition ids, ROADMAP 6.4) and accept may carry `getIds`; both are checked by the engine.
+ */
 export async function POST(req: NextRequest) {
   const viewer = await extensionViewer(req);
   if ('response' in viewer) return viewer.response;
@@ -85,7 +92,12 @@ export async function POST(req: NextRequest) {
           note: typeof body.note === 'string' ? body.note : undefined,
         }));
       }
-      case 'accept': return respond(await acceptTrade(id, me));
+      case 'accept': {
+        // Optional: the editions the viewer picked for what the offer asks, { <collection entry>: [edition ids] } (absent = newest first).
+        const getIds = parseGetIds(body.getIds);
+        if (getIds === null) return NextResponse.json({ error: 'getIds must map each card to a list of edition ids' }, { status: 400 });
+        return respond(await acceptTrade(id, me, getIds));
+      }
       case 'decline': return respond(await declineTrade(id, me));
       case 'counter': return respond(await counterTrade(id, me, { give: body.give, get: body.get, note: typeof body.note === 'string' ? body.note : undefined }));
       case 'cancel': return respond(await cancelTrade(id, me));
