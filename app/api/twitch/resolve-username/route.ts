@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveTwitchLogin, twitchCredentials } from '@/lib/twitch-helix';
+import { limitTwitch } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const userId = req.nextUrl.searchParams.get('userId');
 
   if (!userId || !/^\d+$/.test(userId)) {

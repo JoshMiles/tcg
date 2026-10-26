@@ -3,12 +3,15 @@ import { listSeasons, getCollection } from '@/lib/kv';
 import { getSession } from '@/lib/session';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { extensionViewer } from '@/lib/twitch-viewer';
+import { limitTwitch } from '@/lib/rate-limit';
 
 // Returns the viewer's owned card numbers across every published season.
 // Shape allows the panel to show per-season indicators on cards.
 // A private or admin-hidden profile gets its cards only when the caller is that viewer (extension token or website session); anyone else
 // gets the same shape with no collections, so an old panel still loads.
 export async function GET(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const username = req.nextUrl.searchParams.get('username')?.toLowerCase().trim();
   if (!username) {
     return NextResponse.json({ error: 'username required' }, { status: 400 });

@@ -3,12 +3,15 @@ import { saveTwitchOpaqueUser } from '@/lib/kv';
 import { bindAccount } from '@/lib/account-bind';
 import { verifyExtensionAuth, getBearerToken, getTwitchUserId } from '@/lib/twitch-jwt';
 import { resolveTwitchLogin, twitchCredentials } from '@/lib/twitch-helix';
+import { limitTwitch } from '@/lib/rate-limit';
 
 // POST /api/twitch/login
 // Verifies the Extension JWT, works out the viewer's Twitch user ID (shared identity, or the
 // channel owner), resolves the username via Helix,
 // saves the opaque→username mapping, and creates the user profile if needed.
 export async function POST(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const token = getBearerToken(req);
   if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 401 });
 

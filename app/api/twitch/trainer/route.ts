@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extensionViewer } from '@/lib/twitch-viewer';
 import { useTrainerCard } from '@/lib/buffs';
+import { limitTwitch } from '@/lib/rate-limit';
 
 // Use a trainer card: spends one Regular edition and starts its buff. The viewer is identified by the signed Extension JWT
 // (opaque ID -> linked username), never by anything in the body; every rule lives in useTrainerCard (the website uses it too).
 export async function POST(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const viewer = await extensionViewer(req);
   if ('response' in viewer) return viewer.response;
 

@@ -4,12 +4,15 @@ import { verifyExtensionAuth, getBearerToken } from '@/lib/twitch-jwt';
 import { upgradeCard } from '@/lib/upgrade';
 import { VARIANTS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
+import { limitTwitch } from '@/lib/rate-limit';
 
 const DEV_OPAQUE_ID = 'dev_mock_opaque';
 
 // Spend duplicates of one card variant for the next variant up. The viewer is identified by the signed
 // Extension JWT (opaque ID → linked username), never by anything in the body.
 export async function POST(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const token = getBearerToken(req);
   if (!token) return NextResponse.json({ error: 'Missing authorization token' }, { status: 401 });
 

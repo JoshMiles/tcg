@@ -8,6 +8,7 @@ import { parseGetIds, respond } from '@/lib/trade-api';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { matchingAlerts } from '@/lib/watch-core';
 import { getStaffBadges } from '@/lib/staff-badge';
+import { limitTwitch } from '@/lib/rate-limit';
 
 const BOARD_MAX = 30;
 const RECENT_MAX = 8;
@@ -17,6 +18,8 @@ const RECENT_MAX = 8;
 
 /** Everything the panel's Trades tab shows: offers for the viewer, their own open offers, the open board and recent results. */
 export async function GET(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const viewer = await extensionViewer(req);
   if ('response' in viewer) return viewer.response;
   const me = viewer.username;
@@ -78,6 +81,8 @@ export async function GET(req: NextRequest) {
  * `give` items may carry `ids` (exact edition ids, ROADMAP 6.4) and accept may carry `getIds`; both are checked by the engine.
  */
 export async function POST(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const viewer = await extensionViewer(req);
   if ('response' in viewer) return viewer.response;
   const me = viewer.username;

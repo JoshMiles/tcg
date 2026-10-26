@@ -1,10 +1,13 @@
-import { NextResponse, connection } from 'next/server';
+import { NextRequest, NextResponse, connection } from 'next/server';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { cardThumbUrl } from '@/lib/card-art';
 import { allowedVariants } from '@/lib/variants';
 import { getHoloResolver } from '@/lib/holo';
+import { limitTwitch } from '@/lib/rate-limit';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   await connection();
   const result = await getActiveSeasonWithPacks();
   if (!result) {

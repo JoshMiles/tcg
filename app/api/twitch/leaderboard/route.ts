@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason, getSeason } from '@/lib/kv';
 import { getSeasonLeaderboard } from '@/lib/leaderboard';
 import { getStaffBadges } from '@/lib/staff-badge';
+import { limitTwitch } from '@/lib/rate-limit';
 
 
 // Public per-season leaderboard for the Twitch panel. `seasonId` defaults to the active season;
 // `username` adds that viewer's own rank even when they're outside the top entries.
 export async function GET(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const seasonId = req.nextUrl.searchParams.get('seasonId');
   const me = req.nextUrl.searchParams.get('username')?.toLowerCase().trim();
 

@@ -1,6 +1,6 @@
 # Hosting, environment, backups and data health
 
-> Read this when you touch deployment, environment variables, the build stamp, nightly backups, data health or measuring site speed.
+> Read this when you touch deployment, environment variables, the build stamp, nightly backups, data health, rate limits or measuring site speed.
 
 ## Environment variables
 | Variable | Purpose |
@@ -57,6 +57,32 @@ The project's **first scheduled job**: Vercel Cron (`vercel.json`, 04:00 UTC) ca
 - **CSP trial (security audit X-1):** the website's pages (not `/api`, the overlay or the panel) send `Content-Security-Policy-Report-Only`, so nothing is blocked. Violations are posted to `/api/csp-report` (`app/api/csp-report/route.ts`), which writes one `csp-violation` log line each (directive, blocked URI, page, source file), drops bodies over 8 KB and logs at most 60 a minute per server instance. Nothing is stored in KV.
 - **Reading the reports:** Vercel -> the `tcg` project -> Logs (Production), search `csp-violation`. A real page that violates the policy shows its own URL in `page`; ignore `blocked` values of `eval`, `inline` or `chrome-extension://` from one-off visitors (browser extensions cause most noise). A week with no violations from real pages means the policy is ready.
 - **Switching to enforcing:** in `securityHeaderRules()` change the key `Content-Security-Policy-Report-Only` to `Content-Security-Policy`, update the two assertions in the check that insist it stays report-only, and deploy to a Preview first. `script-src` still has `'unsafe-inline'` (Next.js hydration scripts); dropping it needs nonces. A violation seen in the logs means adding that host to the matching directive in `cspPolicy()`.
+
+## Rate limits
+One limiter, `lib/rate-limit.ts`: `rateLimit(name, key, max, windowS)` counts each call with an `INCR` on `rl:<name>:<key>` and starts the window with `EXPIRE` on the first call (a fixed window; one KV command per call, two on the first of a window), and says whether the call is allowed. Counts live in the production namespace (`prodKv`; on a preview deployment, its own), so a sandbox cookie or header never starts a fresh count. The caller is `clientIp` (`x-real-ip`, else the right-most `x-forwarded-for` entry). The route guards fail open: if the counter itself errors, the call goes through. A limited call answers **429** with `{ "error": "..." }` and a `Retry-After` header; the panel's existing JSON keys are untouched.
+
+| Where | Name and key | Limit | Why this number |
+|-------|--------------|-------|-----------------|
+| `POST /api/auth/login` (wrong passwords only) | `login-fails` per address, `login-fails-hour` for the site | 10 per 15 minutes per address, 20 per clock hour in all (`lib/login-limit.ts`, see docs/staff.md) | Unchanged by the shared limiter |
+| `/api/webhooks/*` (incoming Mix It Up calls, and the overlay's queue and notify calls) | `webhooks` per address | 600 per minute | The overlay asks for events every 2 seconds (30 a minute) and a busy stream sends a few triggers a second at most |
+| `/api/twitch/*` (the panel) | `twitch` per address | 300 per minute | A panel makes a handful of calls when opened and one per button press |
+
+The guard is the first line of each handler (`limitWebhook` / `limitTwitch`; for the secret-checked webhooks it sits inside `parseIncomingWebhook`), so a refused call costs one KV command and never reads the body. A new webhook or panel route must call it too. Change a limit in `lib/rate-limit.ts` and in this table together; `scripts/check-rate-limit.mts` covers the helper, the login numbers and both route families.
+
+### Vercel Firewall trial (log only, one week)
+The limits above are in code. The Vercel Firewall can watch the same paths in front of the functions, but it is only worth keeping if it never flags real traffic, so first run it in log-only mode. This cannot be done from code: set it up in the dashboard (Project `tcg` → Firewall → Configure → Custom Rules → Add New Rule, rule type Rate Limit). Make three rules, each keyed on IP address, fixed window 60 seconds, action **Log** (not Deny, not Challenge):
+
+| Rule name | If the request path | Requests per 60 s |
+|-----------|---------------------|-------------------|
+| `trial-login` | equals `/api/auth/login` | 30 |
+| `trial-webhooks` | starts with `/api/webhooks/` | 1200 |
+| `trial-panel` | starts with `/api/twitch/` | 600 |
+
+Each number is double what the app allows itself, so the in-app limiter still acts first and the firewall only logs. Publish the changes, then leave them for one week that includes at least a few streams. Check Firewall → Traffic, filtered by each rule name, after the first stream and at the end of the week.
+
+- **Success:** no real overlay, panel or webhook traffic is flagged. The overlay's 2-second poll, Mix It Up triggers and a panel opening on a busy stream stay under every rule, and only the login rule ever fires, from someone guessing at it.
+- **If real traffic is flagged:** raise that rule's number, or drop the rule, and run another week. Do not switch any rule to Deny while real traffic shows up in the log.
+- **After a clean week:** either delete the three rules (the in-app limiter is enough) or switch them to Deny with the same numbers. Delete the trial rules you do not keep.
 
 ## Measuring site speed
 - **Field numbers** come from Speed Insights through the Vercel MCP: `create_observability_query` on `vercel.speed_insights.*`, grouped by route and device. Only busy routes (home) collect enough samples over 30 days to read.

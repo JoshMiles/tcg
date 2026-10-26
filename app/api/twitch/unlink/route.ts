@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteTwitchOpaqueUser } from '@/lib/kv';
 import { verifyExtensionAuth, getBearerToken } from '@/lib/twitch-jwt';
+import { limitTwitch } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const token = getBearerToken(req);
   if (!token) {
     return NextResponse.json({ error: 'Missing authorization token' }, { status: 401 });
