@@ -90,7 +90,7 @@ export async function inSandbox(): Promise<boolean> {
 /** Commands whose first argument is a key (`del` takes several keys and is handled on its own below). Anything else is refused rather than risk an un-prefixed key. */
 const KEY_FIRST = new Set([
   'get', 'set', 'getset', 'getdel', 'incr', 'incrby', 'decr', 'exists', 'expire', 'ttl',
-  'hget', 'hset', 'hsetnx', 'hgetall', 'hdel', 'hincrby', 'hexists', 'hlen',
+  'hget', 'hmget', 'hset', 'hsetnx', 'hgetall', 'hdel', 'hincrby', 'hexists', 'hlen',
   'lpush', 'rpush', 'lpop', 'rpop', 'lrange', 'ltrim', 'llen',
   'sadd', 'srem', 'smembers', 'sismember', 'scard',
 ]);
@@ -141,6 +141,7 @@ export const kv: Kv = new Proxy(fenced, {
     return async (...args: unknown[]) => {
       const id = await currentSandboxId();
       if (id === null) return (orig as (...a: unknown[]) => unknown).apply(target, args);
+      if (prop === 'mget') return (orig as (...a: unknown[]) => unknown).apply(target, args.flat().map(k => prefixed(id, k)));
       if (prop === 'del') return (orig as (...a: unknown[]) => unknown).apply(target, args.map(k => prefixed(id, k)));
       if (prop === 'eval') return (orig as (...a: unknown[]) => unknown).apply(target, [args[0], (args[1] as unknown[]).map(k => prefixed(id, k)), ...args.slice(2)]); // (script, keys, argv): only the keys are namespaced
       if (!KEY_FIRST.has(prop.toLowerCase())) throw new Error(`kv.${prop} is not supported by the namespaced client`);

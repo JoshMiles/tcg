@@ -5,7 +5,7 @@
 // The last run is saved in `acct:helixcheck` (replaced each run) and shown on Data health.
 
 import { inSandbox, kv } from './db';
-import { getAllCollectionUsers, getUserProfile } from './kv';
+import { getAllCollectionUsers, getUserProfile, getUserProfiles } from './kv';
 import { IDS } from './account-id';
 import { cardsOf, moveAccount } from './account-move';
 import { isTwitchId } from './staff-core';
@@ -49,8 +49,8 @@ export async function runAccountCheck(opts: CheckOpts = {}, now = Date.now()): P
     const byId = new Map<string, string>(); // Twitch ID -> the login holding its profile (the registry wins if two profiles claim one ID)
     for (let i = 0; i < logins.length; i += BATCH) {
       const part = logins.slice(i, i + BATCH);
-      const profiles = await Promise.all(part.map(l => getUserProfile(l)));
-      profiles.forEach((p, j) => { if (p && isTwitchId(p.twitchId) && (!byId.has(p.twitchId) || reg[p.twitchId] === part[j])) byId.set(p.twitchId, part[j]); });
+      const profiles = await getUserProfiles(part);
+      for (const l of part) { const p = profiles.get(l); if (p && isTwitchId(p.twitchId) && (!byId.has(p.twitchId) || reg[p.twitchId] === l)) byId.set(p.twitchId, l); }
     }
     for (const [id, login] of byId) if (!(id in reg)) await kv.hsetnx(IDS, id, login); // profiles from before the registry existed
     out.checked = byId.size;

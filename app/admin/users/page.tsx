@@ -1,6 +1,6 @@
 import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
-import { getAllCollectionUsers, getUserProfile, listSeasons, getPackCards, getPacksForSeason } from '@/lib/kv';
+import { getAllCollectionUsers, getUserProfiles, listSeasons, getPackCards, getPacksForSeason } from '@/lib/kv';
 import { uniqueCount } from '@/lib/collection';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { getActivity } from '@/lib/activity';
@@ -31,12 +31,11 @@ export default async function UsersPage() {
   ]);
   const active = seasons.find(s => s.active && s.status === 'published') ?? null;
 
-  const [profiles, avatars, board] = await Promise.all([
-    Promise.all(users.map(u => getUserProfile(u.username))),
+  const [profileMap, avatars, board] = await Promise.all([
+    getUserProfiles(users.map(u => u.username)),
     getAvatars(users.map(u => u.username)),
     active ? getSeasonLeaderboard(active).catch((): null => null) : Promise.resolve(null),
   ]);
-  const profileMap = Object.fromEntries(profiles.filter(Boolean).map(p => [p!.username, p!]));
   const scoreRows = new Map((board?.rows ?? []).map((r, i) => [r.username, { score: r.score, rank: i + 1 }]));
 
   // The cards a season can be completed with: the same set the leaderboard uses (draft packs are never drawn, so their cards don't count).
@@ -63,7 +62,7 @@ export default async function UsersPage() {
       return { id: us.id, name: us.name, owned, total, pct: total > 0 ? Math.round((owned / total) * 100) : 0 };
     });
     const primary = withPct.find(w => w.id === active?.id) ?? [...withPct].sort((a, b) => b.pct - a.pct)[0];
-    const profile = profileMap[user.username];
+    const profile = profileMap.get(user.username);
     const score = scoreRows.get(user.username);
     return {
       username: user.username,
