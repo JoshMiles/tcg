@@ -13,7 +13,7 @@ const VIEW_LABEL: Record<ViewKind, string> = { panel: 'Panel (under the video)',
  * video_component.html) loaded in an iframe with a pretend Twitch helper (public/twitch-panel/mock-twitch-ext.js). Everything it does
  * goes through the real API routes, inside the sandbox you are in: log in, upgrade, leaderboard, logout.
  */
-export function FakeTwitch({ sandboxId, users, channel }: { sandboxId: string; users: string[]; channel: string }) {
+export function FakeTwitch({ sandboxId, overlaySrc, users, channel }: { sandboxId: string; overlaySrc: string | null; users: string[]; channel: string }) {
   const [who, setWho] = useState<Who>({ kind: 'anon' });
   const [view, setView] = useState<ViewKind>('panel');
   const [shared, setShared] = useState(false);       // identity already shared (carried across reloads for the same viewer)
@@ -118,7 +118,7 @@ export function FakeTwitch({ sandboxId, users, channel }: { sandboxId: string; u
                 <span className="text-5xl"><Icon name="gamepad" className="w-12 h-12" /></span>
                 <span className="mt-2 text-sm font-semibold">{channel}, pretend stream</span>
               </div>
-              {showOverlay && <iframe title="Overlay" src={`/overlay.html?sandbox=${encodeURIComponent(sandboxId)}`} style={{ colorScheme: 'light' }} className="absolute inset-0 w-full h-full border-0" />}
+              {showOverlay && overlaySrc && <iframe title="Overlay" src={overlaySrc} style={{ colorScheme: 'light' }} className="absolute inset-0 w-full h-full border-0" />}
               <span className="absolute top-2 left-2 bg-red-600 text-white text-[11px] font-black rounded-sm px-1.5 py-0.5 tracking-wide">LIVE</span>
               {view === 'video' && src && (
                 <iframe title="Extension (video component)" src={src} className="absolute top-3 right-3 w-[34%] h-[78%] border-0 rounded-lg shadow-2xl" />

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { prodKv, SANDBOX_REGISTRY_KEY, RESERVED_IDS, PREVIEW_ID, forgetSandboxCache } from './db';
 
 // Sandboxes: isolated copies of the app's data for testing (upgrades, and later trading) without touching production.
@@ -49,11 +50,12 @@ async function saveRegistry(list: Sandbox[]) {
 /** A URL-safe id from a name, unique among existing sandboxes. */
 export function makeId(name: string, takenIds: string[]): string {
   const taken = [...takenIds, ...RESERVED_IDS]; // a reserved id (the preview namespace) can never be handed out
-  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20).replace(/-+$/g, '') || 'sandbox';
-  const padded = base.length < 3 ? `${base}-box` : base;
-  if (!taken.includes(padded)) return padded;
-  for (let i = 2; i < 100; i++) { const id = `${padded.slice(0, 18)}-${i}`; if (!taken.includes(id)) return id; }
-  return `${padded.slice(0, 14)}-${Math.random().toString(36).slice(2, 8)}`;
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 16).replace(/-+$/g, '') || 'sandbox';
+  // Readable slug plus a random base36 suffix, so an id can't be guessed from the name.
+  for (;;) {
+    const id = `${base}-${randomBytes(6).readUIntBE(0, 6).toString(36).padStart(6, '0').slice(-6)}`;
+    if (!taken.includes(id)) return id;
+  }
 }
 
 /** Copies one production key into the sandbox. Missing keys are skipped. */

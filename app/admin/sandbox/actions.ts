@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { SANDBOX_COOKIE, isPreview } from '@/lib/db';
+import { signSandboxId, verifySandboxToken } from '@/lib/sandbox-token';
 import { createSandbox, deleteSandbox, getSandbox, resetSandbox, resetTestData, setSandboxExpiry, touchSandbox, type SandboxSource } from '@/lib/sandbox';
 import { logEvent, undoLast, withUndo } from '@/lib/sandbox-log';
 import { applyScenario, SCENARIOS, type ScenarioId } from '@/lib/sandbox-scenarios';
@@ -28,6 +29,13 @@ async function admin() {
 }
 
 const COOKIE_OPTS = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', maxAge: 60 * 60 * 24 * 30 };
+
+/** Puts this browser in the sandbox: the cookie holds the signed token (lib/sandbox-token.ts), which needs SESSION_SECRET. */
+async function setSandboxCookie(id: string) {
+  const token = signSandboxId(id);
+  if (!token) redirect(`/admin/sandbox?err=${encodeURIComponent('Entering a sandbox needs SESSION_SECRET to be set.')}`);
+  (await cookies()).set(SANDBOX_COOKIE, token, COOKIE_OPTS);
+}
 
 /**
  * Runs one tool action: admin check, the sandbox must exist (a missing id would otherwise write into a dead namespace),
@@ -58,7 +66,7 @@ export async function createSandboxAction(formData: FormData) {
   }
   await logEvent(sandbox.id, 'Sandbox created', `From: ${source}`);
   await runInSandbox(null, () => notifySystem({ title: '🧪 Sandbox created', text: `**${escapeMd(sandbox.name)}**, from ${source}`, tone: 'info' }));
-  (await cookies()).set(SANDBOX_COOKIE, sandbox.id, COOKIE_OPTS); // creating one drops you straight into it
+  await setSandboxCookie(sandbox.id); // creating one drops you straight into it
   revalidatePath('/admin', 'layout');
   redirect(`/admin/sandbox/${sandbox.id}?msg=${encodeURIComponent('Sandbox created. You are now in it: nothing you do here reaches production.')}`);
 }
@@ -66,7 +74,7 @@ export async function createSandboxAction(formData: FormData) {
 export async function enterSandboxAction(id: string) {
   await admin();
   if (!(await getSandbox(id))) return redirect('/admin/sandbox');
-  (await cookies()).set(SANDBOX_COOKIE, id, COOKIE_OPTS);
+  await setSandboxCookie(id);
   await touchSandbox(id);
   revalidatePath('/admin', 'layout');
   redirect(`/admin/sandbox/${id}`);
@@ -97,7 +105,7 @@ export async function deleteSandboxAction(id: string) {
   await deleteSandbox(id);
   if (gone) await runInSandbox(null, () => notifySystem({ title: '🧪 Sandbox deleted', text: `**${escapeMd(gone.name)}**`, tone: 'info' }));
   const jar = await cookies();
-  if (jar.get(SANDBOX_COOKIE)?.value === id) { jar.delete(SANDBOX_COOKIE); jar.delete(SESSION_COOKIE); }
+  if (verifySandboxToken(jar.get(SANDBOX_COOKIE)?.value) === id) { jar.delete(SANDBOX_COOKIE); jar.delete(SESSION_COOKIE); }
   revalidatePath('/admin', 'layout');
   redirect('/admin/sandbox');
 }
@@ -194,9 +202,8 @@ export async function loginAsAction(id: string, username: string) {
   const user = cleanTestUsername(username);
   const token = signSession({ username: user, twitchId: `sandbox-${user}`, displayName: user, sandbox: id });
   if (!token) return back(id, 'Logging in as a test user needs SESSION_SECRET to be set.', 'error', 'users');
-  const jar = await cookies();
-  jar.set(SANDBOX_COOKIE, id, COOKIE_OPTS);
-  jar.set(SESSION_COOKIE, token, sessionCookieOptions());
+  await setSandboxCookie(id);
+  (await cookies()).set(SESSION_COOKIE, token, sessionCookieOptions());
   await touchSandbox(id);
   redirect('/account');
 }

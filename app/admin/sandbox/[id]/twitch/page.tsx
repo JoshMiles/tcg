@@ -1,7 +1,9 @@
 import { Icon } from '@/app/components/Icon';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { currentSandboxId, isPreview } from '@/lib/db';
+import { currentSandboxId, isPreview, runInSandbox } from '@/lib/db';
+import { getOverlayKey } from '@/lib/overlay-key';
+import { signSandboxId } from '@/lib/sandbox-token';
 import { PreviewOff } from '../../PreviewOff';
 import { getSandbox } from '@/lib/sandbox';
 import { listSandboxUsers } from '@/lib/sandbox-tools';
@@ -22,6 +24,8 @@ export default async function FakeTwitchPage({ params }: { params: Promise<{ id:
   if (!sandbox) notFound();
   const here = (await currentSandboxId()) === id;
   const users = here ? (await listSandboxUsers(id)).map(u => u.username) : [];
+  const token = signSandboxId(id);
+  const overlaySrc = here && token ? `/overlay.html?sandbox=${token}&key=${await runInSandbox(id, getOverlayKey)}` : null;
 
   return (
     <div className="space-y-5">
@@ -35,7 +39,7 @@ export default async function FakeTwitchPage({ params }: { params: Promise<{ id:
         </p>
       </div>
       {here ? (
-        <FakeTwitch sandboxId={id} users={users} channel={CHANNEL_NAME} />
+        <FakeTwitch sandboxId={id} overlaySrc={overlaySrc} users={users} channel={CHANNEL_NAME} />
       ) : (
         <div className="rounded-2xl border border-purple-500/30 bg-purple-950/20 p-6 space-y-3">
           <p className="text-sm text-gray-300">Enter this sandbox first: the panel reads and writes whichever sandbox this browser is in, so it can never touch production.</p>

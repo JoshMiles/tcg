@@ -18,8 +18,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
-| 45 | Held security fixes and asset deletion (45.1) | Ready, first | S to M |
-| 34 | Next extension version 0.0.2 (34.8; 34.6b after) | Ready after 45 | S |
+| 34 | Next extension version 0.0.2 (34.8; 34.6b after) | Ready | S |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
 | 43.4 | Bring the other packages up to date | Done | S |
@@ -101,16 +100,12 @@ The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34
 
 **34.6b Pack card back in the panel (Ready after 0.0.2, M).** Left out of 0.0.2 (Josh, 2026-10-26); when 34.8 closes the track, move this to the next panel version's track. The rest of 34.6 is merged. The panel has no flip card, and the pack card back exists only as layout nodes (`layoutBack`), the React `FlipCard` and the vanilla port in `public/widget.js`; there is no image form. Options when it is picked up: a server-rendered back image route the panel shows (also usable for share images), or port the `widget.js` renderer into the panel. Testers get no badge next to names on the site either, so the panel shows only streamer, admin and mod.
 
-**34.8 Release (Ready after Track 45, S).** From the 44.4 audit (`docs/archive/audit-2026-twitch-panel.md`): M-5 (a visible off-site marker on every `target=_blank` link, one CSS rule, and twitch-panel Changes 4 so the zip check enforces it), M-6 (rewrite `twitch-extension/SUBMISSION.md` for 0.0.2: details, change log, source note, size), M-7 (Allowlist for Panel URLs: `https://cheesytcg.app/`), L-1 (one walkthrough paragraph on how trade notes are moderated), and M-1 (a JWT refresh swaps the token only, so a viewer writing an offer is not sent back to Collection). Then rebuild the zip (`node scripts/build-twitch-package.mjs`, gives `cheesy-tcg-panel-v0.0.2.zip`), refresh screenshots, move 34.6b to the next panel version's track, and remove Track 34. Check Twitch's CSP against the `data:` SVG masks in Hosted Test. A new freeze starts at submission (ask Josh).
+**34.8 Release (Ready, S).** From the 44.4 audit (`docs/archive/audit-2026-twitch-panel.md`): M-5 (a visible off-site marker on every `target=_blank` link, one CSS rule, and twitch-panel Changes 4 so the zip check enforces it), M-6 (rewrite `twitch-extension/SUBMISSION.md` for 0.0.2: details, change log, source note, size), M-7 (Allowlist for Panel URLs: `https://cheesytcg.app/`), L-1 (one walkthrough paragraph on how trade notes are moderated), and M-1 (a JWT refresh swaps the token only, so a viewer writing an offer is not sent back to Collection). Then rebuild the zip (`node scripts/build-twitch-package.mjs`, gives `cheesy-tcg-panel-v0.0.2.zip`), refresh screenshots, move 34.6b to the next panel version's track, and remove Track 34. Check Twitch's CSP against the `data:` SVG masks in Hosted Test. A new freeze starts at submission (ask Josh).
 
 
 ## Audit follow-up (2026-10-26)
 
-Tracks 45 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 45, 34.8, then 46, 47, 48; 49 to 52 fit in between. One item per PR unless it says otherwise.
-
-### Track 45: held security fixes and asset deletion (Ready, do first)
-The details of 45.1 to 45.3 are in the gitignored `SECRETS.md` at the main checkout (Opus hands them to the agent in its brief). The repo is public: the PR title, body, commit messages and changelog line describe the fix, never how it could be abused, and the finding stays out of every public file until it is merged.
-- **45.1 Sandbox entry and the overlay key (S to M).** SECRETS 44.2 S-1 and 44.5 S-1 (also CODE_REVIEW #8, security C-4). Add a check-file case that fails before the fix.
+Tracks 46 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 34.8, then 46, 47, 48; 49 to 52 fit in between. One item per PR unless it says otherwise.
 
 ### Track 46: data correctness (Ready)
 - **46.1 Lock release (S).** public-site M-1 (admin C-3, CODE_REVIEW #18): compare-and-delete in one script.
