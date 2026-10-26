@@ -18,13 +18,18 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
-| 34 | Next extension version 0.0.2 (34.8; 34.6b after) | Ready after 44.4 | S |
+| 45 | Held security fixes and asset deletion (45.1 to 45.4) | Ready, first | S to M |
+| 34 | Next extension version 0.0.2 (34.8; 34.6b after) | Ready after 45 | S |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
 | 43.4 | Bring the other packages up to date | Done | S |
 | 43.5 | Move to TypeScript 7 | Done | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Ready | S |
-| 44 | Full review and audit: public site, admin, mod panel, Twitch panel, security review (44.1 to 44.6) | Ready | L |
+| 46 | Data correctness (46.1 to 46.7) | Ready | S to M |
+| 47 | Access hardening (47.1 to 47.8) | Ready (47.8 needs a decision) | M |
+| 48 | KV efficiency (48.1 to 48.5) | Ready | M |
+| 49 | Mod panel UI and cleanup (49.1 to 49.5) | Ready | S |
+| 50 | Features and trials (50.1 to 50.7) | Ready (50.4 needs design) | M |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -94,57 +99,63 @@ The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34
 
 **34.6b Pack card back in the panel (Ready after 0.0.2, M).** Left out of 0.0.2 (Josh, 2026-10-26); when 34.8 closes the track, move this to the next panel version's track. The rest of 34.6 is merged. The panel has no flip card, and the pack card back exists only as layout nodes (`layoutBack`), the React `FlipCard` and the vanilla port in `public/widget.js`; there is no image form. Options when it is picked up: a server-rendered back image route the panel shows (also usable for share images), or port the `widget.js` renderer into the panel. Testers get no badge next to names on the site either, so the panel shows only streamer, admin and mod.
 
-**34.8 Release (Ready after 44.4, S).** First fold in the 44.4 audit's critical and high findings and anything Twitch's review would reject, plus anything Twitch reviewers asked for; then rebuild the zip as `cheesy-tcg-panel-v0.0.2.zip`, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. A new freeze starts at submission.
+**34.8 Release (Ready after Track 45, S).** From the 44.4 audit (`docs/archive/audit-2026-twitch-panel.md`): M-5 (a visible off-site marker on every `target=_blank` link, one CSS rule, and twitch-panel Changes 4 so the zip check enforces it), M-6 (rewrite `twitch-extension/SUBMISSION.md` for 0.0.2: details, change log, source note, size), M-7 (Allowlist for Panel URLs: `https://cheesytcg.app/`), L-1 (one walkthrough paragraph on how trade notes are moderated), and M-1 (a JWT refresh swaps the token only, so a viewer writing an offer is not sent back to Collection). Then rebuild the zip (`node scripts/build-twitch-package.mjs`, gives `cheesy-tcg-panel-v0.0.2.zip`), refresh screenshots, move 34.6b to the next panel version's track, and remove Track 34. Check Twitch's CSP against the `data:` SVG masks in Hosted Test. A new freeze starts at submission (ask Josh).
 
 
-## Track 44: full review and audit (2026-10-26)
+## Audit follow-up (2026-10-26)
 
-A read-and-judge pass over every page and system, one area per PR, each ending in a ranked findings list and a set of proposals, both of which can become roadmap items. Nothing is fixed during an audit (a one-line bug fix may be, and says so). Opus runs it (Explore subagents for wide sweeps, Haiku for the sweep scripts); Josh decides which findings become work.
+Tracks 45 to 50 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Order: 45, 34.8, then 46, 47, 48; 49 and 50 fit in between. One item per PR unless it says otherwise.
 
-**How every area is audited.** Run it against the review seed and the page sweeps in `docs/review.md` (mock KV only, never production), read the code each page and route calls, and read the area docs. Start from `docs/CODE_REVIEW.md` (2026-10-18): mark each of its findings in that area fixed, still open or no longer relevant. For every page and system, report:
-- **Bugs and broken flows:** what a user can do that goes wrong, with the steps.
-- **Security and privacy:** who can read or change what (private profiles, staff roles, the extension JWT, rate limits, inputs at every trust boundary).
-- **Efficiency:** KV reads per request, waterfalls, uncached shared data, bundle and client-component weight, work done on every request that could be done once; with the numbers the sweep or a quick measure gives.
-- **UI and UX fixes:** confusing flows, copy that breaks the conventions (glossary words, no em dashes, `CHANNEL_NAME`), accessibility, mobile at 375px, missing empty and error states.
-- **Code to delete or merge:** dead code, duplicate helpers, docs that no longer match the code.
+### Track 45: held security fixes and asset deletion (Ready, do first)
+The details of 45.1 to 45.3 are in the gitignored `SECRETS.md` at the main checkout (Opus hands them to the agent in its brief). The repo is public: the PR title, body, commit messages and changelog line describe the fix, never how it could be abused, and the finding stays out of every public file until it is merged.
+- **45.1 Sandbox entry and the overlay key (S to M).** SECRETS 44.2 S-1 and 44.5 S-1 (also CODE_REVIEW #8, security C-4). Add a check-file case that fails before the fix.
+- **45.2 Staff sign-in bookkeeping writes (S).** SECRETS 44.3 S-1. Add a `scripts/check-staff.mts` case that fails before the fix.
+- **45.3 Emergency password login limit (S).** SECRETS 44.5 S-2 (with public-site L-2).
+- **45.4 Assets "Delete all unused" deletes files in use (S to M).** admin A-1 with U-1: `collectReferenced` learns every kind of stored file (backups, Full Art art, card backs, overlay layer images), the confirm lists files by folder and kind, and nothing under `backups/` is ever bulk deleted. Until it ships, don't use the button.
 
-Then, for each area, **propose** (ideas, not defects, so no severity):
-- **Changes:** behaviour that works but should work differently, with the reason.
-- **Feature improvements:** ways to make existing features better for players, staff or the stream (what it adds, who it helps, rough size).
-- **Experimental features:** new ideas worth a trial, each with how to try it cheaply (behind a setting, staff-only, one season) and what would show it worked.
-- **UI and UX improvements:** layout, navigation, feedback and polish beyond the fixes above, with a sketch or a page reference where it helps.
+### Track 46: data correctness (Ready)
+- **46.1 Lock release (S).** public-site M-1 (admin C-3, CODE_REVIEW #18): compare-and-delete in one script.
+- **46.2 Listing alerts after a failed index build (S).** public-site M-2 (CODE_REVIEW #23).
+- **46.3 Paid pull before the charge (S to M).** public-site L-4, security M-8 (CODE_REVIEW #24).
+- **46.4 Overlay pull save body (S).** admin A-2: send only the pull. Load the overlay against the mock KV to check it.
+- **46.5 Card-pulled webhook delivery (S).** admin A-3: `after()` or await.
+- **46.6 Read-modify-write staff edits (S).** mod-panel L-8 (hidden list, tags, flags) and L-7 (mod actions accept any username).
+- **46.7 Small input checks (S, one PR).** public-site L-9 (trainer season id), security M-6 (incoming webhooks: unknown usernames and card numbers), security L-11 (collection replace body), mod-panel L-6 ("Total pulls" label).
 
-Each proposal gets a one-line pitch, the pages or systems it touches, a size, and a rough value (high, medium, low). Proposals never block a finding and are never built during the audit.
+### Track 47: access hardening (Ready unless marked)
+- **47.1 A guard on every staff page, checked by verify (M).** mod-panel M-1 and C1, L-9, L-10; security C-1 (every `route.ts` against an allow-list of public routes); admin C-4 and A-8 (missing `revalidatePath`).
+- **47.2 One moderation rule (S).** mod-panel M-2, M-3, C2: `canModerate(actor, target, action)` used by every mod action and by `reverseTrade`.
+- **47.3 Panel Log out that sticks (S).** mod-panel M-4, C4, L-1.
+- **47.4 Extension routes (S, next panel version).** twitch-panel M-2, M-3, M-4, L-2, L-3, L-9 and Changes 1 to 3; security M-3, M-7, L-5, L-7. One viewer check (`extensionViewer()`) for every route, no dev fallback in production, delete `/api/twitch/user`, `/api/twitch/resolve-username` and the dead login helpers. Never remove a JSON key the released panel reads; the deletions wait until no released panel calls them.
+- **47.5 Security headers (S).** security M-4, then the CSP trial (security X-1, report-only for a week; success: no violations from real pages).
+- **47.6 Signing keys and secret compares (S).** security C-3, L-8, L-9 (public-site L-3, twitch-panel L-8, CODE_REVIEW #13). Rotating keys signs everyone out once: say so in the changelog line.
+- **47.7 Small hardening (S, one PR).** public-site L-1 (sandbox exit, one line: `safeReturnTo`), L-5, L-6, L-7 (with public-site U-1, friendly error toasts), L-8; security L-2, L-6, L-10.
+- **47.8 Profiles tied to the Twitch account ID (Needs a decision, M).** security M-1 and X-3. Josh decides what happens when a new account signs in with a name an old profile holds (refuse, or move the old profile aside). Start with the trial: record the ID on every sign-in for a month and count conflicts.
 
-Each finding gets a severity (critical, high, medium, low), the file:line, a one-line fix and a size. Output per area: `docs/archive/audit-2026-<area>.md` (findings and proposals), the ranked findings and the top proposals in the PR description, and the items Josh accepts added here as numbered items. 44.1 to 44.3 and 44.5 only read code and add docs, so they can run alongside Track 34; 44.4 runs on the 0.0.2 code before 34.8.
+### Track 48: KV efficiency (Ready)
+Measure before and after with static counts or the mock KV; fold anything 40.2f covers into it rather than doing it twice.
+- **48.1 Per-request `cache()` on the hot readers (S).** public-site M-3, C-1.
+- **48.2 Home page reads in parallel, slow parts streamed (M).** public-site M-4, E-1, L-13; admin A-5 for the dashboard.
+- **48.3 Cached boards everywhere (S).** public-site M-5, C-3; twitch-panel M-8.
+- **48.4 Batch profile and avatar reads (S).** public-site M-6, C-4; admin A-4, C-2, A-9; mod-panel M-7, C3, L-14, L-15.
+- **48.5 Cheaper polling and sweeps (S to M).** admin A-6, A-7, C-1, E-1, U-3; public-site L-10, L-11, L-12; twitch-panel L-6, L-7.
 
-### 44.1 Public site (Ready, L)
-Every public page and its API routes: home, closed page, login, install, profile and binder, dex and card pages, copy pages, leaderboard, stats, search, trade board, new trade and trade pages, notifications, account, settings, feedback, changelog, FAQ, Terms, Privacy, SEO (metadata, sitemap, share images). Systems: sign-in and sessions, draws as players see them, collections and the copy ledger, scoring and achievements, trading and escrow, notifications and push, Discord linking, caching (Cache Components, the 40.2 work).
+### Track 49: mod panel UI and cleanup (Ready)
+- **49.1 Honest trade log (S).** mod-panel M-6, L-3, U1.
+- **49.2 Act on both sides of a trade, season on every row (S).** mod-panel M-5, L-4, L-5, U2, U3.
+- **49.3 Accessible drawer, mod bar on phones, overview tiles (S).** mod-panel L-13, U4, L-12, U5, L-2, U6.
+- **49.4 Delete dead routes and code (S).** admin A-11, A-12, C-5 (import-legacy, seed); security L-12; public-site L-14, C-6 (shared buttons out of `app/admin`); admin A-10, U-2 (dashboard `btn`).
+- **49.5 Docs and copy that drift (S).** mod-panel L-11; public-site L-15, U-4 (Discord copy from `CHANNEL_NAME`); twitch-panel L-9 after 47.4.
 
-### 44.2 Admin (Ready, L)
-Every admin page: dashboard, seasons and the season wizard, the pack workspace, cards, card back editor, assets, serials, buffs, achievements, scoring and settings, users, staff, trades, feedback, FAQ, wiki, MixItUp, webhooks and the Discord feed, activity, changelog, backups and data health, sandboxes. Systems: `requireAdmin` on every action, `revalidatePath` after every mutation, the emergency password login, the overlay (`public/widget.js`, the Overlay Editor, the test panel and live switches), backups and restore.
-
-### 44.3 Mod panel (Ready, M)
-Every mod page and action (users, trades, testers, feedback, activity, changelog), and the role model in `docs/staff.md`: what each role can reach versus what it should (run the mod access test in `docs/review.md`), who-did-it attribution, and what a mod sees on the stream tools.
-
-### 44.4 Twitch panel (Ready, M)
-Every panel tab and view (`public/twitch-panel/*`), every `/api/twitch/*` route and the CORS rules in `middleware.ts`, on the 0.0.2 code. Also checks the submission pack against Twitch's review rules. Critical and high findings, and anything Twitch's review would reject, go into 34.8 before submission; the rest go to the next panel version.
-
-### 44.5 Security review (Ready, L)
-A dedicated pass over the whole app, deeper than the security bullet in 44.1 to 44.4. Start from `docs/CODE_REVIEW.md` and say which of its security findings are fixed. Cover:
-- **Sign-in and sessions:** Twitch OAuth (state, redirect URIs), session cookies (flags, expiry, rotation), the emergency password login and `ADMIN_COOKIE_SECRET`, sign-out, the fake Twitch and sandbox paths (never reachable in production).
-- **Access control:** list every API route and every server action with the guard it uses (`requireAdmin`, staff role, `requireViewer`, `extensionViewer`, overlay key, none), and flag any that is missing or weaker than its siblings. The mod access test in `docs/review.md` is part of this.
-- **Twitch extension:** JWT verification, `TWITCH_EXTENSION_SECRET` handling, CORS in `middleware.ts`, that the viewer always comes from the token and never from the body.
-- **Input and output:** validation at every trust boundary, KV key building from user input, XSS in user text (notes, names, markup, the panel's DOM building), uploads to Blob (type, size, who can), open redirects.
-- **Abuse:** rate limits and replay on draws (the save ticket), trades and escrow races, push and Discord DM spam, webhook signing, and server-side requests to user-given URLs (outgoing webhooks).
-- **Secrets and the public repo:** nothing secret in the repo or its git history, `.env.local` and `SECRETS.md` stay ignored, no secret in a URL or a log line.
-- **Privacy:** private profiles everywhere they show up, the account export and deletion, personal data in logs and Discord messages.
-- **Platform:** security headers and CSP, `npm audit`, the Vercel and KV access settings Josh controls (listed for him, not changed).
-
-The repo is public: unfixed critical and high findings go in the gitignored `SECRETS.md` and straight to Josh, never in a public doc or PR body until they are fixed. Fix PRs describe the fix, not the exploit. Panel findings that Twitch's review would catch go into 34.8.
-
-### 44.6 Triage (Ready after 44.1 to 44.5, S)
-Merge the five lists, drop duplicates, and group the proposals across areas (one feature idea often spans the site, the panel and admin). Josh picks; order the accepted findings and proposals into tracks (experimental features as trials with an end date), and delete Track 44.
+### Track 50: features and trials (Ready unless marked)
+Trials run for the time given, then Josh keeps, changes or drops them.
+- **50.1 Staff actions in the Discord admin log (S).** mod-panel F1, security F-1: restrictions, cancels, blocks, reversals and every emergency password login post one line with who and why.
+- **50.2 Panel quick wins (S, next panel version).** twitch-panel Feature improvements 1 to 3 (new since last visit, your own row on the Board, offers waiting badge).
+- **50.3 Trial: browse before linking (S, next panel version, 4 weeks).** twitch-panel Experimental 1: Board and a read-only dex before the identity share prompt. Success: more identity shares per panel open.
+- **50.4 Swap finder on the trade board (Needs design, M).** public-site E-3: viewers who hold a card you want and want one you hold. Trial as a read-only list for the signed-in viewer; success: trades started from it.
+- **50.5 Ownership history on the copy page (M).** public-site F-2: every collector who held this edition, from the copy ledger; private profiles show as a private collector.
+- **50.6 Trial: mod stream desk (S to M, 4 weeks).** mod-panel E1: read-only overlay status, pulls paused and queue length on `/mod`. Success: mods use it during streams (ask them).
+- **50.7 Trial: timed restrictions (S, one season).** mod-panel E2: an optional `until` on trade restrictions that lifts itself. Success: fewer manual lifts.
 
 ## Standing decisions
 
