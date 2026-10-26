@@ -145,6 +145,8 @@ On Vercel the platform appends the real client address. The first entry is whate
 
 **Fix.** On preview, still require the overlay key or a staff session. Keep the sandbox shortcut only for the explicit sandbox cookie a staff member set.
 
+**Status.** Fixed (ROADMAP 45.1): `isOverlayRequest` has no sandbox branch, so the overlay always needs its key (each sandbox has its own) or a staff session, and sandbox entry is a signed token.
+
 ### 9. A season collection is one JSON value, rewritten in full
 
 `getCollection` / `saveCollection` (`lib/kv.ts` lines 277-289) store `tcg_<name>` as a single value. `withCollectionLock` (lines 292-298) exists because two serverless calls would otherwise clobber each other. `getAllCollectionUsers` (lines 236-241) loads every season's blob to build the user list. Data health warns around 512 KB and 2 MB (`docs/hosting.md`). A per-viewer layout is not built. It is still an open capacity question, not a finished redesign.
