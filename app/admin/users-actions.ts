@@ -5,7 +5,7 @@ import { requireStaff } from '@/lib/staff-guard';
 import { checkModerate } from '@/lib/staff';
 import { recordAudit } from '@/lib/audit';
 import { recordActivity } from '@/lib/activity';
-import { addCollectionEntryWithSerial, ensureUserProfile, getActiveSeasonWithPacks, getUserProfile, saveUserProfile } from '@/lib/kv';
+import { addCollectionEntryWithSerial, ensureUserProfile, getActiveSeasonWithPacks, patchUserProfile } from '@/lib/kv';
 import { cancelTrade } from '@/lib/trades';
 import { cleanTags, mergeUsers, restoreUserSnapshot, saveFlags, saveTags } from '@/lib/user-admin';
 import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
@@ -23,20 +23,22 @@ const revalidate = (username?: string) => {
 
 // Mods may use the three moderation actions (tags, restrictions, cancelling an offer); everything else here is admin only.
 // Each one asks canModerate (lib/staff-core.ts) first: nobody moderates themselves, mods can't act on staff or the streamer.
-export async function saveTagsAction(username: string, tags: string[]): Promise<UserActionResult & { tags?: string[] }> {
+export async function saveTagsAction(username: string, tags: string[]): Promise<{ ok: true; tags: string[] } | { ok: false; message: string }> {
   const staff = await requireStaff('mod');
   const allowed = await checkModerate(staff, [username], 'tags');
   if (!allowed.ok) return { ok: false, message: allowed.error };
-  const clean = await saveTags(username, tags);
+  const res = await saveTags(username, tags);
+  if (!res.ok) return { ok: false, message: res.error };
   revalidate(username);
-  return { ok: true, message: 'Tags saved.', tags: clean };
+  return res;
 }
 
 export async function saveFlagsAction(username: string, flags: { noTrading: boolean; hideFromBoard: boolean; reason: string }): Promise<UserActionResult> {
   const staff = await requireStaff('mod');
   const allowed = await checkModerate(staff, [username], 'flags');
   if (!allowed.ok) return { ok: false, message: allowed.error };
-  await saveFlags(username, flags);
+  const res = await saveFlags(username, flags);
+  if (!res.ok) return { ok: false, message: res.error };
   revalidate(username);
   revalidatePath('/leaderboard', 'layout');
   return { ok: true, message: flags.noTrading || flags.hideFromBoard ? 'Restrictions saved.' : 'Restrictions cleared.' };
@@ -128,9 +130,10 @@ export async function bulkTagAction(usernames: string[], tag: string, mode: 'add
   if (!clean) return { ok: false, message: 'Enter a tag.' };
   const names = [...new Set(usernames.map(u => u.toLowerCase()))].slice(0, 200);
   for (const u of names) {
-    const profile = (await getUserProfile(u)) ?? { username: u, displayName: u, createdAt: Date.now() };
-    const tags = mode === 'add' ? [...(profile.tags ?? []), clean] : (profile.tags ?? []).filter(t => t !== clean);
-    await saveUserProfile({ ...profile, tags: cleanTags(tags) });
+    await patchUserProfile(u, p => {
+      const profile = p ?? { username: u, displayName: u, createdAt: Date.now() };
+      return { ...profile, tags: cleanTags(mode === 'add' ? [...(profile.tags ?? []), clean] : (profile.tags ?? []).filter(t => t !== clean)) };
+    });
     await recordAudit(u, mode === 'add' ? 'Tag added' : 'Tag removed', clean);
   }
   revalidate();

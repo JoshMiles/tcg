@@ -87,7 +87,8 @@ export async function blockViewerTradingAction(username: string, reason: string)
   const allowed = await checkModerate(staff, [name], 'block-trading');
   if (!allowed.ok) return { ok: false, message: allowed.error };
   const profile = await getUserProfile(name);
-  await saveFlags(name, { noTrading: true, hideFromBoard: !!profile?.flags?.hideFromBoard, reason: reason.slice(0, 200) || 'Blocked from the Trades page' });
+  const saved = await saveFlags(name, { noTrading: true, hideFromBoard: !!profile?.flags?.hideFromBoard, reason: reason.slice(0, 200) || 'Blocked from the Trades page' });
+  if (!saved.ok) return { ok: false, message: saved.error };
   const n = await cancelOpenTrades({ username: name }, 'Trading was turned off for a viewer in this offer');
   revalidatePath('/admin/trades');
   revalidatePath('/mod/trades');

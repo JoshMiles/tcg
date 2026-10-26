@@ -227,11 +227,18 @@ export async function saveUserProfile(profile: UserProfile): Promise<void> {
 export async function ensureUserProfile(username: string, twitchId?: string): Promise<void> {
   const name = username.toLowerCase();
   const existing = await getUserProfile(name);
-  if (!existing) {
-    await saveUserProfile({ username: name, displayName: name, twitchId, createdAt: Date.now() });
-  } else if (twitchId && !existing.twitchId) {
-    await saveUserProfile({ ...existing, twitchId });
-  }
+  if (existing && !(twitchId && !existing.twitchId)) return;
+  await patchUserProfile(name, p => p ? { ...p, twitchId: p.twitchId ?? twitchId } : { username: name, displayName: name, twitchId, createdAt: Date.now() });
+}
+
+/** Reads, changes and saves a profile under a per-viewer lock, so two staff edits (or a staff edit and a sign-in) cannot overwrite each other. */
+export async function patchUserProfile(username: string, change: (current: UserProfile | null) => UserProfile): Promise<UserProfile> {
+  const name = username.toLowerCase();
+  return withLock(`profile_${name}`, async () => {
+    const next = change(await getUserProfile(name));
+    await saveUserProfile(next);
+    return next;
+  });
 }
 
 export async function deleteUserProfile(username: string): Promise<void> {
