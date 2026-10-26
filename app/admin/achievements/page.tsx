@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import Link from 'next/link';
 import { Icon } from '@/app/components/Icon';
 import { ACHIEVEMENT_KINDS, getAchievementSettings, getCustomGoals, rowSetting } from '@/lib/achievement-settings';
@@ -23,6 +24,7 @@ const SAVED: Record<string, string> = {
 };
 
 export default async function AchievementsPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
+  await staffPage('admin');
   const { saved, error } = await searchParams;
   const [settings, custom, buffDefs, stats] = await Promise.all([getAchievementSettings(), getCustomGoals(), getBuffDefs(), getAchievementStats()]);
   const items = ACHIEVEMENT_KINDS.map(k => ({ kind: k.kind, label: k.label, group: k.group, row: rowSetting(settings, k.kind) }));

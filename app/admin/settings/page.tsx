@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { redirect } from 'next/navigation';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
@@ -80,6 +81,7 @@ const SCORING_GROUPS: ScoringGroupConfig[] = [
 ];
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ q?: string; tab?: string; saved?: string; backupError?: string; error?: string; note?: string }> }) {
+  await staffPage('admin');
   const { tab: tabParam, saved, backupError, error, note, q } = await searchParams;
   // The overlay layout and look now live in the Overlay Editor (old links keep working).
   if (tabParam === 'achievements') redirect('/admin/achievements');

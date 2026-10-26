@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { notFound } from 'next/navigation';
 import { getWikiPage } from '@/lib/wiki';
 import { WikiScreen } from './WikiScreen';
@@ -10,7 +11,8 @@ export const instant = false;
 export const metadata = { title: 'Staff wiki · Admin', robots: { index: false } };
 
 /** Staff handbook. The admin layout already requires an admin or the super admin. */
-export default function WikiIndexPage() {
+export default async function WikiIndexPage() {
+  await staffPage('admin');
   const page = getWikiPage('index');
   if (!page) notFound();
   return <WikiScreen page={page} />;

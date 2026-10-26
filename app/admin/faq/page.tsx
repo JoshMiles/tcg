@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import Link from 'next/link';
 import { getFaqStore } from '@/lib/faq';
 import { Icon } from '@/app/components/Icon';
@@ -13,6 +14,7 @@ export const instant = false;
 export const metadata = { title: 'FAQ Editor · Admin', robots: { index: false } };
 
 export default async function FaqAdminPage() {
+  await staffPage('admin');
   const [store, { values }] = await Promise.all([getFaqStore(), getFaqContext()]);
   const visibleSections = store.sections.filter(s => !s.hidden).length;
 

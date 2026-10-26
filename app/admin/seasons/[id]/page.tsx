@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../../components/PendingButton';
 import Link from 'next/link';
@@ -33,6 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 /** Dates here are rendered on the server, so say which clock they are on: UTC, in a fixed format. */
 const when = (ms: number) => `${new Date(ms).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} UTC`;
 export default async function SeasonPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; error?: string }> }) {
+  await staffPage('admin');
   const { id } = await params;
   const { tab: tabParam, error } = await searchParams;
   const season = await getSeason(id);

@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { PendingButton } from '../../components/PendingButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -64,6 +65,7 @@ export default async function UserDetailPage({
   params: Promise<{ username: string }>;
   searchParams: Promise<{ compare?: string; tab?: string }>;
 }) {
+  await staffPage('admin');
   const { username: rawUsername } = await params;
   const { compare: compareRaw, tab: tabParam } = await searchParams;
   const username = rawUsername.toLowerCase();

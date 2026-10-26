@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { getActiveSeasonWithPacks, listSeasons } from '@/lib/kv';
 import { getActivity } from '@/lib/activity';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
@@ -12,6 +13,7 @@ export const instant = false;
 export const metadata = { title: 'Live Activity · Admin', robots: { index: false } };
 
 export default async function ActivityPage() {
+  await staffPage('admin');
   const [{ events, seq }, active] = await Promise.all([getActivity({ limit: 100 }), getActiveSeasonWithPacks()]);
 
   const raw = await getAvatars(events.map(e => e.username));

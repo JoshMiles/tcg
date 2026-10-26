@@ -52,6 +52,7 @@ async function guarded(id: string, tab: string, fn: () => Promise<string>): Prom
     return back(id, e instanceof Error ? e.message : 'Something went wrong.', 'error', tab);
   }
   await touchSandbox(id);
+  revalidatePath(`/admin/sandbox/${id}`);
   return back(id, msg, 'ok', tab);
 }
 

@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -18,6 +19,7 @@ import { FakeTwitch } from './FakeTwitch';
 export const instant = false;
 
 export default async function FakeTwitchPage({ params }: { params: Promise<{ id: string }> }) {
+  await staffPage('admin');
   if (isPreview()) return <PreviewOff />;
   const { id } = await params;
   const sandbox = await getSandbox(id);

@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { getAllCollectionUsers, getUserProfile, listSeasons, getPackCards, getPacksForSeason } from '@/lib/kv';
 import { uniqueCount } from '@/lib/collection';
@@ -20,6 +21,7 @@ export const instant = false;
 export const metadata = { title: 'Users · Admin', robots: { index: false } };
 
 export default async function UsersPage() {
+  await staffPage('admin');
   const [users, seasons, activity, lastSeenMap, trades] = await Promise.all([
     getAllCollectionUsers(),
     listSeasons(),

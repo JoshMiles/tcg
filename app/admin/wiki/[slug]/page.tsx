@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import Link from 'next/link';
 import { getWikiPage } from '@/lib/wiki';
 import { EmptyState } from '../../components/ui';
@@ -15,6 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function WikiTopicPage({ params }: { params: Promise<{ slug: string }> }) {
+  await staffPage('admin');
   const { slug } = await params;
   const page = getWikiPage(slug);
   if (!page) {

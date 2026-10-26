@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { ADMIN_CHANGELOG, CHANGELOG, MOD_CHANGELOG } from '@/lib/changelog';
 import { ChangelogList } from '@/app/components/ChangelogList';
 import { REPO_URL } from '@/lib/site';
@@ -20,6 +21,7 @@ const LISTS = { admin: ADMIN_CHANGELOG, mod: MOD_CHANGELOG, players: CHANGELOG }
 
 /** What's new for the admin panel, the mod panel and players (the admin layout already checks the staff role). */
 export default async function AdminChangelogPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  await staffPage('admin');
   const tab = pickTab(TABS, (await searchParams).tab);
   const entries = LISTS[tab as keyof typeof LISTS];
   return (

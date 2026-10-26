@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { redirect } from 'next/navigation';
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
@@ -7,6 +8,7 @@ export const instant = false;
 
 /** The bulk card page is the workspace's Grid view now; old links and bookmarks land there. */
 export default async function BulkCardsPage({ params }: { params: Promise<{ packId: string }> }) {
+  await staffPage('admin');
   const { packId } = await params;
   redirect(`/admin/packs/${packId}?view=grid`);
 }

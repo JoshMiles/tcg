@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
@@ -20,6 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ seasonId:
 
 // The full page for one print, kept for deep links (the Prints list shows the same details in a side panel).
 export default async function AdminCopyPage({ params, searchParams }: { params: Promise<{ seasonId: string; copyId: string }>; searchParams: Promise<{ done?: string; err?: string }> }) {
+  await staffPage('admin');
   const { seasonId: rawSeason, copyId } = await params;
   const sp = await searchParams;
   const seasonId = decodeURIComponent(rawSeason);

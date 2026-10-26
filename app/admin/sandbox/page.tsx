@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
@@ -29,6 +30,7 @@ function ago(at: number | undefined, now: number): string {
 }
 
 export default async function SandboxPage({ searchParams }: { searchParams: Promise<{ err?: string }> }) {
+  await staffPage('admin');
   if (isPreview()) return <PreviewOff />;
   const sp = await searchParams;
   await connection(); // the sweep reads the clock

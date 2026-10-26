@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { getOverlayKey } from '@/lib/overlay-key';
 import { Icon } from '@/app/components/Icon';
 import { getActiveSeason, getPackCards, listAllPacks, listSeasons } from '@/lib/kv';
@@ -25,6 +26,7 @@ const SAVED_MESSAGES: Record<string, string> = {
 // One editor for everything about how the overlay looks and where it sits. It is a fixed-height workspace on wide screens
 // (the page itself doesn't scroll), so this page is deliberately light on chrome.
 export default async function OverlayEditorPage({ searchParams }: { searchParams: Promise<{ saved?: string; scope?: string; pack?: string; group?: string }> }) {
+  await staffPage('admin');
   const { saved, scope, pack, group } = await searchParams;
   const [overlay, packs, packOverrides, presets, versions, seasons, seasonLooks, scheduledLooks, active] = await Promise.all([
     getOverlaySettings(), listAllPacks(), getPackOverrides(), listPresets(), listVersions(), listSeasons(), getSeasonLooks(), getScheduledLooks(), getActiveSeason().catch((): null => null),

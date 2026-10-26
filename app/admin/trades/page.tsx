@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { TRADE_LIMITS } from '@/lib/trade-core';
 import { FLAG_RULES } from '@/lib/trade-insights';
@@ -19,6 +20,7 @@ export const metadata = { title: 'Trades · Admin', robots: { index: false } };
 const field = 'input w-28';
 
 export default async function AdminTradesPage({ searchParams }: { searchParams: Promise<{ saved?: string; flagged?: string; tab?: string }> }) {
+  await staffPage('admin');
   const sp = await searchParams;
   const { settings, open, history, seasons, rows, stats, cardsBySeason, flaggedOpen, flaggedRecent, now } = await loadTradeAdminData();
 

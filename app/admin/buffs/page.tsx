@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { findBuffUsage, getBuffDefs, type BuffUsage } from '@/lib/buffs';
 import { getMixItUpSettings, getOpenGrants } from '@/lib/mixitup';
 import { PageHeader, Tile } from '../components/ui';
@@ -11,6 +12,7 @@ export const instant = false;
 export const metadata = { title: 'Buff Editor · Admin', robots: { index: false } };
 
 export default async function BuffsPage() {
+  await staffPage('admin');
   const buffs = await getBuffDefs();
   const mix = await getMixItUpSettings();
   const openGrants = await getOpenGrants();

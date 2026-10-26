@@ -89,6 +89,7 @@ export async function createDraftSeason(input: SeasonInput): Promise<{ id: strin
   await requireAdmin();
   const id = crypto.randomUUID();
   await saveSeason({ id, createdAt: Date.now(), status: 'draft', active: false, ...cleanSeasonInput(input) });
+  revalidatePath('/admin/seasons');
   return { id };
 }
 
@@ -98,6 +99,7 @@ export async function saveDraftSeason(id: string, input: SeasonInput): Promise<v
   if (!existing) throw new Error('This draft no longer exists.');
   if (existing.status !== 'draft') throw new Error('This season has already been published.');
   await saveSeason({ ...existing, ...cleanSeasonInput(input) });
+  revalidatePath('/admin/seasons');
 }
 
 /** Publishes a draft season; `activate` also makes it the active one (deactivating the rest). */

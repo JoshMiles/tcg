@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../../components/PendingButton';
 import Link from 'next/link';
@@ -44,6 +45,7 @@ function ago(at: number, now: number): string {
 }
 
 export default async function SandboxDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string; err?: string; tab?: string; user?: string }> }) {
+  await staffPage('admin');
   if (isPreview()) return <PreviewOff />;
   const { id } = await params;
   const { msg, err, tab: tabParam, user: userParam } = await searchParams;
