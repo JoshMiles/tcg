@@ -63,7 +63,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
               <nav aria-label="Play">
                 <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-3">Play</h2>
                 <ul className="space-y-2 text-sm text-gray-400">
-                  <li><Link href="/collection" className="hover:text-white transition-colors">Collectors</Link></li>
+                  <li><Link href="/collection" className="hover:text-white transition-colors">Find collectors</Link></li>
                   <li><Link href="/leaderboard" className="hover:text-white transition-colors">Leaderboard</Link></li>
                   <li><Link href="/stats" className="hover:text-white transition-colors">Season Stats</Link></li>
                   <li><Link href="/cards" className="hover:text-white transition-colors">Card Dex</Link></li>

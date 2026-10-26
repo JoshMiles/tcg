@@ -87,6 +87,8 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
             ))}
           </nav>
 
+          {copies.some(r => r.est) && <p className="text-xs text-gray-500">A &ldquo;~&rdquo; marks an edition that existed before editions were numbered; its order is an estimate.</p>}
+
           <ul className="card rounded-2xl divide-y divide-gray-800/70 overflow-hidden">
             {copies.map(r => {
               const last = r.ev[r.ev.length - 1];
@@ -99,7 +101,7 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-gray-200 truncate">{r.owner ? who(r.owner) : <span className="text-gray-500">{ended}</span>}</p>
                     <p className="text-xs text-gray-500">
-                      {ORIGIN_LABELS[r.origin]}{pulledBy && pulledBy !== r.owner ? <> · pulled by {hidden.has(pulledBy) ? 'a private collector' : `@${pulledBy}`}</> : null} · {new Date(r.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {r.est ? null : <>{ORIGIN_LABELS[r.origin]}{pulledBy && pulledBy !== r.owner ? <> · pulled by {hidden.has(pulledBy) ? 'a private collector' : `@${pulledBy}`}</> : null} · </>}{new Date(r.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
                   <Icon name="chevronRight" className="text-gray-600 shrink-0" />
@@ -117,7 +119,6 @@ export default async function CardCopiesPage({ params, searchParams }: { params:
               </span>
             </div>
           )}
-          <p className="text-xs text-gray-600">A &ldquo;~&rdquo; means the edition existed before editions were numbered and its order is an estimate.</p>
         </>
       )}
     </div>
