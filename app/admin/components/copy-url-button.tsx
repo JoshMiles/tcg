@@ -2,7 +2,7 @@
 import { Icon } from '@/app/components/Icon';
 import { useState } from 'react';
 
-/** Copies the OBS overlay URL. Sized to sit beside the Preview button in the sidebar. */
+/** Copies the OBS overlay URL. An icon button for the sidebar footer. */
 export function CopyUrlButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -16,11 +16,11 @@ export function CopyUrlButton({ url }: { url: string }) {
   return (
     <button
       onClick={copy}
-      title="Copy the OBS overlay URL"
-      className="aside-item flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-white/4 hover:bg-white/9 text-gray-300 hover:text-white text-xs font-semibold transition-colors"
+      title={copied ? 'Copied' : 'Copy the OBS overlay URL'}
+      aria-label={copied ? 'Copied' : 'Copy the OBS overlay URL'}
+      className="aside-item w-8 h-8 shrink-0 flex items-center justify-center rounded-lg bg-white/4 hover:bg-white/9 text-gray-300 hover:text-white transition-colors"
     >
       <Icon name={copied ? 'check' : 'copy'} className={copied ? 'text-green-400' : ''} />
-      <span className="aside-label truncate">{copied ? 'Copied' : 'Copy URL'}</span>
     </button>
   );
 }

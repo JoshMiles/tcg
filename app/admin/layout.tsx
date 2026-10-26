@@ -25,6 +25,8 @@ import { adminSiteText, getSiteLabel } from '@/lib/site-label';
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
+const footBtn = 'aside-item w-8 h-8 shrink-0 flex items-center justify-center rounded-lg bg-white/4 hover:bg-white/9 text-gray-300 hover:text-white transition-colors';
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // The middleware already turned strangers away from the cookie alone; this re-checks the live staff list (a removed or demoted
   // person with an unexpired cookie stops here).
@@ -46,38 +48,23 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
         }
         nav={<><div className="px-3 pt-1"><PaletteButton /></div><AdminNav badges={{ '/admin/feedback': await countNewFeedback().catch(() => 0) }} /></>}
-        status={<OverlayStatus variant="compact" />}
         footer={
           <>
-            <div className="aside-stack flex items-stretch gap-1.5">
+            <div className="aside-stack flex items-center justify-between gap-1">
+              <OverlayStatus variant="compact" />
               <CopyUrlButton url={overlayUrl(SITE_URL, overlayKey)} />
-              <a
-                href="/overlay.html"
-                target="_blank"
-                title="Preview the overlay in a new tab"
-                className="aside-item flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-white/4 hover:bg-white/9 text-gray-300 hover:text-white text-xs font-semibold transition-colors"
-              >
-                <Icon name="external" /><span className="aside-label truncate">Preview</span>
+              <a href="/overlay.html" target="_blank" title="Preview the overlay in a new tab" aria-label="Preview the overlay in a new tab" className={footBtn}>
+                <Icon name="external" />
+              </a>
+              <a href="/" title="Back to the public site" aria-label="Public site" className={footBtn}>
+                <Icon name="home" />
+              </a>
+              <a href="/mod" title="Open the mod panel" aria-label="Mod view" className={footBtn}>
+                <Icon name="shield" />
               </a>
             </div>
-            <div className="aside-stack flex items-stretch gap-1.5">
-              <a
-                href="/"
-                title="Back to the public site"
-                className="aside-item flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-white/4 hover:bg-white/9 text-gray-300 hover:text-white text-xs font-semibold transition-colors"
-              >
-                <Icon name="home" /><span className="aside-label truncate">Public site</span>
-              </a>
-              <a
-                href="/mod"
-                title="Open the mod panel"
-                className="aside-item flex-1 min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg bg-white/4 hover:bg-white/9 text-gray-300 hover:text-white text-xs font-semibold transition-colors"
-              >
-                <Icon name="shield" /><span className="aside-label truncate">Mod view</span>
-              </a>
-            </div>
-            <div className="aside-stack flex items-center gap-2 pt-2.5 border-t border-white/6">
-              <div className="aside-item flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="aside-stack flex items-center gap-2">
+              <div className="aside-item flex items-center gap-2.5 min-w-0 flex-1" title={`${staff.displayName}, ${ROLE_LABELS[staff.role]}`}>
                 <span className="w-8 h-8 rounded-full bg-linear-to-br from-yellow-400/30 to-yellow-600/10 border border-yellow-400/30 text-yellow-200 flex items-center justify-center shrink-0" aria-hidden><Icon name="user" /></span>
                 <div className="aside-label min-w-0 leading-tight">
                   <p className="text-xs font-bold text-gray-200 truncate">{staff.displayName}</p>
