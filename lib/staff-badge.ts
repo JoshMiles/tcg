@@ -1,5 +1,5 @@
 // Staff badges on public pages (Streamer / Admin / Mod). Pure helper plus the cached server read.
-// Never used by the Twitch panel (freeze).
+// The Twitch panel shows them too (/api/twitch/me, /leaderboard, /trades).
 import { cache } from 'react';
 import { staffBadgeFor, type StaffBadge } from './staff-badge-core';
 import { CHANNEL_LOGIN } from './site';

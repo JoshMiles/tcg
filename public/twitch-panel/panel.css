@@ -1066,3 +1066,30 @@ html, body {
 .tr-ed.bonus { box-shadow: inset 0 0 0 1px rgba(250, 204, 21, .45); }
 .tr-warn { margin: 0; color: #fcd34d; }
 .tr-recent-status.reversed { color: #fcd34d; }
+
+/* ── Collection view: editions, favourites, staff badges (ROADMAP 34.6) ── */
+/* The heart is a mask (no emoji, no extra asset): currentColor, so each place sets its own colour. */
+.heart { display: inline-block; width: 1em; height: 1em; margin-right: 2px; vertical-align: -0.12em; color: #f472b6; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.serial-chip { font-family: inherit; cursor: pointer; }
+.serial-more { font-family: inherit; background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; }
+.ed-group { margin-top: 6px; font-size: 10px; font-weight: 700; color: var(--muted); }
+.ed-back { padding: 0; font-family: inherit; font-size: 11px; color: var(--muted); background: none; border: none; cursor: pointer; }
+.ed-back:hover { color: var(--text); }
+.ed-title { margin-top: 4px; font-size: 14px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.ed-rows { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 6px 0 0; font-size: 11px; }
+.ed-rows dt { color: var(--muted); }
+.ed-rows dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+.ed-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.ed-fav { display: inline-flex; align-items: center; padding: 3px 10px; font-family: inherit; }
+.ed-fav .heart { color: currentColor; }
+.ed-fav.on { color: #f9a8d4; background: rgba(244, 114, 182, .15); border: 1px solid rgba(244, 114, 182, .6); }
+.ed-fav:disabled { opacity: .6; }
+.ed-link { font-size: 11px; color: var(--muted); text-decoration: underline; }
+.serial-mark .heart { margin-right: 1px; }
+.serial-chip .heart { margin-right: 3px; }
+.tr-ed .heart { margin-right: 3px; }
+.tr-ed.fav, .tr-ed:disabled { opacity: .55; cursor: not-allowed; }
+.staff-badge { margin-left: 5px; padding: 0 5px; font-size: 9px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; border-radius: 999px; vertical-align: 1px; color: var(--bg); background: #a78bfa; }
+.staff-badge.streamer { background: #f472b6; }
+.staff-badge.admin { background: #f87171; }
+.staff-badge.mod { background: #4ade80; }

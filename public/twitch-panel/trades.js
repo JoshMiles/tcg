@@ -76,7 +76,11 @@ const printsFor = (cardNumber, variant) => (tradesData && tradesData.prints && t
 // A copy id is "<card>.<version>.<edition number>". `ids` on a stack names the exact editions that move.
 const editionNo = id => String(id).split('.')[2];
 const editionText = ids => (ids.length === 1 ? 'Edition #' : 'Editions #') + ids.map(editionNo).join(', #');
-const newestIds = (list, n) => list.slice().sort((a, b) => b.n - a.n).slice(0, n).map(p => p.id);
+// A favourite edition (hearted in the card details or on the site) can't be traded: the pickers show it disabled and "newest" skips it.
+const isFav = p => !!(p && p.uid && tradesData && tradesData.favourites && tradesData.favourites.indexOf(p.uid) !== -1);
+const newestIds = (list, n) => list.filter(p => !isFav(p)).sort((a, b) => b.n - a.n).slice(0, n).map(p => p.id);
+// A staff chip next to a name, from GET /api/twitch/trades `badges` (login -> 'streamer' | 'admin' | 'mod').
+const nameChip = login => staffChip(login && tradesData && tradesData.badges && tradesData.badges[String(login).toLowerCase()]);
 
 // ── Pieces ────────────────────────────────────────────────
 function stackChips(items, cards) {
@@ -105,10 +109,12 @@ function editionPicker(list, count, selected, onChange, giving) {
   list.slice().sort((a, b) => b.n - a.n).forEach(p => {
     const on = selected.indexOf(p.id) !== -1;
     const m = serialMult(p.n);
-    const b = el('button', 'tr-ed' + (on ? ' on' : '') + (m > 1 ? ' bonus' : ''), '#' + p.n + (m > 1 ? ' ×' + m.toFixed(2) : ''));
+    const fav = isFav(p);
+    const b = el('button', 'tr-ed' + (on ? ' on' : '') + (m > 1 ? ' bonus' : '') + (fav ? ' fav' : ''), '#' + p.n + (m > 1 ? ' ×' + m.toFixed(2) : ''));
     b.type = 'button';
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    b.title = (p.uid ? 'Serial #' + p.uid + ', ' : '') + 'Edition #' + p.n;
+    b.title = (p.uid ? 'Serial #' + p.uid + ', ' : '') + 'Edition #' + p.n + (fav ? '. Favourite: it can\'t be traded. Take the heart off in the card details first.' : '');
+    if (fav) { b.disabled = true; b.prepend(el('span', 'heart')); chips.appendChild(b); return; }
     b.addEventListener('click', () => {
       if (on) { if (selected.length > 1) onChange(selected.filter(x => x !== p.id)); return; }
       onChange(selected.length >= count ? selected.slice(1).concat(p.id) : selected.concat(p.id));
@@ -162,7 +168,10 @@ function tradeRow(t, mode, cards) {
   const title = mode === 'incoming' ? '@' + t.from + (t.counter ? ' countered' : ' offers you')
     : mode === 'board' ? 'Listing by @' + t.from
     : t.kind === 'direct' ? 'Offer to @' + t.to : 'Your listing on the board';
-  head.append(el('span', 'tr-who', title), el('span', 'tr-time', timeLeftText(t.expiresAt)));
+  const who = el('span', 'tr-who', title);
+  const whoChip = nameChip(mode === 'outgoing' ? t.to : t.from);
+  if (whoChip) who.appendChild(whoChip);
+  head.append(who, el('span', 'tr-time', timeLeftText(t.expiresAt)));
   row.appendChild(head);
   if (mode === 'board' && t.alert) row.appendChild(el('span', 'tr-alert', 'On your list'));
 
@@ -262,7 +271,12 @@ function recentRow(t, cards) {
   const reversed = t.status === 'accepted' && t.reversed;
   row.append(
     el('span', 'tr-recent-status ' + (reversed ? 'reversed' : t.status), reversed ? 'Reversed by staff' : STATUS_TEXT[t.status] || t.status),
-    el('span', 'tr-recent-text', ' @' + other + (t.status === 'accepted' && !reversed ? ': got ' + sum(got) + ' for ' + sum(gave) : '') + ' · '),
+    el('span', 'tr-recent-text', ' @' + other),
+  );
+  const otherChip = nameChip(other);
+  if (otherChip) row.appendChild(otherChip);
+  row.append(
+    el('span', 'tr-recent-text', (t.status === 'accepted' && !reversed ? ': got ' + sum(got) + ' for ' + sum(gave) : '') + ' · '),
     tradeLink(t.id),
   );
   return row;

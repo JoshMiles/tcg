@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason, getSeason } from '@/lib/kv';
 import { getSeasonLeaderboard } from '@/lib/leaderboard';
+import { getStaffBadges } from '@/lib/staff-badge';
 
 
 // Public per-season leaderboard for the Twitch panel. `seasonId` defaults to the active season;
@@ -22,6 +23,8 @@ export async function GET(req: NextRequest) {
     players: rows.length,
     rows: rows.slice(0, values.settings.leaderboardSize).map((r, i) => ({ rank: i + 1, ...r })),
     me: mine >= 0 ? { rank: mine + 1, ...rows[mine] } : null,
+    // Staff badges (login -> 'streamer' | 'admin' | 'mod') for anyone on the board, as the website shows them.
+    badges: await getStaffBadges(),
     // Per-card point values, so the panel can show what each copy is worth.
     values: Object.fromEntries(
       [...values.cards.values()].map(c => [c.number, { values: c.values }])

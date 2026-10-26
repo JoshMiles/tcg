@@ -18,7 +18,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
-| 34 | Next extension version 0.0.2 (34.6 to 34.8) | Ready | L |
+| 34 | Next extension version 0.0.2 (34.7 to 34.8; 34.6b after) | Ready | L |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
 | 43.4 | Bring the other packages up to date | Done | S |
@@ -92,7 +92,7 @@ The file holds the extension's CORS rules, so it waited for the panel freeze (li
 
 The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34.1 to 34.5 are merged. All of it ships as extension version 0.0.2, one reviewed panel version. Every item edits `public/twitch-panel/panel.js`, so run them **one at a time** in the order below, each its own PR from `origin/main`; the version is submitted only after 34.8. Read `docs/twitch-extension.md` first. Rules for the whole track: never rename or remove a JSON key on `/api/twitch/*` (the released panel keeps working against new responses until viewers update); new data goes in new fields; reuse the website's existing APIs and `lib/` helpers rather than copying logic into the panel.
 
-**34.6 Collection view (Ready, M).** Pack card back on flip backs (20.3), favourite editions (9.1: hearts, disabled picks), serial numbers on tiles (2.1), the copies-first dialog (2.5), staff and tester badges.
+**34.6b Pack card back in the panel (Ready after 0.0.2, M).** Left out of 0.0.2 (Josh, 2026-10-26); when 34.8 closes the track, move this to the next panel version's track. The rest of 34.6 is merged. The panel has no flip card, and the pack card back exists only as layout nodes (`layoutBack`), the React `FlipCard` and the vanilla port in `public/widget.js`; there is no image form. Options when it is picked up: a server-rendered back image route the panel shows (also usable for share images), or port the `widget.js` renderer into the panel. Testers get no badge next to names on the site either, so the panel shows only streamer, admin and mod.
 
 **34.7 New panel sections, cut down (Ready, M).** Planned 2026-10-26 to fit the 318px panel. Achievements: a summary on the Stats tab ("N of M", the latest few with icons) from a new field on `/api/twitch/me` that reuses the site's achievement helper, plus a link to the profile. Binder: a link to the `/u/<name>` binder tab only. Looking for: a want toggle in card details, using the same store as the site's `WantToggle`, through an authenticated `/api/twitch` route; saved alerts stay on the site (link out). Share images: a link to the site's share page, no in-panel downloads.
 
