@@ -14,7 +14,7 @@ function ago(at: number | null, now: number): string {
 /**
  * Shows whether an OBS overlay is open, and (when OBS reports it) whether the stream is live.
  * Reads the shared poller from OverlayStatusProvider.
- *  - compact: one muted line for the sidebar
+ *  - compact: a small status dot for the sidebar footer (text in its title and an sr-only label)
  *  - full: a pill with chips, for the dashboard
  */
 export function OverlayStatus({ variant = 'full' }: { variant?: 'compact' | 'full' }) {
@@ -67,16 +67,15 @@ export function OverlayStatus({ variant = 'full' }: { variant?: 'compact' | 'ful
     const sub = !status ? (failed ? 'Unavailable' : 'Checking…')
       : status.connected > 0 ? (status.streaming === true ? 'Live on stream' : status.streaming === false ? 'Not streaming' : 'Connected to OBS')
       : status.queued > 0 ? `${status.queued} waiting` : 'Open it in OBS';
+    const text = [!status ? (failed ? 'Overlay status unavailable' : 'Checking overlay') : status.connected ? (status.connected === 1 ? 'Overlay' : `${status.connected} overlays`) : 'Overlay offline', sub].join(', ');
     return (
-      <div className="aside-item aside-card flex items-center gap-2.5 rounded-xl bg-white/3 border border-white/6 px-3 py-2" title={title}>
-        <span className="relative flex w-2.5 h-2.5 shrink-0">
+      <div role="status" className="aside-item w-8 h-8 shrink-0 flex items-center justify-center" title={`${text}
+${detail}`.trim()}>
+        <span className="relative flex w-2.5 h-2.5">
           <span className={`absolute inset-0 rounded-full ${live ? 'bg-red-400' : status?.connected ? 'bg-green-400' : 'bg-gray-600'}`} />
           {(live || status?.connected) && <span className={`absolute inset-0 rounded-full animate-ping opacity-60 ${live ? 'bg-red-400' : 'bg-green-400'}`} />}
         </span>
-        <span className="aside-label min-w-0 leading-tight">
-          <span className="block text-xs font-bold text-gray-200 truncate">{status?.connected ? (status.connected === 1 ? 'Overlay' : `${status.connected} overlays`) : 'Overlay offline'}</span>
-          <span className={`block text-[11px] truncate ${live ? 'text-red-300 font-bold' : 'text-gray-500'}`}>{sub}</span>
-        </span>
+        <span className="sr-only">{text}</span>
       </div>
     );
   }

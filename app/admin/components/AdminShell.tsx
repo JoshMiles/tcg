@@ -15,11 +15,10 @@ const STORAGE_KEY = 'tcg_admin_sidebar';
  * Anything that should disappear when collapsed carries the `aside-label` class (see globals.css).
  */
 export function AdminShell({
-  brand, nav, status, footer, children,
+  brand, nav, footer, children,
 }: {
   brand: React.ReactNode;
   nav: React.ReactNode;
-  status: React.ReactNode;
   footer: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -122,8 +121,7 @@ export function AdminShell({
         </div>
         
         {nav}
-        <div className="p-3 pt-2.5 border-t border-white/6 space-y-2.5">
-          {status}
+        <div className="p-3 pt-2.5 border-t border-white/6 space-y-2">
           {footer}
         </div>
 
