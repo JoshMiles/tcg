@@ -1,5 +1,5 @@
 import { kv } from './db';
-import { getCollection, getPacksForSeason, getPackCards, getSeason, listSeasons, saveSeason, setActiveSeason, withLock } from './kv';
+import { getCollection, getPacksForSeason, getPackCards, getSeason, listSeasons, readSeasons, saveSeason, setActiveSeason, withLock } from './kv';
 import { getSeasonLeaderboard, type LeaderboardRow } from './leaderboard';
 import { uniqueCount } from './collection';
 import { decodeEntry } from './variants';
@@ -144,7 +144,7 @@ export async function activateWithWrapUp(id: string): Promise<{ ok: true; replac
     const target = await getSeason(id);
     if (!target) return { ok: false as const, error: 'That season no longer exists.' };
     if (target.status === 'draft') return { ok: false as const, error: 'Publish the season first.' };
-    const seasons = await listSeasons();
+    const seasons = await readSeasons();
     const outgoing = seasons.find(s => s.active && s.id !== id && !s.endedAt);
     if (outgoing) {
       const snapshot = await takeSnapshot(outgoing);
@@ -165,10 +165,10 @@ export async function applySeasonSchedule(): Promise<void> {
     starts: list.filter(s => s.status === 'published' && !s.active && s.autoStart && !s.endedAt && s.startsAt !== undefined && s.startsAt <= now && (s.endsAt === undefined || s.endsAt > now)).sort((a, b) => (a.startsAt ?? 0) - (b.startsAt ?? 0)),
     ends: list.filter(s => s.status === 'published' && s.active && !s.endedAt && s.endsAt !== undefined && s.endsAt <= now),
   });
-  const first = due(await listSeasons());
+  const first = due(await readSeasons());
   if (first.starts.length === 0 && first.ends.length === 0) return;
   // Work from a fresh read so two requests racing here don't both act.
-  const { starts, ends } = due(await listSeasons());
+  const { starts, ends } = due(await readSeasons());
   const next = starts[starts.length - 1]; // the latest start that is due wins
   if (next) await activateWithWrapUp(next.id);
   for (const s of ends) if (s.id !== next?.id) await endSeason(s.id, { freezeTrading: true });
@@ -177,7 +177,7 @@ export async function applySeasonSchedule(): Promise<void> {
 /** Awards a viewer has earned across seasons (newest season first). */
 export async function getUserAwards(username: string): Promise<{ seasonId: string; seasonName: string; award: Award }[]> {
   const name = username.toLowerCase();
-  const seasons = (await listSeasons()).sort((a, b) => b.createdAt - a.createdAt);
+  const seasons = [...await listSeasons()].sort((a, b) => b.createdAt - a.createdAt);
   const snaps = await Promise.all(seasons.map(async s => ({ s, snap: await getSnapshot(s.id) })));
   return snaps.flatMap(({ s, snap }) => (snap?.awards ?? []).filter(a => a.username.toLowerCase() === name).map(award => ({ seasonId: s.id, seasonName: s.name, award })));
 }
