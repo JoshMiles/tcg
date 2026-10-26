@@ -1,4 +1,4 @@
-import { kv } from './db';
+import { kv, requestCached } from './db';
 import { DEFAULT_SETTINGS, sanitizeUserSettings, sparse, type UserSettings } from './user-settings';
 import { syncWatchIndex } from './watch-index';
 
@@ -13,9 +13,11 @@ export async function loadUserSettings(username: string): Promise<UserSettings> 
   return sanitizeUserSettings(await kv.get(key(username)));
 }
 
-export async function getUserSettings(username: string): Promise<UserSettings> {
-  try { return await loadUserSettings(username); } catch { return { ...DEFAULT_SETTINGS, experiments: [], watches: [], favourites: [] }; }
-}
+// Read once per request (keyed on the lowercase login); the object is shared, so copy it before changing it.
+const readUserSettings = requestCached(async (u: string): Promise<UserSettings> => {
+  try { return await loadUserSettings(u); } catch { return { ...DEFAULT_SETTINGS, experiments: [], watches: [], favourites: [] }; }
+});
+export const getUserSettings = (username: string): Promise<UserSettings> => readUserSettings(username.toLowerCase());
 
 /** Viewers who chose a private profile. Never throws. */
 export async function getSelfHidden(): Promise<Set<string>> {

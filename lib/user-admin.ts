@@ -1,5 +1,5 @@
 import { getSelfHidden } from './user-settings-store';
-import { kv } from './db';
+import { kv, requestCached } from './db';
 import { getCollection, getUserProfile, listSeasons, patchUserProfile, saveCollection, saveUserProfile, withCollectionLock, withLock, deleteUserProfile } from './kv';
 import { cleanLogin } from './staff-core';
 import { recordAudit } from './audit';
@@ -41,12 +41,11 @@ const HIDDEN_KEY = 'users:hidden';
 /** The admin hidden list now: a KV set, so hiding or showing one viewer is a single atomic add / remove. */
 const HIDDEN_SET = 'users:hidden:admin';
 
-/** Viewers hidden from public rankings, kept in step by saveFlags. */
-export async function getHiddenUsers(): Promise<Set<string>> {
+/** Viewers hidden from public rankings, kept in step by saveFlags. Read once per request; the set is shared, so copy it before changing it. */
+export const getHiddenUsers = requestCached(async (): Promise<Set<string>> => {
   const [admin, self] = await Promise.all([getAdminHidden(), getSelfHidden()]);
-  for (const u of self) admin.add(u);
-  return admin;
-}
+  return new Set([...admin, ...self]);
+});
 
 /** Only the ones an admin hid (viewers who chose a private profile are tracked separately). */
 export async function getAdminHidden(): Promise<Set<string>> {

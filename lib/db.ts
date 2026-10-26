@@ -1,5 +1,6 @@
 import { kv as prodKv } from '@vercel/kv';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { cache } from 'react';
 import { cookies, headers } from 'next/headers';
 import { verifySandboxToken } from './sandbox-token';
 
@@ -68,6 +69,17 @@ export async function resolveSandbox(raw: string | undefined): Promise<string | 
   if (!raw) return null;
   const id = verifySandboxToken(raw);
   return id && ID_RE.test(id) && (await sandboxExists(id)) ? id : DEAD;
+}
+
+/**
+ * Request-scoped memo for a KV reader (React `cache`): one read per request, sandbox and arguments, so a page that asks for the same
+ * thing from several components reads it once. Outside a render (an action, a route handler, a script) it calls straight through, so a
+ * write followed by a read in the same call is never stale. Arguments must be primitives. Never put a write path on it.
+ * The sandbox id is part of the key because `runInSandbox` can read another namespace inside one render.
+ */
+export function requestCached<A extends (string | number | boolean | null)[], R>(read: (...args: A) => Promise<R>): (...args: A) => Promise<R> {
+  const memo = cache((_sandbox: string | null, ...args: A) => read(...args));
+  return async (...args: A) => memo(await currentSandboxId(), ...args);
 }
 
 /** True when the request is in a sandbox (including a dead one). Use it to switch off anything that reaches the outside world. */

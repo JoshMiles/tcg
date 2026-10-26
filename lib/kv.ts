@@ -1,6 +1,6 @@
 import { dropLedger, isTracking, lastCopy, syncAfterSave, type SyncContext } from './serials';
 import type { Origin } from './serials-core';
-import { kv } from './db';
+import { kv, requestCached } from './db';
 import type { Season, Pack, Card, UserProfile, UpgradeCosts, VariantWeights } from './types';
 import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, cleanDisabled } from './variants';
 import { SEED_SEASON, SEED_PACK, SEED_CARDS } from './seed';
@@ -68,11 +68,15 @@ export async function listSeasonIds(): Promise<string[]> {
   return (await kv.get<string[]>('seasons:list')) ?? [];
 }
 
-export async function listSeasons(): Promise<Season[]> {
+/** Uncached read: use it where a write has just happened or is about to (setActiveSeason, season-wrap). */
+export async function readSeasons(): Promise<Season[]> {
   const ids = await listSeasonIds();
   const raws = await Promise.all(ids.map(id => kv.get(`season:${id}`)));
   return raws.filter(Boolean).map(normalizeSeason);
 }
+
+/** Read once per request. The array is shared: copy it before sorting. */
+export const listSeasons = requestCached(readSeasons);
 
 export async function getSeason(id: string): Promise<Season | null> {
   const raw = await kv.get(`season:${id}`);
@@ -87,6 +91,8 @@ export function scheduleDue(seasons: Season[], now = Date.now()): boolean {
   ));
 }
 
+// Not memoised itself: applying a due schedule can re-enter it (takeSnapshot reads score bonuses), which would wait on its own promise.
+// The season read inside it is memoised, which is the cost.
 export async function getActiveSeason(): Promise<Season | null> {
   let seasons = await listSeasons();
   // There is no background job: a scheduled start / end is applied the first time anything asks for the active season after it is due.
@@ -94,7 +100,7 @@ export async function getActiveSeason(): Promise<Season | null> {
     try {
       const { applySeasonSchedule } = await import('./season-wrap');
       await applySeasonSchedule();
-      seasons = await listSeasons();
+      seasons = await readSeasons();
     } catch { /* scheduling must never break a read */ }
   }
   return seasons.find(s => s.active && s.status === 'published') ?? null;
@@ -110,7 +116,7 @@ export async function saveSeason(season: Season): Promise<void> {
 
 /** Makes exactly one season active (or none, if `activeId` is omitted). */
 export async function setActiveSeason(activeId?: string): Promise<void> {
-  const all = await listSeasons();
+  const all = await readSeasons();
   if (activeId && all.find(s => s.id === activeId)?.status === 'draft') {
     throw new Error('A draft season cannot be activated. Publish it first.');
   }
@@ -169,7 +175,7 @@ export async function deletePack(id: string): Promise<void> {
   const ids = await listAllPackIds();
   await kv.set('packs:list', ids.filter(i => i !== id));
   // remove from any seasons that reference this pack
-  const seasons = await listSeasons();
+  const seasons = await readSeasons();
   await Promise.all(
     seasons
       .filter(s => s.packIds.includes(id))
@@ -177,10 +183,12 @@ export async function deletePack(id: string): Promise<void> {
   );
 }
 
-export async function getPacksForSeason(season: Season): Promise<Pack[]> {
-  const raws = await Promise.all(season.packIds.map(id => kv.get(`pack:${id}`)));
+// Keyed on the pack ids (a Season object would never repeat). Read once per request; the array is shared, so copy it before sorting.
+const readPacks = requestCached(async (ids: string): Promise<Pack[]> => {
+  const raws = await Promise.all((ids ? ids.split(',') : []).map(id => kv.get(`pack:${id}`)));
   return raws.filter(Boolean).map(normalizePack);
-}
+});
+export const getPacksForSeason = (season: Season): Promise<Pack[]> => readPacks(season.packIds.join(','));
 
 export async function getActivePacksForSeason(season: Season): Promise<Pack[]> {
   const packs = await getPacksForSeason(season);
@@ -200,10 +208,10 @@ export async function savePackCards(packId: string, cards: Card[]): Promise<void
 
 // ── Composite ─────────────────────────────────────────────
 
-export async function getActiveSeasonWithPacks(): Promise<{
+export const getActiveSeasonWithPacks = requestCached(async (): Promise<{
   season: Season;
   packs: { pack: Pack; cards: Card[] }[];
-} | null> {
+} | null> => {
   const season = await getActiveSeason();
   if (!season) return null;
   const activePacks = await getActivePacksForSeason(season);
@@ -211,7 +219,7 @@ export async function getActiveSeasonWithPacks(): Promise<{
     activePacks.map(async pack => ({ pack, cards: await getPackCards(pack.id) }))
   );
   return { season, packs: packsWithCards };
-}
+});
 
 // ── User Profiles ─────────────────────────────────────────
 

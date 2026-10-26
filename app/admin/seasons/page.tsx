@@ -23,7 +23,7 @@ export const metadata = { title: 'Seasons · Admin', robots: { index: false } };
 export default async function SeasonsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await staffPage('admin');
   const { error } = await searchParams;
-  const seasons = await listSeasons();
+  const seasons = [...await listSeasons()];
   // Drafts first, then the active season, then newest.
   seasons.sort((a, b) => Number(b.status === 'draft') - Number(a.status === 'draft') || Number(b.active) - Number(a.active) || b.createdAt - a.createdAt);
 
