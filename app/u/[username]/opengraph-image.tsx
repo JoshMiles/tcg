@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
-import { getActiveSeason, getCollection, getUserProfile, getPacksForSeason, getPackCards } from '@/lib/kv';
-import { getSeasonLeaderboard } from '@/lib/leaderboard';
+import { getActiveSeason, getUserProfile } from '@/lib/kv';
+import { getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { OG_BG, OG_SIZE, brandIconDataUri } from '@/lib/og';
 import { SITE_NAME } from '@/lib/seo';
 import { uniqueCount } from '@/lib/collection';
@@ -23,9 +23,10 @@ export default async function Image({ params }: { params: Promise<{ username: st
   let pct = 0;
   if (season && !isPrivate) {
     try {
-      const [board, collection, packs] = await Promise.all([getSeasonLeaderboard(season), getCollection(season.collectionName), getPacksForSeason(season)]);
-      const total = (await Promise.all(packs.filter(p => p.status !== 'draft').map(async p => (await getPackCards(p.id)).length))).reduce((a, b) => a + b, 0);
-      const mine = collection[lower] ?? [];
+      // The shared 20 s board (a crawler sweep must not rebuild the leaderboard per profile); it carries the collection and pack cards too.
+      const board = await getSeasonLeaderboardCached(season);
+      const total = board.packs.filter(p => p.pack.status !== 'draft').reduce((n, p) => n + p.cards.length, 0);
+      const mine = board.collection[lower] ?? [];
       const unique = uniqueCount(mine);
       const idx = board.rows.findIndex(r => r.username === lower);
       pct = total > 0 ? Math.round((unique / total) * 100) : 0;
