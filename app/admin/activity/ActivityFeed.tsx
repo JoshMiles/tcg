@@ -106,6 +106,8 @@ export function ActivityFeed({
   const [status, setStatus] = useState<Status>('live');
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  // An idle tab with sound or desktop alerts on is being used as an alarm, so it keeps polling.
+  const asleep = idle && !prefs.sound && !prefs.desktop;
   const [search, setSearch] = useState('');
   const [viewer, setViewer] = useState('');
   const [showMore, setShowMore] = useState(false);
@@ -202,7 +204,7 @@ export function ActivityFeed({
   }, [alertFor]);
 
   useEffect(() => {
-    if (paused || idle) { setStatus('paused'); return; }
+    if (paused || asleep) { setStatus('paused'); return; }
     if (status === 'signed-out') return;
     const tick = () => { if (document.visibilityState === 'visible') poll(); };
     const interval = setInterval(tick, POLL_MS);
@@ -211,7 +213,7 @@ export function ActivityFeed({
     poll();
     return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onVisible); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paused, idle, poll]);
+  }, [paused, asleep, poll]);
 
   // Filtering
   const needle = search.trim().toLowerCase();
@@ -292,8 +294,8 @@ export function ActivityFeed({
         </button>
         {activeFilters > 0 && <button type="button" onClick={clearFilters} className="text-xs font-semibold text-gray-400 hover:text-white underline underline-offset-2">Clear all</button>}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <StatusPill status={paused || idle ? 'paused' : status} />
-          {idle && (
+          <StatusPill status={paused || asleep ? 'paused' : status} />
+          {asleep && (
             <button type="button" onClick={() => { lastInputRef.current = Date.now(); setIdle(false); }} className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/50 bg-yellow-500/10 px-3 py-1.5 text-xs font-bold text-yellow-300" title="No input for 10 minutes, so the feed stopped checking for new activity. Any click or key resumes it.">
               <Icon name="play" />Idle, resume
             </button>
