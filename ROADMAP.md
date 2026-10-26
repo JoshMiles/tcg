@@ -8,7 +8,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 ## Rules in force
 
-- **Twitch panel freeze (2026-10-26).** It was lifted so version 0.0.2 could be built; a new freeze starts when Josh submits 0.0.2 (ask him before changing the panel, `/api/twitch/*` or the CORS rules in `middleware.ts`; Track 53 waits for the review). Always: never rename or remove a JSON key on `/api/twitch/*` that the released panel reads.
+- **Twitch panel freeze (2026-10-26).** It was lifted so version 0.0.2 could be built; a light freeze starts when Josh submits 0.0.2 and lasts until Twitch answers: `public/twitch-panel/*` and the CORS rules in `middleware.ts` stay as submitted, and `/api/twitch/*` may only gain JSON keys (Track 53 waits for the review). Always: never rename or remove a JSON key on `/api/twitch/*` that the released panel reads.
 - One feature per PR, branched from up-to-date `origin/main`; every push gets a PR (see "Git and PRs" in `CLAUDE.md`).
 - No em dashes, no emoji in the UI, FAQ / Privacy / Terms kept in step (`scripts/check-words.mts`), `npm run verify` before every PR.
 
