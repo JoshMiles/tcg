@@ -1,4 +1,6 @@
 // The staff list (server side). Stored in KV as the hash `staff:members` (login -> record) with a capped change log `staff:log`.
+// Sign-in bookkeeping is kept apart so a sign-in never rewrites a record: `staff:seen` (login -> last sign-in time and display
+// name) and `staff:ids` (login -> the Twitch ID bound on first sign-in, written once). Both only fill in what the record lacks.
 //
 // Staff are real accounts, not test data, so they live in the PRODUCTION namespace even while an admin is inside a sandbox
 // (`prodKv`, not the sandbox-aware `kv`). Otherwise entering a sandbox would make every staff member look like a stranger.
@@ -13,6 +15,8 @@ import {
 
 const MEMBERS = 'staff:members';
 const LOG = 'staff:log';
+const SEEN = 'staff:seen';
+const IDS = 'staff:ids';
 const LOG_CAP = 200;
 
 export interface StaffActor { login: string; role: StaffRole }
@@ -25,14 +29,31 @@ export interface StaffLogEntry { at: number; by: string; action: 'added' | 'role
 export async function getStaffRecord(login: string): Promise<StaffRecord | null> {
   const l = cleanLogin(login);
   if (!l) return null;
-  try { return sanitizeStaffRecord(await prodKv.hget(MEMBERS, l)); } catch { return null; }
+  try {
+    const rec = sanitizeStaffRecord(await prodKv.hget(MEMBERS, l));
+    if (!rec || rec.twitchId) return rec;
+    const bound = await prodKv.hget<{ id?: unknown }>(IDS, l);
+    return isTwitchId(bound?.id) ? { ...rec, twitchId: bound.id } : rec;
+  } catch { return null; }
 }
 
 /** Everyone on the staff list (not the super admin, who comes from the code), admins first, then by name. */
 export async function listStaff(): Promise<StaffRecord[]> {
   try {
-    const all = (await prodKv.hgetall(MEMBERS)) ?? {};
-    return Object.values(all).map(sanitizeStaffRecord).filter((r): r is StaffRecord => !!r)
+    const [all, ids, seen] = await Promise.all([
+      prodKv.hgetall(MEMBERS), prodKv.hgetall<Record<string, { id?: unknown }>>(IDS), prodKv.hgetall<Record<string, { lastLogin?: unknown; displayName?: unknown }>>(SEEN),
+    ]);
+    return Object.values(all ?? {}).map(sanitizeStaffRecord).filter((r): r is StaffRecord => !!r)
+      .map(r => {
+        const id = ids?.[r.login]?.id, s = seen?.[r.login];
+        const name = typeof s?.displayName === 'string' && s.displayName ? s.displayName.slice(0, 40) : undefined;
+        return {
+          ...r,
+          ...(!r.twitchId && isTwitchId(id) ? { twitchId: id } : {}),
+          ...(name ? { displayName: name } : {}),
+          ...(typeof s?.lastLogin === 'number' ? { lastLogin: s.lastLogin } : {}),
+        };
+      })
       .sort((a, b) => (a.role === b.role ? a.login.localeCompare(b.login) : a.role === 'admin' ? -1 : 1));
   } catch { return []; }
 }
@@ -75,6 +96,7 @@ export async function addStaff(actor: StaffActor, loginInput: unknown, role: Ass
     login, role, addedBy: actor.login, addedAt: Date.now(),
     ...(known.id ? { twitchId: known.id } : {}), ...(known.displayName ? { displayName: known.displayName } : {}),
   };
+  await Promise.all([prodKv.hdel(IDS, login), prodKv.hdel(SEEN, login)]); // a re-added login starts fresh, whatever an earlier stint left behind
   await prodKv.hset(MEMBERS, { [login]: record });
   await log({ by: actor.login, action: 'added', login, detail: `as ${role}` });
   return { ok: true, message: `${known.displayName ?? login} is now ${role === 'admin' ? 'an admin' : 'a mod'}.${known.id ? '' : ' They have not played yet, so the name is matched until they first sign in.'}` };
@@ -106,12 +128,13 @@ export async function removeStaff(actor: StaffActor, loginInput: unknown): Promi
   return { ok: true, message: `${login} is no longer staff.` };
 }
 
-/** Notes a sign-in: stamps the time, and binds the record to the account's Twitch ID the first time (never rebinds). */
+/** Notes a sign-in: stamps the time in `staff:seen`, and binds the account's Twitch ID the first time with a write-once field (never rebinds). Never touches the staff record. */
 export async function touchStaffLogin(login: string, twitchId: string, displayName: string): Promise<void> {
   if (isPreview()) return; // best effort, and a preview must not write the shared staff list
   try {
     const rec = await getStaffRecord(login);
     if (!rec) return;
-    await prodKv.hset(MEMBERS, { [rec.login]: { ...rec, twitchId: rec.twitchId ?? twitchId, displayName, lastLogin: Date.now() } });
+    await prodKv.hset(SEEN, { [rec.login]: { lastLogin: Date.now(), displayName } });
+    if (!rec.twitchId && isTwitchId(twitchId)) await prodKv.hsetnx(IDS, rec.login, { id: twitchId });
   } catch { /* best effort */ }
 }

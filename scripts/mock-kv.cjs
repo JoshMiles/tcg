@@ -41,6 +41,7 @@ function run(cmd) {
     case 'sadd': { const s = new Set(store.get(key) || []); rest.forEach(x => s.add(x)); store.set(key, [...s]); types.set(key, 'set'); return 1; }
     case 'srem': { const s = new Set(store.get(key) || []); let n = 0; rest.forEach(x => { if (s.delete(x)) n++; }); store.set(key, [...s]); return n; }
     case 'hset': { const h = store.get(key) || {}; for (let i = 0; i < rest.length; i += 2) h[rest[i]] = rest[i+1]; store.set(key, h); types.set(key, 'hash'); return rest.length / 2; }
+    case 'hsetnx': { const h = store.get(key) || {}; if (rest[0] in h) return 0; h[rest[0]] = rest[1]; store.set(key, h); types.set(key, 'hash'); return 1; }
     case 'hdel': { const h = store.get(key) || {}; let n = 0; rest.forEach(f => { if (f in h) { delete h[f]; n++; } }); store.set(key, h); return n; }
     case 'hincrby': { const h = store.get(key) || {}; h[rest[0]] = Number(h[rest[0]] || 0) + Number(rest[1]); store.set(key, h); types.set(key, 'hash'); return h[rest[0]]; }
     case 'scard': return (store.get(key) || []).length;
