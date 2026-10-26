@@ -1,3 +1,4 @@
+import { cleanLogin } from './staff-core';
 import type { Card, OptionalVariant, Pack, UpgradeCosts, Variant, VariantWeights } from './types';
 
 export const VARIANTS: readonly Variant[] = ['regular', 'reverse', 'full', 'shiny', 'golden'];
@@ -31,6 +32,24 @@ export function encodeEntry(cardNumber: number, variant: Variant = 'regular'): n
 export function decodeEntry(entry: number): { cardNumber: number; variant: Variant } {
   const idx = Math.min(Math.floor(entry / VARIANT_OFFSET), VARIANTS.length - 1);
   return { cardNumber: entry - idx * VARIANT_OFFSET, variant: VARIANTS[idx] };
+}
+
+/**
+ * Checks a whole-collection body at the trust boundary: an object of Twitch logins to arrays of valid entries
+ * (a card number from 1 with a known variant). Returns the collection, or why it is not one.
+ */
+export function parseCollectionData(data: unknown): { ok: true; data: Record<string, number[]> } | { ok: false; error: string } {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return { ok: false, error: 'data must be an object of usernames to card lists' };
+  for (const [name, entries] of Object.entries(data)) {
+    if (cleanLogin(name) !== name) return { ok: false, error: `"${name}" is not a lower-case Twitch username` };
+    if (!Array.isArray(entries)) return { ok: false, error: `${name}: cards must be a list` };
+    for (const e of entries) {
+      if (!Number.isInteger(e) || e < 1 || e >= VARIANT_OFFSET * VARIANTS.length || e % VARIANT_OFFSET === 0) {
+        return { ok: false, error: `${name}: ${JSON.stringify(e)} is not a card entry` };
+      }
+    }
+  }
+  return { ok: true, data: data as Record<string, number[]> };
 }
 
 export type VariantCounts = Record<Variant, number>;

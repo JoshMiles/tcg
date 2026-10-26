@@ -12,6 +12,8 @@ Viewers can pay a currency (Brie Bucks) for a pack. Settings live in KV `mixitup
 - `/api/collection` is locked down by server-rolled pulls (docs/overlay.md, ROADMAP 13.1).
 
 ## Webhook grants look like pulls
+The incoming webhooks only accept a real Twitch login as `username` (3 to 25 letters, digits and underscores; a leading `@` is dropped; anything else is a 400), and the grant-card webhook only grants a card number that exists in a published pack of the active season (404 otherwise), so a bad Mix It Up variable fails loudly instead of creating a ghost viewer.
+
 A card granted by the grant-card webhook (a Mix It Up reward) is recorded as `grant` with `source: 'webhook'` plus the facts of a pull (name, stars, pack, new or not, copies, collected, edition). It counts as a **pull** in the Live Activity categories and the Discord Pulls category (with the star and new-only filters), reads "X pulled Y (granted by webhook)" in the live feed and on the dashboard's Recent activity, and posts the same embed as a pull with a "Granted by webhook" line (`pullEmbed` in `lib/discord.ts`). The Live Activity numbers, the stream recap (`asPullEvent` in `lib/activity-view.ts`; there it is listed as a reward rather than a pack opened) and the stats counters behind the weekly digest and the dashboard charts (`recordStats`, from the day this shipped) count it as a pull too. Admin grants are unchanged (Grants & removals, the Cards Discord category, the `grant` counter). Events recorded before this change lack the extra facts and still post, with the card's stars looked up.
 
 ## Mix It Up chat commands (Mix It Up page, Commands tab)
