@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { currentSandboxId } from './db';
+import { signingKey } from './signing';
 
 export interface TwitchJwtPayload {
   opaque_user_id: string;
@@ -47,10 +48,7 @@ export function verifyTwitchJwt(token: string): TwitchJwtPayload | null {
 // The fake Twitch page (Admin → Sandbox → Fake Twitch) runs the real panel against a sandbox with a pretend Twitch helper. Its
 // tokens are signed with a key derived from SESSION_SECRET (never the extension secret), only an admin can mint one, and the
 // token names the sandbox it is for: it is refused anywhere else, so it can't be used against production data.
-const mockKey = (): string | null => {
-  const s = process.env.SESSION_SECRET;
-  return s && s.length >= 16 ? `tcg-mock-ext:${s}` : null;
-};
+const mockKey = () => signingKey('mock-ext');
 const mockSig = (key: string, data: string) => createHmac('sha256', key).update(data).digest('base64url');
 
 export function signMockTwitchJwt(claims: Omit<TwitchJwtPayload, 'exp' | 'mock'> & { sandbox: string }, ttlSeconds = 4 * 3600): string | null {

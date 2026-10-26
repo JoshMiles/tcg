@@ -1,13 +1,11 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { signingKey } from './signing';
 
 // Entering a sandbox is a signed token, `<id>.<hmac>`, not a bare id. The `tcg_sandbox` cookie, the `x-tcg-sandbox` header and the
 // overlay's `?sandbox=` all carry it, and `currentSandboxId()` (lib/db.ts) honours only a valid signature. The HMAC covers the id and
-// uses a key derived for this purpose from SESSION_SECRET (never the secret itself). Only an admin action mints one.
+// uses a key derived for this purpose from SESSION_SECRET (lib/signing.ts, never the secret itself). Only an admin action mints one.
 
-const key = (): string | null => {
-  const s = process.env.SESSION_SECRET;
-  return s && s.length >= 16 ? `tcg-sandbox-entry:${s}` : null;
-};
+const key = () => signingKey('sandbox-entry');
 const mac = (id: string, k: string) => createHmac('sha256', k).update(id).digest('base64url');
 
 /** The token for a sandbox id, or null when SESSION_SECRET is missing or too short. */

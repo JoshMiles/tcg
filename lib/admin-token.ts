@@ -7,6 +7,8 @@
 // password on the legacy import, so a copy of the URL was enough to mint a permanent super-admin cookie.
 // Signing uses ADMIN_COOKIE_SECRET only. The payload carries an expiry and a generation; a sign-out bumps
 // the generation in KV (lib/admin-cookie.ts) so a copied cookie dies even before its expiry.
+import { safeEqual } from './signing';
+
 export const AUTH_COOKIE = 'admin-auth';
 /** How long a password session lasts. Checked on the server, not only as a browser maxAge. */
 export const ADMIN_COOKIE_TTL_S = 7 * 24 * 60 * 60;
@@ -27,15 +29,6 @@ export interface AdminCookieClaims {
 /** Is the emergency password login on? It is unless ADMIN_PASSWORD_LOGIN is set to off / false / 0 / no. */
 export function isPasswordLoginEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return !/^(off|false|0|no)$/i.test((env.ADMIN_PASSWORD_LOGIN ?? '').trim());
-}
-
-/** Compares two strings without stopping at the first difference, so the time taken says nothing about the secret. */
-export function sameString(a: string, b: string): boolean {
-  const x = enc.encode(a), y = enc.encode(b);
-  if (x.length !== y.length) return false;
-  let d = 0;
-  for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i];
-  return d === 0;
 }
 
 /**
@@ -67,13 +60,6 @@ async function hmac(payload: string, key: string): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(payload)));
 }
 
-const sameBytes = (a: Uint8Array, b: Uint8Array) => {
-  if (a.length !== b.length) return false;
-  let d = 0;
-  for (let i = 0; i < a.length; i++) d |= a[i] ^ b[i];
-  return d === 0;
-};
-
 function randomId(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -95,7 +81,7 @@ export async function readAdminCookie(token: string | undefined, key: string | n
   const parts = token.split('.');
   if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
   try {
-    if (!sameBytes(await hmac(parts[0], key), fromB64url(parts[1]))) return null;
+    if (!(await safeEqual(await hmac(parts[0], key), fromB64url(parts[1])))) return null;
     const t = JSON.parse(new TextDecoder().decode(fromB64url(parts[0]))) as AdminCookieClaims;
     if (t.v !== 2 || typeof t.exp !== 'number' || typeof t.iat !== 'number' || typeof t.id !== 'string' || !t.id) return null;
     if (!Number.isSafeInteger(t.gen) || t.gen < 1) return null;
