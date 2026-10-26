@@ -10,7 +10,7 @@ form field, and a pre-flight checklist. Copy the text blocks as they are.
 | `icon-100.png` | 100 x 100, opaque | Extension icon (Discover page and the extension's detail page) |
 | `discovery-300x200.png` | 300 x 200, opaque | Discovery image (Featured section of the Discovery page) |
 | `screenshots/01-collection.png` | 1024 x 768 | Screenshot: the collection grid |
-| `screenshots/02-card-detail.png` | 1024 x 768 | Screenshot: a card's odds, serials and worth |
+| `screenshots/02-card-detail.png` | 1024 x 768 | Screenshot: a card's odds, editions and worth |
 | `screenshots/03-stats.png` | 1024 x 768 | Screenshot: points, rank and what to upgrade |
 | `screenshots/04-leaderboard.png` | 1024 x 768 | Screenshot: the season leaderboard |
 | `screenshots/05-trades.png` | 1024 x 768 | Screenshot: trading with other viewers |
@@ -73,11 +73,11 @@ Collect trading cards pulled live on stream. Browse your collection, upgrade dup
 The Cheesy TCG is a collectible card game played live on Cheesygidds' channel. Packs are opened on stream and every card you pull goes into your collection.
 
 Use this panel to:
-- See every card you own, with its version (Reverse Holo, Full Art, Shiny Full Art) and how many copies you have
+- See every card you own, with its version (Reverse Holo, Full Art, Shiny Full Art) and how many editions you have
 - Open any card for its pull odds, how many exist and what it is worth
 - Check your points, your rank and what you can upgrade next
 - Upgrade duplicates into rarer versions
-- Trade copies with other viewers
+- Trade editions with other viewers
 - Follow the season leaderboard
 
 Log in once with Twitch to link your account. The panel asks you to share your Twitch identity and only uses your Twitch username. Your collection also appears on the website, cheesytcg.app, where it works like a binder you can customise and share.
@@ -133,7 +133,7 @@ the Extension JWT in the Authorization header and the server verifies it with th
 ```
 1. Install the extension on a test channel and open its panel (or open the Mobile view).
 2. Press "Login with Twitch" and accept the "share your identity" prompt. The panel shows your collection.
-3. Collection tab: browse the card grid, filter by Have / Missing, and click a card for its details (odds, copies out there, what it is worth).
+3. Collection tab: browse the card grid, filter by Have / Missing, and click a card for its details (odds, editions out there, what it is worth).
 4. Stats tab: your points, rank and which cards you can upgrade. Open a card from "Ready to upgrade" to upgrade it.
 5. Trades tab: browse the open board and press "+ New offer" to make one.
 6. Board tab: the season leaderboard.
