@@ -1,11 +1,9 @@
 // Mix It Up paid pulls, the server side (ROADMAP Track 12; the pure parts are in mixitup-core.ts). A pull is reserved when the
-// pull webhook arrives (limit and balance checked), claimed when the overlay saves the card, and charged then; if Mix It Up does
-// not confirm the charge, the print is revoked.
+// pull webhook arrives (limit and balance checked), claimed when the overlay saves the card, and charged BEFORE the print is
+// written; if Mix It Up does not confirm the charge, no print is made, and if the print then cannot be written the charge is refunded.
 import { kv, inSandbox } from './db';
 import { checkWebhookUrl } from './webhook-clean';
-import { getActiveSeason, getCollection, saveCollection, withCollectionLock, withLock } from './kv';
-import { getCopy } from './serials';
-import { entryOf, isEscrow } from './serials-core';
+import { getActiveSeason, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
 import { getStreamBuff, getUserPullLimit } from './pull-limit';
@@ -246,28 +244,23 @@ export async function releaseCount(c: Claimed): Promise<void> {
   await kv.decr(cntKey(c.stream, c.username)).catch(() => {});
 }
 
-/**
- * Takes the print back after a failed charge: removed from the viewer's collection and retired in the copy ledger, under the
- * collection lock. Returns their new collection, or null if the print was no longer theirs (nothing changed then).
- */
-export async function revokePrint(collectionName: string, username: string, entry: number, copyId: string | null): Promise<number[] | null> {
-  const user = username.toLowerCase();
-  const out = await withCollectionLock(collectionName, async () => {
-    const data = await getCollection(collectionName);
-    const owned = data[user] ?? [];
-    const copy = copyId ? await getCopy(collectionName, copyId) : null;
-    if (copy && (copy.owner !== user || isEscrow(copy.owner))) return null;
-    const i = owned.lastIndexOf(copy ? entryOf(copy) : entry);
-    if (i < 0) return null;
-    data[user] = [...owned.slice(0, i), ...owned.slice(i + 1)];
-    if (data[user].length === 0) delete data[user];
-    await saveCollection(collectionName, data, copy ? { retire: { owner: user, ids: [copy.id], who: user, note: 'payment failed' } } : undefined);
-    return data[user] ?? [];
-  });
-  return out;
+/** The charge was not confirmed, so no print was made: give the viewer's pull allowance back and tell staff. */
+export async function noticeUnpaid(c: Claimed, cardName: string, why: string): Promise<void> {
+  await releaseCount(c);
+  await logMixItUp({ username: c.username, what: 'revoked', ok: false, detail: `${cardName}: ${why}` });
+  await notifySystem({ title: 'A paid pull was not given', text: `${c.username}'s ${cardName} was not given because Mix It Up did not confirm the payment (${why}).`, tone: 'bad' });
 }
 
-export async function noticeRevoked(username: string, cardName: string, why: string): Promise<void> {
-  await logMixItUp({ username, what: 'revoked', ok: false, detail: `${cardName}: ${why}` });
-  await notifySystem({ title: 'A paid pull was revoked', text: `${username}'s ${cardName} was taken back because Mix It Up did not confirm the payment (${why}).`, tone: 'bad' });
+/**
+ * The charge went through but the print could not be saved: pay the viewer back through the add address (the same call the
+ * currency-grant buff uses) and give the allowance back. If the refund cannot be made, staff are told to do it by hand.
+ */
+export async function refundPaidPull(s: MixItUpSettings, c: Claimed, cardName: string, doFetch?: Fetch): Promise<void> {
+  await releaseCount(c);
+  if (c.credit) { await releaseExtraPackCredit(c.username); return; }
+  if (c.amount === 0) return;
+  const r = await grantCurrency(s, c.username, c.amount, doFetch);
+  if (r.applied) return;
+  await logMixItUp({ username: c.username, what: 'revoked', ok: false, detail: `${cardName}: refund of ${c.amount} ${s.currency} not made (${r.error ?? 'not applied'})` });
+  await notifySystem({ title: 'A paid pull needs a manual refund', text: `${c.username} was charged ${c.amount} ${s.currency} for ${cardName} but the print could not be saved, and the automatic refund failed (${r.error ?? 'not applied'}). Refund them by hand.`, tone: 'bad' });
 }
