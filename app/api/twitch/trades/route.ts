@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getActiveSeason, getCollection } from '@/lib/kv';
+import { getActiveSeason, getUserCards } from '@/lib/kv';
 import { acceptTrade, cancelTrade, counterTrade, createTrade, declineTrade, getTradeSettings, tradesForUser, listOpenTrades } from '@/lib/trades';
 import { firstMissing, type Trade } from '@/lib/trade-core';
 import { getPrintPool, getTradeCards, getTradePools, poolsFor, stackPoints } from '@/lib/trade-view';
@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
   const season = await getActiveSeason();
   if (!season || season.status === 'draft') return NextResponse.json({ error: 'No active season' }, { status: 404 });
 
-  const [settings, cards, mine, open, data, prefs, prints] = await Promise.all([
-    getTradeSettings(), getTradeCards(season), tradesForUser(me), listOpenTrades(), getCollection(season.collectionName), getUserSettings(me), getPrintPool(season, me),
+  const [settings, cards, mine, open, owned, prefs, prints] = await Promise.all([
+    getTradeSettings(), getTradeCards(season), tradesForUser(me), listOpenTrades(), getUserCards(season.collectionName, me), getUserSettings(me), getPrintPool(season, me),
   ]);
   const here = (list: Trade[]) => list.filter(t => t.seasonId === season.id);
   const incoming = here(mine.incoming);
@@ -38,7 +38,6 @@ export async function GET(req: NextRequest) {
   const isMatch = (t: Trade) => matchingAlerts(prefs, t.give).length > 0;
   const board = [...allBoard.filter(isMatch), ...allBoard.filter(t => !isMatch(t))].slice(0, BOARD_MAX);
   const recent = here(mine.recent).slice(0, RECENT_MAX);
-  const owned = data[me] ?? [];
   const pools = await getTradePools(season, [...incoming, ...outgoing, ...board, ...recent], me);
 
   const view = (t: Trade) => {

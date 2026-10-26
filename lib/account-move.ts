@@ -10,7 +10,7 @@
 // Sign-in drives both (lib/account-bind.ts); the admin Move aside button uses 'aside'.
 
 import { inSandbox, isPreview, kv } from './db';
-import { getCollection, getUserProfile, listSeasons, moveCollectionCards, saveUserProfile, deleteUserProfile, withCollectionLock, withLock } from './kv';
+import { getUserCards, getUserProfile, listSeasons, moveCollectionCards, saveUserProfile, deleteUserProfile, withCollectionLock, withLock } from './kv';
 import { IDS as ACCT_IDS } from './account-id';
 import { removeOpaqueLinks } from './account-deletion';
 import { deleteTesterRecord, getTester, putTesterRecord } from './access';
@@ -89,7 +89,7 @@ export async function declineAside(to: string): Promise<void> {
 
 async function cardCount(login: string, seasons: { collectionName: string }[]): Promise<number> {
   let n = 0;
-  for (const s of seasons) n += (await getCollection(s.collectionName))[login]?.length ?? 0;
+  for (const s of seasons) n += (await getUserCards(s.collectionName, login)).length;
   return n;
 }
 

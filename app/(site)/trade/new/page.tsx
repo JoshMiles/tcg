@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
-import { getCollection, getUserProfile } from '@/lib/kv';
+import { getUserCards, getUserProfile } from '@/lib/kv';
 import { getActive } from '@/lib/site-seasons';
 import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
 import { getPrintPool, getTradeCards } from '@/lib/trade-view';
@@ -45,9 +45,9 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
     if (original.kind !== 'direct' || original.to !== session.username) return say('text-gray-400', 'That offer wasn’t made to you, so you can’t counter it.');
   }
 
-  const [cards, collection, prefs] = await Promise.all([getTradeCards(season), getCollection(season.collectionName), getUserSettings(session.username)]);
+  const [cards, collection, prefs] = await Promise.all([getTradeCards(season), getUserCards(season.collectionName, session.username), getUserSettings(session.username)]);
   const mine: Record<number, Partial<Record<Variant, number>>> = {};
-  for (const entry of collection[session.username] ?? []) {
+  for (const entry of collection) {
     const { cardNumber, variant } = decodeEntry(entry);
     mine[cardNumber] = { ...mine[cardNumber], [variant]: (mine[cardNumber]?.[variant] ?? 0) + 1 };
   }

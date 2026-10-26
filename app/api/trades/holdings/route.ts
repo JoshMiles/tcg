@@ -2,7 +2,7 @@ import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { getStaff } from '@/lib/staff-guard';
 import { getSession } from '@/lib/session';
-import { getCollection, getSeason } from '@/lib/kv';
+import { getUserCards, getSeason } from '@/lib/kv';
 import { mayReadHoldings } from '@/lib/holdings-access';
 import { decodeEntry } from '@/lib/variants';
 import { loadSerialIndex } from '@/lib/serials';
@@ -37,8 +37,8 @@ export async function GET(req: NextRequest) {
     const error = status === 401 ? 'Log in with Twitch first.' : 'This profile is private.';
     return NextResponse.json({ error }, { status, headers: NO_STORE });
   }
-  const owned = (await getCollection(season.collectionName))[username];
-  if (!owned) return NextResponse.json({ error: `Nobody called ${username} has played this season.` }, { status: 404, headers: NO_STORE });
+  const owned = await getUserCards(season.collectionName, username);
+  if (!owned.length) return NextResponse.json({ error: `Nobody called ${username} has played this season.` }, { status: 404, headers: NO_STORE });
   const holdings: Record<number, Partial<Record<Variant, number>>> = {};
   for (const entry of owned) {
     const { cardNumber, variant } = decodeEntry(entry);

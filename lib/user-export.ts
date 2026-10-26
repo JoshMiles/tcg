@@ -1,4 +1,4 @@
-import { getUserProfile, listSeasons, getCollection } from './kv';
+import { getUserProfile, listSeasons, getUserCards } from './kv';
 import { getUserSettings } from './user-settings-store';
 import { listNotices } from './trade-notify';
 import { tradesForUser } from './trades';
@@ -22,7 +22,7 @@ export async function buildExport(username: string) {
     getDiscordLink(u).catch(() => null),
   ]);
   const collections = (await Promise.all(seasons.map(async s => {
-    const owned = (await getCollection(s.collectionName).catch(() => ({} as Record<string, number[]>)))[u] ?? [];
+    const owned = await getUserCards(s.collectionName, u).catch(() => [] as number[]);
     return owned.length ? { seasonId: s.id, season: s.name, entries: owned } : null;
   }))).filter(Boolean);
   return {
