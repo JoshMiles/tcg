@@ -360,10 +360,9 @@ export async function useTrainerCard(
 ): Promise<UseTrainerResult> {
   const u = username.toLowerCase();
   const seasons = await listSeasons().catch(() => []);
-  const season = seasonId
-    ? seasons.find(s => s.id === seasonId) ?? (await getSeason(seasonId))
-    : seasons.find(s => s.active && !s.endedAt) ?? seasons[0];
-  if (!season) return { ok: false, status: 400, error: 'No active season.' };
+  // Only a published season that has not ended counts; a draft, an ended or an unknown season is refused.
+  const season = seasonId ? seasons.find(s => s.id === seasonId) : seasons.find(s => s.active);
+  if (!season || season.status !== 'published' || season.endedAt) return { ok: false, status: 400, error: 'No active season.' };
 
   const packs = await getPacksForSeason(season);
   let trainerCard: Card | null = null;

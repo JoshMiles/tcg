@@ -203,7 +203,7 @@ export default async function UserDetailPage({
         <Tile label="Rank" value={myRow ? `#${rankIdx + 1}` : '-'} sub={activeSeason ? (myRow ? `of ${board?.rows.length} in ${activeSeason.name}` : 'not ranked') : 'no active season'} />
         <Tile label="Score" value={myRow ? Math.round(myRow.score).toLocaleString() : '-'} sub={myRow ? `${Math.round(myRow.cardPoints).toLocaleString()} from cards` : undefined} />
         <Tile label="Unique cards" value={totalCards} sub={`${activeSeasons} season${activeSeasons === 1 ? '' : 's'}`} />
-        <Tile label="Total pulls" value={totalPulls} />
+        <Tile label="Editions held" value={totalPulls} />
         <Tile label="Last seen" value={ago(lastSeen, now)} />
         <Tile label="Joined" value={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-GB', { timeZone: 'UTC' }) : '-'} sub={`${tradeLines.filter(l => l.status === 'accepted').length} trades done`} />
       </div>

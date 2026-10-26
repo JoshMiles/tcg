@@ -49,7 +49,7 @@
 
 ### OBS / collection
 - `GET /api/seasons/active`, active season + packs + cards (used by widget)
-- `POST /api/collection`, save card pull to legacy collection (widget writes here)
+- `POST /api/collection`, save card pull to legacy collection (widget writes here). With `data` instead of `pull` (admin only) it replaces a whole collection; the body goes through `parseCollectionData` (`lib/variants.ts`): Twitch usernames to lists of valid entries, else 400
 - `GET /api/collection?name={collectionName}`, read collection (widget reads here; overlay key or a staff session, not a public dump)
 
 ### Twitch Extension
@@ -74,4 +74,4 @@
 - `GET /api/admin/overlay-status`, admin-only; `{ connected, clients, streaming, recording, lastSeen, queued }`
 
 ### Webhooks
-- `POST /api/webhooks/grant-card`, MixItUp integration: body `{ secret, username, cardNumber }` → appends card to user's active season collection
+- `POST /api/webhooks/grant-card`, MixItUp integration: body `{ secret, username, cardNumber }` → appends card to user's active season collection. Every incoming webhook that takes a `username` (`parseIncomingWebhook`) answers 400 unless it is a Twitch login (3 to 25 letters, digits, underscores; a leading `@` is dropped); grant-card answers 404 when the card number is not in a published pack of the active season

@@ -2,6 +2,7 @@ import { kv, inSandbox } from './db';
 import type { Variant } from './types';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { checkWebhookUrl, cleanWebhookFields } from './webhook-clean';
+import { cleanLogin } from './staff-core';
 import { NextResponse } from 'next/server';
 
 // ── Types ─────────────────────────────────────────────────
@@ -126,9 +127,10 @@ export async function parseIncomingWebhook(req: Request): Promise<IncomingWebhoo
   if (!(await incomingSecretValid(body.secret))) {
     return { ok: false, response: NextResponse.json({ error: 'Invalid secret' }, { status: 401 }) };
   }
-  const username = typeof body.username === 'string' ? body.username.toLowerCase().trim() : '';
+  // A Twitch login (3 to 25 letters, digits and underscores, an @ in front is dropped); anything else is not a viewer.
+  const username = cleanLogin(body.username);
   if (!username) {
-    return { ok: false, response: NextResponse.json({ error: 'username required' }, { status: 400 }) };
+    return { ok: false, response: NextResponse.json({ error: 'username must be a Twitch login (3 to 25 letters, digits or underscores)' }, { status: 400 }) };
   }
   return { ok: true, username, body };
 }

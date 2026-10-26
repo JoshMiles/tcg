@@ -5,7 +5,7 @@ import { getScoringSettings } from '@/lib/scoring';
 import { serialMultiplier } from '@/lib/scoring-core';
 import { getWebhookSettings, fireOutgoing } from '@/lib/webhooks';
 import { recordActivity } from '@/lib/activity';
-import { decodeEntry, VARIANT_LABELS } from '@/lib/variants';
+import { decodeEntry, parseCollectionData, VARIANT_LABELS } from '@/lib/variants';
 import { isAuthenticated } from '@/lib/auth';
 import { claimDraw } from '@/lib/draw';
 import { getMixItUpSettings, claimPaidPull, chargePaidPull, noticeUnpaid, refundPaidPull } from '@/lib/mixitup';
@@ -32,8 +32,10 @@ export async function POST(req: NextRequest) {
   if (!pull) {
     if (!(await isAuthenticated())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const target = req.nextUrl.searchParams.get('name');
-    if (!target || !data || typeof data !== 'object') return NextResponse.json({ error: 'missing name or data' }, { status: 400 });
-    await withCollectionLock(target, () => saveCollection(target, data));
+    if (!target) return NextResponse.json({ error: 'missing name' }, { status: 400 });
+    const checked = parseCollectionData(data);
+    if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
+    await withCollectionLock(target, () => saveCollection(target, checked.data));
     return NextResponse.json({ ok: true });
   }
 

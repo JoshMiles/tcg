@@ -87,7 +87,7 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Tile label="Different cards" value={unique} />
-        <Tile label="Total pulls" value={pulls} />
+        <Tile label="Editions held" value={pulls} />
         <Tile label="Open offers" value={lines.filter(l => l.open).length} />
         <Tile label="Trades done" value={lines.filter(l => l.status === 'accepted').length} />
       </div>
