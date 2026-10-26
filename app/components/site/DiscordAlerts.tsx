@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
+import { CHANNEL_NAME } from '@/lib/site';
 import { PUSH_KIND_LABELS, type PushKind } from '@/lib/push-core';
 import { DISCORD_DM_KINDS, type DiscordLinkView } from '@/lib/discord-dm-core';
 
@@ -133,7 +134,7 @@ export function DiscordAlerts() {
       <div>
         <p className="text-sm font-semibold text-gray-100">Discord direct messages</p>
         <p className="text-xs text-gray-500">
-          Get notices as direct messages from the Cheesy TCG bot in Discord. You must be in the Cheesygidds Discord server with direct messages allowed.
+          Get notices as direct messages from the Cheesy TCG bot in Discord. You must be in the {CHANNEL_NAME} Discord server with direct messages allowed.
         </p>
       </div>
 
@@ -174,7 +175,7 @@ export function DiscordAlerts() {
           {linked.dmStatus === 'closed' && (
             <div className="rounded-lg bg-amber-950/40 border border-amber-500/40 p-3 text-xs text-amber-200 space-y-1">
               <p className="font-semibold">Direct messages are blocked</p>
-              <p>We could not send a DM to your Discord account. Check your privacy settings for the Cheesygidds server to allow direct messages from server members.</p>
+              <p>We could not send a DM to your Discord account. Check your privacy settings for the {CHANNEL_NAME} server to allow direct messages from server members.</p>
             </div>
           )}
 

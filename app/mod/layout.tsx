@@ -13,7 +13,7 @@ import { countNewFeedback } from '@/lib/feedback';
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
-/** The mod panel's frame: a slim top bar (mods only get activity, viewers and trades). Re-checks the live staff list on every load. */
+/** The mod panel's frame: a slim top bar (mods get overview, activity, viewers, trades, feedback, testers and what's new). Re-checks the live staff list on every load. */
 export default async function ModLayout({ children }: { children: React.ReactNode }) {
   const staff = await getStaff();
   if (!staff || !roleCan(staff.role, 'mod')) redirect('/login?error=not-staff');
