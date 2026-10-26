@@ -29,8 +29,12 @@ import { BackupsPanel } from './BackupsPanel';
 import { DataHealthPanel } from './DataHealthPanel';
 import { isPreview } from '@/lib/db';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Settings · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const TABS: (PageTab & { hint: string })[] = [
   { id: 'overlay', label: 'OBS Overlay', icon: 'tv', hint: 'Browser source, connection and bot triggers' },

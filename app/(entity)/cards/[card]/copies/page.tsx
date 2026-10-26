@@ -13,8 +13,6 @@ import { profileHref } from '@/lib/profile-url';
 import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
-
 const SIZE = 25;
 
 type SP = { season?: string; variant?: string; page?: string };

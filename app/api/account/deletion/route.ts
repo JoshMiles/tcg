@@ -3,8 +3,6 @@ import { requireViewer } from '@/lib/trade-api';
 import { captchaGate } from '@/lib/captcha-server';
 import { cancelDeletion, requestDeletion } from '@/lib/feedback';
 
-export const dynamic = 'force-dynamic';
-
 // Ask for the account to be deleted. The request goes into the feedback inbox and an admin does the deleting (ROADMAP 11.3).
 // The viewer has to type their own login, and passes the same quick check as a trade.
 export async function POST(req: NextRequest) {

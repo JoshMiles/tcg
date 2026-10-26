@@ -3,7 +3,6 @@ import { cronAuthorised } from '@/lib/cron-auth';
 import { runBackup } from '@/lib/backup';
 import { reportBackup, reportDataHealth } from '@/lib/system-notices';
 
-export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 // GET /api/cron/backup, called daily by Vercel Cron (vercel.json). Vercel sends `Authorization: Bearer ${CRON_SECRET}`; with

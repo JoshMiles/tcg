@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isSameOrigin } from '@/lib/session';
 import { getUserSettings, saveUserSettings } from '@/lib/user-settings-store';
 
-export const dynamic = 'force-dynamic';
-
 // The logged-in viewer's own settings. Who they are comes from the signed session, never the body; the body is re-validated
 // by sanitizeUserSettings (unknown keys dropped, ranges clamped).
 export async function GET() {

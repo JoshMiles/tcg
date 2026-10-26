@@ -4,8 +4,12 @@ import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { ActivityFeed, type CardInfo } from './ActivityFeed';
 import { PageHeader } from '../components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Live Activity · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 export default async function ActivityPage() {
   const [{ events, seq }, active] = await Promise.all([getActivity({ limit: 100 }), getActiveSeasonWithPacks()]);

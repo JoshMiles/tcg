@@ -16,8 +16,12 @@ import { StatusChip, DraftChip } from '../components/StatusChip';
 import { PackToolbar } from './PackToolbar';
 import { PageHeader, EmptyState } from '../components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Packs · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 type Status = 'live' | 'inactive' | 'draft' | 'archived';
 

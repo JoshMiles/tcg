@@ -9,7 +9,6 @@ import { FEEDBACK_LIMITS, KIND_LABELS, STATUS_LABELS, cleanFrom } from '@/lib/fe
 import { featureRequestUrl, reportProblemUrl } from '@/lib/site';
 import { FeedbackForm } from './FeedbackForm';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Feedback', description: 'Suggest something for the Cheesy TCG.', robots: { index: false, follow: false } };
 
 const dateFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });

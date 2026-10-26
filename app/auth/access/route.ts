@@ -5,8 +5,6 @@ import { canEnterTier } from '@/lib/access-core';
 import { ACCESS_COOKIE, accessCookieOptions, signAccessToken } from '@/lib/access-token';
 import { safeReturnTo } from '@/lib/twitch-oauth';
 
-export const dynamic = 'force-dynamic';
-
 // Closed alpha / beta, step 2 after "Log in with Twitch": look the signed-in account up in the staff and tester lists and, if the current
 // mode lets its tier in, issue the one-hour access cookie and go back to the page. The middleware sends signed-in visitors here when
 // they have no cookie, an old one, or the settings changed since it was issued (that is how a removed tester loses access, and how a

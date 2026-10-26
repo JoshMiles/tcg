@@ -12,7 +12,6 @@ import { SITE_URL } from '@/lib/site';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { CardDex, type DexCard } from './CardDex';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Card Dex' };
 
 /** Chance of each version per pull: the card's pull rate times that version's share of the pack's variant weights. */

@@ -3,8 +3,12 @@ import { getAccessSettings, listTesters } from '@/lib/access';
 import { MODE_LABELS } from '@/lib/access-core';
 import { Chip, EmptyState, PageHeader, Panel } from '../../admin/components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Testers · Mod', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 /** The closed alpha / beta testers list, read only (admins change it in Settings → Access). */
 export default async function ModTestersPage() {

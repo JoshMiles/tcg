@@ -3,7 +3,10 @@ import { isPasswordLoginEnabled } from '@/lib/admin-token';
 import { loginConfigured } from '@/lib/session';
 import { PasswordLogin } from './PasswordLogin';
 
-export const dynamic = 'force-dynamic';
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
 
 const ERRORS: Record<string, string> = {
   'not-staff': 'That Twitch account isn\'t on the staff list. Ask an admin to add you.',

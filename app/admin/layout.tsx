@@ -20,6 +20,11 @@ import { getOverlayKey, overlayUrl } from '@/lib/overlay-key';
 import { SITE_URL } from '@/lib/site';
 import { adminSiteText, getSiteLabel } from '@/lib/site-label';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // The middleware already turned strangers away from the cookie alone; this re-checks the live staff list (a removed or demoted
   // person with an unexpired cookie stops here).

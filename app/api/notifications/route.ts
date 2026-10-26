@@ -5,7 +5,6 @@ import { getNoticeVersion, listNotices, markNoticesSeen } from '@/lib/trade-noti
 import { getUserSettings } from '@/lib/user-settings-store';
 import { isUnchanged, parseSince } from '@/lib/notice-poll-core';
 
-export const dynamic = 'force-dynamic';
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // The logged-in viewer's notifications (trade offers and outcomes). The viewer always comes from the session.

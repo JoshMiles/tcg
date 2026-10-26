@@ -10,7 +10,10 @@ import { PendingButton } from '../../../components/PendingButton';
 import { enterSandboxAction } from '../../actions';
 import { FakeTwitch } from './FakeTwitch';
 
-export const dynamic = 'force-dynamic';
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
 
 export default async function FakeTwitchPage({ params }: { params: Promise<{ id: string }> }) {
   if (isPreview()) return <PreviewOff />;

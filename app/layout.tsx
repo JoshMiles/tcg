@@ -8,6 +8,11 @@ import { SITE_URL } from '@/lib/site';
 import screens from '@/lib/iphone-screens.json';
 import { ServiceWorker } from './components/ServiceWorker';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 const display = Fredoka({ subsets: ['latin'], variable: '--font-display-family', weight: ['500', '600', '700'] });
 const body = Nunito({ subsets: ['latin'], variable: '--font-body' });
 

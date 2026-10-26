@@ -13,7 +13,6 @@ import { CHANNEL_LOGIN } from '@/lib/site';
 import { getStaffRecord } from '@/lib/staff';
 import { isSuperAdmin } from '@/lib/staff-core';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Settings', robots: { index: false, follow: false } };
 
 export default async function SettingsPage() {

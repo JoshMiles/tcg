@@ -3,8 +3,6 @@ import { isAuthenticated } from '@/lib/auth';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { getSavedSwatches, saveSwatches, toHex } from '@/lib/swatches';
 
-export const dynamic = 'force-dynamic';
-
 // The colour fields' swatches: the active packs' accents, the site theme (globals.css) and the staff-wide saved list.
 // (/api/admin/* isn't covered by the /admin middleware, so check explicitly.)
 const THEME = ['#ffcb05', '#3b4cca', '#6b7cff', '#0a0f21', '#141b36', '#1f2848', '#e6eafb'];

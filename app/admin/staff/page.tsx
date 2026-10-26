@@ -6,8 +6,12 @@ import { isPasswordLoginEnabled } from '@/lib/admin-token';
 import { PageHeader, Panel } from '../components/ui';
 import { StaffManager } from './StaffManager';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Staff · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const ago = (t?: number) => {
   if (!t) return 'never';

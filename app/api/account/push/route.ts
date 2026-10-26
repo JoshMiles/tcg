@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isSameOrigin } from '@/lib/session';
 import { addDevice, listDevices, pushConfigured, pushPublicKey, removeDevice, sendTestPush } from '@/lib/push';
 
-export const dynamic = 'force-dynamic';
-
 // The logged-in viewer's alert devices. Who they are comes from the signed session, never the body.
 // GET: the public VAPID key and their devices. POST: { subscription } adds this device, { test: true } sends a test alert.
 // DELETE: { endpoint } (this browser) or { id } (a device from the list).

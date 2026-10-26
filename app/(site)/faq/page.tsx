@@ -7,7 +7,6 @@ import { Section, Q, FaqAnswer } from './parts';
 import { FaqBlock } from './blocks';
 import { getFaqContext } from './context';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'FAQ',
   description: 'How The Cheesy TCG works: packs, variants, upgrades, points and the leaderboard.',

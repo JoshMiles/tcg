@@ -4,8 +4,6 @@ import { getCollectionCached } from '@/lib/leaderboard';
 import { getHiddenUsers } from '@/lib/user-admin';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 
-export const dynamic = 'force-dynamic';
-
 // GET /api/cards/<number>/owners?season=<id> : the Card Dex dialog's Top collectors (10, with avatars). Public information the Dex page
 // used to carry for every card; collectors an admin hid are left out by ownersByCard.
 export async function GET(req: NextRequest, { params }: { params: Promise<{ number: string }> }) {

@@ -8,8 +8,12 @@ import { getHiddenUsers } from '@/lib/user-admin';
 import { getStaff } from '@/lib/staff-guard';
 import { PageHeader, Panel, Tile } from '../admin/components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Mod panel', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const ago = (t: number, now: number) => {
   const m = Math.max(0, Math.round((now - t) / 60000));

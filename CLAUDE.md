@@ -97,7 +97,8 @@ Read the doc that matches what you are changing **before** you change it; each s
 - TypeScript strict; no `any` unless unavoidable. daisyUI `cheesy` theme; use `btn`/`card`/`input`, not raw utilities.
 - Client components only when truly required (e.g. `AdminNav` for `usePathname`, dialog triggers, dialogs).
 - **Never put `onClick` or other event handlers in JSX in a server component file**, even inside a client component's children; Next.js throws at runtime.
-- Admin pages: `force-dynamic` on every page; `revalidatePath` after every mutation; `requireAdmin()` guards every admin server action (staff sign in with Twitch and have a role, see docs/staff.md; the emergency password login uses `ADMIN_PASSWORD` and `ADMIN_COOKIE_SECRET`, not `ADMIN_SECRET`).
+- **Rendering is Cache Components** (`cacheComponents: true`, see docs/hosting.md): there is no `export const dynamic`. Reading cookies, headers, the session or KV makes the part that reads it dynamic; it must sit inside `<Suspense>` or the route sets `export const instant = false` (every admin and mod page does). Never put a KV read in `'use cache'` unless the sandbox id is an argument (docs/sandbox.md).
+- Admin pages: `revalidatePath` after every mutation; `requireAdmin()` guards every admin server action (staff sign in with Twitch and have a role, see docs/staff.md; the emergency password login uses `ADMIN_PASSWORD` and `ADMIN_COOKIE_SECRET`, not `ADMIN_SECRET`).
 - Server actions take fixed arguments via `.bind(null, arg)` before going into `<form action={}>`.
 - Image uploads go through `ImageUploadField` → Vercel Blob.
 - **Packs use the pack workspace (`/admin/packs/[packId]`); multi-step season creation uses the full-page wizard** (`SeasonFlow`), not a modal. Dialogs are for small one-shot forms (e.g. `NewPackButton` asks only for a pack name, calls `createDraftPack`, and opens the workspace): the page stays a server component, and a thin client wrapper owns the open/close state.

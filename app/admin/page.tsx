@@ -14,8 +14,12 @@ import type { WidgetType } from '@/lib/dashboard';
 import { renderWidget } from './dashboard/widgets';
 import { DashboardGrid } from './dashboard/DashboardGrid';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Dashboard · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ gift?: string; season?: string; range?: string }> }) {
   const { gift, season: seasonParam, range: rangeParam } = await searchParams; // /admin?gift=username prefills the quick-actions viewer

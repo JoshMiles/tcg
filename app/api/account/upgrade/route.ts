@@ -7,8 +7,6 @@ import { captchaGate } from '@/lib/captcha-server';
 import { VARIANTS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
-
 // Upgrade one of the logged-in viewer's own cards on the website. Who they are comes from the signed session cookie,
 // never from the request body, so nobody can upgrade someone else's cards.
 export async function POST(req: NextRequest) {

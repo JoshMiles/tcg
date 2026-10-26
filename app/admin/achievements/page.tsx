@@ -8,8 +8,12 @@ import { Panel, PageHeader } from '../components/ui';
 import { saveAchievementSettingsAction, saveCustomGoalAction, deleteCustomGoalAction, recountAchievementsAction } from '../actions/achievements';
 import { AchievementsForm, CustomGoalForm } from './AchievementsForm';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Achievement Editor · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const SAVED: Record<string, string> = {
   settings: 'Built-in goals saved. Switched-off goals are no longer earned. Ones already earned stay.',

@@ -3,6 +3,11 @@ import { LegalPage, Section, List } from '@/app/components/LegalPage';
 import { APP_NAME, CONTACT_EMAIL, GOVERNING_LAW, OPERATOR } from '@/lib/legal';
 import { CHANNEL_NAME } from '@/lib/site';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: 'Terms of Use (EULA)', description: 'The rules for using The Cheesy TCG and its Twitch extension.' };
 
 export default function TermsPage() {

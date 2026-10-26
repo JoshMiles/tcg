@@ -28,8 +28,6 @@ import { VARIANT_LABELS } from '@/lib/variants';
 import { InfoTip } from '@/app/components/InfoTip';
 import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
-
 async function load(seasonId: string, copyId: string) {
   const parsed = parseCopyId(copyId);
   const season = await getSeason(seasonId);

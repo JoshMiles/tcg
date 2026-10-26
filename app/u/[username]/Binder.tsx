@@ -14,6 +14,7 @@ import { DEFAULT_BINDER, capacity, coverColour, isLightColour, pageColour, type 
 import type { BinderShareSlot, BinderSharePage, ShareSpec } from '@/lib/share-image';
 import type { Variant } from '@/lib/types';
 import type { GridCard } from './CollectionGrid';
+import { MOTION_EVENT } from '@/app/components/site/MotionPref';
 
 // A collection as a binder: a cover, then pages of pockets, with an empty pocket for every card still to find. The look (cover,
 // pages, pockets, grid size) and the layout (automatic by pack, or placed by hand) come from the owner's BinderConfig.
@@ -43,8 +44,8 @@ function usePrefs() {
     const calm = window.matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => { setDouble(wide.matches); setReduce(calm.matches || document.querySelector('[data-motion="reduce"]') !== null); };
     sync();
-    wide.addEventListener('change', sync); calm.addEventListener('change', sync);
-    return () => { wide.removeEventListener('change', sync); calm.removeEventListener('change', sync); };
+    wide.addEventListener('change', sync); calm.addEventListener('change', sync); window.addEventListener(MOTION_EVENT, sync);
+    return () => { wide.removeEventListener('change', sync); calm.removeEventListener('change', sync); window.removeEventListener(MOTION_EVENT, sync); };
   }, []);
   return { double, reduce };
 }

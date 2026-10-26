@@ -7,7 +7,6 @@ import { getSession } from '@/lib/session';
 import { listNotices } from '@/lib/trade-notify';
 import { NoticeList } from './NoticeList';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Notifications', robots: { index: false, follow: false } };
 
 export default async function NotificationsPage() {

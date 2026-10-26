@@ -5,8 +5,6 @@ import { createTrade } from '@/lib/trades';
 import { requireViewer, respond } from '@/lib/trade-api';
 import { captchaGate } from '@/lib/captcha-server';
 
-export const dynamic = 'force-dynamic';
-
 // Make an offer: direct (to one viewer) or a listing on the open board. The copies offered are taken into escrow immediately.
 export async function POST(req: NextRequest) {
   const closed = await siteClosedResponse();

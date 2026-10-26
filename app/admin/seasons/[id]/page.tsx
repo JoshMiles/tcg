@@ -19,7 +19,10 @@ import { seasonTiming } from '../season-timing';
 import { PageTabs, pickTab, type PageTab } from '../../components/PageTabs';
 import { Tile } from '../../components/ui';
 
-export const dynamic = 'force-dynamic';
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
 
 // The tab shows which season this is (the page is rendered on the server, so a fixed locale and zone keep it the same for everyone).
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {

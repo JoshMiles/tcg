@@ -8,11 +8,15 @@ import { VARIANT_LABELS } from '@/lib/variants';
 import { PageHeader } from '../../../components/ui';
 import { PrintDetail } from '../../PrintDetail';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 // The tab names the copy (its id is card.version.serial), so several open copies can be told apart.
 export async function generateMetadata({ params }: { params: Promise<{ seasonId: string; copyId: string }> }) {
   return { title: `Edition ${(await params).copyId} · Admin`, robots: { index: false } };
 }
-export const dynamic = 'force-dynamic';
 
 // The full page for one print, kept for deep links (the Prints list shows the same details in a side panel).
 export default async function AdminCopyPage({ params, searchParams }: { params: Promise<{ seasonId: string; copyId: string }>; searchParams: Promise<{ done?: string; err?: string }> }) {

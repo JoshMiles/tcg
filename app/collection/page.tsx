@@ -8,7 +8,6 @@ import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { profileHref } from '@/lib/profile-url';
 import { CollectorFinder } from './CollectorFinder';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Find a collector', description: 'Look up any viewer\'s profile, collection and rank on The Cheesy TCG.' };
 
 // Every collection is now a profile (/u/<name>); this page is the way in.

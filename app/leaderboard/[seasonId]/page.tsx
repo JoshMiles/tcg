@@ -14,8 +14,6 @@ import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { Avatar } from '@/app/components/Avatar';
 import type { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
-
 export async function generateMetadata({ params }: { params: Promise<{ seasonId: string }> }): Promise<Metadata> {
   const { seasonId } = await params;
   const season = await getSeason(seasonId).catch(() => null);

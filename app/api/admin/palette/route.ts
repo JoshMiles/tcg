@@ -3,8 +3,6 @@ import { isAuthenticated } from '@/lib/auth';
 import { getAllCollectionUsers, listAllPacks, listSeasons } from '@/lib/kv';
 import type { PaletteItem } from '@/lib/palette';
 
-export const dynamic = 'force-dynamic';
-
 const MAX_USERS = 600;
 
 // The command palette's searchable records: packs, seasons and viewers. (/api/admin/* isn't covered by the /admin middleware,

@@ -1,8 +1,6 @@
 import { permanentRedirect } from 'next/navigation';
 import { profileHref } from '@/lib/profile-url';
 
-export const dynamic = 'force-dynamic';
-
 // Collections are now profiles at /u/<name>. The old address stays alive for good: Discord posts, the Twitch panel and old
 // bookmarks all still point here.
 export default async function OldCollectionAddress({ params }: { params: Promise<{ username: string }> }) {

@@ -23,11 +23,6 @@ import { listOpenTrades } from '@/lib/trades';
 import { seasonCountdown, viewerStanding } from '@/lib/home-data';
 import { profileHref } from '@/lib/profile-url';
 
-export const dynamic = 'force-dynamic';
-
-
-
-
 export default async function HomePage() {
   async function goToCollection(formData: FormData) {
     'use server';

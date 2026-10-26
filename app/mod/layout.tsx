@@ -8,6 +8,11 @@ import { ROLE_LABELS, roleCan } from '@/lib/staff-core';
 import { ModNav } from './ModNav';
 import { countNewFeedback } from '@/lib/feedback';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 /** The mod panel's frame: a slim top bar (mods only get activity, viewers and trades). Re-checks the live staff list on every load. */
 export default async function ModLayout({ children }: { children: React.ReactNode }) {
   const staff = await getStaff();
