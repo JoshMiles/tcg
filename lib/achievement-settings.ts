@@ -1,6 +1,6 @@
 import { kv } from './db';
 import { RARITIES } from './rarity';
-import { GOLDEN_PULLS, VARIANTS, VARIANT_LABELS } from './variants';
+import { VARIANTS, VARIANT_LABELS } from './variants';
 import type { IconName } from '@/app/components/Icon';
 import { CUSTOM_ICONS, DETAIL_MAX, TITLE_MAX, achVars, defaultIcon, defaultText, fillText, normalizeCustomGoals, type CustomGoal } from './achievements';
 
@@ -22,7 +22,7 @@ export const ACHIEVEMENT_KINDS: readonly AchievementKind[] = [
   { kind: 'complete', label: 'Completed set', group: 'Set' },
   { kind: 'master', label: 'Master set', group: 'Set' },
   ...[...RARITIES].sort((a, b) => a.stars - b.stars).map(r => ({ kind: `tier-${r.stars}`, label: `All ${r.label}`, group: 'Rarity' as const })),
-  ...VARIANTS.filter(v => v !== 'regular' && (GOLDEN_PULLS || v !== 'golden')).map(v => ({ kind: `all-${v}`, label: `All ${VARIANT_LABELS[v]}`, group: 'Version' as const })),
+  ...VARIANTS.filter(v => v !== 'regular').map(v => ({ kind: `all-${v}`, label: `All ${VARIANT_LABELS[v]}`, group: 'Version' as const })),
   { kind: 'first-edition', label: 'First edition', group: 'Edition number' },
   { kind: 'first-shiny', label: 'First Full Art Holo edition', group: 'Edition number' },
   { kind: 'five-firsts', label: 'Five firsts', group: 'Edition number' },

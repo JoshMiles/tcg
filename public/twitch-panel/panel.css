@@ -731,7 +731,7 @@ html, body {
 @keyframes holoSite     { from { background-position: 0% 100%; } to { background-position: 200% 100%; } }
 @keyframes holoSiteLoop { from { background-position: 0% 100%; } to { background-position: 125% 100%; } }
 .vfx-full { box-shadow: 0 0 14px -2px rgba(96,190,255,.85) !important; }
-.vfx-shiny { box-shadow: 0 0 16px -2px rgba(255,190,60,.95) !important; }
+.vfx-shiny, .vfx-golden { box-shadow: 0 0 16px -2px rgba(255,190,60,.95) !important; }
 @media (prefers-reduced-motion: reduce) {
   .holo-fx:hover::after, .holo-fx.holo-live::after { animation: none; }
 }
@@ -826,14 +826,14 @@ html, body {
 .login-legal a { color: var(--muted); text-decoration: underline; }
 .login-legal a:hover { color: var(--text); }
 
-/* ── Shiny cards rock gently left to right ── */
+/* ── Full Art Holo and Golden cards rock gently left to right ── */
 @keyframes shinyRock {
   0%, 100% { rotate: 0deg; }
   25%      { rotate: 1.6deg; }
   75%      { rotate: -1.6deg; }
 }
-.vfx-shiny { animation: shinyRock 5s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .vfx-shiny { animation: none; } }
+.vfx-shiny, .vfx-golden { animation: shinyRock 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .vfx-shiny, .vfx-golden { animation: none; } }
 
 /* ── Upgrade ceremony (UpgradeCeremony.tsx): copies spiral in, a flash, the new variant is revealed ── */
 .ug-overlay {
@@ -872,7 +872,7 @@ html, body {
 .ug-serial.first { color: #1a1205; background: linear-gradient(90deg, #ffe27a, #f1bb06, #ffe27a); border-color: #fff2b0; box-shadow: 0 0 20px rgba(255,220,90,.9); }
 .ug-anim-on { opacity: 1; }
 .ug-art.vfx-full { box-shadow: 0 0 46px 6px rgba(96,190,255,.9) !important; }
-.ug-art.vfx-shiny { box-shadow: 0 0 60px 10px rgba(255,200,60,.95) !important; }
+.ug-art.vfx-shiny, .ug-art.vfx-golden { box-shadow: 0 0 60px 10px rgba(255,200,60,.95) !important; }
 .ug-spark { position: absolute; left: 50%; top: 184px; font-size: 20px; line-height: 1; opacity: 0; text-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
   animation: ugSpark 1.5s ease-out 1.6s forwards; }
 @keyframes ugSpark { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1.2) rotate(120deg); } }

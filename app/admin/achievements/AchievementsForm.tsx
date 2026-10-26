@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { CUSTOM_ICONS, CUSTOM_RULES, DETAIL_MAX, PLACEHOLDERS, TITLE_MAX, defaultIcon, defaultText, type CustomGoal, type CustomRuleType } from '@/lib/achievements';
 import { describeBuffDef, type BuffDef } from '@/lib/buffs-core';
 import { RARITIES } from '@/lib/rarity';
-import { GOLDEN_PULLS, VARIANTS, VARIANT_LABELS } from '@/lib/variants';
+import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { Icon, type IconName } from '@/app/components/Icon';
 import { Panel } from '../components/ui';
 import { ConfirmButton } from '../components/ConfirmButton';
@@ -141,7 +141,7 @@ export function CustomGoalForm({ goal, buffDefs, earned, save, remove }: {
   const [rule, setRule] = useState<CustomRuleType>(goal?.rule.type ?? 'unique');
   const [title, setTitle] = useState(goal?.title ?? '');
   const [detail, setDetail] = useState(goal?.detail ?? '');
-  const versions = VARIANTS.filter(v => v !== 'regular' && (GOLDEN_PULLS || v !== 'golden'));
+  const versions = VARIANTS.filter(v => v !== 'regular');
   const formId = `del-${goal?.id ?? 'new'}`;
   const [icon, setIcon] = useState<IconName>(goal?.icon ?? 'award');
   const [open, setOpen] = useState(false);

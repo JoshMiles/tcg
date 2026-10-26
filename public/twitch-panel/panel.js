@@ -26,17 +26,20 @@ const RARITY_LABEL = { 1: 'Common', 2: 'Uncommon', 3: 'Rare', 4: 'Epic', 5: 'Leg
 // ── Variants ──────────────────────────────────────────────
 // Collection entries encode the variant: cardNumber + VARIANT_OFFSET * variantIndex (regular = plain number).
 // Keep in sync with lib/variants.ts.
-const VARIANTS = ['regular', 'reverse', 'full', 'shiny'];
+const VARIANTS = ['regular', 'reverse', 'full', 'shiny', 'golden'];
 const VARIANT_OFFSET = 1000000;
-const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo' };
+const VARIANT_LABELS = { regular: 'Regular', reverse: 'Reverse Holo', full: 'Full Art', shiny: 'Full Art Holo', golden: 'Golden' };
+const VARIANT_SHORT = { reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
+// Full Art, Full Art Holo and Golden all use the card's full-art image when it has one (mirrors usesFullArt in lib/variants.ts).
+const usesFullArt = v => v === 'full' || v === 'shiny' || v === 'golden';
 function decodeEntry(entry) {
   const idx = Math.min(Math.floor(entry / VARIANT_OFFSET), VARIANTS.length - 1);
   return { cardNumber: entry - idx * VARIANT_OFFSET, variant: VARIANTS[idx] };
 }
 
-// Art for a variant: Full Art and Shiny use the card's full-art image when it has one.
+// Art for a variant: see usesFullArt.
 function variantArt(card, variant) {
-  if ((variant === 'full' || variant === 'shiny') && card.fullArtImageUrl) {
+  if (usesFullArt(variant) && card.fullArtImageUrl) {
     return { imageUrl: card.fullArtImageUrl, thumbUrl: card.fullArtThumbUrl || card.fullArtImageUrl };
   }
   return { imageUrl: card.imageUrl, thumbUrl: card.thumbUrl };
@@ -257,7 +260,7 @@ function renderPackTabs() {
 // past seasons. The collection arrays keep duplicates (one entry per pull).
 function cardStatus(card) {
   let activeCount = 0;
-  const variants = { regular: 0, reverse: 0, full: 0, shiny: 0 }; // active season, per variant
+  const variants = { regular: 0, reverse: 0, full: 0, shiny: 0, golden: 0 }; // active season, per variant
   const past = []; // [{ seasonName, count }]
   for (const c of collections) {
     let count = 0;
@@ -346,7 +349,7 @@ function renderGrid() {
         setArtMask(cell, variantArt(card, status.best));
         const mark = document.createElement('div');
         mark.className = 'variant-mark';
-        mark.textContent = status.best === 'reverse' ? 'RH' : status.best === 'full' ? 'FA' : 'SH';
+        mark.textContent = VARIANT_SHORT[status.best];
         mark.title = VARIANT_LABELS[status.best];
         cell.appendChild(mark);
       }
@@ -635,11 +638,11 @@ document.addEventListener('keydown', e => {
 // The upgrade moment (mirrors app/components/UpgradeCeremony.tsx; styles are the .ug-* rules in panel.css): the spent copies
 // spiral into the middle, a flash, then the new variant is revealed with its holo / glow. Tap or Esc to continue.
 function playUpgradeCeremony(card, from, to, cost, serial, serialMult) {
-  const artFor = v => ((v === 'full' || v === 'shiny') && card.fullArtImageUrl
+  const artFor = v => (usesFullArt(v) && card.fullArtImageUrl
     ? { imageUrl: card.fullArtImageUrl, thumbUrl: card.fullArtThumbUrl || card.fullArtImageUrl }
     : { imageUrl: card.imageUrl, thumbUrl: card.thumbUrl || card.imageUrl });
   const fromArt = artFor(from), toArt = artFor(to);
-  const PILL = { reverse: 'linear-gradient(90deg,#8b5cf6,#ec4899)', full: 'linear-gradient(90deg,#0ea5e9,#6366f1)', shiny: 'linear-gradient(90deg,#f59e0b,#ef4444,#a855f7)' };
+  const PILL = { reverse: 'linear-gradient(90deg,#8b5cf6,#ec4899)', full: 'linear-gradient(90deg,#0ea5e9,#6366f1)', shiny: 'linear-gradient(90deg,#f59e0b,#ef4444,#a855f7)', golden: 'linear-gradient(90deg,#fbbf24,#f59e0b,#fef08a)' };
 
   const overlay = document.createElement('div');
   overlay.className = 'ug-overlay';
@@ -687,12 +690,12 @@ function playUpgradeCeremony(card, from, to, cost, serial, serialMult) {
     anim.src = toArt.imageUrl;
     art.appendChild(anim);
   }
-  if (to === 'full' || to === 'shiny') {
+  if (to === 'full' || to === 'shiny' || to === 'golden') {
     for (let i = 0; i < 16; i++) {
       const sp = document.createElement('span');
       sp.className = 'ug-spark';
       sp.textContent = i % 2 ? '\u2726' : '\u2727';
-      sp.style.color = to === 'shiny' ? '#ffd24d' : '#7cc7ff';
+      sp.style.color = to === 'shiny' || to === 'golden' ? '#ffd24d' : '#7cc7ff';
       sp.style.setProperty('--x', Math.round(Math.cos((i / 16) * Math.PI * 2) * (130 + (i % 3) * 40)) + 'px');
       sp.style.setProperty('--y', Math.round(Math.sin((i / 16) * Math.PI * 2) * (150 + (i % 4) * 30)) + 'px');
       stage.appendChild(sp);
@@ -799,7 +802,8 @@ function boardRow(r, myName) {
   const extras = [];
   if (v.reverse) extras.push(v.reverse + ' RH');
   if (v.full) extras.push(v.full + ' FA');
-  if (v.shiny) extras.push(v.shiny + ' SH');
+  if (v.shiny) extras.push(v.shiny + ' FH');
+  if (v.golden) extras.push(v.golden + ' GD');
   sub.textContent = r.uniqueCards + ' cards' + (extras.length ? ' \u00b7 ' + extras.join(' \u00b7 ') : '');
   who.append(name, sub);
 
@@ -1001,7 +1005,7 @@ function renderStats() {
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       a.title = 'Worth ' + fmtNum(copyPts(x.card.number, x.variant, x.n)) + ' pts';
-      a.append('#' + x.n + ' ' + x.card.name + (x.variant === 'regular' ? '' : ' (' + (x.variant === 'reverse' ? 'RH' : x.variant === 'full' ? 'FA' : 'SH') + ')'));
+      a.append('#' + x.n + ' ' + x.card.name + (x.variant === 'regular' ? '' : ' (' + VARIANT_SHORT[x.variant] + ')'));
       chips.appendChild(a);
     });
     if (best.length > 6) chips.appendChild(el('span', 'serial-more', '+' + (best.length - 6) + ' more'));
