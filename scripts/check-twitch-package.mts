@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { NextRequest } from 'next/server';
 import { readZip } from './lib/zip.mjs';
-import { VIEWS, buildPackage, buildPackageFiles, validatePackage } from './lib/twitch-package.mjs';
+import { VIEWS, buildPackage, buildPackageFiles, packageVersion, validatePackage } from './lib/twitch-package.mjs';
 
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
 const SITE = 'https://cheesytcg.app';
@@ -62,6 +62,8 @@ const helpers = (site?: string) => vm.runInNewContext(`${panel.slice(start, end)
   const same = helpers('');
   ok(same.api('/api/x') === '/api/x' && same.absUrl('/assets/a.webp') === '/assets/a.webp', 'with no site address (served by the site itself) nothing changes');
 }
+
+ok(/^\d+\.\d+\.\d+$/.test(packageVersion()), 'the zip is named after the panel version (PANEL_VERSION in panel.js), not the site version');
 
 // ── cross-origin calls from Twitch's domain ──
 {

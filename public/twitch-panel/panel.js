@@ -1487,18 +1487,23 @@ async function init(twitchAuth) {
 }
 
 // ── Build version ─────────────────────────────────────────
-// Shows which deployment this panel is running (the page, script and API ship together on Vercel).
-// Purely informational. Never blocks or breaks the panel.
+// The extension's own version (what Twitch reviews), not the site's; the zip name comes from it too (packageVersion()).
+const PANEL_VERSION = '0.0.2';
+
+// Shows the panel's version, and the site deployment behind it in the tooltip. Purely informational. Never blocks or breaks the panel.
 async function showVersion() {
   const el = document.getElementById('panel-version');
   if (!el) return;
+  el.textContent = 'v' + PANEL_VERSION;
+  el.title = 'Panel version ' + PANEL_VERSION;
   try {
     const res = await fetch(api('/api/version'), { cache: 'no-store' });
     if (!res.ok) return;
     const v = await res.json();
-    el.textContent = 'v' + v.version + ' · ' + v.commit + (v.env && v.env !== 'production' ? ' · ' + v.env : '');
+    if (v.env && v.env !== 'production') el.textContent += ' · ' + v.env;
     el.title = [
-      'Version ' + v.version,
+      'Panel version ' + PANEL_VERSION,
+      'Site version ' + v.version,
       'Commit ' + v.commit,
       v.branch && 'Branch ' + v.branch,
       'Environment ' + v.env,
