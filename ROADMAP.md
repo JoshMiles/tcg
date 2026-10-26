@@ -101,16 +101,24 @@ The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34
 
 ## Track 44: full review and audit (2026-10-26)
 
-A read-and-judge pass over every page and system, one area per PR, each ending in a ranked findings list that becomes roadmap items. Nothing is fixed during an audit (a one-line bug fix may be, and says so). Opus runs it (Explore subagents for wide sweeps, Haiku for the sweep scripts); Josh decides which findings become work.
+A read-and-judge pass over every page and system, one area per PR, each ending in a ranked findings list and a set of proposals, both of which can become roadmap items. Nothing is fixed during an audit (a one-line bug fix may be, and says so). Opus runs it (Explore subagents for wide sweeps, Haiku for the sweep scripts); Josh decides which findings become work.
 
 **How every area is audited.** Run it against the review seed and the page sweeps in `docs/review.md` (mock KV only, never production), read the code each page and route calls, and read the area docs. Start from `docs/CODE_REVIEW.md` (2026-10-18): mark each of its findings in that area fixed, still open or no longer relevant. For every page and system, report:
 - **Bugs and broken flows:** what a user can do that goes wrong, with the steps.
 - **Security and privacy:** who can read or change what (private profiles, staff roles, the extension JWT, rate limits, inputs at every trust boundary).
 - **Efficiency:** KV reads per request, waterfalls, uncached shared data, bundle and client-component weight, work done on every request that could be done once; with the numbers the sweep or a quick measure gives.
-- **Improvements:** confusing UX, copy that breaks the conventions (glossary words, no em dashes, `CHANNEL_NAME`), accessibility, mobile at 375px, missing empty and error states.
+- **UI and UX fixes:** confusing flows, copy that breaks the conventions (glossary words, no em dashes, `CHANNEL_NAME`), accessibility, mobile at 375px, missing empty and error states.
 - **Code to delete or merge:** dead code, duplicate helpers, docs that no longer match the code.
 
-Each finding gets a severity (critical, high, medium, low), the file:line, a one-line fix and a size. Output per area: `docs/archive/audit-2026-<area>.md` (the full list), the ranked list in the PR description, and the findings Josh accepts added here as numbered items. 44.1 to 44.3 and 44.5 only read code and add docs, so they can run alongside Track 34; 44.4 waits for 34.7.
+Then, for each area, **propose** (ideas, not defects, so no severity):
+- **Changes:** behaviour that works but should work differently, with the reason.
+- **Feature improvements:** ways to make existing features better for players, staff or the stream (what it adds, who it helps, rough size).
+- **Experimental features:** new ideas worth a trial, each with how to try it cheaply (behind a setting, staff-only, one season) and what would show it worked.
+- **UI and UX improvements:** layout, navigation, feedback and polish beyond the fixes above, with a sketch or a page reference where it helps.
+
+Each proposal gets a one-line pitch, the pages or systems it touches, a size, and a rough value (high, medium, low). Proposals never block a finding and are never built during the audit.
+
+Each finding gets a severity (critical, high, medium, low), the file:line, a one-line fix and a size. Output per area: `docs/archive/audit-2026-<area>.md` (findings and proposals), the ranked findings and the top proposals in the PR description, and the items Josh accepts added here as numbered items. 44.1 to 44.3 and 44.5 only read code and add docs, so they can run alongside Track 34; 44.4 waits for 34.7.
 
 ### 44.1 Public site (Ready, L)
 Every public page and its API routes: home, closed page, login, install, profile and binder, dex and card pages, copy pages, leaderboard, stats, search, trade board, new trade and trade pages, notifications, account, settings, feedback, changelog, FAQ, Terms, Privacy, SEO (metadata, sitemap, share images). Systems: sign-in and sessions, draws as players see them, collections and the copy ledger, scoring and achievements, trading and escrow, notifications and push, Discord linking, caching (Cache Components, the 40.2 work).
@@ -138,7 +146,7 @@ A dedicated pass over the whole app, deeper than the security bullet in 44.1 to 
 The repo is public: unfixed critical and high findings go in the gitignored `SECRETS.md` and straight to Josh, never in a public doc or PR body until they are fixed. Fix PRs describe the fix, not the exploit. Panel findings that Twitch's review would catch go into 34.8.
 
 ### 44.6 Triage (Ready after 44.1 to 44.5, S)
-Merge the five lists, drop duplicates, order the accepted items into tracks, and delete Track 44.
+Merge the five lists, drop duplicates, and group the proposals across areas (one feature idea often spans the site, the panel and admin). Josh picks; order the accepted findings and proposals into tracks (experimental features as trials with an end date), and delete Track 44.
 
 ## Standing decisions
 
