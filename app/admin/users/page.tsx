@@ -102,19 +102,6 @@ export default async function UsersPage() {
         </div>
         <div className="flex items-center gap-3">
           <a href="/collection" target="_blank" className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition-colors">↗ Collection Page</a>
-          {rows.length > 0 && (
-            <form action={resetAllUsers}>
-              <ConfirmButton
-                title="Reset ALL collections?"
-                confirmLabel="Reset everyone"
-                typeToConfirm="reset everyone"
-                message={<>This wipes <strong className="text-white">every viewer&apos;s cards in every season</strong> ({rows.length} collector{rows.length !== 1 ? 's' : ''}). There is no restore point for a reset of everyone, so this can&apos;t be undone.</>}
-                className="px-3 py-2 text-xs text-red-500 hover:text-red-300 hover:bg-red-950/40 rounded-xl transition-colors"
-              >
-                Reset All
-              </ConfirmButton>
-            </form>
-          )}
         </div>
       </div>
 
@@ -136,6 +123,24 @@ export default async function UsersPage() {
           <UsersList rows={rows} allTags={allTags} activeSeason={active?.name ?? null} />
         )}
       </div>
+
+      {rows.length > 0 && (
+        <div className="rounded-2xl border border-red-500/30 p-4 space-y-3">
+          <h2 className="text-sm font-bold text-red-400">Danger zone</h2>
+          <p className="text-xs text-gray-500">Wipes every viewer&apos;s cards in every season. There is no restore point for a reset of everyone.</p>
+          <form action={resetAllUsers}>
+            <ConfirmButton
+              title="Reset ALL collections?"
+              confirmLabel="Reset everyone"
+              typeToConfirm="reset everyone"
+              message={<>This wipes <strong className="text-white">every viewer&apos;s cards in every season</strong> ({rows.length} collector{rows.length !== 1 ? 's' : ''}). There is no restore point for a reset of everyone, so this can&apos;t be undone.</>}
+              className="px-3.5 py-2 text-sm font-bold text-red-400 hover:text-red-200 hover:bg-red-950/50 border border-red-500/30 rounded-xl transition-colors"
+            >
+              Reset all
+            </ConfirmButton>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
