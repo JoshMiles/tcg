@@ -29,7 +29,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.1 to 47.9) | Ready (47.8 needs a decision) | M |
 | 48 | KV efficiency (48.1 to 48.7) | Ready (48.7 needs design) | M to L |
 | 49 | Mod panel UI, cleanup and polish (49.1 to 49.6) | Ready | S |
-| 50 | Player features and trials (50.1 to 50.13) | Ready (50.3 needs design) | M |
+| 50 | Player features and trials (50.1 to 50.12) | Ready (50.3 needs design) | M |
 | 51 | Staff and admin tools (51.1 to 51.14) | Ready | M |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -160,17 +160,16 @@ Trials run for the time given, then Josh keeps, changes or drops them.
 - **50.1 Panel quick wins (S, next panel version).** twitch-panel Feature improvements 1 to 3 (new since last visit, your own row on the Board, offers waiting badge).
 - **50.2 Trial: browse before linking (S, next panel version, 4 weeks).** twitch-panel Experimental 1: Board and a read-only dex before the identity share prompt. Success: more identity shares per panel open.
 - **50.3 Swap finder on the trade board (Needs design, M).** public-site E-3: viewers who hold a card you want and want one you hold. Trial as a read-only list for the signed-in viewer; success: trades started from it.
-- **50.4 Ownership history on the copy page (M).** public-site F-2: every collector who held this edition, from the copy ledger; private profiles show as a private collector.
-- **50.5 Trial: Looking for match alert in the panel (S, next panel version, 4 weeks).** twitch-panel Experimental 3: mark the Trades tab when a board offer gives a card on the viewer's Looking for list, worked out only when the tab opens. Success: offers accepted from those matches.
-- **50.6 Alert health and View as public (S).** public-site F-1 (how many cards you watch and when an alert last fired, on `/settings`) and F-3 (a "View as public" toggle on your own profile).
-- **50.7 Sign out everywhere (M).** security F-2: a button in Account settings backed by the session generation (security L-3). Do it with or after 47.6.
+- **50.4 Trial: Looking for match alert in the panel (S, next panel version, 4 weeks).** twitch-panel Experimental 3: mark the Trades tab when a board offer gives a card on the viewer's Looking for list, worked out only when the tab opens. Success: offers accepted from those matches.
+- **50.5 Alert health and View as public (S).** public-site F-1 (how many cards you watch and when an alert last fired, on `/settings`) and F-3 (a "View as public" toggle on your own profile).
+- **50.6 Sign out everywhere (M).** security F-2: a button in Account settings backed by the session generation (security L-3). Do it with or after 47.6.
 
-- **50.8 Close to complete (S).** Profile and binder show "3 cards from finishing <pack>", linking to board offers that give those cards.
-- **50.9 Duplicates view (S).** A viewer's repeat editions grouped on one page, each with "Offer on the board".
-- **50.10 Season wrapped (M).** At season end, a personal share image (pulls, best pull, rarest edition, trades, final rank), built like the existing share images; a Discord gallery post too.
-- **50.11 Trial: stream streak badge (S, one season).** A badge for pulling on N streams in a row (streams from the live check, `lib/twitch-live.ts`). Success: more returning viewers per stream.
-- **50.12 Trade price guide (S to M).** Each card page shows what it went for in recent trades, from `trades:history`.
-- **50.13 Wants share image (S).** A "cards I'm looking for" image to post in Discord, from the wanted list.
+- **50.7 Close to complete (S).** Profile and binder show "3 cards from finishing <pack>", linking to board offers that give those cards.
+- **50.8 Duplicates view (S).** A viewer's repeat editions grouped on one page, each with "Offer on the board".
+- **50.9 Season wrapped (M).** At season end, a personal share image (pulls, best pull, rarest edition, trades, final rank), built like the existing share images; a Discord gallery post too.
+- **50.10 Trial: stream streak badge (S, one season).** A badge for pulling on N streams in a row (streams from the live check, `lib/twitch-live.ts`). Success: more returning viewers per stream.
+- **50.11 Trade price guide (S to M).** Each card page shows what it went for in recent trades, from `trades:history`.
+- **50.12 Wants share image (S).** A "cards I'm looking for" image to post in Discord, from the wanted list.
 
 ### Track 51: staff and admin tools (Ready unless marked)
 - **51.1 Staff actions in the Discord admin log (S).** mod-panel F1, security F-1: restrictions, cancels, blocks, reversals and every emergency password login post one line with who and why.
