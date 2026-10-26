@@ -8,6 +8,7 @@ import { kv } from './db';
 import { getCollection, listSeasons } from './kv';
 import { listAccountConflicts, type AccountConflict } from './account-bind';
 import { listAsideAccounts, listUnfinishedMoves, type AsideAccount, type UnfinishedMove } from './account-move';
+import { getAccountCheck, type AccountCheck } from './account-helix-check';
 
 /** A collection value at this size gets a "needs attention" line on the dashboard. */
 export const BLOB_WARN_BYTES = 512 * 1024;
@@ -100,6 +101,8 @@ export interface DataHealth {
   /** Accounts moved aside (acct:aside) and moves that stopped part way (acct:moves). */
   asideAccounts: AsideAccount[];
   unfinishedMoves: UnfinishedMove[];
+  /** The last nightly Twitch check (lib/account-helix-check.ts), or null before the first run. */
+  helixCheck: AccountCheck | null;
 }
 
 const OWNER_SAMPLE = 500;
@@ -134,8 +137,8 @@ export async function loadDataHealth(activeSeasonId?: string | null): Promise<Da
     const collection = summarizeCollection(raw);
     return { id: s.id, name: s.name, active: s.id === activeSeasonId, collection, level: healthLevel(collection.bytes), ledger: await ledgerHealth(s.collectionName, Object.keys(raw)) };
   }));
-  const [open, history, activityEvents, accountConflicts, asideAccounts, unfinishedMoves] = await Promise.all([
-    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<{ id: string; escrowed?: boolean }[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0), listAccountConflicts(), listAsideAccounts().catch(() => []), listUnfinishedMoves().catch(() => []),
+  const [open, history, activityEvents, accountConflicts, asideAccounts, unfinishedMoves, helixCheck] = await Promise.all([
+    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<{ id: string; escrowed?: boolean }[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0), listAccountConflicts(), listAsideAccounts().catch(() => []), listUnfinishedMoves().catch(() => []), getAccountCheck(),
   ]);
   return {
     at: Date.now(),
@@ -145,5 +148,6 @@ export async function loadDataHealth(activeSeasonId?: string | null): Promise<Da
     accountConflicts,
     asideAccounts,
     unfinishedMoves,
+    helixCheck,
   };
 }
