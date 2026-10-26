@@ -1093,3 +1093,13 @@ html, body {
 .staff-badge.streamer { background: #f472b6; }
 .staff-badge.admin { background: #f87171; }
 .staff-badge.mod { background: #4ade80; }
+
+.want-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.want-btn { padding: 3px 10px; font-family: inherit; }
+.want-btn.on { color: #c4b5fd; background: rgba(167, 139, 250, .15); border: 1px solid rgba(167, 139, 250, .6); }
+.ach-count { margin: 0 0 4px; font-size: 12px; font-weight: 700; color: var(--text); }
+.ach-list { margin: 0 0 6px; padding: 0; list-style: none; }
+.ach-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 11px; border-top: 1px solid var(--border); }
+.ach-row:first-child { border-top: none; }
+.ach-name { color: var(--text); overflow-wrap: anywhere; }
+.ach-date { color: var(--muted); white-space: nowrap; }
