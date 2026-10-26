@@ -19,7 +19,10 @@ const STATUS_STYLE: Record<string, string> = {
   expired: 'text-gray-500 border-gray-700',
   countered: 'text-violet-300 border-violet-400/30 bg-violet-500/10',
   failed: 'text-red-300 border-red-400/30 bg-red-500/10',
+  reversed: 'text-amber-300 border-amber-400/30 bg-amber-500/10',
 };
+/** A reversed trade keeps status 'accepted' in the data; staff see it as reversed. */
+const shownStatus = (r: { status: string; reversedAt?: number }) => (r.reversedAt ? 'reversed' : r.status);
 const FLAG_STYLE: Record<FlagKind, string> = {
   lopsided: 'text-amber-300 border-amber-400/30 bg-amber-500/10',
   repeat: 'text-orange-300 border-orange-400/30 bg-orange-500/10',
@@ -45,7 +48,7 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
   const [openId, setOpenId] = useState<string | null>(null);
   const [limit, setLimit] = useState(40);
   const [pending, startTransition] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [now, setNow] = useState(0);
   useEffect(() => setNow(Date.now()), []);
   useEffect(() => {
@@ -68,7 +71,7 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
 
   const selected = rows.find(r => r.id === openId) ?? null;
   const toggle = (s: string) => setStatus(prev => { const n = new Set(prev); if (n.has(s)) n.delete(s); else n.add(s); return n; });
-  const run = (fn: () => Promise<{ ok: boolean; message: string } | void>, ok = 'Done.') => startTransition(async () => { const r = await fn(); setMsg(r ? r.message : ok); router.refresh(); });
+  const run = (fn: () => Promise<{ ok: boolean; message: string } | void>, ok = 'Done.') => startTransition(async () => { const r = await fn(); setMsg(r ? { ok: r.ok, text: r.message } : { ok: true, text: ok }); router.refresh(); });
 
   const exportCsv = () => {
     const url = URL.createObjectURL(new Blob([tradesToCsv(shown)], { type: 'text/csv' }));
@@ -90,14 +93,14 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
         {STATUSES.map(s => <button key={s} type="button" onClick={() => toggle(s)} aria-pressed={status.has(s)} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${status.has(s) ? STATUS_STYLE[s] : 'border-gray-800 text-gray-500 hover:text-gray-300'}`}>{s}<span className="ml-1 font-normal opacity-70">{rows.filter(r => r.status === s).length}</span></button>)}
         {(status.size > 0 || kind || season || flaggedOnly || q) && <button type="button" onClick={() => { setStatus(new Set()); setKind(''); setSeason(''); setFlaggedOnly(false); setQ(''); }} className="px-2.5 py-1 text-[11px] text-gray-500 hover:text-white underline underline-offset-2">Clear filters</button>}
       </div>
-      {msg && <p role="status" className="text-sm rounded-lg px-3 py-2 border text-green-300 bg-green-500/10 border-green-400/30">{msg}</p>}
+      {msg && <p role="status" className={`text-sm rounded-lg px-3 py-2 border ${msg.ok ? 'text-green-300 bg-green-500/10 border-green-400/30' : 'text-red-300 bg-red-500/10 border-red-400/30'}`}>{msg.text}</p>}
 
       {shown.length === 0 ? <p className="text-sm text-gray-500 py-6 text-center">No trades match.</p> : (
         <ul className="divide-y divide-gray-800/60 rounded-xl border border-gray-800 overflow-hidden bg-gray-900/40">
           {shown.slice(0, limit).map(r => (
             <li key={r.id}>
               <button type="button" onClick={() => setOpenId(r.id)} className={`w-full text-left px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm hover:bg-white/5 transition-colors ${openId === r.id ? 'bg-white/5' : ''}`}>
-                <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${STATUS_STYLE[r.status] ?? ''}`}>{r.reversedAt ? 'reversed' : r.status}</span>
+                <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${STATUS_STYLE[shownStatus(r)] ?? ''}`}>{shownStatus(r)}</span>
                 <span className="text-gray-200 font-medium">{r.from}</span>
                 <span className="text-gray-600">{r.to ? '→' : '→ board'}</span>
                 {(r.to || r.takenBy) && <span className="text-gray-200 font-medium">{r.to ?? r.takenBy}</span>}
@@ -116,7 +119,7 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
           <aside role="dialog" aria-label="Trade detail" onClick={e => e.stopPropagation()} className="w-full max-w-md h-full overflow-auto bg-gray-950 border-l border-gray-800 p-6 space-y-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${STATUS_STYLE[selected.status] ?? ''}`}>{selected.status}</span>
+                <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${STATUS_STYLE[shownStatus(selected)] ?? ''}`}>{shownStatus(selected)}</span>
                 <h3 className="font-display text-xl font-bold text-white mt-2">{selected.from} {selected.to ? `→ ${selected.to}` : selected.takenBy ? `→ ${selected.takenBy}` : '→ board'}</h3>
                 <p className="text-xs text-gray-500">{selected.kind === 'listing' ? 'Board listing' : 'Direct offer'} · {selected.seasonName}</p>
               </div>
@@ -172,7 +175,7 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
                 <Icon name="ban" className="mr-1" />Block {selected.from} from trading
               </ArmedButton>
             </div>
-            {msg && <p role="status" className="text-xs text-green-300">{msg}</p>}
+            {msg && <p role="status" className={`text-xs ${msg.ok ? 'text-green-300' : 'text-red-300'}`}>{msg.text}</p>}
           </aside>
         </div>
       )}
