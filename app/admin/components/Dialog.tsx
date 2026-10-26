@@ -17,6 +17,7 @@ export function Dialog({
 }) {
   const titleId = useId();
   const ref = useRef<HTMLDialogElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
@@ -26,9 +27,13 @@ export function Dialog({
     const el = ref.current;
     if (!open || !el || el.matches(':modal')) return;
     if (el.open) el.close();
+    // Not body: the first paint (before the portal mounts) opens a copy that is then replaced, and that leaves focus on body.
+    if (document.activeElement && document.activeElement !== document.body) opener.current = document.activeElement as HTMLElement;
     el.showModal();
     el.querySelector<HTMLElement>('[autofocus]')?.focus();
   });
+  // The browser only returns focus to the opener when the dialog element is still attached; React removes it first, so do it here.
+  useEffect(() => (open ? () => opener.current?.focus() : undefined), [open]);
   useEffect(() => () => {
     const el = ref.current;
     if (el?.open) el.close();

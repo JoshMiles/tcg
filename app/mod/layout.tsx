@@ -21,7 +21,8 @@ export default async function ModLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 border-b border-white/6 bg-gray-950/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
+        {/* On phones the nav drops to its own row so it and the right-hand links both fit. */}
+        <div className="max-w-7xl mx-auto px-4 sm:h-14 py-2 sm:py-0 flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-2">
           <Link href="/mod" className="flex items-center gap-2.5 shrink-0">
             <BrandMark size={28} />
             <span className="leading-none">
@@ -34,7 +35,7 @@ export default async function ModLayout({ children }: { children: React.ReactNod
             {/* Back to the site viewers see (staff are signed in as viewers too, so nothing changes about their login). */}
             <Link href="/" title="Back to the public site" aria-label="Back to the public site" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white"><Icon name="home" /><span className="hidden sm:inline">Public site</span></Link>
             {roleCan(staff.role, 'admin') && (
-              <Link href="/admin" className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white"><Icon name="settings" />Admin panel</Link>
+              <Link href="/admin" title="Admin panel" aria-label="Admin panel" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white"><Icon name="settings" /><span className="hidden sm:inline">Admin panel</span></Link>
             )}
             <div className="text-right leading-tight hidden sm:block">
               <p className="text-xs font-bold text-gray-200 truncate max-w-40">{staff.displayName}</p>

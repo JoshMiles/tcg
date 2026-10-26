@@ -4,7 +4,8 @@ import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { getActivity } from '@/lib/activity';
 import { plainText } from '@/lib/activity-view';
 import { listOpenTrades } from '@/lib/trades';
-import { getHiddenUsers } from '@/lib/user-admin';
+import { getAdminHidden } from '@/lib/user-admin';
+import { getSelfHidden } from '@/lib/user-settings-store';
 import { staffPage } from '@/lib/staff-guard';
 import { PageHeader, Panel, Tile } from '../admin/components/ui';
 
@@ -28,8 +29,8 @@ const LINKS: { href: string; icon: IconName; title: string; text: string }[] = [
 
 export default async function ModHomePage() {
   const staff = await staffPage('mod');
-  const [{ events }, active, open, hidden] = await Promise.all([
-    getActivity({ limit: 200 }), getActiveSeasonWithPacks(), listOpenTrades().catch(() => []), getHiddenUsers().catch(() => new Set<string>()),
+  const [{ events }, active, open, staffHidden, privateProfiles] = await Promise.all([
+    getActivity({ limit: 200 }), getActiveSeasonWithPacks(), listOpenTrades().catch(() => []), getAdminHidden().catch(() => new Set<string>()), getSelfHidden().catch(() => new Set<string>()),
   ]);
   const names = new Map<number, string>();
   for (const { cards } of active?.packs ?? []) for (const c of cards) if (!names.has(c.number)) names.set(c.number, c.name);
@@ -39,10 +40,11 @@ export default async function ModHomePage() {
   return (
     <div className="space-y-6">
       <PageHeader title={`Hi ${staff?.displayName ?? 'there'}`} subtitle="Keep an eye on the game and look after the community." />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Tile label="Events, last hour" value={lastHour} sub="of the latest 200 events" icon="activity" href="/mod/activity" />
         <Tile label="Open trade offers" value={open.length} icon="trade" href="/mod/trades" />
-        <Tile label="Hidden from boards" value={hidden.size} icon="eye" href="/mod/users?show=restricted" />
+        <Tile label="Hidden by staff" value={staffHidden.size} icon="eye" href="/mod/users?show=restricted" />
+        <Tile label="Private profiles" value={privateProfiles.size} sub="chosen by the viewer" icon="eye" />
         <Tile label="Season" value={active?.season.name ?? 'none'} icon="trophy" />
       </div>
 
