@@ -60,4 +60,23 @@ const lst2 = await trades.createTrade({ seasonId: season.id, from: 'carol', kind
 ok(lst2.ok, 'carol lists the shiny');
 ok((await noticesOf('bob')).length === 1, 'bob is told about the shiny listing');
 ok((await notif.listNotices('alice')).notices.filter(x => x.kind === 'watch').length === 1, 'alice is not told about a listing she does not want');
+// ── a failed index build is not remembered as ready ──
+const realFetch = globalThis.fetch;
+// Makes the mock KV answer 500 to a read of any key matching `re` (null = healthy again).
+const failGetsFor = (re: RegExp | null) => { globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+  const body = typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown[]) : [];
+  const cmd = (Array.isArray(body[0]) ? body[0] : body) as string[]; // the client sends [["get", key]]
+  if (re && String(cmd[0]).toLowerCase() === 'get' && re.test(String(cmd[1]))) return new Response(JSON.stringify({ error: 'kv down' }), { status: 500 });
+  return realFetch(input, init);
+}) as typeof fetch; };
+const wipeIndex = async () => { await kv.del('watch:idx:ready'); for (const n of [a.number, b.number]) await kv.del(`watch:idx:${n}`); };
+for (const [label, re] of [['the viewer list cannot be read', /^season/], ["a viewer's settings cannot be read", /^user:.*:settings$/]] as const) {
+  await wipeIndex();
+  failGetsFor(re);
+  ok((await idx.watchersOf([a.number])).length === 0, `${label}: nobody is found while KV is failing`);
+  failGetsFor(null);
+  ok(!(await kv.get('watch:idx:ready')), `${label}: the index is not marked ready`);
+  ok((await idx.watchersOf([a.number])).sort().join() === 'alice,dave', `${label}: the next lookup rebuilds the index`);
+  ok(!!(await kv.get('watch:idx:ready')), `${label}: a clean build is marked ready`);
+}
 console.log('watch checks passed');

@@ -8,8 +8,13 @@ import { syncWatchIndex } from './watch-index';
 export const SELF_HIDDEN_KEY = 'users:hidden:self';
 const key = (u: string) => `user:${u.toLowerCase()}:settings`;
 
+/** The stored settings; throws when KV can't be read. */
+export async function loadUserSettings(username: string): Promise<UserSettings> {
+  return sanitizeUserSettings(await kv.get(key(username)));
+}
+
 export async function getUserSettings(username: string): Promise<UserSettings> {
-  try { return sanitizeUserSettings(await kv.get(key(username))); } catch { return { ...DEFAULT_SETTINGS, experiments: [], watches: [], favourites: [] }; }
+  try { return await loadUserSettings(username); } catch { return { ...DEFAULT_SETTINGS, experiments: [], watches: [], favourites: [] }; }
 }
 
 /** Viewers who chose a private profile. Never throws. */
