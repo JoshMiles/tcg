@@ -163,6 +163,8 @@ On Vercel the platform appends the real client address. The first entry is whate
 
 **Fix.** Release with a compare-and-delete (a Lua script or `GETDEL` plus a check that the value was still this token). Refresh the TTL only if the work can legitimately run long, and keep the "never hold a lock across slow I/O" rule.
 
+**Status.** Fixed (ROADMAP 46.1): `withLock` releases with one `EVAL` that deletes the key only if it still holds this holder's token (`lib/kv.ts`), `lib/db.ts` namespaces the script's key list in a sandbox, and `scripts/check-lock-release.mts` reproduces the takeover in the middle of a release.
+
 ### 19. Leaving a sandbox follows `/\` off the site
 
 `POST /api/sandbox/exit` (`app/api/sandbox/exit/route.ts` lines 9-14) is public. It keeps any `to` that starts with `/` and does not start with `//`, then `NextResponse.redirect(new URL(target, req.url))`. `safeReturnTo` (`lib/twitch-oauth.ts` line 94) also rejects `/\`. This route does not.
