@@ -23,7 +23,8 @@ export async function loginLocked(ip: string): Promise<boolean> {
   return mine >= MAX_FAILS || all >= MAX_FAILS_PER_HOUR;
 }
 
-/** Counts one wrong password against the address and against the hour. */
-export async function recordLoginFail(ip: string): Promise<void> {
-  await Promise.all([rateHit('login-fails', ip, WINDOW_S), rateHit('login-fails-hour', hourBucket(), HOUR_S)]);
+/** Counts one wrong password against the address and against the hour. Says which limit this one just reached, if any (once per window, so the admin log is told once). */
+export async function recordLoginFail(ip: string): Promise<'address' | 'site' | null> {
+  const [mine, all] = await Promise.all([rateHit('login-fails', ip, WINDOW_S), rateHit('login-fails-hour', hourBucket(), HOUR_S)]);
+  return all === MAX_FAILS_PER_HOUR ? 'site' : mine === MAX_FAILS ? 'address' : null;
 }

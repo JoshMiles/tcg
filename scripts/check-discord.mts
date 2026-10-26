@@ -208,6 +208,35 @@ await runInSandbox('some-sandbox', async () => { await d.notifySystem({ title: '
 await wait();
 ok(!hits.some(h => h.path.includes('/11/') || h.path.includes('/14/')) && !hits.some(h => JSON.stringify(h.body).includes('"y"')), 'system and admin notices are silent in a sandbox');
 
+// ── Emergency password login reaches the admin log (ROADMAP 51.1) ──
+{
+  process.env.ADMIN_COOKIE_SECRET = 'cookie-signing-key-for-the-check'; process.env.ADMIN_PASSWORD = 'pw'; delete process.env.ADMIN_PASSWORD_LOGIN;
+  const { NextRequest } = await import('next/server');
+  const login = await import('../app/api/auth/login/route');
+  const limits = await import('../lib/login-limit');
+  const { prodKv } = await import('../lib/db');
+  const tryPw = (password: string, ip: string) => login.POST(new NextRequest('http://localhost/api/auth/login', { method: 'POST', body: JSON.stringify({ password }), headers: { 'content-type': 'application/json', 'x-real-ip': ip } }));
+  const text = () => JSON.stringify(hits.map(h => h.body));
+  hits.length = 0;
+  ok((await tryPw('pw', '10.51.0.1')).status === 200, 'the right password signs in');
+  await wait();
+  ok(only(13) && text().includes('Emergency password login') && text().includes('@password'), 'a successful emergency login posts one line to the admin log, naming "password"');
+  hits.length = 0;
+  await runInSandbox('__missing__', () => tryPw('pw', '10.51.0.2')); await wait();
+  ok(only(13), 'a junk sandbox id does not silence the login line');
+  hits.length = 0;
+  for (let i = 0; i < limits.MAX_FAILS - 1; i++) await tryPw('nope', '10.51.0.3');
+  await wait();
+  ok(hits.length === 0, 'wrong passwords below the limit post nothing');
+  await tryPw('nope', '10.51.0.3'); await tryPw('nope', '10.51.0.3'); await wait();
+  ok(only(13) && text().includes('Emergency password login locked') && !text().includes('10.51'), 'the wrong password that locks an address posts once, without the address');
+  await prodKv.del(limits.hourFailKey());
+  hits.length = 0;
+  process.env.ADMIN_PASSWORD_LOGIN = 'off'; await tryPw('pw', '10.51.0.4'); await wait();
+  ok(hits.length === 0, 'a refused login (switched off) posts nothing');
+  delete process.env.ADMIN_PASSWORD_LOGIN;
+}
+
 // ── Delivery log (3.6) ──
 await d.saveDiscordSettings({
   enabled: true,
