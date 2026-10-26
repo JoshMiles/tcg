@@ -159,6 +159,18 @@ export async function takeUserSnapshot(username: string, reason: string): Promis
   return snap;
 }
 
+/** The restore points travel with the account (lib/account-move.ts). The saved profile is renamed too, so restoring one can never recreate the old login. Safe to repeat. */
+export async function moveUserSnapshots(from: string, to: string): Promise<void> {
+  const ids = ((await kv.get<string[]>(snapIndex(from))) ?? []).filter(Boolean);
+  for (const id of ids) {
+    const snap = await kv.get<UserSnapshot>(snapKey(from, id));
+    if (snap) await kv.set(snapKey(to, id), { ...snap, profile: snap.profile ? { ...snap.profile, username: to } : null }, { ex: SNAP_TTL });
+    await kv.del(snapKey(from, id));
+  }
+  if (ids.length > 0) await kv.set(snapIndex(to), ids, { ex: SNAP_TTL });
+  await kv.del(snapIndex(from));
+}
+
 export async function listUserSnapshots(username: string): Promise<UserSnapshot[]> {
   const name = username.toLowerCase();
   try {

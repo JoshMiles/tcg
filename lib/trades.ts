@@ -216,6 +216,23 @@ export async function tradeHistory(): Promise<Trade[]> {
   return readHistory();
 }
 
+/** A viewer's login changed hands (lib/account-move.ts): the finished offers they were in now name the new login. Returns how many offers changed. */
+export async function renameInTradeHistory(from: string, to: string): Promise<number> {
+  return locked(async () => {
+    const history = await readHistory();
+    let changed = 0;
+    for (const t of history) {
+      if (t.from !== from && t.to !== from && t.resolvedBy !== from) continue;
+      if (t.from === from) t.from = to;
+      if (t.to === from) t.to = to;
+      if (t.resolvedBy === from) t.resolvedBy = to;
+      changed++;
+    }
+    if (changed) await kv.set(HISTORY_KEY, history);
+    return changed;
+  });
+}
+
 /** One viewer's trades, split the way the page shows them. */
 export async function tradesForUser(username: string): Promise<{ incoming: Trade[]; outgoing: Trade[]; board: Trade[]; recent: Trade[] }> {
   const user = username.toLowerCase();

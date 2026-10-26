@@ -17,7 +17,7 @@ import { deleteFeedbackOf } from './feedback';
 export interface DeletionReport { snapshot: boolean; tradesCancelled: number; feedbackDeleted: number; opaqueRemoved: number }
 
 /** Removes the Twitch extension's opaque-ID links that point at this viewer. Needs a key scan, so it is skipped where one is not possible (a sandbox). */
-async function removeOpaqueLinks(user: string): Promise<number> {
+export async function removeOpaqueLinks(user: string): Promise<number> {
   let removed = 0;
   try {
     let cursor: string | number = 0;

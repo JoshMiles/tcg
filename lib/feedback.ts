@@ -113,6 +113,13 @@ export async function feedbackOf(user: string): Promise<FeedbackItem[]> {
   return (await loadMany(ids)).filter(i => i.user === user.toLowerCase());
 }
 
+/** A viewer's inbox items follow the account to a new login (lib/account-move.ts). Returns how many moved. */
+export async function renameFeedbackOf(from: string, to: string): Promise<number> {
+  const mine = await feedbackOf(from);
+  for (const i of mine) await kv.set(itemKey(i.id), { ...i, user: to.toLowerCase() });
+  return mine.length;
+}
+
 /** How many items still wait for staff (a set size, so cheap enough for every admin page). */
 export async function countNewFeedback(): Promise<number> {
   return Number(await kv.scard(NEW_SET).catch(() => 0)) || 0;

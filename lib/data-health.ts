@@ -7,6 +7,7 @@
 import { kv } from './db';
 import { getCollection, listSeasons } from './kv';
 import { listAccountConflicts, type AccountConflict } from './account-bind';
+import { listAsideAccounts, listUnfinishedMoves, type AsideAccount, type UnfinishedMove } from './account-move';
 
 /** A collection value at this size gets a "needs attention" line on the dashboard. */
 export const BLOB_WARN_BYTES = 512 * 1024;
@@ -96,6 +97,9 @@ export interface DataHealth {
   activityEvents: number;
   /** Logins a different Twitch account signed in on (lib/account-bind.ts), newest first. */
   accountConflicts: AccountConflict[];
+  /** Accounts moved aside (acct:aside) and moves that stopped part way (acct:moves). */
+  asideAccounts: AsideAccount[];
+  unfinishedMoves: UnfinishedMove[];
 }
 
 const OWNER_SAMPLE = 500;
@@ -130,8 +134,8 @@ export async function loadDataHealth(activeSeasonId?: string | null): Promise<Da
     const collection = summarizeCollection(raw);
     return { id: s.id, name: s.name, active: s.id === activeSeasonId, collection, level: healthLevel(collection.bytes), ledger: await ledgerHealth(s.collectionName, Object.keys(raw)) };
   }));
-  const [open, history, activityEvents, accountConflicts] = await Promise.all([
-    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<{ id: string; escrowed?: boolean }[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0), listAccountConflicts(),
+  const [open, history, activityEvents, accountConflicts, asideAccounts, unfinishedMoves] = await Promise.all([
+    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<{ id: string; escrowed?: boolean }[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0), listAccountConflicts(), listAsideAccounts().catch(() => []), listUnfinishedMoves().catch(() => []),
   ]);
   return {
     at: Date.now(),
@@ -139,5 +143,7 @@ export async function loadDataHealth(activeSeasonId?: string | null): Promise<Da
     trades: { openCount: open?.length ?? 0, openBytes: jsonBytes(open), historyCount: history?.length ?? 0, historyBytes: jsonBytes(history), stuckEscrow: (history ?? []).filter(t => t.escrowed).map(t => t.id) },
     activityEvents: Number(activityEvents) || 0,
     accountConflicts,
+    asideAccounts,
+    unfinishedMoves,
   };
 }

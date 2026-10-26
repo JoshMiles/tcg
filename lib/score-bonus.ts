@@ -22,3 +22,14 @@ export async function addScoreBonus(collectionName: string, usernames: string[],
     await kv.set(key(collectionName), all);
   });
 }
+
+/** A viewer's bonus follows the account to a new login (lib/account-move.ts). Safe to repeat. */
+export async function moveScoreBonus(collectionName: string, from: string, to: string): Promise<void> {
+  await withLock(`scorebonus:${collectionName}`, async () => {
+    const all = await getScoreBonuses(collectionName);
+    if (!(from in all)) return;
+    all[to] = (all[to] ?? 0) + all[from];
+    delete all[from];
+    await kv.set(key(collectionName), all);
+  });
+}

@@ -6,7 +6,7 @@
 // (`prodKv`, not the sandbox-aware `kv`). Otherwise entering a sandbox would make every staff member look like a stranger.
 
 import { notifyAdminLog } from './discord';
-import { isPreview, prodKv, runInSandbox } from './db';
+import { inSandbox, isPreview, prodKv, runInSandbox } from './db';
 import { getUserProfile } from './kv';
 import {
   SUPER_ADMINS, canManage, canModerate, cleanLogin, isSuperAdmin, isTwitchId, sanitizeStaffRecord,
@@ -149,6 +149,13 @@ export async function removeStaff(actor: StaffActor, loginInput: unknown): Promi
   await prodKv.hdel(MEMBERS, login);
   await log({ by: actor.login, action: 'removed', login, detail: `was ${rec.role}` });
   return { ok: true, message: `${login} is no longer staff.` };
+}
+
+/** Before a login is freed for someone else (lib/account-move.ts): pins a staff record that has no Twitch ID yet to this one, so whoever takes the login next cannot inherit the role. Write-once, never rebinds. */
+export async function pinStaffId(login: string, twitchId: string): Promise<void> {
+  if (isPreview() || (await inSandbox()) || !isTwitchId(twitchId)) return;
+  const rec = await getStaffRecord(login);
+  if (rec && !rec.twitchId) await prodKv.hsetnx(IDS, rec.login, { id: twitchId });
 }
 
 /** Notes a sign-in: stamps the time in `staff:seen`, and binds the account's Twitch ID the first time with a write-once field (never rebinds). Never touches the staff record. */

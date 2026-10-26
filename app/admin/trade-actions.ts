@@ -10,6 +10,7 @@ import { getSeason, getUserProfile, saveSeason } from '@/lib/kv';
 import { saveFlags } from '@/lib/user-admin';
 import { cancelOpenTrades, cancelTrade, extendOpenTrades, releaseStuckEscrow, reverseTrade, getTradeSettings, saveTradeSettings } from '@/lib/trades';
 import { notifyAdminLog } from '@/lib/discord';
+import { finishMove } from '@/lib/account-move';
 import { currentStaffLogin } from '@/lib/staff-actor';
 
 export interface TradeActionResult { ok: boolean; message: string }
@@ -39,6 +40,16 @@ export async function releaseStuckEscrowAction(id: string) {
   if (!res.ok) redirect(`/admin/settings?tab=environment&error=${encodeURIComponent(res.error)}`);
   if (res.cleared) await recordAudit(res.trade.from, 'Stuck trade returned', `${res.trade.id}: editions returned and the escrow flag cleared`);
   redirect(`/admin/settings?tab=environment&note=${encodeURIComponent(res.cleared ? 'Editions returned and the escrow flag cleared.' : 'That offer was not marked escrowed.')}`);
+}
+
+/** Resumes a Move aside that stopped part way (Data health). Safe to repeat: every step skips what is already done. */
+export async function finishMoveAction(from: string) {
+  await requireAdmin();
+  const res = await finishMove(from);
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin/users');
+  if (!res.ok) redirect(`/admin/settings?tab=environment&error=${encodeURIComponent(res.error)}`);
+  redirect(`/admin/settings?tab=environment&note=${encodeURIComponent(`Move finished: ${from} is now ${res.to}.`)}`);
 }
 
 /** Cancels an open offer and returns the escrowed cards to their owner. Works while trading is paused. */

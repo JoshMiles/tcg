@@ -180,6 +180,15 @@ export async function saveDiscordLink(username: string, link: DiscordLink): Prom
   return true;
 }
 
+/** The Discord link follows the account to a new login (lib/account-move.ts) and the Discord ID points at the new one. Safe to repeat. */
+export async function moveDiscordLink(from: string, to: string): Promise<void> {
+  const link = await getDiscordLink(from);
+  if (!link) return;
+  await kv.set(discordUserKey(to), link);
+  await kv.set(discordIdKey(link.id), to.toLowerCase());
+  await kv.del(discordUserKey(from));
+}
+
 export async function unlinkDiscord(username: string): Promise<void> {
   const u = username.toLowerCase();
   const existing = await getDiscordLink(u);

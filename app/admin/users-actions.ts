@@ -1,11 +1,13 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin-guard';
 import { requireStaff } from '@/lib/staff-guard';
 import { checkModerate } from '@/lib/staff';
 import { recordAudit } from '@/lib/audit';
 import { recordActivity } from '@/lib/activity';
 import { addCollectionEntryWithSerial, ensureUserProfile, getActiveSeasonWithPacks, patchUserProfile } from '@/lib/kv';
+import { moveAside } from '@/lib/account-move';
 import { cancelTrade } from '@/lib/trades';
 import { cleanTags, mergeUsers, restoreUserSnapshot, saveFlags, saveTags } from '@/lib/user-admin';
 import { VARIANTS, VARIANT_LABELS, encodeEntry } from '@/lib/variants';
@@ -93,6 +95,16 @@ export async function mergeUserAction(from: string, into: string): Promise<UserA
   revalidate(from);
   revalidate(into);
   return res.ok ? { ok: true, message: `Merged ${res.cards} cards into ${into.toLowerCase().replace(/^@/, '')}.` } : { ok: false, message: res.error };
+}
+
+/** Moves everything under a login to `<login>~<n>` so the login is free for someone else (lib/account-move.ts), then opens the new account. */
+export async function moveAsideAction(username: string): Promise<UserActionResult> {
+  await requireAdmin();
+  const res = await moveAside(username, 'Moved aside by an admin');
+  revalidate(username);
+  if (!res.ok) return { ok: false, message: res.error };
+  revalidate(res.to);
+  redirect(`/admin/users/${encodeURIComponent(res.to)}`);
 }
 
 /** Admin-cancels one of a viewer's open trade offers (the escrowed cards go back to their owner). */

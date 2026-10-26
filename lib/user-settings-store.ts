@@ -33,6 +33,19 @@ export async function saveUserSettings(username: string, input: unknown): Promis
   return next;
 }
 
+/** The settings, the private-profile switch and the watch-index entries follow the account to a new login (lib/account-move.ts). Safe to repeat. */
+export async function moveUserSettings(from: string, to: string): Promise<void> {
+  const raw = await kv.get(key(from));
+  if (raw) {
+    await kv.set(key(to), raw);
+    const settings = sanitizeUserSettings(raw);
+    await syncWatchIndex(to, null, settings);
+    await syncWatchIndex(from, settings, DEFAULT_SETTINGS);
+  }
+  if ((await getSelfHidden()).has(from)) { await kv.sadd(SELF_HIDDEN_KEY, to); await kv.srem(SELF_HIDDEN_KEY, from); }
+  await kv.del(key(from));
+}
+
 export async function deleteUserSettings(username: string): Promise<void> {
   const u = username.toLowerCase();
   try { const prev = await getUserSettings(u); await kv.del(key(u)); await kv.srem(SELF_HIDDEN_KEY, u); await syncWatchIndex(u, prev, DEFAULT_SETTINGS); } catch { /* best effort */ }
