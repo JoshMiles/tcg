@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason, getSeason } from '@/lib/kv';
-import { getSeasonLeaderboard } from '@/lib/leaderboard';
+import { getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { getStaffBadges } from '@/lib/staff-badge';
 import { limitTwitch } from '@/lib/rate-limit';
 
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const season = seasonId ? await getSeason(seasonId) : await getActiveSeason();
   if (!season || season.status === 'draft') return NextResponse.json({ error: 'No season' }, { status: 404 });
 
-  const { rows, values } = await getSeasonLeaderboard(season);
+  const { rows, values } = await getSeasonLeaderboardCached(season); // the shared 20 s board, as /api/twitch/me uses: Board is opened most during a stream
   const mine = me ? rows.findIndex(r => r.username === me) : -1;
 
   return NextResponse.json({
