@@ -294,7 +294,9 @@ export async function loadAuditInput(db: KvReader): Promise<AuditInput> {
   const retired: AuditInput['retired'] = {};
 
   for (const season of seasons) {
-    const data = (await db.get<Record<string, number[]>>(`tcg_${season.collectionName}`)) ?? {};
+    // Read only (the reader has no write methods, so no move to the hash layout from here): the hash, or the old string of a season not moved yet.
+    const data = ((await db.hgetall(`coll:${season.collectionName}`)) as Record<string, number[]> | null)
+      ?? (await db.get<Record<string, number[]>>(`tcg_${season.collectionName}`)) ?? {};
     collections[season.collectionName] = data;
     copies[season.collectionName] = {};
     if (!season.tracking) continue;

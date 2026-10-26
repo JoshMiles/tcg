@@ -1,4 +1,4 @@
-import { getSeason, getPacksForSeason, getPackCards, withCollectionLock, getCollection, saveCollection } from './kv';
+import { getSeason, getPacksForSeason, getPackCards, withCollectionLock, updateCollection } from './kv';
 import { lastCopy, isTracking } from './serials';
 import { favouriteIdsOf, spendablePrints } from './favourites';
 import { getScoringSettings } from './scoring';
@@ -14,7 +14,7 @@ export type UpgradeResult =
 /**
  * Swaps `cost` duplicates of one card variant for a single copy of the next variant up. Strictly one
  * step (regular → reverse → full → shiny → golden), same card only, active season only. Runs under the
- * collection lock so it can't interleave with a pull or a grant writing the same blob.
+ * collection lock so it can't interleave with a pull or a grant writing the same viewer.
  */
 export async function upgradeCard(opts: {
   seasonId: string;
@@ -48,32 +48,33 @@ export async function upgradeCard(opts: {
 
   let made: { copyId: string | null; uid: number | null } = { copyId: null, uid: null };
   const result = await withCollectionLock(season.collectionName, async (): Promise<UpgradeResult> => {
-    const data = await getCollection(season.collectionName);
-    const owned = data[username] ?? [];
-    const remaining = removeEntries(owned, fromEntry, cost);
-    if (!remaining) {
-      const have = owned.filter(e => e === fromEntry).length;
+    const saved = await updateCollection<{ ok: false; status: number; error: string } | { ok: true; updated: number[] }>(season.collectionName, [username], async cards => {
+      const owned = cards[username];
+      const remaining = removeEntries(owned, fromEntry, cost);
+      if (!remaining) {
+        const have = owned.filter(e => e === fromEntry).length;
+        return { result: { ok: false, status: 400, error: `You need ${cost} ${VARIANT_LABELS[from]} editions to upgrade; you have ${have}.` } };
+      }
+      // Favourite prints are never spent: the cost is paid from the newest prints that are not favourites.
+      let spend: string[] | undefined;
+      if (await isTracking(season.collectionName)) {
+        const r = await spendablePrints(season.collectionName, username, fromEntry, cost, undefined, await favouriteIdsOf(season.collectionName, username), 'spend');
+        if (!r.ok) return { result: { ok: false, status: 400, error: r.text } };
+        spend = r.ids ?? undefined;
+      }
+      const updated = [...remaining, encodeEntry(cardNumber, to)];
       return {
-        ok: false,
-        status: 400,
-        error: `You need ${cost} ${VARIANT_LABELS[from]} editions to upgrade; you have ${have}.`,
+        result: { ok: true, updated },
+        cards: { [username]: updated },
+        ctx: { upgrade: { user: username, spent: fromEntry, count: cost, made: encodeEntry(cardNumber, to), ...(spend ? { ids: spend } : {}) } },
       };
-    }
-    // Favourite prints are never spent: the cost is paid from the newest prints that are not favourites.
-    let spend: string[] | undefined;
-    if (await isTracking(season.collectionName)) {
-      const r = await spendablePrints(season.collectionName, username, fromEntry, cost, undefined, await favouriteIdsOf(season.collectionName, username), 'spend');
-      if (!r.ok) return { ok: false, status: 400, error: r.text };
-      spend = r.ids ?? undefined;
-    }
-    const updated = [...remaining, encodeEntry(cardNumber, to)];
-    data[username] = updated;
-    await saveCollection(season.collectionName, data, { upgrade: { user: username, spent: fromEntry, count: cost, made: encodeEntry(cardNumber, to), ...(spend ? { ids: spend } : {}) } });
+    });
+    if (!saved.ok) return saved;
     const last = await lastCopy(season.collectionName, encodeEntry(cardNumber, to));
     const serial = last.serial;
     made = last;
     const mult = serial ? serialMultiplier(serial, await getScoringSettings()) : 1;
-    return { ok: true, owned: updated, cardName: card.name, from, to, cost, serial, serialMult: Math.round(mult * 100) / 100 };
+    return { ok: true, owned: saved.updated, cardName: card.name, from, to, cost, serial, serialMult: Math.round(mult * 100) / 100 };
   });
 
   if (result.ok) {

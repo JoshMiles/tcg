@@ -2,7 +2,7 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
-import { ensureUserProfile, getCollection, getSeason, saveCollection, withCollectionLock } from '@/lib/kv';
+import { ensureUserProfile, getSeason, updateCollection, withCollectionLock } from '@/lib/kv';
 import { getCopy } from '@/lib/serials';
 import { entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
 import { recordActivity } from '@/lib/activity';
@@ -43,15 +43,17 @@ export async function transferCopyAction(seasonId: string, copyId: string, formD
     if (!copy || !copy.owner) return 'That edition no longer exists.';
     if (isEscrow(copy.owner)) return 'It is held by an open trade offer. Cancel the offer first.';
     if (copy.owner === to) return 'They already have it.';
-    const data = await getCollection(c);
+    const owner = copy.owner;
     const entry = entryOf(copy);
-    const i = data[copy.owner]?.indexOf(entry) ?? -1;
-    if (i < 0) return 'The collection does not match the ledger for this edition; nothing was changed.';
-    data[copy.owner] = [...data[copy.owner].slice(0, i), ...data[copy.owner].slice(i + 1)];
-    if (data[copy.owner].length === 0) delete data[copy.owner];
-    data[to] = [...(data[to] ?? []), entry];
-    await saveCollection(c, data, { moves: [{ from: copy.owner, to, entry, count: 1, ids: [copy.id], note: 'admin transfer' }] });
-    return null;
+    return updateCollection<string | null>(c, [owner, to], cards => {
+      const i = cards[owner].indexOf(entry);
+      if (i < 0) return { result: 'The collection does not match the ledger for this edition; nothing was changed.' };
+      return {
+        result: null,
+        cards: { [owner]: [...cards[owner].slice(0, i), ...cards[owner].slice(i + 1)], [to]: [...cards[to], entry] },
+        ctx: { moves: [{ from: owner, to, entry, count: 1, ids: [copy.id], note: 'admin transfer' }] },
+      };
+    });
   });
   if (result) return go(result, false);
 
@@ -76,15 +78,18 @@ export async function removeCopyAction(seasonId: string, copyId: string, formDat
     const copy = await getCopy(c, copyId);
     if (!copy || !copy.owner) return 'That edition no longer exists.';
     if (isEscrow(copy.owner)) return 'It is held by an open trade offer. Cancel the offer first.';
-    const data = await getCollection(c);
+    const owner = copy.owner;
     const entry = entryOf(copy);
-    const i = data[copy.owner]?.indexOf(entry) ?? -1;
-    if (i < 0) return 'The collection does not match the ledger for this edition; nothing was changed.';
-    holder = copy.owner;
-    data[copy.owner] = [...data[copy.owner].slice(0, i), ...data[copy.owner].slice(i + 1)];
-    if (data[copy.owner].length === 0) delete data[copy.owner];
-    await saveCollection(c, data, { retire: { owner: copy.owner, ids: [copy.id], who: copy.owner, note: 'removed by an admin' } });
-    return null;
+    return updateCollection<string | null>(c, [owner], cards => {
+      const i = cards[owner].indexOf(entry);
+      if (i < 0) return { result: 'The collection does not match the ledger for this edition; nothing was changed.' };
+      holder = owner;
+      return {
+        result: null,
+        cards: { [owner]: [...cards[owner].slice(0, i), ...cards[owner].slice(i + 1)] },
+        ctx: { retire: { owner, ids: [copy.id], who: owner, note: 'removed by an admin' } },
+      };
+    });
   });
   if (result) return go(result, false);
 

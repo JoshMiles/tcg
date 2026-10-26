@@ -3,7 +3,7 @@ import { escrowOwner, isEscrow, entryOf, newestFirst, parseCopyId } from './seri
 import { firstNotHeld, getCopy, getOwnerCopies, isTracking, liveCopiesOfEntry, printLabel, serialPool } from './serials';
 import { getUserSettings } from './user-settings-store';
 import { kv } from './db';
-import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserProfile, saveCollection, withCollectionLock, withLock } from './kv';
+import { getCollection, getPackCards, getPacksForSeason, getSeason, getUserCards, getUserProfile, updateCollection, withCollectionLock, withLock } from './kv';
 import { announceTrade, type EventPools, type TradeAction } from './trade-notify';
 import { currentStaffLogin } from './staff-actor';
 import { checkModerate } from './staff';
@@ -130,12 +130,14 @@ async function returnToCollection(seasonId: string, username: string, items: Tra
     const partial = tradeId ? await heldEscrowEntries(season.collectionName, tradeId, items) : null;
     const entries = partial ? partial.entries : itemEntries(items);
     if (entries.length === 0) return;
-    const data = await getCollection(season.collectionName);
-    data[username] = [...(data[username] ?? []), ...entries];
     const moves = tradeId
       ? (partial ? partial.moves.map(m => ({ ...m, to: username })) : items.map(i => ({ from: escrowOwner(tradeId), to: username, ...moveOf(i) })))
       : undefined;
-    await saveCollection(season.collectionName, data, moves ? { moves } : undefined);
+    await updateCollection(season.collectionName, [username], cards => ({
+      result: undefined,
+      cards: { [username]: [...cards[username], ...entries] },
+      ctx: moves ? { moves } : undefined,
+    }));
   });
   return true;
 }
@@ -305,8 +307,7 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     return fail(429, 'Slow down: wait a few seconds before making another offer.');
   }
   if (input.kind === 'direct' && to) {
-    const data = await getCollection(season.collectionName);
-    if (!(to in data) && !(await getUserProfile(to))) return fail(404, `Nobody called ${to} has played yet.`);
+    if ((await getUserCards(season.collectionName, to)).length === 0 && !(await getUserProfile(to))) return fail(404, `Nobody called ${to} has played yet.`);
     // Asked-for prints must be the recipient's right now (a counter may ask for prints still sitting in the offer it answers).
     for (const item of get) {
       if (!item.ids) continue;
@@ -331,25 +332,23 @@ async function createInLock(input: NewTrade, settings: TradeSettings, open: Trad
     expiresAt: Date.now() + settings.expiryHours * 3_600_000,
     ...(counterOf ? { counterOf } : {}),
   };
-  const taken = await withCollectionLock(season.collectionName, async () => {
-    const data = await getCollection(season.collectionName);
+  type Taken = ReturnType<typeof takeForEscrow> | { ok: false; text: string };
+  const taken = await withCollectionLock(season.collectionName, () => updateCollection<Taken>(season.collectionName, [from], async cards => {
     // Favourite prints never go into an offer: unpicked stacks are pinned to the newest prints that are not favourites.
     const safe = await protectFavourites(season.collectionName, from, give!);
-    if (!safe.ok) return { ok: false as const, text: safe.text };
+    if (!safe.ok) return { result: { ok: false as const, text: safe.text } };
     give = safe.items;
     trade.give = give;
-    const res = takeForEscrow(data[from] ?? [], give);
-    if (!res.ok) return res;
+    const res = takeForEscrow(cards[from], give);
+    if (!res.ok) return { result: res };
     // Picked prints must be this viewer's own, right now: not sold, forged or already put up in another offer.
     for (const item of give) {
       if (!item.ids) continue;
       const gone = await firstNotHeld(season.collectionName, [from], item.ids);
-      if (gone) return { ok: false as const, text: `${await printLabel(season.collectionName, gone.id)} ${isEscrow(gone.holder) ? 'is already in another trade offer.' : 'isn\'t yours any more.'}` };
+      if (gone) return { result: { ok: false as const, text: `${await printLabel(season.collectionName, gone.id)} ${isEscrow(gone.holder) ? 'is already in another trade offer.' : 'isn\'t yours any more.'}` } };
     }
-    data[from] = res.rest;
-    await saveCollection(season.collectionName, data, { moves: give.map(i => ({ from, to: escrowOwner(trade.id), ...moveOf(i) })) });
-    return res;
-  });
+    return { result: res, cards: { [from]: res.rest }, ctx: { moves: give.map(i => ({ from, to: escrowOwner(trade.id), ...moveOf(i) })) } };
+  }));
   if (!taken.ok && 'text' in taken) return fail(400, taken.text);
   if (!taken.ok) {
     const card = cardMap.get(taken.missing.cardNumber)?.card.name ?? `#${taken.missing.cardNumber}`;
@@ -420,37 +419,38 @@ export async function acceptTrade(id: string, username: string, getIds?: Record<
     // Read the serials on both sides before the copies change hands (picked prints are priced from their own ids).
     const pools = await snapshotPools(trade.seasonId, { give: escrowOwner(trade.id), get: taker });
     let moved: Trade['moved'];
-    const result = await withCollectionLock(season.collectionName, async () => {
-      const data = await getCollection(season.collectionName);
+    type Settled = ReturnType<typeof settleTrade> | { ok: false; text: string };
+    const result = await withCollectionLock(season.collectionName, () => updateCollection<Settled>(season.collectionName, [trade.from, taker], async cards => {
       // The taker's favourite prints stay put: picked ones are refused, unpicked stacks skip them. The offer stays open.
       const safe = await protectFavourites(season.collectionName, taker, get!);
-      if (!safe.ok) return { ok: false as const, text: safe.text };
+      if (!safe.ok) return { result: { ok: false as const, text: safe.text } };
       get = safe.items;
-      const settled = settleTrade(data[trade.from] ?? [], data[taker] ?? [], trade.give, get);
-      if (!settled.ok) return settled;
+      const settled = settleTrade(cards[trade.from], cards[taker], trade.give, get);
+      if (!settled.ok) return { result: settled };
       // Exact prints must still be the taker's: if one moved since the offer was made, the offer stays open for a counter.
       for (const item of get) {
         if (!item.ids) continue;
         const gone = await firstNotHeld(season.collectionName, [taker], item.ids);
         if (!gone) continue;
         const pinned = trade.get.some(t => t.cardNumber === item.cardNumber && t.variant === item.variant && t.ids);
-        return { ok: false as const, text: `${pinned ? 'That offer asks for' : 'You chose'} ${await printLabel(season.collectionName, gone.id)}, which you no longer hold.` };
+        return { result: { ok: false as const, text: `${pinned ? 'That offer asks for' : 'You chose'} ${await printLabel(season.collectionName, gone.id)}, which you no longer hold.` } };
       }
       moved = await movedPrints(season.collectionName, escrowOwner(trade.id), trade.give, taker, get!);
-      data[trade.from] = settled.offerer;
-      data[taker] = settled.taker;
       // Close the offer (still marked escrowed) before the copies move, so a failure in between can't refund it later (see closeTrade).
       trade.get = get!;
       if (moved) trade.moved = moved;
       await closeTrade(open, history, trade, 'accepted', taker, undefined, false, pools);
       await persist(open, history);
       // Identity follows the cards: the offer's copies leave escrow for the taker, the asked-for copies go to the offerer.
-      await saveCollection(season.collectionName, data, { moves: [
-        ...trade.give.map(i => ({ from: escrowOwner(trade.id), to: taker, ...moveOf(i) })),
-        ...get.map(i => ({ from: taker, to: trade.from, ...moveOf(i) })),
-      ] });
-      return settled;
-    });
+      return {
+        result: settled,
+        cards: { [trade.from]: settled.offerer, [taker]: settled.taker },
+        ctx: { moves: [
+          ...trade.give.map(i => ({ from: escrowOwner(trade.id), to: taker, ...moveOf(i) })),
+          ...get.map(i => ({ from: taker, to: trade.from, ...moveOf(i) })),
+        ] },
+      };
+    }));
     if (!result.ok && 'text' in result) return fail(400, result.text);
     if (!result.ok) {
       return fail(400, `You don't have ${result.missing.count}× card #${result.missing.cardNumber} (${result.missing.variant}) that this offer asks for.`);
@@ -744,33 +744,32 @@ export async function reverseTrade(id: string, actor: ModActor, reason: string):
       // The offerer's give went to the taker; the taker's get went to the offerer.
       const blockedBy = (await stillWithReceiver(c, taker, moved.give)) ?? (await stillWithReceiver(c, trade.from, moved.get));
       if (blockedBy) return { ok: false as const, text: `Can't reverse: ${blockedBy}` };
-      const data = await getCollection(c);
       const groups = (ids: string[]) => {
         const m = new Map<number, string[]>();
         for (const pid of ids) { const p = parseCopyId(pid); if (p) { const e = encodeEntry(p.card, p.variant); m.set(e, [...(m.get(e) ?? []), pid]); } }
         return m;
       };
       const reversal = { who: staff, note: why };
-      const moves: { from: string; to: string; entry: number; count: number; ids: string[]; reversal: typeof reversal }[] = [];
-      let fromList = data[trade.from] ?? [];
-      let takerList = data[taker] ?? [];
       const mismatch = { ok: false as const, text: "Can't reverse: the collections no longer match the trade." };
-      for (const [entry, ids] of groups(moved.give)) {
-        const rest = removeEntries(takerList, entry, ids.length);
-        if (!rest) return mismatch;
-        takerList = rest; fromList = [...fromList, ...Array<number>(ids.length).fill(entry)];
-        moves.push({ from: taker, to: trade.from, entry, count: ids.length, ids, reversal });
-      }
-      for (const [entry, ids] of groups(moved.get)) {
-        const rest = removeEntries(fromList, entry, ids.length);
-        if (!rest) return mismatch;
-        fromList = rest; takerList = [...takerList, ...Array<number>(ids.length).fill(entry)];
-        moves.push({ from: trade.from, to: taker, entry, count: ids.length, ids, reversal });
-      }
-      data[trade.from] = fromList;
-      data[taker] = takerList;
-      await saveCollection(c, data, { moves });
-      return { ok: true as const, moved };
+      type Reversed = { ok: false; text: string } | { ok: true; moved: NonNullable<Trade['moved']> };
+      return updateCollection<Reversed>(c, [trade.from, taker], cards => {
+        const moves: { from: string; to: string; entry: number; count: number; ids: string[]; reversal: typeof reversal }[] = [];
+        let fromList = cards[trade.from];
+        let takerList = cards[taker];
+        for (const [entry, ids] of groups(moved.give)) {
+          const rest = removeEntries(takerList, entry, ids.length);
+          if (!rest) return { result: mismatch };
+          takerList = rest; fromList = [...fromList, ...Array<number>(ids.length).fill(entry)];
+          moves.push({ from: taker, to: trade.from, entry, count: ids.length, ids, reversal });
+        }
+        for (const [entry, ids] of groups(moved.get)) {
+          const rest = removeEntries(fromList, entry, ids.length);
+          if (!rest) return { result: mismatch };
+          fromList = rest; takerList = [...takerList, ...Array<number>(ids.length).fill(entry)];
+          moves.push({ from: trade.from, to: taker, entry, count: ids.length, ids, reversal });
+        }
+        return { result: { ok: true as const, moved }, cards: { [trade.from]: fromList, [taker]: takerList }, ctx: { moves } };
+      });
     });
     if (!result.ok) return fail(400, result.text);
     trade.moved = result.moved;

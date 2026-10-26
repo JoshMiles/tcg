@@ -1,6 +1,6 @@
-import { dropLedger, isTracking, lastCopy, syncAfterSave, type SyncContext } from './serials';
-import type { Origin } from './serials-core';
-import { kv, requestCached } from './db';
+import { dropLedger, lastCopy, syncAfterSave, type SyncContext } from './serials';
+import { ESCROW_PREFIX, type Origin } from './serials-core';
+import { currentSandboxId, kv, requestCached } from './db';
 import type { Season, Pack, Card, UserProfile, UpgradeCosts, VariantWeights } from './types';
 import { DEFAULT_UPGRADE_COSTS, DEFAULT_VARIANT_WEIGHTS, cleanDisabled } from './variants';
 import { SEED_SEASON, SEED_PACK, SEED_CARDS } from './seed';
@@ -305,30 +305,212 @@ export async function deleteTwitchOpaqueUser(opaqueId: string): Promise<void> {
   await kv.del(`twitch_opaque:${opaqueId}`);
 }
 
-// ── Legacy collection ─────────────────────────────────────
+// ── Collections ───────────────────────────────────────────
+//
+// One hash per season, `coll:<collectionName>`: field = lowercase login, value = that viewer's `number[]` (a viewer with no cards has
+// no field). Whole-season readers get the `Record<login, number[]>` they always had (`getCollection`); a writer touches only the
+// viewers it changes (`updateCollection`). Before ROADMAP 48.7 a season was ONE string, `tcg_<name>`, rewritten whole on every save.
+// The first request that touches a season moves it (`ensureMigrated`); the old string is kept as `tcg_<name>:old` for 30 days.
 
-export async function getCollection(collectionName: string): Promise<Record<string, number[]>> {
-  return (await kv.get<Record<string, number[]>>(`tcg_${collectionName}`)) ?? {};
+const collKey = (c: string) => `coll:${c}`;
+const oldKey = (c: string) => `tcg_${c}`;
+/** Hash: collection name -> { viewers, entries, at } for every season moved to the hash layout (Data health lists it). Outside `coll:` so no season name can collide with it. */
+const MIGRATION_LOG = 'collmig';
+/** Fields per HSET/HDEL, so one request stays small for a season with thousands of viewers. */
+const CHUNK = 200;
+/** How long the old string is kept after the move before Data health offers to delete it. */
+export const OLD_COPY_DAYS = 30;
+
+export interface CollectionMigration { collection: string; viewers: number; entries: number; at: number; oldCopy: boolean }
+
+/** Seasons this instance has seen in the hash layout, per sandbox (a sandbox is its own namespace). Only success is remembered. */
+const migrated = new Set<string>();
+/** Forget what this instance knows (a script that rebuilds the old layout under a running process, a sandbox reset). */
+export function forgetMigrations(): void { migrated.clear(); }
+
+async function hsetChunked(key: string, fields: Record<string, number[]>): Promise<void> {
+  const names = Object.keys(fields);
+  for (let i = 0; i < names.length; i += CHUNK) {
+    await kv.hset(key, Object.fromEntries(names.slice(i, i + CHUNK).map(n => [n, fields[n]])));
+  }
+}
+async function hdelChunked(key: string, names: string[]): Promise<void> {
+  for (let i = 0; i < names.length; i += CHUNK) await kv.hdel(key, ...names.slice(i, i + CHUNK));
+}
+
+/** Builds the hash beside the live key, checks it, then renames it into place, so a reader never sees a half-built hash. Call under the season's lock. */
+async function migrateCollection(c: string): Promise<void> {
+  const raw = await kv.get<Record<string, number[]>>(oldKey(c));
+  if (raw === null || raw === undefined) return; // a new or empty season: nothing to copy
+  if (typeof raw !== 'object' || Array.isArray(raw)) throw new Error(`Collection ${c} is not in a shape that can be moved; nothing was changed.`);
+  const rec: Record<string, number[]> = {};
+  let entries = 0;
+  for (const [login, cards] of Object.entries(raw)) if (Array.isArray(cards) && cards.length > 0) { rec[login] = cards; entries += cards.length; }
+  const viewers = Object.keys(rec).length;
+  const tmp = `${collKey(c)}:new`;
+  await kv.del(tmp);
+  if (viewers > 0) {
+    await hsetChunked(tmp, rec);
+    const back = (await kv.hgetall<Record<string, number[]>>(tmp)) ?? {};
+    const backViewers = Object.keys(back).length;
+    const backEntries = Object.values(back).reduce((n, cards) => n + (Array.isArray(cards) ? cards.length : 0), 0);
+    if (backViewers !== viewers || backEntries !== entries) {
+      await kv.del(tmp);
+      throw new Error(`Moving collection ${c} failed its check (${backViewers} of ${viewers} viewers, ${backEntries} of ${entries} entries); nothing was changed.`);
+    }
+    await kv.rename(tmp, collKey(c));
+  }
+  await kv.rename(oldKey(c), `${oldKey(c)}:old`);
+  await kv.hset(MIGRATION_LOG, { [c]: { viewers, entries, at: Date.now() } });
 }
 
 /**
- * Writes a collection. When the collection's copies are being tracked (lib/serials.ts) the write is followed by a ledger sync, so
- * every route that changes a collection keeps card serials correct without knowing about them. `ctx` says where new copies came
- * from, or which copies a trade / upgrade moved, so their identity is kept.
+ * Moves a season from the old string to the hash on its first use, and does nothing after: one EXISTS per instance per season. The move
+ * runs under the season's lock, so two instances starting together move it once. Every reader and writer below calls it first;
+ * `withCollectionLock` calls it before taking the lock (the lock is not reentrant).
+ */
+export async function ensureMigrated(c: string): Promise<void> {
+  const memo = `${(await currentSandboxId()) ?? ''}|${c}`;
+  if (migrated.has(memo)) return;
+  if (!(await kv.exists(collKey(c)))) {
+    await withLock(oldKey(c), async () => {
+      if (!(await kv.exists(collKey(c)))) await migrateCollection(c);
+    });
+  }
+  migrated.add(memo);
+}
+
+/** Every viewer's cards for one season: `HGETALL`. For the readers that need the whole season (leaderboard, search, admin lists). */
+export async function getCollection(collectionName: string): Promise<Record<string, number[]>> {
+  await ensureMigrated(collectionName);
+  return (await kv.hgetall<Record<string, number[]>>(collKey(collectionName))) ?? {};
+}
+
+/** One viewer's cards (`login` lowercase): `HGET`. Use it instead of `getCollection` when only one viewer matters. */
+export async function getUserCards(collectionName: string, login: string): Promise<number[]> {
+  await ensureMigrated(collectionName);
+  return (await kv.hget<number[]>(collKey(collectionName), login)) ?? [];
+}
+
+const sameList = (a: number[], b: number[]) => a.length === b.length && a.every((e, i) => e === b[i]);
+
+/** Writes the viewers that differ between `before` and `after`: an emptied viewer loses its field, everyone else is HSET. Call under the lock. */
+async function writeViewers(c: string, before: Record<string, number[]>, after: Record<string, number[]>): Promise<void> {
+  const sets: Record<string, number[]> = {};
+  const dels: string[] = [];
+  for (const login of new Set([...Object.keys(before), ...Object.keys(after)])) {
+    const was = before[login] ?? [];
+    const now = after[login] ?? [];
+    if (sameList(was, now)) continue;
+    if (now.length > 0) sets[login] = now; else dels.push(login);
+  }
+  // Writes first, removals second: a failure in between can only leave a card in two places (the trade audit shows it), never lose one.
+  await hsetChunked(collKey(c), sets);
+  await hdelChunked(collKey(c), dels);
+}
+
+export interface CollectionUpdate<T> {
+  /** What `updateCollection` returns to its caller. */
+  result: T;
+  /** The new list of each viewer that changes, by login (an empty list removes the viewer). Leave it out to write nothing (a refusal). */
+  cards?: Record<string, number[]>;
+  /** Serial sync context: where new copies came from, or which copies moved. */
+  ctx?: SyncContext;
+}
+
+/** Everyone a serial context names (escrow is not a viewer): each must have been loaded, or the ledger would be reconciled against an empty list. */
+function ctxLogins(ctx: SyncContext | undefined): string[] {
+  if (!ctx) return [];
+  const names: string[] = [];
+  for (const m of ctx.moves ?? []) names.push(m.from, m.to);
+  if (ctx.retire) names.push(ctx.retire.owner);
+  if (ctx.upgrade) names.push(ctx.upgrade.user);
+  if (ctx.restore) names.push(ctx.restore.owner);
+  if (ctx.restoreRetired) names.push(ctx.restoreRetired);
+  return names.filter(n => n && !n.startsWith(ESCROW_PREFIX));
+}
+
+/**
+ * Reads only `logins` (HMGET), hands `fn` a record holding just them (a viewer with no cards is `[]`), then writes only the viewers
+ * that changed and runs the serial sync for those viewers alone. `fn` returns what the caller gets (`result`) plus `cards` to write and
+ * the sync `ctx`; with no `cards` nothing is written. Call it inside `withCollectionLock`: a pull, trade or upgrade also does its own
+ * ledger reads and other writes in that lock, exactly as before.
+ */
+export async function updateCollection<T>(
+  collectionName: string,
+  logins: string[],
+  fn: (cards: Record<string, number[]>) => CollectionUpdate<T> | Promise<CollectionUpdate<T>>,
+): Promise<T> {
+  await ensureMigrated(collectionName);
+  const names = [...new Set(logins)];
+  const got = names.length > 0 ? await kv.hmget<Record<string, number[] | null>>(collKey(collectionName), ...names) : null;
+  const before: Record<string, number[]> = {};
+  for (const n of names) before[n] = got?.[n] ?? [];
+  const out = await fn(Object.fromEntries(names.map(n => [n, [...before[n]]])));
+  if (!out.cards) return out.result;
+  for (const n of Object.keys(out.cards)) if (!names.includes(n)) throw new Error(`updateCollection: ${n} was not among the viewers loaded.`);
+  for (const n of ctxLogins(out.ctx)) if (!names.includes(n)) throw new Error(`updateCollection: the serial context names ${n}, who was not loaded.`);
+  const after: Record<string, number[]> = {};
+  for (const n of names) after[n] = out.cards[n] ?? before[n];
+  await writeViewers(collectionName, before, after);
+  await syncAfterSave(collectionName, before, after, out.ctx);
+  return out.result;
+}
+
+/**
+ * Writes a whole collection (sandbox tools, undo, the legacy import, the admin full replace): the hash is diffed against `data`, changed
+ * viewers are written and missing ones removed. Call under `withCollectionLock`. When the collection's copies are being tracked
+ * (lib/serials.ts) the write is followed by a ledger sync, so every route that changes a collection keeps card serials correct without
+ * knowing about them. `ctx` says where new copies came from, or which copies a trade / upgrade moved, so their identity is kept.
  */
 export async function saveCollection(collectionName: string, data: Record<string, number[]>, ctx?: SyncContext): Promise<void> {
-  const before = (await isTracking(collectionName)) ? await getCollection(collectionName) : null;
-  await kv.set(`tcg_${collectionName}`, data);
-  if (before) await syncAfterSave(collectionName, before, data, ctx);
+  const before = await getCollection(collectionName);
+  await writeViewers(collectionName, before, data);
+  await syncAfterSave(collectionName, before, data, ctx);
 }
 
 /**
- * Runs `fn` while holding a short per-collection lock. The whole collection is one JSON blob, so any
- * read-modify-write (pull, grant, remove, upgrade) must go through this or concurrent serverless
- * invocations overwrite each other's changes.
+ * Runs `fn` while holding a short per-collection lock. Any read-modify-write of a season's cards (pull, grant, remove, upgrade) must
+ * go through this or concurrent serverless invocations overwrite each other's changes. A season still in the old layout is moved first.
  */
 export async function withCollectionLock<T>(collectionName: string, fn: () => Promise<T>): Promise<T> {
-  return withLock(`tcg_${collectionName}`, fn);
+  await ensureMigrated(collectionName);
+  return withLock(oldKey(collectionName), fn);
+}
+
+/**
+ * The account move: puts all of `from`'s cards after `to`'s in one season and drops `from`. It writes the collection only, with no serial
+ * sync (the caller renames the ledger owner, so no print is retired or re-minted). Call under the lock. One HSET sets both fields, so a
+ * crash before the HDEL leaves `from` with an empty list (a resumed move then finds nothing to add twice). True when cards moved.
+ */
+export async function moveCollectionCards(collectionName: string, from: string, to: string): Promise<boolean> {
+  await ensureMigrated(collectionName);
+  const key = collKey(collectionName);
+  const mine = (await kv.hget<number[]>(key, from)) ?? [];
+  if (mine.length === 0) { await kv.hdel(key, from); return false; }
+  const theirs = (await kv.hget<number[]>(key, to)) ?? [];
+  await kv.hset(key, { [to]: [...theirs, ...mine], [from]: [] });
+  await kv.hdel(key, from);
+  return true;
+}
+
+/** Seasons moved to the hash layout, newest first, and whether the old string copy is still there (Data health). */
+export async function listCollectionMigrations(): Promise<CollectionMigration[]> {
+  const log = (await kv.hgetall<Record<string, { viewers: number; entries: number; at: number }>>(MIGRATION_LOG)) ?? {};
+  const rows = await Promise.all(Object.entries(log).map(async ([collection, m]) => ({
+    collection, viewers: m.viewers, entries: m.entries, at: m.at, oldCopy: !!(await kv.exists(`${oldKey(collection)}:old`)),
+  })));
+  return rows.sort((a, b) => b.at - a.at);
+}
+
+/** Deletes the old string copies kept for rollback, for seasons moved more than OLD_COPY_DAYS ago. Returns how many were deleted. */
+export async function deleteOldCollectionCopies(): Promise<number> {
+  const cutoff = Date.now() - OLD_COPY_DAYS * 86_400_000;
+  let n = 0;
+  for (const m of await listCollectionMigrations()) {
+    if (m.oldCopy && m.at <= cutoff) { await kv.del(`${oldKey(m.collection)}:old`); n++; }
+  }
+  return n;
 }
 
 // Compare-and-delete in one step: a holder whose lock expired must not delete the lock another request now owns.
@@ -360,43 +542,39 @@ export async function withLock<T>(name: string, fn: () => Promise<T>): Promise<T
 /** Appends one entry (card + variant, see lib/variants.ts) to a user's collection. Returns their new array. */
 export async function addCollectionEntry(collectionName: string, username: string, entry: number, origin: Origin = 'other'): Promise<number[]> {
   const lower = username.toLowerCase();
-  return withCollectionLock(collectionName, async () => {
-    const data = await getCollection(collectionName);
-    data[lower] = [...(data[lower] ?? []), entry];
-    await saveCollection(collectionName, data, { origin });
-    return data[lower];
-  });
+  return withCollectionLock(collectionName, () => updateCollection(collectionName, [lower], cards => {
+    const owned = [...cards[lower], entry];
+    return { result: owned, cards: { [lower]: owned }, ctx: { origin } };
+  }));
 }
 
 /** Like addCollectionEntry, and also says which serial number, copy id and unique number the new copy got (nulls before the collection is numbered). */
 export async function addCollectionEntryWithSerial(collectionName: string, username: string, entry: number, origin: Origin = 'other'): Promise<{ owned: number[]; serial: number | null; copyId: string | null; uid: number | null }> {
   const lower = username.toLowerCase();
   return withCollectionLock(collectionName, async () => {
-    const data = await getCollection(collectionName);
-    data[lower] = [...(data[lower] ?? []), entry];
-    await saveCollection(collectionName, data, { origin });
-    return { owned: data[lower], ...(await lastCopy(collectionName, entry)) };
+    const owned = await updateCollection(collectionName, [lower], cards => {
+      const next = [...cards[lower], entry];
+      return { result: next, cards: { [lower]: next }, ctx: { origin } };
+    });
+    return { owned, ...(await lastCopy(collectionName, entry)) };
   });
 }
 
 export async function deleteCollection(collectionName: string): Promise<void> {
   return withCollectionLock(collectionName, async () => {
     const users = Object.keys(await getCollection(collectionName).catch(() => ({} as Record<string, number[]>)));
-    await kv.del(`tcg_${collectionName}`);
+    await kv.del(`coll:${collectionName}`, `tcg_${collectionName}`, `tcg_${collectionName}:old`);
     await dropLedger(collectionName, users);
+    await kv.hdel(MIGRATION_LOG, collectionName);
   });
 }
 
 /** Removes a user's entry from one collection. Returns true if there was anything to remove. */
 export async function removeUserFromCollection(collectionName: string, username: string): Promise<boolean> {
   const lower = username.toLowerCase();
-  return withCollectionLock(collectionName, async () => {
-    const data = await getCollection(collectionName);
-    if (!(lower in data)) return false;
-    delete data[lower];
-    await saveCollection(collectionName, data);
-    return true;
-  });
+  return withCollectionLock(collectionName, () => updateCollection(collectionName, [lower], cards => (
+    cards[lower].length === 0 ? { result: false } : { result: true, cards: { [lower]: [] } }
+  )));
 }
 
 // ── Seed ──────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { kv } from './db';
-import { getActiveSeason, getCollection, getPackCards, getPacksForSeason, getSeason, listAllPacks, listSeasons, saveCollection, withCollectionLock, withLock } from './kv';
+import { getActiveSeason, getPackCards, getPacksForSeason, getSeason, listAllPacks, listSeasons, updateCollection, withCollectionLock, withLock } from './kv';
 import { ACHIEVEMENT_KINDS, getCustomGoals } from './achievement-settings';
 import {
   consumeBuffPull, describeBuffDef, extraPackCreditsLeft, normalizeBuffDef, applyBuffToList, totalExtraPullsFromBuffs, rarityBoostFactor,
@@ -380,30 +380,8 @@ export async function useTrainerCard(
   if (!buffDef) return { ok: false, status: 400, error: 'This card has no valid buff.' };
 
   return withCollectionLock(season.collectionName, async (): Promise<UseTrainerResult> => {
-    const coll = await getCollection(season.collectionName);
-    const owned = coll[u] ?? [];
-    const fromEntry = encodeEntry(cardNumber, 'regular');
-    const remaining = removeEntries(owned, fromEntry, 1);
-    if (!remaining) {
-      return { ok: false, status: 400, error: `You do not hold a Regular edition of ${trainerCard.name}.` };
-    }
-
-    let spendIds: string[] | undefined;
     let retiredUid: number | undefined;
     let retiredCopyId: string | undefined;
-
-    if (await isTracking(season.collectionName)) {
-      const favs = await favouriteIdsOf(season.collectionName, u);
-      const r = await spendablePrints(season.collectionName, u, fromEntry, 1, undefined, favs, 'spend');
-      if (!r.ok) return { ok: false, status: 400, code: 'favourite', error: r.text };
-      spendIds = r.ids ?? undefined;
-      if (spendIds?.[0]) {
-        retiredCopyId = spendIds[0];
-        const copy = await getCopy(season.collectionName, spendIds[0]);
-        if (copy?.uid) retiredUid = copy.uid;
-      }
-    }
-
     const now = Date.now();
     const stream = await currentBuffStreamKey().catch(() => undefined);
     const buffOpts = { source: `card:${cardNumber}`, seasonId: season.id, streamKey: stream, now };
@@ -414,14 +392,38 @@ export async function useTrainerCard(
       : r.reason === 'mixitup_failed' ? { ok: false, status: 502, error: 'Mix It Up did not answer, so the buff was not applied.' }
       : { ok: false, status: 400, error: 'Could not apply buff.' };
 
-    // Check the buff can be applied first, then take the card, then apply it: a failed save then leaves no buff behind.
-    const check = await applyBuff(u, buffDef.id, { ...buffOpts, dryRun: true });
-    if (!check.ok) return refusal(check);
+    // Take the card (a refusal comes back as the result and writes nothing), then apply the buff.
+    const refused = await updateCollection<UseTrainerResult | null>(season.collectionName, [u], async cards => {
+      const fromEntry = encodeEntry(cardNumber, 'regular');
+      const remaining = removeEntries(cards[u], fromEntry, 1);
+      if (!remaining) {
+        return { result: { ok: false, status: 400, error: `You do not hold a Regular edition of ${trainerCard.name}.` } };
+      }
 
-    coll[u] = remaining;
-    await saveCollection(season.collectionName, coll, {
-      retire: spendIds ? { owner: u, ids: spendIds, who: u, note: 'trainer card used' } : undefined,
+      let spendIds: string[] | undefined;
+      if (await isTracking(season.collectionName)) {
+        const favs = await favouriteIdsOf(season.collectionName, u);
+        const r = await spendablePrints(season.collectionName, u, fromEntry, 1, undefined, favs, 'spend');
+        if (!r.ok) return { result: { ok: false, status: 400, code: 'favourite', error: r.text } };
+        spendIds = r.ids ?? undefined;
+        if (spendIds?.[0]) {
+          retiredCopyId = spendIds[0];
+          const copy = await getCopy(season.collectionName, spendIds[0]);
+          if (copy?.uid) retiredUid = copy.uid;
+        }
+      }
+
+      // Check the buff can be applied first, then take the card, then apply it: a failed save then leaves no buff behind.
+      const check = await applyBuff(u, buffDef.id, { ...buffOpts, dryRun: true });
+      if (!check.ok) return { result: refusal(check) };
+
+      return {
+        result: null,
+        cards: { [u]: remaining },
+        ctx: { retire: spendIds ? { owner: u, ids: spendIds, who: u, note: 'trainer card used' } : undefined },
+      };
     });
+    if (refused) return refused;
 
     const buffRes = await applyBuff(u, buffDef.id, buffOpts);
     if (!buffRes.ok) {

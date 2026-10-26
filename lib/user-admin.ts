@@ -1,6 +1,6 @@
 import { getSelfHidden } from './user-settings-store';
 import { kv, requestCached } from './db';
-import { getCollection, getUserProfile, listSeasons, patchUserProfile, saveCollection, saveUserProfile, withCollectionLock, withLock, deleteUserProfile } from './kv';
+import { getCollection, getUserProfile, listSeasons, patchUserProfile, saveUserProfile, updateCollection, withCollectionLock, withLock, deleteUserProfile } from './kv';
 import { cleanLogin } from './staff-core';
 import { recordAudit } from './audit';
 import { currentStaffLogin } from './staff-actor';
@@ -197,11 +197,13 @@ export async function restoreUserSnapshot(username: string, id: string): Promise
   let cards = 0;
   for (const c of snap.collections) {
     await withCollectionLock(c.collectionName, async () => {
-      const data = await getCollection(c.collectionName);
-      data[name] = [...c.entries];
       const tracking = await isTracking(c.collectionName);
       const exact = tracking && c.prints && c.prints.length === c.entries.length ? c.prints : undefined;
-      await saveCollection(c.collectionName, data, exact ? { restore: { owner: name, ids: exact } } : tracking ? { restoreRetired: name } : undefined);
+      await updateCollection(c.collectionName, [name], () => ({
+        result: undefined,
+        cards: { [name]: [...c.entries] },
+        ctx: exact ? { restore: { owner: name, ids: exact } } : tracking ? { restoreRetired: name } : undefined,
+      }));
     });
     cards += c.entries.length;
   }
@@ -228,15 +230,12 @@ export async function mergeUsers(fromRaw: string, intoRaw: string): Promise<{ ok
   await takeUserSnapshot(into, `Before merging ${from} into it`);
   let moved = 0;
   for (const s of await listSeasons()) {
-    await withCollectionLock(s.collectionName, async () => {
-      const data = await getCollection(s.collectionName);
-      const mine = data[from];
-      if (!mine || mine.length === 0) return;
-      data[into] = [...(data[into] ?? []), ...mine];
-      delete data[from];
+    await withCollectionLock(s.collectionName, () => updateCollection(s.collectionName, [from, into], cards => {
+      const mine = cards[from];
+      if (mine.length === 0) return { result: undefined };
       moved += mine.length;
-      await saveCollection(s.collectionName, data);
-    });
+      return { result: undefined, cards: { [into]: [...cards[into], ...mine], [from]: [] } };
+    }));
   }
   const [fromProfile, intoProfile] = await Promise.all([getUserProfile(from), getUserProfile(into)]);
   const base = intoProfile ?? { username: into, displayName: into, createdAt: fromProfile?.createdAt ?? Date.now() };

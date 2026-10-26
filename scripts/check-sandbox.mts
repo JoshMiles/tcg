@@ -26,7 +26,8 @@ const before = await snapshot(prodKeys);
 // Create a sandbox from production including viewer collections: it starts as an exact copy...
 const box = await sbx.createSandbox({ name: 'Check run', source: 'collections' });
 ok(/^check-run-[a-z0-9]{6}$/.test(box.id), 'id is the readable slug plus a random suffix');
-ok(JSON.stringify(await prodKv.get(`sbx:${box.id}:tcg_${coll}`)) === JSON.stringify({ realviewer: [1, 2, 3] }), 'collections copied into the namespace');
+ok(JSON.stringify(await prodKv.hgetall(`sbx:${box.id}:coll:${coll}`)) === JSON.stringify({ realviewer: [1, 2, 3] }), 'collections copied into the namespace as a hash (production still had the old string)');
+ok(await prodKv.exists(`coll:${coll}`) === 0, 'the copy did not migrate production');
 ok((await prodKv.get<string[]>(`sbx:${box.id}:seasons:list`))?.length === 1, 'seasons copied');
 
 // ...and everything done inside it stays inside it.
@@ -127,10 +128,10 @@ ok(idRe.test(sbx.makeId('A very long sandbox name indeed', [])) && idRe.test(sbx
 
 // Clearing viewer data keeps the setup; reset restores production's copy; delete removes everything.
 await sbx.resetTestData(box.id);
-ok((await prodKv.get(`sbx:${box.id}:tcg_${coll}`)) === null, 'test data cleared');
+ok((await prodKv.exists(`sbx:${box.id}:coll:${coll}`)) === 0 && (await prodKv.get(`sbx:${box.id}:tcg_${coll}`)) === null, 'test data cleared');
 ok((await prodKv.get(`sbx:${box.id}:seasons:list`)) !== null, 'setup kept');
 await sbx.resetSandbox(box.id);
-ok(JSON.stringify(await prodKv.get(`sbx:${box.id}:tcg_${coll}`)) === JSON.stringify({ realviewer: [1, 2, 3] }), 'reset restores the copy');
+ok(JSON.stringify(await prodKv.hgetall(`sbx:${box.id}:coll:${coll}`)) === JSON.stringify({ realviewer: [1, 2, 3] }), 'reset restores the copy');
 await sbx.deleteSandbox(box.id);
 ok((await sbx.listSandboxes()).length === 0, 'deleted from the registry');
 ok((await prodKv.scan(0, { match: `sbx:${box.id}:*`, count: 100 }) as [string, string[]])[1].length === 0, 'namespace wiped');
@@ -153,8 +154,8 @@ try {
 
   // Everything the app writes lands under sbx:preview:.
   await kvLib.addCollectionEntry(coll, 'previewer', 9);
-  ok(JSON.stringify(await prodKv.get(`sbx:preview:tcg_${coll}`)).includes('previewer'), 'preview: a pull is written under sbx:preview:');
-  ok(!JSON.stringify(await prodKv.get(`tcg_${coll}`)).includes('previewer'), 'preview: the production collection is untouched');
+  ok(JSON.stringify(await prodKv.hgetall(`sbx:preview:coll:${coll}`)).includes('previewer'), 'preview: a pull is written under sbx:preview:');
+  ok(!JSON.stringify(await prodKv.get(`tcg_${coll}`)).includes('previewer') && (await prodKv.exists(`coll:${coll}`)) === 0, 'preview: the production collection is untouched, and not migrated');
   await act.recordActivity({ type: 'grant', source: 'admin', cardNumber: 9, username: 'previewer' });
   ok((await snapshot(prodKeys2)) === before2, 'PRODUCTION UNCHANGED after preview writes');
 
@@ -181,7 +182,7 @@ try {
   // Seeding copies the live setup in (read production, write the namespace) and wiping clears only the namespace.
   await sbx.seedPreviewFromProduction(true);
   ok(((await prodKv.get<string[]>('sbx:preview:seasons:list')) ?? []).length === 1, 'preview: setup is copied into the namespace');
-  ok(JSON.stringify(await prodKv.get(`sbx:preview:tcg_${coll}`)) === JSON.stringify({ realviewer: [1, 2, 3] }), 'preview: collections can be copied in');
+  ok(JSON.stringify(await prodKv.hgetall(`sbx:preview:coll:${coll}`)) === JSON.stringify({ realviewer: [1, 2, 3] }), 'preview: collections can be copied in');
   ok((await sbx.countKeys('preview')) > 0, 'preview: the namespace is counted');
   await sbx.wipeKeys('preview');
   ok((await sbx.countKeys('preview')) === 0, 'preview: wipe empties the namespace');

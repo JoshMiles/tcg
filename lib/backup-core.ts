@@ -36,8 +36,11 @@ export const DENY_PREFIXES = [
 /** Per-viewer restore points: `user:<name>:snap:<id>` and the `user:<name>:snaps` index. */
 const SNAPSHOT_KEY = /^user:[^:]+:snaps?(:|$)/;
 
+/** The old collection string kept after the move to hashes (`tcg_<name>:old`) and a hash being built (`coll:<name>:new`): copies, not data. */
+const COLLECTION_SPARE = /^(tcg_.+:old|coll:.+:new)$/;
+
 export function isBackedUp(key: string): boolean {
-  if (DENY_PREFIXES.some(p => key.startsWith(p))) return false;
+  if (DENY_PREFIXES.some(p => key.startsWith(p)) || COLLECTION_SPARE.test(key)) return false;
   return !SNAPSHOT_KEY.test(key);
 }
 
