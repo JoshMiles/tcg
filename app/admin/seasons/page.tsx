@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
@@ -20,6 +21,7 @@ export const instant = false;
 export const metadata = { title: 'Seasons · Admin', robots: { index: false } };
 
 export default async function SeasonsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  await staffPage('admin');
   const { error } = await searchParams;
   const seasons = await listSeasons();
   // Drafts first, then the active season, then newest.

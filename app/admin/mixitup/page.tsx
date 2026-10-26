@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { PageTabs, pickTab, type PageTab } from '../components/PageTabs';
 import { PageHeader } from '../components/ui';
@@ -25,6 +26,7 @@ const TABS: (PageTab & { hint: string })[] = [
 ];
 
 export default async function MixItUpPage({ searchParams }: { searchParams: Promise<{ tab?: string; saved?: string; error?: string; note?: string }> }) {
+  await staffPage('admin');
   const { tab: tabParam, saved, error, note } = await searchParams;
   const tab = pickTab(TABS, tabParam);
   return (

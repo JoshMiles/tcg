@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { Icon } from '@/app/components/Icon';
@@ -17,6 +18,7 @@ export const metadata = { title: 'Assets · Admin', robots: { index: false } };
 export const maxDuration = 60; // the Fix action re-encodes a GIF per request (up to ~15s)
 
 export default async function AssetsPage({ searchParams }: { searchParams: Promise<{ tab?: string; issues?: string }> }) {
+  await staffPage('admin');
   const sp = await searchParams;
   // Same-origin HEAD requests (to read the size of bundled files) need an absolute URL.
   const h = await headers();

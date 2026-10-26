@@ -1,6 +1,7 @@
 'use server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { getActiveSeason, getCollection, getPackCards, getPacksForSeason, getSeason, withCollectionLock } from '@/lib/kv';
 import { backfillSerials, loadSerialIndex } from '@/lib/serials';
 import { getScoringSettings } from '@/lib/scoring';
@@ -34,6 +35,8 @@ export async function backfillSerialsAction(seasonId: string): Promise<void> {
   await withCollectionLock(season.collectionName, async () => {
     await backfillSerials(season.collectionName, await getCollection(season.collectionName));
   });
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin/serials');
   redirect('/admin/settings?tab=viewers&saved=serials');
 }
 
@@ -42,6 +45,7 @@ export async function seedPreviewAction(formData: FormData): Promise<void> {
   await requireAdmin();
   if (!isPreview()) redirect('/admin/settings?tab=environment');
   await seedPreviewFromProduction(formData.get('withCollections') === 'on');
+  revalidatePath('/admin/settings');
   redirect('/admin/settings?tab=environment&saved=preview-seeded');
 }
 
@@ -50,6 +54,7 @@ export async function wipePreviewAction(): Promise<void> {
   await requireAdmin();
   if (!isPreview()) redirect('/admin/settings?tab=environment');
   await wipeKeys(PREVIEW_ID);
+  revalidatePath('/admin/settings');
   redirect('/admin/settings?tab=environment&saved=preview-wiped');
 }
 
@@ -63,5 +68,6 @@ export async function backupNowAction(): Promise<void> {
     await reportBackup({ error: e instanceof Error ? e.message : 'Backup failed.' });
     target = `/admin/settings?tab=environment&backupError=${encodeURIComponent(e instanceof Error ? e.message : 'Backup failed.')}`;
   }
+  revalidatePath('/admin/settings');
   redirect(target);
 }

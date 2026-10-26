@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { getActiveSeasonWithPacks, getPackCards, getPacksForSeason, listSeasons } from '@/lib/kv';
 import { seedSeason1 } from './actions/seasons';
 import { OverlayStatus } from './components/OverlayStatus';
-import { getStaff } from '@/lib/staff-guard';
+import { staffPage } from '@/lib/staff-guard';
 import { loginForLayout } from '@/lib/dashboard';
 import { getDashboardLayout, getDashboardPresets, loadDashboardData } from '@/lib/dashboard-data';
 import { DashboardControls } from './dashboard/DashboardControls';
@@ -22,6 +22,7 @@ export const instant = false;
 export const metadata = { title: 'Dashboard · Admin', robots: { index: false } };
 
 export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ gift?: string; season?: string; range?: string }> }) {
+  const staff = await staffPage('admin');
   const { gift, season: seasonParam, range: rangeParam } = await searchParams; // /admin?gift=username prefills the quick-actions viewer
   const result = await getActiveSeasonWithPacks();
 
@@ -66,7 +67,6 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
     ? await Promise.all((await getPacksForSeason(chosen)).filter(p => p.status === 'published').map(async pack => ({ pack, cards: await getPackCards(pack.id) })))
     : result.packs;
   const range = rangeParam === '24h' || rangeParam === '7d' ? rangeParam : 'season';
-  const staff = await getStaff();
   const layout = await getDashboardLayout(loginForLayout(staff));
   const presets = (await getDashboardPresets()).map(p => ({ name: p.name, by: p.by }));
   const needs = new Set<WidgetType>(layout.widgets.map(w => w.type));

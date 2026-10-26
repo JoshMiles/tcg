@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
@@ -35,6 +36,7 @@ const field = 'input';
 type SP = { done?: string; err?: string; season?: string; card?: string; v?: string; variant?: string; holder?: string; origin?: string; q?: string; page?: string; print?: string };
 
 export default async function SerialsPage({ searchParams }: { searchParams: Promise<SP> }) {
+  await staffPage('admin');
   const sp = await searchParams;
   const seasons = (await listSeasons()).filter(s => s.status !== 'draft');
   const season = seasons.find(s => s.id === sp.season) ?? (await getActiveSeason()) ?? seasons[0];

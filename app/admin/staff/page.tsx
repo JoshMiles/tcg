@@ -1,5 +1,5 @@
 import { Icon } from '@/app/components/Icon';
-import { getStaff } from '@/lib/staff-guard';
+import { staffPage } from '@/lib/staff-guard';
 import { getStaffLog, listStaff, listSuperAdmins } from '@/lib/staff';
 import { ROLE_LABELS } from '@/lib/staff-core';
 import { isPasswordLoginEnabled } from '@/lib/admin-token';
@@ -20,7 +20,7 @@ const ago = (t?: number) => {
 };
 
 export default async function StaffPage() {
-  const me = (await getStaff())!; // the admin layout has already turned anyone else away
+  const me = await staffPage('admin');
   const [staff, log] = await Promise.all([listStaff(), getStaffLog(25)]);
   const supers = listSuperAdmins();
   const passwordOn = isPasswordLoginEnabled();

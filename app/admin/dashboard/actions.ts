@@ -18,6 +18,7 @@ export async function saveDashboardLayoutAction(layout: DashboardLayout): Promis
 export async function saveDashboardNotesAction(text: string): Promise<void> {
   await requireAdmin();
   await saveDashboardNotes(String(text ?? ''));
+  revalidatePath('/admin');
 }
 
 /** Stores the given layout as a named preset (replacing one with the same name). */
@@ -26,12 +27,14 @@ export async function saveDashboardPresetAction(name: string, layout: DashboardL
   const clean = String(name ?? '').trim().slice(0, 30);
   if (!clean) throw new Error('Give the preset a name.');
   await saveDashboardPreset(clean, sanitizeLayout(layout), who.via === 'twitch' ? who.login : who.displayName);
+  revalidatePath('/admin');
   return (await getDashboardPresets()).map(p => ({ name: p.name, by: p.by }));
 }
 
 export async function deleteDashboardPresetAction(name: string): Promise<{ name: string; by?: string }[]> {
   await requireAdmin();
   await deleteDashboardPreset(String(name));
+  revalidatePath('/admin');
   return (await getDashboardPresets()).map(p => ({ name: p.name, by: p.by }));
 }
 

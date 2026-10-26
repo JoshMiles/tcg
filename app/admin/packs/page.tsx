@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
@@ -26,6 +27,7 @@ export const metadata = { title: 'Packs · Admin', robots: { index: false } };
 type Status = 'live' | 'inactive' | 'draft' | 'archived';
 
 export default async function PacksPage() {
+  await staffPage('admin');
   const [packs, seasons, overrides] = await Promise.all([listAllPacks(), listSeasons(), getPackOverrides().catch((): Record<string, unknown> => ({}))]);
   // Drafts first (they're unfinished work), then newest first. `data-order` keeps this as the default sort.
   packs.sort((a, b) => Number(b.status === 'draft') - Number(a.status === 'draft') || b.createdAt - a.createdAt);

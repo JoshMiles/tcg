@@ -5,7 +5,7 @@ import { getActivity } from '@/lib/activity';
 import { plainText } from '@/lib/activity-view';
 import { listOpenTrades } from '@/lib/trades';
 import { getHiddenUsers } from '@/lib/user-admin';
-import { getStaff } from '@/lib/staff-guard';
+import { staffPage } from '@/lib/staff-guard';
 import { PageHeader, Panel, Tile } from '../admin/components/ui';
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
@@ -27,7 +27,7 @@ const LINKS: { href: string; icon: IconName; title: string; text: string }[] = [
 ];
 
 export default async function ModHomePage() {
-  const staff = await getStaff();
+  const staff = await staffPage('mod');
   const [{ events }, active, open, hidden] = await Promise.all([
     getActivity({ limit: 200 }), getActiveSeasonWithPacks(), listOpenTrades().catch(() => []), getHiddenUsers().catch(() => new Set<string>()),
   ]);

@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
@@ -26,6 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ packId: s
 
 /** The pack workspace (ROADMAP 20.2a). Old addresses still work: ?tab=settings and ?card=pack open the Pack settings view, ?tab=odds and ?tab=overview their views. */
 export default async function PackPage({ params, searchParams }: { params: Promise<{ packId: string }>; searchParams: Promise<{ tab?: string; view?: string; card?: string }> }) {
+  await staffPage('admin');
   const { packId } = await params;
   const { tab, view: viewParam, card } = await searchParams;
   if (tab) {

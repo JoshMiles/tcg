@@ -1,3 +1,4 @@
+import { staffPage } from '@/lib/staff-guard';
 import { redirect } from 'next/navigation';
 import { getSeason, listAllPacks, listSeasons, getPackCards } from '@/lib/kv';
 import { SeasonFlow, type PackOption } from './SeasonFlow';
@@ -10,6 +11,7 @@ export const instant = false;
 export const metadata = { title: 'New season · Admin', robots: { index: false } };
 
 export default async function NewSeasonPage({ searchParams }: { searchParams: Promise<{ draft?: string }> }) {
+  await staffPage('admin');
   const { draft } = await searchParams;
 
   const [allPacks, seasons] = await Promise.all([listAllPacks(), listSeasons()]);

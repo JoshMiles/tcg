@@ -56,4 +56,5 @@ export async function removeScheduledLookAction(id: string): Promise<OverlayActi
 export async function saveOverlayZonesAction(scope: string, zones: unknown): Promise<void> {
   await requireAdmin();
   await saveZones(scope, zones);
+  revalidatePath('/admin/overlay');
 }

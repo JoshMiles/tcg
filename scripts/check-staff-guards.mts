@@ -46,19 +46,22 @@ const ADMIN_GUARD =/\b(requireAdmin|requireStaff)\(|\bisAuthenticated\(|\bhasSta
 const VIEWER_GUARD = /\b(getSession|requireViewer|requireSession)\(/;
 
 // ---- 1. server actions in the admin area ----
-const actionFiles = files.filter(f => /^app\/admin\/.*actions\.ts$/.test(rel(f)) && /^['"]use server['"]/.test(readFileSync(f, 'utf8')));
-ok(actionFiles.length >= 10, `found the admin action files (${actionFiles.length})`);
+// Every 'use server' file under app/admin or app/mod, whatever it is called (actions/users.ts is one).
+const actionFiles = files.filter(f => /^app\/(admin|mod)\/.*\.ts$/.test(rel(f)) && /^['"]use server['"]/.test(readFileSync(f, 'utf8')));
+ok(actionFiles.length >= 25, `found the admin action files (${actionFiles.length})`);
 
 const modActions: string[] = [];
 let checked = 0;
 for (const f of actionFiles) {
-  const segs = segments(readFileSync(f, 'utf8'));
+  const src = readFileSync(f, 'utf8');
+  ok(!/^export (const|default|\{)/m.test(src), `${rel(f)}: exports something this audit cannot read (write "export async function")`);
+  const segs = segments(src);
   const helpers = guardHelpers(segs, ADMIN_GUARD);
   for (const s of segs.filter(s => s.exported)) {
     checked++;
     const guarded = ADMIN_GUARD.test(s.body) || helpers.filter(h => h !== s.name).some(h => new RegExp(`\\b${h}\\(`).test(s.body));
     ok(guarded, `${rel(f)}: exported action ${s.name}() never checks who is calling (call requireAdmin(), or requireStaff('mod') if mods may use it)`);
-    if (/requireStaff\(\s*['"]mod['"]\s*\)/.test(s.body)) modActions.push(s.name);
+    if (/requireStaff\(\s*(['"]mod['"])?\s*\)/.test(s.body)) modActions.push(s.name); // a bare requireStaff() defaults to mod
   }
 }
 ok(checked >= 60, `audited a realistic number of actions (${checked})`);

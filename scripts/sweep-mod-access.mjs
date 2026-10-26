@@ -8,7 +8,8 @@ import { BASE, loadPlaywright, loginAdminPassword, loginTwitch } from './lib/swe
 const PACK = 'pack-wheel', SEASON = 'season2';
 const ADMIN_PAGES = ['/admin', '/admin/activity', '/admin/seasons', '/admin/seasons/new', `/admin/seasons/${SEASON}`, '/admin/packs', '/admin/packs/new', `/admin/packs/${PACK}`,
   `/admin/packs/${PACK}/cards`, `/admin/packs/${PACK}/cards/w1`, '/admin/users', '/admin/users/alice', '/admin/staff', '/admin/trades', '/admin/serials', '/admin/overlay',
-  '/admin/assets', '/admin/settings', '/admin/settings?tab=environment', '/admin/sandbox'];
+  '/admin/assets', '/admin/settings', '/admin/settings?tab=environment', '/admin/sandbox',
+  '/admin/achievements', '/admin/buffs', '/admin/changelog', '/admin/faq', '/admin/feedback', '/admin/mixitup', '/admin/wiki', '/admin/webhooks'];
 // GET API routes and what they should answer a mod / a stranger. import-legacy is POST for a signed-in admin, so GET is 405.
 const ADMIN_API = [
   { path: '/api/admin/overlay-status', mod: [401, 403] },
@@ -52,7 +53,7 @@ if (!where.startsWith('/mod')) console.log(`warning: the mod login ended on ${wh
 await probe('mod', mod, { expectPages: false });
 // The /mod pages must work for the mod.
 const mp = await mod.newPage();
-for (const path of ['/mod', '/mod/activity', '/mod/users', '/mod/trades']) {
+for (const path of ['/mod', '/mod/activity', '/mod/users', '/mod/users/alice', '/mod/trades', '/mod/feedback', '/mod/testers', '/mod/changelog']) {
   const res = await mp.goto(BASE + path, { waitUntil: 'load', timeout: 90000 }).catch(() => null);
   report(res?.status() === 200 && new URL(mp.url()).pathname === path, `mod page ${path} -> ${res?.status()}`);
 }

@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import { currentAdminGen } from './admin-cookie';
 import { AUTH_COOKIE, adminCookieKey, isPasswordLoginEnabled, isValidAdminToken } from './admin-token';
@@ -84,6 +85,17 @@ export async function requireStaff(cap: Capability = 'mod'): Promise<StaffContex
   const s = await getStaff();
   if (!s || !roleCan(s.role, cap)) throw new Error('Not authorised.');
   await renewStaffCookie(s);
+  return s;
+}
+
+/**
+ * First line of every /admin and /mod page: re-reads the live staff list and sends anyone without this capability away (a mod to
+ * /mod, everyone else to the login page). The layouts check too, but they do not render again on in-panel navigation, so each
+ * page checks for itself. scripts/check-staff-guards.mts fails a page without it.
+ */
+export async function staffPage(cap: Capability): Promise<StaffContext> {
+  const s = await getStaff();
+  if (!s || !roleCan(s.role, cap)) redirect(s ? '/mod' : '/login?error=not-staff');
   return s;
 }
 
