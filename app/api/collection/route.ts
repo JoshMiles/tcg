@@ -37,8 +37,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const username = String(pull.username ?? '').toLowerCase();
-  const ticket = typeof pull.ticket === 'string' && username ? await claimDraw(pull.ticket, username) : null;
+  // Only the viewer and the ticket are read from a pull; anything else the caller sends is ignored.
+  const username = typeof pull.username === 'string' ? pull.username.toLowerCase() : '';
+  const ticketId = typeof pull.ticket === 'string' ? pull.ticket : '';
+  const ticket = ticketId && username ? await claimDraw(ticketId, username) : null;
   if (!ticket) return NextResponse.json({ ok: false, error: 'This pull is not recognised, or it was already saved.' }, { status: 401 });
   const name = ticket.collectionName;
   const entry = ticket.entry;
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
   {
     // A paid pull (Mix It Up) is claimed first, once, so a repeated save cannot add a second print on one payment.
     if (ticket.paid) {
-      paid = await claimPaidPull(String(pull.ticket), username);
+      paid = await claimPaidPull(ticketId, username);
       if (!paid) return NextResponse.json({ ok: false, error: 'This paid pull was already used or has expired.' }, { status: 409 });
     }
     before = await getCollection(name);
