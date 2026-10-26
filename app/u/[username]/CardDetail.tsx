@@ -10,6 +10,7 @@ import { engravedDate, flipBackFor } from '@/lib/flip-back';
 import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
 import { getRarity } from '@/lib/rarity';
+import { SITE_URL } from '@/lib/site';
 import { cardThumbUrl, stillFor } from '@/lib/card-art';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { holoClass, holoVars } from '@/lib/holo-core';
@@ -177,7 +178,7 @@ function PrintView({ card, edition, seasonId, ownerName, canUpgrade, tradeWith, 
       <div className="grid sm:grid-cols-[220px_1fr] gap-5">
         <div className="mx-auto w-full max-w-[220px]">
           {edition.at
-            ? <FlipCard compact back={flipBackFor({ n: edition.n, uid: edition.uid, total: edition.made, variant: v, name: card.name, at: edition.at, est: edition.est, bonus: edition.m, hex: rarity?.hex, holder: ownerName ? `@${ownerName}` : 'you', href }, card.back)}>{face}</FlipCard>
+            ? <FlipCard compact back={flipBackFor({ n: edition.n, uid: edition.uid, total: edition.made, variant: v, name: card.name, at: edition.at, est: edition.est, bonus: edition.m, hex: rarity?.hex, holder: ownerName ? `@${ownerName}` : 'you', href, qrUrl: `${SITE_URL}${href}` }, card.back)}>{face}</FlipCard>
             : face}
         </div>
         <div className="space-y-3 min-w-0">
