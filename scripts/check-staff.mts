@@ -10,6 +10,7 @@ delete process.env.SUPER_ADMIN_TWITCH_IDS;
 const ok = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAILED: ' + msg); };
 
 const core = await import('../lib/staff-core');
+const { prodKv } = await import('../lib/db');
 const tok = await import('../lib/staff-token');
 const adminToken = await import('../lib/admin-token');
 
@@ -129,13 +130,48 @@ ok((await staff.setStaffRole(SUPER, mod1, 'admin')).ok && (await staff.getStaffR
 ok((await staff.setStaffRole(SUPER, mod1, 'mod')).ok && (await staff.getStaffRecord(mod1))?.role === 'mod', 'and demote');
 ok(!(await staff.setStaffRole(SUPER, 'nobody_here', 'mod')).ok && !(await staff.removeStaff(SUPER, 'nobody_here')).ok, 'unknown people cannot be changed or removed');
 
-// First sign-in binds the account's Twitch ID, once.
+// First sign-in binds the account's Twitch ID, once. Sign-in times and names live apart from the record.
 await staff.touchStaffLogin(mod1, '4242', 'Mod One');
 const bound = await staff.getStaffRecord(mod1);
-ok(bound?.twitchId === '4242' && bound.displayName === 'Mod One' && !!bound.lastLogin, 'the first sign-in binds the Twitch ID and notes the time');
+ok(bound?.twitchId === '4242', 'the first sign-in binds the Twitch ID');
+const seen1 = (await staff.listStaff()).find(r => r.login === mod1);
+ok(seen1?.displayName === 'Mod One' && !!seen1.lastLogin && seen1.twitchId === '4242', 'and the list shows the name and last sign-in');
+ok(JSON.stringify(await prodKv.hget('staff:members', mod1)).includes('4242') === false, 'a sign-in does not write the staff record');
 await staff.touchStaffLogin(mod1, '9999', 'Impostor');
 ok((await staff.getStaffRecord(mod1))?.twitchId === '4242', 'a different account signing in as that name does not rebind it');
 ok(core.resolveRole({ login: mod1, twitchId: '9999' }, await staff.getStaffRecord(mod1)) === null && core.resolveRole({ login: mod1, twitchId: '4242' }, await staff.getStaffRecord(mod1)) === 'mod', 'so only the real account gets the role');
+
+// A sign-in can never undo a removal or a role change, whatever order the calls land in.
+{
+  const racer = `race_${unique}`;
+  await staff.addStaff(SUPER, racer, 'admin');
+  await staff.setStaffRole(SUPER, racer, 'mod');
+  await staff.touchStaffLogin(racer, '777', 'Racer');
+  ok((await staff.getStaffRecord(racer))?.role === 'mod', 'a sign-in after a demotion leaves the role alone');
+  await staff.removeStaff(SUPER, racer);
+  await staff.touchStaffLogin(racer, '777', 'Racer');
+  ok((await staff.getStaffRecord(racer)) === null && !(await staff.listStaff()).some(r => r.login === racer), 'a sign-in after a removal does not bring the person back');
+  // The sign-in read the record, then a removal landed, then its writes ran.
+  await staff.addStaff(SUPER, racer, 'mod');
+  const realFetch = globalThis.fetch;
+  let pending = true;
+  globalThis.fetch = async (...args: Parameters<typeof fetch>) => {
+    const res = await realFetch(...args);
+    if (pending && String(args[1]?.body).includes('"hget","staff:members","' + racer + '"')) { pending = false; globalThis.fetch = realFetch; await staff.removeStaff(SUPER, racer); }
+    return res;
+  };
+  await staff.touchStaffLogin(racer, '777', 'Racer');
+  globalThis.fetch = realFetch;
+  ok(!pending && (await staff.getStaffRecord(racer)) === null && (await staff.listStaff()).every(r => r.login !== racer), 'a removal that lands mid sign-in is not undone');
+  await staff.addStaff(SUPER, racer, 'mod');
+  ok((await staff.getStaffRecord(racer))?.twitchId === undefined, 're-adding a removed login starts unbound');
+  await staff.removeStaff(SUPER, racer);
+  // A record written before sign-ins were stored apart still reads as before.
+  await prodKv.hset('staff:members', { [racer]: { login: racer, role: 'mod', addedBy: 'x', addedAt: 1, twitchId: '555', displayName: 'Old', lastLogin: 123 } });
+  const old = (await staff.listStaff()).find(r => r.login === racer);
+  ok(old?.twitchId === '555' && old.displayName === 'Old' && old.lastLogin === 123 && (await staff.getStaffRecord(racer))?.twitchId === '555', 'an existing record keeps its Twitch ID, name and last sign-in');
+  await prodKv.hdel('staff:members', racer);
+}
 
 // Listing, log and removal.
 const list = await staff.listStaff();
