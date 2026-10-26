@@ -1,7 +1,7 @@
 /** The site's main links: the top bar (xl and up), the menu and the phone tab bar all read this one list. */
 export const LINKS = [
   { href: '/', label: 'Home', exact: true },
-  { href: '/collection', label: 'Collectors' },
+  { href: '/collection', label: 'Find collectors' },
   { href: '/leaderboard', label: 'Leaderboard' },
   { href: '/trade', label: 'Trade' },
   { href: '/stats', label: 'Season Stats' },
