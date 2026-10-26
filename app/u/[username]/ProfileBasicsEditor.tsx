@@ -1,5 +1,6 @@
 'use client';
-import { createContext, useContext, useState, useTransition, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
 import { AccentPicker } from '@/app/components/site/AccentPicker';
@@ -64,8 +65,9 @@ export function ProfileBasics({ bio, accent, pronouns, children }: { bio: string
 }
 
 /** Saved bio under the name, or the open editor. The edit control lives in the action row. */
-export function ProfileBioLine() {
+export function ProfileBioLine({ hideWhenClosed = false }: { hideWhenClosed?: boolean }) {
   const b = useBasics();
+  if (hideWhenClosed && !b.open) return null;
   if (b.open) {
     return (
       <form onSubmit={e => { e.preventDefault(); b.save(); }} className="card mt-3 max-w-xl space-y-3 rounded-2xl p-4">
@@ -98,12 +100,32 @@ export function ProfileBioLine() {
   );
 }
 
-/** Opens the inline editor. Render this in the action row, inside ProfileBasics. */
-export function ProfileEditButton() {
-  const { open, begin } = useBasics();
+/** The owner's "More" menu in the action row (Leaderboard, Edit profile, Settings). Render it inside ProfileBasics. */
+export function ProfileOwnerMenu({ leaderboardHref }: { leaderboardHref: string }) {
+  const { open: editing, begin } = useBasics();
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); root.current?.querySelector('button')?.focus(); } };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  const item = 'w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-gray-200 hover:bg-white/10 focus:bg-white/10 focus:outline-hidden';
   return (
-    <button type="button" onClick={() => { if (!open) begin(); }} aria-expanded={open} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
-      <Icon name="pencil" />Edit profile
-    </button>
+    <div ref={root} className="relative">
+      <button type="button" onClick={() => setOpen(o => !o)} aria-haspopup="menu" aria-expanded={open} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
+        <Icon name="settings" />More<Icon name="chevronDown" className="w-3 h-3 text-gray-400" />
+      </button>
+      {open && (
+        <div role="menu" aria-label="Profile" className="absolute right-0 z-30 mt-2 w-52 overflow-hidden rounded-xl border border-gray-700 bg-gray-900 shadow-2xl py-1">
+          <Link role="menuitem" href={leaderboardHref} onClick={() => setOpen(false)} className={item}><Icon name="trophy" className="text-gray-400" />Leaderboard</Link>
+          <button role="menuitem" type="button" onClick={() => { setOpen(false); if (!editing) begin(); }} className={item}><Icon name="pencil" className="text-gray-400" />Edit profile</button>
+          <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className={item}><Icon name="settings" className="text-gray-400" />Settings</Link>
+        </div>
+      )}
+    </div>
   );
 }
