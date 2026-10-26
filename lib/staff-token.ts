@@ -10,6 +10,9 @@ import type { StaffRole } from './staff-core';
 import { safeEqual, signingKey } from './signing';
 
 export const STAFF_COOKIE = 'tcg_staff';
+/** Set by the panel Log out: until the next deliberate "Log in with Twitch", the viewer session no longer re-issues the staff cookie. */
+export const STAFF_OUT_COOKIE = 'tcg_staff_out';
+export const STAFF_OUT_TTL_S = 12 * 60 * 60;
 export const STAFF_TTL_S = 60 * 60;
 /** Renew when less than this is left. */
 export const STAFF_RENEW_BELOW_S = 30 * 60;
