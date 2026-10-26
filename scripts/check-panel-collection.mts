@@ -29,6 +29,7 @@ await db.runInSandbox(box.id, async () => {
   await kvLib.saveCollection(season.collectionName, { alice: [entry], bob: [entry, entry] });
   await kvLib.saveCollection(draft.collectionName, { alice: [entry], bob: [entry] });
   await settings.saveUserSettings('bob', { privateProfile: true });
+  await kv.set('users:hidden', ['carol']); // hidden by an admin, with no private-profile setting of their own
 
   const get = async (username: string, token?: string) => {
     const res = await route.GET(new NextRequest('http://localhost/api/twitch/collection?username=' + username, { headers: token ? { authorization: 'Bearer ' + token } : {} }));
@@ -50,6 +51,11 @@ await db.runInSandbox(box.id, async () => {
   await kv.set('twitch_opaque:dev_mock_opaque', 'bob');
   const own = await get('bob', 'x');
   ok(own.body.collections.length === 1 && own.body.collections[0].ownedNumbers.length === 2, 'private profile with that viewer\'s token gets its cards');
+  await kvLib.saveCollection(season.collectionName, { alice: [entry], bob: [entry, entry], carol: [entry] });
+  const hiddenNone = await get('carol');
+  ok(hiddenNone.status === 200 && hiddenNone.body.collections.length === 0, 'an admin-hidden viewer gets no cards for another caller');
+  await kv.set('twitch_opaque:dev_mock_opaque', 'carol');
+  ok((await get('carol', 'x')).body.collections.length === 1, 'an admin-hidden viewer still gets their own cards');
   ok(!own.body.collections.some((c: { seasonId: string }) => c.seasonId === 'draft-x'), 'draft seasons never appear for the owner either');
 });
 console.log('ok: panel collection');

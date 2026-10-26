@@ -14,12 +14,17 @@ export interface PushDeviceInfo { id: string; ua: string; addedAt: number; lastO
 
 export interface PushPayload { title: string; body: string; url: string; tag: string; urgent?: boolean }
 
-/** https only (a push service), plus plain http on localhost outside production so the fake endpoint of the checks can be used. */
+/** The hosts browsers hand out push endpoints on: Chrome and Edge (Google), Firefox, Safari, and Windows notifications. */
+const PUSH_HOSTS = ['fcm.googleapis.com', 'android.googleapis.com', 'updates.push.services.mozilla.com', 'web.push.apple.com'];
+const PUSH_HOST_SUFFIXES = ['.push.services.mozilla.com', '.push.apple.com', '.notify.windows.com'];
+const knownPushHost = (h: string) => PUSH_HOSTS.includes(h) || PUSH_HOST_SUFFIXES.some(s => h.endsWith(s));
+
+/** https on a known push service, plus plain http on localhost outside production so the fake endpoint of the checks can be used. */
 export function validEndpoint(v: unknown, dev = process.env.NODE_ENV !== 'production'): v is string {
   if (typeof v !== 'string' || v.length > 600) return false;
   try {
     const u = new URL(v);
-    if (u.protocol === 'https:') return true;
+    if (u.protocol === 'https:') return knownPushHost(u.hostname);
     return dev && u.protocol === 'http:' && (u.hostname === 'localhost' || u.hostname === '127.0.0.1');
   } catch { return false; }
 }

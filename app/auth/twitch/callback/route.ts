@@ -5,6 +5,7 @@ import { profileFromCode, safeReturnTo } from '@/lib/twitch-oauth';
 import { saveUserProfile, getUserProfile } from '@/lib/kv';
 import { bindAccount } from '@/lib/account-bind';
 import { STAFF_COOKIE } from '@/lib/staff-token';
+import { ACCESS_COOKIE } from '@/lib/access-token';
 
 function fail(req: NextRequest, reason: string) {
   const res = NextResponse.redirect(new URL(`/auth/error?reason=${reason}`, req.url));
@@ -57,5 +58,7 @@ export async function GET(req: NextRequest) {
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
   // A staff cookie belongs to whoever was signed in before; a fresh Twitch sign-in must earn its own (via /auth/staff).
   res.cookies.delete(STAFF_COOKIE);
+  // Likewise the closed-site pass, which names the viewer it was issued to.
+  res.cookies.delete(ACCESS_COOKIE);
   return res;
 }

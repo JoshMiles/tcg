@@ -2,7 +2,7 @@ import { siteClosedResponse } from '@/lib/access';
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason } from '@/lib/kv';
 import { createTrade } from '@/lib/trades';
-import { requireViewer, respond } from '@/lib/trade-api';
+import { requireViewer, respond, serverError } from '@/lib/trade-api';
 import { captchaGate } from '@/lib/captcha-server';
 
 // Make an offer: direct (to one viewer) or a listing on the open board. The copies offered are taken into escrow immediately.
@@ -31,6 +31,6 @@ export async function POST(req: NextRequest) {
       note: typeof body.note === 'string' ? body.note : undefined,
     }));
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Could not make the offer' }, { status: 503 });
+    return serverError(e, 'trades', 'We could not make that offer just now. Please try again in a moment.');
   }
 }

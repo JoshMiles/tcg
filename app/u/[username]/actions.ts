@@ -1,6 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/session';
+import { siteClosedResponse } from '@/lib/access';
 import { getUserSettings, saveUserSettings } from '@/lib/user-settings-store';
 import { sanitizeProfileLayout, type ProfilePlacement } from '@/lib/profile-widgets';
 import { sanitizeUserSettings, type CollectionView } from '@/lib/user-settings';
@@ -10,10 +11,15 @@ import type { Pronouns } from '@/lib/pronouns';
 import { DEFAULT_BINDER, sanitizeBinder, type BinderConfig } from '@/lib/binder-config';
 import { useTrainerCard } from '@/lib/buffs';
 
+const CLOSED = 'The site is not open to you right now.';
+/** Server actions skip the middleware, so each one re-checks the closed site itself, like the account APIs. */
+const siteClosed = async () => !!(await siteClosedResponse());
+
 /** Saves the signed-in viewer's own Overview layout. The viewer comes from the session, never the arguments. */
 export async function saveProfileLayoutAction(layout: unknown): Promise<ProfilePlacement[]> {
   const session = await getSession();
   if (!session) throw new Error('Log in to edit your profile.');
+  if (await siteClosed()) throw new Error(CLOSED);
   const clean = sanitizeProfileLayout(layout);
   const current = await getUserSettings(session.username);
   await saveUserSettings(session.username, { ...current, profileLayout: clean });
@@ -24,6 +30,7 @@ export async function saveProfileLayoutAction(layout: unknown): Promise<ProfileP
 export async function resetProfileLayoutAction(): Promise<ProfilePlacement[]> {
   const session = await getSession();
   if (!session) throw new Error('Log in to edit your profile.');
+  if (await siteClosed()) throw new Error(CLOSED);
   const current = await getUserSettings(session.username);
   await saveUserSettings(session.username, { ...current, profileLayout: null });
   return sanitizeProfileLayout(null);
@@ -33,6 +40,7 @@ export async function resetProfileLayoutAction(): Promise<ProfilePlacement[]> {
 export async function saveBinderAction(config: unknown): Promise<BinderConfig> {
   const session = await getSession();
   if (!session) throw new Error('Log in to customise your binder.');
+  if (await siteClosed()) throw new Error(CLOSED);
   const clean = sanitizeBinder(config);
   const current = await getUserSettings(session.username);
   await saveUserSettings(session.username, { ...current, binder: clean });
@@ -43,6 +51,7 @@ export async function saveBinderAction(config: unknown): Promise<BinderConfig> {
 export async function saveProfileBasics(input: { bio: unknown; accent: unknown; pronouns?: unknown }): Promise<{ bio: string; accent: string; pronouns: Pronouns }> {
   const session = await getSession();
   if (!session) throw new Error('Log in to edit your profile.');
+  if (await siteClosed()) throw new Error(CLOSED);
   const current = await getUserSettings(session.username);
   const clean = sanitizeUserSettings({ ...current, bio: input?.bio, accent: input?.accent, pronouns: input?.pronouns === undefined ? current.pronouns : input.pronouns });
   await saveUserSettings(session.username, { ...current, bio: clean.bio, accent: clean.accent, pronouns: clean.pronouns });
@@ -55,6 +64,7 @@ export async function saveProfileBasics(input: { bio: unknown; accent: unknown; 
 export async function saveCollectionViewAction(view: unknown): Promise<CollectionView> {
   const session = await getSession();
   if (!session) throw new Error('Log in to change your profile.');
+  if (await siteClosed()) throw new Error(CLOSED);
   const current = await getUserSettings(session.username);
   const clean = sanitizeUserSettings({ ...current, collectionView: view }).collectionView;
   await saveUserSettings(session.username, { ...current, collectionView: clean });
@@ -66,6 +76,7 @@ export async function saveCollectionViewAction(view: unknown): Promise<Collectio
 export async function saveShowcaseAction(uids: unknown): Promise<{ ok: true; uids: number[] } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Log in to edit your showcase.' };
+  if (await siteClosed()) return { ok: false, error: CLOSED };
   if (!Array.isArray(uids)) return { ok: false, error: 'Pick up to 3 editions.' };
   const active = await getActiveSeasonWithPacks();
   if (!active) return { ok: false, error: 'There is no season running right now.' };
@@ -85,6 +96,7 @@ export async function saveShowcaseAction(uids: unknown): Promise<{ ok: true; uid
 export async function useTrainerCardAction(cardNumber: number, seasonId?: string): Promise<{ ok: boolean; error?: string; message?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Log in to use trainer cards.' };
+  if (await siteClosed()) return { ok: false, error: CLOSED };
   if (!Number.isInteger(cardNumber) || cardNumber <= 0) return { ok: false, error: 'Invalid card number.' };
   const res = await useTrainerCard(session.username, cardNumber, seasonId);
   if (!res.ok) {

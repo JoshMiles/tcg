@@ -4,6 +4,7 @@ import { getActiveSeason } from '@/lib/kv';
 import { getSession, isSameOrigin } from '@/lib/session';
 import { upgradeCard } from '@/lib/upgrade';
 import { captchaGate } from '@/lib/captcha-server';
+import { serverError } from '@/lib/trade-api';
 import { VARIANTS } from '@/lib/variants';
 import type { Variant } from '@/lib/types';
 
@@ -34,6 +35,6 @@ export async function POST(req: NextRequest) {
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
     return NextResponse.json(result);
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Upgrade failed' }, { status: 503 });
+    return serverError(e, 'account/upgrade', 'The upgrade did not go through just now. Please try again in a moment.');
   }
 }

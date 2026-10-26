@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -28,19 +29,21 @@ import { VARIANT_LABELS } from '@/lib/variants';
 import { InfoTip } from '@/app/components/InfoTip';
 import { SITE_URL } from '@/lib/site';
 
-async function load(seasonId: string, copyId: string) {
+// Cached per request: generateMetadata and the page both ask for the same copy.
+const load = cache(async (seasonId: string, copyId: string) => {
   const parsed = parseCopyId(copyId);
   const season = await getSeason(seasonId);
   if (!parsed || !season || season.status === 'draft') return null;
   const copy = await getCopy(season.collectionName, copyId);
   if (!copy) return null;
   const packs = await getPacksForSeason(season);
-  for (const pack of packs) {
-    const card = (await getPackCards(pack.id)).find(c => c.number === copy.card);
+  const cards = await Promise.all(packs.map(p => getPackCards(p.id)));
+  for (const [i, pack] of packs.entries()) {
+    const card = cards[i].find(c => c.number === copy.card);
     if (card) return { season, copy, pack, card };
   }
   return null;
-}
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ seasonId: string; copyId: string }> }): Promise<Metadata> {
   const { seasonId, copyId } = await params;
@@ -87,10 +90,8 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
   const prov = buildProvenance(copy);
   const refIds = [...new Set([...(copy.madeFrom ?? []), ...copy.ev.filter(e => e.type === 'upgraded' && e.note).map(e => e.note as string)])].slice(0, 12);
   const refs: Record<string, { uid?: number; n: number }> = {};
-  for (const id of refIds) {
-    const c = await getCopy(season.collectionName, id).catch(() => null);
-    if (c) refs[id] = { uid: c.uid, n: c.n };
-  }
+  const refCopies = await Promise.all(refIds.map(id => getCopy(season.collectionName, id).catch(() => null)));
+  refIds.forEach((id, i) => { const c = refCopies[i]; if (c) refs[id] = { uid: c.uid, n: c.n }; });
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
