@@ -1,6 +1,7 @@
 import { list, del } from '@vercel/blob';
-import { inSandbox } from './db';
+import { inSandbox, kv } from './db';
 import { listAllPacks, getPackCards } from './kv';
+import { getCardBack } from './card-back-store';
 import { cardThumbUrl, isBlobUrl } from './card-art';
 
 // Server-side data for the admin Assets page: every file the game references (card art, pack
@@ -62,7 +63,27 @@ export function formatOf(url: string): string {
   return ({ webp: 'WebP', gif: 'GIF', png: 'PNG', jpg: 'JPEG', jpeg: 'JPEG', svg: 'SVG', mp3: 'MP3', wav: 'WAV', ogg: 'OGG', m4a: 'M4A', webm: 'WebM' } as Record<string, string>)[ext] ?? (ext.toUpperCase() || 'File');
 }
 
-/** Every URL referenced by a pack or card, plus the thumbnails that ride along with card art. */
+// Settings that hold Overlay Editor layouts (custom layer images, custom sounds): the live settings, per-pack looks, scenes and saved versions.
+const OVERLAY_KEYS = ['overlay:settings', 'overlay:packprops', 'overlay:presets', 'overlay:versions'];
+const BLOB_URL_IN_TEXT = /https:\/\/[^\s"'()<>\\]+\.public\.blob\.vercel-storage\.com\/[^\s"'()<>\\]+/gi;
+
+/** Adds every Blob URL found anywhere inside stored JSON (and the thumbnail that rides along with card art) to `into`. */
+function addBlobUrls(value: unknown, into: Set<string>): void {
+  if (typeof value === 'string') {
+    for (const u of value.match(BLOB_URL_IN_TEXT) ?? []) { into.add(u); into.add(cardThumbUrl(u)); }
+  } else if (Array.isArray(value)) {
+    for (const v of value) addBlobUrls(v, into);
+  } else if (value && typeof value === 'object') {
+    for (const v of Object.values(value)) addBlobUrls(v, into);
+  }
+}
+
+/** Backups share the store but have their own retention (docs/hosting.md), so nothing under backups/ is ever a candidate for deletion. */
+export const isProtectedUrl = (url: string): boolean => {
+  try { return new URL(url).pathname.startsWith('/backups/'); } catch { return false; }
+};
+
+/** Every URL referenced by a pack, card, card back or Overlay Editor setting, plus the thumbnails that ride along with card art. */
 export async function collectReferenced() {
   const packs = await listAllPacks();
   const cardLists = await Promise.all(packs.map(p => getPackCards(p.id)));
@@ -85,7 +106,11 @@ export async function collectReferenced() {
   for (const list of cardLists) for (const c of list) {
     if (c.stillUrl) referenced.add(c.stillUrl); // chosen still frames are separate files
     if (c.fullArtStillUrl) referenced.add(c.fullArtStillUrl);
+    if (c.fullArtImageUrl) { referenced.add(c.fullArtImageUrl); referenced.add(cardThumbUrl(c.fullArtImageUrl)); }
   }
+  // Files the card back editor and the Overlay Editor save inside their own settings.
+  const designs = await Promise.all([...packs.map(p => getCardBack(p.id)), ...OVERLAY_KEYS.map(k => kv.get<unknown>(k).catch(() => null))]);
+  for (const d of designs) addBlobUrls(d, referenced);
   return { refs, referenced };
 }
 
@@ -140,6 +165,14 @@ async function headLocal(origin: string, path: string): Promise<{ bytes: number 
   }
 }
 
+/** Stored files that nothing references: not protected, not recent, largest first. */
+export function unusedFrom(blobs: { url: string; pathname: string; size: number; uploadedAt: Date | string }[], referenced: Set<string>, now = Date.now()): UnusedBlob[] {
+  return blobs
+    .filter(b => !referenced.has(b.url) && !isProtectedUrl(b.url) && now - new Date(b.uploadedAt).getTime() > RECENT_MS)
+    .map(b => ({ url: b.url, pathname: b.pathname, bytes: b.size, uploadedAt: new Date(b.uploadedAt).toISOString(), format: formatOf(b.pathname) }))
+    .sort((a, b) => b.bytes - a.bytes);
+}
+
 export async function loadAssetLibrary(origin: string): Promise<AssetLibrary> {
   const [{ refs, referenced }, inventory] = await Promise.all([collectReferenced(), listAllBlobs()]);
   const blobBySize = new Map(inventory.blobs.map(b => [b.url, b]));
@@ -180,18 +213,14 @@ export async function loadAssetLibrary(origin: string): Promise<AssetLibrary> {
     }),
   );
 
-  const now = Date.now();
-  const unused: UnusedBlob[] = inventory.blobs
-    .filter(b => !referenced.has(b.url) && now - new Date(b.uploadedAt).getTime() > RECENT_MS)
-    .map(b => ({ url: b.url, pathname: b.pathname, bytes: b.size, uploadedAt: new Date(b.uploadedAt).toISOString(), format: formatOf(b.pathname) }))
-    .sort((a, b) => b.bytes - a.bytes);
+  const unused = unusedFrom(inventory.blobs, referenced);
 
   return { assets, unused, blobConnected: inventory.connected, blobProblem: inventory.problem };
 }
 
-/** Of the requested URLs, the ones that exist in the store and that nothing (including a card's companion thumbnail) references. */
+/** Of the requested URLs, the ones that exist in the store, are not protected (backups) and that nothing (including a card's companion thumbnail) references. */
 export function pickDeletable(requested: string[], inStore: Set<string>, referenced: Set<string>): string[] {
-  return [...new Set(requested)].filter(u => isBlobUrl(u) && inStore.has(u) && !referenced.has(u));
+  return [...new Set(requested)].filter(u => isBlobUrl(u) && !isProtectedUrl(u) && inStore.has(u) && !referenced.has(u));
 }
 
 /**

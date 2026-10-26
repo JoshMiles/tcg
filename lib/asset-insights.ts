@@ -46,6 +46,21 @@ export function computeInsights(assets: LibraryAsset[], top = 10): Insights {
   };
 }
 
+export interface UnusedGroup { folder: string; format: string; files: number; bytes: number }
+
+/** Files grouped by storage folder and kind (e.g. "cards/ WebP"), largest group first, for the delete confirmation. */
+export function groupUnused(items: { pathname: string; format: string; bytes: number }[]): UnusedGroup[] {
+  const groups = new Map<string, UnusedGroup>();
+  for (const i of items) {
+    const folder = i.pathname.includes('/') ? i.pathname.split('/')[0] + '/' : '(top level)';
+    const key = `${folder} ${i.format}`;
+    const g = groups.get(key) ?? { folder, format: i.format, files: 0, bytes: 0 };
+    g.files++; g.bytes += i.bytes;
+    groups.set(key, g);
+  }
+  return [...groups.values()].sort((a, b) => b.bytes - a.bytes);
+}
+
 /** Unused files older than `days` days (by upload time). */
 export function olderThan<T extends { uploadedAt: string }>(items: T[], days: number, now = Date.now()): T[] {
   const cutoff = now - days * 86_400_000;
