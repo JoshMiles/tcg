@@ -119,13 +119,28 @@ export async function TradesTab({ b, viewer }: { b: ProfileBase; viewer?: string
   const listings = open.filter(t => t.kind === 'listing' && t.from === b.lower && t.seasonId === b.season.id);
   const completed = history.filter(t => t.status === 'accepted' && (t.from === b.lower || t.to === b.lower || t.resolvedBy === b.lower)).length;
   const mine = viewer ? b.collection[viewer] ?? [] : [];
-  const pools = await getTradePools(b.season, listings, viewer);
+  // Direct offers are private to their two people: only the owner viewing their own profile gets them.
+  const offers = viewer === b.lower ? open.filter(t => t.kind === 'direct' && (t.from === b.lower || t.to === b.lower) && t.seasonId === b.season.id) : [];
+  const pools = await getTradePools(b.season, [...listings, ...offers], viewer);
   const nameOf = (n: number) => cards[n]?.name;
   return (
     <div className="space-y-5">
       <p className="text-sm text-gray-400"><strong className="text-white">{completed}</strong> completed trade{completed === 1 ? '' : 's'} in the recent history · <Link href="/trade" className="text-yellow-500 hover:text-yellow-300">Open the trade board →</Link></p>
-      {listings.length === 0 ? (
-        <Empty icon="board" title="No open listings">{b.displayName} has nothing on the board right now.{viewer && viewer !== b.lower ? <> You can <Link href={`/trade/new?to=${encodeURIComponent(b.lower)}`} className="text-yellow-400 hover:text-yellow-300">offer them a trade</Link>.</> : null}</Empty>
+      {offers.map(t => {
+        const incoming = t.to === b.lower;
+        const lack = incoming ? firstMissing(mine, t.get) : null;
+        return (
+          <TradeCard
+            key={t.id} trade={t} cards={cards} pools={pools}
+            title={<Link href={`/trade/${t.id}`} className="hover:text-yellow-300">{incoming ? <>{t.from} offered you a trade</> : <>You offered {t.to} a trade</>}</Link>}
+            actions={incoming
+              ? <TradeActions tradeId={t.id} mode="incoming" pick={pickPropsFor(t, b.lower, cards)} canAccept={!lack && settings.enabled} blocked={lack ? `You need ${describeItems([lack], nameOf)}` : undefined} />
+              : <TradeActions tradeId={t.id} mode="outgoing" />}
+          />
+        );
+      })}
+      {listings.length === 0 && offers.length === 0 ? (
+        <Empty icon="board" title={viewer === b.lower ? 'No open listings or offers' : 'No open listings'}>{b.displayName} has nothing on the board right now.{viewer && viewer !== b.lower ? <> You can <Link href={`/trade/new?to=${encodeURIComponent(b.lower)}`} className="text-yellow-400 hover:text-yellow-300">offer them a trade</Link>.</> : null}</Empty>
       ) : listings.map(t => {
         const lack = viewer ? firstMissing(mine, t.get) : null;
         return (
