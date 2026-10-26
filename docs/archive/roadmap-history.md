@@ -1422,5 +1422,5 @@ From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`.
 - **46.3 Paid pull before the charge (Done, #487).** public-site L-4, security M-8 (CODE_REVIEW #24).
 - **46.4 Overlay pull save body (Done, #489).** admin A-2: send only the pull. Load the overlay against the mock KV to check it.
 - **46.5 Card-pulled webhook delivery (Done, #485).** admin A-3: `after()` or await.
-- **46.6 Read-modify-write staff edits (Done, this PR).** mod-panel L-8 (hidden list, tags, flags) and L-7 (mod actions accept any username).
+- **46.6 Read-modify-write staff edits (Done, #499).** mod-panel L-8 (hidden list, tags, flags) and L-7 (mod actions accept any username).
 - **46.7 Small input checks (Done, #490).** public-site L-9 (trainer season id), security M-6 (incoming webhooks: unknown usernames and card numbers), security L-11 (collection replace body), mod-panel L-6 ("Total pulls" label).
