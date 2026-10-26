@@ -3,6 +3,7 @@ import bundleAnalyzer from '@next/bundle-analyzer';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { deriveVersion } from './lib/version';
+import { securityHeaderRules } from './lib/security-headers';
 
 // Build stamp, baked in at build time so every deployment is identifiable (see lib/version.ts).
 // On Vercel the commit comes from VERCEL_GIT_*; locally we ask git.
@@ -47,6 +48,8 @@ const nextConfig: NextConfig = {
   // same name only rarely, so a day of caching (and a week of serve-stale-while-revalidating) is safe.
   async headers() {
     return [
+      // Site-wide security headers and the CSP trial (lib/security-headers.ts; asserted by scripts/check-security-headers.mts).
+      ...securityHeaderRules(process.env.NODE_ENV !== 'production'),
       {
         // The service worker must always be re-checked, or a fixed one would never reach people.
         source: "/sw.js",
