@@ -197,28 +197,32 @@ export function GrantPanel({ username, cards, upgrades }: { username: string; ca
   );
 }
 
-export interface TradeLine { id: string; status: string; open: boolean; kind: 'direct' | 'listing'; other: string | null; mine: boolean; give: string; get: string; at: number; expiresAt?: number; season: string }
+export interface TradeLine { id: string; status: string; open: boolean; kind: 'direct' | 'listing'; other: string | null; mine: boolean; give: string; get: string; at: number; expiresAt?: number; seasonId: string; season: string }
 
 /** The viewer's trades: open offers (with an admin cancel that refunds the escrow) and recent history. */
 export function TradesPanel({ username, lines }: { username: string; lines: TradeLine[] }) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<UserActionResult | null>(null);
   const router = useRouter();
-  const open = lines.filter(l => l.open);
-  const done = lines.filter(l => !l.open);
+  const [seasonId, setSeasonId] = useState('');
+  const seasonOptions = [...new Map(lines.map(l => [l.seasonId, l.season])).entries()];
+  const shownLines = seasonId ? lines.filter(l => l.seasonId === seasonId) : lines;
+  const open = shownLines.filter(l => l.open);
+  const done = shownLines.filter(l => !l.open);
   const cancel = (id: string) => startTransition(async () => { setResult(await cancelUserTradeAction(username, id)); router.refresh(); });
   const row = (l: TradeLine) => (
     <li key={l.id} className="px-4 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
       <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${l.status === 'accepted' ? 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10' : l.open ? 'text-sky-300 border-sky-400/30 bg-sky-500/10' : 'text-gray-400 border-gray-700'}`}>{l.open ? 'open' : l.status}</span>
-      <span className="text-gray-300">{l.mine ? 'gives' : `${l.other ?? 'someone'} gives`} <strong className="text-white">{l.mine ? l.give : l.give}</strong> {l.mine ? 'for' : 'for'} <strong className="text-white">{l.get}</strong></span>
+      <span className="text-gray-300">{l.mine ? 'gives' : `${l.other ?? 'someone'} gives`} <strong className="text-white">{l.give}</strong> for <strong className="text-white">{l.get}</strong></span>
       <span className="text-xs text-gray-600">{l.kind === 'listing' ? 'board' : l.other ? (l.mine ? `to ${l.other}` : `with ${l.other}`) : ''} · {l.season}</span>
       <span className="ml-auto flex items-center gap-3 text-xs text-gray-500">{l.open && l.expiresAt ? `expires ${new Date(l.expiresAt).toLocaleString('en-GB', { timeZone: 'UTC' })}` : new Date(l.at).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
-        {l.open && l.mine && <ArmedButton disabled={pending} onConfirm={() => cancel(l.id)} className="text-red-300 hover:text-red-200 font-semibold" armedClassName="text-white bg-red-600 hover:bg-red-500 font-semibold rounded-sm px-2 py-0.5">Cancel &amp; refund</ArmedButton>}</span>
+        {l.open && <ArmedButton disabled={pending} onConfirm={() => cancel(l.id)} className="text-red-300 hover:text-red-200 font-semibold" armedClassName="text-white bg-red-600 hover:bg-red-500 font-semibold rounded-sm px-2 py-0.5">Cancel &amp; refund</ArmedButton>}</span>
     </li>
   );
   return (
     <div className="space-y-3">
-      {lines.length === 0 ? <p className="text-sm text-gray-600">No trades yet.</p> : (
+      {seasonOptions.length > 1 && <select value={seasonId} onChange={e => setSeasonId(e.target.value)} aria-label="Season" className="select select-sm"><option value="">All seasons</option>{seasonOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select>}
+      {shownLines.length === 0 ? <p className="text-sm text-gray-600">No trades yet.</p> : (
         <ul className="divide-y divide-gray-800/60 rounded-lg border border-gray-800 overflow-hidden">{[...open, ...done].slice(0, 20).map(row)}</ul>
       )}
       {pending && <p className="text-xs text-gray-500 flex items-center gap-2"><Spinner />Working…</p>}

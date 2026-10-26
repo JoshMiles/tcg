@@ -137,7 +137,7 @@ export default async function UserDetailPage({
     other: t.from === username ? (t.to ?? null) : t.from,
     mine: t.from === username,
     give: describeItems(t.give, nameOf), get: describeItems(t.get, nameOf),
-    at: t.resolvedAt ?? t.createdAt, expiresAt: t.expiresAt, season: seasonName(t.seasonId),
+    at: t.resolvedAt ?? t.createdAt, expiresAt: t.expiresAt, seasonId: t.seasonId, season: seasonName(t.seasonId),
   });
   const tradeLines: TradeLine[] = [
     ...trades.outgoing.map(t => toLine(t, true)),

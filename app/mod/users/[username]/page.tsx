@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Avatar } from '@/app/components/Avatar';
 import { Icon } from '@/app/components/Icon';
-import { getActiveSeasonWithPacks, getAllCollectionUsers, getUserProfile } from '@/lib/kv';
+import { getActiveSeasonWithPacks, getAllCollectionUsers, getPackCards, getUserProfile, listSeasons } from '@/lib/kv';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import { getActivity } from '@/lib/activity';
 import { plainText } from '@/lib/activity-view';
@@ -32,7 +32,7 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
   await requireStaff('mod');
   const username = (await params).username.toLowerCase();
 
-  const [profile, avatars, audit, activity, trades, active, everyone] = await Promise.all([
+  const [profile, avatars, audit, activity, trades, active, everyone, seasons] = await Promise.all([
     getUserProfile(username),
     getAvatars([username]),
     getUserAudit(username, 25),
@@ -40,21 +40,31 @@ export default async function ModUserPage({ params }: { params: Promise<{ userna
     tradesForUser(username).catch(() => ({ incoming: [], outgoing: [], board: [], recent: [] })),
     getActiveSeasonWithPacks(),
     getAllCollectionUsers(),
+    listSeasons(),
   ]);
   const mine = everyone.find(u => u.username === username);
   if (!profile && !mine) notFound();
 
-  const names = new Map<number, string>();
   const cardsByNumber = new Map<number, string>();
-  for (const { cards } of active?.packs ?? []) for (const c of cards) { if (!names.has(c.number)) names.set(c.number, c.name); cardsByNumber.set(c.number, c.name); }
-  const nameOf = (n: number) => names.get(n);
+  for (const { cards } of active?.packs ?? []) for (const c of cards) cardsByNumber.set(c.number, c.name);
 
-  const toLine = (t: (typeof trades.outgoing)[number], open: boolean): TradeLine => ({
-    id: t.id, status: t.status, open, kind: t.kind,
-    other: t.from === username ? (t.to ?? null) : t.from, mine: t.from === username,
-    give: describeItems(t.give, nameOf), get: describeItems(t.get, nameOf),
-    at: t.resolvedAt ?? t.createdAt, expiresAt: t.expiresAt, season: active?.season.name ?? 'season',
-  });
+  // Each trade is named from its own season's cards (an older season's trade is not the active season's).
+  const seasonNames = new Map<string, Map<number, string>>();
+  await Promise.all(seasons.filter(s => [...trades.outgoing, ...trades.incoming, ...trades.recent].some(t => t.seasonId === s.id)).map(async s => {
+    const m = new Map<number, string>();
+    for (const cards of await Promise.all(s.packIds.map(getPackCards))) for (const c of cards) m.set(c.number, c.name);
+    seasonNames.set(s.id, m);
+  }));
+
+  const toLine = (t: (typeof trades.outgoing)[number], open: boolean): TradeLine => {
+    const nameOf = (n: number) => seasonNames.get(t.seasonId)?.get(n);
+    return {
+      id: t.id, status: t.status, open, kind: t.kind,
+      other: t.from === username ? (t.to ?? null) : t.from, mine: t.from === username,
+      give: describeItems(t.give, nameOf), get: describeItems(t.get, nameOf),
+      at: t.resolvedAt ?? t.createdAt, expiresAt: t.expiresAt, seasonId: t.seasonId, season: seasons.find(s => s.id === t.seasonId)?.name ?? t.seasonId,
+    };
+  };
   const lines: TradeLine[] = [...trades.outgoing.map(t => toLine(t, true)), ...trades.incoming.map(t => toLine(t, true)), ...trades.recent.map(t => toLine(t, false))];
 
   const now = Date.now();
