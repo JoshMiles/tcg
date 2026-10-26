@@ -1,6 +1,7 @@
 import { Icon } from '@/app/components/Icon';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PendingLabel } from '@/app/components/site/PendingLabel';
 import { getActive, getSeasonOverview, computeStats, ownersByCard } from '@/lib/site-data';
 import { getCollectionCached } from '@/lib/leaderboard';
 import { getHiddenUsers } from '@/lib/user-admin';
@@ -72,7 +73,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
                   x.id === season.id ? 'bg-yellow-500 text-gray-950 border-yellow-500 font-semibold' : 'text-gray-400 border-gray-700 hover:text-white'
                 }`}
               >
-                {x.name}
+                <PendingLabel>{x.name}</PendingLabel>
               </Link>
             ))}
           </div>

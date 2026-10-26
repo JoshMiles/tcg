@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getHoloResolver } from '@/lib/holo';
 import { getHiddenUsers } from '@/lib/user-admin';
 import Link from 'next/link';
+import { PendingLabel } from '@/app/components/site/PendingLabel';
 import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
 import { getCollectionCached } from '@/lib/leaderboard';
 import { getSession } from '@/lib/session';
@@ -97,7 +98,7 @@ export default async function CardDexPage({ searchParams }: { searchParams: Prom
                   x.id === season.id ? 'bg-yellow-500 text-gray-950 border-yellow-500 font-semibold' : 'text-gray-400 border-gray-700 hover:text-white'
                 }`}
               >
-                {x.name}
+                <PendingLabel>{x.name}</PendingLabel>
               </Link>
             ))}
           </div>

@@ -4,6 +4,7 @@ import { PushPrompt } from '@/app/components/site/PushPrompt';
 import { DiscordPrompt } from '@/app/components/site/DiscordPrompt';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PendingLabel } from '@/app/components/site/PendingLabel';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/session';
 import { listOpenTrades, sweepTrades, tradeHistory } from '@/lib/trades';
@@ -149,7 +150,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         {seasons.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
             {seasons.map(x => (
-              <Link key={x.id} href={`/account?season=${x.id}`} className={`px-3 py-1 rounded-full text-xs whitespace-nowrap border transition-colors ${x.id === season.id ? 'bg-yellow-500 text-gray-950 border-yellow-500 font-semibold' : 'text-gray-400 border-gray-700 hover:text-white'}`}>{x.name}</Link>
+              <Link key={x.id} href={`/account?season=${x.id}`} className={`px-3 py-1 rounded-full text-xs whitespace-nowrap border transition-colors ${x.id === season.id ? 'bg-yellow-500 text-gray-950 border-yellow-500 font-semibold' : 'text-gray-400 border-gray-700 hover:text-white'}`}><PendingLabel>{x.name}</PendingLabel></Link>
             ))}
           </div>
         )}
