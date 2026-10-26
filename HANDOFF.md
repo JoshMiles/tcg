@@ -16,7 +16,8 @@ Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then T
 - 47.8 done (#494, #501, #502, #503), archived in #504.
 - 48.1 merged (#505, review bot: no issues).
 - 48.2 merged (#506, no comments).
-- IN PROGRESS: 48.3 (cached boards: profile share image, panel Board) on `48-3-cached-boards`, done inline by Opus (two call swaps), verify 103/103; PR opened. Admin pages and season wrap-up keep the fresh board on purpose.
+- 48.3 merged (#507, review bot: no issues).
+- 48.4 (batch profile and avatar reads) built and reviewed on `48-4-batch-profiles`, verify 104/104; PR opened. Then 48.5, 48.6 (48.7 needs design with Josh first).
 - A stray node process (mock KV?) listens on port 4111 from an earlier session; stop it at cleanup.
 - Josh to do: the Vercel Firewall log-only trial rules from docs/hosting.md (#498 is merged, so they can be set up now), and read the CSP report logs after a week.
 - Stale worktrees under .claude/worktrees/ (audit-44-*, twitch-34-*, roadmap-34*, panel-version): clean at the end.
