@@ -93,11 +93,13 @@ export async function fireOutgoing(
   const payload = Object.fromEntries(
     cleanWebhookFields(config.fields).map(f => [f.key, interpolate(f.value, vars)])
   );
-  fetch(target.url, {
+  // Awaited, so a caller can hold it open with after() (a bare fetch is dropped when the function is frozen). Never throws.
+  await fetch(target.url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  }).catch(() => {}); // fire-and-forget
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {});
 }
 
 // ── Incoming webhook auth ─────────────────────────────────

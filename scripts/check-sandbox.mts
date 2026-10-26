@@ -64,6 +64,11 @@ ok(calls === 1, 'outgoing webhooks still fire on production');
 // ...but never at this machine or a private network, whatever was stored.
 await wh.fireOutgoing({ ...hook, url: 'http://localhost:9/hook' }, { username: 'x' });
 ok(calls === 1, 'an outgoing webhook at a private address is not called');
+// fireOutgoing resolves only once the request has settled, so after() can hold the function open for it.
+let settled = false;
+globalThis.fetch = (async () => { await new Promise(r => setTimeout(r, 30)); settled = true; return new Response('ok'); }) as typeof fetch;
+await wh.fireOutgoing(hook, { username: 'x' });
+ok(settled, 'fireOutgoing waits for the outgoing request to finish');
 globalThis.fetch = realFetch;
 
 // The fake Twitch page's tokens are honoured only inside the sandbox they were minted for, and never forge a real one.

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
+import { inSandbox } from '@/lib/db';
 import { getCollection, saveCollection, deleteCollection, addCollectionEntryWithSerial, listSeasons, removeUserFromCollection, withCollectionLock } from '@/lib/kv';
 import { getScoringSettings } from '@/lib/scoring';
 import { serialMultiplier } from '@/lib/scoring-core';
@@ -103,11 +104,17 @@ export async function POST(req: NextRequest) {
     ...(uid ? { uid } : {}),
   });
 
-  getWebhookSettings().then(settings =>
-    fireOutgoing(settings.outgoing.cardPulled, {
-      username, cardName: ticket.cardName, cardNumber: String(cardNumber), stars: String(ticket.stars), variant, packName: ticket.packName,
-    })
-  ).catch(() => {});
+  // Sent after the response, held open by after() so the function isn't frozen before it goes out. The sandbox is decided
+  // now (it is not visible inside after()). Outside a request (scripts) it just runs.
+  if (!(await inSandbox())) {
+    const send = async () => {
+      const settings = await getWebhookSettings();
+      await fireOutgoing(settings.outgoing.cardPulled, {
+        username, cardName: ticket.cardName, cardNumber: String(cardNumber), stars: String(ticket.stars), variant, packName: ticket.packName,
+      });
+    };
+    try { after(() => send().catch(() => {})); } catch { await send().catch(() => {}); }
+  }
 
   return NextResponse.json({ ok: true, owned, serial, uid, serialMult: Math.round(mult * 100) / 100, isNew, firstForViewer });
 }
