@@ -14,8 +14,9 @@ import { PinCopyButton } from '@/app/components/PinCopyButton';
 import { FavouriteCopyButton } from '@/app/components/FavouriteCopyButton';
 import { getSession } from '@/lib/session';
 import { getUserSettings } from '@/lib/user-settings-store';
+import { getTradeSettings } from '@/lib/trades';
 import { ShareStudioLazy as ShareStudio } from '@/app/components/ShareStudioLazy';
-import { getPackCards, getPacksForSeason, getSeason } from '@/lib/kv';
+import { getPackCards, getPacksForSeason, getSeason, getUserProfile } from '@/lib/kv';
 import { getCopy, mintedCounts } from '@/lib/serials';
 import { ORIGIN_LABELS, ORIGIN_VERB, entryOf, isEscrow, parseCopyId } from '@/lib/serials-core';
 import { getHiddenUsers } from '@/lib/user-admin';
@@ -65,6 +66,13 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
   const mySettings = canPin ? await getUserSettings(session!.username) : null;
   const pinned = mySettings?.pinned === copy.uid;
   const favourite = !!copy.uid && !!mySettings?.favourites.includes(copy.uid);
+  // Someone else's edition can be asked for in a trade, unless trading is closed or paused, or the holder is barred or private (the composer could not load their cards).
+  const holder = copy.owner && !isEscrow(copy.owner) && session && copy.owner !== session.username && !season.tradingFrozen ? copy.owner : null;
+  let canOffer = false;
+  if (holder) {
+    const [ts, profile, theirs] = await Promise.all([getTradeSettings(), getUserProfile(holder).catch(() => null), getUserSettings(holder).catch(() => null)]);
+    canOffer = ts.enabled && !profile?.flags?.noTrading && !theirs?.privateProfile;
+  }
   const [hidden, minted, holoFor, board, backStyle] = await Promise.all([getHiddenUsers().catch(() => new Set<string>()), mintedCounts(season.collectionName), getHoloResolver(), getSeasonLeaderboardCached(season).catch(() => null), cardBackFor(pack, season.name)]);
   // What this very copy is worth: its card's points times the bonus its number earns.
   const cv = board?.values.cards.get(copy.card);
@@ -145,6 +153,7 @@ export default async function CopyPage({ params }: { params: Promise<{ seasonId:
           <div className="flex flex-wrap gap-2">
             {canPin && <PinCopyButton uid={copy.uid!} pinned={pinned} />}
             {canPin && <FavouriteCopyButton uid={copy.uid!} favourite={favourite} />}
+            {canOffer && <Link href={`/trade/new?to=${encodeURIComponent(holder!)}&season=${encodeURIComponent(season.id)}&print=${copy.id}`} className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 border border-purple-400/40 bg-purple-500/10 text-purple-200 hover:bg-purple-500/20"><Icon name="trade" />Offer a trade for this edition</Link>}
           </div>
           <details className="group rounded-xl border border-gray-800 bg-gray-950/50 open:p-4 p-0">
             <summary className="cursor-pointer list-none px-4 py-2.5 group-open:px-0 group-open:pt-0 group-open:pb-4 text-sm font-bold text-yellow-300 hover:text-yellow-200 inline-flex items-center gap-1.5 w-full">
