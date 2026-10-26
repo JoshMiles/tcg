@@ -119,7 +119,10 @@ export interface DashboardData {
   totalOwned: number;
   totalUnique: number;
   avgCompletion: number;
-  topCollectors: { username: string; owned: number; pct: number }[];
+  /** Highest share of the card pool any one player owns, in percent. */
+  bestPct: number;
+  /** The top eight by points (the leaderboard's order), with how much of the pool each owns. */
+  topCollectors: { username: string; owned: number; pct: number; score: number }[];
   cardStats: (Card & { ownedBy: number })[];
   avatars: Record<string, string | undefined>;
   rarityDist: ReturnType<typeof rarityStats>;
@@ -165,14 +168,9 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     seen.forEach(n => { freq[n] = (freq[n] ?? 0) + 1; });
   }
 
-  const topCollectors = users
-    .map(([username, owned]) => ({
-      username,
-      owned: uniqueCount(owned),
-      pct: allCards.length > 0 ? Math.round((uniqueCount(owned) / allCards.length) * 100) : 0,
-    }))
-    .sort((a, b) => b.owned - a.owned)
-    .slice(0, 8);
+  const bestPct = allCards.length > 0 ? Math.round((Math.max(0, ...users.map(([, c]) => uniqueCount(c))) / allCards.length) * 100) : 0;
+  // Top collectors rank by points, the same order as the site leaderboard (hidden players left out), so one board feeds this and the Leaderboard widget.
+  const boardP = needs.has('leaderboard') || needs.has('valuable') || needs.has('top-collectors') ? getSeasonLeaderboard(season).catch(() => null) : Promise.resolve(null);
   const cardStats = allCards.map(c => ({ ...c, ownedBy: freq[c.number] ?? 0 })).sort((a, b) => b.stars - a.stars || b.ownedBy - a.ownedBy);
 
   const wantsActivity = needs.has('activity') || needs.has('pulse') || needs.has('changes');
@@ -182,11 +180,11 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
   const { starts, step } = bucketsFor(range, season.createdAt);
   const span = step === 'hour' ? 3_600_000 : 86_400_000;
   const [avatars, activity, openTrades, history, board, live, notes, recap, digest, series, prevSeries, overlay, dailySeries, overlaySettings] = await Promise.all([
-    needs.has('top-collectors') || needs.has('leaderboard') ? getAvatars(topCollectors.map(c => c.username)) : Promise.resolve({}),
+    needs.has('top-collectors') ? boardP.then(b => getAvatars((b?.rows ?? []).slice(0, 8).map(r => r.username))) : Promise.resolve({}),
     wantsActivity ? getActivity({ limit: 500 }).then(r => r.events).catch(() => []) : Promise.resolve([] as ActivityEvent[]),
     needs.has('trades') ? listOpenTrades().catch(() => [] as Trade[]) : Promise.resolve(null),
     needs.has('trades') ? tradeHistory().catch(() => [] as Trade[]) : Promise.resolve(null),
-    needs.has('leaderboard') || needs.has('valuable') ? getSeasonLeaderboard(season).catch(() => null) : Promise.resolve(null),
+    boardP,
     wantsLive ? getLiveStatus().catch(() => null) : Promise.resolve(null),
     needs.has('notes') ? getDashboardNotes() : Promise.resolve(''),
     needs.has('recap') ? getLatestRecap() : Promise.resolve(null),
@@ -197,6 +195,12 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     needs.has('viewers') ? getSeries(season.collectionName, bucketsFor('7d', season.createdAt).starts, 'day') : Promise.resolve(null),
     needs.has('overlay-controls') ? getOverlaySettings().catch(() => null) : Promise.resolve(null),
   ]);
+  const topCollectors = (board?.rows ?? []).slice(0, 8).map(r => ({
+    username: r.username,
+    owned: r.uniqueCards,
+    pct: allCards.length > 0 ? Math.round((r.uniqueCards / allCards.length) * 100) : 0,
+    score: r.score,
+  }));
   const attention = needs.has('attention') ? await computeAttention(season, packs, live, overlay, needs.has('attention') ? jsonBytes(collection) : 0) : [];
   const adminActions = activity.filter(e => (e.type === 'grant' && e.source === 'admin') || e.type === 'remove' || e.type === 'reset' || e.type === 'delete' || (e.type === 'trigger' && e.source === 'admin') || (e.type === 'trade' && e.by === 'admin')).slice(0, 12);
 
@@ -210,7 +214,7 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     : null;
 
   return {
-    season, packs, allCards, users, totalUsers, totalOwned, totalUnique, avgCompletion, topCollectors, cardStats,
+    season, packs, allCards, users, totalUsers, totalOwned, totalUnique, avgCompletion, bestPct, topCollectors, cardStats,
     avatars: avatars as Record<string, string | undefined>,
     rarityDist: rarityStats(allCards),
     variantCounts, activity, trades, board: board ? { rows: board.rows, values: board.values } : null, live, recap, digest, notes,
