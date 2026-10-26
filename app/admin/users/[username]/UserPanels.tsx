@@ -27,7 +27,8 @@ export function TagsEditor({ username, initial, suggestions }: { username: strin
   const [tags, setTags] = useState(initial);
   const [draft, setDraft] = useState('');
   const [pending, startTransition] = useTransition();
-  const save = (next: string[]) => { setTags(next); startTransition(async () => { setTags(await saveTagsAction(username, next)); }); };
+  const [error, setError] = useState('');
+  const save = (next: string[]) => { const before = tags; setTags(next); setError(''); startTransition(async () => { const r = await saveTagsAction(username, next); setTags(r.tags ?? before); if (!r.ok) setError(r.message); }); };
   const add = (t: string) => { const v = t.trim().toLowerCase(); if (v && !tags.includes(v)) save([...tags, v]); setDraft(''); };
   return (
     <div className="space-y-2">
@@ -45,6 +46,7 @@ export function TagsEditor({ username, initial, suggestions }: { username: strin
         <button type="submit" disabled={!draft.trim()} className={`${btn} py-1.5 text-xs`}>Add</button>
         {suggestions.filter(s => !tags.includes(s)).slice(0, 5).map(s => <button key={s} type="button" onClick={() => add(s)} className="text-[11px] text-gray-500 hover:text-yellow-300">+ {s}</button>)}
       </form>
+      {error && <p role="status" className="text-xs text-amber-200">{error}</p>}
     </div>
   );
 }

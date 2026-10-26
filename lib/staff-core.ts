@@ -6,6 +6,8 @@
 //   mod    the mod panel only (live activity, moderating viewers, moderating trades).
 // Staff are Twitch accounts: they sign in with "Log in with Twitch" and their role is looked up from the staff list.
 
+import { CHANNEL_LOGIN } from './site';
+
 export type StaffRole = 'super' | 'admin' | 'mod';
 /** What a role may do: 'admin' = the admin panel, 'mod' = the mod panel, 'staff:mods' / 'staff:admins' = add and remove those roles. */
 export type Capability = 'admin' | 'mod' | 'staff:mods' | 'staff:admins';
@@ -73,6 +75,36 @@ export function resolveRole(identity: { login: string; twitchId?: string | null 
 export function canManage(actor: StaffRole | null | undefined, target: StaffRole): boolean {
   if (target === 'super') return false;
   return roleCan(actor, target === 'admin' ? 'staff:admins' : 'staff:mods');
+}
+
+/** What a staff member can do to a viewer or a trade: the mod actions (tags, restrictions, cancelling an offer, blocking trading, reversing a trade). */
+export type ModAction = 'tags' | 'flags' | 'cancel-offer' | 'block-trading' | 'reverse-trade';
+/** Who is acting. `via: 'password'` is the emergency login, whose name is not an account, so the "not yourself" rule skips it. */
+export interface ModActor { login: string; role: StaffRole | null | undefined; via?: 'twitch' | 'password' }
+/** Who is acted on: their staff role (if any) and the role of whoever set the restrictions they carry now (if any). */
+export interface ModTarget { login: string; role?: StaffRole | null; flagsByRole?: StaffRole | null }
+export type ModVerdict = { ok: true } | { ok: false; error: string };
+
+const deny = (error: string): ModVerdict => ({ ok: false, error });
+
+/**
+ * The one rule for who may moderate whom (ROADMAP 47.2). Every mod action calls it before acting, once per person it touches.
+ *  - Nobody moderates themselves; another staff member does it.
+ *  - Staff targets follow `canManage`: an admin can act on mods and viewers, only the super admin on admins, nobody on the super
+ *    admin, and a mod on no staff at all.
+ *  - The streamer (the channel's own account, staff or not) is out of reach for everyone but the super admin.
+ *  - A mod can't change restrictions an admin or the super admin set.
+ */
+export function canModerate(actor: ModActor, target: ModTarget, action: ModAction): ModVerdict {
+  if (!roleCan(actor.role, 'mod')) return deny('Not authorised.');
+  const login = target.login.toLowerCase();
+  if (actor.via !== 'password' && login === actor.login.toLowerCase()) return deny("You can't moderate yourself. Ask another staff member.");
+  if (login === CHANNEL_LOGIN && actor.role !== 'super') return deny("Only the super admin can moderate the streamer's account.");
+  if (target.role && !canManage(actor.role, target.role)) return deny("You can't moderate this staff member. Ask someone above them.");
+  if ((action === 'flags' || action === 'block-trading') && !roleCan(actor.role, 'admin') && (target.flagsByRole === 'admin' || target.flagsByRole === 'super')) {
+    return deny('An admin set these restrictions. Ask an admin to change them.');
+  }
+  return { ok: true };
 }
 
 /** Where a role lands after signing in. */
