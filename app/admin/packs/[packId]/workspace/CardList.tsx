@@ -11,11 +11,11 @@ import { oneInLabel, totalWeight } from '@/lib/card-maths';
 type Sort = 'number' | 'name' | 'stars' | 'chance' | 'problems';
 
 /** What is missing or odd about a card, as short marks for the list. */
-export function cardMarks(c: WorkCard, pack: PackInput): { id: string; label: string }[] {
+export function cardMarks(c: WorkCard, pack: PackInput, packHasSound = true): { id: string; label: string }[] {
   const out: { id: string; label: string }[] = [];
   if (!c.imageUrl) out.push({ id: 'art', label: 'No art' });
   if (pack.upgradesEnabled && c.kind !== 'trainer' && !c.fullArtImageUrl && allowedVariants(pack, c).some(usesFullArt)) out.push({ id: 'full', label: 'No full art' });
-  if (!c.soundUrl) out.push({ id: 'sound', label: 'No sound' });
+  if (packHasSound && !c.soundUrl) out.push({ id: 'sound', label: 'No sound' });
   if (!(c.probability > 0)) out.push({ id: 'odds', label: '0 odds' });
   if (c.kind === 'trainer') out.push({ id: 'trainer', label: 'Trainer' });
   else if (pack.upgradesEnabled && (c.disabledVariants.length > 0 || !c.upgradesEnabled)) out.push({ id: 'versions', label: 'Versions off' });
@@ -46,6 +46,8 @@ export function CardList({
   const [stars, setStars] = useState(0);
   const [sort, setSort] = useState<Sort>('number');
   const total = useMemo(() => totalWeight(cards.map(c => c.probability)), [cards]);
+  // A pack with no sound on any card does not use sounds, so "No sound" would flag every card.
+  const hasSound = useMemo(() => cards.some(c => c.soundUrl), [cards]);
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const list = cards.filter(c => (!needle || c.name.toLowerCase().includes(needle) || String(c.number) === needle) && (!stars || c.stars === stars));
@@ -54,10 +56,10 @@ export function CardList({
       name: (a, b) => a.name.localeCompare(b.name),
       stars: (a, b) => b.stars - a.stars || a.number - b.number,
       chance: (a, b) => a.probability - b.probability,
-      problems: (a, b) => Number(problemIds.has(b.id)) - Number(problemIds.has(a.id)) || cardMarks(b, pack).length - cardMarks(a, pack).length,
+      problems: (a, b) => Number(problemIds.has(b.id)) - Number(problemIds.has(a.id)) || cardMarks(b, pack, hasSound).length - cardMarks(a, pack, hasSound).length,
     };
     return [...list].sort(by[sort]);
-  }, [cards, q, stars, sort, problemIds, pack]);
+  }, [cards, q, stars, sort, problemIds, pack, hasSound]);
   const ids = visible.map(c => c.id);
   const list = useRef<HTMLUListElement>(null);
   const pick = useRef<HTMLInputElement>(null);
@@ -91,7 +93,7 @@ export function CardList({
       <ul ref={list} className="flex-1 min-h-0 overflow-y-auto" aria-label="Cards">
         {visible.length === 0 && <li className="px-3 py-6 text-sm text-gray-500 text-center">{cards.length === 0 ? 'No cards yet. Add the first one below.' : 'No card matches.'}</li>}
         {visible.map(c => {
-          const marks = cardMarks(c, pack);
+          const marks = cardMarks(c, pack, hasSound);
           const on = selected.has(c.id);
           const chance = oneInLabel(c.probability, total);
           return (
@@ -112,7 +114,7 @@ export function CardList({
                     <span style={{ color: getRarity(c.stars)?.hex }}>{'★'.repeat(c.stars)}</span>
                     <span className="text-gray-500 tabular-nums">{chance}</span>
                   </span>
-                  {(marks.length > 0 || needsOdds?.has(c.id)) && <span className="flex flex-wrap gap-1 mt-0.5">{needsOdds?.has(c.id) && <span className="text-[10px] text-sky-300 bg-sky-500/10 border border-sky-500/20 rounded-sm px-1">Set stars and odds</span>}{marks.map(m => <span key={m.id} className="text-[10px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-sm px-1">{m.label}</span>)}</span>}
+                  {(marks.length > 0 || needsOdds?.has(c.id)) && <span className="flex flex-wrap gap-1 mt-0.5">{needsOdds?.has(c.id) && <span className="text-[10px] text-sky-300 bg-sky-500/10 border border-sky-500/20 rounded-sm px-1">Set stars and odds</span>}{marks.map(m => <span key={m.id} className={`text-[10px] rounded-sm px-1 border ${m.id === 'sound' ? 'text-gray-400 bg-white/5 border-white/10' : 'text-amber-300/90 bg-amber-500/10 border-amber-500/20'}`}>{m.label}</span>)}</span>}
                 </span>
               </button>
             </li>
