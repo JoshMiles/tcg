@@ -7,8 +7,8 @@ import { getUserCards, getUserProfile } from '@/lib/kv';
 import { getActive } from '@/lib/site-seasons';
 import { getTrade, getTradeSettings, sweepTrades } from '@/lib/trades';
 import { getPrintPool, getTradeCards } from '@/lib/trade-view';
-import { loadSerialIndex } from '@/lib/serials';
-import { poolOf } from '@/lib/serials-core';
+import { getCopy, loadSerialIndex } from '@/lib/serials';
+import { parseCopyId, poolOf } from '@/lib/serials-core';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { TradeComposer } from '@/app/components/trade/TradeComposer';
 import { VARIANTS, decodeEntry, encodeEntry } from '@/lib/variants';
@@ -17,8 +17,8 @@ import type { TradeItem } from '@/lib/trade-core';
 
 export const metadata: Metadata = { title: 'New trade offer', robots: { index: false, follow: false } };
 
-export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ to?: string; counter?: string; season?: string; want?: string }> }) {
-  const { to, counter, season: seasonParam, want } = await searchParams;
+export default async function NewTradePage({ searchParams }: { searchParams: Promise<{ to?: string; counter?: string; season?: string; want?: string; print?: string }> }) {
+  const { to, counter, season: seasonParam, want, print } = await searchParams;
   const session = await getSession();
   if (!session) redirect(`/auth/twitch?returnTo=${encodeURIComponent('/trade/new')}`);
 
@@ -65,7 +65,10 @@ export default async function NewTradePage({ searchParams }: { searchParams: Pro
     : [];
   // ?want=<card>.<variant> (from the "Offer a trade" button on a card) pre-selects the card you are asking for.
   const wanted = /^(\d{1,6})\.(regular|reverse|full|shiny|golden)$/.exec(want ?? '');
-  const startGet: TradeItem[] = original ? original.give.map(({ ids: _ids, ...i }) => i) : wanted && VARIANTS.includes(wanted[2] as Variant) ? [{ cardNumber: Number(wanted[1]), variant: wanted[2] as Variant, count: 1 }] : [];
+  // ?print=<copy id> (from "Offer a trade for this edition" on a copy page) asks for that exact edition, only while ?to= still holds it; otherwise the builder opens with just the holder.
+  const printedCopy = print && to && !original && parseCopyId(print) ? await getCopy(season.collectionName, print).catch(() => null) : null;
+  const printItem: TradeItem[] = printedCopy && printedCopy.owner === to!.trim().toLowerCase().replace(/^@/, '') ? [{ cardNumber: printedCopy.card, variant: printedCopy.variant, count: 1, ids: [printedCopy.id] }] : [];
+  const startGet: TradeItem[] = print ? printItem : original ? original.give.map(({ ids: _ids, ...i }) => i) : wanted && VARIANTS.includes(wanted[2] as Variant) ? [{ cardNumber: Number(wanted[1]), variant: wanted[2] as Variant, count: 1 }] : [];
 
   return wrap(
     <>
