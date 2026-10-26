@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useRef, useState, useTransition, type DragEvent } from 'react';
 import { Icon } from '@/app/components/Icon';
-import { Spinner } from '../../components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { removePackFromSeason } from '../../actions/seasons';
 import { reorderSeasonPacksAction, setPackWeightAction } from '../../season-actions';

@@ -2,7 +2,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
-import { Spinner } from '../components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 
 const RANGES = [['24h', '24 hours'], ['7d', '7 days'], ['season', 'Season']] as const;
 

@@ -1,5 +1,5 @@
 import { Icon } from '@/app/components/Icon';
-import { PendingButton } from './components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { NewPackButton } from './components/NewPackButton';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -41,17 +41,17 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           <SeedButton />
           <Link
             href="/admin/seasons/new"
-            className="px-5 py-2.5 btn btn-primary rounded-xl text-sm transition-colors"
+            className="btn btn-primary"
           >
             Create Season
           </Link>
           <NewPackButton
             label="Create Pack"
-            className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl text-sm transition-colors"
+            className="btn"
           />
           <Link
             href="/admin/wiki"
-            className="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl text-sm transition-colors"
+            className="btn"
           >
             Staff wiki
           </Link>
@@ -83,9 +83,9 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           <h1 className="text-4xl font-bold text-white">{season.name}</h1>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-          <Link href={`/admin/seasons/${season.id}`} className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">Season Settings</Link>
-          <Link href="/admin/wiki" className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">Staff wiki</Link>
-          <Link href={`/leaderboard/${season.id}`} target="_blank" className="px-3 py-1.5 text-xs bg-yellow-500/10 border border-yellow-500/30 hover:bg-yellow-500/20 text-yellow-300 font-semibold rounded-lg transition-colors"><Icon name="trophy" className="mr-1" />Leaderboard ↗</Link>
+          <Link href={`/admin/seasons/${season.id}`} className="btn btn-sm">Season Settings</Link>
+          <Link href="/admin/wiki" className="btn btn-sm">Staff wiki</Link>
+          <Link href={`/leaderboard/${season.id}`} target="_blank" className="btn btn-sm btn-outline btn-primary"><Icon name="trophy" className="mr-1" />Leaderboard ↗</Link>
           <OverlayStatus />
         </div>
       </div>
@@ -102,7 +102,7 @@ function SeedButton() {
     <form action={seedSeason1}>
       <PendingButton
         type="submit"
-        className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors"
+        className="btn btn-sm btn-ghost"
       >
         Seed S1
       </PendingButton>

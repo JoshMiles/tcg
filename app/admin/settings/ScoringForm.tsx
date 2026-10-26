@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { DEFAULT_SCORING, SCORING_LIMITS, sanitizeScoring, type ScoringSettings } from '@/lib/scoring-core';
 import type { ScoringPreview } from '@/lib/scoring-preview';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { previewScoringAction } from './actions';
 

@@ -14,7 +14,7 @@ import { EVENT_LABELS, ORIGIN_LABELS, isEscrow, type Copy } from '@/lib/serials-
 import { getPotw } from '@/lib/print-of-week-store';
 import { usesFullArt } from '@/lib/variants';
 import { ConfirmButton } from '../components/ConfirmButton';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { Chip, Panel } from '../components/ui';
 import { featurePrintAction, removeCopyAction, transferCopyAction } from '../serial-actions';
 

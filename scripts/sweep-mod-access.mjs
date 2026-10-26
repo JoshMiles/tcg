@@ -10,11 +10,10 @@ const ADMIN_PAGES = ['/admin', '/admin/activity', '/admin/seasons', '/admin/seas
   `/admin/packs/${PACK}/cards`, `/admin/packs/${PACK}/cards/w1`, '/admin/users', '/admin/users/alice', '/admin/staff', '/admin/trades', '/admin/serials', '/admin/overlay',
   '/admin/assets', '/admin/settings', '/admin/settings?tab=environment', '/admin/sandbox',
   '/admin/achievements', '/admin/buffs', '/admin/changelog', '/admin/faq', '/admin/feedback', '/admin/mixitup', '/admin/wiki', '/admin/webhooks'];
-// GET API routes and what they should answer a mod / a stranger. import-legacy is POST for a signed-in admin, so GET is 405.
+// GET API routes and what they should answer a mod / a stranger.
 const ADMIN_API = [
   { path: '/api/admin/overlay-status', mod: [401, 403] },
   { path: '/api/admin/palette', mod: [401, 403] },
-  { path: '/api/admin/import-legacy', mod: [405], admin: [405], stranger: [405] }, // POST only; GET does not take a secret
   { path: '/api/admin/activity?after=0', mod: [200] }, // the one admin route mods may read
 ];
 const POST_API = ['/api/admin/sandbox/ext-token'];

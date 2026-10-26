@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { Avatar } from '@/app/components/Avatar';
-import { Spinner } from '../components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { bulkGiftAction, bulkTagAction } from '../users-actions';
 import { useSlashFocus } from '../components/use-slash-focus';

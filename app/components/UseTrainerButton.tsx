@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from './Icon';
-import { Spinner } from '../admin/components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { useTrainerCardAction } from '@/app/u/[username]/actions';
 
 export function UseTrainerButton({

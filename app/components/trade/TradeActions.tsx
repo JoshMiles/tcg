@@ -1,6 +1,6 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
-import { Spinner } from '../../admin/components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';

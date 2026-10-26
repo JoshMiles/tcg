@@ -6,7 +6,7 @@ import type { ActionResult } from '../action-types';
 import { quickAction } from '../actions/users';
 import { setLiveGateAction } from '../dashboard/actions';
 import { useOverlayStatus } from '../components/OverlayStatusContext';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { Toggle } from '../components/Toggle';
 
 /** The two "only when live" switches. Each saves the moment it is flipped (like the dashboard's), with a visible confirmation. */

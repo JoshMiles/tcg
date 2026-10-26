@@ -1,7 +1,7 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
 import { useMemo, useState } from 'react';
-import { ArmedButton } from '../../components/ArmedButton';
+import { ArmedButton } from '@/app/components/ArmedButton';
 import { DateTimeField } from '../../components/DateTimeField';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

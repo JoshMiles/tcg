@@ -1,6 +1,6 @@
 'use client';
 import { Icon } from '@/app/components/Icon';
-import { PendingButton } from '../../admin/components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';

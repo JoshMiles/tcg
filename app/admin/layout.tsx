@@ -1,4 +1,4 @@
-import { PendingButton } from './components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { AdminNav } from './components/AdminNav';
 import { AdminKeyboard, PaletteButton } from './components/AdminKeyboard';
 import { AdminShell } from './components/AdminShell';

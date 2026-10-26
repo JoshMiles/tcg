@@ -2,7 +2,7 @@
 import { Icon } from '@/app/components/Icon';
 import { InfoTip } from '@/app/components/InfoTip';
 import { UserInput } from '@/app/components/UserInput';
-import { Spinner } from '../../admin/components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { cardThumbUrl } from '@/lib/card-art';

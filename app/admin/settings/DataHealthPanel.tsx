@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { formatBytes, loadDataHealth, BLOB_WARN_BYTES, BLOB_HIGH_BYTES, type HealthLevel } from '@/lib/data-health';
 import { getActiveSeason, OLD_COPY_DAYS } from '@/lib/kv';
 import { deleteOldCollectionCopiesAction, finishMoveAction, releaseStuckEscrowAction } from '../trade-actions';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { Panel, Chip } from '../components/ui';
 
 const TONE: Record<HealthLevel, 'green' | 'amber' | 'red'> = { ok: 'green', warn: 'amber', high: 'red' };

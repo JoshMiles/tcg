@@ -12,7 +12,7 @@ import {
 import { DraftChip, StatusChip } from '../../../components/StatusChip';
 import { ConfirmButton } from '../../../components/ConfirmButton';
 import { Dialog } from '../../../components/Dialog';
-import { PendingButton } from '../../../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { useAutosave } from '../../../components/use-autosave';
 import { duplicatePackAction, archivePackAction, restorePackAction } from '../../../pack-actions';
 import { publishPack, unpublishPack } from '../../../draft-actions';

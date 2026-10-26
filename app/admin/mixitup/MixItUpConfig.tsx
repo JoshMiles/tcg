@@ -1,4 +1,4 @@
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { Icon } from '@/app/components/Icon';
 import type { MixItUpSettings } from '@/lib/mixitup-core';
 import { MESSAGE_MAX, MESSAGE_VARS, PULL_ROLES, PULL_ROLE_LABELS } from '@/lib/mixitup-core';

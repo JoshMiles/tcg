@@ -1,5 +1,5 @@
 import { Icon } from '@/app/components/Icon';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { Chip } from '../components/ui';
 import { ACCESS_LABELS, ACCESS_MODES, MAX_TESTERS, MESSAGE_MAX, MODE_HINTS, MODE_LABELS, type AccessSettings, type TesterRecord } from '@/lib/access-core';
 import type { AccessLogEntry } from '@/lib/access';

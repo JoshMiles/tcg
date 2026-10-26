@@ -1,6 +1,6 @@
 import { staffPage } from '@/lib/staff-guard';
 import { Icon } from '@/app/components/Icon';
-import { PendingButton } from '../../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSeason, getPacksForSeason, getPackCards, listAllPacks } from '@/lib/kv';

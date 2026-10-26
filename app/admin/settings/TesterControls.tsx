@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArmedButton } from '../components/ArmedButton';
+import { ArmedButton } from '@/app/components/ArmedButton';
 import { removeTesterAction, setUserTesterAction } from './access-actions';
 
 /** The Remove button on a tester row: the first click arms it, the second removes them. */

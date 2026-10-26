@@ -69,7 +69,6 @@ const R: Record<string, Kind[] | { public: string }> = {
   'app/api/twitch/upgrade/route.ts': ['viewer'],
   'app/api/twitch/want/route.ts': ['viewer'],
   // staff outside /api/admin (the ones under /api/admin are checked below without being listed)
-  'app/api/seed/route.ts': ['staff'],
   'app/api/upload/optimize/route.ts': ['staff'],
   'app/api/upload/route.ts': ['staff'],
   'app/api/upload/token/route.ts': ['staff'],

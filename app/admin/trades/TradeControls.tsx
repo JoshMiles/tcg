@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { UserInput } from '@/app/components/UserInput';
 import { useState, useTransition } from 'react';
-import { Spinner } from '../components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { cancelOpenTradesAction, extendOpenTradesAction, setSeasonTradingAction, type TradeActionResult } from '../trade-actions';
 

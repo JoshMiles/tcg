@@ -2,8 +2,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@/app/components/Icon';
-import { ArmedButton } from '../components/ArmedButton';
-import { reverseTradeAction } from '../trade-actions';
+import { ArmedButton } from '@/app/components/ArmedButton';
+import { reverseTradeAction } from '@/app/admin/trade-actions';
 
 /** Staff only: put every print of this completed trade back where it started. Needs a reason; all or nothing. */
 export function ReverseTrade({ tradeId }: { tradeId: string }) {

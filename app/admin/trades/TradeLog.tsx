@@ -3,11 +3,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
-import { Spinner } from '../components/PendingButton';
+import { Spinner } from '@/app/components/PendingButton';
 import { FLAG_LABEL, tradesToCsv, type FlagKind, type TradeRow } from '@/lib/trade-insights';
-import { ReverseTrade } from './ReverseTrade';
+import { ReverseTrade } from '@/app/components/trade/ReverseTrade';
 import { blockViewerTradingAction, cancelOneTradeAction, extendOpenTradesAction } from '../trade-actions';
-import { ArmedButton } from '../components/ArmedButton';
+import { ArmedButton } from '@/app/components/ArmedButton';
 import { Dialog } from '../components/Dialog';
 
 const field = 'input input-sm';

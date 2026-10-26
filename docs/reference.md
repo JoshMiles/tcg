@@ -15,7 +15,6 @@
 | `lib/variants.ts`, `lib/upgrade.ts`, `lib/leaderboard.ts` | Variant encoding/roll helpers, the upgrade transaction, card values + leaderboard (see Variants, upgrades & leaderboard) |
 | `lib/twitch-helix.ts` | Helix app-token cache + `resolveTwitchLogin()` (shared by login + resolve-username routes) |
 | `lib/admin-token.ts` | Edge-safe emergency admin cookie (signed with `ADMIN_COOKIE_SECRET`, expiry and generation checked; fails closed when the key is unset). `ADMIN_SECRET` is not the key |
-| `lib/legacy-data.ts` | Season 1 legacy collection data for the one-time import route |
 | `lib/seed.ts` | Static seed data for Season 1 / Cheesy Starter Pack (25 cards with soundUrl set) |
 | `lib/webhooks.ts` | Webhook settings helpers (incomingSecret, etc.) |
 | `app/admin/actions/*.ts` | Server actions (mutations) by domain: `seasons`, `packs`, `cards`, `users` (also the dashboard quick actions), `settings` (webhooks, scoring, Discord, overlay, assets); non-exported form parsers and shared types live in `form-helpers.ts`. No data fetching here |
@@ -65,9 +64,6 @@
 - `POST /api/twitch/want`, JWT-validated (`extensionViewer()`); body `{ cardNumber, on }`; puts a card on the viewer's Looking for list (or takes it off) through `setWanted` in `lib/wanted.ts`, the same function as the website's Look for button (list limit `WANTED_MAX`): returns `{ ok: true, wanted }` (the whole list) or `{ ok: false, error }` (400)
 - `GET /api/twitch/leaderboard?seasonId=&username=`, public per-season ranking, the viewer's own rank, and per-card point values, plus `badges` (login -> staff badge)
 - `GET /api/twitch/resolve-username?userId={numericId}`, resolves Twitch numeric user ID → login name via Helix API (requires `TWITCH_CLIENT_ID` + `TWITCH_CLIENT_SECRET`)
-
-### Admin (one-time / utility)
-- `POST /api/admin/import-legacy`, seeds `tcg_CheesyStarterDeck` with Season 1 legacy player data. Signed-in admin only. Add `?dry=1` to preview, `?overwrite=1` to replace existing user data. Also creates user profiles for imported users. GET does not run the import.
 
 ### Overlay
 - `POST /api/overlay/heartbeat`. The OBS overlay (`public/widget.js`) pings this every 10s with `{ id, streaming, recording, obs, dev }`; strictly validated, unauthenticated like the rest of the overlay's endpoints

@@ -3,7 +3,7 @@ import { Icon } from '@/app/components/Icon';
 import { TRADE_LIMITS } from '@/lib/trade-core';
 import { FLAG_RULES } from '@/lib/trade-insights';
 import { loadTradeAdminData } from '@/lib/trade-admin-data';
-import { PendingButton } from '../components/PendingButton';
+import { PendingButton } from '@/app/components/PendingButton';
 import { saveTradeSettingsAction } from '../trade-actions';
 import { PageTabs, pickTab } from '../components/PageTabs';
 import { TradeControls } from './TradeControls';
