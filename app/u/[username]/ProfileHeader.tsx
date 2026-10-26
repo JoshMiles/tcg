@@ -6,22 +6,22 @@ import { StaffBadge } from '@/app/components/StaffBadge';
 import type { StaffBadge as StaffBadgeKind } from '@/lib/staff-badge-core';
 import { ShareProfile } from './ShareProfile';
 import { accentHex } from '@/lib/user-settings';
-import { ProfileBasics, ProfileBioLine, ProfileEditButton } from './ProfileBasicsEditor';
+import { ProfileBasics, ProfileBioLine, ProfileOwnerMenu } from './ProfileBasicsEditor';
 import type { ShareSpec } from '@/lib/share-image';
 import { profileHref } from '@/lib/profile-url';
 
-/** Who this is: avatar, name, awards, rank and progress, and the main actions (trade, share, leaderboard). */
-export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staffBadge, canReport = false }: { /** Signed in, not their own profile, not staff: show Report in the menu. */ canReport?: boolean; /** Streamer / Admin / Mod, already resolved on the server (null when none or hidden). */ staffBadge?: StaffBadgeKind | null; b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec; /** What to show after the name (already resolved on the server), or null. */ pronouns?: string | null }) {
+/** Who this is: avatar, name, awards, rank and progress, and the main actions. `compact` (any tab but Overview) shrinks it and drops the bio, awards and progress bar. */
+export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staffBadge, canReport = false, compact = false }: { compact?: boolean; /** Signed in, not their own profile, not staff: show Report in the menu. */ canReport?: boolean; /** Streamer / Admin / Mod, already resolved on the server (null when none or hidden). */ staffBadge?: StaffBadgeKind | null; b: ProfileBase; isOwner: boolean; signedIn: boolean; shareSpec?: ShareSpec; /** What to show after the name (already resolved on the server), or null. */ pronouns?: string | null }) {
   const leaderboardHref = `/leaderboard/${b.season.id}`;
   const accent = accentHex(b.settings.accent);
   const header = (
     <header className="rounded-3xl border border-yellow-500/20 bg-linear-to-br from-gray-900/80 to-gray-950/80" style={accent ? { borderColor: `${accent}88`, boxShadow: `0 0 40px -16px ${accent}` } : undefined}>
       <div className="holo-strip rounded-t-3xl" style={accent ? { background: `linear-gradient(90deg, transparent, ${accent}, transparent)` } : undefined} />
-      <div className="p-5 sm:p-6 flex flex-wrap items-start justify-between gap-5">
-        <div className="flex items-start gap-4 min-w-0">
-          <Avatar src={b.avatarUrl} name={b.displayName} className="w-16 h-16 sm:w-20 sm:h-20 text-2xl ring-2 ring-yellow-500/60 shrink-0" />
+      <div className={`${compact ? 'p-3 sm:p-4 gap-3' : 'p-5 sm:p-6 gap-5'} flex flex-wrap items-start justify-between`}>
+        <div className={`flex items-start ${compact ? 'gap-3' : 'gap-4'} min-w-0`}>
+          <Avatar src={b.avatarUrl} name={b.displayName} className={`${compact ? 'w-10 h-10 sm:w-12 sm:h-12 text-lg' : 'w-16 h-16 sm:w-20 sm:h-20 text-2xl'} ring-2 ring-yellow-500/60 shrink-0`} />
           <div className="min-w-0">
-            <h1 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight wrap-break-word">
+            <h1 className={`font-display ${compact ? 'text-xl sm:text-2xl' : 'text-3xl sm:text-4xl'} font-bold text-white leading-tight wrap-break-word`}>
               {b.displayName}
               {pronouns && <span className="ml-2 align-middle text-sm font-medium text-gray-400">{pronouns}</span>}
               {staffBadge && <span className="ml-2"><StaffBadge badge={staffBadge} /></span>}
@@ -32,8 +32,8 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
               )}
             </h1>
             <p className="text-sm text-gray-500">@{b.lower}</p>
-            {isOwner ? <ProfileBioLine /> : b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl wrap-break-word">{b.bio}</p>}
-            {b.awards.length > 0 && (
+            {isOwner ? <ProfileBioLine hideWhenClosed={compact} /> : !compact && b.bio && <p className="mt-2 text-sm text-gray-300 max-w-xl wrap-break-word">{b.bio}</p>}
+            {!compact && b.awards.length > 0 && (
               <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Season awards">
                 {b.awards.slice(0, 8).map((a, i) => (
                   <li key={`${a.seasonId}-${a.award.id}-${i}`}>
@@ -47,41 +47,41 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
           </div>
         </div>
 
-        <dl className="grid grid-cols-3 gap-5 text-center sm:text-right shrink-0">
-          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Rank</dt><dd className="font-display text-3xl font-bold text-yellow-400 tabular-nums leading-tight">{b.rank ? `#${b.rank}` : '-'}</dd></div>
-          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Points</dt><dd className="font-display text-3xl font-bold text-white tabular-nums leading-tight">{b.row ? Math.round(b.row.score).toLocaleString() : '-'}</dd></div>
-          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Cards</dt><dd className="font-display text-3xl font-bold text-white tabular-nums leading-tight">{b.uniqueOwned}<span className="text-lg text-gray-500">/{b.total}</span></dd></div>
+        <dl className={`grid grid-cols-3 ${compact ? 'gap-3' : 'gap-5'} text-center sm:text-right shrink-0`}>
+          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Rank</dt><dd className={`font-display ${compact ? 'text-xl' : 'text-3xl'} font-bold text-yellow-400 tabular-nums leading-tight`}>{b.rank ? `#${b.rank}` : '-'}</dd></div>
+          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Points</dt><dd className={`font-display ${compact ? 'text-xl' : 'text-3xl'} font-bold text-white tabular-nums leading-tight`}>{b.row ? Math.round(b.row.score).toLocaleString() : '-'}</dd></div>
+          <div><dt className="text-[10px] uppercase tracking-wider font-bold text-gray-500">Cards</dt><dd className={`font-display ${compact ? 'text-xl' : 'text-3xl'} font-bold text-white tabular-nums leading-tight`}>{b.uniqueOwned}<span className={`${compact ? 'text-sm' : 'text-lg'} text-gray-500`}>/{b.total}</span></dd></div>
         </dl>
       </div>
 
-      <div className="px-5 sm:px-6 pb-5 space-y-4">
-        <div>
-          <div className="flex items-baseline justify-between text-xs text-gray-500 mb-1.5"><span>{b.season.name}</span><span className="tabular-nums">{b.pct}% complete{b.owned.length > b.uniqueOwned ? ` · ${b.owned.length} total pulls` : ''}</span></div>
-          <div className="h-2.5 bg-gray-950 border border-gray-800 rounded-full overflow-hidden" role="progressbar" aria-valuenow={b.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Collection progress">
-            <div className="h-full bg-linear-to-r from-yellow-300 to-yellow-600 rounded-full" style={{ width: `${b.pct}%` }} />
+      <div className={`${compact ? 'px-3 sm:px-4 pb-3' : 'px-5 sm:px-6 pb-5 space-y-4'}`}>
+        {!compact && (
+          <div>
+            <div className="flex items-baseline justify-between text-xs text-gray-500 mb-1.5"><span>{b.season.name}</span><span className="tabular-nums">{b.pct}% complete{b.owned.length > b.uniqueOwned ? ` · ${b.owned.length} total pulls` : ''}</span></div>
+            <div className="h-2.5 bg-gray-950 border border-gray-800 rounded-full overflow-hidden" role="progressbar" aria-valuenow={b.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Collection progress">
+              <div className="h-full bg-linear-to-r from-yellow-300 to-yellow-600 rounded-full" style={{ width: `${b.pct}%` }} />
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           {signedIn && !isOwner && (
             <Link href={`/trade/new?to=${encodeURIComponent(b.lower)}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-200 bg-purple-500/10 border border-purple-400/40 hover:bg-purple-500/20 rounded-full px-3 py-1.5 transition-colors">
               <Icon name="trade" />Trade with {b.displayName}
             </Link>
           )}
-          <ShareProfile name={b.displayName} username={b.lower} isOwner={isOwner} canReport={canReport} spec={shareSpec} customiseHref={isOwner ? profileHref(b.lower, 'share') : undefined} />
-          <Link href={leaderboardHref} className="inline-flex items-center gap-1.5 text-xs font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/40 hover:bg-yellow-500/20 rounded-full px-3 py-1.5 transition-colors">
-            <Icon name="trophy" />Leaderboard
-          </Link>
+          {/* The owner's Share lives on the Share tab; visitors have no such tab, so they keep the menu (link, image, Report). */}
+          {!isOwner && <ShareProfile name={b.displayName} username={b.lower} isOwner={false} canReport={canReport} spec={shareSpec} />}
+          {!isOwner && (
+            <Link href={leaderboardHref} className="inline-flex items-center gap-1.5 text-xs font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/40 hover:bg-yellow-500/20 rounded-full px-3 py-1.5 transition-colors">
+              <Icon name="trophy" />Leaderboard
+            </Link>
+          )}
           {isOwner && (
             <Link href={profileHref(b.lower, 'stats')} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
               <Icon name="trend" />My stats &amp; upgrades
             </Link>
           )}
-          {isOwner && <ProfileEditButton />}
-          {isOwner && (
-            <Link href="/settings" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
-              <Icon name="settings" />Settings
-            </Link>
-          )}
+          {isOwner && <ProfileOwnerMenu leaderboardHref={leaderboardHref} />}
         </div>
       </div>
     </header>
