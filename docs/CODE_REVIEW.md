@@ -221,6 +221,8 @@ In Node, `new URL('/\\evil.com', 'https://cheesytcg.app/api/sandbox/exit')` is `
 
 **Fix.** Charge first, or write the print only after `charge.applied`. If revoke cannot see the copy, still remove one matching entry under the collection lock.
 
+**Status.** Fixed (ROADMAP 46.3): the route charges Mix It Up before the print is written, so an unconfirmed charge saves nothing, and a print that cannot be saved after a confirmed charge is refunded (`refundPaidPull`). `revokePrint` is gone. The deduct message no longer carries the edition number, which does not exist yet.
+
 ## Low
 
 ### 10. Admin upload trusts the browser's file name and MIME type

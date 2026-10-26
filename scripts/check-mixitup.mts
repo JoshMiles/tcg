@@ -1,5 +1,5 @@
 // Mix It Up paid pulls (ROADMAP Track 12): settings cleaning, the message template, reply reading, and the whole reserve / claim /
-// charge / revoke flow against a fake Mix It Up and the mock KV (node scripts/mock-kv.cjs). Run: npx tsx scripts/check-mixitup.mts
+// charge / refund flow against a fake Mix It Up and the mock KV (node scripts/mock-kv.cjs). Run: npx tsx scripts/check-mixitup.mts
 const url = process.env.KV_REST_API_URL ?? 'http://localhost:4111';
 if (!/^http:\/\/(localhost|127\.0\.0\.1)[:/]/.test(url)) throw new Error(`Refusing to run against non-local KV: ${url}`);
 process.env.KV_REST_API_URL = url; process.env.KV_REST_API_TOKEN ??= 'dev'; process.env.KV_URL ??= 'redis://dev';
@@ -97,17 +97,14 @@ const split = await m.chargePaidPull({ ...mix, deductUrl: 'https://hook.example/
 ok(split.applied, 'a separate deduct address is used when set');
 ok(!(await m.callMixItUp('http://localhost:8911/x', {}, fake)).ok, 'the server never calls a private address');
 
-// ── Revoke ──
-await kvLib.seedSeason1();
-const active = await kvLib.getActiveSeasonWithPacks();
-const coll = active!.season.collectionName;
-const entry = 7;
-const added = await kvLib.addCollectionEntryWithSerial(coll, 'ann', entry, 'pull');
-ok(added.owned.includes(entry), 'the print was added');
-const left = await m.revokePrint(coll, 'ann', entry, added.copyId);
-ok(left !== null && !left.includes(entry) && !(await kvLib.getCollection(coll)).ann?.includes(entry), 'a revoked print is gone from the collection');
-ok((await m.revokePrint(coll, 'ann', entry, added.copyId)) === null, 'revoking twice changes nothing');
-await m.releaseCount(claim!);
+// ── Refund: a charge with no print behind it is paid back, and the allowance returns ──
+const refundMix = { ...mix, addUrl: 'https://hook.example/add' };
+const callsBefore = calls.length;
+await m.refundPaidPull(refundMix, claim!, 'Gouda Goat', fake);
+ok(calls.length === callsBefore + 1 && calls[calls.length - 1].action === 'add' && calls[calls.length - 1].amount === claim!.amount && calls[calls.length - 1].username === 'ann', 'a refund adds the charged amount back through the add address');
+await m.refundPaidPull(mix, claim!, 'Gouda Goat', fake);
+ok(calls.length === callsBefore + 1, 'no add address: nothing is sent, staff are told instead');
+ok((await m.getMixItUpLog()).some(e => e.what === 'revoked' && /refund/.test(e.detail)), 'a refund that could not be made is logged');
 
 // ── Release: a reservation whose pull was never queued gives everything back ──
 const lim = c.normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 100, limit: 1 });
