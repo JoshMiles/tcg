@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Goal
-Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then Track 48. Track 46 is done (archived in #499).
+Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then Track 48 (start it as soon as PR 4 merges, Josh; 48.7 needs design with Josh first). Track 46 is done (archived in #499).
 
 ## Done
 - Track 45 (#480 to #483), 34.8 (#484, panel 0.0.2 submitted, under Twitch review).
@@ -11,7 +11,8 @@ Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then T
 
 ## Left
 - Clean up worktrees after merge: agent-a83bbd65686488fd1 (47.5), agent-a08e5a069533010f0 (47.7), agent-a58eea7a3802be355 (47.9, merged), agent-ac6df3fb092cd5d75 (46.6, locked). Remove the node_modules junction first.
-- IN PROGRESS: 47.8 PR 2 on branch `47-8-account-move` (off main 34a05f9d), built and reviewed (dda713c8 + fix), verify 101/101; PR being opened. Plan: PLAN-47-8.md (commit it with PR 2). Then PR 3 (start it as soon as PR 2 merges, Josh), PR 4, then Track 48.
+- 47.8 PR 2 merged (#501, no review comments).
+- IN PROGRESS: 47.8 PR 3 on branch `47-8-signin-move` (off main 0f529539), Sonnet subagent building sign-in move aside, rename, reclaim prompt, session check. Then PR 4 (start it as soon as PR 3 merges, Josh), then Track 48 (start it as soon as PR 4 merges, Josh; 48.7 needs design with Josh first).
 - Josh to do: the Vercel Firewall log-only trial rules from docs/hosting.md (#498 is merged, so they can be set up now), and read the CSP report logs after a week.
 - Stale worktrees under .claude/worktrees/ (audit-44-*, twitch-34-*, roadmap-34*, panel-version): clean at the end.
 
@@ -45,4 +46,6 @@ Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then T
 - 2026-10-26: #500 merged (Track 47 cleanup).
 - 2026-10-26: pushing, opening PRs and merging are handled without asking Josh (Josh).
 - 2026-10-26: 47.8 PR 2 scope (Opus): journal in hash `acct:moves` (from -> journal) so Data health can list unfinished moves without a scan; moved-aside key is added to the admin hidden list until PR 3's `~` handling; `access:testers` record for the old login is dropped, not moved; no new-account creation or session check in PR 2 (PR 3).
+- 2026-10-26: 47.8 PR 3 design (Opus): `moveAccount` gets a `mode` ('aside' | 'rename') kept in the journal; rename/reclaim may replace a blank target (profile, no cards), carries the tester record, restores the hidden flags saved in `acct:aside`, strips the ' (former)' display suffix. Aside mode appends ' (former)' to displayName and makes the account private instead of a render-time `~` helper. If the new login already has cards, nothing moves automatically; /account tells the player to ask staff to merge. getSession returns null when the profile's Twitch ID differs from the cookie's (one cached read per request). Panel login binds before saving the opaque link.
+- 2026-10-26: 47.8 PR 4 runs as a Vercel cron route (existing app/api/cron/* pattern, lib/cron-auth.ts) (Josh).
 - 2026-10-26: Track 47 cleanup keeps two loose ends as ROADMAP items rather than dropping them: 47.10 (security L-2, needs a decision) and 47.11 (CSP and firewall trial readouts, blocked on Josh from 2026-11-02) (Opus).

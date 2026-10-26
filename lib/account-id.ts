@@ -3,6 +3,9 @@
 
 import { isTwitchId } from './staff-core';
 
+/** KV hash: Twitch ID -> the login that holds that account's profile (written once at sign-in, repointed by a move). */
+export const IDS = 'acct:ids';
+
 export type SignInKind = 'new' | 'claim' | 'same' | 'conflict';
 
 /**
