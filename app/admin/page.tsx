@@ -24,7 +24,8 @@ export const metadata = { title: 'Dashboard · Admin', robots: { index: false } 
 export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ gift?: string; season?: string; range?: string }> }) {
   const staff = await staffPage('admin');
   const { gift, season: seasonParam, range: rangeParam } = await searchParams; // /admin?gift=username prefills the quick-actions viewer
-  const result = await getActiveSeasonWithPacks();
+  // The layout and presets do not depend on the season, so they are read alongside it.
+  const [result, layout, presetList] = await Promise.all([getActiveSeasonWithPacks(), getDashboardLayout(loginForLayout(staff)), getDashboardPresets()]);
 
   if (!result) {
     return (
@@ -59,7 +60,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
     );
   }
 
-  // The dashboard can look at any published season; it opens on the active one.
+  // The dashboard can look at any published season; it opens on the active one. (listSeasons is read once per request: getActiveSeasonWithPacks already made this read.)
   const seasons = (await listSeasons()).filter(s => s.status === 'published').sort((a, b) => Number(b.active) - Number(a.active) || b.createdAt - a.createdAt);
   const chosen = seasons.find(s => s.id === seasonParam && s.id !== result.season.id);
   const season = chosen ?? result.season;
@@ -67,8 +68,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
     ? await Promise.all((await getPacksForSeason(chosen)).filter(p => p.status === 'published').map(async pack => ({ pack, cards: await getPackCards(pack.id) })))
     : result.packs;
   const range = rangeParam === '24h' || rangeParam === '7d' ? rangeParam : 'season';
-  const layout = await getDashboardLayout(loginForLayout(staff));
-  const presets = (await getDashboardPresets()).map(p => ({ name: p.name, by: p.by }));
+  const presets = presetList.map(p => ({ name: p.name, by: p.by }));
   const needs = new Set<WidgetType>(layout.widgets.map(w => w.type));
   const data = await loadDashboardData(season, packs, needs, range);
   const nodes: Partial<Record<WidgetType, ReactNode>> = {};
