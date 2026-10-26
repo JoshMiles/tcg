@@ -3,6 +3,7 @@ import type { Variant } from './types';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { checkWebhookUrl, cleanWebhookFields } from './webhook-clean';
 import { cleanLogin } from './staff-core';
+import { limitWebhook } from './rate-limit';
 import { NextResponse } from 'next/server';
 
 // ── Types ─────────────────────────────────────────────────
@@ -123,6 +124,8 @@ export async function incomingSecretValid(secret: unknown): Promise<boolean> {
 
 /** Validates the shared secret and normalizes `username` for MixItUp-style incoming webhooks. */
 export async function parseIncomingWebhook(req: Request): Promise<IncomingWebhook> {
+  const limited = await limitWebhook(req);
+  if (limited) return { ok: false, response: limited };
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   if (!(await incomingSecretValid(body.secret))) {
     return { ok: false, response: NextResponse.json({ error: 'Invalid secret' }, { status: 401 }) };

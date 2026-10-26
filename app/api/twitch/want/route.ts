@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extensionViewer } from '@/lib/twitch-viewer';
 import { setWanted } from '@/lib/wanted';
+import { limitTwitch } from '@/lib/rate-limit';
 
 // Put a card on the viewer's Looking for list from the panel, or take it off (the same list as the website's Look for button). The viewer is
 // identified by the signed Extension JWT (opaque ID -> linked username), never by the body; setWanted (shared with the website) does the rest.
 export async function POST(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const viewer = await extensionViewer(req);
   if ('response' in viewer) return viewer.response;
 

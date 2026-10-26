@@ -5,6 +5,7 @@
 const http = require('http');
 const PORT = Number(process.env.MOCK_KV_PORT) || 4111;
 const store = new Map();
+const timers = new Map(); // key -> pending EXPIRE timer
 const types = new Map(); // key -> 'string' | 'hash' | 'list' | 'set' (the stored value alone can't tell a list from a set)
 function run(cmd) {
   if (!Array.isArray(cmd)) return null;
@@ -27,6 +28,13 @@ function run(cmd) {
       const k = rest[1], token = rest[1 + Number(rest[0])];
       if (!store.has(k) || String(store.get(k)) !== String(token)) return 0;
       store.delete(k); types.delete(k); return 1;
+    }
+    case 'expire': {
+      // EXPIRE key seconds: drops the key after that long (a later EXPIRE on the same key replaces the earlier one).
+      if (!store.has(key)) return 0;
+      clearTimeout(timers.get(key));
+      timers.set(key, setTimeout(() => { store.delete(key); types.delete(key); timers.delete(key); }, Number(rest[0]) * 1000).unref());
+      return 1;
     }
     case 'type': return types.get(key) ?? 'none';
     case 'exists': return store.has(key) ? 1 : 0;

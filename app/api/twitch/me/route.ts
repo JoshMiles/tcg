@@ -11,6 +11,7 @@ import { FAVOURITES_MAX, WANTED_MAX } from '@/lib/user-settings';
 import { getStaffBadges } from '@/lib/staff-badge';
 import { syncAchievements } from '@/lib/achievements-store';
 import { panelAchievements } from '@/lib/panel-achievements';
+import { limitTwitch } from '@/lib/rate-limit';
 
 const DEV_OPAQUE_ID = 'dev_mock_opaque';
 
@@ -21,6 +22,8 @@ const DEV_OPAQUE_ID = 'dev_mock_opaque';
  * `?fresh=1` skips the shared 20-second leaderboard (used right after an upgrade).
  */
 export async function GET(req: NextRequest) {
+  const limited = await limitTwitch(req);
+  if (limited) return limited;
   const token = getBearerToken(req);
   if (!token) return NextResponse.json({ error: 'Missing authorization token' }, { status: 401 });
   const payload = await verifyExtensionAuth(token);
