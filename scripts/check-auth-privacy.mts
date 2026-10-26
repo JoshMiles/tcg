@@ -112,4 +112,43 @@ const pub = await holdings.GET(new NextRequest('http://localhost/api/trades/hold
 const pubBody = await pub.text();
 ok(pub.status === 401 && !pubBody.includes('4343'), 'a public profile is not dumped without a session either');
 
+// ── wrong passwords are counted site-wide, per caller address and per hour ──
+const { prodKv, runInSandbox } = await import('../lib/db');
+const limits = await import('../lib/login-limit');
+const tryPw = (password: string, headers: Record<string, string> = {}) => login.POST(new NextRequest('http://localhost/api/auth/login', {
+  method: 'POST', body: JSON.stringify({ password }), headers: { 'content-type': 'application/json', ...headers },
+}));
+const resetHour = () => prodKv.del(limits.hourFailKey());
+
+ok(limits.clientIp(new Headers({ 'x-forwarded-for': 'spoofed, 10.0.0.9', 'x-real-ip': '10.0.0.8' })) === '10.0.0.8', 'the address comes from x-real-ip when the platform sets it');
+ok(limits.clientIp(new Headers({ 'x-forwarded-for': 'spoofed, 10.0.0.9' })) === '10.0.0.9', 'without it, the right-most forwarded entry is used');
+ok(limits.clientIp(new Headers()) === 'unknown', 'no address header gives one shared bucket');
+
+// A wrong password counts the same inside a sandbox namespace, or with a junk sandbox id, as outside one.
+const A = { 'x-forwarded-for': '10.0.0.1' };
+await tryPw('nope', A);
+await runInSandbox('side-test', () => tryPw('nope', A));
+await runInSandbox('__missing__', () => tryPw('nope', A));
+ok(Number(await prodKv.get(limits.ipFailKey('10.0.0.1'))) === 3, 'wrong passwords in a sandbox or junk namespace count toward the same counter');
+for (let i = 0; i < limits.MAX_FAILS - 3; i++) await runInSandbox('side-test', () => tryPw('nope', A));
+ok((await tryPw('pw', A)).status === 429, 'a locked address is refused even with the right password');
+ok((await runInSandbox('__missing__', () => tryPw('pw', A))).status === 429, 'a junk sandbox id does not unlock it');
+await resetHour();
+
+// A forged left-most X-Forwarded-For does not get a fresh counter.
+for (let i = 0; i < limits.MAX_FAILS; i++) await tryPw('nope', { 'x-forwarded-for': `203.0.113.${i}, 10.0.0.2` });
+ok((await tryPw('pw', { 'x-forwarded-for': '203.0.113.99, 10.0.0.2' })).status === 429, 'changing the left-most forwarded entry does not reset the count');
+await resetHour();
+
+// The hourly cap locks every address, with the right password too.
+for (let i = 0; i < limits.MAX_FAILS_PER_HOUR; i++) await tryPw('nope', { 'x-forwarded-for': `10.1.0.${i}` });
+ok((await tryPw('pw', { 'x-forwarded-for': '10.2.0.1' })).status === 429, 'after the hourly cap a fresh address is refused too');
+await resetHour();
+ok((await tryPw('pw', { 'x-forwarded-for': '10.2.0.1' })).status === 200, 'and the password works again once the hour is over');
+
+// The password login can be switched off.
+process.env.ADMIN_PASSWORD_LOGIN = 'off';
+ok((await tryPw('pw', { 'x-forwarded-for': '10.3.0.1' })).status === 403, 'ADMIN_PASSWORD_LOGIN=off refuses the password login');
+delete process.env.ADMIN_PASSWORD_LOGIN;
+
 console.log('auth privacy checks passed');
