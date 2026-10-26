@@ -97,7 +97,7 @@ http.createServer((req, res) => {
     let j; try { j = JSON.parse(body || "[]"); } catch { j = []; }
     let out;
     try { out = req.url.includes('pipeline') ? j.map(c => wrap(run(c))) : wrap(run(j)); }
-    catch (e) { res.statusCode = 400; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ error: String(e.message || e) })); return; }
+    catch (e) { res.statusCode = 400; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ error: e instanceof Error ? e.message : 'mock kv: command failed' })); return; }
     res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(out));
   });
 }).listen(PORT, () => console.log('mock kv on ' + PORT));
