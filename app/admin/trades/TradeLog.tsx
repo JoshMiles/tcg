@@ -8,6 +8,7 @@ import { FLAG_LABEL, tradesToCsv, type FlagKind, type TradeRow } from '@/lib/tra
 import { ReverseTrade } from './ReverseTrade';
 import { blockViewerTradingAction, cancelOneTradeAction, extendOpenTradesAction } from '../trade-actions';
 import { ArmedButton } from '../components/ArmedButton';
+import { Dialog } from '../components/Dialog';
 
 const field = 'input input-sm';
 const STATUSES = ['open', 'accepted', 'declined', 'cancelled', 'expired', 'countered', 'failed'] as const;
@@ -51,12 +52,6 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [now, setNow] = useState(0);
   useEffect(() => setNow(Date.now()), []);
-  useEffect(() => {
-    if (!openId) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenId(null); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [openId]);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -115,15 +110,11 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
       {shown.length > limit && <button type="button" onClick={() => setLimit(l => l + 60)} className="text-xs text-yellow-400 hover:text-yellow-300">Show more ({shown.length - limit} left)</button>}
 
       {selected && (
-        <div className="fixed inset-0 z-40 flex justify-end bg-black/50 backdrop-blur-[2px]" onClick={() => setOpenId(null)}>
-          <aside role="dialog" aria-label="Trade detail" onClick={e => e.stopPropagation()} className="w-full max-w-md h-full overflow-auto bg-gray-950 border-l border-gray-800 p-6 space-y-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${STATUS_STYLE[shownStatus(selected)] ?? ''}`}>{shownStatus(selected)}</span>
-                <h3 className="font-display text-xl font-bold text-white mt-2">{selected.from} {selected.to ? `→ ${selected.to}` : selected.takenBy ? `→ ${selected.takenBy}` : '→ board'}</h3>
-                <p className="text-xs text-gray-500">{selected.kind === 'listing' ? 'Board listing' : 'Direct offer'} · {selected.seasonName}</p>
-              </div>
-              <button type="button" onClick={() => setOpenId(null)} aria-label="Close" className="p-1 text-gray-500 hover:text-white"><Icon name="x" /></button>
+        <Dialog open onClose={() => setOpenId(null)} title={`${selected.from} ${selected.to ? `→ ${selected.to}` : selected.takenBy ? `→ ${selected.takenBy}` : '→ board'}`} size="sm">
+          <div className="p-6 space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`text-[11px] font-bold rounded-full border px-2 py-0.5 ${STATUS_STYLE[shownStatus(selected)] ?? ''}`}>{shownStatus(selected)}</span>
+              <p className="text-xs text-gray-500">{selected.kind === 'listing' ? 'Board listing' : 'Direct offer'} · {selected.seasonName}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -179,8 +170,8 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
               ))}
             </div>
             {msg && <p role="status" className={`text-xs ${msg.ok ? 'text-green-300' : 'text-red-300'}`}>{msg.text}</p>}
-          </aside>
-        </div>
+          </div>
+        </Dialog>
       )}
     </div>
   );

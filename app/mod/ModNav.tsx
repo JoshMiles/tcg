@@ -16,7 +16,7 @@ const ITEMS: { href: string; label: string; icon: IconName; exact?: boolean }[] 
 export function ModNav({ newFeedback = 0 }: { newFeedback?: number }) {
   const path = usePathname();
   return (
-    <nav aria-label="Mod panel" className="no-scrollbar flex items-center gap-1 overflow-x-auto">
+    <nav aria-label="Mod panel" className="no-scrollbar order-last sm:order-none w-full sm:w-auto flex items-center gap-1 overflow-x-auto">
       {ITEMS.map(i => {
         const on = i.exact ? path === i.href : path.startsWith(i.href);
         return (
