@@ -1,6 +1,7 @@
+import Link from 'next/link';
 import { formatBytes, loadDataHealth, BLOB_WARN_BYTES, BLOB_HIGH_BYTES, type HealthLevel } from '@/lib/data-health';
 import { getActiveSeason } from '@/lib/kv';
-import { releaseStuckEscrowAction } from '../trade-actions';
+import { finishMoveAction, releaseStuckEscrowAction } from '../trade-actions';
 import { PendingButton } from '../components/PendingButton';
 import { Panel, Chip } from '../components/ui';
 
@@ -99,6 +100,34 @@ export async function DataHealthPanel() {
             </ul>
           )}
           <span className="block text-xs text-gray-500">Recorded only: the profile was not changed.</span>
+        </dd>
+        <dt className="text-gray-500">Moved aside</dt>
+        <dd className="text-gray-300 mb-1.5 sm:mb-0">
+          {h.asideAccounts.length === 0 ? 'None' : (
+            <ul className="space-y-0.5">
+              {h.asideAccounts.slice(0, 20).map(a => (
+                <li key={a.to} className="tabular-nums">
+                  <Link href={`/admin/users/${encodeURIComponent(a.to)}`} className="underline hover:text-white">{a.to}</Link> was {a.login}, {new Date(a.movedAt).toLocaleString()}: {a.reason}
+                </li>
+              ))}
+              {h.asideAccounts.length > 20 && <li className="text-gray-500">and {n(h.asideAccounts.length - 20)} more</li>}
+            </ul>
+          )}
+        </dd>
+        <dt className="text-gray-500">Unfinished moves</dt>
+        <dd className="text-gray-300 mb-1.5 sm:mb-0">
+          {h.unfinishedMoves.length === 0 ? 'None' : (
+            <ul className="space-y-1.5">
+              {h.unfinishedMoves.map(m => (
+                <li key={m.from} className="flex flex-wrap items-center gap-2">
+                  <span className="tabular-nums">{m.from} to {m.to}: {m.done.length} step{m.done.length === 1 ? '' : 's'} done, started {new Date(m.startedAt).toLocaleString()}</span>
+                  <form action={finishMoveAction.bind(null, m.from)}>
+                    <PendingButton type="submit" className="px-3 py-1.5 text-xs font-bold rounded-lg border border-red-400/40 text-red-100 hover:bg-red-900/40">Finish move</PendingButton>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
         </dd>
       </dl>
     </Panel>

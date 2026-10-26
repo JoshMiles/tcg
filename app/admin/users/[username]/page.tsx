@@ -370,7 +370,7 @@ export default async function UserDetailPage({
         <PullLimitPanel username={username} view={{ own: pullRec.limit, defaultLimit: roleDefault, effective: effective.limit, used: pullsUsed, charging: mix.enabled, buffs: pullRec.buffs.filter(b => b.until === null || b.until > Date.now()) }} />
       </Panel>
 
-      <Panel id="tools" title="Restore points, compare & merge">
+      <Panel id="tools" title="Restore points, compare, merge & move aside">
         <ToolsPanel
           username={username}
           snapshots={snaps.map(s => ({ id: s.id, at: s.at, reason: s.reason, cards: s.collections.reduce((n, c) => n + c.entries.length, 0), seasons: s.collections.map(c => c.seasonName).join(', ') }))}

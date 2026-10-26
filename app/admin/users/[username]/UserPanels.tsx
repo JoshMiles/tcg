@@ -10,7 +10,7 @@ import { ConfirmButton } from '../../components/ConfirmButton';
 import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import {
   addPullBuffAction, removePullBuffAction, setPullLimitAction,
-  cancelUserTradeAction, giftPacksAction, grantManyAction, mergeUserAction, restoreSnapshotAction, saveFlagsAction, saveTagsAction,
+  cancelUserTradeAction, giftPacksAction, grantManyAction, mergeUserAction, moveAsideAction, restoreSnapshotAction, saveFlagsAction, saveTagsAction,
   type UserActionResult,
 } from '../../users-actions';
 
@@ -295,6 +295,23 @@ export function ToolsPanel({ username, snapshots, collections }: { username: str
           </ConfirmButton>
         </form>
       </div>
+
+      {!username.includes('~') && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-white">Move aside</h3>
+          <p className="text-xs text-gray-500">For a login that a different person now plays on: moves this whole account to <span className="font-mono">{username}~1</span> (or the next free number) and frees <strong className="text-gray-300">{username}</strong> for a new account. Open offers are cancelled and refunded first.</p>
+          <form onSubmit={e => { e.preventDefault(); startTransition(async () => setResult(await moveAsideAction(username))); }}>
+            <ConfirmButton
+              title={`Move ${username} aside?`}
+              confirmLabel="Move aside"
+              message={<>The profile, cards ({collections.cards}), editions, settings, notifications and restore points of <strong className="text-white">{username}</strong> move to <strong className="text-white">{username}~1</strong> (or the next free number), which stays hidden from the rankings. Open trade offers are cancelled and refunded, and the login <strong className="text-white">{username}</strong> becomes free for a new account.</>}
+              className={`${btn} hover:border-amber-400/60 hover:text-amber-200`}
+            >
+              {pending && <Spinner />}Move aside…
+            </ConfirmButton>
+          </form>
+        </div>
+      )}
       <Result r={result} />
     </div>
   );

@@ -9,7 +9,7 @@ import { ensureUserProfile, getUserProfile, saveUserProfile } from './kv';
 import { classifySignIn, type SignInKind } from './account-id';
 import { isTwitchId } from './staff-core';
 
-const IDS = 'acct:ids';
+export const IDS = 'acct:ids';
 const CONFLICTS = 'acct:conflicts';
 
 export interface AccountConflict { login: string; storedId: string; newId: string; seen: number; count: number }

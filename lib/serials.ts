@@ -391,6 +391,19 @@ export async function serialStats(c: string): Promise<{ tracking: boolean; minte
   return { tracking, minted: [...n.values()].reduce((s, v) => s + v, 0), live: Number(idx) || 0, retired: Number(ret) || 0 };
 }
 
+/**
+ * A viewer's live copies go to another login (lib/account-move.ts): same ids, `owner` rewritten, the id -> owner index repointed. Retired
+ * copies and every event line keep the old name. Call under the collection lock. Safe to repeat. Returns how many copies moved.
+ */
+export async function renameOwner(c: string, from: string, to: string): Promise<number> {
+  const copies = await readOwner(c, from);
+  if (copies.length === 0) return 0;
+  await kv.hset(key.owner(c, to), Object.fromEntries(copies.map(x => [x.id, { ...x, owner: to }])));
+  await kv.hset(key.idx(c), Object.fromEntries(copies.map(x => [x.id, to])));
+  await kv.del(key.owner(c, from));
+  return copies.length;
+}
+
 /** Deleting a collection (or a whole season's data) clears its ledger too. */
 export async function dropLedger(c: string, users: string[]): Promise<void> {
   try {
