@@ -129,6 +129,32 @@ export async function DataHealthPanel() {
             </ul>
           )}
         </dd>
+        <dt className="text-gray-500">Nightly Twitch check</dt>
+        <dd className="text-gray-300 mb-1.5 sm:mb-0">
+          {!h.helixCheck ? 'Has not run yet' : (
+            <>
+              <p className="tabular-nums">{new Date(h.helixCheck.at).toLocaleString()}: {n(h.helixCheck.checked)} checked, {n(h.helixCheck.missing)} not found on Twitch, {n(h.helixCheck.renamed.length)} renamed</p>
+              {h.helixCheck.error && <p className="text-red-300">{h.helixCheck.error}</p>}
+              {h.helixCheck.renamed.length > 0 && (
+                <ul className="space-y-0.5">
+                  {h.helixCheck.renamed.map(r => (
+                    <li key={r.to}><Link href={`/admin/users/${encodeURIComponent(r.to)}`} className="underline hover:text-white">{r.from} to {r.to}</Link></li>
+                  ))}
+                </ul>
+              )}
+              {h.helixCheck.needsStaff.length > 0 && (
+                <>
+                  <p className="text-amber-300 mt-1">Needs staff (merge by hand):</p>
+                  <ul className="space-y-0.5">
+                    {h.helixCheck.needsStaff.map(s => (
+                      <li key={s.id}><Link href={`/admin/users/${encodeURIComponent(s.login)}`} className="underline hover:text-white">{s.login}</Link> is now {s.twitchLogin} on Twitch: {s.why}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
+        </dd>
       </dl>
     </Panel>
   );

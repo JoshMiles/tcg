@@ -74,6 +74,7 @@ const R: Record<string, Kind[] | { public: string }> = {
   'app/api/upload/route.ts': ['staff'],
   'app/api/upload/token/route.ts': ['staff'],
   // machines: Vercel Cron, Mix It Up with the incoming secret, the OBS overlay with the overlay key
+  'app/api/cron/accounts/route.ts': ['cron'],
   'app/api/cron/backup/route.ts': ['cron'],
   'app/api/cron/minute/route.ts': ['cron'],
   'app/api/cron/weekly/route.ts': ['cron'],

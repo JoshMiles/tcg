@@ -12,7 +12,8 @@ Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then T
 ## Left
 - Clean up worktrees after merge: agent-a83bbd65686488fd1 (47.5), agent-a08e5a069533010f0 (47.7), agent-a58eea7a3802be355 (47.9, merged), agent-ac6df3fb092cd5d75 (46.6, locked). Remove the node_modules junction first.
 - 47.8 PR 2 merged (#501, no review comments).
-- IN PROGRESS: 47.8 PR 3 on branch `47-8-signin-move` (off main 0f529539), built and reviewed (66390b80), verify 101/101; PR being opened. Then PR 4 (start it as soon as PR 3 merges, Josh), then Track 48 (start it as soon as PR 4 merges, Josh; 48.7 needs design with Josh first).
+- 47.8 PR 3 merged (#502, no review comments).
+- IN PROGRESS: 47.8 PR 4 on branch `47-8-helix-check` (off main 661ee9ad), Sonnet subagent building the nightly Helix rename check. Then Track 48 (start it as soon as PR 4 merges, Josh; 48.7 needs design with Josh first).
 - Josh to do: the Vercel Firewall log-only trial rules from docs/hosting.md (#498 is merged, so they can be set up now), and read the CSP report logs after a week.
 - Stale worktrees under .claude/worktrees/ (audit-44-*, twitch-34-*, roadmap-34*, panel-version): clean at the end.
 
@@ -48,4 +49,5 @@ Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then T
 - 2026-10-26: 47.8 PR 2 scope (Opus): journal in hash `acct:moves` (from -> journal) so Data health can list unfinished moves without a scan; moved-aside key is added to the admin hidden list until PR 3's `~` handling; `access:testers` record for the old login is dropped, not moved; no new-account creation or session check in PR 2 (PR 3).
 - 2026-10-26: 47.8 PR 3 design (Opus): `moveAccount` gets a `mode` ('aside' | 'rename') kept in the journal; rename/reclaim may replace a blank target (profile, no cards), carries the tester record, restores the hidden flags saved in `acct:aside`, strips the ' (former)' display suffix. Aside mode appends ' (former)' to displayName and makes the account private instead of a render-time `~` helper. If the new login already has cards, nothing moves automatically; /account tells the player to ask staff to merge. getSession returns null when the profile's Twitch ID differs from the cookie's (one cached read per request). Panel login binds before saving the opaque link.
 - 2026-10-26: 47.8 PR 4 runs as a Vercel cron route (existing app/api/cron/* pattern, lib/cron-auth.ts) (Josh).
+- 2026-10-26: 47.8 PR 4 design (Opus): nightly `/api/cron/accounts` (04:30 UTC, production only) looks up every stored Twitch ID on Helix (`users?id=`, 100 per call); an ID whose current login differs is a rename: move the profile to the new login (rename mode) when it is blank, else list it on Data health for a staff Merge. Capped moves per run; the rest wait a night. This also frees a reused login, so later bot pulls land on a fresh profile.
 - 2026-10-26: Track 47 cleanup keeps two loose ends as ROADMAP items rather than dropping them: 47.10 (security L-2, needs a decision) and 47.11 (CSP and firewall trial readouts, blocked on Josh from 2026-11-02) (Opus).

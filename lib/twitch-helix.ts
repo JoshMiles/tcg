@@ -73,3 +73,25 @@ export async function fetchTwitchAvatars(logins: string[]): Promise<Record<strin
   }
   return out;
 }
+
+/**
+ * Looks up the current login for Twitch user IDs (Helix allows up to 100 per request).
+ * Returns id → lowercase login; an ID Twitch does not return (a deleted or banned account) is simply absent.
+ * Throws on credential/network/API errors.
+ */
+export async function fetchTwitchLoginsById(ids: string[]): Promise<Record<string, string>> {
+  const creds = twitchCredentials();
+  if (!creds) throw new Error('Twitch credentials not configured');
+  const token = await getAppAccessToken(creds.clientId, creds.clientSecret);
+  const out: Record<string, string> = {};
+  for (let i = 0; i < ids.length; i += 100) {
+    const query = ids.slice(i, i + 100).map(id => `id=${encodeURIComponent(id)}`).join('&');
+    const res = await fetch(`${TWITCH_API_URL}/helix/users?${query}`, {
+      headers: { 'Client-ID': creds.clientId, Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Helix error: ${res.status}`);
+    const data = await res.json() as { data?: Array<{ id: string; login: string }> };
+    for (const u of data.data ?? []) out[u.id] = u.login.toLowerCase();
+  }
+  return out;
+}
