@@ -1,7 +1,9 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { connection } from 'next/server';
-import { currentSandboxId } from './db';
+import { currentSandboxId, kv } from './db';
+import { isTwitchId } from './staff-core';
 import { signingKey } from './signing';
 
 // Website login session: a small signed cookie, no database. The payload is signed with a key derived from SESSION_SECRET (HMAC-SHA256, lib/signing.ts),
@@ -59,13 +61,26 @@ export function verifySession(token: string | undefined): Session | null {
   }
 }
 
-/** The logged-in viewer for this request, or null. */
+/** The Twitch ID stored on a login's profile; one read per request however many callers ask. Unreadable counts as no ID (a KV hiccup must not sign everyone out). */
+const storedTwitchId = cache(async (username: string): Promise<unknown> => {
+  try { return (await kv.get<{ twitchId?: unknown }>(`user:${username}:profile`))?.twitchId; } catch { return undefined; }
+});
+
+/**
+ * The logged-in viewer for this request, or null. A cookie is only good while the profile it names still belongs to the same Twitch account:
+ * if the login was moved aside or taken over (lib/account-move.ts) the stored ID differs and the cookie is ignored until a fresh sign-in replaces it
+ * (a server component cannot clear it). A session or profile without a usable ID, and sandbox logins, are not checked.
+ */
 export async function getSession(): Promise<Session | null> {
   const jar = await cookies();
   await connection(); // verifySession reads the clock; a prerender must stop at the cookie read
   const session = verifySession(jar.get(SESSION_COOKIE)?.value);
   // A sandbox test login is useless (and ignored) outside its sandbox, so it can't be mistaken for a real viewer on production.
   if (session?.sandbox && (await currentSandboxId()) !== session.sandbox) return null;
+  if (session && !session.sandbox && isTwitchId(session.twitchId)) {
+    const stored = await storedTwitchId(session.username);
+    if (isTwitchId(stored) && stored !== session.twitchId) return null;
+  }
   return session;
 }
 

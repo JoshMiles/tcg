@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
 
   // The fake Twitch page's token already names who is logging in (sandbox only), so there is no Helix lookup.
   if (payload.mock && payload.login) {
+    await bindAccount(payload.login, numericUserId); // before the link is saved: a move removes the links to the login it moves
     await saveTwitchOpaqueUser(payload.opaque_user_id, payload.login);
-    await bindAccount(payload.login, numericUserId);
     return NextResponse.json({ username: payload.login });
   }
 
@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Could not resolve Twitch username' }, { status: 502 });
   }
 
-  await saveTwitchOpaqueUser(payload.opaque_user_id, username);
   await bindAccount(username, numericUserId);
+  await saveTwitchOpaqueUser(payload.opaque_user_id, username);
 
   return NextResponse.json({ username });
 }

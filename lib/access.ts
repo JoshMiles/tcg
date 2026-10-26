@@ -116,6 +116,13 @@ export async function deleteTesterRecord(login: string): Promise<void> {
   try { await prodKv.hdel(TESTERS, login.toLowerCase()); } catch { /* best effort */ }
 }
 
+/** A tester record follows its account to a new login (lib/account-move.ts). */
+export async function putTesterRecord(login: string, record: TesterRecord): Promise<void> {
+  const l = cleanLogin(login);
+  if (!l) return;
+  try { await prodKv.hset(TESTERS, { [l]: { ...record, login: l } }); } catch { /* best effort */ }
+}
+
 // ── Who may enter ──
 /** The access tier for a signed-in viewer, from the live staff and tester lists. */
 export async function tierFor(session: Pick<Session, 'username' | 'twitchId' | 'sandbox'> | null): Promise<AccessTier | null> {

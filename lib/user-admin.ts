@@ -49,7 +49,7 @@ export async function getHiddenUsers(): Promise<Set<string>> {
 }
 
 /** Only the ones an admin hid (viewers who chose a private profile are tracked separately). */
-async function getAdminHidden(): Promise<Set<string>> {
+export async function getAdminHidden(): Promise<Set<string>> {
   try {
     const [old, members] = await Promise.all([kv.get<string[]>(HIDDEN_KEY), kv.smembers(HIDDEN_SET)]);
     return new Set([...(Array.isArray(old) ? old : []), ...members.map(String)]);

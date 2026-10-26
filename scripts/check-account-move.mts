@@ -53,7 +53,8 @@ interface Before { idx: number[]; minted: string[]; ret: number[]; owned: string
 let n = 0;
 
 /** A viewer with a bit of everything: cards in two seasons, offers (one finished, two open), settings, notices, a staff record, a Discord link... */
-async function seed(login: string): Promise<{ id: string; before: Before }> {
+/** `plain`: not private and not hidden, so a rename that does not force anything can be told from one that does. */
+async function seed(login: string, plain = false): Promise<{ id: string; before: Before }> {
   const id = `4242${n++}`;
   for (const [i, c] of C.entries()) {
     const data = await kvLib.getCollection(c);
@@ -62,8 +63,8 @@ async function seed(login: string): Promise<{ id: string; before: Before }> {
     await kvLib.saveCollection(c, data);
   }
   await kvLib.saveUserProfile({ username: login, displayName: 'Mover', twitchId: id, createdAt: 1, tags: ['vip'] });
-  await saveUserSettings(login, { bio: 'hi', privateProfile: true, wanted: [3], watches: [{ card: 5, variant: null }] });
-  await setHidden(login, true);
+  await saveUserSettings(login, { bio: 'hi', privateProfile: !plain, wanted: [3], watches: [{ card: 5, variant: null }] });
+  if (!plain) await setHidden(login, true);
   const stack = (cardNumber: number) => [{ cardNumber, variant: 'regular' as const, count: 1 }];
   const mk = (from: string, to: string, give: number, get: number) => trades.createTrade({ seasonId: seasons[0].id, from, kind: 'direct', to, give: stack(give), get: stack(get) });
   const done = await mk(login, 'pal', 2, 3);
@@ -119,7 +120,8 @@ async function baseline(owned: string[][]): Promise<Before> {
 }
 
 /** Everything the move promises, checked the same way after a clean move and after a resumed one. */
-async function assertMoved(login: string, to: string, id: string, before: Before, label: string) {
+async function assertMoved(login: string, to: string, id: string, before: Before, label: string, o: { mode?: 'aside' | 'rename'; hidden?: boolean } = {}) {
+  const mode = o.mode ?? 'aside', wantHidden = o.hidden ?? true;
   const at = (m: string) => `${label}: ${m}`;
   // The ledger: same number of prints, same minted counts, nothing retired, no escrow left, idx and the owner hashes agree.
   for (const [i, c] of C.entries()) {
@@ -152,8 +154,10 @@ async function assertMoved(login: string, to: string, id: string, before: Before
   // The new login has it all.
   const p = await kvLib.getUserProfile(to);
   ok(p?.username === to && p.twitchId === id && p.tags?.[0] === 'vip', at('the profile moved, renamed, ID kept'));
+  eq(p?.displayName, mode === 'aside' ? 'Mover (former)' : 'Mover', at('the display name is tagged (former) only when moved aside'));
   const st = await loadUserSettings(to);
-  ok(st.bio === 'hi' && st.privateProfile && st.wanted[0] === 3, at('settings moved'));
+  ok(st.bio === 'hi' && st.privateProfile === wantHidden && st.wanted[0] === 3, at('settings moved, private as expected'));
+  ok(((await kv.smembers('users:hidden:self')) as string[]).includes(to) === wantHidden && !((await kv.smembers('users:hidden:self')) as string[]).includes(login), at('the private set follows'));
   ok(Object.keys(((await kv.hgetall(`user:${to}:ach`)) ?? {})).length > 0, at('achievements moved'));
   const notices = ((await kv.lrange(`notif:${to}`, 0, -1)) ?? []) as { id?: string }[];
   ok(notices.length >= before.notices! && notices.some(x => x.id === 'n1'), at('notifications moved'));
@@ -173,7 +177,7 @@ async function assertMoved(login: string, to: string, id: string, before: Before
 
   // Hidden, trades, registry, access.
   const hidden = await getHiddenUsers();
-  ok(hidden.has(to) && !hidden.has(login), at('the new login is hidden, the old one is not'));
+  ok(hidden.has(to) === wantHidden && !hidden.has(login), at('the new login is hidden as expected, the old one is not'));
   const open = await trades.listOpenTrades();
   ok(!open.some(t => t.from === login || t.to === login || t.from === to || t.to === to), at('open offers were cancelled'));
   const history = await trades.tradeHistory();
@@ -181,9 +185,11 @@ async function assertMoved(login: string, to: string, id: string, before: Before
   ok(history.filter(t => t.from === to || t.to === to).length === 3, at('trade history names the new login in all three offers'));
   ok((await kv.hget('acct:ids', id)) === to, at('acct:ids points the Twitch ID at the new login'));
   const aside = ((await kv.hget('acct:aside', to)) as { id: string; login: string; reason: string } | null);
-  ok(aside?.id === id && aside.login === login && aside.reason.length > 0, at('acct:aside records the move'));
-  ok(((await prodKv.hget('staff:ids', login)) as { id?: string } | null)?.id === id, at('the staff record is pinned to the Twitch ID'));
-  ok(!(await getTester(login)), at('the tester record is gone'));
+  if (mode === 'aside') ok(aside?.id === id && aside.login === login && aside.reason.length > 0, at('acct:aside records the move'));
+  else ok(aside === null && (await kv.hget('acct:aside', login)) === null, at('a rename leaves no aside record, and a restore deletes it'));
+  if (!login.includes('~')) ok(((await prodKv.hget('staff:ids', login)) as { id?: string } | null)?.id === id, at('the staff record is pinned to the Twitch ID'));
+  ok(!(await getTester(login)), at('the old login has no tester record'));
+  eq((await getTester(to))?.tier ?? null, mode === 'aside' ? null : 'alpha', at('the tester record follows a rename, never a move aside'));
   ok((await allKeys('twitch_opaque:*')).length === 0 || (await kv.get(`twitch_opaque:U${id}`)) === null, at('the extension link is gone'));
   ok((await kv.hget('acct:moves', login)) === null && !(await move.listUnfinishedMoves()).some(m => m.from === login), at('the journal is cleared'));
 }
@@ -217,6 +223,56 @@ for (const [i, point] of points.entries()) {
   await assertMoved(login, to, id, before, `after ${point}`);
 }
 
+// ── Moving aside makes the account hidden, private and tagged "(former)"; restoring it (a rename back) hands back what it was ──
+{
+  const login = 'plain0';
+  const { id, before } = await seed(login, true);
+  ok((await move.moveAside(login, 'plain')).ok, 'a plain account moves aside');
+  await assertMoved(login, `${login}~1`, id, before, 'plain aside', { mode: 'aside', hidden: true });
+  eq(((await kv.hget('acct:aside', `${login}~1`)) as { flags: unknown }).flags, { adminHidden: false, selfHidden: false }, 'the flags it had are saved in the aside record');
+  ok(((await move.getAsideAccount(`${login}~1`))?.tester?.tier) === 'alpha', 'its dropped tester record is saved there too');
+  // The owner returns under another login that holds a blank profile (no cards): the restore replaces it and clears the forced flags.
+  await kvLib.saveUserProfile({ username: 'plainnew', displayName: 'Blank New', twitchId: id, createdAt: 2 });
+  const back = await move.moveAccount(`${login}~1`, 'plainnew', { mode: 'rename', replaceBlank: true, reason: 'Restored by its owner' });
+  ok(back.ok && back.to === 'plainnew', `the restore works (${JSON.stringify(back)})`);
+  await assertMoved(`${login}~1`, 'plainnew', id, before, 'plain restore', { mode: 'rename', hidden: false });
+  ok(!(await move.getAsideAccount(`${login}~1`)) && !(await move.listAsideAccounts()).some(a => a.to === `${login}~1`), 'the aside record is deleted');
+}
+{
+  const login = 'recl1'; // private and admin-hidden before it was moved aside: both come back
+  const { id, before } = await seed(login);
+  ok((await move.moveAside(login, 'again')).ok, 'a hidden, private account moves aside');
+  eq(((await kv.hget('acct:aside', `${login}~1`)) as { flags: unknown }).flags, { adminHidden: true, selfHidden: true }, 'its flags are saved');
+  const back = await move.moveAccount(`${login}~1`, 'back1', { mode: 'rename', replaceBlank: true, reason: 'Restored by its owner' });
+  ok(back.ok, 'it is restored onto a login with no profile at all');
+  await assertMoved(`${login}~1`, 'back1', id, before, 'hidden restore', { mode: 'rename', hidden: true });
+}
+
+// ── A rename (Twitch changed the login) moves a normal login and forces nothing ──
+for (const [i, plain] of [true, false].entries()) {
+  const login = `ren${i}`, to = `mv${i}`;
+  const { id, before } = await seed(login, plain);
+  const r = await move.moveAccount(login, to, { mode: 'rename', replaceBlank: true, reason: 'Twitch name changed' });
+  ok(r.ok && r.to === to, `the rename works (${JSON.stringify(r)})`);
+  await assertMoved(login, to, id, before, `rename ${i}`, { mode: 'rename', hidden: !plain });
+  ok(!(await move.listAsideAccounts()).some(a => a.to === to), 'a rename is not listed as moved aside');
+}
+{
+  // A rename that stops part way finishes through its journal with the same mode (and the tester record and flags it read at the start).
+  for (const [i, point] of ['collections', 'user', 'shared', 'registry'].entries()) {
+    const login = `renres${i}`, to = `rr${i}to`;
+    const plain = i % 2 === 0;
+    const { id, before } = await seed(login, plain);
+    await kvLib.saveUserProfile({ username: to, displayName: 'Blank', twitchId: id, createdAt: 2 });
+    const first = await move.moveAccount(login, to, { mode: 'rename', replaceBlank: true, reason: 'resume rename', failAfter: point });
+    ok(!first.ok, `the rename stops after ${point}`);
+    ok((await move.listUnfinishedMoves()).some(m => m.from === login && m.mode === 'rename' && m.replaceBlank), `${point}: the journal keeps the mode`);
+    const second = await move.finishMove(login);
+    ok(second.ok && second.to === to, `${point}: the rename finishes (${JSON.stringify(second)})`);
+    await assertMoved(login, to, id, before, `rename after ${point}`, { mode: 'rename', hidden: !plain });
+  }
+}
+
 // ── Refusals and names ──
 ok(!(await move.moveAccount('mover0~1', 'anything', { reason: 'x' })).ok, 'a ~ login is refused as a source');
 ok(!(await move.moveAside('mover0~1', 'x')).ok, 'moveAside refuses a ~ login too');
@@ -233,6 +289,11 @@ const cardsTarget = 'pal';
 ok(!(await move.moveAccount('solo~2', cardsTarget, { reason: 'x' })).ok, 'a ~ source is refused even with a real target');
 await kvLib.saveUserProfile({ username: 'lone', displayName: 'Lone', createdAt: 1 });
 ok(!(await move.moveAccount('lone', 'pal', { reason: 'x' })).ok, 'a target that holds cards is refused');
+ok(!(await move.moveAccount('lone', 'pal', { mode: 'rename', replaceBlank: true, reason: 'x' })).ok, 'a blank-replacing move still refuses a target that holds cards');
+ok(!(await move.moveAccount('lone', 'lone~1', { mode: 'rename', reason: 'x' })).ok, 'a rename never targets a ~ login');
+await kvLib.saveUserProfile({ username: 'blankt', displayName: 'Blank', createdAt: 1 });
+ok(!(await move.moveAccount('lone', 'blankt', { mode: 'rename', reason: 'x' })).ok, 'a target profile is only replaced when asked to');
+ok(!!(await kvLib.getUserProfile('lone')) && (await kvLib.getUserProfile('blankt'))?.displayName === 'Blank', 'the refusals changed nothing');
 eq(await move.listUnfinishedMoves(), [], 'no unfinished moves are left');
 
 console.log(`check-account-move: ${checks} checks passed`);

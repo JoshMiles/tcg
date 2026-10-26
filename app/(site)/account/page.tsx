@@ -19,6 +19,7 @@ import { SITE_URL } from '@/lib/site';
 import { profileHref } from '@/lib/profile-url';
 import { ShareImageButton } from '@/app/components/ShareImage';
 import { ScoreChart } from './ScoreChart';
+import { EarlierCollection } from './EarlierCollection';
 import { WantToggle } from './WantToggle';
 import { getCollection } from '@/lib/kv';
 import { topPrintLinks } from '@/lib/top-prints';
@@ -34,8 +35,8 @@ import { getHoloResolver } from '@/lib/holo';
 
 export const metadata: Metadata = { title: 'My Stats', robots: { index: false, follow: false } };
 
-export default async function AccountPage({ searchParams }: { searchParams: Promise<{ season?: string }> }) {
-  const { season: seasonParam } = await searchParams;
+export default async function AccountPage({ searchParams }: { searchParams: Promise<{ season?: string; restored?: string }> }) {
+  const { season: seasonParam, restored } = await searchParams;
   const holoFor = await getHoloResolver();
   const session = await getSession();
   if (!session) redirect('/auth/twitch?returnTo=/account');
@@ -58,6 +59,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
     return (
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
         {header}
+        <EarlierCollection session={session} restored={restored} />
         <p className="rind rounded-2xl p-8 text-center text-gray-400">No season is running right now, so there&rsquo;s nothing to show yet.</p>
       </div>
     );
@@ -136,6 +138,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
       <PushPrompt />
       <DiscordPrompt />
+      <EarlierCollection session={session} restored={restored} />
       <div className="flex flex-wrap items-center justify-between gap-4">
         {header}
         <div className="flex flex-wrap gap-2">
