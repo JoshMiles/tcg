@@ -22,7 +22,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
 | 43.4 | Bring the other packages up to date | Done | S |
-| 43.5 | Move to TypeScript 7 | Ready | S |
+| 43.5 | Move to TypeScript 7 | Done | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Blocked (panel freeze) | S |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
@@ -77,11 +77,8 @@ Checked against the code on 2026-10-25, most of the 16 breaking changes need not
 3. **Not TypeScript 7** in this item: it is the new native compiler, a bigger change than a version bump. Check whether Next 16.4 supports it and plan it as its own item if so.
 4. The npm CLI itself (11 locally, 12 is out) is a local tool, not a project dependency; update it with `npm i -g npm` whenever, nothing in the repo changes.
 
-### 43.5 Move to TypeScript 7 (Ready, S)
-TypeScript 7 is the native (Go) compiler, GA since July 2026. Next 16.3 and later type-check with it only behind `experimental.useTypeScriptCli: true` in `next.config.ts`; without the flag `next build` stops and says so. Nothing in the repo imports the `typescript` compiler API (TS 7 has no stable one yet), and `tsx` strips types without it.
-1. Bump `typescript` to 7 and set the flag. `npm run verify` (its `tsc --noEmit`) and `npm run build` both pass, with the same errors caught: break a type on purpose once and check both report it.
-2. `rm -rf .next` before comparing, and note the type-check time before and after in the PR.
-3. If the flag misbehaves or a type error shows only on 5.9, stay on 5.9 and write down why here.
+### 43.5 Move to TypeScript 7 (Done, S)
+TypeScript 7 is the native (Go) compiler, GA since July 2026, and has no compiler API. Next 16.4 type-checks by running `tsc` (`experimental.useTypeScriptCli` is on by default in 16.4, so `next.config.ts` needs nothing), nothing in the repo imports the `typescript` API, and `tsx` strips types without it. So the move is the version bump alone. If a type error ever shows only on 5.9, or a tool needs the API, pin `typescript` back to 5.9.
 
 ### 43.3 Rename `middleware.ts` to `proxy.ts` (Blocked by the panel freeze, S)
 The file holds the extension's CORS rules, so it waits for the freeze to lift. `proxy.ts` runs on Node only; today the file runs on edge and reads through `lib/admin-auth-edge` and `lib/access-edge`. Rename the file and its export (the codemod does both), then test the admin and mod gates, the access gate and the `/api/twitch/*` CORS answers (the panel's requests from the Twitch origin) on a preview deployment. Drop the `-edge` variants only if nothing else uses them.
