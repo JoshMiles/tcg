@@ -120,7 +120,13 @@ export function TradeComposer({
   const givePts = stackPoints(give, byNumber, minePool);
   const getPts = stackPoints(get, byNumber, kind === 'direct' ? partnerPool : undefined);
   const verdict = fairness(givePts, getPts);
-  const ready = give.length > 0 && get.length > 0 && (kind === 'listing' || !!to.trim()) && (!verdict.warn || okLopsided);
+  // Why the send button is off (empty once it is ready).
+  const notReady = give.length === 0 ? 'Pick a card to give'
+    : get.length === 0 ? 'Pick a card you want'
+    : kind !== 'listing' && !to.trim() ? 'Say who the offer is for'
+    : verdict.warn && !okLopsided ? 'Tick the box above to send a lopsided offer'
+    : '';
+  const ready = !notReady;
 
   // Quick picks from the Looking for lists: what they want that you own, and what you want that they have.
   const bestOwned = (n: number): Variant | null => VARIANTS.find(v => giveAvail(n, v) > 0) ?? null;
@@ -254,7 +260,8 @@ export function TradeComposer({
           <input value={note} maxLength={140} onChange={e => setNote(e.target.value)} placeholder="e.g. my last Full Art Holo for your Full Art?" className={`${input} w-full`} />
         </fieldset>
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={send} disabled={!ready || busy} className="btn btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm disabled:opacity-50">{busy ? <><Spinner /> Sending…</> : counter ? 'Send counter-offer' : kind === 'listing' ? 'Post to the board' : 'Send offer'}</button>
+          <button type="button" onClick={send} disabled={!ready || busy} title={notReady || undefined} className="btn btn-primary inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm">{busy ? <><Spinner /> Sending…</> : counter ? 'Send counter-offer' : kind === 'listing' ? 'Post to the board' : 'Send offer'}</button>
+          {notReady && <span className="text-xs font-semibold text-amber-300">{notReady}.</span>}
           <span className="text-xs text-gray-500">Lasts {expiryHours}h. You can cancel any time to get your cards back.</span>
         </div>
         {error && <p role="alert" className="text-sm text-red-400">{error}</p>}

@@ -389,16 +389,20 @@ fieldset.card { display: block; }
     box-shadow 0.08s,
     filter 0.15s;
 }
-.btn.btn-primary:is(.rounded-lg, .rounded-xl, .rounded-full):hover {
+.btn.btn-primary:is(.rounded-lg, .rounded-xl, .rounded-full):hover:not(:disabled) {
   filter: brightness(1.06);
 }
-.btn.btn-primary:is(.rounded-lg, .rounded-xl, .rounded-full):active {
+.btn.btn-primary:is(.rounded-lg, .rounded-xl, .rounded-full):active:not(:disabled) {
   transform: translateY(2px);
   box-shadow: 0 1px 0 0 #b88a00;
 }
+/* Off: daisyUI would fade the label to 20%, an empty gold box. Keep the dark label, dim the whole button,
+   and let the pointer through so the button's title (why it is off) shows on hover. */
 .btn.btn-primary:is(.rounded-lg, .rounded-xl, .rounded-full):disabled {
-  opacity: 0.5;
-  pointer-events: none;
+  opacity: 0.6;
+  color: var(--color-primary-content);
+  cursor: not-allowed;
+  pointer-events: auto;
 }
 
 /* daisyUI table paints its own type size, header colour and cell padding. A utility on the same cell decides. */

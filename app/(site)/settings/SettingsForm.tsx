@@ -188,7 +188,7 @@ export function SettingsForm({ initial, username, cards, isStaff = false }: { in
         </p>
         <div className="flex gap-2">
           <button type="button" disabled={!dirty} onClick={() => { setS(saved); setState({ kind: 'idle' }); }} className="rounded-xl px-3 py-2 text-sm text-gray-300 hover:text-white disabled:opacity-40">Discard</button>
-          <button type="submit" disabled={!dirty || state.kind === 'saving'} className="btn btn-primary rounded-xl px-5 py-2 text-sm disabled:opacity-50">Save</button>
+          <button type="submit" disabled={!dirty || state.kind === 'saving'} title={dirty ? undefined : 'Nothing to save, change a setting first'} className="btn btn-primary rounded-xl px-5 py-2 text-sm">Save</button>
         </div>
       </div>
     </form>
