@@ -318,7 +318,7 @@ function content(e: BackEl, back: FlipBack, style: CardBackStyle, compact: boole
     case 'date': return back.date ? { tag: 'p', cls: 'flip-date', text: `${back.est ? 'NUMBERED' : 'PULLED'} ${back.date}` } : null;
     case 'origin': { const t = [back.origin, back.holder ? `Held by ${back.holder}` : null].filter(Boolean).join(' · '); return !compact && t ? { tag: 'p', cls: 'flip-line small', text: t } : null; }
     case 'history': return !compact && back.history && back.history.length > 0 ? { tag: 'ul', cls: 'flip-hist', items: back.history } : null;
-    case 'qr': return !compact && back.qrUrl ? { tag: 'qr', cls: 'flip-qr', qrUrl: back.qrUrl } : null;
+    case 'qr': return back.qrUrl ? { tag: 'qr', cls: 'flip-qr', qrUrl: back.qrUrl } : null;
     case 'link': return back.href ? { tag: 'a', cls: 'flip-link', text: 'Full history ›', href: back.href } : null;
     case 'image': return e.url ? { tag: 'img', cls: '', src: e.url } : null;
     case 'shape': return e.shape ? { tag: 'shape', cls: '' } : null;

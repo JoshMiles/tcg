@@ -43,7 +43,8 @@ ok(cb.resolveCardBack(null, { packName: 'P' }) === undefined, 'no stored design 
 const kinds = (s: ReturnType<typeof cb.sanitizeCardBack>, p: Record<string, unknown> = PRINT, o = {}) => lay.layoutBack({ ...s, packName: 'Base', seasonName: 'S1' }, p as typeof PRINT, SIZE, o).map(n => n.kind).join();
 ok(kinds(cb.DEFAULT_CARD_BACK) === 'brand,number,edition,name,date,origin,history,qr,link', 'the classic plate: site name, number, edition, name, date, origin, history, QR, link, in that order');
 ok(kinds(cb.DEFAULT_CARD_BACK, { ...PRINT, uid: undefined, total: undefined, date: undefined, origin: undefined, holder: undefined, history: undefined, href: undefined, qrUrl: undefined }) === 'brand,number,name,qr,link', 'an empty print keeps the footer row but drops what is missing');
-ok(kinds(cb.DEFAULT_CARD_BACK, PRINT, { compact: true }) === 'brand,number,edition,name,date,qr,link', 'a compact back hides origin and history, and the QR code has nothing to draw (the footer row stays)');
+ok(kinds(cb.DEFAULT_CARD_BACK, PRINT, { compact: true }) === 'brand,number,edition,name,date,qr,link', 'a compact back hides origin and history (the footer row stays)');
+ok(lay.layoutBack({ ...cb.DEFAULT_CARD_BACK, packName: 'Base', seasonName: 'S1' }, PRINT as typeof PRINT, SIZE, { compact: true }).some(n => n.kind === 'qr' && n.qrUrl === PRINT.qrUrl), 'a compact back keeps its QR code');
 
 // Every v1 design renders as it did: the plate, the per-element colours, shadows, sizes and fonts equal the v1 variables.
 const designs: [string, unknown][] = [
