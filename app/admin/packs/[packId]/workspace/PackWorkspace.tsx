@@ -301,7 +301,7 @@ export function PackWorkspace({ packId, initial, seasons, overrideCount, cardBac
           <button type="button" onClick={undo} disabled={past.current.length === 0} aria-label="Undo" title="Undo (Ctrl+Z)" className="p-2 rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40 hover:border-gray-500"><Icon name="undo" /></button>
           <button type="button" onClick={redo} disabled={future.current.length === 0} aria-label="Redo" title="Redo (Ctrl+Shift+Z)" className="p-2 rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40 hover:border-gray-500"><Icon name="redo" /></button>
           {!isDraft && <button type="button" onClick={() => setReviewOpen(true)} disabled={!dirty} className="px-3 py-2 text-sm font-semibold rounded-lg border border-gray-700 text-gray-200 disabled:opacity-40 hover:border-gray-500">Review changes{dirty ? ` (${review.length})` : ''}</button>}
-          {!isDraft && <button type="button" onClick={() => void doSave()} disabled={!dirty || saving || blocked || !!conflict} className="px-4 py-2 btn btn-primary rounded-lg text-sm disabled:opacity-50">{saveLabel}</button>}
+          {!isDraft && <button type="button" onClick={() => void doSave()} disabled={!dirty || saving || blocked || !!conflict} title={saving ? 'Saving' : !dirty ? 'No changes to save' : conflict ? 'Someone else changed this pack, see the banner below' : blocked ? 'Fix the marked cards or the pack name first' : undefined} className="px-4 py-2 btn btn-primary rounded-lg text-sm">{saveLabel}</button>}
           {isDraft && (
             <details className="relative">
               <summary
