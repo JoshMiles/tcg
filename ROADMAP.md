@@ -26,10 +26,11 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 43.5 | Move to TypeScript 7 | Done | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Ready | S |
 | 46 | Data correctness (46.1 to 46.7) | Ready | S to M |
-| 47 | Access hardening (47.1 to 47.8) | Ready (47.8 needs a decision) | M |
-| 48 | KV efficiency (48.1 to 48.5) | Ready | M |
-| 49 | Mod panel UI and cleanup (49.1 to 49.5) | Ready | S |
-| 50 | Features and trials (50.1 to 50.7) | Ready (50.4 needs design) | M |
+| 47 | Access hardening (47.1 to 47.9) | Ready (47.8 needs a decision) | M |
+| 48 | KV efficiency (48.1 to 48.7) | Ready (48.7 needs design) | M to L |
+| 49 | Mod panel UI, cleanup and polish (49.1 to 49.6) | Ready | S |
+| 50 | Player features and trials (50.1 to 50.13) | Ready (50.3 needs design) | M |
+| 51 | Staff and admin tools (51.1 to 51.14) | Ready | M |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -104,7 +105,7 @@ The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34
 
 ## Audit follow-up (2026-10-26)
 
-Tracks 45 to 50 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Order: 45, 34.8, then 46, 47, 48; 49 and 50 fit in between. One item per PR unless it says otherwise.
+Tracks 45 to 51 come from the Track 44 audits (44.6 triage, Josh picked on 2026-10-26). Each item names its findings by audit and id; the evidence, file:line and the fix sketch are in `docs/archive/audit-2026-<area>.md` (`public-site`, `admin`, `mod-panel`, `twitch-panel`, `security`). Read the finding before starting. Items with no audit id were proposed in the triage and picked by Josh. Order: 45, 34.8, then 46, 47, 48; 49, 50 and 51 fit in between. One item per PR unless it says otherwise.
 
 ### Track 45: held security fixes and asset deletion (Ready, do first)
 The details of 45.1 to 45.3 are in the gitignored `SECRETS.md` at the main checkout (Opus hands them to the agent in its brief). The repo is public: the PR title, body, commit messages and changelog line describe the fix, never how it could be abused, and the finding stays out of every public file until it is merged.
@@ -132,6 +133,8 @@ The details of 45.1 to 45.3 are in the gitignored `SECRETS.md` at the main check
 - **47.7 Small hardening (S, one PR).** public-site L-1 (sandbox exit, one line: `safeReturnTo`), L-5, L-6, L-7 (with public-site U-1, friendly error toasts), L-8; security L-2, L-6, L-10.
 - **47.8 Profiles tied to the Twitch account ID (Needs a decision, M).** security M-1 and X-3. Josh decides what happens when a new account signs in with a name an old profile holds (refuse, or move the old profile aside). Start with the trial: record the ID on every sign-in for a month and count conflicts.
 
+- **47.9 One rate limiter, and a firewall trial (S).** security C-2 (`rateLimit(name, key, max, windowS)` in `prodKv` for login, incoming webhooks and the panel routes) and X-2 (Vercel Firewall rules for login and webhook paths, log-only for a week; success: no real overlay, panel or webhook traffic flagged). After 45.3.
+
 ### Track 48: KV efficiency (Ready)
 Measure before and after with static counts or the mock KV; fold anything 40.2f covers into it rather than doing it twice.
 - **48.1 Per-request `cache()` on the hot readers (S).** public-site M-3, C-1.
@@ -140,22 +143,50 @@ Measure before and after with static counts or the mock KV; fold anything 40.2f 
 - **48.4 Batch profile and avatar reads (S).** public-site M-6, C-4; admin A-4, C-2, A-9; mod-panel M-7, C3, L-14, L-15.
 - **48.5 Cheaper polling and sweeps (S to M).** admin A-6, A-7, C-1, E-1, U-3; public-site L-10, L-11, L-12; twitch-panel L-6, L-7.
 
-### Track 49: mod panel UI and cleanup (Ready)
+- **48.6 Trial: CDN-cached leaderboard (M, one week).** public-site E-2: `/leaderboard` JSON with `s-maxage=20` instead of the per-instance cache. Success: KV commands per minute fall in the Upstash dashboard. Fold into 40.2f if it covers it.
+- **48.7 Editions under per-viewer keys (Needs design, L).** admin E-2, public-site C-5: one key per viewer and season instead of one season blob. Touches draws, trades, the leaderboard and backups; plan the migration with Josh first.
+
+### Track 49: mod panel UI, cleanup and polish (Ready)
 - **49.1 Honest trade log (S).** mod-panel M-6, L-3, U1.
 - **49.2 Act on both sides of a trade, season on every row (S).** mod-panel M-5, L-4, L-5, U2, U3.
 - **49.3 Accessible drawer, mod bar on phones, overview tiles (S).** mod-panel L-13, U4, L-12, U5, L-2, U6.
 - **49.4 Delete dead routes and code (S).** admin A-11, A-12, C-5 (import-legacy, seed); security L-12; public-site L-14, C-6 (shared buttons out of `app/admin`); admin A-10, U-2 (dashboard `btn`).
 - **49.5 Docs and copy that drift (S).** mod-panel L-11; public-site L-15, U-4 (Discord copy from `CHANNEL_NAME`); twitch-panel L-9 after 47.4.
 
-### Track 50: features and trials (Ready unless marked)
+- **49.6 UX polish (S, one PR per area).** Site: public-site U-2 (`loading.tsx` for profile, dex and copy pages), security U-2 (private profile explainer), U-3 (a clear "not allowed" page for staff). Panel, next panel version: twitch-panel UI and UX 1 to 4 ("Link my Twitch account" button, focus kept in card details, "Updated N ago", note length hint).
+
+### Track 50: player features and trials (Ready unless marked)
 Trials run for the time given, then Josh keeps, changes or drops them.
-- **50.1 Staff actions in the Discord admin log (S).** mod-panel F1, security F-1: restrictions, cancels, blocks, reversals and every emergency password login post one line with who and why.
-- **50.2 Panel quick wins (S, next panel version).** twitch-panel Feature improvements 1 to 3 (new since last visit, your own row on the Board, offers waiting badge).
-- **50.3 Trial: browse before linking (S, next panel version, 4 weeks).** twitch-panel Experimental 1: Board and a read-only dex before the identity share prompt. Success: more identity shares per panel open.
-- **50.4 Swap finder on the trade board (Needs design, M).** public-site E-3: viewers who hold a card you want and want one you hold. Trial as a read-only list for the signed-in viewer; success: trades started from it.
-- **50.5 Ownership history on the copy page (M).** public-site F-2: every collector who held this edition, from the copy ledger; private profiles show as a private collector.
-- **50.6 Trial: mod stream desk (S to M, 4 weeks).** mod-panel E1: read-only overlay status, pulls paused and queue length on `/mod`. Success: mods use it during streams (ask them).
-- **50.7 Trial: timed restrictions (S, one season).** mod-panel E2: an optional `until` on trade restrictions that lifts itself. Success: fewer manual lifts.
+- **50.1 Panel quick wins (S, next panel version).** twitch-panel Feature improvements 1 to 3 (new since last visit, your own row on the Board, offers waiting badge).
+- **50.2 Trial: browse before linking (S, next panel version, 4 weeks).** twitch-panel Experimental 1: Board and a read-only dex before the identity share prompt. Success: more identity shares per panel open.
+- **50.3 Swap finder on the trade board (Needs design, M).** public-site E-3: viewers who hold a card you want and want one you hold. Trial as a read-only list for the signed-in viewer; success: trades started from it.
+- **50.4 Ownership history on the copy page (M).** public-site F-2: every collector who held this edition, from the copy ledger; private profiles show as a private collector.
+- **50.5 Trial: Looking for match alert in the panel (S, next panel version, 4 weeks).** twitch-panel Experimental 3: mark the Trades tab when a board offer gives a card on the viewer's Looking for list, worked out only when the tab opens. Success: offers accepted from those matches.
+- **50.6 Alert health and View as public (S).** public-site F-1 (how many cards you watch and when an alert last fired, on `/settings`) and F-3 (a "View as public" toggle on your own profile).
+- **50.7 Sign out everywhere (M).** security F-2: a button in Account settings backed by the session generation (security L-3). Do it with or after 47.6.
+
+- **50.8 Close to complete (S).** Profile and binder show "3 cards from finishing <pack>", linking to board offers that give those cards.
+- **50.9 Duplicates view (S).** A viewer's repeat editions grouped on one page, each with "Offer on the board".
+- **50.10 Season wrapped (M).** At season end, a personal share image (pulls, best pull, rarest edition, trades, final rank), built like the existing share images; a Discord gallery post too.
+- **50.11 Trial: stream streak badge (S, one season).** A badge for pulling on N streams in a row (streams from the live check, `lib/twitch-live.ts`). Success: more returning viewers per stream.
+- **50.12 Trade price guide (S to M).** Each card page shows what it went for in recent trades, from `trades:history`.
+- **50.13 Wants share image (S).** A "cards I'm looking for" image to post in Discord, from the wanted list.
+
+### Track 51: staff and admin tools (Ready unless marked)
+- **51.1 Staff actions in the Discord admin log (S).** mod-panel F1, security F-1: restrictions, cancels, blocks, reversals and every emergency password login post one line with who and why.
+- **51.2 Trial: mod stream desk (S to M, 4 weeks).** mod-panel E1: read-only overlay status, pulls paused and queue length on `/mod`. Success: mods use it during streams (ask them).
+- **51.3 Trial: timed restrictions (S, one season).** mod-panel E2: an optional `until` on trade restrictions that lifts itself. Success: fewer manual lifts.
+- **51.4 Mod guide (M).** mod-panel F2: wiki topics marked for mods render at `/mod/guide` (how to restrict, when to reverse, what to escalate).
+- **51.5 Viewer lookup and per-mod activity (S to M).** mod-panel F3 (the mod search finds viewers with a profile but no pulls) and F4 (actions per staff member over the last 7 days on `/admin/staff`).
+- **51.6 Reports about staff go to admins (S).** mod-panel F5: feedback that names a staff member is hidden from that person and flagged for admins.
+- **51.7 Trial: second approval on big reversals (S, 2 weeks).** mod-panel E3: log "would need a second approval" without blocking. Success: how many of those a second person would have stopped.
+- **51.8 Dashboard health strip and security card (S).** admin F-3; security U-1 (password login on or off, extension secret set, secret lengths, last emergency login, on Admin Settings).
+- **51.9 Backup dry run (S to M).** admin F-4: a restore preview that lists what a backup would change and writes nothing.
+- **51.10 Trial: weekly admin digest (S, 4 weeks).** admin E-3: a weekly staff summary from the audit log (staff actions, emergency logins, failed jobs), next to the community digest (6.3, `lib/weekly-digest.ts`, sent from `/api/cron/weekly`). Success: Josh reads it instead of opening the activity feed.
+- **51.11 Users list on the server, webhook secret last used (S to M).** admin F-2 (the Users list pages and searches on the server); security F-3 (when and from which route each incoming secret was last used).
+- **51.12 Season pre-flight check (S).** Before a season goes live, the season flow lists missing art or frames, empty rarity tiers, packs with no cards and odds that don't add up.
+- **51.13 Error spike alert (S to M).** Server-side failures counted per hour in `stats:h:`; the minute cron posts to the Discord admin log when they jump.
+- **51.14 Monthly restore drill (M).** Restore the newest backup into a sandbox each month, compare counts with production and post the result. After 51.9.
 
 ## Standing decisions
 
