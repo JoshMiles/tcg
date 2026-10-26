@@ -32,7 +32,6 @@ import { Avatar } from '@/app/components/Avatar';
 import { UpgradeButton } from '@/app/components/UpgradeButton';
 import { getHoloResolver } from '@/lib/holo';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'My Stats', robots: { index: false, follow: false } };
 
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ season?: string }> }) {

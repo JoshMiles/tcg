@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason, getSeason } from '@/lib/kv';
 import { getSeasonLeaderboard } from '@/lib/leaderboard';
 
-export const dynamic = 'force-dynamic';
-
 
 // Public per-season leaderboard for the Twitch panel. `seasonId` defaults to the active season;
 // `username` adds that viewer's own rank even when they're outside the top entries.

@@ -6,8 +6,6 @@ import { getOverlaySettings, getPackOverrides, getActiveScheduledLook, getPreset
 import { DEFAULT_LAYOUT } from '@/lib/overlay-layout';
 import { DEFAULT_PROPS, mergePropValues } from '@/lib/overlay-props';
 
-export const dynamic = 'force-dynamic';
-
 // Public (like the rest of the overlay's endpoints): how to draw the overlay. Its size/position, the look & animation
 // properties (sparse; the widget fills in defaults) and any per-pack overrides keyed by pack id. A season's look (a preset
 // attached to the active season) is layered over the global values; a scheduled look (active between its start and end) goes over that; per-pack overrides still win over both.

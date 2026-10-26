@@ -11,8 +11,12 @@ import { CommandsPanel } from './CommandsPanel';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Mix It Up · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const TABS: (PageTab & { hint: string })[] = [
   { id: 'paid', label: 'Paid pulls', icon: 'coins', hint: 'Viewers pay Brie Bucks for packs: prices, limits and the message sent to Mix It Up' },
@@ -38,7 +42,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
 
       {tab === 'paid' && <MixItUpConfig settings={await getMixItUpSettings()} streamExtra={streamBuffAmount(await getStreamBuff(), await currentStreamKey())} />}
       {tab === 'commands' && <CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}
-      {tab === 'log' && <MixItUpLog log={[...await getMixItUpLog(), ...await getCommandLog()].sort((a, b) => b.at - a.at)} />}
+      {tab === 'log' && <MixItUpLog log={[...(await getMixItUpLog()), ...(await getCommandLog())].sort((a, b) => b.at - a.at)} />}
     </div>
   );
 }

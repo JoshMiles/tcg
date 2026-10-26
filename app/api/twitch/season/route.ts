@@ -1,12 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, connection } from 'next/server';
 import { getActiveSeasonWithPacks } from '@/lib/kv';
 import { cardThumbUrl } from '@/lib/card-art';
 import { allowedVariants } from '@/lib/variants';
 import { getHoloResolver } from '@/lib/holo';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET() {
+  await connection();
   const result = await getActiveSeasonWithPacks();
   if (!result) {
     return NextResponse.json({ error: 'No active season' }, { status: 404 });

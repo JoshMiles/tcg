@@ -30,7 +30,10 @@ import { effectiveLimit, streamBuffAmount } from '@/lib/pull-limit-core';
 import { pullRole, roleLimitOf } from '@/lib/mixitup-core';
 import { currentStreamKey, getMixItUpSettings, pullsUsedThisStream } from '@/lib/mixitup';
 
-export const dynamic = 'force-dynamic';
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
 
 // The tab says whose page it is.
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {

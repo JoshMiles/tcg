@@ -12,7 +12,6 @@ import { VARIANTS, VARIANT_LABELS } from '@/lib/variants';
 import { stillFor } from '@/lib/card-art';
 import { getRarity } from '@/lib/rarity';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Season Stats' };
 
 export default async function StatsPage({ searchParams }: { searchParams: Promise<{ season?: string }> }) {

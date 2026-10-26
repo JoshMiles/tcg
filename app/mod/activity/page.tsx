@@ -5,8 +5,12 @@ import { requireStaff } from '@/lib/staff-guard';
 import { ActivityFeed, type CardInfo } from '../../admin/activity/ActivityFeed';
 import { PageHeader } from '../../admin/components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Live Activity · Mod', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 /** The same live feed the admin sees, read-only: mods can watch, filter and open an event, but not gift, grant or remove anything. */
 export default async function ModActivityPage() {

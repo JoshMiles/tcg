@@ -6,8 +6,6 @@ import { parseReportInput } from '@/lib/feedback-core';
 import { submitReport } from '@/lib/feedback';
 import { staffPanelLink } from '@/lib/staff-guard';
 
-export const dynamic = 'force-dynamic';
-
 // Report another viewer from their profile. Signed in only, Turnstile like trades, 5 a day, one open report per target.
 // Who reported comes from the session and is only ever shown to staff. Staff use their own tools instead of reporting.
 export async function POST(req: NextRequest) {

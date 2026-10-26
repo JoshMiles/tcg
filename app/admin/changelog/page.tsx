@@ -4,8 +4,12 @@ import { REPO_URL } from '@/lib/site';
 import { PageTabs, pickTab, type PageTab } from '../components/PageTabs';
 import { EmptyState, PageHeader } from '../components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: "What's new · Admin", robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const TABS: PageTab[] = [
   { id: 'admin', label: 'Admin', icon: 'shield', count: ADMIN_CHANGELOG.length },

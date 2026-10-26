@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listSeasons, getCollection } from '@/lib/kv';
 
-export const dynamic = 'force-dynamic';
-
 // Returns the viewer's owned card numbers across every season.
 // Shape allows the panel to show per-season indicators on cards.
 export async function GET(req: NextRequest) {

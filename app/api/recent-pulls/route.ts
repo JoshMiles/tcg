@@ -1,12 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, connection } from 'next/server';
 import { getActive, getSeasonOverview } from '@/lib/site-data';
 import { recentPullItems } from '@/lib/home-pulls';
-
-export const dynamic = 'force-dynamic';
 
 // Public: the home page's recent pulls, polled while the tab is visible. The same data the home page shows (pulls are public on
 // stream); collectors an admin hid are left out by getRecentPulls. A short shared cache keeps many open tabs to a few calls.
 export async function GET() {
+  await connection();
   try {
     const { season } = await getActive();
     if (!season) return NextResponse.json({ items: [] });

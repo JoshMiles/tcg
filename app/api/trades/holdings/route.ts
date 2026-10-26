@@ -11,8 +11,6 @@ import { getPrintPool } from '@/lib/trade-view';
 import { getUserSettings } from '@/lib/user-settings-store';
 import type { Variant } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
-
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // What a viewer owns in a season, as { cardNumber: { variant: copies } }, plus their Looking for list and print ids.

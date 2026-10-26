@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { buildExport } from '@/lib/user-export';
 
-export const dynamic = 'force-dynamic';
-
 // Everything the game stores about the logged-in viewer, as a download.
 export async function GET() {
   const session = await getSession();

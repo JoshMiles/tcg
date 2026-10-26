@@ -4,8 +4,6 @@ import { getSession, isSameOrigin } from '@/lib/session';
 import { postShareImage, SHARE_MAX_BYTES } from '@/lib/discord';
 import { getUserProfile } from '@/lib/kv';
 
-export const dynamic = 'force-dynamic';
-
 // The logged-in collector posts the share image they just drew. Who they are comes from the session, never the body.
 export async function POST(req: NextRequest) {
   const closed = await siteClosedResponse();

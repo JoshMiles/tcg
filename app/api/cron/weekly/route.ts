@@ -4,7 +4,6 @@ import { cronAuthorised } from '@/lib/cron-auth';
 import { pickOncePerWeek } from '@/lib/print-of-week-store';
 import { digestOncePerWeek } from '@/lib/weekly-digest-store';
 
-export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 // GET /api/cron/weekly, called by Vercel Cron on Sundays at 20:00 UTC (vercel.json). Guarded like the backup route: Vercel sends

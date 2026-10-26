@@ -19,6 +19,9 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: str
 const nextConfig: NextConfig = {
   // CLAUDE.md is the agent guide; stop `next dev` writing its own AGENTS.md.
   agentRules: false,
+  // Cache Components (partial prerendering). Every route still opts out with `instant = false` until the site shell is split.
+  cacheComponents: true,
+  partialPrefetching: true,
   // Wiki pages read content/wiki/*.md at request time. Trace those files into the server bundle.
   outputFileTracingIncludes: {
     '/admin/wiki': ['./content/wiki/**/*'],

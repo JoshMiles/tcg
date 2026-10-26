@@ -19,7 +19,6 @@ import { getStaffBadges } from '@/lib/staff-badge';
 import type { StaffBadge as StaffBadgeKind } from '@/lib/staff-badge-core';
 import { ReverseTrade } from '@/app/admin/trades/ReverseTrade';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Trade', description: 'A trade offer.', robots: { index: false, follow: true } };
 
 const userWith = (badges: Record<string, StaffBadgeKind>) => (name: string) => (

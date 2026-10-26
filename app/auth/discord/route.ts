@@ -4,8 +4,6 @@ import { getSession, sessionCookieOptions } from '@/lib/session';
 import { isDiscordDmConfigured, getDiscordAuthUrl } from '@/lib/discord-user';
 import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
-
 export const DISCORD_OAUTH_COOKIE = 'tcg_discord_oauth';
 
 export async function GET(req: NextRequest) {

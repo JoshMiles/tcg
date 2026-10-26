@@ -4,8 +4,12 @@ import { loadTradeAdminData } from '@/lib/trade-admin-data';
 import { TradeLog } from '../../admin/trades/TradeLog';
 import { PageHeader, Panel, Tile } from '../../admin/components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Trades · Mod', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 /** Open offers, the recent log and the flagged trades. A mod can cancel an offer (the cards go back to their owner) or block a viewer from trading. */
 export default async function ModTradesPage({ searchParams }: { searchParams: Promise<{ flagged?: string }> }) {

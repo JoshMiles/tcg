@@ -2,8 +2,12 @@ import { redirect } from 'next/navigation';
 import { getSeason, listAllPacks, listSeasons, getPackCards } from '@/lib/kv';
 import { SeasonFlow, type PackOption } from './SeasonFlow';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'New season · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 export default async function NewSeasonPage({ searchParams }: { searchParams: Promise<{ draft?: string }> }) {
   const { draft } = await searchParams;

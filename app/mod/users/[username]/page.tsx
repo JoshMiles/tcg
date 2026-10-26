@@ -15,8 +15,12 @@ import { requireStaff } from '@/lib/staff-guard';
 import { ModerationPanel, TagsEditor, TradesPanel, type TradeLine } from '../../../admin/users/[username]/UserPanels';
 import { Chip, PageHeader, Panel, Tile } from '../../../admin/components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Viewer · Mod', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const ago = (t: number, now: number) => {
   const m = Math.max(0, Math.round((now - t) / 60000));

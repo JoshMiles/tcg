@@ -5,6 +5,11 @@ import { CHANNEL_NAME } from '@/lib/site';
 
 import { FEEDBACK_LIMITS } from '@/lib/feedback-core';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata: Metadata = { title: 'Privacy Policy', description: 'What The Cheesy TCG collects, how it is used and your choices.' };
 
 export default function PrivacyPage() {

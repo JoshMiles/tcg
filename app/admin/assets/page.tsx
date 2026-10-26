@@ -8,8 +8,12 @@ import { AssetBrowser, type AssetTab } from './AssetBrowser';
 import { formatBytes } from './asset-ui';
 import { Tile, PageHeader } from '../components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Assets · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // the Fix action re-encodes a GIF per request (up to ~15s)
 
 export default async function AssetsPage({ searchParams }: { searchParams: Promise<{ tab?: string; issues?: string }> }) {

@@ -3,8 +3,12 @@ import { getMixItUpSettings, getOpenGrants } from '@/lib/mixitup';
 import { PageHeader, Tile } from '../components/ui';
 import { BuffEditorClient } from './BuffEditorClient';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Buff Editor · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 export default async function BuffsPage() {
   const buffs = await getBuffDefs();

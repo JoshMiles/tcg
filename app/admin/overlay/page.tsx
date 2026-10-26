@@ -7,8 +7,12 @@ import { saveOverlayEditorAction, saveOverlayPresetAction, deleteOverlayPresetAc
 import { SITE_URL } from '@/lib/site';
 import { OverlayEditor } from './OverlayEditor';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Overlay Editor · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const SAVED_MESSAGES: Record<string, string> = {
   saved: 'Overlay saved. Use Refresh overlay (or refresh the OBS source) to see it on stream.',

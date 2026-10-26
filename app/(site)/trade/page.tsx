@@ -19,7 +19,10 @@ import { bestMatches, matchTrade, type MatchViewer } from '@/lib/trade-match';
 import { profileHref } from '@/lib/profile-url';
 import { BoardToolbar } from './BoardToolbar';
 
-export const dynamic = 'force-dynamic';
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
 export const metadata: Metadata = { title: 'Trade', description: 'Swap cards with other collectors.', robots: { index: false, follow: true } };
 
 const user = (name: string) => (

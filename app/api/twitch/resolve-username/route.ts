@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveTwitchLogin, twitchCredentials } from '@/lib/twitch-helix';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get('userId');
 

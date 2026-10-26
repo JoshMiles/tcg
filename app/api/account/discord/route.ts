@@ -9,8 +9,6 @@ import {
 } from '@/lib/discord-user';
 import { toDiscordLinkView, sanitizeDiscordKinds } from '@/lib/discord-dm-core';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });

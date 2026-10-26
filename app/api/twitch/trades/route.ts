@@ -8,8 +8,6 @@ import { respond } from '@/lib/trade-api';
 import { getUserSettings } from '@/lib/user-settings-store';
 import { matchingAlerts } from '@/lib/watch-core';
 
-export const dynamic = 'force-dynamic';
-
 const BOARD_MAX = 30;
 const RECENT_MAX = 8;
 

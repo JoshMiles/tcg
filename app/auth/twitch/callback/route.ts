@@ -5,8 +5,6 @@ import { profileFromCode, safeReturnTo } from '@/lib/twitch-oauth';
 import { ensureUserProfile, saveUserProfile, getUserProfile } from '@/lib/kv';
 import { STAFF_COOKIE } from '@/lib/staff-token';
 
-export const dynamic = 'force-dynamic';
-
 function fail(req: NextRequest, reason: string) {
   const res = NextResponse.redirect(new URL(`/auth/error?reason=${reason}`, req.url));
   res.cookies.delete(OAUTH_COOKIE);

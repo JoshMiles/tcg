@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
+import { connection } from 'next/server';
 import { currentSandboxId } from './db';
 
 // Website login session: a small signed cookie, no database. The payload is signed with SESSION_SECRET (HMAC-SHA256),
@@ -62,7 +63,9 @@ export function verifySession(token: string | undefined): Session | null {
 
 /** The logged-in viewer for this request, or null. */
 export async function getSession(): Promise<Session | null> {
-  const session = verifySession((await cookies()).get(SESSION_COOKIE)?.value);
+  const jar = await cookies();
+  await connection(); // verifySession reads the clock; a prerender must stop at the cookie read
+  const session = verifySession(jar.get(SESSION_COOKIE)?.value);
   // A sandbox test login is useless (and ignored) outside its sandbox, so it can't be mistaken for a real viewer on production.
   if (session?.sandbox && (await currentSandboxId()) !== session.sandbox) return null;
   return session;

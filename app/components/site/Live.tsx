@@ -6,10 +6,11 @@ import { CHANNEL_NAME, CHANNEL_URL } from '@/lib/site';
 const POLL_MS = 60_000;
 
 const LiveContext = createContext<LiveStatus | null>(null);
+const SetLiveContext = createContext<(s: LiveStatus | null) => void>(() => {});
 
-/** One shared poll of /api/live for the whole page, starting from the server-rendered status (so no flicker). */
-export function LiveProvider({ initial, children }: { initial: LiveStatus | null; children: ReactNode }) {
-  const [status, setStatus] = useState<LiveStatus | null>(initial);
+/** One shared poll of /api/live for the whole page. It sits in the prerendered frame, so it starts empty and `LiveSeed` fills it from the server. */
+export function LiveProvider({ children }: { children: ReactNode }) {
+  const [status, setStatus] = useState<LiveStatus | null>(null);
 
   useEffect(() => {
     let stopped = false;
@@ -29,7 +30,14 @@ export function LiveProvider({ initial, children }: { initial: LiveStatus | null
     return () => { stopped = true; clearInterval(id); document.removeEventListener('visibilitychange', onVisible); };
   }, []);
 
-  return <LiveContext.Provider value={status}>{children}</LiveContext.Provider>;
+  return <SetLiveContext.Provider value={setStatus}><LiveContext.Provider value={status}>{children}</LiveContext.Provider></SetLiveContext.Provider>;
+}
+
+/** The server's live status for this request, handed to the provider as soon as the streamed top of the page arrives, so the badge shows without waiting for a poll. */
+export function LiveSeed({ status }: { status: LiveStatus | null }) {
+  const set = useContext(SetLiveContext);
+  useEffect(() => { set(status); }, [set, status]);
+  return null;
 }
 
 const useLive = () => useContext(LiveContext);

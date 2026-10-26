@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cleanQuery } from '@/lib/site-search';
 import { searchPublic } from '@/lib/site-search-data';
 
-export const dynamic = 'force-dynamic';
-
 // GET /api/search?q=… : the public site's collector and card search. Only already-public information (collector names and card
 // names); collectors an admin hid from the boards are left out. Pages are searched in the browser.
 export async function GET(req: NextRequest) {

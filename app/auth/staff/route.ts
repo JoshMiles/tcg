@@ -4,8 +4,6 @@ import { getStaffRecord, touchStaffLogin } from '@/lib/staff';
 import { resolveRole, staffReturnTo } from '@/lib/staff-core';
 import { STAFF_COOKIE, signStaffToken, staffCookieOptions } from '@/lib/staff-token';
 
-export const dynamic = 'force-dynamic';
-
 // Staff sign-in, step 2 (step 1 is the ordinary "Log in with Twitch"): look the signed-in Twitch account up in the staff list and,
 // if it has a role, issue the one-hour staff cookie, then go to the panel. The middleware also sends people here when their
 // staff cookie has run out, so the cookie renews itself while the role stays valid and a removed person is turned away.

@@ -3,8 +3,6 @@ import { parseIncomingWebhook } from '@/lib/webhooks';
 import { runCommand } from '@/lib/commands';
 import { argsFrom, flatReply } from '@/lib/commands-core';
 
-export const dynamic = 'force-dynamic';
-
 // One webhook for every chat command (ROADMAP 19.2). Body: { secret, command, username, args? }. Mix It Up sends $username and
 // $allargs. Answers 200 with { ok, message, vars } and each variable again at the top level, so "JSON to special identifiers" can read
 // them. A refusal is { ok: false, message } with the command's own error text; an unknown command answers { ok: false, message: '' }.

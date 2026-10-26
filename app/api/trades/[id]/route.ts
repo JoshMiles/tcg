@@ -6,8 +6,6 @@ import { buildSwap } from '@/lib/trade-notify';
 import { captchaGate } from '@/lib/captcha-server';
 import { NextResponse as Res } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-
 // Answer an offer: accept, decline (offers made to you), cancel (your own), or counter (offers made to you).
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const closed = await siteClosedResponse();

@@ -5,8 +5,6 @@ import { collectionBonuses, getSeasonLeaderboard, getSeasonLeaderboardCached } f
 import { tradesForUser } from '@/lib/trades';
 import { VARIANTS } from '@/lib/variants';
 
-export const dynamic = 'force-dynamic';
-
 const DEV_OPAQUE_ID = 'dev_mock_opaque';
 
 /**

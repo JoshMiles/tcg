@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { incomingSecretValid } from '@/lib/webhooks';
 import { setLiveFromHint } from '@/lib/twitch-live';
 
-export const dynamic = 'force-dynamic';
-
 // Mix It Up's Stream Start / Stream End events. Body: { secret, event: 'live' | 'offline' } (the incoming secret). Marks the stream
 // live or offline straight away instead of waiting for Twitch's API, which lags by a minute or two.
 export async function POST(req: NextRequest) {

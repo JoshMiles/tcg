@@ -3,8 +3,12 @@ import { MOD_CHANGELOG } from '@/lib/changelog';
 import { ChangelogList } from '@/app/components/ChangelogList';
 import { EmptyState, PageHeader } from '../../admin/components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: "What's new · Mod", robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 /** What's new for the mod panel. */
 export default async function ModChangelogPage() {

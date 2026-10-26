@@ -9,8 +9,12 @@ import { TradeControls } from './TradeControls';
 import { TradeLog } from './TradeLog';
 import { Panel, Tile, PageHeader } from '../components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Trades · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const field = 'input w-28';
 

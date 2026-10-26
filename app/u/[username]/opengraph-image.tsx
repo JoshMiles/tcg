@@ -9,7 +9,6 @@ import { getUserSettings } from '@/lib/user-settings-store';
 export const alt = 'A collection on The Cheesy TCG';
 export const size = OG_SIZE;
 export const contentType = 'image/png';
-export const dynamic = 'force-dynamic';
 
 // The link preview for /u/<name>: their name, rank, points and how much of the set they own.
 export default async function Image({ params }: { params: Promise<{ username: string }> }) {

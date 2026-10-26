@@ -4,7 +4,6 @@ import { cronAuthorised } from '@/lib/cron-auth';
 import { getLiveStatus } from '@/lib/twitch-live';
 import { sweepTrades } from '@/lib/trades';
 
-export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 // GET /api/cron/minute, called by Vercel Cron every minute (vercel.json), same CRON_SECRET guard as the other jobs. It keeps the live

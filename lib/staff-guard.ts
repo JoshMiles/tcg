@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
+import { connection } from 'next/server';
 import { currentAdminGen } from './admin-cookie';
 import { AUTH_COOKIE, adminCookieKey, isPasswordLoginEnabled, isValidAdminToken } from './admin-token';
 import { getStaffRecord } from './staff';
@@ -35,6 +36,7 @@ async function emergencyCookieValid(token: string): Promise<boolean> {
  */
 export const getStaff = cache(async (): Promise<StaffContext | null> => {
   const jar = await cookies();
+  await connection(); // the token check reads the clock; a prerender must stop at the cookie read
   const token = await verifyStaffToken(jar.get(STAFF_COOKIE)?.value);
   if (token) {
     const role = resolveRole({ login: token.u, twitchId: token.id }, await getStaffRecord(token.u));

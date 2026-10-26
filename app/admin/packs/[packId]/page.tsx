@@ -13,7 +13,10 @@ import { rarityStats } from '@/lib/rarity';
 import { PackVariantsPanel } from './VariantControls';
 import { PackWorkspace, type WorkspaceView } from './workspace/PackWorkspace';
 
-export const dynamic = 'force-dynamic';
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
 
 // The tab names the pack, so several open packs can be told apart.
 export async function generateMetadata({ params }: { params: Promise<{ packId: string }> }) {

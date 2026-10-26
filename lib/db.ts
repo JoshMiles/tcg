@@ -109,7 +109,15 @@ const fenced: Kv = new Proxy(prodKv, {
 /** The KV client every module uses. Same API as @vercel/kv; keys are namespaced when the request is in a sandbox. */
 export const kv: Kv = new Proxy(fenced, {
   get(target, prop) {
-    const orig = (target as unknown as Record<string | symbol, unknown>)[prop];
+    let orig: unknown;
+    try {
+      orig = (target as unknown as Record<string | symbol, unknown>)[prop];
+    } catch (e) {
+      // No KV variables (the CI build): @vercel/kv throws on first use. Resolve the request first, so a prerender
+      // stops at the cookie read as dynamic instead of failing the build; the call itself still throws.
+      if (typeof prop !== 'string') throw e;
+      return async () => { await currentSandboxId(); throw e; };
+    }
     if (typeof orig !== 'function' || typeof prop !== 'string') return orig;
     return async (...args: unknown[]) => {
       const id = await currentSandboxId();

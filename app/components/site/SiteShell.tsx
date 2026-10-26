@@ -1,16 +1,17 @@
 import { BetaBanner } from './BetaBanner';
 import { bannerText, getSiteLabel } from '@/lib/site-label';
 import { requireSiteAccess } from '@/lib/access';
-import { ClosedShell } from './ClosedShell';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { SiteNav, type NavRank, type NavUser } from './SiteNav';
 import { SiteSearch } from './SiteSearch';
 import { getActiveSeason } from '@/lib/kv';
 import { getSeasonLeaderboardCached } from '@/lib/leaderboard';
 import { CHANNEL_NAME, CHANNEL_URL, reportProblemUrl } from '@/lib/site';
 import { getLiveStatus } from '@/lib/twitch-live';
-import { LiveProvider } from './Live';
+import { LiveProvider, LiveSeed } from './Live';
+import { MotionPref } from './MotionPref';
+import { SiteSkeleton } from './SiteMessage';
 import { getSession, loginConfigured } from '@/lib/session';
 import { staffPanelLink } from '@/lib/staff-guard';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
@@ -26,53 +27,26 @@ import { SandboxPill } from '@/app/components/SandboxPill';
 import { UpdatePrompt } from '@/app/components/UpdatePrompt';
 import { getBuildInfo } from '@/lib/version';
 
-/** Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex, legal). */
-export async function SiteShell({ children }: { children: ReactNode }) {
-  // The closed alpha / beta gate's authoritative check (lib/access.ts). Privacy and terms stay readable for everyone, but someone who
-  // can't use the site gets them without the nav, search and site links.
-  if (!(await requireSiteAccess())) return <ClosedShell>{children}</ClosedShell>;
-
+/**
+ * Nav bar + footer around every public page (home, collections, leaderboard, stats, card dex).
+ * What is the same for every visitor (the frame) is prerendered; whatever reads a cookie, the session or KV (the nav's account area,
+ * the sandbox pill, the page itself behind the access gate) streams in behind <Suspense>.
+ */
+export function SiteShell({ children }: { children: ReactNode }) {
   const build = getBuildInfo();
-  const [session, siteLabel, live] = await Promise.all([
-    getSession(),
-    getSiteLabel(),
-    getLiveStatus().catch(() => null), // cached, so this is normally one KV read
-  ]);
-  let user: NavUser | null = null;
-  let rank: NavRank | null = null;
-  let prefs = DEFAULT_SETTINGS;
-  if (session) {
-    // Their place in the active season, from the shared (20 s) board: a nice-to-have, so a failure just hides the chip.
-    const findRank = async (): Promise<NavRank | null> => {
-      try {
-        const season = await getActiveSeason();
-        if (!season) return null;
-        const board = await getSeasonLeaderboardCached(season);
-        const i = board.rows.findIndex(r => r.username === session.username);
-        return i >= 0 ? { rank: i + 1, score: Math.round(board.rows[i].score), total: board.rows.length, season: season.name } : null;
-      } catch { return null; /* leave the chip out */ }
-    };
-    const [settings, avatars, r] = await Promise.all([getUserSettings(session.username), getAvatars([session.username]), findRank()]);
-    prefs = settings;
-    const avatar = avatars[session.username];
-    user = { username: session.username, displayName: session.displayName, avatarUrl: avatar && sizeTwitchAvatar(avatar, 70) };
-    rank = r;
-  }
-
   return (
-    <LiveProvider initial={live}>
-    <div className="site-touch min-h-screen flex flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] xl:pb-0" data-motion={prefs.motion}>
-      {hasExperiment(prefs, 'shortcuts') && <PublicKeyboard username={session?.username} />}
+    <LiveProvider>
+    <div className="site-touch min-h-screen flex flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] xl:pb-0">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-90 focus:rounded-xl focus:bg-yellow-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-gray-950">Skip to content</a>
-      <SandboxPill />
-      {siteLabel.label && <BetaBanner text={bannerText(siteLabel)} />}
+      <Suspense fallback={null}><SandboxPill /></Suspense>
       <CookieNotice />
       <CaptchaHost />
       <PullToRefresh />
       <UpdatePrompt commit={build.commit} env={build.env} />
-      <SiteNav label={siteLabel.label} user={user} loginEnabled={loginConfigured()} rank={rank} staff={await staffPanelLink(session).catch(() => null)} />
+      {/* The fallback is the bar with no account area, so a signed-in viewer never sees "Log in" flash by. */}
+      <Suspense fallback={<SiteNav user={null} loginEnabled={false} />}><SiteHeader /></Suspense>
       <SiteSearch />
-      <main id="main" tabIndex={-1} className="flex-1 focus:outline-hidden">{children}</main>
+      <main id="main" tabIndex={-1} className="flex-1 focus:outline-hidden"><Suspense fallback={<SiteSkeleton />}><Gate>{children}</Gate></Suspense></main>
       <footer className="border-t border-gray-800/80 bg-gray-950/60 mt-12 pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-6xl mx-auto px-4 pt-8 pb-6">
           <div className="grid gap-8 md:grid-cols-[minmax(0,20rem)_1fr] md:gap-10 items-start">
@@ -122,5 +96,50 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       </footer>
     </div>
     </LiveProvider>
+  );
+}
+
+/** The closed alpha / beta gate's authoritative check (lib/access.ts): redirects to /closed, and only after it passes is the page itself sent. */
+async function Gate({ children }: { children: ReactNode }) {
+  await requireSiteAccess();
+  return children;
+}
+
+/** The per-viewer top of the page: the nav with the signed-in account area, the testing banner, and the live status and motion setting handed to the client. */
+async function SiteHeader() {
+  const [session, siteLabel, live] = await Promise.all([
+    getSession(),
+    getSiteLabel(),
+    getLiveStatus().catch(() => null), // cached, so this is normally one KV read
+  ]);
+  let user: NavUser | null = null;
+  let rank: NavRank | null = null;
+  let prefs = DEFAULT_SETTINGS;
+  if (session) {
+    // Their place in the active season, from the shared (20 s) board: a nice-to-have, so a failure just hides the chip.
+    const findRank = async (): Promise<NavRank | null> => {
+      try {
+        const season = await getActiveSeason();
+        if (!season) return null;
+        const board = await getSeasonLeaderboardCached(season);
+        const i = board.rows.findIndex(r => r.username === session.username);
+        return i >= 0 ? { rank: i + 1, score: Math.round(board.rows[i].score), total: board.rows.length, season: season.name } : null;
+      } catch { return null; /* leave the chip out */ }
+    };
+    const [settings, avatars, r] = await Promise.all([getUserSettings(session.username), getAvatars([session.username]), findRank()]);
+    prefs = settings;
+    const avatar = avatars[session.username];
+    user = { username: session.username, displayName: session.displayName, avatarUrl: avatar && sizeTwitchAvatar(avatar, 70) };
+    rank = r;
+  }
+
+  return (
+    <>
+      <LiveSeed status={live} />
+      <MotionPref motion={prefs.motion} />
+      {hasExperiment(prefs, 'shortcuts') && <PublicKeyboard username={session?.username} />}
+      {siteLabel.label && <BetaBanner text={bannerText(siteLabel)} />}
+      <SiteNav label={siteLabel.label} user={user} loginEnabled={loginConfigured()} rank={rank} staff={await staffPanelLink(session).catch(() => null)} />
+    </>
   );
 }

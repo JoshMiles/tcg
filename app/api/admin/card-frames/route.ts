@@ -4,8 +4,6 @@ import { isFrameSourceUrl } from '@/lib/card-art';
 import { loadFrameSource } from '@/lib/card-frames';
 import { frameInfo, renderFrame } from '@/lib/card-image';
 
-export const dynamic = 'force-dynamic';
-
 // The still-frame picker's data. GET /api/admin/card-frames?url=<card art>
 //   without n: { frames, delayMs }
 //   with n=<k>: frame k as a small webp (w=<px> sets the width, up to 600).

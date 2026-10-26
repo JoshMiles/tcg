@@ -20,8 +20,12 @@ import { getPotw } from '@/lib/print-of-week-store';
 import { Chip, EmptyState, PageHeader, Panel, Tile, selectClass } from '../components/ui';
 import { PrintDetail } from './PrintDetail';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Editions · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const PAGE = 120;       // edition chips per page
 const FILTER_CAP = 600; // editions read when a holder / origin filter has to look at all of them

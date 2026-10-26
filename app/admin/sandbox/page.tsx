@@ -1,6 +1,7 @@
 import { Icon } from '@/app/components/Icon';
 import { PendingButton } from '../components/PendingButton';
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { currentSandboxId, isPreview } from '@/lib/db';
 import { PreviewOff } from './PreviewOff';
 import { countKeys, listSandboxes, MAX_SANDBOXES, SOURCE_LABELS, sweepExpiredSandboxes, type SandboxSource } from '@/lib/sandbox';
@@ -8,8 +9,12 @@ import { getSandboxStats } from '@/lib/sandbox-tools';
 import { createSandboxAction, enterSandboxAction, exitSandboxAction } from './actions';
 import { Tile } from '../components/ui';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Sandbox · Admin', robots: { index: false } };
-export const dynamic = 'force-dynamic';
 
 const SOURCES: SandboxSource[] = ['config', 'collections', 'empty'];
 const DAY = 86_400_000;
@@ -26,6 +31,7 @@ function ago(at: number | undefined, now: number): string {
 export default async function SandboxPage({ searchParams }: { searchParams: Promise<{ err?: string }> }) {
   if (isPreview()) return <PreviewOff />;
   const sp = await searchParams;
+  await connection(); // the sweep reads the clock
   const swept = await sweepExpiredSandboxes(); // there is no background job: expired sandboxes go the next time anyone looks
   const [sandboxes, activeId] = await Promise.all([listSandboxes(), currentSandboxId()]);
   const active = sandboxes.find(s => s.id === activeId);

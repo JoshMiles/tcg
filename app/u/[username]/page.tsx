@@ -21,8 +21,6 @@ import { ShareTab } from './ShareTab';
 import { sharesPostingOn } from '@/lib/discord';
 import { ActivityTab, CollectionTab, StatsTab, TradesTab } from './ProfileTabs';
 
-export const dynamic = 'force-dynamic';
-
 /** A private profile (Settings, Private profile) opens only for its owner; everyone else sees a short "this profile is private" page. */
 async function canSee(lower: string): Promise<boolean> {
   const session = await getSession();

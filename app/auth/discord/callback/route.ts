@@ -11,8 +11,6 @@ import {
 import { DISCORD_DEFAULT_KINDS } from '@/lib/discord-dm-core';
 import { SITE_URL } from '@/lib/site';
 
-export const dynamic = 'force-dynamic';
-
 function fail(req: NextRequest, reason: string) {
   const res = NextResponse.redirect(new URL(`/settings?discord_error=${reason}#discord`, req.url));
   res.cookies.delete(DISCORD_OAUTH_COOKIE);

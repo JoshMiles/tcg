@@ -5,8 +5,6 @@ import { captchaGate } from '@/lib/captcha-server';
 import { parseFeedbackInput } from '@/lib/feedback-core';
 import { submitFeedback } from '@/lib/feedback';
 
-export const dynamic = 'force-dynamic';
-
 // Send a suggestion or problem report. Signed in only, Turnstile like trades, 5 a day per viewer. Who sent it comes from the session.
 export async function POST(req: NextRequest) {
   const closed = await siteClosedResponse();

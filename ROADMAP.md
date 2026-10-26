@@ -8,7 +8,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 
 ## Rules in force
 
-- **Twitch panel freeze (from 2026-10-15).** The extension is under Twitch review. Do not touch `public/twitch-panel/*`, `scripts/lib/twitch-package.mjs`, the behaviour or response shape of `/api/twitch/*`, or the CORS rules in `middleware.ts` until the user lifts it. Panel-worthy ideas go under "Next extension version".
+- **Twitch panel freeze lifted (2026-10-26).** The 2026-10-15 version was never approved; the user will submit a new version, so the panel, `/api/twitch/*` and the CORS rules in `middleware.ts` can change again. Keep the Track 34 rule: never rename or remove a JSON key on `/api/twitch/*`.
 - One feature per PR, branched from up-to-date `origin/main`; every push gets a PR (see "Git and PRs" in `CLAUDE.md`).
 - No em dashes, no emoji in the UI, FAQ / Privacy / Terms kept in step (`scripts/check-words.mts`), `npm run verify` before every PR.
 
@@ -17,13 +17,13 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | # | Item | Status | Size |
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
-| 40.2e | Site speed: cache public pages for signed-out visitors | Blocked (field data, re-check 2026-11-06) | M |
-| 34 | Next extension version (34.1 to 34.8) | Blocked (panel freeze, check review 2026-10-30) | L |
+| 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
+| 34 | Next extension version (34.1 to 34.8) | Ready (34.7 needs planning first) | L |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
 | 43.4 | Bring the other packages up to date | Done | S |
 | 43.5 | Move to TypeScript 7 | Done | S |
-| 43.3 | Rename `middleware.ts` to `proxy.ts` | Blocked (panel freeze) | S |
+| 43.3 | Rename `middleware.ts` to `proxy.ts` | Ready | S |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -42,8 +42,10 @@ The public site can feel sluggish, most of all on a phone. Measure first, then f
 
 How to measure (Speed Insights through the Vercel MCP, Lighthouse flags, `npm run analyze`, why `inlineCss` was set aside) is in `docs/hosting.md`, "Measuring site speed". Field baseline on 2026-10-23, home only (the one route with enough samples): LCP p75 3.5 s, TTFB p75 838 ms. Lab: first-load JS has a 103 kB shared baseline; `/cards` is 160 kB gzipped.
 
-### 40.2e Cache public pages for signed-out visitors (Blocked on field data, M)
-Every public page is `force-dynamic` and the shell reads the session cookie, so nothing is cached. Caching can only win back the TTFB part of home's 3.5 s LCP (838 ms at p75), and it is the riskiest item here (the gate, the live badge, the session in the shell, 10 dynamic pages). On 2026-11-06, read two weeks of Speed Insights after #437 and 40.2g; plan the shell split only if TTFB is still a large share of LCP.
+### 40.2f Re-measure, then cache shared data if LCP still waits on it (Blocked on field data, S to M)
+The public shell is prerendered and served from the CDN since 40.2e (Cache Components; see `docs/hosting.md`). Nothing is cached across requests yet.
+1. **Measure (from about 2026-11-09, a week after 40.2e is live):** Speed Insights for home on phones and desktop, TTFB and LCP p75, against the early read (phones TTFB 1.3 s of LCP 3.9 s). Find home's LCP element with a lab trace (`chrome-devtools-mcp` against `next start` on the mock KV, see the 40.1 learning). Check Fluid compute is on. If LCP p75 is under 2.5 s, close 40.2f.
+2. **If LCP is KV data (card art, podium):** wrap the shared public reads (`getSeasonOverview`, the collection behind the leaderboard, the active season, hidden users) in `'use cache: remote'` functions that take the sandbox id as an argument and run under `runInSandbox` (`cookies()` / `headers()` throw inside a cache scope). Tag by season and `catalog`, and call `updateTag` on every write that changes them (draws, trades, upgrades, admin pack / card / season / user edits, sandbox actions): a pull on stream must show within seconds. This replaces the 20 s in-memory `boardCache`. Never cache per-user data.
 
 ## Track 43: framework upgrade (2026-10-24)
 
@@ -80,16 +82,14 @@ Checked against the code on 2026-10-25, most of the 16 breaking changes need not
 ### 43.5 Move to TypeScript 7 (Done, S)
 TypeScript 7 is the native (Go) compiler, GA since July 2026, and has no compiler API. Next 16.4 type-checks by running `tsc` (`experimental.useTypeScriptCli` is on by default in 16.4, so `next.config.ts` needs nothing), nothing in the repo imports the `typescript` API, and `tsx` strips types without it. So the move is the version bump alone. If a type error ever shows only on 5.9, or a tool needs the API, pin `typescript` back to 5.9.
 
-### 43.3 Rename `middleware.ts` to `proxy.ts` (Blocked by the panel freeze, S)
-The file holds the extension's CORS rules, so it waits for the freeze to lift. `proxy.ts` runs on Node only; today the file runs on edge and reads through `lib/admin-auth-edge` and `lib/access-edge`. Rename the file and its export (the codemod does both), then test the admin and mod gates, the access gate and the `/api/twitch/*` CORS answers (the panel's requests from the Twitch origin) on a preview deployment. Drop the `-edge` variants only if nothing else uses them.
+### 43.3 Rename `middleware.ts` to `proxy.ts` (Ready, S)
+The file holds the extension's CORS rules, so it waited for the panel freeze (lifted 2026-10-26). `proxy.ts` runs on Node only; today the file runs on edge and reads through `lib/admin-auth-edge` and `lib/access-edge`. Rename the file and its export (the codemod does both), then test the admin and mod gates, the access gate and the `/api/twitch/*` CORS answers (the panel's requests from the Twitch origin) on a preview deployment. Drop the `-edge` variants only if nothing else uses them.
 
-## Blocked by the Twitch panel freeze
+## Twitch extension
 
-Nothing in a Ready item edits the frozen paths listed under "Rules in force".
+### Track 34: next extension version (Ready)
 
-### Track 34: next extension version (Blocked until the freeze lifts)
-
-The panel went to Twitch review on 2026-10-15; check its status on 2026-10-30. The freeze blocks code, not planning: 34.7's planning pass can run now, so the whole track is Ready when the freeze lifts. All of it ships as one reviewed panel version. Every item edits `public/twitch-panel/panel.js`, so run them **one at a time** in the order below, each its own PR from `origin/main`; the version is submitted only after 34.8. Read `docs/twitch-extension.md` first. Rules for the whole track: never rename or remove a JSON key on `/api/twitch/*` (the released panel keeps working against new responses until viewers update); new data goes in new fields; reuse the website's existing APIs and `lib/` helpers rather than copying logic into the panel.
+The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34.7 still needs its planning pass before it is built. All of it ships as one reviewed panel version. Every item edits `public/twitch-panel/panel.js`, so run them **one at a time** in the order below, each its own PR from `origin/main`; the version is submitted only after 34.8. Read `docs/twitch-extension.md` first. Rules for the whole track: never rename or remove a JSON key on `/api/twitch/*` (the released panel keeps working against new responses until viewers update); new data goes in new fields; reuse the website's existing APIs and `lib/` helpers rather than copying logic into the panel.
 
 **34.1 Collection security (Ready once lifted, S).** `GET /api/twitch/collection` takes `username` and returns that viewer's card numbers for every season, drafts included, with no session, extension JWT or private-profile check. Drop draft seasons; for a private profile return cards only when the caller is that viewer (extension JWT via `verifyExtensionAuth`, or a website session); keep `{ username, collections: [{ seasonId, seasonName, active, ownedNumbers }] }`. Public profiles answer without a token so old panels still load. Make the new panel send its `Authorization` header. Check: private profile without a token gets no cards; drafts never appear. Severity is low (card numbers only; a draft shows only if the viewer has pulls in it), so it waits for the freeze rather than breaking the released panel.
 

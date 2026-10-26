@@ -3,8 +3,6 @@ import { saveTwitchOpaqueUser, ensureUserProfile } from '@/lib/kv';
 import { verifyExtensionAuth, getBearerToken, getTwitchUserId } from '@/lib/twitch-jwt';
 import { resolveTwitchLogin, twitchCredentials } from '@/lib/twitch-helix';
 
-export const dynamic = 'force-dynamic';
-
 // POST /api/twitch/login
 // Verifies the Extension JWT, works out the viewer's Twitch user ID (shared identity, or the
 // channel owner), resolves the username via Helix,

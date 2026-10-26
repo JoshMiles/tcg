@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation';
 import { listSeasons } from '@/lib/kv';
 import { findByUid } from '@/lib/serials';
 
-export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Card edition', robots: { index: false, follow: true } };
 
 // A copy's short address: /c/1023381 sends you to that copy's page, whichever season it belongs to.

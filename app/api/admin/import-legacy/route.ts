@@ -3,8 +3,6 @@ import { isAuthenticated } from '@/lib/auth';
 import { getCollection, saveCollection, getUserProfile, saveUserProfile } from '@/lib/kv';
 import { LEGACY_DATA, LEGACY_COLLECTION_NAME as COLLECTION_NAME } from '@/lib/legacy-data';
 
-export const dynamic = 'force-dynamic';
-
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // The old import was a GET that took the admin secret in the query string. That value also signed the emergency

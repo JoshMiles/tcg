@@ -4,8 +4,12 @@ import { FEEDBACK_KINDS, FEEDBACK_LIMITS, isStatus, type FeedbackKind } from '@/
 import { PageHeader } from '../components/ui';
 import { FeedbackInbox } from './FeedbackInbox';
 
+// @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
+// Remove this opt-out after verifying the segment passes validation without it.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export const metadata = { title: 'Feedback' };
-export const dynamic = 'force-dynamic';
 
 export default async function AdminFeedbackPage({ searchParams }: { searchParams: Promise<{ kind?: string; status?: string }> }) {
   await requireAdmin();
