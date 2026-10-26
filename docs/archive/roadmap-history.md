@@ -1427,7 +1427,7 @@ From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`.
 
 ## Track 47: access hardening (2026-10-26)
 
-From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`. 47.4 moved to Track 53 (next panel version); 47.8 PR 2 to 4, 47.10 and 47.11 are still open in `ROADMAP.md`.
+From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`. 47.4 moved to Track 53 (next panel version); 47.10 and 47.11 are still open in `ROADMAP.md`.
 
 - **47.1 A guard on every staff page, checked by verify (Done, #493).** mod-panel M-1 and C1, L-9, L-10; security C-1 (every `route.ts` against an allow-list of public routes); admin C-4 and A-8 (missing `revalidatePath`).
 - **47.2 One moderation rule (Done, #492).** mod-panel M-2, M-3, C2: `canModerate(actor, target, action)` used by every mod action and by `reverseTrade`.
@@ -1435,5 +1435,5 @@ From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`. 47.
 - **47.5 Security headers (Done, #496).** security M-4, then the CSP trial (security X-1, report-only for a week; the readout is 47.11).
 - **47.6 Signing keys and secret compares (Done, #491).** security C-3, L-8, L-9 (public-site L-3, twitch-panel L-8, CODE_REVIEW #13).
 - **47.7 Small hardening (Done, #497).** public-site L-1, L-5, L-6, L-7 (with U-1), L-8; security L-6, L-10; `lib/captcha-server.ts` uses `clientIp`. security L-2 was left out and became 47.10.
-- **47.8 PR 1: record the Twitch account ID on sign-in (Done, #494).** security M-1 and X-3, first step: `bindAccount` at both sign-in sites, `acct:ids`, conflicts counted on Data health. PR 2 to 4 are open.
+- **47.8 Profiles tied to the Twitch account ID (Done, #494, #501, #502, #503).** security M-1 and X-3. Decided (Josh, 2026-10-26): a different Twitch account signing in on a login moves the old profile aside (`<login>~<n>`); the old owner returning under a new login is asked on /account before it is restored; the same ID under a changed login moves the profile automatically (no redirect table); no month trial; the bot-pull gap is closed by a nightly Helix check, not a bot change. PR 1 (#494) records the ID on sign-in (`bindAccount`, `acct:ids`, conflicts on Data health). PR 2 (#501) the journalled, resumable `moveAccount` (`lib/account-move.ts`, `acct:moves`, `acct:aside`) behind an admin Move aside button. PR 3 (#502) sign-in moves aside, follows renames, the /account restore notice, the session-ID check in `getSession`. PR 4 (#503) `/api/cron/accounts` nightly Helix check (`acct:helixcheck`). The design document `PLAN-47-8.md` was deleted when 47.8 shipped; it is in the history of #501.
 - **47.9 One rate limiter, and a firewall trial (Done, #498).** security C-2 (`rateLimit` in `prodKv` for login, incoming webhooks and the panel routes) and X-2 (Vercel Firewall log-only rules, set up by hand; the readout is 47.11).
