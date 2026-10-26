@@ -10,6 +10,13 @@ export async function requireViewer(req: Request): Promise<{ session: Session } 
   return { session };
 }
 
+/** The optional `getIds` of an accept body, `{ <collection entry>: [edition ids] }`: undefined when absent, null when it is the wrong shape. */
+export function parseGetIds(v: unknown): Record<string, string[]> | undefined | null {
+  if (v === undefined || v === null) return undefined;
+  const okShape = typeof v === 'object' && !Array.isArray(v) && Object.values(v as object).every(x => Array.isArray(x) && x.every(y => typeof y === 'string'));
+  return okShape ? (v as Record<string, string[]>) : null;
+}
+
 /** Turns an engine result into a JSON response. */
 export function respond<T extends object>(result: TradeResult<T>): NextResponse {
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });

@@ -5,7 +5,7 @@
 let tradesData = null;      // last GET /api/twitch/trades
 let tradesLoadedAt = 0;
 let tradesError = '';
-let composer = null;        // { to, note, give: {key: n}, get: {key: n}, wantVar: {number: variant}, filter, busy, msg } while composing
+let composer = null;        // { to, note, give: {key: n}, giveIds: {key: [edition ids]}, get: {key: n}, wantVar: {number: variant}, filter, busy, msg } while composing
 const SHORT = { regular: '', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
 const tkey = (number, variant) => number + '|' + variant;
 
@@ -71,6 +71,13 @@ async function tradeRequest(payload) {
   }
 }
 
+// The viewer's own editions of one card + version ({ id, n, uid? }, from GET /api/twitch/trades `prints`; empty until editions are numbered).
+const printsFor = (cardNumber, variant) => (tradesData && tradesData.prints && tradesData.prints[entryOf(cardNumber, variant)]) || [];
+// A copy id is "<card>.<version>.<edition number>". `ids` on a stack names the exact editions that move.
+const editionNo = id => String(id).split('.')[2];
+const editionText = ids => (ids.length === 1 ? 'Edition #' : 'Editions #') + ids.map(editionNo).join(', #');
+const newestIds = (list, n) => list.slice().sort((a, b) => b.n - a.n).slice(0, n).map(p => p.id);
+
 // ── Pieces ────────────────────────────────────────────────
 function stackChips(items, cards) {
   const wrap = el('div', 'tr-chips');
@@ -79,10 +86,49 @@ function stackChips(items, cards) {
     const chip = el('span', 'tr-chip');
     const thumb = el('span', 'tr-thumb');
     if (card && (card.thumbUrl || card.imageUrl)) { const img = el('img'); img.src = card.thumbUrl || card.imageUrl; img.alt = ''; thumb.appendChild(img); }
-    chip.append(thumb, el('span', 'tr-chip-text', i.count + '× ' + (card ? card.name : '#' + i.cardNumber) + (SHORT[i.variant] ? ' (' + SHORT[i.variant] + ')' : '')));
+    chip.append(thumb, el('span', 'tr-chip-text', i.count + '× ' + (card ? card.name : '#' + i.cardNumber) + (SHORT[i.variant] ? ' (' + SHORT[i.variant] + ')' : '') + (i.ids && i.ids.length ? ' · ' + editionText(i.ids) : '')));
     wrap.appendChild(chip);
   });
   return wrap;
+}
+
+// Tick exactly `count` of the viewer's editions of one card + version (same rules as the website's picker: another tick when full drops the
+// oldest one). `selected` is the list of ids now ticked; onChange gets the new list.
+function editionPicker(list, count, selected, onChange, giving) {
+  const box = el('div', 'tr-eds');
+  const head = el('div', 'tr-eds-head');
+  const newest = el('button', 'tr-link', 'Use the newest');
+  newest.type = 'button';
+  newest.addEventListener('click', () => onChange(newestIds(list, count)));
+  head.append(el('span', 'tr-hint', 'Tick ' + (count === 1 ? 'one edition' : count + ' editions') + ' (' + selected.length + '/' + count + ')'), newest);
+  const chips = el('div', 'tr-chips');
+  list.slice().sort((a, b) => b.n - a.n).forEach(p => {
+    const on = selected.indexOf(p.id) !== -1;
+    const m = serialMult(p.n);
+    const b = el('button', 'tr-ed' + (on ? ' on' : '') + (m > 1 ? ' bonus' : ''), '#' + p.n + (m > 1 ? ' ×' + m.toFixed(2) : ''));
+    b.type = 'button';
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.title = (p.uid ? 'Serial #' + p.uid + ', ' : '') + 'Edition #' + p.n;
+    b.addEventListener('click', () => {
+      if (on) { if (selected.length > 1) onChange(selected.filter(x => x !== p.id)); return; }
+      onChange(selected.length >= count ? selected.slice(1).concat(p.id) : selected.concat(p.id));
+    });
+    chips.appendChild(b);
+  });
+  box.append(head, chips);
+  const ticked = list.filter(p => selected.indexOf(p.id) !== -1);
+  if (giving && ticked.some(p => p.n === 1 || serialMult(p.n) > 1)) {
+    box.appendChild(el('p', 'tr-hint tr-warn', ticked.some(p => p.n === 1) ? 'You are giving away Edition #1, the first edition ever made.' : 'One of these editions earns an edition bonus. The points go with it.'));
+  }
+  return box;
+}
+
+function tradeLink(id) {
+  const a = el('a', 'tr-link', 'Open on the site');
+  a.href = siteUrl('/trade/' + encodeURIComponent(id));
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  return a;
 }
 
 // A button that needs a second tap to go ahead (a trade cannot be undone).
@@ -103,8 +149,8 @@ function confirmButton(label, className, run) {
   return b;
 }
 
-async function answerTrade(action, id, doneText) {
-  const r = await tradeRequest({ action, id });
+async function answerTrade(action, id, doneText, getIds) {
+  const r = await tradeRequest(getIds ? { action, id, getIds } : { action, id });
   showToast(r.ok ? doneText : r.error);
   await loadTrades(true);
   if (r.ok && action !== 'decline') { skipNextToast = action === 'accept'; refreshData(false); loadMe(true); }
@@ -137,7 +183,17 @@ function tradeRow(t, mode, cards) {
     actions.appendChild(confirmButton('Cancel offer', 'tr-btn ghost', () => answerTrade('cancel', t.id, 'Offer cancelled. Your cards are back.')));
   } else {
     if (t.canTake && tradesData.enabled) {
-      actions.appendChild(confirmButton(mode === 'board' ? 'Take trade' : 'Accept', 'tr-btn', () => answerTrade('accept', t.id, 'Trade done! Check your collection.')));
+      const label = mode === 'board' ? 'Take trade' : 'Accept';
+      // Asked-for cards the viewer holds spare editions of: they choose which ones go (the newest by default), like on the website.
+      const need = giveItems.filter(i => !i.ids && printsFor(i.cardNumber, i.variant).length > i.count);
+      if (need.length === 0) {
+        actions.appendChild(confirmButton(label, 'tr-btn', () => answerTrade('accept', t.id, 'Trade done! Check your collection.')));
+      } else {
+        const pick = el('button', 'tr-btn', label);
+        pick.type = 'button';
+        pick.addEventListener('click', () => chooseEditions(row, actions, t, need, label, cards));
+        actions.appendChild(pick);
+      }
     } else {
       actions.appendChild(el('span', 'tr-hint', !tradesData.enabled ? tradesData.closedReason : 'You do not have the cards asked for.'));
     }
@@ -149,8 +205,49 @@ function tradeRow(t, mode, cards) {
       actions.append(counter, confirmButton('Decline', 'tr-btn ghost', () => answerTrade('decline', t.id, 'Offer declined.')));
     }
   }
+  actions.appendChild(tradeLink(t.id));
   row.appendChild(actions);
   return row;
+}
+
+// The accept picker: swaps the Accept button for a tick list per asked-for card, then arms the usual "Sure?" with the chosen editions.
+function chooseEditions(row, actions, t, need, label, cards) {
+  const sel = {};
+  need.forEach(i => { sel[entryOf(i.cardNumber, i.variant)] = newestIds(printsFor(i.cardNumber, i.variant), i.count); });
+  const box = el('div', 'tr-pickbox');
+  actions.classList.add('hidden');
+  row.insertBefore(box, actions);
+  const draw = () => {
+    box.innerHTML = '';
+    box.appendChild(el('span', 'tr-label', 'Choose which editions you hand over'));
+    need.forEach(i => {
+      const k = entryOf(i.cardNumber, i.variant);
+      const card = cards.get(i.cardNumber);
+      box.append(
+        el('span', 'tr-hint', (card ? card.name : '#' + i.cardNumber) + (SHORT[i.variant] ? ' (' + SHORT[i.variant] + ')' : '') + (i.count > 1 ? ' ×' + i.count : '')),
+        editionPicker(printsFor(i.cardNumber, i.variant), i.count, sel[k], ids => { sel[k] = ids; draw(); }, true),
+      );
+    });
+    const back = el('button', 'tr-btn ghost', 'Back');
+    back.type = 'button';
+    back.addEventListener('click', () => { box.remove(); actions.classList.remove('hidden'); });
+    const use = el('button', 'tr-btn', 'Use these editions');
+    use.type = 'button';
+    use.disabled = need.some(i => sel[entryOf(i.cardNumber, i.variant)].length !== i.count);
+    use.addEventListener('click', () => {
+      const getIds = {};
+      need.forEach(i => { getIds[entryOf(i.cardNumber, i.variant)] = sel[entryOf(i.cardNumber, i.variant)]; });
+      box.innerHTML = '';
+      box.append(el('span', 'tr-label', 'You hand over'), stackChips(need.map(i => ({ ...i, ids: sel[entryOf(i.cardNumber, i.variant)] })), cards));
+      actions.classList.remove('hidden');
+      actions.innerHTML = '';
+      const go = confirmButton(label, 'tr-btn', () => answerTrade('accept', t.id, 'Trade done! Check your collection.', getIds));
+      actions.append(go, tradeLink(t.id));
+      go.click(); // arms "Sure?" straight away: choosing the editions was the first step
+    });
+    box.appendChild(el('div', 'tr-actions')).append(back, use);
+  };
+  draw();
 }
 
 const STATUS_TEXT = { accepted: 'Completed', declined: 'Declined', cancelled: 'Cancelled', expired: 'Expired', countered: 'Countered', failed: 'Failed' };
@@ -161,7 +258,13 @@ function recentRow(t, cards) {
   const gave = t.from === me ? t.give : t.get;
   const got = t.from === me ? t.get : t.give;
   const sum = items => items.map(i => i.count + '× ' + (cards.get(i.cardNumber)?.name || '#' + i.cardNumber)).join(', ');
-  row.append(el('span', 'tr-recent-status ' + t.status, STATUS_TEXT[t.status] || t.status), el('span', 'tr-recent-text', ' @' + other + (t.status === 'accepted' ? ': got ' + sum(got) + ' for ' + sum(gave) : '')));
+  // A completed trade that staff reversed keeps its 'accepted' status; `reversed` is set alongside it.
+  const reversed = t.status === 'accepted' && t.reversed;
+  row.append(
+    el('span', 'tr-recent-status ' + (reversed ? 'reversed' : t.status), reversed ? 'Reversed by staff' : STATUS_TEXT[t.status] || t.status),
+    el('span', 'tr-recent-text', ' @' + other + (t.status === 'accepted' && !reversed ? ': got ' + sum(got) + ' for ' + sum(gave) : '') + ' · '),
+    tradeLink(t.id),
+  );
   return row;
 }
 
@@ -182,7 +285,7 @@ function renderTrades() {
   const newBtn = el('button', 'tr-btn', '+ New offer');
   newBtn.type = 'button';
   newBtn.disabled = !d.enabled;
-  newBtn.addEventListener('click', () => { composer = { to: '', note: '', give: {}, get: {}, wantVar: {}, filter: '', busy: false, msg: '', counterOf: null }; renderTrades(); });
+  newBtn.addEventListener('click', () => { composer = { to: '', note: '', give: {}, giveIds: {}, get: {}, wantVar: {}, filter: '', busy: false, msg: '', counterOf: null }; renderTrades(); });
   top.append(newBtn, el('span', 'tr-limits', d.outgoing.length + '/' + d.limits.maxOpen + ' open offers'));
   area.appendChild(top);
   if (!d.enabled) area.appendChild(el('p', 'tr-closed', d.closedReason));
@@ -212,7 +315,7 @@ function startCounter(t) {
     if (have > 0) give[tkey(i.cardNumber, i.variant)] = Math.min(i.count, have);
   });
   t.give.forEach(i => { get[tkey(i.cardNumber, i.variant)] = i.count; });
-  composer = { to: t.from, note: '', give, get, wantVar: {}, filter: '', busy: false, msg: '', counterOf: t.id };
+  composer = { to: t.from, note: '', give, giveIds: {}, get, wantVar: {}, filter: '', busy: false, msg: '', counterOf: t.id };
   renderTrades();
 }
 function stepper(value, max, onChange) {
@@ -254,10 +357,33 @@ function renderGive(box) {
     row.appendChild(stepper(n, have, nn => {
       if (nn > 0 && n === 0 && stackCount(composer.give) >= tradesData.limits.maxStacks) { composer.msg = 'You can offer up to ' + tradesData.limits.maxStacks + ' different cards.'; renderSummary(); return; }
       composer.msg = '';
-      setCount(composer.give, k, nn); renderGive(box); renderSummary();
+      setCount(composer.give, k, nn); resizeIds(k, card.number, v, nn); renderGive(box); renderSummary();
     }));
     box.appendChild(row);
+    // Which editions go: the newest unless the viewer ticks others (only offered when they hold a spare).
+    const list = printsFor(card.number, v), ticked = composer.giveIds[k];
+    if (n > 0 && ticked) {
+      const any = el('button', 'tr-link', 'Any edition (the newest)');
+      any.type = 'button';
+      any.addEventListener('click', () => { delete composer.giveIds[k]; renderGive(box); renderSummary(); });
+      box.append(editionPicker(list, n, ticked, ids => { composer.giveIds[k] = ids; renderGive(box); renderSummary(); }, true), any);
+    } else if (n > 0 && list.length > n) {
+      const choose = el('button', 'tr-link', 'Choose editions (' + list.length + ' to pick from)');
+      choose.type = 'button';
+      choose.addEventListener('click', () => { composer.giveIds[k] = newestIds(list, n); renderGive(box); renderSummary(); });
+      box.appendChild(choose);
+    }
   });
+}
+
+// Chosen editions follow the count: one fewer drops the last tick, one more adds the newest not ticked yet (or goes back to "any edition").
+function resizeIds(k, cardNumber, variant, nn) {
+  const cur = composer.giveIds[k];
+  if (!cur) return;
+  if (nn <= 0) { delete composer.giveIds[k]; return; }
+  if (nn <= cur.length) { composer.giveIds[k] = cur.slice(0, nn); return; }
+  const extra = newestIds(printsFor(cardNumber, variant).filter(p => cur.indexOf(p.id) === -1), nn - cur.length);
+  if (extra.length === nn - cur.length) composer.giveIds[k] = cur.concat(extra); else delete composer.giveIds[k];
 }
 
 function renderWant(box) {
@@ -291,14 +417,19 @@ function renderWant(box) {
   if (shown === 0) box.appendChild(el('p', 'stat-muted', 'No card matches that.'));
 }
 
-const itemsOf = obj => Object.keys(obj).filter(k => obj[k] > 0).map(k => { const [n, v] = k.split('|'); return { cardNumber: Number(n), variant: v, count: obj[k] }; });
+// Stacks to send; `ids` (the viewer's chosen editions) go on the stacks that have a choice.
+const itemsOf = (obj, ids) => Object.keys(obj).filter(k => obj[k] > 0).map(k => {
+  const [n, v] = k.split('|');
+  return { cardNumber: Number(n), variant: v, count: obj[k], ...(ids && ids[k] ? { ids: ids[k] } : {}) };
+});
+const pickIncomplete = () => Object.keys(composer.giveIds).some(k => composer.giveIds[k].length !== (composer.give[k] || 0));
 
 function renderSummary() {
   const box = document.getElementById('tr-summary');
   if (!box) return;
   box.innerHTML = '';
   const cards = tradeCardMap();
-  const give = itemsOf(composer.give), get = itemsOf(composer.get);
+  const give = itemsOf(composer.give, composer.giveIds), get = itemsOf(composer.get);
   const line = (label, items) => {
     const s = el('div', 'tr-side');
     s.append(el('span', 'tr-label', label), items.length ? stackChips(items, cards) : el('span', 'tr-hint', 'nothing chosen yet'));
@@ -308,7 +439,7 @@ function renderSummary() {
   line('You want back', get);
   if (composer.msg) box.appendChild(el('p', 'tr-error', composer.msg));
   const send = document.getElementById('tr-send');
-  if (send) send.disabled = composer.busy || give.length === 0 || get.length === 0;
+  if (send) send.disabled = composer.busy || give.length === 0 || get.length === 0 || pickIncomplete();
 }
 
 function renderComposer(area) {
@@ -354,8 +485,8 @@ function renderComposer(area) {
     composer.busy = true; composer.msg = ''; renderSummary();
     const target = composer.to.replace(/^@/, '').trim();
     const r = composer.counterOf
-      ? await tradeRequest({ action: 'counter', id: composer.counterOf, give: itemsOf(composer.give), get: itemsOf(composer.get), note: composer.note })
-      : await tradeRequest({ action: 'create', kind: target ? 'direct' : 'listing', to: target || undefined, give: itemsOf(composer.give), get: itemsOf(composer.get), note: composer.note });
+      ? await tradeRequest({ action: 'counter', id: composer.counterOf, give: itemsOf(composer.give, composer.giveIds), get: itemsOf(composer.get), note: composer.note })
+      : await tradeRequest({ action: 'create', kind: target ? 'direct' : 'listing', to: target || undefined, give: itemsOf(composer.give, composer.giveIds), get: itemsOf(composer.get), note: composer.note });
     composer.busy = false;
     if (!r.ok) { composer.msg = r.error; renderSummary(); return; }
     const counterSent = !!composer.counterOf;

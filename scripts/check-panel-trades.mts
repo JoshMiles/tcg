@@ -93,6 +93,51 @@ await db.runInSandbox(box.id, async () => {
   g = await call(req('GET'));
   ok(g.body.incoming.length === 0 && g.body.outgoing.some((t: { to: string; counter: boolean }) => t.to === 'bob' && t.counter), 'the original is closed and the counter is an open offer to bob');
   ok((await call(req('POST', { action: 'nope' }))).status === 400, 'an unknown action is refused');
+
+  // Choosing editions (ROADMAP 34.5): GET lists the viewer's own editions, a chosen edition is the one that moves, and one they do not hold is refused.
+  type Ed = { id: string; n: number };
+  const aEntry = encodeEntry(a.number, 'regular');
+  for (let i = 0; i < 3; i++) await kvLib.addCollectionEntry(c, 'alice', aEntry, 'grant');
+  await kvLib.addCollectionEntry(c, 'alice', encodeEntry(b.number, 'regular'), 'grant');
+  await kv.del('trade:cd:alice'); await kv.del('trade:cd:bob');
+  g = await call(req('GET'));
+  let mine = g.body.prints[aEntry] as Ed[];
+  ok(Array.isArray(mine) && mine.length >= 3 && mine.every(p => p.id && p.n > 0), 'GET lists the viewer\'s editions: ' + JSON.stringify(g.body.prints));
+  const oldest = mine[0];
+  const picked = await call(req('POST', { action: 'create', kind: 'listing', give: [{ cardNumber: a.number, variant: 'regular', count: 1, ids: [oldest.id] }], get: [{ cardNumber: b.number, variant: 'regular', count: 1 }] }));
+  ok(picked.status === 200, 'a listing with a chosen edition is made: ' + JSON.stringify(picked.body));
+  g = await call(req('GET'));
+  const pickedTrade = g.body.outgoing.find((t: { give: { ids?: string[] }[] }) => t.give[0].ids?.[0] === oldest.id);
+  ok(pickedTrade, 'the offer names the chosen edition');
+  ok(!g.body.prints[aEntry].some((p: Ed) => p.id === oldest.id), 'the chosen edition left the viewer');
+  ok((await call(req('POST', { action: 'cancel', id: pickedTrade.id }))).status === 200, 'cancel returns it');
+  const bobPrint = (await ser.getOwnerCopies(c, 'bob')).find(x => x.card === b.number)!;
+  await kv.del('trade:cd:alice');
+  const stolen = await call(req('POST', { action: 'create', kind: 'listing', give: [{ cardNumber: b.number, variant: 'regular', count: 1, ids: [bobPrint.id] }], get: [{ cardNumber: a.number, variant: 'regular', count: 1 }] }));
+  ok(stolen.status >= 400, 'an edition someone else holds cannot be offered: ' + JSON.stringify(stolen.body));
+
+  // Accepting with a choice: the edition the taker names is the one the offerer receives; a bad shape or an edition they do not hold is refused.
+  await kv.del('trade:cd:bob');
+  const bobAsk = await trades.createTrade({ seasonId: season.id, from: 'bob', kind: 'listing', give: [{ cardNumber: b.number, variant: 'regular', count: 1 }], get: [{ cardNumber: a.number, variant: 'regular', count: 1 }] });
+  ok(bobAsk.ok, 'bob lists a card for card a');
+  const askId = bobAsk.ok ? bobAsk.trade.id : '';
+  g = await call(req('GET'));
+  mine = g.body.prints[aEntry] as Ed[];
+  const mid = mine[1];
+  ok((await call(req('POST', { action: 'accept', id: askId, getIds: 'nope' }))).status === 400, 'a getIds of the wrong shape is refused');
+  ok((await call(req('POST', { action: 'accept', id: askId, getIds: { [aEntry]: [bobPrint.id] } }))).status >= 400, 'an edition the taker does not hold is refused');
+  ok((await trades.listOpenTrades()).some(t => t.id === askId), 'the refused accept leaves the listing open');
+  const chosen = await call(req('POST', { action: 'accept', id: askId, getIds: { [aEntry]: [mid.id] } }));
+  ok(chosen.status === 200, 'accept with a chosen edition: ' + JSON.stringify(chosen.body));
+  ok((await ser.getOwnerCopies(c, 'bob')).some(x => x.id === mid.id), 'bob received the edition alice chose');
+
+  // Reversed by staff: the trade keeps its status and the panel gets a `reversed` flag.
+  g = await call(req('GET'));
+  ok(g.body.recent.every((t: { reversed: unknown }) => t.reversed === false), 'nothing is reversed yet');
+  ok((await trades.reverseTrade(askId, 'staff1', 'check')).ok, 'staff reverse the trade');
+  g = await call(req('GET'));
+  const rev = g.body.recent.find((t: { id: string }) => t.id === askId);
+  ok(rev && rev.reversed === true && rev.status === 'accepted', 'the reversed trade is flagged: ' + JSON.stringify(rev));
 });
 await sbx.deleteSandbox(box.id);
 console.log('panel trades checks passed');
