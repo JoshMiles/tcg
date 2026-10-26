@@ -53,7 +53,7 @@ export async function bindAccount(login: string, id: string): Promise<SignInKind
     }
     const owner = isTwitchId(id) ? await kv.hget<string>(IDS, id) : null;
     if (owner && owner !== name && !owner.includes('~')) {
-      // The same Twitch account under another login: a Twitch rename. Move the profile here unless this login already has cards (then /account says so).
+      // The same Twitch account under another login: a Twitch rename. Move the profile here unless this login already has cards (then the Stats tab says so).
       const old = await getUserProfile(owner);
       if (old?.twitchId === id && (await cardsOf(name)) === 0) {
         const res = await moveAccount(owner, name, { mode: 'rename', replaceBlank: true, reason: 'Twitch name changed' });

@@ -4,7 +4,7 @@ import { findEarlierAccount } from '@/lib/account-restore';
 import { cardsOf } from '@/lib/account-move';
 import { keepSeparateAction, restoreEarlierAction } from './actions';
 
-/** "We found your earlier collection": a collection this Twitch account left under another login (moved aside, or before a rename). Only its owner is offered it. */
+/** "We found your earlier collection": a collection this Twitch account left under another login (moved aside, or before a rename). Only its owner is offered it, on their own Stats tab. */
 export async function EarlierCollection({ session, restored }: { session: Session; restored?: string }) {
   const found = session.sandbox ? null : await findEarlierAccount(session.username, session.twitchId).catch(() => null);
   const mine = found ? await cardsOf(session.username) : 0;

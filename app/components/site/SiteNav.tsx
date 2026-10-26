@@ -13,6 +13,7 @@ import { OPEN_SEARCH_EVENT, SearchButton } from './SiteSearch';
 import { ChangelogLink } from './ChangelogLink';
 import { newestChangelogDate } from '@/lib/changelog';
 import { nextMenuIndex } from '@/lib/menu-nav';
+import { profileHref } from '@/lib/profile-url';
 import { LINKS, isActive as active } from './links';
 import { MobileTabBar, tabsFor } from './MobileTabBar';
 import { BottomSheet } from './BottomSheet';
@@ -147,7 +148,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
                       <span className="text-sm font-semibold text-gray-100">#{rank.rank} of {rank.total}</span> · <span className="text-yellow-300 font-semibold tabular-nums">{rank.score.toLocaleString()} pts</span>
                     </div>
                   )}
-                  <Link role="menuitem" href="/account" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats</Link>
+                  <Link role="menuitem" href={profileHref(user.username, 'stats')} className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats</Link>
                   <Link role="menuitem" href={`/u/${user.username}`} className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="user" className="mr-1.5" />My profile</Link>
                   <Link role="menuitem" href="/settings" className="px-3 py-2 rounded-lg text-sm text-gray-200 hover:bg-white/5"><Icon name="settings" className="mr-1.5" />Settings</Link>
                   {staff && <Link role="menuitem" href={staff.href} prefetch={false} className="px-3 py-2 rounded-lg text-sm text-purple-200 hover:bg-purple-500/10"><Icon name="shield" className="mr-1.5" />{staff.label}</Link>}
@@ -190,7 +191,7 @@ export function SiteNav({ user, loginEnabled, rank, staff, label }: { label?: 'a
           <ChangelogLink newest={newestChangelogDate()} className={`px-3 py-2.5 rounded-lg text-sm font-semibold ${isActive('/changelog') ? 'bg-yellow-500/15 text-yellow-300' : 'text-gray-300 hover:bg-white/5'}`}>What&rsquo;s new</ChangelogLink>
           {user && (
             <>
-              <Link href="/account" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats{rank && <span className="ml-2 text-xs text-gray-400">#{rank.rank} &middot; {rank.score.toLocaleString()} pts</span>}</Link>
+              <Link href={profileHref(user.username, 'stats')} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="trend" className="mr-1.5" />My stats{rank && <span className="ml-2 text-xs text-gray-400">#{rank.rank} &middot; {rank.score.toLocaleString()} pts</span>}</Link>
               <Link href={`/u/${user.username}`} className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="user" className="mr-1.5" />My profile</Link>
               <Link href="/settings" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:bg-white/5"><Icon name="settings" className="mr-1.5" />Settings</Link>
             </>

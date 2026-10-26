@@ -72,7 +72,7 @@ export function ProfileHeader({ b, isOwner, signedIn, shareSpec, pronouns, staff
             <Icon name="trophy" />Leaderboard
           </Link>
           {isOwner && (
-            <Link href="/account" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
+            <Link href={profileHref(b.lower, 'stats')} className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-200 bg-white/6 border border-white/10 hover:bg-white/10 rounded-full px-3 py-1.5 transition-colors">
               <Icon name="trend" />My stats &amp; upgrades
             </Link>
           )}
