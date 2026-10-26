@@ -209,6 +209,8 @@ In Node, `new URL('/\\evil.com', 'https://cheesytcg.app/api/sandbox/exit')` is `
 
 **Fix.** Set the ready key only after a scan that did not throw. If the scan throws, leave the key unset so the next lookup tries again.
 
+**Status.** Fixed (ROADMAP 46.2): `ensureIndex` lets a failed viewer-list read, settings read or index write throw (using the throwing `loadUserSettings`), so `watch:idx:ready` stays unset and the next lookup rebuilds; `syncWatchIndex` still never throws for saves.
+
 ### 24. A paid print is saved before Mix It Up confirms the charge
 
 `POST /api/collection` (`app/api/collection/route.ts` lines 47-66) claims the paid ticket, appends the print, then `chargePaidPull`. On a failed charge it calls `revokePrint`. `claimDraw` (`lib/draw.ts` lines 76-79) is get-then-delete and the second delete returns 0, so two saves cannot both claim one ticket.
