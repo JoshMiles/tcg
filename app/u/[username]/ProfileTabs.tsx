@@ -61,7 +61,7 @@ export function CollectionTab({ b, grid, isOwner, tradeWith, prefs, mine }: { b:
 /** Points, bonuses, version mix and the most valuable copies: what makes up this collector's score. */
 export async function StatsTab({ b }: { b: ProfileBase }) {
   const overview = await getSeasonOverview(b.season);
-  // No upgrade projections here (they're only shown on My Stats, and they are the costly part).
+  // No upgrade projections here (the owner's own Stats tab adds them in OwnerStats, and they are the costly part).
   const s = computeUserStats(overview, b.lower, b.owned, b.collection, { upgrades: false });
   if (s.copies === 0) return <Empty icon="cheese" title="Nothing collected yet">{b.displayName} hasn&apos;t pulled a card this season.</Empty>;
   const printLinks = await topPrintLinks(b.season, s.topCopies.slice(0, 5));

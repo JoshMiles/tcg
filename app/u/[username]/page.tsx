@@ -17,6 +17,8 @@ import { ProfileHeader } from './ProfileHeader';
 import { ProfileTabBar } from './ProfileTabBar';
 import { OverviewTab } from './OverviewTab';
 import { ShareTab } from './ShareTab';
+import { OwnerStats } from './OwnerStats';
+import { sweepTrades } from '@/lib/trades';
 import { sharesPostingOn } from '@/lib/discord';
 import { ActivityTab, CollectionTab, StatsTab, TradesTab } from './ProfileTabs';
 
@@ -43,8 +45,8 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   };
 }
 
-export default async function ProfilePage({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ tab?: string }> }) {
-  const [{ username }, { tab: tabParam }] = await Promise.all([params, searchParams]);
+export default async function ProfilePage({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ tab?: string; restored?: string }> }) {
+  const [{ username }, { tab: tabParam, restored }] = await Promise.all([params, searchParams]);
   const lower = decodeURIComponent(username).toLowerCase();
   const session = await getSession();
   const isOwner = session?.username === lower;
@@ -57,6 +59,7 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
     );
   }
 
+  if (isOwner && tab === 'stats') await sweepTrades(); // hand back copies from offers that have run out of time, before their stats are counted
   const b = await loadProfileBase(lower, isOwner);
   if (!b) {
     return <SiteMessage icon="cards" title="No active season">Check back when a season is running.<br /><Link href="/leaderboard" className="text-yellow-400 hover:text-yellow-300">See the leaderboard →</Link></SiteMessage>;
@@ -86,7 +89,9 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
       <ProfileTabBar username={lower} active={tab} isOwner={isOwner} />
       {tab === 'overview' && <OverviewTab b={b} copies={copies} isOwner={isOwner} viewer={session?.username} mine={mine} />}
       {tab === 'collection' && <CollectionTab b={b} grid={grid} isOwner={isOwner} tradeWith={session && !isOwner ? lower : undefined} prefs={prefs} mine={mine} />}
-      {tab === 'stats' && <StatsTab b={b} />}
+      {tab === 'stats' && (isOwner && session
+        ? <OwnerStats b={b} session={session} copies={copies} restored={restored}><StatsTab b={b} /></OwnerStats>
+        : <StatsTab b={b} />)}
       {tab === 'trades' && <TradesTab b={b} viewer={session?.username} />}
       {tab === 'activity' && <ActivityTab b={b} />}
       {tab === 'share' && isOwner && <ShareTab base={buildShareBase(b, SITE_SHORT)} candidates={buildShareCandidates(b, copies, 18)} bigStats={buildBigStats(b)} link={`${SITE_URL}${profileHref(lower)}`} username={lower} discordOn={discordOn} />}

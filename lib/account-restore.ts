@@ -1,6 +1,6 @@
 // The earlier profile a signed-in Twitch account may have under another login (ROADMAP 47.8): the same ID owns `acct:ids[id]`, but that is not the login
 // they signed in with, either because the account was moved aside (`~` login, only its owner may restore it) or because Twitch renamed them and the new
-// login already holds cards (staff merge). /account shows it (app/(site)/account/EarlierCollection.tsx).
+// login already holds cards (staff merge). the owner's profile Stats tab shows it (app/u/[username]/EarlierCollection.tsx; /account forwards there).
 
 import { kv } from './db';
 import { getUserProfile } from './kv';

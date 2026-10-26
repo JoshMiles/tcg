@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
-import { toggleWantedAction } from '../cards/actions';
+import { toggleWantedAction } from '@/app/(site)/cards/actions';
 
 /** Adds / removes one card on the viewer's Looking for list (the profile wishlist) without leaving the page. */
 export function WantToggle({ number, initial }: { number: number; initial: boolean }) {

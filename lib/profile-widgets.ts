@@ -21,7 +21,7 @@ export interface ProfileWidgetDef {
 }
 
 export const PROFILE_WIDGETS: Record<ProfileWidgetType, ProfileWidgetDef> = {
-  stats: { type: 'stats', title: 'Score breakdown', icon: 'trend', description: 'Points from cards and bonuses, version mix and total pulls.', defaultSpan: 4, spans: [4, 6, 8] },
+  stats: { type: 'stats', title: 'Score', icon: 'trend', description: 'Your points, rank and cards collected, linking to the full breakdown on the Stats tab.', defaultSpan: 4, spans: [4, 6, 8] },
   showcase: { type: 'showcase', title: 'Showcase', icon: 'gem', description: 'Up to three editions you picked. Leave it empty and it shows your three most valuable.', defaultSpan: 8, spans: [4, 6, 8, 12] },
   pinned: { type: 'pinned', title: 'Showcase edition', icon: 'pin', description: 'One edition you picked, shown as a card you can flip over to see its engraved serial number. Pin it from the edition\'s own page.', defaultSpan: 4, spans: [3, 4, 6, 8] },
   rarity: { type: 'rarity', title: 'Rarity progress', icon: 'award', description: 'How much of each rarity you have collected.', defaultSpan: 12, spans: [6, 8, 12] },
