@@ -2362,6 +2362,13 @@ function warnKey() {
   showAlert('Overlay key missing or changed: copy the new URL from Settings > OBS Overlay');
 }
 
+// How long to wait before the next queue poll (ROADMAP 48.5): every 2 s, but every 5 s once a whole minute has passed with
+// nothing coming back. Any event puts it back to 2 s at once (lastEventAt below). Mirrored in scripts/check-polling.mts.
+function nextPollDelay(quietMs) {
+  return quietMs >= 60000 ? 5000 : 2000;
+}
+let lastEventAt = Date.now();
+
 async function pollWebhookQueue() {
   try {
     const res = await fetch('/api/webhooks/queue');
@@ -2369,11 +2376,14 @@ async function pollWebhookQueue() {
     if (!res.ok) return;
     const event = await res.json();
     if (!event) return;
-    if (event.type === 'pull')       queueDraw(event.username, event.draw ? { packId: event.draw.packId, cardNumber: event.draw.cardNumber, variant: event.draw.variant, ticket: event.id } : undefined);
+    lastEventAt = Date.now();
+    if (event.type === 'pull')      queueDraw(event.username, event.draw ? { packId: event.draw.packId, cardNumber: event.draw.cardNumber, variant: event.draw.variant, ticket: event.id } : undefined);
     else if (event.type === 'collection') queueCollection(event.username);
     else if (event.type === 'card' && event.cardNumber != null) queueShowCard(event.username, event);
   } catch {
     // ignore, overlay keeps working if server is unreachable
+  } finally {
+    setTimeout(pollWebhookQueue, nextPollDelay(Date.now() - lastEventAt));
   }
 }
 
@@ -2452,5 +2462,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   // widget-dev.js (the test panel) is only loaded under ?dev; elsewhere the panel stays hidden.
   if (typeof initDevPanel === 'function') initDevPanel();
   else document.getElementById('dev-panel')?.classList.add('hidden');
-  setInterval(pollWebhookQueue, 2000);
+  setTimeout(pollWebhookQueue, 2000); // each poll schedules the next one
 });

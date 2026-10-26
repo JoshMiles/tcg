@@ -67,7 +67,7 @@ One limiter, `lib/rate-limit.ts`: `rateLimit(name, key, max, windowS)` counts ea
 | Where | Name and key | Limit | Why this number |
 |-------|--------------|-------|-----------------|
 | `POST /api/auth/login` (wrong passwords only) | `login-fails` per address, `login-fails-hour` for the site | 10 per 15 minutes per address, 20 per clock hour in all (`lib/login-limit.ts`, see docs/staff.md) | Unchanged by the shared limiter |
-| `/api/webhooks/*` (incoming Mix It Up calls and the overlay's notify call; the queue poll counts only callers without the overlay key) | `webhooks` per address | 600 per minute | The overlay asks for events every 2 seconds (30 a minute) and a busy stream sends a few triggers a second at most |
+| `/api/webhooks/*` (incoming Mix It Up calls and the overlay's notify call; the queue poll counts only callers without the overlay key) | `webhooks` per address | 600 per minute | The overlay asks for events every 2 seconds (30 a minute; 12 after a quiet minute) and a busy stream sends a few triggers a second at most |
 | `/api/twitch/*` (the panel) | `twitch` per address | 300 per minute | A panel makes a handful of calls when opened and one per button press |
 
 The guard is the first line of each handler, except the queue poll, where it runs only after a failed overlay-key check (`limitWebhook` / `limitTwitch`; for the secret-checked webhooks it sits inside `parseIncomingWebhook`), so a refused call costs one KV command and never reads the body. A new webhook or panel route must call it too. Change a limit in `lib/rate-limit.ts` and in this table together; `scripts/check-rate-limit.mts` covers the helper, the login numbers and both route families.

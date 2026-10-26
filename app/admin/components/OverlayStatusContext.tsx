@@ -22,8 +22,8 @@ export function OverlayStatusProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
     async function poll() {
-      if (document.visibilityState !== 'visible') return;
       try {
         const res = await fetch('/api/admin/overlay-status', { cache: 'no-store' });
         if (!res.ok) throw new Error(String(res.status));
@@ -33,10 +33,17 @@ export function OverlayStatusProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setValue(v => ({ ...v, failed: true }));
       }
     }
-    poll();
-    const interval = setInterval(poll, POLL_MS);
-    document.addEventListener('visibilitychange', poll);
-    return () => { cancelled = true; clearInterval(interval); document.removeEventListener('visibilitychange', poll); };
+    // Nothing runs while the tab is hidden: the timer stops, and a poll plus the timer start again when it is shown.
+    function sync() {
+      clearInterval(interval);
+      interval = undefined;
+      if (document.visibilityState !== 'visible') return;
+      poll();
+      interval = setInterval(poll, POLL_MS);
+    }
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    return () => { cancelled = true; clearInterval(interval); document.removeEventListener('visibilitychange', sync); };
   }, []);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

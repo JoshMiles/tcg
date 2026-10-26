@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActiveSeason, getCollection } from '@/lib/kv';
-import { acceptTrade, cancelTrade, counterTrade, createTrade, declineTrade, getTradeSettings, sweepTrades, tradesForUser, listOpenTrades } from '@/lib/trades';
+import { acceptTrade, cancelTrade, counterTrade, createTrade, declineTrade, getTradeSettings, tradesForUser, listOpenTrades } from '@/lib/trades';
 import { firstMissing, type Trade } from '@/lib/trade-core';
 import { getPrintPool, getTradeCards, getTradePools, poolsFor, stackPoints } from '@/lib/trade-view';
 import { extensionViewer } from '@/lib/twitch-viewer';
@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
 
   const season = await getActiveSeason();
   if (!season || season.status === 'draft') return NextResponse.json({ error: 'No active season' }, { status: 404 });
-  await sweepTrades(); // refund anything that ran out of time before listing it
 
   const [settings, cards, mine, open, data, prefs, prints] = await Promise.all([
     getTradeSettings(), getTradeCards(season), tradesForUser(me), listOpenTrades(), getCollection(season.collectionName), getUserSettings(me), getPrintPool(season, me),

@@ -19,15 +19,17 @@ export function createTtlCache<T>(ttlMs: number, now: () => number = Date.now, m
       if (hit && now() - hit.at < ttlMs) return hit.value;
       const running = pending.get(key);
       if (running) return running;
-      const p = compute().then(
+      const p: Promise<T> = compute().then(
         value => {
+          // A clear() while this ran dropped it from `pending`: its value may predate the write that cleared, so it is not kept.
+          if (pending.get(key) !== p) return value;
           done.set(key, { at: now(), value });
           // Keep the map small: drop the oldest when over the limit.
           if (done.size > maxEntries) done.delete(done.keys().next().value as string);
           pending.delete(key);
           return value;
         },
-        err => { pending.delete(key); throw err; }, // a failure is never cached
+        err => { if (pending.get(key) === p) pending.delete(key); throw err; }, // a failure is never cached
       );
       pending.set(key, p);
       return p;

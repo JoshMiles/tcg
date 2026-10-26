@@ -34,9 +34,8 @@ const load = cache(async (seasonId: string, copyId: string) => {
   const parsed = parseCopyId(copyId);
   const season = await getSeason(seasonId);
   if (!parsed || !season || season.status === 'draft') return null;
-  const copy = await getCopy(season.collectionName, copyId);
+  const [copy, packs] = await Promise.all([getCopy(season.collectionName, copyId), getPacksForSeason(season)]);
   if (!copy) return null;
-  const packs = await getPacksForSeason(season);
   const cards = await Promise.all(packs.map(p => getPackCards(p.id)));
   for (const [i, pack] of packs.entries()) {
     const card = cards[i].find(c => c.number === copy.card);

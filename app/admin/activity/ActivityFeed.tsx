@@ -18,6 +18,7 @@ export type CardInfo = { packName: string; number: number; name: string; imageUr
 type Status = 'live' | 'paused' | 'reconnecting' | 'signed-out';
 
 const POLL_MS = 3000;
+const IDLE_MS = 10 * 60 * 1000; // no input for this long: the feed stops polling until the viewer is back
 const MAX_EVENTS = 300;
 const PREFS_KEY = 'tcg_activity_prefs';
 const VARIANT_IDS = ['regular', 'reverse', 'full', 'shiny'] as const;
@@ -101,6 +102,7 @@ export function ActivityFeed({
   const [avatars, setAvatars] = useState(initialAvatars);
   const [fresh, setFresh] = useState<Set<number>>(new Set());
   const [paused, setPaused] = useState(false);
+  const [idle, setIdle] = useState(false);
   const [status, setStatus] = useState<Status>('live');
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
@@ -111,6 +113,7 @@ export function ActivityFeed({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [now, setNow] = useState(() => serverNow ?? Date.now());
   const seqRef = useRef(initialSeq);
+  const lastInputRef = useRef(Date.now());
   const seenRef = useRef(new Set(initialEvents.map(e => e.seq)));
   const prefsRef = useRef(prefs);
 
@@ -137,8 +140,16 @@ export function ActivityFeed({
   const packNames = useMemo(() => [...new Set(cards.map(c => c.packName))], [cards]);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 5000);
+    const t = setInterval(() => { setNow(Date.now()); if (Date.now() - lastInputRef.current >= IDLE_MS) setIdle(true); }, 5000);
     return () => clearInterval(t);
+  }, []);
+
+  // Any input counts as being back: it resumes a feed that went idle.
+  useEffect(() => {
+    const back = () => { lastInputRef.current = Date.now(); setIdle(false); };
+    const events = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'] as const;
+    events.forEach(e => window.addEventListener(e, back, { passive: true }));
+    return () => events.forEach(e => window.removeEventListener(e, back));
   }, []);
 
   // Alerts for notable moments (sound / desktop notification), for events that arrive while the page is open.
@@ -191,7 +202,7 @@ export function ActivityFeed({
   }, [alertFor]);
 
   useEffect(() => {
-    if (paused) { setStatus('paused'); return; }
+    if (paused || idle) { setStatus('paused'); return; }
     if (status === 'signed-out') return;
     const tick = () => { if (document.visibilityState === 'visible') poll(); };
     const interval = setInterval(tick, POLL_MS);
@@ -200,7 +211,7 @@ export function ActivityFeed({
     poll();
     return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onVisible); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paused, poll]);
+  }, [paused, idle, poll]);
 
   // Filtering
   const needle = search.trim().toLowerCase();
@@ -281,7 +292,12 @@ export function ActivityFeed({
         </button>
         {activeFilters > 0 && <button type="button" onClick={clearFilters} className="text-xs font-semibold text-gray-400 hover:text-white underline underline-offset-2">Clear all</button>}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <StatusPill status={status} />
+          <StatusPill status={paused || idle ? 'paused' : status} />
+          {idle && (
+            <button type="button" onClick={() => { lastInputRef.current = Date.now(); setIdle(false); }} className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/50 bg-yellow-500/10 px-3 py-1.5 text-xs font-bold text-yellow-300" title="No input for 10 minutes, so the feed stopped checking for new activity. Any click or key resumes it.">
+              <Icon name="play" />Idle, resume
+            </button>
+          )}
           <button onClick={() => setPaused(p => !p)} className="px-3 py-1.5 text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors">
             {paused ? <><Icon name="play" className="mr-1" />Resume</> : <><Icon name="pause" className="mr-1" />Pause</>}
           </button>

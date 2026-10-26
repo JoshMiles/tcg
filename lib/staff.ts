@@ -8,6 +8,7 @@
 import { notifyAdminLog } from './discord';
 import { inSandbox, isPreview, prodKv, runInSandbox } from './db';
 import { getUserProfile } from './kv';
+import { createTtlCache } from './ttl-cache';
 import {
   SUPER_ADMINS, canManage, canModerate, cleanLogin, isSuperAdmin, isTwitchId, sanitizeStaffRecord,
   type AssignableRole, type ModAction, type ModActor, type ModTarget, type ModVerdict, type StaffRecord, type StaffRole,
@@ -26,22 +27,41 @@ export interface StaffResult { ok: boolean; message: string }
 const PREVIEW_REFUSAL: StaffResult = { ok: false, message: 'Staff cannot be changed on a preview deployment. Do it on the live site.' };
 export interface StaffLogEntry { at: number; by: string; action: 'added' | 'role' | 'removed'; login: string; detail: string }
 
+// The guards read the staff record on every staff request and for every signed-in viewer's top bar, so `getStaffRecord` keeps it in
+// this instance's memory for 15 s (null included). Every write here clears this instance's entries at once; another instance can
+// show an old role for at most the TTL. A failed read throws inside the cache, so it is never kept. The code that decides to write
+// (add, change, remove, pin, moderation checks) reads with `readStaffRecord`, never from the cache.
+export const STAFF_CACHE_TTL_MS = 15_000;
+const staffCache = createTtlCache<StaffRecord | null>(STAFF_CACHE_TTL_MS, () => Date.now(), 200);
+/** Drops this instance's cached staff records (every write below calls it; scripts that write the hashes directly call it too). */
+export function forgetStaffCache() { staffCache.clear(); }
+
+async function loadStaffRecord(l: string): Promise<StaffRecord | null> {
+  const rec = sanitizeStaffRecord(await prodKv.hget(MEMBERS, l));
+  if (!rec || rec.twitchId) return rec;
+  const bound = await prodKv.hget<{ id?: unknown }>(IDS, l);
+  return isTwitchId(bound?.id) ? { ...rec, twitchId: bound.id } : rec;
+}
+
+/** The record as stored right now (no cache), for code that is about to write. A failed read is null. */
+async function readStaffRecord(login: string): Promise<StaffRecord | null> {
+  const l = cleanLogin(login);
+  if (!l) return null;
+  try { return await loadStaffRecord(l); } catch { return null; }
+}
+
+/** The record for the access guards: up to 15 s old (see above). A failed read is null and is not kept. */
 export async function getStaffRecord(login: string): Promise<StaffRecord | null> {
   const l = cleanLogin(login);
   if (!l) return null;
-  try {
-    const rec = sanitizeStaffRecord(await prodKv.hget(MEMBERS, l));
-    if (!rec || rec.twitchId) return rec;
-    const bound = await prodKv.hget<{ id?: unknown }>(IDS, l);
-    return isTwitchId(bound?.id) ? { ...rec, twitchId: bound.id } : rec;
-  } catch { return null; }
+  try { return await staffCache.get(l, () => loadStaffRecord(l)); } catch { return null; }
 }
 
 /** The staff role a login holds right now: a super admin from the code, else the staff list, else null. `asActor` reads "password" as the emergency login (it is only ever recorded as `flags.by`, never a viewer). */
 async function roleOfLogin(login: string, asActor = false): Promise<StaffRole | null> {
   const l = login.toLowerCase();
   if ((asActor && l === 'password') || SUPER_ADMINS.some(s => s.login === l)) return 'super';
-  return (await getStaffRecord(l))?.role ?? null;
+  return (await readStaffRecord(l))?.role ?? null;
 }
 
 /** Looks up what `canModerate` needs to know about a viewer: their staff role and who set the restrictions they carry. */
@@ -112,7 +132,7 @@ export async function addStaff(actor: StaffActor, loginInput: unknown, role: Ass
   if (role !== 'admin' && role !== 'mod') return { ok: false, message: 'Pick a role.' };
   if (!canManage(actor.role, role)) return { ok: false, message: role === 'admin' ? 'Only the super admin can add admins.' : 'You can\'t add mods.' };
   if (SUPER_ADMINS.some(s => s.login === login)) return { ok: false, message: `${login} is the super admin already.` };
-  if (await getStaffRecord(login)) return { ok: false, message: `${login} is already staff. Change their role instead.` };
+  if (await readStaffRecord(login)) return { ok: false, message: `${login} is already staff. Change their role instead.` };
   const known = await knownTwitchId(login);
   if (known.id && isSuperAdmin({ twitchId: known.id })) return { ok: false, message: `${login} is the super admin already.` };
   const record: StaffRecord = {
@@ -121,6 +141,7 @@ export async function addStaff(actor: StaffActor, loginInput: unknown, role: Ass
   };
   await Promise.all([prodKv.hdel(IDS, login), prodKv.hdel(SEEN, login)]); // a re-added login starts fresh, whatever an earlier stint left behind
   await prodKv.hset(MEMBERS, { [login]: record });
+  forgetStaffCache();
   await log({ by: actor.login, action: 'added', login, detail: `as ${role}` });
   return { ok: true, message: `${known.displayName ?? login} is now ${role === 'admin' ? 'an admin' : 'a mod'}.${known.id ? '' : ' They have not played yet, so the name is matched until they first sign in.'}` };
 }
@@ -128,7 +149,7 @@ export async function addStaff(actor: StaffActor, loginInput: unknown, role: Ass
 export async function setStaffRole(actor: StaffActor, loginInput: unknown, role: AssignableRole): Promise<StaffResult> {
   if (isPreview()) return PREVIEW_REFUSAL;
   const login = cleanLogin(loginInput);
-  const rec = login ? await getStaffRecord(login) : null;
+  const rec = login ? await readStaffRecord(login) : null;
   if (!login || !rec) return { ok: false, message: 'That person isn\'t on the staff list.' };
   if (role !== 'admin' && role !== 'mod') return { ok: false, message: 'Pick a role.' };
   // Both the role they have and the role they would get must be one the actor may manage (so an admin can't promote a mod to admin).
@@ -136,6 +157,7 @@ export async function setStaffRole(actor: StaffActor, loginInput: unknown, role:
   if (!canManage(actor.role, rec.role) || !canManage(actor.role, role)) return { ok: false, message: actor.role === 'mod' ? 'You can\'t change staff.' : 'Only the super admin can change admins or make someone an admin.' };
   if (rec.role === role) return { ok: true, message: `${login} is already ${role === 'admin' ? 'an admin' : 'a mod'}.` };
   await prodKv.hset(MEMBERS, { [login]: { ...rec, role } });
+  forgetStaffCache();
   await log({ by: actor.login, action: 'role', login, detail: `${rec.role} to ${role}` });
   return { ok: true, message: `${login} is now ${role === 'admin' ? 'an admin' : 'a mod'}.` };
 }
@@ -143,10 +165,11 @@ export async function setStaffRole(actor: StaffActor, loginInput: unknown, role:
 export async function removeStaff(actor: StaffActor, loginInput: unknown): Promise<StaffResult> {
   if (isPreview()) return PREVIEW_REFUSAL;
   const login = cleanLogin(loginInput);
-  const rec = login ? await getStaffRecord(login) : null;
+  const rec = login ? await readStaffRecord(login) : null;
   if (!login || !rec) return { ok: false, message: 'That person isn\'t on the staff list.' };
   if (!canManage(actor.role, rec.role)) return { ok: false, message: 'Only the super admin can remove admins.' };
   await prodKv.hdel(MEMBERS, login);
+  forgetStaffCache();
   await log({ by: actor.login, action: 'removed', login, detail: `was ${rec.role}` });
   return { ok: true, message: `${login} is no longer staff.` };
 }
@@ -154,17 +177,17 @@ export async function removeStaff(actor: StaffActor, loginInput: unknown): Promi
 /** Before a login is freed for someone else (lib/account-move.ts): pins a staff record that has no Twitch ID yet to this one, so whoever takes the login next cannot inherit the role. Write-once, never rebinds. */
 export async function pinStaffId(login: string, twitchId: string): Promise<void> {
   if (isPreview() || (await inSandbox()) || !isTwitchId(twitchId)) return;
-  const rec = await getStaffRecord(login);
-  if (rec && !rec.twitchId) await prodKv.hsetnx(IDS, rec.login, { id: twitchId });
+  const rec = await readStaffRecord(login);
+  if (rec && !rec.twitchId) { await prodKv.hsetnx(IDS, rec.login, { id: twitchId }); forgetStaffCache(); }
 }
 
 /** Notes a sign-in: stamps the time in `staff:seen`, and binds the account's Twitch ID the first time with a write-once field (never rebinds). Never touches the staff record. */
 export async function touchStaffLogin(login: string, twitchId: string, displayName: string): Promise<void> {
   if (isPreview()) return; // best effort, and a preview must not write the shared staff list
   try {
-    const rec = await getStaffRecord(login);
+    const rec = await readStaffRecord(login);
     if (!rec) return;
     await prodKv.hset(SEEN, { [rec.login]: { lastLogin: Date.now(), displayName } });
-    if (!rec.twitchId && isTwitchId(twitchId)) await prodKv.hsetnx(IDS, rec.login, { id: twitchId });
+    if (!rec.twitchId && isTwitchId(twitchId)) { await prodKv.hsetnx(IDS, rec.login, { id: twitchId }); forgetStaffCache(); }
   } catch { /* best effort */ }
 }
