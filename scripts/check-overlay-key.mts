@@ -14,6 +14,9 @@ const beat = await import('../app/api/overlay/heartbeat/route');
 
 ok(k.keyMatches('abc', 'abc') && !k.keyMatches('abd', 'abc') && !k.keyMatches('', '') && !k.keyMatches(null, 'abc') && !k.keyMatches('abcd', 'abc'), 'keys match exactly and only exactly');
 ok(k.overlayUrl('https://x.test', 'K', { preset: 'v' }) === 'https://x.test/overlay.html?preset=v&key=K', 'the OBS address carries the key');
+const { maskUrlKey } = await import('../lib/mask-url-key');
+ok(maskUrlKey('https://x.test/overlay.html?preset=v&key=K%2B1&dev') === 'https://x.test/overlay.html?preset=v&key=••••••••&dev' && maskUrlKey('https://x.test/overlay.html?key=K') === 'https://x.test/overlay.html?key=••••••••', 'the shown address hides the key, wherever it sits');
+ok(maskUrlKey('https://x.test/collection') === 'https://x.test/collection', 'a URL without a key is left alone');
 
 const key = await k.getOverlayKey();
 ok(key.length >= 32 && (await k.getOverlayKey()) === key, 'a key is made once and then kept');
