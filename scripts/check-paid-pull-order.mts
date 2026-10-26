@@ -24,7 +24,7 @@ let deduct: 'ok' | 'declines' = 'ok';
 let seenAtDeduct: number[] | null = null; // what the viewer owned the moment Mix It Up was asked to take the money
 const realFetch = globalThis.fetch;
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-  if (!String(input).startsWith('https://hook.example')) return realFetch(input, init);
+  if (URL.parse(String(input))?.host !== 'hook.example') return realFetch(input, init);
   const body = JSON.parse(String(init?.body)) as Call;
   calls.push(body);
   if (body.action === 'balance') return new Response(JSON.stringify({ balance: 1000 }), { status: 200 });
