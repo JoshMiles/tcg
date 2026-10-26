@@ -14,7 +14,8 @@ Audit follow-up: finish Track 47 (access hardening), then 47.8 PR 2 to 4, then T
 - 47.8 PR 2 merged (#501, no review comments).
 - 47.8 PR 3 merged (#502, no review comments).
 - 47.8 done (#494, #501, #502, #503), archived in #504.
-- 48.1 (per-request cache) built and reviewed on `48-1-request-cache`, verify 102/102; PR opened. Then 48.2 to 48.6, one fresh agent and PR each (48.7 needs design with Josh first).
+- 48.1 merged (#505, review bot: no issues).
+- 48.2 (home and dashboard reads in parallel) built and reviewed on `48-2-home-parallel`, verify 102/102, build ok; PR opened. Then 48.3 to 48.6, one fresh agent and PR each (48.7 needs design with Josh first).
 - A stray node process (mock KV?) listens on port 4111 from an earlier session; stop it at cleanup.
 - Josh to do: the Vercel Firewall log-only trial rules from docs/hosting.md (#498 is merged, so they can be set up now), and read the CSP report logs after a week.
 - Stale worktrees under .claude/worktrees/ (audit-44-*, twitch-34-*, roadmap-34*, panel-version): clean at the end.
