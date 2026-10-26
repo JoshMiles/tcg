@@ -1424,3 +1424,16 @@ From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`.
 - **46.5 Card-pulled webhook delivery (Done, #485).** admin A-3: `after()` or await.
 - **46.6 Read-modify-write staff edits (Done, #499).** mod-panel L-8 (hidden list, tags, flags) and L-7 (mod actions accept any username).
 - **46.7 Small input checks (Done, #490).** public-site L-9 (trainer season id), security M-6 (incoming webhooks: unknown usernames and card numbers), security L-11 (collection replace body), mod-panel L-6 ("Total pulls" label).
+
+## Track 47: access hardening (2026-10-26)
+
+From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`. 47.4 moved to Track 53 (next panel version); 47.8 PR 2 to 4, 47.10 and 47.11 are still open in `ROADMAP.md`.
+
+- **47.1 A guard on every staff page, checked by verify (Done, #493).** mod-panel M-1 and C1, L-9, L-10; security C-1 (every `route.ts` against an allow-list of public routes); admin C-4 and A-8 (missing `revalidatePath`).
+- **47.2 One moderation rule (Done, #492).** mod-panel M-2, M-3, C2: `canModerate(actor, target, action)` used by every mod action and by `reverseTrade`.
+- **47.3 Panel Log out that sticks (Done, #495).** mod-panel M-4, C4, L-1.
+- **47.5 Security headers (Done, #496).** security M-4, then the CSP trial (security X-1, report-only for a week; the readout is 47.11).
+- **47.6 Signing keys and secret compares (Done, #491).** security C-3, L-8, L-9 (public-site L-3, twitch-panel L-8, CODE_REVIEW #13).
+- **47.7 Small hardening (Done, #497).** public-site L-1, L-5, L-6, L-7 (with U-1), L-8; security L-6, L-10; `lib/captcha-server.ts` uses `clientIp`. security L-2 was left out and became 47.10.
+- **47.8 PR 1: record the Twitch account ID on sign-in (Done, #494).** security M-1 and X-3, first step: `bindAccount` at both sign-in sites, `acct:ids`, conflicts counted on Data health. PR 2 to 4 are open.
+- **47.9 One rate limiter, and a firewall trial (Done, #498).** security C-2 (`rateLimit` in `prodKv` for login, incoming webhooks and the panel routes) and X-2 (Vercel Firewall log-only rules, set up by hand; the readout is 47.11).
