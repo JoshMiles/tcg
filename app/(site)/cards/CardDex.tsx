@@ -57,6 +57,9 @@ export interface DexCard {
 }
 
 const SHORT: Record<Variant, string> = { regular: '', reverse: 'RH', full: 'FA', shiny: 'FH', golden: 'GD' };
+
+// "Regular 81, RH 486, FA 1,742, FH 8,067, GD 29,140" (tile tooltip and screen-reader label)
+const dexValueList = (values: number[]) => VARIANTS.map((v, i) => `${SHORT[v] || 'Regular'} ${values[i].toLocaleString()}`).join(', ');
 const VARIANT_TIPS: Partial<Record<Variant, TermId>> = { reverse: 'reverseHolo', full: 'fullArt', shiny: 'shiny', golden: 'golden' };
 const oneIn = (p: number) => (p > 0 ? `1 in ${Math.round(1 / p).toLocaleString()}` : '-');
 const artFor = (c: DexCard, v: Variant) => (usesFullArt(v) && c.fullArtImageUrl ? c.fullArtImageUrl : c.imageUrl);
@@ -198,8 +201,9 @@ export function CardDex({ cards, seasonId, siteHost, signedIn = false, compactDe
                   <p className="text-sm font-semibold text-white truncate">{c.name}</p>
                   <p className="text-xs" style={{ color: rarity?.hex }}>{'★'.repeat(c.stars)} {rarity?.label}</p>
                   <p className="text-[11px] text-gray-500">1 in {Math.round(1 / c.pullRate).toLocaleString()} · {c.copies} out there</p>
-                  <p className="text-[11px] text-yellow-300/90 tabular-nums" title={c.upgradable ? 'Points per edition: Regular · Reverse Holo · Full Art · Full Art Holo · Golden' : 'Points per edition'}>
-                    {c.upgradable ? c.values.join(' · ') : c.values[0]} pts
+                  <p className="text-[11px] text-yellow-300/90 tabular-nums" title={c.upgradable ? `Points per edition: ${dexValueList(c.values)}` : 'Points per edition'}>
+                    {c.values[0]} pts
+                    {c.upgradable && <span className="sr-only">. Points per edition: {dexValueList(c.values)}. Open the card for the full list.</span>}
                   </p>
                 </div>
               </div>
