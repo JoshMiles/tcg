@@ -18,7 +18,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
-| 45 | Held security fixes and asset deletion (45.1, 45.2, 45.4) | Ready, first | S to M |
+| 45 | Held security fixes and asset deletion (45.1) | Ready, first | S to M |
 | 34 | Next extension version 0.0.2 (34.8; 34.6b after) | Ready after 45 | S |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
@@ -111,8 +111,6 @@ Tracks 45 to 52 come from the Track 44 audits (44.6 triage, Josh picked on 2026-
 ### Track 45: held security fixes and asset deletion (Ready, do first)
 The details of 45.1 to 45.3 are in the gitignored `SECRETS.md` at the main checkout (Opus hands them to the agent in its brief). The repo is public: the PR title, body, commit messages and changelog line describe the fix, never how it could be abused, and the finding stays out of every public file until it is merged.
 - **45.1 Sandbox entry and the overlay key (S to M).** SECRETS 44.2 S-1 and 44.5 S-1 (also CODE_REVIEW #8, security C-4). Add a check-file case that fails before the fix.
-- **45.2 Staff sign-in bookkeeping writes (S).** SECRETS 44.3 S-1. Add a `scripts/check-staff.mts` case that fails before the fix.
-- **45.4 Assets "Delete all unused" deletes files in use (S to M).** admin A-1 with U-1: `collectReferenced` learns every kind of stored file (backups, Full Art art, card backs, overlay layer images), the confirm lists files by folder and kind, and nothing under `backups/` is ever bulk deleted. Until it ships, don't use the button.
 
 ### Track 46: data correctness (Ready)
 - **46.1 Lock release (S).** public-site M-1 (admin C-3, CODE_REVIEW #18): compare-and-delete in one script.
