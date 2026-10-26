@@ -164,16 +164,19 @@ export function TradeLog({ rows, seasons, initialFlaggedOnly = false, mod = fals
                   {!mod && <button type="button" disabled={pending} onClick={() => run(() => extendOpenTradesAction(24, [selected.id]))} className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white disabled:opacity-50">Extend 24h</button>}
                 </>
               )}
-              <ArmedButton
-                disabled={pending}
-                title={`Stops ${selected.from} trading: their open offers are cancelled and the cards returned. You can lift this on their user page.`}
-                onConfirm={() => run(() => blockViewerTradingAction(selected.from, `Blocked from trade ${selected.id.slice(0, 8)}`))}
-                className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-amber-200 hover:border-amber-400/50 disabled:opacity-50"
-                armedClassName="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-500 disabled:opacity-50"
-                armedLabel={`Sure? Block ${selected.from}`}
-              >
-                <Icon name="ban" className="mr-1" />Block {selected.from} from trading
-              </ArmedButton>
+              {[selected.from, selected.to ?? selected.takenBy].filter((u): u is string => !!u).map(u => (
+                <ArmedButton
+                  key={u}
+                  disabled={pending}
+                  title={`Stops ${u} trading: their open offers are cancelled and the cards returned. You can lift this on their user page.`}
+                  onConfirm={() => run(() => blockViewerTradingAction(u, `Blocked from trade ${selected.id.slice(0, 8)}`))}
+                  className="px-3 py-1.5 rounded-lg border border-gray-700 text-xs font-semibold text-gray-300 hover:text-amber-200 hover:border-amber-400/50 disabled:opacity-50"
+                  armedClassName="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-500 disabled:opacity-50"
+                  armedLabel={`Sure? Block ${u}`}
+                >
+                  <Icon name="ban" className="mr-1" />Block {u} from trading
+                </ArmedButton>
+              ))}
             </div>
             {msg && <p role="status" className={`text-xs ${msg.ok ? 'text-green-300' : 'text-red-300'}`}>{msg.text}</p>}
           </aside>
