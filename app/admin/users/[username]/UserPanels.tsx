@@ -22,7 +22,7 @@ function Result({ r }: { r: UserActionResult | null }) {
   return <p role="status" className={`text-sm rounded-lg px-3 py-2 border ${r.ok ? 'text-green-300 bg-green-500/10 border-green-400/30' : 'text-amber-200 bg-amber-500/10 border-amber-400/30'}`}>{r.message}</p>;
 }
 
-/** Tags: admin-only labels. Click × to remove, type to add (suggestions below). */
+/** Tags: staff-only labels (admins and mods). Click × to remove, type to add (suggestions below). */
 export function TagsEditor({ username, initial, suggestions }: { username: string; initial: string[]; suggestions: string[] }) {
   const [tags, setTags] = useState(initial);
   const [draft, setDraft] = useState('');
@@ -59,7 +59,7 @@ export function TagsEditor({ username, initial, suggestions }: { username: strin
   );
 }
 
-/** Moderation: stop this viewer trading and/or hide them from public rankings. Reason is admin-only. */
+/** Moderation: stop this viewer trading and/or hide them from public rankings. Reason is staff-only (admins and mods). */
 export function ModerationPanel({ username, initial }: { username: string; initial: { noTrading: boolean; hideFromBoard: boolean; reason: string; at?: number; by?: string } }) {
   const [noTrading, setNoTrading] = useState(initial.noTrading);
   const [hide, setHide] = useState(initial.hideFromBoard);

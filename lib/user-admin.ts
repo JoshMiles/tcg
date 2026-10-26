@@ -29,7 +29,7 @@ export interface UserFlags {
   noTrading?: boolean;
   /** Left out of the public leaderboard, card owner lists and recent pulls. */
   hideFromBoard?: boolean;
-  /** Why (admins only). */
+  /** Why (staff only: admins and mods). */
   reason?: string;
   at?: number;
   /** The staff member who set them (Twitch login). */

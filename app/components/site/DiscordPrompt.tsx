@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Icon } from '@/app/components/Icon';
+import { CHANNEL_NAME } from '@/lib/site';
 import { MAX_DISMISSALS, dismissed, parsePromptState } from '@/lib/push-prompt-core';
 
 const KEY = 'tcg_discord_prompt';
@@ -41,7 +42,7 @@ export function DiscordPrompt() {
       <Icon name="chat" className="w-6 h-6 text-indigo-300 shrink-0" />
       <div className="min-w-0 flex-1 basis-48">
         <p className="text-sm font-bold text-white">Get alerts in your Discord DMs</p>
-        <p className="text-xs text-gray-300">Link Discord and the Cheesy TCG bot messages you about trade offers and more. You need to be in the Cheesygidds Discord server.</p>
+        <p className="text-xs text-gray-300">Link Discord and the Cheesy TCG bot messages you about trade offers and more. You need to be in the {CHANNEL_NAME} Discord server.</p>
       </div>
       <div className="flex gap-2 shrink-0">
         <a href="/auth/discord" className="rounded-xl bg-indigo-500 hover:bg-indigo-400 px-3 py-1.5 text-sm font-bold text-white inline-flex items-center gap-1.5"><Icon name="link" />Link Discord</a>
