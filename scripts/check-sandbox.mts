@@ -25,7 +25,7 @@ const before = await snapshot(prodKeys);
 
 // Create a sandbox from production including viewer collections: it starts as an exact copy...
 const box = await sbx.createSandbox({ name: 'Check run', source: 'collections' });
-ok(box.id === 'check-run', 'id from name');
+ok(/^check-run-[a-z0-9]{6}$/.test(box.id), 'id is the readable slug plus a random suffix');
 ok(JSON.stringify(await prodKv.get(`sbx:${box.id}:tcg_${coll}`)) === JSON.stringify({ realviewer: [1, 2, 3] }), 'collections copied into the namespace');
 ok((await prodKv.get<string[]>(`sbx:${box.id}:seasons:list`))?.length === 1, 'seasons copied');
 
@@ -76,6 +76,49 @@ ok((await runInSandbox(box.id, () => jwt.verifyExtensionAuth(mock)))?.login === 
 ok((await runInSandbox('some-other-box', () => jwt.verifyExtensionAuth(mock))) === null, 'a fake token is refused in a different sandbox');
 ok((await runInSandbox(box.id, () => jwt.verifyExtensionAuth(mock.slice(0, -2) + 'xx'))) === null, 'a tampered fake token is refused');
 ok(jwt.verifyTwitchJwt(mock) === null, 'a fake token is not a real Twitch token');
+
+// Entry is a signed token. A bare id, junk or a tampered token never reaches the sandbox; nothing at all is production.
+const tokens = await import('../lib/sandbox-token');
+const DEAD = '__missing__';
+const token = tokens.signSandboxId(box.id)!;
+ok(!!token && tokens.verifySandboxToken(token) === box.id, 'a sandbox token verifies to its id');
+ok((await db.resolveSandbox(undefined)) === null, 'no header or cookie is production');
+ok((await db.resolveSandbox(token)) === box.id, 'a correctly signed token resolves to its sandbox');
+ok((await db.resolveSandbox(box.id)) === DEAD, 'the bare id no longer enters the sandbox');
+ok((await db.resolveSandbox(token.slice(0, -2) + 'xx')) === DEAD, 'a tampered token maps to the dead namespace');
+ok((await db.resolveSandbox(`other-box.${token.split('.')[1]}`)) === DEAD, 'a signature for another id maps to the dead namespace');
+ok((await db.resolveSandbox('whatever-junk')) === DEAD, 'a junk value maps to the dead namespace');
+ok((await db.resolveSandbox(`${box.id}.`)) === DEAD && (await db.resolveSandbox(`${token}.x`)) === DEAD, 'malformed tokens map to the dead namespace');
+const savedSecret = process.env.SESSION_SECRET;
+process.env.SESSION_SECRET = 'another-secret-0123456789';
+ok((await db.resolveSandbox(token)) === DEAD, 'a token signed with another secret is refused');
+delete process.env.SESSION_SECRET;
+ok(tokens.signSandboxId(box.id) === null && (await db.resolveSandbox(token)) === DEAD, 'without SESSION_SECRET nothing enters a sandbox');
+process.env.SESSION_SECRET = savedSecret;
+
+// The sandbox is not an overlay credential: inside it (or in the dead namespace) the overlay still needs its key or a staff session.
+const overlayKey = await import('../lib/overlay-key');
+const { NextRequest } = await import('next/server');
+const collectionRoute = await import('../app/api/collection/route');
+const withKey = (k: string) => new Request('http://x/api/overlay/heartbeat', { headers: { 'x-overlay-key': k } });
+const bare = () => new Request('http://x/api/overlay/heartbeat');
+const boxKey = await runInSandbox(box.id, () => overlayKey.getOverlayKey());
+ok(boxKey !== (await overlayKey.getOverlayKey()), 'a sandbox has its own overlay key');
+ok(!(await runInSandbox(box.id, () => overlayKey.isOverlayRequest(bare()))), 'inside a sandbox, no key and no staff session is refused');
+ok(!(await runInSandbox(DEAD, () => overlayKey.isOverlayRequest(bare()))), 'a junk sandbox value does not pass as the overlay');
+ok(!(await runInSandbox(box.id, () => overlayKey.isOverlayRequest(withKey('wrong')))), 'a wrong key is refused inside a sandbox');
+const prodKey = await overlayKey.getOverlayKey();
+ok(!(await runInSandbox(box.id, () => overlayKey.isOverlayRequest(withKey(prodKey)))), "production's key does not open a sandbox");
+ok(await runInSandbox(box.id, () => overlayKey.isOverlayRequest(withKey(boxKey))), "the sandbox's own key works inside it");
+const collectionGet = (headers: Record<string, string> = {}) => collectionRoute.GET(new NextRequest(`http://localhost/api/collection?name=${coll}`, { headers }));
+ok((await runInSandbox(box.id, () => collectionGet())).status === 401, 'the collection read refuses a sandbox request with no key');
+ok((await runInSandbox(box.id, () => collectionGet({ 'x-overlay-key': boxKey }))).status === 200, 'the collection read accepts the sandbox key');
+
+// Ids are not guessable from the name.
+const idRe = /^[a-z0-9][a-z0-9-]{1,22}[a-z0-9]$/;
+const ids = Array.from({ length: 20 }, () => sbx.makeId('Trades', []));
+ok(new Set(ids).size === 20 && ids.every(i => i.startsWith('trades-') && idRe.test(i)), 'the same name gives different, valid ids');
+ok(idRe.test(sbx.makeId('A very long sandbox name indeed', [])) && idRe.test(sbx.makeId('!', [])) && idRe.test(sbx.makeId('ab', [])), 'odd names still give a valid id');
 
 // Clearing viewer data keeps the setup; reset restores production's copy; delete removes everything.
 await sbx.resetTestData(box.id);

@@ -7,7 +7,7 @@
 // browser source actually is, so a differently sized source still shows the whole animation. The admin's
 // scale/offset are applied on top. `?preview` is the admin editor's iframe: it takes layout changes by
 // postMessage and never talks to the real queue, heartbeat or collection data.
-// Sandbox: with ?sandbox=<id> every request to this site carries the sandbox header, so the overlay reads and writes that
+// Sandbox: with ?sandbox=<signed token> every request to this site carries the sandbox header, so the overlay reads and writes that
 // sandbox's data instead of production's (see lib/db.ts). A badge makes it obvious the overlay is not live data.
 const SANDBOX_ID = new URLSearchParams(window.location.search).get('sandbox');
 if (SANDBOX_ID) {
@@ -21,7 +21,7 @@ if (SANDBOX_ID) {
   };
   window.addEventListener('DOMContentLoaded', () => {
     const badge = document.createElement('div');
-    badge.textContent = 'SANDBOX · ' + SANDBOX_ID;
+    badge.textContent = 'SANDBOX · ' + SANDBOX_ID.split('.')[0];
     badge.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99998;font:700 12px Poppins,sans-serif;color:#f3e8ff;background:rgba(88,28,135,.9);border:1px solid rgba(192,132,252,.6);border-radius:999px;padding:4px 12px;pointer-events:none;';
     document.body.appendChild(badge);
   });

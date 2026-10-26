@@ -1,9 +1,9 @@
 // The overlay key (ROADMAP 13.2). The OBS overlay is a browser source with no login, so the endpoints it uses to take queued pulls,
 // report "collection shown" and check in need something that is not public. The OBS URL carries `?key=<key>`; widget.js sends it as
-// the `x-overlay-key` header on every request. A signed-in staff browser (the editor preview, a test tab) needs no key, and a
-// sandbox only ever touches its own fake data.
+// the `x-overlay-key` header on every request. A signed-in staff browser (the editor preview, a test tab) needs no key. The key
+// lives in the key namespace (`kv`), so a sandbox has its own, made on first use.
 import { timingSafeEqual, randomBytes } from 'node:crypto';
-import { kv, inSandbox } from './db';
+import { kv } from './db';
 import { isAuthenticated } from './auth';
 
 const KEY = 'overlay:key';
@@ -35,11 +35,10 @@ export function keyMatches(given: string | null | undefined, key: string): boole
   return typeof given === 'string' && given.length > 0 && same(given, key);
 }
 
-/** May this request act as the overlay? Right key, a staff session, or a sandbox. Never throws: any doubt is a no. */
+/** May this request act as the overlay? Right key (the sandbox's own key inside a sandbox) or a staff session. Never throws: any doubt is a no. */
 export async function isOverlayRequest(req: Request): Promise<boolean> {
   try {
     if (keyMatches(req.headers.get(OVERLAY_KEY_HEADER), await getOverlayKey())) return true;
-    if (await inSandbox()) return true;
     return await isAuthenticated();
   } catch {
     return false;

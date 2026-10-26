@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { currentSandboxId, isPreview, runInSandbox } from '@/lib/db';
+import { getOverlayKey } from '@/lib/overlay-key';
+import { signSandboxId } from '@/lib/sandbox-token';
 import { PreviewOff } from '../PreviewOff';
 import { getSandbox, readProduction, readSandboxKey, SOURCE_LABELS } from '@/lib/sandbox';
 import { getSandboxStats, listCardValues, listSandboxCards, listSandboxUserRows } from '@/lib/sandbox-tools';
@@ -73,6 +75,8 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
   const h = await headers();
   const origin = `${h.get('x-forwarded-proto') ?? 'http'}://${h.get('host')}`;
   const upgradePacks = (active?.packs ?? []).filter(p => p.pack.upgradesEnabled);
+  const token = signSandboxId(id);
+  const overlayUrl = tab === 'overview' && token ? `${origin}/overlay.html?sandbox=${token}&key=${await runInSandbox(id, getOverlayKey)}` : null;
   const now = Date.now();
   const left = sandbox.expiresAt ? sandbox.expiresAt - now : null;
 
@@ -114,8 +118,8 @@ export default async function SandboxDetailPage({ params, searchParams }: { para
           <section className="card rounded-2xl p-5 space-y-3">
             <h2 className="font-semibold text-white">Open it</h2>
             <div className="space-y-1.5">
-              <p className="text-xs text-gray-500">OBS overlay for this sandbox (add <code className="text-gray-400">&amp;dev</code> for the test panel):</p>
-              <CopyableUrl url={`${origin}/overlay.html?sandbox=${id}`} />
+              <p className="text-xs text-gray-500">OBS overlay for this sandbox, with its own key (add <code className="text-gray-400">&amp;dev</code> for the test panel):</p>
+              {overlayUrl ? <CopyableUrl url={overlayUrl} /> : <p className="text-xs text-amber-300">The overlay link needs SESSION_SECRET to be set.</p>}
             </div>
             <Link href={`/admin/sandbox/${id}/twitch`} className="flex items-center justify-between gap-3 rounded-xl border border-purple-400/40 bg-purple-500/10 hover:bg-purple-500/20 px-4 py-3 transition-colors">
               <span className="text-sm font-bold text-purple-200"><Icon name="tv" className="mr-2" />Fake Twitch: test the extension panel here</span>

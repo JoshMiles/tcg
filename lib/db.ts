@@ -1,6 +1,7 @@
 import { kv as prodKv } from '@vercel/kv';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { cookies, headers } from 'next/headers';
+import { verifySandboxToken } from './sandbox-token';
 
 // The ONLY place that talks to Vercel KV. Everything else imports `kv` from here (scripts/check-kv-imports.mts fails if a
 // file imports '@vercel/kv' directly).
@@ -8,9 +9,10 @@ import { cookies, headers } from 'next/headers';
 // Sandboxes: a request can be pinned to a sandbox, and then every key it touches is transparently prefixed with
 // `sbx:<id>:`, so nothing a sandbox does can reach production data. The sandbox comes from (first match wins):
 //   1. an explicit override (`runInSandbox`, used to carry the choice into `after()` callbacks and scripts),
-//   2. the `x-tcg-sandbox` request header (the overlay sends it when its URL has ?sandbox=<id>),
+//   2. the `x-tcg-sandbox` request header (the overlay sends it when its URL has ?sandbox=<token>),
 //   3. the `tcg_sandbox` cookie (set when an admin enters a sandbox in the browser).
-// A sandbox id that doesn't exist (deleted, or junk) maps to a dead namespace. Never to production, so a stale cookie
+// Header and cookie carry a signed token (lib/sandbox-token.ts), never a bare id. Anything that isn't a valid token for an
+// existing sandbox (junk, unsigned, tampered, deleted) maps to a dead namespace. Never to production, so a stale cookie
 // can't make a "sandbox" request quietly hit real data.
 //
 // Preview deployments (VERCEL_ENV=preview) share the production store, so they are forced into one reserved namespace,
@@ -58,9 +60,14 @@ export async function currentSandboxId(): Promise<string | null> {
   } catch {
     return null; // outside a request (a script): production
   }
+  return resolveSandbox(raw);
+}
+
+/** Maps a header / cookie value to a sandbox id: nothing is production; anything but a valid signed token for an existing sandbox is the dead namespace. */
+export async function resolveSandbox(raw: string | undefined): Promise<string | null> {
   if (!raw) return null;
-  if (!ID_RE.test(raw)) return DEAD;
-  return (await sandboxExists(raw)) ? raw : DEAD;
+  const id = verifySandboxToken(raw);
+  return id && ID_RE.test(id) && (await sandboxExists(id)) ? id : DEAD;
 }
 
 /** True when the request is in a sandbox (including a dead one). Use it to switch off anything that reaches the outside world. */

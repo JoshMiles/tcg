@@ -149,7 +149,7 @@ export default async function SandboxPage({ searchParams }: { searchParams: Prom
           <li>It never posts to Discord, never calls outgoing webhooks, and cannot delete files from the shared image storage.</li>
           <li>Images and sounds are shared with production (uploads you make in a sandbox stay available), so card art works out of the box.</li>
           <li>The Twitch Extension panel always talks to production. Test upgrades and trades on the website instead: use <strong>Log in as</strong> on a sandbox&apos;s page to become a test user.</li>
-          <li>To test the OBS overlay against a sandbox, open the sandbox&apos;s overlay link (it adds <code className="text-gray-300">?sandbox=…</code>).</li>
+          <li>To test the OBS overlay against a sandbox, open the sandbox&apos;s overlay link (it adds a signed <code className="text-gray-300">?sandbox=…</code> and this sandbox&apos;s own overlay key).</li>
           <li>A purple bar and pill are shown on every page while this browser is in a sandbox. Sandboxes you set to expire delete themselves, and you can have at most {MAX_SANDBOXES}.</li>
         </ul>
       </details>
