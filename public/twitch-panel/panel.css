@@ -511,11 +511,11 @@ html, body {
   transition: color 0.15s;
 }
 .footer-username::before { content: ''; display: inline-block; width: 1em; height: 1em; margin-right: .4em; vertical-align: -0.15em; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center / contain no-repeat; }
-/* Links to the viewer's public collection page; the arrow hints it opens in a new tab. */
+/* Links to the viewer's public collection page. */
 .footer-username:hover,
 .footer-username:focus-visible { color: var(--accent); text-decoration: underline; }
-.footer-username:hover::after,
-.footer-username:focus-visible::after { content: ' ↗'; }
+/* Off-site marker: every link that leaves the extension for the website shows an arrow, always (Twitch's guidelines). The package check requires this rule. */
+a[target="_blank"]::after { content: '\2197'; margin-left: .25em; font-style: normal; }
 
 .change-btn {
   background: transparent;

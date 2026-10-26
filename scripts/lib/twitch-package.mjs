@@ -75,6 +75,7 @@ export function validatePackage(files, site) {
     for (const m of html.matchAll(/\b(?:href|src)="(\/[^"]*)"/g)) problems.push(`${v}: site-relative path ${m[1]} (it would point at Twitch's domain)`);
     if (!html.includes(`href="${origin}/terms"`) || !html.includes(`href="${origin}/privacy"`)) problems.push(`${v}: the Terms and Privacy links are not absolute`);
     const order = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]*)"/gi)].map(m => m[1]);
+    if (order[0] !== TWITCH_HELPER) problems.push(`${v}: Twitch's helper script must be the first script`);
     if (!order.includes('config.js') || !order.includes('panel.js') || !order.includes('trades.js')) problems.push(`${v}: does not load config.js, panel.js and trades.js`);
     else if (order.indexOf('config.js') > order.indexOf('panel.js') || order.indexOf('panel.js') > order.indexOf('trades.js')) problems.push(`${v}: scripts must load in the order config.js, panel.js, trades.js`);
   }
@@ -90,6 +91,8 @@ export function validatePackage(files, site) {
     for (const m of text.matchAll(/url\(\s*(['"]?)(?!data:)([^'")]+)\1\s*\)/g)) problems.push(`${css}: loads ${m[2]} (only data: URIs are self-contained)`);
     if (/@import/.test(text)) problems.push(`${css}: @import`);
   }
+  // Every target="_blank" link (the views, panel.js, trades.js) leaves the extension, so panel.css must mark them all with one visible rule.
+  if (!/a\[target=["']_blank["']\]::after\s*\{[^}]*\bcontent:\s*['"][^'"]+['"]/.test(byName.get('panel.css') ?? '')) problems.push(`panel.css: no visible off-site marker rule for a[target="_blank"]::after`);
   return problems;
 }
 

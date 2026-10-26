@@ -33,7 +33,7 @@ Twitch hosts the extension's front end itself: you upload a zip under the extens
 node scripts/build-twitch-package.mjs        # twitch-extension/dist/cheesy-tcg-panel-v<version>.zip
 ```
 
-It is generated (and gitignored), so rebuild it whenever the panel changes. What goes in it (all at the root of the zip, 8 files, about 40 KB):
+It is generated (and gitignored), so rebuild it whenever the panel changes. The current build, version 0.0.2, is `cheesy-tcg-panel-v0.0.2.zip`: 8 files, 46.6 KB zipped (about 170 KB unzipped). What goes in it (all at the root of the zip):
 
 | File | What it is |
 |------|------------|
@@ -55,6 +55,8 @@ The build refuses to produce a zip that breaks these rules, and `npx tsx scripts
 
 ## 3. Form fields
 
+**Version:** `0.0.2` (the previous submission was 0.0.1, never approved). The version number is `PANEL_VERSION` in `public/twitch-panel/panel.js`, shown in the panel's footer as `v0.0.2` and used to name the zip. It is separate from the website's version.
+
 **Official extension name** (40 characters max, can't contain "extension" or "twitch")
 
 ```
@@ -73,14 +75,14 @@ Collect trading cards pulled live on stream. Browse your collection, upgrade dup
 The Cheesy TCG is a collectible card game played live on Cheesygidds' channel. Packs are opened on stream and every card you pull goes into your collection.
 
 Use this panel to:
-- See every card you own, with its version (Reverse Holo, Full Art, Full Art Holo) and how many editions you have
+- See every card you own, its version (Reverse Holo, Full Art, Full Art Holo, Golden) and each numbered edition, with favourites
 - Open any card for its pull odds, how many exist and what it is worth
-- Check your points, your rank and what you can upgrade next
-- Upgrade duplicates into rarer versions
+- Check your points, rank, achievements and what you can upgrade next
+- Upgrade duplicates into rarer versions and use trainer cards
 - Trade editions with other viewers
 - Follow the season leaderboard
 
-Log in once with Twitch to link your account. The panel asks you to share your Twitch identity and only uses your Twitch username. Your collection also appears on the website, cheesytcg.app, where it works like a binder you can customise and share.
+Log in once with Twitch to link your account. The panel asks you to share your Twitch identity and only uses your Twitch username. Your collection also appears on the website, cheesytcg.app, where it works like a binder you can customise and share. Links to the website are marked with an arrow.
 
 A fan-made game for this channel, not affiliated with Twitch. Cards are virtual, for fun, and have no cash value.
 ```
@@ -111,21 +113,40 @@ Turn on the Mobile and Video - Component views on the Capabilities page before e
 | Allowlist for URL Fetching Domains | `https://cheesytcg.app` |
 | Allowlist for Image Domains | `https://cheesytcg.app` and your Vercel Blob store URL, `https://<store id>.public.blob.vercel-storage.com` (Vercel, Storage, your Blob store; the id is in `BLOB_STORE_ID`). Card art uploaded in the admin is served from there. |
 | Allowlist for Media Domains | `https://cheesytcg.app` (the panel plays no audio, but the field is required) |
+| Allowlist for Panel URLs | `https://cheesytcg.app/` (the panel opens the viewer's profile, binder, edition and trade pages, the FAQ, Terms and Privacy on the site; without this Twitch may block those links) |
 
 **Review channel:** `https://www.twitch.tv/cheesygidds`. This is a panel-only extension, so the channel doesn't need to be live during review.
 
 **Change log (this version)**
 
 ```
-Initial release: collection view with card details, stats and upgrades, trading, and the season leaderboard.
+Version 0.0.2, since 0.0.1:
+- Editions: your collection lists every numbered edition of a card first, with its version, serial number, points and a link to its page. Mark favourites.
+- Golden: the new top version, pulled from packs and reached by upgrading from Full Art Holo.
+- Trainer cards: use one from the panel with two taps.
+- Trades: choose which editions to give or accept, see when staff reversed a trade, and open any offer on the website.
+- Stats: achievements, and links to your binder and share page. Cards have a Looking for toggle.
+- Streamer, admin and mod badges next to names on the leaderboard and in trades.
+- Links that open the website now show an arrow. A token refresh no longer sends you back to Collection.
 ```
 
 **Source code / walkthrough guide**
 
 ```
-The panel is plain HTML, CSS and JavaScript with no build step or minification (public/twitch-panel/panel.html, panel.js, trades.js,
-panel.css), served from https://cheesytcg.app/twitch-panel/. It talks only to https://cheesytcg.app/api/twitch/*. Every request carries
-the Extension JWT in the Authorization header and the server verifies it with the extension secret.
+The panel is plain HTML, CSS and JavaScript with no build step or minification (public/twitch-panel/: panel.html, mobile.html,
+video_component.html, panel.js, trades.js, panel.css, views.css, config.js). The repository is public: https://github.com/JoshMiles/tcg.
+The hosted zip is made by "node scripts/build-twitch-package.mjs", which only copies those files, drops the site's analytics script and
+the local test helper, and sets the site address in config.js. The panel talks only to https://cheesytcg.app/api/twitch/*. Season,
+leaderboard and public collection reads need no token; everything that acts for a viewer (login, stats, upgrades, trainer cards,
+favourites, Looking for, trades) carries the Extension JWT in the Authorization header, and the server verifies it with the extension
+secret and takes the viewer from the token, never from the request body.
+
+Trade notes: trading needs a linked Twitch account (the identity share), so every offer and note is tied to a named viewer. A note is
+optional, plain text only (shown as text, never as markup or a link) and cut to 140 characters. There is no word filter. It is shown
+only to the person an offer is sent to, or on the public board for a listing. The streamer, admins and moderators can see every offer
+in the mod panel (Trades), cancel any open offer (the offered cards go straight back), reverse a completed trade, and bar a viewer from
+trading (they can then neither make nor receive offers). Viewers report a note or an offer to the streamer or moderators in the channel
+or through the contact address on the Terms page, and staff act on it from the mod panel.
 ```
 
 **Testing instructions**
@@ -133,10 +154,10 @@ the Extension JWT in the Authorization header and the server verifies it with th
 ```
 1. Install the extension on a test channel and open its panel (or open the Mobile view).
 2. Press "Login with Twitch" and accept the "share your identity" prompt. The panel shows your collection.
-3. Collection tab: browse the card grid, filter by Have / Missing, and click a card for its details (odds, editions out there, what it is worth).
-4. Stats tab: your points, rank and which cards you can upgrade. Open a card from "Ready to upgrade" to upgrade it.
-5. Trades tab: browse the open board and press "+ New offer" to make one.
-6. Board tab: the season leaderboard.
+3. Collection tab: browse the card grid, filter by Have / Missing, and click a card for its details (odds, editions out there, what it is worth). "Your editions" comes first: tap an edition for its details and the Favourite heart. "Look for" marks a card you want.
+4. Stats tab: your points, rank, achievements and which cards you can upgrade. Open a card from "Ready to upgrade" to upgrade it. A trainer card shows "Use trainer card" in its details.
+5. Trades tab: browse the open board and press "+ New offer" to make one (on a card you hold spares of, "Choose editions" picks which ones go in it). Links marked with an arrow open the website in a new tab.
+6. Board tab: the season leaderboard, with streamer, admin and mod badges.
 A fresh account has no cards because cards are pulled live on stream. A test account with cards is set up for review (see below), so every screen has content.
 ```
 
@@ -145,8 +166,10 @@ A fresh account has no cards because cards are pulled live on stream. A test acc
 - [ ] Production is deployed with the current `main` (the panel files are served from `https://cheesytcg.app`; Twitch caches the old JS for a short while after a deploy).
 - [ ] `TWITCH_EXTENSION_SECRET` is set in Vercel (Production), is the extension's base64 secret and was copied after the last rotation.
 - [ ] `LEGAL_OPERATOR_NAME`, `LEGAL_CONTACT_EMAIL` and `LEGAL_GOVERNING_LAW` are set in Vercel so the Privacy Policy and Terms name a real operator and a way to get in touch (Settings, Environment shows what is set). Redeploy after changing them.
-- [ ] Give the review account some cards so every screen has content: Admin, Users, the reviewer's Twitch name, Grant. If you don't know the reviewer's name, put a test Twitch account's login in the testing instructions and grant that account cards instead.
+- [ ] Give the review account some cards so every screen has content (several editions of some cards, one trainer card, a Golden if you can): Admin, Users, the reviewer's Twitch name, Grant. If you don't know the reviewer's name, put a test Twitch account's login in the testing instructions and grant that account cards instead.
 - [ ] The CORS change (`middleware.ts`) is deployed to production, then build the zip, upload it under Asset Hosting and try the version in **Hosted Test** on your channel (log in, open a card, check the images load).
+- [ ] In Hosted Test, check the small person icon beside your name in the footer draws. It is a CSS mask built from a `data:` SVG, which Twitch's Content Security Policy may block; if it is missing, tell me before submitting. (The Golden sheen is masked by the card's own image, so it is not affected.)
+- [ ] Set **Allowlist for Panel URLs** to `https://cheesytcg.app/` (section 3) and click a profile, binder and edition link in Hosted Test to prove they open.
 - [ ] Upload the icon, the discovery image and the five screenshots from this folder, and paste the text above.
 - [ ] Check the Capabilities page: panel view on, Mobile and Video - Component enabled if you filled their paths, Request identity link on.
 - [ ] Open the three viewer paths in a normal browser tab. They should load (blank or a login prompt outside Twitch is fine; an error page is not).
