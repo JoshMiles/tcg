@@ -1,6 +1,6 @@
 import { kv } from './db';
 import { getAllCollectionUsers } from './kv';
-import { getUserSettings } from './user-settings-store';
+import { loadUserSettings } from './user-settings-store';
 import { alertCards, wantedCounts } from './watch-core';
 import type { Trade } from './trade-core';
 import type { UserSettings } from './user-settings';
@@ -12,21 +12,26 @@ import type { UserSettings } from './user-settings';
 const setKey = (card: number) => `watch:idx:${card}`;
 const READY = 'watch:idx:ready';
 
+type Cards = Pick<UserSettings, 'wanted' | 'watches'>;
+
+async function applySync(username: string, prev: Cards | null, next: Cards): Promise<void> {
+  const u = username.toLowerCase();
+  const before = new Set(prev ? alertCards(prev) : []);
+  const after = new Set(alertCards(next));
+  for (const c of after) if (!before.has(c)) await kv.sadd(setKey(c), u);
+  for (const c of before) if (!after.has(c)) await kv.srem(setKey(c), u);
+}
+
 /** Brings the index in line with a viewer's settings after a save. `prev` null = nothing was stored before. Never throws. */
-export async function syncWatchIndex(username: string, prev: Pick<UserSettings, 'wanted' | 'watches'> | null, next: Pick<UserSettings, 'wanted' | 'watches'>): Promise<void> {
-  try {
-    const u = username.toLowerCase();
-    const before = new Set(prev ? alertCards(prev) : []);
-    const after = new Set(alertCards(next));
-    for (const c of after) if (!before.has(c)) await kv.sadd(setKey(c), u);
-    for (const c of before) if (!after.has(c)) await kv.srem(setKey(c), u);
-  } catch { /* the index is rebuilt from settings on demand */ }
+export async function syncWatchIndex(username: string, prev: Cards | null, next: Cards): Promise<void> {
+  try { await applySync(username, prev, next); } catch { /* the index is rebuilt from settings on demand */ }
 }
 
 async function ensureIndex(): Promise<void> {
   if (await kv.get(READY).catch(() => null)) return;
-  const users = await getAllCollectionUsers().catch(() => []);
-  for (const { username } of users) await syncWatchIndex(username, null, await getUserSettings(username));
+  // Any failed read or write throws out of here and leaves READY unset, so the next lookup builds the index again.
+  const users = await getAllCollectionUsers();
+  for (const { username } of users) await applySync(username, null, await loadUserSettings(username));
   await kv.set(READY, Date.now());
 }
 

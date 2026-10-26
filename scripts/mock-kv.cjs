@@ -21,6 +21,13 @@ function run(cmd) {
       return 'OK';
     }
     case 'del': { let n = 0; for (const k of [key, ...rest]) if (store.delete(k)) { types.delete(k); n++; } return n; }
+    case 'eval': {
+      // EVAL script numkeys key... arg...: Lua is not run. Only the lock release in lib/kv.ts is understood (delete KEYS[1] if it still equals ARGV[1]).
+      if (!String(key).includes("redis.call('get', KEYS[1]) == ARGV[1]")) throw new Error('mock kv: unsupported EVAL script');
+      const k = rest[1], token = rest[1 + Number(rest[0])];
+      if (!store.has(k) || String(store.get(k)) !== String(token)) return 0;
+      store.delete(k); types.delete(k); return 1;
+    }
     case 'type': return types.get(key) ?? 'none';
     case 'exists': return store.has(key) ? 1 : 0;
     case 'scan': {

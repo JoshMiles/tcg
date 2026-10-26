@@ -8,7 +8,7 @@ import { recordActivity } from '@/lib/activity';
 import { decodeEntry, parseCollectionData, VARIANT_LABELS } from '@/lib/variants';
 import { isAuthenticated } from '@/lib/auth';
 import { claimDraw } from '@/lib/draw';
-import { getMixItUpSettings, claimPaidPull, chargePaidPull, releaseCount, revokePrint, noticeRevoked } from '@/lib/mixitup';
+import { getMixItUpSettings, claimPaidPull, chargePaidPull, noticeUnpaid, refundPaidPull } from '@/lib/mixitup';
 import { isOverlayRequest } from '@/lib/overlay-key';
 import { consumePullOnSave } from '@/lib/buffs';
 
@@ -39,8 +39,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const username = String(pull.username ?? '').toLowerCase();
-  const ticket = typeof pull.ticket === 'string' && username ? await claimDraw(pull.ticket, username) : null;
+  // Only the viewer and the ticket are read from a pull; anything else the caller sends is ignored.
+  const username = typeof pull.username === 'string' ? pull.username.toLowerCase() : '';
+  const ticketId = typeof pull.ticket === 'string' ? pull.ticket : '';
+  const ticket = ticketId && username ? await claimDraw(ticketId, username) : null;
   if (!ticket) return NextResponse.json({ ok: false, error: 'This pull is not recognised, or it was already saved.' }, { status: 401 });
   const name = ticket.collectionName;
   const entry = ticket.entry;
@@ -53,28 +55,33 @@ export async function POST(req: NextRequest) {
   let uid: number | null = null;
   let before: Record<string, number[]> | null = null;
   let paid: Awaited<ReturnType<typeof claimPaidPull>> = null;
+  const mix = ticket.paid ? await getMixItUpSettings() : null;
   {
     // A paid pull (Mix It Up) is claimed first, once, so a repeated save cannot add a second print on one payment.
     if (ticket.paid) {
-      paid = await claimPaidPull(String(pull.ticket), username);
+      paid = await claimPaidPull(ticketId, username);
       if (!paid) return NextResponse.json({ ok: false, error: 'This paid pull was already used or has expired.' }, { status: 409 });
     }
     before = await getCollection(name);
-    ({ owned, serial, copyId, uid } = await addCollectionEntryWithSerial(name, username, entry, 'pull'));
-    if (paid) {
-      const mix = await getMixItUpSettings();
+    // The charge comes before the print, so a print never exists without its payment: no confirmation = nothing is saved.
+    // The edition number does not exist yet, so the deduct message gets none.
+    if (paid && mix) {
       const card = decodeEntry(entry);
       const charge = await chargePaidPull(mix, paid, {
         cardName: ticket.cardName, variant: VARIANT_LABELS[card.variant], stars: ticket.stars,
-        packName: ticket.packName, cardNumber: card.cardNumber, serial,
+        packName: ticket.packName, cardNumber: card.cardNumber, serial: null,
       });
       if (!charge.applied) {
-        // Mix It Up did not confirm the payment: take the print back and record nothing.
-        const left = await revokePrint(name, username, entry, copyId);
-        await releaseCount(paid);
-        await noticeRevoked(username, ticket.cardName, charge.error ?? 'not applied');
-        return NextResponse.json({ ok: true, revoked: true, owned: left ?? owned });
+        await noticeUnpaid(paid, ticket.cardName, charge.error ?? 'not applied');
+        return NextResponse.json({ ok: true, revoked: true, owned: before[username] ?? [] });
       }
+    }
+    try {
+      ({ owned, serial, copyId, uid } = await addCollectionEntryWithSerial(name, username, entry, 'pull'));
+    } catch (e) {
+      // Charged but the print could not be saved: pay it back rather than keep the money for nothing.
+      if (paid && mix) await refundPaidPull(mix, paid, ticket.cardName).catch(() => {});
+      throw e;
     }
   }
 
