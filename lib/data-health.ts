@@ -6,6 +6,7 @@
 
 import { kv } from './db';
 import { getCollection, listSeasons } from './kv';
+import { listAccountConflicts, type AccountConflict } from './account-bind';
 
 /** A collection value at this size gets a "needs attention" line on the dashboard. */
 export const BLOB_WARN_BYTES = 512 * 1024;
@@ -93,6 +94,8 @@ export interface DataHealth {
   seasons: SeasonHealth[];
   trades: TradesHealth;
   activityEvents: number;
+  /** Logins a different Twitch account signed in on (lib/account-bind.ts), newest first. */
+  accountConflicts: AccountConflict[];
 }
 
 const OWNER_SAMPLE = 500;
@@ -127,13 +130,14 @@ export async function loadDataHealth(activeSeasonId?: string | null): Promise<Da
     const collection = summarizeCollection(raw);
     return { id: s.id, name: s.name, active: s.id === activeSeasonId, collection, level: healthLevel(collection.bytes), ledger: await ledgerHealth(s.collectionName, Object.keys(raw)) };
   }));
-  const [open, history, activityEvents] = await Promise.all([
-    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<{ id: string; escrowed?: boolean }[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0),
+  const [open, history, activityEvents, accountConflicts] = await Promise.all([
+    kv.get<unknown[]>('trades:open').catch(() => null), kv.get<{ id: string; escrowed?: boolean }[]>('trades:history').catch(() => null), kv.llen('activity:log').catch(() => 0), listAccountConflicts(),
   ]);
   return {
     at: Date.now(),
     seasons: rows,
     trades: { openCount: open?.length ?? 0, openBytes: jsonBytes(open), historyCount: history?.length ?? 0, historyBytes: jsonBytes(history), stuckEscrow: (history ?? []).filter(t => t.escrowed).map(t => t.id) },
     activityEvents: Number(activityEvents) || 0,
+    accountConflicts,
   };
 }

@@ -2,7 +2,8 @@ import { timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { OAUTH_COOKIE, SESSION_COOKIE, loginConfigured, sessionCookieOptions, signSession } from '@/lib/session';
 import { profileFromCode, safeReturnTo } from '@/lib/twitch-oauth';
-import { ensureUserProfile, saveUserProfile, getUserProfile } from '@/lib/kv';
+import { saveUserProfile, getUserProfile } from '@/lib/kv';
+import { bindAccount } from '@/lib/account-bind';
 import { STAFF_COOKIE } from '@/lib/staff-token';
 
 function fail(req: NextRequest, reason: string) {
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Same record the Twitch Extension creates, so the website and the panel share one identity.
-  await ensureUserProfile(profile.login, profile.id);
+  await bindAccount(profile.login, profile.id);
   const existing = await getUserProfile(profile.login);
   if (existing && existing.displayName === existing.username && profile.displayName !== profile.login) {
     await saveUserProfile({ ...existing, displayName: profile.displayName }); // nicer capitalisation, only if never customised

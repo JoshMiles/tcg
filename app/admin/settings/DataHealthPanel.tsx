@@ -88,6 +88,18 @@ export async function DataHealthPanel() {
         </>}
         <dt className="text-gray-500">Activity log</dt>
         <dd className="text-gray-300 tabular-nums mb-1.5 sm:mb-0">{n(h.activityEvents)} events, capped at 500</dd>
+        <dt className="text-gray-500">Login conflicts</dt>
+        <dd className="text-gray-300 mb-1.5 sm:mb-0">
+          {h.accountConflicts.length === 0 ? 'None' : (
+            <ul className="space-y-0.5">
+              {h.accountConflicts.slice(0, 20).map(c => (
+                <li key={c.login} className="tabular-nums">{c.login}: a different Twitch account signed in, last {new Date(c.seen).toLocaleString()}, {n(c.count)} time{c.count === 1 ? '' : 's'}</li>
+              ))}
+              {h.accountConflicts.length > 20 && <li className="text-gray-500">and {n(h.accountConflicts.length - 20)} more</li>}
+            </ul>
+          )}
+          <span className="block text-xs text-gray-500">Recorded only: the profile was not changed.</span>
+        </dd>
       </dl>
     </Panel>
   );
