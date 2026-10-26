@@ -222,22 +222,26 @@ export function TradeComposer({
           empty="You don't own any cards to offer yet."
           spareOf={c => Object.values(mine[c.number] ?? {}).some(n => (n ?? 0) >= 2)}
         />
-        <Side
-          title="You want"
-          pool={kind === 'direct' ? partnerPool : undefined}
-          prints={getPrints}
-          onIds={(item, ids) => setIds(get, setGet, item, ids)}
-          hint={kind === 'direct' ? (partner ? `Cards ${to} has.` : 'Find their cards first.') : 'Any card, in any version it can be.'}
-          cards={getCards}
-          items={get}
-          avail={getAvail}
-          byNumber={byNumber}
-          onAdd={(n, v) => add(get, setGet, getAvail, n, v, getPrints)}
-          onAdjust={(item, d) => adjust(get, setGet, getAvail, item, d, getPrints)}
-          points={getPts}
-          maxStacks={maxStacks}
-          empty={kind === 'direct' ? 'Look the person up to see what they have.' : 'No cards.'}
-        />
+        {/* On a phone the empty "You want" half is hidden until a name is entered. */}
+        {kind === 'direct' && !to.trim() && <p className="sm:hidden text-sm text-gray-400">Enter who the offer is for to pick what you want.</p>}
+        <div className={kind === 'direct' && !to.trim() ? 'hidden sm:block' : undefined}>
+          <Side
+            title="You want"
+            pool={kind === 'direct' ? partnerPool : undefined}
+            prints={getPrints}
+            onIds={(item, ids) => setIds(get, setGet, item, ids)}
+            hint={kind === 'direct' ? (partner ? `Cards ${to} has.` : 'Find their cards first.') : 'Any card, in any version it can be.'}
+            cards={getCards}
+            items={get}
+            avail={getAvail}
+            byNumber={byNumber}
+            onAdd={(n, v) => add(get, setGet, getAvail, n, v, getPrints)}
+            onAdjust={(item, d) => adjust(get, setGet, getAvail, item, d, getPrints)}
+            points={getPts}
+            maxStacks={maxStacks}
+            empty={kind === 'direct' ? 'Look the person up to see what they have.' : 'No cards.'}
+          />
+        </div>
       </div>
 
       <div className="rind rounded-2xl p-4 space-y-3">
@@ -331,7 +335,7 @@ function Side({
           <button type="button" onClick={() => setSpares(x => !x)} aria-pressed={spares} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${spares ? 'bg-yellow-500 text-gray-950 border-yellow-500' : 'border-gray-700 text-gray-400 hover:text-white'}`}>Spares only (2+ editions)</button>
         )}
         {cards.length === 0 ? <p className="text-sm text-gray-500">{empty}</p> : (
-          <ul className="max-h-72 overflow-y-auto space-y-1 pr-1">
+          <ul className="sm:max-h-72 sm:overflow-y-auto space-y-1 sm:pr-1">
             {shown.map(c => {
               const rarity = getRarity(c.stars);
               return (
