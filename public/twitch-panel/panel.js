@@ -585,6 +585,16 @@ function renderDetail() {
     if (upgradeMsg) info.appendChild(detailLine('upgrade-msg', upgradeMsg));
   }
 
+  // Trainer cards: use one (two taps, spends 1 Regular edition and starts its buff, like the website).
+  if (card.kind === 'trainer' && status.variants.regular > 0) {
+    const row = el('div', 'trainer-use');
+    const useBtn = confirmButton('Use trainer card', 'upgrade-btn', () => useTrainer(card));
+    useBtn.title = 'Use this trainer card (' + card.name + '). Tap twice: consumes 1 Regular edition.';
+    row.appendChild(useBtn);
+    info.appendChild(row);
+    info.appendChild(detailLine('upgrade-msg', 'Tap twice to use. Consumes 1 Regular edition.'));
+  }
+
   // Serial numbers of the copies the viewer holds in the version being shown; each opens that copy's page.
   const serials = status.activeCount > 0 ? heldSerials(card.number, shown) : [];
   if (serials.length > 0 && season) {
@@ -754,6 +764,29 @@ async function upgrade(card, from, btn) {
     upgradeMsg = 'Could not reach the server';
   }
   if (detailIdx !== -1) renderDetail();
+}
+
+// Uses a trainer card through the server (which holds every rule), then reloads the cards. The spent copy lowers a count,
+// so announceNew() has nothing to announce and skipNextToast must stay untouched (it would swallow the next real pull toast).
+async function useTrainer(card) {
+  if (!auth?.token || !season) return;
+  let msg;
+  let used = false;
+  try {
+    const res = await fetch(api('/api/twitch/trainer'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
+      body: JSON.stringify({ seasonId: season.seasonId, cardNumber: card.number }),
+    });
+    const body = await res.json().catch(() => ({}));
+    used = res.ok && body.ok;
+    msg = used ? (body.message || 'Used ' + card.name + '!') : (body.error || 'Could not use the trainer card (' + res.status + ')');
+  } catch {
+    msg = 'Could not reach the server';
+  }
+  showToast(msg);
+  if (used) { refreshData(false); loadMe(true); }
+  else if (detailIdx !== -1) renderDetail(); // puts the button back after a refusal
 }
 
 // ── Views: collection / stats / leaderboard ───────────────

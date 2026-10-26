@@ -35,6 +35,8 @@ export async function GET() {
           // Static first-frame thumbnail; the panel only loads the animated imageUrl on hover.
           thumbUrl: cardThumbUrl(c.imageUrl),
           stars: c.stars,
+          // 'trainer' cards get a Use button in the panel; everything else is 'collector'.
+          kind: c.kind === 'trainer' ? 'trainer' : 'collector',
           upgradesEnabled: pack.upgradesEnabled && c.upgradesEnabled !== false,
           // The variants this card can be (the panel only lists these, and skips a switched-off one when upgrading).
           variants: allowedVariants(pack, c),
