@@ -7,8 +7,10 @@ import { VARIANTS } from '@/lib/variants';
 import { getOwnerCopies, isTracking, mintedCounts } from '@/lib/serials';
 import { panelEditions } from '@/lib/panel-editions';
 import { getUserSettings } from '@/lib/user-settings-store';
-import { FAVOURITES_MAX } from '@/lib/user-settings';
+import { FAVOURITES_MAX, WANTED_MAX } from '@/lib/user-settings';
 import { getStaffBadges } from '@/lib/staff-badge';
+import { syncAchievements } from '@/lib/achievements-store';
+import { panelAchievements } from '@/lib/panel-achievements';
 
 const DEV_OPAQUE_ID = 'dev_mock_opaque';
 
@@ -41,11 +43,12 @@ export async function GET(req: NextRequest) {
 
   // The viewer's own numbered editions (empty while the season's editions are not numbered), which of them they favourited, and their staff badge.
   const tracking = await isTracking(season.collectionName);
-  const [copies, minted, prefs, badges] = await Promise.all([
+  const [copies, minted, prefs, badges, achievements] = await Promise.all([
     tracking ? getOwnerCopies(season.collectionName, username) : [],
     tracking ? mintedCounts(season.collectionName).catch(() => null) : null,
     getUserSettings(username),
     getStaffBadges(),
+    syncAchievements(username).then(panelAchievements).catch(() => null),
   ]);
   const heldUids = new Set(copies.map(c => c.uid));
 
@@ -77,6 +80,11 @@ export async function GET(req: NextRequest) {
     // serial numbers of the editions the viewer holds and has marked as favourites (they can't be traded or spent in an upgrade)
     favourites: prefs.favourites.filter(uid => heldUids.has(uid)),
     favouritesMax: FAVOURITES_MAX,
+    // card numbers on the viewer's Looking for list (the same list as the website's Look for button), and its size limit
+    wanted: prefs.wanted,
+    wantedMax: WANTED_MAX,
+    // the website's achievements for this viewer as "N of M" plus the latest few earned (null if they could not be worked out)
+    achievements,
     // Streamer / Admin / Mod, as the website shows next to the name (null when none or hidden)
     badge: badges[username] ?? null,
   },{ headers: { 'Cache-Control': 'no-store' } });

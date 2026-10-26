@@ -541,11 +541,8 @@ function editionView(wrap, card, variant, e) {
     fb.addEventListener('click', () => toggleFavourite(e, fb));
     actions.appendChild(fb);
   }
-  const a = el('a', 'ed-link', 'Open page');
-  a.href = siteUrl('/copy/' + encodeURIComponent(season.seasonId) + '/' + card.number + '.' + VARIANTS.indexOf(variant) + '.' + e.n);
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  actions.appendChild(a);
+  const copyPath = '/copy/' + encodeURIComponent(season.seasonId) + '/' + card.number + '.' + VARIANTS.indexOf(variant) + '.' + e.n;
+  actions.append(statLink('Open page', copyPath, 'ed-link'), statLink('Share image', copyPath, 'ed-link')); // the share image is made on that page
   wrap.appendChild(actions);
   if (fav) wrap.appendChild(el('div', 'serials-note', 'Favourites are kept out of trades and upgrades.'));
 }
@@ -568,6 +565,40 @@ async function toggleFavourite(e, btn) {
       if (tradesData) tradesData.favourites = me.favourites; // the trade pickers read it
       renderGrid();
     }
+  } catch {
+    showToast('Could not reach the server.');
+  }
+  renderDetail();
+}
+
+// Looking for (the website's wish list, same list as its Look for button) and a way to the saved alerts, which stay on the site.
+function wantRow(card) {
+  const row = el('div', 'want-row');
+  if (me) {
+    const on = (me.wanted || []).includes(card.number);
+    const b = el('button', 'upgrade-btn want-btn' + (on ? ' on' : ''), on ? 'Looking for' : 'Look for');
+    b.type = 'button';
+    b.title = on ? 'Take it off your Looking for list' : 'Add it to your Looking for list (' + (me.wanted || []).length + ' of ' + me.wantedMax + ' used)';
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.addEventListener('click', () => toggleWant(card, !on, b));
+    row.appendChild(b);
+  }
+  row.appendChild(statLink('Alerts on the site', '/settings#watches', 'ed-link'));
+  return row;
+}
+
+async function toggleWant(card, on, btn) {
+  if (!auth || !auth.token) return;
+  btn.disabled = true;
+  try {
+    const res = await fetch(api('/api/twitch/want'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
+      body: JSON.stringify({ cardNumber: card.number, on }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) showToast(body.error || 'Could not change your Looking for list.');
+    else me.wanted = body.wanted;
   } catch {
     showToast('Could not reach the server.');
   }
@@ -655,6 +686,7 @@ function renderDetail() {
   info.appendChild(count);
   const worth = status.activeCount > 0 ? cardWorth(card, status.variants) : null;
   if (worth !== null) info.appendChild(detailLine('detail-worth', 'Worth ' + fmtNum(worth) + ' pts'));
+  info.appendChild(wantRow(card));
 
   // Variants & upgrades (only for cards in packs with upgrades on)
   if (card.upgradesEnabled && status.activeCount > 0) {
@@ -1144,9 +1176,28 @@ function renderStats() {
     area.appendChild(statSection('Your best edition numbers', chips, el('p', 'stat-muted', 'The first editions ever made of a card are worth extra points.')));
   }
 
+  const profile = '/u/' + encodeURIComponent(me.username);
+
+  // Achievements: "N of M" and the latest few, worked out by the site's own helper
+  const ach = me.achievements;
+  if (ach && ach.total > 0) {
+    const list = el('ul', 'ach-list');
+    ach.latest.forEach(x => {
+      const li = el('li', 'ach-row');
+      li.title = x.detail;
+      li.append(el('span', 'ach-name', x.name), el('span', 'ach-date', new Date(x.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })));
+      list.appendChild(li);
+    });
+    area.appendChild(statSection('Achievements',
+      el('p', 'ach-count', ach.earned + ' of ' + ach.total + ' achievements'),
+      ach.latest.length > 0 ? list : el('p', 'stat-muted', 'None earned yet. Collection goals show up on your profile as you get close.'),
+      statLink('All achievements', profile, 'ed-link')));
+  }
+
   // Links out
   const links = el('div', 'stat-links');
-  links.append(statLink('Full stats', '/account'), statLink('My profile', '/u/' + encodeURIComponent(me.username)), statLink('Trade on the site', '/trade'));
+  links.append(statLink('Full stats', '/account'), statLink('My profile', profile), statLink('My binder', profile + '?tab=collection&view=binder'),
+    statLink('Share my cards', profile + '?tab=share'), statLink('Trade on the site', '/trade'));
   area.appendChild(links);
 }
 

@@ -54,6 +54,8 @@ export interface AchievementsView {
   earned: EarnedAchievement[];
   /** Goals not yet earned, closest first (only for seasons that are still running). */
   next: Achievement[];
+  /** Every goal that can be earned now (running seasons and trading) plus everything already earned: the "M" in "N of M". */
+  total: number;
 }
 
 /** Computes (and stores anything newly earned for) one viewer. Best effort: a failure returns what is already stored. */
@@ -147,5 +149,6 @@ export async function syncAchievements(username: string, now = Date.now()): Prom
   const next = sortAchievements(live.filter(a => !earnedIds.has(a.id) && activeSeasons.has(a.seasonId) && a.have > 0));
   // Custom words are applied on the way out, so clearing an override brings the stored built-in sentence back.
   const show = <T extends Achievement>(a: T) => applyAchievementText(a, settings);
-  return { earned: earned.map(show), next: next.map(show) };
+  const total = new Set([...earnedIds, ...live.filter(a => activeSeasons.has(a.seasonId)).map(a => a.id)]).size;
+  return { earned: earned.map(show), next: next.map(show), total };
 }
