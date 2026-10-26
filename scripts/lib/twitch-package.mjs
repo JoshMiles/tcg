@@ -19,8 +19,11 @@ export const TWITCH_HELPER = 'https://extension-files.twitch.tv/helper/v1/twitch
 const SRC = join('public', 'twitch-panel');
 const read = name => readFileSync(join(SRC, name), 'utf8');
 
+/** The extension's own version, `PANEL_VERSION` in panel.js (not the site's package.json version). */
 export function packageVersion() {
-  return JSON.parse(readFileSync('package.json', 'utf8')).version;
+  const m = read('panel.js').match(/const PANEL_VERSION = '(\d+\.\d+\.\d+)';/);
+  if (!m) throw new Error('PANEL_VERSION not found in public/twitch-panel/panel.js');
+  return m[1];
 }
 
 /** The package's files: [{ name, data }]. `site` is the site's public address (no trailing slash). */
