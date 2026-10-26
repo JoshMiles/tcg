@@ -24,6 +24,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 43.4 | Bring the other packages up to date | Done | S |
 | 43.5 | Move to TypeScript 7 | Done | S |
 | 43.3 | Rename `middleware.ts` to `proxy.ts` | Ready | S |
+| 44 | Full review and audit: public site, admin, mod panel, Twitch panel, security review (44.1 to 44.6) | Ready (44.4 after 34.7) | L |
 
 Tracks 25 to 33, 36, 38, 41 and 42 are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -97,6 +98,47 @@ The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34
 
 **34.8 Release (Ready, S).** Anything Twitch reviewers asked for; give the extension its own version, 0.0.2 (`packageVersion()` in `scripts/lib/twitch-package.mjs` reads `package.json` today; the site stays 1.1.0), rebuild the zip as `cheesy-tcg-panel-v0.0.2.zip`, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. A new freeze starts at submission.
 
+
+## Track 44: full review and audit (2026-10-26)
+
+A read-and-judge pass over every page and system, one area per PR, each ending in a ranked findings list that becomes roadmap items. Nothing is fixed during an audit (a one-line bug fix may be, and says so). Opus runs it (Explore subagents for wide sweeps, Haiku for the sweep scripts); Josh decides which findings become work.
+
+**How every area is audited.** Run it against the review seed and the page sweeps in `docs/review.md` (mock KV only, never production), read the code each page and route calls, and read the area docs. Start from `docs/CODE_REVIEW.md` (2026-10-18): mark each of its findings in that area fixed, still open or no longer relevant. For every page and system, report:
+- **Bugs and broken flows:** what a user can do that goes wrong, with the steps.
+- **Security and privacy:** who can read or change what (private profiles, staff roles, the extension JWT, rate limits, inputs at every trust boundary).
+- **Efficiency:** KV reads per request, waterfalls, uncached shared data, bundle and client-component weight, work done on every request that could be done once; with the numbers the sweep or a quick measure gives.
+- **Improvements:** confusing UX, copy that breaks the conventions (glossary words, no em dashes, `CHANNEL_NAME`), accessibility, mobile at 375px, missing empty and error states.
+- **Code to delete or merge:** dead code, duplicate helpers, docs that no longer match the code.
+
+Each finding gets a severity (critical, high, medium, low), the file:line, a one-line fix and a size. Output per area: `docs/archive/audit-2026-<area>.md` (the full list), the ranked list in the PR description, and the findings Josh accepts added here as numbered items. 44.1 to 44.3 and 44.5 only read code and add docs, so they can run alongside Track 34; 44.4 waits for 34.7.
+
+### 44.1 Public site (Ready, L)
+Every public page and its API routes: home, closed page, login, install, profile and binder, dex and card pages, copy pages, leaderboard, stats, search, trade board, new trade and trade pages, notifications, account, settings, feedback, changelog, FAQ, Terms, Privacy, SEO (metadata, sitemap, share images). Systems: sign-in and sessions, draws as players see them, collections and the copy ledger, scoring and achievements, trading and escrow, notifications and push, Discord linking, caching (Cache Components, the 40.2 work).
+
+### 44.2 Admin (Ready, L)
+Every admin page: dashboard, seasons and the season wizard, the pack workspace, cards, card back editor, assets, serials, buffs, achievements, scoring and settings, users, staff, trades, feedback, FAQ, wiki, MixItUp, webhooks and the Discord feed, activity, changelog, backups and data health, sandboxes. Systems: `requireAdmin` on every action, `revalidatePath` after every mutation, the emergency password login, the overlay (`public/widget.js`, the Overlay Editor, the test panel and live switches), backups and restore.
+
+### 44.3 Mod panel (Ready, M)
+Every mod page and action (users, trades, testers, feedback, activity, changelog), and the role model in `docs/staff.md`: what each role can reach versus what it should (run the mod access test in `docs/review.md`), who-did-it attribution, and what a mod sees on the stream tools.
+
+### 44.4 Twitch panel (Ready after 34.7, M)
+Every panel tab and view (`public/twitch-panel/*`), every `/api/twitch/*` route and the CORS rules in `middleware.ts`, on the 0.0.2 code. Also checks the submission pack against Twitch's review rules. Critical and high findings, and anything Twitch's review would reject, go into 34.8 before submission; the rest go to the next panel version.
+
+### 44.5 Security review (Ready, L)
+A dedicated pass over the whole app, deeper than the security bullet in 44.1 to 44.4. Start from `docs/CODE_REVIEW.md` and say which of its security findings are fixed. Cover:
+- **Sign-in and sessions:** Twitch OAuth (state, redirect URIs), session cookies (flags, expiry, rotation), the emergency password login and `ADMIN_COOKIE_SECRET`, sign-out, the fake Twitch and sandbox paths (never reachable in production).
+- **Access control:** list every API route and every server action with the guard it uses (`requireAdmin`, staff role, `requireViewer`, `extensionViewer`, overlay key, none), and flag any that is missing or weaker than its siblings. The mod access test in `docs/review.md` is part of this.
+- **Twitch extension:** JWT verification, `TWITCH_EXTENSION_SECRET` handling, CORS in `middleware.ts`, that the viewer always comes from the token and never from the body.
+- **Input and output:** validation at every trust boundary, KV key building from user input, XSS in user text (notes, names, markup, the panel's DOM building), uploads to Blob (type, size, who can), open redirects.
+- **Abuse:** rate limits and replay on draws (the save ticket), trades and escrow races, push and Discord DM spam, webhook signing, and server-side requests to user-given URLs (outgoing webhooks).
+- **Secrets and the public repo:** nothing secret in the repo or its git history, `.env.local` and `SECRETS.md` stay ignored, no secret in a URL or a log line.
+- **Privacy:** private profiles everywhere they show up, the account export and deletion, personal data in logs and Discord messages.
+- **Platform:** security headers and CSP, `npm audit`, the Vercel and KV access settings Josh controls (listed for him, not changed).
+
+The repo is public: unfixed critical and high findings go in the gitignored `SECRETS.md` and straight to Josh, never in a public doc or PR body until they are fixed. Fix PRs describe the fix, not the exploit. Panel findings that Twitch's review would catch go into 34.8.
+
+### 44.6 Triage (Ready after 44.1 to 44.5, S)
+Merge the five lists, drop duplicates, order the accepted items into tracks, and delete Track 44.
 
 ## Standing decisions
 
