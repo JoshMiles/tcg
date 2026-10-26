@@ -40,15 +40,19 @@ export type CardArrival = Extract<ActivityEvent, { type: 'pull' | 'grant' }>;
 
 /**
  * The newest cards to arrive in a season, pulls and grants together, newest first; collectors an admin hid are left out. Reads the
- * whole activity log (it is capped at 500): a stretch of triggers, collections shown and trades can fill a shorter window, which
- * used to leave the home feed empty although pulls had happened.
+ * newest 100 log entries and, only when those hold fewer than `limit` arrivals, the whole log (capped at 500): a stretch of
+ * triggers, collections shown and trades can fill a shorter window, which used to leave the home feed empty although pulls had
+ * happened.
  */
 export async function getRecentCardArrivals(collectionName: string, limit = 10): Promise<CardArrival[]> {
-  const { events } = await getActivity({ limit: 500 });
-  const hidden = await getHiddenUsers();
-  return events
-    .filter((e): e is CardArrival => (e.type === 'pull' || e.type === 'grant') && e.collectionName === collectionName && !hidden.has(e.username))
-    .slice(0, limit);
+  const hidden = getHiddenUsers(); // memoised per request; started now so it runs alongside the log read
+  let arrivals: CardArrival[] = [];
+  for (const window of [100, 500]) {
+    const [{ events }, hiddenUsers] = await Promise.all([getActivity({ limit: window }), hidden]);
+    arrivals = events.filter((e): e is CardArrival => (e.type === 'pull' || e.type === 'grant') && e.collectionName === collectionName && !hiddenUsers.has(e.username));
+    if (arrivals.length >= limit || events.length < window) break; // enough found, or the log has nothing older to read
+  }
+  return arrivals.slice(0, limit);
 }
 
 // ── Who owns each card ─────────────────────────────────────

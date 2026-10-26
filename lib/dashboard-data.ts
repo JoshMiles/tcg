@@ -181,7 +181,7 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
   const wantsOverlay = needs.has('attention') || needs.has('overlay-controls');
   const { starts, step } = bucketsFor(range, season.createdAt);
   const span = step === 'hour' ? 3_600_000 : 86_400_000;
-  const [avatars, activity, openTrades, history, board, live, notes, recap, digest, series, prevSeries, overlay] = await Promise.all([
+  const [avatars, activity, openTrades, history, board, live, notes, recap, digest, series, prevSeries, overlay, dailySeries, overlaySettings] = await Promise.all([
     needs.has('top-collectors') || needs.has('leaderboard') ? getAvatars(topCollectors.map(c => c.username)) : Promise.resolve({}),
     wantsActivity ? getActivity({ limit: 500 }).then(r => r.events).catch(() => []) : Promise.resolve([] as ActivityEvent[]),
     needs.has('trades') ? listOpenTrades().catch(() => [] as Trade[]) : Promise.resolve(null),
@@ -194,8 +194,6 @@ export async function loadDashboardData(season: Season, packs: { pack: Pack; car
     wantsSeries ? getSeries(season.collectionName, starts, step) : Promise.resolve(null),
     wantsSeries ? getSeries(season.collectionName, starts.map(s => s - starts.length * span), step) : Promise.resolve(null),
     wantsOverlay ? getOverlayStatus().catch(() => null) : Promise.resolve(null),
-  ]);
-  const [dailySeries, overlaySettings] = await Promise.all([
     needs.has('viewers') ? getSeries(season.collectionName, bucketsFor('7d', season.createdAt).starts, 'day') : Promise.resolve(null),
     needs.has('overlay-controls') ? getOverlaySettings().catch(() => null) : Promise.resolve(null),
   ]);

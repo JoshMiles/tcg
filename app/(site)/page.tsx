@@ -2,8 +2,10 @@ import { Icon, RankMedal } from '@/app/components/Icon';
 import { UserInput } from '@/app/components/UserInput';
 import { PendingButton } from '../admin/components/PendingButton';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { getActive, getSeasonOverview, ownersByCard } from '@/lib/site-data';
+import { getActive, getSeasonOverview, ownersByCard, type SeasonCard } from '@/lib/site-data';
+import type { Season } from '@/lib/types';
 import { listSeasons } from '@/lib/kv';
 import { getCollectionCached } from '@/lib/leaderboard';
 import { getHiddenUsers } from '@/lib/user-admin';
@@ -31,35 +33,42 @@ export default async function HomePage() {
   }
 
   const [{ season }, session] = await Promise.all([getActive(), getSession()]);
-  const overview = season ? await getSeasonOverview(season) : null;
-  const standing = session && overview ? viewerStanding(overview.rows, session.username, overview.values.totalCards) : null;
-  // Offers waiting for the viewer (a quiet nudge, so a failure just leaves it out).
-  const offers = session && season
-    ? (await listOpenTrades().catch(() => [])).filter(t => t.kind === 'direct' && t.to === session.username && t.seasonId === season.id && t.expiresAt > Date.now()).length
-    : 0;
   const countdown = season ? seasonCountdown(season.endsAt) : null;
 
-  const top = overview?.rows.slice(0, 8) ?? [];
-  const recent = season && overview ? await recentPullItems(season, overview.cards, 8) : [];
-
   // No season running (none, or the latest one is not active): show how the last finished one ended (its final standings were saved when it was wrapped up).
-  // (The site keeps showing the latest season after it ends, so an ended season counts too.)
+  // (The site keeps showing the latest season after it ends, so an ended season counts too.) listSeasons is read once per request, so this adds no read.
   const lastEnded = season?.endedAt
     ? season
     : !season?.active ? (await listSeasons().catch(() => [])).filter(s => s.status !== 'draft' && s.endedAt).sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0))[0] ?? null : null;
-  const wrap = lastEnded ? await getSnapshot(lastEnded.id) : null;
-  const podium = wrap?.standings.slice(0, 3) ?? [];
 
-  const avatars = await getAvatars([...top.map(r => r.username), ...podium.map(r => r.username), ...(session ? [session.username] : [])]);
+  // Everything that needs only the season is read together; the recent pulls stream in on their own below.
+  const [overview, offers, wrap, hidden] = await Promise.all([
+    season ? getSeasonOverview(season) : null,
+    // Offers waiting for the viewer (a quiet nudge, so a failure just leaves it out).
+    session && season
+      ? listOpenTrades().catch(() => []).then(open => open.filter(t => t.kind === 'direct' && t.to === session.username && t.seasonId === season.id && t.expiresAt > Date.now()).length)
+      : 0,
+    lastEnded ? getSnapshot(lastEnded.id) : null,
+    // Collectors an admin hid or who went private are left out of the rarest cards' owners.
+    season ? getHiddenUsers().catch(() => new Set<string>()) : new Set<string>(),
+  ]);
+  const standing = session && overview ? viewerStanding(overview.rows, session.username, overview.values.totalCards) : null;
+
+  const top = overview?.rows.slice(0, 8) ?? [];
+  const podium = wrap?.standings.slice(0, 3) ?? [];
 
   const cardByNumber = new Map(overview?.cards.map(c => [c.number, c]) ?? []);
   const rarest = overview
     ? [...overview.values.cards.values()].sort((a, b) => a.pullRate - b.pullRate).slice(0, 6)
         .map(v => ({ card: cardByNumber.get(v.number)!, v })).filter(x => x.card)
     : [];
-  // Who holds the rarest cards (collectors an admin hid or who went private are left out).
-  const owners = season && rarest.length > 0
-    ? ownersByCard(await getCollectionCached(season), overview!.values, 1, await getHiddenUsers().catch(() => new Set<string>()))
+  const [avatars, collection] = await Promise.all([
+    getAvatars([...top.map(r => r.username), ...podium.map(r => r.username), ...(session ? [session.username] : [])]),
+    season && rarest.length > 0 ? getCollectionCached(season) : null,
+  ]);
+  // Who holds the rarest cards.
+  const owners = collection
+    ? ownersByCard(collection, overview!.values, 1, hidden)
     : new Map<number, { top: { username: string; copies: number }[]; collectors: number }>();
 
   return (
@@ -230,10 +239,9 @@ export default async function HomePage() {
                   <Link href="/stats" className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold">Season stats →</Link>
                 </div>
                 <div className="flex-1 flex flex-col [&>ul]:flex-1 [&>p]:flex-1">
-                <RecentPulls
-                  initial={recent}
-                  empty={<p className="rind rounded-2xl p-6 text-sm text-gray-400">Nothing pulled yet this season. Packs are opened live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 font-semibold">{CHANNEL_NAME}&rsquo;s stream</a>, and every pull shows up here.</p>}
-                />
+                <Suspense fallback={<div className="rind rounded-2xl flex-1 min-h-[36rem] animate-pulse" aria-hidden="true" />}>
+                  <RecentPullsFeed season={season} cards={overview.cards} />
+                </Suspense>
                 </div>
               </section>
             </div>
@@ -295,5 +303,16 @@ export default async function HomePage() {
         )}
       </div>
     </div>
+  );
+}
+
+/** The recent pulls read the activity log, the slowest part of the page and not the first thing seen, so they stream in after the rest. */
+async function RecentPullsFeed({ season, cards }: { season: Season; cards: SeasonCard[] }) {
+  const recent = await recentPullItems(season, cards, 8);
+  return (
+    <RecentPulls
+      initial={recent}
+      empty={<p className="rind rounded-2xl p-6 text-sm text-gray-400">Nothing pulled yet this season. Packs are opened live on <a href={CHANNEL_URL} target="_blank" rel="noopener noreferrer" className="text-purple-300 hover:text-purple-200 font-semibold">{CHANNEL_NAME}&rsquo;s stream</a>, and every pull shows up here.</p>}
+    />
   );
 }
