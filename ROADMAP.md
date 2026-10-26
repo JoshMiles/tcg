@@ -18,7 +18,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 |---|------|--------|------|
 | 35.1 | iPhone icon still a "C", and no launch screen (Safari and Chrome both) | Blocked (user) | S |
 | 40.2f | Site speed: re-measure, then cache shared data if needed | Blocked (field data from 2026-11-09) | S to M |
-| 34 | Next extension version (34.1 to 34.8) | Ready (34.7 needs planning first) | L |
+| 34 | Next extension version 0.0.2 (34.6 to 34.8) | Ready | L |
 | 43.1 | Upgrade Next.js 15.5 to 16.4 | Done | M |
 | 43.2 | Bring back the page skeletons if 16 fixed the `?param` hang | Done | S |
 | 43.4 | Bring the other packages up to date | Done | S |
@@ -89,15 +89,13 @@ The file holds the extension's CORS rules, so it waited for the panel freeze (li
 
 ### Track 34: next extension version (Ready)
 
-The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34.7 still needs its planning pass before it is built. All of it ships as one reviewed panel version. Every item edits `public/twitch-panel/panel.js`, so run them **one at a time** in the order below, each its own PR from `origin/main`; the version is submitted only after 34.8. Read `docs/twitch-extension.md` first. Rules for the whole track: never rename or remove a JSON key on `/api/twitch/*` (the released panel keeps working against new responses until viewers update); new data goes in new fields; reuse the website's existing APIs and `lib/` helpers rather than copying logic into the panel.
+The 2026-10-15 panel was never approved, and the freeze lifted on 2026-10-26. 34.1 to 34.5 are merged. All of it ships as extension version 0.0.2, one reviewed panel version. Every item edits `public/twitch-panel/panel.js`, so run them **one at a time** in the order below, each its own PR from `origin/main`; the version is submitted only after 34.8. Read `docs/twitch-extension.md` first. Rules for the whole track: never rename or remove a JSON key on `/api/twitch/*` (the released panel keeps working against new responses until viewers update); new data goes in new fields; reuse the website's existing APIs and `lib/` helpers rather than copying logic into the panel.
 
-**34.5 Trades tab (Ready once lifted, M).** Choosing editions when trading (6.4: composer and accept picker, exact serial preview), "Reversed by staff" on reversed trades (9.2), a link to `/trade/<id>`.
+**34.6 Collection view (Ready, M).** Pack card back on flip backs (20.3), favourite editions (9.1: hearts, disabled picks), serial numbers on tiles (2.1), the copies-first dialog (2.5), staff and tester badges.
 
-**34.6 Collection view (Ready once lifted, M).** Pack card back on flip backs (20.3), favourite editions (9.1: hearts, disabled picks), serial numbers on tiles (2.1), the copies-first dialog (2.5), staff and tester badges.
+**34.7 New panel sections, cut down (Ready, M).** Planned 2026-10-26 to fit the 318px panel. Achievements: a summary on the Stats tab ("N of M", the latest few with icons) from a new field on `/api/twitch/me` that reuses the site's achievement helper, plus a link to the profile. Binder: a link to the `/u/<name>` binder tab only. Looking for: a want toggle in card details, using the same store as the site's `WantToggle`, through an authenticated `/api/twitch` route; saved alerts stay on the site (link out). Share images: a link to the site's share page, no in-panel downloads.
 
-**34.7 New panel sections (Needs design, L).** Achievements, the binder, Looking for / listing alerts, share images. Planning pass first: which fit a 318px panel, which are a link out to the site instead, and whether this splits into its own panel version.
-
-**34.8 Release (Ready once lifted, S).** Anything Twitch reviewers asked for; bump `version` in `package.json`, rebuild the zip (`scripts/lib/twitch-package.mjs`), refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. A new freeze starts at submission.
+**34.8 Release (Ready, S).** Anything Twitch reviewers asked for; give the extension its own version, 0.0.2 (`packageVersion()` in `scripts/lib/twitch-package.mjs` reads `package.json` today; the site stays 1.1.0), rebuild the zip as `cheesy-tcg-panel-v0.0.2.zip`, refresh screenshots, update the change log in `twitch-extension/SUBMISSION.md`. A new freeze starts at submission.
 
 
 ## Standing decisions
