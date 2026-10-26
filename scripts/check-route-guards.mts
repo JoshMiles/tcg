@@ -97,6 +97,7 @@ const R: Record<string, Kind[] | { public: string }> = {
   'app/api/sandbox/exit/route.ts': { public: 'only clears the sandbox and test-login cookies' },
   'app/api/cards/[number]/owners/route.ts': { public: 'public Card Dex data (hidden collectors left out)' },
   'app/api/live/route.ts': { public: 'is the channel live' },
+  'app/api/csp-report/route.ts': { public: 'browsers post Content-Security-Policy reports with no credentials; capped and only logged' },
   'app/api/overlay/config/route.ts': { public: 'how the overlay is drawn; the OBS browser source has no sign-in' },
   'app/api/recent-pulls/route.ts': { public: 'recent public pulls' },
   'app/api/search/route.ts': { public: 'public site search' },
