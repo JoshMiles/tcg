@@ -14,6 +14,7 @@ const ADMIN_PAGES = ['/admin', '/admin/activity', '/admin/seasons', '/admin/seas
 const ADMIN_API = [
   { path: '/api/admin/overlay-status', mod: [200] }, // read-only, for the mod stream desk
   { path: '/api/admin/palette', mod: [401, 403] },
+  { path: '/api/admin/users/export', mod: [401, 403] },
   { path: '/api/admin/activity?after=0', mod: [200] }, // a read-only admin route mods may read
 ];
 const POST_API = ['/api/admin/sandbox/ext-token'];

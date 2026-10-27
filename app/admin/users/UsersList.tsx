@@ -1,42 +1,21 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { useRef, useState, useTransition } from 'react';
 import { Icon } from '@/app/components/Icon';
 import { Avatar } from '@/app/components/Avatar';
 import { Spinner } from '@/app/components/PendingButton';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { bulkGiftAction, bulkTagAction } from '../users-actions';
 import { useSlashFocus } from '../components/use-slash-focus';
+import { SORT_KEYS, USERS_PAGE_SIZE, usersQueryString, type ActivityKey, type UserRow, type UsersQuery } from '@/lib/users-list';
 
-export interface UserRow {
-  username: string;
-  displayName: string;
-  avatar?: string;
-  isTwitch: boolean;
-  tags: string[];
-  noTrading: boolean;
-  hidden: boolean;
-  hasNotes: boolean;
-  unique: number;
-  pulls: number;
-  shiny: number;
-  full: number;
-  primary: { name: string; owned: number; total: number; pct: number } | null;
-  otherSeasons: number;
-  score: number | null;
-  scoreRank: number | null;
-  joined: number | null;
-  lastActive: number | null;
-  trades: number;
-}
-
-type SortKey = 'cards' | 'score' | 'pulls' | 'active' | 'joined' | 'trades' | 'name';
+type SortKey = (typeof SORT_KEYS)[number];
 const SORTS: { key: SortKey; label: string }[] = [
   { key: 'cards', label: 'Most cards' }, { key: 'score', label: 'Score' }, { key: 'pulls', label: 'Most pulls' },
   { key: 'active', label: 'Recently active' }, { key: 'joined', label: 'Newest' }, { key: 'trades', label: 'Most trades' }, { key: 'name', label: 'A–Z' },
 ];
-const ACTIVITY = [['any', 'Any time'], ['24h', 'Last 24 hours'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['never', 'Never seen']] as const;
-const DAYS = { '24h': 1, '7d': 7, '30d': 30 } as const;
+const ACTIVITY: [ActivityKey, string][] = [['any', 'Any time'], ['24h', 'Last 24 hours'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['never', 'Never seen']];
 
 const chip = (on: boolean) => `px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${on ? 'bg-yellow-500/15 border-yellow-500/50 text-yellow-300' : 'bg-gray-900/60 border-gray-700 text-gray-400 hover:text-white'}`;
 
@@ -51,22 +30,14 @@ function ago(at: number | null, now: number): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-const csvCell = (v: string | number | null) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-
 /**
- * The users table: search (press /), sort, filters (activity, completion, Full Art Holo / Full Art, tag, restricted, has notes), bulk actions on a
- * selection (gift packs, add / remove a tag) and CSV export of what is shown (or of the selection). Rows are plain data from the server.
+ * The users table. The server filters, sorts and pages it (search params ?q= &sort= &activity= &tag= &complete= &shiny= &full= &restricted= &notes= &page=,
+ * lib/users-list.ts): this only shows one page of `rows` and changes the URL. It owns the selection (bulk gift, add / remove a tag); the CSV export
+ * is a server route that exports the whole filtered list, or the ticked viewers.
  */
-export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; allTags: string[]; activeSeason: string | null }) {
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortKey>('cards');
-  const [activity, setActivity] = useState<(typeof ACTIVITY)[number][0]>('any');
-  const [complete, setComplete] = useState(false);
-  const [shiny, setShiny] = useState(false);
-  const [full, setFull] = useState(false);
-  const [tag, setTag] = useState('');
-  const [restricted, setRestricted] = useState(false);
-  const [notes, setNotes] = useState(false);
+export function UsersList({ rows, query, matches, total, page, pages, allTags, activeSeason }: { rows: UserRow[]; query: UsersQuery; matches: number; total: number; page: number; pages: number; allTags: string[]; activeSeason: string | null }) {
+  const router = useRouter();
+  const [text, setText] = useState(query.q);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkTag, setBulkTag] = useState('');
   const [giftCount, setGiftCount] = useState('1');
@@ -77,52 +48,20 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
 
   useSlashFocus(input);
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = rows.filter(r => {
-      if (q && !`${r.username} ${r.displayName} ${r.tags.join(' ')}`.toLowerCase().includes(q)) return false;
-      if (activity === 'never' ? r.lastActive !== null : activity !== 'any' && !(r.lastActive && now - r.lastActive <= DAYS[activity] * 86_400_000)) return false;
-      if (complete && !(r.primary && r.primary.total > 0 && r.primary.owned >= r.primary.total)) return false;
-      if (shiny && r.shiny === 0) return false;
-      if (full && r.full === 0) return false;
-      if (tag && !r.tags.includes(tag)) return false;
-      if (restricted && !(r.noTrading || r.hidden)) return false;
-      if (notes && !r.hasNotes) return false;
-      return true;
-    });
-    const by: Record<SortKey, (a: UserRow, b: UserRow) => number> = {
-      cards: (a, b) => b.unique - a.unique || b.pulls - a.pulls,
-      score: (a, b) => (b.score ?? -1) - (a.score ?? -1),
-      pulls: (a, b) => b.pulls - a.pulls || b.unique - a.unique,
-      active: (a, b) => (b.lastActive ?? 0) - (a.lastActive ?? 0),
-      joined: (a, b) => (b.joined ?? 0) - (a.joined ?? 0),
-      trades: (a, b) => b.trades - a.trades,
-      name: (a, b) => a.username.localeCompare(b.username),
-    };
-    return list.sort(by[sort]);
-  }, [rows, query, sort, activity, complete, shiny, full, tag, restricted, notes, now]);
-
-  const filtered = query.trim() !== '' || activity !== 'any' || complete || shiny || full || !!tag || restricted || notes;
-  const clear = () => { setQuery(''); setActivity('any'); setComplete(false); setShiny(false); setFull(false); setTag(''); setRestricted(false); setNotes(false); };
-  const allShownSelected = shown.length > 0 && shown.every(r => selected.has(r.username));
-  const toggleAll = () => setSelected(s => { const n = new Set(s); if (allShownSelected) shown.forEach(r => n.delete(r.username)); else shown.forEach(r => n.add(r.username)); return n; });
+  const href = (over: Partial<UsersQuery> = {}) => { const q = usersQueryString(query, over); return q ? `?${q}` : '?'; };
+  const go = (over: Partial<UsersQuery>) => startTransition(() => router.replace(href(over)));
+  const filtered = !!(query.q || query.activity !== 'any' || query.complete || query.shiny || query.full || query.tag || query.restricted || query.notes);
+  const clear = () => { setText(''); go({ q: '', activity: 'any', complete: false, shiny: false, full: false, tag: '', restricted: false, notes: false }); };
+  const allShownSelected = rows.length > 0 && rows.every(r => selected.has(r.username));
+  const toggleAll = () => setSelected(s => { const n = new Set(s); if (allShownSelected) rows.forEach(r => n.delete(r.username)); else rows.forEach(r => n.add(r.username)); return n; });
   const toggleOne = (u: string) => setSelected(s => { const n = new Set(s); if (n.has(u)) n.delete(u); else n.add(u); return n; });
   const chosen = [...selected];
+  const exportHref = `/api/admin/users/export${href({ page: 1 })}${chosen.length > 0 ? `${usersQueryString(query, { page: 1 }) ? '&' : ''}only=${encodeURIComponent(chosen.join(','))}` : ''}`;
 
   const run = (fn: () => Promise<{ ok: boolean; message: string }>) => startTransition(async () => {
     setMessage(null);
     try { const r = await fn(); setMessage({ ok: r.ok, text: r.message }); if (r.ok) setSelected(new Set()); } catch (e) { setMessage({ ok: false, text: e instanceof Error ? e.message : 'That did not work.' }); }
   });
-
-  const exportCsv = () => {
-    const list = chosen.length > 0 ? rows.filter(r => selected.has(r.username)) : shown;
-    const head = ['username', 'display name', 'tags', 'unique cards', 'pulls', 'score', 'last active', 'joined', 'trades', 'restricted'].join(',');
-    const body = list.map(r => [r.username, r.displayName, r.tags.join('; '), r.unique, r.pulls, r.score, r.lastActive ? new Date(r.lastActive).toISOString() : '', r.joined ? new Date(r.joined).toISOString() : '', r.trades, r.noTrading || r.hidden ? [r.noTrading && 'no trading', r.hidden && 'hidden'].filter(Boolean).join('; ') : ''].map(csvCell).join(','));
-    const url = URL.createObjectURL(new Blob([[head, ...body].join('\n')], { type: 'text/csv' }));
-    const a = document.createElement('a');
-    a.href = url; a.download = `viewers-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  };
 
   const cols = 'grid-cols-[1.75rem_2.25rem_minmax(11rem,1.5fr)_minmax(9rem,1.2fr)_5rem_4.5rem_4rem_5.5rem_3.5rem]';
   const select = 'select select-sm';
@@ -134,31 +73,33 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-56 max-w-md">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"><Icon name="search" /></span>
-            <input ref={input} type="search" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setQuery(''); }} placeholder="Search viewers, names or tags…  ( / )" aria-label="Search viewers" className="input w-full pl-9" />
+            <form onSubmit={e => { e.preventDefault(); go({ q: text.trim() }); }}>
+              <input ref={input} type="search" value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setText(''); go({ q: '' }); } }} placeholder="Search viewers, names or tags…  ( / )  then Enter" aria-label="Search viewers" className="input w-full pl-9" />
+            </form>
           </div>
           <label className="flex items-center gap-2 text-xs text-gray-500">Sort
-            <select value={sort} onChange={e => setSort(e.target.value as SortKey)} className={select}>{SORTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select>
+            <select value={query.sort} onChange={e => go({ sort: e.target.value as SortKey })} className={select}>{SORTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select>
           </label>
           <label className="flex items-center gap-2 text-xs text-gray-500">Active
-            <select value={activity} onChange={e => setActivity(e.target.value as typeof activity)} className={select}>{ACTIVITY.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select>
+            <select value={query.activity} onChange={e => go({ activity: e.target.value as ActivityKey })} className={select}>{ACTIVITY.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select>
           </label>
           {allTags.length > 0 && (
             <label className="flex items-center gap-2 text-xs text-gray-500">Tag
-              <select value={tag} onChange={e => setTag(e.target.value)} className={select}><option value="">Any</option>{allTags.map(t => <option key={t} value={t}>{t}</option>)}</select>
+              <select value={query.tag} onChange={e => go({ tag: e.target.value })} className={select}><option value="">Any</option>{allTags.map(t => <option key={t} value={t}>{t}</option>)}</select>
             </label>
           )}
           <span className="ml-auto flex items-center gap-2">
-            <button type="button" onClick={exportCsv} disabled={shown.length === 0} className={chip(false)}><Icon name="download" className="mr-1" />Export {chosen.length > 0 ? `${chosen.length} selected` : `${shown.length} shown`}</button>
+            {matches > 0 && <a href={exportHref} download className={chip(false)}><Icon name="download" className="mr-1" />Export {chosen.length > 0 ? `${chosen.length} selected` : `${matches} matching`}</a>}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setComplete(c => !c)} aria-pressed={complete} className={chip(complete)}><Icon name="cheese" className="mr-1" />Complete collection</button>
-          <button type="button" onClick={() => setShiny(c => !c)} aria-pressed={shiny} className={chip(shiny)}><Icon name="sparkles" className="mr-1" />Has a Full Art Holo</button>
-          <button type="button" onClick={() => setFull(c => !c)} aria-pressed={full} className={chip(full)}><Icon name="gem" className="mr-1" />Has Full Art</button>
-          <button type="button" onClick={() => setRestricted(c => !c)} aria-pressed={restricted} className={chip(restricted)}><Icon name="shield" className="mr-1" />Restricted</button>
-          <button type="button" onClick={() => setNotes(c => !c)} aria-pressed={notes} className={chip(notes)}><Icon name="note" className="mr-1" />Has notes</button>
+          <button type="button" onClick={() => go({ complete: !query.complete })} aria-pressed={query.complete} className={chip(query.complete)}><Icon name="cheese" className="mr-1" />Complete collection</button>
+          <button type="button" onClick={() => go({ shiny: !query.shiny })} aria-pressed={query.shiny} className={chip(query.shiny)}><Icon name="sparkles" className="mr-1" />Has a Full Art Holo</button>
+          <button type="button" onClick={() => go({ full: !query.full })} aria-pressed={query.full} className={chip(query.full)}><Icon name="gem" className="mr-1" />Has Full Art</button>
+          <button type="button" onClick={() => go({ restricted: !query.restricted })} aria-pressed={query.restricted} className={chip(query.restricted)}><Icon name="shield" className="mr-1" />Restricted</button>
+          <button type="button" onClick={() => go({ notes: !query.notes })} aria-pressed={query.notes} className={chip(query.notes)}><Icon name="note" className="mr-1" />Has notes</button>
           {filtered && <button type="button" onClick={clear} className="text-xs font-semibold text-gray-400 hover:text-white underline underline-offset-2">Clear</button>}
-          <span className="ml-auto text-xs text-gray-500">{shown.length} of {rows.length}</span>
+          <span className="ml-auto text-xs text-gray-500">{matches} of {total}</span>
         </div>
       </div>
 
@@ -199,9 +140,9 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
             <span className="text-right">Pulls</span><span className="text-right">Trades</span><span className="text-right">Last seen</span><span />
           </div>
 
-          {shown.length === 0 && <p className="py-14 text-center text-sm text-gray-500">No viewers match these filters.{' '}<button type="button" onClick={clear} className="text-yellow-400 hover:text-yellow-300 underline underline-offset-2">Clear them</button></p>}
+          {rows.length === 0 && <p className="py-14 text-center text-sm text-gray-500">No viewers match these filters.{' '}<button type="button" onClick={clear} className="text-yellow-400 hover:text-yellow-300 underline underline-offset-2">Clear them</button></p>}
 
-          {shown.map((r, i) => {
+          {rows.map((r, i) => {
             const pct = r.primary?.pct ?? 0;
             const bar = pct >= 80 ? 'from-amber-300 to-amber-500' : pct >= 50 ? 'from-green-300 to-green-500' : 'from-gray-500 to-gray-400';
             const dupes = r.pulls - r.unique;
@@ -209,7 +150,7 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
               <div key={r.username} className={`relative grid ${cols} gap-3 items-center px-6 py-3 border-t border-gray-800/60 first:border-0 hover:bg-white/3 transition-colors ${selected.has(r.username) ? 'bg-yellow-500/4' : ''}`}>
                 <Link href={`/admin/users/${r.username}`} aria-label={`Manage ${r.displayName}`} className="absolute inset-0" />
                 <input type="checkbox" checked={selected.has(r.username)} onChange={() => toggleOne(r.username)} aria-label={`Select ${r.username}`} className="relative z-10 accent-yellow-400" />
-                <span className="text-xs text-gray-600 tabular-nums">{i + 1}</span>
+                <span className="text-xs text-gray-600 tabular-nums">{(page - 1) * USERS_PAGE_SIZE + i + 1}</span>
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Avatar src={r.avatar} name={r.displayName} className="w-9 h-9 text-sm" />
                   <div className="min-w-0">
@@ -240,6 +181,14 @@ export function UsersList({ rows, allTags, activeSeason }: { rows: UserRow[]; al
           })}
         </div>
       </div>
+
+      {pages > 1 && (
+        <nav aria-label="Pages" className="flex items-center justify-between gap-3 px-6 py-3 border-t border-gray-800 text-sm">
+          {page > 1 ? <Link href={href({ page: page - 1 })} className={chip(false)}>Previous</Link> : <span />}
+          <span className="text-xs text-gray-500 tabular-nums">Page {page} of {pages}</span>
+          {page < pages ? <Link href={href({ page: page + 1 })} className={chip(false)}>Next</Link> : <span />}
+        </nav>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const limited = await limitWebhook(req);
   if (limited) return limited;
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!(await incomingSecretValid(body.secret))) return NextResponse.json({ error: 'Invalid secret' }, { status: 401 });
+  if (!(await incomingSecretValid(body.secret, new URL(req.url).pathname))) return NextResponse.json({ error: 'Invalid secret' }, { status: 401 });
   if (body.event !== 'live' && body.event !== 'offline') return NextResponse.json({ error: "event must be 'live' or 'offline'" }, { status: 400 });
   const status = await setLiveFromHint(body.event === 'live');
   return NextResponse.json({ ok: true, live: status.live });

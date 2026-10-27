@@ -4,6 +4,7 @@ import { randomBytes, timingSafeEqual } from 'crypto';
 import { checkWebhookUrl, cleanWebhookFields } from './webhook-clean';
 import { cleanLogin } from './staff-core';
 import { limitWebhook } from './rate-limit';
+import { noteSecretUsed } from './secret-used';
 import { NextResponse } from 'next/server';
 
 // ── Types ─────────────────────────────────────────────────
@@ -118,8 +119,10 @@ function sameSecret(given: string, expected: string): boolean {
 }
 
 /** Whether a body's `secret` is the incoming webhook secret. */
-export async function incomingSecretValid(secret: unknown): Promise<boolean> {
-  return typeof secret === 'string' && sameSecret(secret, (await getWebhookSettings()).incomingSecret);
+export async function incomingSecretValid(secret: unknown, route: string): Promise<boolean> {
+  const ok = typeof secret === 'string' && sameSecret(secret, (await getWebhookSettings()).incomingSecret);
+  if (ok) noteSecretUsed('INCOMING_WEBHOOK_SECRET', route);
+  return ok;
 }
 
 /** Validates the shared secret and normalizes `username` for MixItUp-style incoming webhooks. */
@@ -127,7 +130,7 @@ export async function parseIncomingWebhook(req: Request): Promise<IncomingWebhoo
   const limited = await limitWebhook(req);
   if (limited) return { ok: false, response: limited };
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!(await incomingSecretValid(body.secret))) {
+  if (!(await incomingSecretValid(body.secret, new URL(req.url).pathname))) {
     return { ok: false, response: NextResponse.json({ error: 'Invalid secret' }, { status: 401 }) };
   }
   // A Twitch login (3 to 25 letters, digits and underscores, an @ in front is dropped); anything else is not a viewer.
