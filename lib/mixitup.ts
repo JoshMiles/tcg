@@ -230,7 +230,8 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
     await logMixItUp({ username: user, what: 'balance', ok: got.balance !== null, detail: got.balance !== null ? `${got.balance} ${s.currency}` : got.error ?? 'no answer' });
     if (got.balance === null) { await undo(); return refuse(got.error?.startsWith('no number') ? 'bad_balance' : 'mixitup_unavailable', undefined, got.error); }
     balance = got.balance;
-    const owed = await kv.incrby(pendKey(user), price); // the sum of the prices in flight, this pull included
+    // Never below this pull's own price: a claim of a reservation made before 55.4b takes off its whole price where the counter held a count.
+    const owed = Math.max(price, await kv.incrby(pendKey(user), price)); // the sum of the prices in flight, this pull included
     await kv.expire(pendKey(user), 600);
     if (!decide({ balance, owed })) {
       await kv.incrby(pendKey(user), -price); await undo();
