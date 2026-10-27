@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Avatar } from '@/app/components/Avatar';
 import { Icon } from '@/app/components/Icon';
 import { getAllCollectionUsers, getUserProfiles } from '@/lib/kv';
+import { getLastSeen } from '@/lib/stats';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import type { UserProfile } from '@/lib/types';
 import { uniqueCount } from '@/lib/collection';
@@ -18,14 +19,21 @@ export const metadata = { title: 'Viewers · Mod', robots: { index: false } };
 const SHOWN = 80;
 
 /** Find a viewer to look at or moderate. `?q=` searches by name; "Restricted" lists people who are blocked from trading or hidden. */
-export default async function ModUsersPage({ searchParams }: { searchParams: Promise<{ q?: string; show?: string }> }) {
+export default async function ModUsersPage({ searchParams }: { searchParams: Promise<{ q?: string; show?: string; sort?: string }> }) {
   await requireStaff('mod');
-  const { q = '', show } = await searchParams;
+  const { q = '', show, sort: sortParam } = await searchParams;
   const needle = q.trim().toLowerCase().replace(/^@/, '');
   const restrictedOnly = show === 'restricted';
+  const sort = sortParam === 'seen' || sortParam === 'pulls' ? sortParam : 'az';
 
-  const all = await getAllCollectionUsers();
-  const pool = (needle ? all.filter(u => u.username.includes(needle)) : [...all]).sort((a, b) => a.username.localeCompare(b.username));
+  // One hash read for every viewer's last counted action; pulls come from the collections already loaded.
+  const [all, lastSeen] = await Promise.all([getAllCollectionUsers(), getLastSeen()]);
+  const pullsOf = (u: (typeof all)[number]) => u.seasons.reduce((s, x) => s + x.cards.length, 0);
+  const byName = (a: (typeof all)[number], b: (typeof all)[number]) => a.username.localeCompare(b.username);
+  const pool = (needle ? all.filter(u => u.username.includes(needle)) : [...all]).sort(
+    sort === 'seen' ? (a, b) => (lastSeen[b.username] ?? 0) - (lastSeen[a.username] ?? 0) || byName(a, b)
+    : sort === 'pulls' ? (a, b) => pullsOf(b) - pullsOf(a) || byName(a, b)
+    : byName);
   // Profiles are read for the rows that decide the list: all of them for "Restricted only" (no index to start from), else just the page.
   const candidates = restrictedOnly ? pool : pool.slice(0, SHOWN);
   const profiles = await getUserProfiles(candidates.map(u => u.username)).catch(() => new Map<string, UserProfile | null>());
@@ -42,6 +50,9 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
         <select name="show" defaultValue={show ?? ''} aria-label="Show" className="select">
           <option value="">Everyone</option><option value="restricted">Restricted only</option>
         </select>
+        <select name="sort" defaultValue={sort} aria-label="Sort by" className="select">
+          <option value="az">Sort: A to Z</option><option value="seen">Sort: last seen</option><option value="pulls">Sort: most pulls</option>
+        </select>
         <button type="submit" className="btn btn-primary px-4 py-2 text-sm rounded-xl"><Icon name="search" className="mr-1.5" />Search</button>
       </form>
 
@@ -53,13 +64,14 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
             {shown.map(({ u, p }) => {
               const unique = u.seasons.reduce((s, x) => s + uniqueCount(x.cards), 0);
               const av = avatars[u.username];
+              const seen = lastSeen[u.username];
               return (
                 <li key={u.username}>
                   <Link href={`/mod/users/${encodeURIComponent(u.username)}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-white/3">
                     <Avatar src={av ? sizeTwitchAvatar(av, 70) : undefined} name={p?.displayName || u.username} className="w-9 h-9 text-sm shrink-0" />
                     <span className="min-w-0">
                       <span className="block font-semibold text-white truncate">{p?.displayName || u.username}</span>
-                      <span className="block text-xs text-gray-500">@{u.username} · {unique} collected</span>
+                      <span className="block text-xs text-gray-500">@{u.username} · {unique} collected · {pullsOf(u)} pull{pullsOf(u) === 1 ? '' : 's'} · {seen ? `seen ${new Date(seen).toLocaleDateString('en-GB', { timeZone: 'UTC', dateStyle: 'medium' })}` : 'never seen'}</span>
                     </span>
                     <span className="ml-auto flex flex-wrap items-center gap-1.5">
                       {p?.flags?.noTrading && <Chip tone="red">No trading</Chip>}

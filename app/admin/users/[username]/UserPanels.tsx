@@ -73,8 +73,9 @@ export function ModerationPanel({ username, initial }: { username: string; initi
       <label className="flex items-start gap-3 text-sm text-gray-300 cursor-pointer"><input type="checkbox" role="switch" checked={hide} onChange={e => setHide(e.target.checked)} className="toggle toggle-sm toggle-primary mt-0.5" /><span><strong className="text-white">Hide from public boards.</strong> Left out of the leaderboard, the card owner lists and recent pulls. Their own collection page still works.</span></label>
       {(noTrading || hide) && <input value={reason} onChange={e => setReason(e.target.value)} maxLength={200} placeholder="Reason (only staff see this)" aria-label="Reason" className={`${field} w-full`} />}
       {initial.at && (initial.noTrading || initial.hideFromBoard) && <p className="text-xs text-gray-600">Set {new Date(initial.at).toLocaleString('en-GB', { timeZone: 'UTC' })}{initial.by ? ` by ${initial.by}` : ''}</p>}
-      <div className="flex items-center gap-3">
-        <button type="button" disabled={!dirty || pending} onClick={() => startTransition(async () => { setResult(await saveFlagsAction(username, { noTrading, hideFromBoard: hide, reason })); })} className={btn}>{pending && <Spinner />}Save restrictions</button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" disabled={!dirty || pending} onClick={() => startTransition(async () => { setResult(await saveFlagsAction(username, { noTrading, hideFromBoard: hide, reason })); })} className={dirty ? 'btn btn-primary btn-sm' : btn}>{pending && <Spinner />}Save restrictions</button>
+        <span className={`text-xs ${dirty ? 'text-yellow-300' : 'text-gray-600'}`}>{dirty ? 'Unsaved changes. Nothing applies until you save.' : 'No changes to save. Flip a switch or edit the reason first.'}</span>
       </div>
       <Result r={result} />
     </div>
