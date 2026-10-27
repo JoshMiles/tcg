@@ -22,9 +22,9 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
-| 55 | Mix It Up integration: bridge, setup wizard, Stream Deck buffs, clearer messages, more settings, command downloads, TCG Bridge app and its features, a better Mix It Up page (55.0 to 55.14) | Ready (55.4 needs a decision) | L |
+| 55 | Mix It Up: command downloads (55.5), more settings (55.4) | 55.5 in review (#603); 55.4 needs a decision | M |
 
-Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
+Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52, 54 and 55 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
 ## Track 35: home-screen app (2026-10-20)
 
@@ -59,53 +59,15 @@ The file holds the extension's CORS rules, which stay as submitted while panel 0
 
 ## Track 55: Mix It Up integration (2026-10-27)
 
-Josh: connecting Mix It Up is confusing, there are too few settings, and Cheesygidds rewards viewers from the Stream Deck a lot, which the site cannot take today. Read `docs/admin/mixitup.md` first.
+Josh: connecting Mix It Up is confusing, there are too few settings, and Cheesygidds rewards viewers from the Stream Deck a lot. Read `docs/admin/mixitup.md` first; it describes the bridge, the TCG Bridge app, the page, the wizard, buffs, test pulls and every reply shape as built.
 
-**Where it stands (2026-10-27).** Mix It Up calls the site on seven incoming webhooks (`/api/webhooks/pull`, `command`, `show-card`, `grant-card`, `collection`, `stream`, `queue` for the overlay), all on the one incoming secret. The site calls Mix It Up on up to four outgoing addresses (balance, deduct, add, chat viewers; public https only, so Mix It Up on the streamer's PC needs a tunnel). Setup is spread over Admin Settings > Webhooks (the incoming secret), the Mix It Up page's Paid pulls form and the Copy setup cards; nothing shows whether Mix It Up has ever reached the site. Buffs reach players only through trainer cards and achievements; the one live lever is "Extra pulls this stream" on the Mix It Up page. The Stream Deck runs Mix It Up commands through Mix It Up's Developer API (the Mix It Up plugin from the Elgato store, Developer API service switched on in Mix It Up), so a Stream Deck button is a Mix It Up command that calls one of our webhooks. Order: 55.0 (site side, #581), 55.6a (#582), 55.6b (#584), 55.6c (#586), 55.6d (#588), 55.6e (#589), 55.7 (the page), 55.14 (test pulls), the 55.1 wizard (health merged as #579; it opens from 55.7's Connection tab), 55.2, 55.8 to 55.11 (the app features Josh picked), 55.12 and 55.13 (staff tools in the app), 55.3, 55.5, and 55.4 once Josh picks. One PR per item unless it says otherwise.
+**Where it stands (2026-10-27).** 55.0 to 55.3 and 55.6 to 55.14 are done (#579 to #602, archived). Left: 55.5 (PR #603 open, waits for Josh to test-import a file) and 55.4 (Josh picks).
 
 **From Mix It Up's source (github.com/MixItUpBot/Desktop, read 2026-10-27).**
 - Mix It Up has no action that sends a custom answer back to an HTTP request. The site's paid-pull calls (balance, deduct, add, viewers) expect a Mix It Up command to answer with JSON, which stock Mix It Up cannot do, so those addresses can only work through something in between. See 55.0.
 - Mix It Up's own hosted Webhooks (a Webhook command with JSON parameters mapped to special identifiers) are one-way: the cloud pushes the call to the desktop app over a websocket and nothing is sent back.
 - The Developer API listens on `http://localhost:8911` (or `http://*:8911` in its advanced mode) with no authentication. V1 has `GET /api/users/twitch/{name}` (the viewer's currency amounts), `PUT /api/users/{name}/currency/{currencyID}/adjust`, `POST /api/currency/{currencyID}/give` (bulk give), `GET /api/currency` (currency ids) and `POST /api/commands/{id}` (runs a command, with an arguments array, as the streamer, requirements ignored). The Stream Deck plugin runs commands through it, so a Stream Deck button has no viewer of its own: `$username` is the streamer.
 - Command types for 55.5 are all in the source: `ChatCommandModel`, `EventCommandModel` (stream start and end), `ActionGroupCommandModel` (Stream Deck buttons) and `WebhookCommandModel`. Special identifiers are `$name`; there is no `{{...}}` syntax.
-
-### 55.0 The Mix It Up bridge: the site queries and acts (Ready, L)
-Josh (2026-10-27): the site does the checks and the currency changes itself; Mix It Up only supplies the data. Mix It Up's Developer API on the stream PC (`http://localhost:8911`, no authentication, CORS `*`) has everything needed: `GET /api/users/twitch/{name}` (the viewer's currency amounts), `PUT /api/users/{name}/currency/{currencyID}/adjust` (add or take), `GET /api/currency` (currency names and ids), `GET /api/chat/users` (who is in chat), `POST /api/chat/message` (say something in chat), `GET /api/status/version` (is it there). The cloud site cannot reach localhost, so a **bridge** on the stream PC carries the calls. The site never exposes 8911 to the internet.
-
-**The site side (one PR, before the app).** Josh (2026-10-27): the TCG Bridge desktop app (55.6) is the bridge, built first; no browser bridge for now.
-1. **Transport swap, not a rewrite.** Paid pulls, the Brie Bucks buff and community buffs already go through `callMixItUp` (balance, deduct, add, viewers) and keep their logic (reservations, refunds, grant records, logs, health). Add a bridge mode: `callMixItUp` puts a job `{ id, action, username?, amount?, currency }` on a KV list `bridge:jobs` and waits up to 8 seconds for `bridge:result:<id>` (short TTL). No answer in time is the same as Mix It Up not answering today (refused, logged, the health chip says "no bridge connected").
-2. **Bridge API** (`/api/bridge/*`): `poll` (long-poll, up to 25 s, returns the next jobs and claims them atomically so two bridges never run one job; the long-poll reads KV at most once a second, about 60 commands a minute per open bridge, so keep an eye on it against Track 48), `result` (posts the outcome), `hello` (the bridge reports the Mix It Up version and the currencies it sees). Auth: the bridge token. Record the last poll in `mixitup:bridge` so the health row shows "TCG Bridge connected (4s ago)". Also `report`: the app pushes OBS facts (55.6b).
-3. **Pairing:** a "Pair TCG Bridge" button on the Mix It Up page shows a one-time code (10 minutes). The app trades it at `/api/bridge/pair` for a bridge token, stored hashed in KV (`bridge:tokens`, with name, created, last seen) and listed on the page with Revoke; the token itself is shown to nobody. Every bridge call sends it as a bearer token.
-4. **Settings:** a connection choice on the Paid pulls form: "Bridge (Mix It Up on this PC)" (new default) or "Addresses" (the current four addresses, kept for a relay of the streamer's own). The currency becomes a pick from the bridge's `hello` list (stored as id and name). The site can also post to chat through the bridge (`say` job), used for paid-pull refusals when the reply to Mix It Up has already gone.
-5. Checks: a fake bridge in `scripts/check-mixitup.mts` (job claimed once, result delivered, timeout refuses and releases the reservation). Josh tests with the app (55.6a): a paid pull, a Brie Bucks buff. Update `docs/admin/mixitup.md`.
-
-The app itself is 55.6. Order: this PR, then 55.6a, then 55.6b.
-
-### 55.1 Connection health and a setup wizard (Ready, M)
-1. **Health first.** Store when each incoming route last got a request with the right secret, and whether the last call to each outgoing address worked: when, the status, and the error in words. `secret:lastused` already keeps the incoming secret's last route; add a per-route hash `mixitup:seen` (route to `{at, ok}`) and set an `ok` and `at` on each outgoing log line. Show them as a status row at the top of the Mix It Up page: "Mix It Up reached the site 3 minutes ago (!pack)", "Balance address: working", "Add address: not set".
-2. **Wizard** at `/admin/mixitup/setup`, full page like `SeasonFlow`, one step per screen, Back and Next, resumable (the saved settings are the state). The Mix It Up page shows "Set up Mix It Up" while nothing has connected, and "Run setup again" after.
-   - *What you need:* Mix It Up running on the stream PC; for paid pulls and Brie Bucks, a public https address for Mix It Up (what a tunnel is and why localhost cannot work, in two sentences); for the Stream Deck, the Mix It Up plugin and the Developer API service.
-   - *Mix It Up to the site:* the incoming secret (make one if it is empty), then "Make the !pack command", with a Copy setup card (or the download from 55.5). The step waits and turns green when `mixitup:seen` shows a request with the right secret ("Type !pack in chat now"). The wrong secret shows up as its own message ("Mix It Up reached the site but the secret did not match").
-   - *The site to Mix It Up (paid pulls, Brie Bucks buffs):* download TCG Bridge (55.6), pair it with the code shown here, and wait until it reports Mix It Up found (turns green), with how to switch on Mix It Up's Developer API when it is not; pick the currency from the bridge's list; a Test button runs a balance check for the streamer through the bridge. Then OBS: the app's OBS password and the overlay check (55.6b).
-   - *Pull rules:* price, currency name, limits per role, the deduct message (the Paid pulls form's fields, moved here and kept on the page too).
-   - *Stream events and the Stream Deck:* the stream start and end commands, then the Stream Deck buttons from 55.2, each with its Copy setup card.
-   - *Done:* a checklist of what is connected, from the health data.
-3. `scripts/check-mixitup.mts` covers the health record (right secret, wrong secret, outgoing failure). Update `docs/admin/mixitup.md`.
-
-### 55.2 Buffs and rewards from the Stream Deck (Ready, M)
-1. New incoming webhook `POST /api/webhooks/buff`: `{ secret, buff, target?, username? }`. `buff` is a buff definition's id; the Buff Editor gets a "Stream Deck" switch per buff and only switched-on buffs answer (the rest are `{ ok: false, message: '' }`, like an unknown chat command). `target` is `everyone` (community scope), `viewer` (needs `username`; for a mod's chat command like `!reward @name`) or `last-pull` (the viewer of the newest pull this stream, so the streamer can reward whoever just opened a pack without typing a name; refused with a message when no one has pulled this stream). The default is the buff's own scope: community buffs go to everyone, self buffs need a target.
-2. It runs through `applyBuff` with `source: 'streamdeck'`, answers `{ ok, message }` with a chat-ready line ("Everyone gets +1 pull this stream", or the refusal in words: already active, Mix It Up off, no one has pulled), and records it in the audit log, the live activity feed and the Discord admin log ("Stream Deck: everyone +1 pull").
-3. Quick actions that are not buff definitions, on the same webhook with `action` instead of `buff`: `stream-pulls` with `amount` (add to "Extra pulls this stream", or `0` to clear; `pulls:stream-buff`), and `free-pack` with a target (queues one pull that never charges, like a dashboard gift).
-4. A cooldown per buff for this webhook (default 10 seconds) so a double press does not apply twice.
-5. The Mix It Up page gets a Stream Deck tab listing the switched-on buffs and quick actions, each with its Copy setup card (and a download once 55.5 lands). Optional overlay toast for community buffs, off by default (a new overlay event type; read `docs/overlay.md`).
-6. `scripts/check-buffs.mts` (or a new `check-streamdeck.mts`) covers each target, the switch, the cooldown and the refusals.
-
-### 55.3 Clearer two-way messages (Ready, S to M)
-1. Every incoming reply carries a chat-ready `message`. Today `/api/webhooks/pull` answers a queued pull with only `{ ok: true }`; add "Opening a pack for <name>" plus `left` (paid pulls left this stream) and `balance` when known, so the `!pack` command can say them.
-2. An optional `requestId` on `/api/webhooks/pull`, `grant-card` and `buff` (Mix It Up's unique id special identifier, if it has one, else any value the command makes): a repeat within 10 minutes answers the first result and does nothing again, so a retried request never queues a second pack.
-3. The Log tab shows incoming requests too (route, viewer, result, the refusal reason), not only the site's calls out. Keep the last 50, never Discord.
-4. Outgoing calls: a 5 second timeout with the reason in words on the Log tab ("Mix It Up did not answer in 5 seconds"). If the balance address fails 3 times in a row while live, post once to the Discord System channel.
-5. Update `docs/admin/mixitup.md` with every reply shape.
 
 ### 55.4 More settings (Needs a decision: Josh picks, S to M each)
 Suggested; Josh picks which to build, then each is its own PR.
@@ -118,7 +80,7 @@ Suggested; Josh picks which to build, then each is its own PR.
 - **Event rewards:** Mix It Up events (gifted subs, bits, raids, channel point redeems) give free packs or a buff, each switch and amount on the page, sent to `/api/webhooks/pull` or `buff` with a `reason` so the log and feed say why.
 - **First pack free:** a viewer's first ever pull costs nothing.
 
-### 55.5 Download command presets for Mix It Up (Ready, M)
+### 55.5 Download command presets for Mix It Up (In review: #603, M)
 Josh exported a sample on 2026-10-27: `scripts/fixtures/mixitup-chat-command.miucommand` (the secret replaced with `YOUR_INCOMING_SECRET`). A `.miucommand` file is one JSON object written by Json.NET with `$type` on every object, so it must be written with those exact `$type` strings and key order kept as in the sample. What the sample shows:
 - The command: `ChatCommandModel` (`Type: 1`), `Name`, `Triggers` (without the `!`; `IncludeExclamation: true` adds it), `IsEnabled`, a fresh `ID` (a UUID) and the `Requirements` set (role, arguments, threshold, settings; copy the sample's values: `UserRole: 100` is everyone).
 - `WebRequestActionModel` (`Type: 11`): `Url`, `HttpMethod: 1` (POST), `RequestBody` (a JSON string), `CustomHeaders` (an empty dictionary with its own `$type`), `ResponseType: 1` (JSON) and `JSONToSpecialIdentifiers`, a dictionary from a reply key to a special identifier name (key `message` to `reply` makes `$reply`).
@@ -129,222 +91,6 @@ Josh exported a sample on 2026-10-27: `scripts/fixtures/mixitup-chat-command.miu
 2. **Downloads:** each chat-command setup card (`!pack`, every switched-on command from the Commands tab, `!showoff`, and the Stream Deck buttons from 55.2 once they exist) gets "Download for Mix It Up", served by a staff-only route (`requireAdmin`) as `<name>.miucommand` with the real incoming secret and site URL filled in. One file per command (Mix It Up imports one at a time); no zip. The button says the file holds the secret and must not be shared; the page offers to rotate the secret.
 3. **Also in this item, from the source** (no more samples needed): stream start and end as `EventCommandModel` files and Stream Deck buttons as `ActionGroupCommandModel` files, each with a Web Request action; read the model classes and the `EventTypeEnum` values in github.com/MixItUpBot/Desktop. Josh test-imports one of each before merge. No files for balance, deduct, add or viewers (see 55.0).
 4. `scripts/check-mixitup-presets.mts`: the generated file parses, has the same `$type`s and keys as the fixture, fresh IDs each call, and the secret and URL in the body. Josh imports one generated file into Mix It Up before merge (that can't be checked locally).
-
-### 55.6 TCG Bridge desktop app (Ready, after 55.0's site side)
-Josh (2026-10-27): a small app the streamer opens when streaming, built first, so the link to Mix It Up never depends on a browser tab; it talks to OBS too. It speaks the bridge API from 55.0.
-
-**Decisions (Opus, 2026-10-27):** Electron with TypeScript (Josh named it), in `bridge/` in this repo with its own `package.json` (kept out of the Next build and the root `tsconfig`; `npm run verify` gains a typecheck of `bridge/`). Windows only (Mix It Up is Windows only). `electron-builder` makes an NSIS installer; a GitHub Action on `windows-latest` builds it on a `bridge-v*` tag and attaches it to a GitHub Release; `electron-updater` updates from those releases. Unsigned at first: Windows SmartScreen shows "More info, Run anyway" on install; buying a code-signing certificate is Josh's call later. The token and the OBS password are stored with Electron `safeStorage`, never sent anywhere else. The app only runs the fixed job types below against fixed local addresses; it never fetches an address the site sends.
-
-**55.6a The app and Mix It Up (M to L).**
-- Tray icon (connected, partly connected, not connected) and a small window: Site (paired as, last poll), Mix It Up (found, version, Developer API on or off, the chosen currency), OBS (55.6b), and the last 50 jobs with their results. Start with Windows (switch, on by default) and start minimised.
-- First run: paste the pairing code from the Mix It Up page; the app calls `/api/bridge/hello` with the Mix It Up version and currencies.
-- Jobs: `balance`, `deduct`, `add` (Developer API user currency endpoints for the chosen currency id), `viewers` (`/api/chat/users`), `say` (`/api/chat/message`). The long-poll loop reconnects with backoff; Mix It Up not running answers each job "Mix It Up not running" at once instead of timing out.
-- A check script under `bridge/` with a fake Developer API and a fake site: each job type, Mix It Up missing, a revoked token (the app shows "Pair again").
-- Docs: `docs/admin/mixitup.md` gets a TCG Bridge section (install, pair, what each status means); the Mix It Up page links the latest release.
-
-**55.6b OBS (M).** obs-websocket v5, built into OBS 28 and later (`ws://localhost:4455`, the password from OBS > Tools > WebSocket Server Settings, entered in the app).
-- **Stream live and offline at once:** on OBS's `StreamStateChanged` the app reports live or offline through `/api/bridge/report`, which calls `setLiveFromHint` like the Mix It Up stream webhook does, so the stream marker, recap and live gates no longer wait on Twitch's lag.
-- **Overlay check:** the app finds the browser source whose URL is the TCG overlay (`/widget`), and reports whether it exists, whether it is in the current program scene and visible, and the scene name. The Mix It Up page's health row (and the dashboard's overlay status, docs/overlay.md) shows "Overlay in OBS: visible in Gameplay".
-- **Refresh the overlay from the site:** a "Refresh overlay in OBS" button (Admin Settings > OBS Overlay) sends an `obs-refresh` job; the app presses the source's "Refresh cache of current page" button.
-- Not in this item (ideas for later, Josh picks): switch to a scene on a big pull, mute or show sources during pack openings.
-- Check: a fake obs-websocket server in the bridge check script.
-
-**55.6c Reliability and self-help in the app (M).** Josh (2026-10-27): more useful features in the app. All app side; bump the version.
-- **Alerts:** a Windows notification when the site, Mix It Up or OBS link drops while OBS says the stream is live, and one when it comes back (no repeat within 2 minutes). A switch in the window, on by default.
-- **Self-tests in the window:** "Test Mix It Up" (finds the chosen currency and reads the streamer's own balance), "Send test chat message", "Check OBS" (runs the overlay check now). Each shows the result in words.
-- **Start Mix It Up:** when Mix It Up is not found, a "Start Mix It Up" button (the default install path, or a path picked once and saved); a "Start Mix It Up with TCG Bridge" switch, off by default. Only the saved local path is ever launched.
-- **Diagnostics:** a log file in the app's data folder (kept 7 days; never the token, the OBS password, the incoming secret or the overlay key), "Open log folder", and "Copy diagnostics" (versions, statuses, the last 20 jobs, no secrets).
-- **Updates:** "Check for updates" and the version in the window; after an update, "Updated to 0.x" with a link to the release.
-- Checks: alerts fire once per drop and only while live; diagnostics hold no secret (grep the output in the check).
-
-**55.6d Mix It Up commands on big pulls (M).** The site sends a new `run-command` job when a pull matches a rule; the app runs that Mix It Up command (`POST /api/commands/{id}` with the viewer and card name as arguments) so Mix It Up can play a sound, run lights or post its own message.
-- The app reports Mix It Up's commands (`GET /api/commands`, name and id; check the controller in github.com/MixItUpBot/Desktop) in `hello` and every 5 minutes; the site keeps the list in `mixitup:bridge`.
-- Rules on the Mix It Up page: rarity, variant or "new to the dex" picks a command from that list (up to 10 rules; the first match wins). The app runs only an id it reported itself. Fire and forget: a pull never waits on it.
-- Checks: a rule matches once per pull, an unknown id is refused by the app, no job when no bridge is paired.
-
-**55.6e A nicer look and a start-up updater (M). Next after 55.6d.** Josh (2026-10-27): make the app look nicer, and show something while it updates, like Discord's updater when it opens. It goes before 55.7, because every later item adds screens.
-- **Start-up window:**
-  - A small frameless window, about 300 x 360, opens first on every launch: the app icon with a gentle pulse, and one status line underneath:
-    - "Checking for updates"
-    - "Downloading update 0.x.y" with a progress bar (electron-updater's `download-progress`)
-    - "Installing update", then the app restarts itself (`quitAndInstall(true, true)`; the installer is oneClick NSIS, so it runs silently)
-    - "Starting"
-  - Then it closes and the main window opens, or only the tray when started minimised.
-  - No internet, or a check slower than 8 s, skips the update and starts anyway, with a small "Couldn't check for updates" note in the main window.
-  - A failed download starts the current version and retries on the 6-hour timer that already exists.
-  - Updates found while running keep today's "ready, restart to update" in the window.
-- **The look:**
-  - The site's `cheesy` daisyUI colours copied into the renderer CSS as variables (read `app/globals.css`), dark like the site, with the site's fonts if they are bundled locally (no web font fetch at runtime).
-  - A left rail with Status, Settings and About (later items add Staff and Activity).
-  - Each link (Site, Mix It Up, OBS) as a card with a coloured status dot, a one-line state in words, and its actions on the card.
-  - Lucide icons as inline SVG (no emoji), a custom title bar with minimise and close-to-tray, and a tidy jobs table.
-  - The renderer stays plain HTML, CSS and JS: no framework, no bundler.
-- **Icons:**
-  - The app icon and the three tray icons redrawn from the site's brand mark (`app/admin/components/BrandMark.tsx`), so they read at 16 px.
-  - Connected, partly and offline stay clearly different, by more than colour alone (a small badge shape).
-- **Checks:**
-  - The start-up flow's states as a pure state machine fed fake updater events in `bridge/scripts/check.ts`: no update, an update with progress, offline, a slow check, a failed download.
-  - Opus looks at screenshots of each window state before merge: the agent launches the app from source and saves them in the PR.
-
-### 55.7 A better Mix It Up page (Ready, M to L)
-Josh (2026-10-27): the Mix It Up page should look better and be more useful. Today it is three tabs (Paid pulls, which also holds TCG Bridge pairing and the connection switch; Commands; Log) under a row of health chips. Read `docs/admin.md` (admin UX conventions) and `docs/admin/mixitup.md` first. After 55.6b (it touches the same chips).
-1. **Overview tab, the new default.** Three status cards in plain words, each with what to do when it is not green and a link to the fix: *Mix It Up to the site* (last request per webhook, a wrong secret), *the site to Mix It Up* (TCG Bridge paired and last poll, Mix It Up found and its version, the currency), *OBS* (the overlay check from 55.6b). Then "This stream": paid pulls, Brie Bucks taken and refunded, commands run, refusals and the top reason, from the existing logs (read what they hold first; add a counter only if a number cannot come from them). Then quick actions: test a balance check, send a test chat message, refresh the overlay in OBS, extra pulls this stream. Then the last 5 log rows with "See all".
-2. **Connection tab:** TCG Bridge download and pairing, the paired apps, the connection switch, and the direct outgoing addresses folded under "Advanced". A "Set up Mix It Up" button here (and on Overview while anything is red) opens the 55.1 wizard once it exists.
-3. **Paid pulls tab:** only prices, limits and messages, grouped in cards, with a preview of each chat message filled with sample values.
-4. **Log tab:** filters (incoming, outgoing, refusals only) and the time on each row.
-5. The health chips stay as a one-line summary on the other tabs. Check it at phone width. Update `docs/admin/mixitup.md` and the screenshots in it, if any.
-
-### 55.8 to 55.11 TCG Bridge features Josh picked (2026-10-27)
-Josh picked all sixteen from a list. Each item is one PR and bumps the app version. Rules for all of them:
-- The app still runs only fixed action types.
-- OBS scene and source names come from lists the app reports, never free text from the site.
-- Anything that writes on the site goes through a bearer-token bridge route with `bridgeGuard`.
-- Every new rule or switch is off by default.
-
-**55.8 Big pulls in OBS (M to L).** Builds on 55.6d's pull rules (rarity, variant, new to the dex). Each rule can also do any of these:
-- **Save a clip:** OBS `SaveReplayBuffer` a few seconds after the reveal, so the reaction is in it. The app says plainly when the replay buffer is off, and has a "Start the replay buffer when the stream starts" switch.
-- **Switch scene:** go to a chosen scene for N seconds, then back to the scene that was on.
-- **Show a source:** show a chosen source while the pack opens, then hide it.
-
-How it works:
-- **Timing:** these follow the overlay's reveal, not the moment the pull is queued, because the queue can hold several pulls.
-  - The overlay already reports to the site. It adds a reveal report with the event id.
-  - The site turns that into a fire-and-forget `pull-event` job, so it lands within about a second through the long poll.
-  - Check what `widget.js` already sends (`/api/overlay/heartbeat`, `/api/webhooks/notify`) before adding a route.
-- **The app** reports its scene list and source list (names only) with each OBS snapshot.
-- **Overlay watchdog (also here):**
-  - While live, if the overlay's heartbeat (`/api/overlay/heartbeat`) is older than 30 s and OBS shows the overlay source, the site sends `obs-refresh` by itself.
-  - At most once every 5 minutes, logged, and the health row says so.
-  - A switch on the Mix It Up page.
-- **Check:** the fake OBS in the bridge checks gets `SaveReplayBuffer`, `SetCurrentProgramScene` and `SetSceneItemEnabled`.
-
-**55.9 Control from the PC (M to L). After 55.2.**
-- **Direct Stream Deck buttons:**
-  - The app listens on `127.0.0.1` only, on a fixed port (pick one that is free and say why). A random key per install sits in the path, so another page in a browser cannot trigger it.
-  - Each button is a URL for a Stream Deck "Website" action with "GET request in background" ticked.
-  - Actions: a 55.2 buff by id, pause or resume pulls, refresh the overlay, and the last buff again.
-  - The app forwards each one to a new `/api/bridge/action`. The window lists every button with Copy.
-  - These sit beside the 55.2 Mix It Up commands; they don't replace them.
-- **Pause pulls:**
-  - The setting is `pulls:paused` on the site. Paid pulls and `!pack` answer "Packs are paused, back soon" while it is on.
-  - Switches: in the tray menu, the app window, the Mix It Up page and a Stream Deck button.
-  - Optional chat lines on pause and resume.
-- **Global hotkeys:** Electron `globalShortcut` for refresh overlay, pause or resume pulls and the last buff. Each is set in the window and starts empty. A clash with another app says so.
-- **Queue control:**
-  - The app shows the overlay queue: who, which pack, and how long it has waited. It reads a new `/api/bridge/queue`.
-  - Skip the next pull, or clear the queue (`clearQueueAction` already exists on the dashboard; reuse its code).
-  - A skipped pull is refunded like a refused paid pull. Read docs/overlay.md and the ticket rules first.
-
-**55.10 Chat and Brie Bucks (M).**
-- **Stream start and end posts:**
-  - When the site marks the stream live, it sends a `say` job: "Packs are open: type !pack".
-  - When the stream ends, the top pull and the top three pullers, from the stream recap (`buildStreamRecap`, `stream:recap:latest`; docs/admin/discord.md).
-  - The wording is editable on the Mix It Up page, with variables.
-- **Big pull shout:** a 55.6d rule can also send a chat line with variables (viewer, card, rarity, edition). The line goes on the reveal (55.8 timing), never before the overlay shows the card.
-- **Brie Bucks backup:**
-  - At stream start and end the app saves every viewer's Brie Bucks to a CSV in `Documents\TCG Bridge\backups`, keeping 30.
-  - Check the Developer API source for a user list endpoint. If there is none, back up the viewers the site knows, a few at a time.
-  - The window has "Open backups".
-- **Brie Bucks check:**
-  - The app keeps its own ledger of every adjust it made (job id, viewer, amount, Mix It Up's answer).
-  - At stream end the site compares it with its own record of charges and refunds for that stream. It lists any job one side has and the other lacks, or with a different amount, on the Mix It Up page and in the admin log.
-  - Balances themselves are not compared: viewers earn and spend Brie Bucks in Mix It Up outside the game.
-
-**55.11 Streamer tools (M).**
-- **Live pull feed window:**
-  - A second, resizable app window that can stay on top. It shows each pull on its reveal: the viewer, the card image, rarity and edition.
-  - It plays a sound on a chosen rarity or above, with volume and mute.
-  - It is fed by the 55.8 `pull-event` job, so it needs no extra KV reads.
-- **End of stream summary:** when the recap is built, the app shows a notification and a summary window: packs, big pulls, top pullers, Brie Bucks taken and refunded. "Copy for Discord" copies plain Markdown. Reuse the recap, don't recount.
-- **Start OBS with the app:** like Start Mix It Up (55.6c): the default `C:\Program Files\obs-studio\bin\64bit\obs64.exe` (started with that folder as its working directory, or OBS cannot find its files), a path chosen once, and a switch, off by default.
-- **Uptime history:**
-  - The site keeps the up and down changes of the bridge, Mix It Up and OBS (from the reports it already gets) per stream, in a capped KV list (last 10 streams).
-  - The 55.7 Overview shows them as a timeline strip per stream.
-
-### 55.12 and 55.13 Staff tools in TCG Bridge (Josh picked, 2026-10-27)
-Josh asked for admin features in the app for quick use, and picked all sixteen from a list. Notices must each be switchable in the app's settings.
-
-**Decisions (Opus), for both items:**
-- **Off by default, per PC.**
-  - A paired PC has no staff powers until an admin switches on "Staff tools on this PC" for it on the Mix It Up page (`bridge:tokens` records the switch and the admin who paired it).
-  - Every staff route checks the switch with a new `bridgeStaffGuard`: `bridgeGuard` plus the flag.
-  - Revoking the PC ends it.
-- **Same rules as the dashboard.**
-  - Each action calls the same server function the admin page uses (read `quickAction`, `clearQueueAction`, the grant action, `docs/admin.md`), never a copy.
-  - `recordAudit` names the PC and the admin who paired it ("via TCG Bridge on Stream PC, paired by X").
-  - The admin log on Discord sees it like any staff action (docs/admin/discord.md).
-- **No new long-lived reads:**
-  - Panels read only while their tab is open (every 5 s at most).
-  - Notices ride the existing job long poll as fire-and-forget `notice` jobs. A notice sent while the app is offline is dropped, and the notice tab says so.
-- Each item is one PR, bumps the app version, and has checks:
-  - a PC without the switch gets 403 on every staff route;
-  - every action writes an audit line;
-  - nothing runs in a sandbox.
-
-**55.12 Viewer and stream actions (L).** A Staff tab in the app's window. Viewer names autocomplete from the site's users.
-- **Gift packs:** viewer, number, pack (the active packs list), "Send". It is refused with "queue anyway" when no overlay is connected, exactly like the dashboard.
-- **Grant a card:** search cards by name (active season first), pick a variant, then grant, with the grant's own rules and audit.
-- **Show a collection:** a viewer's collection, or one of their cards as a show-off, on the overlay.
-- **Look up a viewer:**
-  - From the site: cards owned, rank, last 5 pulls, recent refusals.
-  - From Mix It Up, read locally: their Brie Bucks.
-  - "Open in admin" opens their admin page in the browser.
-- **Extra pulls this stream:** set or clear the stream buff (`getStreamBuff`, the Mix It Up page's control).
-- **Switch overlay scene:** the Overlay Editor's scenes as a list (read docs/overlay.md for how a scene is made active). Also in the tray menu.
-- **Pause trading:** pause or resume from the tab and the tray, with the trading pause that already exists (docs/trading.md). It asks to confirm.
-- **Block a viewer from pulls:** for the rest of this stream (keyed to the stream marker) or until lifted.
-  - Paid pulls, `!pack` and gifts are refused with a plain message.
-  - Listed on the Mix It Up page with "Lift".
-  - Read how refusals are recorded and reuse that.
-
-**55.13 Staff notices and shortcuts (M).**
-- **Notices:** each kind has its own switch in the app's settings. All are on once staff tools are on, and none of them is sent to a PC without them.
-  - **Needs attention:** the dashboard's items, sent when one appears (`autoDisabledChannels`, backup and data-health crossings, `lib/system-notices.ts`).
-  - **New reports and feedback:** with a link to the item.
-  - **Paid pull refusals:** every refusal except "not enough Brie Bucks", at most one per reason per minute.
-  - **Deploys:** when a new build goes live (the build stamp, docs/hosting.md), with its changelog lines if any.
-
-  Clicking a notice opens its page in the browser.
-- **Admin links in the tray:** Dashboard, Mix It Up, Overlay Editor, Users, opened in the default browser.
-- **Back up now:** runs the same backup as Admin Settings (docs/hosting.md), and says when it is done or why it failed.
-- **Recent activity panel:** an Activity tab with the dashboard's recent activity (pulls, grants, trades), read while the tab is open.
-- **Quick search:** one box that finds a viewer, card or pack (reuse the admin palette's search, `/api/admin/palette`) and opens its admin page in the browser.
-
-### 55.14 Test pulls (Ready, M to L)
-Josh (2026-10-27) asked for a way to test the whole chain the way a viewer uses it: a test viewer pulls from chat and everything happens for real. The existing tools don't cover that. The overlay test panel plays a dry run (no charge, no save, no rules), and the self-tests, "Send test message" and the Big pulls Test button each check one link only. After 55.7: it lives on the Overview tab, and later in the app's Staff tab (55.12).
-
-- **"Simulate a chat pull":** pick a test viewer, choose paid or free, and press it. It runs the exact code a chat `!pack` runs (the pull webhook's own function, not a copy), so it tests what viewers actually hit:
-  1. the balance check;
-  2. the charge through TCG Bridge;
-  3. the queue with a real ticket;
-  4. the overlay plays it;
-  5. the edition is saved;
-  6. the Big pulls rules (55.6d) fire on the reveal;
-  7. the chat reply goes out.
-- **Each step reported as it happens,** in a live list beside the button: webhook received, balance read, charged, queued, shown on the overlay, saved, rules fired, chat reply sent. Each step is ticked, failed with the reason in words, or skipped (for example "free pull: no charge"), so a break shows exactly where. Read the existing logs and the bridge results for this; add a per-test trace in KV with a short expiry only where a step leaves no record.
-- **Marked as a test:**
-  - The pull carries a `test` flag from the ticket onward.
-  - The leaderboard and score, Discord, the stream recap, the stats counters and achievements skip it.
-  - The activity log and the viewer's admin page show it with a Test tag.
-  - Find every reader with `trail callers` on the activity and stats writers before choosing where the flag is checked. Prefer one place: skip at the writer, not in each reader.
-  - The viewer's public binder, dex and profile never show test editions.
-- **"Undo test pull":** one click per test pull, on the trace and on the viewer's admin page.
-  - It removes the edition through the existing removal (serial ledger rules, docs/serials.md).
-  - It refunds the Brie Bucks through the bridge when the pull was paid.
-  - It writes an audit line.
-  - Undo works only on test pulls.
-- **Test viewers:** a short list on the Mix It Up page, defaulting to the streamer's own account. A throwaway Twitch account can be added so a real viewer is never touched. Simulate refuses anyone not on the list.
-- **Guards:**
-  - `requireAdmin()` and `recordAudit` on every action.
-  - At most one simulated pull running at a time.
-  - Refused with "queue anyway" when no overlay is connected, like gifts.
-  - Never runs in a sandbox against the real bridge (a sandbox has its own fake path, docs/sandbox.md).
-- **Checks** with the mock KV and a fake bridge:
-  - a simulated paid pull walks every step;
-  - a test pull leaves the leaderboard, Discord, recap and stats untouched;
-  - Undo removes the edition and queues the refund;
-  - a non-test pull cannot be undone this way;
-  - a viewer not on the list is refused.
 
 ## Twitch extension
 
