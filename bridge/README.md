@@ -26,6 +26,8 @@ The app can also watch OBS on the same PC: it tells the site when the stream sta
 
 **Big pulls (0.6.0).** A pull rule on the site can also save a clip, switch to a scene for a few seconds, or show a source while a pack opens. The app does only those three things, only with scene and source names it reported itself. A clip needs the OBS replay buffer running (Settings > Output > Replay Buffer in OBS); if it is off, the site's log says so. Tick **Start the replay buffer when the stream starts** in the OBS card to have the app start it for you (off by default).
 
+**Control from the PC (0.7.0).** The **Control** tab has a switch to pause pulls (also in the tray menu), a list of Stream Deck buttons with **Copy**, three global hotkeys (empty by default; a clash is shown next to the field) and a **Pull queue** section with **Skip next pull** and **Clear queue** (a skipped paid pull is refunded). The buttons are web addresses on `127.0.0.1:47653` with a random key in the path, answered only to GET without a browser Origin: in the Stream Deck app add a "Website" action, paste the address and tick "GET request in background". If another program holds the port the tab says so. The queue is read only while its section is open, at most every 5 seconds.
+
 The overlay is the browser source whose address is `<paired site>/overlay.html?...`; only its name is reported, never the address or key. An overlay inside a nested scene is not seen; an overlay inside a group is.
 
 ## Alerts, tests and the log
@@ -53,7 +55,7 @@ npm run icons       # redraw the app icon and tray PNGs from the site's icon (pu
 
 `TCG_BRIDGE_DATA=<folder>` keeps the app's settings in that folder instead of the real user data folder, which is handy against a local site (`http://localhost:3000` is allowed as a site address; anything else must be https).
 
-- `src/site.ts`, `src/mixitup.ts`, `src/obs.ts`, `src/jobs.ts`, `src/service.ts`, `src/settings.ts`, `src/alerts.ts`, `src/selftest.ts`, `src/launch.ts`, `src/log.ts`, `src/diagnostics.ts`, `src/update.ts`, `src/startup.ts`: plain TypeScript with no Electron imports, so the checks run under Node.
+- `src/site.ts`, `src/mixitup.ts`, `src/obs.ts`, `src/jobs.ts`, `src/service.ts`, `src/settings.ts`, `src/alerts.ts`, `src/selftest.ts`, `src/launch.ts`, `src/log.ts`, `src/diagnostics.ts`, `src/update.ts`, `src/startup.ts`, `src/control.ts`: plain TypeScript with no Electron imports, so the checks run under Node.
 - `src/main.ts`, `src/preload.ts` and `src/splash-preload.ts`: the Electron glue (tray, windows, auto start, updates, encrypted token).
 - `renderer/`: the main window (`index.html`, `style.css`, `renderer.js`) and the start-up window (`splash.*`), plain HTML, CSS and JS with no framework and no network fetches. Colours are the site's cheesy theme as CSS variables. Fonts are the site's own, Fredoka and Nunito, bundled in `renderer/fonts/` (SIL OFL 1.1, licence files beside them). Icons are Lucide as inline SVG; licences in `renderer/LICENSES.txt`.
 - `scripts/make-icons.ts` writes the app icon and the tray icons from the site's own icon, `public/brand/icon.png`, adding the status badge to each tray icon (the installer turns `build/icon.png` into the Windows icon).

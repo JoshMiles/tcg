@@ -1,9 +1,10 @@
 // TCG Bridge, the Electron glue: one instance, a tray icon, a small window, auto start and updates. The logic is in the other modules.
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, safeStorage, shell, Tray } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, safeStorage, shell, Tray } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { hostname, release, tmpdir, version as osVersion } from 'node:os';
 import { dirname, join } from 'node:path';
 import { Alerts, snapshotOf } from './alerts';
+import { buttonUrl, ControlServer, HOTKEY_ACTION, HOTKEYS, Hotkeys, newControlKey, type ControlAction, type ControlResult, type HotkeyMap, type HotkeyName } from './control';
 import { diagnosticsText } from './diagnostics';
 import { defaultMixItUpPath, isMixItUpExe, startMixItUp } from './launch';
 import { Logger } from './log';
@@ -12,7 +13,7 @@ import { cleanObsAddress, ObsWatcher } from './obs';
 import { checkObs, sendTestChat, testMixItUp, type TestResult } from './selftest';
 import { BridgeService, type TrayLevel } from './service';
 import { FileSettingsStore, defaults, type Settings } from './settings';
-import { cleanSite, pair, SiteClient } from './site';
+import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
 import { checkText, releaseUrl, updatedTo, updateText, type UpdateStage } from './update';
 
@@ -37,6 +38,16 @@ let startNote = ''; // "Couldn't check for updates", from the start-up check
 let demoState: object | null = null; // the demo window shows this instead of the real state
 let tray: Tray | null = null;
 let service: BridgeService | null = null;
+let client: SiteClient | null = null;
+let control: ControlServer | null = null; // the Stream Deck buttons (control.ts)
+let hotkeys: Hotkeys | null = null;
+let hotkeyErrors: Partial<Record<HotkeyName, string>> = {};
+let paused: boolean | null = null; // pulls paused on the site; null until the site has said
+let buffs: { id: string; name: string }[] = []; // the buffs switched on for the Stream Deck
+let lastControl = ''; // what the last button, hotkey or switch got
+let queueRows: QueueRow[] = [];
+let queueAt = 0;
+let menuFor = '';
 let store: FileSettingsStore;
 let logger: Logger | null = null;
 let settings: Settings = defaults();
@@ -47,6 +58,16 @@ let quitting = false;
 
 const log = (line: string): void => logger?.log(line);
 const trayIcon = (level: TrayLevel) => nativeImage.createFromPath(join(ASSETS, `tray-${level}.png`));
+/** Every Stream Deck button, for the window (the key is in each address) and its Copy. */
+const buttons = (): { label: string; url: string }[] => {
+  const key = settings.controlKey;
+  return [
+    { label: 'Pause or resume pulls', url: buttonUrl(key, 'pause') },
+    { label: 'Refresh the overlay', url: buttonUrl(key, 'refresh') },
+    { label: 'Last buff again', url: buttonUrl(key, 'last-buff') },
+    ...buffs.map(b => ({ label: `Buff: ${b.name}`, url: buttonUrl(key, `buff/${encodeURIComponent(b.id)}`) })),
+  ];
+};
 const appState = (): object => demoState ?? ({
   startNote,
   paired: !!settings.token,
@@ -56,6 +77,7 @@ const appState = (): object => demoState ?? ({
   obsSettings: { enabled: settings.obsEnabled, address: settings.obsAddress, hasPassword: !!settings.obsPassword, startReplay: settings.obsStartReplay }, // never the password itself
   alerts: settings.alerts,
   mixItUp: { startWithBridge: settings.startMixItUp, path: settings.mixItUpPath || defaultMixItUpPath() },
+  control: { error: control?.error ?? '', paused, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
   update: updateText(update),
   updatedTo: updatedNote,
@@ -80,6 +102,8 @@ function push(): void {
   tray?.setToolTip(`TCG Bridge: ${TRAY_TEXT[level]}`);
   if (win && !win.isDestroyed()) win.webContents.send('state', appState());
   tickAlerts();
+  const menu = `${paused}${!!client}`;
+  if (menu !== menuFor) { menuFor = menu; tray?.setContextMenu(trayMenu()); }
   if (service?.state.site === 'revoked' && settings.token) { // the site revoked this PC: forget the token so a restart does not retry it
     log('The site revoked this PC');
     settings = { ...settings, token: '' };
@@ -87,22 +111,54 @@ function push(): void {
   }
 }
 
+/** One button, hotkey, switch or queue action: the site does it, the answer comes back in words. */
+async function runControl(a: ControlAction): Promise<ControlResult> {
+  if (!client) return { ok: false, text: 'Pair TCG Bridge first' };
+  try {
+    const r = await client.action(a);
+    if (typeof r.paused === 'boolean') paused = r.paused;
+    lastControl = r.message;
+    log(`Control ${a.action}: ${r.ok ? 'ok' : 'failed'}, ${r.message}`);
+    queueAt = 0;
+    push();
+    return { ok: r.ok, text: r.message };
+  } catch (e) {
+    return { ok: false, text: e instanceof Unauthorized ? 'Pair again' : e instanceof Error ? e.message : 'Something went wrong' };
+  }
+}
+
+/** Asks the site whether pulls are paused and which buffs have a button. Quiet when the site cannot be reached. */
+async function loadStatus(): Promise<void> {
+  try {
+    const r = await client?.action({ action: 'status' });
+    if (!r) return;
+    paused = r.paused ?? paused;
+    buffs = r.buffs ?? buffs;
+    push();
+  } catch { /* the next try is in 30 seconds */ }
+}
+
 const obsConfig = () => ({ enabled: settings.obsEnabled, address: settings.obsAddress, password: settings.obsPassword, startReplay: settings.obsStartReplay });
 
 function connect(): void {
   logger?.addSecret(settings.token);
   logger?.addSecret(settings.obsPassword);
-  const client = new SiteClient(settings.site, settings.token, app.getVersion());
-  const obs = new ObsWatcher({ site: settings.site, report: body => client.report(body) }, obsConfig());
+  const site = new SiteClient(settings.site, settings.token, app.getVersion());
+  client = site;
+  const obs = new ObsWatcher({ site: settings.site, report: body => site.report(body) }, obsConfig());
   alerts = new Alerts();
-  service = new BridgeService({ client, mix: new MixItUpClient(), obs, onChange: push, log });
+  service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log });
   service.start();
   push();
+  void loadStatus();
 }
 
 async function disconnect(): Promise<void> {
   const old = service;
   service = null;
+  client = null;
+  paused = null;
+  buffs = [];
   await old?.stop();
 }
 
@@ -161,11 +217,14 @@ function createTray(): void {
   tray = new Tray(trayIcon('offline'));
   tray.setToolTip('TCG Bridge: not connected');
   tray.on('click', showWindow);
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Open TCG Bridge', click: showWindow },
-    { label: 'Quit', click: () => app.quit() },
-  ]));
+  tray.setContextMenu(trayMenu());
 }
+
+const trayMenu = () => Menu.buildFromTemplate([
+  { label: 'Open TCG Bridge', click: showWindow },
+  { label: 'Pause pulls', type: 'checkbox', checked: !!paused, enabled: !!client, click: () => { void runControl({ action: 'pause' }); } },
+  { label: 'Quit', click: () => app.quit() },
+]);
 
 /** Every updater event goes through the start-up machine: it says what the start-up window shows, when to open the app, and what the window says about updates. */
 function feed(e: StartupEvent): void {
@@ -262,6 +321,32 @@ function setupIpc(): void {
     push();
   });
 
+  // ── Control from the PC (55.9): the pause switch, the hotkeys, the queue and the Stream Deck buttons ──
+  ipcMain.handle('pause', (_e, on: boolean) => runControl({ action: 'pause', on: !!on }));
+  ipcMain.handle('copy-button', (_e, i: number) => {
+    const b = buttons()[Math.trunc(Number(i))];
+    if (!b) return { ok: false, text: 'That button is gone' };
+    clipboard.writeText(b.url);
+    return { ok: true, text: 'Copied. Paste it into a Stream Deck "Website" action and tick "GET request in background".' };
+  });
+  ipcMain.handle('set-hotkeys', async (_e, map: Partial<HotkeyMap>) => {
+    const next: HotkeyMap = { refresh: '', pause: '', lastBuff: '' };
+    for (const k of HOTKEYS) next[k] = typeof map?.[k] === 'string' ? map[k]!.trim().slice(0, 40) : '';
+    settings = { ...settings, hotkeys: next };
+    await store.save(settings);
+    hotkeyErrors = hotkeys?.apply(next) ?? {};
+    push();
+    return hotkeyErrors;
+  });
+  ipcMain.handle('queue', async () => { // read only while the window's queue section is open; at most every 5 s
+    if (!client) return { ok: false, text: 'Pair TCG Bridge first', rows: [] };
+    if (Date.now() - queueAt >= 5000) {
+      try { queueRows = await client.queue(); queueAt = Date.now(); } catch (e) { return { ok: false, text: e instanceof Error ? e.message : 'Could not read the queue', rows: queueRows }; }
+    }
+    return { ok: true, text: '', rows: queueRows };
+  });
+  ipcMain.handle('queue-do', (_e, what: string) => runControl({ action: what === 'clear' ? 'clear-queue' : 'skip' }));
+
   // ── Self-tests ──
   ipcMain.handle('test-mix', async (_e, name: string) => asText(await testMixItUp(new MixItUpClient(), String(name), service?.state.currencyId ?? '')));
   ipcMain.handle('test-chat', async () => asText(await sendTestChat(new MixItUpClient())));
@@ -325,7 +410,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', showWindow);
-  app.on('before-quit', () => { quitting = true; });
+  app.on('before-quit', () => { quitting = true; hotkeys?.stop(); });
   app.on('window-all-closed', () => { /* stays in the tray */ });
   process.on('unhandledRejection', e => log(`Error: ${e instanceof Error ? e.message : String(e)}`));
   void app.whenReady().then(async () => {
@@ -354,11 +439,21 @@ async function launchApp(): Promise<void> {
     settings = { ...settings, lastSeenVersion: app.getVersion() };
     await store.save(settings);
   }
+  if (!settings.controlKey) { // the key in every Stream Deck button's address, made once
+    settings = { ...settings, controlKey: newControlKey() };
+    await store.save(settings);
+  }
+  control = new ControlServer(settings.controlKey, runControl);
+  await control.start();
+  if (control.error) log(control.error);
+  hotkeys = new Hotkeys(globalShortcut, name => { void runControl(HOTKEY_ACTION[name]); });
+  hotkeyErrors = hotkeys.apply(settings.hotkeys);
   applyAutoStart();
   setupIpc();
   createWindow(!settings.token); // paired: start minimised in the tray
   createTray();
   if (settings.token) connect();
+  setInterval(() => void loadStatus(), 30_000); // the site's pause switch can be flipped elsewhere
   setInterval(tickAlerts, 5000); // the 15 seconds of "down" are counted here
   void startMixWithBridge();
   setTimeout(() => splash?.close(), 600); // let "Starting" be read

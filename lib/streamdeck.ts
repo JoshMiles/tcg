@@ -14,6 +14,7 @@ import { streamAmount } from './pull-limit-core';
 
 const COOLDOWN_S = 10;
 const BY = 'Stream Deck';
+export const LAST_BUFF = 'streamdeck:last';
 
 export interface StreamDeckResult { ok: boolean; message: string }
 const no = (message: string): StreamDeckResult => ({ ok: false, message });
@@ -90,6 +91,7 @@ export async function runStreamDeck(body: Record<string, unknown>): Promise<Stre
   const [season, stream] = await Promise.all([getActiveSeason().catch(() => null), currentBuffStreamKey().catch(() => undefined)]);
   const r = await applyBuff(community ? BY : t.who, def.id, { source: 'streamdeck', seasonId: season?.id, streamKey: stream });
   if (!r.ok) return no(refusal(r, def, t.who));
+  await kv.set(LAST_BUFF, { buff: def.id, target: body.target, username: body.username }); // "the last buff again" (lib/bridge-actions.ts)
   await recordAudit(t.who, `${BY}: ${t.who} ${phrase(def)}`, def.name);
   const unpaid = r.partial ? ` ${r.partial.unpaid} of ${r.partial.total} are unpaid; staff can retry them.` : '';
   return { ok: true, message: `${t.who === 'everyone' ? 'Everyone gets' : `${t.who} gets`} ${phrase(def)}.${unpaid}` };

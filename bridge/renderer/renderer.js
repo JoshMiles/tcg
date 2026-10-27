@@ -40,6 +40,50 @@ function renderObs(obs, saved) {
   $('obs-overlay').textContent = up ? overlayText(obs.overlay, obs.scene) : '-';
 }
 
+const HOTKEYS = ['refresh', 'pause', 'lastBuff'];
+let hotkeysFilled = false;
+let buttonsKey = '';
+
+function renderControl() {
+  const c = state.control;
+  $('control-unpaired').hidden = state.paired;
+  $('control').hidden = !state.paired || !c;
+  if (!c) return;
+  $('control-pause').checked = !!c.paused;
+  $('control-pause').disabled = c.paused === null;
+  if (c.last) $('control-last').textContent = c.last;
+  $('control-error').textContent = c.error;
+  if (!hotkeysFilled) { // once; later renders must not overwrite what is being typed
+    hotkeysFilled = true;
+    for (const k of HOTKEYS) $('hk-' + k).value = c.hotkeys[k] || '';
+  }
+  for (const k of HOTKEYS) $('hk-' + k + '-error').textContent = c.hotkeyErrors[k] || '';
+  const key = JSON.stringify(c.buttons);
+  if (key === buttonsKey) return;
+  buttonsKey = key;
+  $('control-buttons').querySelector('tbody').replaceChildren(...c.buttons.map((b, i) => {
+    const tr = document.createElement('tr');
+    const name = document.createElement('td');
+    name.textContent = b.label;
+    const url = document.createElement('td');
+    url.textContent = b.url;
+    url.className = 'small muted';
+    const act = document.createElement('td');
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'btn plain';
+    copy.textContent = 'Copy';
+    copy.addEventListener('click', async () => {
+      const r = await window.bridge.copyButton(i);
+      $('control-copy-result').textContent = r.text;
+      $('control-copy-result').className = 'result ' + (r.ok ? 'ok' : 'fail');
+    });
+    act.append(copy);
+    tr.append(name, url, act);
+    return tr;
+  }));
+}
+
 function renderBanners() {
   $('updated').hidden = !state.updatedTo;
   $('updated-version').textContent = state.updatedTo;
@@ -64,6 +108,7 @@ function render() {
   $('alerts').checked = state.alerts;
   $('mix-autostart').checked = state.mixItUp.startWithBridge;
   renderBanners();
+  renderControl();
   const level = svc ? svc.tray : 'offline';
   setDot('rail-dot', level === 'connected' ? 'ok' : level === 'partly' ? 'warn' : '');
   $('rail-text').textContent = state.paired ? TRAY_TEXT[level] : 'Not paired';
@@ -181,6 +226,40 @@ action('mix-choose', 'mix-start-result', () => window.bridge.chooseMixItUp());
 action('open-logs', 'help-result', () => window.bridge.openLogs());
 action('copy-diagnostics', 'help-result', () => window.bridge.copyDiagnostics());
 action('check-update', 'update-result', () => window.bridge.checkUpdate());
+
+$('control-pause').addEventListener('change', async e => {
+  const r = await window.bridge.setPause(e.target.checked);
+  $('control-pause-result').textContent = r.text;
+  $('control-pause-result').className = 'result ' + (r.ok ? 'ok' : 'fail');
+});
+$('hotkey-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const map = {};
+  for (const k of HOTKEYS) map[k] = $('hk-' + k).value;
+  void window.bridge.setHotkeys(map);
+});
+
+// The queue is read only while its section is open (at most every 5 seconds; the app throttles too).
+async function loadQueue() {
+  if (!$('queue-box').open || document.hidden) return;
+  const r = await window.bridge.getQueue();
+  if (!r.ok) { $('queue-result').textContent = r.text; $('queue-result').className = 'result fail'; }
+  $('queue-empty').hidden = r.rows.length > 0;
+  $('queue').hidden = r.rows.length === 0;
+  $('queue').querySelector('tbody').replaceChildren(...r.rows.map(row => {
+    const tr = document.createElement('tr');
+    for (const text of [row.username, row.pack, `${row.waitedS} s`]) {
+      const td = document.createElement('td');
+      td.textContent = text;
+      tr.append(td);
+    }
+    return tr;
+  }));
+}
+$('queue-box').addEventListener('toggle', () => { void loadQueue(); });
+setInterval(() => { void loadQueue(); }, 5000);
+action('queue-skip', 'queue-result', async () => { const r = await window.bridge.queueDo('skip'); void loadQueue(); return r; });
+action('queue-clear', 'queue-result', async () => { const r = await window.bridge.queueDo('clear'); void loadQueue(); return r; });
 
 window.bridge.onState(s => { state = s; render(); });
 window.bridge.getState().then(s => { state = s; render(); });

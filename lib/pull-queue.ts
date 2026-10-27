@@ -8,6 +8,7 @@ import { getMixItUpSettings, releasePaidPull, reservePaidPull } from './mixitup'
 import { inSandbox } from './db';
 import { dropDraw, issueDraw } from './draw';
 import { traceStep } from './mixitup-trace';
+import { isPullsPaused, PAUSED_MESSAGE } from './pull-pause';
 
 export interface PullOptions {
   /** What the webhook sent as `role` (limits are per role). */
@@ -24,6 +25,12 @@ export interface PullOptions {
 export async function queuePull(username: string, o: PullOptions = {}): Promise<Record<string, unknown>> {
   const note = (step: Parameters<typeof traceStep>[1], state: Parameters<typeof traceStep>[2], detail?: string) => traceStep(o.trace, step, state, detail);
   await note('received', 'ok', `A !pack for ${username}${o.test ? ' (simulated)' : ''}`);
+
+  // Paused (ROADMAP 55.9): a viewer's pull queues nothing. A test, and a free pack the streamer gave, still go through.
+  if (!o.test && !o.free && (await isPullsPaused())) {
+    await note('balance', 'failed', PAUSED_MESSAGE);
+    return { ok: true, ignored: true, reason: 'paused', message: PAUSED_MESSAGE };
+  }
 
   // Paid pulls (Settings → Mix It Up): the viewer's limit and balance are checked first; a refusal queues nothing and says why.
   const id = crypto.randomUUID();

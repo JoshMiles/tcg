@@ -13,7 +13,8 @@ import type { UserProfile } from '@/lib/types';
 import { VARIANT_LABELS, encodeEntry, decodeEntry } from '@/lib/variants';
 import { recordActivity } from '@/lib/activity';
 import { getOverlayStatus } from '@/lib/overlay';
-import { enqueueEvent, clearQueue } from '@/lib/webhooks';
+import { enqueueEvent } from '@/lib/webhooks';
+import { clearQueueRefunding } from '@/lib/queue-control';
 import { issueDraw } from '@/lib/draw';
 import type { ActionResult } from '../action-types';
 import { parseVariant, requireSeasonCollection, cleanUsername, BAD_USERNAME } from './form-helpers';
@@ -178,7 +179,7 @@ async function grantCard(formData: FormData): Promise<ActionResult> {
 
 export async function clearQueueAction(): Promise<ActionResult> {
   await requireAdmin();
-  const n = await clearQueue();
+  const n = await clearQueueRefunding();
   revalidatePath('/admin');
   return { ok: true, message: n > 0 ? `Cleared ${n} waiting event${n !== 1 ? 's' : ''}.` : 'The queue was already empty.' };
 }
