@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Panel, fieldClass } from '../components/ui';
-import { MESSAGE_MAX, MESSAGE_VARS, PRICED_ROLES, PULL_ROLES, PULL_ROLE_LABELS, REPLY_DEFAULTS, REPLY_KEYS, REPLY_LABELS, REPLY_MAX, REPLY_VARS, renderReply, replySample, type MixItUpSettings } from '@/lib/mixitup-core';
+import { COOLDOWN_MAX, MESSAGE_MAX, MESSAGE_VARS, PRICED_ROLES, PULL_ROLES, PULL_ROLE_LABELS, REPLY_DEFAULTS, REPLY_KEYS, REPLY_LABELS, REPLY_MAX, REPLY_VARS, renderReply, replySample, type MixItUpSettings } from '@/lib/mixitup-core';
 import { MessageField } from './MessageField';
 
 const help = 'text-[11px] text-gray-500 leading-relaxed';
@@ -39,6 +39,11 @@ export function PaidPullFields({ settings: s }: { settings: MixItUpSettings }) {
           ))}
         </div>
         <p className={help}>Pulls per stream for each role. 0 = no limit. The paid-pull webhook can send <code>role</code> (regular, subscriber, vip, moderator or broadcaster). A missing or unknown role counts as regular, and the channel account is always the broadcaster. A gifted sub does not change these. A viewer&rsquo;s own limit, set on their user page, replaces their role. &ldquo;Per stream&rdquo; follows the live Twitch stream; when the channel is offline it is per day (UTC).</p>
+        <fieldset className="fieldset sm:max-w-md">
+          <legend className="fieldset-legend"><label htmlFor="mx-cooldown">Cooldown between paid pulls (seconds)</label></legend>
+          <input id="mx-cooldown" name="cooldownSeconds" type="number" min={0} max={COOLDOWN_MAX} step={1} defaultValue={s.cooldownSeconds} className={fieldClass} />
+          <p className={help}>How long a viewer waits after a paid pull before the next one. 0 = off, up to {COOLDOWN_MAX}. The streamer is never held up. A refused pull (no balance, over the limit) does not start the wait, and free packs from the Stream Deck are not affected.</p>
+        </fieldset>
         <div className="grid grid-cols-2 gap-4 sm:max-w-md">
           {PRICED_ROLES.map(role => (
             <fieldset key={role} className="fieldset">

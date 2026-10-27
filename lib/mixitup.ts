@@ -2,6 +2,7 @@
 // pull webhook arrives (limit and balance checked), claimed when the overlay saves the card, and charged BEFORE the print is
 // written; if Mix It Up does not confirm the charge, no print is made, and if the print then cannot be written the charge is refunded.
 import { kv, inSandbox } from './db';
+import { CHANNEL_LOGIN } from './site';
 import { sendWebhook } from './webhook-send';
 import { noteOutgoing, outKindOf } from './mixitup-health';
 import { noteRefusal } from './bridge-notice';
@@ -175,6 +176,7 @@ export async function sendTest(s: MixItUpSettings, doFetch?: Fetch): Promise<Rep
 const cntKey = (stream: string, user: string) => `mixitup:cnt:${stream}:${user}`;
 const pendKey = (user: string) => `mixitup:pending:${user}`;
 const payKey = (id: string) => `mixitup:pay:${id}`;
+const cdKey = (user: string) => `mixitup:cd:${user}`;
 
 /** `amount` is the price worked out when the pull was reserved (ROADMAP 55.4b); a record from before has none. */
 interface PayRecord { username: string; amount: number; stream: string; at: number; credit?: boolean }
@@ -208,10 +210,18 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
   const extra = streamBuffAmount(await getStreamBuff(), stream) + await extraPullsFromBuffs(user);
   const price = pullPrice(s, { role: pullRole(role, user), happyHour: await getHappyHour() });
   const limit = effectiveLimit(roleLimitOf(s, pullRole(role, user)), await getUserPullLimit(user), Date.now(), extra).limit;
-  const refuse = async (reason: RefusalReason, balance?: number, why?: string): Promise<Reservation> => {
+  let cdHeld = false; // this pull holds the viewer's cooldown key (below)
+  const refuse = async (reason: RefusalReason, balance?: number, why?: string, wait?: number): Promise<Reservation> => {
+    if (cdHeld) await kv.del(cdKey(user)); // a refused pull does not start a cooldown
     await logMixItUp({ username: user, what: 'refused', ok: false, detail: `${reason}${why ? `: ${why}` : ''}` });
-    return { ok: false, reason, message: refusalMessage(reason, { ...s, cost: price, limit }, user, balance), ...(balance !== undefined ? { balance } : {}) };
+    return { ok: false, reason, message: refusalMessage(reason, { ...s, cost: price, limit }, user, balance, wait), ...(balance !== undefined ? { balance } : {}) };
   };
+
+  // Cooldown (55.4d): claimed before the limit count so its own refusal leaves nothing behind; refuse() drops it again for any later refusal.
+  if (s.cooldownSeconds > 0 && user !== CHANNEL_LOGIN) {
+    if (await kv.set(cdKey(user), 1, { nx: true, ex: s.cooldownSeconds })) cdHeld = true;
+    else { const wait = Math.max(1, Number(await kv.ttl(cdKey(user)))); return refuse('cooldown', undefined, `${wait} seconds left`, wait); }
+  }
 
   let counted = false;
   let left: number | undefined;
@@ -282,6 +292,7 @@ export async function releasePaidPull(payId: string): Promise<void> {
   if (!rec || (await kv.del(payKey(payId))) !== 1) return;
   await kv.incrby(pendKey(rec.username), -(typeof rec.amount === 'number' ? rec.amount : 0)).catch(() => {});
   if (rec.credit) await releaseExtraPackCredit(rec.username);
+  else await kv.del(cdKey(rec.username)).catch(() => {}); // the pull never happened, so no cooldown either
   await releaseCount({ payId, username: rec.username, amount: rec.amount, stream: rec.stream, credit: rec.credit });
 }
 

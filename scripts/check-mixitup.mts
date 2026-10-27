@@ -205,6 +205,42 @@ ok((await hh.getHappyHour()) === null && (await m.reservePaidPull(hhMix, 'kim', 
 ok(!(await hh.endHappyHour('amy')).wasOn, 'ending an expired one says nothing was running');
 await kv.del('mixitup:happyhour');
 
+// ── Cooldown between paid pulls (ROADMAP 55.4d) ──
+const { CHANNEL_LOGIN } = await import('../lib/site');
+Object.assign(balances, { zed: 1000, yan: 50, [CHANNEL_LOGIN]: 1000 });
+const cdMix = c.normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 100, limit: 0, cooldownSeconds: 30 });
+ok(cdMix.cooldownSeconds === 30 && c.normalizeMixItUp({ cooldownSeconds: 99999 }).cooldownSeconds === c.COOLDOWN_MAX && c.normalizeMixItUp({ cooldownSeconds: 'x' }).cooldownSeconds === 0 && d.cooldownSeconds === 0 && !c.cleanMixItUpInput({ cooldownSeconds: '1.5' }).ok, 'the cooldown is a whole number of seconds, 0 to 3600, off by default');
+const z1 = await m.reservePaidPull(cdMix, 'zed', 'cd1', fake);
+const z2 = await m.reservePaidPull(cdMix, 'zed', 'cd2', fake);
+ok(z1.ok && !z2.ok && z2.reason === 'cooldown' && /wait (\d+) seconds/.test(z2.message) && Number(/wait (\d+)/.exec(z2.message)![1]) >= 1 && Number(/wait (\d+)/.exec(z2.message)![1]) <= 30, 'a second pull inside the window is refused with cooldown and the seconds left');
+ok(Number(await kv.ttl('mixitup:cd:zed')) > 0 && (await kv.get('mixitup:pay:cd2')) === null, 'the refused pull reserved nothing and left the first cooldown running');
+ok(c.refusalMessage('cooldown', { cost: 1, currency: 'x', limit: 0, replies: { cooldown: 'Hold on {username}: {wait}s' } }, 'ann', undefined, 7) === 'Hold on ann: 7s' && c.REPLY_VARS.includes('wait') && c.REFUSAL_LABELS.cooldown && c.REPLY_LABELS.cooldown, 'the cooldown reply is editable and fills {wait}');
+// A pull refused for balance starts no cooldown.
+const y1 = await m.reservePaidPull(cdMix, 'yan', 'cd3', fake);
+ok(!y1.ok && y1.reason === 'insufficient_balance' && (await kv.get('mixitup:cd:yan')) === null, 'a pull refused for balance leaves no cooldown');
+balances.yan = 1000;
+ok((await m.reservePaidPull(cdMix, 'yan', 'cd4', fake)).ok, 'so the next try goes straight through');
+// A refusal for the limit does not start one either, and its own refusal leaves no limit count.
+const limCd = c.normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 100, limit: 1, cooldownSeconds: 30 });
+balances.lim = 1000;
+ok((await m.reservePaidPull(limCd, 'lim', 'cd5', fake)).ok, 'lim pulls once');
+await kv.del('mixitup:cd:lim');
+const lim2 = await m.reservePaidPull(limCd, 'lim', 'cd6', fake);
+ok(!lim2.ok && lim2.reason === 'limit_reached' && (await kv.get('mixitup:cd:lim')) === null, 'over the limit: refused and no cooldown started');
+await m.reservePaidPull(limCd, 'lim', 'cd7', fake).then(r => ok(r.ok === false, 'still over'));
+await m.releasePaidPull('cd5');
+ok((await kv.get('mixitup:cd:lim')) === null && (await m.reservePaidPull(limCd, 'lim', 'cd8', fake)).ok, 'releasing a reservation also drops its cooldown, and the limit count was not left raised by refusals');
+await m.releasePaidPull('cd8');
+// Mix It Up down: no cooldown.
+mode = 'down';
+balances.kay = 1000;
+ok(!(await m.reservePaidPull(cdMix, 'kay', 'cd9', fake)).ok && (await kv.get('mixitup:cd:kay')) === null, 'Mix It Up down leaves no cooldown');
+mode = 'ok';
+// The broadcaster is exempt; 0 = off.
+ok((await m.reservePaidPull(cdMix, CHANNEL_LOGIN, 'cd10', fake)).ok && (await m.reservePaidPull(cdMix, CHANNEL_LOGIN, 'cd11', fake)).ok && (await kv.get(`mixitup:cd:${CHANNEL_LOGIN}`)) === null, 'the broadcaster is never held up');
+const offMix = c.normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 100, cooldownSeconds: 0 });
+ok((await m.reservePaidPull(offMix, 'zed', 'cd12', fake)).ok && (await m.reservePaidPull(offMix, 'zed', 'cd13', fake)).ok, '0 = off: back-to-back pulls both go through');
+
 // ── Log ──
 const log = await m.getMixItUpLog();
 ok(log.length > 0 && log.length <= 50 && log.some(e => e.what === 'refused') && log.some(e => e.what === 'deduct' && !e.ok), 'the log keeps the last 50, refusals and failed charges included');
