@@ -451,6 +451,8 @@ eq(parseViewers({ users: Array.from({ length: 6000 }, (_, i) => 'u' + i) })!.len
 await mixitup.saveMixItUpSettings(normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', addUrl: 'https://hook.example/add', viewersUrl: 'https://hook.example/viewers', secret: 's' }));
 // Mix It Up stand-in: the chat list, and an add command that refuses the names in `refused`
 const realFetch = globalThis.fetch;
+const { webhookDns } = await import('../lib/webhook-send');
+webhookDns.lookup = (async () => [{ address: '93.184.216.34', family: 4 }]) as typeof webhookDns.lookup; // hook.example has no real DNS
 const paidLog: string[] = [];
 const refused = new Set<string>();
 let chat: unknown = { users: ['Sam', '@Alice', 'zed', 'sam'] };

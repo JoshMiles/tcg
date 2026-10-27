@@ -2,7 +2,7 @@
 // pull webhook arrives (limit and balance checked), claimed when the overlay saves the card, and charged BEFORE the print is
 // written; if Mix It Up does not confirm the charge, no print is made, and if the print then cannot be written the charge is refunded.
 import { kv, inSandbox } from './db';
-import { checkWebhookUrl } from './webhook-clean';
+import { sendWebhook } from './webhook-send';
 import { getActiveSeason, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
@@ -40,22 +40,17 @@ export async function getMixItUpLog(): Promise<MixItUpLogEntry[]> {
 export type Fetch = typeof fetch;
 export interface Reply { ok: boolean; status: number; body: unknown; error?: string }
 
-/** POSTs JSON to a Mix It Up webhook command and reads its answer. Only public http(s) addresses; never throws. */
-export async function callMixItUp(url: string, payload: Record<string, unknown>, doFetch: Fetch = fetch): Promise<Reply> {
-  const t = checkWebhookUrl(url);
-  if (!t.ok || !t.url) return { ok: false, status: 0, body: null, error: t.ok ? 'no address set' : t.error };
-  try {
-    const res = await doFetch(t.url, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(TIMEOUT_MS), cache: 'no-store',
-    });
-    const raw = await res.text().catch(() => '');
-    let body: unknown = null;
-    try { body = raw ? JSON.parse(raw) : null; } catch { /* a plain-text answer is fine */ }
-    return { ok: res.ok, status: res.status, body };
-  } catch (e) {
-    return { ok: false, status: 0, body: null, error: e instanceof Error ? e.message : 'no answer' };
-  }
+/** POSTs JSON to a Mix It Up webhook command and reads its answer. Public addresses only, resolved and never redirected (lib/webhook-send.ts); never throws. */
+export async function callMixItUp(url: string, payload: Record<string, unknown>, doFetch?: Fetch): Promise<Reply> {
+  const sent = await sendWebhook(url, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(TIMEOUT_MS), cache: 'no-store',
+  }, doFetch);
+  if (!sent.ok) return { ok: false, status: 0, body: null, error: sent.error };
+  const raw = await sent.res.text().catch(() => '');
+  let body: unknown = null;
+  try { body = raw ? JSON.parse(raw) : null; } catch { /* a plain-text answer is fine */ }
+  return { ok: sent.res.ok, status: sent.res.status, body };
 }
 
 const deductUrl = (s: MixItUpSettings) => s.deductUrl || s.balanceUrl;

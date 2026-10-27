@@ -18,7 +18,7 @@ import { AccessConfig } from './AccessConfig';
 import { getAccessLog, getAccessSettings, listTesters } from '@/lib/access';
 import { ScoringForm, type ScoringGroupConfig } from './ScoringForm';
 import { CopyBlock, LiveGates, OverlayTest } from './OverlayPanels';
-import { getWebhookSettings } from '@/lib/webhooks';
+import { getWebhookSettings, getWebhookFailures } from '@/lib/webhooks';
 import { getDiscordLog, getDiscordSettings } from '@/lib/discord';
 import { ENV_GROUPS, checkEnv, readEnv, summarizeEnv } from '@/lib/env-health';
 import { extensionChecklist } from '@/lib/twitch-setup';
@@ -95,8 +95,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const envSummary = summarizeEnv(env);
   const envSet = (name: string) => env.find(e => e.name === name)?.set ?? false;
   const overlayKey = await getOverlayKey();
-  const [overlay, scoring, webhookSettings, discordSettings, result] = await Promise.all([
-    getOverlaySettings(), getScoringSettings(), getWebhookSettings(), getDiscordSettings(), getActiveSeasonWithPacks(),
+  const [overlay, scoring, webhookSettings, webhookFailures, discordSettings, result] = await Promise.all([
+    getOverlaySettings(), getScoringSettings(), getWebhookSettings(), getWebhookFailures(), getDiscordSettings(), getActiveSeasonWithPacks(),
   ]);
   const discordLogs = Object.fromEntries(await Promise.all(discordSettings.channels.map(async c => [c.id, await getDiscordLog(c.id)] as const)));
   const scoringChanged = (Object.keys(DEFAULT_SCORING) as (keyof ScoringSettings)[]).filter(k => scoring[k] !== DEFAULT_SCORING[k]).length;
@@ -168,7 +168,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {tab === 'webhooks' && (
         <div className="space-y-8">
           <DiscordConfig settings={discordSettings} logs={discordLogs} />
-          <WebhookConfig settings={webhookSettings} base={SITE_URL} />
+          <WebhookConfig settings={webhookSettings} failures={webhookFailures} base={SITE_URL} />
         </div>
       )}
 

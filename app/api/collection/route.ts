@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       const settings = await getWebhookSettings();
       await fireOutgoing(settings.outgoing.cardPulled, {
         username, cardName: ticket.cardName, cardNumber: String(cardNumber), stars: String(ticket.stars), variant, packName: ticket.packName,
-      });
+      }, 'cardPulled');
     };
     try { after(() => send().catch(() => {})); } catch { await send().catch(() => {}); }
   }

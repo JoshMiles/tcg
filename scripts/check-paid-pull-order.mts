@@ -23,6 +23,8 @@ const calls: Call[] = [];
 let deduct: 'ok' | 'declines' = 'ok';
 let seenAtDeduct: number[] | null = null; // what the viewer owned the moment Mix It Up was asked to take the money
 const realFetch = globalThis.fetch;
+const { webhookDns } = await import('../lib/webhook-send');
+webhookDns.lookup = (async () => [{ address: '93.184.216.34', family: 4 }]) as typeof webhookDns.lookup; // hook.example has no real DNS
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   if (URL.parse(String(input))?.host !== 'hook.example') return realFetch(input, init);
   const body = JSON.parse(String(init?.body)) as Call;
