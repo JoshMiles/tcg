@@ -11,20 +11,29 @@ A small Windows app for the stream PC. Mix It Up's Developer API only listens on
 
 It starts with Windows and lives in the tray; closing the window keeps it running. Quit from the tray menu. It updates itself from the latest GitHub release (checked on start and every 6 hours, installed when you quit).
 
+## OBS (optional)
+
+The app can also watch OBS on the same PC: it tells the site when the stream starts and stops, which scene is on air and whether the TCG overlay browser source is in that scene and visible, and the site's **Refresh overlay in OBS** button (Admin > Settings > OBS Overlay) presses "Refresh cache of current page" on it.
+
+1. In OBS (28 or newer) open Tools > WebSocket Server Settings, tick **Enable WebSocket server** and copy the **Server Password**.
+2. In the app's OBS card tick **Talk to OBS**, check the address (`ws://127.0.0.1:4455` is the OBS default), paste the password and press Save. The password is stored encrypted on this PC and is never sent to the site, and only `ws://localhost` and `ws://127.0.0.1` addresses are accepted.
+
+The overlay is the browser source whose address is `<paired site>/overlay.html?...`; only its name is reported, never the address or key. An overlay inside a nested scene is not seen; an overlay inside a group is.
+
 ## Develop
 
 ```
 cd bridge
 npm install
 npm run typecheck   # tsc --noEmit
-npm run check       # fake Mix It Up and fake site, no Electron needed
+npm run check       # fake Mix It Up, fake OBS and fake site, no Electron needed
 npm start           # build, then run the app
 npm run dist        # build the installer into release/ (not committed)
 ```
 
 `TCG_BRIDGE_DATA=<folder>` keeps the app's settings in that folder instead of the real user data folder, which is handy against a local site (`http://localhost:3000` is allowed as a site address; anything else must be https).
 
-- `src/site.ts`, `src/mixitup.ts`, `src/jobs.ts`, `src/service.ts`, `src/settings.ts`: plain TypeScript with no Electron imports, so the checks run under Node.
+- `src/site.ts`, `src/mixitup.ts`, `src/obs.ts`, `src/jobs.ts`, `src/service.ts`, `src/settings.ts`: plain TypeScript with no Electron imports, so the checks run under Node.
 - `src/main.ts` and `src/preload.ts`: the Electron glue (tray, window, auto start, updates, encrypted token).
 - `renderer/`: the window, plain HTML, CSS and JS.
 

@@ -10,13 +10,14 @@ const c = await import('../lib/mixitup-core');
 const m = await import('../lib/mixitup');
 const b = await import('../lib/bridge');
 const core = await import('../lib/bridge-core');
-import type { BridgeJob } from '../lib/bridge-core';
+import type { BridgeJob, ObsSnapshot } from '../lib/bridge-core';
 const h = await import('../lib/mixitup-health');
 const { kv, runInSandbox } = await import('../lib/db');
 const pairRoute = await import('../app/api/bridge/pair/route');
 const pollRoute = await import('../app/api/bridge/poll/route');
 const resultRoute = await import('../app/api/bridge/result/route');
 const helloRoute = await import('../app/api/bridge/hello/route');
+const reportRoute = await import('../app/api/bridge/report/route');
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 Object.assign(b.tuning, { pollMs: 20, waitMs: 3000, longPollMs: 300, idlePollMs: 40 });
@@ -58,7 +59,7 @@ const tokenB = (await b.pairBridge(other.code, 'Laptop'))!.token;
 ok(tokenB && tokenB !== tokenA && (await b.listBridges()).length === 2 && !JSON.stringify(await b.listBridges()).includes(tokenA), 'a second bridge pairs; the list never holds a token');
 
 // ── Auth on the routes ──
-for (const [path, route] of [['poll', pollRoute], ['result', resultRoute], ['hello', helloRoute]] as const) {
+for (const [path, route] of [['poll', pollRoute], ['result', resultRoute], ['hello', helloRoute], ['report', reportRoute]] as const) {
   ok((await post(route, path, null, {})).status === 401, `${path}: no token is refused`);
   ok((await post(route, path, 'not-a-token', {})).status === 401, `${path}: an unknown token is refused`);
 }
@@ -71,6 +72,34 @@ const state = await b.readBridge();
 ok(state.version === '0.1.0' && state.currencies[0].id === 'cur-1', 'hello fills the currency list');
 ok((await post(helloRoute, 'hello', tokenA, { version: 1 })).status === 400 && (await post(resultRoute, 'result', tokenA, { id: 'x' })).status === 400, 'a wrong shape is a 400');
 ok((await post(resultRoute, 'result', tokenA, { id: 'r1', ok: true, balance: 7 })).status === 200 && (await kv.get('bridge:result:r1')), 'a result is stored');
+
+// ── What the bridge sees in OBS (55.6b): /api/bridge/report ──
+const snap = { type: 'obs', connected: true, scene: 'Gameplay', overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG Overlay' } };
+ok((await b.readObs()) === null, 'no snapshot until a bridge reports one');
+for (const bad of [null, {}, { type: 'nope' }, { type: 'stream', live: 'yes' }, { type: 'stream' }, { type: 'obs' }, { ...snap, connected: 'yes' }, { ...snap, scene: 5 }, { ...snap, overlay: null }, { ...snap, overlay: { ...snap.overlay, visible: 1 } }]) {
+  ok((await post(reportRoute, 'report', tokenA, bad)).status === 400, `report: ${JSON.stringify(bad)} is a 400`);
+}
+ok((await b.readObs()) === null, 'a bad shape stores nothing');
+const longName = 'x'.repeat(500);
+const sent = await post(reportRoute, 'report', tokenA, { ...snap, scene: longName, overlay: { ...snap.overlay, sourceName: longName }, url: 'https://cheesytcg.app/overlay.html?key=SECRETKEY' });
+const obsNow = await b.readObs();
+ok(sent.status === 200 && obsNow && obsNow.connected && obsNow.scene.length === 100 && obsNow.overlay.sourceName.length === 100 && Date.now() - obsNow.at < 5000, 'an OBS snapshot is stored with its time and capped strings');
+ok(!JSON.stringify(await kv.get('bridge:obs')).includes('SECRETKEY'), 'only the known fields are stored');
+await post(reportRoute, 'report', tokenA, { ...snap, connected: false, scene: '', overlay: { found: false, inProgram: false, visible: false, sourceName: '' } });
+ok((await b.readObs())!.connected === false, 'the latest snapshot wins');
+
+// The stream hint moves only when OBS says something new
+const liveRes = async (live: boolean) => (await (await post(reportRoute, 'report', tokenA, { type: 'stream', live })).json()) as { ok: boolean; live: boolean; changed: boolean };
+const hintAt = async () => (await kv.get<{ live: boolean; at: number }>('twitch:live:hint'))!;
+const first = await liveRes(true);
+const hint1 = await hintAt();
+ok(first.ok && first.changed && hint1.live === true && (await kv.get<{ live: boolean }>('twitch:live'))?.live === true, 'OBS streaming sets the live hint and the live status');
+await sleep(15);
+const again = await liveRes(true);
+ok(!again.changed && (await hintAt()).at === hint1.at, 'the same news again leaves the hint alone');
+const off = await liveRes(false);
+ok(off.changed && (await hintAt()).live === false && (await kv.get<{ live: boolean }>('twitch:live'))?.live === false, 'OBS stopping sets the hint to offline');
+await kv.del('twitch:live:hint', 'twitch:live');
 
 const gone = (await b.listBridges()).find(x => x.name === 'Laptop')!;
 ok((await b.revokeBridge(gone.id)) === 'Laptop' && (await b.revokeBridge(gone.id)) === null, 'a bridge is revoked once');
@@ -167,8 +196,24 @@ await b.bridgeSay('hi chat');
 await sleep(60);
 ok(seen.some(j => j.kind === 'say' && j.text === 'hi chat'), 'bridgeSay queues a say job without waiting');
 
+// The overlay refresh in OBS is a job of its own kind and waits for the answer
+const refreshed = await b.refreshOverlayInObs();
+ok(refreshed.ok && seen.some(j => j.kind === 'obs-refresh'), 'refreshOverlayInObs queues an obs-refresh job and reads the answer');
+const inBox2 = await runInSandbox('bridgebox', () => b.refreshOverlayInObs());
+ok(!inBox2.ok && /sandbox/i.test(inBox2.error ?? ''), 'a sandbox never refreshes OBS');
+
 // ── A bridge that says no ──
 running = false; await loop;
+Object.assign(b.tuning, { waitMs: 400 });
+const pending = b.refreshOverlayInObs();
+await sleep(80);
+const [refreshJob] = await b.claimJobs();
+await b.storeResult({ id: refreshJob.id, ok: false, error: 'The overlay browser source was not found in OBS' });
+const refusedRefresh = await pending;
+ok(refreshJob.kind === 'obs-refresh' && !refusedRefresh.ok && refusedRefresh.error === 'The overlay browser source was not found in OBS', 'the reason OBS could not refresh comes back in words');
+const unanswered = await b.refreshOverlayInObs();
+ok(!unanswered.ok && unanswered.error === 'TCG Bridge did not answer', 'no answer is said plainly');
+await b.claimJobs();
 const failed = core.replyFromResult('deduct', core.cleanResult({ id: 'bad2', ok: false, error: 'No such viewer' }));
 ok(!failed.ok && failed.error === 'No such viewer' && !c.replyApplied(failed.status, failed.body), 'a failed result is not applied and keeps its reason');
 
@@ -182,5 +227,16 @@ ok(live.length === 2 && live[1].tone === 'ok' && live[1].text === 'TCG Bridge co
 const stale = h.healthChips(nobody, urls, now, ago, { at: now - 120_000 });
 ok(stale[1].tone === 'bad' && /not connected \(last seen 120s ago\)/.test(stale[1].text), 'a bridge not seen for a minute is not connected');
 ok(h.healthChips(nobody, urls, now, ago, { at: null })[1].text === 'TCG Bridge not connected' && h.healthChips(nobody, urls, now, ago).length === 5, 'never seen is not connected; without bridge mode the four address chips stay');
+
+// The OBS chip: nothing when no bridge ever reported OBS, then one chip by what the snapshot says
+const obsAt = (o: Partial<ObsSnapshot>): ObsSnapshot => ({ at: now - 5000, connected: true, scene: 'Gameplay', overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG Overlay' }, ...o });
+const withObs = (o: ObsSnapshot | null) => h.healthChips(nobody, urls, now, ago, { at: now - 4000, obs: o });
+ok(withObs(null).length === 2 && h.healthChips(nobody, urls, now, ago, { at: now - 4000 }).length === 2, 'no OBS report, no OBS chip');
+ok(withObs(obsAt({}))[2].text === 'OBS: overlay visible in Gameplay' && withObs(obsAt({}))[2].tone === 'ok', 'overlay visible');
+ok(withObs(obsAt({ scene: 'Just Chatting', overlay: { found: true, inProgram: false, visible: false, sourceName: 'TCG Overlay' } }))[2].text === 'OBS: overlay not in the current scene (Just Chatting)', 'overlay not in the current scene');
+ok(withObs(obsAt({ overlay: { found: false, inProgram: false, visible: false, sourceName: '' } }))[2].text === 'OBS: overlay source not found', 'overlay source not found');
+ok(withObs(obsAt({ overlay: { found: true, inProgram: true, visible: false, sourceName: 'TCG Overlay' } }))[2].text === 'OBS: overlay hidden in Gameplay', 'overlay hidden');
+ok(withObs(obsAt({ connected: false }))[2].text === 'OBS not connected' && withObs(obsAt({ at: now - 61_000 }))[2].text === 'OBS not connected' && withObs(obsAt({ at: now - 59_000 }))[2].tone === 'ok', 'a disconnected or minute-old snapshot is not connected');
+ok(h.obsChip(null, now) === null && h.healthChips(nobody, urls, now, ago, undefined).length === 5, 'the address mode never shows OBS');
 
 console.log('bridge checks passed');

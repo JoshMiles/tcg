@@ -2,7 +2,7 @@
 // JSON, so in "bridge" mode a call to Mix It Up becomes a job on a KV list; the desktop app on the stream PC long-polls for jobs, runs
 // them through Mix It Up's local Developer API and posts a result, which the waiting call reads. Keys: `bridge:jobs` (list),
 // `bridge:result:<id>` (60 s), `bridge:pair:<code>` (600 s), `bridge:tokens` (hash: sha256 of a token -> record), `mixitup:bridge` (hash:
-// at, version, currencies; the health row and the currency select).
+// at, version, currencies; the health row and the currency select), `bridge:obs` (what the bridge last saw in OBS, 55.6b).
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { kv, inSandbox } from './db';
@@ -11,13 +11,14 @@ import { noteOutgoing, outKindOf } from './mixitup-health';
 import type { MixItUpSettings } from './mixitup-core';
 import {
   BRIDGE_DID_NOT_ANSWER, IDLE_POLL_MS, LONG_POLL_MS, PAIR_TTL_S, POLL_MS, RESULT_TTL_S, TOUCH_EVERY_MS, WAIT_MS,
-  cleanHello, cleanName, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult,
-  type BridgeCurrency, type BridgeJob, type BridgeReply, type JobKind,
+  cleanHello, cleanName, cleanObs, cleanResult, hashToken, isFreshJob, newPairCode, normalizeCode, replyFromResult,
+  type BridgeCurrency, type BridgeJob, type BridgeReply, type JobKind, type ObsSnapshot,
 } from './bridge-core';
 
 const JOBS = 'bridge:jobs';
 const TOKENS = 'bridge:tokens';
 const STATE = 'mixitup:bridge';
+const OBS = 'bridge:obs';
 const resultKey = (id: string) => `bridge:result:${id}`;
 const pairKey = (code: string) => `bridge:pair:${code}`;
 
@@ -64,6 +65,19 @@ async function waitForResult(id: string) {
   const gaveUp = { id, ok: false, error: BRIDGE_DID_NOT_ANSWER, late: true };
   if (await kv.set(resultKey(id), gaveUp, { nx: true, ex: RESULT_TTL_S })) return null;
   return cleanResult(await kv.get(resultKey(id)));
+}
+
+/** Asks the bridge to press "Refresh cache of current page" on the overlay browser source in OBS and waits for the answer. Never throws. */
+export async function refreshOverlayInObs(): Promise<{ ok: boolean; error?: string }> {
+  if (await inSandbox()) return { ok: false, error: 'A sandbox does not use TCG Bridge.' };
+  try {
+    const id = crypto.randomUUID();
+    await kv.rpush(JOBS, { id, kind: 'obs-refresh', at: Date.now() } satisfies BridgeJob);
+    const r = await waitForResult(id);
+    return r?.ok ? { ok: true } : { ok: false, error: r?.error || BRIDGE_DID_NOT_ANSWER };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'TCG Bridge call failed' };
+  }
 }
 
 /** Posts a line in chat through the bridge and does not wait. Not wired into any flow yet. Never throws; a sandbox sends nothing. */
@@ -176,6 +190,22 @@ export async function storeResult(raw: unknown): Promise<'stored' | 'late' | 'ba
   if (await kv.set(resultKey(r.id), r, { nx: true, ex: RESULT_TTL_S })) return 'stored';
   const had = await kv.get<{ late?: boolean }>(resultKey(r.id));
   return had && had.late === true ? 'late' : 'stored';
+}
+
+/** Stores what a bridge saw in OBS, with the time. False when the shape is wrong. */
+export async function storeObs(raw: unknown): Promise<boolean> {
+  const o = cleanObs(raw);
+  if (!o) return false;
+  await kv.set(OBS, { at: Date.now(), ...o } satisfies ObsSnapshot);
+  return true;
+}
+
+/** What a bridge last saw in OBS, or null when none ever reported it. */
+export async function readObs(): Promise<ObsSnapshot | null> {
+  const raw = await kv.get<Record<string, unknown>>(OBS).catch(() => null);
+  const o = cleanObs(raw);
+  const at = Number(raw?.at);
+  return o && Number.isFinite(at) ? { at, ...o } : null;
 }
 
 /** Stores what a bridge announces: its version and the currencies the select offers. False when the shape is wrong. */

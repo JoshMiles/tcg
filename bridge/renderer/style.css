@@ -17,7 +17,10 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .help { margin: 10px 0 0; padding: 8px; border-left: 3px solid var(--warn); background: var(--bg); }
 form { display: grid; gap: 10px; max-width: 360px; }
 label { display: grid; gap: 4px; }
-input[type="text"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--fg); font: inherit; }
+label.inline { display: flex; align-items: center; gap: 6px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.card form { margin-top: 10px; }
+input[type="text"], input[type="password"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--fg); font: inherit; }
 label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 6px; }
 button { padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--accent); color: #1d1d1b; font: inherit; cursor: pointer; }
 button#unpair { background: var(--card); color: var(--fg); }

@@ -4,6 +4,7 @@ import { autoUpdater } from 'electron-updater';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { MixItUpClient } from './mixitup';
+import { cleanObsAddress, ObsWatcher } from './obs';
 import { BridgeService, type TrayLevel } from './service';
 import { FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient } from './site';
@@ -28,6 +29,7 @@ const appState = () => ({
   site: settings.site,
   pairedAs: settings.pairedAs,
   startWithWindows: settings.startWithWindows,
+  obsSettings: { enabled: settings.obsEnabled, address: settings.obsAddress, hasPassword: !!settings.obsPassword }, // never the password itself
   appVersion: app.getVersion(),
   update: updateText,
   service: service?.state ?? null,
@@ -44,8 +46,12 @@ function push(): void {
   }
 }
 
+const obsConfig = () => ({ enabled: settings.obsEnabled, address: settings.obsAddress, password: settings.obsPassword });
+
 function connect(): void {
-  service = new BridgeService({ client: new SiteClient(settings.site, settings.token, app.getVersion()), mix: new MixItUpClient(), onChange: push });
+  const client = new SiteClient(settings.site, settings.token, app.getVersion());
+  const obs = new ObsWatcher({ site: settings.site, report: body => client.report(body) }, obsConfig());
+  service = new BridgeService({ client, mix: new MixItUpClient(), obs, onChange: push });
   service.start();
   push();
 }
@@ -122,6 +128,17 @@ function setupIpc(): void {
     settings = { ...settings, token: '', pairedAs: '' };
     await store.save(settings);
     push();
+  });
+  // password: undefined keeps the saved one, '' forgets it
+  ipcMain.handle('obs-settings', async (_e, enabled: boolean, addressRaw: string, password?: string) => {
+    const address = cleanObsAddress(addressRaw);
+    if (!address) return { ok: false, error: 'The address must be ws://localhost:4455 or ws://127.0.0.1:4455 (your own port).' };
+    if (password && !(await safeStorage.isAsyncEncryptionAvailable())) return { ok: false, error: 'This PC cannot keep the password safe (Windows encryption is not available).' };
+    settings = { ...settings, obsEnabled: !!enabled, obsAddress: address, ...(typeof password === 'string' ? { obsPassword: password } : {}) };
+    await store.save(settings);
+    await service?.reconfigureObs(obsConfig());
+    push();
+    return { ok: true };
   });
   ipcMain.handle('start-with-windows', async (_e, on: boolean) => {
     settings = { ...settings, startWithWindows: on };

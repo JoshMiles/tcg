@@ -2,7 +2,7 @@
 // settings use: `mixitup:seen` (field = incoming webhook route, value {okAt?, badAt?}) and `mixitup:out` (field = balance | deduct |
 // add | viewers, value {at, ok, detail}). Recording is a side effect: it never throws and the request never depends on it.
 import { kv } from './db';
-import { CONNECTED_MS } from './bridge-core';
+import { CONNECTED_MS, type ObsSnapshot } from './bridge-core';
 
 const SEEN = 'mixitup:seen';
 const OUT = 'mixitup:out';
@@ -50,11 +50,23 @@ export async function readMixItUpHealth(): Promise<MixItUpHealth> {
 export interface MixItUpHealth { seen: Record<string, Seen>; out: Partial<Record<OutKind, OutResult>> }
 export interface HealthChip { tone: 'ok' | 'warn' | 'bad' | 'muted'; text: string }
 
+/** What TCG Bridge sees in OBS, as one chip. Null when no bridge ever reported OBS. A report older than a minute counts as not connected. Pure. */
+export function obsChip(obs: ObsSnapshot | null | undefined, now: number): HealthChip | null {
+  if (!obs) return null;
+  if (!obs.connected || now - obs.at > CONNECTED_MS) return { tone: 'bad', text: 'OBS not connected' };
+  const { found, inProgram, visible } = obs.overlay;
+  if (!found) return { tone: 'warn', text: 'OBS: overlay source not found' };
+  if (!inProgram) return { tone: 'warn', text: `OBS: overlay not in the current scene (${obs.scene})` };
+  if (!visible) return { tone: 'warn', text: `OBS: overlay hidden in ${obs.scene}` };
+  return { tone: 'ok', text: `OBS: overlay visible in ${obs.scene}` };
+}
+
 /**
  * The status row: when Mix It Up last reached the site, any wrong secret, and one chip per address the site calls. In bridge mode
- * (`bridge` given: when a bridge last polled, or null) one TCG Bridge chip replaces the address chips. Pure.
+ * (`bridge` given: when a bridge last polled, or null, and what it last saw in OBS) one TCG Bridge chip and the OBS chip replace
+ * the address chips. Pure.
  */
-export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>, now: number, ago: (at: number, now: number) => string, bridge?: { at: number | null }): HealthChip[] {
+export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>, now: number, ago: (at: number, now: number) => string, bridge?: { at: number | null; obs?: ObsSnapshot | null }): HealthChip[] {
   const chips: HealthChip[] = [];
   const routes = Object.entries(health.seen);
   const last = routes.filter(([, s]) => s.okAt).sort((a, b) => b[1].okAt! - a[1].okAt!)[0];
@@ -68,6 +80,8 @@ export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>
     chips.push(bridge.at && now - bridge.at <= CONNECTED_MS
       ? { tone: 'ok', text: `TCG Bridge connected (${ago(bridge.at, now)})` }
       : { tone: 'bad', text: `TCG Bridge not connected${bridge.at ? ` (last seen ${ago(bridge.at, now)})` : ''}` });
+    const obs = obsChip(bridge.obs, now);
+    if (obs) chips.push(obs);
     return chips;
   }
   for (const kind of OUT_KINDS) {

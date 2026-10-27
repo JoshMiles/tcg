@@ -46,6 +46,29 @@
       </p>
     </section>
 
+    <section class="card">
+      <h2><span id="obs-dot" class="dot"></span>OBS</h2>
+      <dl>
+        <dt>State</dt><dd id="obs-state"></dd>
+        <dt>Scene</dt><dd id="obs-scene"></dd>
+        <dt>Stream</dt><dd id="obs-stream"></dd>
+        <dt>Overlay</dt><dd id="obs-overlay"></dd>
+      </dl>
+      <form id="obs-form">
+        <label class="inline"><input id="obs-on" type="checkbox"> Talk to OBS</label>
+        <label>Address <input id="obs-address" type="text" spellcheck="false" autocomplete="off"></label>
+        <label>Password <input id="obs-password" type="password" spellcheck="false" autocomplete="off"></label>
+        <div class="row">
+          <button type="submit" id="obs-save">Save</button>
+          <button type="button" id="obs-forget" hidden>Forget saved password</button>
+        </div>
+        <p id="obs-error" class="bad" role="alert"></p>
+      </form>
+      <p class="help muted">
+        In OBS open Tools &gt; WebSocket Server Settings, tick "Enable WebSocket server", and copy the Server Password here (OBS 28 or newer; leave it empty if you switched authentication off). TCG Bridge only talks to OBS on this PC. It tells the site when the stream starts and stops, which scene is on air, and whether the TCG overlay browser source is in that scene and visible. An overlay inside a nested scene is not seen.
+      </p>
+    </section>
+
     <section>
       <h2>Last jobs</h2>
       <p id="no-jobs" class="muted">Nothing yet. Jobs appear here when the site asks Mix It Up for something.</p>

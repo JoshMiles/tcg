@@ -91,6 +91,7 @@ const R: Record<string, Kind[] | { public: string }> = {
   'app/api/bridge/hello/route.ts': ['bridge'],
   'app/api/bridge/pair/route.ts': ['bridge'],
   'app/api/bridge/poll/route.ts': ['bridge'],
+  'app/api/bridge/report/route.ts': ['bridge'],
   'app/api/bridge/result/route.ts': ['bridge'],
   'app/api/collection/route.ts': ['overlay', 'staff'], // GET: the overlay key; POST: a ticket, or staff for a whole-collection replace
   // open by design

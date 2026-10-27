@@ -1,6 +1,7 @@
 // The long-poll loop and the Mix It Up watcher. Plain TypeScript, no Electron: main.ts only wires it to the tray and the window.
 import { isKnownKind, runJob, undoLate } from './jobs';
 import { MixItUpClient } from './mixitup';
+import type { ObsConfig, ObsState, ObsWatcher } from './obs';
 import { SiteClient, SiteError, Unauthorized, type BridgeJob, type BridgeResult } from './site';
 
 export type SiteState = 'connecting' | 'connected' | 'offline' | 'revoked';
@@ -14,11 +15,13 @@ export interface BridgeState {
   currency: string;
   jobs: JobEntry[];
   tray: TrayLevel;
+  obs: ObsState;
 }
 
 export interface ServiceOptions {
   client: SiteClient;
   mix: MixItUpClient;
+  obs: ObsWatcher;
   onChange: () => void;
   mixCheckMs?: number;
   backoffMs?: { min: number; max: number };
@@ -33,7 +36,7 @@ const sleep = (ms: number, signal: AbortSignal) => new Promise<void>(resolve => 
 });
 
 export class BridgeService {
-  readonly state: BridgeState = { site: 'connecting', siteError: '', lastPollAt: null, mix: { found: false, version: '' }, currency: '', jobs: [], tray: 'offline' };
+  readonly state: BridgeState;
   private abort = new AbortController();
   private helloPending = true;
   private done: Promise<unknown> = Promise.resolve();
@@ -41,22 +44,32 @@ export class BridgeService {
 
   constructor(opts: ServiceOptions) {
     this.o = { mixCheckMs: 5000, backoffMs: { min: 1000, max: 30_000 }, retryMs: 300, ...opts };
+    this.state = { site: 'connecting', siteError: '', lastPollAt: null, mix: { found: false, version: '' }, currency: '', jobs: [], tray: 'offline', obs: opts.obs.state };
   }
 
   start(): void {
+    this.o.obs.onChange = () => this.changed();
+    this.o.obs.start();
     this.done = Promise.all([this.pollLoop(), this.mixLoop()]);
   }
 
-  /** Stops both loops and waits for them. */
+  /** Stops the loops and OBS and waits for them. */
   async stop(): Promise<void> {
     this.abort.abort();
-    await this.done;
+    await Promise.all([this.done, this.o.obs.stop()]);
   }
 
+  /** New OBS settings from the window. */
+  reconfigureObs(config: ObsConfig): Promise<void> {
+    return this.o.obs.configure(config);
+  }
+
+  /** The tray: every part that counts is up = connected, none = not connected, else partly. OBS counts only when it is switched on. */
   private changed(): void {
     const s = this.state;
-    const up = (s.site === 'connected' ? 1 : 0) + (s.mix.found ? 1 : 0);
-    s.tray = up === 2 ? 'connected' : up === 1 ? 'partly' : 'offline';
+    const parts = [s.site === 'connected', s.mix.found, ...(s.obs.enabled ? [s.obs.connected] : [])];
+    const up = parts.filter(Boolean).length;
+    s.tray = up === parts.length ? 'connected' : up === 0 ? 'offline' : 'partly';
     this.o.onChange();
   }
 
@@ -64,6 +77,7 @@ export class BridgeService {
     this.state.site = 'revoked';
     this.state.siteError = 'Pair again';
     this.abort.abort();
+    void this.o.obs.stop();
     this.changed();
   }
 
@@ -128,7 +142,7 @@ export class BridgeService {
   }
 
   private async handle(job: BridgeJob): Promise<void> {
-    const result = await runJob(job, this.o.mix);
+    const result = await runJob(job, this.o.mix, this.o.obs);
     const entry = this.log({ kind: job.kind, username: job.username, ok: result.ok, detail: result.ok ? summary(job, result) : result.error ?? 'failed' });
     if (job.currencyId) this.state.currency = this.o.mix.currencyName(job.currencyId);
     this.changed();
@@ -170,6 +184,7 @@ function summary(job: BridgeJob, r: BridgeResult): string {
     case 'deduct': return `took ${job.amount}`;
     case 'add': return `gave ${job.amount}`;
     case 'viewers': return `${r.users?.length ?? 0} viewers`;
+    case 'obs-refresh': return 'refreshed the overlay in OBS';
     default: return 'said in chat';
   }
 }

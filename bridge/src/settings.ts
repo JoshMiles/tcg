@@ -2,14 +2,14 @@
 import { mkdirSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 
-export interface Settings { site: string; token: string; pairedAs: string; startWithWindows: boolean }
+export interface Settings { site: string; token: string; pairedAs: string; startWithWindows: boolean; obsEnabled: boolean; obsAddress: string; obsPassword: string }
 export const DEFAULT_SITE = 'https://cheesytcg.app';
-export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', startWithWindows: true });
+export const defaults = (): Settings => ({ site: DEFAULT_SITE, token: '', pairedAs: '', startWithWindows: true, obsEnabled: false, obsAddress: 'ws://127.0.0.1:4455', obsPassword: '' });
 
 export interface Cipher { encrypt(plain: string): Promise<Buffer>; decrypt(data: Buffer): Promise<string> }
 export interface SettingsStore { load(): Promise<Settings>; save(s: Settings): Promise<void> }
 
-/** settings.json in `dir`; the token is stored as base64 of the encrypted bytes, never in plain text. */
+/** settings.json in `dir`; the token and the OBS password are stored as base64 of the encrypted bytes, never in plain text. */
 export class FileSettingsStore implements SettingsStore {
   private file: string;
   constructor(dir: string, private cipher: Cipher) { this.file = join(dir, 'settings.json'); }
@@ -21,6 +21,9 @@ export class FileSettingsStore implements SettingsStore {
       if (typeof raw.site === 'string') s.site = raw.site;
       if (typeof raw.pairedAs === 'string') s.pairedAs = raw.pairedAs;
       if (typeof raw.startWithWindows === 'boolean') s.startWithWindows = raw.startWithWindows;
+      if (typeof raw.obsEnabled === 'boolean') s.obsEnabled = raw.obsEnabled;
+      if (typeof raw.obsAddress === 'string' && raw.obsAddress) s.obsAddress = raw.obsAddress;
+      if (typeof raw.obsPassword === 'string' && raw.obsPassword) s.obsPassword = await this.cipher.decrypt(Buffer.from(raw.obsPassword, 'base64')).catch(() => '');
       if (typeof raw.token === 'string' && raw.token) s.token = await this.cipher.decrypt(Buffer.from(raw.token, 'base64'));
     } catch { /* no file yet, or a token this PC cannot decrypt: start unpaired */ }
     return s;
@@ -28,7 +31,11 @@ export class FileSettingsStore implements SettingsStore {
 
   async save(s: Settings): Promise<void> {
     mkdirSync(join(this.file, '..'), { recursive: true });
-    const out = { site: s.site, pairedAs: s.pairedAs, startWithWindows: s.startWithWindows, token: s.token ? (await this.cipher.encrypt(s.token)).toString('base64') : '' };
+    const seal = async (plain: string) => (plain ? (await this.cipher.encrypt(plain)).toString('base64') : '');
+    const out = {
+      site: s.site, pairedAs: s.pairedAs, startWithWindows: s.startWithWindows, obsEnabled: s.obsEnabled, obsAddress: s.obsAddress,
+      obsPassword: await seal(s.obsPassword), token: await seal(s.token),
+    };
     const tmp = this.file + '.tmp';
     writeFileSync(tmp, JSON.stringify(out, null, 2));
     renameSync(tmp, this.file);

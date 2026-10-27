@@ -75,6 +75,14 @@ export async function setLiveFromHint(live: boolean): Promise<LiveStatus> {
   return status;
 }
 
+/** TCG Bridge says OBS started or stopped streaming. Same as the Mix It Up hint, but only when it says something new: a bridge repeats itself on every reconnect. */
+export async function setLiveFromBridge(live: boolean): Promise<boolean> {
+  const hint = await kv.get<{ live: boolean; at: number }>(HINT_KEY).catch(() => null);
+  if (hint && hint.live === live) return false;
+  await setLiveFromHint(live);
+  return true;
+}
+
 /** Stores a status, keeps the stream-start marker, posts the recap when offline and tells the System channel about a change. */
 async function applyStatus(status: LiveStatus, cached: LiveStatus | null): Promise<void> {
   await kv.set(KEY, status, { ex: 300 }).catch(() => {});
