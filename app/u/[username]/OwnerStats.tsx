@@ -15,6 +15,7 @@ import { buildAdvice, missingGain } from '@/lib/advisor';
 import { recordScoreSample } from '@/lib/score-history';
 import { chartPoints } from '@/lib/score-history-core';
 import { getSeasonOverview } from '@/lib/site-data';
+import { getPastSeasonResults } from '@/lib/season-wrap';
 import { computeUserStats, VARIANT_LABELS } from '@/lib/user-stats';
 import { usesFullArt } from '@/lib/variants';
 import { getRarity } from '@/lib/rarity';
@@ -39,11 +40,25 @@ export async function OwnerStats({ b, session, copies, restored, children }: { b
       <EarlierCollection session={session} restored={restored} />
     </>
   );
-  const [overview, holoFor, tradeLog] = await Promise.all([getSeasonOverview(season), getHoloResolver(), tradeHistory().catch(() => [])]);
+  const [overview, holoFor, tradeLog, pastResults] = await Promise.all([getSeasonOverview(season), getHoloResolver(), tradeHistory().catch(() => []), getPastSeasonResults(session.username).catch(() => [])]);
+  const past = pastResults.length > 0 && (
+    <section className="card rounded-2xl p-5 space-y-3" aria-label="Past seasons">
+      <h2 className="font-display text-xl font-bold text-white"><Icon name="trophy" className="mr-2 text-yellow-400" />Past seasons</h2>
+      <ul className="divide-y divide-gray-800/70">
+        {pastResults.map(r => (
+          <li key={r.seasonId} className="py-2 flex items-center gap-3 text-sm">
+            <Link href={`/leaderboard/${r.seasonId}`} className="flex-1 min-w-0 truncate font-semibold text-white hover:text-yellow-200">{r.seasonName}</Link>
+            <span className="font-bold text-yellow-300 tabular-nums">#{r.rank}</span>
+            <span className="text-gray-400 tabular-nums">{Math.round(r.score).toLocaleString()} pts</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
   // Upgrades only make sense in the season that is running.
   const live = season.active && !season.endedAt;
   const s = computeUserStats(overview, session.username, b.owned, b.collection, { upgrades: live });
-  if (s.copies === 0) return <div className="space-y-6">{lead}{children}</div>;
+  if (s.copies === 0) return <div className="space-y-6">{lead}{children}{past}</div>;
   const upgradesOn = live && overview.cards.some(c => c.pack.upgradesEnabled);
   const history = live ? await recordScoreSample(session.username, season.id, Math.round(s.score), s.rank) : [];
   const samples = chartPoints(history);
@@ -192,6 +207,8 @@ export async function OwnerStats({ b, session, copies, restored, children }: { b
           <p className="text-xs text-gray-600">Recorded each time you open this tab, so it starts from your first visit.</p>
         </section>
       )}
+
+      {past}
 
       <div className="flex flex-wrap items-center gap-3">
         <ShareImageButton spec={shareSpec} filename={`cheesy-tcg-${session.username}-stats.png`} label="Share my stats" />
