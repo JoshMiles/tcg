@@ -6,16 +6,14 @@ import { recordAudit } from '@/lib/audit';
 import { takeUserSnapshot } from '@/lib/user-admin';
 import { deleteViewerAccount } from '@/lib/account-deletion';
 import {
-  listSeasons, updateCollection, deleteCollection, removeUserFromCollection, addCollectionEntryWithSerial, withCollectionLock,
-  getUserProfile, saveUserProfile, getActiveSeasonWithPacks, ensureUserProfile,
+  listSeasons, updateCollection, deleteCollection, removeUserFromCollection, withCollectionLock,
+  getUserProfile, saveUserProfile,
 } from '@/lib/kv';
 import type { UserProfile } from '@/lib/types';
-import { VARIANT_LABELS, encodeEntry, decodeEntry } from '@/lib/variants';
+import { VARIANT_LABELS, decodeEntry } from '@/lib/variants';
 import { recordActivity } from '@/lib/activity';
-import { getOverlayStatus } from '@/lib/overlay';
-import { enqueueEvent } from '@/lib/webhooks';
 import { clearQueueRefunding } from '@/lib/queue-control';
-import { issueDraw } from '@/lib/draw';
+import { grantCardTo, queueOverlayEvents } from '@/lib/staff-actions';
 import type { ActionResult } from '../action-types';
 import { parseVariant, requireSeasonCollection, cleanUsername, BAD_USERNAME } from './form-helpers';
 
@@ -109,32 +107,7 @@ export async function resetAllUsers() {
 async function queueForOverlay(kind: 'pull' | 'collection', formData: FormData, count: number): Promise<ActionResult> {
   const username = cleanUsername(formData.get('username'));
   if (!username) return BAD_USERNAME;
-
-  const status = await getOverlayStatus();
-  const force = formData.get('force') === 'on';
-  if (status.connected === 0 && !force) {
-    return {
-      ok: false,
-      needsForce: true,
-      message: 'No overlay is connected, so nothing would play on stream. Open the overlay in OBS first, or queue it anyway to play when one connects.',
-    };
-  }
-
-  for (let i = 0; i < count; i++) {
-    const id = crypto.randomUUID();
-    // A pull is rolled here (lib/draw.ts) so the overlay can only save what was rolled. Gifts are never charged.
-    const draw = kind === 'pull' ? await issueDraw(id, username) : undefined;
-    if (kind === 'pull' && !draw) return { ok: false, message: 'The active season has no packs with cards to open.' };
-    await enqueueEvent({ id, type: kind, username, queuedAt: Date.now(), ...(draw ? { draw } : {}) });
-  }
-  await recordActivity({ type: 'trigger', kind, username, source: 'admin', count });
-  revalidatePath('/admin');
-  revalidatePath('/admin/activity');
-
-  const waiting = status.connected === 0 ? ' It will play when an overlay connects.' : '';
-  return kind === 'pull'
-    ? { ok: true, message: `Queued ${count} pack${count !== 1 ? 's' : ''} for ${username}.${waiting}` }
-    : { ok: true, message: `Showing ${username}'s collection on stream.${waiting}` };
+  return queueOverlayEvents(kind, username, count, formData.get('force') === 'on');
 }
 
 async function giftPack(formData: FormData): Promise<ActionResult> {
@@ -161,20 +134,7 @@ async function grantCard(formData: FormData): Promise<ActionResult> {
   const username = cleanUsername(formData.get('username'));
   if (!username) return BAD_USERNAME;
 
-  const cardNumber = parseInt(String(formData.get('cardNumber') ?? ''), 10);
-  const active = await getActiveSeasonWithPacks();
-  if (!active) return { ok: false, message: 'There is no active season to grant a card in.' };
-  const card = active.packs.flatMap(p => p.cards).find(c => c.number === cardNumber);
-  if (!card) return { ok: false, message: 'Pick a card from the list.' };
-
-  const collectionName = active.season.collectionName;
-  const variant = parseVariant(formData.get('variant'));
-  const made = await addCollectionEntryWithSerial(collectionName, username, encodeEntry(card.number, variant), 'grant');
-  await ensureUserProfile(username);
-  await recordActivity({ type: 'grant', source: 'admin', username, cardNumber: card.number, variant, collectionName, ...(made.copyId ? { copyId: made.copyId } : {}), ...(made.uid ? { uid: made.uid } : {}) });
-  revalidatePath('/admin');
-  revalidatePath('/admin/users');
-  return { ok: true, message: `Granted ${variant === 'regular' ? '' : VARIANT_LABELS[variant] + ' '}${card.name} (#${card.number}) to ${username}.` };
+  return grantCardTo(username, parseInt(String(formData.get('cardNumber') ?? ''), 10), parseVariant(formData.get('variant')));
 }
 
 export async function clearQueueAction(): Promise<ActionResult> {

@@ -2,7 +2,8 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin-guard';
 import { recordAudit } from '@/lib/audit';
-import { createPairCode, revokeBridge } from '@/lib/bridge';
+import { createPairCode, revokeBridge, setBridgeStaff } from '@/lib/bridge';
+import { liftPullBlock } from '@/lib/pull-block';
 import { showCode } from '@/lib/bridge-core';
 
 /** Makes a one-time code (good for 10 minutes) to type into TCG Bridge. Returned to the page, never put in a URL. */
@@ -18,5 +19,21 @@ export async function revokeBridgeAction(id: string): Promise<void> {
   await requireAdmin();
   const name = await revokeBridge(String(id));
   if (name) await recordAudit('everyone', 'TCG Bridge revoked', name);
+  revalidatePath('/admin/mixitup');
+}
+
+/** Switches "Staff tools on this PC" on or off (ROADMAP 55.12). Off by default; revoking the PC ends it too. */
+export async function setBridgeStaffAction(id: string, on: boolean): Promise<void> {
+  await requireAdmin();
+  const name = await setBridgeStaff(String(id), on === true);
+  if (name) await recordAudit('everyone', on ? 'TCG Bridge staff tools switched on' : 'TCG Bridge staff tools switched off', name);
+  revalidatePath('/admin/mixitup');
+}
+
+/** Lifts a block from pulls (the Blocked from pulls list on the Mix It Up page). */
+export async function liftPullBlockAction(username: string): Promise<void> {
+  await requireAdmin();
+  const lower = String(username).toLowerCase();
+  if (await liftPullBlock(lower)) await recordAudit(lower, 'Pull block lifted');
   revalidatePath('/admin/mixitup');
 }

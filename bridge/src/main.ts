@@ -1,5 +1,5 @@
 // TCG Bridge, the Electron glue: one instance, a tray icon, a small window, auto start and updates. The logic is in the other modules.
-import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, safeStorage, shell, Tray } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, safeStorage, shell, Tray, type MenuItemConstructorOptions } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { mkdirSync } from 'node:fs';
 import { hostname, release, tmpdir, version as osVersion } from 'node:os';
@@ -15,6 +15,7 @@ import { MixItUpClient } from './mixitup';
 import { cleanObsAddress, ObsWatcher } from './obs';
 import { checkObs, sendTestChat, testMixItUp, type TestResult } from './selftest';
 import { BridgeService, type TrayLevel } from './service';
+import { StaffTools } from './staff';
 import { FileSettingsStore, defaults, type Settings } from './settings';
 import { cleanSite, pair, SiteClient, Unauthorized, type QueueRow } from './site';
 import { Startup, type StartupEvent, type StartupStep } from './startup';
@@ -51,6 +52,9 @@ let hotkeys: Hotkeys | null = null;
 let hotkeyErrors: Partial<Record<HotkeyName, string>> = {};
 let paused: boolean | null = null; // pulls paused on the site; null until the site has said
 let buffs: { id: string; name: string }[] = []; // the buffs switched on for the Stream Deck
+let staff = false; // the site says an admin switched "Staff tools on this PC" on (55.12)
+let tradingPaused = false;
+let staffTools: StaffTools | null = null;
 let lastControl = ''; // what the last button, hotkey or switch got
 let queueRows: QueueRow[] = [];
 let queueAt = 0;
@@ -85,6 +89,7 @@ const appState = (): object => demoState ?? ({
   alerts: settings.alerts,
   mixItUp: { startWithBridge: settings.startMixItUp, path: settings.mixItUpPath || defaultMixItUpPath() },
   tools: { feed: settings.feed, summary: settings.summary, startObs: settings.startObs, obsPath: settings.obsPath || defaultObsPath() },
+  staff,
   control: { error: control?.error ?? '', paused, last: lastControl, hotkeys: settings.hotkeys, hotkeyErrors, buttons: buttons() },
   appVersion: app.getVersion(),
   update: updateText(update),
@@ -110,7 +115,7 @@ function push(): void {
   tray?.setToolTip(`TCG Bridge: ${TRAY_TEXT[level]}`);
   if (win && !win.isDestroyed()) win.webContents.send('state', appState());
   tickAlerts();
-  const menu = `${paused}${!!client}`;
+  const menu = `${paused}${!!client}${staff}${tradingPaused}${staff ? sceneList().join('|') : ''}`;
   if (menu !== menuFor) { menuFor = menu; tray?.setContextMenu(trayMenu()); }
   if (service?.state.site === 'revoked' && settings.token) { // the site revoked this PC: forget the token so a restart does not retry it
     log('The site revoked this PC');
@@ -142,6 +147,8 @@ async function loadStatus(): Promise<void> {
     if (!r) return;
     paused = r.paused ?? paused;
     buffs = r.buffs ?? buffs;
+    staff = r.staff === true;
+    tradingPaused = staff && (r.tradingPaused ?? tradingPaused);
     push();
   } catch { /* the next try is in 30 seconds */ }
 }
@@ -160,6 +167,7 @@ function connect(): void {
   alerts = new Alerts();
   ledger ??= new Ledger(join(app.getPath('userData'), 'ledger.json'));
   service = new BridgeService({ client: site, mix: new MixItUpClient(), obs, onChange: push, log, ledger, backupDir: backupDir(), sinks: { feed: showPull, summary: showSummary } });
+  staffTools = new StaffTools({ client: site, mix: new MixItUpClient(), obs, currencyId: () => service?.state.currencyId ?? '', openExternal: url => shell.openExternal(url) });
   service.start();
   push();
   void loadStatus();
@@ -172,6 +180,9 @@ async function disconnect(): Promise<void> {
   client = null;
   paused = null;
   buffs = [];
+  staff = false;
+  tradingPaused = false;
+  staffTools = null;
   await old?.stop();
 }
 
@@ -307,11 +318,38 @@ function createTray(): void {
   tray.setContextMenu(trayMenu());
 }
 
+const sceneList = (): string[] => service?.obs.sceneNames() ?? [];
+
+/** Pauses or opens trading from the Staff tab or the tray (55.12). Pausing asks first, in a Windows dialog, so a mis-click cannot stop trading. */
+async function setTrading(pause: boolean): Promise<{ ok: boolean; text: string }> {
+  if (!staffTools || !staff) return { ok: false, text: 'Staff tools are off for this PC' };
+  if (pause) {
+    const options = { type: 'question' as const, buttons: ['Pause trading', 'Cancel'], defaultId: 1, cancelId: 1, title: 'Pause trading', message: 'Pause trading for everyone?', detail: 'Viewers cannot send or accept trades until you open it again.' };
+    const answer = win && !win.isDestroyed() && win.isVisible() ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options);
+    if (answer.response !== 0) return { ok: false, text: 'Trading was left as it was.' };
+  }
+  const r = await staffTools.run({ op: 'do', action: 'trading', on: !pause });
+  if (r.ok) tradingPaused = pause;
+  log(`Staff: trading ${pause ? 'pause' : 'open'}: ${r.ok ? 'ok' : 'failed'}, ${r.text}`);
+  push();
+  return { ok: r.ok, text: r.text };
+}
+
 const trayMenu = () => Menu.buildFromTemplate([
   { label: 'Open TCG Bridge', click: showWindow },
   { label: 'Pause pulls', type: 'checkbox', checked: !!paused, enabled: !!client, click: () => { void runControl({ action: 'pause' }); } },
+  ...staffMenu(),
   { label: 'Quit', click: () => app.quit() },
 ]);
+
+/** The tray items only a staff PC gets: pause trading and switch the OBS scene. */
+function staffMenu(): MenuItemConstructorOptions[] {
+  if (!staff) return [];
+  return [
+    { label: 'Pause trading', type: 'checkbox', checked: tradingPaused, click: () => { void setTrading(!tradingPaused); } },
+    { label: 'Switch scene', enabled: sceneList().length > 0, submenu: sceneList().map(name => ({ label: name, click: () => { void staffTools?.run({ op: 'scene', name }).then(r => log(`Staff: scene ${name}: ${r.ok ? 'ok' : 'failed'}, ${r.text}`)); } })) },
+  ];
+}
 
 /** Every updater event goes through the start-up machine: it says what the start-up window shows, when to open the app, and what the window says about updates. */
 function feed(e: StartupEvent): void {
@@ -433,6 +471,21 @@ function setupIpc(): void {
     return { ok: true, text: '', rows: queueRows };
   });
   ipcMain.handle('queue-do', (_e, what: string) => runControl({ action: what === 'clear' ? 'clear-queue' : 'skip' }));
+
+  // ── Staff tools (55.12): one request in, one answer out; the Staff tab asks only while it is open ──
+  ipcMain.handle('staff', async (_e, req: Record<string, unknown>) => {
+    if (!staffTools || !staff) return { ok: false, text: 'Staff tools are off for this PC' };
+    try {
+      const r = await staffTools.run(req && typeof req === 'object' ? req : {});
+      const tp = r.data?.tradingPaused;
+      if (r.ok && typeof tp === 'boolean' && tp !== tradingPaused) { tradingPaused = tp; push(); }
+      if (req?.op === 'do') log(`Staff: ${String(req.action)}: ${r.ok ? 'ok' : 'failed'}, ${r.text}`);
+      return r;
+    } catch (e) {
+      return { ok: false, text: e instanceof Unauthorized ? 'Pair again' : e instanceof Error ? e.message : 'Something went wrong' };
+    }
+  });
+  ipcMain.handle('staff-trading', (_e, pause: boolean) => setTrading(!!pause));
 
   // ── Self-tests ──
   ipcMain.handle('test-mix', async (_e, name: string) => asText(await testMixItUp(new MixItUpClient(), String(name), service?.state.currencyId ?? '')));

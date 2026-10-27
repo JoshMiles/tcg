@@ -19,6 +19,7 @@ import { MixItUpClient } from '../src/mixitup';
 import { cleanObsAddress, isOverlayUrl, ObsWatcher } from '../src/obs';
 import { checkObs, sendTestChat, testMixItUp, TEST_CHAT_MESSAGE } from '../src/selftest';
 import { BridgeService } from '../src/service';
+import { cleanStaffAction, StaffTools } from '../src/staff';
 import { defaults, FileSettingsStore } from '../src/settings';
 import { CHECK_NOTE, DOWNLOAD_NOTE, Startup } from '../src/startup';
 import { checkText, releaseUrl, updatedTo, updateText } from '../src/update';
@@ -911,6 +912,69 @@ async function main() {
     const bad = new SiteClient(s.url, 'wrong', '0.7.0');
     await assert.rejects(bad.action({ action: 'pause' }), /Pair again/);
     await assert.rejects(bad.queue(), /Pair again/);
+    s.server.close();
+  }
+
+  // staff tools (55.12): the client's 403 and reads, the action whitelist and cleaning, the cached name list, the viewer's Brie Bucks, scene and admin link
+  {
+    const seen: string[] = [];
+    let staffOn = true;
+    const s = await listen((req, res, body) => {
+      seen.push(`${req.method} ${req.url}${body ? ' ' + body : ''}`);
+      if (req.headers.authorization !== `Bearer ${TOKEN}`) return send(res, 401, { error: 'no' });
+      if (!staffOn) return send(res, 403, { error: 'off' });
+      const what = new URL(req.url ?? '', 'http://x').searchParams.get('what');
+      if (req.method === 'GET') {
+        if (what === 'users') return send(res, 200, { users: ['alice', 'bob'] });
+        if (what === 'state') return send(res, 200, { tradingPaused: true, extra: 2, blocks: [], variants: [] });
+        if (what === 'viewer') return send(res, 200, { username: 'alice', copies: 3, unique: 2, rank: 1, of: 9, pulls: [], refusals: [], blocked: false });
+        return send(res, 200, { cards: [{ number: 1, name: 'Gouda' }] });
+      }
+      const sent = JSON.parse(body);
+      send(res, 200, sent.action === 'gift' && !sent.force ? { ok: false, message: 'No overlay', needsForce: true } : { ok: true, message: `did ${sent.action}` });
+    });
+    const client = new SiteClient(s.url, TOKEN, '0.10.0');
+    const scenes = ['Main', 'BRB'];
+    let current = 'Main';
+    const opened: string[] = [];
+    const quiet = { mix: { twitchUser: async () => null }, obs: { sceneNames: () => [] as string[], setScene: async () => undefined, state: { scene: '' } }, currencyId: () => '', openExternal: () => undefined };
+    const tools = new StaffTools({
+      client,
+      mix: { twitchUser: async name => (name === 'alice' ? { id: ALICE, twitchId: '1', username: 'alice', amounts: [{ id: CUR.toUpperCase(), name: 'Brie Bucks', amount: 42 }] } : null) },
+      obs: { sceneNames: () => scenes, setScene: async n => { current = n; }, state: { scene: 'Main' } },
+      currencyId: () => CUR,
+      openExternal: url => { opened.push(url); },
+    });
+    assert.deepEqual(cleanStaffAction({ action: 'gift', username: '@Alice', count: 99, force: 'yes', evil: 1 }), { action: 'gift', username: 'alice', count: 10, force: false });
+    assert.equal(cleanStaffAction({ action: 'delete-everything', username: 'alice' }), null);
+    assert.equal(cleanStaffAction({ action: 'block', username: '../admin' }), null);
+    assert.deepEqual(cleanStaffAction({ action: 'block', username: 'bob', mode: 'until-lifted' }), { action: 'block', username: 'bob', mode: 'until-lifted' });
+    assert.deepEqual(cleanStaffAction({ action: 'trading', on: true }), { action: 'trading', on: true });
+    assert.deepEqual(cleanStaffAction({ action: 'stream-extra', amount: -4 }), { action: 'stream-extra', amount: 0 });
+    assert.deepEqual(cleanStaffAction({ action: 'grant', username: 'bob', cardNumber: '12', variant: 'shiny' }), { action: 'grant', username: 'bob', cardNumber: 12, variant: 'shiny' });
+
+    const state = await tools.run({ op: 'state' });
+    assert.ok(state.ok && state.data?.tradingPaused === true && (state.data?.scenes as string[]).join() === 'Main,BRB');
+    await tools.run({ op: 'users' });
+    await tools.run({ op: 'users' });
+    assert.equal(seen.filter(l => l.includes('what=users')).length, 1, 'the name list is read once, then kept');
+    const v = await tools.run({ op: 'viewer', name: 'Alice' });
+    assert.ok(v.ok && v.data?.bucks === 42 && v.data?.rank === 1, 'Brie Bucks come from Mix It Up, the rest from the site');
+    assert.equal((await tools.run({ op: 'viewer', name: 'nobody' })).data?.bucks, null);
+    assert.equal((await tools.run({ op: 'viewer', name: 'bad name!' })).ok, false);
+    const gift = await tools.run({ op: 'do', action: 'gift', username: 'alice', count: 2 });
+    assert.ok(!gift.ok && gift.data?.needsForce === true);
+    assert.ok((await tools.run({ op: 'do', action: 'gift', username: 'alice', count: 2, force: true })).ok);
+    assert.equal((await tools.run({ op: 'do', action: 'launch-missiles', username: 'alice' })).ok, false);
+    assert.ok(!seen.some(l => l.includes('launch-missiles')), 'an action off the list never reaches the site');
+    assert.ok((await tools.run({ op: 'scene', name: 'BRB' })).ok && current === 'BRB' && seen.some(l => l.includes('"action":"scene","name":"BRB"')), 'the scene is switched here and logged on the site');
+    assert.equal((await tools.run({ op: 'scene', name: 'Nope' })).ok, false);
+    assert.ok((await tools.run({ op: 'open-admin', name: 'Alice' })).ok && opened[0] === `${s.url}/admin/users/alice`);
+    assert.equal((await tools.run({ op: 'open-admin', name: 'a/../b' })).ok, false);
+    staffOn = false;
+    assert.match((await tools.run({ op: 'do', action: 'trading', on: false })).text, /Staff tools are off/);
+    assert.equal((await new StaffTools({ ...quiet, client }).run({ op: 'cards', q: 'g' })).ok, false, 'a read on a PC without the switch says so');
+    await assert.rejects(new StaffTools({ ...quiet, client: new SiteClient(s.url, 'wrong', '0.10.0') }).run({ op: 'state' }), /Pair again/);
     s.server.close();
   }
 

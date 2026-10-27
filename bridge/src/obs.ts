@@ -186,6 +186,16 @@ export class ObsWatcher {
     this.later(secs * 1000, async () => { if (this.state.scene === name && back && back !== name) await obs.call('SetCurrentProgramScene', { sceneName: back }); });
   }
 
+  /** The scene names last read from OBS (the Staff tab's scene list, ROADMAP 55.12). */
+  sceneNames(): string[] { return [...this.scenes]; }
+
+  /** Cuts to a scene OBS reported and stays there (the Staff tab); `switchScene` goes back by itself. */
+  async setScene(name: string): Promise<void> {
+    const obs = this.live();
+    if (!this.scenes.includes(name)) throw new ObsError(`OBS has no scene called ${name}`);
+    await this.ask(() => obs.call('SetCurrentProgramScene', { sceneName: name }), 'OBS did not switch the scene');
+  }
+
   /** Shows a source of the scene on air, and hides it again after `holdMs` (0 leaves it shown). */
   async showSource(name: string, holdMs: number): Promise<void> {
     const obs = this.live();

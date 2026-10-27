@@ -26,6 +26,7 @@ import { Overview, CHIP_STYLE } from './Overview';
 import { PullRules } from './PullRules';
 import { ChatBucks } from './ChatBucks';
 import { readLedgerCheck } from '@/lib/bridge-chat';
+import { listPullBlocks } from '@/lib/pull-block';
 import { readUptime } from '@/lib/bridge-uptime';
 import { recentTests } from '@/lib/mixitup-test';
 import { inSandbox } from '@/lib/db';
@@ -58,6 +59,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
   const obs = await readObs();
   const watchdogAt = await readWatchdogAt();
   const bridges = await listBridges();
+  const blocks = await listPullBlocks();
   const now = Date.now();
   const setupLabel = bridges.length > 0 || Object.values(health.seen).some(s => s.okAt) ? 'Run setup again' : 'Set up Mix It Up';
   const mergedLog = async () => [...(await getMixItUpLog()), ...(await getCommandLog())].sort((a, b) => b.at - a.at);
@@ -100,7 +102,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
       {tab === 'connection' && (
         <div className="space-y-6">
           <Link href="/admin/mixitup/setup" className="btn btn-primary btn-sm"><Icon name="wrench" />{setupLabel}</Link>
-          <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never' }))} />
+          <ConnectionTab settings={settings} bridge={bridge} bridges={bridges.map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never', staff: !!b.staff, by: b.by ?? '' }))} blocks={blocks.map(b => ({ username: b.username, by: b.by, scope: b.streamKey ? 'this stream' : 'until lifted' }))} />
         </div>
       )}
       {tab === 'paid' && <MixItUpConfig settings={settings} />}

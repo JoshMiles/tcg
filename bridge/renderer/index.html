@@ -33,6 +33,7 @@
     <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
     <symbol id="i-keyboard" viewBox="0 0 24 24"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></symbol>
     <symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
   </svg>
 
   <div class="app">
@@ -49,6 +50,7 @@
       <nav class="rail" aria-label="Sections">
         <button type="button" class="rail-btn" data-tab="status" aria-current="page"><svg class="i"><use href="#i-activity"/></svg><span>Status</span></button>
         <button type="button" class="rail-btn" data-tab="control"><svg class="i"><use href="#i-keyboard"/></svg><span>Control</span></button>
+        <button type="button" id="rail-staff" class="rail-btn" data-tab="staff" hidden><svg class="i"><use href="#i-shield"/></svg><span>Staff</span></button>
         <button type="button" class="rail-btn" data-tab="settings"><svg class="i"><use href="#i-settings"/></svg><span>Settings</span></button>
         <button type="button" class="rail-btn" data-tab="about"><svg class="i"><use href="#i-info"/></svg><span>About</span></button>
         <div class="rail-foot"><span id="rail-dot" class="dot bad"></span><span id="rail-text">Not connected</span></div>
@@ -216,6 +218,67 @@
               </details>
             </section>
           </div>
+        </section>
+
+        <!-- Staff tools (55.12): only when an admin switched "Staff tools on this PC" on at Mix It Up, Connection -->
+        <section data-panel="staff" hidden>
+          <section class="card">
+            <h2 class="plain-title">Viewer</h2>
+            <p class="muted small">Type a Twitch name. Names the site knows complete as you type.</p>
+            <div class="row">
+              <input id="staff-name" type="text" list="staff-users" spellcheck="false" autocomplete="off" maxlength="40" placeholder="Twitch name">
+              <datalist id="staff-users"></datalist>
+              <button type="button" id="staff-lookup" class="btn plain">Look up</button>
+              <button type="button" id="staff-admin" class="btn plain"><svg class="i"><use href="#i-external-link"/></svg>Open in admin</button>
+            </div>
+            <dl id="staff-viewer" class="facts" hidden></dl>
+            <div class="row tools">
+              <input id="staff-count" type="number" min="1" max="10" value="1" aria-label="Packs to gift">
+              <button type="button" id="staff-gift" class="btn">Gift packs</button>
+              <button type="button" id="staff-collection" class="btn plain">Show collection</button>
+            </div>
+            <div class="row tools">
+              <select id="staff-block-mode" aria-label="How long to block">
+                <option value="stream">For this stream</option>
+                <option value="until-lifted">Until lifted</option>
+              </select>
+              <button type="button" id="staff-block" class="btn plain">Block from pulls</button>
+              <button type="button" id="staff-unblock" class="btn plain">Lift block</button>
+            </div>
+            <p id="staff-viewer-result" class="result" role="status"></p>
+          </section>
+          <section class="card">
+            <h2 class="plain-title">Cards</h2>
+            <p class="muted small">Grant a card to the viewer above, or show one of their cards on stream.</p>
+            <div class="row">
+              <input id="staff-card" type="text" list="staff-cards" spellcheck="false" autocomplete="off" maxlength="80" placeholder="Card name or number">
+              <datalist id="staff-cards"></datalist>
+              <select id="staff-variant" aria-label="Variant"></select>
+            </div>
+            <div class="row tools">
+              <button type="button" id="staff-grant" class="btn">Grant card</button>
+              <button type="button" id="staff-showcard" class="btn plain">Show card on stream</button>
+            </div>
+            <p id="staff-card-result" class="result" role="status"></p>
+          </section>
+          <section class="card">
+            <h2 class="plain-title">This stream</h2>
+            <div class="row">
+              <input id="staff-extra" type="number" min="0" max="1000" value="1" aria-label="Extra pulls for everyone">
+              <button type="button" id="staff-extra-set" class="btn">Set extra pulls</button>
+              <button type="button" id="staff-extra-clear" class="btn plain">Clear</button>
+              <span id="staff-extra-now" class="muted small"></span>
+            </div>
+            <div class="row tools">
+              <select id="staff-scene" aria-label="OBS scene"></select>
+              <button type="button" id="staff-scene-go" class="btn plain">Switch scene</button>
+            </div>
+            <div class="row tools">
+              <button type="button" id="staff-trading" class="btn plain">Pause trading</button>
+              <span id="staff-trading-now" class="muted small"></span>
+            </div>
+            <p id="staff-stream-result" class="result" role="status"></p>
+          </section>
         </section>
 
         <!-- Settings -->

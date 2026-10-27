@@ -7,5 +7,5 @@ export async function POST(req: Request) {
   const g = await bridgeGuard(req);
   if (!g.ok) return g.response;
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-  return NextResponse.json(await runBridgeAction(body ?? {}));
+  return NextResponse.json(await runBridgeAction(body ?? {}, g.pc));
 }

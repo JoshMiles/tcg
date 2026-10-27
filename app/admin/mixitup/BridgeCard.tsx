@@ -3,15 +3,16 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArmedButton } from '@/app/components/ArmedButton';
 import { Icon } from '@/app/components/Icon';
-import { createPairCodeAction, revokeBridgeAction } from './bridge-actions';
+import { createPairCodeAction, liftPullBlockAction, revokeBridgeAction, setBridgeStaffAction } from './bridge-actions';
 
-export interface BridgeRow { id: string; name: string; paired: string; seen: string }
+export interface BridgeRow { id: string; name: string; paired: string; seen: string; staff: boolean; by: string }
+export interface BlockRow { username: string; by: string; scope: string }
 
 const DOWNLOAD_URL = 'https://github.com/JoshMiles/tcg/releases?q=bridge-v&expanded=true';
 const secondary ='rounded-lg border border-gray-700 px-3 py-2 text-sm font-semibold text-gray-200 hover:border-gray-500 disabled:opacity-60';
 
 /** Paid pulls → TCG Bridge: make a pairing code, and see or revoke the paired bridges. A token or its hash is never shown. */
-export function BridgeCard({ bridges, version }: { bridges: BridgeRow[]; version: string }) {
+export function BridgeCard({ bridges, version, blocks = [] }: { bridges: BridgeRow[]; version: string; blocks?: BlockRow[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [pair, setPair] = useState<{ code: string; until: string } | null>(null);
@@ -43,7 +44,17 @@ export function BridgeCard({ bridges, version }: { bridges: BridgeRow[]; version
               <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div>
                   <span className="font-semibold text-white">{b.name}</span>
-                  <span className="block text-xs text-gray-500">Paired {b.paired}. Last seen {b.seen}.</span>
+                  <span className="block text-xs text-gray-500">Paired {b.paired}{b.by && <> by {b.by}</>}. Last seen {b.seen}.</span>
+                  <label className="mt-1 flex items-center gap-2 text-xs text-gray-300">
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-xs"
+                      checked={b.staff}
+                      disabled={pending}
+                      onChange={e => start(async () => { await setBridgeStaffAction(b.id, e.target.checked); router.refresh(); })}
+                    />
+                    Staff tools on this PC
+                  </label>
                 </div>
                 <ArmedButton
                   onConfirm={() => start(async () => { await revokeBridgeAction(b.id); router.refresh(); })}
@@ -55,6 +66,19 @@ export function BridgeCard({ bridges, version }: { bridges: BridgeRow[]; version
               </li>
             ))}
           </ul>
+        )}
+        {blocks.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-white">Blocked from pulls</h3>
+            <ul className="divide-y divide-gray-800 text-sm">
+              {blocks.map(b => (
+                <li key={b.username} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span className="text-gray-200">{b.username}<span className="block text-xs text-gray-500">{b.scope}, by {b.by}</span></span>
+                  <button type="button" disabled={pending} className={secondary} onClick={() => start(async () => { await liftPullBlockAction(b.username); router.refresh(); })}>Lift</button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     </section>

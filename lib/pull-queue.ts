@@ -9,6 +9,7 @@ import { inSandbox } from './db';
 import { dropDraw, issueDraw } from './draw';
 import { traceStep } from './mixitup-trace';
 import { isPullsPaused, PAUSED_MESSAGE } from './pull-pause';
+import { blockedRefusal } from './pull-block';
 
 export interface PullOptions {
   /** What the webhook sent as `role` (limits are per role). */
@@ -30,6 +31,15 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
   if (!o.test && !o.free && (await isPullsPaused())) {
     await note('balance', 'failed', PAUSED_MESSAGE);
     return { ok: true, ignored: true, reason: 'paused', message: PAUSED_MESSAGE };
+  }
+
+  // Blocked from pulls by staff (ROADMAP 55.12): refused like any other refusal. A test and a free pack the streamer gave still go through.
+  if (!o.test && !o.free) {
+    const blocked = await blockedRefusal(username);
+    if (blocked) {
+      await note('balance', 'failed', blocked.message);
+      return { ok: true, ignored: true, ...blocked };
+    }
   }
 
   // Paid pulls (Settings → Mix It Up): the viewer's limit and balance are checked first; a refusal queues nothing and says why.

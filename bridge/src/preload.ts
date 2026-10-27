@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('bridge', {
   setHotkeys: (map: Record<string, string>): Promise<Record<string, string>> => ipcRenderer.invoke('set-hotkeys', map),
   getQueue: (): Promise<{ ok: boolean; text: string; rows: { id: string; kind: string; username: string; pack: string; waitedS: number }[] }> => ipcRenderer.invoke('queue'),
   queueDo: (what: 'skip' | 'clear'): Result => ipcRenderer.invoke('queue-do', what),
+  staff: (req: Record<string, unknown>): Promise<{ ok: boolean; text: string; data?: Record<string, unknown> }> => ipcRenderer.invoke('staff', req),
+  staffTrading: (pause: boolean): Result => ipcRenderer.invoke('staff-trading', !!pause),
   openRelease: (): Promise<void> => ipcRenderer.invoke('open-release'),
   dismissUpdated: (): Promise<void> => ipcRenderer.invoke('dismiss-updated'),
 });

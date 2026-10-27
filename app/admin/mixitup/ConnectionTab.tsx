@@ -4,7 +4,7 @@ import { Panel, fieldClass, selectClass } from '../components/ui';
 import type { MixItUpSettings } from '@/lib/mixitup-core';
 import type { BridgeState } from '@/lib/bridge';
 import { saveConnectionAction, checkBalanceAction, sendTestAction } from './mixitup-actions';
-import { BridgeCard, type BridgeRow } from './BridgeCard';
+import { BridgeCard, type BlockRow, type BridgeRow } from './BridgeCard';
 import { ConnectionSwitch } from './ConnectionSwitch';
 import { PaidPullSetup } from './PaidPullSetup';
 import { addTestViewerAction, removeTestViewerAction } from './test-pull-actions';
@@ -14,10 +14,10 @@ const help = 'text-[11px] text-gray-500 leading-relaxed';
 const secondary = 'btn btn-sm btn-outline';
 
 /** Mix It Up → Connection: TCG Bridge (download, pairing, paired apps), how the site talks to Mix It Up, the currency, the direct addresses (Advanced) and the Try it buttons. */
-export function ConnectionTab({ settings: s, bridge, bridges }: { settings: MixItUpSettings; bridge: BridgeState; bridges: BridgeRow[] }) {
+export function ConnectionTab({ settings: s, bridge, bridges, blocks }: { settings: MixItUpSettings; bridge: BridgeState; bridges: BridgeRow[]; blocks: BlockRow[] }) {
   return (
     <div className="space-y-6">
-      <BridgeCard version={bridge.version} bridges={bridges} />
+      <BridgeCard version={bridge.version} bridges={bridges} blocks={blocks} />
 
       <form action={saveConnectionAction}>
         <Panel title="Connection to Mix It Up" icon="link" hint="TCG Bridge is the normal way. Direct addresses are for a relay of your own and live under Advanced.">
