@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Panel, fieldClass } from '../components/ui';
-import { COOLDOWN_MAX, MESSAGE_MAX, MESSAGE_VARS, PRICED_ROLES, PULL_ROLES, PULL_ROLE_LABELS, REPLY_DEFAULTS, REPLY_KEYS, REPLY_LABELS, REPLY_MAX, REPLY_VARS, renderReply, replySample, type MixItUpSettings } from '@/lib/mixitup-core';
+import { COOLDOWN_MAX, QUEUE_CAP_MAX, MESSAGE_MAX, MESSAGE_VARS, PRICED_ROLES, PULL_ROLES, PULL_ROLE_LABELS, REPLY_DEFAULTS, REPLY_KEYS, REPLY_LABELS, REPLY_MAX, REPLY_VARS, renderReply, replySample, type MixItUpSettings } from '@/lib/mixitup-core';
 import { MessageField } from './MessageField';
 
 const help = 'text-[11px] text-gray-500 leading-relaxed';
@@ -43,6 +43,11 @@ export function PaidPullFields({ settings: s }: { settings: MixItUpSettings }) {
           <legend className="fieldset-legend"><label htmlFor="mx-cooldown">Cooldown between paid pulls (seconds)</label></legend>
           <input id="mx-cooldown" name="cooldownSeconds" type="number" min={0} max={COOLDOWN_MAX} step={1} defaultValue={s.cooldownSeconds} className={fieldClass} />
           <p className={help}>How long a viewer waits after a paid pull before the next one. 0 = off, up to {COOLDOWN_MAX}. The streamer is never held up. A refused pull (no balance, over the limit) does not start the wait, and free packs from the Stream Deck are not affected.</p>
+        </fieldset>
+        <fieldset className="fieldset sm:max-w-md">
+          <legend className="fieldset-legend"><label htmlFor="mx-queuecap">Queue cap (packs waiting on the overlay)</label></legend>
+          <input id="mx-queuecap" name="queueCap" type="number" min={0} max={QUEUE_CAP_MAX} step={1} defaultValue={s.queueCap} className={fieldClass} />
+          <p className={help}>A chat !pack, paid or free, is refused while this many packs are already waiting. 0 = off, up to {QUEUE_CAP_MAX}. The refusal takes no money and starts no cooldown. Free packs from the Stream Deck, gifts and the extension are never refused. It is a soft limit: two packs arriving at the same moment can both get in.</p>
         </fieldset>
         <div className="grid grid-cols-2 gap-4 sm:max-w-md">
           {PRICED_ROLES.map(role => (

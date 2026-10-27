@@ -17,6 +17,7 @@ ok(c.normalizeMixItUp({ cost: -5, limit: 'x', currency: '  ' }).cost === 1 && c.
 ok(!c.cleanMixItUpInput({ enabled: true, balanceUrl: '' }).ok, 'switching on needs a balance address');
 ok(!c.cleanMixItUpInput({ balanceUrl: 'http://localhost:8911/api/x' }).ok, 'a private address is refused');
 ok(!c.cleanMixItUpInput({ balanceUrl: 'https://hook.example/a', cost: 0 }).ok, 'a price below 1 is refused');
+ok(c.cleanMixItUpInput({ balanceUrl: 'https://hook.example/a', cost: 10, queueCap: '0' }).ok && c.cleanMixItUpInput({ balanceUrl: 'https://hook.example/a', cost: 10, queueCap: '5' }).ok && !c.cleanMixItUpInput({ balanceUrl: 'https://hook.example/a', cost: 10, queueCap: '2.5' }).ok, 'the queue cap field takes whole numbers');
 const good = c.cleanMixItUpInput({ enabled: 'on', balanceUrl: 'https://hook.example/a', limit: '3', cost: '50' });
 ok(good.ok && good.settings.enabled && good.settings.limit === 3 && good.settings.cost === 50 && good.settings.roleLimits.subscriber === 3, 'a good form is cleaned, and a missing role uses the fallback limit');
 

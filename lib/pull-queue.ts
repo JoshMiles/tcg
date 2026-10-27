@@ -4,8 +4,9 @@
 // (lib/mixitup-trace.ts). Without a trace id nothing extra is written, so a real pull is unchanged.
 import { enqueueEvent } from './webhooks';
 import { recordActivity } from './activity';
-import { getMixItUpSettings, releasePaidPull, reservePaidPull } from './mixitup';
+import { getMixItUpSettings, logMixItUp, releasePaidPull, reservePaidPull } from './mixitup';
 import { inSandbox } from './db';
+import { queueLength } from './webhooks';
 import { dropDraw, issueDraw } from './draw';
 import { traceStep } from './mixitup-trace';
 import { isPullsPaused, PAUSED_MESSAGE } from './pull-pause';
@@ -21,6 +22,8 @@ export interface PullOptions {
   trace?: string;
   /** A free pull: no balance check and no charge, like a free !pack. Used by tests; the webhook never sets it. */
   free?: boolean;
+  /** A viewer's chat !pack arriving on the pull webhook: the only caller the queue cap (55.4e) refuses. Everything else leaves it unset. */
+  chat?: boolean;
 }
 
 /** Returns the JSON the webhook answers with. Throws only when the queue itself fails (after undoing what was reserved). */
@@ -46,6 +49,14 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
   // Paid pulls (Settings → Mix It Up): the viewer's limit and balance are checked first; a refusal queues nothing and says why.
   const id = crypto.randomUUID();
   const mix = await getMixItUpSettings();
+  // Queue cap (55.4e): checked before the reservation, so a refusal charges nothing, starts no cooldown and counts toward no limit.
+  // shortcut: a soft limit (read, then queue, no lock), so two pulls arriving at once can both pass; upgrade only if that ever matters.
+  if (o.chat && mix.queueCap > 0 && !o.test && !o.free && !(await inSandbox()) && (await queueLength()) >= mix.queueCap) {
+    const message = replyText('queue_full', mix.replies, { username });
+    await logMixItUp({ username, what: 'refused', ok: false, detail: 'queue_full' });
+    await note('balance', 'failed', message);
+    return { ok: true, ignored: true, reason: 'queue_full', message };
+  }
   const paid = mix.enabled && !o.free && !(await inSandbox());
   let known: { left?: number; balance?: number } = {};
   let cost = mix.cost; // a paid pull shows the price stored on its reservation

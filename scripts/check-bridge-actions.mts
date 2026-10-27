@@ -118,4 +118,20 @@ ok((await kv.get('streamdeck:last')) !== null, 'the buff is remembered as the la
 r = await act({ action: 'last-buff' }); // within the 10 s cooldown, or already active: refused in words either way
 ok(r.ok === false && r.message.length > 0, `last buff again goes through the same rules: ${r.message}`);
 
+// ── Queue cap (ROADMAP 55.4e): only a chat pull is refused, before anything is reserved ──
+await clearQueueRefunding();
+const capMix = normalizeMixItUp({ enabled: true, balanceUrl: 'https://hook.example/mix', cost: 10, limit: 1, cooldownSeconds: 30, queueCap: 2, secret: 's' });
+ok(capMix.queueCap === 2 && normalizeMixItUp({ queueCap: 999 }).queueCap === 100 && normalizeMixItUp({}).queueCap === 0, 'the cap is whole, 0 = off by default, at most 100');
+await mixitup.saveMixItUpSettings(capMix);
+await queuePull('c1', { free: true }); await queuePull('c2', { free: true });
+const full = await queuePull('cat', { chat: true });
+ok(full.ignored === true && full.reason === 'queue_full' && /queue is full/.test(String(full.message)) && (await peekQueue()).length === 2, `a chat pull at the cap is refused: ${JSON.stringify(full)}`);
+ok((await kv.get('mixitup:cd:cat')) == null && (await kv.get('mixitup:pending:cat')) == null, 'the refusal charged nothing, started no cooldown and counted toward no limit');
+ok((await queuePull('sd', { free: true })).ok === true && (await peekQueue()).length === 3, 'a Stream Deck free pack still queues at the cap');
+ok((await queuePull('tst', { test: true, free: true, trace: 'tr-2' })).ok === true && (await peekQueue()).length === 4, 'a test pull still queues at the cap');
+await mixitup.saveMixItUpSettings(normalizeMixItUp({ ...capMix, enabled: false, queueCap: 0 }));
+ok((await queuePull('off', { chat: true })).ok === true && (await peekQueue()).length === 5, '0 = off: a chat pull queues however many wait');
+await mixitup.saveMixItUpSettings(normalizeMixItUp({}));
+await clearQueueRefunding();
+
 console.log('check-bridge-actions: ok');
