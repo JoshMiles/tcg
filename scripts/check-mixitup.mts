@@ -116,6 +116,6 @@ ok(!(await m.reservePaidPull(lim, 'dan', 'x4', fake)).ok, 'releasing twice does 
 
 // ── Log ──
 const log = await m.getMixItUpLog();
-ok(log.length > 0 && log.length <= 20 && log.some(e => e.what === 'refused') && log.some(e => e.what === 'deduct' && !e.ok), 'the log keeps the last 20, refusals and failed charges included');
+ok(log.length > 0 && log.length <= 50 && log.some(e => e.what === 'refused') && log.some(e => e.what === 'deduct' && !e.ok), 'the log keeps the last 50, refusals and failed charges included');
 
 console.log('mixitup checks passed');

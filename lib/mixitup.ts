@@ -54,13 +54,14 @@ export async function firePullRules(pull: PullFacts, delayMs = 0, eventId?: stri
 }
 
 // ── The request log (last 20) ──
-export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command' | 'watchdog' | 'check'; ok: boolean; detail: string }
+export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command' | 'watchdog' | 'check' | 'pull' | 'grant' | 'buff'; ok: boolean; detail: string }
+const LOG_KEEP = 50; // the site's calls out and Mix It Up's requests in (ROADMAP 55.3)
 export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>): Promise<void> {
-  try { await kv.lpush(LOG, { ...e, at: Date.now() }); await kv.ltrim(LOG, 0, 19); } catch { /* the log never breaks a pull */ }
+  try { await kv.lpush(LOG, { ...e, at: Date.now() }); await kv.ltrim(LOG, 0, LOG_KEEP - 1); } catch { /* the log never breaks a pull */ }
   if (e.what === 'refused') await noteRefusal(e.detail.split(':')[0].trim(), e.username); // a staff notice, throttled (55.13)
 }
 export async function getMixItUpLog(): Promise<MixItUpLogEntry[]> {
-  try { return (await kv.lrange<MixItUpLogEntry>(LOG, 0, 19)) ?? []; } catch { return []; }
+  try { return (await kv.lrange<MixItUpLogEntry>(LOG, 0, LOG_KEEP - 1)) ?? []; } catch { return []; }
 }
 
 // ── Talking to Mix It Up ──
@@ -75,8 +76,9 @@ export async function callMixItUp(url: string, payload: Record<string, unknown>,
   }, doFetch);
   const kind = outKindOf(payload.action);
   if (!sent.ok) {
-    if (kind) await noteOutgoing(kind, false, sent.error);
-    return { ok: false, status: 0, body: null, error: sent.error };
+    const error = /timeout|aborted/i.test(sent.error) ? `Mix It Up did not answer in ${TIMEOUT_MS / 1000} seconds` : sent.error;
+    if (kind) await noteOutgoing(kind, false, error);
+    return { ok: false, status: 0, body: null, error };
   }
   if (kind) await noteOutgoing(kind, sent.res.ok, `HTTP ${sent.res.status}`);
   const raw = await sent.res.text().catch(() => '');
@@ -174,7 +176,8 @@ const pendKey = (user: string) => `mixitup:pending:${user}`;
 const payKey = (id: string) => `mixitup:pay:${id}`;
 
 interface PayRecord { username: string; amount: number; stream: string; at: number; credit?: boolean }
-export type Reservation = { ok: true } | { ok: false; reason: RefusalReason; message: string; balance?: number };
+/** `left` = paid pulls left this stream after this one (only with a limit); `balance` = what Mix It Up said before the price is taken. */
+export type Reservation = { ok: true; left?: number; balance?: number } | { ok: false; reason: RefusalReason; message: string; balance?: number };
 
 /** The window "per stream" counts in: the live Twitch stream's start, else the UTC day. */
 export async function currentStreamKey(): Promise<string> {
@@ -208,8 +211,10 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
   };
 
   let counted = false;
+  let left: number | undefined;
   if (limit > 0) {
     const used = await kv.incr(cntKey(stream, user));
+    left = Math.max(0, limit - used);
     await kv.expire(cntKey(stream, user), COUNT_TTL_S);
     counted = true;
     if (used > limit) { await kv.decr(cntKey(stream, user)); return refuse('limit_reached'); }
@@ -227,7 +232,7 @@ export async function reservePaidPull(s: MixItUpSettings, username: string, payI
     return refuse('insufficient_balance', balance);
   }
   await kv.set(payKey(payId), { username: user, amount: s.cost, stream, at: Date.now() } satisfies PayRecord, { ex: PAY_TTL_S });
-  return { ok: true };
+  return { ok: true, balance, ...(left !== undefined ? { left } : {}) };
 }
 
 /** How many paid pulls a viewer has used in the current stream window (for the admin's user page). */

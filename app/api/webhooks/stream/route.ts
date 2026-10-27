@@ -12,5 +12,5 @@ export async function POST(req: NextRequest) {
   if (!(await incomingSecretValid(body.secret, new URL(req.url).pathname))) return NextResponse.json({ error: 'Invalid secret' }, { status: 401 });
   if (body.event !== 'live' && body.event !== 'offline') return NextResponse.json({ error: "event must be 'live' or 'offline'" }, { status: 400 });
   const status = await setLiveFromHint(body.event === 'live');
-  return NextResponse.json({ ok: true, live: status.live });
+  return NextResponse.json({ ok: true, live: status.live, message: status.live ? 'The stream is live.' : 'The stream is offline.' });
 }

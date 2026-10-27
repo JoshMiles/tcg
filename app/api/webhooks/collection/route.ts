@@ -9,9 +9,9 @@ export async function POST(req: NextRequest) {
 
   // Admin can restrict this to when the stream is live (Settings → OBS Overlay).
   const blocked = await liveGate('collection');
-  if (blocked) return NextResponse.json({ ok: true, ignored: true, reason: blocked });
+  if (blocked) return NextResponse.json({ ok: true, ignored: true, reason: blocked, message: '' });
 
   await enqueueEvent({ id: crypto.randomUUID(), type: 'collection', username: parsed.username, queuedAt: Date.now() });
   await recordActivity({ type: 'trigger', kind: 'collection', username: parsed.username });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, message: `Showing ${parsed.username}'s collection` });
 }

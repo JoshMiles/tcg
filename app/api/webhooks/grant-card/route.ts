@@ -5,27 +5,34 @@ import { getScoringSettings } from '@/lib/scoring';
 import { serialMultiplier } from '@/lib/scoring-core';
 import { recordActivity } from '@/lib/activity';
 import { VARIANTS, decodeEntry, encodeEntry } from '@/lib/variants';
+import { answerOnce } from '@/lib/webhook-reply';
 import type { Card, Variant } from '@/lib/types';
 
 export async function POST(req: NextRequest) {
   const parsed = await parseIncomingWebhook(req);
   if (!parsed.ok) return parsed.response;
-  const { username, body } = parsed;
+  // An optional requestId makes a retry safe: the first answer is replayed and no second card is granted (ROADMAP 55.3).
+  return answerOnce('/api/webhooks/grant-card', parsed.username, parsed.body.requestId, () => grant(parsed.username, parsed.body));
+}
+
+const bad = (error: string, status: number) => NextResponse.json({ error, message: error }, { status });
+
+async function grant(username: string, body: Record<string, unknown>): Promise<NextResponse> {
 
   const num = Number(body.cardNumber);
   if (!Number.isInteger(num) || num < 1) {
-    return NextResponse.json({ error: 'cardNumber must be a positive integer' }, { status: 400 });
+    return bad('cardNumber must be a positive integer', 400);
   }
 
   // Optional: which variant to grant. Defaults to regular.
   const variant = String(body.variant ?? 'regular').toLowerCase() as Variant;
   if (!VARIANTS.includes(variant)) {
-    return NextResponse.json({ error: `variant must be one of: ${VARIANTS.join(', ')}` }, { status: 400 });
+    return bad(`variant must be one of: ${VARIANTS.join(', ')}`, 400);
   }
 
   const season = await getActiveSeason();
   if (!season) {
-    return NextResponse.json({ error: 'No active season' }, { status: 404 });
+    return bad('No active season', 404);
   }
 
   // Only a card of the active season's published packs can be granted (the same pool the season stats count).
@@ -34,7 +41,7 @@ export async function POST(req: NextRequest) {
     const found = (await getPackCards(p.id)).find(c => c.number === num);
     if (found) { card = { ...found, packName: p.name }; break; }
   }
-  if (!card) return NextResponse.json({ error: `No card number ${num} in the active season` }, { status: 404 });
+  if (!card) return bad(`No card number ${num} in the active season`, 404);
 
   const made = await addCollectionEntryWithSerial(season.collectionName, username, encodeEntry(num, variant), 'grant');
   // Recorded with the same facts as a pull (name, stars, pack, new or not, how many, edition) so the live feed and Discord show it like one.
@@ -48,5 +55,5 @@ export async function POST(req: NextRequest) {
     ...(made.copyId ? { copyId: made.copyId } : {}), ...(made.uid ? { uid: made.uid } : {}),
   });
 
-  return NextResponse.json({ ok: true, username, cardNumber: num, variant });
+  return NextResponse.json({ ok: true, username, cardNumber: num, variant, message: `${username} got ${card.name}` });
 }
