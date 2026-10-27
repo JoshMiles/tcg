@@ -1,5 +1,6 @@
 import { Icon } from '@/app/components/Icon';
 import { staffPage } from '@/lib/staff-guard';
+import { getStaffActionCounts } from '@/lib/audit';
 import { getStaffLog, listStaff, listSuperAdmins } from '@/lib/staff';
 import { ROLE_LABELS } from '@/lib/staff-core';
 import { isPasswordLoginEnabled } from '@/lib/admin-token';
@@ -21,7 +22,7 @@ const ago = (t?: number) => {
 
 export default async function StaffPage() {
   const me = await staffPage('admin');
-  const [staff, log] = await Promise.all([listStaff(), getStaffLog(25)]);
+  const [staff, log, counts] = await Promise.all([listStaff(), getStaffLog(25), getStaffActionCounts()]);
   const supers = listSuperAdmins();
   const passwordOn = isPasswordLoginEnabled();
 
@@ -55,6 +56,16 @@ export default async function StaffPage() {
         viewerLogin={me.login}
         staff={staff.map(s => ({ ...s, lastLoginText: ago(s.lastLogin), addedText: ago(s.addedAt) }))}
       />
+
+      <Panel title="Actions in the last 7 days" icon="history" hint="Actions on viewers each person took (grants, removals, restrictions, tags, trade cancels), from the newest 500 audit entries.">
+        {Object.keys(counts).length === 0 ? <p className="text-sm text-gray-600">Nothing yet.</p> : (
+          <ul className="divide-y divide-gray-800/60 rounded-lg border border-gray-800 overflow-hidden text-sm">
+            {Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([login, n]) => (
+              <li key={login} className="px-4 py-2 flex items-center gap-3"><strong className="text-white">{login}</strong><span className="ml-auto tabular-nums text-gray-300">{n}</span></li>
+            ))}
+          </ul>
+        )}
+      </Panel>
 
       <Panel title="Recent changes" icon="history" hint="Who was added, changed or removed, and by whom.">
         {log.length === 0 ? <p className="text-sm text-gray-600">Nothing yet.</p> : (

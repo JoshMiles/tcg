@@ -4,6 +4,7 @@ import { Icon } from '@/app/components/Icon';
 import { getAllCollectionUsers, getUserProfiles } from '@/lib/kv';
 import { tradeBlockedNow } from '@/lib/restriction';
 import { getLastSeen } from '@/lib/stats';
+import { getSignedInLogins, withProfileOnly } from '@/lib/viewer-list';
 import { getAvatars, sizeTwitchAvatar } from '@/lib/avatars';
 import type { UserProfile } from '@/lib/types';
 import { uniqueCount } from '@/lib/collection';
@@ -27,8 +28,9 @@ export default async function ModUsersPage({ searchParams }: { searchParams: Pro
   const restrictedOnly = show === 'restricted';
   const sort = sortParam === 'seen' || sortParam === 'pulls' ? sortParam : 'az';
 
-  // One hash read for every viewer's last counted action; pulls come from the collections already loaded.
-  const [all, lastSeen] = await Promise.all([getAllCollectionUsers(), getLastSeen()]);
+  // One hash read for every viewer's last counted action; pulls come from the collections already loaded. Viewers with a profile but no pulls come from the `acct:ids` hash (one read).
+  const [withPulls, signedIn, lastSeen] = await Promise.all([getAllCollectionUsers(), getSignedInLogins(), getLastSeen()]);
+  const all = withProfileOnly(withPulls, signedIn);
   const pullsOf = (u: (typeof all)[number]) => u.seasons.reduce((s, x) => s + x.cards.length, 0);
   const byName = (a: (typeof all)[number], b: (typeof all)[number]) => a.username.localeCompare(b.username);
   const pool = (needle ? all.filter(u => u.username.includes(needle)) : [...all]).sort(
