@@ -241,7 +241,7 @@ eq((await notes()).length, 0, 'no notice before staff act');
 
 // ── items about staff (ROADMAP 51.6) ──
 {
-  const tag = Math.random().toString(36).slice(2, 6);
+  const tag = crypto.randomUUID().slice(0, 4);
   const [modA, modB, adm, viewer] = [`fbma_${tag}`, `fbmb_${tag}`, `fbad_${tag}`, `fbv_${tag}`];
   const { addStaff } = await import('../lib/staff');
   const { saveUserProfile } = await import('../lib/kv');
