@@ -22,6 +22,7 @@ Open work only. Owned by the planning model (Opus, see "Model workflow" in `CLAU
 | 47 | Access hardening (47.11) | Blocked (Josh, from 2026-11-02) | S |
 | 50 | Swap finder trial (50.3) | Blocked (trial readout from 2026-11-24) | S |
 | 53 | Next panel version, 0.0.3 (34.6b; 47.4, 50.1, 50.2, 50.4, the panel half of 49.6, 52.16 ride along) | Ready (waits for 0.0.2 review) | M |
+| 55 | Mix It Up integration: setup wizard, Stream Deck buffs, clearer messages, more settings, command downloads (55.1 to 55.5) | Ready (55.4 needs a decision, 55.5 blocked on a sample file) | M to L |
 
 Tracks 25 to 33, 36, 38, 41 to 43 (except 43.3) and 46 to 52 and 54 (except the items above) are done and archived in `docs/archive/roadmap-history.md`, including the edition / print glossary (25.2) and the 29.3 decision.
 
@@ -55,6 +56,55 @@ Checked against the code on 2026-10-25, most of the 16 breaking changes need not
 
 ### 43.3 Rename `middleware.ts` to `proxy.ts` (Blocked: panel freeze, S)
 The file holds the extension's CORS rules, which stay as submitted while panel 0.0.2 is under review (Rules in force). Pick this up when the review is back. `proxy.ts` runs on Node only; today the file runs on edge and reads through `lib/admin-auth-edge` and `lib/access-edge`. Rename the file and its export (the codemod does both), then test the admin and mod gates, the access gate and the `/api/twitch/*` CORS answers (the panel's requests from the Twitch origin) on a preview deployment. Drop the `-edge` variants only if nothing else uses them.
+
+## Track 55: Mix It Up integration (2026-10-27)
+
+Josh: connecting Mix It Up is confusing, there are too few settings, and Cheesygidds rewards viewers from the Stream Deck a lot, which the site cannot take today. Read `docs/admin/mixitup.md` first.
+
+**Where it stands (2026-10-27).** Mix It Up calls the site on seven incoming webhooks (`/api/webhooks/pull`, `command`, `show-card`, `grant-card`, `collection`, `stream`, `queue` for the overlay), all on the one incoming secret. The site calls Mix It Up on up to four outgoing addresses (balance, deduct, add, chat viewers; public https only, so Mix It Up on the streamer's PC needs a tunnel). Setup is spread over Admin Settings > Webhooks (the incoming secret), the Mix It Up page's Paid pulls form and the Copy setup cards; nothing shows whether Mix It Up has ever reached the site. Buffs reach players only through trainer cards and achievements; the one live lever is "Extra pulls this stream" on the Mix It Up page. The Stream Deck runs Mix It Up commands through Mix It Up's Developer API (the Mix It Up plugin from the Elgato store, Developer API service switched on in Mix It Up), so a Stream Deck button is a Mix It Up command that calls one of our webhooks. Order: 55.1, 55.2, 55.3, then 55.4 once Josh picks, and 55.5 when the sample file is in. One PR per item.
+
+### 55.1 Connection health and a setup wizard (Ready, M)
+1. **Health first.** Store when each incoming route last got a request with the right secret, and whether the last call to each outgoing address worked: when, the status, and the error in words. `secret:lastused` already keeps the incoming secret's last route; add a per-route hash `mixitup:seen` (route to `{at, ok}`) and set an `ok` and `at` on each outgoing log line. Show them as a status row at the top of the Mix It Up page: "Mix It Up reached the site 3 minutes ago (!pack)", "Balance address: working", "Add address: not set".
+2. **Wizard** at `/admin/mixitup/setup`, full page like `SeasonFlow`, one step per screen, Back and Next, resumable (the saved settings are the state). The Mix It Up page shows "Set up Mix It Up" while nothing has connected, and "Run setup again" after.
+   - *What you need:* Mix It Up running on the stream PC; for paid pulls and Brie Bucks, a public https address for Mix It Up (what a tunnel is and why localhost cannot work, in two sentences); for the Stream Deck, the Mix It Up plugin and the Developer API service.
+   - *Mix It Up to the site:* the incoming secret (make one if it is empty), then "Make the !pack command", with a Copy setup card (or the download from 55.5). The step waits and turns green when `mixitup:seen` shows a request with the right secret ("Type !pack in chat now"). The wrong secret shows up as its own message ("Mix It Up reached the site but the secret did not match").
+   - *The site to Mix It Up (optional, paid pulls):* each outgoing address with what the Mix It Up command must answer, and a Test button that runs the existing check (`checkBalanceAction`, `sendTestAction`) and says in words what came back.
+   - *Pull rules:* price, currency name, limits per role, the deduct message (the Paid pulls form's fields, moved here and kept on the page too).
+   - *Stream events and the Stream Deck:* the stream start and end commands, then the Stream Deck buttons from 55.2, each with its Copy setup card.
+   - *Done:* a checklist of what is connected, from the health data.
+3. `scripts/check-mixitup.mts` covers the health record (right secret, wrong secret, outgoing failure). Update `docs/admin/mixitup.md`.
+
+### 55.2 Buffs and rewards from the Stream Deck (Ready, M)
+1. New incoming webhook `POST /api/webhooks/buff`: `{ secret, buff, target?, username? }`. `buff` is a buff definition's id; the Buff Editor gets a "Stream Deck" switch per buff and only switched-on buffs answer (the rest are `{ ok: false, message: '' }`, like an unknown chat command). `target` is `everyone` (community scope), `viewer` (needs `username`; for a mod's chat command like `!reward @name`) or `last-pull` (the viewer of the newest pull this stream, so the streamer can reward whoever just opened a pack without typing a name; refused with a message when no one has pulled this stream). The default is the buff's own scope: community buffs go to everyone, self buffs need a target.
+2. It runs through `applyBuff` with `source: 'streamdeck'`, answers `{ ok, message }` with a chat-ready line ("Everyone gets +1 pull this stream", or the refusal in words: already active, Mix It Up off, no one has pulled), and records it in the audit log, the live activity feed and the Discord admin log ("Stream Deck: everyone +1 pull").
+3. Quick actions that are not buff definitions, on the same webhook with `action` instead of `buff`: `stream-pulls` with `amount` (add to "Extra pulls this stream", or `0` to clear; `pulls:stream-buff`), and `free-pack` with a target (queues one pull that never charges, like a dashboard gift).
+4. A cooldown per buff for this webhook (default 10 seconds) so a double press does not apply twice.
+5. The Mix It Up page gets a Stream Deck tab listing the switched-on buffs and quick actions, each with its Copy setup card (and a download once 55.5 lands). Optional overlay toast for community buffs, off by default (a new overlay event type; read `docs/overlay.md`).
+6. `scripts/check-buffs.mts` (or a new `check-streamdeck.mts`) covers each target, the switch, the cooldown and the refusals.
+
+### 55.3 Clearer two-way messages (Ready, S to M)
+1. Every incoming reply carries a chat-ready `message`. Today `/api/webhooks/pull` answers a queued pull with only `{ ok: true }`; add "Opening a pack for <name>" plus `left` (paid pulls left this stream) and `balance` when known, so the `!pack` command can say them.
+2. An optional `requestId` on `/api/webhooks/pull`, `grant-card` and `buff` (Mix It Up's unique id special identifier, if it has one, else any value the command makes): a repeat within 10 minutes answers the first result and does nothing again, so a retried request never queues a second pack.
+3. The Log tab shows incoming requests too (route, viewer, result, the refusal reason), not only the site's calls out. Keep the last 50, never Discord.
+4. Outgoing calls: a 5 second timeout with the reason in words on the Log tab ("Mix It Up did not answer in 5 seconds"). If the balance address fails 3 times in a row while live, post once to the Discord System channel.
+5. Update `docs/admin/mixitup.md` with every reply shape.
+
+### 55.4 More settings (Needs a decision: Josh picks, S to M each)
+Suggested; Josh picks which to build, then each is its own PR.
+- **Editable chat replies:** the refusal messages (not enough Brie Bucks, limit reached, Mix It Up unavailable, no packs) and the new "pack queued" reply, with `{balance}`, `{cost}`, `{left}`, `{username}`.
+- **Price per role:** subscribers and VIPs pay a different price; blank uses the base price.
+- **Happy hour:** a price discount or a free pack for N minutes, started from the page or a Stream Deck button (55.2 quick action).
+- **Cooldown between paid pulls** per viewer, in seconds.
+- **Queue cap:** refuse new pulls with a message while N are waiting on the overlay.
+- **Pick a pack:** `!pack <name>` opens that pack when the season has several, with an optional price per pack.
+- **Event rewards:** Mix It Up events (gifted subs, bits, raids, channel point redeems) give free packs or a buff, each switch and amount on the page, sent to `/api/webhooks/pull` or `buff` with a `reason` so the log and feed say why.
+- **First pack free:** a viewer's first ever pull costs nothing.
+
+### 55.5 Download command presets for Mix It Up (Blocked: Josh exports a sample, then M)
+Mix It Up imports and exports commands as files, but the file format is not published and its source is no longer public, so we need a real file first.
+1. **Josh:** in Mix It Up, make one chat command with a Web Request action (any address, a JSON body, "JSON to special identifiers" on) and a Chat Message action, Export it, and send the file over (it has no secrets if the body uses a placeholder). Also say whether importing it into a second profile keeps the address, body and headers.
+2. **Plan from the sample:** if the format holds the web request whole, build a generator (`lib/mixitup-presets.ts`, pure) that writes one command file per setup card: `!pack`, every switched-on chat command, stream start and end, the grant-card reward, the Stream Deck buttons, and the Mix It Up commands that answer balance, deduct, add and viewers. Each card gets "Download for Mix It Up", plus "Download all" as a zip. Files are made on request for staff only (`requireAdmin`); they hold the incoming secret, so the button says not to share them and the page offers to rotate the secret. If the format cannot carry the request, keep the copy cards and close 55.5.
+3. A check that the generator's output matches the sample's shape.
 
 ## Twitch extension
 
