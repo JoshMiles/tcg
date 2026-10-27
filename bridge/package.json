@@ -1,7 +1,7 @@
 {
   "name": "tcg-bridge",
   "productName": "TCG Bridge",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Carries the TCG site's Mix It Up requests to Mix It Up on the stream PC.",
   "private": true,
   "author": "Cheesygidds TCG",
@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
     "check": "tsx scripts/check.ts",
+    "icons": "tsx scripts/make-icons.ts",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --win --x64 --publish never"
   },
@@ -18,6 +19,7 @@
     "obs-websocket-js": "^5.0.8"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^24.19.2",
     "@types/ws": "^8.18.2",
     "electron": "^45.0.0",
@@ -34,6 +36,7 @@
     },
     "files": [
       "dist/**",
+      "!dist/demo.js",
       "renderer/**",
       "assets/**",
       "package.json"
