@@ -3,7 +3,7 @@ import { MixItUpClient, MixItUpDown, MixItUpError, type MixItUpUser } from './mi
 import { ObsError, type ObsWatcher } from './obs';
 import type { BridgeJob, BridgeResult } from './site';
 
-export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command'] as const;
+export const KINDS = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event'] as const;
 export const isKnownKind = (k: unknown): boolean => typeof k === 'string' && (KINDS as readonly string[]).includes(k);
 
 const LOGIN = /^[a-z0-9_]{1,25}$/;
@@ -12,6 +12,7 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 class Refused extends Error {}
 
 const DELAY_MAX_MS = 15_000;
+const num = (v: unknown, min: number, max: number): number => (typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : min);
 
 /** How long to hold a run-command so it lands on the card reveal: the job's delay counted from when the site queued it, at most 15 s. */
 export function commandWait(job: BridgeJob, now = Date.now()): number {
@@ -29,6 +30,19 @@ export async function runJob(job: BridgeJob, mix: MixItUpClient, obs: ObsWatcher
       if (!GUID.test(id) || !commandIds.has(id)) throw new Refused('That Mix It Up command is not in the list this app reported');
       const args = Array.isArray(job.args) ? job.args.filter((a): a is string => typeof a === 'string').slice(0, 10).map(a => a.slice(0, 200)) : [];
       await mix.runCommand(id, args);
+      return { id: job.id, ok: true };
+    }
+    if (job.kind === 'pull-event') {
+      // The scene and source names are checked against the lists this app reported inside ObsWatcher; the site cannot name anything else.
+      const errors: string[] = [];
+      const step = async (f: () => Promise<void>) => { try { await f(); } catch (e) { errors.push(e instanceof ObsError ? e.message : 'OBS did not accept that'); } };
+      if (job.phase === 'start') {
+        if (typeof job.source === 'string') await step(() => obs.showSource(job.source as string, num(job.holdMs, 0, 15_000)));
+      } else {
+        if (typeof job.scene === 'string') await step(() => obs.switchScene(job.scene as string, num(job.secs, 1, 60)));
+        if (job.clip === true) await step(() => obs.saveClip());
+      }
+      if (errors.length) throw new Refused(errors.join('. '));
       return { id: job.id, ok: true };
     }
     if (job.kind === 'obs-refresh') {

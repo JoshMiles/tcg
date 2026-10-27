@@ -138,6 +138,7 @@ export async function POST(req: NextRequest) {
   // now (it is not visible inside after()). Outside a request (scripts) it just runs. The pull rules (Mix It Up commands on big pulls,
   // ROADMAP 55.6d) go here too: the overlay saves a pull as it reveals it, so this is the reveal, and the save never waits on them.
   const sandbox = await inSandbox();
+  const eventId = crypto.randomUUID(); // the overlay sends it back when it reveals this pull (OBS actions of a rule, ROADMAP 55.8)
   // The last two steps of a test pull. The payment message is posted by Mix It Up together with the charge, so that is all "chat reply sent" can mean here.
   const endTest = async () => {
     if (!test) return;
@@ -152,7 +153,7 @@ export async function POST(req: NextRequest) {
         test ? Promise.resolve() : getWebhookSettings().then(settings => fireOutgoing(settings.outgoing.cardPulled, {
           username, cardName: ticket.cardName, cardNumber: String(cardNumber), stars: String(ticket.stars), variant, packName: ticket.packName,
         }, 'cardPulled')),
-        firePullRules({ username, cardName: ticket.cardName, stars: ticket.stars, variant, isNew }, revealDelay(revealInMs))
+        firePullRules({ username, cardName: ticket.cardName, stars: ticket.stars, variant, isNew }, revealDelay(revealInMs), eventId)
           .then(queued => step('rules', queued ? 'ok' : 'skipped', queued ? 'A Mix It Up command was queued for TCG Bridge' : 'No rule matched, or no bridge is paired')),
       ]);
       await endTest();
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest) {
     try { after(() => send().catch(() => {})); } catch { await send().catch(() => {}); }
   } else await endTest();
 
-  return NextResponse.json({ ok: true, owned, serial, uid, serialMult: Math.round(mult * 100) / 100, isNew, firstForViewer });
+  return NextResponse.json({ ok: true, owned, serial, uid, serialMult: Math.round(mult * 100) / 100, isNew, firstForViewer, eventId });
 }
 
 // Resetting collections is an admin tool (the overlay's test panel, opened while signed in).

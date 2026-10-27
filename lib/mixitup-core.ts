@@ -46,6 +46,8 @@ export interface MixItUpSettings {
   pullRules: PullRule[];
   /** Who "Simulate a chat pull" may pretend to be (ROADMAP 55.14): at most 5 logins. Missing = the streamer's own login only. */
   testViewers: string[];
+  /** While live and the overlay has gone quiet but OBS shows it, the site refreshes it through TCG Bridge (ROADMAP 55.8). Off unless switched on. */
+  overlayWatchdog: boolean;
 }
 
 export const TEST_VIEWERS_MAX = 5;
@@ -58,7 +60,7 @@ const NO_ROLE_LIMITS: Record<PullRole, number> = { regular: 0, subscriber: 0, vi
 
 export const DEFAULT_MIXITUP: MixItUpSettings = {
   enabled: false, connection: 'bridge', currencyId: '', balanceUrl: '', deductUrl: '', addUrl: '', viewersUrl: '', secret: '', currency: 'Brie Bucks', cost: 100, limit: 0,
-  roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN],
+  roleLimits: { ...NO_ROLE_LIMITS }, message: DEFAULT_MESSAGE, balanceField: 'balance', pullRules: [], testViewers: [CHANNEL_LOGIN], overlayWatchdog: false,
 };
 
 /** Is there somewhere to send a balance check? Bridge: a chosen currency. Addresses: the balance address. */
@@ -122,6 +124,7 @@ export function normalizeMixItUp(raw: unknown): MixItUpSettings {
     balanceField: text(r.balanceField, 60, d.balanceField) || d.balanceField,
     pullRules: normalizeRules(r.pullRules),
     testViewers: Array.isArray(r.testViewers) ? [...new Set(r.testViewers.flatMap(v => cleanLogin(v) ?? []))].slice(0, TEST_VIEWERS_MAX) : [...d.testViewers],
+    overlayWatchdog: r.overlayWatchdog === true,
   };
 }
 

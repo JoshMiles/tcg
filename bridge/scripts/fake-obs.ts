@@ -18,6 +18,9 @@ export class FakeObs {
   groups: Record<string, FakeItem[]> = {};
   inputs: FakeInput[] = [];
   pressed: { inputName: string; propertyName: string }[] = [];
+  replayBuffer = false;
+  /** How many times SaveReplayBuffer worked. */
+  saved = 0;
   requests: string[] = [];
   identified = 0;
   subscriptions: number[] = [];
@@ -80,6 +83,21 @@ export class FakeObs {
       case 'GetInputSettings': {
         const i = this.inputs.find(x => x.inputName === data.inputName);
         return i ? { inputKind: i.inputKind, inputSettings: { url: i.url } } : null;
+      }
+      case 'GetSceneList': return { scenes: Object.keys(this.scenes).map(sceneName => ({ sceneName })) };
+      case 'GetReplayBufferStatus': return { outputActive: this.replayBuffer };
+      case 'StartReplayBuffer': this.replayBuffer = true; return {};
+      case 'SaveReplayBuffer': if (!this.replayBuffer) return null; this.saved++; return {};
+      case 'SetCurrentProgramScene': if (!this.scenes[data.sceneName]) return null; this.scene = data.sceneName; this.emit('CurrentProgramSceneChanged', { sceneName: data.sceneName }); return {};
+      case 'GetSceneItemId': {
+        const it = this.scenes[data.sceneName]?.find(x => x.sourceName === data.sourceName);
+        return it ? { sceneItemId: it.sceneItemId } : null;
+      }
+      case 'SetSceneItemEnabled': {
+        const it = this.scenes[data.sceneName]?.find(x => x.sceneItemId === Number(data.sceneItemId));
+        if (!it) return null;
+        it.sceneItemEnabled = !!data.sceneItemEnabled;
+        return {};
       }
       case 'GetSceneItemList': return this.scenes[data.sceneName] ? { sceneItems: this.scenes[data.sceneName] } : null;
       case 'GetGroupSceneItemList': return this.groups[data.sceneName] ? { sceneItems: this.groups[data.sceneName] } : null;

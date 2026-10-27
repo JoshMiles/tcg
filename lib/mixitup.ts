@@ -4,7 +4,7 @@
 import { kv, inSandbox } from './db';
 import { sendWebhook } from './webhook-send';
 import { noteOutgoing, outKindOf } from './mixitup-health';
-import { bridgeRunCommand, callBridge } from './bridge';
+import { bridgePullStart, bridgeRunCommand, callBridge } from './bridge';
 import { matchRule, pullArgs, type PullFacts } from './pull-rules-core';
 import { getActiveSeason, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
@@ -33,20 +33,25 @@ export async function saveMixItUpSettings(s: MixItUpSettings): Promise<void> {
 /**
  * Runs the first Mix It Up command whose rule this pull meets (ROADMAP 55.6d). Called once per ticketed save, so it fires as the overlay
  * reveals the pull. Does not wait for the command; never throws; a sandbox, no rules or no paired bridge do nothing. True when queued.
+ * The rule's OBS actions (55.8) start here too: a source is shown now, and `eventId` (sent back to the overlay) lets its reveal report
+ * trigger the scene switch and the clip.
  */
-export async function firePullRules(pull: PullFacts, delayMs = 0): Promise<boolean> {
+export async function firePullRules(pull: PullFacts, delayMs = 0, eventId?: string): Promise<boolean> {
   try {
     if (await inSandbox()) return false;
     const rules = (await getMixItUpSettings()).pullRules;
     const hit = rules.length ? matchRule(rules, pull) : null;
-    return hit ? await bridgeRunCommand(hit.commandId, pullArgs(pull), delayMs) : false;
+    if (!hit) return false;
+    const command = hit.commandId ? await bridgeRunCommand(hit.commandId, pullArgs(pull), delayMs) : false;
+    const obs = hit.obs ? await bridgePullStart(hit.obs, delayMs, eventId) : false;
+    return command || obs;
   } catch {
     return false;
   }
 }
 
 // ── The request log (last 20) ──
-export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command'; ok: boolean; detail: string }
+export interface MixItUpLogEntry { at: number; username: string; what: 'balance' | 'deduct' | 'add' | 'test' | 'revoked' | 'refused' | 'command' | 'watchdog'; ok: boolean; detail: string }
 export async function logMixItUp(e: Omit<MixItUpLogEntry, 'at'>): Promise<void> {
   try { await kv.lpush(LOG, { ...e, at: Date.now() }); await kv.ltrim(LOG, 0, 19); } catch { /* the log never breaks a pull */ }
 }

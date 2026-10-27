@@ -2167,6 +2167,8 @@ function drawCard(username, opts) {
       radialContainer.style.opacity   = String(burst.opacity);
       radialContainer.style.animation = 'spinRadial ' + (burst.speed / S) + 's linear infinite';
     }
+    // Tell the site the card is out, so a rule's OBS scene switch and clip (ROADMAP 55.8) land on the reveal. Real saved pulls only.
+    if (!PREVIEW && !opts.dry) saved.then(r => { if (r && r.eventId) reportReveal(r.eventId); });
   }, at(R.reveal));
 
   // Label
@@ -2415,6 +2417,16 @@ function readObsStatus() {
       resolve(null);
     }
   });
+}
+
+// A pull's card was revealed: same route as the heartbeat, but it only carries the event id the save returned (a failure changes nothing).
+function reportReveal(eventId) {
+  fetch('/api/overlay/heartbeat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    keepalive: true,
+    body: JSON.stringify({ id: OVERLAY_ID, reveal: eventId }),
+  }).catch(() => {});
 }
 
 async function sendHeartbeat() {

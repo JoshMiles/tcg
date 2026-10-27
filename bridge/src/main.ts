@@ -53,7 +53,7 @@ const appState = (): object => demoState ?? ({
   site: settings.site,
   pairedAs: settings.pairedAs,
   startWithWindows: settings.startWithWindows,
-  obsSettings: { enabled: settings.obsEnabled, address: settings.obsAddress, hasPassword: !!settings.obsPassword }, // never the password itself
+  obsSettings: { enabled: settings.obsEnabled, address: settings.obsAddress, hasPassword: !!settings.obsPassword, startReplay: settings.obsStartReplay }, // never the password itself
   alerts: settings.alerts,
   mixItUp: { startWithBridge: settings.startMixItUp, path: settings.mixItUpPath || defaultMixItUpPath() },
   appVersion: app.getVersion(),
@@ -87,7 +87,7 @@ function push(): void {
   }
 }
 
-const obsConfig = () => ({ enabled: settings.obsEnabled, address: settings.obsAddress, password: settings.obsPassword });
+const obsConfig = () => ({ enabled: settings.obsEnabled, address: settings.obsAddress, password: settings.obsPassword, startReplay: settings.obsStartReplay });
 
 function connect(): void {
   logger?.addSecret(settings.token);
@@ -239,12 +239,12 @@ function setupIpc(): void {
     push();
   });
   // password: undefined keeps the saved one, '' forgets it
-  ipcMain.handle('obs-settings', async (_e, enabled: boolean, addressRaw: string, password?: string) => {
+  ipcMain.handle('obs-settings', async (_e, enabled: boolean, addressRaw: string, password?: string, startReplay?: boolean) => {
     const address = cleanObsAddress(addressRaw);
     if (!address) return { ok: false, error: 'The address must be ws://localhost:4455 or ws://127.0.0.1:4455 (your own port).' };
     if (password && !(await safeStorage.isAsyncEncryptionAvailable())) return { ok: false, error: 'This PC cannot keep the password safe (Windows encryption is not available).' };
     if (password) logger?.addSecret(password);
-    settings = { ...settings, obsEnabled: !!enabled, obsAddress: address, ...(typeof password === 'string' ? { obsPassword: password } : {}) };
+    settings = { ...settings, obsEnabled: !!enabled, obsAddress: address, obsStartReplay: !!startReplay, ...(typeof password === 'string' ? { obsPassword: password } : {}) };
     await store.save(settings);
     await service?.reconfigureObs(obsConfig());
     push();

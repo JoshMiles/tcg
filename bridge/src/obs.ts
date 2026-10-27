@@ -4,7 +4,7 @@
 import { EventSubscription, OBSWebSocket } from 'obs-websocket-js/json';
 
 export const DEFAULT_OBS_ADDRESS = 'ws://127.0.0.1:4455';
-export interface ObsConfig { enabled: boolean; address: string; password: string }
+export interface ObsConfig { enabled: boolean; address: string; password: string; /** Start the replay buffer when the stream starts (55.8). */ startReplay?: boolean }
 export interface OverlayCheck { found: boolean; inProgram: boolean; visible: boolean; sourceName: string }
 export interface ObsState { enabled: boolean; connected: boolean; error: string; scene: string; streaming: boolean | null; overlay: OverlayCheck }
 
@@ -41,7 +41,11 @@ function describe(e: unknown): string {
   return 'OBS is not running, or its WebSocket server is switched off';
 }
 
-interface Item { sourceName: string; sceneItemEnabled: boolean; isGroup: boolean | null }
+interface Item { sceneItemId: number; sourceName: string; sceneItemEnabled: boolean; isGroup: boolean | null }
+
+const SCENES_MAX = 100;
+const SOURCES_MAX = 200;
+const REQUEST_MS = 4000;
 
 export interface ObsOptions {
   /** The paired site's origin: only a browser source on this site's overlay page counts. */
@@ -54,6 +58,8 @@ export interface ObsOptions {
   reportMs?: number;
   /** An unchanged snapshot is sent again this often while connected, so the site can tell a quiet OBS from a lost one. */
   heartbeatMs?: number;
+  /** How long after a reveal a clip is saved, so the reaction is in it (55.8). */
+  clipAfterMs?: number;
 }
 
 export class ObsWatcher {
@@ -68,9 +74,14 @@ export class ObsWatcher {
   private sendTimer: ReturnType<typeof setTimeout> | undefined;
   private lastSent = 0;
   private lastJson = '';
+  /** The scene and source names last read from OBS (and sent to the site): a job may only name one of these. */
+  private scenes: string[] = [];
+  private sources: string[] = [];
+  /** Puts things back later (the scene, a hidden source). */
+  private timers = new Set<ReturnType<typeof setTimeout>>();
 
   constructor(opts: ObsOptions, config: ObsConfig) {
-    this.o = { backoffMs: { min: 1000, max: 30_000 }, debounceMs: 1000, reportMs: 1000, heartbeatMs: 30_000, ...opts };
+    this.o = { backoffMs: { min: 1000, max: 30_000 }, debounceMs: 1000, reportMs: 1000, heartbeatMs: 30_000, clipAfterMs: 5000, ...opts };
     this.config = config;
     this.state.enabled = config.enabled;
   }
@@ -100,6 +111,8 @@ export class ObsWatcher {
     clearTimeout(this.checkTimer);
     clearTimeout(this.sendTimer);
     this.sendTimer = undefined;
+    for (const t of this.timers) clearTimeout(t);
+    this.timers.clear();
     if (this.state.connected || this.lastJson) { // the site hears that OBS is gone
       this.state.connected = false;
       this.state.streaming = null;
@@ -130,6 +143,57 @@ export class ObsWatcher {
     }
     if (!names.length) throw new ObsError('The overlay browser source was not found in OBS');
     return names.length;
+  }
+
+  private live(): OBSWebSocket {
+    if (!this.config.enabled) throw new ObsError('OBS is switched off in TCG Bridge');
+    if (!this.obs || !this.state.connected) throw new ObsError('TCG Bridge is not connected to OBS');
+    return this.obs;
+  }
+
+  private async ask<T>(f: () => Promise<T>, failed: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([f(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), REQUEST_MS); })]);
+    } catch (e) {
+      if (e instanceof ObsError) throw e;
+      throw new ObsError(failed);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private later(ms: number, f: () => Promise<unknown>): void {
+    const t = setTimeout(() => { this.timers.delete(t); void f().catch(() => undefined); }, ms);
+    this.timers.add(t);
+  }
+
+  /** Saves the replay buffer `clipAfterMs` from now (after the reveal). Says plainly when the buffer is off. */
+  async saveClip(): Promise<void> {
+    const obs = this.live();
+    const on = await this.ask(async () => (await obs.call('GetReplayBufferStatus')).outputActive, 'OBS did not answer about the replay buffer').catch(() => { throw new ObsError('The OBS replay buffer is off, so no clip was saved'); });
+    if (!on) throw new ObsError('The OBS replay buffer is off, so no clip was saved');
+    this.later(this.o.clipAfterMs, () => obs.call('SaveReplayBuffer'));
+  }
+
+  /** Cuts to a scene OBS reported, then back to the one that was on air after `secs`. */
+  async switchScene(name: string, secs: number): Promise<void> {
+    const obs = this.live();
+    if (!this.scenes.includes(name)) throw new ObsError(`OBS has no scene called ${name}`);
+    const back = this.state.scene;
+    await this.ask(() => obs.call('SetCurrentProgramScene', { sceneName: name }), 'OBS did not switch the scene');
+    // Only go back when nobody changed scene meanwhile.
+    this.later(secs * 1000, async () => { if (this.state.scene === name && back && back !== name) await obs.call('SetCurrentProgramScene', { sceneName: back }); });
+  }
+
+  /** Shows a source of the scene on air, and hides it again after `holdMs` (0 leaves it shown). */
+  async showSource(name: string, holdMs: number): Promise<void> {
+    const obs = this.live();
+    if (!this.sources.includes(name)) throw new ObsError(`OBS has no source called ${name} in the current scene`);
+    const sceneName = this.state.scene;
+    const set = (sceneItemEnabled: boolean) => obs.call('GetSceneItemId', { sceneName, sourceName: name }).then(r => obs.call('SetSceneItemEnabled', { sceneName, sceneItemId: r.sceneItemId, sceneItemEnabled }));
+    await this.ask(() => set(true), 'OBS did not show the source');
+    if (holdMs > 0) this.later(holdMs, () => set(false));
   }
 
   /** Runs the overlay check now (the window's "Check OBS") and returns what it found. Throws ObsError in words. */
@@ -185,8 +249,7 @@ export class ObsWatcher {
       this.lastJson = '';
       // In the background: a request on a connection that closes never answers, so only `closed` ends this session.
       void (async () => {
-        this.streamChanged((await obs.call('GetStreamStatus')).outputActive);
-        await this.check();
+        this.streamChanged((await obs.call('GetStreamStatus')).outputActive);        await this.check();
         this.send(true);
       })().catch(() => { this.state.error = 'Could not read OBS'; this.onChange(); });
       await Promise.race([closed, stopped]);
@@ -211,7 +274,16 @@ export class ObsWatcher {
     if (was || !this.lastJson) this.queueSend(); // the first time too: the site learns OBS is switched on but not reachable
   }
 
+  /** The "start the replay buffer with the stream" switch. A buffer that is already running or cannot start is left alone. */
+  private async startReplayBuffer(obs: OBSWebSocket): Promise<void> {
+    if (!this.config.startReplay) return;
+    try {
+      if (!(await obs.call('GetReplayBufferStatus')).outputActive) await obs.call('StartReplayBuffer');
+    } catch { /* the clip action says so when the buffer is off */ }
+  }
+
   private streamChanged(live: boolean): void {
+    if (live && this.obs) void this.startReplayBuffer(this.obs);
     this.state.streaming = live;
     this.onChange();
     void this.o.report({ type: 'stream', live }).catch(() => undefined);
@@ -244,6 +316,12 @@ export class ObsWatcher {
       const scene = cur.currentProgramSceneName ?? cur.sceneName ?? '';
       const names = await this.overlaySources(obs);
       const overlay: OverlayCheck = { found: names.length > 0, inProgram: false, visible: false, sourceName: names[0] ?? '' };
+      // The names a pull rule may pick (55.8): every scene, and the items of the scene on air.
+      // Best effort: a failure here must not hide the overlay check.
+      const list = (await obs.call('GetSceneList').catch(() => ({ scenes: [] }))) as unknown as { scenes?: { sceneName?: string }[] };
+      this.scenes = (list.scenes ?? []).map(s => s.sceneName).filter((n): n is string => typeof n === 'string').slice(0, SCENES_MAX);
+      const items = (await obs.call('GetSceneItemList', { sceneName: scene }).catch(() => ({ sceneItems: [] }))).sceneItems as unknown as Item[];
+      this.sources = items.map(i => i.sourceName).filter(n => !names.includes(n)).slice(0, SOURCES_MAX);
       if (names.length) {
         const best = (name: string, visible: boolean) => {
           if (!overlay.inProgram || (visible && !overlay.visible)) overlay.sourceName = name;
@@ -279,7 +357,7 @@ export class ObsWatcher {
   /** `force` sends even an unchanged snapshot (a heartbeat). */
   private send(force: boolean): void {
     const { connected, scene, overlay } = this.state;
-    const body = { type: 'obs', connected, scene, overlay: { found: overlay.found, inProgram: overlay.inProgram, visible: overlay.visible, sourceName: overlay.sourceName } };
+    const body = { type: 'obs', connected, scene, overlay: { found: overlay.found, inProgram: overlay.inProgram, visible: overlay.visible, sourceName: overlay.sourceName }, scenes: connected ? this.scenes : [], sources: connected ? this.sources : [] };
     const json = JSON.stringify(body);
     if (!force && json === this.lastJson) return;
     this.lastJson = json;

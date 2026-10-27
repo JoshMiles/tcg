@@ -78,7 +78,7 @@ export function outLine(kind: OutKind, urls: Record<OutKind, string>, health: Mi
  * (`bridge` given: when a bridge last polled, or null, and what it last saw in OBS) one TCG Bridge chip and the OBS chip replace
  * the address chips. Pure.
  */
-export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>, now: number, ago: (at: number, now: number) => string, bridge?: { at: number | null; obs?: ObsSnapshot | null }): HealthChip[] {
+export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>, now: number, ago: (at: number, now: number) => string, bridge?: { at: number | null; obs?: ObsSnapshot | null; watchdog?: { on: boolean; at: number | null } }): HealthChip[] {
   const chips: HealthChip[] = [];
   const routes = Object.entries(health.seen);
   const last = routes.filter(([, s]) => s.okAt).sort((a, b) => b[1].okAt! - a[1].okAt!)[0];
@@ -94,6 +94,9 @@ export function healthChips(health: MixItUpHealth, urls: Record<OutKind, string>
       : { tone: 'bad', text: `TCG Bridge not connected${bridge.at ? ` (last seen ${ago(bridge.at, now)})` : ''}` });
     const obs = obsChip(bridge.obs, now);
     if (obs) chips.push(obs);
+    const w = bridge.watchdog;
+    if (w?.at) chips.push({ tone: 'muted', text: `Overlay watchdog last refreshed the overlay ${ago(w.at, now)}` });
+    else if (w?.on) chips.push({ tone: 'muted', text: 'Overlay watchdog on, has not needed to act' });
     return chips;
   }
   for (const kind of OUT_KINDS) chips.push(outLine(kind, urls, health, now, ago));

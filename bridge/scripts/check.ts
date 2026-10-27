@@ -155,7 +155,7 @@ async function main() {
   for (const secret of [TOKEN, 'pw-123']) logger.addSecret(secret);
   const client = new SiteClient(siSrv.url, TOKEN, '0.0.0');
   const obsOff = { enabled: false, address: 'ws://127.0.0.1:4455', password: '' };
-  const obs = new ObsWatcher({ site: siSrv.url, report: b => client.report(b), backoffMs: { min: 10, max: 40 }, debounceMs: 30, reportMs: 20, heartbeatMs: 200 }, obsOff);
+  const obs = new ObsWatcher({ site: siSrv.url, report: b => client.report(b), backoffMs: { min: 10, max: 40 }, debounceMs: 30, reportMs: 20, heartbeatMs: 200, clipAfterMs: 30 }, obsOff);
   const svc = new BridgeService({
     client, mix, obs, onChange: () => { changes++; }, log: logger.log,
     mixCheckMs: 50, backoffMs: { min: 10, max: 40 }, retryMs: 5,
@@ -199,7 +199,7 @@ async function main() {
     await svc.reconfigureObs({ enabled: true, address, password: 'pw-123' });
     await waitFor('connected', () => svc.state.obs.connected && svc.state.obs.overlay.found);
     await waitFor('first snapshot', () => lastObs()?.connected === true);
-    assert.deepEqual(lastObs(), { type: 'obs', connected: true, scene: 'Gameplay', overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG Overlay' } });
+    assert.deepEqual(lastObs(), { type: 'obs', connected: true, scene: 'Gameplay', overlay: { found: true, inProgram: true, visible: true, sourceName: 'TCG Overlay' }, scenes: ['Gameplay', 'Just Chatting'], sources: ['Cam'] });
     assert.deepEqual(streamReports(), [false], 'the stream state is reported once on connect');
     assert.equal(svc.state.tray, 'connected');
     assert.deepEqual(snapshotOf(svc.state), { site: true, mix: true, obs: true, streaming: false }, 'what the alerts are fed');
@@ -260,6 +260,28 @@ async function main() {
     assert.equal(seen.ok, true);
     assert.match(seen.text, /Scene Gameplay, not streaming\. TCG Overlay is visible in Gameplay\./);
 
+    // pull-event (55.8): save a clip, switch scene and back, show a source and hide it again; names must be ones OBS reported
+    const pull = (extra: Partial<BridgeJob>) => resultOf(job('pull-event', extra));
+    const noBuffer = await pull({ phase: 'reveal', clip: true });
+    assert.deepEqual([noBuffer.ok, noBuffer.error], [false, 'The OBS replay buffer is off, so no clip was saved']);
+    fake.replayBuffer = true;
+    assert.equal((await pull({ phase: 'reveal', clip: true })).ok, true);
+    await waitFor('clip saved after the delay', () => fake.saved === 1);
+    const badScene = await pull({ phase: 'reveal', scene: 'Nope', secs: 1 });
+    assert.deepEqual([badScene.ok, badScene.error], [false, 'OBS has no scene called Nope']);
+    assert.equal(fake.scene, 'Gameplay');
+    assert.equal((await pull({ phase: 'reveal', scene: 'Just Chatting', secs: 1 })).ok, true);
+    assert.equal(fake.scene, 'Just Chatting');
+    await waitFor('back to the first scene', () => fake.scene === 'Gameplay');
+    cam.sceneItemEnabled = false;
+    const badSource = await pull({ phase: 'start', source: 'Nope', holdMs: 50 });
+    assert.deepEqual([badSource.ok, badSource.error], [false, 'OBS has no source called Nope in the current scene']);
+    assert.equal(cam.sceneItemEnabled, false);
+    assert.equal((await pull({ phase: 'start', source: 'Cam', holdMs: 100 })).ok, true);
+    assert.equal(cam.sceneItemEnabled, true);
+    await waitFor('source hidden again', () => cam.sceneItemEnabled === false);
+    cam.sceneItemEnabled = true;
+
     // obs-refresh presses "Refresh cache of current page" on the overlay source, and only on it
     const refreshed = await resultOf(job('obs-refresh'));
     assert.equal(refreshed.ok, true);
@@ -292,6 +314,16 @@ async function main() {
     await waitFor('reconnected to OBS', () => svc.state.obs.connected && fake.identified > identified);
     await waitFor('back in the site', () => lastObs()?.connected === true && lastObs()?.overlay.visible === true);
     assert.equal(svc.state.tray, 'connected');
+
+    // "Start the replay buffer when the stream starts": off by default, on starts it when the stream goes live
+    fake.replayBuffer = false;
+    fake.emit('StreamStateChanged', { outputActive: true, outputState: 'OBS_WEBSOCKET_OUTPUT_STARTED' });
+    await new Promise(r => setTimeout(r, 100));
+    assert.equal(fake.replayBuffer, false, 'the switch is off');
+    await svc.reconfigureObs({ enabled: true, address, password: 'pw-123', startReplay: true });
+    await waitFor('reconnected with the switch', () => svc.state.obs.connected);
+    fake.emit('StreamStateChanged', { outputActive: true, outputState: 'OBS_WEBSOCKET_OUTPUT_STARTED' });
+    await waitFor('replay buffer started', () => fake.replayBuffer);
 
     // switching OBS off in the app: the site hears it, and the tray stops caring
     await svc.reconfigureObs({ enabled: false, address, password: '' });
@@ -477,7 +509,7 @@ async function main() {
     const si2 = fakeSite();
     const siSrv2 = await listen(si2.handler);
     const client2 = new SiteClient(siSrv2.url, TOKEN, '0.0.0');
-    const obs2 = new ObsWatcher({ site: siSrv2.url, report: b => client2.report(b), backoffMs: { min: 10, max: 40 }, debounceMs: 30, reportMs: 20, heartbeatMs: 200 }, obsOff);
+    const obs2 = new ObsWatcher({ site: siSrv2.url, report: b => client2.report(b), backoffMs: { min: 10, max: 40 }, debounceMs: 30, reportMs: 20, heartbeatMs: 200, clipAfterMs: 30 }, obsOff);
     const svc2 = new BridgeService({ client: client2, mix, obs: obs2, onChange: () => undefined, mixCheckMs: 20, commandsMs: 150, backoffMs: { min: 10, max: 40 }, retryMs: 5 });
     svc2.start();
     await waitFor('first hello', () => si2.s.hellos.length >= 1);
@@ -693,7 +725,7 @@ async function main() {
   assert.equal((await store.load()).site, 'https://cheesytcg.app');
   assert.equal((await store.load()).startWithWindows, true);
   assert.deepEqual([(await store.load()).alerts, (await store.load()).startMixItUp, (await store.load()).mixItUpPath, defaults().lastSeenVersion], [true, false, '', ''], 'alerts on, starting Mix It Up off');
-  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0' };
+  const full = { site: 'https://example.test', token: 'secret-token', pairedAs: 'PC', startWithWindows: false, obsEnabled: true, obsAddress: 'ws://localhost:4456', obsPassword: 'obs-secret', obsStartReplay: true, alerts: false, startMixItUp: true, mixItUpPath: 'C:\\Mix\\MixItUp.exe', lastSeenVersion: '0.2.0' };
   await store.save(full);
   const saved = readFileSync(join(dir, 'settings.json'), 'utf8');
   assert.ok(!saved.includes('secret-token') && !saved.includes('obs-secret'));

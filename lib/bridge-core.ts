@@ -3,8 +3,9 @@
 import { createHash, randomInt } from 'crypto';
 import { VIEWERS_MAX } from './mixitup-core';
 
-export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command';
-export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; at: number }
+export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command' | 'pull-event';
+/** `pull-event` (ROADMAP 55.8): `phase` 'start' shows `source` for `holdMs`; 'reveal' switches to `scene` for `secs` and/or saves a clip. Names are ones the app reported. */
+export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; delayMs?: number; phase?: 'start' | 'reveal'; source?: string; holdMs?: number; scene?: string; secs?: number; clip?: boolean; at: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeReply { ok: boolean; status: number; body: unknown; error?: string }
 export interface BridgeCurrency { id: string; name: string }
@@ -23,7 +24,7 @@ export const TOUCH_EVERY_MS = 10_000;
 export const CONNECTED_MS = 60_000;
 export const BRIDGE_DID_NOT_ANSWER = 'TCG Bridge did not answer';
 
-const KINDS: readonly string[] = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command'];
+const KINDS: readonly string[] = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command', 'pull-event'];
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -88,16 +89,18 @@ export function cleanHello(raw: unknown): { version: string; currencies: BridgeC
 }
 
 /** What TCG Bridge last saw in OBS (ROADMAP 55.6b): only facts, never the overlay address or key. `at` is when the site stored it. */
-export interface ObsSnapshot { at: number; connected: boolean; scene: string; overlay: { found: boolean; inProgram: boolean; visible: boolean; sourceName: string } }
+export interface ObsSnapshot { at: number; connected: boolean; scene: string; overlay: { found: boolean; inProgram: boolean; visible: boolean; sourceName: string }; scenes: string[]; sources: string[] }
+export const OBS_NAMES_MAX = 200;
+const obsNames = (raw: unknown): string[] => (Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string' && x.trim() !== '').map(x => x.slice(0, 100)).slice(0, OBS_NAMES_MAX) : []);
 
-/** An OBS report from a bridge (`{ type: 'obs', connected, scene, overlay }`) without `at`, strings capped; null when the shape is wrong. */
+/** An OBS report from a bridge (`{ type: 'obs', connected, scene, overlay, scenes, sources }`) without `at`, strings capped; null when the shape is wrong. The name lists (55.8) are empty from an older app. */
 export function cleanObs(raw: unknown): Omit<ObsSnapshot, 'at'> | null {
   if (!raw || typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;
   const v = (o.overlay && typeof o.overlay === 'object' ? o.overlay : null) as Record<string, unknown> | null;
   if (typeof o.connected !== 'boolean' || typeof o.scene !== 'string' || !v) return null;
   if (typeof v.found !== 'boolean' || typeof v.inProgram !== 'boolean' || typeof v.visible !== 'boolean' || typeof v.sourceName !== 'string') return null;
-  return { connected: o.connected, scene: o.scene.slice(0, 100), overlay: { found: v.found, inProgram: v.inProgram, visible: v.visible, sourceName: v.sourceName.slice(0, 100) } };
+  return { connected: o.connected, scene: o.scene.slice(0, 100), overlay: { found: v.found, inProgram: v.inProgram, visible: v.visible, sourceName: v.sourceName.slice(0, 100) }, scenes: obsNames(o.scenes), sources: obsNames(o.sources) };
 }
 
 /** A bridge result as the reply callers of the old addresses already read: a 200 with `{ ok, balance | users }`, or a failure with the reason. */
