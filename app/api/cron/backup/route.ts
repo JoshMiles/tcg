@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cronAuthorised } from '@/lib/cron-auth';
 import { runBackup } from '@/lib/backup';
+import { snapshotActiveSeason } from '@/lib/score-day';
 import { reportBackup, reportDataHealth } from '@/lib/system-notices';
 
 export const maxDuration = 300;
@@ -14,6 +15,8 @@ export async function GET(req: NextRequest) {
     const run = await runBackup();
     await reportBackup(run);
     await reportDataHealth();
+    // Daily score snapshot for the home page's Rising this week. Only reached in production (runBackup refuses elsewhere); a failure never fails the backup.
+    await snapshotActiveSeason().catch(e => console.error('score snapshot failed:', e instanceof Error ? e.message : e));
     return NextResponse.json({ ok: true, ...run });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Backup failed.';

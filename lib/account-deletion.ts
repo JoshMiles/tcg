@@ -10,6 +10,7 @@ import { unlinkDiscord } from './discord-user';
 import { recordAudit } from './audit';
 import { recordActivity } from './activity';
 import { deleteFeedbackOf } from './feedback';
+import { removeUserFromScoreDays } from './score-day';
 
 // Deleting a viewer completely (admin "Delete this viewer", and the Users page delete). Order matters: open offers are cancelled first so
 // escrowed prints go back to the viewer, then every collection is emptied (the print ledger retires what they held), then the rest.
@@ -38,6 +39,7 @@ export async function deleteViewerAccount(username: string): Promise<DeletionRep
   const snapshot = !!(await takeUserSnapshot(user, 'Before deleting the account'));
   const seasons = await listSeasons();
   for (const s of seasons) await removeUserFromCollection(s.collectionName, user);
+  for (const s of seasons) await removeUserFromScoreDays(s.collectionName, user).catch(() => {}); // derived data, ages out in 8 days anyway
   const profile = await getUserProfile(user);
   await deleteUserProfile(user);
   await deleteUserPullLimit(user);
