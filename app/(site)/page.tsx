@@ -24,6 +24,7 @@ import { getSession, loginConfigured } from '@/lib/session';
 import { listOpenTrades } from '@/lib/trades';
 import { seasonCountdown, viewerStanding } from '@/lib/home-data';
 import { profileHref } from '@/lib/profile-url';
+import { readScoreDays, risingGains } from '@/lib/score-day';
 
 export default async function HomePage() {
   async function goToCollection(formData: FormData) {
@@ -42,7 +43,7 @@ export default async function HomePage() {
     : !season?.active ? (await listSeasons().catch(() => [])).filter(s => s.status !== 'draft' && s.endedAt).sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0))[0] ?? null : null;
 
   // Everything that needs only the season is read together; the recent pulls stream in on their own below.
-  const [overview, offers, wrap, hidden] = await Promise.all([
+  const [overview, offers, wrap, hidden, scoreDays] = await Promise.all([
     season ? getSeasonOverview(season) : null,
     // Offers waiting for the viewer (a quiet nudge, so a failure just leaves it out).
     session && season
@@ -51,10 +52,16 @@ export default async function HomePage() {
     lastEnded ? getSnapshot(lastEnded.id) : null,
     // Collectors an admin hid or who went private are left out of the rarest cards' owners.
     season ? getHiddenUsers().catch(() => new Set<string>()) : new Set<string>(),
+    // The daily score snapshots behind Rising this week (one read; empty until the first nightly run).
+    season ? readScoreDays(season) : {},
   ]);
   const standing = session && overview ? viewerStanding(overview.rows, session.username, overview.values.totalCards) : null;
 
   const top = overview?.rows.slice(0, 8) ?? [];
+  // Rising this week: the snapshot's players are matched against the board's rows, which already leave out hidden and private players.
+  const rising = overview ? risingGains(overview.rows, scoreDays, Date.now()) : null;
+  const showRising = !!rising?.since;
+  const risers = rising?.gains ?? [];
   const podium = wrap?.standings.slice(0, 3) ?? [];
 
   const cardByNumber = new Map(overview?.cards.map(c => [c.number, c]) ?? []);
@@ -63,7 +70,7 @@ export default async function HomePage() {
         .map(v => ({ card: cardByNumber.get(v.number)!, v })).filter(x => x.card)
     : [];
   const [avatars, collection] = await Promise.all([
-    getAvatars([...top.map(r => r.username), ...podium.map(r => r.username), ...(session ? [session.username] : [])]),
+    getAvatars([...(showRising ? risers : top).map(r => r.username), ...podium.map(r => r.username), ...(session ? [session.username] : [])]),
     season && rarest.length > 0 ? getCollectionCached(season) : null,
   ]);
   // Who holds the rarest cards.
@@ -198,10 +205,33 @@ export default async function HomePage() {
               {/* ── Top 5 ── */}
               <section className="flex flex-col gap-4">
                 <div className="flex items-end justify-between">
-                  <h2 className="font-display text-3xl font-bold text-white">Top collectors</h2>
+                  <div>
+                    <h2 className="font-display text-3xl font-bold text-white">{showRising ? 'Rising this week' : 'Top collectors'}</h2>
+                    {showRising && rising!.partial && <p className="text-xs text-gray-500">Since {new Date(rising!.since!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })}</p>}
+                  </div>
                   <Link href={`/leaderboard/${season.id}`} className="text-sm text-yellow-400 hover:text-yellow-300 font-semibold">Full leaderboard →</Link>
                 </div>
-                {top.length === 0 ? (
+                {showRising ? (
+                  risers.length === 0 ? (
+                    <p className="rind rounded-2xl p-6 text-sm text-gray-400 flex-1">No gains yet this week</p>
+                  ) : (
+                    <ol className="flex-1 flex flex-col gap-2">
+                      {risers.map((r, i) => (
+                        <li key={r.username} className="flex-1">
+                          <Link href={profileHref(r.username)} className={`rind rounded-xl px-4 py-3 h-full flex items-center gap-4 hover:brightness-125 transition ${session?.username === r.username ? 'ring-2 ring-yellow-500/70' : ''}`}>
+                            <span className="w-8 text-center font-bold text-gray-500 tabular-nums">{i + 1}</span>
+                            <Avatar src={avatars[r.username] && sizeTwitchAvatar(avatars[r.username], 70)} name={r.username} className="w-9 h-9 text-sm" />
+                            <span className="flex-1 min-w-0">
+                              <span className="block font-semibold text-white truncate">{r.username}</span>
+                              <span className="block text-xs text-gray-500">{r.score.toLocaleString()} points in total</span>
+                            </span>
+                            <span className="font-display text-2xl font-bold text-green-400 tabular-nums"><Icon name="trend" className="mr-1 text-lg" />+{r.gain.toLocaleString()}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ol>
+                  )
+                ) : top.length === 0 ? (
                   <p className="rind rounded-2xl p-6 text-sm text-gray-400 flex-1">No one is on the board yet. Be the first!</p>
                 ) : (
                   <ol className="flex-1 flex flex-col gap-2">

@@ -78,6 +78,7 @@ function run(cmd) {
     case 'llen': return (store.get(key) || []).length;
     case 'hget': { const h = store.get(key) || {}; return rest[0] in h ? h[rest[0]] : null; }
     case 'hmget': { const h = store.get(key) || {}; return rest.map(f => (f in h ? h[f] : null)); }
+    case 'hkeys': return Object.keys(store.get(key) || {});
     case 'hlen': return Object.keys(store.get(key) || {}).length;
     case 'hgetall': { const h = store.get(key); return h ? Object.entries(h).flat() : []; }
     case 'smembers': return store.get(key) || [];
