@@ -110,6 +110,18 @@ const clampInt = (v: unknown, min: number, max: number, fallback: number) => {
 };
 
 /** Coerces stored / posted settings into valid ones. */
+export interface TradeItemLike { variant: string; count: number }
+
+// TRIAL (ROADMAP 51.7, two weeks): a reversal of a "big" trade is logged as one that would need a second approval; nothing is blocked.
+// Big = any Golden print, or this many prints or more across both sides. shortcut: no card values or serial editions (the action has no
+// season cards in hand), upgrade to a value threshold if the trial shows this misses the trades staff worry about.
+export const BIG_TRADE_PRINTS = 6;
+export const SECOND_APPROVAL_NOTE = 'would need a second approval';
+
+export function isBigReversal(trade: { give: TradeItemLike[]; get: TradeItemLike[] }): boolean {
+  const items = [...trade.give, ...trade.get];
+  return items.some(i => i.variant === 'golden') || items.reduce((n, i) => n + i.count, 0) >= BIG_TRADE_PRINTS;
+}
 export function sanitizeTradeSettings(input: unknown): TradeSettings {
   const i = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
   const d = DEFAULT_TRADE_SETTINGS;
@@ -238,9 +250,9 @@ export function takeForEscrow(owned: number[], items: TradeItem[]): { ok: true; 
   return { ok: true, rest };
 }
 
-/** "2× Regular #5, Shiny Full Art #12" for logs and messages (names are looked up by the caller where it has them). */
+/** "2Ã— Regular #5, Shiny Full Art #12" for logs and messages (names are looked up by the caller where it has them). */
 export function describeItems(items: TradeItem[], nameOf?: (cardNumber: number) => string | undefined): string {
   return items
-    .map(i => `${i.count > 1 ? `${i.count}× ` : ''}${nameOf?.(i.cardNumber) ?? `#${i.cardNumber}`} (${VARIANT_LABELS[i.variant]})`)
+    .map(i => `${i.count > 1 ? `${i.count}Ã— ` : ''}${nameOf?.(i.cardNumber) ?? `#${i.cardNumber}`} (${VARIANT_LABELS[i.variant]})`)
     .join(', ');
 }

@@ -1,6 +1,6 @@
 import { Icon } from '@/app/components/Icon';
 import { staffPage } from '@/lib/staff-guard';
-import { getStaffActionCounts } from '@/lib/audit';
+import { getBigReversalCount, getStaffActionCounts } from '@/lib/audit';
 import { getStaffLog, listStaff, listSuperAdmins } from '@/lib/staff';
 import { ROLE_LABELS } from '@/lib/staff-core';
 import { isPasswordLoginEnabled } from '@/lib/admin-token';
@@ -12,7 +12,7 @@ import { StaffManager } from './StaffManager';
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
-export const metadata = { title: 'Staff · Admin', robots: { index: false } };
+export const metadata = { title: 'Staff Â· Admin', robots: { index: false } };
 
 const ago = (t?: number) => {
   if (!t) return 'never';
@@ -22,7 +22,7 @@ const ago = (t?: number) => {
 
 export default async function StaffPage() {
   const me = await staffPage('admin');
-  const [staff, log, counts] = await Promise.all([listStaff(), getStaffLog(25), getStaffActionCounts()]);
+  const [staff, log, counts, bigReversals] = await Promise.all([listStaff(), getStaffLog(25), getStaffActionCounts(), getBigReversalCount()]);
   const supers = listSuperAdmins();
   const passwordOn = isPasswordLoginEnabled();
 
@@ -66,6 +66,8 @@ export default async function StaffPage() {
           </ul>
         )}
       </Panel>
+
+      <p className="text-sm text-gray-400">Big reversals (trial): <strong className="text-white tabular-nums">{bigReversals}</strong> in the last 14 days that would need a second approval. Nothing is blocked; each is in the audit trail.</p>
 
       <Panel title="Recent changes" icon="history" hint="Who was added, changed or removed, and by whom.">
         {log.length === 0 ? <p className="text-sm text-gray-600">Nothing yet.</p> : (

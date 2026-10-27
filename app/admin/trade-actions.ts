@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin-guard';
 import { requireStaff } from '@/lib/staff-guard';
 import { checkModerate } from '@/lib/staff';
-import { sanitizeTradeSettings } from '@/lib/trade-core';
+import { isBigReversal, SECOND_APPROVAL_NOTE, sanitizeTradeSettings } from '@/lib/trade-core';
 import { recordAudit } from '@/lib/audit';
 import { deleteOldCollectionCopies, getSeason, getUserProfile, saveSeason } from '@/lib/kv';
 import { saveFlags } from '@/lib/user-admin';
@@ -130,9 +130,11 @@ export async function reverseTradeAction(id: string, reason: string): Promise<Tr
   const res = await reverseTrade(id, staff, reason);
   if (!res.ok) return { ok: false, message: res.error };
   const t = res.trade;
-  for (const u of [t.from, t.resolvedBy]) if (u) await recordAudit(u, 'Trade reversed', `${t.id.slice(0, 8)} with ${u === t.from ? t.resolvedBy : t.from}: ${t.reverseReason}`);
+  let big = false;
+  try { big = isBigReversal(t); } catch { /* the trial never breaks a reversal */ }
+  for (const u of [t.from, t.resolvedBy]) if (u) await recordAudit(u, 'Trade reversed', `${t.id.slice(0, 8)}${big ? ` (${SECOND_APPROVAL_NOTE})` : ''} with ${u === t.from ? t.resolvedBy : t.from}: ${t.reverseReason}`);
   // The activity event for the reversal names the staff member but not the reason, so the admin log gets the reason as its own line.
-  await notifyAdminLog({ action: 'Trade reversal reason', subject: `${t.from} and ${t.resolvedBy}`, detail: t.reverseReason, by: await currentStaffLogin() });
+  await notifyAdminLog({ action: 'Trade reversal reason', subject: `${t.from} and ${t.resolvedBy}`, detail: big ? `${t.reverseReason} (${SECOND_APPROVAL_NOTE})` : t.reverseReason, by: await currentStaffLogin() });
   revalidatePath('/admin/trades');
   revalidatePath('/mod/trades');
   revalidatePath(`/trade/${id}`);

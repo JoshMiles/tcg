@@ -1,6 +1,7 @@
 import { kv } from './db';
 import { currentStaffLogin } from './staff-actor';
 import { notifyAdminLog } from './discord';
+import { SECOND_APPROVAL_NOTE } from './trade-core';
 
 // A small audit trail of what an admin did to a viewer's account (grants, removals, resets, edits, restores, merges, flags). It is
 // best-effort (never throws), capped, and shown on the user's page. `audit:user:<name>` holds that viewer's newest entries and
@@ -42,6 +43,17 @@ export function countByStaff(entries: AuditEntry[], now: number, days = 7): Reco
 /** Actions per staff login over the last 7 days, from `audit:all` (one `lrange`). Capped at the newest ALL_CAP entries, so a very busy week undercounts. */
 export async function getStaffActionCounts(): Promise<Record<string, number>> {
   try { return countByStaff((await kv.lrange<AuditEntry>('audit:all', 0, ALL_CAP - 1)) ?? [], Date.now()); } catch { return {}; }
+}
+
+/** Pure (TRIAL, ROADMAP 51.7): distinct big trade reversals logged within the last days days. Both people get an entry, so count distinct trade ids (the detail starts with the id). */
+export function countBigReversals(entries: AuditEntry[], now: number, days = 14): number {
+  const ids = new Set<string>();
+  for (const e of entries) if (e.action === 'Trade reversed' && e.at >= now - days * DAY && e.detail?.includes(SECOND_APPROVAL_NOTE)) ids.add(e.detail.slice(0, 8));
+  return ids.size;
+}
+
+export async function getBigReversalCount(): Promise<number> {
+  try { return countBigReversals((await kv.lrange<AuditEntry>('audit:all', 0, ALL_CAP - 1)) ?? [], Date.now()); } catch { return 0; }
 }
 
 export async function getUserAudit(username: string, limit = 50): Promise<AuditEntry[]> {
