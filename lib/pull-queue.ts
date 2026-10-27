@@ -48,14 +48,16 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
   const mix = await getMixItUpSettings();
   const paid = mix.enabled && !o.free && !(await inSandbox());
   let known: { left?: number; balance?: number } = {};
+  let cost = mix.cost; // a paid pull shows the price stored on its reservation
   if (paid) {
     const r = await reservePaidPull(mix, username, id, undefined, o.role);
     if (!r.ok) {
       await note('balance', 'failed', r.message);
       return { ok: true, ignored: true, reason: r.reason, message: r.message, ...(r.balance !== undefined ? { balance: r.balance } : {}) };
     }
+    cost = r.price ?? mix.cost;
     known = { ...(r.left !== undefined ? { left: r.left } : {}), ...(r.balance !== undefined ? { balance: r.balance } : {}) };
-    await note('balance', 'ok', `Mix It Up answered and ${username} can pay ${mix.cost.toLocaleString()} ${mix.currency}`);
+    await note('balance', 'ok', `Mix It Up answered and ${username} can pay ${cost.toLocaleString()} ${mix.currency}`);
   } else {
     await note('balance', 'skipped', o.free ? 'Free pull: no balance check' : mix.enabled ? 'A sandbox never asks Mix It Up' : 'Paid pulls are off: no balance check');
   }
@@ -63,7 +65,7 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
   const draw = await issueDraw(id, username, paid, o.test && o.trace ? { trace: o.trace } : undefined);
   if (!draw) {
     if (paid) await releasePaidPull(id);
-    const message = replyText('no_packs', mix.replies, { username, cost: mix.cost.toLocaleString(), currency: mix.currency });
+    const message = replyText('no_packs', mix.replies, { username, cost: cost.toLocaleString(), currency: mix.currency });
     await note('queued', 'failed', message);
     return { ok: true, ignored: true, reason: 'no_packs', message };
   }
@@ -76,6 +78,6 @@ export async function queuePull(username: string, o: PullOptions = {}): Promise<
   }
   await note('queued', 'ok', 'A ticket was rolled and the pull is waiting for the overlay');
   await recordActivity({ type: 'trigger', kind: 'pull', username, ...(o.test ? { test: true as const } : {}) });
-  const message = replyText('queued', mix.replies, { username, cost: mix.cost.toLocaleString(), currency: mix.currency, left: known.left, balance: known.balance?.toLocaleString() });
+  const message = replyText('queued', mix.replies, { username, cost: cost.toLocaleString(), currency: mix.currency, left: known.left, balance: known.balance?.toLocaleString() });
   return { ok: true, message, ...known };
 }
