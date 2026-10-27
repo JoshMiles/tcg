@@ -193,6 +193,17 @@ export function refusalMessage(reason: RefusalReason, s: Pick<MixItUpSettings, '
   }
 }
 
+export const REFUSAL_LABELS: Record<string, string> = {
+  insufficient_balance: 'Not enough currency', limit_reached: 'Pull limit reached', mixitup_unavailable: 'Mix It Up did not answer', bad_balance: 'Balance could not be read',
+};
+
+/** The sentences a refused pull sends back, from the price and limit being typed (the Paid pulls preview). A limit of 0 never refuses, so a sample shows. */
+export function refusalPreviews(s: Pick<MixItUpSettings, 'cost' | 'currency' | 'limit'>, username = 'cheesyviewer'): { reason: RefusalReason; label: string; text: string }[] {
+  const shown = { ...s, limit: s.limit > 0 ? s.limit : 3 };
+  const rows: [RefusalReason, number | undefined][] = [['insufficient_balance', Math.max(0, s.cost - 1)], ['limit_reached', undefined], ['bad_balance', undefined], ['mixitup_unavailable', undefined]];
+  return rows.map(([reason, balance]) => ({ reason, label: REFUSAL_LABELS[reason], text: refusalMessage(reason, shown, username, balance) }));
+}
+
 /** Can this balance cover every pull in flight, this one included (`pending` already counts it)? */
 export function decide(o: { balance: number; cost: number; pending: number }): boolean {
   return o.balance >= o.cost * o.pending; // pending already counts this pull
