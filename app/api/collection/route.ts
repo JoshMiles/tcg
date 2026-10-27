@@ -9,7 +9,7 @@ import { recordActivity } from '@/lib/activity';
 import { decodeEntry, parseCollectionData, VARIANT_LABELS } from '@/lib/variants';
 import { isAuthenticated } from '@/lib/auth';
 import { claimDraw } from '@/lib/draw';
-import { getMixItUpSettings, claimPaidPull, chargePaidPull, noticeUnpaid, refundPaidPull } from '@/lib/mixitup';
+import { getMixItUpSettings, claimPaidPull, chargePaidPull, noticeUnpaid, refundPaidPull, firePullRules } from '@/lib/mixitup';
 import { isOverlayRequest } from '@/lib/overlay-key';
 import { consumePullOnSave } from '@/lib/buffs';
 
@@ -116,13 +116,16 @@ export async function POST(req: NextRequest) {
   await recordStreamPull(username);
 
   // Sent after the response, held open by after() so the function isn't frozen before it goes out. The sandbox is decided
-  // now (it is not visible inside after()). Outside a request (scripts) it just runs.
+  // now (it is not visible inside after()). Outside a request (scripts) it just runs. The pull rules (Mix It Up commands on big pulls,
+  // ROADMAP 55.6d) go here too: the overlay saves a pull as it reveals it, so this is the reveal, and the save never waits on them.
   if (!(await inSandbox())) {
     const send = async () => {
-      const settings = await getWebhookSettings();
-      await fireOutgoing(settings.outgoing.cardPulled, {
-        username, cardName: ticket.cardName, cardNumber: String(cardNumber), stars: String(ticket.stars), variant, packName: ticket.packName,
-      }, 'cardPulled');
+      await Promise.allSettled([
+        getWebhookSettings().then(settings => fireOutgoing(settings.outgoing.cardPulled, {
+          username, cardName: ticket.cardName, cardNumber: String(cardNumber), stars: String(ticket.stars), variant, packName: ticket.packName,
+        }, 'cardPulled')),
+        firePullRules({ username, cardName: ticket.cardName, stars: ticket.stars, variant, isNew }),
+      ]);
     };
     try { after(() => send().catch(() => {})); } catch { await send().catch(() => {}); }
   }

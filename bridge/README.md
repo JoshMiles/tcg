@@ -26,6 +26,7 @@ The overlay is the browser source whose address is `<paired site>/overlay.html?.
 - **Tests** (buttons in the window, each answers in words): **Test Mix It Up** (Developer API, version, the chosen currency by id and name, a balance for a Twitch name, prefilled with the channel name), **Send test chat message**, **Check OBS**.
 - **Start Mix It Up.** When Mix It Up is not found the window offers **Start Mix It Up**. It launches only `MixItUp.exe` from the path you chose with **Choose MixItUp.exe...**, else from Mix It Up's default install folder (`%LocalAppData%\MixItUp`). The **Start Mix It Up with TCG Bridge** switch (off by default) does it when the app starts.
 - **Log.** One file a day in the app's logs folder (**Open log folder**), kept 7 days: connects, drops, jobs (kind, result, time) and errors. It never holds the pairing token, the OBS password, the pair code or the overlay key. **Copy diagnostics** copies the versions, the statuses and the last 20 jobs as text, redacted the same way, for a bug report.
+- **Mix It Up commands (0.4.0).** The app lists your enabled Mix It Up commands to the site (on start, every 5 minutes and when Mix It Up comes back) so a rule on the Mix It Up page can pick one, and it runs a command for a big pull only if it is in that list. The command gets the viewer, card, rarity and version as arguments.
 - **Updates.** The window shows the version and a **Check for updates** button. After an update it says "Updated to x.y.z" once, with a link to the release notes.
 
 ## Develop

@@ -1,8 +1,9 @@
 // The TCG site's bridge API (app/api/bridge/*). The only address this file ever fetches is the paired site.
-export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh';
-export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; at?: number }
+export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command';
+export interface BridgeJob { id: string; kind: string; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; at?: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeCurrency { id: string; name: string }
+export interface BridgeCommand { id: string; name: string }
 
 /** The token was revoked (or never valid): stop polling and ask for a new pairing. */
 export class Unauthorized extends Error { constructor() { super('Pair again'); } }
@@ -47,8 +48,8 @@ export class SiteClient {
   }
 
   /** The site answers with the channel name and the chosen currency's id; an older site sends neither. */
-  async hello(currencies: BridgeCurrency[], mixItUpVersion: string): Promise<{ channel: string; currencyId: string }> {
-    const r = await this.call('/api/bridge/hello', { version: mixItUpVersion, currencies }, AbortSignal.timeout(15_000));
+  async hello(currencies: BridgeCurrency[], mixItUpVersion: string, commands: BridgeCommand[] = []): Promise<{ channel: string; currencyId: string }> {
+    const r = await this.call('/api/bridge/hello', { version: mixItUpVersion, currencies, commands }, AbortSignal.timeout(15_000));
     if (r.status !== 200) throw new SiteError(r.status, `hello: the site answered ${r.status}`);
     return { channel: typeof r.json.channel === 'string' ? r.json.channel : '', currencyId: typeof r.json.currencyId === 'string' ? r.json.currencyId : '' };
   }

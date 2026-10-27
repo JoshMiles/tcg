@@ -14,6 +14,7 @@ import { CommandsPanel } from './CommandsPanel';
 import { MixItUpConfig } from './MixItUpConfig';
 import { MixItUpLog } from './MixItUpLog';
 import { BridgeCard } from './BridgeCard';
+import { PullRules } from './PullRules';
 import { listBridges, readBridge, readObs } from '@/lib/bridge';
 
 // @next-codemod-ignore Cache Components adoption: this segment temporarily allows blocking.
@@ -69,6 +70,7 @@ export default async function MixItUpPage({ searchParams }: { searchParams: Prom
             bridges={(await listBridges()).map(b => ({ id: b.id, name: b.name, paired: timeAgo(b.createdAt), seen: b.lastSeen ? timeAgo(b.lastSeen) : 'never' }))}
           />
           <MixItUpConfig settings={settings} streamExtra={streamBuffAmount(await getStreamBuff(), await currentStreamKey())} bridge={bridge} />
+          <PullRules rules={settings.pullRules} commands={bridge.commands} />
         </div>
       )}
       {tab === 'commands' && <CommandsPanel initial={await getCommands()} stats={await getCommandStats()} webhookUrl={`${SITE_URL}/api/webhooks/command`} secret={(await getWebhookSettings()).incomingSecret} />}

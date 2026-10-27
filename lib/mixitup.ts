@@ -4,7 +4,8 @@
 import { kv, inSandbox } from './db';
 import { sendWebhook } from './webhook-send';
 import { noteOutgoing, outKindOf } from './mixitup-health';
-import { callBridge } from './bridge';
+import { bridgeRunCommand, callBridge } from './bridge';
+import { matchRule, pullArgs, type PullFacts } from './pull-rules-core';
 import { getActiveSeason, withLock } from './kv';
 import { getLiveStatus } from './twitch-live';
 import { notifySystem } from './discord';
@@ -27,6 +28,21 @@ export async function getMixItUpSettings(): Promise<MixItUpSettings> {
 }
 export async function saveMixItUpSettings(s: MixItUpSettings): Promise<void> {
   await kv.set(KEY, normalizeMixItUp(s));
+}
+
+/**
+ * Runs the first Mix It Up command whose rule this pull meets (ROADMAP 55.6d). Called once per ticketed save, so it fires as the overlay
+ * reveals the pull. Does not wait for the command; never throws; a sandbox, no rules or no paired bridge do nothing. True when queued.
+ */
+export async function firePullRules(pull: PullFacts): Promise<boolean> {
+  try {
+    if (await inSandbox()) return false;
+    const rules = (await getMixItUpSettings()).pullRules;
+    const hit = rules.length ? matchRule(rules, pull) : null;
+    return hit ? await bridgeRunCommand(hit.commandId, pullArgs(pull)) : false;
+  } catch {
+    return false;
+  }
 }
 
 // ── The request log (last 20) ──

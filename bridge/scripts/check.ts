@@ -22,6 +22,9 @@ import { cleanSite, pair, SiteClient, SiteError, type BridgeJob, type BridgeResu
 
 const CUR = '11111111-2222-3333-4444-555555555555';
 const ALICE = 'aaaaaaaa-0000-0000-0000-000000000001';
+const CMD_SOUND = 'cccccccc-0000-0000-0000-000000000001';
+const CMD_OFF = 'cccccccc-0000-0000-0000-000000000002';
+const CMD_LIGHTS = 'cccccccc-0000-0000-0000-000000000003';
 const TOKEN = 'tok-123';
 
 type Handler = (req: IncomingMessage, res: ServerResponse, body: string) => void;
@@ -53,6 +56,13 @@ function fakeMixItUp() {
   const users = new Map<string, FakeUser>([['alice', { ID: ALICE, TwitchID: '77', Username: 'alice', amount: 10 }]]);
   const calls: { method: string; url: string; body: unknown }[] = [];
   const chat: { Message: string; SendAsStreamer: boolean }[] = [];
+  // Mix It Up's commands (CommandV1Controller): a disabled one and one with no name are not offered to the site
+  const commands = [
+    { ID: CMD_SOUND, Name: 'Big pull sound', IsEnabled: true },
+    { ID: CMD_OFF, Name: 'Switched off', IsEnabled: false },
+    { ID: 'cccccccc-0000-0000-0000-000000000009', Name: '  ', IsEnabled: true },
+  ];
+  const ran: { id: string; args: unknown }[] = [];
   const asUser = (u: FakeUser) => ({ ID: u.ID, TwitchID: u.TwitchID, Username: u.Username, CurrencyAmounts: [{ ID: CUR, Name: 'Brie Bucks', Amount: u.amount }], InventoryAmounts: [] });
   const handler: Handler = (req, res, body) => {
     const url = req.url ?? '';
@@ -60,6 +70,14 @@ function fakeMixItUp() {
     calls.push({ method: req.method ?? '', url, body: json });
     if (url === '/api/status/version') return send(res, 200, '1.10.0.0', 'text/plain');
     if (url === '/api/currency') return send(res, 200, [{ ID: CUR, Name: 'Brie Bucks' }]);
+    if (url === '/api/commands' && req.method === 'GET') return send(res, 200, commands.map(c => ({ ID: c.ID, Name: c.Name, IsEnabled: c.IsEnabled, Category: 'Chat', GroupName: '' })));
+    const rc = /^\/api\/commands\/([^/]+)$/.exec(url);
+    if (rc && req.method === 'POST') {
+      const c = commands.find(x => x.ID === rc[1]);
+      if (!c) return send(res, 404, { Message: `Unable to find command: ${rc[1]}.` });
+      ran.push({ id: c.ID, args: json });
+      return send(res, 200, { ID: c.ID, Name: c.Name, IsEnabled: c.IsEnabled });
+    }
     const t = /^\/api\/users\/twitch\/([^/]+)$/.exec(url);
     if (t && req.method === 'GET') {
       const u = users.get(decodeURIComponent(t[1]));
@@ -79,14 +97,14 @@ function fakeMixItUp() {
     if (url === '/api/chat/message' && req.method === 'POST') { chat.push(json); return send(res, 200, ''); }
     send(res, 404, { Message: 'no route' });
   };
-  return { users, calls, chat, handler };
+  return { users, calls, chat, commands, ran, handler };
 }
 
 // ── Fake site: the bridge API from app/api/bridge/* ──
 function fakeSite() {
   const s = {
     jobs: [] as BridgeJob[],
-    hellos: [] as { version: string; currencies: { id: string; name: string }[] }[],
+    hellos: [] as { version: string; currencies: { id: string; name: string }[]; commands?: { id: string; name: string }[] }[],
     results: [] as BridgeResult[],
     reports: [] as Record<string, unknown>[],
     resultAttempts: 0,
@@ -295,7 +313,7 @@ async function main() {
 
   svc.start();
   await waitFor('hello', () => si.s.hellos.length > 0);
-  assert.deepEqual(si.s.hellos[0], { version: '1.10.0.0', currencies: [{ id: CUR, name: 'Brie Bucks' }] }); // the version stays a string
+  assert.deepEqual(si.s.hellos[0], { version: '1.10.0.0', currencies: [{ id: CUR, name: 'Brie Bucks' }], commands: [{ id: CMD_SOUND, name: 'Big pull sound' }] }); // the version stays a string; hello carries the enabled, named commands
   await waitFor('connected', () => svc.state.site === 'connected' && svc.state.mix.found);
   assert.equal(svc.state.tray, 'connected');
 
@@ -319,6 +337,22 @@ async function main() {
   const say = await resultOf(job('say', { text: 'hello chat' }));
   assert.equal(say.ok, true);
   assert.deepEqual(mi.chat[1], { Message: 'hello chat', SendAsStreamer: false });
+
+  // run-command (ROADMAP 55.6d): only an id the app itself reported is run, with the args as a JSON array of strings
+  const ranOk = await resultOf(job('run-command', { commandId: CMD_SOUND, args: ['alice', 'Gouda Goat', 'Epic', 'Full Art Holo'] }));
+  assert.equal(ranOk.ok, true);
+  assert.deepEqual(mi.ran, [{ id: CMD_SOUND, args: ['alice', 'Gouda Goat', 'Epic', 'Full Art Holo'] }], 'POST /api/commands/{id} with the four arguments');
+  assert.equal((await resultOf(job('run-command', { commandId: CMD_SOUND.toUpperCase(), args: ['bob'] }))).ok, true, 'ids compare without case');
+  assert.equal((await resultOf(job('run-command', { commandId: CMD_SOUND, args: ['x', 5, null, 'y'] as unknown as string[] }))).ok, true);
+  assert.deepEqual(mi.ran.at(-1)!.args, ['x', 'y'], 'non-string args are dropped');
+  const ranBefore = mi.ran.length;
+  for (const bad of [CMD_OFF, CMD_LIGHTS, 'not-a-guid', '', '../status/version']) {
+    const refused = await resultOf(job('run-command', { commandId: bad, args: ['alice'] }));
+    assert.deepEqual([refused.ok, refused.error], [false, 'That Mix It Up command is not in the list this app reported'], `refused: ${bad}`);
+  }
+  assert.equal((await resultOf(job('run-command', { args: ['alice'] }))).ok, false, 'no command id');
+  assert.equal(mi.ran.length, ranBefore, 'an unreported id never reaches Mix It Up');
+  assert.ok(!mi.calls.some(c => c.url.includes('..')));
 
   // OBS is off by default: the refresh job is answered at once and the tray ignores OBS
   const offT0 = Date.now();
@@ -412,6 +446,28 @@ async function main() {
   const hellosBefore = si.s.hellos.length;
   await new Promise<void>(r => miSrv.server.listen(Number(new URL(miSrv.url).port), '127.0.0.1', r));
   await waitFor('hello after Mix It Up returns', () => si.s.hellos.length > hellosBefore);
+
+  // the command list is sent again on a timer (every 5 minutes in the app), so a command added in Mix It Up reaches the site and can then run
+  {
+    const si2 = fakeSite();
+    const siSrv2 = await listen(si2.handler);
+    const client2 = new SiteClient(siSrv2.url, TOKEN, '0.0.0');
+    const obs2 = new ObsWatcher({ site: siSrv2.url, report: b => client2.report(b), backoffMs: { min: 10, max: 40 }, debounceMs: 30, reportMs: 20, heartbeatMs: 200 }, obsOff);
+    const svc2 = new BridgeService({ client: client2, mix, obs: obs2, onChange: () => undefined, mixCheckMs: 20, commandsMs: 150, backoffMs: { min: 10, max: 40 }, retryMs: 5 });
+    svc2.start();
+    await waitFor('first hello', () => si2.s.hellos.length >= 1);
+    assert.deepEqual(si2.s.hellos[0].commands, [{ id: CMD_SOUND, name: 'Big pull sound' }]);
+    mi.commands.push({ ID: CMD_LIGHTS, Name: 'Lights', IsEnabled: true });
+    await waitFor('commands sent again', () => si2.s.hellos.some(h => h.commands?.some(c => c.id === CMD_LIGHTS)));
+    const lights = job('run-command', { commandId: CMD_LIGHTS, args: ['alice'] });
+    si2.s.jobs.push(lights);
+    await waitFor('lights ran', () => si2.s.results.some(r => r.id === lights.id));
+    assert.equal(si2.s.results.find(r => r.id === lights.id)!.ok, true);
+    assert.equal(mi.ran.at(-1)!.id, CMD_LIGHTS);
+    await svc2.stop();
+    await new Promise<void>(r => siSrv2.server.close(() => r()));
+    mi.commands.pop();
+  }
 
   await obsChecks();
 

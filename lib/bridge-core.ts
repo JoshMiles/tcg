@@ -3,11 +3,14 @@
 import { createHash, randomInt } from 'crypto';
 import { VIEWERS_MAX } from './mixitup-core';
 
-export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh';
-export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; at: number }
+export type JobKind = 'balance' | 'deduct' | 'add' | 'viewers' | 'say' | 'obs-refresh' | 'run-command';
+export interface BridgeJob { id: string; kind: JobKind; username?: string; amount?: number; currencyId?: string; text?: string; commandId?: string; args?: string[]; at: number }
 export interface BridgeResult { id: string; ok: boolean; balance?: number; users?: string[]; error?: string }
 export interface BridgeReply { ok: boolean; status: number; body: unknown; error?: string }
 export interface BridgeCurrency { id: string; name: string }
+/** A Mix It Up command the app reported (ROADMAP 55.6d). */
+export interface BridgeCommand { id: string; name: string }
+export const COMMANDS_MAX = 500;
 
 export const WAIT_MS = 8000;          // how long a caller waits for a result
 export const POLL_MS = 250;           // how often it looks
@@ -20,7 +23,8 @@ export const TOUCH_EVERY_MS = 10_000;
 export const CONNECTED_MS = 60_000;
 export const BRIDGE_DID_NOT_ANSWER = 'TCG Bridge did not answer';
 
-const KINDS: readonly string[] = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh'];
+const KINDS: readonly string[] = ['balance', 'deduct', 'add', 'viewers', 'say', 'obs-refresh', 'run-command'];
+const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
@@ -62,8 +66,8 @@ export function cleanResult(raw: unknown): BridgeResult | null {
   return r;
 }
 
-/** The version and currencies a bridge announces. Null when the shape is wrong. */
-export function cleanHello(raw: unknown): { version: string; currencies: BridgeCurrency[] } | null {
+/** The version, currencies and (since TCG Bridge 0.4.0) Mix It Up commands a bridge announces. `commands` is undefined from an older app. Null when the shape is wrong. */
+export function cleanHello(raw: unknown): { version: string; currencies: BridgeCurrency[]; commands?: BridgeCommand[] } | null {
   if (!raw || typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;
   if (!Array.isArray(o.currencies)) return null;
@@ -72,7 +76,15 @@ export function cleanHello(raw: unknown): { version: string; currencies: BridgeC
     const x = (c && typeof c === 'object' ? c : {}) as Record<string, unknown>;
     if (typeof x.id === 'string' && x.id.trim() && typeof x.name === 'string' && x.name.trim()) currencies.push({ id: x.id.trim().slice(0, 80), name: x.name.trim().slice(0, 40) });
   }
-  return { version: typeof o.version === 'string' ? o.version.trim().slice(0, 40) : '', currencies };
+  let commands: BridgeCommand[] | undefined;
+  if (Array.isArray(o.commands)) {
+    commands = [];
+    for (const c of o.commands.slice(0, COMMANDS_MAX)) {
+      const x = (c && typeof c === 'object' ? c : {}) as Record<string, unknown>;
+      if (typeof x.id === 'string' && GUID.test(x.id.trim()) && typeof x.name === 'string' && x.name.trim()) commands.push({ id: x.id.trim().toLowerCase(), name: x.name.trim().slice(0, 100) });
+    }
+  }
+  return { version: typeof o.version === 'string' ? o.version.trim().slice(0, 40) : '', currencies, ...(commands ? { commands } : {}) };
 }
 
 /** What TCG Bridge last saw in OBS (ROADMAP 55.6b): only facts, never the overlay address or key. `at` is when the site stored it. */
