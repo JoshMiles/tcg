@@ -12,7 +12,7 @@ import { StaffManager } from './StaffManager';
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
-export const metadata = { title: 'Staff Â· Admin', robots: { index: false } };
+export const metadata = { title: 'Staff · Admin', robots: { index: false } };
 
 const ago = (t?: number) => {
   if (!t) return 'never';

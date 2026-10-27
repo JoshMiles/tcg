@@ -250,9 +250,9 @@ export function takeForEscrow(owned: number[], items: TradeItem[]): { ok: true; 
   return { ok: true, rest };
 }
 
-/** "2Ã— Regular #5, Shiny Full Art #12" for logs and messages (names are looked up by the caller where it has them). */
+/** "2× Regular #5, Shiny Full Art #12" for logs and messages (names are looked up by the caller where it has them). */
 export function describeItems(items: TradeItem[], nameOf?: (cardNumber: number) => string | undefined): string {
   return items
-    .map(i => `${i.count > 1 ? `${i.count}Ã— ` : ''}${nameOf?.(i.cardNumber) ?? `#${i.cardNumber}`} (${VARIANT_LABELS[i.variant]})`)
+    .map(i => `${i.count > 1 ? `${i.count}× ` : ''}${nameOf?.(i.cardNumber) ?? `#${i.cardNumber}`} (${VARIANT_LABELS[i.variant]})`)
     .join(', ');
 }
