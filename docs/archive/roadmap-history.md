@@ -1517,3 +1517,18 @@ From the Track 44 audits; finding details in `docs/archive/audit-2026-*.md`. 47.
 - **52.13 Slimmer admin sidebar (Done, #532).**
 - **52.14 Danger placement and the No sound chip (Done, #533).**
 - **52.15 Mod viewer tools (Done, #534).**
+
+## Track 54: follow-ups from the audit run (2026-10-27)
+
+Raised at the end of Tracks 48 to 52; Josh picked each.
+
+- **54.1 Admin viewer page names trade cards per season (Done, #561).**
+- **54.2 Past seasons on the owner's Stats tab (Done, #562).** Read from the wrap-up snapshots, so a season shows only when the owner finished in its top 100.
+- **54.3 Compact collapsed admin rail footer (Done, #563).** 247px to 97px, CSS only.
+- **54.4 QR codes use the site they are served from (Done, #564).** Only links on `SITE_URL` are rewritten.
+- **54.5 Rising this week (Done, #566).** Decided (Josh): a daily score snapshot `scoreday:<collection>` written by the backup cron, kept 8 days. Hidden and private players are not in it, so one who goes public mid-week counts from 0 until the week rolls over.
+- **54.6 Feedback naming staff goes to the admin log channel (Done, #567).** Fails closed: if staff cannot be read, it is treated as naming staff.
+- **54.7 Lineup gaps are a pre-flight note (Done, #568).** Decided (Josh): rarity tiers have no weight of their own, so the planned "warn only with weight" rule could not apply; the gap became a grey note.
+- **54.8 Stray server errors count toward the error spike (Done, #569).** `/api/twitch/*`, recent pulls and two crons count only, responses unchanged.
+- **54.9 Mods told why an admin page sent them back (Done, #570).** `/mod?denied=1` from the middleware, the admin layout and `staffPage()`.
+- **Also fixed: the profile More menu ran off the left of the screen on phones (#565).**
